@@ -3,7 +3,8 @@ import Foundation
 /// Sample calls for looking at the screens without a Mac: `-demo [call|sessions|edit|typing|request]` at launch,
 /// Debug builds only. Every name and word here is made up.
 struct Demo {
-    enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking }
+    enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
+                       voiceLock, voiceLockEnrolling, voiceLockEnrolled }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -20,6 +21,9 @@ struct Demo {
         case .meetingHand: meetingJSON(hand: true)
         case .meetingEnd: meetingEndJSON
         case .talking: talkingJSON
+        case .voiceLock: voiceLockJSON(lockNew)
+        case .voiceLockEnrolling: voiceLockJSON(lockEnrolling)
+        case .voiceLockEnrolled: voiceLockJSON(lockEnrolled, request: true)
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -62,6 +66,42 @@ struct Demo {
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
      "hearing": "ask docs whether the changelog", "sessions": \(sessions), "talk": \(talk),
      "ptt": {"mode": "ptt", "open": true, "closed_why": ""}}
+    """
+
+    // MARK: owner-voice lock
+
+    private static func voiceLockJSON(_ lock: String, request: Bool = false) -> String {
+        let billing = request
+            ? #"{"name": "billing/main", "working": true, "waiting": true, "needs": null, "request": "git push origin retry-fix", "request_id": "ef56ab78", "voice_can_approve": true}"#
+            : #"{"name": "billing/main", "working": true, "waiting": false, "needs": null}"#
+        return """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
+         "sessions": [\(billing), {"name": "docs", "working": false, "waiting": false, "needs": null}], "talk": \(talk),
+         "voice_lock": \(lock)}
+        """
+    }
+
+    private static let lockLines = #"["The quick brown fox jumps over the lazy dog.", "Pack my box with five dozen jugs.", "Bright vixens jump; dozy fowl quack.", "שלום, זה הקול שלי.", "היום יום יפה לתכנת.", "אני מדבר בקצב רגיל."]"#
+
+    private static let lockNew = """
+    {"level": "off", "enrolled": false, "devices": [], "enrolling": null, "lines": \(lockLines), "model": "ready",
+     "problem": null, "ignored": {"count": 0, "last_at": null, "recent": []}, "speaker": null, "unsure_streak": 0}
+    """
+
+    private static let lockEnrolling = """
+    {"level": "off", "enrolled": false, "devices": [], "lines": \(lockLines), "model": "downloading", "problem": null,
+     "enrolling": {"device": "iPhone", "progress": 0.42, "line": 2, "text": "Pack my box with five dozen jugs.",
+                   "seconds": 10.5, "segments": 2, "rejected": 1, "last_reason": "too quiet"},
+     "ignored": {"count": 0, "last_at": null, "recent": []}, "speaker": null, "unsure_streak": 0}
+    """
+
+    private static let lockEnrolled = """
+    {"level": "approvals", "enrolled": true, "enrolling": null, "lines": \(lockLines), "model": "ready", "problem": null,
+     "devices": [{"device": "iPhone", "seconds": 31.2, "segments": 6, "enrolled_at": 1700000000},
+                 {"device": "iPhone · AirPods Pro", "seconds": 28.4, "segments": 5, "enrolled_at": 1700003600}],
+     "ignored": {"count": 2, "last_at": 1700007300, "recent": [{"at": 1700007200, "secs": 1.8},
+                 {"at": 1700007300, "secs": 2.4, "text": "tell docs to delete the branch"}]},
+     "speaker": {"owner": false, "score": 0.31, "at": 1700007300}, "unsure_streak": 3}
     """
 
     private static let brainstormJSON = """
