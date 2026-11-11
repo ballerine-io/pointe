@@ -214,11 +214,13 @@ async def real(link: str) -> None:
 
         await until(cue("me-dana"), 200)
         dana = label_of("goes live on Thursday")
+        await until(lambda: owner_label() == dana, 15)
         check("That was me: the owner moves to the speaker you pressed", dana is not None and owner_label() == dana,
               dana=dana, owner=owner_label())
         go("me-dana-checked")
         await until(cue("me-back"), 60)
         mine = label_of("move on")
+        await until(lambda: owner_label() == mine, 15)  # the cue is written as the tap lands, before the Mac answers
         check("That was me, back: the owner returns", mine is not None and owner_label() == mine, mine=mine, owner=owner_label())
         go("me-back-checked")
 

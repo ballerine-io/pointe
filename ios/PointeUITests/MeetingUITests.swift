@@ -98,6 +98,8 @@ final class MeetingUITests: XCTestCase {
         let button = app.buttons[item].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 5), "\(item) in the menu")
         button.tap()
+        if !button.waitForNonExistence(timeout: 5) { dump("menu-\(item)") }
+        shot("pressed-\(fragment.prefix(12))")
     }
 
     private func end() {
@@ -128,7 +130,8 @@ final class MeetingUITests: XCTestCase {
         cue("prefs-set")
         XCTAssertTrue(self.await("prefs-checked", timeout: 30))
         menu("Meeting settings")
-        XCTAssertTrue(text("English").waitForExistence(timeout: 10), "reopened: the value came back from the Mac")
+        if !text("English").waitForExistence(timeout: 10) { dump("settings-reopen") }
+        XCTAssertTrue(text("English").exists, "reopened: the value came back from the Mac")
         app.buttons["Done"].tap()
 
         // Start: mode, a linked session, the brief, then the consent step.
@@ -186,7 +189,8 @@ final class MeetingUITests: XCTestCase {
         let field = any("typeField")
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("what's waiting for me\n")
-        XCTAssertTrue(text("waiting on you").waitForExistence(timeout: 30), "the answer arrives as a note")
+        if !text("waiting on you").waitForExistence(timeout: 30) { dump("asked") }
+        XCTAssertTrue(text("waiting on you").exists, "the answer arrives as a note")
         shot("09-asked")
         app.buttons["Ask"].tap()
         cue("asked")
