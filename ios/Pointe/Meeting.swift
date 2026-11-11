@@ -50,26 +50,48 @@ enum MeetingCopy {
 /// The notes of the meeting on now, kept in step with the Mac: fetched only when the status says they changed.
 @MainActor @Observable
 final class MeetingFeed {
+    /// New notes after an id, and older ones changed after a version (nil: every changed one).
+    typealias Fetch = (_ since: Int, _ changedSince: Int?) async throws -> API.NotesPage
+
     private(set) var notes: [API.Note] = []
     private(set) var transcript: [API.TranscriptTurn] = []
-    private var version = -1
+    private var version = -1        // the notes version of the last answer; below 0 the next fetch is whole
     private var since: Double = 0
+    private var meetingId: String?  // the meeting the notes belong to (an older daemon names none)
 
     func sync(_ status: API.Status?, api: API) async {
+        await sync(status) { since, changed in try await api.notes(since: since, changedSince: changed) }
+    }
+
+    func sync(_ status: API.Status?, fetch: Fetch) async {
         guard let meeting = status?.meeting, meeting.isOn || meeting.isEnded else {
-            notes = []; transcript = []; version = -1; since = 0
+            notes = []; transcript = []; version = -1; since = 0; meetingId = nil
             return
         }
-        if let started = meeting.since, started != since {  // a new meeting: start clean
-            since = started; notes = []; transcript = []; version = -1
+        // A new meeting starts clean. An ended meeting's status has neither field: it keeps the ones it had.
+        if meeting.isOn, (meeting.since ?? since) != since || (meeting.id != nil && meeting.id != meetingId) {
+            since = meeting.since ?? since; meetingId = meeting.id; notes = []; transcript = []; version = -1
         }
         let fresh = status?.notes?.version ?? 0
         guard fresh != version else { return }
-        guard let page = try? await api.notes(since: notes.map(\.id).max() ?? 0) else { return }
-        var byId = Dictionary(uniqueKeysWithValues: notes.map { ($0.id, $0) })
-        for note in page.notes ?? [] where (note.at ?? since) >= since - 5 { byId[note.id] = note }
-        notes = byId.values.sorted { $0.id < $1.id }
+        let asked = version, whole = asked < 0, key = meetingId
+        guard let page = try? await fetch(whole ? 0 : notes.map(\.id).max() ?? 0, whole ? nil : asked) else { return }
+        // Answers can land out of order: one asked before a newer answer arrived would undo it (a suggestion you
+        // accepted, open again). Only the answer to the version still held counts.
+        guard version == asked, meetingId == key else { return }
+        notes = Self.merge(whole ? [] : notes, page.notes ?? [], meeting: key, since: since)
         version = page.version ?? fresh
+    }
+
+    /// Changed notes replace their copy by id. Only this meeting's: never another meeting's, or one written outside a
+    /// meeting. A note from an older daemon carries no meeting, and counts when written after the meeting started.
+    static func merge(_ held: [API.Note], _ fresh: [API.Note], meeting: String?, since: Double) -> [API.Note] {
+        var byId = Dictionary(uniqueKeysWithValues: held.map { ($0.id, $0) })
+        for note in fresh {
+            let ours = note.meeting.map { meeting == nil || $0 == meeting } ?? (meeting == nil && (note.at ?? since) >= since - 5)
+            if ours { byId[note.id] = note }
+        }
+        return byId.values.sorted { $0.id < $1.id }
     }
 
     func loadTranscript(api: API) async {
@@ -79,7 +101,8 @@ final class MeetingFeed {
     /// Shown at once, before the Mac confirms.
     func setState(_ id: Int, _ state: String) {
         notes = notes.map { $0.id == id ? API.Note(id: $0.id, kind: $0.kind, at: $0.at, updated: $0.updated, text: $0.text,
-                                                    meta: $0.meta, speakers: $0.speakers, session: $0.session, state: state) : $0 }
+                                                    meta: $0.meta, speakers: $0.speakers, session: $0.session, state: state,
+                                                    meeting: $0.meeting, rev: $0.rev) : $0 }
     }
 
     func useDemo(_ demo: [API.Note]) { notes = demo }
@@ -247,6 +270,7 @@ struct MeetingBanner: View {
     let setMode: (String) -> Void
     let speakers: () -> Void
     let settings: () -> Void
+    let reconnect: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -280,6 +304,8 @@ struct MeetingBanner: View {
                         Label(MeetingCopy.participating, systemImage: "hand.raised").tag("participating")
                     }
                     Button { speakers() } label: { Label("Speakers", systemImage: "person.2") }
+                    Button { reconnect() } label: { Label("Reconnect audio", systemImage: "arrow.triangle.2.circlepath") }
+                        .disabled(meeting.isEnding)
                     Button { settings() } label: { Label("Meeting settings", systemImage: "gearshape") }
                 } label: {
                     Image(systemName: "slider.horizontal.3").font(.body.weight(.semibold))
@@ -308,6 +334,7 @@ struct MeetingBanner: View {
     private var detail: String { vendorLine + " · " + state }
 
     private var state: String {
+        if meeting.isEnding { return "Ending: writing the summary\u{2026}" }
         if meeting.speaking == true { return "Speaking to the room" }
         if meeting.owner_known != true { return "Say \u{201C}Pointe, that's me\u{201D}" }
         if meeting.paused == true { return "Quiet room" }
@@ -396,7 +423,13 @@ struct NotesFeed: View {
     let showTranscript: () -> Void
 
     private var shown: [API.Note] {
-        notes.filter { $0.state != "dismissed" && filter.keeps($0.kind) && $0.kind != "summary" }
+        notes.filter { $0.state != "dismissed" && filter.keeps($0.kind) && $0.kind != "summary" && !settled($0) }
+    }
+
+    /// An open suggestion for a speaker who already has that name (a repeat of one you accepted) asks nothing.
+    private func settled(_ note: API.Note) -> Bool {
+        guard note.kind == "speaker", note.state == "open", let label = note.meta?.label, let name = note.meta?.name else { return false }
+        return speakers.contains { $0.label == label && $0.name == name }
     }
 
     var body: some View {
@@ -615,7 +648,9 @@ struct MeetingBar: View {
             Spacer()
             side("Speakers", "person.2", action: speakers)
             Spacer()
-            side("End", "stop.circle.fill", tint: .red, action: end).accessibilityIdentifier("endMeeting")
+            side(meeting.isEnding ? "Ending\u{2026}" : "End", "stop.circle.fill", tint: .red, action: end)
+                .disabled(meeting.isEnding)
+                .accessibilityIdentifier("endMeeting")
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 30))
@@ -694,7 +729,7 @@ struct MeetingEndSheet: View {
     let sessions: [API.Session]
     let transcript: () async -> [API.TranscriptTurn]
     let save: (Bool) async -> String?
-    let send: (String) async -> Bool
+    let send: (String) async -> String?  // nil when asked; otherwise why not
     let discard: () async -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var withTranscript = false
@@ -779,7 +814,7 @@ struct MeetingEndSheet: View {
                    isPresented: Binding(get: { sendTo != nil }, set: { if !$0 { sendTo = nil } })) {
                 Button("Send") {
                     let to = sendTo ?? ""
-                    Task { sent = await send(to) ? "Asked \(to) to take them." : "Not sent." }
+                    Task { sent = await send(to).map { "Not sent. \($0)" } ?? "Asked \(to) to take them." }
                     sendTo = nil
                 }
                 Button("Cancel", role: .cancel) { sendTo = nil }

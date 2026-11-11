@@ -86,3 +86,73 @@ final class MeetingTests: XCTestCase {
         XCTAssertTrue(with.contains("## Transcript\n- Dana: Hello"))
     }
 }
+
+/// The notes feed against a stand-in fetch: what it asks the Mac for, and the order answers land in.
+@MainActor
+final class MeetingFeedTests: XCTestCase {
+    private func status(version: Int, id: String = "m1", since: Double = 1000) -> API.Status {
+        try! JSONDecoder().decode(API.Status.self, from: Data("""
+            {"connected": true, "sessions": [], "notes": {"version": \(version)}, "meeting": {"on": true, "id": "\(id)", "since": \(since)}}
+            """.utf8))
+    }
+
+    private func note(_ id: Int, _ state: String, meeting: String? = "m1", at: Double = 1010) -> API.Note {
+        API.Note(id: id, kind: "speaker", at: at, updated: nil, text: "Speaker 2 may be Dana", meta: nil, speakers: nil,
+                 session: nil, state: state, meeting: meeting)
+    }
+
+    func testAnOlderAnswerArrivingLastDoesNotUndoANewerOne() async {
+        let feed = MeetingFeed()
+        await feed.sync(status(version: 1)) { _, _ in API.NotesPage(version: 1, notes: [self.note(7, "open")]) }
+        // One poll asks while the suggestion is open, and is answered only after a later poll saw it accepted.
+        var asked = false
+        let (gate, open) = AsyncStream<Void>.makeStream()
+        let late = Task { @MainActor in
+            await feed.sync(self.status(version: 2)) { _, _ in
+                asked = true
+                for await _ in gate { break }
+                return API.NotesPage(version: 2, notes: [self.note(7, "open")])
+            }
+        }
+        while !asked { await Task.yield() }
+        await feed.sync(status(version: 3)) { _, _ in API.NotesPage(version: 3, notes: [self.note(7, "done")]) }
+        open.yield()
+        await late.value
+        XCTAssertEqual(feed.notes.map(\.state), ["done"], "the accepted suggestion stays accepted")
+    }
+
+    func testAfterTheFirstLoadItAsksOnlyForWhatChanged() async {
+        let feed = MeetingFeed()
+        var asks: [String] = []
+        await feed.sync(status(version: 4)) { since, changed in
+            asks.append("\(since)/\(changed.map(String.init) ?? "-")")
+            return API.NotesPage(version: 4, notes: [self.note(2, "open"), self.note(5, "open")])
+        }
+        await feed.sync(status(version: 6)) { since, changed in
+            asks.append("\(since)/\(changed.map(String.init) ?? "-")")
+            return API.NotesPage(version: 6, notes: [self.note(2, "dismissed")])
+        }
+        XCTAssertEqual(asks, ["0/-", "5/4"])
+        XCTAssertEqual(feed.notes.map(\.state), ["dismissed", "open"], "a changed note replaces its copy by id")
+    }
+
+    func testOnlyThisMeetingsNotesAreShown() async {
+        let feed = MeetingFeed()
+        await feed.sync(status(version: 1)) { _, _ in
+            API.NotesPage(version: 1, notes: [self.note(1, "open", meeting: "m0"), self.note(2, "open", meeting: nil),
+                                              self.note(3, "open")])
+        }
+        XCTAssertEqual(feed.notes.map(\.id), [3], "not another meeting's, not one written outside a meeting")
+        await feed.sync(status(version: 2, id: "m2")) { _, _ in API.NotesPage(version: 2, notes: [self.note(9, "open", meeting: "m2")]) }
+        XCTAssertEqual(feed.notes.map(\.id), [9], "a new meeting starts clean, even one started in the same second")
+    }
+
+    func testRefusalsReadAsSentences() {
+        XCTAssertEqual(CallView.refusal(409, "the meeting is already ending"), "The meeting is already ending: the summary is being written.")
+        XCTAssertEqual(CallView.refusal(409, "end the meeting first"), "End the meeting first: it is still on.")
+        XCTAssertEqual(CallView.refusal(400, "no session has that name"), "That session is no longer connected. Pick another one.")
+        XCTAssertEqual(CallView.refusal(400, "turn_id must be a number"),
+                       "Pointe on the Mac did not accept that: turn_id must be a number. Update the app or Pointe on the Mac.")
+        XCTAssertEqual(CallView.refusal(409, "A meeting is already on."), "A meeting is already on.")
+    }
+}
