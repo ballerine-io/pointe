@@ -320,7 +320,21 @@ struct CallView: View {
         return ".!?".contains(body.last!) ? body : body + "."
     }
 
-    static func refusal(_ code: Int, _ detail: String) -> String { sentence(detail) }
+    /// The Mac's refusals of a meeting action, as sentences for the person holding the phone.
+    static func refusal(_ code: Int, _ detail: String) -> String {
+        switch detail {
+        case "the meeting is already ending": return "The meeting is already ending: the summary is being written."
+        case "end the meeting first": return "End the meeting first: it is still on."
+        case "no meeting is on": return "No meeting is on."
+        case "no meeting to act on": return "That meeting is gone: there is nothing to export or send."
+        case "no session has that name": return "That session is no longer connected. Pick another one."
+        case "name a session, and the meeting needs action items": return "Pick a session. Only a meeting with action items can send them."
+        default: break
+        }
+        guard code == 400, !detail.isEmpty else { return sentence(detail) }
+        let said = sentence(detail)
+        return "Pointe on the Mac did not accept that: \(said.prefix(1).lowercased())\(said.dropFirst()) Update the app or Pointe on the Mac."
+    }
 
     // MARK: meeting
 
@@ -446,7 +460,7 @@ struct CallView: View {
             try await call.api.startMeeting(mode: mode, brief: brief, sessions: sessions, autoLookups: autoLookups)
         } catch API.Failure.status(_, let detail) {
             if detail == "No call is up." { return "No call is up. Start one here with the mic, or on the Mac, then start the meeting." }
-            return detail.isEmpty ? "The Mac refused." : Self.sentence(detail)
+            return detail.isEmpty ? "The Mac refused." : Self.refusal(409, detail)
         } catch {
             return "The Mac did not answer."
         }
@@ -520,13 +534,13 @@ struct CallView: View {
             try await work()
             problem = nil
         } catch API.Failure.status(409, let detail) {
-            problem = detail == "no call is up" || detail.hasPrefix("HTTP") ? "Start the call first." : Self.sentence(detail)
+            problem = detail == "no call is up" || detail.hasPrefix("HTTP") ? "Start the call first." : Self.refusal(409, detail)
             return false
         } catch API.Failure.status(404, _) where meeting == nil {
             problem = "Pointe on the Mac does not know this yet: update it."
             return false
-        } catch API.Failure.status(_, let detail) {
-            problem = Self.sentence(detail)
+        } catch API.Failure.status(let code, let detail) {
+            problem = Self.refusal(code, detail)
             return false
         } catch {
             problem = "The Mac did not answer."

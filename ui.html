@@ -1357,7 +1357,10 @@
       if (!items.length) items = [el('li', 'empty', 'The transcript stays in memory only. Nothing has been said yet.')];
     } else {
       const want = meetFilter === 'all' ? null : meetFilter === 'thought' ? ['thought', 'hand', 'decision', 'brief', 'speaker', 'session_news'] : [meetFilter];
-      const notes = [...notesById.values()].filter(n => !want || want.includes(n.kind)).sort((a, b) => a.id - b.id);
+      // An open suggestion for a speaker who already has that name (a repeat of one you accepted) asks nothing.
+      const named = new Set(((m && m.speakers) || []).map(x => `${x.label}\n${x.name}`));
+      const settled = n => n.kind === 'speaker' && n.state === 'open' && n.meta && named.has(`${n.meta.label}\n${n.meta.name}`);
+      const notes = [...notesById.values()].filter(n => (!want || want.includes(n.kind)) && !settled(n)).sort((a, b) => a.id - b.id);
       for (const id of lookingUp) { const n = notesById.get(id); if (!n || n.state !== 'open') lookingUp.delete(id); }
       items = notes.map(n => keyed('n' + n.id, [n.updated, n.state, n.text, on, lookingUp.has(n.id)].join('|'), () => noteItem(n, m)));
       if (!items.length) items = [el('li', 'empty', m && m.mode === 'participating'

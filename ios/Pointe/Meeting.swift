@@ -55,8 +55,9 @@ final class MeetingFeed {
 
     private(set) var notes: [API.Note] = []
     private(set) var transcript: [API.TranscriptTurn] = []
-    private var version = -1
+    private var version = -1        // the notes version of the last answer; below 0 the next fetch is whole
     private var since: Double = 0
+    private var meetingId: String?  // the meeting the notes belong to (an older daemon names none)
 
     func sync(_ status: API.Status?, api: API) async {
         await sync(status) { since, changed in try await api.notes(since: since, changedSince: changed) }
@@ -64,19 +65,33 @@ final class MeetingFeed {
 
     func sync(_ status: API.Status?, fetch: Fetch) async {
         guard let meeting = status?.meeting, meeting.isOn || meeting.isEnded else {
-            notes = []; transcript = []; version = -1; since = 0
+            notes = []; transcript = []; version = -1; since = 0; meetingId = nil
             return
         }
-        if let started = meeting.since, started != since {  // a new meeting: start clean
-            since = started; notes = []; transcript = []; version = -1
+        // A new meeting starts clean. An ended meeting's status has neither field: it keeps the ones it had.
+        if meeting.isOn, (meeting.since ?? since) != since || (meeting.id != nil && meeting.id != meetingId) {
+            since = meeting.since ?? since; meetingId = meeting.id; notes = []; transcript = []; version = -1
         }
         let fresh = status?.notes?.version ?? 0
         guard fresh != version else { return }
-        guard let page = try? await fetch(notes.map(\.id).max() ?? 0, nil) else { return }
-        var byId = Dictionary(uniqueKeysWithValues: notes.map { ($0.id, $0) })
-        for note in page.notes ?? [] where (note.at ?? since) >= since - 5 { byId[note.id] = note }
-        notes = byId.values.sorted { $0.id < $1.id }
+        let asked = version, whole = asked < 0, key = meetingId
+        guard let page = try? await fetch(whole ? 0 : notes.map(\.id).max() ?? 0, whole ? nil : asked) else { return }
+        // Answers can land out of order: one asked before a newer answer arrived would undo it (a suggestion you
+        // accepted, open again). Only the answer to the version still held counts.
+        guard version == asked, meetingId == key else { return }
+        notes = Self.merge(whole ? [] : notes, page.notes ?? [], meeting: key, since: since)
         version = page.version ?? fresh
+    }
+
+    /// Changed notes replace their copy by id. Only this meeting's: never another meeting's, or one written outside a
+    /// meeting. A note from an older daemon carries no meeting, and counts when written after the meeting started.
+    static func merge(_ held: [API.Note], _ fresh: [API.Note], meeting: String?, since: Double) -> [API.Note] {
+        var byId = Dictionary(uniqueKeysWithValues: held.map { ($0.id, $0) })
+        for note in fresh {
+            let ours = note.meeting.map { meeting == nil || $0 == meeting } ?? (meeting == nil && (note.at ?? since) >= since - 5)
+            if ours { byId[note.id] = note }
+        }
+        return byId.values.sorted { $0.id < $1.id }
     }
 
     func loadTranscript(api: API) async {
@@ -408,7 +423,13 @@ struct NotesFeed: View {
     let showTranscript: () -> Void
 
     private var shown: [API.Note] {
-        notes.filter { $0.state != "dismissed" && filter.keeps($0.kind) && $0.kind != "summary" }
+        notes.filter { $0.state != "dismissed" && filter.keeps($0.kind) && $0.kind != "summary" && !settled($0) }
+    }
+
+    /// An open suggestion for a speaker who already has that name (a repeat of one you accepted) asks nothing.
+    private func settled(_ note: API.Note) -> Bool {
+        guard note.kind == "speaker", note.state == "open", let label = note.meta?.label, let name = note.meta?.name else { return false }
+        return speakers.contains { $0.label == label && $0.name == name }
     }
 
     var body: some View {

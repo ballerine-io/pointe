@@ -49,6 +49,11 @@ final class MeetingUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", fragment)).firstMatch
     }
 
+    /// A speaker suggestion with exactly this label (its buttons are part of it while it is open).
+    private func row(_ label: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "identifier == 'note-speaker' AND label == %@", label)).firstMatch
+    }
+
     private func menu(_ item: String) {
         app.buttons["Settings"].tap()
         let button = app.buttons[item].firstMatch
@@ -141,19 +146,22 @@ final class MeetingUITests: XCTestCase {
         cue("started")
         shot("04-banner")
 
-        // A suggested name: Ignore the first, use the next.
-        let ignore = app.buttons["Ignore"].firstMatch
-        if ignore.waitForExistence(timeout: 180) {
+        // A suggested name: Ignore the first, use the next. Each check follows the one suggestion tapped: another can be
+        // open at the same time.
+        let open = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'note-speaker' AND label CONTAINS 'Use this name'")).firstMatch
+        if open.waitForExistence(timeout: 180) {
             shot("05-suggestion")
-            ignore.tap()
-            XCTAssertTrue(ignore.waitForNonExistence(timeout: 10), "an ignored suggestion goes away")
+            let ignored = open.label
+            open.buttons["Ignore"].tap()
+            if !row(ignored).waitForNonExistence(timeout: 10) { dump("ignore") }
+            XCTAssertFalse(row(ignored).exists, "an ignored suggestion goes away")
             cue("ignored")
-            let use = app.buttons["Use this name"].firstMatch
-            if use.waitForExistence(timeout: 150) {
-                dump("before-accept")
-                use.tap()
-                if !use.waitForNonExistence(timeout: 10) { dump("accept") }
-                XCTAssertTrue(use.waitForNonExistence(timeout: 1), "an accepted suggestion is done")
+            if open.waitForExistence(timeout: 150) {
+                let accepted = open.label
+                open.buttons["Use this name"].tap()
+                if !row(accepted).waitForNonExistence(timeout: 10) { dump("accept") }
+                XCTAssertFalse(row(accepted).exists, "an accepted suggestion is done")
                 cue("accepted")
             } else { cue("no-second-suggestion") }
         } else { cue("no-suggestion") }
@@ -240,13 +248,18 @@ final class MeetingUITests: XCTestCase {
         expectation(for: enabled, evaluatedWith: share)
         waitForExpectations(timeout: 15)
         share.tap()
-        sleep(3)
-        shot("14-share")
-        let closeShare = app.buttons["Close"].firstMatch
-        if closeShare.exists { closeShare.tap() } else { app.swipeDown(velocity: .fast) }
-        sleep(1)
+        // The share sheet can take seconds to come up. Never tap a "Close" before it is there: the end sheet has one too.
+        let sheet = app.otherElements["ActivityListView"]
+        if sheet.waitForExistence(timeout: 15) {
+            shot("14-share")
+            let closeShare = sheet.buttons["Close"]
+            if closeShare.exists { closeShare.tap() } else { app.swipeDown(velocity: .fast) }
+            if !sheet.waitForNonExistence(timeout: 10) { dump("share") }
+        } else { dump("share-none") }
+        XCTAssertTrue(app.navigationBars["Meeting ended"].waitForExistence(timeout: 5), "back on the end sheet after sharing")
         reveal(app.buttons["meetingSave"]).tap()
-        XCTAssertTrue(text("Saved:").waitForExistence(timeout: 20), "saved on the Mac")
+        if !text("Saved:").waitForExistence(timeout: 20) { dump("saved") }
+        XCTAssertTrue(text("Saved:").exists, "saved on the Mac")
         cue("saved")
         let send = reveal(app.buttons["meetingSend"].firstMatch)
         if send.exists {
