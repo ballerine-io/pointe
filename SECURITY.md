@@ -76,7 +76,9 @@ What sessions report is data for the voice model, not instructions to it:
 
 With the microphone set to push to talk (Settings, on the page or the phone), no audio leaves your machine unless you hold
 the talk control (or toggled it on), plus 0.4 s after you let go. The daemon enforces this: it drops the audio before the
-voice detector and every vendor, whatever a client sends. A press ends by itself after 90 s.
+voice detector and every vendor, whatever a client sends. A press ends by itself after 90 s. One exception: during a
+meeting you started (it asks for consent and shows a recording indicator), the room's audio goes to the meeting's speech
+vendor without a press; talking to Pointe outside the meeting stream still needs one.
 
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
