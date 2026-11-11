@@ -25,7 +25,7 @@ from page_meeting import CHROME, Page, call, room  # noqa: E402
 from rig import DAEMON, GUEST_VOICES, ROOT, STATE, Browser, fresh_state, stop_daemon  # noqa: E402
 from scenarios import check, results  # noqa: E402
 
-DEBUG_PORT = 9336
+DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "9336"))  # parallel runs each need their own
 SHOTS = Path(os.environ.get("POINTE_SHOTS") or tempfile.mkdtemp(prefix="pointe-meeting-qa-"))
 DANA, SAM = GUEST_VOICES
 ROOM = [
@@ -270,7 +270,10 @@ async def main() -> None:
                     break
                 await asyncio.sleep(0.5)
             check("participating: a typed question is answered aloud to the room", bool(spoke))
-            await asyncio.sleep(6)
+            for _ in range(80):  # its answer runs ten to twenty seconds: the listening check must not hear its tail
+                if not browser.speaker.speech_spans(since=time.time() - 3):
+                    break
+                await asyncio.sleep(0.5)
 
             await page.js("document.getElementById('mm-listening').click()")
             listening = await page.until("document.getElementById('meetwhat').textContent === 'Meeting · Listening' && "
