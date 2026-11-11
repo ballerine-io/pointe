@@ -11,6 +11,7 @@ struct BottomBar: View {
     let type: () -> Void
     let sessions: () -> Void
     let hangUp: () -> Void
+    var talk: RingTalk? = nil  // push to talk: hold the ring
 
     private var live: Bool { phase == .live || phase == .reconnecting }
 
@@ -39,21 +40,24 @@ struct BottomBar: View {
         .sensoryFeedback(.impact(weight: .light), trigger: monologue)
     }
 
+    private var hot: Bool { phase == .live && (talk?.talking ?? !muted) }
+
     private var micButton: some View {
         Button(action: mic) {
             ZStack {
-                Circle().fill(phase == .live && !muted ? AnyShapeStyle(Brand.orange.gradient) : AnyShapeStyle(Brand.card))
-                Image(systemName: phase == .live && !muted ? "mic.fill" : phase == .off ? "mic" : "mic.slash.fill")
+                Circle().fill(hot ? AnyShapeStyle(Brand.orange.gradient) : AnyShapeStyle(Brand.card))
+                Image(systemName: hot ? "mic.fill" : phase == .off ? "mic" : "mic.slash.fill")
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(.white)
                     .contentTransition(.symbolEffect(.replace))
                 if phase == .connecting || phase == .reconnecting { ProgressView().tint(.white).offset(y: 30) }
             }
             .frame(width: 70, height: 70)
-            .shadow(color: phase == .live && !muted ? Brand.orange.opacity(0.5) : .clear, radius: 12)
+            .shadow(color: hot ? Brand.orange.opacity(0.5) : .clear, radius: 12)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Connect" : "Connecting")
+        .ringTalk(phase == .live ? talk : nil)
     }
 
     private func side(_ label: String, _ symbol: String, on: Bool = false, tint: Color = .primary,
