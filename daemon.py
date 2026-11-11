@@ -1753,7 +1753,9 @@ async def _on_meeting_turn(m, turn) -> None:
         return  # it asks nothing
     claims = any(meetings.command(w)[0] == "me" for w in fresh) and turn.speaker != m.owner
     voice = await _meeting_voice(turn) if m.owner is None or claims else None
-    if voice is not None and m.owner is None and speaker.strong(voice) and turn.speaker != m.bot:
+    if voice is not None and speaker.strong(voice) and turn.speaker == m.bot:
+        m.bot = None  # on a fresh stream the bot's echo can take a label first that turns out to be the owner's
+    if voice is not None and m.owner is None and speaker.strong(voice):
         m.bind_owner(turn.speaker)  # the voiceprint is who the owner is; the label follows it
         NOTES.add("thought", "Recognised your voice: you're the owner in this meeting.", dedup=False)
         logger.info("meeting: owner bound by the voiceprint")

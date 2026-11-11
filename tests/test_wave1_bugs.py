@@ -283,3 +283,42 @@ def test_with_a_voiceprint_the_entry_words_in_the_owners_voice_bind_the_owner(d,
     for t in turns:
         asyncio.run(d._on_meeting_turn(m, t))
     assert m.owner == "2"
+
+
+# ---------- 9. meeting + voice lock + reconnect: a strong voiceprint re-binds the owner on the label the echo took ----------
+
+def _echo_then_claim(d, monkeypatch, hz):
+    """After a reconnect the bot's echo closes first on the new stream, labelled "1:1"; then someone says "Pointe, that's
+    me" under the same label (diarisation settles late), in a voice of the given pitch."""
+    d.PREFS.update({"voice_lock": "approvals"})
+    m = meetings.Meeting(mode="participating", vendors={})
+    m.owner = "1"
+    d.state.meeting = m
+    m.stream_restarted()
+    assert m.owner is None
+    monkeypatch.setattr(d.ECHO, "speaking", True)  # ECHO.live
+    monkeypatch.setattr(d.ECHO, "user_part", lambda text: "")
+    now = time.time()
+    echo = m.hear([{"is_final": True, "text": " the launch looks fine to me", "speaker": "1", "start_ms": 0, "end_ms": 1500}], now)
+    echo += m.tick(now + 5)
+    for t in echo:
+        asyncio.run(d._on_meeting_turn(m, t))
+    assert m.bot == "1:1"
+    monkeypatch.setattr(d.ECHO, "user_part", lambda text: text)
+    d.state.meeting_ears = SimpleNamespace(audio_between=lambda a, b: tone(hz, 2.0))
+    claim = m.hear([{"is_final": True, "text": " Pointe, that's me", "speaker": "1", "start_ms": 4000, "end_ms": 6000}], now + 10)
+    claim += m.tick(now + 15)
+    for t in claim:
+        asyncio.run(d._on_meeting_turn(m, t))
+    return m
+
+
+def test_after_a_reconnect_the_voiceprint_rebinds_the_owner_even_on_the_label_the_echo_took(d, v, monkeypatch):
+    """bind_owner refused the label the bot's echo took, although the voiceprint said it was the owner."""
+    m = _echo_then_claim(d, monkeypatch, OWNER_HZ)
+    assert m.owner == "1:1" and m.bot is None, "the voiceprint matched the owner, yet the seat stays empty"
+
+
+def test_after_a_reconnect_another_voice_on_the_echos_label_does_not_take_the_seat(d, v, monkeypatch):
+    m = _echo_then_claim(d, monkeypatch, OTHER_HZ)
+    assert m.owner is None and m.bot == "1:1"
