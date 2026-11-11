@@ -1,0 +1,34 @@
+[project]
+name = "pointe"
+version = "0.2.0"
+description = "Talk to your Claude Code sessions by voice"
+authors = [
+    { name = "Ballerine" }
+]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "aiohttp>=3.14.5",
+    "anthropic>=2.6.0",
+    "pipecat-ai[google,openai,silero,soniox,websocket]==1.15.0",
+    "segno==1.6.6",
+    "uvicorn==0.54.0",
+]
+
+[project.optional-dependencies]
+local = [
+    "pipecat-ai[kokoro]==1.15.0",
+    "pipecat-ai[mlx-whisper]==1.15.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "pipecat-ai[whisper]==1.15.0; sys_platform != 'darwin' or platform_machine != 'arm64'",
+]
+
+[tool.uv]
+package = false  # scripts run from the checkout; nothing is installed as a package
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "sounddevice>=0.5.6",
+]

@@ -1,0 +1,34 @@
+{
+ "mode": "orchestrator",
+ "sessions": [
+  {
+   "name": "tidepool/webhook-retries",
+   "cwd": "/srv/synthetic/tidepool",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "Partner webhooks in Tidepool are dropping. Northwind Freight says they missed about 40 payout.settled events last week. Find out why and tell me what the options are for fixing it. Don't change anything yet."
+    },
+    {
+     "role": "assistant",
+     "text": "Root cause found. No code changed.\n\n**What happens today.** `WebhookDispatcher.send()` in `services/notify/dispatcher.ts` fires one POST per event, inline, in the payout settlement transaction's after-commit hook. On any non-2xx or timeout (5 s) it logs `webhook_failed` and drops the event. There is no retry at all.\n\n**Evidence.** I queried the notify logs for the last 14 days:\n\n| Partner | Events | Dropped | Rate | Main failure |\n|---|---|---|---|---|\n| Northwind Freight | 18,204 | 43 | 0.24% | 503 during their Sunday 02:00-06:00 UTC maintenance window |\n| Cobalt Parcel | 6,110 | 2 | 0.03% | timeout |\n| Everfern Goods | 2,977 | 0 | 0% | none |\n\nSo Northwind's complaint is real, and 41 of their 43 drops fall inside their maintenance window. The window is 4 hours.\n\n**Options.**\n\n1. **Inline retry.** Add exponential backoff inside `send()`. About 30 lines. Cheap, but it holds an event-loop slot for the whole backoff, it can't survive a pod restart, and it can't span a 4 hour window at all. Estimate: half a day.\n2. **Durable outbox in Postgres.** New `webhook_outbox` table written in the same transaction as the settlement, a worker polling with `FOR UPDATE SKIP LOCKED`, exponential backoff with jitter, 7 attempts over 24 hours, then a dead-letter state with an admin replay endpoint. Survives restarts and spans the window. Estimate: 3 days, plus one migration.\n3. **Hosted gateway (Relaybird).** Hand delivery to a vendor. Fastest to get retries and a partner portal, roughly $1,400 a month at our volume, and payout metadata leaves our infrastructure, so it needs a security review. Estimate: 2 days of integration plus the review.\n\n**My recommendation:** option 2. Option 1 does not solve the actual failure, and option 3 adds a vendor and a data-processing question for something Postgres does fine.\n\n**Decision needed from you:** which option, and whether 24 hours is the right retry ceiling."
+    }
+   ]
+  },
+  {
+   "name": "tidepool/misc",
+   "cwd": "/srv/synthetic/tidepool-misc",
+   "history": [
+    {
+     "role": "user",
+     "text": "Upgrade the linter to the new major in the tidepool repo and tell me what breaks."
+    },
+    {
+     "role": "assistant",
+     "text": "Upgraded the linter to v9 on a branch. 14 files fail the new `no-floating-promises` rule; none are autofixable. I have not fixed them. Tell me if you want them fixed in this branch or a separate one."
+    }
+   ]
+  }
+ ]
+}

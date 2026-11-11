@@ -1,0 +1,94 @@
+{
+ "mode": "orchestrator",
+ "sessions": [
+  {
+   "name": "harborpay/ledger-migration",
+   "cwd": "/tmp/synth/harborpay",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "We need to move ledger_entries to a monthly partitioned table without downtime. Northwind Freight is our biggest tenant, 410 million rows. Plan it, don't run anything yet."
+    },
+    {
+     "role": "assistant",
+     "text": "Plan: create `ledger_entries_p` partitioned by month on `posted_at`, dual-write through a trigger, backfill in 50k batches oldest first, verify per-tenant row counts and balance sums, then swap names in one transaction. Rollback is the reverse swap while the trigger keeps both sides current. Estimated backfill on production is about 19 hours at the current write rate."
+    },
+    {
+     "role": "user",
+     "text": "Good. Do the dry run on the staging snapshot and tell me anything that doesn't reconcile. And do not touch prod."
+    },
+    {
+     "role": "assistant",
+     "text": "Starting the dry run on the staging snapshot now. I will report per-tenant reconciliation when the backfill finishes."
+    }
+   ]
+  },
+  {
+   "name": "harborpay/webhook-retries",
+   "cwd": "/tmp/synth/harborpay-wt-webhooks",
+   "history": [
+    {
+     "role": "user",
+     "text": "Zentrix says they get duplicate settlement webhooks, sometimes four of the same event. Find out why and fix it."
+    },
+    {
+     "role": "assistant",
+     "text": "Root cause: the delivery worker marks an event delivered only after the HTTP call returns, and the queue visibility timeout is 30 seconds while Zentrix sometimes takes 40. So a slow success gets redelivered by a second worker. Fix is an idempotency key on the delivery row plus a visibility timeout of 120 seconds."
+    },
+    {
+     "role": "user",
+     "text": "Do it and add a test that reproduces the slow endpoint. Open a PR when it's green."
+    },
+    {
+     "role": "assistant",
+     "text": "On it. I will open the PR once the slow-endpoint test goes red then green."
+    }
+   ]
+  },
+  {
+   "name": "lumencart/checkout-flags",
+   "cwd": "/tmp/synth/lumencart",
+   "history": [
+    {
+     "role": "user",
+     "text": "Put the new LumenCart one-page checkout behind a per-merchant flag. Default off. Velvet Row Goods is the pilot merchant, they go live Thursday."
+    },
+    {
+     "role": "assistant",
+     "text": "Added `checkout.onePage` to the flag registry, default false, with the tri-state override in the merchant console. Velvet Row Goods is not enabled yet. Next I am wiring the storefront to read the resolved flag and running the storefront end-to-end tests."
+    },
+    {
+     "role": "user",
+     "text": "Fine, run the end-to-end suite against the pilot config when it's wired up."
+    },
+    {
+     "role": "assistant",
+     "text": "Wiring is in. Running the end-to-end suite against the Velvet Row Goods pilot config now."
+    }
+   ]
+  },
+  {
+   "name": "Claude Code voice conversation addon",
+   "cwd": "/tmp/synth/voxline-addon",
+   "history": [
+    {
+     "role": "user",
+     "text": "In the voice addon, barge-in is flaky: when I interrupt, it sometimes keeps talking for two seconds. Investigate."
+    },
+    {
+     "role": "assistant",
+     "text": "The speech gate waits for the full audio chunk before it cancels playback. Chunks are 1.8 seconds at the current buffer size, which matches what you hear. I can cut the chunk to 200 ms and cancel on the first voiced frame, at a small cost in CPU."
+    },
+    {
+     "role": "user",
+     "text": "Do that and measure the latency before and after."
+    },
+    {
+     "role": "assistant",
+     "text": "Changing the buffer now and measuring interrupt-to-silence latency across 40 scripted interruptions."
+    }
+   ]
+  }
+ ]
+}

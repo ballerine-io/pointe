@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Open the voice page in the browser. The address carries the page key once; the page then keeps it as a cookie.
+set -euo pipefail
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+[ -r "$STATE/page_key" ] || { echo "voice-open: the daemon has not started yet; run /pointe:voice in a Claude Code session" >&2; exit 1; }
+URL="http://localhost:$PORT/voice?key=$(cat "$STATE/page_key")"
+if command -v open >/dev/null 2>&1; then open "$URL"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
+else echo "voice-open: no browser opener found; open http://localhost:$PORT/voice?key= followed by the contents of $STATE/page_key" >&2; exit 1; fi

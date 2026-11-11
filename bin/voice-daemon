@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# The one shared voice daemon. Usage: voice-daemon ensure|stop|status
+# ensure: start it if it is not running (prints its URL). Sessions then register with it.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+PIDFILE="$STATE/daemon.pid"
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+URL="http://127.0.0.1:$PORT"
+mkdir -p "$STATE" && chmod 700 "$STATE"
+
+running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+
+case "${1:-ensure}" in
+  status) running && echo "running (pid $(cat "$PIDFILE")) $URL/voice" || echo "stopped"; exit 0 ;;
+  stop)
+    if running; then
+      PID="$(cat "$PIDFILE")"
+      KIDS="$(pgrep -P "$PID" 2>/dev/null || true)"
+      kill $KIDS "$PID" 2>/dev/null || true
+      # uvicorn shuts down gracefully: an open voice call keeps the old process (and its old code and
+      # state) alive after the port is free. Wait for the processes themselves, then force them.
+      for _ in $(seq 1 20); do
+        alive=""; for p in $KIDS "$PID"; do kill -0 "$p" 2>/dev/null && alive=1; done
+        [ -z "$alive" ] && break
+        sleep 0.25
+      done
+      kill -9 $KIDS "$PID" 2>/dev/null || true
+      for _ in $(seq 1 20); do lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1 || break; sleep 0.25; done
+    fi
+    rm -f "$PIDFILE"; echo "stopped"; exit 0 ;;
+  ensure) ;;
+  *) echo "usage: voice-daemon ensure|stop|status" >&2; exit 2 ;;
+esac
+
+# Answering is not enough: a squatter on the port would then be handed the token and the page key.
+ours() {
+  command -v lsof >/dev/null 2>&1 || return 0
+  local pid; pid="$(cat "$PIDFILE")"
+  lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN | grep -qxE "$pid|$(pgrep -P "$pid" | paste -sd'|' -)"
+}
+healthy() { curl -sf -m 2 -o /dev/null "$URL/voice/health" && ours; }
+wait_healthy() {
+  for _ in $(seq 1 120); do
+    healthy && { echo "$URL"; exit 0; }
+    running || break
+    sleep 0.5
+  done
+  grep -vE '^[[:space:]]*$|Open: http' "$STATE/daemon.log" | tail -5 >&2 || true
+  echo "voice-daemon: did not start, see $STATE/daemon.log" >&2
+  exit 1
+}
+
+running && wait_healthy  # up, or still starting: never report a URL nothing answers on
+rm -f "$PIDFILE"
+if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "voice-daemon: port $PORT is taken by another process ($(lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN | head -1 | xargs ps -o comm= -p)). Use another: CLAUDE_VOICE_DAEMON_PORT=7870" >&2; exit 1
+fi
+
+# First run downloads the dependencies; done here so that time does not count against the start below.
+command -v uv >/dev/null 2>&1 || { echo "voice-daemon: uv is missing. Install it: https://docs.astral.sh/uv/" >&2; exit 1; }
+# Local ears and mouth are large and optional: installed only when asked for.
+if [ -f "$STATE/config.json" ] && grep -qE '"(ears|mouth)": *"local' "$STATE/config.json" || [[ "${CLAUDE_VOICE_EARS:-}${CLAUDE_VOICE_MOUTH:-}" == *local* ]]; then
+  EXTRA=(--extra local)
+else
+  EXTRA=()
+fi
+[ -d "$ROOT/.venv" ] || echo "voice-daemon: first run, downloading about 600 MB..." >&2
+uv sync --locked --quiet --project "$ROOT" ${EXTRA[@]+"${EXTRA[@]}"}
+uv run --no-sync --project "$ROOT" python "$ROOT/doctor.py" --preflight >&2
+
+# Per-daemon secret for registration, hooks and channels; 0600 so only this user can read it.
+( umask 077; openssl rand -hex 24 >"$STATE/token" )
+
+# Keys are read by the daemon itself (vendors.py): only those its setup needs, from the environment or the Keychain.
+# Detached so it outlives whichever session started it.
+umask 077  # daemon.log holds session content
+rm -f "$STATE/daemon.log"
+# Not the starting session's Claude identity: the daemon serves sessions of several accounts and harnesses, each with
+# its own config dir, sent at registration.
+UNSET=(-u CLAUDE_CONFIG_DIR -u CLAUDECODE -u CLAUDE_PID)
+for var in $(env | sed -n 's/^\(CLAUDE_CODE_[A-Z_]*\)=.*/\1/p'); do UNSET+=(-u "$var"); done
+env "${UNSET[@]}" CLAUDE_VOICE_STATE="$STATE" nohup uv run --no-sync --project "$ROOT" python "$ROOT/daemon.py" --port "$PORT" \
+  >"$STATE/daemon.log" 2>&1 </dev/null &
+echo $! >"$PIDFILE"
+disown || true
+
+wait_healthy

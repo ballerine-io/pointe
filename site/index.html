@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pointe: talk to your Claude Code sessions</title>
+<meta name="description" content="A voice call into your Claude Code sessions. Ask what each one did, switch by name, answer permission prompts out loud. Open source, MIT, runs on your machine.">
+<meta name="referrer" content="no-referrer">
+<meta property="og:title" content="Pointe: talk to your Claude Code sessions">
+<meta property="og:description" content="Ask what each session did, switch by name, answer permission prompts out loud. MIT, runs on your machine, bring your own keys.">
+<meta property="og:image" content="assets/poster.jpg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="wrap top">
+  <span class="mark">Pointe</span>
+  <nav>
+    <a href="#install">Install</a>
+    <a href="#approvals">Approvals</a>
+    <a href="#phone">Phone</a>
+    <a href="#keys">Keys</a>
+    <a href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Talk to your Claude Code sessions.</h1>
+    <p class="lede">Ask what each one did, switch by saying its name, and answer its permission prompts out loud,
+      from across the room. One voice for every session you join to it. The sessions keep doing the work and keep their
+      context. It runs on your machine, with your own model keys.</p>
+    <p class="meta">Open source, MIT. macOS and Chrome tested; an iPhone app for the same call.</p>
+  </section>
+
+  <section class="video" aria-label="Demo video">
+    <!-- assets/pointe-demo.mp4, .vtt and poster.jpg come from demo/compose.py; see demo/README.md -->
+    <video controls preload="metadata" playsinline poster="assets/poster.jpg">
+      <source src="assets/pointe-demo.mp4" type="video/mp4">
+      <track kind="captions" src="assets/pointe-demo.vtt" srclang="en" label="English" default>
+    </video>
+    <p class="note">One take of a real call: two real Claude Code sessions, the real page and iPhone app, nothing
+      mocked. The user's side is a synthesized voice. Quiet stretches are shortened, and each cut shows how long it
+      skipped. <a href="https://github.com/ballerine-io/pointe/tree/main/demo">The script that records it</a> is in the repo.</p>
+  </section>
+
+  <section>
+    <h2>What a call sounds like</h2>
+    <div class="transcript">
+      <p><b class="you">You</b>What is the payments session doing?</p>
+      <p><b>Pointe</b>It finished the retry fix. Tests pass. It wants to know if it should open the PR.</p>
+      <p><b class="you">You</b>Yes. And tell the docs session to update the changelog.</p>
+      <p><b>Pointe</b>Docs is on it.</p>
+      <p><b class="you">You</b>By the way, why did payments drop the queue idea?</p>
+      <p><b>Pointe</b>Duplicate charges during failover. It decided that an hour ago.</p>
+    </div>
+    <dl class="features">
+      <dt>Dictation types for you. This holds a conversation.</dt>
+      <dd>A voice model with tools: list sessions, send to one, switch, ask about one. Each session's final message is read in
+        full and turned into what you need to hear: the outcome, what limits it, the one decision left for you.</dd>
+      <dt>Quiet until it matters</dt>
+      <dd>Background sessions get one line: "finished" or "needs approval". Say "just listen" and it stays silent through
+        your pauses until you hand the turn back with "what do you think?" or "turn that into tasks".</dd>
+      <dt>Side questions without interrupting the work</dt>
+      <dd>"By the way, why did it pick backoff?" goes to a read-only copy of the session (Claude Code's own fork), so the
+        live session gets no new message and keeps working. The answer comes back when it is ready, in a few seconds.</dd>
+      <dt>On speakers, in English and Hebrew</dt>
+      <dd>A second recognizer stream hears the bot's own voice, so only words it did not say cut it off. Mixed
+        English and Hebrew work in one sentence.</dd>
+    </dl>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p>You need <a href="https://code.claude.com">Claude Code</a> 2.1.224 or newer, <a href="https://docs.astral.sh/uv/">uv</a>,
+      Chrome, and one model key.</p>
+<pre><code>claude plugin marketplace add ballerine-io/pointe
+claude plugin install pointe@pointe
+claude          # then, in each session you want to reach:  /pointe:voice</code></pre>
+    <p>A tab opens. Allow the mic, press Connect, and talk. The first run downloads about 600 MB.
+      <code>/pointe:doctor</code> shows what runs and what is missing.</p>
+  </section>
+
+  <section id="approvals">
+    <h2>Approving things by voice</h2>
+    <ul class="plain">
+      <li><b>The daemon reads the command out, not the model.</b> It builds the line from what will actually run, with an
+        allowlist parser: known programs and flags, every file written, every host, every git remote. Anything else is
+        not read out.</li>
+      <li><b>A plain yes, right after, and nothing else.</b> "Okay, tell me more", a yes to another question, or a yes
+        older than two minutes approves nothing. Interrupting the read-out closes it.</li>
+      <li><b>Too complex to read out: shown, word for word, and tapped.</b> The page and the phone show the exact
+        request with Approve and Deny. On the phone, Approve asks for Face ID.</li>
+      <li><b>Your Claude Code deny rules still apply.</b> Set <code>"approvals": "terminal"</code> and nothing changes from
+        today.</li>
+      <li><b>Voice is not authentication.</b> Anyone your mic hears can answer. Sessions' output is treated as data, and a
+        model gate checks each send against what you said. That lowers prompt-injection risk; it does not remove it.</li>
+    </ul>
+    <p>About 13% of the shell commands in our own Claude Code history can be read out. The rest need a tap or the terminal.
+      Full threat model, including what is not defended: <a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+  </section>
+
+  <section id="phone">
+    <h2>From your phone</h2>
+    <div class="two">
+      <div>
+        <h3>iPhone app</h3>
+        <p>Native Swift. Hardware echo cancellation, so speakerphone works. AirPods press mutes. A pending request shows
+          word for word, and Approve asks for Face ID.</p>
+        <p>Pair with <code>pointe pair tailscale</code> (or <code>wifi</code>, or <code>host &lt;name&gt;</code>) and scan the QR
+          code. The app pins the Mac's certificate fingerprint from the code, so no certificate authority is installed on
+          the phone. Audio is one WebSocket, so it crosses Tailscale and tunnels without WebRTC's UDP setup.</p>
+      </div>
+      <div>
+        <h3>Or the page, in the phone's browser</h3>
+        <p>The same page you use on the Mac, served over your tailnet. No app install. <span class="status">(In progress.)</span></p>
+        <p>Nothing listens on a public address. The daemon binds loopback, plus only the address you pair on, and every
+          route needs a secret.</p>
+      </div>
+    </div>
+    <p class="status">Status: the app is built and tested end to end in the iOS simulator; not yet on TestFlight.</p>
+  </section>
+
+  <section id="keys">
+    <h2>Bring your own keys</h2>
+    <p>Five roles, each set separately: ears (speech to text), brain (decides what to say and do), reader (reads whole
+      sessions), checker (gates each send), mouth (text to speech). A role you do not set takes the first vendor you have a
+      key for. Vendors: Anthropic, Gemini, OpenAI, Soniox, ElevenLabs, or local models. Keys stay in the macOS Keychain and
+      reach the daemon only when a role in use needs them.</p>
+
+    <!-- TRACK-A: replace this table with the re-run setup benchmarks (best / one-key setups, pass counts, echo results). -->
+    <table>
+      <caption>Whole setups, full audio test with real sessions and synthetic speech</caption>
+      <thead><tr><th>Keys</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Anthropic, Soniox, ElevenLabs, Gemini</td><td>Best measured; the setup that holds up on speakers</td></tr>
+        <tr><td>Gemini only</td><td data-pending>being re-measured</td></tr>
+        <tr><td>OpenAI only</td><td data-pending>being re-measured</td></tr>
+      </tbody>
+    </table>
+    <!-- /TRACK-A -->
+
+    <table>
+      <caption>Ears: 560 clips (English, Hebrew, mixed, short yes/no), 4 voices, clean and noisy</caption>
+      <thead><tr><th>Speech to text</th><th>Intent correct</th><th>Word error</th><th>Latency p50 / p90</th></tr></thead>
+      <tbody>
+        <tr class="best"><td>Soniox stt-rt-v5</td><td>94.6%</td><td>0.062</td><td>0.33 / 0.58 s</td></tr>
+        <tr><td>gemini-3.5-transcribe-live</td><td>89.6%</td><td>0.110</td><td>0.70 / 0.77 s</td></tr>
+        <tr><td>OpenAI gpt-4o-transcribe</td><td>87.9%</td><td>0.222</td><td>1.11 / 1.27 s</td></tr>
+        <tr><td>Gemini Live, as a whole</td><td>79.1%</td><td>0.244</td><td>1.07 / 1.55 s</td></tr>
+        <tr><td>ElevenLabs scribe_v2_realtime</td><td>68.9%</td><td>0.395</td><td>0.72 / 0.88 s</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <caption>Brain: 66 cases on the real tool and speech path</caption>
+      <thead><tr><th>Model</th><th>Pass</th><th>Median reply</th></tr></thead>
+      <tbody>
+        <tr class="best"><td>claude-sonnet-5-5</td><td>95.5%</td><td>2.3 s</td></tr>
+        <tr><td>gemini-3.8-flash</td><td>90.9%</td><td>2.7 s</td></tr>
+        <tr><td>gemini-4-argon</td><td>93.5%</td><td>17 s</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Synthetic voices, one laptop, one network. The prompts were tuned on Sonnet, which favours it. Scripts
+      and raw results are in <code>bench/</code>; re-run them with your keys.
+      <a href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">docs/benchmarks.md</a>.</p>
+    <p><b>Cost:</b> you pay the vendors directly. A busy hour on the best setup is about $1, by arithmetic from list prices,
+      not a metered bill. <b>What leaves your machine:</b> your speech goes to the ears vendor; session content to the
+      brain, reader, checker and mouth vendors.</p>
+  </section>
+
+  <section>
+    <h2>Limits</h2>
+    <ul class="plain">
+      <li>Tested on macOS with Chrome. On Linux the daemon starts but no real call has been made there. No Windows.</li>
+      <li>Local models: ears and mouth run locally; a local brain answered in 14 to 27 seconds in our tests, too slow
+        for conversation.</li>
+      <li>Saying the exact words the bot is saying, while it says them, is dropped as echo.</li>
+      <li>Most commands are approved by a tap, not by voice; that is deliberate.</li>
+      <li>Young, built largely with Claude Code, used daily by its author. Expect rough edges.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>MIT licensed. Made by <a href="https://ballerine.com">Ballerine</a>. Built on
+    <a href="https://github.com/pipecat-ai/pipecat">Pipecat</a>.
+    <a href="https://github.com/ballerine-io/pointe">Source</a> ·
+    <a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Security</a> ·
+    <a href="https://github.com/ballerine-io/pointe/blob/main/CONTRIBUTING.md">Contributing</a></p>
+</footer>
+</body>
+</html>

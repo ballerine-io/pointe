@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# What Pointe will run on this machine, and what is missing. Add --live to make one small paid call per model.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+for tool in uv node; do  # the coding agents are listed below: any one of them is enough
+  command -v "$tool" >/dev/null 2>&1 && echo "ok       $tool" || echo "MISSING  $tool"
+done
+command -v uv >/dev/null 2>&1 || { echo "Install uv first: https://docs.astral.sh/uv/"; exit 1; }
+exec uv run --locked --project "$ROOT" python "$ROOT/doctor.py" "$@"

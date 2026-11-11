@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# SessionStart: until /pointe:setup has finished once, tell the user it is the next step. One file check, nothing else.
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+[ -f "$STATE/setup-done" ] && exit 0
+[ -f "$STATE/token" ] && { touch "$STATE/setup-done"; exit 0; }  # the voice has run here before: set up already
+printf '{"systemMessage": "Pointe is installed. Run /pointe:setup to finish: keys, your first voice call, and your phone."}\n'

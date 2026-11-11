@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.ballerine.pointe.pair</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>pointe</string></array>
+		</dict>
+	</array>
+	<!-- Pointe talks only to the Mac it paired with, and pins that Mac's exact certificate (Pairing.swift), which is
+	     stricter than ATS's CA check. ATS cannot be scoped to a name the user picks (a Twingate or VPN name), and it
+	     refuses the self-signed certificate before the pin is checked (-9802). -->
+	<key>NSAppTransportSecurity</key>
+	<dict><key>NSAllowsArbitraryLoads</key><true/></dict>
+	<key>UIBackgroundModes</key>
+	<array><string>audio</string></array>
+</dict>
+</plist>

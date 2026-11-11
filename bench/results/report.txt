@@ -1,0 +1,214 @@
+# Speech-to-text benchmark report (run 2026-11-06/07)
+
+Method: 70 corpus items x 4 synthetic voices x {clean, noisy at 12 dB SNR} = 560 clips, streamed at real-time pace;
+scored by WER, CER, a system-blind LLM intent/entities judge (gemini-3.5-flash, temperature 0), and latency from speech
+end to final transcript. Every system ran on the same 560 clips in one run, with 0 errors. Latency is wall time on one
+laptop and one home Wi-Fi path that was losing connection during the run, one run per clip per system, so treat
+differences under ~100 ms as noise.
+
+Systems (model as driven by the benchmark):
+  soniox                  stt-rt-v5
+  soniox-v6               stt-rt-v6, same settings as soniox
+  scribe                  ElevenLabs scribe_v2_realtime. Its realtime endpoint accepts no other model id (probed:
+                          scribe_v3_realtime and others are rejected)
+  gemini-heard / -understood
+                          gemini-3.8-live echo harness (a speech-to-speech model, not a transcriber)
+  gemini-transcribe-live  gemini-3.5-transcribe-live, driven as pipecat's GeminiSTTService does (TEXT modality, language
+                          hints en+he, audio_stream_end sent 0.4 s after speech end to mimic a VAD stop, so its latency
+                          includes that 0.4 s)
+  openai                  gpt-4o-transcribe over the realtime API
+  openai-mini             gpt-4o-mini-transcribe over the realtime API
+  openai-live             gpt-live-transcribe over the realtime API
+
+Limitations:
+  - Voices are synthetic (ElevenLabs), not real speakers; bench/recordings was empty. Real-speaker results may differ.
+  - soniox-v6 latency: 3 of 560 clips never produced an endpoint token (excluded from its latency percentiles), and
+    7.2% of the rest finalised only after more than 1 s, against 0 and 3.2% for v5, more often on clean clips (digital
+    silence after speech). Default endpoint settings were used; tuning max_endpoint_delay/endpoint_sensitivity was not
+    tried. Its accuracy edge over v5 is inside the confidence intervals overall.
+  - The judge is an LLM, so its verdicts carry its own error; WER on mixed Hebrew/English is inflated for every system by
+    script choice (an English term written in Hebrew letters counts as an error).
+  - gemini-heard/understood come from a different model class and cannot be compared on latency like for like.
+  - Intent-ok CIs are bootstrap over clips; the 4 voices and 2 conditions of one utterance are not independent,
+    so the CIs are somewhat too narrow.
+
+
+Clips scored by every system: 560 (run errors: 0)
+
+## All (n=560 clips)
+system                        intent ok  entities ok    WER    CER  lat p50  lat p90
+gemini-heard          73.4% [69.6-77.1]        78.9%  0.265  0.233    1.06s    1.53s
+gemini-transcribe-live  89.6% [87.1-92.1]        91.1%  0.110  0.087    0.70s    0.77s
+gemini-understood     79.1% [75.7-82.5]        82.7%  0.244  0.216    1.07s    1.55s
+openai                87.9% [85.0-90.5]        89.1%  0.222  0.211    1.11s    1.27s
+openai-live           77.9% [74.3-81.2]        81.6%  0.221  0.202    0.60s    0.78s
+openai-mini           82.3% [79.1-85.4]        84.6%  0.228  0.205    1.04s    1.24s
+scribe                68.9% [65.0-72.7]        73.6%  0.395  0.289    0.72s    0.88s
+soniox                94.6% [92.7-96.4]        95.4%  0.062  0.040    0.33s    0.58s
+soniox-v6             95.4% [93.4-97.0]        95.4%  0.067  0.045    0.35s    0.71s
+
+## Category en (n=160 clips)
+system                        intent ok  entities ok    WER    CER  lat p50  lat p90
+gemini-heard          86.9% [81.2-91.9]        85.6%  0.054  0.021    1.01s    1.09s
+gemini-transcribe-live  86.9% [81.9-91.9]        86.2%  0.067  0.035    0.70s    0.74s
+gemini-understood     91.2% [86.9-95.6]        90.0%  0.050  0.021    1.01s    1.11s
+openai                91.2% [86.9-95.0]        88.8%  0.069  0.046    1.10s    1.26s
+openai-live           85.0% [78.8-90.6]        83.8%  0.104  0.074    0.70s    0.84s
+openai-mini           87.5% [82.5-92.5]        86.2%  0.081  0.035    1.05s    1.24s
+scribe                87.5% [82.5-92.5]        85.0%  0.073  0.030    0.71s    0.88s
+soniox                91.9% [87.5-96.2]        92.5%  0.055  0.015    0.29s    0.55s
+soniox-v6             91.2% [86.2-95.6]        90.6%  0.045  0.016    0.30s    0.73s
+
+## Category he (n=120 clips)
+system                        intent ok  entities ok    WER    CER  lat p50  lat p90
+gemini-heard          77.5% [70.0-84.2]        90.8%  0.102  0.078    1.26s    1.78s
+gemini-transcribe-live  94.2% [90.0-98.3]        95.8%  0.053  0.040    0.72s    0.78s
+gemini-understood     89.2% [83.3-94.2]        92.5%  0.081  0.058    1.28s    1.79s
+openai                95.0% [90.8-98.3]        95.8%  0.034  0.028    1.18s    1.35s
+openai-live           90.8% [85.8-95.8]        94.2%  0.051  0.043    0.58s    0.73s
+openai-mini           94.2% [89.2-98.3]        95.0%  0.043  0.024    1.07s    1.24s
+scribe                64.2% [55.8-72.5]        70.8%  0.572  0.377    0.77s    0.94s
+soniox                98.3% [95.8-100.0]       100.0%  0.006  0.002    0.33s    0.49s
+soniox-v6             98.3% [95.8-100.0]       100.0%  0.006  0.001    0.35s    0.84s
+
+## Category mix (n=160 clips)
+system                        intent ok  entities ok    WER    CER  lat p50  lat p90
+gemini-heard          53.8% [46.2-61.9]        59.4%  0.431  0.327    1.10s    1.53s
+gemini-transcribe-live  83.1% [76.9-88.8]        86.2%  0.183  0.138    0.72s    0.79s
+gemini-understood     60.0% [52.5-67.5]        66.2%  0.400  0.299    1.13s    1.56s
+openai                75.6% [69.4-81.9]        78.1%  0.478  0.437    1.13s    1.39s
+openai-live           55.0% [46.9-63.1]        61.3%  0.429  0.347    0.57s    0.71s
+openai-mini           66.2% [58.8-73.8]        70.0%  0.413  0.358    1.06s    1.26s
+scribe                44.4% [36.9-51.9]        50.6%  0.580  0.390    0.74s    0.86s
+soniox                90.6% [86.2-95.0]        91.2%  0.156  0.121    0.35s    0.63s
+soniox-v6             93.8% [89.4-97.5]        93.1%  0.186  0.140    0.37s    0.70s
+
+## Category short (n=120 clips)
+system                        intent ok  entities ok    WER    CER  lat p50  lat p90
+gemini-heard          77.5% [70.0-85.0]        84.2%  0.487  0.548    1.05s    1.47s
+gemini-transcribe-live  97.5% [94.2-100.0]        99.2%  0.128  0.135    0.68s    0.72s
+gemini-understood     78.3% [70.8-85.8]        85.0%  0.456  0.522    1.05s    1.47s
+openai                92.5% [87.5-96.7]        97.5%  0.271  0.311    1.00s    1.12s
+openai-live           85.8% [79.2-91.7]        93.3%  0.272  0.336    0.55s    0.78s
+openai-mini           85.0% [78.3-90.8]        91.7%  0.361  0.408    0.95s    1.14s
+scribe                81.7% [75.0-88.3]        91.7%  0.400  0.412    0.68s    0.82s
+soniox               100.0% [100.0-100.0]       100.0%  0.004  0.005    0.39s    0.65s
+soniox-v6            100.0% [100.0-100.0]       100.0%  0.000  0.000    0.40s    0.68s
+
+## Condition clean (n=280 clips)
+system                        intent ok  entities ok    WER    CER  lat p50  lat p90
+gemini-heard          73.6% [68.6-78.6]        79.3%  0.256  0.220    1.17s    1.65s
+gemini-transcribe-live  89.6% [86.1-93.2]        91.1%  0.102  0.080    0.70s    0.78s
+gemini-understood     78.6% [73.9-83.2]        81.8%  0.238  0.207    1.18s    1.66s
+openai                87.1% [83.2-91.1]        89.3%  0.235  0.225    1.12s    1.29s
+openai-live           78.6% [73.6-83.6]        82.5%  0.215  0.202    0.62s    0.80s
+openai-mini           83.2% [78.9-87.1]        84.3%  0.232  0.208    1.04s    1.21s
+scribe                64.3% [58.9-69.7]        70.4%  0.525  0.363    0.71s    0.86s
+soniox                94.6% [91.8-97.1]        95.4%  0.061  0.040    0.33s    0.66s
+soniox-v6             95.7% [93.2-97.9]        95.4%  0.064  0.040    0.35s    0.82s
+
+## Condition noisy (n=280 clips)
+system                        intent ok  entities ok    WER    CER  lat p50  lat p90
+gemini-heard          73.2% [67.9-78.2]        78.6%  0.274  0.246    1.05s    1.13s
+gemini-transcribe-live  89.6% [86.1-92.9]        91.1%  0.119  0.094    0.71s    0.77s
+gemini-understood     79.6% [75.0-84.6]        83.6%  0.250  0.224    1.05s    1.15s
+openai                88.6% [85.0-92.1]        88.9%  0.208  0.196    1.10s    1.26s
+openai-live           77.1% [72.1-82.1]        80.7%  0.228  0.201    0.59s    0.77s
+openai-mini           81.4% [76.8-85.7]        85.0%  0.224  0.203    1.04s    1.25s
+scribe                73.6% [68.6-78.6]        76.8%  0.265  0.216    0.74s    0.88s
+soniox                94.6% [91.8-97.1]        95.4%  0.063  0.041    0.33s    0.50s
+soniox-v6             95.0% [92.1-97.5]        95.4%  0.070  0.050    0.35s    0.68s
+
+## Paired intent comparison (exact McNemar, all clips)
+gemini-heard vs gemini-transcribe-live: 411 vs 502 correct, p = 1.1e-15
+gemini-heard vs gemini-understood: 411 vs 443 correct, p = 1.4e-05
+gemini-heard vs openai: 411 vs 492 correct, p = 1e-13
+gemini-heard vs openai-live: 411 vs 436 correct, p = 0.047
+gemini-heard vs openai-mini: 411 vs 461 correct, p = 4.7e-06
+gemini-heard vs scribe: 411 vs 386 correct, p = 0.061
+gemini-heard vs soniox: 411 vs 530 correct, p = 2.4e-29
+gemini-heard vs soniox-v6: 411 vs 534 correct, p = 6.1e-32
+gemini-transcribe-live vs gemini-understood: 502 vs 443 correct, p = 1.2e-08
+gemini-transcribe-live vs openai: 502 vs 492 correct, p = 0.36
+gemini-transcribe-live vs openai-live: 502 vs 436 correct, p = 2.4e-10
+gemini-transcribe-live vs openai-mini: 502 vs 461 correct, p = 3.1e-05
+gemini-transcribe-live vs scribe: 502 vs 386 correct, p = 9.8e-22
+gemini-transcribe-live vs soniox: 502 vs 530 correct, p = 1.5e-05
+gemini-transcribe-live vs soniox-v6: 502 vs 534 correct, p = 9.4e-07
+gemini-understood vs openai: 443 vs 492 correct, p = 3e-06
+gemini-understood vs openai-live: 443 vs 436 correct, p = 0.59
+gemini-understood vs openai-mini: 443 vs 461 correct, p = 0.095
+gemini-understood vs scribe: 443 vs 386 correct, p = 4.7e-06
+gemini-understood vs soniox: 443 vs 530 correct, p = 3.8e-21
+gemini-understood vs soniox-v6: 443 vs 534 correct, p = 3e-22
+openai vs openai-live: 492 vs 436 correct, p = 1.5e-07
+openai vs openai-mini: 492 vs 461 correct, p = 0.00064
+openai vs scribe: 492 vs 386 correct, p = 5e-18
+openai vs soniox: 492 vs 530 correct, p = 2.8e-06
+openai vs soniox-v6: 492 vs 534 correct, p = 5.7e-08
+openai-live vs openai-mini: 436 vs 461 correct, p = 0.021
+openai-live vs scribe: 436 vs 386 correct, p = 7.7e-05
+openai-live vs soniox: 436 vs 530 correct, p = 6.8e-22
+openai-live vs soniox-v6: 436 vs 534 correct, p = 1.8e-26
+openai-mini vs scribe: 461 vs 386 correct, p = 4.3e-10
+openai-mini vs soniox: 461 vs 530 correct, p = 9.4e-16
+openai-mini vs soniox-v6: 461 vs 534 correct, p = 2.7e-19
+scribe vs soniox: 386 vs 530 correct, p = 4.1e-37
+scribe vs soniox-v6: 386 vs 534 correct, p = 4.4e-39
+soniox vs soniox-v6: 530 vs 534 correct, p = 0.39
+
+## Sample failures
+gemini-heard       en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-heard       en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discounteverywhere.'
+gemini-heard       en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-heard       en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-heard       en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-heard       en05.roger.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-transcribe-live en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-transcribe-live en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-transcribe-live en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-transcribe-live en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-transcribe-live en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-transcribe-live en05.roger.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-understood  en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-understood  en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discounteverywhere.'
+gemini-understood  en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-understood  en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-understood  en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+gemini-understood  en05.roger.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+openai             en02.alice.clean       ref='Open a pull request for this branch against dev.' hyp=''
+openai             en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply_percent_discount everywhere.'
+openai             en05.sarah.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply_percent_discount everywhere.'
+openai             en06.alice.clean       ref='Check the logs for the login-gateway pod in the preview environment.' hyp='Check the logs for the logging-gateway pod in the preview environment.'
+openai             en11.roger.clean       ref='How many open PRs are waiting for my review?' hyp=''
+openai             en12.alice.noisy       ref='Bump zod to the latest minor version and run the tests.' hyp='Bump Zot to the latest minor version and run the tests.'
+openai-live        en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply underscore discount to apply percent discount everywhere.'
+openai-live        en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply underscore discount to apply percent discount everywhere.'
+openai-live        en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply underscore discount to apply percent discount everywhere.'
+openai-live        en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply underscore discount to apply percent discount everywhere.'
+openai-live        en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply underscore discount to apply percent discount everywhere.'
+openai-live        en05.sarah.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply underscore discount to apply percent discount everywhere.'
+openai-mini        en01.roger.clean       ref='Run the typecheck on ledger-api and tell me if it passes.' hyp=''
+openai-mini        en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply_percent_discount_everywhere.'
+openai-mini        en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_underscore_discount to apply_percent_discount_everywhere.'
+openai-mini        en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename Apply_Discount to ApplyPercentDiscountEverywhere.'
+openai-mini        en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply_percent_discount_everywhere.'
+openai-mini        en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply_percent_discount_everywhere.'
+scribe             en04.alice.clean       ref='Add a feature flag for the new invoice analysis report.' hyp=''
+scribe             en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename "Apply discount" to "Apply percent discount everywhere."'
+scribe             en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename "Apply discount" to "Apply percent discount everywhere."'
+scribe             en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp=''
+scribe             en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename "Apply discount" to "Apply percent discount everywhere."'
+scribe             en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename "Apply_Discount" to "Apply Percent Discount Everywhere."'
+soniox             en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename "Apply_Discount" to "Apply%DiscountEverywhere."'
+soniox             en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+soniox             en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+soniox             en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+soniox             en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename "Apply_Discount" to "Apply%DiscountEverywhere."'
+soniox             en05.roger.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+soniox-v6          en05.alice.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename Apply_Discount to Apply%DiscountEverywhere.'
+soniox-v6          en05.alice.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+soniox-v6          en05.george.clean      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+soniox-v6          en05.george.noisy      ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename apply_discount to apply%discount everywhere.'
+soniox-v6          en05.roger.clean       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename Apply_Discount to Apply%DiscountEverywhere,.'
+soniox-v6          en05.roger.noisy       ref='Rename apply_discount to applyPercentDiscount everywhere.' hyp='Rename Apply_Discount to Apply%DiscountEverywhere.'

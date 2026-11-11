@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# What happened in voice calls, from the journal (no library noise). For people and Claude Code sessions.
+#   voice-log [N]              last N events (default 60)
+#   voice-log --since HH:MM    events since a time today
+#   voice-log --grep REGEX     events matching a pattern (e.g. 'refused|blocked|echo dropped')
+#   voice-log --call           the latest call: what the model was given, heard, said, and every tool call
+#   voice-log --session NAME   only lines that mention this session (combine with the others)
+#   voice-log --json           raw JSON lines
+set -euo pipefail
+J="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}/journal.jsonl"
+[ -f "$J" ] || { echo "no journal yet at $J (the daemon writes it once restarted on this version)" >&2; exit 1; }
+N=60; SINCE=""; PAT=""; RAW=""; CALL=""; NAME=""
+while [ $# -gt 0 ]; do case "$1" in
+  --since) SINCE="$2"; shift 2 ;; --grep) PAT="$2"; shift 2 ;; --json) RAW=1; shift ;;
+  --call) CALL=1; shift ;; --session) NAME="$2"; shift 2 ;;
+  *) N="$1"; shift ;; esac; done
+python3 - "$J" "$N" "$SINCE" "$PAT" "$RAW" "$CALL" "$NAME" <<'PY'
+import json, re, sys, time
+path, n, since, pat, raw, call, name = sys.argv[1], int(sys.argv[2]), *sys.argv[3:8]
+day = time.strftime("%Y-%m-%d")
+rows = []
+for line in open(path, encoding="utf-8"):
+    try:
+        e = json.loads(line)
+    except ValueError:
+        continue
+    if call and e["event"].startswith("client connected"):
+        rows = []
+    if since and (e["at"][:10] != day or e["at"][11:16] < since):
+        continue
+    if name and name.lower() not in e["event"].lower():
+        continue
+    if pat and not re.search(pat, e["event"], re.I):
+        continue
+    rows.append(line.rstrip("\n") if raw else f'{e["at"][11:23]}  {e["level"][:4]:4}  {e["event"]}')
+print("\n".join(rows if since or call else rows[-n:]))
+PY

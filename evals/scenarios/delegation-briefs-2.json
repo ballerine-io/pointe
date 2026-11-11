@@ -1,0 +1,48 @@
+{
+ "mode": "orchestrator",
+ "sessions": [
+  {
+   "name": "beacon/invoice-export",
+   "cwd": "/srv/synthetic/beacon",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "Pinecrest Mills and two other large accounts say Beacon's invoice export times out. Figure out why and come back with options. No code changes."
+    },
+    {
+     "role": "assistant",
+     "text": "Found it. No changes made.\n\nThe export endpoint `GET /invoices/export.pdf` renders synchronously through the render service. Render time is about 11 ms per row, and the gateway cuts at 30 s, so anything past roughly 2,700 rows times out. Pinecrest's monthly export is 9,400 rows.\n\nIt gets worse under failure: the export client retries 3 times on any error including timeouts, and every retry re-renders from scratch. In the Tuesday incident one account's retries took the render pool from 20% to 95% for 12 minutes.\n\nOptions:\n\n1. **Streaming PDF.** Stream pages as they render. Removes the gateway timeout. But the render service has no incremental mode, we'd need to patch the vendored library. About 2 weeks, risky.\n2. **Background job with an emailed link.** Queue an export job, render in the worker, store in object storage, email a signed link. About 4 days. UX changes: not instant, so a customer-visible change. Default link expiry 24 hours. Rows under 500 can stay synchronous so that small exports feel the same.\n3. **Row cap with pagination.** Refuse more than 2,500 rows, make customers split by date. One day. Pinecrest would hate it.\n\nWhichever you pick, the retry policy should change. I'd drop it to one retry, 5xx only, no retry on timeouts.\n\nRecommendation: option 2. Decision needed: which option, retry policy, and link expiry."
+    }
+   ]
+  },
+  {
+   "name": "beacon/misc",
+   "cwd": "/srv/synthetic/beacon-misc",
+   "history": [
+    {
+     "role": "user",
+     "text": "Small chores in this one. Clean up the stale CI caches."
+    },
+    {
+     "role": "assistant",
+     "text": "Done, removed 6 stale caches, CI is 40 seconds faster. Nothing else queued here."
+    }
+   ]
+  },
+  {
+   "name": "beacon/auth-refresh",
+   "cwd": "/srv/synthetic/beacon-auth",
+   "history": [
+    {
+     "role": "user",
+     "text": "Rotate the refresh token flow to the new signing key."
+    },
+    {
+     "role": "assistant",
+     "text": "Signing key rotation is implemented and in review as PR #88. Waiting on the reviewer. Nothing for you right now."
+    }
+   ]
+  }
+ ]
+}

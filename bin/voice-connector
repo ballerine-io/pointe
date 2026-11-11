@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Start the Twingate Connector for phone access from the docker command Twingate gives you, read from the
+# clipboard. The tokens go clipboard -> a 0600 env file -> the container; never into argv, history or output.
+set -euo pipefail
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+ENVF="$STATE/twingate-connector.env"
+umask 077
+pbpaste | python3 -c '
+import re, sys
+cmd = sys.stdin.read()
+pairs = re.findall(r"(?:--env|-e)\s+\"?(TWINGATE_[A-Z_]+)=\"?([^\"\s]+)\"?", cmd)
+name = re.search(r"--name\s+\"?([\w.-]+)", cmd)
+keys = dict(pairs)
+if not {"TWINGATE_NETWORK", "TWINGATE_ACCESS_TOKEN", "TWINGATE_REFRESH_TOKEN"} <= keys.keys() or not name:
+    sys.exit("clipboard does not hold the Twingate docker command (copy it from the console first)")
+keys.pop("TWINGATE_LABEL_HOSTNAME", None)  # was a shell substitution in the command
+with open(sys.argv[1], "w") as f:
+    f.write("".join(f"{k}={v}\n" for k, v in keys.items()))
+    f.write("TWINGATE_LABEL_DEPLOYED_BY=docker\n")
+print(name.group(1))
+' "$ENVF" > "$STATE/twingate-connector.name"
+NAME="$(cat "$STATE/twingate-connector.name")"
+docker rm -f "$NAME" >/dev/null 2>&1 || true
+docker run -d --sysctl net.ipv4.ping_group_range="0 2147483647" --env-file "$ENVF" \
+  --env TWINGATE_LABEL_HOSTNAME="$(hostname)" --name "$NAME" --restart=unless-stopped --pull=always \
+  twingate/connector:1 >/dev/null
+echo "connector $NAME started; tokens kept in $ENVF (0600)"

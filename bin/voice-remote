@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Phone access through a private network (Twingate). Usage:
+#   voice-remote setup <hostname>   certificate for <hostname> + pairing secret (prints the CA file to install on the phone)
+#   voice-remote link               the pairing link: run it yourself and open it on the phone; it holds a secret
+#   voice-remote off                remove remote access
+set -euo pipefail
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+TLS="$STATE/tls"
+case "${1:-}" in
+  setup)
+    HOST="${2:?usage: voice-remote setup <hostname>}"
+    mkdir -p "$TLS" && chmod 700 "$STATE" "$TLS"
+    WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+    # A CA that can only vouch for this one name (nameConstraints); its key is destroyed after signing,
+    # so trusting it on the phone can never be used to impersonate any other site.
+    cat >"$WORK/ca.cnf" <<CNF
+[req]
+distinguished_name = dn
+x509_extensions = ca
+prompt = no
+[dn]
+CN = Pointe local CA ($HOST)
+[ca]
+basicConstraints = critical, CA:TRUE, pathlen:0
+keyUsage = critical, keyCertSign, cRLSign
+nameConstraints = critical, permitted;DNS:$HOST
+subjectKeyIdentifier = hash
+CNF
+    cat >"$WORK/leaf.cnf" <<CNF
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = DNS:$HOST
+authorityKeyIdentifier = keyid
+CNF
+    ( umask 077
+      openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 800 \
+        -keyout "$WORK/ca.key" -out "$TLS/pointe-ca.crt" -config "$WORK/ca.cnf" 2>/dev/null
+      openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -subj "/CN=$HOST" \
+        -keyout "$TLS/key.pem" -out "$WORK/leaf.csr" 2>/dev/null
+      openssl x509 -req -in "$WORK/leaf.csr" -CA "$TLS/pointe-ca.crt" -CAkey "$WORK/ca.key" -CAcreateserial \
+        -days 800 -extfile "$WORK/leaf.cnf" -out "$TLS/cert.pem" 2>/dev/null
+      openssl rand -base64 32 | tr '+/' '-_' | tr -d '=\n' >"$STATE/remote_token"
+      printf '{"host": "%s"}\n' "$HOST" >"$STATE/remote.json" )
+    rm -f "$WORK/ca.key"
+    echo "Remote access for https://$HOST:7443 is configured; restart the daemon to start the HTTPS listener."
+    echo "Install on the phone (AirDrop it, then Settings > General > About > Certificate Trust Settings):"
+    echo "  $TLS/pointe-ca.crt"
+    echo "Then pair the phone once: run 'bin/voice-remote link' and open the link on the phone." ;;
+  link)
+    [ -f "$STATE/remote.json" ] || { echo "run: voice-remote setup <hostname>" >&2; exit 1; }
+    HOST="$(sed -n 's/.*"host": "\([^"]*\)".*/\1/p' "$STATE/remote.json")"
+    echo "https://$HOST:7443/voice?pair=$(cat "$STATE/remote_token")" ;;
+  off) rm -rf "$TLS" "$STATE/remote.json" "$STATE/remote_token"; echo "remote access removed; restart the daemon" ;;
+  *) sed -n '2,5p' "$0" >&2; exit 2 ;;
+esac

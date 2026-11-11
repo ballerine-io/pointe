@@ -1,0 +1,14 @@
+.venv/
+node_modules/
+__pycache__/
+.pytest_cache/
+bench/.audio/
+bench/results/*
+!bench/results/*.md
+!bench/results/report.txt
+tests/e2e/.cache/
+bench/recordings/
+.DS_Store
+xcuserdata/
+*.xcuserstate
+ios/.team
