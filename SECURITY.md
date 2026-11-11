@@ -46,6 +46,25 @@ Code history, about 13% of shell commands can be read out; the rest need a tap o
 Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
 the exact request. If you want no voice approvals, set `approvals: terminal`.
 
+### Owner-voice lock (optional)
+
+Settings → Voice lock learns your voice on a call and checks each thing said against it, on this Mac. Levels: **Off**
+(as above), **Approvals** (a spoken yes counts only in your voice; a no counts from anyone), **Commands** (other voices
+never reach the voice model; they are listed as ignored, with their words, in memory only), **Everything** (the same,
+and their words are not shown or kept).
+
+- **It only narrows.** A match is never consent: every rule above still has to hold for your yes. It adds "and it was
+  your voice"; it removes nothing else.
+- **It fails closed.** When it cannot tell (no model yet, a model error or a score slower than 0.6 s, under 0.3 s of
+  audio, a damaged voiceprint), the speech counts as not yours for what the level guards. A tap, Face ID, the terminal
+  and typed text still work, so this costs convenience, never control. Deleting the voiceprint turns the lock off.
+- **It is not authentication.** It is a check against the bystander (a spouse, a colleague, a TV), not an attacker: a
+  recording of your voice can pass it, and a short "yes" is weakly scored (it counts on its own only after a strong
+  match within a minute, on the same device's voiceprint). Measured on synthetic voices only: see
+  `bench/results/speaker.md`.
+- **Model:** 3D-Speaker ERes2Net (Apache-2.0), run locally by `sherpa-onnx`, downloaded once from the sherpa-onnx
+  GitHub release with a pinned SHA-256. No vendor sees the audio for this check or the voiceprint.
+
 A realtime front (`CLAUDE_VOICE_FRONT=gemini` or `openai`) speaks by itself, so there is no line to bind a yes to: it can deny
 by voice, but only the terminal approves.
 
@@ -85,7 +104,9 @@ and no telemetry, and the page loads nothing from outside your machine.
 
 `~/.claude-voice` is 0700. It holds the token, the page key, session notes, `daemon.log`, and `journal.jsonl`, a full record of
 each call with what you said and session content. With phone access it also holds the pairing secret, a TLS key and the
-connector's tokens. Delete what you no longer need.
+connector's tokens. With the voice lock it holds `voiceprint/` (0700; one file per enrolled device, 0600): biometric data,
+computed and kept only on this Mac, deleted from Settings → Voice lock on the page or in the app. `models/` holds the
+speaker model. The journal records an ignored utterance's length and score, never its words. Delete what you no longer need.
 
 ## Known limits
 
@@ -95,7 +116,8 @@ connector's tokens. Delete what you no longer need.
 - **Launch mode uses `--dangerously-load-development-channels`.** Claude Code requires this flag for a channel outside its
   allowlist. It loads only `channel/voice-channel.mjs` from this repository, and Claude Code shows a warning at start.
 - **A spoken yes in conversation is not an approval.** See "Approvals" in the README. Permission prompts are different: they are answered through Claude Code's `PermissionRequest` hook, and its deny rules still apply.
-- **Voice is not authentication.** Anyone your microphone can hear can answer a prompt.
+- **Voice is not authentication.** Anyone your microphone can hear can answer a prompt, unless the voice lock is on; even
+  then, a recording of your voice can pass it.
 - **The page key does not rotate by itself.** It lasts until you delete `~/.claude-voice/page_key`. It also passes through a
   browser's command line when `bin/voice-open` runs, which other users on a shared Linux machine can read.
 - **While the voice holds a prompt, the terminal also shows it**, and either can answer. It waits up to 280 seconds. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).
@@ -117,7 +139,8 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   refuses a self-signed certificate before the app's own check runs, so it is off for this app. The pin is the stronger
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
-  heard), approve, "just listen", switching the active session, and hanging up. Not the model's whole context, renaming,
+  heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
+  enrol, delete, level; the app asks for Face ID before lowering the level or deleting). Not the model's whole context, renaming,
   modes, or anything a Claude Code session uses.
 - **Approve needs Face ID** or the passcode; deny never does.
 - **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
