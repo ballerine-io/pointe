@@ -190,6 +190,14 @@
   [data-state=bot] #mic { animation: speak 1.1s ease-in-out infinite; }
   [data-state=user] #mic { box-shadow: 0 0 0 8px var(--orange-soft), 0 8px 26px rgba(255, 79, 31, .35); }
   [data-state=connecting] #mic, [data-state=reconnecting] #mic { opacity: .7; }
+  /* push to talk: an outlined ring while closed, filled orange while a press holds it open */
+  #mic { touch-action: none; user-select: none; -webkit-user-select: none; }
+  [data-state=ptt] #mic { background: var(--card2); color: var(--orange); box-shadow: inset 0 0 0 2px var(--orange); }
+  [data-state=talking] #mic { background: var(--orange); color: #fff; box-shadow: 0 0 0 8px var(--orange-soft), 0 8px 26px rgba(255, 79, 31, .35); }
+  [data-state=ptt] .top .dot { background: var(--green); } [data-state=talking] .top .dot { background: var(--orange); }
+  [data-state=talking] .state { color: var(--orange); }
+  #pref-key { text-align: left; }
+  .sheetbox .note { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: -6px; }
   @keyframes speak { 50% { box-shadow: 0 0 0 10px rgba(255, 79, 31, .16); } }
 
   /* brainstorm: the user talks, the voice stays quiet */
@@ -311,7 +319,7 @@
   .sheetbox .vendors { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; background: var(--card); border-radius: 12px; padding: 12px 14px; }
   .sheetbox .vendors dt { color: var(--muted); } .sheetbox .vendors dd { margin: 0; font-weight: 600; }
   .sheetbox .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-  .sheetbox .row button, .sheetbox select { border: 0; border-radius: 12px; padding: 10px 16px; font: 600 14px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
+  .sheetbox .row button, .sheetbox select, #pref-key { border: 0; border-radius: 12px; padding: 10px 16px; font: 600 14px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
   .sheetbox .row button.go { background: var(--orange); color: #fff; }
   .sheetbox .row button:disabled { opacity: .4; cursor: default; }
   .sheetbox .err { color: var(--orange); font-size: 13px; } .sheetbox .err:empty { display: none; }
@@ -364,7 +372,7 @@
   </section>
 
   <footer>
-    <span>Space or AirPods to mute</span>
+    <span id="keyhint">Space or AirPods to mute</span>
     <button id="settingsbtn" onclick="openSettings()" title="Meeting defaults">Settings</button>
     <button id="ctx" onclick="openCtx()" title="What the voice model holds"></button>
   </footer>
@@ -431,6 +439,11 @@
     <div class="field">Start in<select id="pref-mode"><option value="listening">Listening</option><option value="participating">Participating</option></select></div>
     <label class="tick"><input type="checkbox" id="pref-lookups"> Auto lookups by default</label>
     <div class="field">Notes language<select id="pref-lang"><option value="auto">Same as I speak</option><option value="en">English</option><option value="he">Hebrew</option></select></div>
+    <h3>Microphone</h3>
+    <div class="field">Microphone<select id="pref-mic"><option value="always">Always on</option><option value="ptt">Push to talk</option></select></div>
+    <div class="field">Hold to talk key<button type="button" id="pref-key" onclick="captureKey()"></button></div>
+    <div class="note">In push to talk, nothing you say leaves this Mac unless you hold the key or the mic button. Caps Lock
+      turns talking on and off (a toggle: a browser cannot see it held). Keys work only while this tab is focused.</div>
     <div class="ok" id="setok" role="status"></div><div class="err" id="seterr" role="alert"></div>
     <div class="row"><button onclick="closeSheet('settingssheet')">Cancel</button><button class="go" onclick="saveSettings()">Save</button></div>
   </div>
@@ -501,7 +514,7 @@
     <button class="btn" id="typebtn" onclick="typeNow()" title="Type instead of talking">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
       Type</button>
-    <button id="mic" onclick="ringTap()" title="Connect" aria-label="Connect">
+    <button id="mic" onclick="ringTap(event)" title="Connect" aria-label="Connect">
       <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>
       <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l20 20M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v3a3 3 0 0 0 5.1 2.1M19 10a7 7 0 0 1-1.2 3.9M5 10a7 7 0 0 0 10.7 5.9M12 17v4"/></svg>
     </button>
@@ -554,6 +567,7 @@
     } catch (e) {
       fails++;
     }
+    pttFollow(status);
     showState();
     showTalk(status);
     showCompose(status);
@@ -678,7 +692,7 @@
       call.stream = call.stream || await navigator.mediaDevices.getUserMedia(
         {audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1}});
       micTracks().forEach(t => {
-        t.enabled = !muted;
+        t.enabled = pttMode() || !muted;
         if (t.watched) return;
         t.watched = true;
         // The OS can mute the capture itself (iOS: an AirPods press, a call, Siri): follow it, so the page
@@ -691,7 +705,7 @@
       if (!call.player) {
         await call.ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([CAPTURE], {type: 'text/javascript'})));
         const mic = call.ctx.createMediaStreamSource(call.stream), capture = new AudioWorkletNode(call.ctx, 'capture');
-        capture.port.onmessage = e => { if (call.ws && call.ws.readyState === 1) { call.ws.send(e.data.buffer); call.sent = (call.sent || 0) + 1; } };
+        capture.port.onmessage = e => { if (call.ws && call.ws.readyState === 1 && micSends()) { call.ws.send(e.data.buffer); call.sent = (call.sent || 0) + 1; } };
         const sink = call.ctx.createGain(); sink.gain.value = 0;  // a worklet with no path to the speakers may never run
         mic.connect(capture).connect(sink).connect(call.ctx.destination);
         call.player = new AudioWorkletNode(call.ctx, 'player', {outputChannelCount: [1]});
@@ -701,7 +715,7 @@
     } catch (e) { call.state = 'off'; micError = `The microphone could not start: ${e.message || e.name}`; showState(); return; }
     const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/voice/call`);
     ws.binaryType = 'arraybuffer'; call.ws = ws;
-    ws.onopen = () => { call.state = 'live'; wantCall = true; retries = 0; call.heard = Date.now(); claimMediaKeys(); showState(); };
+    ws.onopen = () => { call.state = 'live'; wantCall = true; retries = 0; call.heard = Date.now(); claimMediaKeys(); pttReset(); showState(); };
     ws.onmessage = e => {
       call.heard = Date.now();  // anything from the Mac proves the link is up
       if (typeof e.data === 'string') {
@@ -718,7 +732,7 @@
     };
     ws.onclose = e => {
       if (call.ws && call.ws !== ws) return;  // an old link closing after the redial started: not this call
-      const was = call.state; call.state = 'off'; call.ws = null; call.player?.port.postMessage('flush');
+      const was = call.state; call.state = 'off'; call.ws = null; call.player?.port.postMessage('flush'); pttReset();
       // While redialling, "already up" is the dead call the Mac has not closed yet (it does within 12 s): keep trying.
       if (e.code === 4409 && !again) { wantCall = false; callNote = 'A call is already up on another page or the phone.'; }
       else if (was === 'live' || again) keepCallUp();
@@ -778,10 +792,12 @@
     else if (call.state === 'connecting') [st, title] = ['connecting', 'Connecting…'];
     else if (!s || !s.connected || !mine) [st, title] = ['off', s && s.connected ? 'On a call elsewhere' : 'Not connected'];
     else if (micError) [st, title] = ['off', 'Cannot hear you'];
-    else if (s.monologue) [st, title] = [muted ? 'muted' : 'live', 'Brainstorming'];
-    else if (muted) [st, title] = ['muted', 'Muted'];
+    else if (pttMode() && pttOpen()) [st, title] = ['talking', 'Talking'];
+    else if (s.monologue) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', 'Brainstorming'];
+    else if (muted && !pttMode()) [st, title] = ['muted', 'Muted'];
     else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking'];
     else if (s.speaking === 'user') [st, title] = ['user', 'Hearing you'];
+    else if (pttMode()) [st, title] = ['ptt', Date.now() < ptt.whyUntil ? ptt.why : 'Hold to talk'];
     else [st, title] = ['live', 'Listening'];
     document.body.dataset.state = st; $('state').textContent = title;
     // the link itself, from the call's heartbeat, so "connected" is never a guess
@@ -800,7 +816,9 @@
       box.textContent = mono.said || '';
       if (atEnd) box.scrollTop = box.scrollHeight;
     }
-    $('mic').title = $('mic').ariaLabel = st === 'off' ? 'Connect' : st === 'connecting' ? 'Connecting' : muted ? 'Unmute' : 'Mute';
+    $('mic').title = $('mic').ariaLabel = st === 'off' ? 'Connect' : st === 'connecting' ? 'Connecting'
+      : pttMode() ? (pttOpen() ? 'Talking' : 'Hold to talk') : muted ? 'Unmute' : 'Mute';
+    $('keyhint').textContent = pttMode() ? `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles` : 'Space or AirPods to mute';
     if (live && silence.paused) claimMediaKeys();
   }
   async function answer(x, decision, button) {
@@ -834,7 +852,8 @@
     input.onkeydown = e => { if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); };
     input.onblur = () => done(true);
   }
-  function ringTap() {  // the one big control: connect when off, mute or unmute when live
+  function ringTap(e) {  // the one big control: connect when off, mute or unmute when live
+    if (call.state === 'live' && pttMode()) { if (e && e.detail === 0) pttToggle(); return; }  // a mouse holds it; a keyboard toggles it
     if (call.state === 'live') toggleMute();
     else if (call.state === 'off') startCall();
   }
@@ -844,7 +863,7 @@
   // Mute: an AirPods tap reaches Chrome as a play/pause media key, sent to the page that owns the active media
   // session; a silent loop keeps this page that session. A muted track sends silence.
   let muted = false;
-  function applyMute() { micTracks().forEach(t => { t.enabled = !muted; }); }
+  function applyMute() { micTracks().forEach(t => { t.enabled = pttMode() || !muted; }); }
   let tones;
   function tone(up) {  // heard in the earbuds, where the tap was: falling = muted, rising = live
     tones = tones || new AudioContext();
@@ -882,7 +901,8 @@
       body: JSON.stringify({event: `page: ${event}`})}).catch(() => {});
   }
   for (const action of ['play', 'pause', 'togglemicrophone'])
-    try { navigator.mediaSession.setActionHandler(action, () => { pageEvent(`media key ${action}`); toggleMute(); }); }
+    try { navigator.mediaSession.setActionHandler(action, () => { pageEvent(`media key ${action}`);
+                                                                  if (pttMode() && call.state === 'live') pttToggle(); else toggleMute(); }); }
     catch (e) { pageEvent(`no ${action} handler: ${e.name}`); }
   for (const action of ['nexttrack', 'previoustrack', 'stop'])  // logged only: which gesture a device sends
     try { navigator.mediaSession.setActionHandler(action, () => pageEvent(`media key ${action}`)); } catch (e) {}
@@ -1426,12 +1446,16 @@
     $('pref-mode').value = prefs['meeting.default_mode'] || 'listening';
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
+    $('pref-mic').value = prefs.microphone || 'always';
+    pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
     $('setok').textContent = ''; $('seterr').textContent = '';
     openSheet('settingssheet', 'pref-mode');
   }
   async function saveSettings() {
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
-      'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value})});
+      'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
+      microphone: $('pref-mic').value})});
+    if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); refresh(); }
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
     else $('seterr').textContent = (await r.json().catch(() => ({}))).detail || 'Not saved';
   }
@@ -1445,8 +1469,76 @@
   document.addEventListener('keydown', e => {  // Space mutes, as on a call; never while typing
     if (e.code !== 'Space' || e.repeat || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
     if (openSheetId() || document.activeElement.closest('button, [role=button]')) return;  // Space presses the focused control
-    if (call.state === 'live') { e.preventDefault(); toggleMute(); }
+    if (call.state === 'live' && !pttMode()) { e.preventDefault(); toggleMute(); }
   });
+  // Push to talk (Settings → Microphone). The daemon's gate is the rule (ptt.py): it drops audio unless a press holds it
+  // open. The page also stops sending, after a tail of 0.4 s so the last word is not cut. Open while any input holds it.
+  const PTT_TAIL_MS = 400;
+  const ptt = {held: new Set(), toggled: false, sent: false, seenOpen: false, tailUntil: 0, why: '', whyUntil: 0, capsAt: 0,
+               key: localStorage.getItem('pointe.pttKey') || 'Space'};
+  const pttMode = () => !!(status && status.ptt && status.ptt.mode === 'ptt');
+  const pttOpen = () => ptt.held.size > 0 || ptt.toggled;
+  const micSends = () => !pttMode() || pttOpen() || Date.now() < ptt.tailUntil;
+  const keyName = code => code.replace(/^Key|^Digit/, '').replace(/^Arrow(.*)/, '$1 arrow');
+  function pttSync() {  // tell the daemon when the union of the inputs opens or closes
+    const open = pttMode() && pttOpen();
+    if (open !== ptt.sent) {
+      ptt.sent = open; ptt.seenOpen = false; ptt.whyUntil = 0;
+      if (!open) ptt.tailUntil = Date.now() + PTT_TAIL_MS;
+      if (call.ws && call.ws.readyState === 1) call.ws.send(JSON.stringify({type: 'ptt', open, at: Date.now()}));
+    }
+    showState();
+  }
+  function pttHold(source, on) { if (on) ptt.held.add(source); else ptt.held.delete(source); pttSync(); }
+  function pttToggle() { ptt.toggled = !pttOpen(); ptt.held.clear(); pttSync(); }  // the last event wins over a hold
+  function pttReset() { ptt.held.clear(); ptt.toggled = false; ptt.sent = false; ptt.seenOpen = false; }  // a new call starts closed
+  let pttWas = null;
+  function pttFollow(s) {  // the daemon's gate is the truth: it closes a press held 90 s, or one whose audio stopped
+    const p = s && s.ptt;
+    if (!p) return;
+    if (p.mode !== pttWas) { pttWas = p.mode; applyMute(); if (p.mode !== 'ptt') { pttReset(); } }
+    if (p.mode !== 'ptt') return;
+    if (p.open) ptt.seenOpen = true;
+    else if (ptt.sent && ptt.seenOpen) {  // closed by the daemon while this page still holds it
+      pttReset();
+      ptt.why = p.closed_why === 'held too long' ? 'Talk closed after 90 s: press again' : 'Talk closed: no audio reached the Mac';
+      ptt.whyUntil = Date.now() + 8000; tone(false);
+    }
+  }
+  const typingNow = () => /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
+  document.addEventListener('keydown', e => {
+    if (!pttMode() || call.state !== 'live' || capturing) return;
+    if (e.code === 'CapsLock') { if (!e.repeat) { ptt.capsAt = Date.now(); pttToggle(); } return; }
+    if (e.code !== ptt.key || typingNow() || openSheetId() || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.activeElement.closest('button, [role=button]') && document.activeElement.id !== 'mic') return;  // it presses the focused control
+    e.preventDefault();
+    if (!e.repeat) pttHold('key', true);
+  });
+  document.addEventListener('keyup', e => {
+    if (e.code === 'CapsLock') {  // a toggle: macOS sends a keydown when it turns on and a keyup when it turns off
+      if (pttMode() && call.state === 'live' && Date.now() - ptt.capsAt > 600) pttToggle();
+      return;
+    }
+    if (e.code === ptt.key && ptt.held.has('key')) { e.preventDefault(); pttHold('key', false); }
+  });
+  addEventListener('blur', () => { if (ptt.held.size) { ptt.held.clear(); pttSync(); } });  // a key let go elsewhere never comes back up here
+  $('mic').addEventListener('pointerdown', e => {
+    if (!pttMode() || call.state !== 'live' || e.button !== 0) return;
+    e.preventDefault(); $('mic').setPointerCapture(e.pointerId); pttHold('ring', true);
+  });
+  for (const ev of ['pointerup', 'pointercancel']) $('mic').addEventListener(ev, () => { if (ptt.held.has('ring')) pttHold('ring', false); });
+  let capturing = false, pendingKey = ptt.key;
+  function captureKey() {  // the next non-modifier key becomes the hold-to-talk key; Escape keeps the old one
+    capturing = true; $('pref-key').textContent = 'Press a key…';
+    const take = e => {
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (e.key !== 'Escape' && e.code) pendingKey = e.code;
+      capturing = false; $('pref-key').textContent = keyName(pendingKey);
+      removeEventListener('keydown', take, true);
+    };
+    addEventListener('keydown', take, true);
+  }
   document.addEventListener('click', e => {  // a sessions sheet on a narrow screen closes when you click elsewhere
     if (document.body.classList.contains('sheet') && !e.target.closest('aside, #sessbtn')) document.body.classList.remove('sheet');
   });

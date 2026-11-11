@@ -9,6 +9,7 @@ soniox (stt-rt-v5), scribe (scribe_v2_realtime, the only ElevenLabs realtime mod
 gemini (gemini-3.8-live echo).
 """
 
+import os
 import argparse
 import asyncio
 import contextlib
@@ -67,7 +68,7 @@ async def run_gemini_transcribe_live(audio: np.ndarray) -> dict:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=sb.keychain("gemini-api-key-paid"))
+    client = genai.Client(api_key=(os.environ.get("GOOGLE_API_KEY") or sb.keychain("gemini-api-key")))
     config = types.LiveConnectConfig(
         response_modalities=[types.Modality.TEXT],
         input_audio_transcription=types.AudioTranscriptionConfig(

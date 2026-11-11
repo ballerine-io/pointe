@@ -600,6 +600,7 @@ struct MeetingBar: View {
     let ask: () -> Void
     let speakers: () -> Void
     let end: () -> Void
+    var talk: RingTalk? = nil  // push to talk: hold the ring
 
     var body: some View {
         HStack(spacing: 0) {
@@ -622,6 +623,7 @@ struct MeetingBar: View {
             .buttonStyle(.plain)
             .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Connect" : "Connecting")
             .accessibilityHint(phase == .off ? "The meeting runs on the Mac's call; this joins it from the phone" : "")
+            .ringTalk(phase == .live ? talk : nil)
             Spacer()
             side("Speakers", "person.2", action: speakers)
             Spacer()
@@ -634,7 +636,7 @@ struct MeetingBar: View {
         .sensoryFeedback(.impact(weight: .light), trigger: meeting.mode)
     }
 
-    private var hot: Bool { phase == .live && !muted }
+    private var hot: Bool { phase == .live && (talk?.talking ?? !muted) }
 
     private func side(_ label: String, _ symbol: String, on: Bool = false, tint: Color = .primary,
                       action: @escaping () -> Void) -> some View {

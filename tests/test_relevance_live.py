@@ -105,9 +105,8 @@ CASES = [  # (user said, sent before, proposed, should send)
 def test_relevance(said, earlier, proposed, expected, tmp_path):
     (tmp_path / "token").write_text("t")
     os.environ["CLAUDE_VOICE_STATE"] = str(tmp_path)
-    os.environ.setdefault("GOOGLE_API_KEY", subprocess.run(
-        ["security", "find-generic-password", "-s", "gemini-api-key-paid", "-w"],
-        capture_output=True, text=True, check=True).stdout.strip())
+    import vendors
+    vendors.key("gemini")  # the environment first, then the Keychain, as the daemon reads it
     import daemon
 
     assert asyncio.run(daemon._is_current_request(proposed, said, earlier)) is expected
@@ -117,9 +116,8 @@ def test_relevance(said, earlier, proposed, expected, tmp_path):
 def test_relevance_in_conversation(conversation, said, earlier, proposed, expected, tmp_path):
     (tmp_path / "token").write_text("t")
     os.environ["CLAUDE_VOICE_STATE"] = str(tmp_path)
-    os.environ.setdefault("GOOGLE_API_KEY", subprocess.run(
-        ["security", "find-generic-password", "-s", "gemini-api-key-paid", "-w"],
-        capture_output=True, text=True, check=True).stdout.strip())
+    import vendors
+    vendors.key("gemini")  # the environment first, then the Keychain, as the daemon reads it
     import daemon
 
     assert asyncio.run(daemon._is_current_request(proposed, said, earlier, conversation)) is expected

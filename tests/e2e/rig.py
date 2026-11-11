@@ -158,7 +158,7 @@ async def transcribe(pcm: np.ndarray) -> str:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=keychain("gemini-api-key-paid"))
+    client = genai.Client(api_key=(os.environ.get("GOOGLE_API_KEY") or keychain("gemini-api-key")))
     for attempt in range(4):
         try:
             return await _transcribe_once(client, buf.getvalue())
@@ -197,6 +197,7 @@ class Browser:
         self._socket = None
         self._tasks: list[asyncio.Task] = []
         self.interrupts = 0
+        self.muted = False  # True: the mic keeps time but nothing is sent, as a client that stopped sending
 
     async def connect(self) -> None:
         from websockets.asyncio.client import connect
@@ -210,6 +211,8 @@ class Browser:
     async def _send(self) -> None:
         while True:
             pcm = (await self.mic.recv()).reshape(-1, RATE // self.IN_RATE).mean(axis=1)  # 48 to 16 kHz, averaged against aliasing
+            if self.muted:
+                continue
             try:
                 await self._socket.send(pcm.astype(np.int16).tobytes())
             except Exception:
@@ -245,6 +248,10 @@ class Browser:
 
     async def say(self, text: str, voice: str = USER_VOICE) -> tuple[float, float]:
         return self.mic.say(await synth(text, voice))
+
+    async def control(self, message: dict) -> None:
+        """A text message on the call, such as push to talk's {"type": "ptt", "open": true}."""
+        await self._socket.send(json.dumps(message))
 
     async def close(self) -> None:
         for task in self._tasks:

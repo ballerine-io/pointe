@@ -26,7 +26,6 @@ KEYS = {
     "elevenlabs": ("ELEVENLABS_API_KEY", "elevenlabs-api-key"),
 }
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names
-OLD_KEYCHAIN_ITEMS = {"gemini": "gemini-api-key-paid"}
 LOCAL = "local"  # needs no key: Whisper and Kokoro on this machine, and an OpenAI-compatible server for text models
 LOCAL_URL = "http://localhost:11434/v1"  # Ollama; CLAUDE_VOICE_LOCAL_URL points it at LM Studio, vLLM, Groq, OpenRouter...
 KEY_ENVS = {env for env, _ in KEYS.values()} | set(ENV_ALIASES.values()) | {"CLAUDE_VOICE_LOCAL_KEY"}
@@ -45,15 +44,14 @@ def key(vendor: str) -> str | None:
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
         return value
-    for name in filter(None, (item, OLD_KEYCHAIN_ITEMS.get(vendor))):
-        try:
-            got = subprocess.run(["security", "find-generic-password", "-s", name, "-w"], capture_output=True, text=True,
-                                 timeout=5)
-        except (OSError, subprocess.TimeoutExpired):
-            return None
-        if not got.returncode and got.stdout.strip():
-            os.environ[env] = got.stdout.strip()
-            return os.environ[env]
+    try:
+        got = subprocess.run(["security", "find-generic-password", "-s", item, "-w"], capture_output=True, text=True,
+                             timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if not got.returncode and got.stdout.strip():
+        os.environ[env] = got.stdout.strip()
+        return os.environ[env]
     return None
 
 

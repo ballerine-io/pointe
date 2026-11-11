@@ -25,9 +25,8 @@ NOTES_TEXT = "notes.md lists the product launch plan and dates."
 def daemon(tmp_path):
     (tmp_path / "token").write_text("t")
     os.environ["CLAUDE_VOICE_STATE"] = str(tmp_path)
-    os.environ.setdefault("GOOGLE_API_KEY", subprocess.run(
-        ["security", "find-generic-password", "-s", "gemini-api-key-paid", "-w"],
-        capture_output=True, text=True, check=True).stdout.strip())
+    import vendors
+    vendors.key("gemini")  # the environment first, then the Keychain, as the daemon reads it
     import daemon as d
 
     saved = (dict(d.REGISTRY.sessions), d.REGISTRY.active_id, d.REGISTRY.mode, d.REGISTRY.path)

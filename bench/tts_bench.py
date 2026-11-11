@@ -13,6 +13,7 @@ or an open WebSocket, as in a live pipeline). Round trip: every synthesised clip
 by Soniox real-time and scored against the source text.
 """
 
+import os
 import argparse
 import asyncio
 import base64
@@ -108,7 +109,7 @@ class GeminiTTS(Adapter):
     async def setup(self, http):
         await super().setup(http)
         from google import genai
-        self.client = genai.Client(api_key=keychain("gemini-api-key-paid"))
+        self.client = genai.Client(api_key=(os.environ.get("GOOGLE_API_KEY") or keychain("gemini-api-key")))
 
     async def stream(self, text, lang):
         from google.genai import types
