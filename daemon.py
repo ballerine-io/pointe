@@ -3437,13 +3437,14 @@ async def correct_a_turn(request: Request):
     """The user fixed a transcript: the voice hears what they meant, and fixes anything it did on the misheard words."""
     body = await request.json()
     text = str(body.get("text") or "").strip()[:2000]
-    index = int(body.get("id", -1)) - state.conversation_base
+    turn_id = _int(body, "id", -1)
+    index = turn_id - state.conversation_base
     if not text or not 0 <= index < len(state.conversation) or state.conversation[index][0] != "user":
         raise HTTPException(status_code=404, detail="no such thing you said")
     was = state.conversation[index][1]
     state.conversation[index] = ("user", text)
-    state.corrected.add(int(body["id"]))
-    state.understood.pop(int(body["id"]), None)
+    state.corrected.add(turn_id)
+    state.understood.pop(turn_id, None)
     logger.info(f"user corrected {was!r} -> {text!r}")
     if state.conn is None:
         return {"ok": True}

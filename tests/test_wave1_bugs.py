@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ptt  # noqa: E402
 import meeting as meetings  # noqa: E402
-from test_orchestrator import add, d, with_permission  # noqa: E402,F401  (d is a fixture)
+from test_orchestrator import add, d, fake_conn, with_permission  # noqa: E402,F401  (d is a fixture)
 from test_meeting_daemon import _meeting_ready, _start  # noqa: E402
 from test_speaker import OTHER_HZ, OWNER_HZ, tone  # noqa: E402
 from test_voice_lock import v  # noqa: E402,F401  (fixture: an enrolled voice lock on a fake model)
@@ -332,3 +332,11 @@ def test_repeat_cut_log_line_is_withheld_during_a_meeting(d):
               "name": "brain", "level": SimpleNamespace(no=20)}
     d._meeting_redact(record)
     assert "pricing" not in record["message"], record["message"]
+
+
+# ---------- 11. a transcript correction with an id that is not a number is a 400, not a 500 ----------
+
+def test_a_correction_with_an_id_that_is_not_a_number_is_refused_cleanly(d):
+    from test_orchestrator import client_for
+    r = client_for(d).post("/voice/correct", json={"id": "abc", "text": "deploy the docs"})
+    assert r.status_code == 400, (r.status_code, r.text)
