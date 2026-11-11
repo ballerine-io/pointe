@@ -25,7 +25,7 @@ from page_meeting import CHROME, Page, call, room  # noqa: E402
 from rig import DAEMON, GUEST_VOICES, ROOT, STATE, Browser, fresh_state, stop_daemon  # noqa: E402
 from scenarios import check, results  # noqa: E402
 
-DEBUG_PORT = 9336
+DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "9336"))  # parallel runs each need their own
 SHOTS = Path(os.environ.get("POINTE_SHOTS") or tempfile.mkdtemp(prefix="pointe-meeting-qa-"))
 DANA, SAM = GUEST_VOICES
 ROOM = [
