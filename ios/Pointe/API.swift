@@ -19,6 +19,7 @@ struct API {
         let attention: [Attention]?
         let ptt: PTTStatus?     // push to talk; nil from a Mac without it
         var voice_lock: VoiceLock?  // the owner-voice lock; nil from a Mac without it, and the app hides the feature
+        var briefing: BriefingStatus?  // audio briefings (Briefing.swift); nil from a Mac without them
     }
 
     // MARK: owner-voice lock (docs/plans/next-features.md, "1. Owner-voice lock"). Every field optional, like the meeting's.
@@ -407,4 +408,21 @@ struct API {
     }
 
     func setPrefs(_ changes: [String: any Sendable]) async throws { try await post("voice/prefs", changes) }
+
+    // MARK: audio briefings
+
+    func briefings() async throws -> BriefingsPage {
+        try JSONDecoder().decode(BriefingsPage.self, from: try await checked(request("voice/briefings")))
+    }
+
+    /// start (since, length), skip, stop, continue. 409 carries the Mac's reason: no call, a meeting on, nothing playing.
+    func briefing(_ body: [String: any Sendable]) async throws { try await post("voice/briefings", body) }
+
+    func setBriefingSchedule(_ changes: [String: any Sendable]) async throws -> BriefingSchedule? {
+        let data = try await checked(request("voice/briefings/schedule", method: "POST", body: changes))
+        struct Reply: Decodable { let schedule: BriefingSchedule? }
+        return try JSONDecoder().decode(Reply.self, from: data).schedule
+    }
+
+    func dismissAttention(_ id: String) async throws { try await post("voice/attention", ["id": id]) }
 }
