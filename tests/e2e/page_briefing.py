@@ -170,7 +170,8 @@ async def main() -> None:
             building = await until(lambda: brf()["building"] or brf()["playing"], 25)
             playing = await until(lambda: brf()["playing"], 60)
             await page.js("document.getElementById('briefbtn').click()")
-            line = await page.until("document.getElementById('brf-state').textContent", 10)
+            line = await page.until("/^Part [1-9]/.test(document.getElementById('brf-state').textContent) && "
+                                    "document.getElementById('brf-state').textContent", 10)
             controls = await page.js("!document.getElementById('brf-skip').hidden && !document.getElementById('brf-stop').hidden "
                                      "&& document.getElementById('brf-go').hidden")
             await page.shot("brf-1-playing")
