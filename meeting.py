@@ -64,6 +64,7 @@ class Turn:
     starts: list = field(default_factory=lambda: [0])  # where each resumed fragment begins in `text`: a wake word may open one
     handled: int = 0  # addressed sentences already acted on: a late burst ("?") re-closes the turn, it must not re-ask
     audio_ms: tuple | None = None  # (start, end) of the newest fragment in the stream's audio clock, when Soniox gave times
+    span_ms: tuple | None = None  # (start, end) of the whole turn, fragments merged; None for a turn of one fragment
 
     @property
     def new_text(self) -> str:
@@ -158,6 +159,8 @@ class Turns:
             same.text += glue + turn.text
             same.open_end, same.t1 = turn.open_end, turn.t1
             same.fragment, same.fragment_secs, same.merged = fragment, turn.fragment_secs, True
+            first = same.span_ms or same.audio_ms
+            same.span_ms = (first[0], turn.audio_ms[1]) if first and turn.audio_ms else None
             same.audio_ms = turn.audio_ms
             return [same]
         self.closed.append(turn)

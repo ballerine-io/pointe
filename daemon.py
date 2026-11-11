@@ -1780,11 +1780,15 @@ async def _on_meeting_turn(m, turn) -> None:
 
 async def _meeting_voice(turn):
     """The voiceprint's verdict on a meeting turn, or None when the lock is off or there is no voiceprint (then the
-    label binding alone decides, as before). A turn without audio is a verdict too: not scored, so not the owner."""
+    label binding alone decides, as before). A turn without audio is a verdict too: not scored, so not the owner.
+    The whole turn is scored, not its newest fragment: "Pointe, that's me" alone is often under speaker.MIN_SECS."""
     if lock_level() == "off" or not VOICE.profiles.items:
         return None
     ears = state.meeting_ears
-    pcm = ears.audio_between(*turn.audio_ms) if turn.audio_ms and hasattr(ears, "audio_between") else b""
+    span = turn.span_ms or turn.audio_ms
+    if span:
+        span = (max(span[0], span[1] - speaker.MAX_SCORED_SECS * 1000), span[1])  # only the newest seconds are scored
+    pcm = ears.audio_between(*span) if span and hasattr(ears, "audio_between") else b""
     return await VOICE.score(pcm)
 
 

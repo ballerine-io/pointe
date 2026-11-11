@@ -358,3 +358,35 @@ def test_a_new_call_shows_nothing_ignored_or_judged_from_the_last_call(d, v, mon
     status = voice.status("commands")
     assert status["ignored"] == {"count": 0, "last_at": None, "recent": []}, status["ignored"]
     assert status["speaker"] is None
+
+
+# ---------- 13. "Pointe, that's me" after the owner's own words is scored on the whole turn ----------
+
+def _owner_claims_after(d, monkeypatch, before: list[tuple[str, int, int]]):
+    """The seat is held by label "2"; the owner (label "1") speaks, then says "Pointe, that's me" (0.8 s, under the
+    voiceprint's 1 s strong-match minimum). Audio is the owner's voice, as long as the span asked for."""
+    d.PREFS.update({"voice_lock": "approvals"})
+    m = meetings.Meeting(mode="listening", vendors={})
+    m.owner = "2"
+    d.state.meeting = m
+    d.state.meeting_ears = SimpleNamespace(audio_between=lambda a, b: tone(OWNER_HZ, (b - a) / 1000))
+    now = m.since + 1
+    for text, start, end in before + [(" Pointe, that's me.", 2300, 3100)]:
+        for t in m.hear([{"is_final": True, "text": text, "speaker": "1", "start_ms": start, "end_ms": end}], now):
+            asyncio.run(d._on_meeting_turn(m, t))
+        for t in m.tick(now + 2):
+            asyncio.run(d._on_meeting_turn(m, t))
+        now += 2.5
+    return m
+
+
+def test_that_s_me_right_after_the_owners_own_words_is_scored_on_the_whole_turn(d, v, monkeypatch):
+    m = _owner_claims_after(d, monkeypatch, [(" We should ship on Thursday.", 0, 2000)])
+    assert m.turns[-1].merged
+    assert m.owner == "1", "the turn holds 2.8 s of the owner's voice, yet only the 0.8 s claim was scored"
+
+
+def test_a_lone_short_that_s_me_still_needs_a_strong_match(d, v, monkeypatch):
+    """Not loosened: 0.8 s alone is under the strong-match minimum, so the seat does not move on it."""
+    m = _owner_claims_after(d, monkeypatch, [])
+    assert m.owner == "2"
