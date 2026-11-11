@@ -1554,6 +1554,8 @@ class MicGate(FrameProcessor):
                     self._last_activity = time.time()  # a talking meeting is not an idle call
                     await self.push_frame(UserSpeakingFrame())
                 return
+            if not state.ptt.passes(PREFS.get("microphone"), time.time()):
+                return  # room audio let through for a meeting stream that is not up: the conversation still needs a press
         await self.push_frame(frame, direction)
 
     def recent_audio(self, secs: float) -> bytes:
@@ -1561,9 +1563,15 @@ class MicGate(FrameProcessor):
         return data[-int(secs * phone.IN_RATE * 2):]
 
 
+def _room_heard() -> bool:
+    return state.meeting is not None or state.meeting_starting
+
+
 class PttGate(FrameProcessor):
     """First after the transport: with the microphone set to push to talk, audio passes only while a press holds the
-    gate open, so nothing reaches the voice detector, the ears, the meeting stream or a realtime model otherwise."""
+    gate open, so nothing reaches the voice detector, the ears or a realtime model otherwise. While a meeting is on the
+    room's audio passes for the meeting stream (it took consent and shows a recording indicator); MicGate keeps it from
+    the conversation's ears unless a press is on."""
 
     TICK_SECS = 0.1
 
@@ -1579,7 +1587,7 @@ class PttGate(FrameProcessor):
             await self._press() if frame.open else self._release(time.time(), "released")
             return
         if isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
-            if not state.ptt.audio(len(frame.audio), PREFS.get("microphone"), time.time()):
+            if not state.ptt.audio(len(frame.audio), PREFS.get("microphone"), time.time(), room=_room_heard()):
                 return
         elif isinstance(frame, StartFrame) and self._ticker is None:
             self._ticker = self.create_task(self._ticks(), "ptt-ticks")
@@ -3473,7 +3481,7 @@ async def status():
                                                                "said": " ".join(state.monologue)[-600:]},
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
-            "ptt": state.ptt.status(PREFS.get("microphone")),
+            "ptt": state.ptt.status(PREFS.get("microphone"), _room_heard()),
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "meeting": state.meeting.status() if state.meeting is not None else (
                 {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),

@@ -1,5 +1,7 @@
 """Push to talk: the daemon's input gate. With the microphone set to "ptt", audio passes only while a press holds the
-gate open (plus a short tail), so nothing reaches the ears or any vendor otherwise. The clients stop sending too, but
+gate open (plus a short tail), so nothing reaches the ears or any vendor otherwise. One exception: while a meeting is
+on, the room's audio goes to the meeting stream without a press (starting a meeting took consent and shows a recording
+indicator); the conversation still hears only a press. The clients stop sending too, but
 this gate is the rule: the daemon is what talks to vendors. Pure state, driven by the call's PttGate with the clock."""
 
 TAIL_SECS = 0.4  # kept after a release, so the last word is not cut; the clients send the same tail
@@ -23,6 +25,7 @@ class Ptt:
         self.last_audio_at = 0.0
         self.passed_bytes = 0
         self.dropped_bytes = 0
+        self.room_bytes = 0  # passed for the meeting stream only, with the gate closed
         self._mode = None  # the mode last seen, to notice a switch to push to talk mid-sentence
 
     def press(self, now: float) -> bool:
@@ -50,12 +53,16 @@ class Ptt:
         self._follow(mode, now)
         return mode != "ptt" or self.open or now < self.until
 
-    def audio(self, nbytes: int, mode: str, now: float) -> bool:
-        """One chunk of microphone audio arrived: True if it may go on to the ears."""
+    def audio(self, nbytes: int, mode: str, now: float, room: bool = False) -> bool:
+        """One chunk of microphone audio arrived: True if it may go on. With room=True (a meeting is on) it always may,
+        but only the meeting stream may take it unless passes() also holds."""
         self.last_audio_at = now
         ok = self.passes(mode, now)
         if ok:
             self.passed_bytes += nbytes
+        elif room:
+            self.room_bytes += nbytes
+            return True
         else:
             self.dropped_bytes += nbytes
         return ok
@@ -82,7 +89,8 @@ class Ptt:
             return min(self.opened_at, now)
         return now
 
-    def status(self, mode: str) -> dict:
+    def status(self, mode: str, room: bool = False) -> dict:
+        """room_heard: a meeting is on, so the room is heard without a press (the conversation is not)."""
         return {"mode": mode, "open": self.open, "opened_at": self.opened_at or None,
                 "closed_at": self.closed_at or None, "closed_why": self.closed_why,
-                "sent_bytes": self.passed_bytes}
+                "sent_bytes": self.passed_bytes, "room_heard": mode == "ptt" and room, "room_bytes": self.room_bytes}

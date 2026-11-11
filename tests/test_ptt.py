@@ -277,3 +277,58 @@ def test_the_microphone_setting_is_a_pref_both_clients_share(d):
     s = c.get("/voice/status").json()["ptt"]
     assert s["mode"] == "ptt" and s["open"] is False
     c.post("/voice/prefs", json={"microphone": "always"})
+
+
+# ---------- a meeting: the room is heard without a press; the conversation still needs one ----------
+
+def _in_meeting(d, monkeypatch):
+    from test_meeting_daemon import FakeEars, _meeting_ready, _start
+    _meeting_ready(d, monkeypatch)
+    d.PREFS.update({"meeting.consented": True, "microphone": "ptt"})
+    _start(d)
+    return FakeEars.instances[-1]
+
+
+def test_in_a_meeting_the_room_reaches_the_meeting_stream_without_a_press(d, monkeypatch):
+    ears = _in_meeting(d, monkeypatch)
+    ptt_gate, pushed, _ = _gate(d, monkeypatch)
+    mic = d.MicGate()
+    to_conversation = []
+
+    async def onward(frame, *a):
+        to_conversation.append(frame)
+    mic.push_frame = onward
+
+    async def go():
+        await _feed(d, ptt_gate, _audio(d))
+        for f in [f for f in pushed if isinstance(f, d.InputAudioRawFrame)]:
+            await d.MicGate.process_frame(mic, f, d.FrameDirection.DOWNSTREAM)
+    asyncio.run(go())
+    assert ears.sent, "the room's audio must reach the meeting stream"
+    assert not any(isinstance(f, d.InputAudioRawFrame) for f in to_conversation)
+    status = client_for(d).get("/voice/status").json()["ptt"]
+    assert status["room_heard"] is True and status["sent_bytes"] == 0 and status["room_bytes"] > 0
+
+
+def test_room_audio_that_finds_no_meeting_stream_never_reaches_the_conversation_without_a_press(d, monkeypatch):
+    _in_meeting(d, monkeypatch)
+    d.state.meeting_ears = None  # the room's stream is reconnecting
+    ptt_gate, pushed, _ = _gate(d, monkeypatch)
+    mic = d.MicGate()
+    to_conversation = []
+
+    async def onward(frame, *a):
+        to_conversation.append(frame)
+    mic.push_frame = onward
+
+    async def go():
+        await _feed(d, ptt_gate, _audio(d))
+        for f in [f for f in pushed if isinstance(f, d.InputAudioRawFrame)]:
+            await d.MicGate.process_frame(mic, f, d.FrameDirection.DOWNSTREAM)
+    asyncio.run(go())
+    assert not any(isinstance(f, d.InputAudioRawFrame) for f in to_conversation)
+
+
+def test_outside_a_meeting_the_status_says_the_room_is_not_heard(d):
+    d.PREFS.update({"microphone": "ptt"})
+    assert client_for(d).get("/voice/status").json()["ptt"]["room_heard"] is False
