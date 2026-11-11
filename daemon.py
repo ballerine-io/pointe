@@ -808,8 +808,12 @@ class SonioxEars(FrameProcessor):
             self._voiced = False
         if isinstance(frame, BotStartedSpeakingFrame):
             ECHO.bot_started()
+            if state.meeting is not None:  # what the page and the app show as "speaking to the room"
+                state.meeting.speaking = True
         elif isinstance(frame, BotStoppedSpeakingFrame):
             ECHO.bot_stopped()
+            if state.meeting is not None:
+                state.meeting.speaking = False
             _journal_bot_turn()
         elif isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)

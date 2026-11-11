@@ -390,3 +390,27 @@ def test_a_lone_short_that_s_me_still_needs_a_strong_match(d, v, monkeypatch):
     """Not loosened: 0.8 s alone is under the strong-match minimum, so the seat does not move on it."""
     m = _owner_claims_after(d, monkeypatch, [])
     assert m.owner == "2"
+
+
+# ---------- 14. status says the bot is speaking to the room while its answer plays ----------
+
+def test_meeting_status_says_speaking_while_the_bot_talks_to_the_room(d, monkeypatch):
+    """Meeting.speaking was never set, so status["meeting"]["speaking"] stayed false while a participating answer played
+    (the page's "speaking to the room", the app's "Speaking to the room")."""
+    from pipecat.frames.frames import BotStartedSpeakingFrame, BotStoppedSpeakingFrame
+    from pipecat.processors.frame_processor import FrameDirection
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    ears = d.SonioxEars()
+
+    async def noop(*_a, **_k):
+        pass
+
+    monkeypatch.setattr(ears, "push_frame", noop)
+    monkeypatch.setattr(d.FrameProcessor, "process_frame", lambda self, f, dirn: asyncio.sleep(0))
+    monkeypatch.setattr(d, "_journal_bot_turn", lambda: None)
+    up = FrameDirection.UPSTREAM
+    asyncio.run(d.SonioxEars.process_frame(ears, BotStartedSpeakingFrame(), up))
+    assert d.state.meeting.status()["speaking"] is True
+    asyncio.run(d.SonioxEars.process_frame(ears, BotStoppedSpeakingFrame(), up))
+    assert d.state.meeting.status()["speaking"] is False
