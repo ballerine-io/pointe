@@ -17,6 +17,9 @@ MIRROR_RECENT_SECS = 12.0  # the mirror trails the audio by a few seconds at mos
 INTERRUPT_WORDS = {"stop", "wait", "hold", "no", "enough", "quiet", "pause", "hey",
                    "רגע", "עצור", "די", "לא", "חכה", "שקט"}
 
+ANSWER_WORDS = {"yes", "yeah", "yep", "no", "nope", "approve", "approved", "allow", "deny", "denied", "ok", "okay", "sure",
+                "ahead", "כן", "לא", "תאשר", "אשר"}  # the words a yes or a no is made of
+
 
 NUMBERS = {w: str(i) for i, w in enumerate(
     "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen "
@@ -163,6 +166,24 @@ class EchoGuard:
         if not rest or (len(rest) == 1 and rest[0] not in INTERRUPT_WORDS):
             return ""  # one stray word inside an echo is a mishearing, not the user
         return " ".join(rest)
+
+    def repeats_bot(self, text: str) -> bool:
+        """These words are the bot's own recent speech coming back: every answer word in them (yes, no, approve…) sits
+        in a run of two words the bot said in the last half minute, and so do at least half of them. Only for consent:
+        a final can arrive after the echo tail, when user_part takes it whole ("…approve it there, or say no" once
+        denied a request). A real answer brings its own words ("no, don't run the tests"), so it is not one."""
+        heard = words(text)
+        if len(heard) < 3:
+            return False
+        pairs = set()
+        for said in (self._model.words(), self._mirror.words()):
+            pairs.update(zip(said, said[1:]))
+        mask = [False] * len(heard)
+        for i, pair in enumerate(zip(heard, heard[1:])):
+            if pair in pairs:
+                mask[i] = mask[i + 1] = True
+        answers = [m for w, m in zip(heard, mask) if w in ANSWER_WORDS]
+        return bool(answers) and all(answers) and sum(mask) * 2 >= len(heard)
 
     def is_barge_in(self, interim: str) -> bool:
         """Live words over the bot's voice that are the user's: two in a row, or one stop word.

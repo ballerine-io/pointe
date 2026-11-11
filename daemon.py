@@ -2343,7 +2343,8 @@ async def on_user_utterance(text: str) -> None:
     if not session or not session.permission_id or state.conn is None:
         return
     window_open = state.conn.injector.bot_started_at >= session.permission_delivered_at
-    verdict = None if state.heard_own_words else permission_answer(text)
+    # The bot's own read-out heard back is never an answer, a no included (echo.repeats_bot).
+    verdict = None if state.heard_own_words or ECHO.repeats_bot(text) else permission_answer(text)
     if verdict == "deny" and time.time() - session.permission_read_at < PERMISSION_ANSWER_SECS:
         window_open = True  # a no is safe even if the bot has said something since: the worst case is that Claude asks again
     if verdict is None:
