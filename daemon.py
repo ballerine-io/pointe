@@ -1874,6 +1874,7 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
         line = ("Waiting on you: " + ", ".join(waiting)) if waiting else "Nothing is waiting on you."
         NOTES.add("thought", line, dedup=False)
         if m.mode == "participating" and not typed:
+            state.last_utterance = words  # the reply's language follows the question, not the words before the meeting
             await _meeting_speak(f"[the owner asked what is waiting, in the meeting] Say only this, in a few words: {line}")
     elif cmd in ("think", "ask", "finish"):
         question = args.get("text") or words

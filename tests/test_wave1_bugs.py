@@ -236,3 +236,19 @@ def test_hebrew_tell_me_what_you_think_in_participating_gets_an_answer(d, monkey
     m.owner = "1"
     asyncio.run(d._meeting_command("תגיד מה דעתך"))
     assert pushed, "the owner asked for an opinion and nothing was put to the brain (meeting_hand found no hand)"
+
+
+# ---------- 7. meeting: "anything waiting?" asked in Hebrew is answered in Hebrew ----------
+
+def test_waiting_asked_in_hebrew_is_answered_in_hebrew(d, monkeypatch):
+    """_meeting_command("waiting") speaks a fixed English line and leaves state.last_utterance as it was, so the brain is
+    told to speak the language of the words said before the meeting."""
+    pushed, _ = _meeting_ready(d, monkeypatch)
+    add(d, "s1", "pricing")
+    d.state.last_utterance = "meeting mode participating"  # the spoken entry, in English
+    _start(d, "participating")
+    d.state.meeting.owner = "1"
+    asyncio.run(d._meeting_command("מה מחכה"))
+    assert pushed and "waiting" in pushed[-1].text.lower()
+    assert "speak Hebrew" in d._brain_context(), d._brain_context().splitlines()[0]
+    assert d._language_problem("Nothing is waiting on you.") is not None, "an English answer to a Hebrew ask is not corrected either"
