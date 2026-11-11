@@ -1529,7 +1529,7 @@ class PttGate(FrameProcessor):
     async def _press(self) -> None:
         if PREFS.get("microphone") != "ptt" or not state.ptt.press(time.time()):
             return
-        logger.info("ptt: open")
+        logger.info("ptt: open over the bot: it stops" if ECHO.speaking else "ptt: open")
         state.user_started_at = state.ptt.opened_at  # the consent rules time the answer from the press
         await self.push_frame(UserSpeakingFrame())  # the idle hang-up counts from the last press in a quiet call
         if ECHO.speaking:  # a press is a clearer barge-in than words
