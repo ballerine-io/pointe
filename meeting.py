@@ -164,6 +164,11 @@ class Turns:
         return [turn]
 
 
+def _bindable(label: str) -> bool:
+    """"?" is every turn Soniox could not label, not one person: as the owner, anyone unlabelled would be "You"."""
+    return bool(label) and label != "?"
+
+
 def _join(before: Turn, after: Turn) -> str:
     return "" if before.open_end and not after.glue else " "
 
@@ -302,7 +307,7 @@ class Meeting:
         return bool(self.entry_words) and turn.t0 - self.since <= ENTRY_BIND_SECS and _overlap(turn.new_text, self.entry_words)
 
     def add_turn(self, turn: Turn) -> None:
-        if not self.owner and self.is_entry(turn):
+        if not self.owner and _bindable(turn.speaker) and self.is_entry(turn):
             self.owner = turn.speaker  # the one who said "meeting mode" is the owner
             logger.info("meeting: owner bound from the entry command")
         turn.who = self.who(turn.speaker)
@@ -323,7 +328,7 @@ class Meeting:
         return closed
 
     def bind_owner(self, label: str) -> None:
-        if label and label != self.bot:
+        if _bindable(label) and label != self.bot:
             self.owner = label
             for t in self.turns:
                 t.who = self.who(t.speaker)

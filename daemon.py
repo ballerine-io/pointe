@@ -3729,6 +3729,8 @@ async def meeting_action(request: Request):
         turn = next((t for t in m.turns if t.id == turn_id), None)
         if turn is None:
             raise HTTPException(status_code=404, detail="no such turn")
+        if turn.speaker == "?":
+            raise HTTPException(status_code=409, detail="that turn has no speaker label, so it cannot mark the owner")
         m.bind_owner(turn.speaker)
         return {"meeting": m.status()}
     if action == "brief":

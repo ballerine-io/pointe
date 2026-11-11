@@ -186,3 +186,34 @@ def test_a_failed_translation_is_not_spoken_into_a_meeting(d, monkeypatch):
     assert asyncio.run(d._translate("The launch looks risky.")) == "The launch looks risky."
     _start(d, "participating")
     assert asyncio.run(d._translate("The launch looks risky.")) == ""
+
+
+# ---------- 5. meeting: an unlabelled speaker ("?") is nobody, not the owner ----------
+
+def test_an_unlabelled_speaker_is_nobody_not_the_owner():
+    m = meetings.Meeting(mode="listening", vendors={})
+    m.bind_owner("?")
+    assert m.owner is None, "a speaker Soniox could not label must not become the owner"
+
+
+def test_entry_words_from_an_unlabelled_speaker_do_not_bind_the_owner():
+    m = meetings.Meeting(mode="listening", vendors={}, entry_words="meeting mode listening")
+    now = m.since + 1
+    m.hear([{"is_final": True, "text": " meeting mode listening", "speaker": None}], now)
+    m.tick(now + 5)
+    assert m.owner != "?"
+    # otherwise a later unlabelled turn is the owner's: "Pointe, end the meeting" from anyone would end it
+    m.hear([{"is_final": True, "text": " Pointe, end the meeting", "speaker": None}], now + 10)
+    closed = m.tick(now + 15)
+    assert closed and closed[0].who != "You"
+
+
+def test_that_was_me_on_an_unlabelled_turn_is_refused(d, monkeypatch):
+    from test_orchestrator import client_for
+    _meeting_ready(d, monkeypatch)
+    _start(d, "listening")
+    m = d.state.meeting
+    m.hear([{"is_final": True, "text": " the numbers are in", "speaker": None}], m.since + 1)
+    turn = m.tick(m.since + 5)[0]
+    r = client_for(d).post("/voice/meeting", json={"action": "owner", "turn_id": turn.id})
+    assert r.status_code == 409 and m.owner is None, r.text
