@@ -635,13 +635,23 @@ def _brain_context() -> str:
 
 
 async def _translate(said: str) -> str:
+    """The reply in the user's language. When the checker fails, the reply as it came, except into a meeting: the room
+    is not answered in the wrong language, so it gets nothing ("")."""
     target = "Hebrew" if re.search(r"[\u0590-\u05ff]", state.last_utterance) else "English"
     try:
-        return (await asyncio.wait_for(vendors.text(
+        out = (await asyncio.wait_for(vendors.text(
             setup().checker, f"Translate into {target}, for speaking aloud. Keep technical terms and names in English. Only the "
-            f"translation:\n{said}"), CHECK_TIMEOUT_SECS)).strip() or said
-    except Exception:
-        return said
+            f"translation:\n{said}"), CHECK_TIMEOUT_SECS)).strip()
+        if out:
+            return out
+        why = "an empty translation"
+    except Exception as e:
+        why = type(e).__name__
+    if state.meeting is not None:
+        logger.warning(f"translate into {target} failed ({why}): the reply is not spoken into the meeting")
+        return ""
+    logger.warning(f"translate into {target} failed ({why}): spoken as it came")
+    return said
 
 
 def _language_problem(said: str) -> str | None:
@@ -1891,6 +1901,8 @@ async def _meeting_speak(text: str) -> None:
     m = state.meeting
     if m is None or m.mode != "participating" or state.conn is None:
         return
+    if state.front is not None:  # a reply still coming to an earlier ask would take this ask's one-reply window
+        state.front.brain.interrupt()
     state.meeting_may_speak_until = time.time() + MEETING_REPLY_SECS
     await state.conn.injector.push_frame(InputTextRawFrame(text=text))
 

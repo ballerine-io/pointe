@@ -129,3 +129,60 @@ def test_a_permission_request_during_a_meeting_is_not_told_to_the_brain(d, monke
     asyncio.run(d._put_permission(s, "p9", "Bash", "delete the build folder", '{"command": "rm -rf build"}'))
     told = [t for t, respond in d.state.conn.injector.fed if "rm -rf build" in t]
     assert not told, told
+
+
+# ---------- 4. meeting, participating: a late reply to an earlier ask does not spend the new ask's window ----------
+
+def test_a_late_reply_to_an_earlier_ask_is_not_spoken_in_the_new_asks_window(d, monkeypatch):
+    """_meeting_speak opens one window per ask; BrainFront._speak closes it on the first speak, whichever ask that speech
+    answers. A new "[the owner asked ...]" frame did not interrupt the brain's running turn (BrainFront interrupts only on
+    text that does not start with "["), so the earlier answer, in the earlier language, went to the room and the answer
+    to the new ask was held as "nobody asked"."""
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    spoken, steps = [], []
+    front, late = SimpleNamespace(), {}
+
+    async def push_frame(frame, *a):
+        spoken.append(frame.text)
+
+    async def step(choice, instructions, messages, decls):
+        steps.append(choice)
+        if len(steps) == 1:  # the earlier ask: its answer is still being written when the new ask comes
+            await late["gate"].wait()
+        text = "I think closing the meeting now is fine." if len(steps) == 1 else "ההשקה ביום חמישי נראית מסוכנת בלי בדיקות."
+        return d.vendors.Step(calls=[{"id": f"c{len(steps)}", "name": "speak", "args": {"text": text}}])
+
+    monkeypatch.setattr(d.vendors, "step", step)
+    front.push_frame = push_frame
+    front.brain = d.make_brain(lambda text, rid=None: d.BrainFront._speak(front, text, rid))
+    d.state.front = front
+
+    async def go():
+        late["gate"] = asyncio.Event()
+        earlier = "[the owner asked you to speak in the meeting] should we close the meeting now?"
+        await d._meeting_speak(earlier)
+        first = asyncio.create_task(front.brain.turn(earlier))
+        await asyncio.sleep(0.05)
+        now = "[the owner asked you to speak in the meeting] מה דעתך על ההשקה?"
+        await d._meeting_speak(now)
+        late["gate"].set()  # the earlier answer arrives after the new ask
+        await first
+        await front.brain.turn(now)  # the frame _meeting_speak pushed starts this turn in the pipeline
+    asyncio.run(go())
+    assert spoken == ["ההשקה ביום חמישי נראית מסוכנת בלי בדיקות."], spoken
+
+
+def test_a_failed_translation_is_not_spoken_into_a_meeting(d, monkeypatch):
+    """_translate returned the English reply when the checker failed, silently: in a meeting the room then heard an
+    English answer to a Hebrew question. Outside a meeting the reply still comes, as it was."""
+    _meeting_ready(d, monkeypatch)
+
+    async def down(*_a, **_k):
+        raise RuntimeError("checker down")
+
+    monkeypatch.setattr(d.vendors, "text", down)
+    d.state.last_utterance = "מה דעתך על ההשקה?"
+    assert asyncio.run(d._translate("The launch looks risky.")) == "The launch looks risky."
+    _start(d, "participating")
+    assert asyncio.run(d._translate("The launch looks risky.")) == ""
