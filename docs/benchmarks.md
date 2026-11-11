@@ -16,16 +16,16 @@ is synthetic.
 
 | ears | intent correct | word error | latency p50 / p90 |
 |---|---|---|---|
-| **Soniox stt-rt-v5** | **94.6%** | **0.062** | **0.33 / 0.58 s** |
-| Soniox stt-rt-v6 | 95.4% | 0.067 | 0.35 / 0.71 s |
-| gemini-3.5-transcribe-live | 89.6% | 0.110 | 0.70 / 0.77 s |
-| OpenAI gpt-4o-transcribe | 87.9% | 0.222 | 1.11 / 1.27 s |
-| OpenAI gpt-4o-mini-transcribe | 82.3% | 0.228 | 1.04 / 1.24 s |
-| Gemini Live, as a whole | 79.1% | 0.244 | 1.07 / 1.55 s |
-| OpenAI gpt-live-transcribe | 77.9% | 0.221 | 0.60 / 0.78 s |
-| ElevenLabs scribe_v2_realtime | 68.9% | 0.395 | 0.72 / 0.88 s |
+| **Soniox stt-rt-v5** | **95.4%** | **0.062** | **0.36 / 1.29 s** |
+| Soniox stt-rt-v6 | 95.9% | 0.063 | 0.38 / 2.18 s |
+| gemini-3.5-transcribe-live | 92.0% | 0.094 | 0.72 / 1.62 s |
+| OpenAI gpt-4o-transcribe | 90.9% | 0.209 | 1.16 / 1.96 s |
+| OpenAI gpt-4o-mini-transcribe | 85.5% | 0.203 | 1.09 / 1.97 s |
+| Gemini Live, as a whole | 79.6% | 0.240 | 1.13 / 2.45 s |
+| OpenAI gpt-live-transcribe | 81.1% | 0.195 | 0.66 / 1.59 s |
+| ElevenLabs scribe_v2_realtime | 68.9% | 0.378 | 0.77 / 1.78 s |
 
-The v5 and v6 accuracy gap is inside the confidence intervals. v5 stays the default because v6 never finalised 3 clips of 560 and waited over 1 s twice as often.
+The v5 and v6 accuracy gap is inside the confidence intervals. v5 stays the default because v6 never finalised 3 clips of 560 and waited over 1 s more often (17.6% of clips against 13.9%).
 
 | mouth | first audio p50 / p95 | word error EN / HE | Speaks Hebrew | $ per 1k chars |
 |---|---|---|---|---|

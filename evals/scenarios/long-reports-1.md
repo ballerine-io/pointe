@@ -29,7 +29,7 @@ PR is up: **#412 — fix(settlement): dedupe settlement batches on replay**. Bra
 - `packages/settlement/src/batch/idempotency-key.ts`: the key is now derived from `(tenant_id, acquirer_batch_ref, value_date, currency)`. Before it used the file's SHA-256, so a re-sent file with one reordered line produced a new key.
 - `packages/settlement/src/batch/ingest.ts`: ingest takes an advisory lock per key, then does `INSERT ... ON CONFLICT DO NOTHING` on the new `settlement_batch_keys` table. On a conflict it logs `settlement.batch.replay_skipped` and returns the existing batch ID.
 - `packages/settlement/src/batch/retry-worker.ts`: the retry worker no longer creates a batch when the first attempt timed out after commit. It reads the key first.
-- `apps/ledger-api/src/routes/settlement.routes.ts`: the admin replay endpoint now requires `force=true` to bypass the dedupe check, and the bypass is written to the audit log.
+- `apps/orbit-api/src/routes/settlement.routes.ts`: the admin replay endpoint now requires `force=true` to bypass the dedupe check, and the bypass is written to the audit log.
 - `migrations/0187_settlement_batch_keys.sql`: additive only, one new table, no lock on `ledger_entries`. This respects your constraint from Tuesday.
 - Everything is behind `settlement.batchDedupe` (customer flag, default off, operator toggle in the admin console at both levels).
 
@@ -39,7 +39,7 @@ PR is up: **#412 — fix(settlement): dedupe settlement batches on replay**. Bra
 |---|---|---|
 | settlement unit | 214 passed, 0 failed | 38s |
 | settlement integration | 61 passed, 0 failed, 2 skipped | 4m 12s |
-| ledger-api contract | 88 passed, 0 failed | 1m 03s |
+| orbit-api contract | 88 passed, 0 failed | 1m 03s |
 | end-to-end replay suite | 9 passed, 0 failed | 6m 40s |
 | typecheck, lint | clean | 2m 15s |
 
@@ -92,7 +92,7 @@ Investigation finished. Short version is at the bottom; here is how the ingest p
 3. `ingest-worker` (8 replicas in staging, 24 in production) consumes the event, streams the file, and parses it in chunks of 500 lines.
 4. For each chunk, `ingest-worker` opens a transaction through PgBouncer, writes to `settlement_lines`, and commits.
 5. When all chunks are done, `ingest-worker` writes the batch row and publishes `settlement.batch.ingested`.
-6. `ledger-api` serves the read side. The statement page and the reconciliation console both read from `settlement_lines` through a separate pool.
+6. `orbit-api` serves the read side. The statement page and the reconciliation console both read from `settlement_lines` through a separate pool.
 
 PgBouncer runs in transaction mode. Staging has one PgBouncer per availability zone, and all of them point at one Aurora writer. Production has the same layout with more capacity.
 

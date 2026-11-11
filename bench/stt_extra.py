@@ -164,12 +164,13 @@ async def openai_key_ok() -> str | None:
         return None if r.status == 200 else f"not measured: key rejected (HTTP {r.status})"
 
 
-HEADER = """# Speech-to-text benchmark report (run 2026-11-06/07)
+HEADER = """# Speech-to-text benchmark report (run 2026-11-11/12)
 
 Method: 70 corpus items x 4 synthetic voices x {clean, noisy at 12 dB SNR} = 560 clips, streamed at real-time pace;
 scored by WER, CER, a system-blind LLM intent/entities judge (gemini-3.5-flash, temperature 0), and latency from speech
 end to final transcript. Every system ran on the same 560 clips in one run, with 0 errors. Latency is wall time on one
-laptop and one home Wi-Fi path that was losing connection during the run, one run per clip per system, so treat
+laptop and one home Wi-Fi path whose latency tail was worse than in the 2026-11-06/07 run (p50 within ~60 ms of it, p90 up 0.5-1.5 s
+for every system, so the tail reflects the network more than the systems), one run per clip per system, so treat
 differences under ~100 ms as noise.
 
 Systems (model as driven by the benchmark):
@@ -189,7 +190,7 @@ Systems (model as driven by the benchmark):
 Limitations:
   - Voices are synthetic (ElevenLabs), not real speakers; bench/recordings was empty. Real-speaker results may differ.
   - soniox-v6 latency: 3 of 560 clips never produced an endpoint token (excluded from its latency percentiles), and
-    7.2% of the rest finalised only after more than 1 s, against 0 and 3.2% for v5, more often on clean clips (digital
+    17.6% of the rest finalised only after more than 1 s, against 0 and 13.9% for v5, more often on clean clips (digital
     silence after speech). Default endpoint settings were used; tuning max_endpoint_delay/endpoint_sensitivity was not
     tried. Its accuracy edge over v5 is inside the confidence intervals overall.
   - The judge is an LLM, so its verdicts carry its own error; WER on mixed Hebrew/English is inflated for every system by
