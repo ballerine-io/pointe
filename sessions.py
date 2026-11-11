@@ -13,6 +13,7 @@ import secrets
 import subprocess
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Awaitable, Callable
@@ -609,17 +610,32 @@ TAIL_MAX_BYTES = 8 * 1024 * 1024
 
 
 def recent_history(session: Session, max_entries: int, max_chars: int, line_cap: int = 1500,
-                   max_bytes: int = TAIL_MAX_BYTES) -> str:
-    """The session's recent conversation as plain text.
+                   max_bytes: int = TAIL_MAX_BYTES, since: float | None = None) -> str:
+    """The session's recent conversation as plain text; with `since`, only entries stamped at or after it.
 
     Read backwards from the end: transcripts grow to hundreds of megabytes, and routing reads several.
     """
-    return "\n".join(_recent_lines(session, max_entries, max_chars, line_cap, max_bytes)[0])[-max_chars:]
+    return "\n".join(_recent_lines(session, max_entries, max_chars, line_cap, max_bytes, since)[0])[-max_chars:]
+
+
+_STAMP = re.compile(rb'"timestamp"\s*:\s*"([0-9T:.+-]+Z?)"')
+
+
+def _stamped_before(raw: bytes, since: float) -> bool:
+    """An entry whose timestamp is older than `since`. Entries without one are kept."""
+    found = _STAMP.search(raw)
+    if not found:
+        return False
+    try:
+        return datetime.fromisoformat(found.group(1).decode().replace("Z", "+00:00")).timestamp() < since
+    except ValueError:
+        return False
 
 
 def _recent_lines(session: Session, max_entries: int, max_chars: int, line_cap: int,
-                  max_bytes: int) -> tuple[list[str], int]:
-    """The newest history lines, oldest first, and the file offset where they start."""
+                  max_bytes: int, since: float | None = None) -> tuple[list[str], int]:
+    """The newest history lines, oldest first, and the file offset where they start. With `since`, the walk back stops
+    at the first entry stamped before it."""
     path = Path(session.transcript or "")
     if not session.transcript or not path.is_file():  # an empty path is ".", a folder: opening it crashed the call
         return [], 0
@@ -638,6 +654,8 @@ def _recent_lines(session: Session, max_entries: int, max_chars: int, line_cap: 
             offset = pos + len(chunk) + 1  # walking back: each line starts len(raw) + 1 before the previous one
             for raw in reversed(raws):
                 offset -= len(raw) + 1
+                if since is not None and _stamped_before(raw, since):
+                    return list(reversed(lines)), start
                 line = _history_line(raw, line_cap)
                 if line:
                     lines.append(line)
