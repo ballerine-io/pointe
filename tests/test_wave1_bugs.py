@@ -81,3 +81,35 @@ def test_the_owners_no_and_a_strangers_no_at_approvals_deny_through_the_same_pat
     with_permission(active, "p2", delivered_at=1.0)
     asyncio.run(utter(OTHER_HZ, "no, don't"))
     assert verdicts(posts)[-1] == {"request_id": "p2", "behavior": "deny"}
+
+
+# ---------- 2. push to talk: a press does not survive a microphone setting change ----------
+
+def test_a_press_closes_when_the_microphone_leaves_push_to_talk():
+    """Rule: in push to talk, room audio never reaches the conversation unless pressed. A press is open; the setting goes
+    to "always" and back to "ptt". The clients forget their press on a mode change, so a press left open would pass
+    audio with no thumb on it for up to 90 s. Only the switch-back tail (the sentence under way) may pass."""
+    p = ptt.Ptt()
+    assert p.press(T0)
+    assert p.audio(640, "ptt", T0 + 0.1)
+    assert p.tick("always", T0 + 1.0) == ["closed"], "the setting changed under the press: it ends"
+    assert p.closed_why == "the microphone setting changed"
+    assert p.audio(640, "always", T0 + 1.1)
+    p.tick("ptt", T0 + 2.0)
+    assert not p.open
+    after_the_tail = T0 + 2.0 + ptt.TAIL_SECS + ptt.LINK_SLACK_SECS + 0.1
+    assert not p.audio(640, "ptt", after_the_tail), "no press is held, so no audio may pass"
+
+
+def test_the_daemon_closes_a_press_when_the_microphone_setting_leaves_push_to_talk(d, monkeypatch):
+    """The same, through the daemon's prefs and gate: the setting changes with no release message."""
+    monkeypatch.setattr(d, "PREFS", d.Prefs(Path(d.STATE_DIR) / "prefs-ptt.json"))
+    d.PREFS.update({"microphone": "ptt"})
+    d.state.ptt.reset()
+    d.state.ptt.press(T0)
+    assert d.state.ptt.audio(640, d.PREFS.get("microphone"), T0 + 0.5)
+    d.PREFS.update({"microphone": "always"})
+    assert d.state.ptt.audio(640, d.PREFS.get("microphone"), T0 + 1)
+    d.PREFS.update({"microphone": "ptt"})
+    d.state.ptt.tick(d.PREFS.get("microphone"), T0 + 2)
+    assert not d.state.ptt.passes("ptt", T0 + 3)

@@ -43,11 +43,15 @@ class Ptt:
         self.until, self.finalize_due = now + TAIL_SECS + LINK_SLACK_SECS, True
         return True
 
-    def _follow(self, mode: str, now: float) -> None:
+    def _follow(self, mode: str, now: float) -> bool:
+        """True when a setting change ended a press: a press belongs to the setting it was made in, and the clients
+        forget theirs on a change, so it would otherwise stay open with no thumb on it."""
+        released = self._mode is not None and mode != self._mode and self.release(now, "the microphone setting changed")
         if self._mode == "always" and mode == "ptt" and not self.open:  # the sentence under way is finished, not cut
             self.closed_at, self.closed_why = now, "switched to push to talk"
             self.until, self.finalize_due = now + TAIL_SECS + LINK_SLACK_SECS, True
         self._mode = mode
+        return released
 
     def passes(self, mode: str, now: float) -> bool:
         self._follow(mode, now)
@@ -69,8 +73,7 @@ class Ptt:
 
     def tick(self, mode: str, now: float) -> list[str]:
         """Run often. "closed" when the gate closed by itself (closed_why says why); "finalize" once the tail is over."""
-        self._follow(mode, now)
-        events = []
+        events = ["closed"] if self._follow(mode, now) else []
         if mode == "ptt" and self.open:
             if now - self.opened_at > MAX_OPEN_SECS:
                 self.release(now, "held too long")
