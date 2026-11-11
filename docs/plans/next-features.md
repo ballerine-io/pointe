@@ -1438,3 +1438,25 @@ are not built yet (meeting mode does not need them).
 - **Logs:** during a meeting the daemon log keeps no words from the room or from the bot: `speak:` logs the length,
   and a loguru patcher withholds Pipecat's debug lines and the `bot said / mirror heard / user said` lines.
 - **Cost estimate and `soniox_connected`** are not in status; `vendors` and `recording` are.
+
+## Push-to-talk API (as built, 2026-11-11)
+
+- **Setting:** `"microphone": "always" | "ptt"` in `GET/POST /voice/prefs` (default `always`), one value per daemon, set
+  from either client. The hold key on the page is per browser (`localStorage`), not a daemon setting.
+- **Control:** client text on the call socket `{"type": "ptt", "open": true|false, "at": <client ms>}`, as the inputs'
+  union opens or closes. Ignored unless the setting is `ptt`. `phone.PttFrame` carries it into the pipeline.
+- **Gate:** `PttGate` (`daemon.py`, state in `ptt.py`) sits first after the transport, before the voice detector,
+  `MicGate`, the ears and a realtime model. Closed, it drops microphone audio; release keeps 0.4 s + 0.2 s link slack,
+  then sends Soniox `finalize`. A press auto-closes after 90 s, or after 2 s with no audio (a lost release); a new call
+  starts closed. A press while the bot speaks interrupts it and cuts the read-out; the utterance begins at the press for
+  the consent rules. A press pushes `UserSpeakingFrame`, so the idle hang-up counts from the last press.
+- **Status:** `GET /voice/status` → `ptt: {mode, open, opened_at, closed_at, closed_why, sent_bytes}`. `closed_why`:
+  `released`, `held too long`, `no audio`, `switched to push to talk`. `sent_bytes` counts audio that passed the gate in
+  this call. Clients show `open` as the truth; when it closes by itself while they still hold it, they drop the hold and
+  say why.
+
+Deviations from section 4:
+- The `hello` message's `ptt` field is not used: the daemon setting is the one source, so two clients cannot disagree.
+- The gate also closes the meeting stream: in push to talk, a meeting hears the room only while a press is held.
+- The 90 s limit applies to toggles (Caps Lock, AirPods) as well as holds: the daemon cannot tell them apart.
+- `PttGate` is a separate processor before the voice detector; the existing `MicGate` stays after it, unchanged.
