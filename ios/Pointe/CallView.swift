@@ -26,6 +26,9 @@ struct CallView: View {
     @State private var meetingSince: Double?  // the meeting on now, or the one that just ended (its status drops `since`)
     @State private var closedEnd: Double?     // the ended meeting whose sheet you closed: not shown again unless asked
     @State private var prefs: API.Prefs?
+    @State private var showSheet = false
+    @State private var showSettings = false
+    @State private var showFollow = ShowFollow()
     private let demo: Demo?
 
     init(pairing: Pairing, unpair: @escaping () -> Void, demo: Demo? = nil) {
@@ -39,6 +42,10 @@ struct CallView: View {
         _typing = State(initialValue: demo?.screen == .typing)
         _showMeetingStart = State(initialValue: demo?.screen == .meetingStart)
     }
+
+    /// Show while it says: the Mac sends it only once this phone turned it on; the setting is checked here too, so
+    /// turning it off hides the card at once.
+    private var showing: API.Showing? { status?.show_on_phone == true ? status?.showing : nil }
 
     /// What the screen shows: the demo fixture is always live.
     private var phase: Call.State { demo == nil ? call.state : .live }
@@ -100,6 +107,17 @@ struct CallView: View {
                     .presentationBackground(.regularMaterial)
             }
         }
+        .sheet(isPresented: $showSheet) {
+            ShowSheet(showing: showing, earlier: status?.show_on_phone == true ? status?.shown_earlier ?? [] : [],
+                      follow: $showFollow, load: loadArtifact)
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(isPresented: $showSettings) {
+            ShowSettingsSheet(on: status?.show_on_phone == true, set: setShowOnPhone, ownerCheck: ownerCheck)
+                .presentationDetents([.medium])
+                .presentationBackground(.regularMaterial)
+        }
+        .onChange(of: showing?.id) { showFollow.follow(showing) }
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
                 IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).presentationBackground(.regularMaterial)
@@ -220,6 +238,10 @@ struct CallView: View {
             SessionChips(sessions: status?.sessions ?? [], active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
                          showAll: { showSessions = true })
+            if let showing {
+                ShowCard(showing: showing) { showSheet = true }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
             HStack(alignment: .top) {
                 StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking)
                 Spacer(minLength: 8)
@@ -234,6 +256,7 @@ struct CallView: View {
         .padding(.top, 8)
         .padding(.bottom, 10)
         .background(.bar)
+        .animation(.snappy, value: showing?.id)
     }
 
     private var menu: some View {
@@ -252,6 +275,10 @@ struct CallView: View {
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
             if status?.voice_lock != nil {
                 Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
+            }
+            if status?.show_on_phone != nil {
+                Button { showSettings = true } label: { Label(ShowCopy.setting, systemImage: "doc.text.magnifyingglass") }
+                    .accessibilityIdentifier("showSettingItem")
             }
             Picker(selection: Binding(get: { call.talk.mode }, set: { setMicrophone($0) })) {
                 Text("Always on").tag("always")
@@ -501,6 +528,29 @@ struct CallView: View {
     /// Face ID or the passcode, as for Approve. Also in the demo: a lowering there must fail the same way.
     private func ownerCheck(_ reason: String) async -> Bool {
         (try? await LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) == true
+    }
+
+    // MARK: show while it says
+
+    private func loadArtifact(_ id: String) async -> Result<API.ArtifactView, ShowFailure> {
+        if demo != nil { return Demo.artifact(id).map { .success($0) } ?? .failure(.gone) }
+        do {
+            return .success(try await call.api.artifact(id))
+        } catch API.Failure.status(403, _) {
+            return .failure(.off)
+        } catch API.Failure.status(404, _) {
+            return .failure(.gone)
+        } catch {
+            return .failure(.unreachable)
+        }
+    }
+
+    /// Nil when the Mac took it; otherwise its reason.
+    private func setShowOnPhone(_ on: Bool) async -> String? {
+        if demo != nil { status?.show_on_phone = on; return nil }
+        guard await savePrefs(["show.on_phone": on]) else { return "The Mac did not take the setting. Is Pointe on the Mac up to date?" }
+        status = try? await call.api.status()
+        return nil
     }
 
     // MARK: actions

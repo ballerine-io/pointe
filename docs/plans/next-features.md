@@ -1576,5 +1576,9 @@ last 5 s, or the phone did with the pref on).
   list them. No `shown` note kind.
 - **The reader prompt is unchanged** (a prompt change needs the bench); the voice learns what is on screen from the line
   added to the report instead.
+- **iPhone:** a "Showing: <summary>" card above the conversation while `showing` is set and the pref is on; tap → a
+  sheet with a tab per artifact, File/Diff/Test, horizontal scroll, pinch to zoom, Dynamic Type, Pin and Shown earlier.
+  Settings → Show while it says asks Face ID or the passcode to turn it on. `ios/e2e/show_ui.py` runs it against a real
+  daemon over the pinned link (in the simulator the pref is turned on from the Mac: no Face ID to pass).
 - **The plan's live e2e** drives a real Claude Code session; `tests/e2e/page_show.py` writes a synthetic Claude Code turn
   into a registered transcript instead (deterministic, no session cost), with the real reader, brain and mouth.
