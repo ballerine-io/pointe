@@ -1554,8 +1554,10 @@ failed, waits, clocks}], opener, scheduled, slot, heard, empty}`. The schedule i
 
 ### Voice
 
-The brain tool `briefing(since, scope)` ("brief me on the night", "since six", "on lantern", "what happened today";
-no arguments plays the one that waits). `since` is parsed in code: the night (the last call's end within 24 h, else 18:00
+A request that starts the utterance ("brief me on the night", "briefing on lantern", "give me the briefing", "תדרך
+אותי") is caught in code and starts the briefing; it never reaches the brain, which in a live run once answered "brief me"
+from memory instead of calling its tool. The brain tool `briefing(since, scope)` stays for other wordings ("what happened
+today?"); no arguments plays the one that waits. Scope words that name no session narrow nothing. `since` is parsed in code: the night (the last call's end within 24 h, else 18:00
 yesterday), "since six" (the most recent six), "since 6pm"/"18:00", today, this morning, yesterday, "the last N hours",
 Hebrew equivalents; anything else is since the last call. While a briefing plays or is paused, a whole utterance "skip"
 / "next", "stop" / "enough", "go on" / "continue" (and Hebrew) steers it and never reaches the brain. Anything else pauses

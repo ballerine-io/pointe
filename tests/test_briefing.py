@@ -276,7 +276,7 @@ async def run_briefing(d, **args):
 
 
 def said(b) -> list[str]:
-    return [t for t, respond in b.injector.fed if respond and t.startswith("[briefing")]
+    return [t for t, respond in b.injector.fed if respond and t.startswith("[briefing, part")]
 
 
 def test_on_demand_briefing_is_spoken_in_order_with_the_read_only_bracket(d, b, tmp_path):
@@ -645,3 +645,45 @@ def test_the_notes_stream_accepts_briefings():
     import notes
 
     assert "briefing" in notes.KINDS
+
+
+# ---------- asking for one, caught in code (the brain may answer from memory instead of calling the tool) ----------
+
+@pytest.mark.parametrize("said, rest", [
+    ("Brief me on the night.", "on the night"), ("brief me", ""), ("Okay, brief me since six.", "since six"),
+    ("Give me the briefing.", ""), ("Pointe, briefing on lantern", "on lantern"), ("תדרך אותי על הלילה", "על הלילה"),
+    ("תדריך", ""),
+])
+def test_briefing_requests(said, rest):
+    assert briefing.briefing_intent(said) == rest, said
+
+
+@pytest.mark.parametrize("said", ["what did the briefing say about billing?", "tell lantern to brief me later",
+                                  "send the briefing to docs", "brief the new hire on the checkout flow"])
+def test_not_briefing_requests(said):
+    assert briefing.briefing_intent(said) is None, said
+
+
+def test_asking_by_voice_starts_it_in_code_and_never_reaches_the_brain(d, b, tmp_path, monkeypatch):
+    night(d, b, tmp_path)
+    pushed = []
+    ears = d.SonioxEars()
+
+    async def push(frame, *a):
+        pushed.append(frame)
+
+    monkeypatch.setattr(ears, "push_frame", push)
+
+    async def go():
+        await ears._take("Brief me on the night.")
+        await d.state.briefing_task
+
+    asyncio.run(go())
+    assert pushed == [] and len(said(b)) == 3
+    assert any(t.startswith("[briefing asked]") for t, r in b.injector.fed if r)
+
+
+def test_a_scope_that_names_no_session_briefs_them_all(d, b, tmp_path):
+    night(d, b, tmp_path)
+    asyncio.run(run_briefing(d, since="the night", scope="on the night"))
+    assert [s.session for s in d.BRIEFINGS.latest().sections] == ["lantern", "billing", "docs"]

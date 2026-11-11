@@ -899,6 +899,15 @@ class SonioxEars(FrameProcessor):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
             await briefing_control(steer)
             return
+        if state.monologue is None and (asked := briefing.briefing_intent(heard)) is not None \
+                and _briefing_refusal() is None:
+            # In code: asked to "brief me", the brain sometimes answers from memory instead of calling the tool.
+            _remember("user", heard)
+            state.last_utterance = heard  # its language; not fresh speech for a send
+            start_briefing(asked, asked)
+            await say("[briefing asked] The user asked for a briefing; it is being read now. Say only that it is coming, "
+                      "in a few words. Send nothing.")
+            return
         wanted = meeting_intent(heard)
         if wanted and state.monologue is None:
             await _start_meeting_by_voice(heard, wanted)
@@ -1469,8 +1478,9 @@ def _briefing_groups(scope: str) -> list[list[Session]]:
             groups.append([gone])
     if scope.strip():
         heads = [g[-1] for g in groups]
-        picked = named_sessions(scope, heads) or [s for s in heads if scope.strip().lower() in s.name.lower()]
-        groups = [g for g in groups if g[-1] in picked]
+        picked = named_sessions(scope, heads) or [s for s in heads if s.name.lower() == scope.strip().lower()]
+        if picked:  # words that name no session ("on the night") narrow nothing
+            groups = [g for g in groups if g[-1] in picked]
 
     def recent(g: list[Session]) -> float:
         try:

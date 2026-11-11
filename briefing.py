@@ -294,6 +294,21 @@ def control_intent(text: str) -> str | None:
     return next((intent for intent, phrases in _CONTROL.items() if said in phrases), None)
 
 
+_ASK = re.compile(r"^\W*(?:(?:ok(?:ay)?|hey|so|pointe|please)\W+)*(?:brief me|give me (?:a|the|my) briefing|briefing|"
+                  r"תדרך אותי|תן לי תדריך|תדריך)(?=\W|$)\W*(.*?)\W*$", re.I)
+_ASK_REST = re.compile(r"^(?:(?:on|about|for|since|from|over|על|מאז|מ)\b|$)", re.I)
+
+
+def briefing_intent(text: str) -> str | None:
+    """"Brief me on the night", "briefing on lantern", "תדרך אותי": the rest of the words (when and on what), or None.
+    Only a request that starts the utterance: "what did the briefing say" and "brief the new hire" are not one."""
+    m = _ASK.match(text.strip())
+    if not m:
+        return None
+    rest = m.group(1).strip()
+    return rest if _ASK_REST.match(rest) else None
+
+
 # ---------- the store ----------
 
 class Store:
