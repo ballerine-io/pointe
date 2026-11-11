@@ -3249,7 +3249,11 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
 
 
 async def _ask_permission(session: Session) -> None:
-    """Put a session's pending permission to the user; only then can a yes or no answer it."""
+    """Put a session's pending permission to the user; only then can a yes or no answer it. While the mode does not read
+    out (a meeting, a brainstorm) the brain is not told either: it could say the exact command into the room. The card
+    shows it, and the hand-off asks again (_after_monologue)."""
+    if not current_mode().reads_out:
+        return
     if FRONT == "brain" and state.front is not None:
         await feed(session, session.permission_text, False)
         asyncio.create_task(_read_out_when_quiet(session, session.permission_id))

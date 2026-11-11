@@ -113,3 +113,19 @@ def test_the_daemon_closes_a_press_when_the_microphone_setting_leaves_push_to_ta
     d.PREFS.update({"microphone": "ptt"})
     d.state.ptt.tick(d.PREFS.get("microphone"), T0 + 2)
     assert not d.state.ptt.passes("ptt", T0 + 3)
+
+
+# ---------- 3. a session's permission request (its exact command) is not put to the brain during a meeting ----------
+
+def test_a_permission_request_during_a_meeting_is_not_told_to_the_brain(d, monkeypatch):
+    """_ask_permission feeds the request text with respond=False, which inject() does not hold during a meeting; in
+    participating the brain can then say the command into the room when the owner asks it anything."""
+    pushed, _ = _meeting_ready(d, monkeypatch)
+    monkeypatch.setattr(d, "FRONT", "brain")
+    s = add(d, "s1", "pricing")
+    d.REGISTRY.active_id = s.id
+    _start(d, "participating")
+    d.state.front = SimpleNamespace(brain=SimpleNamespace(busy=False), _speak=None)
+    asyncio.run(d._put_permission(s, "p9", "Bash", "delete the build folder", '{"command": "rm -rf build"}'))
+    told = [t for t, respond in d.state.conn.injector.fed if "rm -rf build" in t]
+    assert not told, told
