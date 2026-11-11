@@ -321,6 +321,26 @@
   .sheetbox .row button:disabled { opacity: .4; cursor: default; }
   .sheetbox .err { color: var(--orange); font-size: 13px; } .sheetbox .err:empty { display: none; }
   .sheetbox ul.items { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; }
+  #voicelock { display: flex; flex-direction: column; gap: 10px; }
+  #voicelock .help, #voicelock .note { color: var(--muted); font-size: 13px; }
+  #voicelock .note:empty, #vl-problem:empty, #vl-err:empty { display: none; }
+  #vl-problem { color: var(--orange); font-size: 13px; }
+  #vl-enrol { background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  #vl-enrol .line { font-size: 17px; line-height: 1.4; font-weight: 600; color: var(--text); }
+  #vl-enrol .bar { height: 6px; border-radius: 3px; background: var(--card2); overflow: hidden; }
+  #vl-enrol .bar i { display: block; height: 100%; background: var(--orange); transition: width .3s; }
+  #vl-devices { display: flex; flex-direction: column; gap: 6px; }
+  #vl-devices .dev { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  #vl-devices .dev span { flex: 1; }
+  #vl-devices .dev button, #voicelock .row button { border: 0; border-radius: 10px; padding: 7px 12px; font: 600 13px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
+  #voicelock .row button.go { background: var(--orange); color: #fff; }
+  #voicelock button:disabled { opacity: .4; cursor: default; }
+  #vl-levels button:disabled { opacity: .35; }
+  #vlignored { display: none; border: 0; background: none; color: var(--muted); font: 500 12.5px 'Inter', sans-serif; padding: 0; cursor: pointer; text-decoration: underline dotted; }
+  #vlignored.on { display: inline; }
+  #vlproblem { color: var(--orange); font-size: 13px; } #vlproblem:empty { display: none; }
+  #ignoredlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+  #ignoredlist li .t { color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
   .sheetbox h3 { margin: 4px 0 0; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
   .sheetbox .ok { color: var(--green); font-size: 13px; } .sheetbox .ok:empty { display: none; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -370,7 +390,7 @@
 
   <footer>
     <span id="keyhint">Space or AirPods to mute</span>
-    <button id="settingsbtn" onclick="openSettings()" title="Meeting defaults">Settings</button>
+    <button id="settingsbtn" onclick="openSettings()" title="Voice lock and meeting defaults">Settings</button>
     <button id="ctx" onclick="openCtx()" title="What the voice model holds"></button>
   </footer>
 </aside>
@@ -432,6 +452,35 @@
 <div class="sheetbg" id="settingssheet" onclick="if (event.target === this) closeSheet('settingssheet')">
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="set-h">
     <h2 id="set-h">Settings<button class="x" onclick="closeSheet('settingssheet')" aria-label="Close">×</button></h2>
+    <section id="voicelock" aria-labelledby="vl-h" hidden>
+      <h3 id="vl-h">Voice lock</h3>
+      <div class="help" id="vl-intro">Pointe can learn your voice so other voices in the room can't approve or command. Your voiceprint stays on your Mac.</div>
+      <div id="vl-problem" role="alert"></div>
+      <div id="vl-enrol" hidden>
+        <div class="help">Read this line aloud</div>
+        <div class="line" id="vl-line" lang="und"></div>
+        <div class="bar" role="progressbar" aria-label="Enrolment" aria-valuemin="0" aria-valuemax="100" id="vl-bar"><i id="vl-fill" style="width:0"></i></div>
+        <div class="help" id="vl-pct"></div>
+        <div class="note" id="vl-why" role="status"></div>
+        <div class="note" id="vl-model"></div>
+        <div class="row" style="justify-content:flex-start"><button id="vl-cancel" onclick="voicePrint({action: 'cancel'})">Cancel</button></div>
+      </div>
+      <div id="vl-devices"></div>
+      <div class="note" id="vl-needcall"></div>
+      <div class="row" style="justify-content:flex-start" id="vl-actions">
+        <button class="go" id="vl-enrolbtn" onclick="enrolVoice()">Enrol my voice</button>
+        <button id="vl-deleteall" onclick="deleteVoice()">Delete my voiceprint</button>
+      </div>
+      <div class="note" id="vl-confirm" role="alert"></div>
+      <div class="seg" role="radiogroup" aria-label="Lock level" id="vl-levels">
+        <button role="radio" data-level="off" onclick="setLock('off')">Off</button>
+        <button role="radio" data-level="approvals" onclick="setLock('approvals')">Approvals</button>
+        <button role="radio" data-level="commands" onclick="setLock('commands')">Commands</button>
+        <button role="radio" data-level="everything" onclick="setLock('everything')">Everything</button>
+      </div>
+      <div class="help" id="vl-levelhelp"></div>
+      <div class="err" id="vl-err" role="alert"></div>
+    </section>
     <h3>Meetings</h3>
     <div class="field">Start in<select id="pref-mode"><option value="listening">Listening</option><option value="participating">Participating</option></select></div>
     <label class="tick"><input type="checkbox" id="pref-lookups"> Auto lookups by default</label>
@@ -446,6 +495,13 @@
     <div class="row"><button onclick="closeSheet('settingssheet')">Cancel</button><button class="go" onclick="saveSettings()">Save</button></div>
   </div>
 </div>
+<div class="sheetbg" id="ignoredsheet" onclick="if (event.target === this) closeSheet('ignoredsheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="ign-h">
+    <h2 id="ign-h">Ignored<button class="x" onclick="closeSheet('ignoredsheet')" aria-label="Close">×</button></h2>
+    <div class="lede">Speech the voice lock kept from Pointe because it was not your voice.</div>
+    <ul id="ignoredlist"></ul>
+  </div>
+</div>
 <main>
   <div class="top">
     <span class="dot"></span>
@@ -453,6 +509,8 @@
       <div class="state" id="state">Not connected</div>
       <div class="sub" id="sub">Press the mic to start talking</div>
       <div id="problem" role="alert"></div>
+      <div id="vlproblem" role="alert"></div>
+      <button id="vlignored" onclick="openIgnored()"></button>
     </div>
     <label class="toggle" title="Under each thing you say, a clean version of what the voice understood"><input type="checkbox" id="polish" onchange="setPolish(this.checked)"> Clean up my words</label>
   </div>
@@ -571,6 +629,7 @@
     // In a meeting the room's words go to the transcript, and the main recognizer is paused: its last words would hang.
     showHearing(status && status.connected && !meetingOf(status)?.on ? status.hearing : null);
     showMeeting(status);
+    showVoiceLock(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
     $('ctx').textContent = s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context';
@@ -584,7 +643,7 @@
     agentOf = x => AGENTS[x.harness || 'claude-code'] || x.harness;
     const waiting = s.sessions.filter(x => x.waiting && x.request_id && (x.capabilities || {}).approvals !== false).sort((a, b) => (b.name === s.active) - (a.name === s.active));
     const first = waiting[0];
-    const key = first ? first.request_id + waiting.length : '';
+    const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) : '';
     if (key !== attentionShown) {
       attentionShown = key;
       $('attention').replaceChildren(...(first ? [approvalCard(first, s, waiting.length - 1)] : []));
@@ -647,6 +706,8 @@
       row.append(button);
     }
     b.append(row);
+    const lock = s.voice_lock;
+    if (lock && lock.level !== 'off' && lock.unsure_streak >= 3) b.append(el('div', 'need', 'Tap to approve, or re-enrol.'));
     if (more > 0) b.append(el('div', 'more', `${more} more waiting`));
     return b;
   }
@@ -1134,7 +1195,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['endsheet', 'meetsheet', 'settingssheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['endsheet', 'meetsheet', 'settingssheet', 'ignoredsheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;
@@ -1387,6 +1448,93 @@
     e.preventDefault(); handDecision('speak');
   });
 
+  // The owner-voice lock: the daemon holds the voiceprint and the level; the page only shows them and asks for changes.
+  const LOCK_HELP = {
+    off: 'Any voice works, as before.',
+    approvals: 'A spoken yes counts only in your voice. A no counts from anyone.',
+    commands: 'Only your voice reaches Pointe. Other voices are listed as ignored, with their words.',
+    everything: 'Only your voice reaches Pointe. Other voices are dropped unseen.',
+  };
+  const LEVEL_ORDER = ['off', 'approvals', 'commands', 'everything'];
+  let deleting = null;  // {device, until}: the one confirmation a delete asks for
+  async function voicePrint(body) {
+    $('vl-err').textContent = '';
+    const r = await fetch('/voice/voiceprint', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { $('vl-err').textContent = data.detail || `Not done (${r.status})`; return null; }
+    if (status) { status.voice_lock = data.voice_lock; showVoiceLock(status); }
+    return data;
+  }
+  function deviceLabel() {  // what this enrolment is tagged with: the microphone the call uses
+    const track = call.stream && call.stream.getAudioTracks()[0];
+    return (track && track.label) || 'This Mac';
+  }
+  function enrolVoice() { deleting = null; voicePrint({action: 'enrol', device: deviceLabel()}); }
+  function setLock(level) { voicePrint({action: 'level', level}); }
+  function deleteVoice(device) {
+    const key = device || '*';
+    if (!deleting || deleting.device !== key || Date.now() > deleting.until) {
+      deleting = {device: key, until: Date.now() + 8000};
+      $('vl-confirm').textContent = device ? `Delete the voiceprint for ${device}? Click Delete again.`
+                                           : 'Delete your voiceprint from this Mac? The lock turns off. Click again to delete.';
+      showVoiceLock(status);
+      return;
+    }
+    deleting = null; $('vl-confirm').textContent = '';
+    voicePrint(device ? {action: 'delete', device} : {action: 'delete'});
+  }
+  function fmtTime(at) { return new Date(at * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}); }
+  function openIgnored() {
+    const ig = ((status || {}).voice_lock || {}).ignored || {recent: []};
+    $('ignoredlist').replaceChildren(...(ig.recent.length ? ig.recent.slice().reverse().map(x => {
+      const li = el('li');
+      li.append(el('span', 't', `${fmtTime(x.at)} · ${x.secs} s`));
+      if (x.text) li.append(el('span', '', x.text));
+      return li;
+    }) : [el('li', 'empty', 'Nothing ignored on this call.')]));
+    openSheet('ignoredsheet');
+  }
+  function showVoiceLock(s) {
+    const v = s && s.voice_lock;
+    $('voicelock').hidden = !v;
+    $('vlignored').classList.toggle('on', !!(v && v.ignored.count));
+    $('vlignored').textContent = v && v.ignored.count ? `${v.ignored.count} ignored (not your voice)` : '';
+    $('vlproblem').textContent = v && v.problem && v.level !== 'off' ? `Voice lock can't check voices: ${v.problem}. Until it can, only a tap approves.` : '';
+    if (!v) return;
+    $('vl-problem').textContent = $('vlproblem').textContent;
+    const e = v.enrolling, live = !!s.connected;
+    $('vl-intro').hidden = v.enrolled;
+    $('vl-enrol').hidden = !e;
+    if (e) {
+      $('vl-line').textContent = e.text;
+      const pct = Math.round(e.progress * 100);
+      $('vl-fill').style.width = pct + '%'; $('vl-bar').setAttribute('aria-valuenow', pct);
+      $('vl-pct').textContent = `${pct}%`;
+      $('vl-why').textContent = e.last_reason ? `Didn't count: ${e.last_reason}` : '';
+      $('vl-model').textContent = v.model === 'missing' || v.model === 'downloading' ? 'Downloading the voice model (40 MB, once)…'
+        : (s.ptt || {}).mode === 'ptt' ? 'Push to talk is on: hold talk while you read each line.' : '';
+    }
+    $('vl-devices').replaceChildren(...v.devices.map(d => {
+      const row = el('div', 'dev');
+      row.append(el('span', '', `Enrolled on: ${d.device}`));
+      const b = el('button', '', 'Delete'); b.onclick = () => deleteVoice(d.device);
+      b.setAttribute('aria-label', `Delete the voiceprint for ${d.device}`);
+      row.append(b);
+      return row;
+    }));
+    $('vl-needcall').textContent = !live && !e ? 'Connect a call first: enrolment listens on the call.' : '';
+    $('vl-actions').hidden = !!e;
+    $('vl-enrolbtn').textContent = v.enrolled ? 'Add this device' : 'Enrol my voice';
+    $('vl-enrolbtn').disabled = !live;
+    $('vl-deleteall').hidden = !v.enrolled;
+    if (deleting && Date.now() > deleting.until) { deleting = null; $('vl-confirm').textContent = ''; }
+    for (const b of $('vl-levels').querySelectorAll('button')) {
+      const on = b.dataset.level === v.level;
+      b.className = on ? 'on' : ''; b.setAttribute('aria-checked', on);
+      b.disabled = b.dataset.level !== 'off' && !v.devices.length;
+    }
+    $('vl-levelhelp').textContent = LOCK_HELP[v.level] || '';
+  }
   async function openSettings() {
     const prefs = await (await fetch('/voice/prefs')).json().catch(() => ({}));
     $('pref-mode').value = prefs['meeting.default_mode'] || 'listening';

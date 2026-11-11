@@ -19,6 +19,8 @@ struct CallView: View {
     @State private var noteFilter = NotesFeed.Filter.all
     @State private var showMeetingStart = false
     @State private var showMeetingSettings = false
+    @State private var showVoiceLock = false
+    @State private var showIgnored = false
     @State private var showSpeakers = false
     @State private var confirmEnd = false
     @State private var meetingSince: Double?  // the meeting on now, or the one that just ended (its status drops `since`)
@@ -90,6 +92,18 @@ struct CallView: View {
         .sheet(isPresented: $showMeetingSettings) {
             MeetingSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
                 .presentationBackground(.regularMaterial)
+        }
+        .sheet(isPresented: $showVoiceLock) {
+            if let lock = status?.voice_lock {
+                VoiceLockSheet(lock: lock, callUp: phase == .live, pushToTalk: status?.ptt?.mode == "ptt", send: voiceprint, ownerCheck: ownerCheck)
+                    .presentationDetents([.medium, .large])
+                    .presentationBackground(.regularMaterial)
+            }
+        }
+        .sheet(isPresented: $showIgnored) {
+            if let ignored = status?.voice_lock?.ignored {
+                IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).presentationBackground(.regularMaterial)
+            }
         }
         .sheet(isPresented: $showSpeakers) {
             SpeakersSheet(speakers: meeting?.speakers ?? []) { label, name in
@@ -206,7 +220,15 @@ struct CallView: View {
             SessionChips(sessions: status?.sessions ?? [], active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
                          showAll: { showSessions = true })
-            StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking)
+            HStack(alignment: .top) {
+                StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking)
+                Spacer(minLength: 8)
+                if let n = status?.voice_lock?.ignored?.count, n > 0 {
+                    Button(VoiceLockCopy.ignored(n)) { showIgnored = true }
+                        .font(.caption).foregroundStyle(.secondary).buttonStyle(.plain)
+                        .accessibilityIdentifier("voiceIgnored")
+                }
+            }
         }
         .padding(.horizontal, 18)
         .padding(.top, 8)
@@ -228,6 +250,9 @@ struct CallView: View {
                     .accessibilityIdentifier("reopenMeetingEnd")
             }
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
+            if status?.voice_lock != nil {
+                Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
+            }
             Picker(selection: Binding(get: { call.talk.mode }, set: { setMicrophone($0) })) {
                 Text("Always on").tag("always")
                 Text("Push to talk").tag("ptt")
@@ -249,6 +274,7 @@ struct CallView: View {
             if let request = waiting.first {
                 RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+                if voiceUnsure { unsureNote }
                 if waiting.count > 1 {
                     Text("\(waiting.count - 1) more waiting").font(.caption).foregroundStyle(.secondary)
                 }
@@ -265,6 +291,12 @@ struct CallView: View {
         .padding(.top, 8)
         .padding(.bottom, 4)
         .animation(.snappy, value: waiting.first?.request_id)
+    }
+
+    /// Three yeses in a row the lock could not place: the tap still works, and re-enrolling may help.
+    private var voiceUnsure: Bool { (status?.voice_lock?.unsure_streak ?? 0) >= 3 }
+    private var unsureNote: some View {
+        Text(VoiceLockCopy.unsure).font(.caption).foregroundStyle(Brand.orange).accessibilityIdentifier("voiceUnsure")
     }
 
     private var waiting: [API.Session] { status?.sessions.filter { $0.waiting && $0.canApprove } ?? [] }
@@ -369,6 +401,7 @@ struct CallView: View {
                 }
                 if let request = waiting.first {
                     RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
+                    if voiceUnsure { unsureNote }
                 }
                 if typing {
                     TypeBar(prompt: "Ask Pointe, only you see it", send: { text in await act { try await call.api.ask(text) } }) { withAnimation(.snappy) { typing = false } }
@@ -444,6 +477,30 @@ struct CallView: View {
         let ok = (try? await call.api.setPrefs(change)) != nil
         if ok { prefs = try? await call.api.prefs() }
         return ok
+    }
+
+    // MARK: voice lock
+
+    /// Nil when the Mac took it; otherwise its reason (no call, a meeting on, no voiceprint yet).
+    private func voiceprint(_ body: [String: any Sendable]) async -> String? {
+        if demo != nil {
+            if body["action"] as? String == "level" { status?.voice_lock?.level = body["level"] as? String }
+            return nil
+        }
+        do {
+            try await call.api.voiceprint(body)
+        } catch API.Failure.status(_, let detail) {
+            return Self.sentence(detail)
+        } catch {
+            return "The Mac did not answer."
+        }
+        status = try? await call.api.status()
+        return nil
+    }
+
+    /// Face ID or the passcode, as for Approve. Also in the demo: a lowering there must fail the same way.
+    private func ownerCheck(_ reason: String) async -> Bool {
+        (try? await LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) == true
     }
 
     // MARK: actions

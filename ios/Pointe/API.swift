@@ -18,6 +18,62 @@ struct API {
         let notes: NotesVersion?
         let attention: [Attention]?
         let ptt: PTTStatus?     // push to talk; nil from a Mac without it
+        var voice_lock: VoiceLock?  // the owner-voice lock; nil from a Mac without it, and the app hides the feature
+    }
+
+    // MARK: owner-voice lock (docs/plans/next-features.md, "1. Owner-voice lock"). Every field optional, like the meeting's.
+
+    struct VoiceLock: Decodable, Equatable {
+        var level: String?              // off, approvals, commands, everything
+        let enrolled: Bool?
+        let devices: [VoiceDevice]?
+        let enrolling: Enrolling?
+        let lines: [String]?
+        let model: String?              // missing, downloading, ready, failed
+        let problem: String?
+        let ignored: Ignored?
+        let speaker: Verdict?
+        let unsure_streak: Int?
+
+        var isEnrolled: Bool { enrolled == true }
+        var lockLevel: VoiceLockLevel { VoiceLockLevel(rawValue: level ?? "off") ?? .off }
+    }
+
+    struct VoiceDevice: Decodable, Equatable, Identifiable {
+        let device: String
+        let seconds: Double?
+        let segments: Int?
+        let enrolled_at: Double?
+        var id: String { device }
+    }
+
+    struct Enrolling: Decodable, Equatable {
+        let device: String?
+        let progress: Double?           // 0...1
+        let line: Int?
+        let text: String?               // the line to read aloud
+        let seconds: Double?
+        let segments: Int?
+        let rejected: Int?
+        let last_reason: String?        // why the last segment did not count; empty when it did
+    }
+
+    struct Ignored: Decodable, Equatable {
+        let count: Int?
+        let last_at: Double?
+        let recent: [IgnoredSpeech]?
+    }
+
+    struct IgnoredSpeech: Decodable, Equatable, Hashable {
+        let at: Double
+        let secs: Double?
+        let text: String?               // only at the Commands level
+    }
+
+    struct Verdict: Decodable, Equatable {
+        let owner: Bool?
+        let score: Double?
+        let at: Double?
     }
 
     /// The Mac's microphone gate. `open` is the truth the ring shows.
@@ -341,6 +397,13 @@ struct API {
 
     func prefs() async throws -> Prefs {
         try JSONDecoder().decode(Prefs.self, from: try await checked(request("voice/prefs")))
+    }
+
+    // MARK: owner-voice lock
+
+    /// enrol (with a device label), cancel, delete (one device, or all without one), level. 409 carries the Mac's reason.
+    func voiceprint(_ body: [String: any Sendable]) async throws {
+        try await post("voice/voiceprint", body)
     }
 
     func setPrefs(_ changes: [String: any Sendable]) async throws { try await post("voice/prefs", changes) }

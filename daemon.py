@@ -28,6 +28,7 @@ import harnesses
 from harnesses import FINISHED_MARK
 import meeting as meetings
 import modes
+import speaker
 from ptt import Ptt
 import vendors
 import watchdog
@@ -164,6 +165,7 @@ ECHO = EchoGuard()
 NOTES = Notes()  # what the voice writes instead of saying: meeting notes, held news
 JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meeting secretary, lookups
 PREFS = Prefs(STATE_DIR / "prefs.json")
+VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
 JOURNAL = STATE_DIR / "journal.jsonl"
 JOURNAL_MAX_BYTES = 20_000_000
 
@@ -496,11 +498,7 @@ class FeedInjector(FrameProcessor):
                     logger.info("[resume] dropped: the user waved the report off")
                     self._cut = None
                 elif not held:
-                    heard = f"They heard only this much: \"{self._cut_heard.strip()}…\". " if self._cut_heard.strip() else ""
-                    held = [f"[resume] You were cut off while reporting a session's result. {heard}Say you are coming "
-                            f"back to it, then give what they did not hear yet, short but without dropping a point:\n{self._cut}"]
-                    self._cut = None
-                    logger.info("[resume] re-offering a result report the user talked over")
+                    held = [self._resume_text()]
             if held:
                 # One at a time, results first: given a report and a nudge together, the model blends
                 # them and can drop the answer. The rest goes out when it stops talking again.
@@ -509,6 +507,25 @@ class FeedInjector(FrameProcessor):
                 self._asked_at = time.time()
                 asyncio.create_task(self._respond(held[0], delay=0.3))
         await self.push_frame(frame, direction)
+
+    def _resume_text(self) -> str:
+        heard = f"They heard only this much: \"{self._cut_heard.strip()}…\". " if self._cut_heard.strip() else ""
+        text = (f"[resume] You were cut off while reporting a session's result. {heard}Say you are coming "
+                f"back to it, then give what they did not hear yet, short but without dropping a point:\n{self._cut}")
+        self._cut = None
+        logger.info("[resume] re-offering a result report the user talked over")
+        return text
+
+    async def resume_cut(self, since: float) -> None:
+        """Another voice cut a report off (the voice lock kept its words out): nothing will reply to it, so the report
+        comes back as soon as the bot stops, instead of after a reply. Only a cut made since `since` (that utterance)."""
+        if self._cut is None or self._cut_at < since - 1.0:
+            return
+        if self._cut_ended:  # already quiet: offer it now
+            self._asked_at = time.time()
+            asyncio.create_task(self._respond(self._resume_text(), delay=0.3))
+        else:
+            self._cut_ended = True  # the stop that is coming ends it
 
     @property
     def holding(self) -> bool:
@@ -611,6 +628,8 @@ def _brain_context() -> str:
     elif session:
         parts.append("You have not finished reading this session. For its goal or anything about its past, call "
                      "ask_about_session; do not answer from the first or last lines you saw.")
+    if (level := lock_level()) != "off":
+        parts.append(f"Voice lock: {level} ({LOCK_HELP[level]}).")
     parts.append(_needs_now())
     return "\n".join(parts)
 
@@ -773,8 +792,10 @@ class SonioxEars(FrameProcessor):
         await super().process_frame(frame, direction)
         if isinstance(frame, VADUserStartedSpeakingFrame):
             state.user_started_at = state.ptt.speech_began(time.time(), PREFS.get("microphone"))
+            self._voiced = True
         elif isinstance(frame, VADUserStoppedSpeakingFrame):
             state.user_stopped_at = time.time()
+            self._voiced = False
         if isinstance(frame, BotStartedSpeakingFrame):
             ECHO.bot_started()
         elif isinstance(frame, BotStoppedSpeakingFrame):
@@ -783,12 +804,16 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
             LEVEL.frame(float(np.sqrt(np.mean(pcm * pcm))) if pcm.size else 0.0, ECHO.speaking)
+            if VOICE.wanted(lock_level()):  # the voice lock scores the next utterance on this audio
+                VOICE.collector.frame(frame.audio, voiced=self._voiced)
             return  # the model gets words, not audio
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
             logger.info("barge-in: voice well above the echo")
             await self.broadcast_interruption()
         elif isinstance(frame, InterimTranscriptionFrame) and direction == FrameDirection.DOWNSTREAM:
-            if part := ECHO.user_part(frame.text):
+            if lock_level() == "everything":
+                pass  # not shown until the final is checked: another voice's words never reach the screen
+            elif part := ECHO.user_part(frame.text):
                 state.user_heard_at = time.time()
                 state.hearing = (state.user_heard_at, part)
             if ECHO.speaking and ECHO.is_barge_in(frame.text):
@@ -810,7 +835,10 @@ class SonioxEars(FrameProcessor):
                 heard = ECHO.user_part(text)
             if text and not heard:
                 logger.info(f"echo dropped: {text!r}")
+                VOICE.collector.take()  # the bot's voice through the speakers is nobody's voiceprint
             elif heard:
+                if not await self._owner_gate(heard):
+                    return
                 if ECHO.speaking:  # the user's words surfaced only when Soniox finalized them
                     logger.info(f"barge-in: {heard!r}")
                     await self.broadcast_interruption()
@@ -827,6 +855,30 @@ class SonioxEars(FrameProcessor):
         await self.push_frame(frame, direction)
 
     _held = ""
+    _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
+
+    async def _owner_gate(self, heard: str) -> bool:
+        """The voice lock, on one final transcript: False when it must not reach Pointe (enrolment lines, or another
+        voice at Commands and above). Sets state.last_speaker, which the approval check reads at Approvals."""
+        level = lock_level()
+        if not VOICE.wanted(level):
+            state.last_speaker = None
+            return True
+        enrolling = VOICE.enrolment is not None
+        started = state.user_started_at
+        state.last_speaker = verdict = await VOICE.judge()
+        if enrolling:  # the line read for enrolment is consumed, not answered
+            if VOICE.enrolment is None and VOICE.profiles.items and level == "off" and len(VOICE.profiles.items) == 1:
+                PREFS.update({"voice_lock": "approvals"})  # the first voiceprint: the default is Approvals
+            return False
+        if level in ("commands", "everything") and not VOICE.confident(verdict):
+            VOICE.ignore(verdict, heard if level == "commands" else None)
+            if ECHO.speaking:  # anyone may pause the bot; only the owner may take the turn
+                await self.broadcast_interruption()
+            if state.conn is not None:
+                await state.conn.injector.resume_cut(since=started)
+            return False
+        return True
 
     async def _release_held(self, held: str, at: float) -> None:
         """No more words came: the half sentence is the turn. While the user is talking again, the next final takes it."""
@@ -1114,6 +1166,7 @@ class State:
     last_report: dict[str, str] = field(default_factory=dict)  # per session: what its last report told the user
     brain_target: str | None = None  # the session the brain chose for the request being sent
     heard_own_words: bool = False  # those words repeat what the bot just suggested
+    last_speaker: object = None  # speaker.Verdict of the last spoken utterance; None when the voice lock did not score it
     utterance_spent: bool = False  # the last words answered a permission: applied, and no reply is due to them
     last_mode_at: float = 0.0
     pending_route: tuple[float, str | None, str] | None = None  # (when, proposed session id, message): refused for want of a session
@@ -1433,6 +1486,16 @@ async def _after_monologue() -> None:
 
 # ---------- modes and meeting mode (meeting.py holds the meeting itself) ----------
 
+LOCK_HELP = {"approvals": "only the owner's voice counts for a spoken yes; a no counts from anyone",
+             "commands": "only the owner's voice reaches you; other voices in the room are kept out",
+             "everything": "only the owner's voice reaches you or the screen"}
+
+
+def lock_level() -> str:
+    """The owner-voice lock: off | approvals | commands | everything. It only narrows; see speaker.py."""
+    return PREFS.get("voice_lock")
+
+
 def current_mode() -> modes.Mode:
     """What the voice may do now. A mode only narrows plain conversation (modes.narrows, tested)."""
     if state.meeting is not None:
@@ -1672,6 +1735,12 @@ async def _on_meeting_turn(m, turn) -> None:
     fresh, turn.handled = found[turn.handled:], len(found)  # a re-closed turn acts only on what it did not act on yet
     if m.is_entry(turn) or _MEETING_ON.match(said.strip()):
         return  # the replayed "Pointe, meeting mode, participating": it bound the owner, it asks nothing
+    claims = any(meetings.command(w)[0] == "me" for w in fresh) and turn.speaker != m.owner
+    voice = await _meeting_voice(turn) if m.owner is None or claims else None
+    if voice is not None and m.owner is None and speaker.strong(voice) and turn.speaker != m.bot:
+        m.bind_owner(turn.speaker)  # the voiceprint is who the owner is; the label follows it
+        NOTES.add("thought", "Recognised your voice: you're the owner in this meeting.", dedup=False)
+        logger.info("meeting: owner bound by the voiceprint")
     for words in fresh:
         if turn.speaker == m.owner:
             await _meeting_command(words)
@@ -1680,12 +1749,25 @@ async def _on_meeting_turn(m, turn) -> None:
             continue
         cmd, _ = meetings.command(words)
         if cmd == "me":  # "Pointe, that's me": the speaker claims the owner's seat (nothing in a meeting acts on voice)
+            if voice is not None and not speaker.strong(voice):
+                logger.info("meeting: \"that's me\" in a voice that is not the owner's (ignored)")
+                continue
             rebound = m.owner is not None
             m.bind_owner(turn.speaker)
             if rebound:
                 NOTES.add("thought", "Rebound the owner to the speaker who said “that's me”.", dedup=False)
         else:
             logger.info("meeting: addressed by a non-owner (ignored)")
+
+
+async def _meeting_voice(turn):
+    """The voiceprint's verdict on a meeting turn, or None when the lock is off or there is no voiceprint (then the
+    label binding alone decides, as before). A turn without audio is a verdict too: not scored, so not the owner."""
+    if lock_level() == "off" or not VOICE.profiles.items:
+        return None
+    ears = state.meeting_ears
+    pcm = ears.audio_between(*turn.audio_ms) if turn.audio_ms and hasattr(ears, "audio_between") else b""
+    return await VOICE.score(pcm)
 
 
 async def _meeting_loop(m) -> None:
@@ -1944,6 +2026,16 @@ async def on_user_utterance(text: str) -> None:
             state.sidetracked, state.utterance_spent = None, True
             await _read_out(session)
         return
+    # The voice lock narrows the yes: only in the owner's voice. A match is never consent by itself: every check above
+    # still had to pass. A no counts from anyone.
+    if verdict == "allow" and lock_level() != "off" and not VOICE.confident(state.last_speaker):
+        state.utterance_spent = True
+        VOICE.unsure_streak += 1
+        logger.info("voice lock: a yes that was not clearly the owner's voice did not count")
+        await _read_out(session, unsure=True)
+        return
+    if verdict == "allow":
+        VOICE.unsure_streak = 0
     state.utterance_spent = True
     state.last_delegation_at = time.time()  # this answer is spent: it cannot also authorize a new request
     await _apply_answer(session, session.permission_id, verdict, f"user said: {text!r}")
@@ -3116,7 +3208,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     return {}
 
 
-async def _read_out(session: Session) -> None:
+async def _read_out(session: Session, unsure: bool = False) -> None:
     if not current_mode().reads_out:
         if current_mode() is modes.BRAINSTORM:
             await _tone(False)  # the user is thinking out loud: the page shows it, and it is read out at the hand-off
@@ -3125,7 +3217,9 @@ async def _read_out(session: Session) -> None:
     front = state.front
     if FRONT != "brain" or front is None:
         session.permission_delivered_at = float("inf")
-        await feed(session, session.permission_text, True)
+        why = ("[the daemon could not tell that yes was the owner's own voice: say so in a few words, then ask again; a tap "
+               "on the request also works]\n" if unsure else "")
+        await feed(session, why + session.permission_text, True)
         asyncio.create_task(_permission_watchdog(session, session.permission_id, session.permission_text))
         return
     name = _spoken_names(session.name)
@@ -3135,6 +3229,9 @@ async def _read_out(session: Session) -> None:
                 f"{name} needs an approval I can't read out. It's on your screen: approve it there, or say no.")
     else:
         text = f"{name} מבקש: {session.permission_spoken}. לבצע?" if hebrew else f"{name} wants to {session.permission_spoken}. Should it?"
+    if unsure:
+        text = ("לא הצלחתי לזהות שזה אתה. אמור שוב, או אשר במסך. " if hebrew else
+                "I couldn't tell that was you. Say it again, or tap. ") + text
     session.permission_delivered_at = float("inf")
     await state.conn.injector.inject(f"[read out to the user, by the daemon] {text}", False)
     await front._speak(text, None if session.permission_cut else session.permission_id)
@@ -3280,7 +3377,7 @@ async def _user_text(text: str) -> None:
     if state.meeting is not None:  # typed in a meeting: the owner's addressed words, never a send
         await _meeting_command(text, typed=True)
         return
-    state.heard_own_words = True
+    state.heard_own_words, state.last_speaker = True, None
     await on_user_utterance(text)
     state.heard_own_words = False
     if state.conn is not None:
@@ -3390,6 +3487,7 @@ async def status():
                 {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},
             "attention": _attention(),
+            "voice_lock": VOICE.status(lock_level()),
             "jobs": JOBS.stats(),
             "tokens": state.tokens,
             "router": (f"orchestrator: named session → auto ({_setup.checker if _setup else 'gate'}) → active session"
@@ -3478,10 +3576,53 @@ async def prefs_get():
 @app.post("/voice/prefs")
 async def prefs_set(request: Request):
     body = await _body(request)
+    if "voice_lock" in body:  # one write path, where the voiceprint is checked
+        raise HTTPException(status_code=400, detail="set the voice lock with POST /voice/voiceprint {action: level}")
     try:
         return PREFS.update(body)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/voice/voiceprint")
+async def voiceprint_action(request: Request):
+    """The owner-voice lock: enrol on the live call, cancel, delete a device's voiceprint (or all), set the level.
+    The only write path for the level: raising it needs a voiceprint; deleting the last one turns the lock off."""
+    body = await _body(request)
+    action = body.get("action")
+    if action == "enrol":
+        if state.conn is None:
+            raise HTTPException(status_code=409, detail="Enrolment listens on the live call: connect first.")
+        if state.meeting is not None:
+            raise HTTPException(status_code=409, detail="Not during a meeting: the room's audio does not reach the lock.")
+        if EARS == "native":
+            raise HTTPException(status_code=409, detail="The voice lock needs Pointe's own ears (CLAUDE_VOICE_EARS=auto).")
+        VOICE.start_enrolment(str(body.get("device") or "This device"))
+        VOICE.load_soon()
+        logger.info("voice lock: enrolment started")
+    elif action == "cancel":
+        VOICE.cancel_enrolment()
+    elif action == "delete":
+        device = body.get("device")
+        gone = VOICE.profiles.delete(str(device) if device else None)
+        VOICE.last_strong = VOICE.last = None
+        if not VOICE.profiles.items and not VOICE.profiles.problem:
+            PREFS.update({"voice_lock": "off"})  # nothing left to compare with: the lock is off, as the user chose
+        logger.info(f"voice lock: {gone} voiceprint file(s) deleted")
+    elif action == "level":
+        level = body.get("level")
+        if level not in speaker.LEVELS:
+            raise HTTPException(status_code=400, detail=f"level must be one of: {', '.join(speaker.LEVELS)}")
+        if level != "off" and not VOICE.profiles.items:
+            raise HTTPException(status_code=409, detail=VOICE.profiles.problem or "Enrol your voice first.")
+        PREFS.update({"voice_lock": level})
+        VOICE.unsure_streak = 0
+        if level != "off":
+            VOICE.load_soon()
+        logger.info(f"voice lock -> {level}")
+    else:
+        raise HTTPException(status_code=400, detail="action must be enrol, cancel, delete or level")
+    return {"voice_lock": VOICE.status(lock_level())}
 
 
 @app.get("/voice/meeting/transcript")
@@ -3711,6 +3852,12 @@ async def _on_connect(conn: Connection) -> None:
     state.unconfirmed, state.blocked, state.pending_route, state.notes_turns = {}, [], None, {}
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
+    state.last_speaker = None
+    VOICE.collector.clear()
+    VOICE.last_strong = None  # a short "yes" leans only on a sentence from this call
+    VOICE.expire()
+    if VOICE.wanted(lock_level()):
+        VOICE.load_soon()  # loaded before the first utterance, never while it waits
     for session in REGISTRY.sessions.values():
         session.on_hold = False
     for session in REGISTRY.sessions.values():
