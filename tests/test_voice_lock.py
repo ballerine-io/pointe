@@ -367,3 +367,14 @@ def test_a_push_to_talk_press_is_not_voice(d, v, monkeypatch):
         asyncio.run(d.SonioxEars.process_frame(ears, InputAudioRawFrame(audio=pcm[i:i + 640], sample_rate=16000,
                                                                          num_channels=1), FrameDirection.DOWNSTREAM))
     assert v.collector.take() == b""
+
+
+def test_a_meeting_still_transcribes_every_voice_at_every_level(d, v, monkeypatch, tmp_path):
+    """The lock decides who commands Pointe, not whose words the meeting writes down."""
+    level(d, "everything")
+    m, _ = _meeting(d, monkeypatch, tmp_path)
+    _room(d, "2", "Let's look at the numbers for the quarter.", OTHER_HZ, 0, 2500)
+    _room(d, "1", "I think pricing should move first, honestly.", OWNER_HZ, 4000, 6500)
+    assert [t.text for t in m.turns] == ["Let's look at the numbers for the quarter.",
+                                          "I think pricing should move first, honestly."]
+    assert v.ignored_count == 0
