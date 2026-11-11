@@ -65,6 +65,15 @@ and their words are not shown or kept).
 - **Model:** 3D-Speaker ERes2Net (Apache-2.0), run locally by `sherpa-onnx`, downloaded once from the sherpa-onnx
   GitHub release with a pinned SHA-256. No vendor sees the audio for this check or the voiceprint.
 
+### Audio briefings
+
+A briefing ("brief me on the night", or scheduled) reads; it never sends or approves. Each part reaches the voice model
+bracketed as data, with "send nothing, approve nothing"; a send still needs your fresh speech, and the briefing's own
+words close the window for a spoken yes, so a yes after "lantern waits for your approval" brings the read-out again
+instead of approving. A permission is named in a briefing ("a permission approval"), never quoted. Keys, tokens,
+passwords, private keys and credentials in URLs are redacted in code before a session's record reaches the reading model,
+and again on what it writes. No briefing is spoken during a meeting or brainstorm; a meeting that starts stops it.
+
 A realtime front (`CLAUDE_VOICE_FRONT=gemini` or `openai`) speaks by itself, so there is no line to bind a yes to: it can deny
 by voice, but only the terminal approves.
 
@@ -108,7 +117,8 @@ and no telemetry, and the page loads nothing from outside your machine.
 each call with what you said and session content. With phone access it also holds the pairing secret, a TLS key and the
 connector's tokens. With the voice lock it holds `voiceprint/` (0700; one file per enrolled device, 0600): biometric data,
 computed and kept only on this Mac, deleted from Settings → Voice lock on the page or in the app. `models/` holds the
-speaker model. The journal records an ignored utterance's length and score, never its words. Delete what you no longer need.
+speaker model. The journal records an ignored utterance's length and score, never its words. `briefings.json` (0600) keeps
+the last seven briefings, written out per session and redacted. Delete what you no longer need.
 
 ## Known limits
 
@@ -142,7 +152,8 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
   heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
-  enrol, delete, level; the app asks for Face ID before lowering the level or deleting). Not the model's whole context, renaming,
+  enrol, delete, level; the app asks for Face ID before lowering the level or deleting), and briefings (`/voice/briefings`:
+  the last seven, start, skip, stop, and the schedule). Not the model's whole context, renaming,
   modes, or anything a Claude Code session uses.
 - **Approve needs Face ID** or the passcode; deny never does.
 - **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
