@@ -873,6 +873,7 @@ class SonioxEars(FrameProcessor):
             return False
         if level in ("commands", "everything") and not VOICE.confident(verdict):
             VOICE.ignore(verdict, heard if level == "commands" else None)
+            await _answer_permission(heard, deny_only=True)  # a no counts from anyone; the words still stay out
             if ECHO.speaking:  # anyone may pause the bot; only the owner may take the turn
                 await self.broadcast_interruption()
             if state.conn is not None:
@@ -1993,11 +1994,19 @@ async def on_user_utterance(text: str) -> None:
         state.blocked = []  # "leave it": not raised again
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
+    await _answer_permission(text)
+
+
+async def _answer_permission(text: str, deny_only: bool = False) -> None:
+    """The active session's pending permission, answered by these words if they answer it. deny_only: words the voice
+    lock kept from Pointe, which may still say no."""
     session = REGISTRY.active
     if not session or not session.permission_id or state.conn is None:
         return
     window_open = state.conn.injector.bot_started_at >= session.permission_delivered_at
     verdict = None if state.heard_own_words else permission_answer(text)
+    if deny_only and verdict != "deny":
+        return
     if verdict == "deny" and time.time() - session.permission_read_at < PERMISSION_ANSWER_SECS:
         window_open = True  # a no is safe even if the bot has said something since: the worst case is that Claude asks again
     if verdict is None:

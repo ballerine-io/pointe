@@ -1,0 +1,83 @@
+"""Defects an independent bug hunt proved at 0defe50, each as the scenario that showed it. Ordered as fixed."""
+
+import asyncio
+import sys
+import time
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import ptt  # noqa: E402
+import meeting as meetings  # noqa: E402
+from test_orchestrator import add, d, with_permission  # noqa: E402,F401  (d is a fixture)
+from test_meeting_daemon import _meeting_ready, _start  # noqa: E402
+from test_speaker import OTHER_HZ, OWNER_HZ, tone  # noqa: E402
+from test_voice_lock import v  # noqa: E402,F401  (fixture: an enrolled voice lock on a fake model)
+
+T0 = 1000.0
+
+
+# ---------- 1. voice lock at Commands / Everything: a no from another voice still denies ----------
+
+def _real_ears(d, monkeypatch):
+    """SonioxEars with its real _take, so a final transcript reaches on_user_utterance."""
+    from test_voice_lock import FrameDirection, InputAudioRawFrame, TranscriptionFrame, VADUserStartedSpeakingFrame, \
+        VADUserStoppedSpeakingFrame
+    ears = d.SonioxEars()
+
+    async def noop(*_a, **_k):
+        pass
+
+    monkeypatch.setattr(ears, "broadcast_interruption", noop)
+    monkeypatch.setattr(ears, "push_frame", noop)
+    monkeypatch.setattr(ears, "create_task", lambda coro, name=None: asyncio.get_running_loop().create_task(coro))
+    monkeypatch.setattr(d.FrameProcessor, "process_frame", lambda self, f, dirn: asyncio.sleep(0))
+
+    async def utter(hz: float, text: str, secs: float = 2.0) -> None:
+        down = FrameDirection.DOWNSTREAM
+        await d.SonioxEars.process_frame(ears, VADUserStartedSpeakingFrame(), down)
+        pcm = tone(hz, secs)
+        for i in range(0, len(pcm), 640):
+            await d.SonioxEars.process_frame(ears, InputAudioRawFrame(audio=pcm[i:i + 640], sample_rate=16000, num_channels=1), down)
+        await d.SonioxEars.process_frame(ears, VADUserStoppedSpeakingFrame(), down)
+        await d.SonioxEars.process_frame(ears, TranscriptionFrame(text=text, user_id="u", timestamp="t"), down)
+    return utter
+
+
+@pytest.mark.parametrize("lvl", ["commands", "everything"])
+def test_a_no_from_another_voice_still_denies_at_commands_and_everything(d, v, monkeypatch, lvl):
+    """Rule: a "no" from any voice counts (speaker.py: 'A "no" counts from anyone'). At Commands and Everything the
+    intake gate drops the stranger's words before on_user_utterance sees them, so the pending tool call stays pending."""
+    from test_orchestrator import _consent_setup, verdicts
+    d.PREFS.update({"voice_lock": lvl})
+    active, posts = _consent_setup(d, monkeypatch)
+    utter = _real_ears(d, monkeypatch)
+
+    async def resume_cut(since):
+        pass
+
+    d.state.conn.injector.resume_cut = resume_cut
+    asyncio.run(utter(OTHER_HZ, "no, don't"))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "deny"}], (verdicts(posts), active.permission_id)
+
+
+def test_the_owners_no_and_a_strangers_no_at_approvals_deny_through_the_same_path(d, v, monkeypatch):
+    from test_orchestrator import _consent_setup, verdicts
+    d.PREFS.update({"voice_lock": "commands"})
+    active, posts = _consent_setup(d, monkeypatch)
+    utter = _real_ears(d, monkeypatch)
+
+    async def resume_cut(since):
+        pass
+
+    d.state.conn.injector.resume_cut = resume_cut
+    asyncio.run(utter(OWNER_HZ, "no, don't"))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "deny"}]
+    d.PREFS.update({"voice_lock": "approvals"})
+    with_permission(active, "p2", delivered_at=1.0)
+    asyncio.run(utter(OTHER_HZ, "no, don't"))
+    assert verdicts(posts)[-1] == {"request_id": "p2", "behavior": "deny"}
