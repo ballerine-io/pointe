@@ -168,7 +168,8 @@ def mirror_lines(turn: dict) -> list[dict]:
                 {"type": "tool_use", "name": "Bash", "input": {"command": command_text(str(item.get("command") or ""))}}]}})
         elif kind == "fileChange":
             out.append({**base, "type": "assistant", "message": {"role": "assistant", "content": [
-                {"type": "tool_use", "name": "Edit", "input": {"changes": len(item.get("changes") or [])}}]}})
+                {"type": "tool_use", "name": "Edit", "input": {"changes": len(item.get("changes") or []),
+                                                               "file_paths": [str(c.get("path")) for c in item.get("changes") or [] if c.get("path")]}}]}})
         elif kind == "agentMessage" and str(item.get("text") or "").strip():
             finals.append((base, str(item["text"]).strip()))
     for i, (base, text) in enumerate(finals):
