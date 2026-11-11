@@ -1,5 +1,7 @@
 import AVFAudio
+import AudioToolbox
 import Foundation
+import MediaPlayer
 import Observation
 
 /// One call to the Mac: the iPhone's voice processing (hardware echo cancellation) in, the bot's voice out, over one
@@ -18,6 +20,12 @@ final class Call {
     /// sleeping, and keep looking live. Past `deadAfter` with nothing, it is treated as dead and reconnected.
     private(set) var lastHeard = Date.distantPast
     nonisolated static let deadAfter: TimeInterval = 6
+    /// Push to talk (PushToTalk.swift): what holds the microphone open.
+    private(set) var talk = TalkGate()
+    /// Why the Mac closed the last press by itself ("held too long", "no audio"), until the next press.
+    private(set) var talkClosedWhy: String?
+    /// The call on screen, for the "Pointe: Talk" intent.
+    static weak var current: Call?
 
     private let pairing: Pairing
     private let session: URLSession
@@ -37,7 +45,8 @@ final class Call {
         session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: playFormat)
-        delegate.onOpen = { [weak self] in Task { @MainActor in self?.state = .live; self?.retries = 0; self?.lastHeard = Date() } }
+        delegate.onOpen = { [weak self] in Task { @MainActor in self?.state = .live; self?.retries = 0; self?.lastHeard = Date(); self?.opened() } }
+        Call.current = self
     }
 
     var api: API { API(pairing: pairing, session: session) }
@@ -78,6 +87,67 @@ final class Call {
         try? AVAudioApplication.shared.setInputMuted(value)
     }
 
+    // MARK: push to talk
+
+    /// The Mac's "microphone" setting. In push to talk the input stays unmuted: the gate decides what is sent.
+    func setMicrophone(_ mode: String) {
+        guard mode != talk.mode else { return }
+        let was = talk.isOpen
+        talk.mode = mode
+        talk.reset()
+        if was { sendTalk(false) }
+        if talk.ptt && muted { setMuted(false) }
+        remoteCommands(on: talk.ptt)
+    }
+
+    func talkPress(_ input: TalkGate.Input) { changeTalk { $0.press(input) } }
+    func talkRelease(_ input: TalkGate.Input) { changeTalk { $0.release(input) } }
+    func talkToggle() { changeTalk { $0.toggle() } }
+
+    /// The Mac's status: a press it closed by itself closes here too, with a chime.
+    func follow(_ status: API.PTTStatus?) {
+        if let mode = status?.mode { setMicrophone(mode) }
+        if let why = talk.follow(status) {
+            talkClosedWhy = why
+            AudioServicesPlaySystemSound(1113)
+        }
+    }
+
+    private func changeTalk(_ change: (inout TalkGate) -> Void) {
+        let was = talk.isOpen
+        change(&talk)
+        guard talk.isOpen != was else { return }
+        if talk.isOpen { talkClosedWhy = nil }
+        sendTalk(talk.isOpen)
+    }
+
+    private func sendTalk(_ open: Bool) {
+        socket?.send(.string(TalkGate.message(open: open, at: Date()))) { _ in }
+    }
+
+    /// A new link: the press starts closed (the Mac's does too), and the Mac learns this phone knows push to talk.
+    private func opened() {
+        talk.reset()
+        let hello: [String: Any] = ["type": "hello", "protocol": 3, "device": "iPhone", "capabilities": ["ptt"]]
+        if let data = try? JSONSerialization.data(withJSONObject: hello), let text = String(data: data, encoding: .utf8) {
+            socket?.send(.string(text)) { _ in }
+        }
+    }
+
+    /// An AirPods press as play/pause, when iOS sends it as a remote command: toggle to talk.
+    private func remoteCommands(on: Bool) {
+        let center = MPRemoteCommandCenter.shared()
+        for command in [center.togglePlayPauseCommand, center.playCommand, center.pauseCommand] {
+            command.removeTarget(nil)
+            if on {
+                command.addTarget { [weak self] _ in
+                    Task { @MainActor in self?.talkToggle() }
+                    return .success
+                }
+            }
+        }
+    }
+
     // MARK: audio
 
     private func startAudio() throws {
@@ -92,7 +162,7 @@ final class Call {
             muteObserver = NotificationCenter.default.addObserver(
                 forName: AVAudioApplication.inputMuteStateChangeNotification, object: nil, queue: .main) { [weak self] note in
                 let isMuted = note.userInfo?[AVAudioApplication.muteStateKey] as? Bool
-                Task { @MainActor in self?.muted = isMuted ?? AVAudioApplication.shared.isInputMuted }
+                Task { @MainActor in self?.inputMuteChanged(isMuted ?? AVAudioApplication.shared.isInputMuted) }
             }
         }
         let format = input.outputFormat(forBus: 0)
@@ -103,8 +173,20 @@ final class Call {
         player.play()
     }
 
+    /// In push to talk an AirPods press (which mutes the input) toggles talking instead, and the input is unmuted again.
+    private func inputMuteChanged(_ value: Bool) {
+        guard talk.ptt else { muted = value; return }
+        if value {
+            talkToggle()
+            setMuted(false)
+        }
+    }
+
     private func send(_ samples: [Float]) {
-        guard state == .live, !muted, let socket else { return }
+        guard state == .live, !muted, talk.sends(), let socket else {
+            if !talk.sends() { pending.removeAll() }
+            return
+        }
         pending += samples
         while pending.count >= Wire.chunk {
             let chunk = Array(pending.prefix(Wire.chunk))
@@ -224,6 +306,7 @@ final class Call {
         socket = nil
         flush()
         pending.removeAll()
+        talk.reset()
         if state == .off {
             engine.inputNode.removeTap(onBus: 0)
             engine.stop()

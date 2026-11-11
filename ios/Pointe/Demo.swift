@@ -3,7 +3,7 @@ import Foundation
 /// Sample calls for looking at the screens without a Mac: `-demo [call|sessions|edit|typing|request]` at launch,
 /// Debug builds only. Every name and word here is made up.
 struct Demo {
-    enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd }
+    enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -19,6 +19,7 @@ struct Demo {
         case .meeting: meetingJSON(hand: false)
         case .meetingHand: meetingJSON(hand: true)
         case .meetingEnd: meetingEndJSON
+        case .talking: talkingJSON
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -54,6 +55,13 @@ struct Demo {
     private static let callJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": true,
      "hearing": "and after that ask river lantern whether the retry", "sessions": \(sessions), "talk": \(talk)}
+    """
+
+    /// Push to talk, held open on the Mac: the ring and the state line show the Mac's gate.
+    private static let talkingJSON = """
+    {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+     "hearing": "ask docs whether the changelog", "sessions": \(sessions), "talk": \(talk),
+     "ptt": {"mode": "ptt", "open": true, "closed_why": ""}}
     """
 
     private static let brainstormJSON = """
