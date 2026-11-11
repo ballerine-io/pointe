@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import aiohttp
+import artifacts
 import remote
 import harnesses
 from harnesses import FINISHED_MARK
@@ -166,6 +167,7 @@ NOTES = Notes()  # what the voice writes instead of saying: meeting notes, held 
 JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meeting secretary, lookups
 PREFS = Prefs(STATE_DIR / "prefs.json")
 VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
+SHOWS = artifacts.Shows()  # show while it says: what is on screen while the voice reports a turn
 JOURNAL = STATE_DIR / "journal.jsonl"
 JOURNAL_MAX_BYTES = 20_000_000
 
@@ -588,6 +590,7 @@ class FeedInjector(FrameProcessor):
             state.monologue_held.append((text, True))
             return
         self.responded_at = time.time()
+        SHOWS.on_respond(text)
         if FINISHED_MARK in text and not text.startswith("[resume]"):  # a report comes back once, not forever
             self._report, self._report_speaking = text, False
         active = REGISTRY.active
@@ -1017,6 +1020,8 @@ def _remember(who: str, text: str) -> None:
     """The recent conversation, so a short "yes" or "both" can be read against what it answers."""
     if who == "user":
         _journal_bot_turn()
+    else:
+        SHOWS.heard(text)
     if state.conversation and state.conversation[-1][0] == who == "assistant":
         state.conversation[-1] = (who, state.conversation[-1][1] + text)
     else:
@@ -1243,11 +1248,27 @@ async def feed(session: Session, text: str, respond: bool) -> None:
                     f"name:\n{report.get('line') or report['excerpt'][-600:]}")
     else:
         text = f"[{_tag(session)}{text[1:]}" if text.startswith("[") else text
+    if report is not None and respond and session.artifacts:
+        line = _on_screen(session)
+        if line:
+            text = text[:MAX_FEED_CHARS - len(line)] + line
+        SHOWS.offer(text[:MAX_FEED_CHARS], session.name, session.cwd, session.artifacts)
     if respond and (active or _thread() is None or (report or {}).get("waiting")):
         # What the user replies to next. A one-liner from a background session does not pull a live conversation away.
         state.thread = (session.id, time.time())
     logger.info(f"feed{' +respond' if respond else ''}: {text[:MAX_REPORT_CHARS]!r}")
     await state.conn.injector.inject(text[:MAX_FEED_CHARS], respond)
+
+
+def _on_screen(session: Session) -> str:
+    """Told with the report, when a screen will show its artifacts: the voice may say so, and never reads them."""
+    now = time.time()
+    if not (SHOWS.watching("page", now) or (SHOWS.watching("phone", now) and PREFS.get("show.on_phone"))):
+        return ""
+    shown = [a for a in session.artifacts if a["kind"] == "test" or not artifacts.refused(a["path"], session.cwd)]
+    said = artifacts.label(shown)
+    return (f"\n[on screen now: {said}. The user can see it, so never read code, paths or output aloud; you may say "
+            f"it is on their screen]") if said else ""
 
 
 def _active_report(session: Session, report: dict) -> str:
@@ -2719,6 +2740,7 @@ async def disconnect_session(params: FunctionCallParams):
 async def activate(session: Session) -> dict:
     """Make a session active and give the voice model its recent history."""
     REGISTRY.set_active(session.id)
+    SHOWS.clear()  # the user moved on: what was on screen belonged to the last report
     state.thread = (session.id, time.time())  # an explicit switch outranks the last topic
     state.last_switch_at = time.time()
     logger.info(f"active session -> {session.name}")
@@ -3471,8 +3493,20 @@ async def health():
     return {"ok": True}
 
 
+def _off_the_mac(request: Request) -> bool:
+    """The phone app (its key) or a page opened over the private network: code shown there leaves this Mac."""
+    return bool(request.scope.get("state", {}).get("pointe_phone")) or remote.Remote.on_tls_listener(request.scope)
+
+
+def _may_show(request: Request) -> bool:
+    """Show while it says: always on the page on this Mac; elsewhere only once enabled (owner decision 5)."""
+    return not _off_the_mac(request) or PREFS.get("show.on_phone")
+
+
 @app.get("/voice/status")
-async def status():
+async def status(request: Request):
+    SHOWS.watched("phone" if _off_the_mac(request) else "page", time.time())
+    show = _may_show(request)
     return {"active": REGISTRY.active.name if REGISTRY.active else None,
             "connected": state.conn is not None,
             "problem": current_problem(),
@@ -3489,6 +3523,9 @@ async def status():
             "attention": _attention(),
             "voice_lock": VOICE.status(lock_level()),
             "jobs": JOBS.stats(),
+            "showing": SHOWS.view(time.time(), ECHO.speaking) if show else None,
+            "shown_earlier": SHOWS.earlier() if show else [],
+            "show_on_phone": PREFS.get("show.on_phone"),
             "tokens": state.tokens,
             "router": (f"orchestrator: named session → auto ({_setup.checker if _setup else 'gate'}) → active session"
                        if REGISTRY.mode == "orchestrator" else "session mode: every request goes to the active session"),
@@ -3517,6 +3554,19 @@ def _attention() -> list[dict]:
     if m is not None and m.hand is not None:
         items.append({"id": f"hand:{m.id}:{m.hand.n}", "kind": "hand", "text": m.hand.line, "at": m.hand.at})
     return [i for i in items if i["id"] not in state.attention_dismissed]
+
+
+@app.get("/voice/artifact")
+async def artifact(request: Request, id: str = ""):
+    """One shown artifact by its id: file lines at the range, the diff, or the test output. Never a path from the
+    caller: only what a report put on screen, read again from disk under the session's folder (artifacts.render)."""
+    if not _may_show(request):
+        raise HTTPException(status_code=403, detail="Show while it says is off on the phone: turn it on in Settings.")
+    found = SHOWS.find(id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="not shown, or shown too long ago")
+    art, cwd = found
+    return await asyncio.to_thread(artifacts.render, art, cwd)
 
 
 @app.post("/voice/attention")
