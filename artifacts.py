@@ -247,7 +247,7 @@ _SECRET_SHAPES = [
 ]
 _URL_PASSWORD = re.compile(r"(://[^:/\s@]+:)([^@\s/]+)(@)")
 _NAMED = (r"[\w.-]*(?:secret|token|passw(?:or)?d|pwd|api[_-]?key|apikey|access[_-]?key|private[_-]?key|auth[_-]?key|"
-          r"credential|client[_-]?secret)[\w.-]*")
+          r"credential|client[_-]?secret|[_-]key)[\w.-]*")
 _ASSIGNED_QUOTED = re.compile(rf"(?i)(\b{_NAMED}\b[\"']?\s*(?:[:=]|=>|:=)\s*)([\"'])([^\"'\n]{{4,}})\2")
 _ASSIGNED_ENV = re.compile(rf"(?im)^(\s*(?:export\s+)?{_NAMED}\s*=\s*)([^\s\"'#]{{4,}})")
 _ASSIGNED_INLINE = re.compile(rf"(?i)(\b{_NAMED}=)([^\s\"';|&]{{4,}})")
@@ -433,7 +433,7 @@ def summary(arts: list[dict]) -> str:
     parts = []
     if edits:
         rng = edits[0].get("range")
-        parts += [Path(edits[0]["path"]).name, f"edited {rng[0]}–{rng[1]}" if rng else "edited"]
+        parts += [Path(edits[0]["path"]).name, (f"edited {rng[0]}–{rng[1]}" if rng[1] > rng[0] else f"edited {rng[0]}") if rng else "edited"]
         if len(edits) > 1:
             parts.append(f"+{len(edits) - 1} more")
     failing = sum(1 for a in arts if a["kind"] == "test" and a.get("failed"))

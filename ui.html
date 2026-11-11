@@ -349,6 +349,52 @@
   #settingsbtn { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0; }
   #settingsbtn:hover { color: var(--text); }
 
+
+  /* show while it says: what the voice talks about, on screen (artifacts.py) */
+  body.showing { grid-template-columns: 320px minmax(0, 1fr) minmax(360px, 38vw); }
+  body.showing.nosessions { grid-template-columns: 0 minmax(0, 1fr) minmax(360px, 38vw); }
+  body.showing.showfold { grid-template-columns: 320px minmax(0, 1fr) 46px; }
+  body.showing.showfold.nosessions { grid-template-columns: 0 minmax(0, 1fr) 46px; }
+  #show { display: none; flex-direction: column; min-width: 0; min-height: 0; height: 100vh; border-left: 1px solid var(--line); background: var(--navy); }
+  body.showing #show { display: flex; }
+  #show .head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 10px; border-bottom: 1px solid var(--line); }
+  #show .head .grow { flex: 1; min-width: 0; }
+  #show .title { font-weight: 700; font-size: 15px; }
+  #show .title .when { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 6px; }
+  #show .summary { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #show button { font: 600 12.5px 'Inter', sans-serif; cursor: pointer; border: 0; border-radius: 9px; padding: 6px 10px; background: var(--card2); color: var(--text); }
+  #show button.on { background: var(--orange-soft); color: var(--orange); box-shadow: inset 0 0 0 1px var(--orange-line); }
+  #show-fold { background: none !important; color: var(--muted) !important; font-size: 16px !important; padding: 4px 6px !important; }
+  #show .arts { display: flex; gap: 6px; padding: 10px 16px 0; overflow-x: auto; scrollbar-width: thin; flex: none; }
+  #show .arts button { white-space: nowrap; font-weight: 500; }
+  #show .arts button.cur { background: var(--card); box-shadow: inset 0 0 0 1px var(--orange-line); color: var(--text); }
+  #show .arts .fail { color: var(--orange); }
+  #show .tabs { display: flex; gap: 4px; padding: 10px 16px 8px; align-items: center; flex: none; }
+  #show .tabs .grow { flex: 1; }
+  #show .where { color: var(--muted); font-size: 12px; padding: 0 16px 6px; overflow-wrap: anywhere; }
+  #show .where .changed { color: var(--orange); }
+  #show-body { flex: 1; min-height: 0; overflow: auto; margin: 0 10px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line);
+               font: 12.5px/1.55 'JetBrains Mono', ui-monospace, monospace; scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
+  #show-body .ln { display: flex; white-space: pre; min-width: max-content; padding-right: 14px; }
+  #show-body .ln .n { flex: none; width: 4.2em; text-align: right; padding-right: 12px; color: var(--dim); user-select: none; }
+  #show-body .ln.hl { background: rgba(255, 79, 31, .13); }
+  #show-body .ln.hl .n { color: var(--orange); }
+  #show-body .ln.add { background: rgba(52, 199, 89, .13); color: #9BE7B0; }
+  #show-body .ln.del { background: rgba(255, 79, 31, .13); color: #FFB199; }
+  #show-body .ln.hunk { color: var(--muted); }
+  #show-body .ln.focus { background: rgba(255, 79, 31, .22); }
+  #show-body .msg { font: 13.5px 'Inter', sans-serif; color: var(--muted); padding: 18px; white-space: normal; }
+  #show-body .cmd { font-size: 12px; color: var(--muted); padding: 10px 14px 6px; white-space: pre-wrap; overflow-wrap: anywhere; border-bottom: 1px solid var(--line); }
+  #show details { padding: 8px 16px 14px; color: var(--muted); font-size: 12.5px; flex: none; max-height: 30vh; overflow-y: auto; }
+  #show details summary { cursor: pointer; font-weight: 600; }
+  #show details ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  #show details li button { width: 100%; text-align: left; font-weight: 500; background: var(--card); }
+  #show details li .t { color: var(--dim); margin-right: 6px; font-variant-numeric: tabular-nums; }
+  body.showfold #show > :not(.head) { display: none; }
+  body.showfold #show .head { flex-direction: column; padding: 14px 6px; }
+  body.showfold #show .head > :not(#show-fold) { display: none; }
+  #show :focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
   @media (max-width: 900px) {  /* narrow: the sessions column becomes a sheet behind the Sessions button */
     body { grid-template-columns: 1fr; }
     aside { position: fixed; inset: 0 auto 0 0; width: min(360px, 92vw); z-index: 20; transform: translateX(-102%);
@@ -361,6 +407,13 @@
     .dock { gap: 8px; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); }
     .dock .btn { min-width: 56px; }
     #compose.folded { display: none; }
+    body.showing, body.showing.showfold, body.showing.nosessions, body.showing.showfold.nosessions { grid-template-columns: 1fr; }
+    #show { position: fixed; left: 0; right: 0; bottom: 0; height: 62vh; z-index: 25; border: 0; border-top: 1px solid var(--line);
+            border-radius: 18px 18px 0 0; box-shadow: 0 -12px 32px rgba(0,0,0,.5); }
+    body.showfold #show { height: auto; }
+    body.showfold #show .head { flex-direction: row; padding: 10px 16px; }
+    body.showfold #show .head > :not(#show-fold) { display: block; }
+    body.showfold #show .head > .tools { display: none; }
   }
 </style>
 </head>
@@ -485,6 +538,10 @@
     <div class="field">Start in<select id="pref-mode"><option value="listening">Listening</option><option value="participating">Participating</option></select></div>
     <label class="tick"><input type="checkbox" id="pref-lookups"> Auto lookups by default</label>
     <div class="field">Notes language<select id="pref-lang"><option value="auto">Same as I speak</option><option value="en">English</option><option value="he">Hebrew</option></select></div>
+    <h3>Show while it says</h3>
+    <div class="note">Show the files and test output the voice talks about. On this Mac it is always on; the pane can be
+      folded away for screen sharing. Code stays on your Mac unless you turn this on for the phone.</div>
+    <label class="tick"><input type="checkbox" id="pref-showphone"> Also show on the phone</label>
     <h3>Microphone</h3>
     <div class="field">Microphone<select id="pref-mic"><option value="always">Always on</option><option value="ptt">Push to talk</option></select></div>
     <div class="field">Hold to talk key<button type="button" id="pref-key" onclick="captureKey()"></button></div>
@@ -581,6 +638,22 @@
       Hang up</button>
   </nav>
 </main>
+<aside id="show" role="region" aria-labelledby="show-title">
+  <div class="head">
+    <div class="grow">
+      <div class="title" id="show-title">Showing<span class="when" id="show-when"></span></div>
+      <div class="summary" id="show-summary"></div>
+    </div>
+    <span class="tools"><button id="show-pin" onclick="pinArtifact()" aria-pressed="false">Pin</button></span>
+    <button id="show-fold" onclick="foldShow()" aria-expanded="true" aria-controls="show-body" title="Hide or show the pane (for screen sharing)">⇥</button>
+  </div>
+  <div class="arts" id="show-arts" role="tablist" aria-label="What it showed"></div>
+  <div class="tabs" id="show-tabs" role="tablist" aria-label="View"></div>
+  <div class="where" id="show-where"></div>
+  <div id="show-body" tabindex="0" dir="ltr" aria-live="off"></div>
+  <details id="show-earlier"><summary>Shown earlier</summary><ul id="show-earlier-list"></ul></details>
+  <div class="sr" id="show-say" aria-live="polite"></div>
+</aside>
 <script>
   const $ = id => document.getElementById(id);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
@@ -630,6 +703,7 @@
     showHearing(status && status.connected && !meetingOf(status)?.on ? status.hearing : null);
     showMeeting(status);
     showVoiceLock(status);
+    showShowing(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
     $('ctx').textContent = s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context';
@@ -1535,12 +1609,154 @@
     }
     $('vl-levelhelp').textContent = LOCK_HELP[v.level] || '';
   }
+
+  // Show while it says (artifacts.py): the files and test output a report is about, while the voice speaks it. The
+  // daemon decides what is on screen (status.showing) and which one the voice is on (current); the pane follows it
+  // unless the user picked one or pinned one. Nothing shown here is read aloud, and when the daemon stops showing,
+  // the pane keeps the last set (no empty flashes) until a new one comes.
+  const show = {set: null, liveId: '', live: false, art: null, view: null, chose: false, pinned: null, cache: new Map(), loading: ''};
+  const SHOW_VIEWS = {edit: ['File', 'Diff'], read: ['File'], test: ['Test']};
+  if (localStorage.getItem('pointe.showFold') === '1') document.body.classList.add('showfold');
+  function foldShow() {
+    const folded = document.body.classList.toggle('showfold');
+    localStorage.setItem('pointe.showFold', folded ? '1' : '0');
+    $('show-fold').setAttribute('aria-expanded', String(!folded));
+    $('show-fold').textContent = folded ? '⇤' : '⇥';
+  }
+  function showShowing(s) {
+    const now = s && s.showing;
+    if (now && now.id !== show.liveId) {  // a new report: follow it, even away from an earlier set the user opened
+      show.liveId = now.id; show.set = now; show.chose = false; show.cache.clear();
+      $('show-say').textContent = 'Showing ' + now.summary;
+    } else if (now && show.set && show.set.id === now.id) show.set = now;
+    if (s) show.live = !!now && show.set?.id === now.id;
+    document.body.classList.toggle('showing', !!show.set);
+    if (!show.set) return;
+    const arts = show.set.artifacts;
+    if (show.pinned) show.art = show.pinned;
+    else if (!show.chose || !arts.some(a => a.id === show.art?.id)) show.art = arts.find(a => a.id === show.set.current) || arts[0];
+    else show.art = arts.find(a => a.id === show.art.id);
+    drawShow();
+    if (s) drawEarlier(s.shown_earlier || []);
+  }
+  function drawShow() {
+    const set = show.set, art = show.art;
+    $('show-title').firstChild.textContent = show.pinned ? 'Pinned' : show.live ? 'Showing' : 'Last shown';
+    $('show-when').textContent = short(set.session || '');
+    $('show-summary').textContent = set.summary || '';
+    $('show-pin').className = show.pinned ? 'on' : '';
+    $('show-pin').textContent = show.pinned ? 'Pinned' : 'Pin';
+    $('show-pin').setAttribute('aria-pressed', String(!!show.pinned));
+    const key = set.id + '|' + art.id + '|' + set.artifacts.map(a => a.id).join();
+    if ($('show-arts').dataset.key !== key) {
+      $('show-arts').dataset.key = key;
+      $('show-arts').replaceChildren(...(show.pinned ? [show.pinned] : set.artifacts).map(a => {
+        const b = el('button', a.id === art.id ? 'cur' : '');
+        b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(a.id === art.id));
+        b.append(a.kind === 'test' ? el('span', a.failed ? 'fail' : '', a.failed ? 'Failing test' : 'Test output') : a.name);
+        b.title = a.path || a.name;
+        b.onclick = () => { show.chose = true; show.art = a; show.view = null; drawShow(); };
+        return b;
+      }));
+    }
+    const loaded = show.cache.get(art.id);
+    const views = art.kind === 'edit' && loaded && loaded.diff == null ? ['File'] : SHOW_VIEWS[art.kind] || ['File'];  // no repo: no diff
+    if (!views.includes(show.view)) show.view = views[0];
+    const tabsKey = art.id + show.view;
+    if ($('show-tabs').dataset.key !== tabsKey) {
+      $('show-tabs').dataset.key = tabsKey;
+      $('show-tabs').replaceChildren(...views.map(v => {
+        const b = el('button', v === show.view ? 'on' : '', v);
+        b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(v === show.view));
+        b.onclick = () => { show.view = v; drawShow(); };
+        return b;
+      }));
+    }
+    loadArtifact(art);
+  }
+  async function loadArtifact(art) {
+    const id = art.id;
+    let view = show.cache.get(id);
+    if (!view && show.loading !== id) {
+      show.loading = id;
+      try {
+        const r = await fetch('/voice/artifact?id=' + encodeURIComponent(id));
+        view = r.ok ? await r.json() : {problem: r.status === 404 ? 'No longer available.' : 'Not shown.'};
+      } catch (e) { view = {problem: 'Not reachable right now.'}; }
+      show.loading = '';
+      show.cache.set(id, view);
+    }
+    if (!view || show.art?.id !== id) return;
+    if (art.kind === 'edit' && view.diff == null && $('show-tabs').children.length > 1) { $('show-tabs').dataset.key = ''; drawShow(); return; }
+    const drawn = id + show.view;
+    if ($('show-body').dataset.key === drawn) return;  // a poll redrawing the same thing must not reset the scroll
+    $('show-body').dataset.key = drawn;
+    drawArtifact(view);
+  }
+  function lineRow(n, text, cls) {
+    const row = el('div', 'ln' + (cls ? ' ' + cls : ''));
+    row.append(el('span', 'n', n === null ? '' : String(n)), el('span', 't', text));
+    return row;
+  }
+  function drawArtifact(v) {
+    const body = $('show-body'), where = $('show-where');
+    where.replaceChildren();
+    if (v.path) where.append(v.path + (!v.range ? '' : v.range[1] > v.range[0] ? ` · lines ${v.range[0]}–${v.range[1]}` : ` · line ${v.range[0]}`));
+    if (v.changed_since) where.append(' · ', el('span', 'changed', 'changed since it was spoken about'));
+    if (v.problem) { body.replaceChildren(el('div', 'msg', `${v.name || ''}: ${v.problem}`)); return; }
+    let target = null;
+    if (show.view === 'Test') {
+      const rows = [];
+      if (v.command) rows.push(el('div', 'cmd', '$ ' + v.command));
+      (v.output || '').split('\n').forEach((t, i) => {
+        const row = lineRow(null, t, i === v.focus ? 'focus' : '');
+        if (i === v.focus) target = row;
+        rows.push(row);
+      });
+      body.replaceChildren(...rows);
+    } else if (show.view === 'Diff') {
+      if (!v.diff) { body.replaceChildren(el('div', 'msg', v.diff === '' ? 'No changes against the last commit.' : 'Not in a git repository: no diff.')); return; }
+      body.replaceChildren(...v.diff.split('\n').map(t => {
+        const cls = t.startsWith('@@') ? 'hunk' : t.startsWith('+') && !t.startsWith('+++') ? 'add' : t.startsWith('-') && !t.startsWith('---') ? 'del' : '';
+        const row = lineRow(null, t, cls);
+        if (!target && cls === 'add') target = row;
+        return row;
+      }));
+    } else {
+      body.replaceChildren(...(v.lines || []).map(l => {
+        const row = lineRow(l.n, l.text, l.hl ? 'hl' : '');
+        if (l.hl && !target) target = row;
+        return row;
+      }));
+    }
+    body.scrollTop = 0;
+    if (target) target.scrollIntoView({block: 'center'});
+  }
+  function pinArtifact() {
+    show.pinned = show.pinned ? null : show.art;
+    $('show-arts').dataset.key = '';
+    showShowing(status);
+  }
+  function drawEarlier(sets) {
+    const key = sets.map(x => x.id).join();
+    if ($('show-earlier-list').dataset.key === key) return;
+    $('show-earlier-list').dataset.key = key;
+    $('show-earlier').hidden = sets.length < 2;
+    $('show-earlier-list').replaceChildren(...sets.map(x => {
+      const li = el('li'), b = el('button');
+      b.append(el('span', 't', new Date(x.at * 1000).toTimeString().slice(0, 5)), `${short(x.session)} · ${x.summary}`);
+      b.onclick = () => { show.set = {...x, current: x.artifacts[0]?.id}; show.live = false; show.chose = false; show.pinned = null;
+                          show.cache.clear(); show.art = x.artifacts[0]; showShowing(null); };
+      li.append(b); return li;
+    }));
+  }
   async function openSettings() {
     const prefs = await (await fetch('/voice/prefs')).json().catch(() => ({}));
     $('pref-mode').value = prefs['meeting.default_mode'] || 'listening';
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
     $('pref-mic').value = prefs.microphone || 'always';
+    $('pref-showphone').checked = !!prefs['show.on_phone'];
     pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
     $('setok').textContent = ''; $('seterr').textContent = '';
     openSheet('settingssheet', 'pref-mode');
@@ -1548,7 +1764,7 @@
   async function saveSettings() {
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
-      microphone: $('pref-mic').value})});
+      microphone: $('pref-mic').value, 'show.on_phone': $('pref-showphone').checked})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); refresh(); }
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
     else $('seterr').textContent = (await r.json().catch(() => ({}))).detail || 'Not saved';

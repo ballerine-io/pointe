@@ -346,6 +346,11 @@ def test_secrets_in_files_output_and_commands_are_masked(tmp_path, monkeypatch):
     assert "sk_live_synthetic99999999" not in shown and "MIIEsynthetic" not in shown and "1 failed" in shown
 
 
+def test_any_name_ending_in_key_has_its_value_masked():
+    shown = artifacts.mask('PAYMENTS_KEY = "plain-synthetic-value-42"\nmonkey = "banana-bread"\n')
+    assert "plain-synthetic-value-42" not in shown and "banana-bread" in shown
+
+
 def test_a_command_with_hidden_characters_is_not_shown(tmp_path):
     root = repo(tmp_path)
     turn = artifacts.Turn()
@@ -502,3 +507,9 @@ def test_a_pending_permission_is_never_on_screen(show, monkeypatch, tmp_path):
     s = add(d, "a", "shop", cwd=str(root))
     s.artifacts = turn.finish("Waiting on your approval.", str(root))
     assert s.artifacts == []
+
+
+def test_a_one_line_edit_reads_as_one_line(tmp_path):
+    root = repo(tmp_path)
+    arts = [{"kind": "edit", "path": str(root / "pricing.py"), "range": [41, 41]}]
+    assert artifacts.summary(arts) == "pricing.py · edited 41" and artifacts.label(arts) == "pricing.py line 41"
