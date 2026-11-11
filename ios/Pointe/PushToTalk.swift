@@ -15,6 +15,7 @@ struct TalkGate: Equatable {
     var mode = "always"  // the Mac's "microphone" setting: "always" or "ptt"
     private(set) var held: Set<Input> = []
     private(set) var toggled = false
+    private(set) var roomHeard = false  // a meeting is on: the Mac takes the room's audio without a press
     private(set) var releasedAt: Date?
     /// The Mac's status showed this press open: only then can its "closed" be about this press, not an earlier one.
     private(set) var confirmed = false
@@ -53,11 +54,12 @@ struct TalkGate: Equatable {
 
     /// Whether a chunk of microphone audio goes to the Mac now.
     func sends(at now: Date = Date()) -> Bool {
-        !ptt || isOpen || releasedAt.map { now.timeIntervalSince($0) < Self.tail } ?? false
+        !ptt || roomHeard || isOpen || releasedAt.map { now.timeIntervalSince($0) < Self.tail } ?? false
     }
 
     /// The Mac's status. Returns why, when the Mac closed this press by itself; the phone then closes too.
     mutating func follow(_ status: API.PTTStatus?) -> String? {
+        roomHeard = status?.room_heard == true
         guard let status, isOpen else { return nil }
         if status.open == true {
             confirmed = true
