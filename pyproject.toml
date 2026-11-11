@@ -13,6 +13,7 @@ dependencies = [
     "anthropic>=2.6.0",
     "pipecat-ai[google,openai,silero,soniox,websocket]==1.15.0",
     "segno==1.6.6",
+    "sherpa-onnx==2.0.1",
     "uvicorn==0.54.0",
 ]
 

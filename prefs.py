@@ -11,6 +11,7 @@ SCHEMA: dict[str, tuple] = {
     "meeting.auto_lookups": (False, bool),
     "meeting.notes_language": ("auto", ("auto", "en", "he")),
     "meeting.consented": (False, bool),  # the consent step was shown and accepted once on this Mac
+    "voice_lock": ("off", ("off", "approvals", "commands", "everything")),  # set only through /voice/voiceprint
     "microphone": ("always", ("always", "ptt")),  # push to talk: audio is heard only while a press holds it open
 }
 

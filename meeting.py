@@ -63,6 +63,7 @@ class Turn:
     merged: bool = False
     starts: list = field(default_factory=lambda: [0])  # where each resumed fragment begins in `text`: a wake word may open one
     handled: int = 0  # addressed sentences already acted on: a late burst ("?") re-closes the turn, it must not re-ask
+    audio_ms: tuple | None = None  # (start, end) of the newest fragment in the stream's audio clock, when Soniox gave times
 
     @property
     def new_text(self) -> str:
@@ -113,6 +114,9 @@ class Turns:
                 self._next_id += 1
             self._open.text += tok["text"]
             self._open.t1 = now
+            if start_ms is not None and tok.get("end_ms") is not None:
+                begun = self._open.audio_ms[0] if self._open.audio_ms else start_ms
+                self._open.audio_ms = (begun, tok["end_ms"])
             self._open.lang = self._open.lang or lang
             self._last_at = now
             self._last_end_ms = tok.get("end_ms", self._last_end_ms)
@@ -154,6 +158,7 @@ class Turns:
             same.text += glue + turn.text
             same.open_end, same.t1 = turn.open_end, turn.t1
             same.fragment, same.fragment_secs, same.merged = fragment, turn.fragment_secs, True
+            same.audio_ms = turn.audio_ms
             return [same]
         self.closed.append(turn)
         return [turn]
@@ -534,6 +539,7 @@ class MeetingEars:
 
     URL = "wss://stt-rt.soniox.com/transcribe-websocket"
     QUEUE_FRAMES = 250  # about 5 s of 20 ms frames; older audio is dropped while the stream is down
+    KEEP_SENT_SECS = 30.0  # audio already sent, kept so the voice lock can score a turn by Soniox's times
     MAX_BACKOFF_SECS = 30.0
 
     def __init__(self, api_key: str, rate: int, terms: list[str], on_tokens, on_interim=None) -> None:
@@ -551,6 +557,8 @@ class MeetingEars:
         self._closed = False
         self.connected = False
         self.drops = 0
+        self._sent: deque = deque()  # (stream ms at its start, pcm) for the current stream
+        self._sent_ms = 0.0
 
     async def open(self) -> None:
         from websockets.asyncio.client import connect
@@ -561,6 +569,8 @@ class MeetingEars:
             "language_hints": ["en", "he"], "enable_speaker_diarization": True, "enable_language_identification": True,
             "context": {"terms": self._terms[:300]}}))
         self._ws = ws
+        self._sent.clear()  # a new stream's clock starts at zero
+        self._sent_ms = 0.0
         self._tasks = [asyncio.create_task(self._receive(ws)), asyncio.create_task(self._keepalive(ws))]
         self.connected = self._opened = True
 
@@ -603,11 +613,31 @@ class MeetingEars:
             pcm = self._queue.popleft()
             try:
                 await self._ws.send(pcm)
+                self._keep_sent(pcm)
             except Exception as e:
                 self.drops += 1
                 logger.warning(f"meeting ears down ({type(e).__name__}); reconnecting")
                 await self._hang_up()
                 self._retry_at = time.monotonic() + self._backoff
+
+    def _keep_sent(self, pcm: bytes) -> None:
+        self._sent.append((self._sent_ms, pcm))
+        self._sent_ms += len(pcm) / 2 / self._rate * 1000
+        while self._sent and self._sent[0][0] < self._sent_ms - self.KEEP_SENT_SECS * 1000:
+            self._sent.popleft()
+
+    def audio_between(self, ms0: float, ms1: float) -> bytes:
+        """The audio this stream sent between two of its own times (Soniox token times), as far as it is kept."""
+        out = bytearray()
+        bytes_per_ms = self._rate * 2 / 1000
+        for at, pcm in self._sent:
+            end = at + len(pcm) / bytes_per_ms
+            if end <= ms0 or at >= ms1:
+                continue
+            a = int(max(0.0, ms0 - at) * bytes_per_ms) & ~1
+            b = int((min(end, ms1) - at) * bytes_per_ms) & ~1
+            out += pcm[a:b]
+        return bytes(out)
 
     async def _receive(self, ws) -> None:
         try:

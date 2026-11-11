@@ -1466,3 +1466,61 @@ Deviations from section 4:
   scrolling still works. In a voice-chat audio session, iOS delivers an AirPods stem press as an input mute, not as
   play/pause. In push to talk the app takes that mute as the toggle and unmutes the input again. It also registers
   play/pause handlers in case iOS sends them.
+
+## Owner-voice lock (as built, 2026-11-12)
+
+Feature 1, on the daemon, the page and the app. `speaker.py` holds the rules; `daemon.py` asks it on each final
+utterance (`SonioxEars._owner_gate`) and on a yes (`on_user_utterance`).
+
+### Route
+
+`POST /voice/voiceprint` (page cookie, bearer token, phone key), returns `{voice_lock: <status>}`:
+
+| Body | Does | Errors |
+|---|---|---|
+| `{action: "enrol", device}` | arms enrolment on the live call: the next utterances are learned, not answered | 409 no call, a meeting on, native ears |
+| `{action: "cancel"}` | drops an unfinished enrolment | |
+| `{action: "delete", device?}` | deletes one device's voiceprint, or all; the last one gone turns the lock off | |
+| `{action: "level", level}` | `off`, `approvals`, `commands`, `everything` | 400 bad level; 409 without a voiceprint |
+
+The level is the pref `voice_lock` (readable at `GET /voice/prefs`); `POST /voice/prefs` refuses it (one write path,
+where the voiceprint is checked). A first enrolment sets it to `approvals`.
+
+### Status (`GET /voice/status` → `voice_lock`)
+
+`{level, enrolled, devices: [{device, seconds, segments, enrolled_at}], enrolling: null | {device, progress, line, text,
+seconds, segments, rejected, last_reason}, lines, model: missing|downloading|ready|failed, problem, ignored: {count,
+last_at, recent: [{at, secs, text?}]}, speaker: null | {owner, score, at}, unsure_streak}`. `text` in `ignored.recent`
+only at Commands. At Everything, `hearing` stays empty: live words are not shown before the final is checked.
+
+### Fails closed
+
+No model (yet), a model error, a score slower than 0.6 s, under 0.3 s of audio, or a damaged voiceprint file count as
+"not the owner" for what the level guards; `problem` says why and both clients show it. Chosen over the plan's "force
+Off" / "fall back to Approvals": the user turned the lock on, a silent downgrade would lift it without their knowing,
+and the tap, Face ID, the terminal and typed text keep every action reachable.
+
+### Deviations from the plan
+
+- **Model:** 3D-Speaker ERes2Net base (Apache-2.0, 40 MB) via sherpa-onnx, not CAM++: on the synthetic bench CAM++
+  (VoxCeleb) scored an EER of ~32% on sentences, ERes2Net 1.9% (`bench/results/speaker.md`). Downloaded on first use
+  (checksum pinned) into `<state>/models/`; `sherpa-onnx` is a main dependency (11 MB wheel), not an extra.
+- **Thresholds** `T_HIGH = 0.55`, `T_LOW = 0.35` from synthetic voices only. The plan's gate (recorded owner samples,
+  real impostors) is still owed before Commands or Everything are recommended.
+- **Device:** taken from the enrolment request (page: the microphone's label; app: "iPhone", plus the route), not from a
+  protocol-3 hello; scoring compares against every device's voiceprint and the best wins. Continuity requires the same
+  profile.
+- **Commands and Everything gate at intake**, before the brain hears the words, so the per-tool refusals the plan listed
+  (`_send`, `switch_session`, ...) are unreachable for another voice and were not added. Typed text is authenticated by
+  the page key or phone key and is not gated.
+- **Continuity** leans only on a strong match (`T_HIGH`, ≥ 1 s), never on another weak one.
+- **Barge-in:** anyone still cuts the bot at once; when the lock keeps that voice's words out, a cut report comes back
+  at once (`FeedInjector.resume_cut`) instead of waiting for a reply that will never come.
+- **Meetings:** with a voiceprint and the lock on, a meeting turn in the owner's voice binds the owner label, and a
+  "that's me" in another voice is refused. Off keeps the label binding exactly as before. One source of truth: the
+  voiceprint when there is one, the label heuristic otherwise.
+- **Push to talk:** the collector follows the voice detector's own state, not `user_started_at` (which a press moves),
+  so the silence between a press and speech is never scored.
+- **Not built:** the bot-voice impostor profile (the echo guard covers echo, and audio from echo-dropped finals is
+  discarded), profile adaptation, the weekly enrolment nudge, the "you sound different today" nudge, whisper-mode
+  lowering (no whisper mode yet), and a bench on recorded people.
