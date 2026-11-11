@@ -126,7 +126,7 @@ def test_L03_overlapping_subjects_are_unclear(daemon, answers, tmp_path):
     ("תגיד ללנטרן לעשות rebase", "river-lantern/main"),
 ])
 def test_L04_hebrew_script_names(said, expected, daemon, answers, tmp_path):
-    lark = make(tmp_path, "bluebell/dev", "Ran lint on ledger-api; two warnings left in the routes folder.")
+    lark = make(tmp_path, "bluebell/dev", "Ran lint on orbit-api; two warnings left in the routes folder.")
     lantern = make(tmp_path, "river-lantern/main", "Wrote the cache migrations for the importer.")
     use(daemon, [lark, lantern], lark if expected != "bluebell/dev" else lantern)
     request = "Run the tests." if expected == "bluebell/dev" else "Rebase the branch."
