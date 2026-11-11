@@ -58,8 +58,7 @@ A new invariant this plan adds, used by 1, 3, 4 and 11: **a mode can only narrow
 ### Goal and user story
 
 Only the owner's voice commands Pointe. Someone else in the room (a spouse, a colleague, a TV) is heard by the
-microphone but ignored. The Cursor story: the agent acted on the wife's words. Pointe already requires a bound yes for
-approvals; this adds "and it must be you".
+microphone but ignored. Pointe already requires a bound yes for approvals; this adds "and it must be you".
 
 ### What is feasible
 

@@ -158,7 +158,7 @@ async def transcribe(pcm: np.ndarray) -> str:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=keychain("gemini-api-key-paid"))
+    client = genai.Client(api_key=(os.environ.get("GOOGLE_API_KEY") or keychain("gemini-api-key")))
     for attempt in range(4):
         try:
             return await _transcribe_once(client, buf.getvalue())

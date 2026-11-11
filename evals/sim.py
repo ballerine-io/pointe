@@ -371,9 +371,8 @@ def serve(args) -> None:
     tmp = Path(tempfile.mkdtemp(prefix="voice-sim-"))
     (tmp / "token").write_text("sim")
     os.environ["CLAUDE_VOICE_STATE"] = str(tmp)
-    os.environ.setdefault("GOOGLE_API_KEY", subprocess.run(
-        ["security", "find-generic-password", "-s", "gemini-api-key-paid", "-w"],
-        capture_output=True, text=True, check=True).stdout.strip())
+    import vendors
+    vendors.key("gemini")  # the environment first, then the Keychain, as the daemon reads it
     scenario = json.loads(Path(args.scenario).read_text())
 
     async def main():
