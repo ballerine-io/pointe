@@ -31,9 +31,8 @@ def _transcript(tmp: Path, name: str, text: str) -> str:
 def test_routing(said, request_text, expected, tmp_path):
     (tmp_path / "token").write_text("t")
     os.environ["CLAUDE_VOICE_STATE"] = str(tmp_path)
-    os.environ.setdefault("GOOGLE_API_KEY", subprocess.run(
-        ["security", "find-generic-password", "-s", "gemini-api-key-paid", "-w"],
-        capture_output=True, text=True, check=True).stdout.strip())
+    import vendors
+    vendors.key("gemini")  # the environment first, then the Keychain, as the daemon reads it
     import daemon
     from sessions import Session
 

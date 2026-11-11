@@ -196,7 +196,7 @@ async def run_gemini(audio: np.ndarray) -> dict:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=keychain("gemini-api-key-paid"))
+    client = genai.Client(api_key=(os.environ.get("GOOGLE_API_KEY") or keychain("gemini-api-key")))
     config = types.LiveConnectConfig(
         response_modalities=["AUDIO"], system_instruction=ECHO_INSTRUCTION,
         input_audio_transcription=types.AudioTranscriptionConfig(),
@@ -327,7 +327,7 @@ async def judge(rows: list[dict]) -> None:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=keychain("gemini-api-key-paid"))
+    client = genai.Client(api_key=(os.environ.get("GOOGLE_API_KEY") or keychain("gemini-api-key")))
     todo = [r for r in rows if "intent" not in r]
     sem = asyncio.Semaphore(6)
 

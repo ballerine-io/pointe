@@ -17,6 +17,14 @@ struct API {
         let meeting: Meeting?   // on, or ended and not yet discarded; nil otherwise
         let notes: NotesVersion?
         let attention: [Attention]?
+        let ptt: PTTStatus?     // push to talk; nil from a Mac without it
+    }
+
+    /// The Mac's microphone gate. `open` is the truth the ring shows.
+    struct PTTStatus: Decodable, Equatable {
+        let mode: String?        // "always" or "ptt"
+        let open: Bool?
+        let closed_why: String?  // "released", "held too long", "no audio", "switched to push to talk"
     }
 
     // MARK: meeting mode (docs/plans/next-features.md, "Meeting API (as built)"). Every field optional: an older daemon
@@ -139,10 +147,11 @@ struct API {
         var autoLookups: Bool
         var notesLanguage: String
         var consented: Bool
+        var microphone: String  // "always" or "ptt"
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
-            case notesLanguage = "meeting.notes_language", consented = "meeting.consented"
+            case notesLanguage = "meeting.notes_language", consented = "meeting.consented", microphone
         }
 
         init(from decoder: Decoder) throws {
@@ -151,6 +160,7 @@ struct API {
             autoLookups = (try? c.decode(Bool.self, forKey: .autoLookups)) ?? false
             notesLanguage = (try? c.decode(String.self, forKey: .notesLanguage)) ?? "auto"
             consented = (try? c.decode(Bool.self, forKey: .consented)) ?? false
+            microphone = (try? c.decode(String.self, forKey: .microphone)) ?? "always"
         }
     }
 

@@ -12,7 +12,9 @@ it as up:
 - daemon to client, text, every 2 s: {"type": "ping", "id": n, "rtt_ms": last round trip or null}.
 - client to daemon, text: {"type": "pong", "id": n}.
 Version 3 adds a client hello, text, once after connecting: {"type": "hello", "protocol": 3, "device": "...",
-"capabilities": [...]}. Unknown text is ignored both ways, so version 2 clients keep working.
+"capabilities": [...]}, and push to talk: {"type": "ptt", "open": true|false} when a press opens or closes the
+microphone (ptt.py; the daemon's gate is the rule, whatever the client sends). Unknown text is ignored both ways, so
+version 2 clients keep working.
 A client that heard nothing for 6 s treats the call as dead and reconnects. The daemon closes a call (code 4408) that
 has answered pings before and then stops answering for 12 s, so the line is free for the reconnect.
 """
@@ -21,15 +23,22 @@ import hmac
 import json
 import secrets
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from pipecat.audio.utils import create_stream_resampler
-from pipecat.frames.frames import Frame, InputAudioRawFrame, InterruptionFrame, OutputAudioRawFrame
+from pipecat.frames.frames import Frame, InputAudioRawFrame, InterruptionFrame, OutputAudioRawFrame, SystemFrame
 from pipecat.serializers.base_serializer import FrameSerializer
 
 PROTOCOL = 3
 IN_RATE = 16000
 OUT_RATE = 24000
+
+
+@dataclass
+class PttFrame(SystemFrame):
+    """The client's push-to-talk press (open) or release. A system frame, like the audio it gates."""
+    open: bool = False
 
 
 PING_SECS = 2.0
@@ -86,6 +95,8 @@ class PhoneSerializer(FrameSerializer):
                 return None
             if isinstance(message, dict) and message.get("type") == "pong" and isinstance(message.get("id"), int):
                 self.heartbeat.pong(message["id"])
+            elif isinstance(message, dict) and message.get("type") == "ptt" and isinstance(message.get("open"), bool):
+                return PttFrame(open=message["open"])
             elif isinstance(message, dict) and message.get("type") == "hello":  # protocol 3: who the client is
                 self.client = {k: message.get(k) for k in ("protocol", "device", "capabilities") if k in message}
         return None

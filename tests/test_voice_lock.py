@@ -355,3 +355,15 @@ def test_in_a_meeting_without_the_lock_that_is_me_still_rebinds(d, v, monkeypatc
     m.bind_owner("1")
     _room(d, "2", "Pointe, that's me.", OTHER_HZ, 0, 1500)
     assert m.owner == "2"  # today's behaviour when the lock is off
+
+
+def test_a_push_to_talk_press_is_not_voice(d, v, monkeypatch):
+    """With push to talk the press moves user_started_at; only the voice detector says when someone is speaking."""
+    level(d, "approvals")
+    ears, _, _ = _ears(d, monkeypatch)
+    d.state.user_started_at = time.time()  # the press
+    pcm = tone(OTHER_HZ, 1.0)
+    for i in range(0, len(pcm), 640):
+        asyncio.run(d.SonioxEars.process_frame(ears, InputAudioRawFrame(audio=pcm[i:i + 640], sample_rate=16000,
+                                                                         num_channels=1), FrameDirection.DOWNSTREAM))
+    assert v.collector.take() == b""

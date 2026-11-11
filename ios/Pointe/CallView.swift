@@ -49,6 +49,14 @@ struct CallView: View {
 
     private var meeting: API.Meeting? { status?.meeting }
 
+    /// Push to talk: the press here at once, and the Mac's gate as the truth.
+    private var talking: Bool { call.talk.isOpen || (call.talk.ptt && status?.ptt?.open == true) }
+    private var ringTalk: RingTalk? {
+        guard call.talk.ptt else { return nil }
+        return RingTalk(talking: talking, press: { call.talkPress(.ring) }, release: { call.talkRelease(.ring) },
+                        toggle: { call.talkToggle() })
+    }
+
     var body: some View {
         Group {
             if let meeting, meeting.isOn {
@@ -115,8 +123,9 @@ struct CallView: View {
             }
         }
         .task {
-            if let demo { feed.useDemo(demo.notes); return }
+            if let demo { feed.useDemo(demo.notes); call.follow(demo.status.ptt); return }
             prefs = try? await call.api.prefs()
+            if let prefs { call.setMicrophone(prefs.microphone) }
         }
         .task { if demo == nil { await poll() } }
         .onChange(of: scenePhase) { _, phase in
@@ -143,6 +152,7 @@ struct CallView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .accessibilityIdentifier("conversation")
+            .holdToTalk(call.talk.ptt && phase == .live, press: { call.talkPress(.caption) }, release: { call.talkRelease(.caption) })
             .defaultScrollAnchor(.bottom, for: .initialOffset)  // only where it starts: growing content must not pull you down
             .defaultScrollAnchor(.top, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { geo in
@@ -218,6 +228,12 @@ struct CallView: View {
                     .accessibilityIdentifier("reopenMeetingEnd")
             }
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
+            Picker(selection: Binding(get: { call.talk.mode }, set: { setMicrophone($0) })) {
+                Text("Always on").tag("always")
+                Text("Push to talk").tag("ptt")
+            } label: { Label("Microphone", systemImage: "mic") }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("microphoneSetting")
             Divider()
             Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { call.hangUp(); unpair() }
         } label: {
@@ -243,7 +259,7 @@ struct CallView: View {
             }
             BottomBar(phase: phase, muted: muted, monologue: brainstorming, typing: typing,
                       mic: micTapped, listen: { setBrainstorm(!brainstorming) }, type: { withAnimation(.snappy) { typing.toggle() } },
-                      sessions: { showSessions = true }, hangUp: { call.hangUp() })
+                      sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk)
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
@@ -270,6 +286,11 @@ struct CallView: View {
         case .reconnecting: return "Reconnecting…"
         case .live:
             if brainstorming { return "Brainstorming" }
+            if call.talk.ptt {
+                if talking { return "Talking" }
+                if speaking { return "Speaking" }
+                return call.talkClosedWhy.map { "Talk closed: \($0)" } ?? "Hold to talk"
+            }
             return muted ? "Muted" : speaking ? "Speaking" : "Listening"
         }
     }
@@ -354,7 +375,7 @@ struct CallView: View {
                 MeetingBar(meeting: meeting, phase: phase, muted: muted, typing: typing, mic: micTapped,
                            toggleMode: { setMeetingMode(meeting.participating ? "listening" : "participating") },
                            ask: { withAnimation(.snappy) { typing.toggle() } }, speakers: { showSpeakers = true },
-                           end: { confirmEnd = true })
+                           end: { confirmEnd = true }, talk: ringTalk)
             }
             .padding(.horizontal, 14).padding(.top, 8).padding(.bottom, 4)
             .background(alignment: .bottom) {  // notes scroll under the controls: fade them out instead of overlapping
@@ -426,7 +447,18 @@ struct CallView: View {
 
     // MARK: actions
 
+    private func setMicrophone(_ mode: String) {
+        let before = call.talk.mode
+        call.setMicrophone(mode)
+        Task {
+            guard !(await savePrefs(["microphone": mode])) else { return }
+            call.setMicrophone(before)  // the Mac's gate is the rule: without it, the phone does not pretend
+            problem = "The Mac did not take the microphone setting. Is Pointe on the Mac up to date?"
+        }
+    }
+
     private func micTapped() {
+        if phase == .live && call.talk.ptt { return }  // the hold opens and closes it
         if phase == .live { call.toggleMute() } else if phase == .off { Task { await call.start() } }
     }
 
@@ -490,6 +522,7 @@ struct CallView: View {
             do {
                 let fresh = try await call.api.status()
                 if fresh != status { status = fresh }
+                call.follow(fresh.ptt)
                 reachable = true
             } catch {
                 reachable = false

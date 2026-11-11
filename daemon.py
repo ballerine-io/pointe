@@ -29,6 +29,7 @@ from harnesses import FINISHED_MARK
 import meeting as meetings
 import modes
 import speaker
+from ptt import Ptt
 import vendors
 import watchdog
 from jobs import JobRunner
@@ -790,9 +791,11 @@ class SonioxEars(FrameProcessor):
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
         if isinstance(frame, VADUserStartedSpeakingFrame):
-            state.user_started_at = time.time()
+            state.user_started_at = state.ptt.speech_began(time.time(), PREFS.get("microphone"))
+            self._voiced = True
         elif isinstance(frame, VADUserStoppedSpeakingFrame):
             state.user_stopped_at = time.time()
+            self._voiced = False
         if isinstance(frame, BotStartedSpeakingFrame):
             ECHO.bot_started()
         elif isinstance(frame, BotStoppedSpeakingFrame):
@@ -802,7 +805,7 @@ class SonioxEars(FrameProcessor):
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
             LEVEL.frame(float(np.sqrt(np.mean(pcm * pcm))) if pcm.size else 0.0, ECHO.speaking)
             if VOICE.wanted(lock_level()):  # the voice lock scores the next utterance on this audio
-                VOICE.collector.frame(frame.audio, voiced=state.user_started_at > state.user_stopped_at)
+                VOICE.collector.frame(frame.audio, voiced=self._voiced)
             return  # the model gets words, not audio
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
             logger.info("barge-in: voice well above the echo")
@@ -852,6 +855,7 @@ class SonioxEars(FrameProcessor):
         await self.push_frame(frame, direction)
 
     _held = ""
+    _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
 
     async def _owner_gate(self, heard: str) -> bool:
         """The voice lock, on one final transcript: False when it must not reach Pointe (enrolment lines, or another
@@ -1133,6 +1137,7 @@ class State:
     last_meeting: object = None  # the meeting that just ended: its record, for export and the action-items send
     meeting_ears: object = None
     mic_gate: object = None  # the MicGate in the call's pipeline
+    ptt: Ptt = field(default_factory=Ptt)  # push to talk: the press that holds the microphone open
     client: dict = field(default_factory=dict)  # what the page or phone said about itself (protocol 3 hello)
     attention_dismissed: set = field(default_factory=set)
     meeting_task: object = None
@@ -1554,6 +1559,69 @@ class MicGate(FrameProcessor):
     def recent_audio(self, secs: float) -> bytes:
         data = b"".join(self.ring)
         return data[-int(secs * phone.IN_RATE * 2):]
+
+
+class PttGate(FrameProcessor):
+    """First after the transport: with the microphone set to push to talk, audio passes only while a press holds the
+    gate open, so nothing reaches the voice detector, the ears, the meeting stream or a realtime model otherwise."""
+
+    TICK_SECS = 0.1
+
+    def __init__(self, stt=None):
+        super().__init__()
+        self._stt = stt  # finalized on a release, so the last words come out at once
+        self._ticker = None
+        state.ptt.reset()  # a reconnect starts closed
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+        if isinstance(frame, phone.PttFrame):
+            await self._press() if frame.open else self._release(time.time(), "released")
+            return
+        if isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
+            if not state.ptt.audio(len(frame.audio), PREFS.get("microphone"), time.time()):
+                return
+        elif isinstance(frame, StartFrame) and self._ticker is None:
+            self._ticker = self.create_task(self._ticks(), "ptt-ticks")
+        elif isinstance(frame, (EndFrame, CancelFrame)) and self._ticker is not None:
+            await self.cancel_task(self._ticker)
+            self._ticker = None
+            logger.info(f"ptt: {state.ptt.passed_bytes} bytes of microphone audio passed, {state.ptt.dropped_bytes} held back")
+        await self.push_frame(frame, direction)
+
+    async def _press(self) -> None:
+        if PREFS.get("microphone") != "ptt" or not state.ptt.press(time.time()):
+            return
+        logger.info("ptt: open over the bot: it stops" if ECHO.speaking else "ptt: open")
+        state.user_started_at = state.ptt.opened_at  # the consent rules time the answer from the press
+        await self.push_frame(UserSpeakingFrame())  # the idle hang-up counts from the last press in a quiet call
+        if ECHO.speaking:  # a press is a clearer barge-in than words
+            _read_out_cut_off()
+            await self.broadcast_interruption()
+
+    def _release(self, now: float, why: str) -> None:
+        if state.ptt.release(now, why):
+            logger.info(f"ptt: closed ({why})")
+        if state.ptt.closed_at and state.user_started_at > state.user_stopped_at:
+            state.user_stopped_at = now  # a press with nothing said must not leave the user talking for good
+
+    async def tick(self, now: float) -> None:
+        for event in state.ptt.tick(PREFS.get("microphone"), now):
+            if event == "closed":
+                logger.info(f"ptt: closed ({state.ptt.closed_why})")
+                self._release(now, state.ptt.closed_why)
+            elif event == "finalize":
+                ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
+                if ws is not None:
+                    try:
+                        await ws.send('{"type": "finalize"}')
+                    except Exception as e:
+                        logger.info(f"ptt: finalize not sent: {type(e).__name__}")
+
+    async def _ticks(self) -> None:
+        while True:
+            await asyncio.sleep(self.TICK_SECS)
+            await self.tick(time.time())
 
 
 async def _start_meeting_by_voice(heard: str, mode: str) -> None:
@@ -3405,6 +3473,7 @@ async def status():
                                                                "said": " ".join(state.monologue)[-600:]},
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
+            "ptt": state.ptt.status(PREFS.get("microphone")),
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "meeting": state.meeting.status() if state.meeting is not None else (
                 {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),
@@ -3935,26 +4004,27 @@ async def run_call(transport) -> None:
     opening = _opening_context()
     state.tokens = None
     injector = FeedInjector()
-    ears, mirror = [], []
+    ears, mirror, stt = [], [], None
     if EARS != "native":
         if vendors.has("soniox"):
             mirror = [MirrorEars(_recognition_terms())]
         from pipecat.audio.vad.silero import SileroVADAnalyzer
         from pipecat.processors.audio.vad_processor import VADProcessor
 
-        ears = [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), vendors.build_ears(setup().ears, _recognition_terms()),
-                SonioxEars()]
+        stt = vendors.build_ears(setup().ears, _recognition_terms())
+        ears = [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()]
+    gate = PttGate(stt)
     if FRONT == "brain":
         front = BrainFront(opening)
         state.context = front.brain
-        pipeline = Pipeline([transport.input(), *ears, injector, front, vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http),
+        pipeline = Pipeline([transport.input(), gate, *ears, injector, front, vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http),
                              BotSpeechTap(), *mirror, transport.output()])
     else:
         context = LLMContext(opening, tools=TOOLS)
         state.context = context
         user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
         pipeline = Pipeline([
-            transport.input(), *ears, user_aggregator, UserSpeechTap(FrameDirection.UPSTREAM), injector,
+            transport.input(), gate, *ears, user_aggregator, UserSpeechTap(FrameDirection.UPSTREAM), injector,
             build_front(), BotSpeechTap(), *mirror, UserSpeechTap(FrameDirection.DOWNSTREAM), transport.output(),
             ContextUserTap(), assistant_aggregator,
         ])
