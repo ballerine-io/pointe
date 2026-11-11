@@ -50,12 +50,19 @@ enum MeetingCopy {
 /// The notes of the meeting on now, kept in step with the Mac: fetched only when the status says they changed.
 @MainActor @Observable
 final class MeetingFeed {
+    /// New notes after an id, and older ones changed after a version (nil: every changed one).
+    typealias Fetch = (_ since: Int, _ changedSince: Int?) async throws -> API.NotesPage
+
     private(set) var notes: [API.Note] = []
     private(set) var transcript: [API.TranscriptTurn] = []
     private var version = -1
     private var since: Double = 0
 
     func sync(_ status: API.Status?, api: API) async {
+        await sync(status) { since, changed in try await api.notes(since: since, changedSince: changed) }
+    }
+
+    func sync(_ status: API.Status?, fetch: Fetch) async {
         guard let meeting = status?.meeting, meeting.isOn || meeting.isEnded else {
             notes = []; transcript = []; version = -1; since = 0
             return
@@ -65,7 +72,7 @@ final class MeetingFeed {
         }
         let fresh = status?.notes?.version ?? 0
         guard fresh != version else { return }
-        guard let page = try? await api.notes(since: notes.map(\.id).max() ?? 0) else { return }
+        guard let page = try? await fetch(notes.map(\.id).max() ?? 0, nil) else { return }
         var byId = Dictionary(uniqueKeysWithValues: notes.map { ($0.id, $0) })
         for note in page.notes ?? [] where (note.at ?? since) >= since - 5 { byId[note.id] = note }
         notes = byId.values.sorted { $0.id < $1.id }
@@ -79,7 +86,8 @@ final class MeetingFeed {
     /// Shown at once, before the Mac confirms.
     func setState(_ id: Int, _ state: String) {
         notes = notes.map { $0.id == id ? API.Note(id: $0.id, kind: $0.kind, at: $0.at, updated: $0.updated, text: $0.text,
-                                                    meta: $0.meta, speakers: $0.speakers, session: $0.session, state: state) : $0 }
+                                                    meta: $0.meta, speakers: $0.speakers, session: $0.session, state: state,
+                                                    meeting: $0.meeting, rev: $0.rev) : $0 }
     }
 
     func useDemo(_ demo: [API.Note]) { notes = demo }
@@ -247,6 +255,7 @@ struct MeetingBanner: View {
     let setMode: (String) -> Void
     let speakers: () -> Void
     let settings: () -> Void
+    let reconnect: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -280,6 +289,8 @@ struct MeetingBanner: View {
                         Label(MeetingCopy.participating, systemImage: "hand.raised").tag("participating")
                     }
                     Button { speakers() } label: { Label("Speakers", systemImage: "person.2") }
+                    Button { reconnect() } label: { Label("Reconnect audio", systemImage: "arrow.triangle.2.circlepath") }
+                        .disabled(meeting.isEnding)
                     Button { settings() } label: { Label("Meeting settings", systemImage: "gearshape") }
                 } label: {
                     Image(systemName: "slider.horizontal.3").font(.body.weight(.semibold))
@@ -308,6 +319,7 @@ struct MeetingBanner: View {
     private var detail: String { vendorLine + " · " + state }
 
     private var state: String {
+        if meeting.isEnding { return "Ending: writing the summary\u{2026}" }
         if meeting.speaking == true { return "Speaking to the room" }
         if meeting.owner_known != true { return "Say \u{201C}Pointe, that's me\u{201D}" }
         if meeting.paused == true { return "Quiet room" }
@@ -613,7 +625,9 @@ struct MeetingBar: View {
             Spacer()
             side("Speakers", "person.2", action: speakers)
             Spacer()
-            side("End", "stop.circle.fill", tint: .red, action: end).accessibilityIdentifier("endMeeting")
+            side(meeting.isEnding ? "Ending\u{2026}" : "End", "stop.circle.fill", tint: .red, action: end)
+                .disabled(meeting.isEnding)
+                .accessibilityIdentifier("endMeeting")
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 30))
@@ -692,7 +706,7 @@ struct MeetingEndSheet: View {
     let sessions: [API.Session]
     let transcript: () async -> [API.TranscriptTurn]
     let save: (Bool) async -> String?
-    let send: (String) async -> Bool
+    let send: (String) async -> String?  // nil when asked; otherwise why not
     let discard: () async -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var withTranscript = false
@@ -777,7 +791,7 @@ struct MeetingEndSheet: View {
                    isPresented: Binding(get: { sendTo != nil }, set: { if !$0 { sendTo = nil } })) {
                 Button("Send") {
                     let to = sendTo ?? ""
-                    Task { sent = await send(to) ? "Asked \(to) to take them." : "Not sent." }
+                    Task { sent = await send(to).map { "Not sent. \($0)" } ?? "Asked \(to) to take them." }
                     sendTo = nil
                 }
                 Button("Cancel", role: .cancel) { sendTo = nil }

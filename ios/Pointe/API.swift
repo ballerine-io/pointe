@@ -24,6 +24,8 @@ struct API {
 
     struct Meeting: Decodable, Equatable {
         let on: Bool?
+        let id: String?             // the meeting on now; an ended meeting's status has none
+        let ending: Bool?           // the end pass (the summary) is running
         let ended: Bool?
         let mode: String?           // "listening" or "participating"
         let since: Double?          // epoch seconds
@@ -40,6 +42,7 @@ struct API {
         let result: MeetingResult?  // after the end
 
         var isOn: Bool { on == true }
+        var isEnding: Bool { on == true && ending == true }
         var isEnded: Bool { on != true && ended == true }
         var participating: Bool { mode == "participating" }
     }
@@ -101,6 +104,8 @@ struct API {
         let speakers: [String]?
         let session: String?
         let state: String?          // open, done, dismissed
+        var meeting: String? = nil  // the meeting it was written in; older daemons send none
+        var rev: Int? = nil         // the notes version when it last changed
     }
 
     struct NoteMeta: Decodable, Equatable {
@@ -310,10 +315,14 @@ struct API {
     /// The action items, as the owner's own request, through the normal send path and its checks.
     func sendActions(to session: String) async throws { try await meeting(["action": "send_actions", "session": session], timeout: 30) }
     func discardMeeting() async throws { try await meeting(["action": "discard"]) }
+    /// A new stream for the room's audio. Speakers are labelled afresh: the owner says "Pointe, that's me" again.
+    func reconnectMeeting() async throws { try await meeting(["action": "reconnect"]) }
 
-    func notes(since: Int) async throws -> NotesPage {
-        try JSONDecoder().decode(NotesPage.self, from: try await checked(request("voice/notes",
-                                                                                 query: [URLQueryItem(name: "since", value: String(since))])))
+    /// New notes after the id `since`, and older ones changed after the version `changedSince` (every changed one without it).
+    func notes(since: Int, changedSince: Int? = nil) async throws -> NotesPage {
+        var query = [URLQueryItem(name: "since", value: String(since))]
+        if let changedSince { query.append(URLQueryItem(name: "changed_since", value: String(changedSince))) }
+        return try JSONDecoder().decode(NotesPage.self, from: try await checked(request("voice/notes", query: query)))
     }
 
     /// state: open, done or dismissed; accept applies a suggested speaker name.

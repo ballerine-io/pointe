@@ -150,8 +150,10 @@ final class MeetingUITests: XCTestCase {
             cue("ignored")
             let use = app.buttons["Use this name"].firstMatch
             if use.waitForExistence(timeout: 150) {
+                dump("before-accept")
                 use.tap()
-                XCTAssertTrue(use.waitForNonExistence(timeout: 10), "an accepted suggestion is done")
+                if !use.waitForNonExistence(timeout: 10) { dump("accept") }
+                XCTAssertTrue(use.waitForNonExistence(timeout: 1), "an accepted suggestion is done")
                 cue("accepted")
             } else { cue("no-second-suggestion") }
         } else { cue("no-suggestion") }

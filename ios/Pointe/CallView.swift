@@ -48,6 +48,11 @@ struct CallView: View {
     private var hearing: String { status?.hearing ?? "" }
 
     private var meeting: API.Meeting? { status?.meeting }
+    /// The raised hand's alert id (hand:<meeting id>:<n>): two hands are two hands even when raised in the same second.
+    private var handId: String? {
+        guard let hand = meeting?.hand else { return nil }
+        return status?.attention?.first { $0.kind == "hand" }?.id ?? "at:\(hand.at ?? 0)"
+    }
 
     var body: some View {
         Group {
@@ -95,7 +100,7 @@ struct CallView: View {
                 MeetingEndSheet(result: result, notes: feed.notes, sessions: status?.sessions ?? [],
                                 transcript: { (try? await call.api.transcript()) ?? [] },
                                 save: { with in demo != nil ? "~/.claude-voice/meetings/demo.md" : (try? await call.api.exportMeeting(transcript: with)) ?? "" },
-                                send: { to in await act { try await call.api.sendActions(to: to) } },
+                                send: { to in await act { try await call.api.sendActions(to: to) } ? nil : problem ?? "" },
                                 discard: { await act { try await call.api.discardMeeting() } })
                     .presentationBackground(.regularMaterial)
             }
@@ -105,7 +110,8 @@ struct CallView: View {
             Button("End meeting", role: .destructive) { Task { await act { _ = try await call.api.endMeeting() } } }
                 .accessibilityIdentifier("confirmEndMeeting")
         }
-        .sensoryFeedback(.warning, trigger: meeting?.hand?.at) { _, new in new != nil }
+        .sensoryFeedback(.warning, trigger: handId) { _, new in new != nil }
+        .onChange(of: meeting?.owner_known) { _, known in if known == true, problem == Self.reconnecting { problem = nil } }
         .onChange(of: "\(meeting?.since ?? 0)|\(status?.notes?.version ?? -1)|\(meeting?.isEnded == true)|\(noteFilter == .transcript ? meeting?.turns ?? 0 : 0)") {
             if let since = meeting?.since { meetingSince = since }
             guard demo == nil else { return }
@@ -293,6 +299,8 @@ struct CallView: View {
         return ".!?".contains(body.last!) ? body : body + "."
     }
 
+    static func refusal(_ code: Int, _ detail: String) -> String { sentence(detail) }
+
     // MARK: meeting
 
     private func meetingScreen(_ meeting: API.Meeting) -> some View {
@@ -326,7 +334,7 @@ struct CallView: View {
                     menu
                 }
                 MeetingBanner(meeting: meeting, setMode: setMeetingMode, speakers: { showSpeakers = true },
-                              settings: { showMeetingSettings = true })
+                              settings: { showMeetingSettings = true }, reconnect: reconnectAudio)
                 if !reachable {  // the banner is the Mac's last word: say it may be stale
                     Label("Mac not reachable. The meeting goes on there; the notes catch up when it answers.",
                           systemImage: "wifi.exclamationmark")
@@ -343,6 +351,7 @@ struct CallView: View {
                     HandCard(hand: hand, participating: meeting.participating) { decision in
                         await act { try await call.api.hand(decision) }
                     }
+                    .id(handId)  // a new hand gets a new card: never the last one's busy buttons
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 if let request = waiting.first {
@@ -364,7 +373,7 @@ struct CallView: View {
                     .ignoresSafeArea(edges: .bottom)
                     .allowsHitTesting(false)
             }
-            .animation(.snappy, value: meeting.hand?.at)
+            .animation(.snappy, value: handId)
         }
     }
 
@@ -380,6 +389,17 @@ struct CallView: View {
     }
 
     private func setMeetingMode(_ mode: String) { Task { await act { try await call.api.meetingMode(mode) } } }
+
+    static let reconnecting = "Reconnecting the room\u{2019}s audio. Speakers are labelled afresh: say \u{201C}Pointe, that\u{2019}s me\u{201D} again."
+
+    /// The room's audio seems stuck: a new stream. Its speakers are labelled afresh, so the owner claims the seat again.
+    private func reconnectAudio() {
+        Task {
+            if await act({ try await call.api.reconnectMeeting() }) {
+                problem = Self.reconnecting
+            }
+        }
+    }
 
     private func meetingVendors() async -> (API.VendorsReply?, String?) {
         if demo != nil {
