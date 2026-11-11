@@ -1582,8 +1582,11 @@ words, it goes on 6 s after the release.
   the page's Notes pane is meeting-only, so the history lives in the sheet. Settings → Briefings holds the schedule. A
   ready briefing shows a card ("Hear it" / "Dismiss") and a desktop notification once, if the browser allows it (asked
   when a schedule is saved).
-- **App:** the same sheet from the bottom-bar menu, Settings → Briefings, the same card, and a local notification at the
-  scheduled time on the chosen days, so the phone nudges even when the Mac cannot push.
+- **App:** "Briefing" and "Briefing settings" in the top Settings (⋯) menu (the bottom bar has no menu), the same sheet
+  and copy, a "Briefings" settings sheet, the same ready banner, a strip with Part N of M and its controls while one
+  plays, and a weekly local notification at the scheduled time on the chosen days, so the phone nudges even when the Mac
+  cannot push.
+- **`part`** in the status is the index of the next part; both clients show `max(part, 1)`.
 - **Schedule:** one time a day on chosen weekdays, not a list of slots. A slot missed by more than 2 h (the Mac slept) is
   skipped. The slot is claimed before the read, so a slow build never runs twice.
 - **Restart joins by folder** only when the departed session kept a different name: the registry forgets a departed

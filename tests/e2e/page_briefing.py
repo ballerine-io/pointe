@@ -175,7 +175,7 @@ async def main() -> None:
                                      "&& document.getElementById('brf-go').hidden")
             await page.shot("brf-1-playing")
             check("\"brief me on the night\" reads the sessions and plays; the sheet shows the part and Skip and Stop",
-                  bool(building) and bool(playing) and str(line).startswith("Part ") and bool(controls), line=line)
+                  bool(building) and bool(playing) and str(line).startswith("Part ") and not str(line).startswith("Part 0") and bool(controls), line=line)
             done = await until(lambda: not brf()["playing"] and not brf()["paused"] and not brf()["building"], 150, 1)
             await quiet()
             spoken = said_since(t0).lower()

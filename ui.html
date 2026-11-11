@@ -1737,8 +1737,9 @@
     $('brf-go').hidden = going; $('brf-skip').hidden = !b.playing; $('brf-continue').hidden = !b.paused; $('brf-stop').hidden = !going;
     $('brf-go').disabled = !live || meeting || b.building;
     $('brf-why').textContent = !live ? 'Connect to hear it.' : meeting ? 'Not during a meeting.' : '';
-    $('brf-state').textContent = b.building ? 'Reading your sessions…' : b.paused ? `Paused: part ${b.part} of ${b.parts}`
-                                 : b.playing ? `Part ${b.part} of ${b.parts}` : '';
+    const n = Math.max(b.part, 1);  // part is the index of the next one: while one is said, that is its number
+    $('brf-state').textContent = b.building ? 'Reading your sessions…' : b.paused ? `Paused: part ${n} of ${b.parts}`
+                                 : b.playing ? `Part ${n} of ${b.parts}` : '';
     if (b.latest_id !== brfLatest) {
       const first = brfLatest === undefined; brfLatest = b.latest_id;
       if (!first && $('briefsheet').classList.contains('open'))
