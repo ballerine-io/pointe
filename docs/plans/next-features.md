@@ -1460,3 +1460,7 @@ Deviations from section 4:
 - The gate also closes the meeting stream: in push to talk, a meeting hears the room only while a press is held.
 - The 90 s limit applies to toggles (Caps Lock, AirPods) as well as holds: the daemon cannot tell them apart.
 - `PttGate` is a separate processor before the voice detector; the existing `MicGate` stays after it, unchanged.
+- iOS: the ring opens on touch down, with no long-press delay; the conversation area opens after a 0.35 s hold, so
+  scrolling still works. In a voice-chat audio session, iOS delivers an AirPods stem press as an input mute, not as
+  play/pause. In push to talk the app takes that mute as the toggle and unmutes the input again. It also registers
+  play/pause handlers in case iOS sends them.
