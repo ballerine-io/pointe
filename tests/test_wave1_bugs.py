@@ -322,3 +322,13 @@ def test_after_a_reconnect_the_voiceprint_rebinds_the_owner_even_on_the_label_th
 def test_after_a_reconnect_another_voice_on_the_echos_label_does_not_take_the_seat(d, v, monkeypatch):
     m = _echo_then_claim(d, monkeypatch, OTHER_HZ)
     assert m.owner is None and m.bot == "1:1"
+
+
+# ---------- 10. logs during a meeting: "repeat cut" is withheld ----------
+
+def test_repeat_cut_log_line_is_withheld_during_a_meeting(d):
+    d.state.meeting = SimpleNamespace(ending=False)
+    record = {"message": "repeat cut: 'Dana said the pricing page goes live Thursday' -> 'Dana said the pricing page'",
+              "name": "brain", "level": SimpleNamespace(no=20)}
+    d._meeting_redact(record)
+    assert "pricing" not in record["message"], record["message"]

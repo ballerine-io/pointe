@@ -213,7 +213,7 @@ def _start_journal() -> None:
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
 
 
-_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "copy of ")
+_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ")
 
 
 def _meeting_redact(record) -> None:
