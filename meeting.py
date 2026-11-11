@@ -273,6 +273,7 @@ class Meeting:
     speech_since_secretary: float = 0.0
     last_speech_at: float = field(default_factory=time.time)
     entry_words: str = ""  # the spoken entry command: its speaker is the owner
+    entry_bound: bool = False  # the owner's label came from the entry command alone; a voiceprint can still overrule it
     speaking: bool = False  # the bot is talking to the room right now
     ending: bool = False  # the end-of-meeting pass is running
     ended: bool = False
@@ -309,7 +310,7 @@ class Meeting:
 
     def add_turn(self, turn: Turn) -> None:
         if not self.owner and _bindable(turn.speaker) and self.is_entry(turn):
-            self.owner = turn.speaker  # the one who said "meeting mode" is the owner
+            self.owner, self.entry_bound = turn.speaker, True  # the one who said "meeting mode" is the owner
             logger.info("meeting: owner bound from the entry command")
         turn.who = self.who(turn.speaker)
         self.turns_since_secretary += 1  # each close is an utterance; only its own seconds count below
@@ -326,13 +327,21 @@ class Meeting:
         for turn in closed:
             self.add_turn(turn)
         self.owner = self.bot = None
+        self.entry_bound = False
         return closed
 
     def bind_owner(self, label: str) -> None:
         if _bindable(label) and label != self.bot:
-            self.owner = label
-            for t in self.turns:
-                t.who = self.who(t.speaker)
+            self.owner, self.entry_bound = label, False
+            self._relabel()
+
+    def unbind_owner(self) -> None:
+        self.owner, self.entry_bound = None, False
+        self._relabel()
+
+    def _relabel(self) -> None:
+        for t in self.turns:
+            t.who = self.who(t.speaker)
 
     def name_speaker(self, label: str, name: str) -> None:
         self.names[label] = name[:40]

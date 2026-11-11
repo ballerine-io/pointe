@@ -252,3 +252,34 @@ def test_waiting_asked_in_hebrew_is_answered_in_hebrew(d, monkeypatch):
     assert pushed and "waiting" in pushed[-1].text.lower()
     assert "speak Hebrew" in d._brain_context(), d._brain_context().splitlines()[0]
     assert d._language_problem("Nothing is waiting on you.") is not None, "an English answer to a Hebrew ask is not corrected either"
+
+
+# ---------- 8. meeting + voice lock: the entry command binds by the voiceprint, not the label ----------
+
+def test_with_a_voiceprint_the_entry_words_in_another_voice_do_not_bind_the_owner(d, v, monkeypatch):
+    """As built: "with a voiceprint and the lock on, a meeting turn in the owner's voice binds the owner label ...
+    one source of truth: the voiceprint when there is one". Meeting.add_turn binds the entry speaker before any voice
+    check, and _on_meeting_turn returns early for the entry turn, so another voice saying "meeting mode" is the owner."""
+    d.PREFS.update({"voice_lock": "approvals"})
+    m = meetings.Meeting(mode="listening", vendors={}, entry_words="meeting mode listening")
+    d.state.meeting = m
+    d.state.meeting_ears = SimpleNamespace(audio_between=lambda a, b: tone(OTHER_HZ, 2.0))
+    now = m.since + 1
+    turns = m.hear([{"is_final": True, "text": " meeting mode listening", "speaker": "2", "start_ms": 0, "end_ms": 2000}], now)
+    turns += m.tick(now + 5)
+    for t in turns:
+        asyncio.run(d._on_meeting_turn(m, t))
+    assert m.owner is None, f"bound {m.owner!r} from the entry words in a voice the voiceprint does not match"
+
+
+def test_with_a_voiceprint_the_entry_words_in_the_owners_voice_bind_the_owner(d, v, monkeypatch):
+    d.PREFS.update({"voice_lock": "approvals"})
+    m = meetings.Meeting(mode="listening", vendors={}, entry_words="meeting mode listening")
+    d.state.meeting = m
+    d.state.meeting_ears = SimpleNamespace(audio_between=lambda a, b: tone(OWNER_HZ, 2.0))
+    now = m.since + 1
+    turns = m.hear([{"is_final": True, "text": " meeting mode listening", "speaker": "2", "start_ms": 0, "end_ms": 2000}], now)
+    turns += m.tick(now + 5)
+    for t in turns:
+        asyncio.run(d._on_meeting_turn(m, t))
+    assert m.owner == "2"

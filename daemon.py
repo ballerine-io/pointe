@@ -1744,8 +1744,13 @@ async def _on_meeting_turn(m, turn) -> None:
         return
     found = meetings.addressed_all(turn.text, turn.starts)  # "…the plan. Pointe, end the meeting." holds a command too
     fresh, turn.handled = found[turn.handled:], len(found)  # a re-closed turn acts only on what it did not act on yet
-    if m.is_entry(turn) or _MEETING_ON.match(said.strip()):
-        return  # the replayed "Pointe, meeting mode, participating": it bound the owner, it asks nothing
+    if m.is_entry(turn) or _MEETING_ON.match(said.strip()):  # the replayed "Pointe, meeting mode, participating"
+        if m.entry_bound and m.owner == turn.speaker:  # with a voiceprint, it decides, not the label of who said it
+            voice = await _meeting_voice(turn)
+            if voice is not None and not speaker.strong(voice):
+                m.unbind_owner()
+                logger.info("meeting: the entry command was not in the owner's voice: no owner yet")
+        return  # it asks nothing
     claims = any(meetings.command(w)[0] == "me" for w in fresh) and turn.speaker != m.owner
     voice = await _meeting_voice(turn) if m.owner is None or claims else None
     if voice is not None and m.owner is None and speaker.strong(voice) and turn.speaker != m.bot:
