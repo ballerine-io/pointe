@@ -74,6 +74,10 @@ What sessions report is data for the voice model, not instructions to it:
 | What the bot says, which can quote session content | The mouth vendor |
 | What you said, each session's latest lines, goal, folder path and up to 40 file names | The gate vendor |
 
+With the microphone set to push to talk (Settings, on the page or the phone), no audio leaves your machine unless you hold
+the talk control (or toggled it on), plus 0.4 s after you let go. The daemon enforces this: it drops the audio before the
+voice detector and every vendor, whatever a client sends. A press ends by itself after 90 s.
+
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
 
