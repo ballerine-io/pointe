@@ -217,3 +217,22 @@ def test_that_was_me_on_an_unlabelled_turn_is_refused(d, monkeypatch):
     turn = m.tick(m.since + 5)[0]
     r = client_for(d).post("/voice/meeting", json={"action": "owner", "turn_id": turn.id})
     assert r.status_code == 409 and m.owner is None, r.text
+
+
+# ---------- 6. meeting: a Hebrew "tell me what you think" is a think command ----------
+
+@pytest.mark.parametrize("said, kind", [("תגיד מה דעתך", "think"), ("tell us what you think", "think"),
+                                        ("תגיד מה מחכה", "waiting"), ("go ahead and look that up", "lookup"),
+                                        ("תגיד", "go_ahead"), ("go ahead", "go_ahead"), ("tell us", "go_ahead")])
+def test_tell_us_what_you_think_is_a_think_command(said, kind):
+    """_THINK lists "תגיד מה דעתך", but _GO_AHEAD ("^תגיד") was checked first, so it never matched."""
+    assert meetings.command(said)[0] == kind
+
+
+def test_hebrew_tell_me_what_you_think_in_participating_gets_an_answer(d, monkeypatch):
+    pushed, _ = _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    m = d.state.meeting
+    m.owner = "1"
+    asyncio.run(d._meeting_command("תגיד מה דעתך"))
+    assert pushed, "the owner asked for an opinion and nothing was put to the brain (meeting_hand found no hand)"

@@ -175,7 +175,8 @@ def _join(before: Turn, after: Turn) -> str:
 
 # ---------- addressed commands ----------
 
-_THINK = re.compile(r"\b(what do you think|your (?:thoughts|take|view)|jump in|chime in|any thoughts|what would you say)\b|"
+_THINK = re.compile(r"\b(what do you think|tell us what you think|your (?:thoughts|take|view)|jump in|chime in|any thoughts|"
+                    r"what would you say)\b|"
                     r"מה אתה חושב|תגיד מה דעתך|מה דעתך|תצטרף", re.I)
 _GO_AHEAD = re.compile(r"^\W*(go ahead|say it|tell us|you can speak|speak up|go on)\b|^\W*(תגיד|קדימה|דבר)\b", re.I)
 _LOOKUP = re.compile(r"\b(look (?:that|it) up|find (?:that|it) out|check that|can you find out)\b|תבדוק|תמצא", re.I)
@@ -227,8 +228,6 @@ def command(text: str) -> tuple[str, dict]:
     m = _AGENDA.match(text)
     if m:
         return "agenda", {"text": (m.group(1) or m.group(2)).strip()}
-    if _GO_AHEAD.search(text):
-        return "go_ahead", {}
     if _FINISH.search(text):
         return "finish", {}
     if _LOOKUP.search(text):
@@ -237,6 +236,8 @@ def command(text: str) -> tuple[str, dict]:
         return "waiting", {}
     if _THINK.search(text):
         return "think", {}
+    if _GO_AHEAD.search(text):  # last: "tell us" / "תגיד" also open "tell us what you think", "תגיד מה מחכה"
+        return "go_ahead", {}
     return "ask", {"text": text}
 
 
