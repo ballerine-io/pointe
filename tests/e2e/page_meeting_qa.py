@@ -270,7 +270,10 @@ async def main() -> None:
                     break
                 await asyncio.sleep(0.5)
             check("participating: a typed question is answered aloud to the room", bool(spoke))
-            await asyncio.sleep(6)
+            for _ in range(80):  # its answer runs ten to twenty seconds: the listening check must not hear its tail
+                if not browser.speaker.speech_spans(since=time.time() - 3):
+                    break
+                await asyncio.sleep(0.5)
 
             await page.js("document.getElementById('mm-listening').click()")
             listening = await page.until("document.getElementById('meetwhat').textContent === 'Meeting · Listening' && "
