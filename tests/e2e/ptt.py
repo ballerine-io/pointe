@@ -100,6 +100,25 @@ async def main() -> None:
         browser.muted = False
         check("open with no audio arriving closes by itself in about 2 s", closed == "no audio", closed=closed)
 
+        # ---- a meeting: the room is heard without a press; the conversation still is not ----
+        await until(lambda: call("/voice/status")["speaking"] != "bot", 30)
+        conversation_before = len(log_lines(r"user said: "))
+        sent_before = call("/voice/status")["ptt"]["sent_bytes"]
+        call("/voice/meeting", {"action": "start", "mode": "listening", "consent": True})
+        room = await until(lambda: call("/voice/status")["ptt"]["room_heard"], 10)
+        _, end = await browser.say("The orchard harvest review moves to Friday morning")
+        got = await until(lambda: [t for t in call("/voice/meeting/transcript")["turns"] if "friday" in t["text"].lower()],
+                          end - time.time() + 20, 1)
+        status = call("/voice/status")["ptt"]
+        check("in a meeting the room is heard without a press, the status says so, and the conversation hears nothing",
+              bool(room) and bool(got) and status["room_bytes"] > 0 and status["sent_bytes"] == sent_before and not status["open"]
+              and len(log_lines(r"user said: ")) == conversation_before,
+              transcript=[t["text"] for t in got][-1:], ptt=status)
+        call("/voice/meeting", {"action": "end"})
+        call("/voice/meeting", {"action": "discard"})
+        after = await until(lambda: not call("/voice/status")["ptt"]["room_heard"], 10)
+        check("after the meeting the room is no longer heard without a press", bool(after))
+
         # ---- always on: heard without a press, as before ----
         call("/voice/prefs", {"microphone": "always"})
         _, end = await browser.say("What time zone is Oslo in?")

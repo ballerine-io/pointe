@@ -1456,7 +1456,10 @@ are not built yet (meeting mode does not need them).
 
 Deviations from section 4:
 - The `hello` message's `ptt` field is not used: the daemon setting is the one source, so two clients cannot disagree.
-- The gate also closes the meeting stream: in push to talk, a meeting hears the room only while a press is held.
+- During a meeting the room's audio bypasses the gate for the meeting stream only (status `ptt.room_heard: true`,
+  bytes in `ptt.room_bytes`); clients keep sending while it is true. If the meeting stream is down, `MicGate` still
+  keeps that audio from the conversation's ears unless a press is on. Starting a meeting already took consent and
+  shows a recording indicator.
 - The 90 s limit applies to toggles (Caps Lock, AirPods) as well as holds: the daemon cannot tell them apart.
 - `PttGate` is a separate processor before the voice detector; the existing `MicGate` stays after it, unchanged.
 - iOS: the ring opens on touch down, with no long-press delay; the conversation area opens after a 0.35 s hold, so

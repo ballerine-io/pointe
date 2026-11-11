@@ -93,6 +93,17 @@ final class TalkGateTests: XCTestCase {
         XCTAssertEqual(json["at"] as? Int, 12_500)
     }
 
+    func testInAMeetingTheRoomIsSentWithoutAPressAndStopsAfter() {
+        var g = ptt()
+        XCTAssertFalse(g.sends(at: t0))
+        _ = g.follow(status(#"{"mode":"ptt","open":false,"closed_why":"","room_heard":true}"#))
+        XCTAssertTrue(g.roomHeard)
+        XCTAssertTrue(g.sends(at: t0))
+        XCTAssertFalse(g.isOpen)  // the room is heard; the user is not talking to Pointe
+        _ = g.follow(status(#"{"mode":"ptt","open":false,"closed_why":"","room_heard":false}"#))
+        XCTAssertFalse(g.sends(at: t0))
+    }
+
     func testStatusAndPrefsDecodeWithAndWithoutPushToTalk() throws {
         let prefs = try JSONDecoder().decode(API.Prefs.self, from: Data(#"{"microphone":"ptt"}"#.utf8))
         XCTAssertEqual(prefs.microphone, "ptt")

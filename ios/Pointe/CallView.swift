@@ -295,7 +295,8 @@ struct CallView: View {
             if call.talk.ptt {
                 if talking { return "Talking" }
                 if speaking { return "Speaking" }
-                return call.talkClosedWhy.map { "Talk closed: \($0)" } ?? "Hold to talk"
+                if let why = call.talkClosedWhy { return "Talk closed: \(why)" }
+                return call.talk.roomHeard ? "Meeting: room is heard · hold to talk" : "Hold to talk"
             }
             return muted ? "Muted" : speaking ? "Speaking" : "Listening"
         }

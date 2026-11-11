@@ -25,6 +25,7 @@ struct API {
         let mode: String?        // "always" or "ptt"
         let open: Bool?
         let closed_why: String?  // "released", "held too long", "no audio", "switched to push to talk"
+        let room_heard: Bool?    // a meeting is on: the room reaches the meeting without a press; talking to Pointe still needs one
     }
 
     // MARK: meeting mode (docs/plans/next-features.md, "Meeting API (as built)"). Every field optional: an older daemon
