@@ -340,3 +340,21 @@ def test_a_correction_with_an_id_that_is_not_a_number_is_refused_cleanly(d):
     from test_orchestrator import client_for
     r = client_for(d).post("/voice/correct", json={"id": "abc", "text": "deploy the docs"})
     assert r.status_code == 400, (r.status_code, r.text)
+
+
+# ---------- 12. a new call starts with no verdicts or ignored speech from the last one ----------
+
+def test_a_new_call_shows_nothing_ignored_or_judged_from_the_last_call(d, v, monkeypatch):
+    """The page says "Nothing ignored on this call", but the list (with a stranger's words, at Commands), the count and
+    the last verdict carried over from the last call."""
+    async def no_worker(_session):
+        pass
+
+    monkeypatch.setattr(d, "_add_worker", no_worker)
+    voice = d.VOICE
+    voice.ignore(d.speaker.Verdict(0.1, 1.5, at=1.0), "a stranger's words")
+    voice.last = d.speaker.Verdict(0.1, 1.5, at=1.0)
+    asyncio.run(d._on_connect(fake_conn()))
+    status = voice.status("commands")
+    assert status["ignored"] == {"count": 0, "last_at": None, "recent": []}, status["ignored"]
+    assert status["speaker"] is None

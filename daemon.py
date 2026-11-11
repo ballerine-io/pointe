@@ -3889,8 +3889,7 @@ async def _on_connect(conn: Connection) -> None:
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
     state.last_speaker = None
-    VOICE.collector.clear()
-    VOICE.last_strong = None  # a short "yes" leans only on a sentence from this call
+    VOICE.new_call()
     VOICE.expire()
     if VOICE.wanted(lock_level()):
         VOICE.load_soon()  # loaded before the first utterance, never while it waits
