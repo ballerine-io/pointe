@@ -36,6 +36,7 @@ import modes
 import speaker
 from ptt import Ptt
 import vendors
+import vocabulary
 import watchdog
 from jobs import JobRunner
 from notes import Notes
@@ -60,7 +61,7 @@ from brief import (
     report_prompt,
 )
 from brief import parse as parse_reply
-from echo import EchoGuard, LevelGate
+from echo import EchoGuard, LevelGate, words as echo_words
 import phone
 from guards import (
     LocalAuth,
@@ -172,6 +173,7 @@ JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meet
 ALARM = conflicts.Alarm()  # two sessions that disagree: their latest reports and the open conflicts
 PREFS = Prefs(STATE_DIR / "prefs.json")
 VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
+DICTIONARY = vocabulary.Dictionary(STATE_DIR / "dictionary.json")  # names the user fixed or added: this Mac only
 SHOWS = artifacts.Shows()  # show while it says: what is on screen while the voice reports a turn
 JOURNAL = STATE_DIR / "journal.jsonl"
 JOURNAL_MAX_BYTES = 20_000_000
@@ -220,7 +222,22 @@ def _start_journal() -> None:
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
 
 
-_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ")
+_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ", "barge-in: ",
+                  "echo dropped:", "holding an unfinished sentence:", "feed")
+_QUOTE_WORDS = 4  # this many words in a row from the room or the owner's question is a quote of them
+
+
+def _quotes_the_room(message: str) -> bool:
+    """A line nobody listed above that still repeats the room's words or the owner's latest question."""
+    heard = re.findall(r"\w+", message.lower())
+    grams = {tuple(heard[i:i + _QUOTE_WORDS]) for i in range(len(heard) - _QUOTE_WORDS + 1)}
+    if not grams:
+        return False
+    for source in [t.text for t in state.meeting.turns] + [state.last_utterance]:
+        said = re.findall(r"\w+", source.lower())
+        if any(tuple(said[i:i + _QUOTE_WORDS]) in grams for i in range(len(said) - _QUOTE_WORDS + 1)):
+            return True
+    return False
 
 
 def _meeting_redact(record) -> None:
@@ -233,7 +250,8 @@ def _meeting_redact(record) -> None:
     if message.startswith("tool "):
         name = message[5:].split("(", 1)[0][:60]
         record["message"] = f"tool {name}(…) (withheld during a meeting, {len(message)} chars)"
-    elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET):
+    elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET) \
+            or " is waiting on the user: " in message or _quotes_the_room(message):
         record["message"] = f"(withheld during a meeting, {len(message)} chars)"
 
 
@@ -642,6 +660,8 @@ def _brain_context() -> str:
         parts.append(playing)
     if current_mode() is modes.DRIVE:
         parts.append(drives.RULES)
+    if names := vocabulary.brain_line(DICTIONARY):
+        parts.append(names)
     parts.append(_needs_now())
     return "\n".join(parts)
 
@@ -744,6 +764,7 @@ class BrainFront(FrameProcessor):
                 logger.info("speech held: nobody in the meeting asked for it")
                 return
             state.meeting_may_speak_until = 0.0  # one reply per ask
+            state.meeting_said.append((time.time(), text))
         if request_id is None:  # a read-out stays exact: its command may contain a session's name
             text = _spoken_names(text)
         # in a meeting the bot's words can quote the room, which the log never keeps
@@ -838,6 +859,9 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
             logger.info("barge-in: voice well above the echo")
             await self.broadcast_interruption()
+        elif isinstance(frame, (InterimTranscriptionFrame, TranscriptionFrame)) and direction == FrameDirection.DOWNSTREAM \
+                and _room_heard():
+            return  # MicGate sends the room to the meeting stream: these are words cut off when it took the microphone
         elif isinstance(frame, InterimTranscriptionFrame) and direction == FrameDirection.DOWNSTREAM:
             if lock_level() == "everything":
                 pass  # not shown until the final is checked: another voice's words never reach the screen
@@ -1064,6 +1088,7 @@ def _remember(who: str, text: str) -> None:
     """The recent conversation, so a short "yes" or "both" can be read against what it answers."""
     if who == "user":
         _journal_bot_turn()
+        DICTIONARY.heard(text)
     else:
         SHOWS.heard(text)
     if state.conversation and state.conversation[-1][0] == who == "assistant":
@@ -1078,12 +1103,18 @@ def _remember(who: str, text: str) -> None:
         _polish_later(state.conversation_base + len(state.conversation) - 1, text)
 
 
+def _spelling() -> str:
+    terms = DICTIONARY.ranked()[:vocabulary.BRAIN_TERMS]
+    return f" Spell these names this way: {', '.join(terms)}." if terms else ""
+
+
 def _polish_later(turn_id: int, text: str) -> None:
     async def run():
         try:
             prompt = (f"Rewrite what someone said aloud as one or two clear, well-formed sentences. Do not answer it or "
                       f"respond to it, even when it is a question: only reword it. Keep their meaning, names "
-                      f"and language exactly; drop fillers and false starts; add nothing. Reply with the sentences only.\n\n{text}")
+                      f"and language exactly; drop fillers and false starts; add nothing. Reply with the sentences only."
+                      f"{_spelling()}\n\n{text}")
             state.understood[turn_id] = (await asyncio.wait_for(vendors.text(setup().checker, prompt, max_tokens=120),
                                                                 CHECK_TIMEOUT_SECS)).strip()
             for old in [i for i in state.understood if i < state.conversation_base]:
@@ -1186,12 +1217,14 @@ class State:
     last_meeting: object = None  # the meeting that just ended: its record, for export and the action-items send
     meeting_ears: object = None
     mic_gate: object = None  # the MicGate in the call's pipeline
+    heard_as: dict[int, str] = field(default_factory=dict)  # user turn id -> what the ears wrote, before any fix
     ptt: Ptt = field(default_factory=Ptt)  # push to talk: the press that holds the microphone open
     client: dict = field(default_factory=dict)  # what the page or phone said about itself (protocol 3 hello)
     attention_dismissed: set = field(default_factory=set)
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
     meeting_may_speak_until: float = 0.0  # in participating, the room hears the bot only inside this window
+    meeting_said: deque = field(default_factory=lambda: deque(maxlen=8))  # (when, text): what the bot said into the meeting
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
     last_message: str = ""  # the last delivered request, word for word
@@ -1341,7 +1374,10 @@ async def _digest_turn(session: Session, text: str) -> dict:
     final = text.split(FINAL_MARK, 1)[-1]
     recent = recent_history(session, max_entries=14, max_chars=6000, line_cap=1000)
     sent = list(state.unconfirmed.get(session.id) or [])
-    asked = state.owner_words.get(session.id, [])[-8:] + ([state.last_utterance] if session is REGISTRY.active else [])
+    # In a meeting the latest words are the owner's question to Pointe or the room's (a hand's language), never to the
+    # session: kept out of its report, which reaches the log and the voice.
+    latest = [state.last_utterance] if session is REGISTRY.active and state.meeting is None else []
+    asked = state.owner_words.get(session.id, [])[-8:] + latest
     try:
         report = await asyncio.wait_for(
             # Low thinking: about 3 s instead of 8, and the user is waiting to hear it.
@@ -2158,18 +2194,27 @@ class PttGate(FrameProcessor):
         if state.ptt.closed_at and state.user_started_at > state.user_stopped_at:
             state.user_stopped_at = now  # a press with nothing said must not leave the user talking for good
 
+    _room = False  # a meeting had the microphone at the last tick
+
     async def tick(self, now: float) -> None:
+        room, was = _room_heard(), self._room
+        self._room = room
+        if room and not was:
+            await self._finalize()  # the words the meeting cut off finish now, inside it, where they are dropped
         for event in state.ptt.tick(PREFS.get("microphone"), now):
             if event == "closed":
                 logger.info(f"ptt: closed ({state.ptt.closed_why})")
                 self._release(now, state.ptt.closed_why)
             elif event == "finalize":
-                ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
-                if ws is not None:
-                    try:
-                        await ws.send('{"type": "finalize"}')
-                    except Exception as e:
-                        logger.info(f"ptt: finalize not sent: {type(e).__name__}")
+                await self._finalize()
+
+    async def _finalize(self) -> None:
+        ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
+        if ws is not None:
+            try:
+                await ws.send('{"type": "finalize"}')
+            except Exception as e:
+                logger.info(f"ptt: finalize not sent: {type(e).__name__}")
 
     async def _ticks(self) -> None:
         while True:
@@ -2269,15 +2314,57 @@ async def _on_meeting_reconnect() -> None:
                          "to be the owner again.", dedup=False)
 
 
-async def _on_meeting_turn(m, turn) -> None:
+MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing as a meeting turn
+MEETING_ECHO_SHARE = 0.7  # this share of a late turn's words, in pairs the bot said, makes it the bot's
+
+
+def _meeting_echo(said: str, new_label: bool) -> bool:
+    """Its own voice through the laptop speakers. A meeting turn closes seconds after the words (Soniox finalises late, a
+    turn closes on 1.2 s of quiet, the loop ticks every 2 s; 8-11 s measured), past the call's echo tail: a turn is also
+    the bot's when most of its words are pairs the bot just said into the meeting, or, on a label nobody has used yet, it
+    is one word the bot just said (its reply cut off by a talk-over). Never a turn addressed to Pointe."""
+    if ECHO.live and not ECHO.user_part(said):
+        return True
+    heard = echo_words(said)
+    if not heard or meetings.addressed(said) is not None:
+        return False
+    recent = [echo_words(text) for at, text in state.meeting_said if time.time() - at < MEETING_ECHO_SECS]
+    if len(heard) == 1:
+        return new_label and any(heard[0] in said_words for said_words in recent)
+    pairs = {p for said_words in recent for p in zip(said_words, said_words[1:])}
+    covered = [False] * len(heard)
+    for i, pair in enumerate(zip(heard, heard[1:])):
+        if pair in pairs:
+            covered[i] = covered[i + 1] = True
+    return sum(covered) >= MEETING_ECHO_SHARE * len(heard)
+
+
+HOLD_ADDRESSED_SECS = 2.0  # an addressed sentence with no closing punctuation waits this long for the rest of it
+_CLOSED = re.compile(r"[.!?…]\W*$")
+
+
+async def _release_addressed(m, turn, text: str) -> None:
+    """No more words came for a held sentence: it is handled as it is, once."""
+    await asyncio.sleep(HOLD_ADDRESSED_SECS)
+    if state.meeting is m and turn.text == text:  # a turn that grew was handled again when it re-closed
+        await _on_meeting_turn(m, turn, hold=False)
+
+
+async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
     said = turn.new_text  # a speaker resuming: only the resumed words can be a command
-    if ECHO.live and not ECHO.user_part(said):  # its own voice through the laptop speakers
-        if m.bot is None and turn.speaker != m.owner:
+    new_label = all(t.who == "Pointe" for t in m.turns if t.speaker == turn.speaker and t is not turn)
+    if _meeting_echo(said, new_label):
+        # The label is the bot's only if nobody spoke under it: diarisation can file the echo under a participant's.
+        if m.bot is None and turn.speaker != m.owner and new_label:
             m.bot = turn.speaker
         turn.who = "Pointe"
         return
     found = meetings.addressed_all(turn.text, turn.starts)  # "…the plan. Pointe, end the meeting." holds a command too
     fresh, turn.handled = found[turn.handled:], len(found)  # a re-closed turn acts only on what it did not act on yet
+    if hold and fresh and not _CLOSED.search(fresh[-1]):
+        # Soniox finalises in bursts and a lull closes the turn: "Pointe, end" may still become "Pointe, end the meeting."
+        fresh, turn.handled = fresh[:-1], turn.handled - 1
+        asyncio.create_task(_release_addressed(m, turn, turn.text))
     if m.is_entry(turn) or _MEETING_ON.match(said.strip()):  # the replayed "Pointe, meeting mode, participating"
         if m.entry_bound and m.owner == turn.speaker:  # with a voiceprint, it decides, not the label of who said it
             voice = await _meeting_voice(turn)
@@ -4046,19 +4133,100 @@ async def correct_a_turn(request: Request):
     if not text or not 0 <= index < len(state.conversation) or state.conversation[index][0] != "user":
         raise HTTPException(status_code=404, detail="no such thing you said")
     was = state.conversation[index][1]
+    heard_as = state.heard_as.setdefault(turn_id, was)  # a fix put back is not a new mishearing
+    for old in [i for i in state.heard_as if i < state.conversation_base]:
+        del state.heard_as[old]
+    learned = _learn(heard_as, text, typed=turn_id in state.typed)
     state.conversation[index] = ("user", text)
     state.corrected.add(turn_id)
     state.understood.pop(turn_id, None)
     logger.info(f"user corrected {was!r} -> {text!r}")
     if state.conn is None:
-        return {"ok": True}
+        return {"ok": True, "learned": learned}
     note = (f"[the user corrected the transcript] You heard: \"{was}\". They meant: \"{text}\". If you acted on the misheard "
             f"words, say what you did and fix it; otherwise answer what they meant.")
     state.heard_own_words = True
     state.last_utterance, state.last_user_speech_at = text, time.time()  # a send is checked against what they meant
     await state.conn.injector.push_frame(InputTextRawFrame(text=note))
     state.heard_own_words = False
-    return {"ok": True}
+    return {"ok": True, "learned": learned}
+
+
+# ---------- the dictionary (vocabulary.py): names the user fixed or added ----------
+
+def _learn(was: str, meant: str, typed: bool) -> list[str]:
+    """Only the owner's fix of words the ears heard: not a typed turn (a typo), never in a meeting (the room's words
+    are other people's), never with learning turned off."""
+    if typed or state.meeting is not None or state.meeting_starting or not PREFS.get("dictionary.learn"):
+        return []
+    learned = [e["term"] for e in DICTIONARY.learn(was, meant)]
+    if learned:
+        logger.info(f"dictionary learned {len(learned)} term(s) from a correction")
+    return learned
+
+
+def _brief_names() -> dict[str, list[str]]:
+    out = {}
+    for s in REGISTRY.sessions.values():
+        names = (_brief_of(s) or {}).get("people_and_names")
+        if isinstance(names, list):
+            out[s.name] = [str(n) for n in names if isinstance(n, str)]
+    return out
+
+
+def _dictionary_status() -> dict:
+    learned = DICTIONARY.learned_since(state.connected_at) if state.conn is not None else []
+    return {"count": len(DICTIONARY.entries), "cap": vocabulary.CAP, "full": DICTIONARY.full,
+            "learn": PREFS.get("dictionary.learn"), "learned_this_call": learned, "problem": DICTIONARY.problem}
+
+
+def _dictionary_page() -> dict:
+    learn = PREFS.get("dictionary.learn")
+    return {**_dictionary_status(), "entries": DICTIONARY.entries, "ignored": DICTIONARY.ignored,
+            "suggestions": DICTIONARY.suggestions(_brief_names(), [n for s in REGISTRY.sessions.values()
+                                                                  for n in [s.name, *s.name.replace("/", " ").split()]]) if learn else []}
+
+
+@app.get("/voice/dictionary")
+async def dictionary_list():
+    return _dictionary_page()
+
+
+@app.post("/voice/dictionary")
+async def dictionary_change(request: Request):
+    """`add {term, lang?, session?}`, `edit {term, to?, lang?}`, `ignore {term}`, `unignore {term}`. Every term passes
+    vocabulary.refusal: no consent word, no credential. A change reaches the ears on the next call."""
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="a JSON object, please")
+    action, term, lang = body.get("action"), str(body.get("term") or "").strip(), body.get("lang")
+    try:
+        if action == "add":
+            source = "session" if body.get("session") else "manual"
+            DICTIONARY.add(term, lang, source=source)
+        elif action == "edit":
+            to = body.get("to")
+            DICTIONARY.edit(term, to=str(to) if to is not None else None, lang=lang)
+        elif action == "ignore" and term:
+            DICTIONARY.ignore(term)
+        elif action == "unignore" and term:
+            DICTIONARY.unignore(term)
+        else:
+            raise HTTPException(status_code=400, detail="action is add, edit, ignore, unignore")
+    except vocabulary.Full as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="not in the dictionary")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _dictionary_page()
+
+
+@app.delete("/voice/dictionary")
+async def dictionary_delete(term: str = ""):
+    if not DICTIONARY.delete(term):
+        raise HTTPException(status_code=404, detail="not in the dictionary")
+    return _dictionary_page()
 
 
 @app.post("/voice/polish")
@@ -4145,6 +4313,7 @@ async def status(request: Request):
             "showing": SHOWS.view(time.time(), ECHO.speaking) if show else None,
             "shown_earlier": SHOWS.earlier() if show else [],
             "show_on_phone": PREFS.get("show.on_phone"),
+            "dictionary": _dictionary_status(),
             "tokens": state.tokens,
             "router": (f"orchestrator: named session → auto ({_setup.checker if _setup else 'gate'}) → active session"
                        if REGISTRY.mode == "orchestrator" else "session mode: every request goes to the active session"),
@@ -4518,7 +4687,8 @@ def context_breakdown(messages: list) -> list[dict]:
 async def page():
     here = Path(__file__).parent
     return ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
-            .replace("{{BALLERINE}}", (here / "assets" / "ballerine.svg").read_text()))
+            .replace("{{BALLERINE}}", (here / "assets" / "ballerine.svg").read_text())
+            .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text()))
 
 
 async def _add_worker(session: Session) -> None:
@@ -4667,17 +4837,19 @@ def build_front():
 
 
 def _recognition_terms() -> list[str]:
-    """Session names and repo directory names bias recognition toward real identifiers."""
-    terms: set[str] = set()
+    """The user's dictionary, session names, names from the sessions' notes and repo directory names bias recognition
+    toward real identifiers (vocabulary.terms_for: in that order, capped, no consent word from any source)."""
+    names: list[str] = []
+    folders: set[str] = set()
     for s in REGISTRY.sessions.values():
-        terms.update(s.name.replace("/", " ").split())
+        names += s.name.replace("/", " ").split()
         try:
             files = _git_files(s.cwd, 5).split("\0")
         except Exception:
             continue
         for f in files:
-            terms.update(p for p in f.split("/")[:2][:-1] if 2 < len(p) < 40 and not p.startswith("."))
-    return sorted(terms)[:300]
+            folders.update(p for p in f.split("/")[:2][:-1] if 2 < len(p) < 40 and not p.startswith("."))
+    return vocabulary.terms_for(DICTIONARY, names, _brief_names(), sorted(folders))
 
 
 def _opening_context() -> list[dict]:

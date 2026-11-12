@@ -1751,3 +1751,129 @@ Prefs (`GET/POST /voice/prefs`): `conflicts.on` (default true; off means no read
 - **Codex edits count** through the mirror's `files` on a `fileChange` (added by Show while it says; declined changes have none).
 - **Not built:** the `evals/` precision scenario; a live end-to-end with real OpenCode or Codex services (the mixed
   harness cases are offline, on each adapter's real mirror format).
+
+## Self-learning vocabulary (as built, 2026-11-12)
+
+Feature 2, on the daemon, the page and the app. `vocabulary.py` holds the rules; `daemon.py` calls it from
+`/voice/correct`, `_recognition_terms`, `_brain_context` and the clean-up rewrite.
+
+### API
+
+| Route | Body / query | Returns |
+|---|---|---|
+| `GET /voice/dictionary` | — | `{entries: [{term, lang: en\|he\|both, source: correction\|manual\|session, hits, added_at, confirmed}], suggestions: [{term, session, lang}], ignored, count, cap, full, learn, learned_this_call, problem}` |
+| `POST /voice/dictionary` | `{action: add, term, lang?, session?}`, `{action: edit, term, to?, lang?}`, `{action: ignore\|unignore, term}` | the same page; 400 with the reason for a refused term or a bad body, 404 unknown term, 409 full |
+| `DELETE /voice/dictionary?term=` | — | the same page; 404 unknown term |
+| `POST /voice/correct` | as before | adds `learned: [term]` |
+
+All are reachable with the page cookie, the bearer token and the phone key (`guards._PHONE_PATHS`). Status:
+`dictionary: {count, cap, full, learn, learned_this_call: [{term, at}], problem}`. Pref `dictionary.learn` (default true).
+
+### Rules in code
+
+- A correction teaches only what it fixed. The code diffs the fix against what the ears first wrote for that turn. A fix
+  that is put back is not a new mishearing (seen live: putting a fix back used to teach the misheard word). It teaches
+  identifiers (digit, `-._/`, camelCase), a word the ears split ("Kestrel Bay" → "Kestrelbay"), and capitalised names
+  (up to three words). It also teaches an uncommon word that replaced a misheard one. It never teaches grammar
+  (inflections), case-only fixes, common words, a split word, a rewritten sentence, or more than 3 terms per fix. It
+  learns nothing from a typed turn, during a meeting, or with learning off.
+- No term from any source (a correction, a hand add, an edit, a suggestion, a session or folder name, a hand-edited
+  file) holds a word from `guards._YES/_NO/_WEAK_YES/_YES_PHRASES/_YES_DESPITE_NO` or `echo.INTERRUPT_WORDS/ANSWER_WORDS`
+  (Hebrew prefixes too). No term is anything `readout.mask` changes.
+- The ears get, in this order: the dictionary (most heard first), session names, names from the session notes (at most
+  12 per session, never stored, bracketed remarks removed), and folder names. The cap is 400. The brain gets
+  `[names the user uses, spell them this way in anything you send]`, and the clean-up rewrite gets the names too.
+
+### Measured
+
+`bench/vocab_bench.py` (results in `bench/results/vocab.md`) ran 12 invented names in English and Hebrew sentences, with
+2 synthetic voices, clean and with 12 dB noise, on Soniox stt-rt-v5. Soniox spelled the name right 25/64 times without
+terms and 60/64 times with them. The terms fixed 35 clips and broke none. Control WER was 0.048 both ways, and no
+non-answer was heard as a bare yes or no. The dictionary held exactly the names that were said, so this is the best case.
+`tests/e2e/page_dictionary.py --live` checks it end to end: "Pelusin" was heard, the user fixed it in the page, and the
+next call heard "Pellucine".
+
+### Deviations from the plan
+
+- **No "Apply now".** A spike pushed `STTUpdateSettingsFrame(context=…)` into the live Soniox ears. Pipecat reconnects
+  only after a user-turn end, and Pointe's own turn handling never sends one, so the restart came one utterance late.
+  Following the plan, the dictionary applies on the next call.
+- **`dictionary.learn` is a pref** (`/voice/prefs`, set from both clients), not `"dictionary": false` in `config.json`.
+  It turns learning and suggestions off. The names in the session notes still reach the ears as hints.
+- **Hebrew words are not learned from a fix.** Hebrew has no capital letters and is heavily inflected, so the code cannot
+  tell a name from a grammar fix. A Latin name in a Hebrew sentence is learned as `both`. A Hebrew name is added by hand
+  (`lang: he`). The misheard Hebrew transliteration is not stored, because that would bias the ears toward the mishearing.
+- **`readout.mask` is wider:** a spoken "password is X1" or "הסיסמה היא X1" value (with a digit) is masked, for
+  everyone. Main's `name: value` rule is kept beside it.
+- **MirrorEars** (the echo stream) gets the same list at call start.
+- **Page:** the Dictionary sheet is in `ui_dictionary.html`, injected at `{{DICTIONARY}}`. Settings has a
+  "Dictionary…" button. **App:** Settings menu → Dictionary (`Vocabulary.swift`): the same sheet and copy. A unit
+  test checks that the copy matches the page word for word.
+- **Not built:** suggestions from the meeting's speaker names, and the hit-based eviction when the dictionary is full
+  (full refuses and stops learning, and shows "Full"). There is no `/voice/dictionary/learn` route: learning is inside
+  `/voice/correct`.
+
+## Devil's advocate (as built, 2026-11-12)
+
+Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
+evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends and records it.
+
+### Route and status
+
+| | |
+|---|---|
+| `POST /voice/challenge` | `{action: start\|end}` → `{challenge}`. 400 on a bad action; 409 with the reason: no call, a meeting on, already on (start), none on (end), a non-brain front. Page cookie, bearer token, phone key |
+| status `challenge` | `null`, or `{id, on, since, ended_at, plan, sessions, objections, verdict, evidence, items: [{kind: objection\|rebuttal\|verdict, text, at}]}`. The last one stays (`on: false`) until a new one starts |
+| status `mode_state.mode` | `challenge` while on |
+| notes | kinds `objection`, `rebuttal`, `verdict` (outside meetings, `meta.challenge` = its id) |
+
+### Voice
+
+"Challenge this / challenge me / play devil's advocate / poke holes in this / תתקוף את זה / תאתגר אותי" and "you've made
+your point / verdict / back to normal / end challenge / stop / די / חזרה לרגיל", each as a whole utterance, spoken or
+typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve or deny.
+During a brainstorm, "challenge this" ends it and challenges what was said.
+
+### What it may do, in code
+
+- `modes.CHALLENGE`: `speak`, `list_sessions`, `ask_about_session` only (`_traced` refuses the rest with
+  `challenge.TOOL_REFUSAL`), no nudges, no sends; `_send` refuses with "Not sent: you are in a challenge; end it first,
+  then say what to send." Ending moves `last_delegation_at`, so neither the end words nor a "fine, do it" said during the
+  challenge can authorize a send afterwards.
+- Session reports (`FINISHED_MARK`) and idle nudges wait for the end; lookup answers and permission read-outs do not. A
+  permission is read out and answered as in conversation; an objection spoken after the read-out closes its yes window.
+- No challenge in a meeting (409); a meeting that starts ends it with no verdict; so does the end of the call.
+- Grounding: the opening carries the plan (the brainstorm, else the user's last six sentences in 15 min) and numbered
+  evidence `[E1]…`: the active session's notes (decided, ruled out, where it stands, open, goal), its last 12 record lines,
+  and diffs against HEAD of files it edited in the last sets shown on screen (`artifacts.render`, no `git diff`), plus
+  any session the plan names, at most three. Everything through `readout.mask`. No evidence: it says so and argues from
+  the plan only; "I don't know" to a question of fact. After six objections the per-step line asks for the verdict.
+
+### Clients
+
+- Page: a Challenge button in the dock (it reads "End challenge" while on), "Challenge it" in the Brainstorm panel, the
+  title "Challenging", and a Challenge panel over the conversation: the plan, Objection / You / Verdict in order, "End
+  challenge", and after the end "Challenge ended" with Close (remembered per tab).
+- App: see the iPhone notes in the commit that adds `ios/Pointe/Challenge.swift`.
+
+### Benchmark
+
+`bench/results/challenge.md`: six before/after pairs. Sonnet 5.5 (the production brain) 15/30 → 30/30, Gemini 3.8 Flash
+21/30 → 30/30. The system prompt and tool schemas are unchanged.
+
+### Deviations from section 6
+
+- **Route** `POST /voice/challenge`, not `/voice/mode-state`; the status field is `challenge`, beside `mode_state`.
+- **The brain's tool list is not rebuilt per step**: refused in `_traced` (as meetings do) and in `_send`. The
+  `briefing` tool is also refused (the plan's list kept it).
+- **`holds_news` stays off**: holding all respond-news would hold `ask_about_session`'s answers, which arrive in the
+  feed. Reports and idle nudges are held by name instead.
+- **Notes**: the page's Notes pane is meeting-only, so both clients draw the challenge from status; the notes are
+  written too, for `/voice/notes` readers.
+- **What is recorded as an objection**: everything the voice says while it is on, except a read-out, the
+  acknowledgment of a permission answer and the brain's failure lines; so "I'm asking lantern" counts as one.
+- **Brain front only** (409 otherwise): a realtime model cannot be kept from acting. With `CLAUDE_VOICE_EARS=native` the
+  phrases are not caught (taps and typed words work).
+- **Not built:** the `evals/sim.py` scenario (the bench pairs measure it instead), the rollout pref `modes.challenge`
+  (always on), a challenge spoken into a meeting (in participating, "Pointe, challenge this" is an ordinary question to
+  Pointe, answered once).
