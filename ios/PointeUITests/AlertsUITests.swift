@@ -36,8 +36,11 @@ final class AlertsUITests: XCTestCase {
         settings.tap()
         let item = app.buttons["Alerts"].firstMatch
         XCTAssertTrue(item.waitForExistence(timeout: 5), "Alerts is in the settings menu")
-        item.tap()
-        XCTAssertTrue(app.navigationBars["Alerts"].waitForExistence(timeout: 5), "the sheet opens")
+        for _ in 0..<3 {  // a tap while the menu is still opening is dropped, and the menu stays up (as in MeetingUITests)
+            item.tap()
+            if item.waitForNonExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(app.navigationBars["Alerts"].waitForExistence(timeout: 20), "the sheet opens")
     }
 
     /// iOS asks once per install; "Allow" if it asks.
