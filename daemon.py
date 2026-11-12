@@ -976,6 +976,9 @@ class SonioxEars(FrameProcessor):
             return
         if state.monologue is None and state.meeting is None and (asked := drives.intent(heard)) \
                 and (asked == "on" or state.drive.on()):  # "back to normal" outside drive mode is someone else's
+            if asked == "on" and state.meeting_starting:  # as the route: not into a meeting; the room hears no reply
+                logger.info("drive mode: refused, a meeting is starting")
+                return
             _remember("user", heard)
             state.last_utterance = heard  # its language; never fresh speech for a send
             await set_drive(asked == "on", "voice")

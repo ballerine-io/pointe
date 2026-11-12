@@ -223,3 +223,19 @@ def test_stop_whispering_during_a_challenge_ends_whisper_only(d, c, monkeypatch)
     asyncio.run(ears._take("stop whispering"))
     assert d.PREFS.get("whisper") is False and d.state.challenge is not None
 
+
+# ---------- 8. "drive mode" said while a meeting is starting ----------
+
+def test_drive_mode_by_voice_is_refused_while_a_meeting_starts(d, monkeypatch):
+    """The route refuses it (409) while state.meeting_starting; a held half sentence released by _release_held can
+    still reach _take in that gap."""
+    ears, reached, _ = _quiet_ears(d, monkeypatch)
+    d.state.conn = fake_conn()
+    d.state.meeting_starting = True
+    try:
+        asyncio.run(ears._take("drive mode"))
+        assert not d.state.drive.on() and not reached
+        assert client_for(d).post("/voice/drive", json={"on": True}).status_code == 409
+    finally:
+        d.state.meeting_starting = False
+

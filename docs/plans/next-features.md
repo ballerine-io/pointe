@@ -1839,7 +1839,7 @@ evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends
 
 Voice: "drive mode", "walk mode", "I'm driving", "מצב נהיגה" turn it on; "back to normal", "I've stopped", "exit drive
 mode", "חזרה לרגיל", "עצרתי" turn it off (a whole short utterance; never reaches the brain; not during a meeting or a
-brainstorm). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
+brainstorm, and not turned on while a meeting is starting, as the route). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
 
 ### Voice approval while driving (owner decision 4)
 
