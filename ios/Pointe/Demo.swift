@@ -5,7 +5,7 @@ import Foundation
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
-                       showing, showingOff, conflict, conflictMeeting, dictionary, dictionaryLearned }
+                       showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -31,6 +31,8 @@ struct Demo {
         case .briefingPaused: briefingJSON(paused: true)
         case .showing: showingJSON(on: true)
         case .showingOff: showingJSON(on: false)
+        case .challenge: challengeJSON(on: true)
+        case .challengeEnded: challengeJSON(on: false)
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         default: callJSON
         }
@@ -212,6 +214,24 @@ struct Demo {
         default: nil
         }
         return json.flatMap { try? JSONDecoder().decode(API.ArtifactView.self, from: Data($0.utf8)) }
+    }
+
+    // MARK: challenge me
+
+    /// A challenge on, two objections and an answer in Hebrew; or ended, with its verdict, until closed.
+    private static func challengeJSON(on: Bool) -> String {
+        let verdict = on ? "" : #", {"kind": "verdict", "text": "Ship the retry fix behind a flag; keep the queue idea shelved.", "at": 1700000300}"#
+        return """
+        {"active": "billing/main", "connected": true, "mode": "\(on ? "challenge" : "orchestrator")", "polish": false, "hearing": "",
+         "sessions": \(sessions), "talk": \(talk),
+         "challenge": {"id": "c7", "on": \(on), "since": 1700000000, "ended_at": \(on ? "null" : "1700000300"),
+                       "plan": "Move the checkout retries into a queue so a slow gateway never blocks the customer.",
+                       "sessions": ["billing/main"], "objections": 2, "evidence": 3,
+                       "verdict": \(on ? "null" : #""Ship the retry fix behind a flag; keep the queue idea shelved.""#),
+                       "items": [{"kind": "objection", "text": "A queue replays the charge on failover: billing dropped it for duplicate charges.", "at": 1700000100},
+                                 {"kind": "rebuttal", "text": "נשתמש במפתח אידמפוטנטי לכל חיוב.", "at": 1700000150},
+                                 {"kind": "objection", "text": "The gateway ignores that key on refunds.", "at": 1700000200}\(verdict)]}}
+        """
     }
 
     private static let brainstormJSON = """

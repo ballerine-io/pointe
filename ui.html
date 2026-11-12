@@ -221,6 +221,28 @@
           cursor: pointer; box-shadow: 0 8px 26px rgba(255, 79, 31, .35); }
   #brainstorm .hint { color: var(--dim); font-size: 12.5px; }
 
+  /* challenge me: the voice argues against the plan, one objection at a time (challenge.py) */
+  #challenge { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 14px;
+               padding: 32px 40px; background: radial-gradient(ellipse at center, #2A1A14 0%, var(--bg) 75%); overflow-y: auto; }
+  #challenge[hidden] { display: none; }
+  #challenge h2 { margin: 0; font-size: 24px; font-weight: 700; }
+  #challenge .lede { color: var(--muted); font-size: 15px; margin-top: -6px; text-align: center; }
+  #challenge h3 { margin: 6px 0 0; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  #chl-plan { max-width: 720px; width: 100%; white-space: pre-wrap; font-size: 15px; line-height: 1.5; padding: 12px 16px;
+              border-radius: 14px; background: rgba(21,32,49,.6); border: 1px dashed var(--orange-line); }
+  #chl-plan.empty { color: var(--muted); }
+  #chl-items { list-style: none; margin: 0; padding: 0; max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  #chl-items li { background: var(--card); border-radius: 12px; padding: 10px 14px; font-size: 15px; line-height: 1.45; }
+  #chl-items li.rebuttal { background: var(--card2); margin-left: 48px; }
+  #chl-items li.verdict { box-shadow: inset 0 0 0 1px var(--orange); }
+  #chl-items .who { display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--orange); margin-bottom: 2px; }
+  #chl-items li.rebuttal .who { color: var(--muted); }
+  #chl-end, #chl-close { border: 0; border-radius: 999px; padding: 12px 26px; background: var(--orange); color: #fff; font: 700 15px 'Inter', sans-serif; cursor: pointer; }
+  #chl-close { background: var(--card2); color: var(--text); }
+  #challenge .hint { color: var(--dim); font-size: 12.5px; }
+  #bs-challenge { border: 0; border-radius: 999px; padding: 12px 24px; background: var(--card2); color: var(--text); font: 600 15px 'Inter', sans-serif; cursor: pointer; }
+  #challenge :focus-visible, #bs-challenge:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
   /* context drawer */
   #ctxpanel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100vw); z-index: 30; display: none;
               flex-direction: column; gap: 16px; padding: 20px; background: var(--navy); border-left: 1px solid var(--line);
@@ -670,11 +692,23 @@
       <ul id="notelist" aria-label="Meeting notes" aria-live="polite" aria-relevant="additions"></ul>
       <div id="meetsay" class="sr" aria-live="polite"></div>
     </div>
+    <div id="challenge" hidden role="region" aria-labelledby="chl-h">
+      <h2 id="chl-h">Challenge</h2>
+      <div class="lede">I argue against your plan, one objection at a time. Nothing is sent while it's on.</div>
+      <h3>The plan</h3>
+      <div id="chl-plan" dir="auto"></div>
+      <ul id="chl-items" aria-label="Objections and answers" aria-live="polite" aria-relevant="additions"></ul>
+      <button id="chl-end" onclick="challengeAction('end')">End challenge</button>
+      <button id="chl-close" onclick="closeChallenge()" hidden>Close</button>
+      <div class="hint" id="chl-hint">Or say “you've made your point”, “verdict” or “back to normal”.</div>
+      <div class="err" id="chl-err" role="alert"></div>
+    </div>
     <div id="brainstorm" hidden>
       <h2>Brainstorm</h2>
       <div class="lede">Talk freely, I'll stay quiet</div>
       <div id="mono-text"></div>
       <button id="back" onclick="toggleListen()">Back to conversation</button>
+      <button id="bs-challenge" onclick="challengeAction('start')" title="The voice argues against what you just said">Challenge it</button>
       <div class="hint">Or say “over to you”, “summarize that” or “send that to …”</div>
     </div>
   </div>
@@ -694,6 +728,9 @@
     <button class="btn" id="briefbtn" onclick="openBriefing()" title="What each session did, failed and waits on">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h10M4 15h16M4 20h8"/></svg></span>
       Briefing</button>
+    <button class="btn" id="chlbtn" onclick="challengeButton()" disabled title="The voice argues against your plan, one objection at a time">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></svg></span>
+      <span id="chl-label">Challenge</span></button>
     <button class="btn" id="typebtn" onclick="typeNow()" title="Type instead of talking">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
       Type</button>
@@ -777,6 +814,7 @@
     showConflicts(status);
     showBriefing(status);
     if (window.desktopAlerts) desktopAlerts(status);
+    if (window.showChallenge) showChallenge(status);
     showShowing(status);
     if (window.dictionaryFollow) dictionaryFollow(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
@@ -1001,6 +1039,7 @@
     else if (micError) [st, title] = ['off', 'Cannot hear you'];
     else if (pttMode() && pttOpen()) [st, title] = ['talking', 'Talking'];
     else if (s.monologue) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', 'Brainstorming'];
+    else if (s.challenge && s.challenge.on && !(muted && !pttMode()) && !s.speaking) [st, title] = [pttMode() ? 'ptt' : 'live', 'Challenging'];
     else if (muted && !pttMode()) [st, title] = ['muted', 'Muted'];
     else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking'];
     else if (s.speaking === 'user') [st, title] = ['user', 'Hearing you'];
@@ -2199,6 +2238,54 @@
     if (!('Notification' in window)) { box.checked = false; return desktopAlertsShow(); }
     box.checked = (Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission()) === 'granted';
     $('pref-desktop-note').textContent = box.checked ? '' : DESK_BLOCKED;
+  }
+</script>
+<script>
+  // Challenge me: the daemon argues against the plan (challenge.py) and can never act while it does. The page starts and
+  // ends it, and writes out the objections, the user's answers and the verdict. Close only hides an ended one here.
+  const CHL_WHO = {objection: 'Objection', rebuttal: 'You', verdict: 'Verdict'};
+  const chlClosed = () => sessionStorage.getItem('pointe.challengeClosed') || '';
+  let chlKey = '';
+  async function challengeAction(action) {
+    $('chl-err').textContent = '';
+    try {
+      const r = await fetch('/voice/challenge', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({action})});
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.detail || `failed (${r.status})`);
+    } catch (e) { $('chl-err').textContent = e.message; meetError(e.message, 8); }
+    refresh();
+  }
+  function challengeButton() { challengeAction(status && status.challenge && status.challenge.on ? 'end' : 'start'); }
+  function closeChallenge() {
+    const c = status && status.challenge;
+    if (c) sessionStorage.setItem('pointe.challengeClosed', c.id);
+    $('challenge').hidden = true;
+  }
+  function showChallenge(s) {
+    if (!s) return;
+    const c = s.challenge, on = !!(c && c.on), live = !!s.connected, meeting = !!(meetingOf(s) || {}).on;
+    const btn = $('chlbtn');
+    btn.disabled = !live || meeting || !!s.monologue;
+    btn.classList.toggle('on', on);
+    $('chl-label').textContent = on ? 'End challenge' : 'Challenge';
+    btn.title = meeting ? 'Not during a meeting.' : 'The voice argues against your plan, one objection at a time';
+    $('bs-challenge').disabled = !live;
+    const shown = !!c && (on || (c.id !== chlClosed() && !s.monologue && !meeting));
+    $('challenge').hidden = !shown;
+    if (!shown) { chlKey = ''; return; }
+    const key = `${c.id}:${on}:${c.items.length}:${c.verdict || ''}`;
+    if (key === chlKey) return;
+    chlKey = key;
+    $('chl-h').textContent = on ? 'Challenge' : 'Challenge ended';
+    $('chl-plan').textContent = c.plan || 'No plan yet: say it in a sentence or two.';
+    $('chl-plan').classList.toggle('empty', !c.plan);
+    $('chl-items').replaceChildren(...c.items.map(i => {
+      const li = el('li', i.kind); li.dir = 'auto';
+      li.append(el('span', 'who', CHL_WHO[i.kind] || i.kind), document.createTextNode(i.text));
+      return li;
+    }));
+    $('chl-end').hidden = !on; $('chl-hint').hidden = !on; $('chl-close').hidden = on;
+    const box = $('challenge'); box.scrollTop = box.scrollHeight;
   }
 </script>
 {{DICTIONARY}}

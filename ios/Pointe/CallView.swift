@@ -35,6 +35,7 @@ struct CallView: View {
     @State private var showSheet = false
     @State private var showSettings = false
     @State private var showFollow = ShowFollow()
+    @State private var challengeClosed: String?  // the ended challenge closed here: a new one shows again
     @State private var showDictionary = false
     @State private var learnedToasts = LearnedToasts()
     @State private var toast: [String]?
@@ -85,8 +86,15 @@ struct CallView: View {
         Group {
             if let meeting, meeting.isOn {
                 meetingScreen(meeting)
+            } else if let c = challengeShown {
+                ChallengePanel(challenge: c, problem: problem, end: { await challenge("end") }, close: { challengeClosed = c.id })
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .safeAreaInset(edge: .top, spacing: 0) { top }
+                    .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
             } else if brainstorming {
-                BrainstormPanel(said: status?.monologue?.said ?? "", hearing: hearing, back: { setBrainstorm(false) })
+                BrainstormPanel(said: status?.monologue?.said ?? "", hearing: hearing, back: { setBrainstorm(false) },
+                                challenge: { Task { await challenge("start") } }, problem: problem)
                     .padding(.horizontal, 14).padding(.vertical, 8)
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     .safeAreaInset(edge: .top, spacing: 0) { top }
@@ -96,6 +104,7 @@ struct CallView: View {
             }
         }
         .animation(.smooth(duration: 0.3), value: brainstorming)
+        .animation(.smooth(duration: 0.3), value: challengeShown?.id)
         .background(Brand.background.ignoresSafeArea())
         .sheet(isPresented: $showSessions) {
             SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode)
@@ -332,6 +341,11 @@ struct CallView: View {
             }
             Button { showBriefing = true } label: { Label(BriefingCopy.title, systemImage: "sun.horizon") }
             Button { showBriefingSettings = true } label: { Label(BriefingCopy.settingsItem, systemImage: "clock") }
+            Button { Task { await challenge(challengeOn ? "end" : "start") } } label: {
+                Label(challengeOn ? ChallengeCopy.end : ChallengeCopy.menuItem, systemImage: "figure.fencing")
+            }
+            .disabled(phase != .live || meeting?.isOn == true || brainstorming)
+            .accessibilityIdentifier("menu.challenge")
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
             Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
             if status?.dictionary != nil {
@@ -452,6 +466,7 @@ struct CallView: View {
         case .connecting: return "Connecting…"
         case .reconnecting: return "Reconnecting…"
         case .live:
+            if challengeOn { return ChallengeCopy.state }
             if brainstorming { return "Brainstorming" }
             if call.talk.ptt {
                 if talking { return "Talking" }
@@ -641,6 +656,42 @@ struct CallView: View {
         let ok = (try? await call.api.setPrefs(change)) != nil
         if ok { prefs = try? await call.api.prefs() }
         return ok
+    }
+
+    // MARK: challenge me
+
+    private var challengeOn: Bool { status?.challenge?.on == true }
+
+    /// On, or ended and not closed here; an ended one gives way to a brainstorm, as on the page.
+    private var challengeShown: API.ChallengeStatus? {
+        guard let c = status?.challenge, ChallengeCopy.shown(c, dismissed: challengeClosed), c.on || !brainstorming else { return nil }
+        return c
+    }
+
+    /// start or end. The Mac's refusal is shown as it gives it. The demo plays along on its own status.
+    private func challenge(_ action: String) async {
+        problem = nil
+        if demo != nil {
+            if action == "start" {
+                status?.challenge = API.ChallengeStatus(id: "demo-\(Int(Date().timeIntervalSince1970))", on: true, since: nil, ended_at: nil,
+                                                        plan: status?.monologue?.said ?? "", sessions: [], objections: 0,
+                                                        verdict: nil, evidence: 0, items: [])
+            } else {
+                status?.challenge?.on = false
+                status?.challenge?.ended_at = Date().timeIntervalSince1970
+            }
+            return
+        }
+        do {
+            try await call.api.challenge(action)
+        } catch API.Failure.status(_, let detail) {
+            problem = Self.sentence(detail)
+            return
+        } catch {
+            problem = "The Mac did not answer."
+            return
+        }
+        status = try? await call.api.status()
     }
 
     // MARK: audio briefings

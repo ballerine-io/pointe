@@ -1041,6 +1041,7 @@ def validate(_args) -> None:
             if s.sent:
                 d.state.unconfirmed[sid] = list(s.sent)
         REGISTRY.active_id = f"s{c.active}"
+        d.state.challenge = c.challenge
         d.state.last_utterance = c.words
         ours, theirs = bc.right_now(c, brief.render_brief), d._brain_context()
         if ours != theirs:
