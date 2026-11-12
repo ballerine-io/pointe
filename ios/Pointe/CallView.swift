@@ -54,6 +54,11 @@ struct CallView: View {
     private var hearing: String { status?.hearing ?? "" }
 
     private var meeting: API.Meeting? { status?.meeting }
+    /// The raised hand's alert id (hand:<meeting id>:<n>): two hands are two hands even when raised in the same second.
+    private var handId: String? {
+        guard let hand = meeting?.hand else { return nil }
+        return status?.attention?.first { $0.kind == "hand" }?.id ?? "at:\(hand.at ?? 0)"
+    }
 
     /// Push to talk: the press here at once, and the Mac's gate as the truth.
     private var talking: Bool { call.talk.isOpen || (call.talk.ptt && status?.ptt?.open == true) }
@@ -132,7 +137,7 @@ struct CallView: View {
                 MeetingEndSheet(result: result, notes: feed.notes, sessions: status?.sessions ?? [],
                                 transcript: { (try? await call.api.transcript()) ?? [] },
                                 save: { with in demo != nil ? "~/.claude-voice/meetings/demo.md" : (try? await call.api.exportMeeting(transcript: with)) ?? "" },
-                                send: { to in await act { try await call.api.sendActions(to: to) } },
+                                send: { to in await act { try await call.api.sendActions(to: to) } ? nil : problem ?? "" },
                                 discard: { await act { try await call.api.discardMeeting() } })
                     .presentationBackground(.regularMaterial)
             }
@@ -142,7 +147,8 @@ struct CallView: View {
             Button("End meeting", role: .destructive) { Task { await act { _ = try await call.api.endMeeting() } } }
                 .accessibilityIdentifier("confirmEndMeeting")
         }
-        .sensoryFeedback(.warning, trigger: meeting?.hand?.at) { _, new in new != nil }
+        .sensoryFeedback(.warning, trigger: handId) { _, new in new != nil }
+        .onChange(of: meeting?.owner_known) { _, known in if known == true, problem == Self.reconnecting { problem = nil } }
         .onChange(of: "\(meeting?.since ?? 0)|\(status?.notes?.version ?? -1)|\(meeting?.isEnded == true)|\(noteFilter == .transcript ? meeting?.turns ?? 0 : 0)") {
             if let since = meeting?.since { meetingSince = since }
             guard demo == nil else { return }
@@ -372,6 +378,22 @@ struct CallView: View {
         return ".!?".contains(body.last!) ? body : body + "."
     }
 
+    /// The Mac's refusals of a meeting action, as sentences for the person holding the phone.
+    static func refusal(_ code: Int, _ detail: String) -> String {
+        switch detail {
+        case "the meeting is already ending": return "The meeting is already ending: the summary is being written."
+        case "end the meeting first": return "End the meeting first: it is still on."
+        case "no meeting is on": return "No meeting is on."
+        case "no meeting to act on": return "That meeting is gone: there is nothing to export or send."
+        case "no session has that name": return "That session is no longer connected. Pick another one."
+        case "name a session, and the meeting needs action items": return "Pick a session. Only a meeting with action items can send them."
+        default: break
+        }
+        guard code == 400, !detail.isEmpty else { return sentence(detail) }
+        let said = sentence(detail)
+        return "Pointe on the Mac did not accept that: \(said.prefix(1).lowercased())\(said.dropFirst()) Update the app or Pointe on the Mac."
+    }
+
     // MARK: meeting
 
     private func meetingScreen(_ meeting: API.Meeting) -> some View {
@@ -405,7 +427,7 @@ struct CallView: View {
                     menu
                 }
                 MeetingBanner(meeting: meeting, setMode: setMeetingMode, speakers: { showSpeakers = true },
-                              settings: { showMeetingSettings = true })
+                              settings: { showMeetingSettings = true }, reconnect: reconnectAudio)
                 if !reachable {  // the banner is the Mac's last word: say it may be stale
                     Label("Mac not reachable. The meeting goes on there; the notes catch up when it answers.",
                           systemImage: "wifi.exclamationmark")
@@ -422,6 +444,7 @@ struct CallView: View {
                     HandCard(hand: hand, participating: meeting.participating) { decision in
                         await act { try await call.api.hand(decision) }
                     }
+                    .id(handId)  // a new hand gets a new card: never the last one's busy buttons
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 if let request = waiting.first {
@@ -444,7 +467,7 @@ struct CallView: View {
                     .ignoresSafeArea(edges: .bottom)
                     .allowsHitTesting(false)
             }
-            .animation(.snappy, value: meeting.hand?.at)
+            .animation(.snappy, value: handId)
         }
     }
 
@@ -460,6 +483,17 @@ struct CallView: View {
     }
 
     private func setMeetingMode(_ mode: String) { Task { await act { try await call.api.meetingMode(mode) } } }
+
+    static let reconnecting = "Reconnecting the room\u{2019}s audio. Speakers are labelled afresh: say \u{201C}Pointe, that\u{2019}s me\u{201D} again."
+
+    /// The room's audio seems stuck: a new stream. Its speakers are labelled afresh, so the owner claims the seat again.
+    private func reconnectAudio() {
+        Task {
+            if await act({ try await call.api.reconnectMeeting() }) {
+                problem = Self.reconnecting
+            }
+        }
+    }
 
     private func meetingVendors() async -> (API.VendorsReply?, String?) {
         if demo != nil {
@@ -485,7 +519,7 @@ struct CallView: View {
             try await call.api.startMeeting(mode: mode, brief: brief, sessions: sessions, autoLookups: autoLookups)
         } catch API.Failure.status(_, let detail) {
             if detail == "No call is up." { return "No call is up. Start one here with the mic, or on the Mac, then start the meeting." }
-            return detail.isEmpty ? "The Mac refused." : Self.sentence(detail)
+            return detail.isEmpty ? "The Mac refused." : Self.refusal(409, detail)
         } catch {
             return "The Mac did not answer."
         }
@@ -642,13 +676,13 @@ struct CallView: View {
             try await work()
             problem = nil
         } catch API.Failure.status(409, let detail) {
-            problem = detail == "no call is up" || detail.hasPrefix("HTTP") ? "Start the call first." : Self.sentence(detail)
+            problem = detail == "no call is up" || detail.hasPrefix("HTTP") ? "Start the call first." : Self.refusal(409, detail)
             return false
         } catch API.Failure.status(404, _) where meeting == nil {
             problem = "Pointe on the Mac does not know this yet: update it."
             return false
-        } catch API.Failure.status(_, let detail) {
-            problem = Self.sentence(detail)
+        } catch API.Failure.status(let code, let detail) {
+            problem = Self.refusal(code, detail)
             return false
         } catch {
             problem = "The Mac did not answer."

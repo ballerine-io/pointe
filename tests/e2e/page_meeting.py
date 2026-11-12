@@ -25,7 +25,7 @@ from rig import DAEMON, GUEST_VOICES, ROOT, STATE, Browser, fresh_state, stop_da
 from scenarios import check, results  # noqa: E402
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-DEBUG_PORT = 9335
+DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "9335"))  # parallel runs each need their own
 DANA, SAM = GUEST_VOICES
 ROOM = [  # (voice, or None for the owner; line): the lines tests/e2e/meeting.py uses, minus its approval checks
     (DANA, "Hi everyone, I'm Dana. The new pricing page goes live on Thursday."),
@@ -119,6 +119,8 @@ async def main() -> None:
             page = Page(socket)
             await page.js("window.__errors = []; addEventListener('error', e => __errors.push(e.message)); "
                           "addEventListener('unhandledrejection', e => __errors.push(String(e.reason)))")
+            await page.js("window.__notesUrls = []; const realFetch = window.fetch; window.fetch = (u, o) => { "
+                          "if (String(u).startsWith('/voice/notes?')) __notesUrls.push(String(u)); return realFetch(u, o); }")
             await page.until("!document.getElementById('meetbtn').disabled", 15)
 
             await page.js("openSettings()")
@@ -178,6 +180,27 @@ async def main() -> None:
             check("the Transcript filter shows the room's turns", (turns or 0) >= 3, turns=turns)
             await page.js("document.querySelector('#notes .filters button[data-f=all]').click()")
 
+            urls = await page.js("__notesUrls")
+            whole = [u for u in urls if "changed_since=" not in u]  # the start loads the list whole, then only changes
+            check("the notes poll asks only for what changed since the version it last saw",
+                  len(whole) <= 2 and len(urls) > len(whole), whole=whole, urls=urls[-3:], count=len(urls))
+            refused = await page.js("meetPost({action: 'discard'}).then(() => 'accepted', e => e.message)")
+            check("a 409 reads as a sentence: discard while the meeting is on", refused == "End the meeting first: it is still on.",
+                  shown=refused)
+            bad = await page.js("meetPost({action: 'owner', turn_id: 'x'}).then(() => 'accepted', e => e.message)")
+            check("a 400 reads as a sentence", (bad or "").startswith("Pointe did not accept that: turn_id must be a number."),
+                  shown=bad)
+
+            await page.js("document.getElementById('meetredial').click()")
+            told = await page.until("document.getElementById('problem').textContent.includes('that’s me')", 10)
+            unknown = await page.until("document.getElementById('meetsub').textContent.includes('say “Pointe, that’s me”')", 15)
+            await page.shot("3b-reconnected")
+            check("Reconnect audio: a new stream, and it asks the owner to say “Pointe, that's me” again",
+                  bool(told) and bool(unknown) and call("/voice/status")["meeting"]["owner_known"] is False,
+                  problem=await page.js("document.getElementById('problem').textContent"),
+                  sub=await page.js("document.getElementById('meetsub').textContent"))
+            await room(browser, [(None, "Pointe, that's me.")])
+
             await page.js("document.getElementById('mm-participating').click()")
             await page.until("document.getElementById('meetwhat').textContent === 'Meeting · Participating'", 6)
             risky_at = time.time()
@@ -197,6 +220,11 @@ async def main() -> None:
             await asyncio.sleep(8)
 
             await page.js("document.querySelector('#meetbar button[onclick=\"endMeeting()\"]').click()")
+            ending = await page.until("document.getElementById('meetsub').textContent.includes('Ending: writing the summary') && "
+                                      "document.getElementById('meetend').disabled", 10, 0.2)
+            again = await page.js("meetPost({action: 'end'}).then(() => 'accepted', e => e.message)")
+            check("while it ends, the banner says so, End is off, and a second end reads as a sentence",
+                  bool(ending) and again == "The meeting is already ending: the summary is being written.", second=again)
             ended = await page.until("document.getElementById('endsheet').classList.contains('open') && "
                                      "document.getElementById('endbody').textContent", 90, 1)
             await page.shot("5-end")

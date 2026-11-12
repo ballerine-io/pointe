@@ -8,6 +8,7 @@
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-meetios CLAUDE_VOICE_DAEMON_PORT=7907 CLAUDE_VOICE_TLS_PORT=7507 \
      uv run python -u -I ios/e2e/meeting_ui.py <simulator id> [screenshot folder] [--only real|fake]
+Builds in parallel each need POINTE_DERIVED_DATA (default /tmp/pointe-dd); DEVELOPMENT_TEAM, when set, signs the build.
 """
 
 import asyncio
@@ -33,6 +34,9 @@ SHOTS = Path(args[1] if len(args) > 1 else "/tmp/pointe-meeting-shots")
 ONLY = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
 TLS_PORT = int(os.environ["CLAUDE_VOICE_TLS_PORT"])
 results: list[tuple[str, bool | None]] = []
+# Parallel builds each need their own derived data; a signing team, when given, goes to xcodebuild.
+DERIVED = os.environ.get("POINTE_DERIVED_DATA", "/tmp/pointe-dd")
+TEAM = [f"DEVELOPMENT_TEAM={os.environ['DEVELOPMENT_TEAM']}"] if os.environ.get("DEVELOPMENT_TEAM") else []
 
 # Made-up people and words. (tests/e2e/meeting.py runs on import, so its room is not imported.)
 DANA, SAM = GUEST_VOICES
@@ -122,8 +126,8 @@ def xcodebuild(case: str, test: str, link: str) -> subprocess.Popen:
     log = SHOTS / f"xcode-{case}.log"
     xcode = subprocess.Popen(
         ["xcodebuild", "-project", str(ROOT / "ios" / "Pointe.xcodeproj"), "-scheme", "Pointe", "-destination",
-         f"id={SIMULATOR}", "-derivedDataPath", "/tmp/pointe-dd", f"-only-testing:PointeUITests/MeetingUITests/{test}",
-         "test"],
+         f"id={SIMULATOR}", "-derivedDataPath", DERIVED, f"-only-testing:PointeUITests/MeetingUITests/{test}",
+         *TEAM, "test"],
         env={**os.environ, "TEST_RUNNER_POINTE_PAIR": link, "TEST_RUNNER_MEETING_SHOTS": str(SHOTS),
              "TEST_RUNNER_MEETING_CASE": case}, stdout=open(log, "w"), stderr=subprocess.STDOUT, text=True)
     xcode.stdout_path = str(log)
@@ -202,18 +206,21 @@ async def real(link: str) -> None:
             second = await until(cue("accepted", "no-second-suggestion"), 200)
             named = [s for s in meeting().get("speakers") or [] if s.get("name")]
             check("Use this name: the speaker is named on the Mac", bool(named) if second == "accepted" else None,
-                  speakers=meeting().get("speakers"))
+                  speakers=meeting().get("speakers"),
+                  suggestions=[(n["id"], n["state"], n["text"]) for n in notes("speaker")])
         else:
             check("Ignore / Use this name", None, why="the notes model suggested no speaker name this run")
         go("room-done")
 
         await until(cue("me-dana"), 200)
         dana = label_of("goes live on Thursday")
+        await until(lambda: owner_label() == dana, 15)
         check("That was me: the owner moves to the speaker you pressed", dana is not None and owner_label() == dana,
               dana=dana, owner=owner_label())
         go("me-dana-checked")
         await until(cue("me-back"), 60)
         mine = label_of("move on")
+        await until(lambda: owner_label() == mine, 15)  # the cue is written as the tap lands, before the Mac answers
         check("That was me, back: the owner returns", mine is not None and owner_label() == mine, mine=mine, owner=owner_label())
         go("me-back-checked")
 

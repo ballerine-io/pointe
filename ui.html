@@ -252,6 +252,9 @@
   #meetbar .grow { flex: 1; min-width: 0; color: var(--muted); }
   #meetbar .seg { flex: none; }
   #meetbar .seg button { padding: 4px 10px; font-size: 12px; }
+  #meetbar .redial { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; background: var(--card); color: var(--text);
+                     font: 600 12px 'Inter', sans-serif; cursor: pointer; }
+  #meetbar button:disabled { opacity: .55; cursor: default; }
   #meetbar .end { border: 0; border-radius: 999px; padding: 6px 14px; background: #FF453A; color: #fff; font: 600 12.5px 'Inter', sans-serif; cursor: pointer; }
   #speakers { display: flex; gap: 6px; flex-wrap: wrap; }
   #speakers .chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: 12px; background: var(--card); cursor: pointer; color: var(--text); }
@@ -563,7 +566,8 @@
       <button id="mm-listening" onclick="meetingMode('listening')">Listening</button>
       <button id="mm-participating" onclick="meetingMode('participating')">Participating</button>
     </div>
-    <button class="end" onclick="endMeeting()">End meeting</button>
+    <button class="redial" id="meetredial" onclick="reconnectAudio()" title="The room's audio seems stuck: open a new stream. Speakers are labelled afresh.">Reconnect audio</button>
+    <button class="end" id="meetend" onclick="endMeeting()">End meeting</button>
   </div>
   <div class="stage">
     <ul id="talk" aria-live="polite"><li class="empty">Press the mic and start talking.</li></ul>
@@ -1214,17 +1218,32 @@
                      summary: 'Summary', speaker: 'Speaker'};
   const VENDOR = {soniox: 'Soniox', anthropic: 'Anthropic', gemini: 'Google Gemini', openai: 'OpenAI', elevenlabs: 'ElevenLabs', local: 'this Mac'};
   let meetOn = false, meetFilter = 'all', notesVersion = -1, notesById = new Map(), transcript = [], transcriptAt = 0;
-  let endShown = false, sendSure = 0, naming = null, meetCanStart = false, notesClosed = false, meetSince = 0;
+  let endShown = false, sendSure = 0, naming = null, meetCanStart = false, notesClosed = false, meetSince = 0, meetId = null;
   const lookingUp = new Set();
   const meetingOf = s => (s && s.meeting) || null;
   const clock = secs => { secs = Math.max(0, Math.round(secs)); const h = Math.floor(secs / 3600), m = Math.floor(secs % 3600 / 60), x = secs % 60;
                           return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
   const hhmm = t => new Date(t * 1000).toTimeString().slice(0, 5);
 
+  // The daemon's refusals, as sentences for the person at the screen. Anything else it says is already a sentence.
+  const MEET_REFUSAL = {
+    'the meeting is already ending': 'The meeting is already ending: the summary is being written.',
+    'end the meeting first': 'End the meeting first: it is still on.',
+    'no meeting is on': 'No meeting is on.',
+    'no meeting to act on': 'That meeting is gone: there is nothing to export or send.',
+    'no session has that name': 'That session is no longer connected. Pick another one.',
+    'name a session, and the meeting needs action items': 'Pick a session. Only a meeting with action items can send them.',
+  };
+  function meetRefusal(code, detail) {
+    if (MEET_REFUSAL[detail]) return MEET_REFUSAL[detail];
+    const said = detail ? detail[0].toUpperCase() + detail.slice(1).replace(/[^.!?]$/, '$&.') : '';
+    if (code === 400) return `Pointe did not accept that${said ? ': ' + said[0].toLowerCase() + said.slice(1) : '.'} Reload the page and try again.`;
+    return said || `Pointe refused (error ${code}).`;
+  }
   async function meetPost(body) {
     const r = await fetch('/voice/meeting', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.detail || `failed (${r.status})`);
+    if (!r.ok) throw new Error(meetRefusal(r.status, typeof data.detail === 'string' ? data.detail : ''));
     return data;
   }
   const sheetOpener = {};
@@ -1291,7 +1310,28 @@
     refresh();
   }
   async function meetingMode(mode) { try { await meetPost({action: 'mode', mode}); } catch (e) { meetError(e.message); } refresh(); }
-  async function handDecision(decision) { try { await meetPost({action: 'hand', decision}); } catch (e) { meetError(e.message); } refresh(); }
+  // A hand is known by its alert id (hand:<meeting id>:<n>), so a second click never decides the hand raised after it.
+  let handShown = null, handBusy = null;
+  const handIdOf = (s, hand) => ((s.attention || []).find(a => a.kind === 'hand') || {}).id || `at:${hand.at}`;
+  async function handDecision(decision) {
+    if (!handShown || handBusy === handShown) return;
+    handBusy = handShown; showHandButtons(meetingOf(status));
+    try { await meetPost({action: 'hand', decision}); } catch (e) { handBusy = null; meetError(e.message); }
+    refresh();
+  }
+  function showHandButtons(m) {
+    for (const b of $('hand').querySelectorAll('button'))
+      b.disabled = handBusy === handShown || (b.id === 'handspeak' && (!m || m.mode !== 'participating'));
+  }
+  async function reconnectAudio() {
+    $('meetredial').disabled = true;
+    try {
+      await meetPost({action: 'reconnect'});
+      meetError('Reconnecting the room’s audio. Speakers are labelled afresh: say “Pointe, that’s me” again so it knows your voice.', 30);
+    } catch (e) { meetError(e.message); }
+    $('meetredial').disabled = false;
+    refresh();
+  }
   async function endMeeting() {
     try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { meetError(e.message); }
     refresh();
@@ -1322,27 +1362,34 @@
     if (Date.now() > sendSure) { sendSure = Date.now() + 4000; $('endsend').textContent = `Send to ${short(session)}?`;
       setTimeout(() => { if (Date.now() > sendSure) $('endsend').textContent = 'Send action items'; }, 4100); return; }
     sendSure = 0; $('endsend').disabled = true; $('enderr').textContent = '';
-    $('endok').textContent = `Sending the action items to ${short(session)}…`;  // the daemon answers after the whole turn
+    $('endok').textContent = `Sending the action items to ${short(session)}…`;
     try { await meetPost({action: 'send_actions', session}); $('endok').textContent = `Asked to send the action items to ${short(session)}. The usual checks apply.`; }
     catch (e) { $('endok').textContent = ''; $('enderr').textContent = e.message; $('endsend').disabled = false; }
     $('endsend').textContent = 'Send action items';
   }
   async function discardMeeting() {
-    try { await meetPost({action: 'discard'}); } catch (e) {}
+    try { await meetPost({action: 'discard'}); }
+    catch (e) { if (!/gone/.test(e.message)) { $('enderr').textContent = e.message; return; } }  // gone: nothing left to keep
     notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes();
     closeEnd();
   }
   function closeEnd() { closeSheet('endsheet'); refresh(); }
   function closeNotes() { notesClosed = true; refresh(); }
 
-  // the notes stream: fetched whole when its version changes (one meeting's notes are small)
+  // The notes stream. notesVersion is the version of the last answer; below 0 the list is fetched whole. Otherwise only
+  // what came or changed since: the new notes after the newest id held, and older ones changed after that version.
+  // This meeting's notes only, never those written outside a meeting (a note without the field predates it).
+  const ourNote = n => n.meeting === undefined || (meetId ? n.meeting === meetId : n.meeting != null);
   async function loadNotes(version) {
     if (version === notesVersion) return;
-    notesVersion = version;
-    const data = await (await fetch('/voice/notes?since=0')).json().catch(() => null);
-    if (!data) return;
-    // The daemon's notes stream outlives a meeting: show only this meeting's (and its brief, added at the start).
-    notesById = new Map(data.notes.filter(n => !meetSince || n.at >= meetSince - 2).map(n => [n.id, n]));
+    const asked = notesVersion, whole = asked < 0;
+    const after = whole ? 0 : Math.max(0, ...notesById.keys());
+    const r = await fetch('/voice/notes?' + (whole ? 'since=0' : `since=${after}&changed_since=${asked}`)).catch(() => null);
+    const data = r && r.ok ? await r.json().catch(() => null) : null;
+    if (!data || notesVersion !== asked) return;  // a reset, or another load, came first: its answer stands
+    if (whole) notesById = new Map();
+    for (const n of data.notes) if (ourNote(n)) notesById.set(n.id, n);
+    notesVersion = data.version;
     renderNotes();
   }
   async function loadTranscript() {
@@ -1361,8 +1408,11 @@
     renderNotes();
   });
   async function noteState(id, body) {
-    await fetch('/voice/notes', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({id, ...body})});
-    notesVersion = -1; refresh();
+    const r = await fetch('/voice/notes', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({id, ...body})})
+      .catch(() => null);
+    if (!r) meetError('Pointe did not answer. Try again.');
+    else if (!r.ok) meetError(r.status === 404 ? 'That note is gone.' : meetRefusal(r.status, ((await r.json().catch(() => ({}))).detail) || ''));
+    refresh();
   }
   function noteItem(n, m) {
     const li = el('li', n.kind + (n.state !== 'open' ? ' ' + n.state : ''));
@@ -1415,7 +1465,10 @@
       if (!items.length) items = [el('li', 'empty', 'The transcript stays in memory only. Nothing has been said yet.')];
     } else {
       const want = meetFilter === 'all' ? null : meetFilter === 'thought' ? ['thought', 'hand', 'decision', 'brief', 'speaker', 'session_news'] : [meetFilter];
-      const notes = [...notesById.values()].filter(n => !want || want.includes(n.kind)).sort((a, b) => a.id - b.id);
+      // An open suggestion for a speaker who already has that name (a repeat of one you accepted) asks nothing.
+      const named = new Set(((m && m.speakers) || []).map(x => `${x.label}\n${x.name}`));
+      const settled = n => n.kind === 'speaker' && n.state === 'open' && n.meta && named.has(`${n.meta.label}\n${n.meta.name}`);
+      const notes = [...notesById.values()].filter(n => (!want || want.includes(n.kind)) && !settled(n)).sort((a, b) => a.id - b.id);
       for (const id of lookingUp) { const n = notesById.get(id); if (!n || n.state !== 'open') lookingUp.delete(id); }
       items = notes.map(n => keyed('n' + n.id, [n.updated, n.state, n.text, on, lookingUp.has(n.id)].join('|'), () => noteItem(n, m)));
       if (!items.length) items = [el('li', 'empty', m && m.mode === 'participating'
@@ -1448,7 +1501,10 @@
     const wasOn = meetOn;
     meetOn = !!(m && m.on);
     const ended = !!(m && m.ended);
-    if (meetOn) { notesClosed = false; endShown = false; if (m.since !== meetSince) { meetSince = m.since; notesVersion = -1; } }
+    if (meetOn) {
+      notesClosed = false; endShown = false;
+      if (m.since !== meetSince || (m.id || null) !== meetId) { meetSince = m.since; meetId = m.id || null; notesVersion = -1; }
+    }
     if (s && !m && $('endsheet').classList.contains('open')) {  // the daemon no longer has it: export and send would fail
       closeSheet('endsheet');
       meetError('The meeting is gone because Pointe restarted. Its notes were not saved.', 60);
@@ -1459,9 +1515,9 @@
     }
     document.body.classList.toggle('meeting', meetOn);
     document.body.classList.toggle('meetend', !meetOn && ended && notesById.size > 0 && !notesClosed);
-    $('meet-label').textContent = meetOn ? 'End' : 'Meeting';
+    $('meet-label').textContent = m && m.ending ? 'Ending…' : meetOn ? 'End' : 'Meeting';
     $('meetbtn').classList.toggle('on', meetOn);
-    $('meetbtn').disabled = !(s && s.connected) && !meetOn;
+    $('meetbtn').disabled = (!(s && s.connected) && !meetOn) || !!(m && m.ending);
     $('meetbtn').title = meetOn ? 'End the meeting' : 'A meeting: the voice listens and takes notes';
     if (ended && !endShown && m.result) showEnd(m.result);
     if (!m) { $('hand').hidden = true; if (!$('endsheet').classList.contains('open') && notesById.size) { notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes(); } return; }
@@ -1470,7 +1526,9 @@
     document.title = '● Meeting · Ballerine Pointe';
     const n = (m.speakers || []).length;
     $('meetwhat').textContent = `Meeting · ${m.mode === 'participating' ? 'Participating' : 'Listening'}`;
-    $('meetsub').replaceChildren([`${n} speaker${n === 1 ? '' : 's'}`, clock(Date.now() / 1000 - m.since),
+    $('meetend').disabled = !!m.ending; $('meetend').textContent = m.ending ? 'Ending…' : 'End meeting';
+    $('meetredial').hidden = !!m.ending;
+    $('meetsub').replaceChildren([m.ending ? 'Ending: writing the summary…' : '', `${n} speaker${n === 1 ? '' : 's'}`, clock(Date.now() / 1000 - m.since),
       `audio to ${VENDOR[(m.vendors || {}).room_audio] || 'Soniox'}`, m.speaking ? 'speaking to the room' : '',
       m.owner_known ? '' : 'say “Pointe, that’s me” so it knows your voice'].filter(Boolean).join(' · '));
     if (!s.connected) $('meetsub').append(' · ', el('span', 'warn', 'The call dropped: reconnect to keep listening. Nothing is heard until then.'));
@@ -1484,7 +1542,8 @@
     }));
     const hand = m.hand;
     $('hand').hidden = !hand;
-    if (hand) { $('handline').textContent = hand.line; $('handline').dir = 'auto'; $('handspeak').disabled = m.mode !== 'participating'; }
+    handShown = hand ? handIdOf(s, hand) : null;
+    if (hand) { $('handline').textContent = hand.line; $('handline').dir = 'auto'; showHandButtons(m); }
     if (meetFilter === 'transcript') { loadTranscript(); renderNotes(); }  // names change under the turns (That was me, a rename)
   }
   document.addEventListener('keydown', e => {  // G lets a raised hand speak, while the page is focused and nobody is typing
