@@ -20,6 +20,7 @@ import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import aiohttp
@@ -755,7 +756,7 @@ class BrainFront(FrameProcessor):
                 logger.info("speech held: nobody in the meeting asked for it")
                 return
             state.meeting_may_speak_until = 0.0  # one reply per ask
-            state.meeting_said.append((time.time(), text))
+        state.bot_spoke.append((time.time(), text))
         if request_id is None:  # a read-out stays exact: its command may contain a session's name
             text = _spoken_names(text)
         # in a meeting the bot's words can quote the room, which the log never keeps
@@ -1202,7 +1203,8 @@ class State:
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
     meeting_may_speak_until: float = 0.0  # in participating, the room hears the bot only inside this window
-    meeting_said: deque = field(default_factory=lambda: deque(maxlen=8))  # (when, text): what the bot said into the meeting
+    # (when, text): what the bot said lately, in a meeting or just before one (its echo lands in the next meeting's stream)
+    bot_spoke: deque = field(default_factory=lambda: deque(maxlen=8))
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
     last_message: str = ""  # the last delivered request, word for word
@@ -2238,28 +2240,32 @@ async def _on_meeting_reconnect() -> None:
 
 
 MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing as a meeting turn
-MEETING_ECHO_SHARE = 0.7  # this share of a late turn's words, in pairs the bot said, makes it the bot's
+MEETING_ECHO_SHARE = 0.6  # this share of a late turn's words, aligned in order with what the bot said, makes it the bot's
+MEETING_ECHO_RUN = 3  # and a run of this many words exactly as the bot said them (or the whole turn, if shorter)
+
+
+def _repeats_the_bot(heard: list[str], said: list[str]) -> bool:
+    """In order, allowing Soniox's mishearings of the bot's own voice ("ובודקים" heard as "או רק אם")."""
+    blocks = SequenceMatcher(None, heard, said, autojunk=False).get_matching_blocks()
+    return sum(b.size for b in blocks) >= MEETING_ECHO_SHARE * len(heard) and \
+        max(b.size for b in blocks) >= min(MEETING_ECHO_RUN, len(heard))
 
 
 def _meeting_echo(said: str, new_label: bool) -> bool:
     """Its own voice through the laptop speakers. A meeting turn closes seconds after the words (Soniox finalises late, a
     turn closes on 1.2 s of quiet, the loop ticks every 2 s; 8-11 s measured), past the call's echo tail: a turn is also
-    the bot's when most of its words are pairs the bot just said into the meeting, or, on a label nobody has used yet, it
-    is one word the bot just said (its reply cut off by a talk-over). Never a turn addressed to Pointe."""
+    the bot's when it repeats what the bot said lately, or, on a label nobody has used yet, it is one word the bot just
+    said (its reply cut off by a talk-over). Never a turn with a sentence addressed to Pointe, wherever it starts: the
+    echo and the owner's "Pointe, that's me" can close as one turn."""
     if ECHO.live and not ECHO.user_part(said):
         return True
     heard = echo_words(said)
-    if not heard or meetings.addressed(said) is not None:
+    if not heard or meetings.addressed_all(said):
         return False
-    recent = [echo_words(text) for at, text in state.meeting_said if time.time() - at < MEETING_ECHO_SECS]
+    recent = [echo_words(text) for at, text in state.bot_spoke if time.time() - at < MEETING_ECHO_SECS]
     if len(heard) == 1:
         return new_label and any(heard[0] in said_words for said_words in recent)
-    pairs = {p for said_words in recent for p in zip(said_words, said_words[1:])}
-    covered = [False] * len(heard)
-    for i, pair in enumerate(zip(heard, heard[1:])):
-        if pair in pairs:
-            covered[i] = covered[i + 1] = True
-    return sum(covered) >= MEETING_ECHO_SHARE * len(heard)
+    return any(_repeats_the_bot(heard, said_words) for said_words in recent)
 
 
 HOLD_ADDRESSED_SECS = 2.0  # an addressed sentence with no closing punctuation waits this long for the rest of it

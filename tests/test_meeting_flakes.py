@@ -123,3 +123,57 @@ def test_unheard_audio_is_handed_over_once_when_both_the_reader_and_the_sender_s
     ears._requeue_unheard()
     ears._requeue_unheard()
     assert list(ears._queue) == [a]
+
+
+# ---------- the bot's echo and the owner's claim, as the instrumented meeting e2e showed them ----------
+
+import time  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+
+from test_orchestrator import d  # noqa: E402,F401  (d is a fixture)
+from test_wave1_bugs import _bot_said_then_room_turn  # noqa: E402
+from test_meeting_daemon import _meeting_ready, _start  # noqa: E402
+
+
+def test_a_claim_closing_in_one_turn_with_the_bots_echo_is_heard(d, monkeypatch):
+    """Soniox can file the bot's echo and the owner's "Pointe, that's me" under one label in one turn. Most of its words
+    are then the bot's, and the late-echo check took the whole turn, claim included, as echo: no log line, no owner."""
+    bot = "I'd keep going, briefly. The refund pricing issue and the alerts question are still open."
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, bot, bot + " Pointe, that's me.", "5")
+    assert m.owner == "5", (m.owner, [t.who for t in turns])
+
+
+def test_the_bots_words_from_just_before_the_meeting_are_its_echo_in_it(d, monkeypatch):
+    """Seen in the e2e: the permission read-out, spoken between two meetings, came back in the next meeting's stream as
+    "Pricing wants to." under a new label: a person, since only speech inside a meeting was compared."""
+    monkeypatch.setattr(d, "ECHO", d.EchoGuard())
+    _meeting_ready(d, monkeypatch)
+
+    async def push_frame(frame, *a):
+        pass
+
+    asyncio.run(d.BrainFront._speak(SimpleNamespace(push_frame=push_frame), "Pricing wants to delete the build folder. Should it?"))
+    d.ECHO.bot_started()
+    d.ECHO.bot_stopped()
+    monkeypatch.setattr(d.ECHO, "stopped_at", time.time() - 9)
+    _start(d, "participating")
+    m = d.state.meeting
+    turns = m.hear([{"is_final": True, "text": " Pricing wants to.", "speaker": "2"}], m.since + 1)
+    turns += m.tick(m.since + 5)
+    for t in turns:
+        asyncio.run(d._on_meeting_turn(m, t))
+    assert turns[0].who == "Pointe" and "2" not in [s["label"] for s in m.speakers()], m.speakers()
+
+
+def test_the_bots_echo_with_a_word_misheard_is_still_the_bot(d, monkeypatch):
+    """Instrumented run 6: Soniox heard the bot's "...שמתקנים ובודקים החזרים" as "...שמתקנים או רק אם החזרים" (one word
+    as three), so exact word pairs covered 5 of 9 words and the bot's tail became a new speaker after the reconnect."""
+    bot = "הייתי דוחה, או משיק רק אחרי שמתקנים ובודקים החזרים."
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, bot, "או משיק רק אחרי שמתקנים או רק אם החזרים—", "1:1")
+    assert turns[0].who == "Pointe", [t.who for t in turns]
+
+
+def test_a_participant_using_a_few_of_the_bots_words_is_still_a_participant(d, monkeypatch):
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "The refunds flow still uses the old prices and was never tested.",
+                                        "I tested the refunds myself last week, they work.", "3")
+    assert turns[0].who != "Pointe"
