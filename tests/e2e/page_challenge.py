@@ -148,7 +148,9 @@ async def main() -> None:
             turns = bot_turns()
             await browser.say("Here's my plan: we put the webhook retries back on a Redis queue, so Velloria ships on Thursday.")
             await until(lambda: bot_turns() > turns, 30)  # its reply, heard to the end: "challenge this" is not a barge-in
+            await until(lambda: call("/voice/status")["speaking"] == "bot", 8, 0.1)
             await quiet()
+            await asyncio.sleep(2)
             t0 = time.time()
             await browser.say("Challenge this.")
             on = await until(lambda: (chl() or {}).get("on"), 25)

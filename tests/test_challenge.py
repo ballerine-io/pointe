@@ -41,6 +41,28 @@ def test_start_phrases(said):
 
 
 @pytest.mark.parametrize("said", [
+    "My read: no. Challenge this:", "Okay, that's the idea. Play devil's advocate.", "So that's it. תתקוף את זה",
+])
+def test_the_phrase_as_the_last_sentence_of_a_turn_counts(said):
+    """The bot's echo or a lead-in can land in the same final: the phrase as its own last sentence still starts it."""
+    assert challenge.start_intent(said), said
+
+
+@pytest.mark.parametrize("said", [
+    "Fair enough. You've made your point.", "Right, I see. Verdict?",
+])
+def test_the_end_as_the_last_sentence_counts(said):
+    assert challenge.end_intent(said), said
+
+
+@pytest.mark.parametrize("said", [
+    "I'd say we should challenge this.", "Challenge this. Then send it to lantern.", "Stop. Then send it to lantern.",
+])
+def test_a_phrase_inside_a_request_is_not_the_mode(said):
+    assert not challenge.start_intent(said) and not challenge.end_intent(said), said
+
+
+@pytest.mark.parametrize("said", [
     "can you challenge the vendor on price", "challenge this assumption in the doc and send it to lantern",
     "we should play devil's advocate with the board next week", "stop", "",
 ])

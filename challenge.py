@@ -43,14 +43,21 @@ _END = re.compile(
     r"הבנתי את הנקודה|די|עצור|מספיק|פסק דין|מה הפסק דין|חזרה לרגיל|סיים את האתגר|סיימנו עם האתגר)\W*$", re.I)
 
 
+def _last_sentence(text: str) -> str:
+    """The turn's last sentence: a lead-in ("My read: no.") or the bot's echo can share a final with the phrase."""
+    parts = [p for p in re.split(r"(?<=[.!?:;…])\s+", (text or "").strip()) if re.search(r"\w", p)]
+    return parts[-1] if parts else ""
+
+
 def start_intent(text: str) -> bool:
-    """"Challenge this" as a whole short utterance: "challenge the vendor on price" is a request, not the mode."""
-    return bool(text) and bool(_START.match(text.strip()))
+    """"Challenge this" as a whole sentence, the turn's last: "challenge the vendor on price" is a request, not the
+    mode, and so is "challenge this. Then send it to lantern"."""
+    return bool(_START.match(_last_sentence(text)))
 
 
 def end_intent(text: str) -> bool:
-    """"You've made your point", "verdict", "back to normal", "stop": a whole utterance, never a sentence holding one."""
-    return bool(text) and bool(_END.match(text.strip()))
+    """"You've made your point", "verdict", "back to normal", "stop": a whole sentence, the turn's last."""
+    return bool(_END.match(_last_sentence(text)))
 
 
 def _cap(text: str, n: int) -> str:
