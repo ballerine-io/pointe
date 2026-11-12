@@ -319,7 +319,7 @@ def _echo_then_claim(d, monkeypatch, hz):
     assert m.bot == "1:1"
     monkeypatch.setattr(d.ECHO, "user_part", lambda text: text)
     d.state.meeting_ears = SimpleNamespace(audio_between=lambda a, b: tone(hz, 2.0))
-    claim = m.hear([{"is_final": True, "text": " Pointe, that's me", "speaker": "1", "start_ms": 4000, "end_ms": 6000}], now + 10)
+    claim = m.hear([{"is_final": True, "text": " Pointe, that's me.", "speaker": "1", "start_ms": 4000, "end_ms": 6000}], now + 10)
     claim += m.tick(now + 15)
     for t in claim:
         asyncio.run(d._on_meeting_turn(m, t))
@@ -435,3 +435,286 @@ def test_meeting_status_says_speaking_while_the_bot_talks_to_the_room(d, monkeyp
     assert d.state.meeting.status()["speaking"] is True
     asyncio.run(d.SonioxEars.process_frame(ears, BotStoppedSpeakingFrame(), up))
     assert d.state.meeting.status()["speaking"] is False
+
+
+# ---------- 15. during a meeting no room words and no owner question reach the log, in any line ----------
+
+def _log_during(d, run) -> list[str]:
+    """Every log message as the sinks get it (the daemon's meeting patcher applied) while `run` runs."""
+    from loguru import logger
+    lines = []
+    logger.configure(patcher=d._meeting_redact)
+    sink = logger.add(lambda m: lines.append(m.record["message"]), level="DEBUG")
+    try:
+        asyncio.run(run())
+    finally:
+        logger.remove(sink)
+        logger.configure(patcher=lambda r: None)
+    return lines
+
+
+def _echoing_reader(d, monkeypatch):
+    """A reading model that repeats the owner's words it was given into the report, as a model may."""
+    async def read(_system, prompt, _thinking=None):
+        asked = prompt.split("The owner's recent words on this call, last one latest:\n", 1)[-1].split("\n\n", 1)[0] \
+            if "The owner's recent words" in prompt else ""
+        return {"say": "", "line": "", "speak": True, "waiting": True, "need": asked, "unblock": asked}
+
+    monkeypatch.setattr(d, "_read_model", read)
+
+
+def _session_finishes(d, s):
+    from brief import FINAL_MARK
+    s.idle_since = time.time()
+    return d.feed(s, f"[{s.name} finished its turn] {FINAL_MARK}The export is written.", True)
+
+
+def test_the_owners_meeting_question_does_not_reach_the_log_through_a_session_report(d, monkeypatch):
+    """The owner's question in a meeting became state.last_utterance, which the report prompt passes as "the owner's
+    recent words"; the report then went to the log ("is waiting on the user: ...", "feed: ...")."""
+    _meeting_ready(d, monkeypatch)
+    _echoing_reader(d, monkeypatch)
+    s = add(d, "s1", "pricing")
+    d.REGISTRY.active_id = s.id
+    _start(d, "participating")
+    d.state.meeting.owner = "1"
+
+    async def run():
+        await d._meeting_command("should we raise the Lisbon price to twelve euros?")
+        await _session_finishes(d, s)
+    leaked = [line for line in _log_during(d, run) if "Lisbon" in line]
+    assert not leaked, leaked
+
+
+def test_room_words_a_raised_hand_took_as_the_language_do_not_reach_the_log(d, monkeypatch):
+    """meeting_hand("speak") set state.last_utterance to the room's latest turn (for its language): the same path then
+    carried a participant's words into the log."""
+    _meeting_ready(d, monkeypatch)
+    _echoing_reader(d, monkeypatch)
+    s = add(d, "s1", "pricing")
+    d.REGISTRY.active_id = s.id
+    _start(d, "participating")
+    m = d.state.meeting
+    m.hear([{"is_final": True, "text": " Dana thinks the Lisbon launch slips to May.", "speaker": "2"}], m.since + 1)
+    m.tick(m.since + 5)
+    m.hand = d.meetings.Hand("A risk.", "The launch date is at risk.", time.time())
+
+    async def run():
+        await d.meeting_hand("speak")
+        await _session_finishes(d, s)
+    leaked = [line for line in _log_during(d, run) if "Lisbon" in line]
+    assert not leaked, leaked
+
+
+def test_any_log_line_quoting_the_room_or_the_owners_question_is_withheld_in_a_meeting(d, monkeypatch):
+    """A backstop for lines nobody listed: run 7 of the meeting e2e logged `barge-in: "<the bot's words>"` mid-meeting."""
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    m = d.state.meeting
+    m.hear([{"is_final": True, "text": " Dana thinks the Lisbon launch slips to May.", "speaker": "2"}], m.since + 1)
+    m.tick(m.since + 5)
+    d.state.last_utterance = "should we raise the price to twelve euros"
+    for line in ("barge-in: 'the Lisbon launch slips to May, she said'",
+                 "send_to_claude_code refused: 'x' (user said 'should we raise the price to twelve euros')",
+                 "something new: we raise the price to twelve"):
+        record = {"name": "__main__", "level": SimpleNamespace(no=20), "message": line}
+        d._meeting_redact(record)
+        assert "Lisbon" not in record["message"] and "twelve" not in record["message"], record["message"]
+    record = {"name": "__main__", "level": SimpleNamespace(no=20), "message": "meeting command: ask"}
+    d._meeting_redact(record)
+    assert record["message"] == "meeting command: ask"
+
+
+# ---------- 16. the bot's own voice in the meeting stream is the bot, however late its turn closes ----------
+
+def _bot_said_then_room_turn(d, monkeypatch, bot_text, heard, label, secs_after_stop=9.0):
+    """The bot said `bot_text` into the meeting and stopped; its echo closes as a meeting turn `secs_after_stop` later (the
+    e2e measured 8-11 s: Soniox finalises late, a turn closes on 1.2 s of quiet, the loop ticks every 2 s)."""
+    monkeypatch.setattr(d, "ECHO", d.EchoGuard())  # its own: the module's guard outlives the test
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    m = d.state.meeting
+    m.owner = "1"
+    m.hear([{"is_final": True, "text": " Who owns the pricing page?", "speaker": "2"}], m.since + 1)
+    for t in m.tick(m.since + 5):
+        asyncio.run(d._on_meeting_turn(m, t))
+    d.state.meeting_may_speak_until = time.time() + 10
+
+    async def push_frame(frame, *a):
+        pass
+
+    asyncio.run(d.BrainFront._speak(SimpleNamespace(push_frame=push_frame), bot_text))
+    d.ECHO.bot_started()
+    d.ECHO.bot_stopped()
+    monkeypatch.setattr(d.ECHO, "stopped_at", time.time() - secs_after_stop)
+    turns = m.hear([{"is_final": True, "text": " " + heard, "speaker": label}], m.since + 20)
+    turns += m.tick(m.since + 30)
+    for t in turns:
+        asyncio.run(d._on_meeting_turn(m, t))
+    return m, turns
+
+
+def test_the_bots_late_echo_on_a_new_label_is_not_a_fourth_person(d, monkeypatch):
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Before we agree, if we skip the payment tests the refunds break.",
+                                        "Before we agree, if we skip the payment tests", "4")
+    assert turns[0].who == "Pointe"
+    assert "4" not in [s["label"] for s in m.speakers()], m.speakers()
+
+
+def test_the_bots_late_echo_on_a_participants_label_is_the_bot_and_the_participant_stays(d, monkeypatch):
+    """Seen in the e2e: the bot's "I can't judge that yet." came back under Dana's label, 8 s after it stopped."""
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "I can't judge that yet without the numbers.", "I can't judge that yet.", "2")
+    assert turns[0].who == "Pointe"
+    assert m.bot != "2" and "2" in [s["label"] for s in m.speakers()], (m.bot, m.speakers())
+
+
+def test_a_participant_echoing_nothing_the_bot_said_is_still_a_participant(d, monkeypatch):
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "I can't judge that yet without the numbers.",
+                                        "Let's ship it on Thursday anyway.", "3")
+    assert turns[0].who != "Pointe" and "3" in [s["label"] for s in m.speakers()]
+
+
+def test_an_addressed_turn_in_the_bots_words_is_the_owners_command(d, monkeypatch):
+    async def no_model(*_a, **_k):
+        return {}
+
+    monkeypatch.setattr(d, "_read_model", no_model)  # the end-of-meeting pass
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Say Pointe, end the meeting, when you are done.",
+                                        "Pointe, end the meeting.", "1")
+    assert d.state.meeting is None, "the owner's end command was taken for the bot's echo"
+
+
+# ---------- 17. a stale transcript from the conversation's ears does not cut the bot off in a meeting ----------
+
+def test_a_stale_conversation_transcript_does_not_cut_the_bot_off_in_a_meeting(d, monkeypatch):
+    """Seen in the meeting e2e: every 25-35 s `barge-in: "Connected to pricing. I'm still catching up on it."` (the call's
+    greeting echo, left unfinalised when the meeting took the microphone) came back as an interim while the bot spoke to
+    the room, and cut it off."""
+    from pipecat.frames.frames import InterimTranscriptionFrame, TranscriptionFrame
+    from pipecat.processors.frame_processor import FrameDirection
+    monkeypatch.setattr(d, "ECHO", d.EchoGuard())  # its own: the module's guard outlives the test
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    ears = d.SonioxEars()
+    cuts, heard = [], []
+
+    async def cut():
+        cuts.append(True)
+
+    async def noop(*_a, **_k):
+        pass
+
+    async def took(text):
+        heard.append(text)
+
+    monkeypatch.setattr(ears, "broadcast_interruption", cut)
+    monkeypatch.setattr(ears, "push_frame", noop)
+    monkeypatch.setattr(ears, "_take", took)
+    monkeypatch.setattr(d.FrameProcessor, "process_frame", lambda self, f, dirn: asyncio.sleep(0))
+    d.ECHO.bot_started()
+    d.ECHO.bot_said("The refunds flow still uses the old prices.")
+    down = FrameDirection.DOWNSTREAM
+    stale = "Connected to pricing. I'm still catching up on it."
+    asyncio.run(d.SonioxEars.process_frame(ears, InterimTranscriptionFrame(text=stale, user_id="u", timestamp="t"), down))
+    asyncio.run(d.SonioxEars.process_frame(ears, TranscriptionFrame(text=stale, user_id="u", timestamp="t"), down))
+    d.ECHO.bot_stopped()
+    assert not cuts and not heard, (cuts, heard)
+
+
+def test_the_conversations_ears_are_finalised_when_a_meeting_takes_the_microphone(d, monkeypatch):
+    """So the words cut off by the meeting finish inside it (where they are dropped), not stuck until after it."""
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    gate = d.PttGate(SimpleNamespace(_websocket=SimpleNamespace(send=send)))
+    asyncio.run(gate.tick(T0))
+    d.state.meeting = SimpleNamespace(ending=False)
+    asyncio.run(gate.tick(T0 + 0.1))
+    asyncio.run(gate.tick(T0 + 0.2))
+    assert sent == ['{"type": "finalize"}'], sent
+
+
+# ---------- 18. an addressed sentence split across two closes is handled once, as a whole ----------
+
+def _owner_says(d, monkeypatch, parts, mode="participating"):
+    """The owner (label "1") says `parts` in one breath; the room's quiet between finals closes the turn after each part
+    (Soniox finalises in bursts), as in the e2e: "Point, end" then "the meeting."."""
+    async def no_model(*_a, **_k):
+        return {}
+
+    monkeypatch.setattr(d, "_read_model", no_model)  # the end-of-meeting pass
+    monkeypatch.setattr(d, "HOLD_ADDRESSED_SECS", 0.2)
+    pushed, _ = _meeting_ready(d, monkeypatch)
+    _start(d, mode)
+    m = d.state.meeting
+    m.owner = "1"
+
+    async def go():
+        at, ms = m.since + 1, 0
+        for i, part in enumerate(parts):
+            turns = m.hear([{"is_final": True, "text": " " + part, "speaker": "1", "start_ms": ms, "end_ms": ms + 600}], at)
+            turns += m.tick(at + 2 * d.meetings.SILENCE_CLOSES_SECS)
+            for t in turns:
+                await d._on_meeting_turn(m, t)
+            at, ms = at + 2, ms + 700  # 0.1 s of audio between the parts: one speaker, one turn
+            await asyncio.sleep(0.05)  # less than the hold: the next part arrives in time
+        await asyncio.sleep(0.4)  # past the hold
+    asyncio.run(go())
+    return m, [f.text for f in pushed]
+
+
+def test_pointe_end_the_meeting_split_across_two_closes_ends_it(d, monkeypatch):
+    _owner_says(d, monkeypatch, ["Point, end", "the meeting."])
+    assert d.state.meeting is None, "the end command was taken as a question about 'end'"
+
+
+def test_a_question_split_across_two_closes_is_asked_once_whole(d, monkeypatch):
+    m, pushed = _owner_says(d, monkeypatch, ["Pointe, what do you think", "about the launch date?"])
+    asks = [p for p in pushed if "[the owner said:]" in p]
+    assert len(asks) == 1 and asks[0].rstrip().endswith("what do you think about the launch date?"), asks
+
+
+def test_a_question_without_closing_punctuation_is_still_answered_once(d, monkeypatch):
+    m, pushed = _owner_says(d, monkeypatch, ["Pointe, what do you think about the launch date"])
+    asks = [p for p in pushed if "[the owner said:]" in p]
+    assert len(asks) == 1, asks
+
+
+def test_a_punctuated_question_is_answered_at_once(d, monkeypatch):
+    m, pushed = _owner_says(d, monkeypatch, ["Pointe, what do you think about the launch date?"])
+    asks = [p for p in pushed if "[the owner said:]" in p]
+    assert len(asks) == 1, asks
+
+
+# ---------- 19. the secretary's hand decision is in the log, without its words ----------
+
+@pytest.mark.parametrize("mode, hand, outcome", [
+    ("participating", {"raise": True, "line": "Refunds are untested."}, "raised"),
+    ("listening", {"raise": True, "line": "Refunds are untested."}, "written instead (listening)"),
+    ("participating", {"raise": False, "line": ""}, "not asked for")])
+def test_the_secretarys_hand_decision_is_logged_without_its_words(mode, hand, outcome):
+    from loguru import logger
+    from notes import Notes
+    lines = []
+    sink = logger.add(lambda msg: lines.append(msg.record["message"]), level="INFO")
+    try:
+        meetings.apply_secretary(meetings.Meeting(mode=mode, vendors={}), Notes(), {"hand": hand})
+    finally:
+        logger.remove(sink)
+    assert f"meeting: secretary pass, hand {outcome}" in lines and not any("Refunds" in x for x in lines), lines
+
+
+def test_a_one_word_echo_cut_off_by_a_talk_over_on_a_new_label_is_the_bot(d, monkeypatch):
+    """Seen in the meeting e2e: the bot began "Dana, ..." and was cut off; "Dana." closed as a new speaker, just after
+    the bot stopped (inside the echo tail, where a lone word stays the user's on a call)."""
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Dana, the refunds were never tested.", "Dana.", "4",
+                                        secs_after_stop=0.5)
+    assert turns[0].who == "Pointe" and "4" not in [s["label"] for s in m.speakers()], m.speakers()
+
+
+def test_a_one_word_reply_from_someone_already_speaking_stays_theirs(d, monkeypatch):
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Should we ship Thursday, yes or no?", "Yes.", "2",
+                                        secs_after_stop=0.5)
+    assert turns[0].who != "Pointe"

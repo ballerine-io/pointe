@@ -25,6 +25,7 @@ struct API {
         let shown_earlier: [ShownSet]?
         var show_on_phone: Bool?    // the Mac's setting; nil from a Mac without the feature
         var challenge: ChallengeStatus?  // devil's advocate (Challenge.swift): on, or the last one ended; nil from a Mac without it
+        var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
     }
 
     // MARK: show while it says (docs/plans/next-features.md, "8. Show while it says"). Paths only in status; the

@@ -5,7 +5,7 @@ import Foundation
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
-                       showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting }
+                       showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -33,6 +33,7 @@ struct Demo {
         case .showingOff: showingJSON(on: false)
         case .challenge: challengeJSON(on: true)
         case .challengeEnded: challengeJSON(on: false)
+        case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -64,6 +65,16 @@ struct Demo {
      {"id": 46, "who": "user", "text": "tell building to bump the timeout to 30 seconds", "typed": false, "corrected": true,
       "understood": "Tell billing to raise the timeout to 30 seconds."}]
     """
+
+    /// The dictionary in status: the menu item shows; with `learned`, a fix just taught "Quillfeather" (the toast).
+    private static func dictionaryJSON(learned: Bool) -> String {
+        """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+         "sessions": \(sessions), "talk": \(talk),
+         "dictionary": {"count": 2, "cap": 400, "full": false, "learn": true, "problem": null,
+                        "learned_this_call": \(learned ? "[{\"term\": \"Quillfeather\", \"at\": 1}]" : "[]")}}
+        """
+    }
 
     private static let callJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": true,

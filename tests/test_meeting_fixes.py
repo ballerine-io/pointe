@@ -25,7 +25,12 @@ def _feed(d, speaker, text, at):
             await d._on_meeting_turn(m, turn)
         for turn in m.tick(now=at + 2 * meetings.SILENCE_CLOSES_SECS + 1):
             await d._on_meeting_turn(m, turn)
-    asyncio.run(go())
+        await asyncio.sleep(d.HOLD_ADDRESSED_SECS + 0.02)  # an unpunctuated command is held, then handled
+    hold, d.HOLD_ADDRESSED_SECS = d.HOLD_ADDRESSED_SECS, 0.01
+    try:
+        asyncio.run(go())
+    finally:
+        d.HOLD_ADDRESSED_SECS = hold
 
 
 def _commands(d, monkeypatch):

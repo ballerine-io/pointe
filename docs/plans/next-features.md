@@ -1752,6 +1752,67 @@ Prefs (`GET/POST /voice/prefs`): `conflicts.on` (default true; off means no read
 - **Not built:** the `evals/` precision scenario; a live end-to-end with real OpenCode or Codex services (the mixed
   harness cases are offline, on each adapter's real mirror format).
 
+## Self-learning vocabulary (as built, 2026-11-12)
+
+Feature 2, on the daemon, the page and the app. `vocabulary.py` holds the rules; `daemon.py` calls it from
+`/voice/correct`, `_recognition_terms`, `_brain_context` and the clean-up rewrite.
+
+### API
+
+| Route | Body / query | Returns |
+|---|---|---|
+| `GET /voice/dictionary` | — | `{entries: [{term, lang: en\|he\|both, source: correction\|manual\|session, hits, added_at, confirmed}], suggestions: [{term, session, lang}], ignored, count, cap, full, learn, learned_this_call, problem}` |
+| `POST /voice/dictionary` | `{action: add, term, lang?, session?}`, `{action: edit, term, to?, lang?}`, `{action: ignore\|unignore, term}` | the same page; 400 with the reason for a refused term or a bad body, 404 unknown term, 409 full |
+| `DELETE /voice/dictionary?term=` | — | the same page; 404 unknown term |
+| `POST /voice/correct` | as before | adds `learned: [term]` |
+
+All are reachable with the page cookie, the bearer token and the phone key (`guards._PHONE_PATHS`). Status:
+`dictionary: {count, cap, full, learn, learned_this_call: [{term, at}], problem}`. Pref `dictionary.learn` (default true).
+
+### Rules in code
+
+- A correction teaches only what it fixed. The code diffs the fix against what the ears first wrote for that turn. A fix
+  that is put back is not a new mishearing (seen live: putting a fix back used to teach the misheard word). It teaches
+  identifiers (digit, `-._/`, camelCase), a word the ears split ("Kestrel Bay" → "Kestrelbay"), and capitalised names
+  (up to three words). It also teaches an uncommon word that replaced a misheard one. It never teaches grammar
+  (inflections), case-only fixes, common words, a split word, a rewritten sentence, or more than 3 terms per fix. It
+  learns nothing from a typed turn, during a meeting, or with learning off.
+- No term from any source (a correction, a hand add, an edit, a suggestion, a session or folder name, a hand-edited
+  file) holds a word from `guards._YES/_NO/_WEAK_YES/_YES_PHRASES/_YES_DESPITE_NO` or `echo.INTERRUPT_WORDS/ANSWER_WORDS`
+  (Hebrew prefixes too). No term is anything `readout.mask` changes.
+- The ears get, in this order: the dictionary (most heard first), session names, names from the session notes (at most
+  12 per session, never stored, bracketed remarks removed), and folder names. The cap is 400. The brain gets
+  `[names the user uses, spell them this way in anything you send]`, and the clean-up rewrite gets the names too.
+
+### Measured
+
+`bench/vocab_bench.py` (results in `bench/results/vocab.md`) ran 12 invented names in English and Hebrew sentences, with
+2 synthetic voices, clean and with 12 dB noise, on Soniox stt-rt-v5. Soniox spelled the name right 25/64 times without
+terms and 60/64 times with them. The terms fixed 35 clips and broke none. Control WER was 0.048 both ways, and no
+non-answer was heard as a bare yes or no. The dictionary held exactly the names that were said, so this is the best case.
+`tests/e2e/page_dictionary.py --live` checks it end to end: "Pelusin" was heard, the user fixed it in the page, and the
+next call heard "Pellucine".
+
+### Deviations from the plan
+
+- **No "Apply now".** A spike pushed `STTUpdateSettingsFrame(context=…)` into the live Soniox ears. Pipecat reconnects
+  only after a user-turn end, and Pointe's own turn handling never sends one, so the restart came one utterance late.
+  Following the plan, the dictionary applies on the next call.
+- **`dictionary.learn` is a pref** (`/voice/prefs`, set from both clients), not `"dictionary": false` in `config.json`.
+  It turns learning and suggestions off. The names in the session notes still reach the ears as hints.
+- **Hebrew words are not learned from a fix.** Hebrew has no capital letters and is heavily inflected, so the code cannot
+  tell a name from a grammar fix. A Latin name in a Hebrew sentence is learned as `both`. A Hebrew name is added by hand
+  (`lang: he`). The misheard Hebrew transliteration is not stored, because that would bias the ears toward the mishearing.
+- **`readout.mask` is wider:** a spoken "password is X1" or "הסיסמה היא X1" value (with a digit) is masked, for
+  everyone. Main's `name: value` rule is kept beside it.
+- **MirrorEars** (the echo stream) gets the same list at call start.
+- **Page:** the Dictionary sheet is in `ui_dictionary.html`, injected at `{{DICTIONARY}}`. Settings has a
+  "Dictionary…" button. **App:** Settings menu → Dictionary (`Vocabulary.swift`): the same sheet and copy. A unit
+  test checks that the copy matches the page word for word.
+- **Not built:** suggestions from the meeting's speaker names, and the hit-based eviction when the dictionary is full
+  (full refuses and stops learning, and shows "Full"). There is no `/voice/dictionary/learn` route: learning is inside
+  `/voice/correct`.
+
 ## Devil's advocate (as built, 2026-11-12)
 
 Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
