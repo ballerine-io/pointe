@@ -1857,7 +1857,9 @@ Never both, and driving wins: entering drive mode (phrase or button) ends a chal
 long speech; the challenge stays in status as ended, and its panel waits until the user stops driving), and a challenge
 is refused while driving (409 "Not while driving: …"; the Challenge button and menu item are disabled). "Back to normal"
 ends whichever of the two is on; outside both it is ordinary speech for the brain (it used to be swallowed by the drive
-phrase check). `current_mode()` checks the challenge first, but the two are never on together.
+phrase check). Drive mode is entered before the challenge is ended, so a "challenge this" heard while it ends is
+refused. The road rules (`_answer_permission`, `_read_out`) are keyed on `state.drive.on()`, not on `current_mode()`,
+so they hold even if a mode that `current_mode()` ranks higher is on at the same time.
 
 ### Ends with the call
 

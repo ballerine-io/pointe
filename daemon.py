@@ -2226,9 +2226,11 @@ def _drive_status() -> dict:
 async def set_drive(on: bool, how: str) -> bool:
     """Enter or leave drive mode (the phrase or the button). A pending request is put again in the new mode's form,
     and the yes window of the old read-out closes first: a yes heard before the switch answers nothing after it."""
-    if on and state.drive.on() is False and state.challenge is not None:
-        await end_challenge(verdict=False)  # never both: driving wins, and a verdict would be a long speech
     changed = state.drive.enter(how) if on else state.drive.leave()
+    if on and state.challenge is not None:
+        # Never both: driving wins, and a verdict would be a long speech. Drive is entered first so a challenge asked for
+        # while this one ends (end_challenge awaits) is refused (_challenge_refusal).
+        await end_challenge(verdict=False)
     if not changed or state.conn is None:
         return changed
     logger.info(f"drive mode: {'on' if on else 'off'} ({how})")
@@ -2839,7 +2841,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     others = [s for s in named_sessions(text, list(REGISTRY.sessions.values())) if s is not session]
     if others or switch_intent(text):
         return  # "yes, tell lantern to proceed" is aimed at another session
-    if verdict == "allow" and current_mode() is modes.DRIVE and (
+    if verdict == "allow" and state.drive.on() and (  # the road rules hold under any mode on top (a challenge)
             session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
         state.utterance_spent = True
         await _read_out(session)  # its drive form: it waits until the user stops, and a no still counts
@@ -2863,7 +2865,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
             await _read_out(session)
         return
     # Drive mode, with a voiceprint stored: the yes itself must be a strong owner match, at any lock level.
-    if verdict == "allow" and current_mode() is modes.DRIVE and _has_voiceprint() and not speaker.strong(state.last_speaker):
+    if verdict == "allow" and state.drive.on() and _has_voiceprint() and not speaker.strong(state.last_speaker):
         state.utterance_spent = True
         VOICE.unsure_streak += 1
         logger.info("drive mode: a yes that was not a strong match for the owner's voice did not count")
@@ -4100,7 +4102,7 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
         return
     name = _spoken_names(session.name)
     hebrew = re.search(r"[\u0590-\u05ff]", state.last_utterance)
-    if current_mode() is modes.DRIVE and (session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
+    if state.drive.on() and (session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
         text = (drives.waits_unreadable(name, hebrew) if session.permission_cut else
                 drives.waits_not_for_the_road(name, session.permission_spoken, hebrew))
         session.permission_delivered_at = float("inf")
@@ -4113,7 +4115,7 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
                 f"{name} needs an approval I can't read out. It's on your screen: approve it there, or say no.")
     else:
         text = f"{name} מבקש: {session.permission_spoken}. לבצע?" if hebrew else f"{name} wants to {session.permission_spoken}. Should it?"
-    if unsure and current_mode() is modes.DRIVE:
+    if unsure and state.drive.on():
         text = drives.unsure(hebrew) + text
     elif unsure:
         text = ("לא הצלחתי לזהות שזה אתה. אמור שוב, או אשר במסך. " if hebrew else
