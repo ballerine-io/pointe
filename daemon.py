@@ -865,7 +865,7 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
             LEVEL.frame(float(np.sqrt(np.mean(pcm * pcm))) if pcm.size else 0.0, ECHO.speaking)
-            if VOICE.wanted(lock_level()):  # the voice lock scores the next utterance on this audio
+            if _scores_voices():  # the lock, or drive mode with a voiceprint, scores the next utterance on this
                 VOICE.collector.frame(frame.audio, voiced=self._voiced)
             return  # the model gets words, not audio
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():

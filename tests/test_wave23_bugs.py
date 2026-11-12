@@ -107,3 +107,20 @@ def test_the_conflict_reader_is_never_shown_a_credential():
     a, b = _report("a", "migrate", A_FINAL, time.time() - 300), _report("b", "refunds", B_FINAL, time.time())
     a.say = f"connected with {SECRET_URL}"
     assert "hunter22x" not in conflicts.check_prompt(a, b)
+
+
+# ---------- 3. drive mode + voice lock Off: the ears never collect the audio the drive rule must score ----------
+
+def test_drive_mode_with_the_lock_off_scores_the_owners_yes_through_the_ears(d, v, monkeypatch):
+    """docs: 'Utterances are scored while driving even with the lock Off.' The collector in SonioxEars.process_frame is
+    gated on VOICE.wanted(lock_level()) (daemon.py ~868), not on _scores_voices(), so at Off the judge gets no audio:
+    every yes is 'I couldn't be sure that was you' and drive-mode voice approval never works with a voiceprint."""
+    level(d, "off")
+    d.state.conn = fake_conn()
+    asyncio.run(d.set_drive(True, "button"))
+    assert d._scores_voices()
+    ears, taken, _ = _ears(d, monkeypatch)
+    asyncio.run(_utter(d, ears, OWNER_HZ, "yes, go ahead", secs=2.0))
+    verdict = taken[-1][1]
+    assert verdict is not None and verdict.score is not None, f"not scored: {verdict}"
+    assert d.speaker.strong(verdict)
