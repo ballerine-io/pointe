@@ -686,3 +686,21 @@ def test_a_punctuated_question_is_answered_at_once(d, monkeypatch):
     m, pushed = _owner_says(d, monkeypatch, ["Pointe, what do you think about the launch date?"])
     asks = [p for p in pushed if "[the owner said:]" in p]
     assert len(asks) == 1, asks
+
+
+# ---------- 19. the secretary's hand decision is in the log, without its words ----------
+
+@pytest.mark.parametrize("mode, hand, outcome", [
+    ("participating", {"raise": True, "line": "Refunds are untested."}, "raised"),
+    ("listening", {"raise": True, "line": "Refunds are untested."}, "written instead (listening)"),
+    ("participating", {"raise": False, "line": ""}, "not asked for")])
+def test_the_secretarys_hand_decision_is_logged_without_its_words(mode, hand, outcome):
+    from loguru import logger
+    from notes import Notes
+    lines = []
+    sink = logger.add(lambda msg: lines.append(msg.record["message"]), level="INFO")
+    try:
+        meetings.apply_secretary(meetings.Meeting(mode=mode, vendors={}), Notes(), {"hand": hand})
+    finally:
+        logger.remove(sink)
+    assert f"meeting: secretary pass, hand {outcome}" in lines and not any("Refunds" in x for x in lines), lines

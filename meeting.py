@@ -474,12 +474,16 @@ def apply_secretary(m: Meeting, notes: Notes, reply: dict) -> list[dict]:
             notes.add("speaker", f"Speaker {s['label']} may be {s['name']}",
                       meta={"label": str(s["label"]), "name": str(s["name"])[:40]})  # applied only on the owner's accept
     hand = reply.get("hand") or {}
+    outcome = "not asked for"
     if isinstance(hand, dict) and hand.get("raise") and hand.get("line"):
         if m.mode == "participating" and m.raise_hand(str(hand["line"]), str(hand.get("full") or hand["line"]),
                                                       str(hand.get("urgency") or "normal")):
             notes.add("hand", str(hand["line"]), meta={"full": str(hand.get("full") or "")}, dedup=False)
+            outcome = "raised"
         else:  # listening never asks to speak, and a hand held back by the rate limit is not lost: written instead
             notes.add("thought", str(hand.get("full") or hand["line"]))
+            outcome = "written instead (listening)" if m.mode != "participating" else "written instead (rate limit)"
+    logger.info(f"meeting: secretary pass, hand {outcome}")  # the decision only, never the words
     lookups = []
     for a in reply.get("answerable") or []:
         if isinstance(a, dict) and a.get("q") and a.get("session") in m.sessions:
