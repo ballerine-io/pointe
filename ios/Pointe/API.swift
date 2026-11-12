@@ -23,6 +23,7 @@ struct API {
         var showing: Showing?       // show while it says: what the voice is reporting on; nil when off on this phone
         let shown_earlier: [ShownSet]?
         var show_on_phone: Bool?    // the Mac's setting; nil from a Mac without the feature
+        var challenge: ChallengeStatus?  // devil's advocate (Challenge.swift): on, or the last one ended; nil from a Mac without it
     }
 
     // MARK: show while it says (docs/plans/next-features.md, "8. Show while it says"). Paths only in status; the
@@ -509,6 +510,16 @@ struct API {
     }
 
     func dismissAttention(_ id: String) async throws { try await post("voice/attention", ["id": id]) }
+
+    // MARK: challenge me
+
+    /// start or end. 409 carries the Mac's reason: no call, a meeting on, one already on, none on. Starting reads the
+    /// sessions' record first, so it may take a while.
+    func challenge(_ action: String) async throws {
+        var r = request("voice/challenge", method: "POST", body: ["action": action])
+        r.timeoutInterval = 30
+        _ = try await checked(r)
+    }
 
     // MARK: show while it says
 
