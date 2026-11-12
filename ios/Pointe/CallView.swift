@@ -20,6 +20,7 @@ struct CallView: View {
     @State private var showMeetingStart = false
     @State private var showMeetingSettings = false
     @State private var showVoiceLock = false
+    @State private var showConflictSettings = false
     @State private var showAlerts = false
     @State private var showIgnored = false
     @State private var showSpeakers = false
@@ -27,6 +28,10 @@ struct CallView: View {
     @State private var meetingSince: Double?  // the meeting on now, or the one that just ended (its status drops `since`)
     @State private var closedEnd: Double?     // the ended meeting whose sheet you closed: not shown again unless asked
     @State private var prefs: API.Prefs?
+    @State private var showBriefing = false
+    @State private var showBriefingSettings = false
+    @State private var briefingSeen: Set<String> = []  // ready banners dismissed here, before the Mac's status says so
+    @State private var demoSchedule = Demo.briefingsPage?.schedule
     @State private var showSheet = false
     @State private var showSettings = false
     @State private var showFollow = ShowFollow()
@@ -112,6 +117,21 @@ struct CallView: View {
                     .presentationDetents([.medium, .large])
                     .presentationBackground(.regularMaterial)
             }
+        }
+        .sheet(isPresented: $showConflictSettings) {
+            ConflictSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(isPresented: $showBriefing) {
+            BriefingSheet(status: status?.briefing, callUp: phase == .live, meetingOn: meeting?.isOn == true,
+                          load: loadBriefings, act: briefing)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(isPresented: $showBriefingSettings) {
+            BriefingSettingsSheet(load: { await loadBriefings()?.schedule }, save: saveBriefingSchedule)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
         }
         .sheet(isPresented: $showAlerts) {
             AlertsSheet(phone: AlertCenter.shared.enabled, watch: prefs?.watchApprove ?? false,
@@ -288,10 +308,15 @@ struct CallView: View {
                 Button { closedEnd = nil } label: { Label("The meeting that ended", systemImage: "doc.text") }
                     .accessibilityIdentifier("reopenMeetingEnd")
             }
+            Button { showBriefing = true } label: { Label(BriefingCopy.title, systemImage: "sun.horizon") }
+            Button { showBriefingSettings = true } label: { Label(BriefingCopy.settingsItem, systemImage: "clock") }
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
             Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
             if status?.voice_lock != nil {
                 Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
+            }
+            if status?.conflicts != nil {
+                Button { showConflictSettings = true } label: { Label(ConflictCopy.settingsTitle, systemImage: "exclamationmark.triangle") }
             }
             if status?.show_on_phone != nil {
                 Button { showSettings = true } label: { Label(ShowCopy.setting, systemImage: "doc.text.magnifyingglass") }
@@ -315,6 +340,15 @@ struct CallView: View {
     private var bottom: some View {
         VStack(spacing: 10) {
             // What needs you sits by your thumb, never scrolled away under the conversation.
+            conflictCard(inMeeting: false)
+            if let b = status?.briefing, b.isOn || b.building == true, !showBriefing {  // the sheet has the same controls
+                BriefingNowBar(status: b, act: briefing).transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if let ready = readyBriefing {
+                BriefingReadyCard(alert: ready, hear: { _ = await briefing(["action": "start"]) },
+                                  dismiss: { await dismissBriefing(ready) })
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             if let request = waiting.first {
                 RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -335,6 +369,37 @@ struct CallView: View {
         .padding(.top, 8)
         .padding(.bottom, 4)
         .animation(.snappy, value: waiting.first?.request_id)
+    }
+
+    /// The newest disagreement between two sessions; the others wait behind it, counted.
+    @ViewBuilder
+    private func conflictCard(inMeeting: Bool) -> some View {
+        let open = status?.conflicts ?? []
+        if let newest = open.last {
+            ConflictCard(conflict: newest, showAgents: (status?.sessions ?? []).mixesAgents, inMeeting: inMeeting,
+                         live: phase == .live, act: { action, side in await conflictAct(newest.id, action, side) })
+                .id(newest.id)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            if open.count > 1 { Text(ConflictCopy.more(open.count - 1)).font(.caption).foregroundStyle(.secondary) }
+        }
+    }
+
+    /// Nil when the Mac took it; otherwise the reason, as the page words it.
+    private func conflictAct(_ id: String, _ action: String, _ side: String?) async -> String? {
+        if demo != nil {
+            if action == "dismiss" { status?.conflicts?.removeAll { $0.id == id } }
+            else if let side, let i = status?.conflicts?.firstIndex(where: { $0.id == id }) { status?.conflicts?[i].asked = (status?.conflicts?[i].asked ?? []) + [side] }
+            return nil
+        }
+        do {
+            try await call.api.conflict(id, action: action, side: side)
+        } catch API.Failure.status(_, let detail) {
+            return ConflictCopy.refusal(detail)
+        } catch {
+            return "The Mac did not answer."
+        }
+        status = try? await call.api.status()
+        return nil
     }
 
     /// Three yeses in a row the lock could not place: the tap still works, and re-enrolling may help.
@@ -460,6 +525,7 @@ struct CallView: View {
                     .id(handId)  // a new hand gets a new card: never the last one's busy buttons
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                conflictCard(inMeeting: true)
                 if let request = waiting.first {
                     RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     if voiceUnsure { unsureNote }
@@ -549,6 +615,65 @@ struct CallView: View {
         let ok = (try? await call.api.setPrefs(change)) != nil
         if ok { prefs = try? await call.api.prefs() }
         return ok
+    }
+
+    // MARK: audio briefings
+
+    private var readyBriefing: API.Attention? {
+        guard let alert = status?.briefingAlert, status?.briefing?.isOn != true, !briefingSeen.contains(alert.id) else { return nil }
+        return alert
+    }
+
+    private func loadBriefings() async -> API.BriefingsPage? {
+        if demo != nil { return Demo.briefingsPage }
+        return try? await call.api.briefings()
+    }
+
+    /// Nil when the Mac took it; otherwise its reason. The demo plays along on its own status.
+    private func briefing(_ body: [String: any Sendable]) async -> String? {
+        let action = body["action"] as? String ?? ""
+        if demo != nil {
+            var b = status?.briefing ?? API.BriefingStatus(id: nil, latest_id: nil)
+            switch action {
+            case "start": (b.playing, b.paused, b.part, b.parts, b.ready) = (true, "", 1, 3, nil)
+            case "skip": b.part = min((b.part ?? 1) + 1, b.parts ?? 1)
+            case "continue": (b.playing, b.paused, b.part) = (true, "", min((b.part ?? 1) + 1, b.parts ?? 1))
+            default: (b.playing, b.paused, b.part, b.parts) = (false, "", 0, 0)
+            }
+            status?.briefing = b
+            return nil
+        }
+        do {
+            try await call.api.briefing(body)
+        } catch API.Failure.status(_, let detail) {
+            return detail == "no call is up" ? BriefingCopy.cannotStart(callUp: false, meetingOn: false) : Self.sentence(detail)
+        } catch {
+            return "The Mac did not answer."
+        }
+        status = try? await call.api.status()
+        return nil
+    }
+
+    private func dismissBriefing(_ alert: API.Attention) async {
+        briefingSeen.insert(alert.id)
+        if demo == nil { await act { try await call.api.dismissAttention(alert.id) } }
+    }
+
+    private func saveBriefingSchedule(_ change: [String: any Sendable]) async -> API.BriefingSchedule? {
+        let fresh: API.BriefingSchedule?
+        if demo != nil {
+            guard var s = demoSchedule else { return nil }
+            if let t = change["time"] as? String { s.time = t }
+            if let d = change["days"] as? [Int] { s.days = d }
+            if let l = change["length"] as? String { s.length = l }
+            if let v = change["speak_on_connect"] as? Bool { s.speak_on_connect = v }
+            if let v = change["skip_empty"] as? Bool { s.skip_empty = v }
+            demoSchedule = s
+            return s  // no reminder in the demo: it would ask for notification permission mid-test
+        }
+        fresh = try? await call.api.setBriefingSchedule(change)
+        if let fresh { await BriefingReminder.apply(fresh) }
+        return fresh
     }
 
     // MARK: voice lock

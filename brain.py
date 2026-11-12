@@ -107,6 +107,8 @@ class Brain:
         self._tools_running = False
         self._waiting: list[str] = []
         self._generation = 0  # moves on when the user talks: a turn from an older one must not speak
+        self._user_turns = 0  # turns on the user's own words, started and not finished
+        self._after_user: list[tuple[str, bool]] = []  # session news that arrived meanwhile: (text, needs a reply)
 
     def append(self, text: str) -> None:
         if not (text and text.strip()):
@@ -117,6 +119,14 @@ class Brain:
             self.messages.append({"role": "user", "content": text})
         if not text.lstrip().startswith("["):  # the user's own words, not session news
             self._answered_user = False
+
+    def add_news(self, text: str) -> None:
+        """Session news to keep in mind, no reply asked. While the user's words wait for their answer it waits behind
+        them: the newest message is what the model answers, and that must be the user."""
+        if self._user_turns:
+            self._after_user.append((text, False))
+        else:
+            self.append(text)
 
     @property
     def busy(self) -> bool:
@@ -187,14 +197,34 @@ class Brain:
         self.messages = [{k: v for k, v in m.items() if k != "raw"} for m in self.messages[cut:]]  # vendors refuse edited replays
 
     async def turn(self, text: str | None = None) -> None:
-        """One reply: tools as needed, then speech. A turn that is interrupted leaves a valid history behind."""
+        """One reply: tools as needed, then speech. A turn that is interrupted leaves a valid history behind.
+        The user's own words are answered first: session news (bracketed) that arrives while a turn on their words is
+        waiting or running is added after that turn, then answered. From a live run: a typed request followed at once by
+        a queued report was never sent, because the model answered the report, the newest message."""
+        user = text is not None and not text.lstrip().startswith("[")
+        if text is not None and not user and self._user_turns:
+            self._after_user.append((text, True))
+            return
         generation = self._generation
-        if text is not None:
-            self.append(text)
-        async with self._lock:
-            if generation != self._generation:
-                return  # the words stay in the history; the turn that follows answers them
-            await self._run(generation)
+        if user:
+            self._user_turns += 1
+        try:
+            if text is not None:
+                self.append(text)
+            async with self._lock:
+                if generation != self._generation:
+                    return  # the words stay in the history; the turn that follows answers them
+                await self._run(generation)
+        finally:
+            if user:
+                self._user_turns -= 1
+        if user and not self._user_turns and self._after_user:
+            held, self._after_user = self._after_user, []
+            for news, reply in held:
+                if reply:
+                    await self.turn(news)
+                else:
+                    self.add_news(news)
 
     async def _run(self, generation: int) -> None:
         decls = [SPEAK] + [{"name": t.name, "description": t.description, "properties": t.properties,
@@ -329,7 +359,12 @@ class Brain:
             if not finished:
                 filled = True
                 await self.filler()
-        await asyncio.shield(running)
+        try:
+            await asyncio.shield(running)
+        except Exception as e:  # a call left without a result makes every vendor refuse the history from then on
+            logger.error(f"tool {call['name']} failed: {type(e).__name__}: {str(e)[:160]}")
+            outcome.setdefault("result", {"error": f"Not delivered: {call['name']} failed ({type(e).__name__}). Tell the "
+                                                   f"user it did not go through."})
         self.on_tool(call["name"], call["args"], outcome.get("result"))
         return outcome.get("result"), filled
 

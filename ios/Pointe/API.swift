@@ -19,6 +19,8 @@ struct API {
         let attention: [Attention]?
         let ptt: PTTStatus?     // push to talk; nil from a Mac without it
         var voice_lock: VoiceLock?  // the owner-voice lock; nil from a Mac without it, and the app hides the feature
+        var conflicts: [Conflict]?  // two sessions that disagree (Conflicts.swift); nil from a Mac without the alarm
+        var briefing: BriefingStatus?  // audio briefings (Briefing.swift); nil from a Mac without them
         var showing: Showing?       // show while it says: what the voice is reporting on; nil when off on this phone
         let shown_earlier: [ShownSet]?
         var show_on_phone: Bool?    // the Mac's setting; nil from a Mac without the feature
@@ -272,12 +274,15 @@ struct API {
         var notesLanguage: String
         var consented: Bool
         var microphone: String  // "always" or "ptt"
+        var conflictsOn: Bool
+        var conflictsSpoken: Bool
         var watchApprove: Bool  // Approve on a notification, without Face ID
         var showOnPhone: Bool   // show while it says on this phone: off until turned on
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
             case notesLanguage = "meeting.notes_language", consented = "meeting.consented", microphone
+            case conflictsOn = "conflicts.on", conflictsSpoken = "conflicts.spoken"
             case watchApprove = "alerts.watch_approve"
             case showOnPhone = "show.on_phone"
         }
@@ -289,6 +294,8 @@ struct API {
             notesLanguage = (try? c.decode(String.self, forKey: .notesLanguage)) ?? "auto"
             consented = (try? c.decode(Bool.self, forKey: .consented)) ?? false
             microphone = (try? c.decode(String.self, forKey: .microphone)) ?? "always"
+            conflictsOn = (try? c.decode(Bool.self, forKey: .conflictsOn)) ?? true
+            conflictsSpoken = (try? c.decode(Bool.self, forKey: .conflictsSpoken)) ?? true
             watchApprove = (try? c.decode(Bool.self, forKey: .watchApprove)) ?? false
             showOnPhone = (try? c.decode(Bool.self, forKey: .showOnPhone)) ?? false
         }
@@ -491,6 +498,23 @@ struct API {
     }
 
     func setPrefs(_ changes: [String: any Sendable]) async throws { try await post("voice/prefs", changes) }
+
+    // MARK: audio briefings
+
+    func briefings() async throws -> BriefingsPage {
+        try JSONDecoder().decode(BriefingsPage.self, from: try await checked(request("voice/briefings")))
+    }
+
+    /// start (since, length), skip, stop, continue. 409 carries the Mac's reason: no call, a meeting on, nothing playing.
+    func briefing(_ body: [String: any Sendable]) async throws { try await post("voice/briefings", body) }
+
+    func setBriefingSchedule(_ changes: [String: any Sendable]) async throws -> BriefingSchedule? {
+        let data = try await checked(request("voice/briefings/schedule", method: "POST", body: changes))
+        struct Reply: Decodable { let schedule: BriefingSchedule? }
+        return try JSONDecoder().decode(Reply.self, from: data).schedule
+    }
+
+    func dismissAttention(_ id: String) async throws { try await post("voice/attention", ["id": id]) }
 
     // MARK: show while it says
 

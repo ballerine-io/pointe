@@ -144,6 +144,14 @@
   .ask .answer .allow { background: var(--orange); color: #fff; }
   .ask .answer .deny { background: var(--card2); color: var(--text); }
   .ask .more { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  /* conflict alarm: two sessions that disagree */
+  #conflicts { display: flex; flex-direction: column; gap: 8px; padding: 0 28px 8px; }
+  #conflicts:empty { display: none; }
+  #conflicts > .more { color: var(--muted); font-size: 12px; }
+  .clash .claim { margin-top: 8px; font-size: 13.5px; overflow-wrap: anywhere; }
+  .clash .claim b { color: var(--orange); font-weight: 600; }
+  .clash .claim .when { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .clash .answer button:disabled { opacity: .45; cursor: default; }
 
   /* the live caption: your words as you speak */
   #caption { margin: 6px 28px 0; padding: 14px 18px; border-radius: 18px; background: var(--card); border: 1px solid var(--line);
@@ -344,6 +352,17 @@
   #vlproblem { color: var(--orange); font-size: 13px; } #vlproblem:empty { display: none; }
   #ignoredlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
   #ignoredlist li .t { color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+  /* audio briefings: the sheet's history and the ready card */
+  .brf-pick { display: flex; gap: 10px; flex-wrap: wrap; } .brf-pick .field { flex: 1; min-width: 140px; }
+  #brf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  #brf-list > li { background: var(--card); border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.45; }
+  #brf-list .when { color: var(--muted); font-size: 12px; } #brf-list .open { margin: 4px 0 6px; font-weight: 600; }
+  #brf-list .sec { margin-top: 6px; } #brf-list .sec b { margin-right: 6px; }
+  .chip { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; background: var(--card2); color: var(--muted); margin-right: 6px; }
+  .chip.waiting { background: var(--orange-soft); color: var(--orange); } .chip.failed { color: #FF6B5E; }
+  #brf-days { flex-wrap: wrap; } #brf-days button { flex: 1 0 auto; }
+  #brf-days button[aria-pressed=true] { background: var(--card2); color: var(--text); box-shadow: inset 0 0 0 1px var(--orange-line); }
+  #briefalert { padding: 0 28px; } #briefalert:empty { display: none; }
   .sheetbox h3 { margin: 4px 0 0; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
   .sheetbox .ok { color: var(--green); font-size: 13px; } .sheetbox .ok:empty { display: none; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -407,6 +426,7 @@
     .top, #talk, #attention, #compose, #meetbar, #notelist, #notes .filters { padding-left: 16px; padding-right: 16px; }
     #hand { margin-left: 12px; margin-right: 12px; }
     #caption, .dock { margin-left: 12px; margin-right: 12px; }
+    #briefalert { padding-left: 16px; padding-right: 16px; }
     .dock { gap: 8px; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); }
     .dock .btn { min-width: 56px; }
     #compose.folded { display: none; }
@@ -537,6 +557,14 @@
       <div class="help" id="vl-levelhelp"></div>
       <div class="err" id="vl-err" role="alert"></div>
     </section>
+    <h3>Briefings</h3>
+    <label class="tick"><input type="checkbox" id="brf-sched" onchange="$('brf-time').disabled = !this.checked"> Scheduled briefing</label>
+    <div class="field">Time<input type="time" id="brf-time" aria-label="Briefing time"></div>
+    <div class="field">Days<div class="seg" id="brf-days" role="group" aria-label="Days"></div></div>
+    <div class="field">Length<select id="brf-deflen"><option value="short">Short</option><option value="normal">Normal</option><option value="full">Full</option></select></div>
+    <label class="tick"><input type="checkbox" id="brf-connect"> Speak when I connect</label>
+    <label class="tick"><input type="checkbox" id="brf-skipempty"> Skip empty briefings</label>
+    <div class="note">The briefing is read on your Mac at that time, with or without a call. Nothing is sent to your sessions.</div>
     <h3>Meetings</h3>
     <div class="field">Start in<select id="pref-mode"><option value="listening">Listening</option><option value="participating">Participating</option></select></div>
     <label class="tick"><input type="checkbox" id="pref-lookups"> Auto lookups by default</label>
@@ -551,6 +579,11 @@
     <div class="note">In push to talk, nothing you say leaves this Mac unless you hold the key or the mic button, except
       during a meeting you started: the room is heard for its notes, and talking to Pointe still needs the hold. Caps Lock
       turns talking on and off (a toggle: a browser cannot see it held). Keys work only while this tab is focused.</div>
+    <h3>Conflict alarm</h3>
+    <label class="tick"><input type="checkbox" id="pref-conflicts"> Check sessions against each other</label>
+    <div class="field">Alarm<select id="pref-conflicts-spoken"><option value="spoken">Spoken</option><option value="card">Card only</option></select></div>
+    <div class="note">When two sessions disagree about the same work, Pointe shows both claims and asks whether to put the
+      question to one of them. It never asks a session on its own. In a meeting it is a card only.</div>
     <h3>Alerts</h3>
     <label class="tick"><input type="checkbox" id="pref-desktop" onchange="desktopAlertsAsk(this)"> Desktop alerts while this tab is in the background</label>
     <div class="note" id="pref-desktop-note"></div>
@@ -560,6 +593,26 @@
       else opens the app. Phone alerts need the call to be up or the app open.</div>
     <div class="ok" id="setok" role="status"></div><div class="err" id="seterr" role="alert"></div>
     <div class="row"><button onclick="closeSheet('settingssheet')">Cancel</button><button class="go" onclick="saveSettings()">Save</button></div>
+  </div>
+</div>
+<div class="sheetbg" id="briefsheet" onclick="if (event.target === this) closeSheet('briefsheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="brf-h">
+    <h2 id="brf-h">Briefing<button class="x" onclick="closeSheet('briefsheet')" aria-label="Close">×</button></h2>
+    <div class="lede">What each session did, failed and waits on, most urgent first. It reads; it never sends or approves.</div>
+    <div class="brf-pick">
+      <div class="field">Since<select id="brf-since"><option value="the night">The night</option><option value="today">Today</option><option value="yesterday">Yesterday</option></select></div>
+      <div class="field">Length<select id="brf-length"><option value="short">Short</option><option value="normal">Normal</option><option value="full">Full</option></select></div>
+    </div>
+    <div class="note" id="brf-why"></div>
+    <div class="row" style="justify-content:flex-start">
+      <button class="go" id="brf-go" onclick="briefMe()">Brief me</button>
+      <button id="brf-skip" onclick="briefingAction('skip')" hidden>Skip</button>
+      <button class="go" id="brf-continue" onclick="briefingAction('continue')" hidden>Go on</button>
+      <button id="brf-stop" onclick="briefingAction('stop')" hidden>Stop</button>
+    </div>
+    <div class="ok" id="brf-state" role="status"></div><div class="err" id="brf-err" role="alert"></div>
+    <h3>Last 7 briefings</h3>
+    <ul id="brf-list" aria-label="Last 7 briefings"></ul>
   </div>
 </div>
 <div class="sheetbg" id="ignoredsheet" onclick="if (event.target === this) closeSheet('ignoredsheet')">
@@ -623,7 +676,9 @@
       <div class="hint">Or say “over to you”, “summarize that” or “send that to …”</div>
     </div>
   </div>
+  <div id="conflicts" role="region" aria-label="Sessions that disagree" aria-live="polite"></div>
   <div id="attention"></div>
+  <div id="briefalert"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span id="caption-text"></span></div>
   <form id="compose" onsubmit="sendTyped(event)"><input id="typed" placeholder="Type to the voice…" autocomplete="off" disabled>
     <button id="typed-send" disabled>Send</button></form>
@@ -634,6 +689,9 @@
     <button class="btn" id="meetbtn" onclick="meetingButton()" title="A meeting: the voice listens and takes notes">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14.5 14.6c.8-.4 1.6-.6 2.5-.6 2.8 0 4 2.2 4 5"/></svg></span>
       <span id="meet-label">Meeting</span></button>
+    <button class="btn" id="briefbtn" onclick="openBriefing()" title="What each session did, failed and waits on">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h10M4 15h16M4 20h8"/></svg></span>
+      Briefing</button>
     <button class="btn" id="typebtn" onclick="typeNow()" title="Type instead of talking">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
       Type</button>
@@ -714,6 +772,8 @@
     showHearing(status && status.connected && !meetingOf(status)?.on ? status.hearing : null);
     showMeeting(status);
     showVoiceLock(status);
+    showConflicts(status);
+    showBriefing(status);
     if (window.desktopAlerts) desktopAlerts(status);
     showShowing(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
@@ -1247,12 +1307,71 @@
   function openCtx() { ctxShown = ''; $('ctxpanel').classList.add('open'); loadCtx(); ctxTimer = setInterval(loadCtx, 2000); }
   function closeCtx() { $('ctxpanel').classList.remove('open'); clearInterval(ctxTimer); }
 
+  // ---------- conflict alarm ----------
+  // Two sessions that disagree. The card shows both claims; Ask puts one side's question as your own typed words (the
+  // voice sends it through the usual checks, and typed words never approve anything); Dismiss quiets that pair for
+  // this call. Nothing here sends by itself.
+  let conflictsShown = '', conflictError = {};
+  const CONFLICT_REFUSAL = {'no call is up': 'Connect to ask.', 'no such conflict': 'That conflict is gone.',
+                            'nothing goes to a session during a meeting': 'In a meeting, nothing goes to a session: ask after it ends.'};
+  function showConflicts(s) {
+    const list = (s && s.conflicts) || [], inMeeting = !!(meetingOf(s) || {}).on, live = !!(s && s.connected);
+    const key = JSON.stringify([list.map(c => [c.id, c.asked]), inMeeting, live, conflictError]);
+    if (key === conflictsShown) return;
+    conflictsShown = key;
+    // The newest one, as the app shows it; the others wait behind it, counted.
+    const newest = list[list.length - 1], more = list.length - 1;
+    $('conflicts').replaceChildren(...(newest ? [conflictCard(newest, inMeeting, live)] : []),
+                                   ...(more > 0 ? [el('div', 'more', `${more} more disagreement${more === 1 ? '' : 's'}`)] : []));
+  }
+  function conflictCard(c, inMeeting, live) {
+    const b = el('div', 'ask clash');
+    b.dataset.id = c.id;
+    b.append(el('div', 'what', 'Two sessions disagree'));
+    if (c.branches) b.append(el('div', 'need', `On different branches: ${c.branches.a} and ${c.branches.b}`));
+    for (const [name, agent, claim, at] of [[c.a, c.agent_a, c.claim_a, c.at_a], [c.b, c.agent_b, c.claim_b, c.at_b]]) {
+      const row = el('div', 'claim');
+      const who = el('b', '', short(name));
+      if (agentBadges && agent) who.append(' ', el('span', 'agent', agent));
+      row.append(who, el('span', 'when', fmtTime(at).slice(0, 5)), el('div', '', claim));
+      b.append(row);
+    }
+    if (c.why) b.append(el('div', 'need', c.why));
+    if (inMeeting) b.append(el('div', 'need', 'In a meeting, nothing goes to a session: ask after it ends.'));
+    else if (!live) b.append(el('div', 'need', 'Connect to ask.'));
+    const row = el('div', 'answer');
+    for (const side of ['a', 'b']) {
+      const asked = (c.asked || []).includes(side), name = short(c[side]);
+      const button = el('button', 'deny', asked ? `Asked ${name}` : `Ask ${name}`);
+      button.disabled = asked || inMeeting || !live;
+      button.onclick = () => conflictAct(c.id, {action: 'ask', side}, button);
+      row.append(button);
+    }
+    const dismiss = el('button', 'deny', 'Dismiss');
+    dismiss.onclick = () => conflictAct(c.id, {action: 'dismiss'}, dismiss);
+    row.append(dismiss);
+    b.append(row);
+    if (conflictError[c.id]) b.append(el('div', 'need', conflictError[c.id]));
+    return b;
+  }
+  async function conflictAct(id, body, button) {
+    button.disabled = true;
+    const r = await fetch('/voice/conflicts', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({id, ...body})});
+    if (r.ok) delete conflictError[id];
+    else {
+      const detail = (await r.json().catch(() => ({}))).detail || '';
+      conflictError[id] = CONFLICT_REFUSAL[detail] || detail || 'Not done.';
+      button.disabled = false;
+    }
+    refresh();
+  }
+
   // ---------- meeting mode ----------
   // Pointe as a participant: listening (it never speaks; it writes notes) or participating (it speaks only when asked, or
   // raises a hand that you let speak). Every word of the room goes to the speech vendor, so the start is a consent step.
   const MEET_KIND = {thought: 'Thought', question: 'Open question', answer: 'Answer found', decision: 'Decision',
                      action: 'Action item', hand: 'Raised hand', session_news: 'Session news', brief: 'Context',
-                     summary: 'Summary', speaker: 'Speaker'};
+                     summary: 'Summary', speaker: 'Speaker', conflict: 'Conflict'};
   const VENDOR = {soniox: 'Soniox', anthropic: 'Anthropic', gemini: 'Google Gemini', openai: 'OpenAI', elevenlabs: 'ElevenLabs', local: 'this Mac'};
   let meetOn = false, meetFilter = 'all', notesVersion = -1, notesById = new Map(), transcript = [], transcriptAt = 0;
   let endShown = false, sendSure = 0, naming = null, meetCanStart = false, notesClosed = false, meetSince = 0, meetId = null;
@@ -1296,7 +1415,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['endsheet', 'meetsheet', 'settingssheet', 'ignoredsheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['endsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;
@@ -1823,18 +1942,23 @@
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
     $('pref-mic').value = prefs.microphone || 'always';
+    $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
+    $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
     $('pref-watch').checked = !!prefs['alerts.watch_approve'];
     if (window.desktopAlertsShow) desktopAlertsShow();
     $('pref-showphone').checked = !!prefs['show.on_phone'];
     pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
     $('setok').textContent = ''; $('seterr').textContent = '';
+    await loadSchedule();
     openSheet('settingssheet', 'pref-mode');
   }
   async function saveSettings() {
+    if (!await saveSchedule()) return;
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
       microphone: $('pref-mic').value, 'alerts.watch_approve': $('pref-watch').checked,
-      'show.on_phone': $('pref-showphone').checked})});
+      'show.on_phone': $('pref-showphone').checked, 'conflicts.on': $('pref-conflicts').checked,
+      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken'})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); refresh(); }
     if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
@@ -1927,6 +2051,109 @@
   document.addEventListener('click', e => {  // a sessions sheet on a narrow screen closes when you click elsewhere
     if (document.body.classList.contains('sheet') && !e.target.closest('aside, #sessbtn')) document.body.classList.remove('sheet');
   });
+  // Audio briefings. The daemon builds and speaks them (briefing.py); the page starts one, steers the one playing, shows
+  // the last seven written out, and edits the schedule. A briefing only reads: nothing here sends or approves.
+  const BRF_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const BRF_CHIP = {waiting: 'Needs you', failed: 'Failed', done: 'Done', quiet: 'Quiet'};
+  let brfLatest = undefined, brfHearWhenLive = false, brfAlertKey = '';
+  const brfPost = async (path, body) => {
+    const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || `failed (${r.status})`);
+    return data;
+  };
+  const brfWhen = at => new Date(at * 1000).toLocaleString([], {weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false});
+  async function openBriefing() {
+    $('brf-err').textContent = '';
+    const data = await (await fetch('/voice/briefings')).json().catch(() => null);
+    if (data) { $('brf-length').value = data.schedule.length; showBriefings(data.briefings); }
+    openSheet('briefsheet', 'brf-go');
+    showBriefing(status);
+  }
+  function showBriefings(list) {
+    $('brf-list').replaceChildren(...(list.length ? list.map(b => {
+      const li = el('li'); li.dir = 'auto';
+      li.append(el('div', 'when', `${brfWhen(b.at)} · ${b.since_label}${b.scheduled ? ' · scheduled' : ''}`), el('div', 'open', b.opener));
+      if (!b.empty) for (const x of b.sections) {
+        const sec = el('div', 'sec'); sec.append(el('b', '', x.session), el('span', 'chip ' + x.status, BRF_CHIP[x.status] || x.status), x.text);
+        li.append(sec);
+      }
+      return li;
+    }) : [el('li', 'when', 'No briefings yet.')]));
+  }
+  async function briefMe() {
+    $('brf-err').textContent = '';
+    try { await brfPost('/voice/briefings', {action: 'start', since: $('brf-since').value, length: $('brf-length').value}); refresh(); }
+    catch (e) { $('brf-err').textContent = e.message; }
+  }
+  async function briefingAction(action) {
+    $('brf-err').textContent = '';
+    try { await brfPost('/voice/briefings', {action}); refresh(); } catch (e) { $('brf-err').textContent = e.message; }
+  }
+  async function hearBriefing(id) {
+    if (!(status && status.connected)) { brfHearWhenLive = true; startCall(); return; }  // no call anywhere: this tab dials
+    try { await brfPost('/voice/briefings', {action: 'start'}); } catch (e) { meetError(e.message); }
+    refresh();
+  }
+  async function dismissBriefing(id) { await brfPost('/voice/attention', {id}).catch(() => {}); refresh(); }
+  function showBriefing(s) {
+    const b = s && s.briefing;
+    if (!b) return;
+    const live = !!s.connected, meeting = !!(meetingOf(s) || {}).on, going = b.playing || !!b.paused;
+    $('briefbtn').classList.toggle('on', going);
+    $('brf-go').hidden = going; $('brf-skip').hidden = !b.playing; $('brf-continue').hidden = !b.paused; $('brf-stop').hidden = !going;
+    $('brf-go').disabled = !live || meeting || b.building;
+    $('brf-why').textContent = !live ? 'Connect to hear it.' : meeting ? 'Not during a meeting.' : '';
+    const n = Math.max(b.part, 1);  // part is the index of the next one: while one is said, that is its number
+    $('brf-state').textContent = b.building ? 'Reading your sessions…' : b.paused ? `Paused: part ${n} of ${b.parts}`
+                                 : b.playing ? `Part ${n} of ${b.parts}` : '';
+    if (b.latest_id !== brfLatest) {
+      const first = brfLatest === undefined; brfLatest = b.latest_id;
+      if (!first && $('briefsheet').classList.contains('open'))
+        fetch('/voice/briefings').then(r => r.json()).then(d => showBriefings(d.briefings)).catch(() => {});
+    }
+    if (brfHearWhenLive && live) { brfHearWhenLive = false; hearBriefing(); }
+    const alert = (s.attention || []).find(a => a.kind === 'briefing');
+    const key = alert ? alert.id + meeting : '';
+    if (key !== brfAlertKey) {
+      brfAlertKey = key;
+      const card = alert && el('div', 'ask');
+      if (card) {
+        card.append(el('div', 'what', alert.text));
+        const row = el('div', 'answer');
+        const hear = el('button', 'allow', 'Hear it'); hear.disabled = meeting; hear.onclick = () => hearBriefing(alert.id);
+        const no = el('button', 'deny', 'Dismiss'); no.onclick = () => dismissBriefing(alert.id);
+        row.append(no, hear); card.append(row);
+        if (meeting) card.append(el('div', 'need', 'Not during a meeting.'));
+      }
+      $('briefalert').replaceChildren(...(card ? [card] : []));
+    }
+  }
+  function brfDaysShow(days) {
+    $('brf-days').replaceChildren(...BRF_DAYS.map((name, i) => {
+      const b = el('button', '', name); b.type = 'button'; b.dataset.day = i; b.setAttribute('aria-pressed', days.includes(i));
+      b.onclick = () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true');
+      return b;
+    }));
+  }
+  async function loadSchedule() {
+    const data = await (await fetch('/voice/briefings')).json().catch(() => null);
+    const sc = data ? data.schedule : {time: '', days: [0, 1, 2, 3, 4, 5, 6], length: 'normal', speak_on_connect: true, skip_empty: false};
+    $('brf-sched').checked = !!sc.time; $('brf-time').value = sc.time || '08:30'; $('brf-time').disabled = !sc.time;
+    brfDaysShow(sc.days); $('brf-deflen').value = sc.length; $('brf-connect').checked = sc.speak_on_connect; $('brf-skipempty').checked = sc.skip_empty;
+  }
+  async function saveSchedule() {
+    const on = $('brf-sched').checked;
+    const days = [...$('brf-days').querySelectorAll('button')].filter(b => b.getAttribute('aria-pressed') === 'true').map(b => +b.dataset.day);
+    if (on && !$('brf-time').value) { $('seterr').textContent = 'Pick a time for the briefing.'; return false; }
+    if (on && !days.length) { $('seterr').textContent = 'Pick at least one day for the briefing.'; return false; }
+    try {
+      await brfPost('/voice/briefings/schedule', {time: on ? $('brf-time').value : '', days, length: $('brf-deflen').value,
+                                                  speak_on_connect: $('brf-connect').checked, skip_empty: $('brf-skipempty').checked});
+    } catch (e) { $('seterr').textContent = e.message; return false; }
+    return true;
+  }
+
   if (matchMedia('(max-width: 900px)').matches) $('compose').classList.add('folded');
   refresh(); setInterval(refresh, 700);
 </script>

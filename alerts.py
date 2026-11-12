@@ -60,5 +60,19 @@ def hand_alert(meeting: str, n: int, line: str, at: float) -> dict:
             "approvable": False, "at": at}
 
 
+def briefing_alert(briefing_id: str, when: str, at: float) -> dict:
+    """A scheduled briefing is ready and not heard yet. No actions: hearing it is a tap in Pointe or "yes" on a call."""
+    body = f"Your {when} briefing is ready."
+    return {"id": f"briefing:{briefing_id}", "kind": "briefing", "title": "Pointe", "body": body, "text": body,
+            "approvable": False, "at": at}
+
+
+def conflict_alert(conflict_id: str, a: str, b: str, at: float) -> dict:
+    """Two sessions disagree. Names only: their claims quote the sessions' messages, so they stay in the app and the page."""
+    body = f"{a} and {b} disagree. Open Pointe to see both claims."
+    return {"id": f"conflict:{conflict_id}", "kind": "conflict", "title": "Two sessions disagree", "body": body,
+            "text": body, "approvable": False, "at": at}
+
+
 def _hidden(text: str) -> bool:
     return readout._hidden(text.replace("\n", " "))
