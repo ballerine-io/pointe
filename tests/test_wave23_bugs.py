@@ -124,3 +124,33 @@ def test_drive_mode_with_the_lock_off_scores_the_owners_yes_through_the_ears(d, 
     verdict = taken[-1][1]
     assert verdict is not None and verdict.score is not None, f"not scored: {verdict}"
     assert d.speaker.strong(verdict)
+
+
+# ---------- 4. the road allowlist: force-adding an ignored file, then pushing it ----------
+
+@pytest.mark.parametrize("command", ["git add -f .env", "git add -f .env && git commit -m 'env' && git push"])
+def test_the_road_refuses_force_adding_ignored_files(command):
+    """drive.py: 'sending data ... waits for a tap'. `git add -f` exists to defeat .gitignore, where secrets live; with
+    push allowed, a spoken yes from the road publishes them."""
+    assert guards.readable_request("Bash", {"command": command}, "/tmp/acme-shop"), command
+    assert not drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command
+
+
+@pytest.mark.parametrize("command", [
+    "git add --force .env", "git add -Af .env", "git add --forc .env", "git push --force-with-lease=main",
+    "git push --forc", "git push -uf origin main", "git commit --no-ver -m 'x'", "git commit --am -m 'x'",
+    "git commit -an -m 'x'", "git pull --upload-pack=/tmp/x", "git fetch --upload-pack=/tmp/x",
+    "git push --receive-pack=/tmp/x", "git push --repo=evil", "git diff --output=cart.py", "git log --output cart.py",
+    "git -c core.hooksPath=/tmp/x commit -m 'x'", "git -C /tmp status", "git --git-dir=/tmp/x status", "git st",
+])
+def test_the_road_refuses_git_force_and_command_flags_in_every_spelling(command):
+    """Git takes a long option by any unambiguous prefix and short ones bundled; neither, nor an option before the
+    subcommand or an alias, is on either allowlist (readout's exact flag tokens, drive._SUBS). A guard against widening
+    either one."""
+    assert not drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command
+
+
+@pytest.mark.parametrize("command", ["git add -A", "git add cart.py", "git commit -m 'fix the total'",
+                                     "git push -u origin feature-cart", "git log -n 5", "git diff --stat"])
+def test_the_road_still_allows_plain_git(command):
+    assert drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command
