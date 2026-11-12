@@ -56,7 +56,7 @@ from brief import (
     report_prompt,
 )
 from brief import parse as parse_reply
-from echo import EchoGuard, LevelGate
+from echo import EchoGuard, LevelGate, words as echo_words
 import phone
 from guards import (
     LocalAuth,
@@ -749,6 +749,7 @@ class BrainFront(FrameProcessor):
                 logger.info("speech held: nobody in the meeting asked for it")
                 return
             state.meeting_may_speak_until = 0.0  # one reply per ask
+            state.meeting_said.append((time.time(), text))
         if request_id is None:  # a read-out stays exact: its command may contain a session's name
             text = _spoken_names(text)
         # in a meeting the bot's words can quote the room, which the log never keeps
@@ -1179,6 +1180,7 @@ class State:
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
     meeting_may_speak_until: float = 0.0  # in participating, the room hears the bot only inside this window
+    meeting_said: deque = field(default_factory=lambda: deque(maxlen=8))  # (when, text): what the bot said into the meeting
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
     last_message: str = ""  # the last delivered request, word for word
@@ -1779,10 +1781,34 @@ async def _on_meeting_reconnect() -> None:
                          "to be the owner again.", dedup=False)
 
 
+MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing as a meeting turn
+MEETING_ECHO_SHARE = 0.7  # this share of a late turn's words, in pairs the bot said, makes it the bot's
+
+
+def _meeting_echo(said: str) -> bool:
+    """Its own voice through the laptop speakers. A meeting turn closes seconds after the words (Soniox finalises late, a
+    turn closes on 1.2 s of quiet, the loop ticks every 2 s; 8-11 s measured), past the call's echo tail: a late turn is
+    the bot's when most of its words are pairs the bot just said into the meeting. Never a turn addressed to Pointe."""
+    if ECHO.live:
+        return not ECHO.user_part(said)
+    heard = echo_words(said)
+    if len(heard) < 2 or meetings.addressed(said) is not None:
+        return False
+    pairs = {p for at, text in state.meeting_said if time.time() - at < MEETING_ECHO_SECS
+             for p in zip(echo_words(text), echo_words(text)[1:])}
+    covered = [False] * len(heard)
+    for i, pair in enumerate(zip(heard, heard[1:])):
+        if pair in pairs:
+            covered[i] = covered[i + 1] = True
+    return sum(covered) >= MEETING_ECHO_SHARE * len(heard)
+
+
 async def _on_meeting_turn(m, turn) -> None:
     said = turn.new_text  # a speaker resuming: only the resumed words can be a command
-    if ECHO.live and not ECHO.user_part(said):  # its own voice through the laptop speakers
-        if m.bot is None and turn.speaker != m.owner:
+    if _meeting_echo(said):
+        # The label is the bot's only if nobody spoke under it: diarisation can file the echo under a participant's.
+        if m.bot is None and turn.speaker != m.owner and all(t.who == "Pointe" for t in m.turns
+                                                              if t.speaker == turn.speaker and t is not turn):
             m.bot = turn.speaker
         turn.who = "Pointe"
         return

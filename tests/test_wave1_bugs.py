@@ -523,3 +523,61 @@ def test_any_log_line_quoting_the_room_or_the_owners_question_is_withheld_in_a_m
     record = {"name": "__main__", "level": SimpleNamespace(no=20), "message": "meeting command: ask"}
     d._meeting_redact(record)
     assert record["message"] == "meeting command: ask"
+
+
+# ---------- 16. the bot's own voice in the meeting stream is the bot, however late its turn closes ----------
+
+def _bot_said_then_room_turn(d, monkeypatch, bot_text, heard, label, secs_after_stop=9.0):
+    """The bot said `bot_text` into the meeting and stopped; its echo closes as a meeting turn `secs_after_stop` later (the
+    e2e measured 8-11 s: Soniox finalises late, a turn closes on 1.2 s of quiet, the loop ticks every 2 s)."""
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    m = d.state.meeting
+    m.owner = "1"
+    m.hear([{"is_final": True, "text": " Who owns the pricing page?", "speaker": "2"}], m.since + 1)
+    for t in m.tick(m.since + 5):
+        asyncio.run(d._on_meeting_turn(m, t))
+    d.state.meeting_may_speak_until = time.time() + 10
+
+    async def push_frame(frame, *a):
+        pass
+
+    asyncio.run(d.BrainFront._speak(SimpleNamespace(push_frame=push_frame), bot_text))
+    d.ECHO.bot_started()
+    d.ECHO.bot_stopped()
+    monkeypatch.setattr(d.ECHO, "stopped_at", time.time() - secs_after_stop)
+    turns = m.hear([{"is_final": True, "text": " " + heard, "speaker": label}], m.since + 20)
+    turns += m.tick(m.since + 30)
+    for t in turns:
+        asyncio.run(d._on_meeting_turn(m, t))
+    return m, turns
+
+
+def test_the_bots_late_echo_on_a_new_label_is_not_a_fourth_person(d, monkeypatch):
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Before we agree, if we skip the payment tests the refunds break.",
+                                        "Before we agree, if we skip the payment tests", "4")
+    assert turns[0].who == "Pointe"
+    assert "4" not in [s["label"] for s in m.speakers()], m.speakers()
+
+
+def test_the_bots_late_echo_on_a_participants_label_is_the_bot_and_the_participant_stays(d, monkeypatch):
+    """Seen in the e2e: the bot's "I can't judge that yet." came back under Dana's label, 8 s after it stopped."""
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "I can't judge that yet without the numbers.", "I can't judge that yet.", "2")
+    assert turns[0].who == "Pointe"
+    assert m.bot != "2" and "2" in [s["label"] for s in m.speakers()], (m.bot, m.speakers())
+
+
+def test_a_participant_echoing_nothing_the_bot_said_is_still_a_participant(d, monkeypatch):
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "I can't judge that yet without the numbers.",
+                                        "Let's ship it on Thursday anyway.", "3")
+    assert turns[0].who != "Pointe" and "3" in [s["label"] for s in m.speakers()]
+
+
+def test_an_addressed_turn_in_the_bots_words_is_the_owners_command(d, monkeypatch):
+    async def no_model(*_a, **_k):
+        return {}
+
+    monkeypatch.setattr(d, "_read_model", no_model)  # the end-of-meeting pass
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Say Pointe, end the meeting, when you are done.",
+                                        "Pointe, end the meeting.", "1")
+    assert d.state.meeting is None, "the owner's end command was taken for the bot's echo"

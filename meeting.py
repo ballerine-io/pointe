@@ -354,7 +354,8 @@ class Meeting:
     def speakers(self) -> list[dict]:
         counts: dict[str, int] = {}
         for t in self.turns:
-            counts[t.speaker] = counts.get(t.speaker, 0) + 1
+            if t.who != "Pointe":  # the bot's echo, under whatever label it came back with
+                counts[t.speaker] = counts.get(t.speaker, 0) + 1
         return [{"label": label, "name": self.who(label), "is_owner": label == self.owner, "turns": n}
                 for label, n in sorted(counts.items()) if label != self.bot]
 
