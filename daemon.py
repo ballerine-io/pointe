@@ -66,7 +66,7 @@ from brief import (
 from brief import parse as parse_reply
 from echo import EchoGuard, LevelGate, words as echo_words
 import phone
-from guards import (
+from guards import (relays_approval, 
     LocalAuth,
     permission_answer,
     listen_intent,
@@ -3192,10 +3192,23 @@ async def send_to_claude_code(params: FunctionCallParams):
     await params.result_callback(result)
 
 
+def typed_approval_refusal(message: str, target) -> dict | None:
+    """An approval the session accepts only typed in its terminal is never relayed by the voice."""
+    if target and target.typed_approval and relays_approval(message, target.typed_approval):
+        return {"error": f"Not sent: {target.name} accepts this approval only typed by the user. Tell the user to type it "
+                         f"in the terminal: {target.typed_approval}."}
+    return None
+
+
 async def _send(message: str) -> dict:
     if state.challenge is not None:
         _record(message, [], "blocked: a challenge is on")
         return {"error": challenge.SEND_REFUSAL + " Say that to the user."}
+    named = (state.brain_target or "").strip().lower()
+    target = next((x for x in REGISTRY.sessions.values() if x.name.lower() == named), None) if named else REGISTRY.active
+    if refusal := typed_approval_refusal(message, target):
+        _record(message, [], "blocked: relays an approval that must be typed")
+        return refusal
     if not current_mode().sends:
         _record(message, [], "blocked: a meeting is on")
         return {"error": "Not sent: a meeting is on. End the meeting first; nothing goes to a session during one."}

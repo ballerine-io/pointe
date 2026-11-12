@@ -268,6 +268,13 @@ def default_tool_result(case: bc.BrainCase, name: str, args: dict):
     return {"error": f"No tool named {name}."}
 
 
+def sent_refusal(case: bc.BrainCase, args: dict) -> dict | None:
+    """The daemon's own typed-approval refusal, judged on the session the send aims at."""
+    named = str(args.get("session") or "").strip().lower()
+    s = next((x for x in case.sessions if x.name.lower() == named), None) if named else case.sessions[case.active]
+    return load_daemon().typed_approval_refusal(str(args.get("message", "")), SimpleNamespace(name=s.name, typed_approval=s.typed) if s else None)
+
+
 def stub_tools(case: bc.BrainCase, frozen: dict, calls: list) -> list:
     used: dict[str, int] = {}
 
@@ -279,6 +286,8 @@ def stub_tools(case: bc.BrainCase, frozen: dict, calls: list) -> list:
                 result = canned[min(used.get(name, 0), len(canned) - 1)]
             else:
                 result = canned if canned is not None else default_tool_result(case, name, params.arguments)
+            if name == "send_to_claude_code" and canned is None:
+                result = sent_refusal(case, params.arguments) or result
             used[name] = used.get(name, 0) + 1
             calls.append({"name": name, "args": params.arguments, "result": result})
             await params.result_callback(result)
@@ -459,11 +468,15 @@ def speech_failures(text: str, session_names: list[str]) -> list[str]:
     return out
 
 
+def excused(rubric: bc.Rubric, call: dict) -> bool:
+    return rubric.lookup_ok and call["name"] == bc.SEND and bc.lookup_only(str(call["args"].get("message", "")))
+
+
 def score_brain(case: bc.BrainCase, row: dict) -> list[str]:
     r, said = case.rubric, row.get("spoken") or ""
     if row.get("error") or row.get("fallback") or (not said and not r.silence_ok):
         return ["no usable reply"]
-    called = [c["name"] for c in row["calls"]]
+    called = [c["name"] for c in row["calls"] if not excused(r, c)]
     sends = [str(c["args"].get("message", "")) for c in row["calls"] if c["name"] == bc.SEND]
     fails = []
     if r.tool and not set(r.tool) & set(called):
@@ -749,7 +762,7 @@ def summarise(role: str, rows: list[dict], scores: dict) -> dict:
             "fallbacks": sum(1 for r in mine if r.get("fallback")), "retries": sum(r["retries"] for r in mine),
             "pass": float(arr.mean()) if len(arr) else float("nan"), "ci": bootstrap_mean(arr) if len(arr) else (float("nan"),) * 2,
             "classes": classes, "nolen_fractions": nolen, "judge_fractions": {c: float(np.mean(v)) for c, v in by_case_judge.items()},
-            "unwanted_sends": sum(1 for r in mine if role == "brain" and bc.SEND in cases[r["case"]].rubric.banned and any(c["name"] == bc.SEND for c in r["calls"])),
+            "unwanted_sends": sum(1 for r in mine if role == "brain" and bc.SEND in cases[r["case"]].rubric.banned and any(c["name"] == bc.SEND and not excused(cases[r["case"]].rubric, c) for c in r["calls"])),
             "fractions": fractions, "pass_nolen": float(np.mean(list(nolen.values()))) if nolen else float("nan"),
             "nolen_ci": bootstrap_mean(np.array(list(nolen.values()), dtype=float)) if nolen else (float("nan"),) * 2, "gate_trips": gate_trips,
             "words_p50": percentile([words_in(_spoken(role, r)) for r in ok], 50),
