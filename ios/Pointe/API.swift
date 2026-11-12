@@ -19,6 +19,63 @@ struct API {
         let attention: [Attention]?
         let ptt: PTTStatus?     // push to talk; nil from a Mac without it
         var voice_lock: VoiceLock?  // the owner-voice lock; nil from a Mac without it, and the app hides the feature
+        var showing: Showing?       // show while it says: what the voice is reporting on; nil when off on this phone
+        let shown_earlier: [ShownSet]?
+        var show_on_phone: Bool?    // the Mac's setting; nil from a Mac without the feature
+    }
+
+    // MARK: show while it says (docs/plans/next-features.md, "8. Show while it says"). Paths only in status; the
+    // content comes from /voice/artifact, which the Mac refuses (403) until this phone turned the feature on.
+
+    struct ShownArtifact: Decodable, Equatable, Identifiable, Hashable {
+        let id: String
+        let kind: String        // test, edit, read
+        let name: String?
+        let path: String?
+        let range: [Int]?
+        let failed: Bool?
+        let refused: String?    // why the Mac never shows it ("outside the project: not shown")
+    }
+
+    struct Showing: Decodable, Equatable {
+        let id: String
+        let session: String?
+        let since: Double?
+        let summary: String?
+        let current: String?
+        let artifacts: [ShownArtifact]
+    }
+
+    struct ShownSet: Decodable, Equatable, Identifiable {
+        let id: String
+        let session: String?
+        let at: Double?
+        let summary: String?
+        let artifacts: [ShownArtifact]?
+    }
+
+    struct ArtifactLine: Decodable, Equatable, Hashable {
+        let n: Int
+        let text: String
+        let hl: Bool?
+    }
+
+    struct ArtifactView: Decodable, Equatable {
+        let id: String
+        let kind: String
+        let name: String?
+        let path: String?
+        let range: [Int]?
+        let failed: Bool?
+        let problem: String?
+        let lines: [ArtifactLine]?
+        let total: Int?
+        let truncated: Bool?
+        let changed_since: Bool?
+        let diff: String?
+        let command: String?
+        let output: String?
+        let focus: Int?
     }
 
     // MARK: owner-voice lock (docs/plans/next-features.md, "1. Owner-voice lock"). Every field optional, like the meeting's.
@@ -216,11 +273,13 @@ struct API {
         var consented: Bool
         var microphone: String  // "always" or "ptt"
         var watchApprove: Bool  // Approve on a notification, without Face ID
+        var showOnPhone: Bool   // show while it says on this phone: off until turned on
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
             case notesLanguage = "meeting.notes_language", consented = "meeting.consented", microphone
             case watchApprove = "alerts.watch_approve"
+            case showOnPhone = "show.on_phone"
         }
 
         init(from decoder: Decoder) throws {
@@ -231,6 +290,7 @@ struct API {
             consented = (try? c.decode(Bool.self, forKey: .consented)) ?? false
             microphone = (try? c.decode(String.self, forKey: .microphone)) ?? "always"
             watchApprove = (try? c.decode(Bool.self, forKey: .watchApprove)) ?? false
+            showOnPhone = (try? c.decode(Bool.self, forKey: .showOnPhone)) ?? false
         }
     }
 
@@ -431,4 +491,12 @@ struct API {
     }
 
     func setPrefs(_ changes: [String: any Sendable]) async throws { try await post("voice/prefs", changes) }
+
+    // MARK: show while it says
+
+    /// One shown artifact, by the id the status gave: never a path. 403 while off on this phone, 404 once forgotten.
+    func artifact(_ id: String) async throws -> ArtifactView {
+        try JSONDecoder().decode(ArtifactView.self, from: try await checked(request("voice/artifact",
+                                                                                     query: [URLQueryItem(name: "id", value: id)])))
+    }
 }
