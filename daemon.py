@@ -59,7 +59,7 @@ from brief import (
     report_prompt,
 )
 from brief import parse as parse_reply
-from echo import EchoGuard, LevelGate
+from echo import EchoGuard, LevelGate, words as echo_words
 import phone
 from guards import (
     LocalAuth,
@@ -219,7 +219,22 @@ def _start_journal() -> None:
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
 
 
-_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ")
+_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ", "barge-in: ",
+                  "echo dropped:", "holding an unfinished sentence:", "feed")
+_QUOTE_WORDS = 4  # this many words in a row from the room or the owner's question is a quote of them
+
+
+def _quotes_the_room(message: str) -> bool:
+    """A line nobody listed above that still repeats the room's words or the owner's latest question."""
+    heard = re.findall(r"\w+", message.lower())
+    grams = {tuple(heard[i:i + _QUOTE_WORDS]) for i in range(len(heard) - _QUOTE_WORDS + 1)}
+    if not grams:
+        return False
+    for source in [t.text for t in state.meeting.turns] + [state.last_utterance]:
+        said = re.findall(r"\w+", source.lower())
+        if any(tuple(said[i:i + _QUOTE_WORDS]) in grams for i in range(len(said) - _QUOTE_WORDS + 1)):
+            return True
+    return False
 
 
 def _meeting_redact(record) -> None:
@@ -232,7 +247,8 @@ def _meeting_redact(record) -> None:
     if message.startswith("tool "):
         name = message[5:].split("(", 1)[0][:60]
         record["message"] = f"tool {name}(…) (withheld during a meeting, {len(message)} chars)"
-    elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET):
+    elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET) \
+            or " is waiting on the user: " in message or _quotes_the_room(message):
         record["message"] = f"(withheld during a meeting, {len(message)} chars)"
 
 
@@ -739,6 +755,7 @@ class BrainFront(FrameProcessor):
                 logger.info("speech held: nobody in the meeting asked for it")
                 return
             state.meeting_may_speak_until = 0.0  # one reply per ask
+            state.meeting_said.append((time.time(), text))
         if request_id is None:  # a read-out stays exact: its command may contain a session's name
             text = _spoken_names(text)
         # in a meeting the bot's words can quote the room, which the log never keeps
@@ -833,6 +850,9 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
             logger.info("barge-in: voice well above the echo")
             await self.broadcast_interruption()
+        elif isinstance(frame, (InterimTranscriptionFrame, TranscriptionFrame)) and direction == FrameDirection.DOWNSTREAM \
+                and _room_heard():
+            return  # MicGate sends the room to the meeting stream: these are words cut off when it took the microphone
         elif isinstance(frame, InterimTranscriptionFrame) and direction == FrameDirection.DOWNSTREAM:
             if lock_level() == "everything":
                 pass  # not shown until the final is checked: another voice's words never reach the screen
@@ -1182,6 +1202,7 @@ class State:
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
     meeting_may_speak_until: float = 0.0  # in participating, the room hears the bot only inside this window
+    meeting_said: deque = field(default_factory=lambda: deque(maxlen=8))  # (when, text): what the bot said into the meeting
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
     last_message: str = ""  # the last delivered request, word for word
@@ -1327,7 +1348,10 @@ async def _digest_turn(session: Session, text: str) -> dict:
     final = text.split(FINAL_MARK, 1)[-1]
     recent = recent_history(session, max_entries=14, max_chars=6000, line_cap=1000)
     sent = list(state.unconfirmed.get(session.id) or [])
-    asked = state.owner_words.get(session.id, [])[-8:] + ([state.last_utterance] if session is REGISTRY.active else [])
+    # In a meeting the latest words are the owner's question to Pointe or the room's (a hand's language), never to the
+    # session: kept out of its report, which reaches the log and the voice.
+    latest = [state.last_utterance] if session is REGISTRY.active and state.meeting is None else []
+    asked = state.owner_words.get(session.id, [])[-8:] + latest
     try:
         report = await asyncio.wait_for(
             # Low thinking: about 3 s instead of 8, and the user is waiting to hear it.
@@ -2093,18 +2117,27 @@ class PttGate(FrameProcessor):
         if state.ptt.closed_at and state.user_started_at > state.user_stopped_at:
             state.user_stopped_at = now  # a press with nothing said must not leave the user talking for good
 
+    _room = False  # a meeting had the microphone at the last tick
+
     async def tick(self, now: float) -> None:
+        room, was = _room_heard(), self._room
+        self._room = room
+        if room and not was:
+            await self._finalize()  # the words the meeting cut off finish now, inside it, where they are dropped
         for event in state.ptt.tick(PREFS.get("microphone"), now):
             if event == "closed":
                 logger.info(f"ptt: closed ({state.ptt.closed_why})")
                 self._release(now, state.ptt.closed_why)
             elif event == "finalize":
-                ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
-                if ws is not None:
-                    try:
-                        await ws.send('{"type": "finalize"}')
-                    except Exception as e:
-                        logger.info(f"ptt: finalize not sent: {type(e).__name__}")
+                await self._finalize()
+
+    async def _finalize(self) -> None:
+        ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
+        if ws is not None:
+            try:
+                await ws.send('{"type": "finalize"}')
+            except Exception as e:
+                logger.info(f"ptt: finalize not sent: {type(e).__name__}")
 
     async def _ticks(self) -> None:
         while True:
@@ -2204,15 +2237,57 @@ async def _on_meeting_reconnect() -> None:
                          "to be the owner again.", dedup=False)
 
 
-async def _on_meeting_turn(m, turn) -> None:
+MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing as a meeting turn
+MEETING_ECHO_SHARE = 0.7  # this share of a late turn's words, in pairs the bot said, makes it the bot's
+
+
+def _meeting_echo(said: str, new_label: bool) -> bool:
+    """Its own voice through the laptop speakers. A meeting turn closes seconds after the words (Soniox finalises late, a
+    turn closes on 1.2 s of quiet, the loop ticks every 2 s; 8-11 s measured), past the call's echo tail: a turn is also
+    the bot's when most of its words are pairs the bot just said into the meeting, or, on a label nobody has used yet, it
+    is one word the bot just said (its reply cut off by a talk-over). Never a turn addressed to Pointe."""
+    if ECHO.live and not ECHO.user_part(said):
+        return True
+    heard = echo_words(said)
+    if not heard or meetings.addressed(said) is not None:
+        return False
+    recent = [echo_words(text) for at, text in state.meeting_said if time.time() - at < MEETING_ECHO_SECS]
+    if len(heard) == 1:
+        return new_label and any(heard[0] in said_words for said_words in recent)
+    pairs = {p for said_words in recent for p in zip(said_words, said_words[1:])}
+    covered = [False] * len(heard)
+    for i, pair in enumerate(zip(heard, heard[1:])):
+        if pair in pairs:
+            covered[i] = covered[i + 1] = True
+    return sum(covered) >= MEETING_ECHO_SHARE * len(heard)
+
+
+HOLD_ADDRESSED_SECS = 2.0  # an addressed sentence with no closing punctuation waits this long for the rest of it
+_CLOSED = re.compile(r"[.!?…]\W*$")
+
+
+async def _release_addressed(m, turn, text: str) -> None:
+    """No more words came for a held sentence: it is handled as it is, once."""
+    await asyncio.sleep(HOLD_ADDRESSED_SECS)
+    if state.meeting is m and turn.text == text:  # a turn that grew was handled again when it re-closed
+        await _on_meeting_turn(m, turn, hold=False)
+
+
+async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
     said = turn.new_text  # a speaker resuming: only the resumed words can be a command
-    if ECHO.live and not ECHO.user_part(said):  # its own voice through the laptop speakers
-        if m.bot is None and turn.speaker != m.owner:
+    new_label = all(t.who == "Pointe" for t in m.turns if t.speaker == turn.speaker and t is not turn)
+    if _meeting_echo(said, new_label):
+        # The label is the bot's only if nobody spoke under it: diarisation can file the echo under a participant's.
+        if m.bot is None and turn.speaker != m.owner and new_label:
             m.bot = turn.speaker
         turn.who = "Pointe"
         return
     found = meetings.addressed_all(turn.text, turn.starts)  # "…the plan. Pointe, end the meeting." holds a command too
     fresh, turn.handled = found[turn.handled:], len(found)  # a re-closed turn acts only on what it did not act on yet
+    if hold and fresh and not _CLOSED.search(fresh[-1]):
+        # Soniox finalises in bursts and a lull closes the turn: "Pointe, end" may still become "Pointe, end the meeting."
+        fresh, turn.handled = fresh[:-1], turn.handled - 1
+        asyncio.create_task(_release_addressed(m, turn, turn.text))
     if m.is_entry(turn) or _MEETING_ON.match(said.strip()):  # the replayed "Pointe, meeting mode, participating"
         if m.entry_bound and m.owner == turn.speaker:  # with a voiceprint, it decides, not the label of who said it
             voice = await _meeting_voice(turn)
