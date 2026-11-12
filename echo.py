@@ -320,9 +320,16 @@ class EchoGuard:
         # "holding", "no" of "nothing"): the bot's first word cut it off. The next transcript, a beat later, settles it.
         # It still vouches for its neighbour: "retries on" is the bot's pair, so "retries" is the bot's.
         mask = self._echo_mask(heard, sources=self._sources(spoken[0]) if spoken else None)
-        if heard and any(b.startswith(heard[-1]) and (heard[-1] not in INTERRUPT_WORDS or b != heard[-1])
-                         for b in self._bot_words()):
+        bot = self._bot_words()
+        if heard and any(b.startswith(heard[-1]) and (heard[-1] not in INTERRUPT_WORDS or b != heard[-1]) for b in bot):
             mask[-1] = True
+        # Its first word can be the tail of one: Soniox starts a segment inside "pyth|on three pytest". Half a word, the
+        # end this time: it proves nothing either.
+        if heard and any(b.endswith(heard[0]) and b != heard[0] for b in bot):
+            mask[0] = True
+        for i, w in enumerate(heard):  # and a word the bot said, next to half of one, is its too
+            if not mask[i] and w in bot and ((i > 0 and mask[i - 1]) or (i + 1 < len(heard) and mask[i + 1])):
+                mask[i] = True
         run = best = 0
         for w, m in zip(heard, mask):
             run = 0 if m else run + 1
