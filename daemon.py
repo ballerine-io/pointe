@@ -213,7 +213,7 @@ def _start_journal() -> None:
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
 
 
-_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "copy of ")
+_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ")
 
 
 def _meeting_redact(record) -> None:
@@ -635,13 +635,23 @@ def _brain_context() -> str:
 
 
 async def _translate(said: str) -> str:
+    """The reply in the user's language. When the checker fails, the reply as it came, except into a meeting: the room
+    is not answered in the wrong language, so it gets nothing ("")."""
     target = "Hebrew" if re.search(r"[\u0590-\u05ff]", state.last_utterance) else "English"
     try:
-        return (await asyncio.wait_for(vendors.text(
+        out = (await asyncio.wait_for(vendors.text(
             setup().checker, f"Translate into {target}, for speaking aloud. Keep technical terms and names in English. Only the "
-            f"translation:\n{said}"), CHECK_TIMEOUT_SECS)).strip() or said
-    except Exception:
-        return said
+            f"translation:\n{said}"), CHECK_TIMEOUT_SECS)).strip()
+        if out:
+            return out
+        why = "an empty translation"
+    except Exception as e:
+        why = type(e).__name__
+    if state.meeting is not None:
+        logger.warning(f"translate into {target} failed ({why}): the reply is not spoken into the meeting")
+        return ""
+    logger.warning(f"translate into {target} failed ({why}): spoken as it came")
+    return said
 
 
 def _language_problem(said: str) -> str | None:
@@ -798,8 +808,12 @@ class SonioxEars(FrameProcessor):
             self._voiced = False
         if isinstance(frame, BotStartedSpeakingFrame):
             ECHO.bot_started()
+            if state.meeting is not None:  # what the page and the app show as "speaking to the room"
+                state.meeting.speaking = True
         elif isinstance(frame, BotStoppedSpeakingFrame):
             ECHO.bot_stopped()
+            if state.meeting is not None:
+                state.meeting.speaking = False
             _journal_bot_turn()
         elif isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
@@ -873,6 +887,7 @@ class SonioxEars(FrameProcessor):
             return False
         if level in ("commands", "everything") and not VOICE.confident(verdict):
             VOICE.ignore(verdict, heard if level == "commands" else None)
+            await _answer_permission(heard, deny_only=True)  # a no counts from anyone; the words still stay out
             if ECHO.speaking:  # anyone may pause the bot; only the owner may take the turn
                 await self.broadcast_interruption()
             if state.conn is not None:
@@ -1733,11 +1748,18 @@ async def _on_meeting_turn(m, turn) -> None:
         return
     found = meetings.addressed_all(turn.text, turn.starts)  # "…the plan. Pointe, end the meeting." holds a command too
     fresh, turn.handled = found[turn.handled:], len(found)  # a re-closed turn acts only on what it did not act on yet
-    if m.is_entry(turn) or _MEETING_ON.match(said.strip()):
-        return  # the replayed "Pointe, meeting mode, participating": it bound the owner, it asks nothing
+    if m.is_entry(turn) or _MEETING_ON.match(said.strip()):  # the replayed "Pointe, meeting mode, participating"
+        if m.entry_bound and m.owner == turn.speaker:  # with a voiceprint, it decides, not the label of who said it
+            voice = await _meeting_voice(turn)
+            if voice is not None and not speaker.strong(voice):
+                m.unbind_owner()
+                logger.info("meeting: the entry command was not in the owner's voice: no owner yet")
+        return  # it asks nothing
     claims = any(meetings.command(w)[0] == "me" for w in fresh) and turn.speaker != m.owner
     voice = await _meeting_voice(turn) if m.owner is None or claims else None
-    if voice is not None and m.owner is None and speaker.strong(voice) and turn.speaker != m.bot:
+    if voice is not None and speaker.strong(voice) and turn.speaker == m.bot:
+        m.bot = None  # on a fresh stream the bot's echo can take a label first that turns out to be the owner's
+    if voice is not None and m.owner is None and speaker.strong(voice):
         m.bind_owner(turn.speaker)  # the voiceprint is who the owner is; the label follows it
         NOTES.add("thought", "Recognised your voice: you're the owner in this meeting.", dedup=False)
         logger.info("meeting: owner bound by the voiceprint")
@@ -1748,25 +1770,36 @@ async def _on_meeting_turn(m, turn) -> None:
                 return
             continue
         cmd, _ = meetings.command(words)
+        if cmd == "me" and turn.speaker == "?":  # every unlabelled turn shares "?": it is nobody in particular
+            logger.info("meeting: \"that's me\" from an unlabelled speaker (ignored)")
+            NOTES.add("thought", "I couldn't tell who said “that's me”. Say it again.", dedup=False)
+            continue
         if cmd == "me":  # "Pointe, that's me": the speaker claims the owner's seat (nothing in a meeting acts on voice)
             if voice is not None and not speaker.strong(voice):
                 logger.info("meeting: \"that's me\" in a voice that is not the owner's (ignored)")
                 continue
+            if turn.speaker == m.bot:  # its words passed the echo check: the label the echo took first is a person's
+                m.bot = None
+                logger.info("meeting: \"that's me\" on the label the echo took: it is a person's")
             rebound = m.owner is not None
             m.bind_owner(turn.speaker)
             if rebound:
                 NOTES.add("thought", "Rebound the owner to the speaker who said “that's me”.", dedup=False)
         else:
-            logger.info("meeting: addressed by a non-owner (ignored)")
+            logger.info(f"meeting: addressed by a non-owner (ignored: {cmd})")  # the kind only, never the words
 
 
 async def _meeting_voice(turn):
     """The voiceprint's verdict on a meeting turn, or None when the lock is off or there is no voiceprint (then the
-    label binding alone decides, as before). A turn without audio is a verdict too: not scored, so not the owner."""
+    label binding alone decides, as before). A turn without audio is a verdict too: not scored, so not the owner.
+    The whole turn is scored, not its newest fragment: "Pointe, that's me" alone is often under speaker.MIN_SECS."""
     if lock_level() == "off" or not VOICE.profiles.items:
         return None
     ears = state.meeting_ears
-    pcm = ears.audio_between(*turn.audio_ms) if turn.audio_ms and hasattr(ears, "audio_between") else b""
+    span = turn.span_ms or turn.audio_ms
+    if span:
+        span = (max(span[0], span[1] - speaker.MAX_SCORED_SECS * 1000), span[1])  # only the newest seconds are scored
+    pcm = ears.audio_between(*span) if span and hasattr(ears, "audio_between") else b""
     return await VOICE.score(pcm)
 
 
@@ -1863,6 +1896,7 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
         line = ("Waiting on you: " + ", ".join(waiting)) if waiting else "Nothing is waiting on you."
         NOTES.add("thought", line, dedup=False)
         if m.mode == "participating" and not typed:
+            state.last_utterance = words  # the reply's language follows the question, not the words before the meeting
             await _meeting_speak(f"[the owner asked what is waiting, in the meeting] Say only this, in a few words: {line}")
     elif cmd in ("think", "ask", "finish"):
         question = args.get("text") or words
@@ -1890,6 +1924,8 @@ async def _meeting_speak(text: str) -> None:
     m = state.meeting
     if m is None or m.mode != "participating" or state.conn is None:
         return
+    if state.front is not None:  # a reply still coming to an earlier ask would take this ask's one-reply window
+        state.front.brain.interrupt()
     state.meeting_may_speak_until = time.time() + MEETING_REPLY_SECS
     await state.conn.injector.push_frame(InputTextRawFrame(text=text))
 
@@ -1993,11 +2029,19 @@ async def on_user_utterance(text: str) -> None:
         state.blocked = []  # "leave it": not raised again
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
+    await _answer_permission(text)
+
+
+async def _answer_permission(text: str, deny_only: bool = False) -> None:
+    """The active session's pending permission, answered by these words if they answer it. deny_only: words the voice
+    lock kept from Pointe, which may still say no."""
     session = REGISTRY.active
     if not session or not session.permission_id or state.conn is None:
         return
     window_open = state.conn.injector.bot_started_at >= session.permission_delivered_at
     verdict = None if state.heard_own_words else permission_answer(text)
+    if deny_only and verdict != "deny":
+        return
     if verdict == "deny" and time.time() - session.permission_read_at < PERMISSION_ANSWER_SECS:
         window_open = True  # a no is safe even if the bot has said something since: the worst case is that Claude asks again
     if verdict is None:
@@ -3240,7 +3284,11 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
 
 
 async def _ask_permission(session: Session) -> None:
-    """Put a session's pending permission to the user; only then can a yes or no answer it."""
+    """Put a session's pending permission to the user; only then can a yes or no answer it. While the mode does not read
+    out (a meeting, a brainstorm) the brain is not told either: it could say the exact command into the room. The card
+    shows it, and the hand-off asks again (_after_monologue)."""
+    if not current_mode().reads_out:
+        return
     if FRONT == "brain" and state.front is not None:
         await feed(session, session.permission_text, False)
         asyncio.create_task(_read_out_when_quiet(session, session.permission_id))
@@ -3404,13 +3452,14 @@ async def correct_a_turn(request: Request):
     """The user fixed a transcript: the voice hears what they meant, and fixes anything it did on the misheard words."""
     body = await request.json()
     text = str(body.get("text") or "").strip()[:2000]
-    index = int(body.get("id", -1)) - state.conversation_base
+    turn_id = _int(body, "id", -1)
+    index = turn_id - state.conversation_base
     if not text or not 0 <= index < len(state.conversation) or state.conversation[index][0] != "user":
         raise HTTPException(status_code=404, detail="no such thing you said")
     was = state.conversation[index][1]
     state.conversation[index] = ("user", text)
-    state.corrected.add(int(body["id"]))
-    state.understood.pop(int(body["id"]), None)
+    state.corrected.add(turn_id)
+    state.understood.pop(turn_id, None)
     logger.info(f"user corrected {was!r} -> {text!r}")
     if state.conn is None:
         return {"ok": True}
@@ -3704,6 +3753,8 @@ async def meeting_action(request: Request):
         turn = next((t for t in m.turns if t.id == turn_id), None)
         if turn is None:
             raise HTTPException(status_code=404, detail="no such turn")
+        if turn.speaker == "?":
+            raise HTTPException(status_code=409, detail="that turn has no speaker label, so it cannot mark the owner")
         m.bind_owner(turn.speaker)
         return {"meeting": m.status()}
     if action == "brief":
@@ -3853,8 +3904,7 @@ async def _on_connect(conn: Connection) -> None:
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
     state.last_speaker = None
-    VOICE.collector.clear()
-    VOICE.last_strong = None  # a short "yes" leans only on a sentence from this call
+    VOICE.new_call()
     VOICE.expire()
     if VOICE.wanted(lock_level()):
         VOICE.load_soon()  # loaded before the first utterance, never while it waits

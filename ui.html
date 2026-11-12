@@ -1645,7 +1645,10 @@
   }
   function pttHold(source, on) { if (on) ptt.held.add(source); else ptt.held.delete(source); pttSync(); }
   function pttToggle() { ptt.toggled = !pttOpen(); ptt.held.clear(); pttSync(); }  // the last event wins over a hold
-  function pttReset() { ptt.held.clear(); ptt.toggled = false; ptt.sent = false; ptt.seenOpen = false; }  // a new call starts closed
+  function pttReset() {  // a new call starts closed; a press the page forgets is released at the daemon too
+    if (ptt.sent && call.ws && call.ws.readyState === 1) call.ws.send(JSON.stringify({type: 'ptt', open: false, at: Date.now()}));
+    ptt.held.clear(); ptt.toggled = false; ptt.sent = false; ptt.seenOpen = false;
+  }
   let pttWas = null;
   function pttFollow(s) {  // the daemon's gate is the truth: it closes a press held 90 s, or one whose audio stopped
     const p = s && s.ptt;
