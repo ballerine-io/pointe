@@ -9,7 +9,7 @@ import time
 from dataclasses import asdict, dataclass, field
 
 KINDS = ("thought", "question", "answer", "action", "decision", "hand", "session_news", "brief", "summary", "speaker",
-         "briefing")
+         "briefing", "conflict")
 STATES = ("open", "done", "dismissed")
 MAX_NOTES = 2000
 _STOP = set("the a an and or but of to in on for with is are was were be it this that we you i they he she at by as from "
