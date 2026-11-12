@@ -114,7 +114,7 @@ async def main() -> None:
     inbox = await serve_inbox(inbox_path)
     call("/voice/register", {"id": f"chl-lantern-{os.getpid()}", "cwd": str(folder), "pid": os.getpid(), "name": "lantern",
                              "name_given": True, "transcript": str(seed(folder)), "inbox_socket": inbox_path})
-    browser = Browser(echo_gain=0.3)
+    browser = Browser(echo_gain=float(os.environ.get("POINTE_ECHO_GAIN", "0.3")))  # speakers into the mic, as in a room
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
     url = f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"
     chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
