@@ -159,12 +159,14 @@ async def transcribe(pcm: np.ndarray) -> str:
     from google.genai import types
 
     client = genai.Client(api_key=(os.environ.get("GOOGLE_API_KEY") or keychain("gemini-api-key")))
+    error = None
     for attempt in range(4):
         try:
             return await _transcribe_once(client, buf.getvalue())
-        except Exception:
+        except Exception as e:  # a transient error gets retried; one that persists fails the run, never reads as silence
+            error = e
             await asyncio.sleep(2 * (attempt + 1))
-    return ""
+    raise RuntimeError(f"the test's transcriber failed, so what the bot said is unknown: {type(error).__name__}: {str(error)[:160]}")
 
 
 async def _transcribe_once(client, wav: bytes) -> str:

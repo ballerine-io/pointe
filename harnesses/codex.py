@@ -165,10 +165,18 @@ def mirror_lines(turn: dict) -> list[dict]:
                 out.append({**base, "type": "user", "message": {"role": "user", "content": text}})
         elif kind == "commandExecution":
             out.append({**base, "type": "assistant", "message": {"role": "assistant", "content": [
-                {"type": "tool_use", "name": "Bash", "input": {"command": command_text(str(item.get("command") or ""))}}]}})
+                {"type": "tool_use", "id": str(item.get("id")), "name": "Bash",
+                 "input": {"command": command_text(str(item.get("command") or ""))}}]}})
+            if item.get("aggregatedOutput") is not None and item.get("status") != "declined":  # what it printed: tests show
+                out.append({**base, "type": "user", "message": {"role": "user", "content": [
+                    {"type": "tool_result", "tool_use_id": str(item.get("id")), "content": str(item["aggregatedOutput"]),
+                     "is_error": item.get("exitCode") not in (0, None)}]}})
         elif kind == "fileChange":
+            changes = item.get("changes") or []
+            applied = item.get("status") in (None, "completed")  # a declined change never reached the files
+            files = [str(c.get("path")) for c in changes if isinstance(c, dict) and c.get("path")] if applied else []
             out.append({**base, "type": "assistant", "message": {"role": "assistant", "content": [
-                {"type": "tool_use", "name": "Edit", "input": {"changes": len(item.get("changes") or [])}}]}})
+                {"type": "tool_use", "name": "Edit", "input": {"changes": len(changes), **({"files": files} if files else {})}}]}})
         elif kind == "agentMessage" and str(item.get("text") or "").strip():
             finals.append((base, str(item["text"]).strip()))
     for i, (base, text) in enumerate(finals):

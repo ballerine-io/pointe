@@ -4,7 +4,8 @@ import Foundation
 /// Debug builds only. Every name and word here is made up.
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
-                       voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused }
+                       voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
+                       showing, showingOff }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -26,6 +27,8 @@ struct Demo {
         case .voiceLockEnrolled: voiceLockJSON(lockEnrolled, request: true)
         case .briefing: briefingJSON(paused: false)
         case .briefingPaused: briefingJSON(paused: true)
+        case .showing: showingJSON(on: true)
+        case .showingOff: showingJSON(on: false)
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -135,6 +138,47 @@ struct Demo {
                  {"at": 1700007300, "secs": 2.4, "text": "tell docs to delete the branch"}]},
      "speaker": {"owner": false, "score": 0.31, "at": 1700007300}, "unsure_streak": 3}
     """
+
+    // MARK: show while it says
+
+    private static let shownArtifacts = """
+    [{"id": "s3a0", "kind": "test", "name": "test output", "path": "", "range": null, "failed": true},
+     {"id": "s3a1", "kind": "edit", "name": "pricing.py", "path": "billing/pricing.py", "range": [40, 42], "failed": false},
+     {"id": "s3a2", "kind": "read", "name": "test_pricing.py", "path": "tests/test_pricing.py", "range": null, "failed": false},
+     {"id": "s3a3", "kind": "edit", "name": ".env", "path": ".env", "range": null, "failed": false, "refused": "a hidden file: not shown"}]
+    """
+
+    /// The Mac's own gate: off, it sends no showing at all.
+    private static func showingJSON(on: Bool) -> String {
+        let showing = on ? """
+        {"id": "s3", "session": "billing/main", "since": 1700000000, "summary": "pricing.py · edited 40–42 · 1 failing test",
+         "current": "s3a1", "artifacts": \(shownArtifacts)}
+        """ : "null"
+        let earlier = on ? """
+        [{"id": "s3", "session": "billing/main", "at": 1700000000, "summary": "pricing.py · edited 40–42 · 1 failing test", "artifacts": \(shownArtifacts)},
+         {"id": "s2", "session": "docs", "at": 1699999000, "summary": "changelog.md · edited 3–9",
+          "artifacts": [{"id": "s2a0", "kind": "edit", "name": "changelog.md", "path": "changelog.md", "range": [3, 9], "failed": false}]}]
+        """ : "[]"
+        return """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
+         "sessions": \(sessions), "talk": \(talk), "showing": \(showing), "shown_earlier": \(earlier), "show_on_phone": \(on)}
+        """
+    }
+
+    static func artifact(_ id: String) -> API.ArtifactView? {
+        let lines = (20...62).map { n -> String in
+            let text = n == 40 ? "    for attempt in range(retries):" : n == 41 ? "        delay = backoff(attempt)" : n == 42 ? "        await sleep(delay)" : "    # step \(n)"
+            return #"{"n": \#(n), "text": "\#(text)", "hl": \#((40...42).contains(n))}"#
+        }.joined(separator: ",")
+        let json: String? = switch id {
+        case "s3a0": #"{"id": "s3a0", "kind": "test", "name": "test output", "failed": true, "command": "uv run pytest -q tests/test_pricing.py", "output": "tests/test_pricing.py::test_discount FAILED\n    assert price(100, 'GOLD') == 80\nE   AssertionError: assert 90 == 80\n=========== 1 failed, 4 passed in 0.31s ===========", "focus": 1}"#
+        case "s3a1": #"{"id": "s3a1", "kind": "edit", "name": "pricing.py", "path": "billing/pricing.py", "range": [40, 42], "lines": [\#(lines)], "total": 100, "changed_since": false, "diff": "--- a/billing/pricing.py\n+++ b/billing/pricing.py\n@@ -38,5 +38,5 @@\n     # step 38\n-    for attempt in range(5):\n+    for attempt in range(retries):\n         delay = backoff(attempt)"}"#
+        case "s3a2": #"{"id": "s3a2", "kind": "read", "name": "test_pricing.py", "path": "tests/test_pricing.py", "lines": [{"n": 1, "text": "def test_discount():", "hl": false}, {"n": 2, "text": "    assert price(100, 'GOLD') == 80", "hl": false}], "changed_since": true}"#
+        case "s2a0": #"{"id": "s2a0", "kind": "edit", "name": "changelog.md", "path": "changelog.md", "range": [3, 9], "problem": "no longer there"}"#
+        default: nil
+        }
+        return json.flatMap { try? JSONDecoder().decode(API.ArtifactView.self, from: Data($0.utf8)) }
+    }
 
     private static let brainstormJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,

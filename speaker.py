@@ -400,6 +400,13 @@ class VoiceLock:
         score, device = self.profiles.best(vector)
         return Verdict(round(score, 3), secs, device, now)
 
+    def new_call(self) -> None:
+        """Verdicts and ignored speech belong to one call. The unsure-yes streak is kept: it is about the voiceprint."""
+        self.collector.clear()
+        self.last = self.last_strong = None  # a short "yes" leans only on a sentence from this call
+        self.ignored.clear()
+        self.ignored_count = 0
+
     def confident(self, v: Verdict | None) -> bool:
         return owner_confident(v, self.last_strong)
 

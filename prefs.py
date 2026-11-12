@@ -20,6 +20,7 @@ SCHEMA: dict[str, tuple] = {
     "briefings.length": ("normal", ("short", "normal", "full")),
     "briefings.speak_on_connect": (True, bool),  # a scheduled briefing not heard yet is offered when a call starts
     "briefings.skip_empty": (False, bool),  # a quiet night raises no alert
+    "show.on_phone": (False, bool),  # show while it says on the phone: off until enabled (the page always shows it)
 }
 
 

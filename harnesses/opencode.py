@@ -123,7 +123,11 @@ def mirror_lines(message: dict) -> list[dict]:
         if item.get("type") == "tool":
             state = item.get("state") or {}
             out.append({**base, "type": "assistant", "message": {"role": "assistant", "content": [
-                {"type": "tool_use", "name": str(item.get("name")), "input": state.get("input") or {}}]}})
+                {"type": "tool_use", "id": str(item.get("id")), "name": str(item.get("name")), "input": state.get("input") or {}}]}})
+            if state.get("status") in ("completed", "error"):  # what it did: an edit applied, a test's output
+                out.append({**base, "type": "user", "message": {"role": "user", "content": [
+                    {"type": "tool_result", "tool_use_id": str(item.get("id")),
+                     "content": str(state.get("output") or state.get("error") or ""), "is_error": state.get("status") == "error"}]}})
         elif item.get("type") == "text" and str(item.get("text") or "").strip():
             texts.append(str(item["text"]).strip())
     if texts:
