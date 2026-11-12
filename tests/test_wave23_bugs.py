@@ -79,3 +79,31 @@ def test_a_challenge_started_during_the_drive_switch_does_not_lift_the_road_rule
     d.state.user_started_at = 0.0
     asyncio.run(d.on_user_utterance("yes"))
     assert verdicts(posts) == [], f"approved while driving: challenge={d.state.challenge is not None}, mode={d.current_mode().name}"
+
+
+# ---------- 2. conflicts: a session's secret rides the claims to the phone, the notes and the voice ----------
+
+def test_conflict_claims_and_questions_carry_no_credential():
+    """The claims are copied from the sessions' messages (by design) and reach /voice/status (the phone), a note, and
+    the spoken alarm. briefing.py and challenge.py mask what they quote; conflicts.py does not."""
+    alarm = conflicts.Alarm()
+    a, b = _report("a", "migrate", A_FINAL, time.time() - 300), _report("b", "refunds", B_FINAL, time.time())
+    found = alarm.accept(a, b, REPLY, time.time(), call=object())
+    assert found is not None, "the fixture must be a conflict the code accepts"
+    shown = json.dumps(found.public(), ensure_ascii=False)  # as the status sends it; escaped, the mask reads as a password
+    assert "hunter22x" not in shown, shown
+    assert mask(shown) == shown
+
+
+def test_the_spoken_alarm_carries_no_credential(d):
+    alarm = conflicts.Alarm()
+    a, b = _report("a", "migrate", A_FINAL, time.time() - 300), _report("b", "refunds", B_FINAL, time.time())
+    found = alarm.accept(a, b, REPLY, time.time(), call=object())
+    said = d._conflict_speech(found)
+    assert "hunter22x" not in said, said
+
+
+def test_the_conflict_reader_is_never_shown_a_credential():
+    a, b = _report("a", "migrate", A_FINAL, time.time() - 300), _report("b", "refunds", B_FINAL, time.time())
+    a.say = f"connected with {SECRET_URL}"
+    assert "hunter22x" not in conflicts.check_prompt(a, b)

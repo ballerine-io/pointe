@@ -1736,6 +1736,9 @@ Prefs (`GET/POST /voice/prefs`): `conflicts.on` (default true; off means no read
   waits while a push-to-talk press is open and while a read-out's yes window is open, so it never takes a yes away from
   a request or talks over the user; it never touches a permission. During a meeting (or while one starts) it is never
   said, not even after the meeting: the card and the note stay. Spoken in the user's language, claims as written.
+- **Secrets:** the reader's prompt and every field of an accepted conflict (claims, why, questions) pass `readout.mask`,
+  the one credential rule; claims are verified masked against the masked message. So status, notes, the phone and the
+  voice never carry a session's credential.
 - **Reader down:** no alarm, and a journal line `conflict check skipped: ...`.
 
 ### Deviations from the plan
