@@ -163,7 +163,7 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   folder only. Either way the daemon never takes a path from the caller, shows only tools that ran (never a tool still
   waiting for approval), refuses files outside the session's folder after resolving symlinks, hidden files and
   secret-looking names (`.env*`, `*.pem`, `*secret*`, `*key*`, `id_*`, `*credential*`, ...), binary files and files over
-  512 kB, and masks secret-looking values (known token shapes, private keys, `name = "..."` for secret-like names, URL
+  512 kB, and masks secret-looking values (known token shapes, private keys, `name = "..."` and unquoted `name: value` for secret-like names, URL
   passwords, and the values of this machine's own key variables) in file lines, diffs, test output and commands.
   Diffs read `HEAD` with `git cat-file`, never `git diff`, so a repository's filters and diff drivers do not run.
 - **Approve needs Face ID** or the passcode; deny never does. One opt-in exception: with "Approve from notifications"
