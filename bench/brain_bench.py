@@ -1,6 +1,6 @@
 """Which model should decide what the voice says (the brain), and which should turn a long final message into a report (the reader).
 
-    .venv/bin/python bench/brain_bench.py validate                  # counts, lengths, synthetic-data lint, format against the daemon
+    .venv/bin/python bench/brain_bench.py validate                  # counts, lengths, synthetic-data lint
     .venv/bin/python bench/brain_bench.py run --role brain|reader   # resumable; raw rows in results/brain_raw.jsonl
     .venv/bin/python bench/brain_bench.py judge                     # blind 1-5 score of every distinct reply
     .venv/bin/python bench/brain_bench.py report                    # scores offline from the raw rows; writes results/brain.md
@@ -197,6 +197,8 @@ def instrument(vendor_list: set[str]) -> None:
 
 def load_daemon():
     """Read-only: its import needs a state dir with a token, and it starts nothing."""
+    if "daemon" in sys.modules:
+        return sys.modules["daemon"]
     tmp = tempfile.mkdtemp(prefix="brain-bench-")
     Path(tmp, "token").write_text("bench")
     os.environ["CLAUDE_VOICE_STATE"] = tmp
@@ -218,6 +220,29 @@ def freeze_prompts() -> dict:
     OUT.mkdir(exist_ok=True)
     PROMPTS.write_text(json.dumps(frozen, ensure_ascii=False, indent=1))
     return frozen
+
+
+def daemon_context(case: bc.BrainCase) -> tuple[str, str]:
+    """The case's [right now] block and needs list, made by the daemon's own _brain_context and _needs_now from its
+    registry and state seeded with the case, so the bench sends what the daemon sends. Synchronous: replies run in
+    parallel on one daemon state, and nothing else can run between seeding and reading."""
+    d = load_daemon()
+    from sessions import REGISTRY, Session
+    REGISTRY.path = None
+    REGISTRY.sessions = {}
+    REGISTRY.mode = case.mode
+    d.state.unconfirmed = {}
+    for i, s in enumerate(case.sessions):
+        sid = f"s{i}"
+        REGISTRY.sessions[sid] = Session(id=sid, name=s.name, cwd="/tmp", pid=1, transcript="", busy=s.busy, brief=s.notes,
+                                         open_questions=list(s.waits), deadlines=list(s.clocks), urgency="high" if s.urgent else "normal",
+                                         typed_approval=s.typed, permission_id="p" if s.permission else None)
+        if s.sent:
+            d.state.unconfirmed[sid] = list(s.sent)
+    REGISTRY.active_id = f"s{case.active}"
+    d.state.challenge = case.challenge
+    d.state.last_utterance = case.words
+    return d._brain_context(), d._needs_now()
 
 
 # ---------- one reply ----------
@@ -299,8 +324,7 @@ async def brain_reply(choice: str, case: bc.BrainCase, frozen: dict) -> dict:
     async def speak(text: str) -> None:
         spoken.append(text)
 
-    block = bc.right_now(case, brief.render_brief)
-    needs = bc.needs_block(case)
+    block, needs = daemon_context(case)
     has_open = lambda: needs if re.search(r"Waits on the user for: (?!nothing)", needs) else None  # noqa: E731 daemon._open_items
     b = brain_module.Brain(choice, frozen["brain_system"], stub_tools(case, frozen, calls), lambda: block, speak,
                            has_open=has_open, sent_lately=lambda: case.sent_lately, **daemon_gates(case))
@@ -559,7 +583,7 @@ def reader_view(case: bc.ReaderCase) -> str:
 
 def brain_view(case: bc.BrainCase) -> str:
     past = "\n".join(f"{who}: {text}" for who, text in case.history) or "(no earlier turns)"
-    return (f"What the assistant knew:\n{bc.right_now(case, brief.render_brief)}\n\nEarlier in the call:\n{past}\n\n"
+    return (f"What the assistant knew:\n{daemon_context(case)[0]}\n\nEarlier in the call:\n{past}\n\n"
             f"The user now says: {case.words}")
 
 
@@ -1026,34 +1050,11 @@ def validate(_args) -> None:
     hit = DENY.search(frozen_system)
     if hit:
         print(f"note: the prompt contains {hit.group(0)!r}, and it would be published in brain_prompts.json")
-    from sessions import REGISTRY, Session
-    mismatches = 0
-    for c in bc.BRAIN_CASES:
-        REGISTRY.path = None
-        REGISTRY.sessions = {}
-        REGISTRY.mode = c.mode
-        d.state.unconfirmed = {}
-        for i, s in enumerate(c.sessions):
-            sid = f"s{i}"
-            REGISTRY.sessions[sid] = Session(id=sid, name=s.name, cwd="/tmp", pid=1, transcript="", busy=s.busy, brief=s.notes,
-                                             open_questions=list(s.waits), deadlines=list(s.clocks), urgency="high" if s.urgent else "normal",
-                                             typed_approval=s.typed, permission_id="p" if s.permission else None)
-            if s.sent:
-                d.state.unconfirmed[sid] = list(s.sent)
-        REGISTRY.active_id = f"s{c.active}"
-        d.state.challenge = c.challenge
-        d.state.last_utterance = c.words
-        ours, theirs = bc.right_now(c, brief.render_brief), d._brain_context()
-        if ours != theirs:
-            mismatches += 1
-            if mismatches == 1:
-                print("first format mismatch:\n--- ours\n" + ours + "\n--- daemon\n" + theirs)
     print(f"{len(bc.BRAIN_CASES)} brain cases, {len(bc.READER_CASES)} reader cases, "
           f"reader lengths {min(len(c.final) for c in bc.READER_CASES)} to {max(len(c.final) for c in bc.READER_CASES)} characters")
     print(f"categories: {sorted(set(c.cat for c in bc.BRAIN_CASES))}")
-    print(f"format against daemon._brain_context: {mismatches} mismatches")
     print("problems: " + ("; ".join(problems) if problems else "none"))
-    if problems or mismatches:
+    if problems:
         raise SystemExit(1)
 
 
