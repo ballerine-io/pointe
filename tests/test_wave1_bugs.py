@@ -634,3 +634,55 @@ def test_the_conversations_ears_are_finalised_when_a_meeting_takes_the_microphon
     asyncio.run(gate.tick(T0 + 0.1))
     asyncio.run(gate.tick(T0 + 0.2))
     assert sent == ['{"type": "finalize"}'], sent
+
+
+# ---------- 18. an addressed sentence split across two closes is handled once, as a whole ----------
+
+def _owner_says(d, monkeypatch, parts, mode="participating"):
+    """The owner (label "1") says `parts` in one breath; the room's quiet between finals closes the turn after each part
+    (Soniox finalises in bursts), as in the e2e: "Point, end" then "the meeting."."""
+    async def no_model(*_a, **_k):
+        return {}
+
+    monkeypatch.setattr(d, "_read_model", no_model)  # the end-of-meeting pass
+    monkeypatch.setattr(d, "HOLD_ADDRESSED_SECS", 0.2)
+    pushed, _ = _meeting_ready(d, monkeypatch)
+    _start(d, mode)
+    m = d.state.meeting
+    m.owner = "1"
+
+    async def go():
+        at, ms = m.since + 1, 0
+        for i, part in enumerate(parts):
+            turns = m.hear([{"is_final": True, "text": " " + part, "speaker": "1", "start_ms": ms, "end_ms": ms + 600}], at)
+            turns += m.tick(at + 2 * d.meetings.SILENCE_CLOSES_SECS)
+            for t in turns:
+                await d._on_meeting_turn(m, t)
+            at, ms = at + 2, ms + 700  # 0.1 s of audio between the parts: one speaker, one turn
+            await asyncio.sleep(0.05)  # less than the hold: the next part arrives in time
+        await asyncio.sleep(0.4)  # past the hold
+    asyncio.run(go())
+    return m, [f.text for f in pushed]
+
+
+def test_pointe_end_the_meeting_split_across_two_closes_ends_it(d, monkeypatch):
+    _owner_says(d, monkeypatch, ["Point, end", "the meeting."])
+    assert d.state.meeting is None, "the end command was taken as a question about 'end'"
+
+
+def test_a_question_split_across_two_closes_is_asked_once_whole(d, monkeypatch):
+    m, pushed = _owner_says(d, monkeypatch, ["Pointe, what do you think", "about the launch date?"])
+    asks = [p for p in pushed if "[the owner said:]" in p]
+    assert len(asks) == 1 and asks[0].rstrip().endswith("what do you think about the launch date?"), asks
+
+
+def test_a_question_without_closing_punctuation_is_still_answered_once(d, monkeypatch):
+    m, pushed = _owner_says(d, monkeypatch, ["Pointe, what do you think about the launch date"])
+    asks = [p for p in pushed if "[the owner said:]" in p]
+    assert len(asks) == 1, asks
+
+
+def test_a_punctuated_question_is_answered_at_once(d, monkeypatch):
+    m, pushed = _owner_says(d, monkeypatch, ["Pointe, what do you think about the launch date?"])
+    asks = [p for p in pushed if "[the owner said:]" in p]
+    assert len(asks) == 1, asks

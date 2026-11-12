@@ -1818,7 +1818,18 @@ def _meeting_echo(said: str) -> bool:
     return sum(covered) >= MEETING_ECHO_SHARE * len(heard)
 
 
-async def _on_meeting_turn(m, turn) -> None:
+HOLD_ADDRESSED_SECS = 2.0  # an addressed sentence with no closing punctuation waits this long for the rest of it
+_CLOSED = re.compile(r"[.!?…]\W*$")
+
+
+async def _release_addressed(m, turn, text: str) -> None:
+    """No more words came for a held sentence: it is handled as it is, once."""
+    await asyncio.sleep(HOLD_ADDRESSED_SECS)
+    if state.meeting is m and turn.text == text:  # a turn that grew was handled again when it re-closed
+        await _on_meeting_turn(m, turn, hold=False)
+
+
+async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
     said = turn.new_text  # a speaker resuming: only the resumed words can be a command
     if _meeting_echo(said):
         # The label is the bot's only if nobody spoke under it: diarisation can file the echo under a participant's.
@@ -1829,6 +1840,10 @@ async def _on_meeting_turn(m, turn) -> None:
         return
     found = meetings.addressed_all(turn.text, turn.starts)  # "…the plan. Pointe, end the meeting." holds a command too
     fresh, turn.handled = found[turn.handled:], len(found)  # a re-closed turn acts only on what it did not act on yet
+    if hold and fresh and not _CLOSED.search(fresh[-1]):
+        # Soniox finalises in bursts and a lull closes the turn: "Pointe, end" may still become "Pointe, end the meeting."
+        fresh, turn.handled = fresh[:-1], turn.handled - 1
+        asyncio.create_task(_release_addressed(m, turn, turn.text))
     if m.is_entry(turn) or _MEETING_ON.match(said.strip()):  # the replayed "Pointe, meeting mode, participating"
         if m.entry_bound and m.owner == turn.speaker:  # with a voiceprint, it decides, not the label of who said it
             voice = await _meeting_voice(turn)
