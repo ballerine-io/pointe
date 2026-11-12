@@ -980,9 +980,10 @@ class SonioxEars(FrameProcessor):
             state.last_utterance = heard  # its language; never fresh speech for a send
             await set_drive(asked == "on", "voice")
             return
-        # After drive mode: while driving, "back to normal" ends drive mode first. A "back to normal" with whisper mode
-        # off is someone else's words, as for drive mode.
-        if state.monologue is None and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")):
+        # "Back to normal" ends one mode, in one order: drive mode (above), then a challenge (_challenge_words), then
+        # whisper mode. A "back to normal" with whisper mode off is someone else's words, as for drive mode.
+        if state.monologue is None and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")) \
+                and not (state.challenge is not None and challenge.end_intent(heard)):
             await _whisper_by_voice(heard, quiet)
             return
         wanted = meeting_intent(heard)

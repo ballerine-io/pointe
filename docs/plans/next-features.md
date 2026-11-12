@@ -1863,7 +1863,8 @@ reads the pending request again in the new mode's form.
 Never both, and driving wins: entering drive mode (phrase or button) ends a challenge with no verdict (a verdict is a
 long speech; the challenge stays in status as ended, and its panel waits until the user stops driving), and a challenge
 is refused while driving (409 "Not while driving: …"; the Challenge button and menu item are disabled). "Back to normal"
-ends whichever of the two is on; outside both it is ordinary speech for the brain (it used to be swallowed by the drive
+ends one mode per utterance: drive mode, then a challenge, then whisper mode; outside all of them it is ordinary
+speech for the brain (it used to be swallowed by the drive
 phrase check). Drive mode is entered before the challenge is ended, so a "challenge this" heard while it ends is
 refused. The road rules (`_answer_permission`, `_read_out`) are keyed on `state.drive.on()`, not on `current_mode()`,
 so they hold even if a mode that `current_mode()` ranks higher is on at the same time.
@@ -2005,7 +2006,8 @@ match), and at Commands/Everything whispered words are usually kept out. Both cl
 
 - **Drive mode holds it.** No screen to read, and a half-volume voice in a car is a safety cost: while drive mode is on,
   output, input, the voice-detector profile and the reply rule are those of drive mode; the setting stays and applies
-  again when drive mode ends. "Back to normal" while both are on ends drive mode first (a second one ends whisper mode).
+  again when drive mode ends. "Back to normal" ends one mode per utterance, in one order: drive mode, then a challenge,
+  then whisper mode (with all on, three of them end all three; "stop whispering" ends only whisper mode).
   "Whisper mode" asked while driving is stored and the voice says it starts when drive mode ends. The page keeps the
   button pressed and hides the card; the app hides the card (drive mode's screen).
 - **Challenge:** both apply (the challenge's tool narrowing and the whisper reply rule). Whisper mode is not a

@@ -17,6 +17,7 @@ from test_speaker import OTHER_HZ, OWNER_HZ  # noqa: E402
 from test_voice_lock import _ears, _utter, heard, level, v  # noqa: E402,F401
 from test_challenge import c, start  # noqa: E402,F401
 from test_briefing import b, night, sec  # noqa: E402,F401
+from test_whisper import _ears as _quiet_ears  # noqa: E402
 
 import briefing  # noqa: E402
 
@@ -196,3 +197,29 @@ def test_a_briefing_word_that_is_no_no_answers_nothing(d, b, tmp_path, monkeypat
     d.state.briefing_play = d.BriefingPlay(briefing=briefing.assemble([sec("docs", "done")], "today", "normal", 0, 0))
     asyncio.run(d.SonioxEars()._take(words))
     assert verdicts(posts) == [] and lantern.permission_id == "p9"
+
+
+# ---------- 7. "back to normal" with several modes on: drive, then the challenge, then whisper ----------
+
+def test_back_to_normal_ends_drive_then_the_challenge_then_whisper(d, c, monkeypatch):
+    """One "back to normal" ends one mode, in one order: drive mode, then a challenge, then whisper mode. Drive and a
+    challenge are never on together (set_drive ends the challenge); both are forced on here to pin the order anyway."""
+    ears, reached, _ = _quiet_ears(d, monkeypatch)
+    d.PREFS.update({"whisper": True})
+    assert start(d) is None
+    d.state.drive.enter("button")
+    asyncio.run(ears._take("back to normal"))
+    assert not d.state.drive.on() and d.state.challenge is not None and d.PREFS.get("whisper") is True
+    asyncio.run(ears._take("back to normal"))
+    assert d.state.challenge is None and d.PREFS.get("whisper") is True
+    asyncio.run(ears._take("back to normal"))
+    assert d.PREFS.get("whisper") is False and not reached
+
+
+def test_stop_whispering_during_a_challenge_ends_whisper_only(d, c, monkeypatch):
+    ears, reached, _ = _quiet_ears(d, monkeypatch)
+    d.PREFS.update({"whisper": True})
+    assert start(d) is None
+    asyncio.run(ears._take("stop whispering"))
+    assert d.PREFS.get("whisper") is False and d.state.challenge is not None
+
