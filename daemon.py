@@ -66,6 +66,7 @@ from brief import (
 from brief import parse as parse_reply
 from echo import EchoGuard, LevelGate, words as echo_words
 import phone
+from readout import mask
 from guards import (relays_approval, 
     LocalAuth,
     permission_answer,
@@ -4063,9 +4064,9 @@ async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview:
     if verdict is None:
         logger.info(f"permission {session.name}/{request_id} handed back to the terminal")
         if current_mode().holds_news and time.time() >= deadline:  # it waited out a long monologue or meeting: say so after
+            what = mask(str(tool_input.get("description") or preview))[:120]  # said aloud later: the one credential rule
             state.monologue_held.append((f"[{session.name}: its approval request waited while the user thought out loud, "
-                                         f"then went back to its terminal] {tool_name}: "
-                                         f"{tool_input.get('description') or preview[:120]}", True))
+                                         f"then went back to its terminal] {tool_name}: {what}", True))
     return verdict
 
 

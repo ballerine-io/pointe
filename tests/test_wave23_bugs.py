@@ -3,6 +3,7 @@ briefing, conflicts, whisper, voice lock, meeting), each as the scenario that sh
 
 import asyncio
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -238,4 +239,23 @@ def test_drive_mode_by_voice_is_refused_while_a_meeting_starts(d, monkeypatch):
         assert client_for(d).post("/voice/drive", json={"on": True}).status_code == 409
     finally:
         d.state.meeting_starting = False
+
+
+# ---------- 9. an approval held through a monologue is told later with its preview: masked ----------
+
+@pytest.mark.parametrize("tool_input", [{"command": f"psql {SECRET_URL} -c 'select 1'"},
+                                        {"command": "ls", "description": f"Query {SECRET_URL}"}])
+def test_an_approval_held_through_a_monologue_is_told_without_its_credential(d, monkeypatch, tool_input):
+    client = client_for(d)
+    auth = {"authorization": "Bearer secret"}
+    client.post("/voice/register", headers=auth, json={"id": "e", "name": "bluebell/dev", "cwd": "/tmp",
+                                                         "pid": os.getpid(), "transcript": "/tmp/none.jsonl"})
+    d.state.conn = fake_conn(bot_started_at=2.0)
+    monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
+    monkeypatch.setattr(__import__("harnesses.claude_code").claude_code.ClaudeCode, "permission_deadline", 0.5)
+    d._start_monologue("just listen")
+    hook = {"session_id": "e", "tool_name": "Bash", "tool_input": tool_input}
+    assert client.post("/voice/permission-hook", headers=auth, json=hook).json() == {}
+    held = [text for text, _ in d.state.monologue_held if "went back to its terminal" in text]
+    assert held and not any("hunter22x" in t for t in held), held
 
