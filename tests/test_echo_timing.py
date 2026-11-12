@@ -207,3 +207,15 @@ def test_a_long_echo_is_matched_against_the_mirror_for_all_of_it(clock):
             "out. It's on your screen. Approve it there, or say no. Back to the earlier report: scratch.txt is created, "
             "0 bytes.")
     assert g.user_part(said, spoken=(100.4, 119.4)) == ""
+
+
+def test_loudness_is_judged_only_on_audio_that_just_came(clock):
+    from echo import LevelGate
+    gate = LevelGate()
+    for _ in range(140):
+        gate.frame(300, bot_speaking=True)  # the echo
+    for _ in range(15):
+        gate.frame(4000, bot_speaking=False)  # the user, pressing to talk
+    assert gate.loud()
+    clock[0] += 8  # push to talk closed: no audio reached the gate since
+    assert not gate.loud()  # a voice detector firing now (a meeting opened the room) is not the user's voice

@@ -300,6 +300,7 @@ class EchoGuard:
 LOUD_OVER_ECHO = 4.0  # speech this much louder than the echo floor is the user's own voice
 ONSET_SECS = 1.0  # the start of each bot turn, when its echo is still arriving
 MIN_SPEECH_RMS = 300  # int16 RMS; below this a "loud" frame is room noise, not a voice
+FRESH_SECS = 0.2  # the loudness of older audio says nothing about a voice starting now
 
 
 class LevelGate:
@@ -318,8 +319,10 @@ class LevelGate:
         self._onset_frames = int(frames_per_sec * ONSET_SECS)
         self._turn_frames = 0
         self._was_speaking = False
+        self._heard_at = 0.0
 
     def frame(self, rms: float, bot_speaking: bool) -> None:
+        self._heard_at = time.time()
         self._turn_frames = self._turn_frames + 1 if bot_speaking and self._was_speaking else (1 if bot_speaking else 0)
         self._was_speaking = bot_speaking
         self._recent.append(rms)
@@ -327,6 +330,9 @@ class LevelGate:
             self._echo.append(rms)
 
     def loud(self) -> bool:
+        # No audio of late (push to talk held it back, and a meeting just opened the room): its last frames are old.
+        if time.time() - self._heard_at > FRESH_SECS:
+            return False
         if 0 < self._turn_frames < self._onset_frames:
             return False
         floor_frames = list(self._echo)[: -len(self._recent)]  # the onset itself is not the floor
