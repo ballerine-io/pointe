@@ -494,6 +494,13 @@
     <div class="note">In push to talk, nothing you say leaves this Mac unless you hold the key or the mic button, except
       during a meeting you started: the room is heard for its notes, and talking to Pointe still needs the hold. Caps Lock
       turns talking on and off (a toggle: a browser cannot see it held). Keys work only while this tab is focused.</div>
+    <h3>Alerts</h3>
+    <label class="tick"><input type="checkbox" id="pref-desktop" onchange="desktopAlertsAsk(this)"> Desktop alerts while this tab is in the background</label>
+    <div class="note" id="pref-desktop-note"></div>
+    <label class="tick"><input type="checkbox" id="pref-watch"> Approve from notifications (iPhone and Apple Watch)</label>
+    <div class="note">A notification shows what Pointe would read out, never the hidden full text. Its Approve needs an
+      unlocked iPhone or a watch on your wrist instead of Face ID, and only for a request Pointe can read out; anything
+      else opens the app. Phone alerts need the call to be up or the app open.</div>
     <div class="ok" id="setok" role="status"></div><div class="err" id="seterr" role="alert"></div>
     <div class="row"><button onclick="closeSheet('settingssheet')">Cancel</button><button class="go" onclick="saveSettings()">Save</button></div>
   </div>
@@ -634,6 +641,7 @@
     showHearing(status && status.connected && !meetingOf(status)?.on ? status.hearing : null);
     showMeeting(status);
     showVoiceLock(status);
+    if (window.desktopAlerts) desktopAlerts(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
     $('ctx').textContent = s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context';
@@ -1600,6 +1608,8 @@
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
     $('pref-mic').value = prefs.microphone || 'always';
+    $('pref-watch').checked = !!prefs['alerts.watch_approve'];
+    if (window.desktopAlertsShow) desktopAlertsShow();
     pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
     $('setok').textContent = ''; $('seterr').textContent = '';
     openSheet('settingssheet', 'pref-mode');
@@ -1607,8 +1617,9 @@
   async function saveSettings() {
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
-      microphone: $('pref-mic').value})});
+      microphone: $('pref-mic').value, 'alerts.watch_approve': $('pref-watch').checked})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); refresh(); }
+    if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
     else $('seterr').textContent = (await r.json().catch(() => ({}))).detail || 'Not saved';
   }
@@ -1698,6 +1709,47 @@
   });
   if (matchMedia('(max-width: 900px)').matches) $('compose').classList.add('folded');
   refresh(); setInterval(refresh, 700);
+</script>
+<script>
+  // Desktop alerts (Settings → Alerts): a notification when something needs you while this tab is in the background.
+  // Title and body come from the daemon's attention list, which already leaves out what a lock screen must not show
+  // (alerts.py). Approving stays a click on the card: the notification only brings this page forward.
+  const desk = {shown: new Map(), seen: new Set()};
+  const deskWanted = () => localStorage.getItem('pointe.desktopAlerts') === 'on';
+  const deskAllowed = () => 'Notification' in window && Notification.permission === 'granted';
+  function desktopAlerts(s) {
+    if (!s) return;  // a failed poll is not "everything was answered"
+    const items = s.attention || [], ids = new Set(items.map(a => a.id));
+    for (const [id, n] of desk.shown) if (!ids.has(id)) { n.close(); desk.shown.delete(id); }  // answered elsewhere
+    for (const id of desk.seen) if (!ids.has(id)) desk.seen.delete(id);
+    const away = document.visibilityState === 'hidden';
+    for (const a of items) {
+      if (desk.seen.has(a.id)) continue;
+      desk.seen.add(a.id);  // shown on the page or alerted once: never alerted again
+      if (!away || !deskWanted() || !deskAllowed()) continue;
+      const n = new Notification(a.title || 'Pointe wants to speak', {body: a.body || a.text || '', tag: a.id,
+                                                                     requireInteraction: a.kind === 'permission'});
+      n.onclick = () => { window.focus(); n.close(); };
+      desk.shown.set(a.id, n);
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    for (const n of desk.shown.values()) n.close();  // the card is on screen now
+    desk.shown.clear();
+  });
+  const DESK_BLOCKED = 'Notifications are blocked for this page: allow them in the browser\u2019s site settings.';
+  function desktopAlertsShow() {
+    $('pref-desktop').checked = deskWanted() && deskAllowed();
+    $('pref-desktop-note').textContent = !('Notification' in window) ? 'This browser cannot show notifications.'
+      : Notification.permission === 'denied' ? DESK_BLOCKED : '';
+  }
+  async function desktopAlertsAsk(box) {  // the browser asks only from a click
+    if (!box.checked) return;
+    if (!('Notification' in window)) { box.checked = false; return desktopAlertsShow(); }
+    box.checked = (Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission()) === 'granted';
+    $('pref-desktop-note').textContent = box.checked ? '' : DESK_BLOCKED;
+  }
 </script>
 </body>
 </html>
