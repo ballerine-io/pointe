@@ -62,7 +62,7 @@ from brief import (
     report_prompt,
 )
 from brief import parse as parse_reply
-from echo import EchoGuard, LevelGate, words as echo_words
+from echo import AudioClock, EchoGuard, LevelGate, words as echo_words
 import phone
 from guards import (
     LocalAuth,
@@ -169,6 +169,7 @@ def setup() -> vendors.Setup:
 
 
 ECHO = EchoGuard()
+EARS_CLOCK = AudioClock()  # when the user's ears heard each word: a final transcript comes seconds after them
 NOTES = Notes()  # what the voice writes instead of saying: meeting notes, held news
 JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meeting secretary, lookups
 ALARM = conflicts.Alarm()  # two sessions that disagree: their latest reports and the open conflicts
@@ -887,12 +888,13 @@ class SonioxEars(FrameProcessor):
                 return
             # A command while the bot is quiet is the user's, even in the words it just suggested.
             invited = ECHO.invited(text)
-            state.heard_own_words = invited and not ECHO.user_part(text)  # never an answer to a permission
+            spoken = _spoken(frame)
+            state.heard_own_words = invited and not ECHO.user_part(text, spoken)  # never an answer to a permission
             own = invited or (not ECHO.speaking and (switch_intent(text) or back_intent(text)))
-            heard = text if own else ECHO.user_part(text)
+            heard = text if own else ECHO.user_part(text, spoken)
             if heard and ECHO.live and not own:  # the mirror may not have transcribed this stretch of the bot yet
                 await asyncio.sleep(ECHO_SETTLE_SECS)
-                heard = ECHO.user_part(text)
+                heard = ECHO.user_part(text, spoken)
             if text and not heard:
                 logger.info(f"echo dropped: {text!r}")
                 VOICE.collector.take()  # the bot's voice through the speakers is nobody's voiceprint
@@ -5107,6 +5109,31 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
         state.heartbeat_info = None
 
 
+def _clock_ears(stt) -> None:
+    """Counts the audio a streaming recognizer really receives (Soniox: only on an open socket), so the word timings in its
+    transcripts map to wall time (EARS_CLOCK). Other ears give no timings and keep the arrival-time echo rules."""
+    if not hasattr(stt, "_websocket"):
+        return
+    from websockets.protocol import State as SocketState
+
+    send = stt.run_stt
+
+    async def run_stt(audio: bytes):
+        ws = stt._websocket
+        if ws is not None and ws.state is SocketState.OPEN:
+            EARS_CLOCK.sent(ws, len(audio) / 2 / stt.sample_rate, time.time())
+        async for frame in send(audio):
+            yield frame
+
+    stt.run_stt = run_stt
+
+
+def _spoken(frame) -> tuple[float, float] | None:
+    """When a transcript's words were said, if its ears tell (EARS_CLOCK)."""
+    span = EARS_CLOCK.span(frame.result) if isinstance(getattr(frame, "result", None), list) else None
+    return span if span and span[1] <= time.time() + 0.5 else None  # a clock out of step says nothing
+
+
 async def run_call(transport) -> None:
     """One call, over the WebSocket link the page and the phone share."""
     state.http = state.http or aiohttp.ClientSession()
@@ -5126,6 +5153,7 @@ async def run_call(transport) -> None:
         from pipecat.processors.audio.vad_processor import VADProcessor
 
         stt = vendors.build_ears(setup().ears, _recognition_terms())
+        _clock_ears(stt)
         ears = [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()]
     gate = PttGate(stt)
     if FRONT == "brain":
