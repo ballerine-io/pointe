@@ -1833,8 +1833,8 @@
   async function saveSettings() {
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
-      microphone: $('pref-mic').value, 'alerts.watch_approve': $('pref-watch').checked})});
-      microphone: $('pref-mic').value, 'show.on_phone': $('pref-showphone').checked})});
+      microphone: $('pref-mic').value, 'alerts.watch_approve': $('pref-watch').checked,
+      'show.on_phone': $('pref-showphone').checked})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); refresh(); }
     if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
