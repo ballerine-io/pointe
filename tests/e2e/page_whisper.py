@@ -70,9 +70,13 @@ async def main() -> None:
         async with connect(target["webSocketDebuggerUrl"], max_size=None) as socket:
             page = Page(socket)
             await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
-            await page.js("window.__errors = []; addEventListener('error', e => __errors.push(e.message)); "
-                          "addEventListener('unhandledrejection', e => __errors.push(String(e.reason)))")
-            await page.until("document.getElementById('whisperbtn')", 10)
+            hook = ("window.__errors = []; addEventListener('error', e => __errors.push(e.message)); "
+                    "addEventListener('unhandledrejection', e => __errors.push(String(e.reason)))")
+            await page.cdp("Page.enable")
+            await page.cdp("Page.addScriptToEvaluateOnNewDocument", {"source": hook})  # survives the key's redirect
+            await page.cdp("Page.reload")
+            hooked = await page.until("document.getElementById('whisperbtn') && Array.isArray(window.__errors)", 15)
+            assert hooked, "the page error hook is not in place"
             pcm = base64.b64encode(hush.tobytes()).decode()
             await page.js(f"""(() => {{
                 const bytes = Uint8Array.from(atob('{pcm}'), c => c.charCodeAt(0)), pcm = new Int16Array(bytes.buffer);
