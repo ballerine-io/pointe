@@ -319,7 +319,7 @@ def _echo_then_claim(d, monkeypatch, hz):
     assert m.bot == "1:1"
     monkeypatch.setattr(d.ECHO, "user_part", lambda text: text)
     d.state.meeting_ears = SimpleNamespace(audio_between=lambda a, b: tone(hz, 2.0))
-    claim = m.hear([{"is_final": True, "text": " Pointe, that's me", "speaker": "1", "start_ms": 4000, "end_ms": 6000}], now + 10)
+    claim = m.hear([{"is_final": True, "text": " Pointe, that's me.", "speaker": "1", "start_ms": 4000, "end_ms": 6000}], now + 10)
     claim += m.tick(now + 15)
     for t in claim:
         asyncio.run(d._on_meeting_turn(m, t))
@@ -530,6 +530,7 @@ def test_any_log_line_quoting_the_room_or_the_owners_question_is_withheld_in_a_m
 def _bot_said_then_room_turn(d, monkeypatch, bot_text, heard, label, secs_after_stop=9.0):
     """The bot said `bot_text` into the meeting and stopped; its echo closes as a meeting turn `secs_after_stop` later (the
     e2e measured 8-11 s: Soniox finalises late, a turn closes on 1.2 s of quiet, the loop ticks every 2 s)."""
+    monkeypatch.setattr(d, "ECHO", d.EchoGuard())  # its own: the module's guard outlives the test
     _meeting_ready(d, monkeypatch)
     _start(d, "participating")
     m = d.state.meeting
@@ -591,6 +592,7 @@ def test_a_stale_conversation_transcript_does_not_cut_the_bot_off_in_a_meeting(d
     the room, and cut it off."""
     from pipecat.frames.frames import InterimTranscriptionFrame, TranscriptionFrame
     from pipecat.processors.frame_processor import FrameDirection
+    monkeypatch.setattr(d, "ECHO", d.EchoGuard())  # its own: the module's guard outlives the test
     _meeting_ready(d, monkeypatch)
     _start(d, "participating")
     ears = d.SonioxEars()
