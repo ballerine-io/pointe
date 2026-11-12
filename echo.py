@@ -7,6 +7,7 @@ just said.
 
 import re
 import time
+from bisect import bisect_left
 from collections import deque
 from difflib import SequenceMatcher
 
@@ -14,6 +15,9 @@ ECHO_TAIL_SECS = 2.5  # room reverb and STT delay: echo transcripts keep arrivin
 LATE_ECHO_SECS = 8.0  # a final transcript can trail by this much; only a run of the bot's own words counts this late
 BOT_MEMORY_SECS = 30.0
 MIRROR_RECENT_SECS = 12.0  # the mirror trails the audio by a few seconds at most
+AUDIO_TAIL_SECS = 1.0  # words said up to this long after the bot stopped can hold its voice: playback buffers, the room
+PLAYBACK_LAG_SECS = 0.3  # the speakers play the bot's last word up to this long after it stopped sending audio
+CHARS_PER_SEC = 15.5  # the bot's pace over whole turns (rig, 2026-11): where in its text it was at a given moment
 INTERRUPT_WORDS = {"stop", "wait", "hold", "no", "enough", "quiet", "pause", "hey",
                    "רגע", "עצור", "די", "לא", "חכה", "שקט"}
 
@@ -55,6 +59,41 @@ def _like(heard: str, said: str) -> bool:
     return said.startswith(heard) or (len(heard) >= 3 and SequenceMatcher(None, heard, said).ratio() >= 0.6)
 
 
+class AudioClock:
+    """When the speech recognizer heard its audio. Its words carry offsets into its own stream, and its final transcript
+    comes seconds after the words (Soniox: about 3 s for an echoed sentence), so arrival time cannot say whether they were
+    said over the bot. Fed with exactly the audio the recognizer receives; a new stream starts again at zero."""
+
+    def __init__(self):
+        self._stream = None
+        self._ends: deque[float] = deque(maxlen=6000)  # stream ms at the end of each chunk: two minutes of 20 ms chunks
+        self._at: deque[float] = deque(maxlen=6000)  # wall time it was sent
+        self._ms = 0.0
+
+    def sent(self, stream, secs: float, now: float) -> None:
+        if stream is not self._stream:
+            self._stream, self._ms = stream, 0.0
+            self._ends.clear()
+            self._at.clear()
+        self._ms += secs * 1000
+        self._ends.append(self._ms)
+        self._at.append(now)
+
+    def wall(self, ms: float) -> float | None:
+        i = bisect_left(self._ends, ms)
+        if i == len(self._ends) or ms < self._ends[0] - 1000:
+            return None  # audio this stream never got, or older than the clock remembers
+        return self._at[i] - (self._ends[i] - ms) / 1000
+
+    def span(self, tokens: list) -> tuple[float, float] | None:
+        """(start, end) wall time of a transcript's words, from its tokens; None without timings."""
+        timed = [t for t in tokens if isinstance(t, dict) and "start_ms" in t and not t.get("text", "").startswith("<")]
+        if not timed:
+            return None
+        start, end = self.wall(timed[0]["start_ms"]), self.wall(timed[-1]["end_ms"])
+        return None if start is None or end is None else (start, end)
+
+
 class _Source:
     """One account of what the bot said. Chunks can split words, so they are joined before splitting."""
 
@@ -80,14 +119,29 @@ class EchoGuard:
         self.stopped_at = 0.0
         self._turns = (0.0, 0.0)
         self._invited: deque[tuple[float, list[str]]] = deque(maxlen=8)
+        self._played: deque[list[float]] = deque(maxlen=8)  # [started, stopped or 0 while it plays]
 
     def bot_started(self) -> None:
         if not self.speaking:
             self._turns = (self._turns[1], time.time())  # (the turn before, this turn)
+            self._played.append([time.time(), 0.0])
         self.speaking = True
 
     def bot_stopped(self) -> None:
         self.speaking, self.stopped_at = False, time.time()
+        if self._played and not self._played[-1][1]:
+            self._played[-1][1] = self.stopped_at
+
+    def said_over_bot(self, spoken: tuple[float, float] | None) -> bool:
+        """Some of these words were said while the bot's voice could still be in the air (AudioClock.span)."""
+        return self._over_bot(spoken, AUDIO_TAIL_SECS)
+
+    def _over_bot(self, spoken: tuple[float, float] | None, after: float) -> bool:
+        """Some of these words were said while the bot played, or up to `after` seconds after it stopped."""
+        if spoken is None:
+            return False
+        start, end = spoken
+        return any(start < (stopped or time.time()) + after and end > began for began, stopped in self._played)
 
     def bot_said(self, text: str) -> None:
         self._model.add(text)
@@ -111,23 +165,29 @@ class EchoGuard:
         """The speakers may still be playing the bot into the mic."""
         return self.speaking or time.time() - self.stopped_at < ECHO_TAIL_SECS
 
-    def _sources(self) -> tuple[list[str], list[str]]:
+    def _sources(self, since: float | None = None) -> tuple[list[str], list[str]]:
         """What can still be coming back through the speakers: the text of this turn and the one before (it is written
         before it plays), and the mirror's last few seconds. Not every word of the last half minute: against several long
-        answers, near-spellings match almost anything the user says."""
-        since = self._turns[0] - 1.0 if self._turns[0] else 0.0
-        return self._model.words(since), self._mirror.words(time.time() - MIRROR_RECENT_SECS)
+        answers, near-spellings match almost anything the user says. The text counts from the end of the turn before
+        those two: a reply can wait seconds behind another before it plays, and the voice can stop and start inside one.
+        `since`: when a transcript's words began. Both accounts then reach back to it, however long it is."""
+        model = min(self._turns[0] - 1.0, self._played[-3][1] if len(self._played) >= 3 else 0.0)
+        mirror = time.time() - MIRROR_RECENT_SECS
+        if since is not None:
+            model, mirror = min(model, since - 1.0), min(mirror, since - 1.0)
+        return self._model.words(model), self._mirror.words(mirror)
 
     def _bot_words(self) -> set[str]:
         model, mirror = self._sources()
         return set(model) | set(mirror)
 
-    def _echo_mask(self, heard: list[str], fuzzy: bool = True) -> list[bool]:
+    def _echo_mask(self, heard: list[str], fuzzy: bool = True, speaking: bool | None = None,
+                   sources: tuple[list[str], ...] | None = None) -> list[bool]:
         """Which heard words are the bot's. Fuzzy only while its voice may still be in the air: against a long answer,
         near-spellings match almost any sentence ("run" for "round"), and a late transcript is spelled like the mirror's."""
         like = _like if fuzzy else (lambda heard_word, said_word: heard_word == said_word)
         bot_words, bot_pairs = set(), set()
-        for said in self._sources():
+        for said in sources or self._sources():
             bot_words.update(said)
             bot_pairs.update(zip(said, said[1:]))
         mask = [False] * len(heard)
@@ -141,23 +201,29 @@ class EchoGuard:
         # A bot word next to an echoed run is echo too (the STT misheard its neighbour). A transcript
         # of one or two words has no runs: while the bot talks its bot words count directly; after
         # it stops they do not, so a quick "yes" to "yes or no?" stays the user's.
-        short = len(heard) <= 2 and self.speaking
+        short = len(heard) <= 2 and (self.speaking if speaking is None else speaking)
         for i, w in enumerate(heard):
             near = (i > 0 and mask[i - 1]) or (i + 1 < len(heard) and mask[i + 1])
             if not mask[i] and (short or near) and (w in bot_words or (short and any(like(w, b) for b in bot_words))):
                 mask[i] = True
         return mask
 
-    def user_part(self, text: str) -> str:
-        """The transcript minus what the bot just said; '' when nothing of the user's is left."""
+    def user_part(self, text: str, spoken: tuple[float, float] | None = None) -> str:
+        """The transcript minus what the bot just said; '' when nothing of the user's is left. `spoken`: when its words
+        were said (AudioClock.span). Words said while the bot's voice was in the air are judged as if they had just come,
+        however late the transcript; one or two of them only against what the bot was saying then (_said_then)."""
         heard = words(text)
-        late = time.time() - self.stopped_at > LATE_ECHO_SECS
+        over = self.said_over_bot(spoken)
+        late = not over and time.time() - self.stopped_at > LATE_ECHO_SECS
         if not late and self._model.chunks and heard == words(self._model.chunks[-1][1]):
             return ""  # all of its last reply, and nothing else: "Four." coming back off the speakers
-        if not self.live and (len(heard) < 3 or late):
+        was_live = self.live or over
+        if not was_live and (len(heard) < 3 or late):
             return text
-        was_live = self.live
-        mask = self._echo_mask(heard, fuzzy=was_live)
+        # one or two words said over its voice: its words count one by one, as while it talks
+        over_words = self.speaking or self._over_bot(spoken, PLAYBACK_LAG_SECS)
+        sources = self._said_then(heard, spoken, over_words) or (self._sources(spoken[0]) if over else None)
+        mask = self._echo_mask(heard, fuzzy=was_live, speaking=over_words, sources=sources)
         rest = [w for w, m in zip(heard, mask) if not m]
         if not any(mask):
             return text
@@ -166,6 +232,28 @@ class EchoGuard:
         if not rest or (len(rest) == 1 and rest[0] not in INTERRUPT_WORDS):
             return ""  # one stray word inside an echo is a mishearing, not the user
         return " ".join(rest)
+
+    def _said_then(self, heard: list[str], spoken: tuple[float, float] | None, over_words: bool) -> tuple[list[str], ...] | None:
+        """For one or two words said over the bot: only what the mirror heard it say from then on. Against two whole turns,
+        near-spellings match any short phrase ("this" for "is"); an echo is the words playing at that moment. An answer
+        word the bot said at all stays its own (never a yes or no from the speakers), and without the mirror's text for
+        this turn, or without timings, the whole turns count, as before."""
+        began = self._turns[1]
+        if spoken is None or not over_words or len(heard) > 2 or spoken[1] < began or not self._mirror.words(began):
+            return None
+        # The mirror's text comes after the audio it heard, seconds later after a cut-off: everything since counts. Its
+        # text can still be missing, so the bot's written words count too, placed by its pace through the turn.
+        before = self._played[-2][1] if len(self._played) > 1 else 0.0  # its text is written before it plays
+        text = "".join(t for at, t in self._model.chunks if at > before)
+        placed = []
+        for m in re.finditer(r"[\w']+", text.lower()):
+            at = began + m.start() / CHARS_PER_SEC
+            slack = 1.5 + 0.15 * (at - began)  # the pace drifts over a long turn
+            if spoken[0] - slack <= at <= spoken[1] + slack:
+                placed.extend(words(m.group()))
+        said = self._bot_words()
+        answers = [w for w in heard if w in ANSWER_WORDS and any(_like(w, b) for b in said)]
+        return self._mirror.words(spoken[0] - 1.0), placed, answers
 
     def repeats_bot(self, text: str) -> bool:
         """These words are the bot's own recent speech coming back: every answer word in them (yes, no, approve…) sits
@@ -185,19 +273,23 @@ class EchoGuard:
         answers = [m for w, m in zip(heard, mask) if w in ANSWER_WORDS]
         return bool(answers) and all(answers) and sum(mask) * 2 >= len(heard)
 
-    def is_barge_in(self, interim: str) -> bool:
+    def is_barge_in(self, interim: str, spoken: tuple[float, float] | None = None) -> bool:
         """Live words over the bot's voice that are the user's: two in a row, or one stop word.
 
-        In a row, because the user talks in a run while misheard echo words land scattered.
+        In a row, because the user talks in a run while misheard echo words land scattered. `spoken`: when its words
+        began and ended (AudioClock.span); a long echo is then matched against all the bot said since it began.
         """
         heard = words(interim)
         if not self.live:
             return len(heard) >= 2 or any(w in INTERRUPT_WORDS for w in heard)
         # The last word of a live transcript is often half heard ("c" for "cut"): if it starts a word the bot said, it
-        # proves nothing yet, and must not complete a run.
-        if heard and heard[-1] not in INTERRUPT_WORDS and any(b.startswith(heard[-1]) for b in self._bot_words()):
-            heard = heard[:-1]
-        mask = self._echo_mask(heard)
+        # proves nothing yet, and must not complete a run. A stop word too, when it is only the start of one ("hold" of
+        # "holding", "no" of "nothing"): the bot's first word cut it off. The next transcript, a beat later, settles it.
+        # It still vouches for its neighbour: "retries on" is the bot's pair, so "retries" is the bot's.
+        mask = self._echo_mask(heard, sources=self._sources(spoken[0]) if spoken else None)
+        if heard and any(b.startswith(heard[-1]) and (heard[-1] not in INTERRUPT_WORDS or b != heard[-1])
+                         for b in self._bot_words()):
+            mask[-1] = True
         run = best = 0
         for w, m in zip(heard, mask):
             run = 0 if m else run + 1
@@ -210,6 +302,7 @@ class EchoGuard:
 LOUD_OVER_ECHO = 4.0  # speech this much louder than the echo floor is the user's own voice
 ONSET_SECS = 1.0  # the start of each bot turn, when its echo is still arriving
 MIN_SPEECH_RMS = 300  # int16 RMS; below this a "loud" frame is room noise, not a voice
+FRESH_SECS = 0.2  # the loudness of older audio says nothing about a voice starting now
 
 
 class LevelGate:
@@ -228,8 +321,10 @@ class LevelGate:
         self._onset_frames = int(frames_per_sec * ONSET_SECS)
         self._turn_frames = 0
         self._was_speaking = False
+        self._heard_at = 0.0
 
     def frame(self, rms: float, bot_speaking: bool) -> None:
+        self._heard_at = time.time()
         self._turn_frames = self._turn_frames + 1 if bot_speaking and self._was_speaking else (1 if bot_speaking else 0)
         self._was_speaking = bot_speaking
         self._recent.append(rms)
@@ -237,6 +332,9 @@ class LevelGate:
             self._echo.append(rms)
 
     def loud(self) -> bool:
+        # No audio of late (push to talk held it back, and a meeting just opened the room): its last frames are old.
+        if time.time() - self._heard_at > FRESH_SECS:
+            return False
         if 0 < self._turn_frames < self._onset_frames:
             return False
         floor_frames = list(self._echo)[: -len(self._recent)]  # the onset itself is not the floor

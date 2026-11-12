@@ -22,6 +22,7 @@ REPO = Path(os.environ.get("CLAUDE_VOICE_TEST_REPO", "/tmp/cv-repo"))
 # These suites test the voice layer, not Claude Code: a fast model keeps them quick.
 TEST_MODEL = os.environ.get("CLAUDE_VOICE_TEST_MODEL", "haiku")
 FRONT = sys.argv[1] if len(sys.argv) > 1 else "gemini"
+ECHO_GAIN = float(os.environ.get("POINTE_ECHO_GAIN", "0"))  # > 0: the speakers leak into the mic, as on a laptop
 results: list[dict] = []
 
 
@@ -165,7 +166,7 @@ async def main():
     n_allow = 0
     session = JoinedSession(REPO, "--model", TEST_MODEL, "--permission-mode", "default", front=FRONT)
     session.start()
-    b = Browser()
+    b = Browser(echo_gain=ECHO_GAIN)
     try:
         t0 = time.time()
         await b.connect()
@@ -311,7 +312,7 @@ async def main():
         # Reconnect keeps context.
         await b.close()
         await asyncio.sleep(2)
-        b = Browser()
+        b = Browser(echo_gain=ECHO_GAIN)
         t0 = time.time()
         await b.connect()
         await reply_after(b, t0, timeout=20)

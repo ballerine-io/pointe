@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_orchestrator import _consent_setup, d, verdicts  # noqa: E402,F401
 
-from echo import EchoGuard  # noqa: E402
+from echo import AudioClock, EchoGuard  # noqa: E402
 from pipecat.frames.frames import TranscriptionFrame  # noqa: E402
 from pipecat.processors.frame_processor import FrameDirection  # noqa: E402
 
@@ -96,6 +96,44 @@ def test_a_no_said_after_it_still_denies(d, e):
     assert [v["behavior"] for v in verdicts(posts)] == ["deny"]
 
 
+def timed_final(d, ears, text: str, said: tuple[float, float]) -> None:
+    """A final whose tokens place its words at `said` (wall times), on ears that have heard the last 20 s of audio."""
+    clock, stream, now = AudioClock(), object(), time.time()
+    for i in range(1000):
+        clock.sent(stream, 0.02, now - 20 + (i + 1) * 0.02)
+    d.EARS_CLOCK = clock
+    ms = [round((t - (now - 20)) * 1000) for t in said]
+    frame = TranscriptionFrame(text=text, user_id="u", timestamp="t",
+                               result=[{"text": text, "start_ms": ms[0], "end_ms": ms[1], "is_final": True}])
+    asyncio.run(ears.process_frame(frame, FrameDirection.DOWNSTREAM))
+
+
+def test_a_yes_heard_over_the_read_out_never_approves_however_late_it_comes(d, e, monkeypatch):
+    guard, active, posts, ears = e
+    monkeypatch.setattr(d, "EARS_CLOCK", d.EARS_CLOCK)
+    speak(guard, "billing wants to run the tests. Say yes to allow it, or no.", mirror=["Billing wants to run the tests.",
+                                                                                         " Say yes to allow it, or no."])
+    guard.bot_stopped()
+    now = time.time()
+    guard.stopped_at = now - 3.2  # Soniox finalized it 3.2 s after the bot stopped
+    guard._played[-1] = [now - 7.0, now - 3.2]
+    timed_final(d, ears, "Yes.", (now - 4.4, now - 4.1))  # said over "Say yes": the bot's own word
+    assert verdicts(posts) == [] and active.permission_id == "p1"
+
+
+def test_a_yes_said_after_the_read_out_still_approves(d, e, monkeypatch):
+    guard, active, posts, ears = e
+    monkeypatch.setattr(d, "EARS_CLOCK", d.EARS_CLOCK)
+    speak(guard, "billing wants to run the tests. Say yes to allow it, or no.", mirror=["Billing wants to run the tests.",
+                                                                                         " Say yes to allow it, or no."])
+    guard.bot_stopped()
+    now = time.time()
+    guard.stopped_at = now - 3.2
+    guard._played[-1] = [now - 7.0, now - 3.2]
+    timed_final(d, ears, "Yes.", (now - 2.5, now - 2.2))  # the user's, 0.7 s after the bot stopped
+    assert [v["behavior"] for v in verdicts(posts)] == ["allow"]
+
+
 def test_echo_guard_names_a_repeat_of_its_recent_words():
     guard = EchoGuard()
     speak(guard, READ_OUT, NEXT, mirror=MIRROR)
@@ -104,3 +142,54 @@ def test_echo_guard_names_a_repeat_of_its_recent_words():
     assert not guard.repeats_bot("No.") and not guard.repeats_bot("no, don't run that")
     assert not guard.repeats_bot("Yes, go ahead and approve it.")
     assert not guard.repeats_bot("No, it's not on your screen.")  # the user's own no, in the bot's words around it
+
+
+def test_the_ears_clock_counts_only_audio_the_recognizer_receives(d, monkeypatch):
+    from websockets.protocol import State
+
+    class Socket:
+        state = State.OPEN
+
+    class Ears:
+        sample_rate = 16000
+        _websocket = None
+
+        async def run_stt(self, audio):
+            yield None
+
+    async def feed(stt, n):
+        for _ in range(n):
+            async for _ in stt.run_stt(b"\0" * 640):  # 20 ms
+                pass
+
+    monkeypatch.setattr(d, "EARS_CLOCK", AudioClock())
+    stt = Ears()
+    d._clock_ears(stt)
+    asyncio.run(feed(stt, 5))  # not connected: Soniox never gets these
+    stt._websocket = Socket()
+    asyncio.run(feed(stt, 50))
+    assert d.EARS_CLOCK.wall(1000) == pytest.approx(time.time(), abs=0.5) and d.EARS_CLOCK.wall(1001) is None
+
+
+READ_BACK = "billing wants to write notes2.text. Should it? Coming back to that report: scratch.txt is created."
+
+
+def test_a_read_out_that_sounds_like_a_switch_is_still_echo(d, e, monkeypatch):
+    guard, active, posts, ears = e
+    taken = []
+
+    async def take(heard):
+        taken.append(heard)
+
+    monkeypatch.setattr(ears, "_take", take)
+    speak(guard, READ_BACK, mirror=[" Billing wants to write notes2.text.", " Should it? Coming back to that report:",
+                                    " scratch.txt is created."])
+    guard.bot_stopped()
+    now = time.time()
+    guard.stopped_at = now - 3.1  # the final, 3.1 s after the bot stopped
+    guard._played[-1] = [now - 9.0, now - 3.1]
+    assert d.switch_intent(READ_BACK)  # the shortcut for commands said once the bot is quiet would take it whole
+    timed_final(d, ears, READ_BACK, (now - 8.9, now - 3.1))
+    assert taken == []
+    timed_final(d, ears, "Switch to billing.", (now - 1.5, now - 0.6))  # the user's own, said after it stopped
+    assert taken == ["Switch to billing."]
