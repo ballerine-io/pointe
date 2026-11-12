@@ -21,7 +21,7 @@ import time
 from collections import deque
 from pathlib import Path
 
-from readout import _hidden
+from readout import _hidden, mask  # one rule for secrets: what is shown, said and notified
 
 MAX_ARTIFACTS = 8
 MAX_FILE_BYTES = 512 * 1024
@@ -232,52 +232,6 @@ def refused(path: str, cwd: str) -> str | None:
         if any(fnmatch.fnmatch(low, pattern) for pattern in _SECRET_NAMES):
             return "a secret-looking name: not shown"
     return None
-
-
-_MASK = "••••••"
-_SECRET_SHAPES = [
-    re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\Z)"),
-    re.compile(r"\b(?:sk|rk|pk)[-_](?:live|test|ant|proj|or)?[-_]?[A-Za-z0-9_-]{12,}"),
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b|\bgithub_pat_\w{20,}"),
-    re.compile(r"\bxox[abprs]-[\w-]{10,}"),
-    re.compile(r"\bAIza[0-9A-Za-z_-]{30,}"),
-    re.compile(r"\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}"),
-    re.compile(r"\bglpat-[\w-]{16,}"),
-]
-_URL_PASSWORD = re.compile(r"(://[^:/\s@]+:)([^@\s/]+)(@)")
-_NAMED = (r"[\w.-]*(?:secret|token|passw(?:or)?d|pwd|api[_-]?key|apikey|access[_-]?key|private[_-]?key|auth[_-]?key|"
-          r"credential|client[_-]?secret|[_-]key)[\w.-]*")
-_ASSIGNED_QUOTED = re.compile(rf"(?i)(\b{_NAMED}\b[\"']?\s*(?:[:=]|=>|:=)\s*)([\"'])([^\"'\n]{{4,}})\2")
-_ASSIGNED_ENV = re.compile(rf"(?im)^(\s*(?:export\s+)?{_NAMED}\s*=\s*)([^\s\"'#]{{4,}})")
-_ASSIGNED_INLINE = re.compile(rf"(?i)(\b{_NAMED}=)([^\s\"';|&]{{4,}})")
-_FLAG_VALUE = re.compile(r"(?i)(--?(?:token|password|passwd|secret|api-?key|key)[= ])([^\s\"']{4,})")
-
-
-def _live_values() -> list[str]:
-    """The values of this machine's own secrets, wherever they appear."""
-    try:
-        import vendors
-        names = set(vendors.KEY_ENVS)
-    except Exception:
-        names = set()
-    names |= {k for k in os.environ if re.search(r"KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL", k, re.I)}
-    return sorted({v for k in names if len(v := os.environ.get(k, "")) >= 8}, key=len, reverse=True)
-
-
-def mask(text: str) -> str:
-    """Secret-looking values replaced. Errs on the side of hiding: a masked string in code costs nothing."""
-    if not text:
-        return text
-    for value in _live_values():
-        text = text.replace(value, _MASK)
-    for shape in _SECRET_SHAPES:
-        text = shape.sub(_MASK, text)
-    text = _URL_PASSWORD.sub(lambda m: m.group(1) + _MASK + m.group(3), text)
-    text = _ASSIGNED_QUOTED.sub(lambda m: f"{m.group(1)}{m.group(2)}{_MASK}{m.group(2)}", text)
-    text = _ASSIGNED_ENV.sub(lambda m: m.group(1) + _MASK, text)
-    text = _ASSIGNED_INLINE.sub(lambda m: m.group(1) + _MASK, text)
-    return _FLAG_VALUE.sub(lambda m: m.group(1) + _MASK, text)
 
 
 def safe_command(command: str) -> str:

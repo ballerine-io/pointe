@@ -15,6 +15,23 @@ With Twingate: a Connector on this Mac (Docker or Colima), a resource for the Ma
 "Mac not reachable" while Safari on the phone reaches `https://<name>:7443/voice/status` (a warning, then "Forbidden"),
 pair again. If Safari can't reach it either, restart the Twingate client: new aliases sometimes don't resolve until then.
 
+## Alerts and the Apple Watch
+
+Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS
+mirrors it to an Apple Watch on your wrist while the iPhone is locked. There is no push server, so this works while the
+app is alive: open, or in the background with the call up. With the call down and the app in the background, iOS checks
+only when it grants a Background App Refresh (rarely, never in Low Power Mode, never after you swipe the app away).
+"Approve from notifications" (shared with the page's Settings, off by default) adds Approve to a notification for a
+request Pointe can read out; it needs an unlocked iPhone or a watch on the wrist instead of Face ID.
+
+Checked by hand on a real iPhone and watch (the simulator has no watch):
+1. Alerts on, call up, lock the iPhone, wear the watch. A request arrives: the watch taps, and shows the session and the
+   read-out form, with Deny and Approve.
+2. Approve on the watch: the session gets it; the iPhone notification is gone.
+3. Answer one on the Mac instead: the watch notification disappears within a second or two.
+4. Take the watch off (locked): Approve asks to unlock it first.
+5. An unreadable request (`python3 -c …`): the watch shows only "Bash: open Pointe to see the exact request", Deny only.
+
 ## The browser page (older way)
 
 The browser page over Twingate. Call audio is one WebSocket on the same HTTPS port, so no UDP resource is needed.
