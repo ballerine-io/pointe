@@ -64,7 +64,7 @@ from brief import (
     report_prompt,
 )
 from brief import parse as parse_reply
-from echo import AudioClock, EchoGuard, LevelGate, lone_stop, words as echo_words
+from echo import AudioClock, EchoGuard, LevelGate, lone_stop, spoken_form, words as echo_words
 import phone
 from readout import mask
 from guards import (relays_approval, 
@@ -2531,7 +2531,8 @@ def _meeting_echo(said: str, new_label: bool) -> bool:
     heard = echo_words(said)
     if not heard or meetings.addressed_all(said):
         return False
-    recent = [echo_words(text) for at, text in state.bot_spoke if time.time() - at < MEETING_ECHO_SECS]
+    recent = [echo_words(version) for at, text in state.bot_spoke if time.time() - at < MEETING_ECHO_SECS
+              for version in (text, spoken_form(text))]  # as written and as the voice read it
     if len(heard) == 1:
         return new_label and any(heard[0] in said_words for said_words in recent)
     return any(_repeats_the_bot(heard, said_words) for said_words in recent)

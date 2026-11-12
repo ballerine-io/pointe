@@ -177,3 +177,9 @@ def test_a_participant_using_a_few_of_the_bots_words_is_still_a_participant(d, m
     m, turns = _bot_said_then_room_turn(d, monkeypatch, "The refunds flow still uses the old prices and was never tested.",
                                         "I tested the refunds myself last week, they work.", "3")
     assert turns[0].who != "Pointe"
+
+
+def test_the_bots_read_out_of_a_file_name_is_its_echo_as_the_voice_said_it(d, monkeypatch):
+    bot = "cv repo echo wants to run: cat test_pricing.py then python3 pytest. Should it?"
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, bot, "Cat test underscore pricing dot py, then python three pytest.", "4")
+    assert turns[0].who == "Pointe", [t.who for t in turns]
