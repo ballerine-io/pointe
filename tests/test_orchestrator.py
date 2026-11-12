@@ -3283,7 +3283,8 @@ def test_a_yes_begun_before_the_read_out_ended_does_not_count(d, monkeypatch):
     d.ECHO.stopped_at = time.time() - 3
     d.state.user_started_at = d.ECHO.stopped_at - 1
     asyncio.run(d.on_user_utterance("yes please"))
-    assert verdicts(posts) == [] and said and "rm -rf build" in said[-1]
+    # the request was heard: asked for the yes again in one line, not read again (test_reread_loop.py)
+    assert verdicts(posts) == [] and said == ["I need the yes after I finish. Say it again."]
 
 
 def test_a_request_that_cannot_be_read_out_is_never_approved_by_voice(d, monkeypatch):

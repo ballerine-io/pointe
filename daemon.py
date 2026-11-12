@@ -291,6 +291,8 @@ PENDING_ROUTE_SECS = 120.0  # how long "which session is that for?" can still be
 MAX_REFUSALS_PER_UTTERANCE = 2  # Gemini re-words and re-sends a refused call about once a second
 PERMISSION_ANSWER_SECS = 120.0
 YES_AFTER_BOT_SECS = 1.0
+EARLY_YES_PROMPTS = 2  # yeses refused for coming too early, per request, that the bot answers; after that it waits quietly
+KEEP_WINDOW = "keep-window"  # a line about the request that neither reads it out nor takes the user away from it
 READ_OUT_WAIT_SECS = 8.0
 PERMISSION_VOICE_CHARS = 500
 CHECK_TIMEOUT_SECS = 5.0  # a stuck Flash-Lite call must not freeze the voice
@@ -451,7 +453,8 @@ def _note_bot_speech(text: str, request_id: str | None = None) -> None:
     """What may a yes answer now? Only the line the daemon built from the request, named by its id: a model's wording
     never opens the window, and any other speech closes it. The request is then read out again."""
     session = REGISTRY.active
-    if not session or not session.permission_id or not text.strip():
+    state.last_line_id = request_id
+    if not session or not session.permission_id or not text.strip() or request_id == KEEP_WINDOW:
         return
     if request_id == session.permission_id:
         session.permission_delivered_at, session.permission_read_at = time.time(), time.time()
@@ -460,8 +463,11 @@ def _note_bot_speech(text: str, request_id: str | None = None) -> None:
 
 
 def _read_out_cut_off() -> None:
-    """The user talked over the bot: they may not have heard the request."""
+    """The user talked over the bot: they may not have heard the request. Not when it was the early-yes line they cut:
+    the request itself was heard (the split answer's second half cuts that line, and must not bring the request again)."""
     session = REGISTRY.active
+    if state.last_line_id == KEEP_WINDOW:
+        return
     if session and session.permission_id and session.permission_delivered_at != float("inf"):
         session.permission_delivered_at, state.sidetracked = float("inf"), session.permission_id
 
@@ -1271,6 +1277,8 @@ class State:
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
+    early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
+    last_line_id: str | None = None  # the request id the bot's latest line was spoken for (KEEP_WINDOW: the early-yes line)
     monologue: list[str] | None = None  # thinking out loud: what was said so far; None when not in one
     monologue_since: float = 0.0
     monologue_held: list[tuple[str, bool]] = field(default_factory=list)  # session news that waits for its end
@@ -2884,8 +2892,9 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         return
     begun_over_the_bot = state.user_started_at and state.user_started_at < ECHO.stopped_at
     if verdict == "allow" and (ECHO.speaking or time.time() - ECHO.stopped_at < YES_AFTER_BOT_SECS or begun_over_the_bot):
+        # It may be an answer to something earlier, or the bot coming back through the speakers: it never approves.
         state.utterance_spent = True
-        await _read_out(session)  # it may be an answer to something earlier, or the bot coming back through the speakers
+        await _early_yes(session, heard_it=session.permission_delivered_at != float("inf"))
         return
     if window_open and time.time() - session.permission_delivered_at > PERMISSION_ANSWER_SECS:
         state.utterance_spent = True
@@ -4118,7 +4127,27 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     return {}
 
 
-async def _read_out(session: Session, unsure: bool = False) -> None:
+async def _early_yes(session: Session, heard_it: bool) -> None:
+    """A yes that came over the bot. Said a beat early it comes again, often in two halves ("כן, תאשר." as "כן." then
+    "תאשר."), and each half lands over whatever the bot says next: re-reading the request each time looped. The request,
+    if heard to its end, is not read again: one short line asks for the yes after the bot. After EARLY_YES_PROMPTS of these
+    on one request, nothing more is said; a fresh yes, or a tap, answers it."""
+    request, refused = state.early_yeses
+    refused = refused + 1 if request == session.permission_id else 1
+    state.early_yeses = (session.permission_id, refused)
+    if refused > EARLY_YES_PROMPTS:
+        logger.info(f"a yes over the bot again ({refused}): waiting for a fresh yes or a tap")
+        return
+    if not heard_it or FRONT != "brain" or state.front is None or not current_mode().reads_out:
+        await _read_out(session, early=True)  # cut off before its end: the request is heard again, the line first
+        return
+    hebrew = re.search(r"[\u0590-\u05ff]", state.last_utterance)
+    line = "אני צריך את הכן אחרי שאני מסיים. אמור שוב." if hebrew else "I need the yes after I finish. Say it again."
+    await state.conn.injector.inject(f"[said to the user, by the daemon] {line}", False)
+    await state.front._speak(line, KEEP_WINDOW)
+
+
+async def _read_out(session: Session, unsure: bool = False, early: bool = False) -> None:
     if not current_mode().reads_out:
         if current_mode() is modes.BRAINSTORM:
             await _tone(False)  # the user is thinking out loud: the page shows it, and it is read out at the hand-off
@@ -4152,6 +4181,8 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
     elif unsure:
         text = ("לא הצלחתי לזהות שזה אתה. אמור שוב, או אשר במסך. " if hebrew else
                 "I couldn't tell that was you. Say it again, or tap. ") + text
+    elif early:
+        text = ("אני צריך את הכן אחרי שאני מסיים. " if hebrew else "I need the yes after I finish. ") + text
     session.permission_delivered_at = float("inf")
     await state.conn.injector.inject(f"[read out to the user, by the daemon] {text}", False)
     await front._speak(text, None if session.permission_cut else session.permission_id)
