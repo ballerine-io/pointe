@@ -886,11 +886,13 @@ class SonioxEars(FrameProcessor):
             text = frame.text.strip()
             if not re.search(r"\w", text):  # a dash or a dot alone is no one talking
                 return
-            # A command while the bot is quiet is the user's, even in the words it just suggested.
+            # A command while the bot is quiet is the user's, even in the words it just suggested. Not one said over it:
+            # its read-outs name sessions ("...coming back to that report") and arrive seconds late.
             invited = ECHO.invited(text)
             spoken = _spoken(frame)
             state.heard_own_words = invited and not ECHO.user_part(text, spoken)  # never an answer to a permission
-            own = invited or (not ECHO.speaking and (switch_intent(text) or back_intent(text)))
+            own = invited or (not ECHO.speaking and not ECHO.said_over_bot(spoken)
+                              and (switch_intent(text) or back_intent(text)))
             heard = text if own else ECHO.user_part(text, spoken)
             if heard and ECHO.live and not own:  # the mirror may not have transcribed this stretch of the bot yet
                 await asyncio.sleep(ECHO_SETTLE_SECS)

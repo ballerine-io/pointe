@@ -132,6 +132,10 @@ class EchoGuard:
         if self._played and not self._played[-1][1]:
             self._played[-1][1] = self.stopped_at
 
+    def said_over_bot(self, spoken: tuple[float, float] | None) -> bool:
+        """Some of these words were said while the bot's voice could still be in the air (AudioClock.span)."""
+        return self._over_bot(spoken, AUDIO_TAIL_SECS)
+
     def _over_bot(self, spoken: tuple[float, float] | None, after: float) -> bool:
         """Some of these words were said while the bot played, or up to `after` seconds after it stopped."""
         if spoken is None:
@@ -204,7 +208,7 @@ class EchoGuard:
         were said (AudioClock.span). Words said while the bot's voice was in the air are judged as if they had just come,
         however late the transcript; one or two of them only against what the bot was saying then (_said_then)."""
         heard = words(text)
-        over = self._over_bot(spoken, AUDIO_TAIL_SECS)
+        over = self.said_over_bot(spoken)
         late = not over and time.time() - self.stopped_at > LATE_ECHO_SECS
         if not late and self._model.chunks and heard == words(self._model.chunks[-1][1]):
             return ""  # all of its last reply, and nothing else: "Four." coming back off the speakers

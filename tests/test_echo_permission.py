@@ -169,3 +169,27 @@ def test_the_ears_clock_counts_only_audio_the_recognizer_receives(d, monkeypatch
     stt._websocket = Socket()
     asyncio.run(feed(stt, 50))
     assert d.EARS_CLOCK.wall(1000) == pytest.approx(time.time(), abs=0.5) and d.EARS_CLOCK.wall(1001) is None
+
+
+READ_BACK = "billing wants to write notes2.text. Should it? Coming back to that report: scratch.txt is created."
+
+
+def test_a_read_out_that_sounds_like_a_switch_is_still_echo(d, e, monkeypatch):
+    guard, active, posts, ears = e
+    taken = []
+
+    async def take(heard):
+        taken.append(heard)
+
+    monkeypatch.setattr(ears, "_take", take)
+    speak(guard, READ_BACK, mirror=[" Billing wants to write notes2.text.", " Should it? Coming back to that report:",
+                                    " scratch.txt is created."])
+    guard.bot_stopped()
+    now = time.time()
+    guard.stopped_at = now - 3.1  # the final, 3.1 s after the bot stopped
+    guard._played[-1] = [now - 9.0, now - 3.1]
+    assert d.switch_intent(READ_BACK)  # the shortcut for commands said once the bot is quiet would take it whole
+    timed_final(d, ears, READ_BACK, (now - 8.9, now - 3.1))
+    assert taken == []
+    timed_final(d, ears, "Switch to billing.", (now - 1.5, now - 0.6))  # the user's own, said after it stopped
+    assert taken == ["Switch to billing."]
