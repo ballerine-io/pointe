@@ -23,14 +23,60 @@ Built on [Pipecat](https://github.com/pipecat-ai/pipecat).
   it. Fuzzy, so "nights lantern" finds `river-lantern/main`; a full tie means it asks. Generic words like "dev" never select a session.
 - **One yes, one delivery:** nothing is sent unless you spoke since that session's last request, so reconnects never replay
   history and the model cannot chain tasks on its own.
-- **Echo:** with Soniox as ears, a second stream transcribes the bot's own audio, and only words it did not say cut it off. Other
-  ears have no such guard: use headphones.
+- **Echo:** the bot's own voice through the speakers is never taken as your words, and never answers a permission. See
+  [Echo](#echo). It needs Soniox as ears. Other ears have no such guard: use headphones.
 - **Who may connect:** localhost only, with a secret on every route, and `Origin` checked against `Host`.
-
-Known limit: saying the exact words the bot is saying, while it says them, is dropped as echo. Wait for it to finish.
 
 Background sessions stay quiet except for a one-line "finished" or "needs approval". A report you talk over comes back once
 your question is answered.
+
+## Echo
+
+On laptop speakers the bot's voice reaches the microphone. The ears hear its words, and sound alone cannot tell them from
+yours. Words and their timing can. The rules are in `echo.py`. `SonioxEars` in `daemon.py` applies them.
+
+**What counts as the bot's words.** Three accounts of what it said:
+- its written text, from the start of the reply that was playing. Its voice can stop and start inside one reply.
+- the same text as the voice reads it (`spoken_form`): `README.md` is "readme dot md", `python3` is "python three".
+- the mirror: a second Soniox stream on the bot's own audio. It spells words as the ears do, but it trails the audio
+  by seconds.
+
+Your transcript and the bot's text both pass through `echo.words`. Numbers are spelled out, including Hebrew number
+words. "1,000" is 1000, and "%" is "percent". The same speech then compares equal, however each side wrote it.
+
+**When words are judged.** By when they were said, not by when their transcript came. Soniox sends the final for an echoed
+sentence about 3 s after the bot stops. `AudioClock` counts the audio Soniox really receives, so the word offsets in a
+transcript map to wall time.
+- Words said over the bot, or up to 1 s after it: the echo rules apply, however late the transcript is.
+- One or two words said over the bot: compared only with what it was saying then. Against two whole replies, near
+  spellings match any short phrase ("this" for "is").
+- A yes or no the bot said at all stays its own: an echoed answer never counts.
+
+**Cutting the bot off.** Two of your words in a row cut the bot off, or one stop word ("stop", "wait", "no", "רגע").
+- Half of one of the bot's words proves nothing, first or last: "hold" of "holding", "on" of "python".
+- A final that is only a stop word cuts in at once. Whether it is yours, and so whether it answers a permission, still
+  waits for the mirror.
+- Your voice well above the echo level cuts in, judged on fresh audio only.
+
+**Permissions.** An echoed yes or no never answers (`EchoGuard.repeats_bot`, and words said over the bot). A read-out
+that sounds like a switch command is still echo. A yes begun over the bot never approves. The bot asks for it again in
+one line. After two of these on one request, it waits for a fresh yes or a tap.
+
+**Measured.** The rig leaks the bot's audio into the mic at `POINTE_ECHO_GAIN`. `tests/e2e/page_challenge.py`,
+`scenarios.py` and `page_call.py` take it. At 0.3, one `scenarios.py brain` run on the code before these rules (main
+`1539cfd`, 2026-11) had 10 echoes taken as your words and 10 cut-offs by the bot's own echo. At 0.5 it had 1 and 7. With
+all the rules, two runs at 0.3 had 0 echoes taken as your words and 1 cut-off (case below). `page_challenge` at 0.3 and
+0.5 took no echo as your words. `page_call` passed at 0, 0.3 and 0.5.
+
+**Not solved.**
+- A stop word inside the echo can cut the bot off: "לא" is "no" and also "not", and "against" was once heard as
+  "enough". Words cannot tell this from your own stop.
+- When Soniox gives "stop" late, the bot stops about 1.7 to 2 s after you start talking.
+- The rig's echo is instant, clean and linear. Real speakers add playback lag and echo-cancel distortion. The tolerances
+  are 0.3 s for words over the bot and 1 s of tail.
+- The loudness rule can still cut the bot off when a meeting opens the room over a reply.
+- Hebrew teens ("אחת עשרה") are not mapped to numbers.
+- Saying the exact words the bot is saying, while it says them, is dropped as echo. Wait for it to finish.
 
 ## Channel mode
 
