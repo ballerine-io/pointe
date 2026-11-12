@@ -1813,67 +1813,72 @@ next call heard "Pellucine".
   (full refuses and stops learning, and shows "Full"). There is no `/voice/dictionary/learn` route: learning is inside
   `/voice/correct`.
 
-## Devil's advocate (as built, 2026-11-12)
+## Drive & walk mode (as built, 2026-11-12)
 
-Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
-evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends and records it.
+Feature 3, on the daemon, the page and the app. `drive.py` holds the rules (the road allowlist, the phrases, the copy);
+`daemon.py` asks it at the read-out (`_read_out`), at a yes (`_answer_permission`) and in `current_mode()`.
 
 ### Route and status
 
 | | |
 |---|---|
-| `POST /voice/challenge` | `{action: start\|end}` → `{challenge}`. 400 on a bad action; 409 with the reason: no call, a meeting on, already on (start), none on (end), a non-brain front. Page cookie, bearer token, phone key |
-| status `challenge` | `null`, or `{id, on, since, ended_at, plan, sessions, objections, verdict, evidence, items: [{kind: objection\|rebuttal\|verdict, text, at}]}`. The last one stays (`on: false`) until a new one starts |
-| status `mode_state.mode` | `challenge` while on |
-| notes | kinds `objection`, `rebuttal`, `verdict` (outside meetings, `meta.challenge` = its id) |
+| `POST /voice/drive {on: true\|false}` | `{drive: <status>}`. 400 unless `on` is a boolean; turning it on is 409 with no call or a meeting on. Page cookie, bearer token, phone key |
+| status `drive` | `{on, since, how: voice\|button, dropped_at, pending: [{session, request_id, voice}]}`. `voice`: a spoken yes may answer that request while driving |
+| status `mode_state` | `{mode: "drive", approvals: "drive"}` while on (a meeting or a brainstorm outranks it) |
 
-### Voice
+Voice: "drive mode", "walk mode", "I'm driving", "מצב נהיגה" turn it on; "back to normal", "I've stopped", "exit drive
+mode", "חזרה לרגיל", "עצרתי" turn it off (a whole short utterance; never reaches the brain; not during a meeting or a
+brainstorm). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
 
-"Challenge this / challenge me / play devil's advocate / poke holes in this / תתקוף את זה / תאתגר אותי" and "you've made
-your point / verdict / back to normal / end challenge / stop / די / חזרה לרגיל", each as a whole utterance, spoken or
-typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve or deny.
-During a brainstorm, "challenge this" ends it and challenges what was said.
+### Voice approval while driving (owner decision 4)
 
-### What it may do, in code
+A spoken yes approves only when every existing rule holds (the daemon's own read-out, a bound yes begun after it ended,
+within 120 s, nothing else said, never typed, never the bot's echo, never aimed at another session) and also:
 
-- `modes.CHALLENGE`: `speak`, `list_sessions`, `ask_about_session` only (`_traced` refuses the rest with
-  `challenge.TOOL_REFUSAL`), no nudges, no sends; `_send` refuses with "Not sent: you are in a challenge; end it first,
-  then say what to send." Ending moves `last_delegation_at`, so neither the end words nor a "fine, do it" said during the
-  challenge can authorize a send afterwards.
-- Session reports (`FINISHED_MARK`) and idle nudges wait for the end; lookup answers and permission read-outs do not. A
-  permission is read out and answered as in conversation; an objection spoken after the read-out closes its yes window.
-- No challenge in a meeting (409); a meeting that starts ends it with no verdict; so does the end of the call.
-- Grounding: the opening carries the plan (the brainstorm, else the user's last six sentences in 15 min) and numbered
-  evidence `[E1]…`: the active session's notes (decided, ruled out, where it stands, open, goal), its last 12 record lines,
-  and diffs against HEAD of files it edited in the last sets shown on screen (`artifacts.render`, no `git diff`), plus
-  any session the plan names, at most three. Everything through `readout.mask`. No evidence: it says so and argues from
-  the plan only; "I don't know" to a question of fact. After six objections the per-step line asks for the verdict.
+1. the read-out allowlist can say it whole (`readable_request`; `readout.redact` withholds credentials);
+2. `drive.road_safe` allows it (see SECURITY.md "Drive mode"); a request not noted at `_put_permission` (a restart) is
+   not road safe;
+3. with a voiceprint stored (or a damaged voiceprint file), the yes is `speaker.strong` (≥ 0.55, ≥ 1 s of speech) at
+   any lock level, Off included; continuity's weaker match does not count. Utterances are scored while driving even
+   with the lock Off.
+
+Otherwise the read-out says "X wants to run: … I won't approve that while you drive. It waits until you stop, or say no."
+(or "X needs an approval I can't read out. It waits until you stop, or say no.") with no yes window; a yes repeats it; a
+no from anyone denies it. A tap still answers any request. Entering or leaving the mode closes an open yes window and
+reads the pending request again in the new mode's form.
+
+### Ends with the call
+
+`/voice/hung-up` and the idle hang-up end it at once. A dropped link (a tunnel) keeps it for `drive.DROP_GRACE_SECS`
+(5 min); a call back within that keeps it on, after that it is off.
+
+### Brevity
+
+`drive.RULES` is added to the brain's `[right now]` context; `Brain.style_problem` sends back a reply over 25 words
+("Shorter: they are driving"); an active session's report is its one `line`; the brain's "Sorry, I lost that" is
+silent (`Brain.terse`).
 
 ### Clients
 
-- Page: a Challenge button in the dock (it reads "End challenge" while on), "Challenge it" in the Brainstorm panel, the
-  title "Challenging", and a Challenge panel over the conversation: the plan, Objection / You / Verdict in order, "End
-  challenge", and after the end "Challenge ended" with Close (remembered per tab).
-- App: see the iPhone notes in the commit that adds `ios/Pointe/Challenge.swift`.
+- **Page:** a Drive button in the dock; while on, a drive bar (one big line: who needs you, else Speaking / Listening /
+  N working / All quiet; "I've stopped"), typing folded away, and the approval card without buttons, saying "Say yes or
+  no." (or "…, in a full sentence." with a voiceprint), "Not for the road: …" or "Can't be read out: …".
+- **App:** the same button in the bottom bar (Type hides while driving), a drive screen with the same line, the live
+  caption and "I've stopped", the same card without buttons, Now Playing "Pointe · lantern needs you", play/pause as
+  mute (`Call.driving`), and "Switch to Drive mode?" when CarPlay's audio route carries the call or after 60 s of
+  `CMMotionActivity` automotive. Menu → "Suggest Drive mode in the car" (per device, default on).
 
-### Benchmark
+### Deviations from the plan
 
-`bench/results/challenge.md`: six before/after pairs. Sonnet 5.5 (the production brain) 15/30 → 30/30, Gemini 3.8 Flash
-21/30 → 30/30. The system prompt and tool schemas are unchanged.
-
-### Deviations from section 6
-
-- **Route** `POST /voice/challenge`, not `/voice/mode-state`; the status field is `challenge`, beside `mode_state`.
-- **The brain's tool list is not rebuilt per step**: refused in `_traced` (as meetings do) and in `_send`. The
-  `briefing` tool is also refused (the plan's list kept it).
-- **`holds_news` stays off**: holding all respond-news would hold `ask_about_session`'s answers, which arrive in the
-  feed. Reports and idle nudges are held by name instead.
-- **Notes**: the page's Notes pane is meeting-only, so both clients draw the challenge from status; the notes are
-  written too, for `/voice/notes` readers.
-- **What is recorded as an objection**: everything the voice says while it is on, except a read-out, the
-  acknowledgment of a permission answer and the brain's failure lines; so "I'm asking lantern" counts as one.
-- **Brain front only** (409 otherwise): a realtime model cannot be kept from acting. With `CLAUDE_VOICE_EARS=native` the
-  phrases are not caught (taps and typed words work).
-- **Not built:** the `evals/sim.py` scenario (the bench pairs measure it instead), the rollout pref `modes.challenge`
-  (always on), a challenge spoken into a meeting (in participating, "Pointe, challenge this" is an ordinary question to
-  Pointe, answered once).
+- **Route:** `POST /voice/drive`, not a generic `/voice/mode-state` (the phone key matches exact paths; no other mode
+  uses it yet).
+- **Taps stay on while driving** (owner: anything destructive still needs a tap); the UI hides the buttons behind
+  "I've stopped" instead of the plan's "none by tap".
+- **The read-out allowlist is unchanged**; drive mode adds a second allowlist after it rather than a `profile` argument
+  to `readout.spoken`. A destructive but readable request is said in full and waits (owner decision 4), never denied
+  outright.
+- **Motion** is used only after the setting is turned on with a tap (iOS asks then); by default only CarPlay's route
+  suggests the mode. A plain Bluetooth car kit is indistinguishable from a headset to iOS.
+- **The `"modes": {"drive": true}` flag** was not added: the mode only narrows and is off until asked for.
+- **Not built:** "use the iPhone mic" advice on poor HFP audio (needs a real car measurement first); a live e2e of the
+  voiceprint rule (offline tests cover it); Hebrew wording of the brain's own short replies beyond the fixed lines.
