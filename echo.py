@@ -40,30 +40,58 @@ def _spoken(n: int) -> list[str]:
         return [_ONES[n]]
     if n < 100:
         return [_TENS[n // 10]] + ([_ONES[n % 10]] if n % 10 else [])
-    return [_ONES[n // 100], "hundred"] + (_spoken(n % 100) if n % 100 else [])
+    if n < 1000:
+        return [_ONES[n // 100], "hundred"] + (_spoken(n % 100) if n % 100 else [])
+    return _spoken(n // 1000) + ["thousand"] + (_spoken(n % 1000) if n % 1000 else [])
+
+
+# Hebrew number words, as the bot writes them and the voice reads them ("עשרה אחוז") where the ears write "10%". Teens
+# ("אחת עשרה") are not mapped: they would read as "one ten".
+_HEBREW_NUMBERS = {
+    **{w: ["zero"] for w in ("אפס",)}, **{w: ["one"] for w in ("אחד", "אחת")},
+    **{w: ["two"] for w in ("שניים", "שתיים", "שני", "שתי", "שתים")}, **{w: ["three"] for w in ("שלושה", "שלוש", "שלושת")},
+    **{w: ["four"] for w in ("ארבעה", "ארבע", "ארבעת")}, **{w: ["five"] for w in ("חמישה", "חמש", "חמשת")},
+    **{w: ["six"] for w in ("שישה", "שש", "ששת")}, **{w: ["seven"] for w in ("שבעה", "שבע", "שבעת")},
+    **{w: ["eight"] for w in ("שמונה", "שמונת")}, **{w: ["nine"] for w in ("תשעה", "תשע", "תשעת")},
+    **{w: ["ten"] for w in ("עשרה", "עשר", "עשרת")},
+    "עשרים": ["twenty"], "שלושים": ["thirty"], "ארבעים": ["forty"], "חמישים": ["fifty"], "שישים": ["sixty"],
+    "שבעים": ["seventy"], "שמונים": ["eighty"], "תשעים": ["ninety"],
+    "מאה": ["one", "hundred"], "מאות": ["hundred"], "מאתיים": ["two", "hundred"],
+    "אלף": ["one", "thousand"], "אלפים": ["thousand"], "אלפיים": ["two", "thousand"],
+    "אחוז": ["percent"], "אחוזים": ["percent"],
+}
+_SYMBOLS = [(re.compile(r"(?<=\d),(?=\d{3}(?!\d))"), ""),  # "1,000" is "1000"
+            (re.compile(r"%"), " percent "), (re.compile(r"\+"), " plus "), (re.compile(r"&&?"), " and "),
+            (re.compile(r"@"), " at "), (re.compile(r"="), " equals ")]
 
 
 def words(text: str) -> list[str]:
-    """Lowercased words, numbers below 1000 spelled out: the model writes "thirty" where the STT writes "30"."""
+    """Lowercased words, written the one way whoever wrote them: numbers below a million spelled out ("30", "thirty",
+    "שלושים" are "thirty"), "1,000" as "1000", "%" as "percent". The bot's text and the ears' transcript both pass
+    through here, so the same speech compares equal however each side wrote it."""
+    for pattern, said in _SYMBOLS:
+        text = pattern.sub(said, text)
     out = []
     for w in re.findall(r"[\w']+", text.lower()):
-        out.extend(_spoken(int(w)) if w.isascii() and w.isdigit() and int(w) < 1000 else [w])
+        if w.isascii() and w.isdigit() and int(w) < 1_000_000:
+            out.extend(_spoken(int(w)))
+        elif w in _HEBREW_NUMBERS:
+            out.extend(_HEBREW_NUMBERS[w])
+        elif w[:1] == "ו" and w[1:] in _HEBREW_NUMBERS:  # "ואחת", "וחמישים": "and" is a prefix in Hebrew
+            out.extend(_HEBREW_NUMBERS[w[1:]])
+        else:
+            out.append(w)
     return out
 
 
-_SAID_AS = [  # how the voice reads written text: "README.md" is "readme dot md"
+_SAID_AS = [  # how the voice reads names the ears may write either way: "README.md" is "readme dot md"
     (re.compile(r"(?<=\d)\.(?=\d)"), " point "),
     (re.compile(r"(?<=\w)\.(?=\w)"), " dot "),
     (re.compile(r"_"), " underscore "),
     (re.compile(r"/"), " slash "),
     (re.compile(r"(?<![\w-])(--?)(?=\w)"), lambda m: " dash " * len(m[1])),  # a flag; "cv-repo" is read with a pause
     (re.compile(r"(?<=[^\W\d])(?=\d)|(?<=\d)(?=[^\W\d])"), " "),  # "python3" is "python three"
-    (re.compile(r"%"), " percent "),
-    (re.compile(r"\+"), " plus "),
-    (re.compile(r"&&?"), " and "),
-    (re.compile(r"@"), " at "),
-    (re.compile(r"="), " equals "),
-]
+]  # symbols both sides write alike ("%", "+") are read in words()
 
 
 def spoken_form(text: str) -> str:
