@@ -229,3 +229,41 @@ def test_old_requests_are_forgotten_so_the_record_stays_small():
     for i in range(alerts.KEEP + 10):
         alerts.note_request(f"r{i}", "Bash", "run: ls")
     assert len(alerts._REQUESTS) == alerts.KEEP and not alerts.approvable("r0") and alerts.approvable(f"r{alerts.KEEP + 9}")
+
+
+# ---------- an answer reaches a channel before any call has run ----------
+
+def test_a_tap_reaches_a_channel_session_before_any_call_has_run(d, tmp_path, monkeypatch):
+    """The HTTP client used to exist only once a call had started: a tap before that was a 500."""
+    from aiohttp import web
+
+    got = []
+
+    async def verdict(request):
+        got.append(await request.json())
+        return web.json_response({})
+
+    async def run():
+        app = web.Application()
+        app.router.add_post("/verdict", verdict)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "127.0.0.1", 0)
+        await site.start()
+        port = site._server.sockets[0].getsockname()[1]
+        s = d.Session(id="g", name="quiet-harbor", cwd="/tmp", pid=os.getpid(), transcript="/tmp/none.jsonl",
+                      channel_url=f"http://127.0.0.1:{port}")
+        d.REGISTRY.add(s)
+        s.permission_id = "f00dcafe"
+        monkeypatch.setattr(d.state, "http", None)
+        try:
+            return await d._apply_answer(s, "f00dcafe", "deny", "tapped")
+        finally:
+            if d.state.http is not None:
+                await d.state.http.close()
+                d.state.http = None
+            await runner.cleanup()
+
+    monkeypatch.setattr(d, "say", lambda text: asyncio.sleep(0))
+    assert asyncio.run(run()) is True
+    assert got == [{"request_id": "f00dcafe", "behavior": "deny"}]

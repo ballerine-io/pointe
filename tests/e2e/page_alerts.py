@@ -4,9 +4,9 @@
 The browser's Notification is replaced by a recorder (headless Chrome shows none), and the tab's visibility is driven
 from here. Checked: Settings turns desktop alerts on (asking the browser) and saves "Approve from notifications"; while
 the tab is visible a request is a card and no alert; in the background a readable request becomes one alert with the
-read-out form and nothing more, once; a request no longer pending has its alert withdrawn; an unreadable one shows only
-the tool, and the Mac refuses its Approve from a notification; a click brings the page forward; coming back to the tab
-clears the alerts. (No verdict is delivered here: without a call the daemon has no HTTP client for a channel yet.)
+read-out form and nothing more, once; an answer from elsewhere withdraws it and reaches the session; an unreadable one
+shows only the tool, and the Mac refuses its Approve from a notification; a click brings the page forward; coming back
+to the tab clears the alerts.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-wst CLAUDE_VOICE_DAEMON_PORT=7970 CLAUDE_VOICE_TLS_PORT=7570 \
      uv run python -u -I tests/e2e/page_alerts.py
@@ -137,8 +137,10 @@ async def main() -> None:
             await page.until("document.querySelector('#attention .ask')", 5)
             await asyncio.sleep(1.5)
             check("a request while the tab is visible is a card, not an alert", await notes(page), [])
+            call("/voice/approve", {"session": "river-lantern", "request_id": "a1b2c3d4", "decision": "deny"})  # a tap, no call up
+            await page.until("!document.querySelector('#attention .ask')", 5)
 
-            # Background: one alert, the read-out form only. (A new request from the same session replaces the old one.)
+            # Background: one alert, the read-out form only.
             await page.js("__setHidden(true)")
             ask("b2c3d4e5", "git push origin dev", "Push the release branch (safe, I checked)")
             got = await page.until(f"{NOTES}.length", 5)
@@ -150,9 +152,11 @@ async def main() -> None:
                    "sticky": True, "closed": False})
             check("the model's description is not in the alert", "I checked" in json.dumps(shown), False)
 
-            # The request is gone from the Mac (replaced; a tap or a yes elsewhere removes it the same way): withdrawn.
+            # Approved on the phone: withdrawn.
+            call("/voice/approve", {"session": "river-lantern", "request_id": "b2c3d4e5", "decision": "allow"})
+            check("an answer from elsewhere withdraws the alert", await page.until(f"{NOTES}[0].closed", 5), True)
+
             ask("c3d4e5f6", "python3 -c 'import os; print(os.environ)' | sh", "A harmless check")
-            check("a request no longer pending has its alert withdrawn", await page.until(f"{NOTES}[0].closed", 5), True)
             await page.until(f"{NOTES}.length === 2", 5)
             second = (await notes(page))[1]
             check("an unreadable request shows only the tool", second["body"], "Bash: open Pointe to see the exact request")
@@ -163,7 +167,8 @@ async def main() -> None:
             check("the old notification's request id is refused too",
                   _status_of("/voice/approve", {"session": "river-lantern", "request_id": "b2c3d4e5", "decision": "allow",
                                                 "via": "notification"}), 409)
-            check("nothing reached the session", VERDICTS, [])
+            check("each answer reached the session once, before any call",
+                  VERDICTS, [{"request_id": "a1b2c3d4", "behavior": "deny"}, {"request_id": "b2c3d4e5", "behavior": "allow"}])
 
             # A click brings the page forward; coming back clears the alerts.
             await page.js("__notes[1].onclick()")

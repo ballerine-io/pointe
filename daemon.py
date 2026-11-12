@@ -1419,7 +1419,9 @@ async def say(text: str) -> None:
 # ---------- delivery to a session ----------
 
 async def post_channel(session: Session, path: str, body: dict) -> bool:
-    assert state.http is not None and session.channel_url
+    assert session.channel_url
+    if state.http is None:  # a tap can come before any call has run, and the call made the client
+        state.http = aiohttp.ClientSession()
     try:
         async with state.http.post(f"{session.channel_url}{path}", json=body,
                                    headers={"authorization": f"Bearer {TOKEN}"}) as resp:
