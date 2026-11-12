@@ -5,7 +5,7 @@ import Foundation
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
-                       showing, showingOff }
+                       showing, showingOff, conflict, conflictMeeting }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -25,6 +25,8 @@ struct Demo {
         case .voiceLock: voiceLockJSON(lockNew)
         case .voiceLockEnrolling: voiceLockJSON(lockEnrolling)
         case .voiceLockEnrolled: voiceLockJSON(lockEnrolled, request: true)
+        case .conflict: conflictJSON
+        case .conflictMeeting: conflictMeetingJSON
         case .briefing: briefingJSON(paused: false)
         case .briefingPaused: briefingJSON(paused: true)
         case .showing: showingJSON(on: true)
@@ -72,6 +74,27 @@ struct Demo {
      "hearing": "ask docs whether the changelog", "sessions": \(sessions), "talk": \(talk),
      "ptt": {"mode": "ptt", "open": true, "closed_why": ""}}
     """
+
+    // MARK: conflict alarm
+
+    private static let conflicts = """
+    [{"id": "c0ffee01", "a": "river-lantern", "b": "billing/main", "agent_a": "Codex", "agent_b": "Claude",
+      "claim_a": "The migration adding the refund_reason column ran on staging and passed.",
+      "claim_b": "The refunds test that reads refund_reason failed on staging: the column does not exist.",
+      "at_a": 1700000000, "at_b": 1700000720, "at": 1700000725, "why": "The column cannot both exist and be missing.",
+      "severity": "high", "questions": {"a": "Which database did the migration run against?", "b": "Which database did the test use?"},
+      "branches": null, "asked": [], "state": "open"}]
+    """
+
+    private static let conflictJSON = """
+    {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
+     "sessions": \(sessions), "talk": \(talk), "conflicts": \(conflicts),
+     "attention": [{"id": "conflict:c0ffee01", "kind": "conflict", "text": "river-lantern and billing/main disagree"}]}
+    """
+
+    private static var conflictMeetingJSON: String {
+        meetingJSON(hand: false).replacingOccurrences(of: #""notes": {"#, with: #""conflicts": \#(conflicts), "notes": {"#)
+    }
 
     // MARK: audio briefings
 

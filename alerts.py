@@ -67,5 +67,12 @@ def briefing_alert(briefing_id: str, when: str, at: float) -> dict:
             "approvable": False, "at": at}
 
 
+def conflict_alert(conflict_id: str, a: str, b: str, at: float) -> dict:
+    """Two sessions disagree. Names only: their claims quote the sessions' messages, so they stay in the app and the page."""
+    body = f"{a} and {b} disagree. Open Pointe to see both claims."
+    return {"id": f"conflict:{conflict_id}", "kind": "conflict", "title": "Two sessions disagree", "body": body,
+            "text": body, "approvable": False, "at": at}
+
+
 def _hidden(text: str) -> bool:
     return readout._hidden(text.replace("\n", " "))

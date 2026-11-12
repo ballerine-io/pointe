@@ -26,6 +26,7 @@ import aiohttp
 import alerts
 import artifacts
 import briefing
+import conflicts
 import remote
 import harnesses
 from harnesses import FINISHED_MARK
@@ -167,6 +168,7 @@ def setup() -> vendors.Setup:
 ECHO = EchoGuard()
 NOTES = Notes()  # what the voice writes instead of saying: meeting notes, held news
 JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meeting secretary, lookups
+ALARM = conflicts.Alarm()  # two sessions that disagree: their latest reports and the open conflicts
 PREFS = Prefs(STATE_DIR / "prefs.json")
 VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
 SHOWS = artifacts.Shows()  # show while it says: what is on screen while the voice reports a turn
@@ -782,7 +784,7 @@ class BrainFront(FrameProcessor):
             return
         elif isinstance(frame, LLMMessagesAppendFrame):
             for m in frame.messages:
-                self.brain.append(m["content"])
+                self.brain.add_news(m["content"])  # behind the user's words, when an answer to them is pending
             if frame.run_llm:
                 self._start(None)
             return
@@ -1364,6 +1366,7 @@ async def _digest_turn(session: Session, text: str) -> dict:
     if holding_line(final):
         report["speak"] = False
     asyncio.create_task(_refresh_brief(session))
+    _start_conflict_scan(session, report, final)
     return {**report, "final": final, "excerpt": excerpt(final, 2400)}
 
 
@@ -1795,6 +1798,99 @@ async def briefing_tool(params: FunctionCallParams):
     await params.result_callback({"ok": True, "what": "the scheduled briefing that was waiting" if ready else "a new briefing",
                                   "say": "In a few words, say it is coming. Its parts arrive in the feed: say each as "
                                          "given. Send nothing."})
+# ---------- conflict alarm (conflicts.py) ----------
+# Reads only: it shows and says what two sessions disagree about, and the user decides whether to ask either one.
+
+_CONFLICT_SCANS: set = set()
+CONFLICT_TIMEOUT_SECS = 30.0
+CONFLICT_POLL_SECS = 0.25
+
+
+def _start_conflict_scan(session: Session, report: dict, final: str) -> None:
+    if PREFS.get("conflicts.on"):
+        task = asyncio.create_task(_scan_conflicts(session, report, final))
+        _CONFLICT_SCANS.add(task)
+        task.add_done_callback(_CONFLICT_SCANS.discard)
+
+
+async def _scan_conflicts(session: Session, report: dict, final: str) -> None:
+    root, branch = await asyncio.to_thread(conflicts.git_place, session.cwd)
+    edited = await asyncio.to_thread(conflicts.edited_stems, session.transcript)
+    notes = _brief_of(session) or {}
+    new = conflicts.Report(
+        session_id=session.id, name=session.name, agent=harnesses.get(session.harness).agent, cwd=session.cwd,
+        root=root, branch=branch, at=time.time(), final=final[-conflicts.SOURCE_CHARS:],
+        verdict=str(report.get("verdict") or ""), limits=[str(x) for x in report.get("limits") or []][:6],
+        say=str(report.get("say") or ""), state=str(notes.get("state") or ""),
+        decisions=[str(x) for x in notes.get("decisions") or []],
+        names={str(n).strip().lower() for n in notes.get("people_and_names") or [] if str(n).strip()}, edited=edited)
+    pairs = ALARM.candidates(new, time.time(), set(REGISTRY.sessions), state.connected_at)
+    ALARM.remember(new)
+    for other, why in pairs:
+        ALARM.checks += 1
+        reply = await JOBS.run(f"conflict-check/{session.name}",
+                               lambda o=other: _read_model(conflicts.CHECK_SYSTEM, conflicts.check_prompt(o, new), "low"),
+                               CONFLICT_TIMEOUT_SECS)
+        if not reply:  # never a guess
+            ALARM.skipped += 1
+            logger.info(f"conflict check skipped: {other.name} and {session.name}, the reading model did not answer")
+            continue
+        found = ALARM.accept(other, new, reply, time.time(), state.connected_at)
+        if found:
+            logger.info(f"conflict: {other.name} and {session.name} disagree ({why}, {found.severity})")
+            await _raise_conflict(found)
+
+
+def _yes_window_open() -> bool:
+    """A request was just read out and a spoken yes may still answer it: an alarm now would take that window away."""
+    now = time.time()
+    return any(s.permission_id and s.permission_delivered_at != float("inf")
+               and now - s.permission_delivered_at < PERMISSION_ANSWER_SECS for s in REGISTRY.sessions.values())
+
+
+async def _raise_conflict(c: conflicts.Conflict) -> None:
+    """A card (status), an alert (attention) and a note at once; speech only outside a meeting, never over a
+    push-to-talk press or a read-out still waiting for its yes."""
+    c.note_id = NOTES.add("conflict", f"{c.a_name}: {c.claim_a} / {c.b_name}: {c.claim_b}", dedup=False,
+                          meta={"conflict": c.id, "a": c.a_name, "b": c.b_name, "severity": c.severity}).id
+    if not PREFS.get("conflicts.spoken"):
+        return
+    deadline = time.time() + PERMISSION_ANSWER_SECS + 10
+    while time.time() < deadline and ((PREFS.get("microphone") == "ptt" and state.ptt.open) or _yes_window_open()):
+        await asyncio.sleep(CONFLICT_POLL_SECS)
+    if (state.conn is None or state.meeting is not None or state.meeting_starting or c.state != "open"
+            or (PREFS.get("microphone") == "ptt" and state.ptt.open) or _yes_window_open()):
+        return  # the card and the note stay; a meeting never hears it, not even after it ends
+    c.spoken_at = time.time()
+    logger.info(f"conflict alarm: saying {c.a_name} / {c.b_name}")
+    await say(_conflict_speech(c))
+
+
+def _conflict_speech(c: conflicts.Conflict) -> str:
+    lang = "Hebrew" if re.search(r"[\u0590-\u05ff]", state.last_utterance) else "English"
+    secs = c.at_b - c.at_a
+    later = "Moments later" if secs < 60 else f"About {round(secs / 60)} minute(s) later"
+    tag = "[two sessions disagree, and this is urgent]" if c.severity == "high" else "[two sessions disagree]"
+    branches = (f" They are on different branches: {c.a_name} on {c.branch_a}, {c.b_name} on {c.branch_b}; say so."
+                if c.branch_a and c.branch_b and c.branch_a != c.branch_b else "")
+    return (f"{tag} {c.a_name} said: \"{c.claim_a}\". {later}, {c.b_name} said: \"{c.claim_b}\".{branches} "
+            f"In {lang}, in at most three short sentences: say both claims with their sessions and how far apart they came, "
+            f"keeping each claim's outcome and quoting it in the language it was written in, then ask whether to put the "
+            f"question to one of them. Send nothing unless the user says so.")
+
+
+def _dismiss_conflict(c: conflicts.Conflict) -> None:
+    ALARM.dismiss(c, state.connected_at)
+    if c.note_id is not None and NOTES.get(c.note_id) is not None:
+        NOTES.set_state(c.note_id, "dismissed")
+    logger.info(f"conflict {c.a_name} / {c.b_name} dismissed for this call")
+
+
+def _snooze_conflict() -> None:
+    """"I know", "later" right after an alarm was said: that pair stays quiet for the call."""
+    said = [c for c in ALARM.conflicts if c.state == "open" and c.spoken_at and time.time() - c.spoken_at < NUDGE_REPEAT_SECS]
+    if said:
+        _dismiss_conflict(max(said, key=lambda c: c.spoken_at))
 
 
 # ---------- delivery to a session ----------
@@ -2396,6 +2492,7 @@ async def on_user_utterance(text: str) -> None:
     _update_holds(text)
     if dismiss_intent(text):
         _snooze_nudge()
+        _snooze_conflict()
         state.blocked = []  # "leave it": not raised again
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
@@ -3936,6 +4033,7 @@ async def status(request: Request):
                 {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},
             "attention": _attention(),
+            "conflicts": ALARM.open(),
             "briefing": _briefing_status(),
             "voice_lock": VOICE.status(lock_level()),
             "jobs": JOBS.stats(),
@@ -3967,6 +4065,9 @@ def _attention() -> list[dict]:
             items.append(alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time()))
         elif s.idle_since and s.needs and s.needs.get("need"):
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
+    for c in ALARM.conflicts:
+        if c.state == "open":
+            items.append(alerts.conflict_alert(c.id, c.a_name, c.b_name, c.at))
     m = state.meeting
     if m is not None and m.hand is not None:
         items.append(alerts.hand_alert(m.id, m.hand.n, m.hand.line, m.hand.at))
@@ -4037,6 +4138,35 @@ async def note_state(request: Request):
     return {"ok": True}
 
 
+@app.post("/voice/conflicts")
+async def conflict_action(request: Request):
+    """Dismiss a conflict card (the pair stays quiet for this call), or ask one side its question: the user's own typed
+    words through the same path as /voice/say, so the brain sends them through the normal gates and they never approve."""
+    body = await _body(request)
+    action = body.get("action")
+    if action not in ("dismiss", "ask"):
+        raise HTTPException(status_code=400, detail="action must be dismiss or ask")
+    c = ALARM.get(str(body.get("id") or ""))
+    if c is None or c.state != "open":
+        raise HTTPException(status_code=404, detail="no such conflict")
+    if action == "dismiss":
+        _dismiss_conflict(c)
+        return {"conflicts": ALARM.open()}
+    side = body.get("side")
+    if side not in ("a", "b"):
+        raise HTTPException(status_code=400, detail="side must be a or b")
+    if state.conn is None:
+        raise HTTPException(status_code=409, detail="no call is up")
+    if state.meeting is not None:
+        raise HTTPException(status_code=409, detail="nothing goes to a session during a meeting")
+    name, question, claim = (c.a_name, c.question_a, c.claim_a) if side == "a" else (c.b_name, c.question_b, c.claim_b)
+    # "Send ... this question", not "ask": the brain reads a bare "ask X" as a side question to a read-only copy, which
+    # cannot check what the live session did.
+    await _user_text(f"Send {name} this question: {question or f'is this still true: {claim}?'}")
+    state.typed.add(state.conversation_base + len(state.conversation) - 1)
+    if side not in c.asked:
+        c.asked.append(side)
+    return {"asked": True, "conflicts": ALARM.open()}
 _SCHEDULE_KEYS = {"time": "briefings.time", "days": "briefings.days", "length": "briefings.length",
                   "speak_on_connect": "briefings.speak_on_connect", "skip_empty": "briefings.skip_empty"}
 
