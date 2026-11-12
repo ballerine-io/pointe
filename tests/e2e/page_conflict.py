@@ -110,20 +110,6 @@ async def quiet(timeout: float = 40) -> None:
     await asyncio.sleep(1.0)
 
 
-async def settled(quiet_secs: float = 10, timeout: float = 90) -> None:
-    """No new speech for a while: queued session news (reports, the alarm) has all been said. A typed request sent while
-    news is still queued can be answered with the news instead (seen live; not this feature's code)."""
-    deadline = time.time() + timeout
-    count, since = len(log_lines(r"_speak:\d+ - speak: ")), time.time()
-    while time.time() < deadline:
-        await asyncio.sleep(1)
-        now = len(log_lines(r"_speak:\d+ - speak: "))
-        if now != count:
-            count, since = now, time.time()
-        elif time.time() - since >= quiet_secs and status()["speaking"] != "bot":
-            return
-
-
 async def main() -> None:
     assert os.environ.get("CLAUDE_VOICE_STATE"), "use an isolated CLAUDE_VOICE_STATE"
     SHOTS.mkdir(parents=True, exist_ok=True)
@@ -210,7 +196,7 @@ async def main() -> None:
                   bool(spoke) and started is not None and started <= 60, secs=started, said=(spoke or "")[-300:])
             alert = [a for a in status()["attention"] if a["kind"] == "conflict"]
             check("an attention entry for alerts", len(alert) == 1, attention=alert)
-            await settled()
+            # Ask at once, while the reports and the alarm may still be queued: the user's words must come first.
 
             # ---- Ask: the user's typed words, nothing else ----
             before = len(status()["recent"])

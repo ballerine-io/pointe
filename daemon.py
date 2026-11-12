@@ -767,7 +767,7 @@ class BrainFront(FrameProcessor):
             return
         elif isinstance(frame, LLMMessagesAppendFrame):
             for m in frame.messages:
-                self.brain.append(m["content"])
+                self.brain.add_news(m["content"])  # behind the user's words, when an answer to them is pending
             if frame.run_llm:
                 self._start(None)
             return
