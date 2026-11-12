@@ -57,7 +57,7 @@ request only when, on top of every rule above:
 - the read-out allowlist can say it whole (a credential-like value is never read out: such a request waits for a tap);
 - it loses nothing (`drive.road_safe`, its own allowlist): read-only programs, tests, `mkdir`, `touch`, `git status`,
   `diff`, `log`, `show`, `fetch`, `pull`, `add`, `commit`, `push` (no force, delete, mirror, `+ref` or `:ref`, no
-  `--amend`, `--no-verify`, `--rebase` or `--prune`), plain `curl` GETs, and edits inside the project. `rm`, `mv`,
+  `--amend`, `--no-verify`, `--rebase` or `--prune`, no `add -f`, which adds what `.gitignore` keeps out), plain `curl` GETs, and edits inside the project. `rm`, `mv`,
   `cp`, redirects into files, `git reset`, `clean`, `rebase`, `checkout`, `stash`, `npm run`, `make`, `gh` and edits
   outside the project wait for a tap;
 - with a voiceprint stored, the yes itself is a strong match for your voice (`speaker.strong`), at any lock level.

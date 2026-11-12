@@ -1538,7 +1538,7 @@ All reachable with the page cookie, the bearer token and the phone key (`guards.
 |---|---|---|
 | `GET /voice/briefings` | — | `{briefings: [Briefing], schedule, status}`: the last seven, newest first |
 | `GET /voice/briefings/latest` | — | `{briefing: Briefing \| null, status}` |
-| `POST /voice/briefings` | `{action: start\|skip\|stop\|continue, since?, scope?, length?}` | `{briefing: status}`; `start` with no `since` and no `scope` plays the scheduled one that waits (not read again); 409 with no call, in a meeting, while thinking out loud, or (skip/stop/continue) with nothing playing; 400 on a bad action or length |
+| `POST /voice/briefings` | `{action: start\|skip\|stop\|continue, since?, scope?, length?}` | `{briefing: status}`; `start` with no `since` and no `scope` plays the scheduled one that waits (not read again); 409 with no call, in a meeting, while thinking out loud, during a challenge, or (skip/stop/continue) with nothing playing; 400 on a bad action or length |
 | `POST /voice/briefings/schedule` | any of `{time: "HH:MM"\|"", days: [0-6, Monday 0], length: short\|normal\|full, speak_on_connect, skip_empty}` | `{schedule}`; 400 on an unknown key or a bad value |
 
 `Briefing`: `{id, at, since, since_label, length, sections: [{session, status: waiting|failed|done|quiet, text, did,
@@ -1560,7 +1560,9 @@ from memory instead of calling its tool. The brain tool `briefing(since, scope)`
 today?"); no arguments plays the one that waits. Scope words that name no session narrow nothing. `since` is parsed in code: the night (the last call's end within 24 h, else 18:00
 yesterday), "since six" (the most recent six), "since 6pm"/"18:00", today, this morning, yesterday, "the last N hours",
 Hebrew equivalents; anything else is since the last call. While a briefing plays or is paused, a whole utterance "skip"
-/ "next", "stop" / "enough", "go on" / "continue" (and Hebrew) steers it and never reaches the brain. Anything else pauses
+/ "next", "stop" / "enough", "go on" / "continue" (and Hebrew) steers it and never reaches the brain; one that is a no
+("stop", "cancel the briefing", "עצור": `guards._NO`) also denies a pending request (a no from any voice denies, in every
+mode), under the rules that bind any no, before the briefing stops. Anything else pauses
 it; once the answer is over and the room quiet for 3 s, the rest is offered once. A push-to-talk press pauses it; with no
 words, it goes on 6 s after the release.
 
@@ -1575,6 +1577,8 @@ words, it goes on 6 s after the release.
   ("a permission approval"), never quoted. Secrets are masked in code with `readout.mask` (the one credential rule the
   voice, the alerts and the screen share) before the reader sees a record and on what it writes. That rule leaves
   commit hashes alone and does not catch an unquoted `password: value`; widen it there, for everyone, if needed.
+- **Challenge:** refused while one is on, by voice ("brief me" is caught and refused in code, so the brain never briefs
+  from memory as an argument), by the route (409) and by the tool (`modes.CHALLENGE`).
 - **Meetings:** the tool is not in the meeting's read-only set, the route answers 409, and a meeting that starts stops
   playback; what was left stays in the history. A scheduled briefing is still read during a meeting (no speech) and is
   offered after.
@@ -1736,6 +1740,9 @@ Prefs (`GET/POST /voice/prefs`): `conflicts.on` (default true; off means no read
   waits while a push-to-talk press is open and while a read-out's yes window is open, so it never takes a yes away from
   a request or talks over the user; it never touches a permission. During a meeting (or while one starts) it is never
   said, not even after the meeting: the card and the note stay. Spoken in the user's language, claims as written.
+- **Secrets:** the reader's prompt and every field of an accepted conflict (claims, why, questions) pass `readout.mask`,
+  the one credential rule; claims are verified masked against the masked message. So status, notes, the phone and the
+  voice never carry a session's credential.
 - **Reader down:** no alarm, and a journal line `conflict check skipped: ...`.
 
 ### Deviations from the plan
@@ -1832,7 +1839,7 @@ evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends
 
 Voice: "drive mode", "walk mode", "I'm driving", "מצב נהיגה" turn it on; "back to normal", "I've stopped", "exit drive
 mode", "חזרה לרגיל", "עצרתי" turn it off (a whole short utterance; never reaches the brain; not during a meeting or a
-brainstorm). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
+brainstorm, and not turned on while a meeting is starting, as the route). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
 
 ### Voice approval while driving (owner decision 4)
 
@@ -1856,8 +1863,11 @@ reads the pending request again in the new mode's form.
 Never both, and driving wins: entering drive mode (phrase or button) ends a challenge with no verdict (a verdict is a
 long speech; the challenge stays in status as ended, and its panel waits until the user stops driving), and a challenge
 is refused while driving (409 "Not while driving: …"; the Challenge button and menu item are disabled). "Back to normal"
-ends whichever of the two is on; outside both it is ordinary speech for the brain (it used to be swallowed by the drive
-phrase check). `current_mode()` checks the challenge first, but the two are never on together.
+ends one mode per utterance: drive mode, then a challenge, then whisper mode; outside all of them it is ordinary
+speech for the brain (it used to be swallowed by the drive
+phrase check). Drive mode is entered before the challenge is ended, so a "challenge this" heard while it ends is
+refused. The road rules (`_answer_permission`, `_read_out`) are keyed on `state.drive.on()`, not on `current_mode()`,
+so they hold even if a mode that `current_mode()` ranks higher is on at the same time.
 
 ### Ends with the call
 
@@ -1903,7 +1913,10 @@ silent (`Brain.terse`).
 
 "Challenge this / challenge me / play devil's advocate / poke holes in this / תתקוף את זה / תאתגר אותי" and "you've made
 your point / verdict / back to normal / end challenge / stop / די / חזרה לרגיל", each as a whole utterance, spoken or
-typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve or deny.
+typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve. Owner
+rule, a no from any voice denies in every mode: a spoken end phrase that is a no (a word in `guards._NO`: "stop",
+"עצור") also denies the pending request, under the rules that bind any no (read out, within its window, not the bot's
+echo), before the challenge ends; "you've made your point", "enough", "די" only end it. Typed words never answer.
 During a brainstorm, "challenge this" ends it and challenges what was said.
 
 ### What it may do, in code
@@ -1993,7 +2006,8 @@ match), and at Commands/Everything whispered words are usually kept out. Both cl
 
 - **Drive mode holds it.** No screen to read, and a half-volume voice in a car is a safety cost: while drive mode is on,
   output, input, the voice-detector profile and the reply rule are those of drive mode; the setting stays and applies
-  again when drive mode ends. "Back to normal" while both are on ends drive mode first (a second one ends whisper mode).
+  again when drive mode ends. "Back to normal" ends one mode per utterance, in one order: drive mode, then a challenge,
+  then whisper mode (with all on, three of them end all three; "stop whispering" ends only whisper mode).
   "Whisper mode" asked while driving is stored and the voice says it starts when drive mode ends. The page keeps the
   button pressed and hides the card; the app hides the card (drive mode's screen).
 - **Challenge:** both apply (the challenge's tool narrowing and the whisper reply rule). Whisper mode is not a

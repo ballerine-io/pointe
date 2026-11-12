@@ -17,6 +17,7 @@ from pathlib import Path
 
 from brief import unsupported
 from notes import mostly_same
+from readout import mask
 
 WINDOW_SECS = 4 * 3600  # the other session's report must be this recent
 PAIR_GAP_SECS = 30 * 60  # at most one alarm per pair in this long
@@ -235,7 +236,7 @@ def check_prompt(a: Report, b: Report) -> str:
                 f"Its report: verdict {r.verdict or 'not given'}; limits {list(r.limits) or 'none'}; said: {r.say or '-'}\n"
                 + (f"Its notes: {json.dumps(notes, ensure_ascii=False)}\n" if notes else "")
                 + f"Its final message (the end of it):\n{r.final[-TAIL_CHARS:]}\n")
-    return side("A", a) + "\n" + side("B", b)
+    return mask(side("A", a) + "\n" + side("B", b))  # the reader never sees a session's secret, so it cannot copy one
 
 
 def _pair(x: str, y: str) -> tuple[str, str]:
@@ -280,8 +281,10 @@ class Alarm:
         """A conflict from the reader's reply, or None. Every check is in code: the reader only proposes."""
         if not isinstance(reply, dict) or reply.get("conflict") is not True or reply.get("still_current") is False:
             return None
-        claim_a, claim_b = str(reply.get("claim_a") or "").strip()[:300], str(reply.get("claim_b") or "").strip()[:300]
-        if not (verified(claim_a, a.final) and verified(claim_b, b.final)):
+        # Every field reaches the status (the phone), a note and the voice: masked with the one credential rule, before the
+        # cut so half a secret is not left. Claims are verified masked against the masked message the reader was shown.
+        claim_a, claim_b = (mask(str(reply.get(k) or "").strip())[:300] for k in ("claim_a", "claim_b"))
+        if not (verified(claim_a, mask(a.final)) and verified(claim_b, mask(b.final))):
             return None  # a claim its own session never made: a hallucinated conflict
         if mostly_same(claim_a, claim_b):
             return None  # saying the same thing is agreement
@@ -296,9 +299,9 @@ class Alarm:
             severity = "normal"  # disagreement across branches is often by design
         conflict = Conflict(id=uuid.uuid4().hex[:10], a=a.session_id, b=b.session_id, a_name=a.name, b_name=b.name,
                             a_agent=a.agent, b_agent=b.agent, claim_a=claim_a, claim_b=claim_b, at_a=a.at, at_b=b.at,
-                            at=now, why=str(reply.get("why") or "").strip()[:300], severity=severity,
-                            question_a=str(reply.get("question_for_a") or "").strip()[:300],
-                            question_b=str(reply.get("question_for_b") or "").strip()[:300],
+                            at=now, why=mask(str(reply.get("why") or "").strip())[:300], severity=severity,
+                            question_a=mask(str(reply.get("question_for_a") or "").strip())[:300],
+                            question_b=mask(str(reply.get("question_for_b") or "").strip())[:300],
                             branch_a=a.branch, branch_b=b.branch)
         self.raised.add(printed)
         self.last_raised[pair] = now

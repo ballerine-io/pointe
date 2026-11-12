@@ -46,7 +46,10 @@ _GIT_REFUSED = {
              "--all", "--tags", "--no-verify"},
     "pull": {"--rebase", "-r", "--force", "-f"}, "fetch": {"--force", "-f", "--prune", "-p"},
     "commit": {"--amend", "--no-verify", "-n"},
+    "add": {"--force", "-f"},  # -f adds what .gitignore keeps out, where secrets live; push would then publish it
 }
+# Options before the subcommand (-c config, -C dir, --git-dir), aliases, abbreviated (--forc) and bundled (-Af) flags
+# never reach this check: none is in _SUBS["git"] or in readout's exact-token flag list, so they are never read out.
 _CURL_REFUSED = {"-X", "--request", "-d", "--data", "-o", "-O", "--output", "-T", "--upload-file", "-F", "--form"}
 _FILE_TOOLS = {"Edit", "MultiEdit", "NotebookEdit", "Write"}
 

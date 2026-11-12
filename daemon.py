@@ -66,6 +66,7 @@ from brief import (
 from brief import parse as parse_reply
 from echo import EchoGuard, LevelGate, words as echo_words
 import phone
+from readout import mask
 from guards import (relays_approval, 
     LocalAuth,
     permission_answer,
@@ -865,7 +866,7 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
             LEVEL.frame(float(np.sqrt(np.mean(pcm * pcm))) if pcm.size else 0.0, ECHO.speaking)
-            if VOICE.wanted(lock_level()):  # the voice lock scores the next utterance on this audio
+            if _scores_voices():  # the lock, or drive mode with a voiceprint, scores the next utterance on this
                 VOICE.collector.frame(frame.audio, voiced=self._voiced)
             return  # the model gets words, not audio
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
@@ -959,32 +960,42 @@ class SonioxEars(FrameProcessor):
     async def _take(self, heard: str) -> None:
         if state.briefing_play is not None and state.monologue is None and (steer := briefing.control_intent(heard)):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
+            await _no_also_denies(heard)
             await briefing_control(steer)
             return
         if state.monologue is None and (asked := briefing.briefing_intent(heard)) is not None \
-                and _briefing_refusal() is None:
+                and ((refusal := _briefing_refusal()) is None or state.challenge is not None):
             # In code: asked to "brief me", the brain sometimes answers from memory instead of calling the tool.
             _remember("user", heard)
             state.last_utterance = heard  # its language; not fresh speech for a send
+            if refusal:  # in a challenge: said here, so the brain never briefs from memory as an argument
+                await say(f"[briefing refused] {refusal} Tell the user in one short sentence.")
+                return
             start_briefing(asked, asked)
             await say("[briefing asked] The user asked for a briefing; it is being read now. Say only that it is coming, "
                       "in a few words. Send nothing.")
             return
         if state.monologue is None and state.meeting is None and (asked := drives.intent(heard)) \
                 and (asked == "on" or state.drive.on()):  # "back to normal" outside drive mode is someone else's
+            if asked == "on" and state.meeting_starting:  # as the route: not into a meeting; the room hears no reply
+                logger.info("drive mode: refused, a meeting is starting")
+                return
             _remember("user", heard)
             state.last_utterance = heard  # its language; never fresh speech for a send
             await set_drive(asked == "on", "voice")
             return
-        # After drive mode: while driving, "back to normal" ends drive mode first. A "back to normal" with whisper mode
-        # off is someone else's words, as for drive mode.
-        if state.monologue is None and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")):
+        # "Back to normal" ends one mode, in one order: drive mode (above), then a challenge (_challenge_words), then
+        # whisper mode. A "back to normal" with whisper mode off is someone else's words, as for drive mode.
+        if state.monologue is None and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")) \
+                and not (state.challenge is not None and challenge.end_intent(heard)):
             await _whisper_by_voice(heard, quiet)
             return
         wanted = meeting_intent(heard)
         if wanted and state.monologue is None:
             await _start_meeting_by_voice(heard, wanted)
             return
+        if state.challenge is not None and state.monologue is None and challenge.end_intent(heard):
+            await _no_also_denies(heard)
         if await _challenge_words(heard):
             return
         if state.monologue is not None:
@@ -1651,6 +1662,8 @@ def _briefing_refusal() -> str | None:
         return "Not during a meeting: a briefing is never spoken into the room. It can wait until the meeting ends."
     if state.monologue is not None:
         return "Not while the user is thinking out loud."
+    if state.challenge is not None:  # as the brain's briefing tool (modes.CHALLENGE): a challenge argues, it never reads out
+        return "Not during a challenge. End it first, then ask again."
     return None
 
 
@@ -2104,6 +2117,14 @@ async def _challenge_words(text: str) -> bool:
     return False
 
 
+async def _no_also_denies(text: str) -> None:
+    """Owner rule: a no from any voice denies, in every mode. Spoken words that end a challenge or steer a briefing and
+    are a no ("stop", "עצור": guards._NO) also deny the pending request, under every rule that binds a no, before the
+    mode ends (its end would put the request to the user again). Denying is the safe direction; nothing here approves."""
+    if permission_answer(text) == "deny":
+        await _answer_permission(text, deny_only=True)
+
+
 def _challenge_note(kind: str, text: str) -> None:
     ch = state.challenge if kind != "verdict" else state.last_challenge
     if ch is not None and (item := ch.add(kind, text)) is not None:
@@ -2226,9 +2247,11 @@ def _drive_status() -> dict:
 async def set_drive(on: bool, how: str) -> bool:
     """Enter or leave drive mode (the phrase or the button). A pending request is put again in the new mode's form,
     and the yes window of the old read-out closes first: a yes heard before the switch answers nothing after it."""
-    if on and state.drive.on() is False and state.challenge is not None:
-        await end_challenge(verdict=False)  # never both: driving wins, and a verdict would be a long speech
     changed = state.drive.enter(how) if on else state.drive.leave()
+    if on and state.challenge is not None:
+        # Never both: driving wins, and a verdict would be a long speech. Drive is entered first so a challenge asked for
+        # while this one ends (end_challenge awaits) is refused (_challenge_refusal).
+        await end_challenge(verdict=False)
     if not changed or state.conn is None:
         return changed
     logger.info(f"drive mode: {'on' if on else 'off'} ({how})")
@@ -2839,7 +2862,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     others = [s for s in named_sessions(text, list(REGISTRY.sessions.values())) if s is not session]
     if others or switch_intent(text):
         return  # "yes, tell lantern to proceed" is aimed at another session
-    if verdict == "allow" and current_mode() is modes.DRIVE and (
+    if verdict == "allow" and state.drive.on() and (  # the road rules hold under any mode on top (a challenge)
             session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
         state.utterance_spent = True
         await _read_out(session)  # its drive form: it waits until the user stops, and a no still counts
@@ -2863,7 +2886,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
             await _read_out(session)
         return
     # Drive mode, with a voiceprint stored: the yes itself must be a strong owner match, at any lock level.
-    if verdict == "allow" and current_mode() is modes.DRIVE and _has_voiceprint() and not speaker.strong(state.last_speaker):
+    if verdict == "allow" and state.drive.on() and _has_voiceprint() and not speaker.strong(state.last_speaker):
         state.utterance_spent = True
         VOICE.unsure_streak += 1
         logger.info("drive mode: a yes that was not a strong match for the owner's voice did not count")
@@ -4041,9 +4064,9 @@ async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview:
     if verdict is None:
         logger.info(f"permission {session.name}/{request_id} handed back to the terminal")
         if current_mode().holds_news and time.time() >= deadline:  # it waited out a long monologue or meeting: say so after
+            what = mask(str(tool_input.get("description") or preview))[:120]  # said aloud later: the one credential rule
             state.monologue_held.append((f"[{session.name}: its approval request waited while the user thought out loud, "
-                                         f"then went back to its terminal] {tool_name}: "
-                                         f"{tool_input.get('description') or preview[:120]}", True))
+                                         f"then went back to its terminal] {tool_name}: {what}", True))
     return verdict
 
 
@@ -4100,7 +4123,7 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
         return
     name = _spoken_names(session.name)
     hebrew = re.search(r"[\u0590-\u05ff]", state.last_utterance)
-    if current_mode() is modes.DRIVE and (session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
+    if state.drive.on() and (session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
         text = (drives.waits_unreadable(name, hebrew) if session.permission_cut else
                 drives.waits_not_for_the_road(name, session.permission_spoken, hebrew))
         session.permission_delivered_at = float("inf")
@@ -4113,7 +4136,7 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
                 f"{name} needs an approval I can't read out. It's on your screen: approve it there, or say no.")
     else:
         text = f"{name} מבקש: {session.permission_spoken}. לבצע?" if hebrew else f"{name} wants to {session.permission_spoken}. Should it?"
-    if unsure and current_mode() is modes.DRIVE:
+    if unsure and state.drive.on():
         text = drives.unsure(hebrew) + text
     elif unsure:
         text = ("לא הצלחתי לזהות שזה אתה. אמור שוב, או אשר במסך. " if hebrew else
