@@ -1524,3 +1524,61 @@ and the tap, Face ID, the terminal and typed text keep every action reachable.
 - **Not built:** the bot-voice impostor profile (the echo guard covers echo, and audio from echo-dropped finals is
   discarded), profile adaptation, the weekly enrolment nudge, the "you sound different today" nudge, whisper-mode
   lowering (no whisper mode yet), and a bench on recorded people.
+
+## Show while it says (as built, 2026-11-12)
+
+Feature 8, on the daemon, the page and the app. `artifacts.py` holds the rules; `sessions._follow_one` collects, `feed`
+attaches, `FeedInjector._respond` puts a set on screen when the brain is asked to speak its report.
+
+### What is collected
+
+Per turn (`session.turn`, an `artifacts.Turn`): `Edit/Write/MultiEdit/NotebookEdit` (and OpenCode's `edit/write/patch`,
+Codex's `files`) as `edit`, `Read` as `read` (offset/limit give the range), a `Bash` command that runs tests (`pytest`,
+`npm|pnpm|yarn|bun test`, `nx test`, `go test`, `cargo test`, `jest`, `vitest`, …) as `test` with its output's last 4,000
+characters. **Only once its `tool_result` arrives and was not refused:** a tool still waiting for approval never shows. A
+failed edit or read is dropped; a test is `failed` on `is_error` or a failure pattern. Files named in the final message
+that exist under `cwd` are added as `read`. At the end: merged per file (an edit wins over a read; ranges union), ordered
+failing tests → edits → passing tests → reads, at most 8. The OpenCode and Codex mirrors now write `tool_result` entries.
+
+### Routes and status
+
+| | |
+|---|---|
+| `GET /voice/artifact?id=<artifact id>` | `{id, kind, name, path, range, failed, problem?, lines?: [{n, text, hl}], total, truncated, changed_since, diff?, command?, output?, focus?}`. Page cookie, bearer token, phone key. 403 off the Mac while `show.on_phone` is off; 404 for an id not in the last ten sets |
+| `GET/POST /voice/prefs` `show.on_phone` | `false` by default (owner decision 5) |
+| status `showing` | `null` or `{id, session, since, summary, current, artifacts: [{id, kind, name, path, range, failed, refused?}]}`: no content, only names |
+| status `shown_earlier` | the last ten sets, newest first, same shape plus `at` |
+| status `show_on_phone` | the pref |
+
+Off the Mac means the phone key or a page on the TLS listener: there `showing` is `null` and `shown_earlier` `[]` unless
+the pref is on. `showing` lasts while the voice talks and 60 s after; a switch of the active session clears it.
+`current` is the artifact whose file stem (or "test"/"fail") the voice said last.
+
+### The voice
+
+A report with artifacts gets `[on screen now: the failing test output, pricing.py line 41. The user can see it, so never
+read code, paths or output aloud; you may say it is on their screen]` when a screen will show it (the page polled in the
+last 5 s, or the phone did with the pref on).
+
+### Deviations from the plan
+
+- **The route takes an artifact id, not `session` + `id`**, and never a path: the daemon renders only what a report put
+  on screen, from its own record of the last ten sets.
+- **Diffs are against `HEAD` via `git cat-file` and `difflib`, not `git diff`:** `git diff` runs a repository's clean
+  filters and diff drivers, which are code. Not a repository → File only.
+- **Secrets are masked in everything shown** (not in the plan): known token shapes, private-key blocks, URL passwords,
+  quoted or env-style values of secret-like names, and the values of this machine's own key variables.
+- **Secret-looking names** add `*credential*`, `*password*`, `*.p12`, `*.pfx`, keystores, `.netrc`, `.npmrc`, `.pgpass`
+  to the plan's list; any folder or the file may match. `*key*` is literal, so `keyboard.ts` is refused too.
+- **Phone default off**, per owner decision 5 (the plan had it on). The app asks for Face ID to turn it on.
+- **The page has no off switch** (always on, decision 5); the pane folds away for screen sharing, remembered per browser.
+- **"Shown earlier" is a list in the pane and status, not F2 notes:** notes are scoped to meetings, and the meeting views
+  list them. No `shown` note kind.
+- **The reader prompt is unchanged** (a prompt change needs the bench); the voice learns what is on screen from the line
+  added to the report instead.
+- **iPhone:** a "Showing: <summary>" card above the conversation while `showing` is set and the pref is on; tap → a
+  sheet with a tab per artifact, File/Diff/Test, horizontal scroll, pinch to zoom, Dynamic Type, Pin and Shown earlier.
+  Settings → Show while it says asks Face ID or the passcode to turn it on. `ios/e2e/show_ui.py` runs it against a real
+  daemon over the pinned link (in the simulator the pref is turned on from the Mac: no Face ID to pass).
+- **The plan's live e2e** drives a real Claude Code session; `tests/e2e/page_show.py` writes a synthetic Claude Code turn
+  into a registered transcript instead (deterministic, no session cost), with the real reader, brain and mouth.

@@ -19,6 +19,7 @@ from typing import Awaitable, Callable
 
 from loguru import logger
 
+from artifacts import Turn
 from brief import FINAL_MARK, agent_finding, excerpt, human_text
 from echo import NUMBERS
 from guards import strip_tasks
@@ -70,6 +71,8 @@ class Session:
     on_hold: bool = False  # the user said to hold this session: a broadcast skips it, and only its name reaches it
     noise: int = 0  # harness messages kept out of the feed: "how much was junk" has an answer
     harness: str = "claude-code"  # which coding agent runs it: harnesses/ (claude-code, opencode)
+    turn: Turn = field(default_factory=Turn)  # what the turn in progress touched (show while it says)
+    artifacts: list = field(default_factory=list)  # what the last finished turn touched, for its report
 
     def alive(self) -> bool:
         import harnesses
@@ -540,7 +543,11 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
             message = entry.get("message") or {}
             content = message.get("content")
             if entry["type"] == "user":
+                for block in content if isinstance(content, list) else []:
+                    if isinstance(block, dict) and block.get("type") == "tool_result":
+                        session.turn.result(block)
                 if _text(content).strip().startswith("[Request interrupted by user"):
+                    session.turn.reset()
                     _turn_ended(session)
                     on_turn_end()
                     await feed(session, f"[{who} was interrupted by the user and stopped]", False)
@@ -555,6 +562,7 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
                     session.noise += 1
                 if typed:
                     session.idle_since, session.needs = None, None
+                    session.turn.reset()  # a new turn begins
                     if VOICE_PREFIX not in typed:  # a relay can answer one question of several: they last until the next report
                         session.open_questions, session.typed_approval = [], ""
                 if typed and VOICE_PREFIX not in typed:
@@ -562,6 +570,7 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
                 continue
             for block in content if isinstance(content, list) else []:
                 if block.get("type") == "tool_use":
+                    session.turn.use(block, session.cwd)
                     session.busy = True
                     session.idle_since, session.needs = None, None
                     await feed(session, f"[{who} is using {block.get('name')}, perhaps still waiting for approval] {_tool_detail(block.get('input') or {})}",
@@ -569,6 +578,7 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
                 elif block.get("type") == "text" and block.get("text", "").strip():
                     text = block["text"].strip()
                     if message.get("stop_reason") == "end_turn":
+                        session.artifacts = session.turn.finish(text, session.cwd)
                         _turn_ended(session)
                         on_turn_end()
                         await feed(session, f"{finished_tag(who)} {FINAL_MARK}{text}", True)

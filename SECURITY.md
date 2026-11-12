@@ -142,8 +142,18 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
   heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
-  enrol, delete, level; the app asks for Face ID before lowering the level or deleting). Not the model's whole context, renaming,
-  modes, or anything a Claude Code session uses.
+  enrol, delete, level; the app asks for Face ID before lowering the level or deleting), and Show while it says
+  (`/voice/artifact`). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
+- **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
+  about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
+  `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it
+  on). Once on, a leaked phone key can read what the voice showed: the last ten reports' files, inside each session's
+  folder only. Either way the daemon never takes a path from the caller, shows only tools that ran (never a tool still
+  waiting for approval), refuses files outside the session's folder after resolving symlinks, hidden files and
+  secret-looking names (`.env*`, `*.pem`, `*secret*`, `*key*`, `id_*`, `*credential*`, ...), binary files and files over
+  512 kB, and masks secret-looking values (known token shapes, private keys, `name = "..."` for secret-like names, URL
+  passwords, and the values of this machine's own key variables) in file lines, diffs, test output and commands.
+  Diffs read `HEAD` with `git cat-file`, never `git diff`, so a repository's filters and diff drivers do not run.
 - **Approve needs Face ID** or the passcode; deny never does.
 - **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
