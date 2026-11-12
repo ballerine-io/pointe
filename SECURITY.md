@@ -98,7 +98,7 @@ What sessions report is data for the voice model, not instructions to it:
 
 | What | Where |
 |---|---|
-| Your speech, and your session and folder names as hints | The ears vendor |
+| Your speech, and your dictionary, session and folder names and the names in session notes as hints | The ears vendor |
 | Session content, including transcripts | The brain and reader vendors |
 | What the bot says, which can quote session content | The mouth vendor |
 | What you said, each session's latest lines, goal, folder path and up to 40 file names | The gate vendor |
@@ -119,7 +119,9 @@ each call with what you said and session content. With phone access it also hold
 connector's tokens. With the voice lock it holds `voiceprint/` (0700; one file per enrolled device, 0600): biometric data,
 computed and kept only on this Mac, deleted from Settings → Voice lock on the page or in the app. `models/` holds the
 speaker model. The journal records an ignored utterance's length and score, never its words. `briefings.json` (0600) keeps
-the last seven briefings, written out per session and redacted. Delete what you no longer need.
+the last seven briefings, written out per session and redacted. `dictionary.json` (0600) holds the names you added or
+fixed (Settings → Dictionary on the page or in the app shows, edits and deletes each one); it never takes a yes, no or
+stop word, anything `readout.mask` would hide, or words from a meeting. Delete what you no longer need.
 
 ## Known limits
 
@@ -154,7 +156,7 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
   heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
   enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
-  the last seven, start, skip, stop, and the schedule), and Show while it says (`/voice/artifact`). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
+  the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), and the dictionary (`/voice/dictionary`: list, add, edit, delete). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
   `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it

@@ -1,0 +1,151 @@
+<!-- Dictionary (feature 2, vocabulary.py): the names Pointe learned from your fixes or you added. Served inside ui.html
+     at {{DICTIONARY}}; the iPhone app's Dictionary sheet has the same sections and copy. -->
+<style>
+  #dictsheet .entries, #dictsheet .sugg { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  #dictsheet li { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 12px; padding: 8px 10px; font-size: 14px; }
+  #dictsheet li .term { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; background: none; border: 0; color: var(--text);
+                        font: 600 14px 'Inter', sans-serif; text-align: start; cursor: text; padding: 2px 0; }
+  #dictsheet li .src { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  #dictsheet li input.term { background: var(--card2); border-radius: 8px; padding: 4px 8px; outline: none; }
+  #dictsheet li select { padding: 4px 8px; border-radius: 8px; font-size: 12px; }
+  #dictsheet li button.small { border: 0; border-radius: 10px; padding: 6px 11px; font: 600 12.5px 'Inter', sans-serif; cursor: pointer;
+                               background: var(--card2); color: var(--text); }
+  #dictsheet .addrow { display: flex; gap: 8px; }
+  #dictsheet .addrow input { flex: 1; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px;
+                             padding: 10px 12px; font: 14px 'Inter', sans-serif; outline: none; }
+  #dictsheet .addrow button { border: 0; border-radius: 12px; padding: 10px 16px; font: 600 14px 'Inter', sans-serif; cursor: pointer;
+                              background: var(--orange); color: #fff; }
+  #dictsheet .note, #dictsheet .empty { color: var(--muted); font-size: 13px; } #dictsheet .note:empty { display: none; }
+  #dictsheet .warn { color: var(--orange); font-size: 13px; } #dictsheet .warn:empty { display: none; }
+  #dicttoast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 60; display: none; align-items: center; gap: 12px;
+               background: var(--navy); border: 1px solid var(--orange-line); border-radius: 14px; padding: 10px 14px; font-size: 14px;
+               box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+  #dicttoast.on { display: flex; }
+  #dicttoast button { border: 0; background: none; color: var(--orange); font: 600 14px 'Inter', sans-serif; cursor: pointer; padding: 0; }
+</style>
+<div id="dicttoast" role="status" aria-live="polite"><span id="dicttoast-text"></span><button id="dicttoast-undo" onclick="dictUndo()">Undo</button></div>
+<div class="sheetbg" id="dictsheet" onclick="if (event.target === this) closeSheet('dictsheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="dict-h">
+    <h2 id="dict-h">Dictionary<button class="x" onclick="closeSheet('dictsheet')" aria-label="Close">×</button></h2>
+    <div class="lede">Names Pointe should hear right. Stored only on your Mac, and sent to the speech recognizer as hints.</div>
+    <div class="warn" id="dict-problem" role="alert"></div>
+    <form class="addrow" onsubmit="dictAdd(event)">
+      <input id="dict-new" maxlength="40" placeholder="Add a name, repo or word" aria-label="Add a name, repo or word" autocomplete="off" spellcheck="false">
+      <button type="submit">Add</button>
+    </form>
+    <div class="warn" id="dict-err" role="alert"></div>
+    <ul class="entries" id="dict-list" aria-label="Your dictionary"></ul>
+    <div class="note" id="dict-full"></div>
+    <h3 id="dict-sugg-h">From your sessions</h3>
+    <ul class="sugg" id="dict-sugg" aria-labelledby="dict-sugg-h"></ul>
+    <label class="tick"><input type="checkbox" id="dict-learn" onchange="dictLearn(this)"> Learn from my fixes</label>
+    <div class="note">When you fix what Pointe heard, it learns the name you typed. It never learns yes, no or stop words,
+      anything that looks like a password or key, or words from a meeting.</div>
+    <div class="note" id="dict-applies">Applies on the next call.</div>
+    <div class="row"><button id="dict-apply" onclick="dictApply()" hidden>Apply now</button><button class="go" onclick="closeSheet('dictsheet')">Done</button></div>
+  </div>
+</div>
+<script>
+  // The daemon's /voice/dictionary is the single source; this sheet only shows it and posts changes.
+  const dict = {page: null, toasted: new Set(), toast: null, toastTimer: 0, editing: null};
+  const DICT_LANG = {en: 'EN', he: 'HE', both: 'EN + HE'};
+  const DICT_SOURCE = {correction: 'you fixed it', manual: 'you added it', session: 'from a session'};
+
+  async function dictCall(method, body, query) {
+    const r = await fetch('/voice/dictionary' + (query ? '?' + new URLSearchParams(query) : ''), {method,
+      headers: body ? {'content-type': 'application/json'} : {}, body: body ? JSON.stringify(body) : undefined});
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || 'Not saved');
+    return data;
+  }
+  async function openDictionary() {
+    $('dict-err').textContent = '';
+    try { dictShow(await dictCall('GET')); } catch (e) { $('dict-err').textContent = e.message; }
+    openSheet('dictsheet', 'dict-new');
+  }
+  async function dictDo(method, body, query) {
+    $('dict-err').textContent = '';
+    try { dictShow(await dictCall(method, body, query)); return true; } catch (e) { $('dict-err').textContent = e.message; return false; }
+  }
+  function dictShow(p) {
+    dict.page = p;
+    $('dict-problem').textContent = p.problem || '';
+    $('dict-learn').checked = !!p.learn;
+    $('dict-full').textContent = p.full ? `Full (${p.cap}). Delete one to add another.` : '';
+    $('dict-apply').hidden = !p.can_apply;
+    $('dict-applies').textContent = p.can_apply ? 'Applies on the next call, or now with Apply now.' : 'Applies on the next call.';
+    const list = $('dict-list');
+    if (!p.entries.length) list.replaceChildren(el('li', 'empty', 'No names yet. Fix a word Pointe misheard, or add one here.'));
+    else list.replaceChildren(...p.entries.map(dictRow));
+    const sugg = $('dict-sugg');
+    $('dict-sugg-h').hidden = sugg.hidden = !p.suggestions.length;
+    sugg.replaceChildren(...p.suggestions.map(s => {
+      const li = el('li');
+      li.append(el('span', 'term', s.term), el('span', 'src', s.session));
+      const add = el('button', 'small', 'Add'); add.onclick = () => dictDo('POST', {action: 'add', term: s.term, session: s.session});
+      const ign = el('button', 'small', 'Ignore'); ign.onclick = () => dictDo('POST', {action: 'ignore', term: s.term});
+      add.setAttribute('aria-label', `Add ${s.term}`); ign.setAttribute('aria-label', `Ignore ${s.term}`);
+      li.append(add, ign); return li;
+    }));
+  }
+  function dictRow(e) {
+    const li = el('li'); li.dataset.term = e.term;
+    const term = el('button', 'term', e.term); term.title = 'Click to edit'; term.setAttribute('aria-label', `Edit ${e.term}`);
+    term.onclick = () => dictEdit(li, e);
+    const lang = el('select'); lang.setAttribute('aria-label', `Language of ${e.term}`);
+    for (const [v, t] of Object.entries(DICT_LANG)) { const o = el('option', '', t); o.value = v; lang.append(o); }
+    lang.value = e.lang; lang.onchange = () => dictDo('POST', {action: 'edit', term: e.term, lang: lang.value});
+    const del = el('button', 'small', 'Delete'); del.setAttribute('aria-label', `Delete ${e.term}`);
+    del.onclick = () => dictDo('DELETE', null, {term: e.term});
+    li.append(term, lang, el('span', 'src', DICT_SOURCE[e.source] || ''), del);
+    return li;
+  }
+  function dictEdit(li, e) {  // Enter saves, Esc puts it back
+    const box = el('input', 'term'); box.value = e.term; box.maxLength = 40; box.setAttribute('aria-label', `New spelling of ${e.term}`);
+    li.firstChild.replaceWith(box); box.focus(); box.select();
+    const back = () => dictShow(dict.page);
+    box.onkeydown = async ev => {
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); back(); }
+      else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        const to = box.value.trim();
+        if (to && to !== e.term) { if (!await dictDo('POST', {action: 'edit', term: e.term, to})) box.focus(); }
+        else back();
+      }
+    };
+  }
+  async function dictAdd(ev) {
+    ev.preventDefault();
+    const term = $('dict-new').value.trim();
+    if (term && await dictDo('POST', {action: 'add', term})) $('dict-new').value = '';
+  }
+  async function dictLearn(box) {
+    const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'},
+                                          body: JSON.stringify({'dictionary.learn': box.checked})});
+    if (!r.ok) { box.checked = !box.checked; $('dict-err').textContent = 'Not saved'; return; }
+    dictDo('GET');
+  }
+  async function dictApply() {
+    if (await dictDo('POST', {action: 'apply'})) $('dict-applies').textContent = 'Applied: the recognizer restarts after you finish speaking.';
+  }
+  // The toast: each term learned in this call is shown once, from the status the page polls anyway.
+  function dictionaryFollow(s) {
+    if (!s || !s.dictionary) return;
+    const learned = s.dictionary.learned_this_call || [];
+    const fresh = learned.filter(x => !dict.toasted.has(x.term + '@' + x.at));
+    for (const x of fresh) dict.toasted.add(x.term + '@' + x.at);
+    if (!dict.seeded) { dict.seeded = true; return; }  // a reload does not toast what was learned before it
+    if (!fresh.length) return;
+    dict.toast = fresh.map(x => x.term);
+    $('dicttoast-text').textContent = 'Learned: ' + dict.toast.join(', ');
+    $('dicttoast').classList.add('on');
+    clearTimeout(dict.toastTimer);
+    dict.toastTimer = setTimeout(() => $('dicttoast').classList.remove('on'), 8000);
+  }
+  async function dictUndo() {
+    const terms = dict.toast || [];
+    $('dicttoast').classList.remove('on');
+    for (const term of terms) await dictCall('DELETE', null, {term}).catch(() => {});
+    if ($('dictsheet').classList.contains('open')) dictDo('GET');
+  }
+</script>

@@ -95,6 +95,10 @@ _NAMED = (r"[\w.-]*(?:secret|token|passw(?:or)?d|pwd|api[_-]?key|apikey|access[_
 _ASSIGNED_QUOTED = re.compile(rf"(?i)(\b{_NAMED}\b[\"']?\s*(?:[:=]|=>|:=)\s*)([\"'])([^\"'\n]{{4,}})\2")
 _ASSIGNED_ENV = re.compile(rf"(?im)^(\s*(?:export\s+)?{_NAMED}\s*=\s*)([^\s\"'#]{{4,}})")
 _ASSIGNED_INLINE = re.compile(rf"(?i)(\b{_NAMED}=)([^\s\"';|&]{{4,}})")
+# Said or written in words: "my password is hunter22x", "הסיסמה היא Kite-4412". Only a value with a digit, so "the token
+# is expired" stays readable.
+_SPOKEN_VALUE = re.compile(r"(?i)((?<!\w)(?:password|passcode|passphrase|secret|token|api key|ה?סיסמ[הא])"
+                           r"\s*(?:is|was|:|=|היא|הוא|זה)?\s*)((?=[^\s\"']*\d)[^\s\"']{4,})")
 _FLAG_VALUE = re.compile(r"(?i)(--?(?:token|password|passwd|secret|api-?key|key)[= ])([^\s\"']{4,})")
 
 
@@ -121,6 +125,7 @@ def mask(text: str) -> str:
     text = _ASSIGNED_QUOTED.sub(lambda m: f"{m.group(1)}{m.group(2)}{MASK}{m.group(2)}", text)
     text = _ASSIGNED_ENV.sub(lambda m: m.group(1) + MASK, text)
     text = _ASSIGNED_INLINE.sub(lambda m: m.group(1) + MASK, text)
+    text = _SPOKEN_VALUE.sub(lambda m: m.group(1) + MASK, text)
     return _FLAG_VALUE.sub(lambda m: m.group(1) + MASK, text)
 
 

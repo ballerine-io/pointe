@@ -22,6 +22,7 @@ SCHEMA: dict[str, tuple] = {
     "briefings.skip_empty": (False, bool),  # a quiet night raises no alert
     "alerts.watch_approve": (False, bool),  # Approve on a notification (iPhone, mirrored to the watch): no Face ID
     "show.on_phone": (False, bool),  # show while it says on the phone: off until enabled (the page always shows it)
+    "dictionary.learn": (True, bool),  # a correction teaches the names it fixed; suggestions from session notes
 }
 
 
