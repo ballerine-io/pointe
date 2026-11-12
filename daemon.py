@@ -962,10 +962,13 @@ class SonioxEars(FrameProcessor):
             await briefing_control(steer)
             return
         if state.monologue is None and (asked := briefing.briefing_intent(heard)) is not None \
-                and _briefing_refusal() is None:
+                and ((refusal := _briefing_refusal()) is None or state.challenge is not None):
             # In code: asked to "brief me", the brain sometimes answers from memory instead of calling the tool.
             _remember("user", heard)
             state.last_utterance = heard  # its language; not fresh speech for a send
+            if refusal:  # in a challenge: said here, so the brain never briefs from memory as an argument
+                await say(f"[briefing refused] {refusal} Tell the user in one short sentence.")
+                return
             start_briefing(asked, asked)
             await say("[briefing asked] The user asked for a briefing; it is being read now. Say only that it is coming, "
                       "in a few words. Send nothing.")
@@ -1651,6 +1654,8 @@ def _briefing_refusal() -> str | None:
         return "Not during a meeting: a briefing is never spoken into the room. It can wait until the meeting ends."
     if state.monologue is not None:
         return "Not while the user is thinking out loud."
+    if state.challenge is not None:  # as the brain's briefing tool (modes.CHALLENGE): a challenge argues, it never reads out
+        return "Not during a challenge. End it first, then ask again."
     return None
 
 

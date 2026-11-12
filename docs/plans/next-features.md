@@ -1538,7 +1538,7 @@ All reachable with the page cookie, the bearer token and the phone key (`guards.
 |---|---|---|
 | `GET /voice/briefings` | — | `{briefings: [Briefing], schedule, status}`: the last seven, newest first |
 | `GET /voice/briefings/latest` | — | `{briefing: Briefing \| null, status}` |
-| `POST /voice/briefings` | `{action: start\|skip\|stop\|continue, since?, scope?, length?}` | `{briefing: status}`; `start` with no `since` and no `scope` plays the scheduled one that waits (not read again); 409 with no call, in a meeting, while thinking out loud, or (skip/stop/continue) with nothing playing; 400 on a bad action or length |
+| `POST /voice/briefings` | `{action: start\|skip\|stop\|continue, since?, scope?, length?}` | `{briefing: status}`; `start` with no `since` and no `scope` plays the scheduled one that waits (not read again); 409 with no call, in a meeting, while thinking out loud, during a challenge, or (skip/stop/continue) with nothing playing; 400 on a bad action or length |
 | `POST /voice/briefings/schedule` | any of `{time: "HH:MM"\|"", days: [0-6, Monday 0], length: short\|normal\|full, speak_on_connect, skip_empty}` | `{schedule}`; 400 on an unknown key or a bad value |
 
 `Briefing`: `{id, at, since, since_label, length, sections: [{session, status: waiting|failed|done|quiet, text, did,
@@ -1575,6 +1575,8 @@ words, it goes on 6 s after the release.
   ("a permission approval"), never quoted. Secrets are masked in code with `readout.mask` (the one credential rule the
   voice, the alerts and the screen share) before the reader sees a record and on what it writes. That rule leaves
   commit hashes alone and does not catch an unquoted `password: value`; widen it there, for everyone, if needed.
+- **Challenge:** refused while one is on, by voice ("brief me" is caught and refused in code, so the brain never briefs
+  from memory as an argument), by the route (409) and by the tool (`modes.CHALLENGE`).
 - **Meetings:** the tool is not in the meeting's read-only set, the route answers 409, and a meeting that starts stops
   playback; what was left stays in the history. A scheduled briefing is still read during a meeting (no speech) and is
   offered after.

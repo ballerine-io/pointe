@@ -154,3 +154,18 @@ def test_the_road_refuses_git_force_and_command_flags_in_every_spelling(command)
                                      "git push -u origin feature-cart", "git log -n 5", "git diff --stat"])
 def test_the_road_still_allows_plain_git(command):
     assert drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command
+
+
+# ---------- 5. a briefing asked by voice runs inside a challenge ----------
+
+def test_a_briefing_asked_by_voice_is_refused_during_a_challenge(d, c, monkeypatch):
+    """The brain's `briefing` tool is refused in a challenge (modes.CHALLENGE), but the spoken 'brief me' is caught in
+    SonioxEars._take before _challenge_words and _briefing_refusal knows nothing of a challenge: the parts are spoken and
+    each one is recorded as an objection."""
+    assert start(d) is None
+    started = []
+    monkeypatch.setattr(d, "start_briefing", lambda *a, **k: started.append(a))
+    ears = d.SonioxEars()
+    asyncio.run(ears._take("brief me on the night"))
+    assert not started, "a briefing started inside a challenge"
+    assert client_for(d).post("/voice/briefings", json={"action": "start"}).status_code == 409
