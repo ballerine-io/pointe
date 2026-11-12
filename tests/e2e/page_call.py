@@ -20,7 +20,8 @@ from rig import DAEMON, RATE, ROOT, STATE, fresh_state, log_lines, stop_daemon, 
 from scenarios import check, results  # noqa: E402
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-DEBUG_PORT = 9333
+DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "9333"))
+ECHO_GAIN = float(os.environ.get("POINTE_ECHO_GAIN", "0"))  # > 0: the page's speaker leaks into its microphone
 
 
 async def evaluate(socket, expression: str, ids=iter(range(1, 10**6))):
@@ -64,10 +65,17 @@ async def main() -> None:
                   buf.getChannelData(0).set(Float32Array.from(pcm, v => v / 32768));
                   const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
                   const dest = ctx.createMediaStreamDestination(); src.connect(dest); src.start(); await ctx.resume();
+                  window.__mic = {{ctx, dest}};
                   return dest.stream;
                 }};
             }})()""")
             await evaluate(socket, "startCall()")
+            if ECHO_GAIN:  # the page's own playback, into the microphone it sends: speakers, no headphones
+                await evaluate(socket, f"""(() => {{
+                    const tap = call.ctx.createMediaStreamDestination(); call.player.connect(tap);
+                    const leak = __mic.ctx.createMediaStreamSource(tap.stream), gain = __mic.ctx.createGain();
+                    gain.gain.value = {ECHO_GAIN}; leak.connect(gain).connect(__mic.dest);
+                }})()""")
             await asyncio.sleep(4)
 
             state = await evaluate(socket, "call.state")
