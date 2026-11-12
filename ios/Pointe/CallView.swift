@@ -39,6 +39,7 @@ struct CallView: View {
     @State private var learnedToasts = LearnedToasts()
     @State private var toast: [String]?
     @State private var demoDictionary = DemoDictionary()
+    @State private var whisperFollow = WhisperFollow()
     private let demo: Demo?
 
     init(pairing: Pairing, unpair: @escaping () -> Void, demo: Demo? = nil) {
@@ -160,6 +161,7 @@ struct CallView: View {
                 .presentationBackground(.regularMaterial)
         }
         .onChange(of: status?.dictionary) { showLearned(learnedToasts.fresh(status?.dictionary)) }
+        .onChange(of: status?.whisper, initial: true) { if whisperFollow.follow(status?.whisper) { withAnimation(.snappy) { typing = true } } }
         .overlay(alignment: .bottom) {
             if let toast {
                 LearnedToast(terms: toast) { undoLearned(toast) }
@@ -230,7 +232,8 @@ struct CallView: View {
         ScrollViewReader { scroller in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing) { editing = $0 }
+                    ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing,
+                                     large: status?.whisper?.on == true) { editing = $0 }
                     if let problem = problem ?? call.problem {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote).foregroundStyle(Brand.orange).padding(.bottom, 8)
@@ -322,6 +325,12 @@ struct CallView: View {
             Toggle(isOn: Binding(get: { status?.polish ?? false }, set: { on in Task { await setPolish(on) } })) {
                 Label("Clean up my words", systemImage: "wand.and.sparkles")
             }
+            if status?.whisper != nil {
+                Toggle(isOn: Binding(get: { status?.whisper?.on == true }, set: { on in Task { await setWhisper(on) } })) {
+                    Label(WhisperCopy.button, systemImage: "waveform.badge.minus")
+                }
+                .accessibilityIdentifier("whisperItem")
+            }
             Button { showSessions = true } label: { Label("Sessions and mode", systemImage: "rectangle.stack") }
             if meeting?.isOn != true {
                 Button { openMeetingStart() } label: { Label("Start a meeting", systemImage: "person.3") }
@@ -382,6 +391,12 @@ struct CallView: View {
                 if waiting.count > 1 {
                     Text("\(waiting.count - 1) more waiting").font(.caption).foregroundStyle(.secondary)
                 }
+            }
+            if let w = status?.whisper, w.on {
+                WhisperCard(status: w, suggestPushToTalk: whisperFollow.suggestsPushToTalk(w) && !call.talk.ptt,
+                            pushToTalk: { setMicrophone("ptt") }, notNow: { whisperFollow.notNow() },
+                            back: { Task { await setWhisper(false) } })
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             if typing {
                 TypeBar(send: say) { withAnimation(.snappy) { typing = false } }
@@ -837,6 +852,17 @@ struct CallView: View {
     private func disconnect(_ name: String) { Task { await act { try await call.api.disconnect(name) } } }
     private func setMode(_ mode: String) { Task { await act { try await call.api.mode(mode) } } }
     private func setPolish(_ on: Bool) async { await act { try await call.api.polish(on) } }
+
+    /// Whisper mode is the Mac's setting, shared with the page; the demo flips its own copy.
+    private func setWhisper(_ on: Bool) async {
+        if demo != nil {
+            let w = status?.whisper
+            status?.whisper = API.WhisperStatus(on: on, output_gain: on ? 0.5 : 1, max_words: on ? 20 : nil,
+                                                suggest_ptt: on && !call.talk.ptt, lock_note: on ? w?.lock_note : nil)
+            return
+        }
+        if !(await savePrefs(["whisper": on])) { problem = WhisperCopy.failed }
+    }
 
     private func say(_ text: String) async -> Bool {
         await act { try await call.api.say(text) }

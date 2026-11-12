@@ -5,6 +5,7 @@ struct ConversationView: View {
     let turns: [API.Turn]
     let polish: Bool
     let hearing: String
+    var large = false  // whisper mode: the words heard so far, big enough to check before they are acted on
     let edit: (API.Turn) -> Void
     @Namespace private var speech
 
@@ -31,7 +32,7 @@ struct ConversationView: View {
                         .transition(.opacity)
                 }
                 if !hearing.isEmpty {
-                    LiveBubble(text: hearing)
+                    LiveBubble(text: hearing, large: large)
                         .matchedGeometryEffect(id: "speech", in: speech)
                         .padding(.bottom, 14)
                         .transition(.opacity)
@@ -99,6 +100,7 @@ struct Bubble: View {
 /// What you are saying right now: the last bubble in the conversation, live, until the sentence is done.
 struct LiveBubble: View {
     let text: String
+    var large = false
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
@@ -107,7 +109,7 @@ struct LiveBubble: View {
                 Image(systemName: "waveform").font(.callout).foregroundStyle(Brand.orange)
                     .symbolEffect(.variableColor.iterative, options: .repeating)
                 Text(text)
-                    .font(.body.weight(.medium))
+                    .font(large ? .title2.weight(.semibold) : .body.weight(.medium))
                     .multilineTextAlignment(.trailing)
                     .contentTransition(.interpolate)
                     .animation(.easeOut(duration: 0.12), value: text)
