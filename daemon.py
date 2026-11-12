@@ -26,6 +26,7 @@ import aiohttp
 import alerts
 import artifacts
 import briefing
+import challenge
 import remote
 import harnesses
 from harnesses import FINISHED_MARK
@@ -536,6 +537,9 @@ class FeedInjector(FrameProcessor):
         return bool(self._held)
 
     async def inject(self, text: str, respond: bool) -> None:
+        if respond and state.challenge is not None and (FINISHED_MARK in text or text.startswith("[idle session]")):
+            state.monologue_held.append((text, respond))  # a session's report waits for the end of the challenge
+            return
         if respond and current_mode().holds_news:
             state.monologue_held.append((text, respond))  # news waits for the end of the mode (brainstorm, meeting)
             if state.meeting is not None:
@@ -637,6 +641,8 @@ def _brain_context() -> str:
         parts.append(f"Voice lock: {level} ({LOCK_HELP[level]}).")
     if playing := _briefing_context():
         parts.append(playing)
+    if state.challenge is not None:
+        parts.append(challenge.context_line(state.challenge))
     parts.append(_needs_now())
     return "\n".join(parts)
 
@@ -745,6 +751,8 @@ class BrainFront(FrameProcessor):
         ECHO.bot_said(text)
         _note_bot_speech(text, request_id)
         _remember("assistant", text + " ")
+        if request_id is None:
+            _challenge_spoke(text)
         await self.push_frame(TTSSpeakFrame(text))
 
     async def _filler(self) -> None:
@@ -930,6 +938,8 @@ class SonioxEars(FrameProcessor):
         wanted = meeting_intent(heard)
         if wanted and state.monologue is None:
             await _start_meeting_by_voice(heard, wanted)
+            return
+        if await _challenge_words(heard):
             return
         if state.monologue is not None:
             if not over_intent(heard):
@@ -1187,6 +1197,8 @@ class State:
     monologue: list[str] | None = None  # thinking out loud: what was said so far; None when not in one
     monologue_since: float = 0.0
     monologue_held: list[tuple[str, bool]] = field(default_factory=list)  # session news that waits for its end
+    challenge: object = None  # challenge.Challenge while the voice plays devil's advocate
+    last_challenge: object = None  # the one that just ended: its verdict and record, for the screen
     context: LLMContext | None = None  # the call's local copy of the voice model's context
     tokens: dict | None = None  # the model's last reported usage: prompt = the context it read that turn
     thread: tuple[str, float] | None = None  # (session id, when): the session the user last talked with
@@ -1784,6 +1796,7 @@ def _call_ended() -> None:
     """"The night" starts here; a briefing does not outlive its call."""
     BRIEFINGS.call_ended(time.time())
     state.briefing_play = None
+    _challenge_off_silently()  # the next call's brain starts without this one's history
 
 
 async def briefing_tool(params: FunctionCallParams):
@@ -1817,6 +1830,136 @@ async def post_channel(session: Session, path: str, body: dict) -> bool:
 async def deliver(session: Session, text: str) -> bool:
     """Through the session's harness: for Claude Code, its voice channel when it has one, else its inbox socket."""
     return await harnesses.get(session.harness).send(session, text)
+
+
+# ---------- devil's advocate (the rules: challenge.py) ----------
+
+def _challenge_refusal() -> str | None:
+    if state.conn is None:
+        return "No call is up."
+    if state.meeting is not None:
+        return "Not during a meeting: a challenge never talks into the room. Ask Pointe in participating mode instead."
+    if FRONT != "brain":
+        return "A challenge needs the brain front (CLAUDE_VOICE_FRONT=brain): only it can be kept from acting."
+    if state.challenge is not None:
+        return "A challenge is already on."
+    return None
+
+
+def _challenge_diffs(session: Session) -> list[tuple[str, str]]:
+    """Files the session edited, from the last sets put on screen, against the last commit (artifacts.render: no
+    `git diff`, masked). Up to three, newest first."""
+    out, seen = [], set()
+    for shown in reversed(SHOWS.sets):
+        if shown["session"] != session.name:
+            continue
+        for a in shown["artifacts"]:
+            if a["kind"] != "edit" or a["path"] in seen or len(out) >= 3:
+                continue
+            seen.add(a["path"])
+            view = artifacts.render(a, shown["cwd"])
+            if view.get("diff"):
+                out.append((view.get("name") or Path(a["path"]).name, view["diff"]))
+    return out
+
+
+async def _challenge_evidence(sessions: list[Session]) -> list[str]:
+    lines = []
+    for s in sessions:
+        history = await asyncio.to_thread(recent_history, s, 12, 4000)
+        diffs = await asyncio.to_thread(_challenge_diffs, s)
+        lines += challenge.evidence(s.name, _brief_of(s), history, diffs)
+    return lines
+
+
+async def start_challenge(words: str = "") -> str | None:
+    """None when it started, else why not. The plan is the brainstorm being held, else the user's last few turns; the
+    evidence is the active session's (and any session the plan names) notes, recent record and diffs."""
+    if refusal := _challenge_refusal():
+        return refusal
+    brainstorm = ""
+    if state.monologue is not None:
+        brainstorm, state.monologue = "\n".join(state.monologue), None
+        _chime(True)
+    now = time.time()
+    turns = [t for at, t in state.recent_said if now - at < challenge.PLAN_WINDOW_SECS and not challenge.start_intent(t)]
+    plan = challenge.plan_from(brainstorm, turns)
+    sessions = ([REGISTRY.active] if REGISTRY.active else []) + [
+        s for s in named_sessions(plan, list(REGISTRY.sessions.values())) if s is not REGISTRY.active]
+    sessions = sessions[:3]
+    _stop_briefing()
+    ch = challenge.Challenge(plan=plan, sessions=[s.name for s in sessions], evidence=await _challenge_evidence(sessions))
+    if refusal := _challenge_refusal():  # a meeting started or the call dropped while the record was read
+        return refusal
+    state.challenge, state.last_challenge = ch, None
+    if words:
+        _remember("user", words)
+        state.last_utterance = words  # its language; not fresh speech for a send
+    logger.info(f"challenge {ch.id} started: {len(plan)} chars of plan, {len(ch.evidence)} evidence lines")
+    await say(challenge.opening(ch))
+    active = REGISTRY.active
+    if brainstorm and active and active.permission_id:  # held while they thought out loud: put to them now
+        await _ask_permission(active)
+    return None
+
+
+async def end_challenge(words: str = "", verdict: bool = True) -> bool:
+    """False when none is on. The voice gives its verdict; the end words authorize no send (a send needs new words)."""
+    ch = state.challenge
+    if ch is None:
+        return False
+    state.challenge, state.last_challenge = None, ch
+    ch.ended_at, ch.verdict_pending = time.time(), verdict
+    state.last_delegation_at = time.time()  # "fine, do it" said during the challenge was refused, and stays spent
+    if words:
+        _remember("user", words)
+        state.last_utterance = words
+    logger.info(f"challenge {ch.id} ended after {ch.objections} objection(s)")
+    if verdict:
+        await say(challenge.verdict_prompt(ch))
+    if state.conn is not None and state.monologue is None and state.meeting is None:
+        await _after_monologue()  # the reports it held, then a pending approval
+    return True
+
+
+def _challenge_off_silently() -> None:
+    """A meeting started or the call ended: no verdict. Held reports wait for the meeting's end or the next call."""
+    if state.challenge is not None:
+        state.challenge.ended_at = time.time()
+        state.challenge, state.last_challenge = None, state.challenge
+
+
+async def _challenge_words(text: str) -> bool:
+    """"Challenge this" and "you've made your point", spoken or typed: caught in code, before the permission check, so
+    they never answer one. True when the words were taken."""
+    if state.meeting is not None:
+        return False
+    if state.challenge is None and challenge.start_intent(text):
+        if refusal := await start_challenge(text):
+            await say(f"[challenge refused] {refusal} Tell the user in one short sentence.")
+        return True
+    if state.challenge is not None and state.monologue is None and challenge.end_intent(text):
+        await end_challenge(text)
+        return True
+    return False
+
+
+def _challenge_note(kind: str, text: str) -> None:
+    ch = state.challenge if kind != "verdict" else state.last_challenge
+    if ch is not None and (item := ch.add(kind, text)) is not None:
+        NOTES.add(kind, item.text, meta={"challenge": ch.id}, dedup=False)
+
+
+def _challenge_spoke(text: str) -> None:
+    """What the voice says while it is on is an objection (or its concession); the first thing after the end, the
+    verdict. Never its read-out (a request id), the acknowledgment of a permission answer, or a failure line."""
+    if not text.strip() or text.startswith(challenge.SYSTEM_LINES) or state.utterance_spent:
+        return
+    if state.challenge is not None:
+        _challenge_note("objection", text)
+    elif state.last_challenge is not None and state.last_challenge.verdict_pending:
+        state.last_challenge.verdict_pending = False
+        _challenge_note("verdict", text)
 
 
 # ---------- user speech: the only source of consent and targeting ----------
@@ -1886,6 +2029,8 @@ def current_mode() -> modes.Mode:
         return modes.MEETING_PARTICIPATING if state.meeting.mode == "participating" else modes.MEETING_LISTENING
     if state.monologue is not None:
         return modes.BRAINSTORM
+    if state.challenge is not None:
+        return modes.CHALLENGE
     return modes.CONVERSATION
 
 
@@ -2068,6 +2213,7 @@ async def start_meeting(mode: str, brief: str = "", sessions: list | None = None
     NOTES.forget()  # a new meeting starts clean: the last one's record was replaced, so its notes go with it
     NOTES.meeting = m.id
     state.meeting, state.meeting_ears, state.last_meeting = m, ears, None
+    _challenge_off_silently()  # no verdict into the room
     held = getattr(state.conn.injector, "_held", None)
     if held:  # speech queued before the meeting would otherwise be released into the room
         state.monologue_held += [(text, True) for text in held]
@@ -2400,6 +2546,8 @@ async def on_user_utterance(text: str) -> None:
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
     await _answer_permission(text)
+    if state.challenge is not None and not state.utterance_spent:  # a yes or no to a permission is not a rebuttal
+        _challenge_note("rebuttal", text)
 
 
 async def _answer_permission(text: str, deny_only: bool = False) -> None:
@@ -2765,6 +2913,9 @@ async def send_to_claude_code(params: FunctionCallParams):
 
 
 async def _send(message: str) -> dict:
+    if state.challenge is not None:
+        _record(message, [], "blocked: a challenge is on")
+        return {"error": challenge.SEND_REFUSAL + " Say that to the user."}
     if not current_mode().sends:
         _record(message, [], "blocked: a meeting is on")
         return {"error": "Not sent: a meeting is on. End the meeting first; nothing goes to a session during one."}
@@ -3352,6 +3503,8 @@ def _traced(handler):
             return await reply(result, *args, **kwargs)
         params.result_callback = record
         mode = current_mode()
+        if not mode.allows_tool(handler.__name__) and mode is modes.CHALLENGE:
+            return await record({"error": challenge.TOOL_REFUSAL})
         if not mode.allows_tool(handler.__name__):  # a meeting is read-only: no sends, switches or renames
             return await record({"error": f"Not available during {mode.name}. Answer from what you know, or say it "
                                           f"has to wait until the meeting ends."})
@@ -3813,6 +3966,8 @@ async def _user_text(text: str) -> None:
     if state.meeting is not None:  # typed in a meeting: the owner's addressed words, never a send
         await _meeting_command(text, typed=True)
         return
+    if await _challenge_words(text):
+        return
     state.heard_own_words, state.last_speaker = True, None
     await on_user_utterance(text)
     state.heard_own_words = False
@@ -3937,6 +4092,7 @@ async def status(request: Request):
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},
             "attention": _attention(),
             "briefing": _briefing_status(),
+            "challenge": (state.challenge or state.last_challenge).status() if (state.challenge or state.last_challenge) else None,
             "voice_lock": VOICE.status(lock_level()),
             "jobs": JOBS.stats(),
             "showing": SHOWS.view(time.time(), ECHO.speaking) if show else None,
@@ -4071,6 +4227,21 @@ async def briefings_action(request: Request):
     elif not await briefing_control(action):
         raise HTTPException(status_code=409, detail="no briefing is playing")
     return {"briefing": _briefing_status()}
+
+
+@app.post("/voice/challenge")
+async def challenge_action(request: Request):
+    """{action: start | end}: the Challenge button, the same as saying "challenge this" or "you've made your point"."""
+    action = (await _body(request)).get("action")
+    if action not in ("start", "end"):
+        raise HTTPException(status_code=400, detail="action must be start or end")
+    if action == "start":
+        if refusal := await start_challenge():
+            raise HTTPException(status_code=409, detail=refusal)
+    elif not await end_challenge():
+        raise HTTPException(status_code=409, detail="no challenge is on")
+    ch = state.challenge or state.last_challenge
+    return {"challenge": ch.status() if ch else None}
 
 
 @app.post("/voice/briefings/schedule")

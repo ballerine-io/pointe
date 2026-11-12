@@ -36,7 +36,10 @@ MEETING_LISTENING = Mode("meeting-listening", approvals="tap", tools=READ_ONLY_T
                          reads_out=False, speech="never", sends=False)
 MEETING_PARTICIPATING = Mode("meeting-participating", approvals="tap", tools=READ_ONLY_TOOLS, holds_news=True,
                              nudges=False, reads_out=False, speech="on_request", sends=False)
-ALL = (CONVERSATION, BRAINSTORM, MEETING_LISTENING, MEETING_PARTICIPATING)
+# Devil's advocate (challenge.py): argues and looks things up, never acts. Permissions are read out and answered as in
+# conversation; session reports wait for its end (daemon.FeedInjector.inject), so holds_news stays off here.
+CHALLENGE = Mode("challenge", tools=READ_ONLY_TOOLS, nudges=False, sends=False)
+ALL = (CONVERSATION, BRAINSTORM, MEETING_LISTENING, MEETING_PARTICIPATING, CHALLENGE)
 
 
 def narrows(mode: Mode, base: Mode = CONVERSATION) -> bool:
