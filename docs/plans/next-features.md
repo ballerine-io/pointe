@@ -1824,11 +1824,6 @@ next call heard "Pellucine".
 
 Feature 3, on the daemon, the page and the app. `drive.py` holds the rules (the road allowlist, the phrases, the copy);
 `daemon.py` asks it at the read-out (`_read_out`), at a yes (`_answer_permission`) and in `current_mode()`.
-## Devil's advocate (as built, 2026-11-12)
-
-Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
-evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends and records it.
-
 ### Route and status
 
 | | |
@@ -1904,6 +1899,16 @@ silent (`Brain.terse`).
 - **The `"modes": {"drive": true}` flag** was not added: the mode only narrows and is off until asked for.
 - **Not built:** "use the iPhone mic" advice on poor HFP audio (needs a real car measurement first); a live e2e of the
   voiceprint rule (offline tests cover it); Hebrew wording of the brain's own short replies beyond the fixed lines.
+
+## Devil's advocate (as built, 2026-11-12)
+
+Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
+evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends and records it.
+
+### Route and status
+
+| | |
+|---|---|
 | `POST /voice/challenge` | `{action: start\|end}` → `{challenge}`. 400 on a bad action; 409 with the reason: no call, a meeting on, already on (start), none on (end), a non-brain front. Page cookie, bearer token, phone key |
 | status `challenge` | `null`, or `{id, on, since, ended_at, plan, sessions, objections, verdict, evidence, items: [{kind: objection\|rebuttal\|verdict, text, at}]}`. The last one stays (`on: false`) until a new one starts |
 | status `mode_state.mode` | `challenge` while on |
