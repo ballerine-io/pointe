@@ -15,6 +15,7 @@ SCHEMA: dict[str, tuple] = {
     "microphone": ("always", ("always", "ptt")),  # push to talk: audio is heard only while a press holds it open
     "conflicts.on": (True, bool),  # check two sessions' reports against each other
     "conflicts.spoken": (True, bool),  # say an alarm, or show it as a card only
+    "show.on_phone": (False, bool),  # show while it says on the phone: off until enabled (the page always shows it)
 }
 
 

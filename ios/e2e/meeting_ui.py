@@ -113,6 +113,25 @@ async def until(what, timeout: float, every: float = 1.0):
     return what()
 
 
+# Said only in the room: the test session's transcript shares "conversion rate" with it, and its text is logged
+# (opening context, notes) as it should be. "release note" also reaches the session once the owner sends the action
+# items, after the meeting, so only lines logged while a meeting is on count.
+ROOM_ONLY = ("Nobody here has that number", "release note", "payment tests", "invoices before Thursday")
+
+
+def meeting_lines() -> list[str]:
+    """The daemon log's lines from while a meeting was on (between "meeting started" and "meeting ended")."""
+    lines, on = [], False
+    for line in (LOG.read_text().splitlines() if LOG.exists() else []):
+        if "meeting started (" in line:
+            on = True
+        elif "meeting ended after" in line:
+            on = False
+        elif on:
+            lines.append(line)
+    return lines
+
+
 def cue(*names: str):
     """The first of these cues the UI test has written, or None."""
     return lambda: next((n for n in names if (SHOTS / f"cue-{n}").exists()), None)
@@ -324,8 +343,7 @@ async def real(link: str) -> None:
         check("Discard (confirmed): the meeting is forgotten on the Mac", call("/voice/status").get("meeting") is None)
         await until(cue("second-done"), 400)
         check("a second meeting gets its own end sheet, and is discarded", call("/voice/status").get("meeting") is None)
-        words = [line for line in LOG.read_text().splitlines()
-                 if any(w in line for w in ("conversion rate", "release note", "payment tests"))] if LOG.exists() else []
+        words = [line for line in meeting_lines() if any(w in line for w in ROOM_ONLY)]
         check("no room words in the daemon log", not words, leaked=[w[-100:] for w in words][:2])
         finish(xcode, "MeetingUITests.testMeetingEndToEnd passes")
     finally:

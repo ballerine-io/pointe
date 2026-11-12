@@ -295,6 +295,8 @@ class Brain:
                         said = trimmed if (trimmed or self._answered_user) else said
                     if said and self.translate and self.language_problem(said):  # it was told twice; the user must still follow
                         said = await self.translate(said)
+                        if generation != self._generation:  # the user moved on while it was translated
+                            said = ""
                     if said:  # empty: the right reply to "okay, thanks" can be silence
                         self._last_spoken = said
                         self._recent_spoken.append((time.time(), said))

@@ -23,7 +23,7 @@ PAIR_GAP_SECS = 30 * 60  # at most one alarm per pair in this long
 TAIL_CHARS = 3000  # of each final message, for the reader
 MAX_PAIRS = 3  # reader calls per new report
 EDIT_TOOLS = {"edit", "write", "multiedit", "notebookedit", "apply_patch", "patch", "str_replace_editor"}
-PATH_KEYS = ("file_path", "filePath", "notebook_path", "path", "file_paths", "paths")
+PATH_KEYS = ("file_path", "filePath", "notebook_path", "path", "files", "paths")
 # File names too common to say two sessions touch the same thing.
 GENERIC_STEMS = {"index", "main", "__init__", "readme", "test", "tests", "utils", "util", "app", "config", "setup",
                  "package", "package-lock", "pnpm-lock", "uv", "pyproject", "changelog", "makefile", "dockerfile"}

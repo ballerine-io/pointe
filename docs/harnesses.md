@@ -90,7 +90,10 @@ client in Codex's own records (its `source` and `originator`). Each Codex turn c
    OpenCode does through its mirror), or call `feed(session, text, respond)` with the same bracketed lines, ending a
    turn with `finished_tag(label)`. The follower reads: `type` user/assistant, `message.content` (text or blocks with
    `tool_use`), `stop_reason == "end_turn"` for a final message, and skips `isSidechain`, `isMeta`. Override `noise`
-   if the harness injects text into user turns.
+   if the harness injects text into user turns. For Show while it says, give each `tool_use` an `id` and write its
+   outcome as a `tool_result` block (`tool_use_id`, `content`, `is_error`) in a `user` entry, only once the tool ran:
+   a shell command as `Bash` with `command` (test runs show their output), a file change as `Edit` with `file_path`
+   (or `files: [...]`), a read as `Read`. A tool with no result is never shown.
 4. `send`, `alive` (never blocking), and `probe` if liveness needs a network check.
 5. Approvals: call `HOST.hold_permission(session, tool_name, tool_input, gone, deadline)` and send its answer back. If
    the harness has no approvals, leave `approvals = False`: do not make Pointe its permission policy.

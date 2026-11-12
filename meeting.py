@@ -64,6 +64,7 @@ class Turn:
     starts: list = field(default_factory=lambda: [0])  # where each resumed fragment begins in `text`: a wake word may open one
     handled: int = 0  # addressed sentences already acted on: a late burst ("?") re-closes the turn, it must not re-ask
     audio_ms: tuple | None = None  # (start, end) of the newest fragment in the stream's audio clock, when Soniox gave times
+    span_ms: tuple | None = None  # (start, end) of the whole turn, fragments merged; None for a turn of one fragment
 
     @property
     def new_text(self) -> str:
@@ -158,10 +159,17 @@ class Turns:
             same.text += glue + turn.text
             same.open_end, same.t1 = turn.open_end, turn.t1
             same.fragment, same.fragment_secs, same.merged = fragment, turn.fragment_secs, True
+            first = same.span_ms or same.audio_ms
+            same.span_ms = (first[0], turn.audio_ms[1]) if first and turn.audio_ms else None
             same.audio_ms = turn.audio_ms
             return [same]
         self.closed.append(turn)
         return [turn]
+
+
+def _bindable(label: str) -> bool:
+    """"?" is every turn Soniox could not label, not one person: as the owner, anyone unlabelled would be "You"."""
+    return bool(label) and label != "?"
 
 
 def _join(before: Turn, after: Turn) -> str:
@@ -170,7 +178,8 @@ def _join(before: Turn, after: Turn) -> str:
 
 # ---------- addressed commands ----------
 
-_THINK = re.compile(r"\b(what do you think|your (?:thoughts|take|view)|jump in|chime in|any thoughts|what would you say)\b|"
+_THINK = re.compile(r"\b(what do you think|tell us what you think|your (?:thoughts|take|view)|jump in|chime in|any thoughts|"
+                    r"what would you say)\b|"
                     r"מה אתה חושב|תגיד מה דעתך|מה דעתך|תצטרף", re.I)
 _GO_AHEAD = re.compile(r"^\W*(go ahead|say it|tell us|you can speak|speak up|go on)\b|^\W*(תגיד|קדימה|דבר)\b", re.I)
 _LOOKUP = re.compile(r"\b(look (?:that|it) up|find (?:that|it) out|check that|can you find out)\b|תבדוק|תמצא", re.I)
@@ -222,8 +231,6 @@ def command(text: str) -> tuple[str, dict]:
     m = _AGENDA.match(text)
     if m:
         return "agenda", {"text": (m.group(1) or m.group(2)).strip()}
-    if _GO_AHEAD.search(text):
-        return "go_ahead", {}
     if _FINISH.search(text):
         return "finish", {}
     if _LOOKUP.search(text):
@@ -232,6 +239,8 @@ def command(text: str) -> tuple[str, dict]:
         return "waiting", {}
     if _THINK.search(text):
         return "think", {}
+    if _GO_AHEAD.search(text):  # last: "tell us" / "תגיד" also open "tell us what you think", "תגיד מה מחכה"
+        return "go_ahead", {}
     return "ask", {"text": text}
 
 
@@ -267,6 +276,7 @@ class Meeting:
     speech_since_secretary: float = 0.0
     last_speech_at: float = field(default_factory=time.time)
     entry_words: str = ""  # the spoken entry command: its speaker is the owner
+    entry_bound: bool = False  # the owner's label came from the entry command alone; a voiceprint can still overrule it
     speaking: bool = False  # the bot is talking to the room right now
     ending: bool = False  # the end-of-meeting pass is running
     ended: bool = False
@@ -302,8 +312,8 @@ class Meeting:
         return bool(self.entry_words) and turn.t0 - self.since <= ENTRY_BIND_SECS and _overlap(turn.new_text, self.entry_words)
 
     def add_turn(self, turn: Turn) -> None:
-        if not self.owner and self.is_entry(turn):
-            self.owner = turn.speaker  # the one who said "meeting mode" is the owner
+        if not self.owner and _bindable(turn.speaker) and self.is_entry(turn):
+            self.owner, self.entry_bound = turn.speaker, True  # the one who said "meeting mode" is the owner
             logger.info("meeting: owner bound from the entry command")
         turn.who = self.who(turn.speaker)
         self.turns_since_secretary += 1  # each close is an utterance; only its own seconds count below
@@ -320,13 +330,21 @@ class Meeting:
         for turn in closed:
             self.add_turn(turn)
         self.owner = self.bot = None
+        self.entry_bound = False
         return closed
 
     def bind_owner(self, label: str) -> None:
-        if label and label != self.bot:
-            self.owner = label
-            for t in self.turns:
-                t.who = self.who(t.speaker)
+        if _bindable(label) and label != self.bot:
+            self.owner, self.entry_bound = label, False
+            self._relabel()
+
+    def unbind_owner(self) -> None:
+        self.owner, self.entry_bound = None, False
+        self._relabel()
+
+    def _relabel(self) -> None:
+        for t in self.turns:
+            t.who = self.who(t.speaker)
 
     def name_speaker(self, label: str, name: str) -> None:
         self.names[label] = name[:40]
