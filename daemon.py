@@ -64,7 +64,7 @@ from brief import (
     report_prompt,
 )
 from brief import parse as parse_reply
-from echo import AudioClock, EchoGuard, LevelGate, words as echo_words
+from echo import AudioClock, EchoGuard, LevelGate, lone_stop, words as echo_words
 import phone
 from readout import mask
 from guards import (relays_approval, 
@@ -900,8 +900,14 @@ class SonioxEars(FrameProcessor):
                               and (switch_intent(text) or back_intent(text)))
             heard = text if own else ECHO.user_part(text, spoken)
             if heard and ECHO.live and not own:  # the mirror may not have transcribed this stretch of the bot yet
+                said_over = ECHO.speaking
+                if said_over and lone_stop(heard):
+                    # Silencing the bot cannot wait for the mirror. Whether the word is the user's, and so whether it
+                    # answers anything, still waits: judged as said over the bot, though the cut has stopped it.
+                    logger.info(f"barge-in: {heard!r}")
+                    await self.broadcast_interruption()
                 await asyncio.sleep(ECHO_SETTLE_SECS)
-                heard = ECHO.user_part(text, spoken)
+                heard = ECHO.user_part(text, spoken, while_talking=said_over)
             if text and not heard:
                 logger.info(f"echo dropped: {text!r}")
                 VOICE.collector.take()  # the bot's voice through the speakers is nobody's voiceprint
