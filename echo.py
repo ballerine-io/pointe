@@ -50,6 +50,28 @@ def words(text: str) -> list[str]:
     return out
 
 
+_SAID_AS = [  # how the voice reads written text: "README.md" is "readme dot md"
+    (re.compile(r"(?<=\d)\.(?=\d)"), " point "),
+    (re.compile(r"(?<=\w)\.(?=\w)"), " dot "),
+    (re.compile(r"_"), " underscore "),
+    (re.compile(r"/"), " slash "),
+    (re.compile(r"(?<![\w-])(--?)(?=\w)"), lambda m: " dash " * len(m[1])),  # a flag; "cv-repo" is read with a pause
+    (re.compile(r"(?<=[^\W\d])(?=\d)|(?<=\d)(?=[^\W\d])"), " "),  # "python3" is "python three"
+    (re.compile(r"%"), " percent "),
+    (re.compile(r"\+"), " plus "),
+    (re.compile(r"&&?"), " and "),
+    (re.compile(r"@"), " at "),
+    (re.compile(r"="), " equals "),
+]
+
+
+def spoken_form(text: str) -> str:
+    """The bot's written text as its voice reads it, so its echo matches however the ears spell it."""
+    for pattern, said in _SAID_AS:
+        text = pattern.sub(said, text)
+    return text
+
+
 def lone_stop(text: str) -> bool:
     """Only a stop word: "Stop.", "Wait", "רגע"."""
     heard = words(text)
@@ -113,8 +135,10 @@ class _Source:
         while self.chunks and now - self.chunks[0][0] > BOT_MEMORY_SECS:
             self.chunks.popleft()
 
-    def words(self, since: float = 0.0) -> list[str]:
-        return words("".join(t for at, t in self.chunks if at >= since) + self.provisional)
+    def words(self, since: float = 0.0, said: bool = False) -> list[str]:
+        """Its words since then; `said`: as the voice reads them (spoken_form)."""
+        text = "".join(t for at, t in self.chunks if at >= since) + self.provisional
+        return words(spoken_form(text) if said else text)
 
 
 class EchoGuard:
@@ -171,21 +195,21 @@ class EchoGuard:
         """The speakers may still be playing the bot into the mic."""
         return self.speaking or time.time() - self.stopped_at < ECHO_TAIL_SECS
 
-    def _sources(self, since: float | None = None) -> tuple[list[str], list[str]]:
+    def _sources(self, since: float | None = None) -> tuple[list[str], list[str], list[str]]:
         """What can still be coming back through the speakers: the text of this turn and the one before (it is written
         before it plays), and the mirror's last few seconds. Not every word of the last half minute: against several long
         answers, near-spellings match almost anything the user says. The text counts from the end of the turn before
         those two: a reply can wait seconds behind another before it plays, and the voice can stop and start inside one.
-        `since`: when a transcript's words began. Both accounts then reach back to it, however long it is."""
+        `since`: when a transcript's words began. Both accounts then reach back to it, however long it is. The text counts
+        twice: as written ("README.md", how the ears may format it) and as the voice reads it ("readme dot md")."""
         model = min(self._turns[0] - 1.0, self._played[-3][1] if len(self._played) >= 3 else 0.0)
         mirror = time.time() - MIRROR_RECENT_SECS
         if since is not None:
             model, mirror = min(model, since - 1.0), min(mirror, since - 1.0)
-        return self._model.words(model), self._mirror.words(mirror)
+        return self._model.words(model), self._model.words(model, said=True), self._mirror.words(mirror)
 
     def _bot_words(self) -> set[str]:
-        model, mirror = self._sources()
-        return set(model) | set(mirror)
+        return set().union(*self._sources())
 
     def _echo_mask(self, heard: list[str], fuzzy: bool = True, speaking: bool | None = None,
                    sources: tuple[list[str], ...] | None = None) -> list[bool]:
@@ -253,11 +277,13 @@ class EchoGuard:
         before = self._played[-2][1] if len(self._played) > 1 else 0.0  # its text is written before it plays
         text = "".join(t for at, t in self._model.chunks if at > before)
         placed = []
-        for m in re.finditer(r"[\w']+", text.lower()):
-            at = began + m.start() / CHARS_PER_SEC
-            slack = 1.5 + 0.15 * (at - began)  # the pace drifts over a long turn
-            if spoken[0] - slack <= at <= spoken[1] + slack:
-                placed.extend(words(m.group()))
+        for version in (text, spoken_form(text)):
+            scale = len(text) / max(len(version), 1)  # the pace is measured on the written text
+            for m in re.finditer(r"[\w']+", version.lower()):
+                at = began + m.start() * scale / CHARS_PER_SEC
+                slack = 1.5 + 0.15 * (at - began)  # the pace drifts over a long turn
+                if spoken[0] - slack <= at <= spoken[1] + slack:
+                    placed.extend(words(m.group()))
         said = self._bot_words()
         answers = [w for w in heard if w in ANSWER_WORDS and any(_like(w, b) for b in said)]
         return self._mirror.words(spoken[0] - 1.0), placed, answers
@@ -271,7 +297,7 @@ class EchoGuard:
         if len(heard) < 3:
             return False
         pairs = set()
-        for said in (self._model.words(), self._mirror.words()):
+        for said in (self._model.words(), self._model.words(said=True), self._mirror.words()):
             pairs.update(zip(said, said[1:]))
         mask = [False] * len(heard)
         for i, pair in enumerate(zip(heard, heard[1:])):
