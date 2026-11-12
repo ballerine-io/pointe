@@ -489,3 +489,31 @@ _QUOTE = re.compile(r"\b(?:exactly|word for word|verbatim|quote|read (?:me|it|ou
 def quote_intent(text: str) -> bool:
     """"What exactly did it say": answered from the record, word for word. Anything else is a question for the session."""
     return bool(_QUOTE.search(_lower(text)))
+
+
+_APPROVAL = re.compile(r"\b(?:approv(?:e|es|ed|al)|authori[sz](?:e|es|ed|ation)|signed off|sign-off|green ?light)\b"
+                       r"|(?<!\w)(?:מאשרת?|אישרה?|אושר|אישור|מאושר)(?!\w)")
+_PERMIT = r"(?:go ahead|please|you (?:can|may)|ok(?:ay)?|now|קדימה|יאללה|סבבה)"
+# Hebrew forms of the actions brief.typed_approval_needed names: imperative, future-as-imperative, infinitive.
+_HE_VERBS = {"merge": "מזג|תמזג|תמזגי|למזג", "delete": "מחק|תמחק|תמחקי|למחוק", "post": "פרסם|תפרסם|תפרסמי|לפרסם",
+             "remove": "מחק|תמחק|תמחקי|למחוק", "publish": "פרסם|תפרסם|תפרסמי|לפרסם", "send": "שלח|תשלח|תשלחי|לשלוח"}
+
+
+def relays_approval(message: str, pending: str) -> bool:
+    """Does this message pass on, or claim, the owner's approval for the action that waits on an approval typed in the
+    session's terminal? Only the owner typing it counts, so the daemon refuses such a send. A question or unrelated news
+    is not one."""
+    text = _lower(message)
+    if _APPROVAL.search(text):
+        return True
+    verbs = [v for v in re.findall(r"[a-z]+", _lower(pending))[:1]]
+    for verb in verbs:
+        stem = re.escape(verb[:-1] if verb.endswith("e") else verb)
+        if re.match(rf"\s*(?:{_PERMIT}\W+(?:and\s+)?)*{stem}\w*\b", text):
+            return True
+        if re.search(rf"\b{_PERMIT}\W+(?:and\s+)?(?:\w+\s+){{0,2}}{stem}\w*\b", text):
+            return True
+        if he := _HE_VERBS.get(verb):
+            if re.search(rf"(?<!\w)(?:{he})(?!\w)", text):
+                return True
+    return False
