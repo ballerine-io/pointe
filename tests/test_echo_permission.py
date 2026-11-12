@@ -193,3 +193,55 @@ def test_a_read_out_that_sounds_like_a_switch_is_still_echo(d, e, monkeypatch):
     assert taken == []
     timed_final(d, ears, "Switch to billing.", (now - 1.5, now - 0.6))  # the user's own, said after it stopped
     assert taken == ["Switch to billing."]
+
+
+def _cuts(guard, ears, monkeypatch, d, settle=0.3):
+    """Interruptions with their times. A cut stops the bot, as the real one does a beat later."""
+    cuts = []
+
+    async def cut():
+        cuts.append(time.time())
+        guard.bot_stopped()
+
+    monkeypatch.setattr(ears, "broadcast_interruption", cut)
+    monkeypatch.setattr(d, "ECHO_SETTLE_SECS", settle)
+    return cuts
+
+
+def final_while(d, ears, text: str, during=None) -> float:
+    """A final transcript; `during` runs while the daemon waits for the mirror. Returns when it started."""
+    async def run():
+        if during:
+            asyncio.get_running_loop().call_later(0.1, during)
+        await ears.process_frame(TranscriptionFrame(text=text, user_id="u", timestamp="t"), FrameDirection.DOWNSTREAM)
+    started = time.time()
+    asyncio.run(run())
+    return started
+
+
+def test_a_lone_stop_word_cuts_the_bot_in_without_waiting_for_the_mirror(d, e, monkeypatch):
+    guard, active, posts, ears = e
+    cuts = _cuts(guard, ears, monkeypatch, d)
+    speak(guard, "Tel Aviv is in Israel Standard Time, two hours ahead of UTC, and moves an hour in summer.",
+          mirror=[" Tel Aviv is in Israel Standard Time,"])
+    started = final_while(d, ears, "Stop—")
+    assert len(cuts) == 1 and cuts[0] - started < 0.1  # not after the 0.3 s wait
+
+
+def test_a_lone_no_that_cut_the_bot_never_denies_once_it_proves_to_be_echo(d, e, monkeypatch):
+    guard, active, posts, ears = e
+    cuts = _cuts(guard, ears, monkeypatch, d)
+    speak(guard, "billing wants to run the tests. Approve it on your screen.",  # its text lacks the end it spoke
+          mirror=[" Billing wants to run the tests.", " Approve it on your screen."])
+    final_while(d, ears, "No.", during=lambda: guard.mirror_heard(" Or say no.", ""))  # the mirror catches up
+    assert len(cuts) == 1  # a false stop may silence the bot
+    assert verdicts(posts) == [] and active.permission_id == "p1"  # but never denies
+
+
+def test_a_lone_no_the_user_said_over_the_read_out_still_denies(d, e, monkeypatch):
+    guard, active, posts, ears = e
+    cuts = _cuts(guard, ears, monkeypatch, d)
+    speak(guard, "billing wants to run the tests. Approve it on your screen.",
+          mirror=[" Billing wants to run the tests.", " Approve it on your screen."])
+    final_while(d, ears, "No.")
+    assert len(cuts) == 1 and [v["behavior"] for v in verdicts(posts)] == ["deny"]

@@ -50,6 +50,12 @@ def words(text: str) -> list[str]:
     return out
 
 
+def lone_stop(text: str) -> bool:
+    """Only a stop word: "Stop.", "Wait", "רגע"."""
+    heard = words(text)
+    return len(heard) == 1 and heard[0] in INTERRUPT_WORDS
+
+
 def _like(heard: str, said: str) -> bool:
     """The STT misheard or has not finished the bot's word: "crew" for "cruel", "o" for "ocean"."""
     if heard == said:
@@ -208,12 +214,13 @@ class EchoGuard:
                 mask[i] = True
         return mask
 
-    def user_part(self, text: str, spoken: tuple[float, float] | None = None) -> str:
+    def user_part(self, text: str, spoken: tuple[float, float] | None = None, while_talking: bool = False) -> str:
         """The transcript minus what the bot just said; '' when nothing of the user's is left. `spoken`: when its words
         were said (AudioClock.span). Words said while the bot's voice was in the air are judged as if they had just come,
-        however late the transcript; one or two of them only against what the bot was saying then (_said_then)."""
+        however late the transcript; one or two of them only against what the bot was saying then (_said_then).
+        `while_talking`: they arrived while it talked; judged so even after a barge-in has stopped it."""
         heard = words(text)
-        over = self.said_over_bot(spoken)
+        over = self.said_over_bot(spoken) or while_talking
         late = not over and time.time() - self.stopped_at > LATE_ECHO_SECS
         if not late and self._model.chunks and heard == words(self._model.chunks[-1][1]):
             return ""  # all of its last reply, and nothing else: "Four." coming back off the speakers
@@ -221,8 +228,8 @@ class EchoGuard:
         if not was_live and (len(heard) < 3 or late):
             return text
         # one or two words said over its voice: its words count one by one, as while it talks
-        over_words = self.speaking or self._over_bot(spoken, PLAYBACK_LAG_SECS)
-        sources = self._said_then(heard, spoken, over_words) or (self._sources(spoken[0]) if over else None)
+        over_words = self.speaking or self._over_bot(spoken, PLAYBACK_LAG_SECS) or while_talking
+        sources = self._said_then(heard, spoken, over_words) or (self._sources(spoken[0]) if over and spoken else None)
         mask = self._echo_mask(heard, fuzzy=was_live, speaking=over_words, sources=sources)
         rest = [w for w, m in zip(heard, mask) if not m]
         if not any(mask):
