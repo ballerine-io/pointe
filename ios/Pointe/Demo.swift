@@ -5,7 +5,7 @@ import Foundation
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
-                       showing, showingOff, conflict, conflictMeeting }
+                       showing, showingOff, conflict, conflictMeeting, drive }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -17,6 +17,7 @@ struct Demo {
         let screen = args.indices.contains(i + 1) ? Screen(rawValue: args[i + 1]) ?? .call : .call
         let json = switch screen {
         case .request: requestJSON
+        case .drive: driveJSON
         case .brainstorm: brainstormJSON
         case .meeting: meetingJSON(hand: false)
         case .meetingHand: meetingJSON(hand: true)
@@ -215,6 +216,17 @@ struct Demo {
                    "request": "git push --force-with-lease origin retry-fix", "request_id": "ab12cd34", "voice_can_approve": true},
                   {"name": "docs", "working": false, "waiting": false, "needs": null}],
      "talk": \(talk)}
+    """
+
+    /// Drive mode on, with a request a spoken yes may not answer from the road: no buttons, "I've stopped" instead.
+    private static let driveJSON = """
+    {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
+     "sessions": [{"name": "billing/main", "working": true, "waiting": true, "needs": null,
+                   "request": "Bash: Clean the build\\n{\\"command\\": \\"rm -rf build\\"}", "request_id": "ab12cd34", "voice_can_approve": true},
+                  {"name": "docs", "working": false, "waiting": false, "needs": null}],
+     "talk": \(talk),
+     "drive": {"on": true, "since": 1794400000, "how": "voice",
+               "pending": [{"session": "billing/main", "request_id": "ab12cd34", "voice": false}]}}
     """
 
     private static let speakers = """

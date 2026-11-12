@@ -12,6 +12,8 @@ struct BottomBar: View {
     let sessions: () -> Void
     let hangUp: () -> Void
     var talk: RingTalk? = nil  // push to talk: hold the ring
+    var driving = false        // drive mode: typing folds away
+    var drive: (() -> Void)? = nil  // nil from a Mac without drive mode
 
     private var live: Bool { phase == .live || phase == .reconnecting }
 
@@ -21,8 +23,17 @@ struct BottomBar: View {
                  on: monologue, action: listen)
                 .disabled(!live)
             Spacer()
-            side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
-            Spacer()
+            if let drive {
+                side(DriveCopy.button, driving ? "car.fill" : "car", on: driving, action: drive)
+                    .disabled(!live && !driving)
+                    .accessibilityIdentifier("driveButton")
+                    .accessibilityValue(driving ? "On" : "Off")
+                Spacer()
+            }
+            if !driving {
+                side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
+                Spacer()
+            }
             micButton
             Spacer()
             side("Sessions", "rectangle.stack", action: sessions)
