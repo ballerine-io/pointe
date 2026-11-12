@@ -704,3 +704,17 @@ def test_the_secretarys_hand_decision_is_logged_without_its_words(mode, hand, ou
     finally:
         logger.remove(sink)
     assert f"meeting: secretary pass, hand {outcome}" in lines and not any("Refunds" in x for x in lines), lines
+
+
+def test_a_one_word_echo_cut_off_by_a_talk_over_on_a_new_label_is_the_bot(d, monkeypatch):
+    """Seen in the meeting e2e: the bot began "Dana, ..." and was cut off; "Dana." closed as a new speaker, just after
+    the bot stopped (inside the echo tail, where a lone word stays the user's on a call)."""
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Dana, the refunds were never tested.", "Dana.", "4",
+                                        secs_after_stop=0.5)
+    assert turns[0].who == "Pointe" and "4" not in [s["label"] for s in m.speakers()], m.speakers()
+
+
+def test_a_one_word_reply_from_someone_already_speaking_stays_theirs(d, monkeypatch):
+    m, turns = _bot_said_then_room_turn(d, monkeypatch, "Should we ship Thursday, yes or no?", "Yes.", "2",
+                                        secs_after_stop=0.5)
+    assert turns[0].who != "Pointe"

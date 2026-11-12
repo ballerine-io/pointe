@@ -1800,17 +1800,20 @@ MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing
 MEETING_ECHO_SHARE = 0.7  # this share of a late turn's words, in pairs the bot said, makes it the bot's
 
 
-def _meeting_echo(said: str) -> bool:
+def _meeting_echo(said: str, new_label: bool) -> bool:
     """Its own voice through the laptop speakers. A meeting turn closes seconds after the words (Soniox finalises late, a
-    turn closes on 1.2 s of quiet, the loop ticks every 2 s; 8-11 s measured), past the call's echo tail: a late turn is
-    the bot's when most of its words are pairs the bot just said into the meeting. Never a turn addressed to Pointe."""
-    if ECHO.live:
-        return not ECHO.user_part(said)
+    turn closes on 1.2 s of quiet, the loop ticks every 2 s; 8-11 s measured), past the call's echo tail: a turn is also
+    the bot's when most of its words are pairs the bot just said into the meeting, or, on a label nobody has used yet, it
+    is one word the bot just said (its reply cut off by a talk-over). Never a turn addressed to Pointe."""
+    if ECHO.live and not ECHO.user_part(said):
+        return True
     heard = echo_words(said)
-    if len(heard) < 2 or meetings.addressed(said) is not None:
+    if not heard or meetings.addressed(said) is not None:
         return False
-    pairs = {p for at, text in state.meeting_said if time.time() - at < MEETING_ECHO_SECS
-             for p in zip(echo_words(text), echo_words(text)[1:])}
+    recent = [echo_words(text) for at, text in state.meeting_said if time.time() - at < MEETING_ECHO_SECS]
+    if len(heard) == 1:
+        return new_label and any(heard[0] in said_words for said_words in recent)
+    pairs = {p for said_words in recent for p in zip(said_words, said_words[1:])}
     covered = [False] * len(heard)
     for i, pair in enumerate(zip(heard, heard[1:])):
         if pair in pairs:
@@ -1831,10 +1834,10 @@ async def _release_addressed(m, turn, text: str) -> None:
 
 async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
     said = turn.new_text  # a speaker resuming: only the resumed words can be a command
-    if _meeting_echo(said):
+    new_label = all(t.who == "Pointe" for t in m.turns if t.speaker == turn.speaker and t is not turn)
+    if _meeting_echo(said, new_label):
         # The label is the bot's only if nobody spoke under it: diarisation can file the echo under a participant's.
-        if m.bot is None and turn.speaker != m.owner and all(t.who == "Pointe" for t in m.turns
-                                                              if t.speaker == turn.speaker and t is not turn):
+        if m.bot is None and turn.speaker != m.owner and new_label:
             m.bot = turn.speaker
         turn.who = "Pointe"
         return
