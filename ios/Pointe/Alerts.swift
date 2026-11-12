@@ -55,6 +55,7 @@ enum AlertPlan {
     static func note(_ a: API.Attention, watchApprove: Bool) -> AlertNote? {
         guard let title = a.title, !title.isEmpty, let body = a.body, !body.isEmpty else { return nil }
         let kind = a.kind ?? ""
+        if kind == "briefing" { return nil }  // the phone schedules its own "Your briefing is ready" (BriefingReminder)
         guard kind == "permission" else {
             return AlertNote(id: a.id, title: title, body: body, category: openCategory, kind: kind, session: a.session, requestId: nil)
         }

@@ -5,7 +5,9 @@ import json
 import os
 from pathlib import Path
 
-# key -> (default, allowed values or a type)
+from briefing import valid_days, valid_time
+
+# key -> (default, allowed values, a type, or a check)
 SCHEMA: dict[str, tuple] = {
     "meeting.default_mode": ("listening", ("listening", "participating")),
     "meeting.auto_lookups": (False, bool),
@@ -13,6 +15,11 @@ SCHEMA: dict[str, tuple] = {
     "meeting.consented": (False, bool),  # the consent step was shown and accepted once on this Mac
     "voice_lock": ("off", ("off", "approvals", "commands", "everything")),  # set only through /voice/voiceprint
     "microphone": ("always", ("always", "ptt")),  # push to talk: audio is heard only while a press holds it open
+    "briefings.time": ("", valid_time),  # "HH:MM" local, or "" for no scheduled briefing
+    "briefings.days": ([0, 1, 2, 3, 4, 5, 6], valid_days),  # Monday is 0
+    "briefings.length": ("normal", ("short", "normal", "full")),
+    "briefings.speak_on_connect": (True, bool),  # a scheduled briefing not heard yet is offered when a call starts
+    "briefings.skip_empty": (False, bool),  # a quiet night raises no alert
     "alerts.watch_approve": (False, bool),  # Approve on a notification (iPhone, mirrored to the watch): no Face ID
     "show.on_phone": (False, bool),  # show while it says on the phone: off until enabled (the page always shows it)
 }
@@ -29,7 +36,8 @@ class Prefs:
             pass
 
     def get(self, key: str):
-        return self.values.get(key, SCHEMA[key][0])
+        value = self.values.get(key, SCHEMA[key][0])
+        return list(value) if isinstance(value, list) else value  # never the schema's own default list
 
     def all(self) -> dict:
         return {k: self.get(k) for k in SCHEMA}
@@ -49,4 +57,6 @@ class Prefs:
 
 def _ok(key: str, value) -> bool:
     allowed = SCHEMA[key][1]
-    return isinstance(value, allowed) if isinstance(allowed, type) else value in allowed
+    if isinstance(allowed, type):
+        return isinstance(value, allowed)
+    return allowed(value) if callable(allowed) else value in allowed

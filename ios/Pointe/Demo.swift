@@ -4,7 +4,8 @@ import Foundation
 /// Debug builds only. Every name and word here is made up.
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
-                       voiceLock, voiceLockEnrolling, voiceLockEnrolled, showing, showingOff }
+                       voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
+                       showing, showingOff }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -24,6 +25,8 @@ struct Demo {
         case .voiceLock: voiceLockJSON(lockNew)
         case .voiceLockEnrolling: voiceLockJSON(lockEnrolling)
         case .voiceLockEnrolled: voiceLockJSON(lockEnrolled, request: true)
+        case .briefing: briefingJSON(paused: false)
+        case .briefingPaused: briefingJSON(paused: true)
         case .showing: showingJSON(on: true)
         case .showingOff: showingJSON(on: false)
         default: callJSON
@@ -68,6 +71,36 @@ struct Demo {
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
      "hearing": "ask docs whether the changelog", "sessions": \(sessions), "talk": \(talk),
      "ptt": {"mode": "ptt", "open": true, "closed_why": ""}}
+    """
+
+    // MARK: audio briefings
+
+    /// A scheduled briefing waits (the banner), or one is paused after its first part.
+    private static func briefingJSON(paused: Bool) -> String {
+        let briefing = paused
+            ? #"{"playing": false, "paused": "question", "part": 1, "parts": 3, "id": "b7c1", "building": false, "latest_id": "b7c1", "ready": null}"#
+            : #"{"playing": false, "paused": "", "part": 0, "parts": 0, "id": null, "building": false, "latest_id": "b7c1", "ready": {"id": "b7c1", "at": 1700000000, "slot": "2026-11-12 08:30", "empty": false}}"#
+        let attention = paused ? "[]" : #"[{"id": "briefing:b7c1", "kind": "briefing", "text": "Your 08:30 briefing is ready."}]"#
+        return """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
+         "sessions": \(sessions), "talk": \(talk), "attention": \(attention), "briefing": \(briefing)}
+        """
+    }
+
+    static let briefingsPage = try? JSONDecoder().decode(API.BriefingsPage.self, from: Data(briefingsJSON.utf8))
+
+    private static let briefingsJSON = """
+    {"briefings": [
+      {"id": "b7c1", "at": 1700000000, "since": 1699970000, "since_label": "overnight", "length": "normal", "scheduled": true,
+       "slot": "2026-11-12 08:30", "heard": false, "empty": false,
+       "opener": "Three sessions overnight. river-lantern needs you; billing/main failed; docs is done.",
+       "sections": [{"session": "river-lantern", "status": "waiting", "text": "river-lantern waits for your answer on the retry budget."},
+                    {"session": "billing/main", "status": "failed", "text": "billing/main: 2 of 40 checkout tests failed after the retry change."},
+                    {"session": "docs", "status": "done", "text": "docs updated the changelog and opened a PR."}]},
+      {"id": "a1f0", "at": 1699900000, "since": 1699880000, "since_label": "today", "length": "short", "scheduled": false,
+       "slot": "", "heard": true, "empty": true, "opener": "Quiet today. Nothing waits on you.", "sections": []}],
+     "schedule": {"time": "08:30", "days": [0, 1, 2, 3, 4], "length": "normal", "speak_on_connect": true, "skip_empty": false},
+     "status": null}
     """
 
     // MARK: owner-voice lock
