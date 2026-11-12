@@ -3,10 +3,12 @@
 The default models come from these runs. Scripts and reports are in `bench/`; re-run them with your own keys. All data
 is synthetic.
 
-- **Brain and reader:** `bench/brain_bench.py`, report in `bench/results/brain.md`. Real tool and speech path; 66 brain
-  cases and 17 reader cases. Ranked by substance on the current prompts, in `bench/results/brain_substance.md`: as a brain,
-  `claude-sonnet-5-5` passes 95.5% ignoring length, median reply 2.3 s; nothing tested beat it measurably, including Opus,
-  Fable, high effort and 11 OpenAI models. Those prompts were tuned on Sonnet, which favours it. `gemini-3.8-flash` passes 90.9%, 2.7 s. `gemini-4-argon` passes 93.5% but takes 17 s.
+- **Brain and reader:** `bench/brain_bench.py`, report in `bench/results/brain.md`. Real tool and speech path; 78 brain
+  cases and 17 reader cases. On 78 cases with the daemon's own context block (2026-11-12), `claude-sonnet-5-5` passes
+  90.6% ignoring length (95% CI 84.2% to 96.2%), median reply 1.8 s, and its fallback `claude-haiku-5-5` passes 88.0%.
+  The earlier ranking on 66 cases, in `bench/results/brain_substance.md`, had Sonnet at 95.5%; nothing tested there beat
+  it measurably, including Opus, Fable, high effort and 11 OpenAI models. Those prompts were tuned on Sonnet, which
+  favours it. From that earlier run, not re-measured: `gemini-3.8-flash` passes 90.9%, 2.7 s; `gemini-4-argon` 93.5% but 17 s.
 - **Gate:** `tests/test_relevance_live.py`, report in `bench/results/gate.md`.
 - **Which vendors and whole setups are covered, and what is not:** `bench/results/combinations.md`.
 - **Ears:** `bench/stt_extra.py`, report in `bench/results/report.txt`. 70 utterances (English, Hebrew, mixed, short
