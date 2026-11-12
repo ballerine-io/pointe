@@ -212,7 +212,7 @@ test on that migration failed; one says a service is deployed and the other that
  "still_current": true or false,
  "claim_a": "what session A says, in its own words, copied from its message",
  "claim_b": "what session B says, in its own words, copied from its message",
- "why": "one short sentence: why both cannot be true",
+ "why": "one short sentence: why both cannot be true, naming each session by its name, never as A or B",
  "severity": "high" | "normal",
  "question_for_a": "one question the engineer could put to session A to settle it",
  "question_for_b": "one question the engineer could put to session B to settle it"}

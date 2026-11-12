@@ -294,7 +294,7 @@ def test_asking_is_the_users_typed_words_and_the_only_way_anything_is_sent(d, mo
     assert client.post("/voice/conflicts", json={"action": "ask", "id": "nope", "side": "a"}).status_code == 404
     r = client.post("/voice/conflicts", json={"action": "ask", "id": card["id"], "side": "a"})
     assert r.status_code == 200, r.text
-    asked = f"Ask lantern: {CONFLICT['question_for_a']}"
+    asked = f"Send lantern this question: {CONFLICT['question_for_a']}"
     assert [f.text for f in pushed] == [asked]  # the brain hears the user's typed words
     assert d.state.conversation[-1] == ("user", asked)
     assert client.get("/voice/status").json()["talk"][-1]["typed"] is True  # typed: it can never approve anything
@@ -552,3 +552,18 @@ def _no_leftover_scans():
 
     if hasattr(daemon, "_CONFLICT_SCANS"):
         daemon._CONFLICT_SCANS.clear()
+
+
+def test_the_page_and_the_app_use_the_same_words():
+    """Parity: every fixed string of the app's ConflictCopy is on the page, word for word."""
+    import re
+
+    root = Path(__file__).resolve().parents[1]
+    swift = (root / "ios" / "Pointe" / "Conflicts.swift").read_text()
+    page = " ".join((root / "ui.html").read_text().split())
+    copy = swift[swift.index("enum ConflictCopy"):swift.index("struct ConflictCard")]
+    fixed = re.findall(r'static let \w+ = "([^"]+)"', copy)
+    assert len(fixed) >= 10
+    built = ["Ask ", "Asked ", "On different branches: ", " more disagreement", "That conflict is gone.", "Not done."]
+    missing = [s for s in fixed + built if s not in page]
+    assert missing == []

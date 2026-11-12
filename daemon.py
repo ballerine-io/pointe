@@ -1482,18 +1482,21 @@ async def _raise_conflict(c: conflicts.Conflict) -> None:
             or (PREFS.get("microphone") == "ptt" and state.ptt.open) or _yes_window_open()):
         return  # the card and the note stay; a meeting never hears it, not even after it ends
     c.spoken_at = time.time()
+    logger.info(f"conflict alarm: saying {c.a_name} / {c.b_name}")
     await say(_conflict_speech(c))
 
 
 def _conflict_speech(c: conflicts.Conflict) -> str:
     lang = "Hebrew" if re.search(r"[\u0590-\u05ff]", state.last_utterance) else "English"
-    gap = max(1, round((c.at_b - c.at_a) / 60))
+    secs = c.at_b - c.at_a
+    later = "Moments later" if secs < 60 else f"About {round(secs / 60)} minute(s) later"
     tag = "[two sessions disagree, and this is urgent]" if c.severity == "high" else "[two sessions disagree]"
     branches = (f" They are on different branches: {c.a_name} on {c.branch_a}, {c.b_name} on {c.branch_b}; say so."
                 if c.branch_a and c.branch_b and c.branch_a != c.branch_b else "")
-    return (f"{tag} {c.a_name} said: \"{c.claim_a}\". About {gap} minute(s) later, {c.b_name} said: \"{c.claim_b}\".{branches} "
-            f"In {lang}, say both claims with their sessions and how far apart they came, quoting each claim in the language "
-            f"it was written in, then ask whether to put the question to one of them. Send nothing unless the user says so.")
+    return (f"{tag} {c.a_name} said: \"{c.claim_a}\". {later}, {c.b_name} said: \"{c.claim_b}\".{branches} "
+            f"In {lang}, in at most three short sentences: say both claims with their sessions and how far apart they came, "
+            f"keeping each claim's outcome and quoting it in the language it was written in, then ask whether to put the "
+            f"question to one of them. Send nothing unless the user says so.")
 
 
 def _dismiss_conflict(c: conflicts.Conflict) -> None:
@@ -3690,7 +3693,9 @@ async def conflict_action(request: Request):
     if state.meeting is not None:
         raise HTTPException(status_code=409, detail="nothing goes to a session during a meeting")
     name, question, claim = (c.a_name, c.question_a, c.claim_a) if side == "a" else (c.b_name, c.question_b, c.claim_b)
-    await _user_text(f"Ask {name}: {question or f'is this still true: {claim}?'}")
+    # "Send ... this question", not "ask": the brain reads a bare "ask X" as a side question to a read-only copy, which
+    # cannot check what the live session did.
+    await _user_text(f"Send {name} this question: {question or f'is this still true: {claim}?'}")
     state.typed.add(state.conversation_base + len(state.conversation) - 1)
     if side not in c.asked:
         c.asked.append(side)

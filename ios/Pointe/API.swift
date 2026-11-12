@@ -19,6 +19,7 @@ struct API {
         let attention: [Attention]?
         let ptt: PTTStatus?     // push to talk; nil from a Mac without it
         var voice_lock: VoiceLock?  // the owner-voice lock; nil from a Mac without it, and the app hides the feature
+        var conflicts: [Conflict]?  // two sessions that disagree (Conflicts.swift); nil from a Mac without the alarm
     }
 
     // MARK: owner-voice lock (docs/plans/next-features.md, "1. Owner-voice lock"). Every field optional, like the meeting's.
@@ -210,10 +211,13 @@ struct API {
         var notesLanguage: String
         var consented: Bool
         var microphone: String  // "always" or "ptt"
+        var conflictsOn: Bool
+        var conflictsSpoken: Bool
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
             case notesLanguage = "meeting.notes_language", consented = "meeting.consented", microphone
+            case conflictsOn = "conflicts.on", conflictsSpoken = "conflicts.spoken"
         }
 
         init(from decoder: Decoder) throws {
@@ -223,6 +227,8 @@ struct API {
             notesLanguage = (try? c.decode(String.self, forKey: .notesLanguage)) ?? "auto"
             consented = (try? c.decode(Bool.self, forKey: .consented)) ?? false
             microphone = (try? c.decode(String.self, forKey: .microphone)) ?? "always"
+            conflictsOn = (try? c.decode(Bool.self, forKey: .conflictsOn)) ?? true
+            conflictsSpoken = (try? c.decode(Bool.self, forKey: .conflictsSpoken)) ?? true
         }
     }
 

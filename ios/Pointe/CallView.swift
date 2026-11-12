@@ -20,6 +20,7 @@ struct CallView: View {
     @State private var showMeetingStart = false
     @State private var showMeetingSettings = false
     @State private var showVoiceLock = false
+    @State private var showConflictSettings = false
     @State private var showIgnored = false
     @State private var showSpeakers = false
     @State private var confirmEnd = false
@@ -104,6 +105,10 @@ struct CallView: View {
                     .presentationDetents([.medium, .large])
                     .presentationBackground(.regularMaterial)
             }
+        }
+        .sheet(isPresented: $showConflictSettings) {
+            ConflictSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
         }
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
@@ -259,6 +264,9 @@ struct CallView: View {
             if status?.voice_lock != nil {
                 Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
             }
+            if status?.conflicts != nil {
+                Button { showConflictSettings = true } label: { Label(ConflictCopy.settingsTitle, systemImage: "exclamationmark.triangle") }
+            }
             Picker(selection: Binding(get: { call.talk.mode }, set: { setMicrophone($0) })) {
                 Text("Always on").tag("always")
                 Text("Push to talk").tag("ptt")
@@ -277,6 +285,7 @@ struct CallView: View {
     private var bottom: some View {
         VStack(spacing: 10) {
             // What needs you sits by your thumb, never scrolled away under the conversation.
+            conflictCard(inMeeting: false)
             if let request = waiting.first {
                 RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -297,6 +306,37 @@ struct CallView: View {
         .padding(.top, 8)
         .padding(.bottom, 4)
         .animation(.snappy, value: waiting.first?.request_id)
+    }
+
+    /// The newest disagreement between two sessions; the others wait behind it, counted.
+    @ViewBuilder
+    private func conflictCard(inMeeting: Bool) -> some View {
+        let open = status?.conflicts ?? []
+        if let newest = open.last {
+            ConflictCard(conflict: newest, showAgents: (status?.sessions ?? []).mixesAgents, inMeeting: inMeeting,
+                         live: phase == .live, act: { action, side in await conflictAct(newest.id, action, side) })
+                .id(newest.id)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            if open.count > 1 { Text(ConflictCopy.more(open.count - 1)).font(.caption).foregroundStyle(.secondary) }
+        }
+    }
+
+    /// Nil when the Mac took it; otherwise the reason, as the page words it.
+    private func conflictAct(_ id: String, _ action: String, _ side: String?) async -> String? {
+        if demo != nil {
+            if action == "dismiss" { status?.conflicts?.removeAll { $0.id == id } }
+            else if let side, let i = status?.conflicts?.firstIndex(where: { $0.id == id }) { status?.conflicts?[i].asked = (status?.conflicts?[i].asked ?? []) + [side] }
+            return nil
+        }
+        do {
+            try await call.api.conflict(id, action: action, side: side)
+        } catch API.Failure.status(_, let detail) {
+            return ConflictCopy.refusal(detail)
+        } catch {
+            return "The Mac did not answer."
+        }
+        status = try? await call.api.status()
+        return nil
     }
 
     /// Three yeses in a row the lock could not place: the tap still works, and re-enrolling may help.
@@ -422,6 +462,7 @@ struct CallView: View {
                     .id(handId)  // a new hand gets a new card: never the last one's busy buttons
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                conflictCard(inMeeting: true)
                 if let request = waiting.first {
                     RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     if voiceUnsure { unsureNote }

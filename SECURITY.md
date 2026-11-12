@@ -142,7 +142,8 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
   heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
-  enrol, delete, level; the app asks for Face ID before lowering the level or deleting). Not the model's whole context, renaming,
+  enrol, delete, level; the app asks for Face ID before lowering the level or deleting), and the conflict alarm
+  (`/voice/conflicts`: dismiss, or ask one side as typed words, which never approve). Not the model's whole context, renaming,
   modes, or anything a Claude Code session uses.
 - **Approve needs Face ID** or the passcode; deny never does.
 - **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
