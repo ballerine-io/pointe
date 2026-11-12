@@ -448,6 +448,9 @@ def voice_message(text: str) -> str:
 
 
 async def post_inbox(session: Session, text: str) -> bool:
+    if not session.inbox_socket:  # registered without one (an older plugin, a test): not delivered, never a crash
+        logger.error(f"inbox post to {session.name} failed: it has no inbox socket")
+        return False
     try:
         _, writer = await asyncio.open_unix_connection(session.inbox_socket)
         lines = []

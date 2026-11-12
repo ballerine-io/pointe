@@ -327,7 +327,12 @@ class Brain:
             if not finished:
                 filled = True
                 await self.filler()
-        await asyncio.shield(running)
+        try:
+            await asyncio.shield(running)
+        except Exception as e:  # a call left without a result makes every vendor refuse the history from then on
+            logger.error(f"tool {call['name']} failed: {type(e).__name__}: {str(e)[:160]}")
+            outcome.setdefault("result", {"error": f"Not delivered: {call['name']} failed ({type(e).__name__}). Tell the "
+                                                   f"user it did not go through."})
         self.on_tool(call["name"], call["args"], outcome.get("result"))
         return outcome.get("result"), filled
 
