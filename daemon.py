@@ -40,6 +40,7 @@ from ptt import Ptt
 import vendors
 import vocabulary
 import watchdog
+import whisper
 from jobs import JobRunner
 from notes import Notes
 from prefs import Prefs
@@ -669,6 +670,8 @@ def _brain_context() -> str:
         parts.append(drives.RULES)
     if names := vocabulary.brain_line(DICTIONARY):
         parts.append(names)
+    if _whispering():
+        parts.append(whisper.REPLY_RULE)
     parts.append(_needs_now())
     return "\n".join(parts)
 
@@ -972,6 +975,11 @@ class SonioxEars(FrameProcessor):
             _remember("user", heard)
             state.last_utterance = heard  # its language; never fresh speech for a send
             await set_drive(asked == "on", "voice")
+            return
+        # After drive mode: while driving, "back to normal" ends drive mode first. A "back to normal" with whisper mode
+        # off is someone else's words, as for drive mode.
+        if state.monologue is None and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")):
+            await _whisper_by_voice(heard, quiet)
             return
         wanted = meeting_intent(heard)
         if wanted and state.monologue is None:
@@ -4466,6 +4474,8 @@ async def status(request: Request):
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
             "ptt": state.ptt.status(PREFS.get("microphone"), _room_heard()),
+            "whisper": whisper.status(PREFS.get("whisper"), lock_level(), PREFS.get("microphone"),
+                                      held="drive" if state.drive.on() else None),
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "drive": _drive_status(),
             "meeting": state.meeting.status() if state.meeting is not None else (
@@ -4870,7 +4880,8 @@ async def page():
     here = Path(__file__).parent
     return ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
             .replace("{{BALLERINE}}", (here / "assets" / "ballerine.svg").read_text())
-            .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text()))
+            .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
+            .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text()))
 
 
 async def _add_worker(session: Session) -> None:
@@ -5133,19 +5144,19 @@ async def run_call(transport) -> None:
 
         stt = vendors.build_ears(setup().ears, _recognition_terms())
         ears = [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()]
-    gate = PttGate(stt)
+    gate = [PttGate(stt), WhisperIn()]
     if FRONT == "brain":
         front = BrainFront(opening)
         state.context = front.brain
-        pipeline = Pipeline([transport.input(), gate, *ears, injector, front, vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http),
-                             BotSpeechTap(), *mirror, transport.output()])
+        pipeline = Pipeline([transport.input(), *gate, *ears, injector, front, vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http),
+                             BotSpeechTap(), *mirror, WhisperOut(), transport.output()])
     else:
         context = LLMContext(opening, tools=TOOLS)
         state.context = context
         user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
         pipeline = Pipeline([
-            transport.input(), gate, *ears, user_aggregator, UserSpeechTap(FrameDirection.UPSTREAM), injector,
-            build_front(), BotSpeechTap(), *mirror, UserSpeechTap(FrameDirection.DOWNSTREAM), transport.output(),
+            transport.input(), *gate, *ears, user_aggregator, UserSpeechTap(FrameDirection.UPSTREAM), injector,
+            build_front(), BotSpeechTap(), *mirror, UserSpeechTap(FrameDirection.DOWNSTREAM), WhisperOut(), transport.output(),
             ContextUserTap(), assistant_aggregator,
         ])
     # A quiet call is normal (sessions work, the user listens); hang up only a call forgotten for half an hour.
@@ -5197,6 +5208,41 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=7860)
     port = parser.parse_args().port
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")  # loopback only: the phone comes in through remote.py
+
+
+# ---------- whisper mode (whisper.py holds the rules) ----------
+
+class WhisperIn(whisper.In):
+    """After the push-to-talk gate: whisper mode raises the conversation's microphone (never a meeting's room)."""
+
+    def __init__(self):
+        super().__init__(lambda: _whispering() and not _room_heard())
+
+
+class WhisperOut(whisper.Out):
+    def __init__(self):
+        super().__init__(_whispering)
+
+
+def _whispering() -> bool:
+    """Whisper mode in effect. Drive mode holds it: no screen to read, and a half-volume voice in a car is a safety
+    cost. The setting stays, and applies again when drive mode ends."""
+    return bool(PREFS.get("whisper")) and not state.drive.on()
+
+
+async def _whisper_by_voice(heard: str, on: bool) -> None:
+    """"Whisper mode" / "back to normal", caught in code like the briefing phrases. The setting only narrows how the
+    call sounds: it never reaches the approval check, and the voice lock stays as set."""
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; not fresh speech for a send
+    PREFS.update({"whisper": on})
+    logger.info(f"whisper mode {'on' if on else 'off'} (by voice)")
+    if on and state.drive.on():
+        await say("[whisper mode on, held] The user asked for whisper mode while drive mode is on. Say in a few words that "
+                  "it starts when drive mode ends.")
+        return
+    await say("[whisper mode on] The user turned whisper mode on. Say in at most four words that it is on." if on else
+              "[whisper mode off] The user turned whisper mode off. Say in at most four words that you are back to normal.")
 
 
 if __name__ == "__main__":

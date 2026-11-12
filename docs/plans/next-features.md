@@ -1949,3 +1949,103 @@ During a brainstorm, "challenge this" ends it and challenges what was said.
 - **Not built:** the `evals/sim.py` scenario (the bench pairs measure it instead), the rollout pref `modes.challenge`
   (always on), a challenge spoken into a meeting (in participating, "Pointe, challenge this" is an ordinary question to
   Pointe, answered once).
+
+## Whisper mode (as built, 2026-11-12)
+
+Feature 9, on the daemon, the page and the app. `whisper.py` holds the rules (phrases, gains, the voice-detector
+profile, the reply rule, the status); `daemon.py` puts `WhisperIn` after the push-to-talk gate, `WhisperOut` last before
+the transport, and catches the phrases in `SonioxEars._take`.
+
+### Setting, route and status
+
+- Pref `whisper` (bool, default false) in `GET/POST /voice/prefs`: one daemon setting for both clients, kept across
+  calls and reconnects (a dropped call must not come back loud in an open office). No new route.
+- Status `whisper: {on, held, output_gain, max_words, suggest_ptt, lock_note}`. `on` is the setting; `held` is `"drive"`
+  while drive mode suspends it (then `output_gain` is 1.0 and nothing of the mode applies); `suggest_ptt` is true while
+  it applies and the microphone is not push to talk; `lock_note` is the copy both clients show when the voice lock is on.
+- Voice: "whisper mode", "let's whisper", "מצב לחישה" turn it on; "back to normal", "normal voice", "stop whispering",
+  "חזרה לרגיל" turn it off, only while it is on (otherwise the words are someone's sentence, as for drive mode). A bare
+  "normal" is not a phrase. The brain never gets the words and is told it cannot change the mode (a live run had it
+  answer "Normal mode is on." to a misheard "Normal.").
+
+### What it does
+
+- **Output:** the bot's PCM scaled to 0.5 in the daemon, from the next chunk (live: the same sentence measured
+  p95 4713 → 2371 and 4613 → 2449).
+- **Input:** x2.5 through a soft limiter (linear below half scale, never past full scale), then pipecat's own
+  `VADParamsUpdateFrame` switches Silero to `{confidence 0.5, min_volume 0.35, start 0.2 s, stop 0.4 s}` and back. A
+  meeting's room audio is not raised.
+- **Brain:** one line in `_brain_context`: one short sentence, at most 20 words, point to the screen for anything longer.
+- **Approvals: unchanged.** No code path reads the setting at a yes. `tests/test_whisper.py` runs ten answers ("yes",
+  "go ahead", "yes, and run the linter", "wait, what is it?", Hebrew…) through `on_user_utterance` with the mode off
+  and on and asserts identical outcomes; a mutation that made the mode change approvals failed five of them.
+
+### Voice lock (decided here)
+
+The lock is never lowered by whisper mode (the plan's `lock_level = min(current, approvals-with-continuity)` would have
+widened Commands/Everything). Whispered speech is scored like any other and fails closed: on the synthetic bench no
+unvoiced whispered sentence reached `T_HIGH` (mean score 0.37 vs 0.62 for the normal voice; impostors ≤ 0.26), so at
+Approvals a whispered yes counts only through the existing continuity rule (≥ `T_LOW` within a minute of a strong
+match), and at Commands/Everything whispered words are usually kept out. Both clients say so in the card
+(`lock_note`). Whisper mode is never an approval path.
+
+### Modes
+
+- **Drive mode holds it.** No screen to read, and a half-volume voice in a car is a safety cost: while drive mode is on,
+  output, input, the voice-detector profile and the reply rule are those of drive mode; the setting stays and applies
+  again when drive mode ends. "Back to normal" while both are on ends drive mode first (a second one ends whisper mode).
+  "Whisper mode" asked while driving is stored and the voice says it starts when drive mode ends. The page keeps the
+  button pressed and hides the card; the app hides the card (drive mode's screen).
+- **Challenge:** both apply (the challenge's tool narrowing and the whisper reply rule). Whisper mode is not a
+  `modes.Mode`, so it cannot widen one.
+- **Meeting:** the room's audio is not raised; the bot's output is still halved.
+
+### Clients
+
+- Page (`ui_whisper.html`, served at `{{WHISPER}}`): a Whisper button in the dock (Whispering while on), a card above
+  the caption (what it does, "Whisper recognition is limited; type when it matters.", the lock note, the push-to-talk
+  suggestion with Not now / Turn on, Back to normal), the compose box unfolded and focused when it turns on (or is on
+  at load), a 30 px live caption.
+- App (`Whisper.swift`): a Whisper toggle in the Settings (⋯) menu (the bottom bar has no room, as for briefings), the
+  same card and copy above the controls, the TypeBar shown with the keyboard up when it turns on, a title-size live
+  bubble. Audio needs nothing on the phone: the Mac changes it.
+
+### Measured (synthetic only: `bench/whisper_bench.py`, `bench/results/whisper.md`)
+
+Two ElevenLabs voices × 23 lines (EN commands, yes/no, the phrases, Hebrew). "Unvoiced" whispers are LPC re-syntheses
+over noise (3% voiced frames; a real whisper is near 0%); "breathy" is ElevenLabs v3 `[whispers]` (65% voiced: a soft
+voice, not a whisper). Office pink noise at -55 dBFS.
+
+| | Soniox WER | yes/no right | Silero detected (default → whisper profile + gain) |
+|---|---|---|---|
+| normal | 1.2% | 12/12 | 46/46 |
+| unvoiced, -18 dB | 1.4% | 12/12 | 33/46 → 41/46 |
+| unvoiced, -30 dB | 18.4% (17.6% with gain) | 10/12, no answer flipped | 1/46 → 23/46 |
+| breathy, -18 dB | 0.4% | 12/12 | 40/46 → 43/46 |
+
+- Input gain does not change Soniox (it normalises); it matters for the voice detector, which times a yes and starts a
+  turn. Neither profile fired on 60 s of office noise with typing.
+- Misheard short answers failed safe ("No." → "Yellow.", "Yes, go ahead." → "Yes, Dorian.": neither is a yes).
+- Loudness barge-in (simulated echo at -30 dB): with the bot at half volume a whisper at -24 dB cuts in (11 frames;
+  0 at full volume). The `LevelGate` floor (300 vs the plan's 120) changed nothing in any case, so it was not changed.
+- Live (`tests/e2e/whisper.py`, the real daemon, Soniox, brain and mouth, speaker leaking into the mic at 0.3): a
+  whispered "whisper mode" turns it on; a whispered question is heard and answered in 8 words (the normal answer was
+  17); no echo turn; a whispered yes approves and a whispered no denies after the read-out; a whispered yes over the
+  read-out does not; one run heard "Back to normal." as "Back to Denied." (a repeat worked).
+
+### Deviations from section 9
+
+- **A pref beside the modes, not an F1 mode:** modes are exclusive, and whisper must combine with brainstorm, a
+  challenge and push to talk; route `/voice/prefs`, not `/voice/mode-state`.
+- **Gains in the daemon, not the clients:** one implementation for the page, the app and older clients, tested offline;
+  no protocol `audio` control message. The page already asks for `noiseSuppression` and `autoGainControl`; iOS keeps
+  voice processing on.
+- **Soniox endpointing unchanged:** the plan's `endpoint_sensitivity 0 / max 1800 ms` was measured (p50 0.47 → 0.39 s,
+  p90 2.91 → 2.25 s on whispers) but changing it needs a Soniox reconnect mid-call; left for a later change.
+- **`LevelGate` floor unchanged** (measured: no effect); the quieter bot is what lets a whisper barge in.
+- **The voice lock is not lowered** (above).
+- **The limitation line is always shown**, not only "below a bench threshold": no recorded human whisper corpus exists.
+- **Not built:** the `bench/record.py` owner whisper corpus (needs a person), `config.json audio.whisper` tuning,
+  dictionary terms in the whisper bench (the vocabulary feature landed after it; names should benefit, not measured),
+  a realtime front (`CLAUDE_VOICE_FRONT=gemini|openai`) gets the audio changes but not the reply rule.
+

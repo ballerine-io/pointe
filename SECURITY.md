@@ -84,6 +84,18 @@ and their words are not shown or kept).
 - **Model:** 3D-Speaker ERes2Net (Apache-2.0), run locally by `sherpa-onnx`, downloaded once from the sherpa-onnx
   GitHub release with a pinned SHA-256. No vendor sees the audio for this check or the voiceprint.
 
+### Whisper mode
+
+Whisper mode (`whisper.py`; "whisper mode", "מצב לחישה", or the Whisper button) changes how the call sounds, never what
+a word can do. The bot plays at half volume, the microphone is raised (x2.5, soft limiter) with a whisper profile for
+the voice detector, and replies are kept short. A whispered yes or no goes through exactly the same check as a spoken
+one (tested by running the approval cases with the mode off and on and comparing the outcomes). It is never an
+approval path and never lowers the voice lock: a voiceprint is learned from your normal voice, and a whisper scores
+low against it (no synthetic whispered sentence reached the strong-match threshold in `bench/results/whisper.md`), so
+with the lock on a whispered yes usually does not count and the request waits for a tap. Drive mode holds it: while
+driving the bot plays at full volume and whisper mode applies again when drive mode ends. With a challenge on, both
+apply; whisper mode adds nothing a challenge takes away.
+
 ### Audio briefings
 
 A briefing ("brief me on the night", or scheduled) reads; it never sends or approves. Each part reaches the voice model
