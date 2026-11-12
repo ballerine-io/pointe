@@ -144,7 +144,13 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
   enrol, delete, level; the app asks for Face ID before lowering the level or deleting). Not the model's whole context, renaming,
   modes, or anything a Claude Code session uses.
-- **Approve needs Face ID** or the passcode; deny never does.
+- **Approve needs Face ID** or the passcode; deny never does. One opt-in exception: with "Approve from notifications"
+  on (`alerts.watch_approve`, off by default; the app asks for Face ID to turn it on), a notification's Approve needs an
+  unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
+  read out, bound to that request's id (`alerts.py`).
+- **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
+  description; a request that cannot be read out shows only its tool, and anything that looks like a credential is not
+  shown at all.
 - **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.

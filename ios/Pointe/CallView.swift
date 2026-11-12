@@ -20,6 +20,7 @@ struct CallView: View {
     @State private var showMeetingStart = false
     @State private var showMeetingSettings = false
     @State private var showVoiceLock = false
+    @State private var showAlerts = false
     @State private var showIgnored = false
     @State private var showSpeakers = false
     @State private var confirmEnd = false
@@ -105,6 +106,12 @@ struct CallView: View {
                     .presentationBackground(.regularMaterial)
             }
         }
+        .sheet(isPresented: $showAlerts) {
+            AlertsSheet(phone: AlertCenter.shared.enabled, watch: prefs?.watchApprove ?? false,
+                        setPhone: { await AlertCenter.shared.setEnabled($0) }, setWatch: setWatchApprove)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
                 IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).presentationBackground(.regularMaterial)
@@ -150,6 +157,9 @@ struct CallView: View {
         .task { if demo == nil { await poll() } }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, demo == nil { Task { await call.resume() } }  // back from the background: redial if it dropped
+            if phase == .background, demo == nil {  // leaving the screen: what waits now goes to the lock screen and the watch
+                Task { await AlertCenter.shared.sync(status?.attention, api: call.api); AlertCenter.schedule() }
+            }
         }
     }
 
@@ -256,6 +266,7 @@ struct CallView: View {
                     .accessibilityIdentifier("reopenMeetingEnd")
             }
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
+            Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
             if status?.voice_lock != nil {
                 Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
             }
@@ -537,6 +548,14 @@ struct CallView: View {
         (try? await LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) == true
     }
 
+    /// Turning it on lowers what an Approve needs, so it asks for Face ID first, like lowering the voice lock.
+    private func setWatchApprove(_ on: Bool) async -> Bool {
+        if on, !(await ownerCheck(AlertCopy.faceIDReason)) { return false }
+        guard demo == nil else { return on }
+        guard await savePrefs(["alerts.watch_approve": on]) else { return prefs?.watchApprove ?? false }
+        return prefs?.watchApprove ?? on
+    }
+
     // MARK: actions
 
     private func setMicrophone(_ mode: String) {
@@ -615,6 +634,7 @@ struct CallView: View {
                 let fresh = try await call.api.status()
                 if fresh != status { status = fresh }
                 call.follow(fresh.ptt)
+                await AlertCenter.shared.sync(fresh.attention, api: call.api)
                 reachable = true
             } catch {
                 reachable = false

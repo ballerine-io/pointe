@@ -157,6 +157,11 @@ struct API {
         let kind: String?
         let text: String?
         let session: String?
+        // What a notification may show and do (alerts.py); an older Mac sends none, and gets no notifications.
+        var request_id: String? = nil
+        var title: String? = nil
+        var body: String? = nil
+        var approvable: Bool? = nil
     }
 
     struct Note: Decodable, Equatable, Identifiable {
@@ -210,10 +215,12 @@ struct API {
         var notesLanguage: String
         var consented: Bool
         var microphone: String  // "always" or "ptt"
+        var watchApprove: Bool  // Approve on a notification, without Face ID
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
             case notesLanguage = "meeting.notes_language", consented = "meeting.consented", microphone
+            case watchApprove = "alerts.watch_approve"
         }
 
         init(from decoder: Decoder) throws {
@@ -223,6 +230,7 @@ struct API {
             notesLanguage = (try? c.decode(String.self, forKey: .notesLanguage)) ?? "auto"
             consented = (try? c.decode(Bool.self, forKey: .consented)) ?? false
             microphone = (try? c.decode(String.self, forKey: .microphone)) ?? "always"
+            watchApprove = (try? c.decode(Bool.self, forKey: .watchApprove)) ?? false
         }
     }
 
@@ -314,6 +322,13 @@ struct API {
     func answer(_ s: Session, allow: Bool) async throws {
         guard let id = s.request_id else { return }
         try await post("voice/approve", ["session": s.name, "request_id": id, "decision": allow ? "allow" : "deny"])
+    }
+
+    /// An action on a notification, bound to the request it was posted for. The Mac refuses an Approve (403) unless the
+    /// request could be read out and "Approve from notifications" is on, and a request no longer pending (409).
+    func answerFromNotification(session: String, requestId: String, allow: Bool) async throws {
+        try await post("voice/approve", ["session": session, "request_id": requestId, "decision": allow ? "allow" : "deny",
+                                         "via": "notification"])
     }
 
     /// "Just listen": the bot stays quiet until handed the turn; off hands it over.
