@@ -159,3 +159,51 @@ def test_the_start_of_its_own_word_does_not_cut_the_bot_off():
     assert g.is_barge_in(" Hold on")
     assert g.is_barge_in("stop")
     assert g.is_barge_in(" Holding. Nothing sent. Wait")
+
+
+def test_text_written_before_two_quick_turns_is_still_the_bots(clock):
+    g = EchoGuard()
+    g.bot_started()  # an earlier answer, done
+    clock[0] += 3
+    g.bot_stopped()
+    clock[0] = 144.2
+    g.bot_said("I've asked cv repo echo to run the tests and report what fails. It's working on it, and I'll tell you "
+               "when it reports.")
+    clock[0] = 146.9
+    g.bot_said("cv repo echo wants to run: ls /private/tmp/cv-repo-echo then echo then ls /private/tmp. Should it?")
+    clock[0] = 148.8  # it plays 4.7 s after it was written, and the voice stops and starts again between the two
+    g.bot_started()
+    clock[0] = 156.4
+    g.bot_stopped()
+    g.bot_started()
+    clock[0] = 164.9
+    g.bot_stopped()
+    clock[0] = 165.5
+    said = ("I've asked cv-repo-echo to run the tests and report what fails. It's working on it, and I'll tell you when it "
+            "reports. cv-repo-echo wants to run. ls /private/tmp/cv-repo-echo then.")
+    assert g.user_part(said, spoken=(149.3, 164.8)) == ""
+    assert not g.is_barge_in(said)
+
+
+def test_a_long_echo_is_matched_against_the_mirror_for_all_of_it(clock):
+    g = EchoGuard()
+    g.bot_said("Asked cv repo echo to create notes2.text with the word hello.")
+    g.bot_started()
+    for at, chunk in [(3.0, " Asked cv repo echo to create"), (5.0, " notes2.text with the word hello."),
+                      (8.0, " cv-repo-echo needs an approval I can't read out."), (11.0, " It's on your screen."),
+                      (14.0, " Approve it there, or say no."), (17.0, " Back to the earlier report:"),
+                      (19.5, " scratch.txt is created, 0 bytes.")]:
+        clock[0] = 100.0 + at
+        if at in (5.0, 14.0):  # the voice stops and starts again between its pieces
+            g.bot_stopped()
+            g.bot_started()
+        if at == 8.0:
+            g.bot_said("cv-repo-echo needs an approval I can't read out. It's on your screen. Approve it there, or say no. "
+                       "Back to the earlier report: scratch.txt is created, 0 bytes.")
+        g.mirror_heard(chunk, "")
+    g.bot_stopped()
+    clock[0] = 120.5
+    said = ("Asked cv-repo-echo to create notes2.text with the word hello. cv-repo-echo needs an approval I can't read "
+            "out. It's on your screen. Approve it there, or say no. Back to the earlier report: scratch.txt is created, "
+            "0 bytes.")
+    assert g.user_part(said, spoken=(100.4, 119.4)) == ""

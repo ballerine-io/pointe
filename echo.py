@@ -165,12 +165,17 @@ class EchoGuard:
         """The speakers may still be playing the bot into the mic."""
         return self.speaking or time.time() - self.stopped_at < ECHO_TAIL_SECS
 
-    def _sources(self) -> tuple[list[str], list[str]]:
+    def _sources(self, since: float | None = None) -> tuple[list[str], list[str]]:
         """What can still be coming back through the speakers: the text of this turn and the one before (it is written
         before it plays), and the mirror's last few seconds. Not every word of the last half minute: against several long
-        answers, near-spellings match almost anything the user says."""
-        since = self._turns[0] - 1.0 if self._turns[0] else 0.0
-        return self._model.words(since), self._mirror.words(time.time() - MIRROR_RECENT_SECS)
+        answers, near-spellings match almost anything the user says. The text counts from the end of the turn before
+        those two: a reply can wait seconds behind another before it plays, and the voice can stop and start inside one.
+        `since`: when a transcript's words began. Both accounts then reach back to it, however long it is."""
+        model = min(self._turns[0] - 1.0, self._played[-3][1] if len(self._played) >= 3 else 0.0)
+        mirror = time.time() - MIRROR_RECENT_SECS
+        if since is not None:
+            model, mirror = min(model, since - 1.0), min(mirror, since - 1.0)
+        return self._model.words(model), self._mirror.words(mirror)
 
     def _bot_words(self) -> set[str]:
         model, mirror = self._sources()
@@ -217,7 +222,8 @@ class EchoGuard:
             return text
         # one or two words said over its voice: its words count one by one, as while it talks
         over_words = self.speaking or self._over_bot(spoken, PLAYBACK_LAG_SECS)
-        mask = self._echo_mask(heard, fuzzy=was_live, speaking=over_words, sources=self._said_then(heard, spoken, over_words))
+        sources = self._said_then(heard, spoken, over_words) or (self._sources(spoken[0]) if over else None)
+        mask = self._echo_mask(heard, fuzzy=was_live, speaking=over_words, sources=sources)
         rest = [w for w, m in zip(heard, mask) if not m]
         if not any(mask):
             return text
