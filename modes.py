@@ -8,7 +8,8 @@ returns a wider approval, tool set, speech or delivery than conversation. Today'
 
 from dataclasses import dataclass
 
-APPROVALS = {"voice+tap": 2, "tap": 1, "none": 0}  # how a permission prompt may be answered
+# How a permission prompt may be answered. "drive": a tap, or a spoken yes narrowed further (drive.py says how).
+APPROVALS = {"voice+tap": 3, "drive": 2, "tap": 1, "none": 0}
 SPEECH = {"free": 2, "on_request": 1, "never": 0}  # when the bot may talk
 
 # What a meeting may do: read and answer, never act on a session or change routing.
@@ -36,7 +37,8 @@ MEETING_LISTENING = Mode("meeting-listening", approvals="tap", tools=READ_ONLY_T
                          reads_out=False, speech="never", sends=False)
 MEETING_PARTICIPATING = Mode("meeting-participating", approvals="tap", tools=READ_ONLY_TOOLS, holds_news=True,
                              nudges=False, reads_out=False, speech="on_request", sends=False)
-ALL = (CONVERSATION, BRAINSTORM, MEETING_LISTENING, MEETING_PARTICIPATING)
+DRIVE = Mode("drive", approvals="drive")  # short answers, and a yes only for what is safe from the road (drive.py)
+ALL = (CONVERSATION, BRAINSTORM, MEETING_LISTENING, MEETING_PARTICIPATING, DRIVE)
 
 
 def narrows(mode: Mode, base: Mode = CONVERSATION) -> bool:
