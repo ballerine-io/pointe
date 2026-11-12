@@ -273,10 +273,11 @@ class EchoGuard:
         answers = [m for w, m in zip(heard, mask) if w in ANSWER_WORDS]
         return bool(answers) and all(answers) and sum(mask) * 2 >= len(heard)
 
-    def is_barge_in(self, interim: str) -> bool:
+    def is_barge_in(self, interim: str, spoken: tuple[float, float] | None = None) -> bool:
         """Live words over the bot's voice that are the user's: two in a row, or one stop word.
 
-        In a row, because the user talks in a run while misheard echo words land scattered.
+        In a row, because the user talks in a run while misheard echo words land scattered. `spoken`: when its words
+        began and ended (AudioClock.span); a long echo is then matched against all the bot said since it began.
         """
         heard = words(interim)
         if not self.live:
@@ -287,7 +288,7 @@ class EchoGuard:
         if heard and any(b.startswith(heard[-1]) and (heard[-1] not in INTERRUPT_WORDS or b != heard[-1])
                          for b in self._bot_words()):
             heard = heard[:-1]
-        mask = self._echo_mask(heard)
+        mask = self._echo_mask(heard, sources=self._sources(spoken[0]) if spoken else None)
         run = best = 0
         for w, m in zip(heard, mask):
             run = 0 if m else run + 1

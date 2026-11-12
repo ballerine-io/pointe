@@ -877,7 +877,7 @@ class SonioxEars(FrameProcessor):
             elif part := ECHO.user_part(frame.text):
                 state.user_heard_at = time.time()
                 state.hearing = (state.user_heard_at, part)
-            if ECHO.speaking and ECHO.is_barge_in(frame.text):
+            if ECHO.speaking and ECHO.is_barge_in(frame.text, _spoken(frame)):
                 logger.info(f"barge-in: {frame.text!r}")
                 await self.broadcast_interruption()
             return

@@ -219,3 +219,20 @@ def test_loudness_is_judged_only_on_audio_that_just_came(clock):
     assert gate.loud()
     clock[0] += 8  # push to talk closed: no audio reached the gate since
     assert not gate.loud()  # a voice detector firing now (a meeting opened the room) is not the user's voice
+
+
+def test_a_long_echo_does_not_cut_the_bot_off_once_its_start_is_old(clock):
+    g = EchoGuard()
+    g.bot_said("On it. I've asked cv repo echo to create notes2.text with hello in it.")
+    g.bot_started()
+    clock[0] = 103.0
+    g.mirror_heard(" On it. I've asked cv-repo-echo to create", "")
+    for at in (105.0, 112.0, 118.0):  # the voice stops and starts again between pieces
+        clock[0] = at
+        g.bot_stopped()
+        g.bot_started()
+        g.bot_said("cv repo echo needs an approval I can't read out. It's on your screen.")
+    clock[0] = 119.0
+    g.mirror_heard(" cv-repo-echo needs an approval I can't read out. It's on your screen.", "")
+    interim = " On it. I've asked cv-repo-echo to create notes2.text. cv-repo-echo needs an approval I can't read out."
+    assert not g.is_barge_in(interim, spoken=(100.2, 118.9))
