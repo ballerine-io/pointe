@@ -26,7 +26,7 @@ The candidate list contains two names that are not separate models. Google's dep
 
 ## Method
 
-- **Brain path:** the real `brain.Brain`, including its speech gates and retry on refusal, the real `vendors.step`, and the daemon's system prompt and tool schemas. Only tool handlers are stubs with canned results. The [right now] block is rendered in `brain_cases.py`; `validate` compares it with `daemon._brain_context` on every case, 0 mismatches.
+- **Brain path:** the real `brain.Brain`, including its speech gates and retry on refusal, the real `vendors.step`, and the daemon's system prompt and tool schemas. Only tool handlers are stubs with canned results. The [right now] block was rendered in `brain_cases.py` and compared with `daemon._brain_context` by `validate`; since 2026-11-12 the bench calls `daemon._brain_context` itself.
 - **Reader path:** `vendors.text` with `json_reply`, `REPORT_SYSTEM`, `thinking="low"`, temperature 0.1, and `brief.report_prompt`, as the daemon calls it. One call. The daemon's re-ask after `brief.unsupported` is measured as a trip rate, not run.
 - **Sample:** 66 brain cases and 17 reader cases of 2,306 to 6,746 characters, 3 repeats each on 8 model names: 1,584 brain replies and 408 reports. Order was shuffled with a fixed seed, so time of day falls evenly on the candidates.
 - **Rubric:** machine-checkable. Tool required or banned, call counts, any-of term groups, forbidden terms, language, question asked, order, and a word limit with 10% slack. On every brain reply: no path, no code or markdown, no mention of tools or notes, no claim of an action with nothing sent. A send attempt on a banned case fails even where a daemon gate would have refused it.
