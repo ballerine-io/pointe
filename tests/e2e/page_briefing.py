@@ -127,7 +127,7 @@ async def main() -> None:
     work = Path(tempfile.mkdtemp(prefix="page-briefing-e2e-"))
     ids = register(work)
     verdict: dict = {}
-    browser = Browser()  # no simulated speaker echo: an echoed "or say no" read-out once denied the request before the briefing
+    browser = Browser(echo_gain=0.3)  # the speakers echo into the mic: the read-out heard back must not answer it
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
     url = f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"
     chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
