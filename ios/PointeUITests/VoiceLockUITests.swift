@@ -37,6 +37,16 @@ final class VoiceLockUITests: XCTestCase {
 
     private func help() -> String { any("voiceLockHelp").label }
 
+    /// The system's "Enter iPhone Passcode" sheet, when this simulator has a passcode: closed, which fails the check.
+    private func cancelPasscode() {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let prompt = springboard.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", "Passcode")).firstMatch
+        guard prompt.waitForExistence(timeout: 3) else { return }
+        let close = springboard.buttons.matching(NSPredicate(format: "label IN %@", ["Cancel", "Close"])).firstMatch
+        if close.exists { close.tap() } else { app.coordinate(withNormalizedOffset: CGVector(dx: 0.094, dy: 0.115)).tap() }
+        _ = prompt.waitForNonExistence(timeout: 5)
+    }
+
     func testNotEnrolledShowsTheEnrolmentCardAndOnlyOff() throws {
         launch("voiceLock")
         openSheet()
@@ -92,8 +102,10 @@ final class VoiceLockUITests: XCTestCase {
         XCTAssertTrue(NSPredicate(format: "label == %@", "Only your voice reaches Pointe. Other voices are listed as ignored, with their words.")
             .evaluate(with: any("voiceLockHelp")), "raised to Commands: \(help())")
 
-        // Lowering needs the owner: the simulator has no passcode, so the check fails and nothing changes.
+        // Lowering needs the owner. A simulator without a passcode fails the check at once; one with a passcode asks, and
+        // the test cancels. Either way nothing changes.
         app.buttons["voiceLevel-off"].tap()
+        cancelPasscode()
         sleep(1)
         XCTAssertEqual(help(), "Only your voice reaches Pointe. Other voices are listed as ignored, with their words.")
 

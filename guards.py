@@ -109,7 +109,7 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None) -> str
         what = f"{_FILE_VERBS[tool]} {readout.place(path, cwd)}"
     else:
         return None  # other tools (web fetches, MCP calls) have arguments too varied to say safely
-    if not what:
+    if not what or readout.redact(what) is None:  # a credential is never said aloud: the tap shows it
         return None
     lowered = _lower(what)
     return None if _words(lowered) & (_YES | _WEAK_YES) or any(p in lowered for p in _YES_PHRASES) else what
@@ -373,7 +373,7 @@ def is_local_request(request: Request) -> bool:
 
 LOCAL_COOKIE = "pointe_local"
 _OPEN_PATHS = {"/voice/health"}
-_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/conflicts"}  # all the phone app needs; nothing else takes its key
+_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts"}  # all the phone app needs; nothing else takes its key
 _NEEDS_KEY = "Open this page with bin/voice-open, or run /pointe:voice in a Claude Code session (pointe join for other agents). It carries the key this address needs."
 _NO_FRAMING = (b"content-security-policy", b"frame-ancestors 'self'")
 

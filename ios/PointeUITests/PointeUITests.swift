@@ -3,7 +3,9 @@ import XCTest
 /// Driven by tests/e2e/ios_app.py, which runs a test daemon and passes the pairing link in TEST_RUNNER_POINTE_PAIR.
 final class PointeUITests: XCTestCase {
     func testPairConnectAndDenyARequest() throws {
-        let link = try XCTUnwrap(ProcessInfo.processInfo.environment["POINTE_PAIR"], "set TEST_RUNNER_POINTE_PAIR")
+        guard let link = ProcessInfo.processInfo.environment["POINTE_PAIR"] else {
+            throw XCTSkip("needs a test daemon: run tests/e2e/ios_app.py, which sets TEST_RUNNER_POINTE_PAIR")
+        }
         let app = XCUIApplication()
         app.launchEnvironment["POINTE_PAIR"] = link
         app.launch()

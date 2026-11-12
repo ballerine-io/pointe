@@ -237,7 +237,10 @@ def test_two_reports_that_disagree_give_one_urgent_line_one_card_and_one_note(d,
     [card] = status["conflicts"]
     assert card["a"] == "lantern" and card["b"] == "billing" and card["agent_b"] == "Codex"
     assert card["questions"] == {"a": CONFLICT["question_for_a"], "b": CONFLICT["question_for_b"]}
-    assert any(a["kind"] == "conflict" and a["id"] == f"conflict:{card['id']}" for a in status["attention"])
+    [alert] = [a for a in status["attention"] if a["kind"] == "conflict"]
+    assert alert["id"] == f"conflict:{card['id']}" and alert["title"] == "Two sessions disagree"
+    assert "lantern" in alert["body"] and "migration" not in alert["body"]  # names only: claims stay on the screen
+    assert alert["approvable"] is False
     assert [n.kind for n in d.NOTES.items] == ["conflict"]
     assert sent == []  # an alarm never asks a session on its own
 

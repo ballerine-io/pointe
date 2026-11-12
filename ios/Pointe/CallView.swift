@@ -21,12 +21,17 @@ struct CallView: View {
     @State private var showMeetingSettings = false
     @State private var showVoiceLock = false
     @State private var showConflictSettings = false
+    @State private var showAlerts = false
     @State private var showIgnored = false
     @State private var showSpeakers = false
     @State private var confirmEnd = false
     @State private var meetingSince: Double?  // the meeting on now, or the one that just ended (its status drops `since`)
     @State private var closedEnd: Double?     // the ended meeting whose sheet you closed: not shown again unless asked
     @State private var prefs: API.Prefs?
+    @State private var showBriefing = false
+    @State private var showBriefingSettings = false
+    @State private var briefingSeen: Set<String> = []  // ready banners dismissed here, before the Mac's status says so
+    @State private var demoSchedule = Demo.briefingsPage?.schedule
     @State private var showSheet = false
     @State private var showSettings = false
     @State private var showFollow = ShowFollow()
@@ -115,6 +120,21 @@ struct CallView: View {
         }
         .sheet(isPresented: $showConflictSettings) {
             ConflictSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
+        .sheet(isPresented: $showBriefing) {
+            BriefingSheet(status: status?.briefing, callUp: phase == .live, meetingOn: meeting?.isOn == true,
+                          load: loadBriefings, act: briefing)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(isPresented: $showBriefingSettings) {
+            BriefingSettingsSheet(load: { await loadBriefings()?.schedule }, save: saveBriefingSchedule)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(isPresented: $showAlerts) {
+            AlertsSheet(phone: AlertCenter.shared.enabled, watch: prefs?.watchApprove ?? false,
+                        setPhone: { await AlertCenter.shared.setEnabled($0) }, setWatch: setWatchApprove)
+                .presentationDetents([.medium, .large])
                 .presentationBackground(.regularMaterial)
         }
         .sheet(isPresented: $showSheet) {
@@ -173,6 +193,9 @@ struct CallView: View {
         .task { if demo == nil { await poll() } }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, demo == nil { Task { await call.resume() } }  // back from the background: redial if it dropped
+            if phase == .background, demo == nil {  // leaving the screen: what waits now goes to the lock screen and the watch
+                Task { await AlertCenter.shared.sync(status?.attention, api: call.api); AlertCenter.schedule() }
+            }
         }
     }
 
@@ -283,7 +306,10 @@ struct CallView: View {
                 Button { closedEnd = nil } label: { Label("The meeting that ended", systemImage: "doc.text") }
                     .accessibilityIdentifier("reopenMeetingEnd")
             }
+            Button { showBriefing = true } label: { Label(BriefingCopy.title, systemImage: "sun.horizon") }
+            Button { showBriefingSettings = true } label: { Label(BriefingCopy.settingsItem, systemImage: "clock") }
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
+            Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
             if status?.voice_lock != nil {
                 Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
             }
@@ -313,6 +339,14 @@ struct CallView: View {
         VStack(spacing: 10) {
             // What needs you sits by your thumb, never scrolled away under the conversation.
             conflictCard(inMeeting: false)
+            if let b = status?.briefing, b.isOn || b.building == true, !showBriefing {  // the sheet has the same controls
+                BriefingNowBar(status: b, act: briefing).transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if let ready = readyBriefing {
+                BriefingReadyCard(alert: ready, hear: { _ = await briefing(["action": "start"]) },
+                                  dismiss: { await dismissBriefing(ready) })
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             if let request = waiting.first {
                 RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -581,6 +615,65 @@ struct CallView: View {
         return ok
     }
 
+    // MARK: audio briefings
+
+    private var readyBriefing: API.Attention? {
+        guard let alert = status?.briefingAlert, status?.briefing?.isOn != true, !briefingSeen.contains(alert.id) else { return nil }
+        return alert
+    }
+
+    private func loadBriefings() async -> API.BriefingsPage? {
+        if demo != nil { return Demo.briefingsPage }
+        return try? await call.api.briefings()
+    }
+
+    /// Nil when the Mac took it; otherwise its reason. The demo plays along on its own status.
+    private func briefing(_ body: [String: any Sendable]) async -> String? {
+        let action = body["action"] as? String ?? ""
+        if demo != nil {
+            var b = status?.briefing ?? API.BriefingStatus(id: nil, latest_id: nil)
+            switch action {
+            case "start": (b.playing, b.paused, b.part, b.parts, b.ready) = (true, "", 1, 3, nil)
+            case "skip": b.part = min((b.part ?? 1) + 1, b.parts ?? 1)
+            case "continue": (b.playing, b.paused, b.part) = (true, "", min((b.part ?? 1) + 1, b.parts ?? 1))
+            default: (b.playing, b.paused, b.part, b.parts) = (false, "", 0, 0)
+            }
+            status?.briefing = b
+            return nil
+        }
+        do {
+            try await call.api.briefing(body)
+        } catch API.Failure.status(_, let detail) {
+            return detail == "no call is up" ? BriefingCopy.cannotStart(callUp: false, meetingOn: false) : Self.sentence(detail)
+        } catch {
+            return "The Mac did not answer."
+        }
+        status = try? await call.api.status()
+        return nil
+    }
+
+    private func dismissBriefing(_ alert: API.Attention) async {
+        briefingSeen.insert(alert.id)
+        if demo == nil { await act { try await call.api.dismissAttention(alert.id) } }
+    }
+
+    private func saveBriefingSchedule(_ change: [String: any Sendable]) async -> API.BriefingSchedule? {
+        let fresh: API.BriefingSchedule?
+        if demo != nil {
+            guard var s = demoSchedule else { return nil }
+            if let t = change["time"] as? String { s.time = t }
+            if let d = change["days"] as? [Int] { s.days = d }
+            if let l = change["length"] as? String { s.length = l }
+            if let v = change["speak_on_connect"] as? Bool { s.speak_on_connect = v }
+            if let v = change["skip_empty"] as? Bool { s.skip_empty = v }
+            demoSchedule = s
+            return s  // no reminder in the demo: it would ask for notification permission mid-test
+        }
+        fresh = try? await call.api.setBriefingSchedule(change)
+        if let fresh { await BriefingReminder.apply(fresh) }
+        return fresh
+    }
+
     // MARK: voice lock
 
     /// Nil when the Mac took it; otherwise its reason (no call, a meeting on, no voiceprint yet).
@@ -603,6 +696,14 @@ struct CallView: View {
     /// Face ID or the passcode, as for Approve. Also in the demo: a lowering there must fail the same way.
     private func ownerCheck(_ reason: String) async -> Bool {
         (try? await LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) == true
+    }
+
+    /// Turning it on lowers what an Approve needs, so it asks for Face ID first, like lowering the voice lock.
+    private func setWatchApprove(_ on: Bool) async -> Bool {
+        if on, !(await ownerCheck(AlertCopy.faceIDReason)) { return false }
+        guard demo == nil else { return on }
+        guard await savePrefs(["alerts.watch_approve": on]) else { return prefs?.watchApprove ?? false }
+        return prefs?.watchApprove ?? on
     }
 
     // MARK: show while it says
@@ -706,6 +807,7 @@ struct CallView: View {
                 let fresh = try await call.api.status()
                 if fresh != status { status = fresh }
                 call.follow(fresh.ptt)
+                await AlertCenter.shared.sync(fresh.attention, api: call.api)
                 reachable = true
             } catch {
                 reachable = false

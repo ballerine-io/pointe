@@ -32,7 +32,7 @@ from page_meeting import CHROME, SHOTS, Page, call  # noqa: E402
 from rig import DAEMON, ROOT, STATE, fresh_state, log_lines, stop_daemon  # noqa: E402
 from scenarios import check, results  # noqa: E402
 
-DEBUG_PORT = 9350
+DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "9350"))  # a run on assigned ports moves it
 PRICING = "".join(f"def rule_{n}(price):\n    return price  # rule {n}\n\n" for n in range(1, 35))
 FAILING = ("tests/test_pricing.py::test_gold_discount FAILED\n"
            "    def test_gold_discount():\n"

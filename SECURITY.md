@@ -29,7 +29,8 @@ With the default brain, a permission prompt is approved only when all of these h
   `grep`, `curl`, `npm test`, `pytest`, ...), each with a table of known flags, in plain pipelines. It says every program,
   every file written, every URL's host, every git remote, and the flags that change what can be lost. Anything else
   (unknown programs or flags, `$`, backticks, globs, braces, subshells, heredocs, several lines, wrappers such as `sudo`
-  or `env`, `VAR=` other than a few harmless ones, more than 25 words) is not read out. Two adversarial reviews found 24
+  or `env`, `VAR=` other than a few harmless ones, more than 25 words, or a credential-like value such as a key, a
+  token or `password=`: `readout.redact`) is not read out. Two adversarial reviews found 24
   ways around earlier versions; each is now a test. File tools are read as their path. The line ends in "Should it?",
   with no consent word, so it cannot come back through the speakers as a yes.
 - A request that is not read out is approved by a tap, never by voice: the page, and the phone app, show the exact
@@ -64,6 +65,15 @@ and their words are not shown or kept).
   `bench/results/speaker.md`.
 - **Model:** 3D-Speaker ERes2Net (Apache-2.0), run locally by `sherpa-onnx`, downloaded once from the sherpa-onnx
   GitHub release with a pinned SHA-256. No vendor sees the audio for this check or the voiceprint.
+
+### Audio briefings
+
+A briefing ("brief me on the night", or scheduled) reads; it never sends or approves. Each part reaches the voice model
+bracketed as data, with "send nothing, approve nothing"; a send still needs your fresh speech, and the briefing's own
+words close the window for a spoken yes, so a yes after "lantern waits for your approval" brings the read-out again
+instead of approving. A permission is named in a briefing ("a permission approval"), never quoted. Credentials are
+masked with the same rule as the read-out and the alerts (`readout.mask`) before a session's record reaches the reading
+model, and again on what it writes. No briefing is spoken during a meeting or brainstorm; a meeting that starts stops it.
 
 A realtime front (`CLAUDE_VOICE_FRONT=gemini` or `openai`) speaks by itself, so there is no line to bind a yes to: it can deny
 by voice, but only the terminal approves.
@@ -108,7 +118,8 @@ and no telemetry, and the page loads nothing from outside your machine.
 each call with what you said and session content. With phone access it also holds the pairing secret, a TLS key and the
 connector's tokens. With the voice lock it holds `voiceprint/` (0700; one file per enrolled device, 0600): biometric data,
 computed and kept only on this Mac, deleted from Settings → Voice lock on the page or in the app. `models/` holds the
-speaker model. The journal records an ignored utterance's length and score, never its words. Delete what you no longer need.
+speaker model. The journal records an ignored utterance's length and score, never its words. `briefings.json` (0600) keeps
+the last seven briefings, written out per session and redacted. Delete what you no longer need.
 
 ## Known limits
 
@@ -142,9 +153,9 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
   heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
-  enrol, delete, level; the app asks for Face ID before lowering the level or deleting), Show while it says
-  (`/voice/artifact`), and the conflict alarm (`/voice/conflicts`: dismiss, or ask one side as typed words, which
-  never approve). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
+  enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
+  the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), and the conflict alarm (`/voice/conflicts`: dismiss,
+  or ask one side as typed words, which never approve). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
   `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it
@@ -155,7 +166,13 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   512 kB, and masks secret-looking values (known token shapes, private keys, `name = "..."` for secret-like names, URL
   passwords, and the values of this machine's own key variables) in file lines, diffs, test output and commands.
   Diffs read `HEAD` with `git cat-file`, never `git diff`, so a repository's filters and diff drivers do not run.
-- **Approve needs Face ID** or the passcode; deny never does.
+- **Approve needs Face ID** or the passcode; deny never does. One opt-in exception: with "Approve from notifications"
+  on (`alerts.watch_approve`, off by default; the app asks for Face ID to turn it on), a notification's Approve needs an
+  unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
+  read out, bound to that request's id (`alerts.py`).
+- **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
+  description; a request that cannot be read out shows only its tool. Credential-like values follow the same rule as
+  the voice (`readout.redact`): never shown, never said.
 - **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.
