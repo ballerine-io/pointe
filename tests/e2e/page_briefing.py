@@ -181,7 +181,8 @@ async def main() -> None:
             await quiet()
             spoken = said_since(t0).lower()
             spans = browser.speaker.speech_spans(since=t0)
-            heard = (await transcribe(browser.speaker.audio(spans[0][0], spans[-1][1]))).lower() if spans else ""
+            # span by span: one transcription of a minute of speech can come back cut short
+            heard = " ".join(await asyncio.gather(*[transcribe(browser.speaker.audio(a, b)) for a, b in spans])).lower()
             order = [spoken.find(n) for n in ("lantern", "billing", "docs")]
             check("the voice says it most urgent first: lantern (waits on you), then billing (failed), then docs (done)",
                   bool(done) and all(i >= 0 for i in order) and order == sorted(order), order=order, said=spoken[-600:])
