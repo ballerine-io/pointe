@@ -219,6 +219,18 @@ def test_that_was_me_on_an_unlabelled_turn_is_refused(d, monkeypatch):
     assert r.status_code == 409 and m.owner is None, r.text
 
 
+def test_that_s_me_from_an_unlabelled_speaker_is_refused_out_loud(d, monkeypatch):
+    """Refusing "?" must not be silent: after a reconnect the owner's short claim can come back unlabelled, and the owner
+    otherwise never learns why the seat stayed empty."""
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    m = d.state.meeting
+    for t in m.hear([{"is_final": True, "text": " Pointe, that's me.", "speaker": None}], m.since + 1) + m.tick(m.since + 5):
+        asyncio.run(d._on_meeting_turn(m, t))
+    assert m.owner is None
+    assert any("say it again" in n.text.lower() for n in d.NOTES.items), [n.text for n in d.NOTES.items]
+
+
 # ---------- 6. meeting: a Hebrew "tell me what you think" is a think command ----------
 
 @pytest.mark.parametrize("said, kind", [("תגיד מה דעתך", "think"), ("tell us what you think", "think"),

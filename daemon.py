@@ -1770,6 +1770,10 @@ async def _on_meeting_turn(m, turn) -> None:
                 return
             continue
         cmd, _ = meetings.command(words)
+        if cmd == "me" and turn.speaker == "?":  # every unlabelled turn shares "?": it is nobody in particular
+            logger.info("meeting: \"that's me\" from an unlabelled speaker (ignored)")
+            NOTES.add("thought", "I couldn't tell who said “that's me”. Say it again.", dedup=False)
+            continue
         if cmd == "me":  # "Pointe, that's me": the speaker claims the owner's seat (nothing in a meeting acts on voice)
             if voice is not None and not speaker.strong(voice):
                 logger.info("meeting: \"that's me\" in a voice that is not the owner's (ignored)")
