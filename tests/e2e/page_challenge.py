@@ -146,7 +146,7 @@ async def main() -> None:
 
             # ---- by voice: a plan, then "challenge this" ----
             turns = bot_turns()
-            await browser.say("Here's my plan: we put the webhook retries back on a Redis queue, so Velloria ships on Thursday.")
+            await browser.say("Don't send anything yet. Here's my plan: we put the webhook retries back on a Redis queue, so Velloria ships on Thursday.")
             await until(lambda: bot_turns() > turns, 30)  # its reply, heard to the end: "challenge this" is not a barge-in
             await until(lambda: call("/voice/status")["speaking"] == "bot", 8, 0.1)
             await quiet()
@@ -170,13 +170,13 @@ async def main() -> None:
                   bool(re.search(GROUNDED, objection.lower())) and bool(heard.strip()), objection=objection, heard=heard[:300])
 
             # ---- a send during it reaches nothing ----
-            turns = bot_turns()
+            turns, before = bot_turns(), len(INBOX)  # the plan itself may have been sent before the challenge
             await browser.say("Fine, do it. Send that to lantern.")
             await until(lambda: bot_turns() > turns, 30)
             await quiet()
             blocked = [r for r in call("/voice/status")["recent"] if "challenge" in r["how"]]
             check("\"fine, do it, send that to lantern\" sends nothing while it is on (nothing reaches lantern's inbox)",
-                  INBOX == [] and (chl() or {}).get("on"), blocked=blocked[-2:], said=call("/voice/status")["talk"][-1:])
+                  len(INBOX) == before and (chl() or {}).get("on"), blocked=blocked[-2:], said=call("/voice/status")["talk"][-1:])
 
             # ---- a rebuttal gets the next point ----
             n = len(items("objection"))
@@ -198,11 +198,12 @@ async def main() -> None:
                   bool(verdict) and len(str(verdict).split()) <= 45 and bool(ended), verdict=verdict)
             everything = json.dumps(call("/voice/status")) + json.dumps(call("/voice/notes?since=0")) + heard
             check("the key in lantern's record is never said, shown or stored", KEY not in everything and "TESTONLY" not in everything)
+            before = len(INBOX)
             await browser.say("Now send that to lantern: persist the retry queue before moving it.")
-            dispatched = await until(lambda: INBOX, 30)
+            dispatched = await until(lambda: len(INBOX) > before, 30)
             await asyncio.sleep(3)
             await quiet()
-            check("after the end, a fresh \"send that to lantern\" reaches lantern's inbox once", bool(dispatched) and len(INBOX) == 1,
+            check("after the end, a fresh \"send that to lantern\" reaches lantern's inbox once", bool(dispatched) and len(INBOX) == before + 1,
                   inbox=[x[:160] for x in INBOX])
             await page.js("document.getElementById('chl-close').click()")
             closed = await page.until("document.getElementById('challenge').hidden", 5)
