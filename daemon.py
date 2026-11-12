@@ -215,7 +215,22 @@ def _start_journal() -> None:
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
 
 
-_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ")
+_MEETING_QUIET = ("bot said:", "mirror heard:", "user said:", "speech refused:", "repeat cut:", "copy of ", "barge-in: ",
+                  "echo dropped:", "holding an unfinished sentence:", "feed")
+_QUOTE_WORDS = 4  # this many words in a row from the room or the owner's question is a quote of them
+
+
+def _quotes_the_room(message: str) -> bool:
+    """A line nobody listed above that still repeats the room's words or the owner's latest question."""
+    heard = re.findall(r"\w+", message.lower())
+    grams = {tuple(heard[i:i + _QUOTE_WORDS]) for i in range(len(heard) - _QUOTE_WORDS + 1)}
+    if not grams:
+        return False
+    for source in [t.text for t in state.meeting.turns] + [state.last_utterance]:
+        said = re.findall(r"\w+", source.lower())
+        if any(tuple(said[i:i + _QUOTE_WORDS]) in grams for i in range(len(said) - _QUOTE_WORDS + 1)):
+            return True
+    return False
 
 
 def _meeting_redact(record) -> None:
@@ -228,7 +243,8 @@ def _meeting_redact(record) -> None:
     if message.startswith("tool "):
         name = message[5:].split("(", 1)[0][:60]
         record["message"] = f"tool {name}(…) (withheld during a meeting, {len(message)} chars)"
-    elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET):
+    elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET) \
+            or " is waiting on the user: " in message or _quotes_the_room(message):
         record["message"] = f"(withheld during a meeting, {len(message)} chars)"
 
 
@@ -1305,7 +1321,10 @@ async def _digest_turn(session: Session, text: str) -> dict:
     final = text.split(FINAL_MARK, 1)[-1]
     recent = recent_history(session, max_entries=14, max_chars=6000, line_cap=1000)
     sent = list(state.unconfirmed.get(session.id) or [])
-    asked = state.owner_words.get(session.id, [])[-8:] + ([state.last_utterance] if session is REGISTRY.active else [])
+    # In a meeting the latest words are the owner's question to Pointe or the room's (a hand's language), never to the
+    # session: kept out of its report, which reaches the log and the voice.
+    latest = [state.last_utterance] if session is REGISTRY.active and state.meeting is None else []
+    asked = state.owner_words.get(session.id, [])[-8:] + latest
     try:
         report = await asyncio.wait_for(
             # Low thinking: about 3 s instead of 8, and the user is waiting to hear it.

@@ -435,3 +435,91 @@ def test_meeting_status_says_speaking_while_the_bot_talks_to_the_room(d, monkeyp
     assert d.state.meeting.status()["speaking"] is True
     asyncio.run(d.SonioxEars.process_frame(ears, BotStoppedSpeakingFrame(), up))
     assert d.state.meeting.status()["speaking"] is False
+
+
+# ---------- 15. during a meeting no room words and no owner question reach the log, in any line ----------
+
+def _log_during(d, run) -> list[str]:
+    """Every log message as the sinks get it (the daemon's meeting patcher applied) while `run` runs."""
+    from loguru import logger
+    lines = []
+    logger.configure(patcher=d._meeting_redact)
+    sink = logger.add(lambda m: lines.append(m.record["message"]), level="DEBUG")
+    try:
+        asyncio.run(run())
+    finally:
+        logger.remove(sink)
+        logger.configure(patcher=lambda r: None)
+    return lines
+
+
+def _echoing_reader(d, monkeypatch):
+    """A reading model that repeats the owner's words it was given into the report, as a model may."""
+    async def read(_system, prompt, _thinking=None):
+        asked = prompt.split("The owner's recent words on this call, last one latest:\n", 1)[-1].split("\n\n", 1)[0] \
+            if "The owner's recent words" in prompt else ""
+        return {"say": "", "line": "", "speak": True, "waiting": True, "need": asked, "unblock": asked}
+
+    monkeypatch.setattr(d, "_read_model", read)
+
+
+def _session_finishes(d, s):
+    from brief import FINAL_MARK
+    s.idle_since = time.time()
+    return d.feed(s, f"[{s.name} finished its turn] {FINAL_MARK}The export is written.", True)
+
+
+def test_the_owners_meeting_question_does_not_reach_the_log_through_a_session_report(d, monkeypatch):
+    """The owner's question in a meeting became state.last_utterance, which the report prompt passes as "the owner's
+    recent words"; the report then went to the log ("is waiting on the user: ...", "feed: ...")."""
+    _meeting_ready(d, monkeypatch)
+    _echoing_reader(d, monkeypatch)
+    s = add(d, "s1", "pricing")
+    d.REGISTRY.active_id = s.id
+    _start(d, "participating")
+    d.state.meeting.owner = "1"
+
+    async def run():
+        await d._meeting_command("should we raise the Lisbon price to twelve euros?")
+        await _session_finishes(d, s)
+    leaked = [line for line in _log_during(d, run) if "Lisbon" in line]
+    assert not leaked, leaked
+
+
+def test_room_words_a_raised_hand_took_as_the_language_do_not_reach_the_log(d, monkeypatch):
+    """meeting_hand("speak") set state.last_utterance to the room's latest turn (for its language): the same path then
+    carried a participant's words into the log."""
+    _meeting_ready(d, monkeypatch)
+    _echoing_reader(d, monkeypatch)
+    s = add(d, "s1", "pricing")
+    d.REGISTRY.active_id = s.id
+    _start(d, "participating")
+    m = d.state.meeting
+    m.hear([{"is_final": True, "text": " Dana thinks the Lisbon launch slips to May.", "speaker": "2"}], m.since + 1)
+    m.tick(m.since + 5)
+    m.hand = d.meetings.Hand("A risk.", "The launch date is at risk.", time.time())
+
+    async def run():
+        await d.meeting_hand("speak")
+        await _session_finishes(d, s)
+    leaked = [line for line in _log_during(d, run) if "Lisbon" in line]
+    assert not leaked, leaked
+
+
+def test_any_log_line_quoting_the_room_or_the_owners_question_is_withheld_in_a_meeting(d, monkeypatch):
+    """A backstop for lines nobody listed: run 7 of the meeting e2e logged `barge-in: "<the bot's words>"` mid-meeting."""
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    m = d.state.meeting
+    m.hear([{"is_final": True, "text": " Dana thinks the Lisbon launch slips to May.", "speaker": "2"}], m.since + 1)
+    m.tick(m.since + 5)
+    d.state.last_utterance = "should we raise the price to twelve euros"
+    for line in ("barge-in: 'the Lisbon launch slips to May, she said'",
+                 "send_to_claude_code refused: 'x' (user said 'should we raise the price to twelve euros')",
+                 "something new: we raise the price to twelve"):
+        record = {"name": "__main__", "level": SimpleNamespace(no=20), "message": line}
+        d._meeting_redact(record)
+        assert "Lisbon" not in record["message"] and "twelve" not in record["message"], record["message"]
+    record = {"name": "__main__", "level": SimpleNamespace(no=20), "message": "meeting command: ask"}
+    d._meeting_redact(record)
+    assert record["message"] == "meeting command: ask"
