@@ -17,6 +17,7 @@ BOT_MEMORY_SECS = 30.0
 MIRROR_RECENT_SECS = 12.0  # the mirror trails the audio by a few seconds at most
 AUDIO_TAIL_SECS = 1.0  # words said up to this long after the bot stopped can hold its voice: playback buffers, the room
 PLAYBACK_LAG_SECS = 0.3  # the speakers play the bot's last word up to this long after it stopped sending audio
+REPLY_GAP_SECS = 1.0  # the voice stopping for less than this is one reply going on, not a new one
 CHARS_PER_SEC = 15.5  # the bot's pace over whole turns (rig, 2026-11): where in its text it was at a given moment
 INTERRUPT_WORDS = {"stop", "wait", "hold", "no", "enough", "quiet", "pause", "hey",
                    "רגע", "עצור", "די", "לא", "חכה", "שקט"}
@@ -204,9 +205,20 @@ class EchoGuard:
         twice: as written ("README.md", how the ears may format it) and as the voice reads it ("readme dot md")."""
         model = min(self._turns[0] - 1.0, self._played[-3][1] if len(self._played) >= 3 else 0.0)
         mirror = time.time() - MIRROR_RECENT_SECS
-        if since is not None:
-            model, mirror = min(model, since - 1.0), min(mirror, since - 1.0)
+        if since is not None:  # the text of the reply playing then was written before that reply began, not before them
+            model, mirror = min(model, self._reply_began(since) - 1.0), min(mirror, since - 1.0)
         return self._model.words(model), self._model.words(model, said=True), self._mirror.words(mirror)
+
+    def _reply_began(self, at: float) -> float:
+        """When the reply playing at `at` began: its voice can stop and start again inside it (REPLY_GAP_SECS)."""
+        began = at
+        for start, stopped in reversed(self._played):
+            if start > at:
+                continue
+            if began < at and stopped and began - stopped > REPLY_GAP_SECS:
+                break
+            began = start
+        return began
 
     def _bot_words(self) -> set[str]:
         return set().union(*self._sources())
