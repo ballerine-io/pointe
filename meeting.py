@@ -582,6 +582,7 @@ class MeetingEars:
         self.drops = 0
         self._sent: deque = deque()  # (stream ms at its start, pcm) for the current stream
         self._sent_ms = 0.0
+        self._final_ms = 0.0  # the current stream has turned its audio into final words up to here
 
     async def open(self) -> None:
         from websockets.asyncio.client import connect
@@ -593,7 +594,7 @@ class MeetingEars:
             "context": {"terms": self._terms[:300]}}))
         self._ws = ws
         self._sent.clear()  # a new stream's clock starts at zero
-        self._sent_ms = 0.0
+        self._sent_ms = self._final_ms = 0.0
         self._tasks = [asyncio.create_task(self._receive(ws)), asyncio.create_task(self._keepalive(ws))]
         self.connected = self._opened = True
 
@@ -640,8 +641,22 @@ class MeetingEars:
             except Exception as e:
                 self.drops += 1
                 logger.warning(f"meeting ears down ({type(e).__name__}); reconnecting")
+                self._queue.appendleft(pcm)
+                self._requeue_unheard()
                 await self._hang_up()
                 self._retry_at = time.monotonic() + self._backoff
+
+    def _heard_until(self, tokens: list[dict]) -> None:
+        self._final_ms = max([self._final_ms] + [t["end_ms"] for t in tokens if t.get("end_ms") is not None])
+
+    def _requeue_unheard(self) -> None:
+        """A stream that ended under us took the audio it had not turned into words yet: the next stream gets it (an
+        owner's "Pointe, that's me" said as Soniox closed the stream was never heard otherwise)."""
+        unheard = self.audio_between(self._final_ms, self._sent_ms)
+        self._final_ms = self._sent_ms  # handed over once: a send failing after the stream ended must not repeat it
+        if unheard:
+            self._queue.appendleft(unheard)
+            logger.info(f"meeting ears: {len(unheard) / 2 / self._rate:.1f} s the closed stream had not transcribed go to the next one")
 
     def _keep_sent(self, pcm: bytes) -> None:
         self._sent.append((self._sent_ms, pcm))
@@ -666,9 +681,13 @@ class MeetingEars:
         try:
             async for message in ws:
                 data = json.loads(message)
+                if data.get("error_code"):  # Soniox says why before it closes the stream: a code and a reason, no words
+                    logger.warning(f"meeting ears: Soniox ended the stream ({data['error_code']}: "
+                                   f"{str(data.get('error_message') or '')[:160]})")
                 tokens = data.get("tokens") or []
                 final = [t for t in tokens if t.get("is_final")]
                 if final:
+                    self._heard_until(final)
                     await self._on_tokens(final)
                 if self._on_interim:
                     live = "".join(t.get("text", "") for t in tokens if not t.get("is_final") and not t.get("text", "").startswith("<"))
@@ -678,6 +697,7 @@ class MeetingEars:
             pass
         finally:
             if self._ws is ws:  # the stream ended under us: the sender redials on the next audio
+                self._requeue_unheard()
                 self._ws = None
                 self.connected = False
 
