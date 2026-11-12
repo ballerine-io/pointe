@@ -24,6 +24,8 @@ final class Call {
     private(set) var talk = TalkGate()
     /// Why the Mac closed the last press by itself ("held too long", "no audio"), until the next press.
     private(set) var talkClosedWhy: String?
+    /// Drive mode is on (the Mac's word): an AirPods or lock-screen play/pause mutes, when iOS sends it as one.
+    var driving = false { didSet { if driving != oldValue { remoteCommands(on: talk.ptt) } } }
     /// The call on screen, for the "Pointe: Talk" intent.
     static weak var current: Call?
 
@@ -142,6 +144,11 @@ final class Call {
             if on {
                 command.addTarget { [weak self] _ in
                     Task { @MainActor in self?.talkToggle() }
+                    return .success
+                }
+            } else if driving {
+                command.addTarget { [weak self] _ in
+                    Task { @MainActor in self?.toggleMute() }
                     return .success
                 }
             }

@@ -16,6 +16,9 @@
 	     refuses the self-signed certificate before the pin is checked (-9802). -->
 	<key>NSAppTransportSecurity</key>
 	<dict><key>NSAllowsArbitraryLoads</key><true/></dict>
+	<!-- Drive.swift: only to suggest Drive mode after a minute of driving, and only once turned on with a tap. -->
+	<key>NSMotionUsageDescription</key>
+	<string>Pointe suggests Drive mode when your iPhone senses you are driving. It never turns it on by itself.</string>
 	<key>UIBackgroundModes</key>
 	<array><string>audio</string><string>fetch</string></array>
 	<!-- Alerts.swift: Background App Refresh checks for a waiting request while the app is suspended, when iOS allows. -->

@@ -1813,6 +1813,10 @@ next call heard "Pellucine".
   (full refuses and stops learning, and shows "Full"). There is no `/voice/dictionary/learn` route: learning is inside
   `/voice/correct`.
 
+## Drive & walk mode (as built, 2026-11-12)
+
+Feature 3, on the daemon, the page and the app. `drive.py` holds the rules (the road allowlist, the phrases, the copy);
+`daemon.py` asks it at the read-out (`_read_out`), at a yes (`_answer_permission`) and in `current_mode()`.
 ## Devil's advocate (as built, 2026-11-12)
 
 Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
@@ -1822,6 +1826,74 @@ evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends
 
 | | |
 |---|---|
+| `POST /voice/drive {on: true\|false}` | `{drive: <status>}`. 400 unless `on` is a boolean; turning it on is 409 with no call or a meeting on. Page cookie, bearer token, phone key |
+| status `drive` | `{on, since, how: voice\|button, dropped_at, pending: [{session, request_id, voice}]}`. `voice`: a spoken yes may answer that request while driving |
+| status `mode_state` | `{mode: "drive", approvals: "drive"}` while on (a meeting or a brainstorm outranks it) |
+
+Voice: "drive mode", "walk mode", "I'm driving", "מצב נהיגה" turn it on; "back to normal", "I've stopped", "exit drive
+mode", "חזרה לרגיל", "עצרתי" turn it off (a whole short utterance; never reaches the brain; not during a meeting or a
+brainstorm). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
+
+### Voice approval while driving (owner decision 4)
+
+A spoken yes approves only when every existing rule holds (the daemon's own read-out, a bound yes begun after it ended,
+within 120 s, nothing else said, never typed, never the bot's echo, never aimed at another session) and also:
+
+1. the read-out allowlist can say it whole (`readable_request`; `readout.redact` withholds credentials);
+2. `drive.road_safe` allows it (see SECURITY.md "Drive mode"); a request not noted at `_put_permission` (a restart) is
+   not road safe;
+3. with a voiceprint stored (or a damaged voiceprint file), the yes is `speaker.strong` (≥ 0.55, ≥ 1 s of speech) at
+   any lock level, Off included; continuity's weaker match does not count. Utterances are scored while driving even
+   with the lock Off.
+
+Otherwise the read-out says "X wants to run: … I won't approve that while you drive. It waits until you stop, or say no."
+(or "X needs an approval I can't read out. It waits until you stop, or say no.") with no yes window; a yes repeats it; a
+no from anyone denies it. A tap still answers any request. Entering or leaving the mode closes an open yes window and
+reads the pending request again in the new mode's form.
+
+### Drive mode and a challenge
+
+Never both, and driving wins: entering drive mode (phrase or button) ends a challenge with no verdict (a verdict is a
+long speech; the challenge stays in status as ended, and its panel waits until the user stops driving), and a challenge
+is refused while driving (409 "Not while driving: …"; the Challenge button and menu item are disabled). "Back to normal"
+ends whichever of the two is on; outside both it is ordinary speech for the brain (it used to be swallowed by the drive
+phrase check). `current_mode()` checks the challenge first, but the two are never on together.
+
+### Ends with the call
+
+`/voice/hung-up` and the idle hang-up end it at once. A dropped link (a tunnel) keeps it for `drive.DROP_GRACE_SECS`
+(5 min); a call back within that keeps it on, after that it is off.
+
+### Brevity
+
+`drive.RULES` is added to the brain's `[right now]` context; `Brain.style_problem` sends back a reply over 25 words
+("Shorter: they are driving"); an active session's report is its one `line`; the brain's "Sorry, I lost that" is
+silent (`Brain.terse`).
+
+### Clients
+
+- **Page:** a Drive button in the dock; while on, a drive bar (one big line: who needs you, else Speaking / Listening /
+  N working / All quiet; "I've stopped"), typing folded away, and the approval card without buttons, saying "Say yes or
+  no." (or "…, in a full sentence." with a voiceprint), "Not for the road: …" or "Can't be read out: …".
+- **App:** the same button in the bottom bar (Type hides while driving), a drive screen with the same line, the live
+  caption and "I've stopped", the same card without buttons, Now Playing "Pointe · lantern needs you", play/pause as
+  mute (`Call.driving`), and "Switch to Drive mode?" when CarPlay's audio route carries the call or after 60 s of
+  `CMMotionActivity` automotive. Menu → "Suggest Drive mode in the car" (per device, default on).
+
+### Deviations from the plan
+
+- **Route:** `POST /voice/drive`, not a generic `/voice/mode-state` (the phone key matches exact paths; no other mode
+  uses it yet).
+- **Taps stay on while driving** (owner: anything destructive still needs a tap); the UI hides the buttons behind
+  "I've stopped" instead of the plan's "none by tap".
+- **The read-out allowlist is unchanged**; drive mode adds a second allowlist after it rather than a `profile` argument
+  to `readout.spoken`. A destructive but readable request is said in full and waits (owner decision 4), never denied
+  outright.
+- **Motion** is used only after the setting is turned on with a tap (iOS asks then); by default only CarPlay's route
+  suggests the mode. A plain Bluetooth car kit is indistinguishable from a headset to iOS.
+- **The `"modes": {"drive": true}` flag** was not added: the mode only narrows and is off until asked for.
+- **Not built:** "use the iPhone mic" advice on poor HFP audio (needs a real car measurement first); a live e2e of the
+  voiceprint rule (offline tests cover it); Hebrew wording of the brain's own short replies beyond the fixed lines.
 | `POST /voice/challenge` | `{action: start\|end}` → `{challenge}`. 400 on a bad action; 409 with the reason: no call, a meeting on, already on (start), none on (end), a non-brain front. Page cookie, bearer token, phone key |
 | status `challenge` | `null`, or `{id, on, since, ended_at, plan, sessions, objections, verdict, evidence, items: [{kind: objection\|rebuttal\|verdict, text, at}]}`. The last one stays (`on: false`) until a new one starts |
 | status `mode_state.mode` | `challenge` while on |

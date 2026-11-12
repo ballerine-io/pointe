@@ -24,6 +24,7 @@ struct API {
         var showing: Showing?       // show while it says: what the voice is reporting on; nil when off on this phone
         let shown_earlier: [ShownSet]?
         var show_on_phone: Bool?    // the Mac's setting; nil from a Mac without the feature
+        var drive: DriveStatus?     // drive & walk mode (Drive.swift); nil from a Mac without it
         var challenge: ChallengeStatus?  // devil's advocate (Challenge.swift): on, or the last one ended; nil from a Mac without it
         var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
     }

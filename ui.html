@@ -713,6 +713,12 @@
     </div>
   </div>
   <div id="conflicts" role="region" aria-label="Sessions that disagree" aria-live="polite"></div>
+  <div id="drivebar" role="status" aria-live="polite" hidden>
+    <div class="dtitle">Drive mode</div>
+    <div class="dline" id="drive-line"></div>
+    <div class="dhint">Short answers. Pointe approves by voice only what it can read out and is safe from the road.</div>
+    <button id="drive-stop" onclick="setDrive(false)">I've stopped</button>
+  </div>
   <div id="attention"></div>
   <div id="briefalert"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span id="caption-text"></span></div>
@@ -728,6 +734,9 @@
     <button class="btn" id="briefbtn" onclick="openBriefing()" title="What each session did, failed and waits on">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h10M4 15h16M4 20h8"/></svg></span>
       Briefing</button>
+    <button class="btn" id="drivebtn" onclick="toggleDrive()" disabled aria-pressed="false" title="Driving or walking: short answers, nothing to look at or tap">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6h12l2 6v4H4z"/><circle cx="8" cy="14.5" r=".8"/><circle cx="16" cy="14.5" r=".8"/></svg></span>
+      Drive</button>
     <button class="btn" id="chlbtn" onclick="challengeButton()" disabled title="The voice argues against your plan, one objection at a time">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></svg></span>
       <span id="chl-label">Challenge</span></button>
@@ -814,6 +823,7 @@
     showConflicts(status);
     showBriefing(status);
     if (window.desktopAlerts) desktopAlerts(status);
+    if (window.showDrive) showDrive(status);
     if (window.showChallenge) showChallenge(status);
     showShowing(status);
     if (window.dictionaryFollow) dictionaryFollow(status);
@@ -830,7 +840,7 @@
     agentOf = x => AGENTS[x.harness || 'claude-code'] || x.harness;
     const waiting = s.sessions.filter(x => x.waiting && x.request_id && (x.capabilities || {}).approvals !== false).sort((a, b) => (b.name === s.active) - (a.name === s.active));
     const first = waiting[0];
-    const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) : '';
+    const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) + !!(s.drive && s.drive.on) : '';
     if (key !== attentionShown) {
       attentionShown = key;
       $('attention').replaceChildren(...(first ? [approvalCard(first, s, waiting.length - 1)] : []));
@@ -878,6 +888,7 @@
   }
   let attentionShown = '', agentBadges = false, agentOf = x => x.harness;
   function approvalCard(x, s, more) {
+    if (s.drive && s.drive.on && window.driveCard) return driveCard(x, s, more);  // no buttons while driving
     const b = el('div', 'ask');
     const what = el('div', 'what', short(x.name) + ' ');
     if (agentBadges) what.append(el('span', 'agent', agentOf(x)), ' ');
@@ -2240,6 +2251,63 @@
     $('pref-desktop-note').textContent = box.checked ? '' : DESK_BLOCKED;
   }
 </script>
+<style>
+  /* Drive & walk mode: one big line to glance at, nothing to tap but "I've stopped". */
+  #drivebar { margin: 10px 28px; padding: 18px 22px; border-radius: 22px; background: var(--card); border: 2px solid var(--orange);
+              text-align: center; }
+  #drivebar .dtitle { font: 700 13px 'Inter', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--orange); }
+  #drivebar .dline { font: 700 30px/1.2 'Inter', sans-serif; margin: 8px 0; color: var(--text); }
+  #drivebar .dhint { font: 14px 'Inter', sans-serif; color: var(--muted); }
+  #drivebar button { margin-top: 12px; border: 0; border-radius: 16px; padding: 14px 26px; background: var(--card2); color: var(--text);
+                     font: 600 17px 'Inter', sans-serif; cursor: pointer; }
+  body.driving #compose, body.driving #typebtn { display: none; }
+  body.driving #caption { font-size: 22px; }
+  .ask.drive .need.big { font: 600 20px 'Inter', sans-serif; }
+</style>
+<script>
+  // Drive & walk mode (drive.py holds the rules). The daemon owns the mode; this page only shows it and asks for it.
+  const DRIVE_COPY = {
+    voice: 'Say yes or no.',
+    voiceStrong: 'Say yes or no, in a full sentence.',
+    road: 'Not for the road: it waits until you stop. Say no to deny it.',
+    unreadable: 'Can’t be read out: it waits until you stop. Say no to deny it.',
+  };
+  async function setDrive(on) {
+    const r = await fetch('/voice/drive', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
+    if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Drive mode did not change.';
+    refresh();
+  }
+  function toggleDrive() { setDrive(!(status && status.drive && status.drive.on)); }
+  function driveLine(s) {
+    const pending = (s.drive.pending || [])[0];
+    if (pending) return `${short(pending.session)} needs you`;
+    if (s.speaking === 'bot') return 'Speaking';
+    if (s.speaking === 'user') return 'Listening';
+    const working = (s.sessions || []).filter(x => x.working).length;
+    return working ? `${working} working` : 'All quiet';
+  }
+  function driveHint(x, s) {
+    const p = (s.drive.pending || []).find(p => p.request_id === x.request_id);
+    if (p && p.voice) return (s.voice_lock || {}).enrolled ? DRIVE_COPY.voiceStrong : DRIVE_COPY.voice;
+    return x.voice_can_approve ? DRIVE_COPY.road : DRIVE_COPY.unreadable;
+  }
+  function driveCard(x, s, more) {
+    const b = el('div', 'ask drive');
+    b.append(el('div', 'what', short(x.name) + ' needs approval'), el('div', 'need big', driveHint(x, s)));
+    if (more > 0) b.append(el('div', 'more', `${more} more waiting`));
+    return b;
+  }
+  function showDrive(s) {
+    const on = !!(s && s.drive && s.drive.on), live = !!(s && s.connected), meeting = !!(meetingOf(s) || {}).on;
+    document.body.classList.toggle('driving', on);
+    $('drivebar').hidden = !on;
+    const btn = $('drivebtn');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.disabled = !on && (!live || meeting);
+    if (on) $('drive-line').textContent = driveLine(s);
+  }
+</script>
 <script>
   // Challenge me: the daemon argues against the plan (challenge.py) and can never act while it does. The page starts and
   // ends it, and writes out the objections, the user's answers and the verdict. Close only hides an ended one here.
@@ -2265,12 +2333,13 @@
     if (!s) return;
     const c = s.challenge, on = !!(c && c.on), live = !!s.connected, meeting = !!(meetingOf(s) || {}).on;
     const btn = $('chlbtn');
-    btn.disabled = !live || meeting || !!s.monologue;
+    const driving = !!(s.drive && s.drive.on);  // never both: driving wins (drive.py)
+    btn.disabled = !live || meeting || !!s.monologue || driving;
     btn.classList.toggle('on', on);
     $('chl-label').textContent = on ? 'End challenge' : 'Challenge';
     btn.title = meeting ? 'Not during a meeting.' : 'The voice argues against your plan, one objection at a time';
     $('bs-challenge').disabled = !live;
-    const shown = !!c && (on || (c.id !== chlClosed() && !s.monologue && !meeting));
+    const shown = !!c && (on || (c.id !== chlClosed() && !s.monologue && !meeting && !driving));
     $('challenge').hidden = !shown;
     if (!shown) { chlKey = ''; return; }
     const key = `${c.id}:${on}:${c.items.length}:${c.verdict || ''}`;
