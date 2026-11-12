@@ -120,6 +120,8 @@ struct CallView: View {
         }
         .sheet(isPresented: $showConflictSettings) {
             ConflictSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
         .sheet(isPresented: $showBriefing) {
             BriefingSheet(status: status?.briefing, callUp: phase == .live, meetingOn: meeting?.isOn == true,
                           load: loadBriefings, act: briefing)
