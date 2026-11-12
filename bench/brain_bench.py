@@ -1,6 +1,6 @@
 """Which model should decide what the voice says (the brain), and which should turn a long final message into a report (the reader).
 
-    .venv/bin/python bench/brain_bench.py validate                  # counts, lengths, synthetic-data lint, format against the daemon
+    .venv/bin/python bench/brain_bench.py validate                  # counts, lengths, synthetic-data lint
     .venv/bin/python bench/brain_bench.py run --role brain|reader   # resumable; raw rows in results/brain_raw.jsonl
     .venv/bin/python bench/brain_bench.py judge                     # blind 1-5 score of every distinct reply
     .venv/bin/python bench/brain_bench.py report                    # scores offline from the raw rows; writes results/brain.md
@@ -197,6 +197,8 @@ def instrument(vendor_list: set[str]) -> None:
 
 def load_daemon():
     """Read-only: its import needs a state dir with a token, and it starts nothing."""
+    if "daemon" in sys.modules:
+        return sys.modules["daemon"]
     tmp = tempfile.mkdtemp(prefix="brain-bench-")
     Path(tmp, "token").write_text("bench")
     os.environ["CLAUDE_VOICE_STATE"] = tmp
@@ -218,6 +220,29 @@ def freeze_prompts() -> dict:
     OUT.mkdir(exist_ok=True)
     PROMPTS.write_text(json.dumps(frozen, ensure_ascii=False, indent=1))
     return frozen
+
+
+def daemon_context(case: bc.BrainCase) -> tuple[str, str]:
+    """The case's [right now] block and needs list, made by the daemon's own _brain_context and _needs_now from its
+    registry and state seeded with the case, so the bench sends what the daemon sends. Synchronous: replies run in
+    parallel on one daemon state, and nothing else can run between seeding and reading."""
+    d = load_daemon()
+    from sessions import REGISTRY, Session
+    REGISTRY.path = None
+    REGISTRY.sessions = {}
+    REGISTRY.mode = case.mode
+    d.state.unconfirmed = {}
+    for i, s in enumerate(case.sessions):
+        sid = f"s{i}"
+        REGISTRY.sessions[sid] = Session(id=sid, name=s.name, cwd="/tmp", pid=1, transcript="", busy=s.busy, brief=s.notes,
+                                         open_questions=list(s.waits), deadlines=list(s.clocks), urgency="high" if s.urgent else "normal",
+                                         typed_approval=s.typed, permission_id="p" if s.permission else None)
+        if s.sent:
+            d.state.unconfirmed[sid] = list(s.sent)
+    REGISTRY.active_id = f"s{case.active}"
+    d.state.challenge = case.challenge
+    d.state.last_utterance = case.words
+    return d._brain_context(), d._needs_now()
 
 
 # ---------- one reply ----------
@@ -243,6 +268,13 @@ def default_tool_result(case: bc.BrainCase, name: str, args: dict):
     return {"error": f"No tool named {name}."}
 
 
+def sent_refusal(case: bc.BrainCase, args: dict) -> dict | None:
+    """The daemon's own typed-approval refusal, judged on the session the send aims at."""
+    named = str(args.get("session") or "").strip().lower()
+    s = next((x for x in case.sessions if x.name.lower() == named), None) if named else case.sessions[case.active]
+    return load_daemon().typed_approval_refusal(str(args.get("message", "")), SimpleNamespace(name=s.name, typed_approval=s.typed) if s else None)
+
+
 def stub_tools(case: bc.BrainCase, frozen: dict, calls: list) -> list:
     used: dict[str, int] = {}
 
@@ -254,6 +286,8 @@ def stub_tools(case: bc.BrainCase, frozen: dict, calls: list) -> list:
                 result = canned[min(used.get(name, 0), len(canned) - 1)]
             else:
                 result = canned if canned is not None else default_tool_result(case, name, params.arguments)
+            if name == "send_to_claude_code" and canned is None:
+                result = sent_refusal(case, params.arguments) or result
             used[name] = used.get(name, 0) + 1
             calls.append({"name": name, "args": params.arguments, "result": result})
             await params.result_callback(result)
@@ -299,8 +333,7 @@ async def brain_reply(choice: str, case: bc.BrainCase, frozen: dict) -> dict:
     async def speak(text: str) -> None:
         spoken.append(text)
 
-    block = bc.right_now(case, brief.render_brief)
-    needs = bc.needs_block(case)
+    block, needs = daemon_context(case)
     has_open = lambda: needs if re.search(r"Waits on the user for: (?!nothing)", needs) else None  # noqa: E731 daemon._open_items
     b = brain_module.Brain(choice, frozen["brain_system"], stub_tools(case, frozen, calls), lambda: block, speak,
                            has_open=has_open, sent_lately=lambda: case.sent_lately, **daemon_gates(case))
@@ -435,11 +468,15 @@ def speech_failures(text: str, session_names: list[str]) -> list[str]:
     return out
 
 
+def excused(rubric: bc.Rubric, call: dict) -> bool:
+    return rubric.lookup_ok and call["name"] == bc.SEND and bc.lookup_only(str(call["args"].get("message", "")))
+
+
 def score_brain(case: bc.BrainCase, row: dict) -> list[str]:
     r, said = case.rubric, row.get("spoken") or ""
     if row.get("error") or row.get("fallback") or (not said and not r.silence_ok):
         return ["no usable reply"]
-    called = [c["name"] for c in row["calls"]]
+    called = [c["name"] for c in row["calls"] if not excused(r, c)]
     sends = [str(c["args"].get("message", "")) for c in row["calls"] if c["name"] == bc.SEND]
     fails = []
     if r.tool and not set(r.tool) & set(called):
@@ -559,7 +596,7 @@ def reader_view(case: bc.ReaderCase) -> str:
 
 def brain_view(case: bc.BrainCase) -> str:
     past = "\n".join(f"{who}: {text}" for who, text in case.history) or "(no earlier turns)"
-    return (f"What the assistant knew:\n{bc.right_now(case, brief.render_brief)}\n\nEarlier in the call:\n{past}\n\n"
+    return (f"What the assistant knew:\n{daemon_context(case)[0]}\n\nEarlier in the call:\n{past}\n\n"
             f"The user now says: {case.words}")
 
 
@@ -725,7 +762,7 @@ def summarise(role: str, rows: list[dict], scores: dict) -> dict:
             "fallbacks": sum(1 for r in mine if r.get("fallback")), "retries": sum(r["retries"] for r in mine),
             "pass": float(arr.mean()) if len(arr) else float("nan"), "ci": bootstrap_mean(arr) if len(arr) else (float("nan"),) * 2,
             "classes": classes, "nolen_fractions": nolen, "judge_fractions": {c: float(np.mean(v)) for c, v in by_case_judge.items()},
-            "unwanted_sends": sum(1 for r in mine if role == "brain" and bc.SEND in cases[r["case"]].rubric.banned and any(c["name"] == bc.SEND for c in r["calls"])),
+            "unwanted_sends": sum(1 for r in mine if role == "brain" and bc.SEND in cases[r["case"]].rubric.banned and any(c["name"] == bc.SEND and not excused(cases[r["case"]].rubric, c) for c in r["calls"])),
             "fractions": fractions, "pass_nolen": float(np.mean(list(nolen.values()))) if nolen else float("nan"),
             "nolen_ci": bootstrap_mean(np.array(list(nolen.values()), dtype=float)) if nolen else (float("nan"),) * 2, "gate_trips": gate_trips,
             "words_p50": percentile([words_in(_spoken(role, r)) for r in ok], 50),
@@ -1026,34 +1063,11 @@ def validate(_args) -> None:
     hit = DENY.search(frozen_system)
     if hit:
         print(f"note: the prompt contains {hit.group(0)!r}, and it would be published in brain_prompts.json")
-    from sessions import REGISTRY, Session
-    mismatches = 0
-    for c in bc.BRAIN_CASES:
-        REGISTRY.path = None
-        REGISTRY.sessions = {}
-        REGISTRY.mode = c.mode
-        d.state.unconfirmed = {}
-        for i, s in enumerate(c.sessions):
-            sid = f"s{i}"
-            REGISTRY.sessions[sid] = Session(id=sid, name=s.name, cwd="/tmp", pid=1, transcript="", busy=s.busy, brief=s.notes,
-                                             open_questions=list(s.waits), deadlines=list(s.clocks), urgency="high" if s.urgent else "normal",
-                                             typed_approval=s.typed, permission_id="p" if s.permission else None)
-            if s.sent:
-                d.state.unconfirmed[sid] = list(s.sent)
-        REGISTRY.active_id = f"s{c.active}"
-        d.state.challenge = c.challenge
-        d.state.last_utterance = c.words
-        ours, theirs = bc.right_now(c, brief.render_brief), d._brain_context()
-        if ours != theirs:
-            mismatches += 1
-            if mismatches == 1:
-                print("first format mismatch:\n--- ours\n" + ours + "\n--- daemon\n" + theirs)
     print(f"{len(bc.BRAIN_CASES)} brain cases, {len(bc.READER_CASES)} reader cases, "
           f"reader lengths {min(len(c.final) for c in bc.READER_CASES)} to {max(len(c.final) for c in bc.READER_CASES)} characters")
     print(f"categories: {sorted(set(c.cat for c in bc.BRAIN_CASES))}")
-    print(f"format against daemon._brain_context: {mismatches} mismatches")
     print("problems: " + ("; ".join(problems) if problems else "none"))
-    if problems or mismatches:
+    if problems:
         raise SystemExit(1)
 
 

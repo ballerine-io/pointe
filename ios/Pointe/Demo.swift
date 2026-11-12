@@ -5,7 +5,8 @@ import Foundation
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
-                       showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive }
+                       showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
+                       whisper, whisperOff }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -35,6 +36,7 @@ struct Demo {
         case .challenge: challengeJSON(on: true)
         case .challengeEnded: challengeJSON(on: false)
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
+        case .whisper, .whisperOff: whisperJSON(on: screen == .whisper)
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -74,6 +76,18 @@ struct Demo {
          "sessions": \(sessions), "talk": \(talk),
          "dictionary": {"count": 2, "cap": 400, "full": false, "learn": true, "problem": null,
                         "learned_this_call": \(learned ? "[{\"term\": \"Quillfeather\", \"at\": 1}]" : "[]")}}
+        """
+    }
+
+    /// Whisper mode from the Mac: on (with the voice lock at Approvals, and push to talk off, so both notes show), or off.
+    private static func whisperJSON(on: Bool) -> String {
+        let note = "Your voiceprint was learned from your normal voice. A whispered yes may not match it: then tap to approve."
+        let whisper = on ? "{\"on\": true, \"output_gain\": 0.5, \"max_words\": 20, \"suggest_ptt\": true, \"lock_note\": \"\(note)\"}"
+                         : "{\"on\": false, \"output_gain\": 1.0, \"max_words\": null, \"suggest_ptt\": false, \"lock_note\": null}"
+        return """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+         "hearing": "ask billing whether the retry fix landed", "sessions": \(sessions), "talk": \(talk),
+         "whisper": \(whisper)}
         """
     }
 

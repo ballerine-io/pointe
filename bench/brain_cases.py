@@ -9,7 +9,7 @@ Redis) are generic terms.
 
 import random
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import challenge
 
@@ -47,6 +47,18 @@ class Rubric:
     order: tuple = ()  # the first regex matches earlier in the reply than the second
     starts: str = ""  # this regex matches within the first 8 words
     silence_ok: bool = False  # saying nothing at all is a right answer here
+    lookup_ok: bool = False  # a send that only asks the session for information is not a banned send
+
+
+ACTION = (r"(?:^|[.:;!]\s+|\b(?:please|and|then|go ahead and|you should|(?:can|could|would) you)\s+)(?:change|edit|fix|merge|"
+          r"revert|put|move|delete|remove|deploy|ship|implement|apply|switch|add|drop|restore|rewrite|replace|run|push|commit|"
+          r"launch)\b|\bapprov\w*|\bgo ahead\b")  # an imperative: context such as "we plan to launch Friday" is not one
+LOOKUP = r"\b(?:find|look up|check|what|how (?:many|much)|which|when|report|tell (?:me|us)|pull|figure|confirm whether)\b|\?"
+
+
+def lookup_only(message: str) -> bool:
+    """A send that asks for information and asks for no change."""
+    return bool(re.search(LOOKUP, message, re.I)) and not re.search(ACTION, message, re.I)
 
 
 @dataclass
@@ -62,54 +74,6 @@ class BrainCase:
     mode: str = "orchestrator"
     sent_lately: bool = False
     challenge: object = None  # challenge.Challenge while the voice plays devil's advocate
-
-
-def _sort_key(s: S, active: S):
-    return (not _items(s), not s.urgent, s is not active)
-
-
-def _items(s: S) -> list[str]:
-    waits = list(s.waits)
-    if not waits and s.notes and s.notes.get("waiting_on_user"):
-        waits = [s.notes["waiting_on_user"]]
-    if s.permission:
-        waits.insert(0, "a permission approval")
-    if s.typed:
-        waits.append(f"the user must type this approval in its terminal: {s.typed}")
-    return waits
-
-
-def needs_block(case: BrainCase) -> str:
-    """The same text as daemon._needs_now; `brain_bench.py validate` compares the two."""
-    active = case.sessions[case.active]
-    lines = []
-    for s in sorted(case.sessions, key=lambda x: _sort_key(x, active)):
-        notes = s.notes or {}
-        promised = "; ".join(str(p) for p in notes.get("owner_promised") or [])
-        lines.append(f"- {s.name} ({'working' if s.busy else 'not working'}). {notes.get('state') or 'No notes on it yet.'}"
-                     f"{' URGENT.' if s.urgent and _items(s) else ''} "
-                     f"Waits on the user for: {'; '.join(_items(s)) or 'nothing'}."
-                     + (f" Clocks: {'; '.join(s.clocks)}." if s.clocks else "")
-                     + (f" Sent to it, with no report back yet, so not known to be done: {'; '.join(s.sent)}." if s.sent else "")
-                     + (f" The user said they would: {promised}." if promised else ""))
-    return ("[what each session needs right now, most urgent first; this is the truth, also over your own memory: answer "
-            "from it, most urgent first, and include every clock. What you sent is listed here word for word. An item sent may "
-            "have answered a question listed; "
-            "anything else listed is still open]\n" + "\n".join(lines))
-
-
-def right_now(case: BrainCase, render_brief) -> str:
-    """The same text as daemon._brain_context."""
-    lang = "Hebrew" if re.search(r"[֐-׿]", case.words) else "English"
-    active = case.sessions[case.active]
-    parts = [f"[right now] The user's latest words are in {lang}: speak {lang}.",
-             f"Active session: {active.name}. Routing mode: {case.mode}."]
-    if active.notes:
-        parts.append(render_brief(active.name, active.notes))
-    if case.challenge is not None:
-        parts.append(challenge.context_line(case.challenge))
-    parts.append(needs_block(case))
-    return "\n".join(parts)
 
 
 NO = r"\bno\b|\bnot\b|n't\b|\bnope\b|\bmisses\b|\bmissed\b|\bfails?\b|\bhold\b|\bwait\b"
@@ -474,7 +438,9 @@ def _pair(name: str, before_words: str, after_words, rubric: Rubric, sessions, h
     """The same moment before and after the feature. after_words may be a callable of the challenge (its bracket)."""
     ch = chl if chl is not None else _chl(REDIS_PLAN)
     after = after_words(ch) if callable(after_words) else after_words
-    return [BrainCase(f"chl_{name}_before", "challenge_before", before_words, sessions, rubric, history=history,
+    # Before challenge.py nothing refused a send, and asking the session for a fact is a fair answer to a question.
+    before = replace(rubric, lookup_ok=True) if SEND in rubric.banned else rubric
+    return [BrainCase(f"chl_{name}_before", "challenge_before", before_words, sessions, before, history=history,
                       tools=dict(tools or {})),
             BrainCase(f"chl_{name}_after", "challenge_after", after, sessions, rubric, history=history + after_history,
                       tools=dict(tools or {}), challenge=None if after.startswith("[challenge ended]") else ch)]

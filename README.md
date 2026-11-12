@@ -99,7 +99,7 @@ leaking into the mic, one run each on 2026-11-08. `bin/voice-doctor` tells you w
 **Run without any cloud:** set every role to `local` (`"ears": "local", "mouth": "local", "brain": "local:<model>"`, the same
 for `reader` and `checker`). Ears are Whisper, the mouth is Kokoro, and text models come from any OpenAI-compatible server
 (Ollama by default, `CLAUDE_VOICE_LOCAL_URL` for others). It is not a conversation yet: the best local brains
-measured a median reply of 13 to 27 seconds, against 2.3 for Sonnet. Local ears and mouth have not been benchmarked.
+measured a median reply of 13 to 27 seconds, against 1.8 for Sonnet. Local ears and mouth have not been benchmarked.
 
 On macOS, keep keys in the Keychain instead of the environment. The command prompts, so the key stays out of your history:
 `security add-generic-password -U -s anthropic-api-key -a "$USER" -w`. The other names are `soniox-api-key`, `elevenlabs-api-key`,

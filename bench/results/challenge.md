@@ -51,9 +51,13 @@ Two "before" groups were widened after the first scoring, which raised Gemini's 
 nothing else: `no_evidence` now accepts "I don't have that number", and `no_plan` accepts "what specifically are we
 challenging". The rubric is regex-based and modest; the judge pass was not run.
 
-## Known gap, not from this change
+A third change, on 2026-11-12, after a Sonnet run sent a lookup on `chl_no_evidence_before` in 3 of 3 repeats: in the
+"before" cases (no challenge.py, so nothing refuses a send) a send that only asks the session for information
+(`brain_cases.lookup_only`: a request to find, check or report, and no imperative to change anything) is no longer a
+banned send. The "after" cases still ban every send, because challenge.py refuses them. The numbers above predate this
+change.
 
-`brain_bench.py validate` reports a format mismatch against `daemon._brain_context` on all 66 existing cases at the
-commit before this change too: the daemon's needs block has changed since the
-replica in `bench/brain_cases.right_now` was written. The
-challenge pairs use the bench's format on both sides, so the before/after comparison is like for like.
+## Context format
+
+The challenge pairs above were run while the bench used its own copy of the daemon's context. Since 2026-11-12 it calls
+`daemon._brain_context` itself, so that copy and its mismatch are gone.

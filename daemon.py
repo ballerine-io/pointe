@@ -20,6 +20,7 @@ import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import aiohttp
@@ -39,6 +40,7 @@ from ptt import Ptt
 import vendors
 import vocabulary
 import watchdog
+import whisper
 from jobs import JobRunner
 from notes import Notes
 from prefs import Prefs
@@ -64,7 +66,8 @@ from brief import (
 from brief import parse as parse_reply
 from echo import AudioClock, EchoGuard, LevelGate, words as echo_words
 import phone
-from guards import (
+from readout import mask
+from guards import (relays_approval, 
     LocalAuth,
     permission_answer,
     listen_intent,
@@ -669,6 +672,8 @@ def _brain_context() -> str:
         parts.append(drives.RULES)
     if names := vocabulary.brain_line(DICTIONARY):
         parts.append(names)
+    if _whispering():
+        parts.append(whisper.REPLY_RULE)
     parts.append(_needs_now())
     return "\n".join(parts)
 
@@ -771,7 +776,7 @@ class BrainFront(FrameProcessor):
                 logger.info("speech held: nobody in the meeting asked for it")
                 return
             state.meeting_may_speak_until = 0.0  # one reply per ask
-            state.meeting_said.append((time.time(), text))
+        state.bot_spoke.append((time.time(), text))
         if request_id is None:  # a read-out stays exact: its command may contain a session's name
             text = _spoken_names(text)
         # in a meeting the bot's words can quote the room, which the log never keeps
@@ -862,7 +867,7 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
             LEVEL.frame(float(np.sqrt(np.mean(pcm * pcm))) if pcm.size else 0.0, ECHO.speaking)
-            if VOICE.wanted(lock_level()):  # the voice lock scores the next utterance on this audio
+            if _scores_voices():  # the lock, or drive mode with a voiceprint, scores the next utterance on this
                 VOICE.collector.frame(frame.audio, voiced=self._voiced)
             return  # the model gets words, not audio
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
@@ -959,27 +964,42 @@ class SonioxEars(FrameProcessor):
     async def _take(self, heard: str) -> None:
         if state.briefing_play is not None and state.monologue is None and (steer := briefing.control_intent(heard)):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
+            await _no_also_denies(heard)
             await briefing_control(steer)
             return
         if state.monologue is None and (asked := briefing.briefing_intent(heard)) is not None \
-                and _briefing_refusal() is None:
+                and ((refusal := _briefing_refusal()) is None or state.challenge is not None):
             # In code: asked to "brief me", the brain sometimes answers from memory instead of calling the tool.
             _remember("user", heard)
             state.last_utterance = heard  # its language; not fresh speech for a send
+            if refusal:  # in a challenge: said here, so the brain never briefs from memory as an argument
+                await say(f"[briefing refused] {refusal} Tell the user in one short sentence.")
+                return
             start_briefing(asked, asked)
             await say("[briefing asked] The user asked for a briefing; it is being read now. Say only that it is coming, "
                       "in a few words. Send nothing.")
             return
         if state.monologue is None and state.meeting is None and (asked := drives.intent(heard)) \
                 and (asked == "on" or state.drive.on()):  # "back to normal" outside drive mode is someone else's
+            if asked == "on" and state.meeting_starting:  # as the route: not into a meeting; the room hears no reply
+                logger.info("drive mode: refused, a meeting is starting")
+                return
             _remember("user", heard)
             state.last_utterance = heard  # its language; never fresh speech for a send
             await set_drive(asked == "on", "voice")
+            return
+        # "Back to normal" ends one mode, in one order: drive mode (above), then a challenge (_challenge_words), then
+        # whisper mode. A "back to normal" with whisper mode off is someone else's words, as for drive mode.
+        if state.monologue is None and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")) \
+                and not (state.challenge is not None and challenge.end_intent(heard)):
+            await _whisper_by_voice(heard, quiet)
             return
         wanted = meeting_intent(heard)
         if wanted and state.monologue is None:
             await _start_meeting_by_voice(heard, wanted)
             return
+        if state.challenge is not None and state.monologue is None and challenge.end_intent(heard):
+            await _no_also_denies(heard)
         if await _challenge_words(heard):
             return
         if state.monologue is not None:
@@ -1239,7 +1259,8 @@ class State:
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
     meeting_may_speak_until: float = 0.0  # in participating, the room hears the bot only inside this window
-    meeting_said: deque = field(default_factory=lambda: deque(maxlen=8))  # (when, text): what the bot said into the meeting
+    # (when, text): what the bot said lately, in a meeting or just before one (its echo lands in the next meeting's stream)
+    bot_spoke: deque = field(default_factory=lambda: deque(maxlen=8))
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
     last_message: str = ""  # the last delivered request, word for word
@@ -1645,6 +1666,8 @@ def _briefing_refusal() -> str | None:
         return "Not during a meeting: a briefing is never spoken into the room. It can wait until the meeting ends."
     if state.monologue is not None:
         return "Not while the user is thinking out loud."
+    if state.challenge is not None:  # as the brain's briefing tool (modes.CHALLENGE): a challenge argues, it never reads out
+        return "Not during a challenge. End it first, then ask again."
     return None
 
 
@@ -2098,6 +2121,14 @@ async def _challenge_words(text: str) -> bool:
     return False
 
 
+async def _no_also_denies(text: str) -> None:
+    """Owner rule: a no from any voice denies, in every mode. Spoken words that end a challenge or steer a briefing and
+    are a no ("stop", "עצור": guards._NO) also deny the pending request, under every rule that binds a no, before the
+    mode ends (its end would put the request to the user again). Denying is the safe direction; nothing here approves."""
+    if permission_answer(text) == "deny":
+        await _answer_permission(text, deny_only=True)
+
+
 def _challenge_note(kind: str, text: str) -> None:
     ch = state.challenge if kind != "verdict" else state.last_challenge
     if ch is not None and (item := ch.add(kind, text)) is not None:
@@ -2220,9 +2251,11 @@ def _drive_status() -> dict:
 async def set_drive(on: bool, how: str) -> bool:
     """Enter or leave drive mode (the phrase or the button). A pending request is put again in the new mode's form,
     and the yes window of the old read-out closes first: a yes heard before the switch answers nothing after it."""
-    if on and state.drive.on() is False and state.challenge is not None:
-        await end_challenge(verdict=False)  # never both: driving wins, and a verdict would be a long speech
     changed = state.drive.enter(how) if on else state.drive.leave()
+    if on and state.challenge is not None:
+        # Never both: driving wins, and a verdict would be a long speech. Drive is entered first so a challenge asked for
+        # while this one ends (end_challenge awaits) is refused (_challenge_refusal).
+        await end_challenge(verdict=False)
     if not changed or state.conn is None:
         return changed
     logger.info(f"drive mode: {'on' if on else 'off'} ({how})")
@@ -2470,28 +2503,32 @@ async def _on_meeting_reconnect() -> None:
 
 
 MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing as a meeting turn
-MEETING_ECHO_SHARE = 0.7  # this share of a late turn's words, in pairs the bot said, makes it the bot's
+MEETING_ECHO_SHARE = 0.6  # this share of a late turn's words, aligned in order with what the bot said, makes it the bot's
+MEETING_ECHO_RUN = 3  # and a run of this many words exactly as the bot said them (or the whole turn, if shorter)
+
+
+def _repeats_the_bot(heard: list[str], said: list[str]) -> bool:
+    """In order, allowing Soniox's mishearings of the bot's own voice ("ובודקים" heard as "או רק אם")."""
+    blocks = SequenceMatcher(None, heard, said, autojunk=False).get_matching_blocks()
+    return sum(b.size for b in blocks) >= MEETING_ECHO_SHARE * len(heard) and \
+        max(b.size for b in blocks) >= min(MEETING_ECHO_RUN, len(heard))
 
 
 def _meeting_echo(said: str, new_label: bool) -> bool:
     """Its own voice through the laptop speakers. A meeting turn closes seconds after the words (Soniox finalises late, a
     turn closes on 1.2 s of quiet, the loop ticks every 2 s; 8-11 s measured), past the call's echo tail: a turn is also
-    the bot's when most of its words are pairs the bot just said into the meeting, or, on a label nobody has used yet, it
-    is one word the bot just said (its reply cut off by a talk-over). Never a turn addressed to Pointe."""
+    the bot's when it repeats what the bot said lately, or, on a label nobody has used yet, it is one word the bot just
+    said (its reply cut off by a talk-over). Never a turn with a sentence addressed to Pointe, wherever it starts: the
+    echo and the owner's "Pointe, that's me" can close as one turn."""
     if ECHO.live and not ECHO.user_part(said):
         return True
     heard = echo_words(said)
-    if not heard or meetings.addressed(said) is not None:
+    if not heard or meetings.addressed_all(said):
         return False
-    recent = [echo_words(text) for at, text in state.meeting_said if time.time() - at < MEETING_ECHO_SECS]
+    recent = [echo_words(text) for at, text in state.bot_spoke if time.time() - at < MEETING_ECHO_SECS]
     if len(heard) == 1:
         return new_label and any(heard[0] in said_words for said_words in recent)
-    pairs = {p for said_words in recent for p in zip(said_words, said_words[1:])}
-    covered = [False] * len(heard)
-    for i, pair in enumerate(zip(heard, heard[1:])):
-        if pair in pairs:
-            covered[i] = covered[i + 1] = True
-    return sum(covered) >= MEETING_ECHO_SHARE * len(heard)
+    return any(_repeats_the_bot(heard, said_words) for said_words in recent)
 
 
 HOLD_ADDRESSED_SECS = 2.0  # an addressed sentence with no closing punctuation waits this long for the rest of it
@@ -2829,7 +2866,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     others = [s for s in named_sessions(text, list(REGISTRY.sessions.values())) if s is not session]
     if others or switch_intent(text):
         return  # "yes, tell lantern to proceed" is aimed at another session
-    if verdict == "allow" and current_mode() is modes.DRIVE and (
+    if verdict == "allow" and state.drive.on() and (  # the road rules hold under any mode on top (a challenge)
             session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
         state.utterance_spent = True
         await _read_out(session)  # its drive form: it waits until the user stops, and a no still counts
@@ -2853,7 +2890,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
             await _read_out(session)
         return
     # Drive mode, with a voiceprint stored: the yes itself must be a strong owner match, at any lock level.
-    if verdict == "allow" and current_mode() is modes.DRIVE and _has_voiceprint() and not speaker.strong(state.last_speaker):
+    if verdict == "allow" and state.drive.on() and _has_voiceprint() and not speaker.strong(state.last_speaker):
         state.utterance_spent = True
         VOICE.unsure_streak += 1
         logger.info("drive mode: a yes that was not a strong match for the owner's voice did not count")
@@ -3182,10 +3219,23 @@ async def send_to_claude_code(params: FunctionCallParams):
     await params.result_callback(result)
 
 
+def typed_approval_refusal(message: str, target) -> dict | None:
+    """An approval the session accepts only typed in its terminal is never relayed by the voice."""
+    if target and target.typed_approval and relays_approval(message, target.typed_approval):
+        return {"error": f"Not sent: {target.name} accepts this approval only typed by the user. Tell the user to type it "
+                         f"in the terminal: {target.typed_approval}."}
+    return None
+
+
 async def _send(message: str) -> dict:
     if state.challenge is not None:
         _record(message, [], "blocked: a challenge is on")
         return {"error": challenge.SEND_REFUSAL + " Say that to the user."}
+    named = (state.brain_target or "").strip().lower()
+    target = next((x for x in REGISTRY.sessions.values() if x.name.lower() == named), None) if named else REGISTRY.active
+    if refusal := typed_approval_refusal(message, target):
+        _record(message, [], "blocked: relays an approval that must be typed")
+        return refusal
     if not current_mode().sends:
         _record(message, [], "blocked: a meeting is on")
         return {"error": "Not sent: a meeting is on. End the meeting first; nothing goes to a session during one."}
@@ -4018,9 +4068,9 @@ async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview:
     if verdict is None:
         logger.info(f"permission {session.name}/{request_id} handed back to the terminal")
         if current_mode().holds_news and time.time() >= deadline:  # it waited out a long monologue or meeting: say so after
+            what = mask(str(tool_input.get("description") or preview))[:120]  # said aloud later: the one credential rule
             state.monologue_held.append((f"[{session.name}: its approval request waited while the user thought out loud, "
-                                         f"then went back to its terminal] {tool_name}: "
-                                         f"{tool_input.get('description') or preview[:120]}", True))
+                                         f"then went back to its terminal] {tool_name}: {what}", True))
     return verdict
 
 
@@ -4077,7 +4127,7 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
         return
     name = _spoken_names(session.name)
     hebrew = re.search(r"[\u0590-\u05ff]", state.last_utterance)
-    if current_mode() is modes.DRIVE and (session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
+    if state.drive.on() and (session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
         text = (drives.waits_unreadable(name, hebrew) if session.permission_cut else
                 drives.waits_not_for_the_road(name, session.permission_spoken, hebrew))
         session.permission_delivered_at = float("inf")
@@ -4090,7 +4140,7 @@ async def _read_out(session: Session, unsure: bool = False) -> None:
                 f"{name} needs an approval I can't read out. It's on your screen: approve it there, or say no.")
     else:
         text = f"{name} מבקש: {session.permission_spoken}. לבצע?" if hebrew else f"{name} wants to {session.permission_spoken}. Should it?"
-    if unsure and current_mode() is modes.DRIVE:
+    if unsure and state.drive.on():
         text = drives.unsure(hebrew) + text
     elif unsure:
         text = ("לא הצלחתי לזהות שזה אתה. אמור שוב, או אשר במסך. " if hebrew else
@@ -4464,6 +4514,8 @@ async def status(request: Request):
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
             "ptt": state.ptt.status(PREFS.get("microphone"), _room_heard()),
+            "whisper": whisper.status(PREFS.get("whisper"), lock_level(), PREFS.get("microphone"),
+                                      held="drive" if state.drive.on() else None),
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "drive": _drive_status(),
             "meeting": state.meeting.status() if state.meeting is not None else (
@@ -4868,7 +4920,8 @@ async def page():
     here = Path(__file__).parent
     return ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
             .replace("{{BALLERINE}}", (here / "assets" / "ballerine.svg").read_text())
-            .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text()))
+            .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
+            .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text()))
 
 
 async def _add_worker(session: Session) -> None:
@@ -5157,19 +5210,19 @@ async def run_call(transport) -> None:
         stt = vendors.build_ears(setup().ears, _recognition_terms())
         _clock_ears(stt)
         ears = [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()]
-    gate = PttGate(stt)
+    gate = [PttGate(stt), WhisperIn()]
     if FRONT == "brain":
         front = BrainFront(opening)
         state.context = front.brain
-        pipeline = Pipeline([transport.input(), gate, *ears, injector, front, vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http),
-                             BotSpeechTap(), *mirror, transport.output()])
+        pipeline = Pipeline([transport.input(), *gate, *ears, injector, front, vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http),
+                             BotSpeechTap(), *mirror, WhisperOut(), transport.output()])
     else:
         context = LLMContext(opening, tools=TOOLS)
         state.context = context
         user_aggregator, assistant_aggregator = LLMContextAggregatorPair(context)
         pipeline = Pipeline([
-            transport.input(), gate, *ears, user_aggregator, UserSpeechTap(FrameDirection.UPSTREAM), injector,
-            build_front(), BotSpeechTap(), *mirror, UserSpeechTap(FrameDirection.DOWNSTREAM), transport.output(),
+            transport.input(), *gate, *ears, user_aggregator, UserSpeechTap(FrameDirection.UPSTREAM), injector,
+            build_front(), BotSpeechTap(), *mirror, UserSpeechTap(FrameDirection.DOWNSTREAM), WhisperOut(), transport.output(),
             ContextUserTap(), assistant_aggregator,
         ])
     # A quiet call is normal (sessions work, the user listens); hang up only a call forgotten for half an hour.
@@ -5221,6 +5274,41 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=7860)
     port = parser.parse_args().port
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")  # loopback only: the phone comes in through remote.py
+
+
+# ---------- whisper mode (whisper.py holds the rules) ----------
+
+class WhisperIn(whisper.In):
+    """After the push-to-talk gate: whisper mode raises the conversation's microphone (never a meeting's room)."""
+
+    def __init__(self):
+        super().__init__(lambda: _whispering() and not _room_heard())
+
+
+class WhisperOut(whisper.Out):
+    def __init__(self):
+        super().__init__(_whispering)
+
+
+def _whispering() -> bool:
+    """Whisper mode in effect. Drive mode holds it: no screen to read, and a half-volume voice in a car is a safety
+    cost. The setting stays, and applies again when drive mode ends."""
+    return bool(PREFS.get("whisper")) and not state.drive.on()
+
+
+async def _whisper_by_voice(heard: str, on: bool) -> None:
+    """"Whisper mode" / "back to normal", caught in code like the briefing phrases. The setting only narrows how the
+    call sounds: it never reaches the approval check, and the voice lock stays as set."""
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; not fresh speech for a send
+    PREFS.update({"whisper": on})
+    logger.info(f"whisper mode {'on' if on else 'off'} (by voice)")
+    if on and state.drive.on():
+        await say("[whisper mode on, held] The user asked for whisper mode while drive mode is on. Say in a few words that "
+                  "it starts when drive mode ends.")
+        return
+    await say("[whisper mode on] The user turned whisper mode on. Say in at most four words that it is on." if on else
+              "[whisper mode off] The user turned whisper mode off. Say in at most four words that you are back to normal.")
 
 
 if __name__ == "__main__":

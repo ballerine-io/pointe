@@ -23,7 +23,8 @@ SCHEMA: dict[str, tuple] = {
     "briefings.speak_on_connect": (True, bool),  # a scheduled briefing not heard yet is offered when a call starts
     "briefings.skip_empty": (False, bool),  # a quiet night raises no alert
     "alerts.watch_approve": (False, bool),  # Approve on a notification (iPhone, mirrored to the watch): no Face ID
-    "show.on_phone": (False, bool),  # show while it says on the phone: off until enabled (the page always shows it)
+    "show.on_phone": (False, bool),
+    "whisper": (False, bool),  # whisper mode (whisper.py): a quieter bot, a raised microphone, short replies  # show while it says on the phone: off until enabled (the page always shows it)
     "dictionary.learn": (True, bool),  # a correction teaches the names it fixed; suggestions from session notes
 }
 

@@ -1538,7 +1538,7 @@ All reachable with the page cookie, the bearer token and the phone key (`guards.
 |---|---|---|
 | `GET /voice/briefings` | — | `{briefings: [Briefing], schedule, status}`: the last seven, newest first |
 | `GET /voice/briefings/latest` | — | `{briefing: Briefing \| null, status}` |
-| `POST /voice/briefings` | `{action: start\|skip\|stop\|continue, since?, scope?, length?}` | `{briefing: status}`; `start` with no `since` and no `scope` plays the scheduled one that waits (not read again); 409 with no call, in a meeting, while thinking out loud, or (skip/stop/continue) with nothing playing; 400 on a bad action or length |
+| `POST /voice/briefings` | `{action: start\|skip\|stop\|continue, since?, scope?, length?}` | `{briefing: status}`; `start` with no `since` and no `scope` plays the scheduled one that waits (not read again); 409 with no call, in a meeting, while thinking out loud, during a challenge, or (skip/stop/continue) with nothing playing; 400 on a bad action or length |
 | `POST /voice/briefings/schedule` | any of `{time: "HH:MM"\|"", days: [0-6, Monday 0], length: short\|normal\|full, speak_on_connect, skip_empty}` | `{schedule}`; 400 on an unknown key or a bad value |
 
 `Briefing`: `{id, at, since, since_label, length, sections: [{session, status: waiting|failed|done|quiet, text, did,
@@ -1560,7 +1560,9 @@ from memory instead of calling its tool. The brain tool `briefing(since, scope)`
 today?"); no arguments plays the one that waits. Scope words that name no session narrow nothing. `since` is parsed in code: the night (the last call's end within 24 h, else 18:00
 yesterday), "since six" (the most recent six), "since 6pm"/"18:00", today, this morning, yesterday, "the last N hours",
 Hebrew equivalents; anything else is since the last call. While a briefing plays or is paused, a whole utterance "skip"
-/ "next", "stop" / "enough", "go on" / "continue" (and Hebrew) steers it and never reaches the brain. Anything else pauses
+/ "next", "stop" / "enough", "go on" / "continue" (and Hebrew) steers it and never reaches the brain; one that is a no
+("stop", "cancel the briefing", "עצור": `guards._NO`) also denies a pending request (a no from any voice denies, in every
+mode), under the rules that bind any no, before the briefing stops. Anything else pauses
 it; once the answer is over and the room quiet for 3 s, the rest is offered once. A push-to-talk press pauses it; with no
 words, it goes on 6 s after the release.
 
@@ -1575,6 +1577,8 @@ words, it goes on 6 s after the release.
   ("a permission approval"), never quoted. Secrets are masked in code with `readout.mask` (the one credential rule the
   voice, the alerts and the screen share) before the reader sees a record and on what it writes. That rule leaves
   commit hashes alone and does not catch an unquoted `password: value`; widen it there, for everyone, if needed.
+- **Challenge:** refused while one is on, by voice ("brief me" is caught and refused in code, so the brain never briefs
+  from memory as an argument), by the route (409) and by the tool (`modes.CHALLENGE`).
 - **Meetings:** the tool is not in the meeting's read-only set, the route answers 409, and a meeting that starts stops
   playback; what was left stays in the history. A scheduled briefing is still read during a meeting (no speech) and is
   offered after.
@@ -1736,6 +1740,9 @@ Prefs (`GET/POST /voice/prefs`): `conflicts.on` (default true; off means no read
   waits while a push-to-talk press is open and while a read-out's yes window is open, so it never takes a yes away from
   a request or talks over the user; it never touches a permission. During a meeting (or while one starts) it is never
   said, not even after the meeting: the card and the note stay. Spoken in the user's language, claims as written.
+- **Secrets:** the reader's prompt and every field of an accepted conflict (claims, why, questions) pass `readout.mask`,
+  the one credential rule; claims are verified masked against the masked message. So status, notes, the phone and the
+  voice never carry a session's credential.
 - **Reader down:** no alarm, and a journal line `conflict check skipped: ...`.
 
 ### Deviations from the plan
@@ -1817,11 +1824,6 @@ next call heard "Pellucine".
 
 Feature 3, on the daemon, the page and the app. `drive.py` holds the rules (the road allowlist, the phrases, the copy);
 `daemon.py` asks it at the read-out (`_read_out`), at a yes (`_answer_permission`) and in `current_mode()`.
-## Devil's advocate (as built, 2026-11-12)
-
-Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
-evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends and records it.
-
 ### Route and status
 
 | | |
@@ -1832,7 +1834,7 @@ evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends
 
 Voice: "drive mode", "walk mode", "I'm driving", "מצב נהיגה" turn it on; "back to normal", "I've stopped", "exit drive
 mode", "חזרה לרגיל", "עצרתי" turn it off (a whole short utterance; never reaches the brain; not during a meeting or a
-brainstorm). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
+brainstorm, and not turned on while a meeting is starting, as the route). The daemon says "Drive mode. Short answers, …" / "Back to normal." in the user's language.
 
 ### Voice approval while driving (owner decision 4)
 
@@ -1856,8 +1858,11 @@ reads the pending request again in the new mode's form.
 Never both, and driving wins: entering drive mode (phrase or button) ends a challenge with no verdict (a verdict is a
 long speech; the challenge stays in status as ended, and its panel waits until the user stops driving), and a challenge
 is refused while driving (409 "Not while driving: …"; the Challenge button and menu item are disabled). "Back to normal"
-ends whichever of the two is on; outside both it is ordinary speech for the brain (it used to be swallowed by the drive
-phrase check). `current_mode()` checks the challenge first, but the two are never on together.
+ends one mode per utterance: drive mode, then a challenge, then whisper mode; outside all of them it is ordinary
+speech for the brain (it used to be swallowed by the drive
+phrase check). Drive mode is entered before the challenge is ended, so a "challenge this" heard while it ends is
+refused. The road rules (`_answer_permission`, `_read_out`) are keyed on `state.drive.on()`, not on `current_mode()`,
+so they hold even if a mode that `current_mode()` ranks higher is on at the same time.
 
 ### Ends with the call
 
@@ -1894,6 +1899,16 @@ silent (`Brain.terse`).
 - **The `"modes": {"drive": true}` flag** was not added: the mode only narrows and is off until asked for.
 - **Not built:** "use the iPhone mic" advice on poor HFP audio (needs a real car measurement first); a live e2e of the
   voiceprint rule (offline tests cover it); Hebrew wording of the brain's own short replies beyond the fixed lines.
+
+## Devil's advocate (as built, 2026-11-12)
+
+Feature 6, on the daemon, the page and the app. `challenge.py` holds the rules (start and end phrases, the plan, the
+evidence, the opening, the per-step line, the verdict); `daemon.py` starts, ends and records it.
+
+### Route and status
+
+| | |
+|---|---|
 | `POST /voice/challenge` | `{action: start\|end}` → `{challenge}`. 400 on a bad action; 409 with the reason: no call, a meeting on, already on (start), none on (end), a non-brain front. Page cookie, bearer token, phone key |
 | status `challenge` | `null`, or `{id, on, since, ended_at, plan, sessions, objections, verdict, evidence, items: [{kind: objection\|rebuttal\|verdict, text, at}]}`. The last one stays (`on: false`) until a new one starts |
 | status `mode_state.mode` | `challenge` while on |
@@ -1903,7 +1918,10 @@ silent (`Brain.terse`).
 
 "Challenge this / challenge me / play devil's advocate / poke holes in this / תתקוף את זה / תאתגר אותי" and "you've made
 your point / verdict / back to normal / end challenge / stop / די / חזרה לרגיל", each as a whole utterance, spoken or
-typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve or deny.
+typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve. Owner
+rule, a no from any voice denies in every mode: a spoken end phrase that is a no (a word in `guards._NO`: "stop",
+"עצור") also denies the pending request, under the rules that bind any no (read out, within its window, not the bot's
+echo), before the challenge ends; "you've made your point", "enough", "די" only end it. Typed words never answer.
 During a brainstorm, "challenge this" ends it and challenges what was said.
 
 ### What it may do, in code
@@ -1949,3 +1967,104 @@ During a brainstorm, "challenge this" ends it and challenges what was said.
 - **Not built:** the `evals/sim.py` scenario (the bench pairs measure it instead), the rollout pref `modes.challenge`
   (always on), a challenge spoken into a meeting (in participating, "Pointe, challenge this" is an ordinary question to
   Pointe, answered once).
+
+## Whisper mode (as built, 2026-11-12)
+
+Feature 9, on the daemon, the page and the app. `whisper.py` holds the rules (phrases, gains, the voice-detector
+profile, the reply rule, the status); `daemon.py` puts `WhisperIn` after the push-to-talk gate, `WhisperOut` last before
+the transport, and catches the phrases in `SonioxEars._take`.
+
+### Setting, route and status
+
+- Pref `whisper` (bool, default false) in `GET/POST /voice/prefs`: one daemon setting for both clients, kept across
+  calls and reconnects (a dropped call must not come back loud in an open office). No new route.
+- Status `whisper: {on, held, output_gain, max_words, suggest_ptt, lock_note}`. `on` is the setting; `held` is `"drive"`
+  while drive mode suspends it (then `output_gain` is 1.0 and nothing of the mode applies); `suggest_ptt` is true while
+  it applies and the microphone is not push to talk; `lock_note` is the copy both clients show when the voice lock is on.
+- Voice: "whisper mode", "let's whisper", "מצב לחישה" turn it on; "back to normal", "normal voice", "stop whispering",
+  "חזרה לרגיל" turn it off, only while it is on (otherwise the words are someone's sentence, as for drive mode). A bare
+  "normal" is not a phrase. The brain never gets the words and is told it cannot change the mode (a live run had it
+  answer "Normal mode is on." to a misheard "Normal.").
+
+### What it does
+
+- **Output:** the bot's PCM scaled to 0.5 in the daemon, from the next chunk (live: the same sentence measured
+  p95 4713 → 2371 and 4613 → 2449).
+- **Input:** x2.5 through a soft limiter (linear below half scale, never past full scale), then pipecat's own
+  `VADParamsUpdateFrame` switches Silero to `{confidence 0.5, min_volume 0.35, start 0.2 s, stop 0.4 s}` and back. A
+  meeting's room audio is not raised.
+- **Brain:** one line in `_brain_context`: one short sentence, at most 20 words, point to the screen for anything longer.
+- **Approvals: unchanged.** No code path reads the setting at a yes. `tests/test_whisper.py` runs ten answers ("yes",
+  "go ahead", "yes, and run the linter", "wait, what is it?", Hebrew…) through `on_user_utterance` with the mode off
+  and on and asserts identical outcomes; a mutation that made the mode change approvals failed five of them.
+
+### Voice lock (decided here)
+
+The lock is never lowered by whisper mode (the plan's `lock_level = min(current, approvals-with-continuity)` would have
+widened Commands/Everything). Whispered speech is scored like any other and fails closed: on the synthetic bench no
+unvoiced whispered sentence reached `T_HIGH` (mean score 0.37 vs 0.62 for the normal voice; impostors ≤ 0.26), so at
+Approvals a whispered yes counts only through the existing continuity rule (≥ `T_LOW` within a minute of a strong
+match), and at Commands/Everything whispered words are usually kept out. Both clients say so in the card
+(`lock_note`). Whisper mode is never an approval path.
+
+### Modes
+
+- **Drive mode holds it.** No screen to read, and a half-volume voice in a car is a safety cost: while drive mode is on,
+  output, input, the voice-detector profile and the reply rule are those of drive mode; the setting stays and applies
+  again when drive mode ends. "Back to normal" ends one mode per utterance, in one order: drive mode, then a challenge,
+  then whisper mode (with all on, three of them end all three; "stop whispering" ends only whisper mode).
+  "Whisper mode" asked while driving is stored and the voice says it starts when drive mode ends. The page keeps the
+  button pressed and hides the card; the app hides the card (drive mode's screen).
+- **Challenge:** both apply (the challenge's tool narrowing and the whisper reply rule). Whisper mode is not a
+  `modes.Mode`, so it cannot widen one.
+- **Meeting:** the room's audio is not raised; the bot's output is still halved.
+
+### Clients
+
+- Page (`ui_whisper.html`, served at `{{WHISPER}}`): a Whisper button in the dock (Whispering while on), a card above
+  the caption (what it does, "Whisper recognition is limited; type when it matters.", the lock note, the push-to-talk
+  suggestion with Not now / Turn on, Back to normal), the compose box unfolded and focused when it turns on (or is on
+  at load), a 30 px live caption.
+- App (`Whisper.swift`): a Whisper toggle in the Settings (⋯) menu (the bottom bar has no room, as for briefings), the
+  same card and copy above the controls, the TypeBar shown with the keyboard up when it turns on, a title-size live
+  bubble. Audio needs nothing on the phone: the Mac changes it.
+
+### Measured (synthetic only: `bench/whisper_bench.py`, `bench/results/whisper.md`)
+
+Two ElevenLabs voices × 23 lines (EN commands, yes/no, the phrases, Hebrew). "Unvoiced" whispers are LPC re-syntheses
+over noise (3% voiced frames; a real whisper is near 0%); "breathy" is ElevenLabs v3 `[whispers]` (65% voiced: a soft
+voice, not a whisper). Office pink noise at -55 dBFS.
+
+| | Soniox WER | yes/no right | Silero detected (default → whisper profile + gain) |
+|---|---|---|---|
+| normal | 1.2% | 12/12 | 46/46 |
+| unvoiced, -18 dB | 1.4% | 12/12 | 33/46 → 41/46 |
+| unvoiced, -30 dB | 18.4% (17.6% with gain) | 10/12, no answer flipped | 1/46 → 23/46 |
+| breathy, -18 dB | 0.4% | 12/12 | 40/46 → 43/46 |
+
+- Input gain does not change Soniox (it normalises); it matters for the voice detector, which times a yes and starts a
+  turn. Neither profile fired on 60 s of office noise with typing.
+- Misheard short answers failed safe ("No." → "Yellow.", "Yes, go ahead." → "Yes, Dorian.": neither is a yes).
+- Loudness barge-in (simulated echo at -30 dB): with the bot at half volume a whisper at -24 dB cuts in (11 frames;
+  0 at full volume). The `LevelGate` floor (300 vs the plan's 120) changed nothing in any case, so it was not changed.
+- Live (`tests/e2e/whisper.py`, the real daemon, Soniox, brain and mouth, speaker leaking into the mic at 0.3): a
+  whispered "whisper mode" turns it on; a whispered question is heard and answered in 8 words (the normal answer was
+  17); no echo turn; a whispered yes approves and a whispered no denies after the read-out; a whispered yes over the
+  read-out does not; one run heard "Back to normal." as "Back to Denied." (a repeat worked).
+
+### Deviations from section 9
+
+- **A pref beside the modes, not an F1 mode:** modes are exclusive, and whisper must combine with brainstorm, a
+  challenge and push to talk; route `/voice/prefs`, not `/voice/mode-state`.
+- **Gains in the daemon, not the clients:** one implementation for the page, the app and older clients, tested offline;
+  no protocol `audio` control message. The page already asks for `noiseSuppression` and `autoGainControl`; iOS keeps
+  voice processing on.
+- **Soniox endpointing unchanged:** the plan's `endpoint_sensitivity 0 / max 1800 ms` was measured (p50 0.47 → 0.39 s,
+  p90 2.91 → 2.25 s on whispers) but changing it needs a Soniox reconnect mid-call; left for a later change.
+- **`LevelGate` floor unchanged** (measured: no effect); the quieter bot is what lets a whisper barge in.
+- **The voice lock is not lowered** (above).
+- **The limitation line is always shown**, not only "below a bench threshold": no recorded human whisper corpus exists.
+- **Not built:** the `bench/record.py` owner whisper corpus (needs a person), `config.json audio.whisper` tuning,
+  dictionary terms in the whisper bench (the vocabulary feature landed after it; names should benefit, not measured),
+  a realtime front (`CLAUDE_VOICE_FRONT=gemini|openai`) gets the audio changes but not the reply rule.
+
