@@ -77,23 +77,58 @@ _QUIET = re.compile(r"\s+2>\s*/dev/null|\s+2>&1(?=\s|$|[;|&])")
 _TRIM = re.compile(r"\s*\|\s*(?:tail|head)(?:\s+-n\s*\d+|\s+-\d+)?(?=\s*(?:$|&&|;|\|\|))")
 
 
-_CREDENTIAL = re.compile(
-    r"\b(?:sk|pk|rk)-[A-Za-z0-9_-]{16,}"          # OpenAI, Stripe and the like
-    r"|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,}"
-    r"|xox[abprs]-[A-Za-z0-9-]{10,}"              # Slack
-    r"|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}"   # AWS, Google
-    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
-    r"|\b(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key)\s*[=:]"
-    r"|\bbearer\s+\S+"
-    r"|(?=[A-Za-z0-9+=]*\d)(?=[A-Za-z0-9+=]*[A-Za-z])[A-Za-z0-9+=]{32,}",  # letters and digits run together: a key or a hash
-    re.IGNORECASE)
+MASK = "••••••"
+_SECRET_SHAPES = [
+    re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\Z)"),
+    re.compile(r"\b(?:sk|rk|pk)[-_](?:live|test|ant|proj|or)?[-_]?[A-Za-z0-9_-]{12,}"),
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b|\bgithub_pat_\w{20,}"),
+    re.compile(r"\bxox[abprs]-[\w-]{10,}"),
+    re.compile(r"\bAIza[0-9A-Za-z_-]{30,}"),
+    re.compile(r"\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}"),
+    re.compile(r"\bglpat-[\w-]{16,}"),
+    re.compile(r"(?i)\bbearer\s+[\w.~+/=-]{6,}"),
+]
+_URL_PASSWORD = re.compile(r"(://[^:/\s@]+:)([^@\s/]+)(@)")
+_NAMED = (r"[\w.-]*(?:secret|token|passw(?:or)?d|pwd|api[_-]?key|apikey|access[_-]?key|private[_-]?key|auth[_-]?key|"
+          r"credential|client[_-]?secret|[_-]key)[\w.-]*")
+_ASSIGNED_QUOTED = re.compile(rf"(?i)(\b{_NAMED}\b[\"']?\s*(?:[:=]|=>|:=)\s*)([\"'])([^\"'\n]{{4,}})\2")
+_ASSIGNED_ENV = re.compile(rf"(?im)^(\s*(?:export\s+)?{_NAMED}\s*=\s*)([^\s\"'#]{{4,}})")
+_ASSIGNED_INLINE = re.compile(rf"(?i)(\b{_NAMED}=)([^\s\"';|&]{{4,}})")
+_FLAG_VALUE = re.compile(r"(?i)(--?(?:token|password|passwd|secret|api-?key|key)[= ])([^\s\"']{4,})")
+
+
+def _live_values() -> list[str]:
+    """The values of this machine's own secrets, wherever they appear."""
+    try:
+        import vendors
+        names = set(vendors.KEY_ENVS)
+    except Exception:
+        names = set()
+    names |= {k for k in os.environ if re.search(r"KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL", k, re.I)}
+    return sorted({v for k in names if len(v := os.environ.get(k, "")) >= 8}, key=len, reverse=True)
+
+
+def mask(text: str) -> str:
+    """Secret-looking values replaced. Errs on the side of hiding: a masked string in code costs nothing."""
+    if not text:
+        return text
+    for value in _live_values():
+        text = text.replace(value, MASK)
+    for shape in _SECRET_SHAPES:
+        text = shape.sub(MASK, text)
+    text = _URL_PASSWORD.sub(lambda m: m.group(1) + MASK + m.group(3), text)
+    text = _ASSIGNED_QUOTED.sub(lambda m: f"{m.group(1)}{m.group(2)}{MASK}{m.group(2)}", text)
+    text = _ASSIGNED_ENV.sub(lambda m: m.group(1) + MASK, text)
+    text = _ASSIGNED_INLINE.sub(lambda m: m.group(1) + MASK, text)
+    return _FLAG_VALUE.sub(lambda m: m.group(1) + MASK, text)
 
 
 def redact(text: str) -> str | None:
-    """The text, or None when it carries a credential-like value (a key, a token, a password=...). Withheld whole, never
-    masked: a masked command approved by ear approves a value nobody heard, so such a request goes to a tap, as any
-    request that cannot be read out does. The one rule for what is said aloud and what a notification shows."""
-    return None if _CREDENTIAL.search(text or "") else text
+    """The text, or None when it carries a credential-like value (mask() would change it). Withheld whole, never masked:
+    a masked command approved by ear approves a value nobody heard, so such a request goes to a tap, as any request that
+    cannot be read out does. The one rule for what is said aloud and what a notification shows."""
+    return None if text and mask(text) != text else text
 
 
 def _hidden(text: str) -> bool:

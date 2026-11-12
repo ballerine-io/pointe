@@ -218,17 +218,21 @@ def test_redact_withholds_common_credential_shapes_and_keeps_plain_text():
     import readout
     for text in ["sk-live-4f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c", "AKIAABCDEFGHIJKLMNOP", "xoxb-1111-2222-abcdefabcdef",
                  "api_key=abc123", "Authorization: Bearer abcdef", "-----BEGIN OPENSSH PRIVATE KEY-----",
-                 "f3a9c2e1d4b5a6978877665544332211aabbccdd"]:
+                 "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJlLXg", "https://deploy:hunter2-synthetic@git.example.test/r"]:
         assert readout.redact(text) is None, text
     for text in ["run: git push origin dev", "run: pytest", "edit checkout.py", "run: rm -r build",
-                 "run: git push origin bal-10052-enterprise-sso-customer-guide", "run: npm run task-runner-integration"]:
+                 "run: git push origin bal-10052-enterprise-sso-customer-guide", "run: npm run task-runner-integration",
+                 "run: git checkout f3a9c2e1d4b5a6978877665544332211aabbccdd"]:  # a commit is not a secret
         assert readout.redact(text) == text, text
 
 
-def test_alerts_have_no_credential_check_of_their_own():
-    """One rule for the voice and the notifications: readout.redact."""
+def test_there_is_one_credential_rule():
+    """The voice, the notifications and the files on screen share readout.mask; nobody keeps a copy."""
     import alerts
-    assert not hasattr(alerts, "secretish") and not hasattr(alerts, "_SECRET")
+    import artifacts
+    import readout
+    assert artifacts.mask is readout.mask
+    assert not hasattr(alerts, "secretish") and not hasattr(alerts, "_SECRET") and not hasattr(artifacts, "_SECRET_SHAPES")
 
 
 # ---------- the spoken read-out holds back the same values ----------
