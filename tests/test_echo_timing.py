@@ -236,3 +236,13 @@ def test_a_long_echo_does_not_cut_the_bot_off_once_its_start_is_old(clock):
     g.mirror_heard(" cv-repo-echo needs an approval I can't read out. It's on your screen.", "")
     interim = " On it. I've asked cv-repo-echo to create notes2.text. cv-repo-echo needs an approval I can't read out."
     assert not g.is_barge_in(interim, spoken=(100.2, 118.9))
+
+
+def test_a_half_heard_last_word_still_vouches_for_its_neighbour():
+    g = EchoGuard()
+    g.bot_said("Holding, nothing sent. One risk: Redis lost 41 in-flight retries on the restart test, which breaks your "
+               "zero-loss bar, and you chose the outbox over it. Want Redis back anyway?")
+    g.bot_started()
+    g.mirror_heard(" Holding. Nothing sent. One risk: Reddest lost 41", " in-flight retries on the")
+    assert not g.is_barge_in(" Holding. Nothing sent. One risk: Redis lost 41 inflate retries on")
+    assert g.is_barge_in(" Holding. Nothing sent. One risk: Redis lost 41 inflate retries. Actually wait")

@@ -285,10 +285,11 @@ class EchoGuard:
         # The last word of a live transcript is often half heard ("c" for "cut"): if it starts a word the bot said, it
         # proves nothing yet, and must not complete a run. A stop word too, when it is only the start of one ("hold" of
         # "holding", "no" of "nothing"): the bot's first word cut it off. The next transcript, a beat later, settles it.
+        # It still vouches for its neighbour: "retries on" is the bot's pair, so "retries" is the bot's.
+        mask = self._echo_mask(heard, sources=self._sources(spoken[0]) if spoken else None)
         if heard and any(b.startswith(heard[-1]) and (heard[-1] not in INTERRUPT_WORDS or b != heard[-1])
                          for b in self._bot_words()):
-            heard = heard[:-1]
-        mask = self._echo_mask(heard, sources=self._sources(spoken[0]) if spoken else None)
+            mask[-1] = True
         run = best = 0
         for w, m in zip(heard, mask):
             run = 0 if m else run + 1
