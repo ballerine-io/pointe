@@ -15,6 +15,8 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+import readout
+
 LENGTHS = {"short": 25, "normal": 60, "full": 120}  # words per session
 MAX_SESSIONS = 8
 HISTORY = 7
@@ -109,28 +111,10 @@ def parse_since(text: str, now: float, last_call_end: float | None) -> tuple[flo
 
 # ---------- what is never said ----------
 
-_SECRETS = [
-    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)", re.S), "[secret]"),
-    (re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{8,}", re.I), "Bearer [secret]"),
-    (re.compile(r"(://)[^\s/:@]+:[^\s/@]+@"), r"\1[secret]@"),
-    (re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"), "[secret]"),
-    (re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"), "[secret]"),
-    (re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"), "[secret]"),
-    (re.compile(r"\bxox[abposr]-[A-Za-z0-9-]{10,}"), "[secret]"),
-    (re.compile(r"\bAIza[0-9A-Za-z_-]{30,}"), "[secret]"),
-    (re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"), "[secret]"),
-    (re.compile(r"(?i)\b([A-Z0-9_.-]*(?:secret|token|passw(?:or)?d|passwd|api[_-]?key|private[_-]?key|access[_-]?key|"
-                r"credentials?)[A-Z0-9_]*)(\s*[:=]\s*)['\"]?(?!\[secret\])[^\s'\"]{4,}['\"]?"), r"\1\2[secret]"),
-    (re.compile(r"\b[A-Fa-f0-9]{32,}\b"), "[secret]"),
-    (re.compile(r"(?<![\w/.-])(?=[A-Za-z0-9+/_-]*\d)(?=[A-Za-z0-9+/_-]*[A-Za-z])[A-Za-z0-9+/_-]{40,}={0,2}"), "[secret]"),
-]
-
-
 def redact(text: str) -> str:
-    """Keys, tokens, passwords and private keys out: before the reading model sees a record, and on what it wrote."""
-    for pattern, replacement in _SECRETS:
-        text = pattern.sub(replacement, text)
-    return text
+    """Keys, tokens, passwords and private keys out, before the reading model sees a record and on what it wrote:
+    readout.mask, the one credential rule the voice, the alerts and the screen share."""
+    return readout.mask(text)
 
 
 def cap_words(text: str, n: int) -> str:

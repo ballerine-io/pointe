@@ -4,6 +4,8 @@ import SwiftUI
 struct PointeApp: App {
     @State private var pairing = PairingStore.load()
 
+    init() { AlertCenter.shared.start() }  // before an action that launched the app is handed over
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -27,6 +29,7 @@ struct PointeApp: App {
                 }
             }
         }
+        .backgroundTask(.appRefresh(AlertCenter.refreshTask)) { await AlertCenter.shared.refresh() }
     }
 }
 
