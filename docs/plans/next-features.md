@@ -1695,6 +1695,62 @@ Feature 7, v1: mirrored iPhone notifications and desktop notifications. `alerts.
 - Not built: per-event-kind switches, sound and lock-screen-preview settings (iOS's own settings cover them), WebAuthn /
   Touch ID on the page, the Time Sensitive entitlement (the level is set; without the entitlement iOS delivers it as
   active), "Double Tap approves", `POST /voice/attention/dismiss` (the existing `POST /voice/attention {id}` stays).
+## Conflict alarm (as built, 2026-11-12)
+
+Feature 10, on the daemon, the page and the app, for sessions of every harness. `conflicts.py` holds the rules;
+`daemon.py` starts a check after each report (`_digest_turn` → `_scan_conflicts`) and delivers what it accepts
+(`_raise_conflict`).
+
+### Route
+
+`POST /voice/conflicts` (page cookie, bearer token, phone key):
+
+| Body | Does | Errors |
+|---|---|---|
+| `{action: "dismiss", id}` | closes the card and its note; that pair stays quiet for the rest of this call | 404 unknown or closed id |
+| `{action: "ask", id, side: "a"\|"b"}` | the user's typed words `Send <name> this question: <question>` (a bare "ask" read as a side question to a read-only copy in a live run), through the same path as `/voice/say` (`_user_text`, marked typed): the brain sends them through the normal gates, and they can never approve | 400 bad side; 404; 409 no call, or a meeting on |
+
+Prefs (`GET/POST /voice/prefs`): `conflicts.on` (default true; off means no reader call at all) and `conflicts.spoken`
+(default true; false is "Card only").
+
+### Status
+
+- `conflicts: [{id, a, b, agent_a, agent_b, claim_a, claim_b, at_a, at_b, at, why, severity: high|normal, questions:
+  {a, b}, branches: {a, b}|null, asked: ["a"|"b"], state}]`: open ones only. `a` is the earlier report.
+- `attention` gets `{id: "conflict:<id>", kind: "conflict", text}` per open conflict.
+- Notes get kind `conflict` (meta: `conflict`, `a`, `b`, `severity`), dismissed with the card.
+
+### What is checked in code
+
+- **Pairs:** another session still registered, whose last report is under 4 h old, and that shares a git root or folder,
+  or ≥ 2 of the brief's `people_and_names` and edited-file stems, or is named in the new final message. Only edits
+  count as touching a file (`Edit`, `Write`, `MultiEdit`, OpenCode's `edit`/`write`/`patch`, Codex's `fileChange`):
+  reads never do, and common names (`index`, `main`, `README`, ...) are ignored. Two sessions reading one file in
+  different repositories never reach the reader.
+- **Accepted only if** the reader says `conflict: true` and not `still_current: false`; each claim's outcome words and
+  numbers are in its own session's message (`brief.unsupported` plus failed/broken/missing/...) and at least half its
+  content words; and the two claims do not say the same thing (`notes.mostly_same`).
+- **Limits:** one alarm per pair per 30 min, the same claims never twice, a dismissal (tap, or "I know" / "later" within
+  5 min of the spoken alarm) snoozes the pair for the call. Different branches force `normal`.
+- **Speech:** urgent lane (`[two sessions disagree, and this is urgent]`) for `high`, the normal lane for `normal`. It
+  waits while a push-to-talk press is open and while a read-out's yes window is open, so it never takes a yes away from
+  a request or talks over the user; it never touches a permission. During a meeting (or while one starts) it is never
+  said, not even after the meeting: the card and the note stay. Spoken in the user's language, claims as written.
+- **Reader down:** no alarm, and a journal line `conflict check skipped: ...`.
+
+### Deviations from the plan
+
+- **One route with an action** instead of `POST /voice/conflicts/dismiss`, because the phone key matches exact paths;
+  `ask` is built in the daemon so the wording lives in one place for both clients (the plan had the clients post
+  `/voice/say` themselves). Same security property: typed words, normal gates.
+- **Alerts:** each open conflict is an attention entry built by `alerts.conflict_alert` (title "Two sessions disagree",
+  the two names only: the claims quote the sessions' messages and stay in the app and the page). So it reaches the
+  iPhone notifications (mirrored to the watch, no actions) and the page's desktop notifications through feature 7; the
+  app also plays a warning haptic when a card appears.
+- **One card at a time** on both clients (the newest), with "N more disagreements" under it.
+- **Codex edits count** through the mirror's `files` on a `fileChange` (added by Show while it says; declined changes have none).
+- **Not built:** the `evals/` precision scenario; a live end-to-end with real OpenCode or Codex services (the mixed
+  harness cases are offline, on each adapter's real mirror format).
 
 ## Devil's advocate (as built, 2026-11-12)
 

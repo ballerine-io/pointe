@@ -144,6 +144,14 @@
   .ask .answer .allow { background: var(--orange); color: #fff; }
   .ask .answer .deny { background: var(--card2); color: var(--text); }
   .ask .more { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  /* conflict alarm: two sessions that disagree */
+  #conflicts { display: flex; flex-direction: column; gap: 8px; padding: 0 28px 8px; }
+  #conflicts:empty { display: none; }
+  #conflicts > .more { color: var(--muted); font-size: 12px; }
+  .clash .claim { margin-top: 8px; font-size: 13.5px; overflow-wrap: anywhere; }
+  .clash .claim b { color: var(--orange); font-weight: 600; }
+  .clash .claim .when { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .clash .answer button:disabled { opacity: .45; cursor: default; }
 
   /* the live caption: your words as you speak */
   #caption { margin: 6px 28px 0; padding: 14px 18px; border-radius: 18px; background: var(--card); border: 1px solid var(--line);
@@ -593,6 +601,11 @@
     <div class="note">In push to talk, nothing you say leaves this Mac unless you hold the key or the mic button, except
       during a meeting you started: the room is heard for its notes, and talking to Pointe still needs the hold. Caps Lock
       turns talking on and off (a toggle: a browser cannot see it held). Keys work only while this tab is focused.</div>
+    <h3>Conflict alarm</h3>
+    <label class="tick"><input type="checkbox" id="pref-conflicts"> Check sessions against each other</label>
+    <div class="field">Alarm<select id="pref-conflicts-spoken"><option value="spoken">Spoken</option><option value="card">Card only</option></select></div>
+    <div class="note">When two sessions disagree about the same work, Pointe shows both claims and asks whether to put the
+      question to one of them. It never asks a session on its own. In a meeting it is a card only.</div>
     <h3>Alerts</h3>
     <label class="tick"><input type="checkbox" id="pref-desktop" onchange="desktopAlertsAsk(this)"> Desktop alerts while this tab is in the background</label>
     <div class="note" id="pref-desktop-note"></div>
@@ -697,6 +710,7 @@
       <div class="hint">Or say “over to you”, “summarize that” or “send that to …”</div>
     </div>
   </div>
+  <div id="conflicts" role="region" aria-label="Sessions that disagree" aria-live="polite"></div>
   <div id="attention"></div>
   <div id="briefalert"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span id="caption-text"></span></div>
@@ -795,6 +809,7 @@
     showHearing(status && status.connected && !meetingOf(status)?.on ? status.hearing : null);
     showMeeting(status);
     showVoiceLock(status);
+    showConflicts(status);
     showBriefing(status);
     if (window.desktopAlerts) desktopAlerts(status);
     if (window.showChallenge) showChallenge(status);
@@ -1331,12 +1346,71 @@
   function openCtx() { ctxShown = ''; $('ctxpanel').classList.add('open'); loadCtx(); ctxTimer = setInterval(loadCtx, 2000); }
   function closeCtx() { $('ctxpanel').classList.remove('open'); clearInterval(ctxTimer); }
 
+  // ---------- conflict alarm ----------
+  // Two sessions that disagree. The card shows both claims; Ask puts one side's question as your own typed words (the
+  // voice sends it through the usual checks, and typed words never approve anything); Dismiss quiets that pair for
+  // this call. Nothing here sends by itself.
+  let conflictsShown = '', conflictError = {};
+  const CONFLICT_REFUSAL = {'no call is up': 'Connect to ask.', 'no such conflict': 'That conflict is gone.',
+                            'nothing goes to a session during a meeting': 'In a meeting, nothing goes to a session: ask after it ends.'};
+  function showConflicts(s) {
+    const list = (s && s.conflicts) || [], inMeeting = !!(meetingOf(s) || {}).on, live = !!(s && s.connected);
+    const key = JSON.stringify([list.map(c => [c.id, c.asked]), inMeeting, live, conflictError]);
+    if (key === conflictsShown) return;
+    conflictsShown = key;
+    // The newest one, as the app shows it; the others wait behind it, counted.
+    const newest = list[list.length - 1], more = list.length - 1;
+    $('conflicts').replaceChildren(...(newest ? [conflictCard(newest, inMeeting, live)] : []),
+                                   ...(more > 0 ? [el('div', 'more', `${more} more disagreement${more === 1 ? '' : 's'}`)] : []));
+  }
+  function conflictCard(c, inMeeting, live) {
+    const b = el('div', 'ask clash');
+    b.dataset.id = c.id;
+    b.append(el('div', 'what', 'Two sessions disagree'));
+    if (c.branches) b.append(el('div', 'need', `On different branches: ${c.branches.a} and ${c.branches.b}`));
+    for (const [name, agent, claim, at] of [[c.a, c.agent_a, c.claim_a, c.at_a], [c.b, c.agent_b, c.claim_b, c.at_b]]) {
+      const row = el('div', 'claim');
+      const who = el('b', '', short(name));
+      if (agentBadges && agent) who.append(' ', el('span', 'agent', agent));
+      row.append(who, el('span', 'when', fmtTime(at).slice(0, 5)), el('div', '', claim));
+      b.append(row);
+    }
+    if (c.why) b.append(el('div', 'need', c.why));
+    if (inMeeting) b.append(el('div', 'need', 'In a meeting, nothing goes to a session: ask after it ends.'));
+    else if (!live) b.append(el('div', 'need', 'Connect to ask.'));
+    const row = el('div', 'answer');
+    for (const side of ['a', 'b']) {
+      const asked = (c.asked || []).includes(side), name = short(c[side]);
+      const button = el('button', 'deny', asked ? `Asked ${name}` : `Ask ${name}`);
+      button.disabled = asked || inMeeting || !live;
+      button.onclick = () => conflictAct(c.id, {action: 'ask', side}, button);
+      row.append(button);
+    }
+    const dismiss = el('button', 'deny', 'Dismiss');
+    dismiss.onclick = () => conflictAct(c.id, {action: 'dismiss'}, dismiss);
+    row.append(dismiss);
+    b.append(row);
+    if (conflictError[c.id]) b.append(el('div', 'need', conflictError[c.id]));
+    return b;
+  }
+  async function conflictAct(id, body, button) {
+    button.disabled = true;
+    const r = await fetch('/voice/conflicts', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({id, ...body})});
+    if (r.ok) delete conflictError[id];
+    else {
+      const detail = (await r.json().catch(() => ({}))).detail || '';
+      conflictError[id] = CONFLICT_REFUSAL[detail] || detail || 'Not done.';
+      button.disabled = false;
+    }
+    refresh();
+  }
+
   // ---------- meeting mode ----------
   // Pointe as a participant: listening (it never speaks; it writes notes) or participating (it speaks only when asked, or
   // raises a hand that you let speak). Every word of the room goes to the speech vendor, so the start is a consent step.
   const MEET_KIND = {thought: 'Thought', question: 'Open question', answer: 'Answer found', decision: 'Decision',
                      action: 'Action item', hand: 'Raised hand', session_news: 'Session news', brief: 'Context',
-                     summary: 'Summary', speaker: 'Speaker'};
+                     summary: 'Summary', speaker: 'Speaker', conflict: 'Conflict'};
   const VENDOR = {soniox: 'Soniox', anthropic: 'Anthropic', gemini: 'Google Gemini', openai: 'OpenAI', elevenlabs: 'ElevenLabs', local: 'this Mac'};
   let meetOn = false, meetFilter = 'all', notesVersion = -1, notesById = new Map(), transcript = [], transcriptAt = 0;
   let endShown = false, sendSure = 0, naming = null, meetCanStart = false, notesClosed = false, meetSince = 0, meetId = null;
@@ -1907,6 +1981,8 @@
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
     $('pref-mic').value = prefs.microphone || 'always';
+    $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
+    $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
     $('pref-watch').checked = !!prefs['alerts.watch_approve'];
     if (window.desktopAlertsShow) desktopAlertsShow();
     $('pref-showphone').checked = !!prefs['show.on_phone'];
@@ -1920,7 +1996,8 @@
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
       microphone: $('pref-mic').value, 'alerts.watch_approve': $('pref-watch').checked,
-      'show.on_phone': $('pref-showphone').checked})});
+      'show.on_phone': $('pref-showphone').checked, 'conflicts.on': $('pref-conflicts').checked,
+      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken'})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); refresh(); }
     if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
