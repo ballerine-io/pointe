@@ -119,6 +119,14 @@ def test_a_session_waiting_with_a_question_is_an_alert_without_actions(d, two):
     assert not [a for a in alerts(client) if a["kind"] == "question"]
 
 
+def test_a_raised_hand_is_an_alert_with_a_title_and_a_body():
+    import alerts
+    a = alerts.hand_alert("m1", 2, "The p95 is 300 ms, not 200", 1000.0)
+    assert a == {"id": "hand:m1:2", "kind": "hand", "title": "Pointe wants to speak", "body": "The p95 is 300 ms, not 200",
+                 "text": "The p95 is 300 ms, not 200", "approvable": False, "at": 1000.0}
+    assert "sk-live" not in json.dumps(alerts.hand_alert("m1", 3, "use sk-live-4f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c", 1.0))
+
+
 # ---------- withdrawn when answered elsewhere ----------
 
 def test_a_request_answered_by_a_tap_elsewhere_leaves_the_alerts(d, two):

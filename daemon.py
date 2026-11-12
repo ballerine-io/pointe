@@ -3521,7 +3521,7 @@ def _attention() -> list[dict]:
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
     m = state.meeting
     if m is not None and m.hand is not None:
-        items.append({"id": f"hand:{m.id}:{m.hand.n}", "kind": "hand", "text": m.hand.line, "at": m.hand.at})
+        items.append(alerts.hand_alert(m.id, m.hand.n, m.hand.line, m.hand.at))
     return [i for i in items if i["id"] not in state.attention_dismissed]
 
 

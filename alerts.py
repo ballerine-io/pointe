@@ -68,5 +68,12 @@ def question_alert(session: str, need: str, since: float) -> dict:
             "title": f"{session} needs you", "body": body, "text": body, "approvable": False, "at": since}
 
 
+def hand_alert(meeting: str, n: int, line: str, at: float) -> dict:
+    """In a meeting, Pointe has a point to make and waits for the owner's go-ahead."""
+    body = line if line and not secretish(line) and not _hidden(line) else "open Pointe to hear it"
+    return {"id": f"hand:{meeting}:{n}", "kind": "hand", "title": "Pointe wants to speak", "body": body, "text": body,
+            "approvable": False, "at": at}
+
+
 def _hidden(text: str) -> bool:
     return readout._hidden(text.replace("\n", " "))
