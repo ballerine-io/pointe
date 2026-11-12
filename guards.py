@@ -109,7 +109,7 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None) -> str
         what = f"{_FILE_VERBS[tool]} {readout.place(path, cwd)}"
     else:
         return None  # other tools (web fetches, MCP calls) have arguments too varied to say safely
-    if not what:
+    if not what or readout.redact(what) is None:  # a credential is never said aloud: the tap shows it
         return None
     lowered = _lower(what)
     return None if _words(lowered) & (_YES | _WEAK_YES) or any(p in lowered for p in _YES_PHRASES) else what

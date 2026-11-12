@@ -77,6 +77,25 @@ _QUIET = re.compile(r"\s+2>\s*/dev/null|\s+2>&1(?=\s|$|[;|&])")
 _TRIM = re.compile(r"\s*\|\s*(?:tail|head)(?:\s+-n\s*\d+|\s+-\d+)?(?=\s*(?:$|&&|;|\|\|))")
 
 
+_CREDENTIAL = re.compile(
+    r"\b(?:sk|pk|rk)-[A-Za-z0-9_-]{16,}"          # OpenAI, Stripe and the like
+    r"|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,}"
+    r"|xox[abprs]-[A-Za-z0-9-]{10,}"              # Slack
+    r"|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}"   # AWS, Google
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    r"|\b(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key)\s*[=:]"
+    r"|\bbearer\s+\S+"
+    r"|(?=[A-Za-z0-9+=]*\d)(?=[A-Za-z0-9+=]*[A-Za-z])[A-Za-z0-9+=]{32,}",  # letters and digits run together: a key or a hash
+    re.IGNORECASE)
+
+
+def redact(text: str) -> str | None:
+    """The text, or None when it carries a credential-like value (a key, a token, a password=...). Withheld whole, never
+    masked: a masked command approved by ear approves a value nobody heard, so such a request goes to a tap, as any
+    request that cannot be read out does. The one rule for what is said aloud and what a notification shows."""
+    return None if _CREDENTIAL.search(text or "") else text
+
+
 def _hidden(text: str) -> bool:
     if unicodedata.normalize("NFKC", text) != text:
         return True

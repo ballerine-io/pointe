@@ -1534,7 +1534,8 @@ Feature 7, v1: mirrored iPhone notifications and desktop notifications. `alerts.
 
 - `GET /voice/status` → `attention: [{id, kind: permission|question|hand, session?, request_id?, title, body, text,
   approvable, at}]`. `title`/`body` are what a notification may show: a permission's read-out form (readout allowlist),
-  else `"<Tool>: open Pointe to see the exact request"`; nothing that looks like a credential. `text` is now the same safe
+  else `"<Tool>: open Pointe to see the exact request"`; nothing that looks like a credential (`readout.redact`, which
+  also keeps such a request out of the spoken read-out: it is put like an unreadable one, and needs a tap). `text` is now the same safe
   body (it was the request's full text; no client read it). `approvable`: a notification may offer Approve.
   `question` is new: a session that ended its turn waiting on the user (`needs`), id `question:<session>:<since>`.
 - `POST /voice/approve` takes `via: "notification"`: an Allow is refused (403) unless the pref is on and the request is
