@@ -94,6 +94,9 @@ def tap(session: dict, decision: str) -> None:
     _daemon("/voice/approve", {"session": session["name"], "request_id": session["request_id"], "decision": decision})
 
 
+ASKED = r"speak:.*(Should it\?|לבצע\?|Say it again\.|אמור שוב\.)"  # a read-out, or the ask for a yes said too early
+
+
 async def drive_permissions(b: Browser, answer: str, n_perm: int, n_stop: int, timeout: float = 180) -> list[str]:
     """Answer every permission prompt by voice until Claude Code ends its turn. Returns what the bot said."""
     spoken: list[str] = []
@@ -102,7 +105,7 @@ async def drive_permissions(b: Browser, answer: str, n_perm: int, n_stop: int, t
     while time.time() < deadline:
         if len(log_lines("finished its turn")) > n_stop:
             return spoken
-        perms, reads = log_lines("permission request"), log_lines(r"speak:.*(Should it\?|לבצע\?)")
+        perms, reads = log_lines("permission request"), log_lines(ASKED)
         asked = None
         if len(perms) > n_perm:
             asked = log_time(perms[n_perm])
@@ -111,7 +114,7 @@ async def drive_permissions(b: Browser, answer: str, n_perm: int, n_stop: int, t
             asked = log_time(reads[n_read])
         if asked:
             spoken.append(await spoken_after(b, asked, timeout=25))
-            n_read = len(log_lines(r"speak:.*(Should it\?|לבצע\?)"))  # before the answer: it may bring another read-out
+            n_read = len(log_lines(ASKED))  # before the answer: it may bring another read-out
             waiting = [x for x in daemon_status()["sessions"] if x.get("request_id")]
             if waiting and not waiting[0].get("voice_can_approve"):  # too complex to read out: a person taps, as the bot asks
                 tap(waiting[0], "deny" if re.match(r"\s*no\b", answer, re.I) else "allow")

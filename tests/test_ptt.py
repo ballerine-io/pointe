@@ -254,7 +254,8 @@ def test_a_yes_whose_press_began_before_the_read_out_ended_does_not_approve(d, m
     d.state.ptt.press(d.ECHO.stopped_at - 1)  # pressed while the read-out was still going
     _vad_start(d, monkeypatch)  # the voice starts well after the read-out ended
     asyncio.run(d.on_user_utterance("yes please"))
-    assert verdicts(posts) == [] and said and "rm -rf build" in said[-1]
+    # the request was heard: asked for the yes again in one line, not read again (test_reread_loop.py)
+    assert verdicts(posts) == [] and said == ["I need the yes after I finish. Say it again."]
 
 
 def test_a_yes_pressed_after_the_read_out_still_approves(d, monkeypatch):
