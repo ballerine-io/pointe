@@ -1778,12 +1778,15 @@ async def _on_meeting_turn(m, turn) -> None:
             if voice is not None and not speaker.strong(voice):
                 logger.info("meeting: \"that's me\" in a voice that is not the owner's (ignored)")
                 continue
+            if turn.speaker == m.bot:  # its words passed the echo check: the label the echo took first is a person's
+                m.bot = None
+                logger.info("meeting: \"that's me\" on the label the echo took: it is a person's")
             rebound = m.owner is not None
             m.bind_owner(turn.speaker)
             if rebound:
                 NOTES.add("thought", "Rebound the owner to the speaker who said “that's me”.", dedup=False)
         else:
-            logger.info("meeting: addressed by a non-owner (ignored)")
+            logger.info(f"meeting: addressed by a non-owner (ignored: {cmd})")  # the kind only, never the words
 
 
 async def _meeting_voice(turn):
