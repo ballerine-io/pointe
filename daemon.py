@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import aiohttp
+import alerts
 import artifacts
 import remote
 import harnesses
@@ -1478,7 +1479,9 @@ async def say(text: str) -> None:
 # ---------- delivery to a session ----------
 
 async def post_channel(session: Session, path: str, body: dict) -> bool:
-    assert state.http is not None and session.channel_url
+    assert session.channel_url
+    if state.http is None:  # a tap can come before any call has run, and the call made the client
+        state.http = aiohttp.ClientSession()
     try:
         async with state.http.post(f"{session.channel_url}{path}", json=body,
                                    headers={"authorization": f"Bearer {TOKEN}"}) as resp:
@@ -3321,6 +3324,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     cut = " [cannot be read out exactly: a yes will not count here, and the terminal must answer it]" if session.permission_cut else ""
     session.permission_text = f"[permission request] {tool_name}: {description}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
     session.permission_full = f"{tool_name}: {description}\n{preview}"
+    alerts.note_request(request_id, tool_name, readable)
     REGISTRY.save()
     if session is REGISTRY.active:
         await _ask_permission(session)
@@ -3408,7 +3412,10 @@ async def approve(request: Request):
         raise HTTPException(status_code=400, detail="session and decision (allow or deny) are required")
     if not session.permission_id or not hmac.compare_digest(str(p.get("request_id", "")), session.permission_id):
         raise HTTPException(status_code=409, detail="that request is no longer pending")
-    if not await _apply_answer(session, session.permission_id, decision, "tapped"):
+    notified = p.get("via") == "notification"  # an action on a notification: the phone could not ask for Face ID
+    if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.permission_id)):
+        raise HTTPException(status_code=403, detail="approve this one in the app or on the page")
+    if not await _apply_answer(session, session.permission_id, decision, "from a notification" if notified else "tapped"):
         raise HTTPException(status_code=502, detail="the answer did not reach the session; answer in its terminal")
     return {"ok": True}
 
@@ -3654,11 +3661,12 @@ def _attention() -> list[dict]:
     items = []
     for s in REGISTRY.sessions.values():
         if s.permission_id:
-            items.append({"id": f"permission:{s.permission_id}", "kind": "permission", "session": s.name,
-                          "text": s.permission_full or s.permission_text or "", "at": s.permission_since or time.time()})
+            items.append(alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time()))
+        elif s.idle_since and s.needs and s.needs.get("need"):
+            items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
     m = state.meeting
     if m is not None and m.hand is not None:
-        items.append({"id": f"hand:{m.id}:{m.hand.n}", "kind": "hand", "text": m.hand.line, "at": m.hand.at})
+        items.append(alerts.hand_alert(m.id, m.hand.n, m.hand.line, m.hand.at))
     return [i for i in items if i["id"] not in state.attention_dismissed]
 
 

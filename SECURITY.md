@@ -29,7 +29,8 @@ With the default brain, a permission prompt is approved only when all of these h
   `grep`, `curl`, `npm test`, `pytest`, ...), each with a table of known flags, in plain pipelines. It says every program,
   every file written, every URL's host, every git remote, and the flags that change what can be lost. Anything else
   (unknown programs or flags, `$`, backticks, globs, braces, subshells, heredocs, several lines, wrappers such as `sudo`
-  or `env`, `VAR=` other than a few harmless ones, more than 25 words) is not read out. Two adversarial reviews found 24
+  or `env`, `VAR=` other than a few harmless ones, more than 25 words, or a credential-like value such as a key, a
+  token or `password=`: `readout.redact`) is not read out. Two adversarial reviews found 24
   ways around earlier versions; each is now a test. File tools are read as their path. The line ends in "Should it?",
   with no consent word, so it cannot come back through the speakers as a yes.
 - A request that is not read out is approved by a tap, never by voice: the page, and the phone app, show the exact
@@ -154,7 +155,13 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   512 kB, and masks secret-looking values (known token shapes, private keys, `name = "..."` for secret-like names, URL
   passwords, and the values of this machine's own key variables) in file lines, diffs, test output and commands.
   Diffs read `HEAD` with `git cat-file`, never `git diff`, so a repository's filters and diff drivers do not run.
-- **Approve needs Face ID** or the passcode; deny never does.
+- **Approve needs Face ID** or the passcode; deny never does. One opt-in exception: with "Approve from notifications"
+  on (`alerts.watch_approve`, off by default; the app asks for Face ID to turn it on), a notification's Approve needs an
+  unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
+  read out, bound to that request's id (`alerts.py`).
+- **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
+  description; a request that cannot be read out shows only its tool. Credential-like values follow the same rule as
+  the voice (`readout.redact`): never shown, never said.
 - **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.

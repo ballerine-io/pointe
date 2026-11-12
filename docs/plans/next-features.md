@@ -1582,3 +1582,43 @@ last 5 s, or the phone did with the pref on).
   daemon over the pinned link (in the simulator the pref is turned on from the Mac: no Face ID to pass).
 - **The plan's live e2e** drives a real Claude Code session; `tests/e2e/page_show.py` writes a synthetic Claude Code turn
   into a registered transcript instead (deterministic, no session cost), with the real reader, brain and mouth.
+
+## Wrist approvals and desktop alerts (as built, 2026-11-12)
+
+Feature 7, v1: mirrored iPhone notifications and desktop notifications. `alerts.py` holds the rules; `daemon.py` builds
+`attention` from it and checks an Approve that comes from a notification.
+
+### API
+
+- `GET /voice/status` → `attention: [{id, kind: permission|question|hand, session?, request_id?, title, body, text,
+  approvable, at}]`. `title`/`body` are what a notification may show: a permission's read-out form (readout allowlist),
+  else `"<Tool>: open Pointe to see the exact request"`; nothing that looks like a credential (`readout.redact`, which
+  also keeps such a request out of the spoken read-out: it is put like an unreadable one, and needs a tap). `text` is now the same safe
+  body (it was the request's full text; no client read it). `approvable`: a notification may offer Approve.
+  `question` is new: a session that ended its turn waiting on the user (`needs`), id `question:<session>:<since>`.
+- `POST /voice/approve` takes `via: "notification"`: an Allow is refused (403) unless the pref is on and the request is
+  `approvable`; a stale `request_id` is 409 as before. Deny needs neither.
+- Pref `alerts.watch_approve` (default false) in `GET/POST /voice/prefs`.
+
+### Clients
+
+- Page: Settings → Alerts. "Desktop alerts" is per browser (localStorage; the browser's permission is asked on the
+  tick). An attention item that appears while the tab is hidden becomes one notification; it closes when the item leaves
+  the list or the tab is shown; a click brings the page forward. Approving stays a click on the card.
+- iPhone: Menu → Alerts (`Alerts.swift`). Local notifications from the status poll, posted once each when the app is not
+  on screen; withdrawn when the item leaves `attention`. Categories: Deny + Approve (`.authenticationRequired`) only when
+  the pref is on and the request is `approvable`; Deny only for other permissions; no actions otherwise. Deny is the first
+  action. A 409 shows "Already answered", a 403 "Approve it in the app", anything else "Mac not reachable" (and it is
+  posted again on the next check). Background App Refresh (`io.ballerine.pointe.alerts`) checks when iOS allows.
+
+### Deviations from section 7
+
+- Notification bodies follow the read-out allowlist, not "the first line of `permission_full`": that line is the model's
+  description and the tool input, which may hold a secret.
+- Approve from a notification only for a request that can be read out (what a spoken yes could approve); others need
+  the app (Face ID) or the page.
+- "Alerts on this iPhone" is off until turned on (the plan said on): iOS's permission prompt should follow a tap, as the
+  browser's does on the page. "Approve from notifications" is one daemon pref for both clients, not a phone-only setting.
+- Not built: per-event-kind switches, sound and lock-screen-preview settings (iOS's own settings cover them), WebAuthn /
+  Touch ID on the page, the Time Sensitive entitlement (the level is set; without the entitlement iOS delivers it as
+  active), "Double Tap approves", `POST /voice/attention/dismiss` (the existing `POST /voice/attention {id}` stays).
