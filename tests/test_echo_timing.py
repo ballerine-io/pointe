@@ -148,3 +148,14 @@ def test_an_answer_word_near_one_the_bot_said_stays_echo(clock):
                  [(3.0, " Okay, I'll hold it."), (5.0, " Read the diff on your"), (7.0, " screen while I wait")], until=9.0)
     assert g.user_part("OK.", spoken=(107.8, 108.0)) == ""  # "ok" is how the STT can spell its "okay"
 
+
+def test_the_start_of_its_own_word_does_not_cut_the_bot_off():
+    g = EchoGuard()
+    g.bot_said("Holding, nothing sent. One risk: Redis lost 41 in-flight retries on the restart test.")
+    g.bot_started()
+    g.mirror_heard("", " Holding. Nothing")
+    assert not g.is_barge_in(" Hold")  # "Holding" half heard: a stop word only if it stays one
+    assert not g.is_barge_in(" Holding. No")  # "Nothing" half heard
+    assert g.is_barge_in(" Hold on")
+    assert g.is_barge_in("stop")
+    assert g.is_barge_in(" Holding. Nothing sent. Wait")

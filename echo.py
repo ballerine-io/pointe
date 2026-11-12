@@ -272,8 +272,10 @@ class EchoGuard:
         if not self.live:
             return len(heard) >= 2 or any(w in INTERRUPT_WORDS for w in heard)
         # The last word of a live transcript is often half heard ("c" for "cut"): if it starts a word the bot said, it
-        # proves nothing yet, and must not complete a run.
-        if heard and heard[-1] not in INTERRUPT_WORDS and any(b.startswith(heard[-1]) for b in self._bot_words()):
+        # proves nothing yet, and must not complete a run. A stop word too, when it is only the start of one ("hold" of
+        # "holding", "no" of "nothing"): the bot's first word cut it off. The next transcript, a beat later, settles it.
+        if heard and any(b.startswith(heard[-1]) and (heard[-1] not in INTERRUPT_WORDS or b != heard[-1])
+                         for b in self._bot_words()):
             heard = heard[:-1]
         mask = self._echo_mask(heard)
         run = best = 0
