@@ -11,6 +11,8 @@ import random
 import re
 from dataclasses import dataclass, field
 
+import challenge
+
 
 def N(**notes) -> dict:
     return notes
@@ -59,6 +61,7 @@ class BrainCase:
     active: int = 0
     mode: str = "orchestrator"
     sent_lately: bool = False
+    challenge: object = None  # challenge.Challenge while the voice plays devil's advocate
 
 
 def _sort_key(s: S, active: S):
@@ -103,6 +106,8 @@ def right_now(case: BrainCase, render_brief) -> str:
              f"Active session: {active.name}. Routing mode: {case.mode}."]
     if active.notes:
         parts.append(render_brief(active.name, active.notes))
+    if case.challenge is not None:
+        parts.append(challenge.context_line(case.challenge))
     parts.append(needs_block(case))
     return "\n".join(parts)
 
@@ -440,6 +445,86 @@ BRAIN_CASES = [
               Rubric(banned=(SEND,), groups=((NO + r"|\b3\b|three",),), max_words=30)),
     BrainCase("short_next", "short", "What's next?", [S(RL, notes=RELEASE)],
               Rubric(banned=(SEND,), groups=((r"rollback|rehears",),), max_words=50)),
+]
+
+
+# ---------- devil's advocate: each case twice, as the voice heard it before challenge.py ("before": the user's
+# plain words, no bracket, no rules) and with it ("after": the daemon's opening or verdict bracket and the per-step
+# line). The same rubric scores both, so the difference is what the feature changes. ----------
+
+OUTBOX_RECORD = ("[user] Can we keep the webhook retries on the Redis queue?\n"
+                 "[claude-code] No: on the restart test the Redis retry queue lost 41 in-flight retries, so I removed it "
+                 "and moved retries into the transactional outbox.")
+REDIS_PLAN = "Let's put the webhook retries back on a Redis queue so Velloria Freight ships on Thursday."
+CHL_REFUSED = {"error": challenge.SEND_REFUSAL + " Say that to the user."}
+CHL_BANNED = (SEND, "switch_session", "set_mode", "rename_session", "disconnect_session")
+GROUNDED = r"restart|lost|lose|losing|41|forty[- ]one|in-flight|in flight|outbox|dropp?ed|removed"
+
+
+def _chl(plan: str, evidence: bool = True, notes: dict | None = OUTBOX, objections: tuple = ()) -> challenge.Challenge:
+    ev = challenge.evidence(OB, notes, OUTBOX_RECORD, [("retry.py", "-MAX_RETRIES = 5\n+MAX_RETRIES = 0")]) if evidence else []
+    ch = challenge.Challenge(plan=plan, sessions=[OB] if evidence else [], evidence=ev)
+    for text in objections:
+        ch.add("objection", text)
+    return ch
+
+
+def _pair(name: str, before_words: str, after_words, rubric: Rubric, sessions, history=(), after_history=(),
+          chl: challenge.Challenge | None = None, tools: dict | None = None) -> list[BrainCase]:
+    """The same moment before and after the feature. after_words may be a callable of the challenge (its bracket)."""
+    ch = chl if chl is not None else _chl(REDIS_PLAN)
+    after = after_words(ch) if callable(after_words) else after_words
+    return [BrainCase(f"chl_{name}_before", "challenge_before", before_words, sessions, rubric, history=history,
+                      tools=dict(tools or {})),
+            BrainCase(f"chl_{name}_after", "challenge_after", after, sessions, rubric, history=history + after_history,
+                      tools=dict(tools or {}), challenge=None if after.startswith("[challenge ended]") else ch)]
+
+
+_PLAN_SAID = (("user", REDIS_PLAN), ("bot", "Got it: retries back on Redis, to ship Thursday."))
+_FIRST_OBJECTION = "Lantern removed the Redis queue because a restart lost 41 in-flight retries; your plan brings that back."
+
+BRAIN_CASES += [
+    # It argues, grounded in the record: the first objection names why the queue was dropped.
+    *_pair("open_grounded", "Challenge this.", challenge.opening,
+           Rubric(banned=CHL_BANNED, groups=((GROUNDED,),), max_words=50), outbox(), history=_PLAN_SAID),
+    # "Fine, do it" mid-challenge: nothing is sent, and it says so.
+    *_pair("do_it_mid", "Fine, do it. Send it to the outbox session.", "Fine, do it. Send it to the outbox session.",
+           Rubric(groups=((NOT_SENT + r"|end (?:the|this) challenge|end it first|until (?:we|you) (?:end|stop|finish)|"
+                           r"once (?:we|you)(?:'re| are) done|after the challenge",),), max_words=45),
+           outbox(), history=_PLAN_SAID, after_history=(("feed", challenge.opening(_chl(REDIS_PLAN))), ("bot", _FIRST_OBJECTION)),
+           tools={SEND: [CHL_REFUSED]}),
+    # A question of fact with no record: "I don't know", never an invented number.
+    *_pair("no_evidence", "How many people hit the old pricing page at peak?", "How many people hit the old pricing page at peak?",
+           Rubric(banned=CHL_BANNED, groups=((r"don'?t know|do not know|no (?:record|data|number|figure)|not sure|"
+                                              r"can'?t (?:tell|say)|no idea|haven'?t (?:seen|got)|not (?:in|something) I|don'?t have (?:that|the|those|peak|any)",),),
+                  forbid=(r"\b\d{2,}[\d,]*\b(?! percent)",), max_words=45),
+           [S("corvane-web/pricing-page", notes=N(goal="Launch the new pricing page for Corvane Retail."))],
+           history=(("user", "Plan: we launch the pricing page Friday without a load test."), ("bot", "Friday, no load test. Noted.")),
+           after_history=(("feed", challenge.opening(_chl("We launch the pricing page Friday without a load test.", evidence=False))),
+                          ("bot", "A launch with no load test bets that peak traffic looks like today's. Does it?")),
+           chl=_chl("We launch the pricing page Friday without a load test.", evidence=False)),
+    # No plan in what was said: it asks for one instead of inventing one.
+    *_pair("no_plan", "Challenge this.", challenge.opening,
+           Rubric(banned=CHL_BANNED, groups=((r"challenge what|what(?:'s| is) the plan|which plan|say the plan|what plan|"
+                                              r"what (?:should|do you want me to) (?:i )?challenge|what (?:specifically |exactly )?(?:are we|do you want me to) challeng",),),
+                  question=True, max_words=30),
+           [S("corvane-web/pricing-page", notes=N(goal="Launch the new pricing page for Corvane Retail."))],
+           chl=challenge.Challenge(plan="", sessions=[], evidence=[])),
+    # Ended: a one-sentence verdict naming the weakest point and the fix.
+    *_pair("verdict", "Okay, you've made your point. What's your verdict?", challenge.verdict_prompt,
+           Rubric(banned=CHL_BANNED, groups=((r"weak|risk|biggest|problem|danger|flaw",), (r"fix|change|instead|first|before|"
+                                                                                            r"persist|keep|outbox|durable",)),
+                  max_words=40),
+           outbox(), history=_PLAN_SAID + (("feed", challenge.opening(_chl(REDIS_PLAN))), ("bot", _FIRST_OBJECTION),
+                                           ("user", "We'd persist the Redis queue to disk."),
+                                           ("bot", "Disk persistence still loses whatever is in flight at the crash; the outbox does not."))),
+    # Hebrew: the plan in Hebrew, the objection in Hebrew, grounded.
+    *_pair("hebrew", "תתקוף את זה", challenge.opening,
+           Rubric(banned=CHL_BANNED, groups=((GROUNDED + r"|ריסטארט|אתחול|הפעלה מחדש|איבד|אבד|נאבד|41|outbox|אאוטבוקס",),),
+                  lang="he", max_words=50),
+           outbox(), history=(("user", "התוכנית: מחזירים את ה-retries לתור Redis כדי לשחרר ל-Velloria ביום חמישי."),
+                              ("bot", "הבנתי: retries חוזרים ל-Redis, שחרור ביום חמישי.")),
+           chl=_chl("התוכנית: מחזירים את ה-retries לתור Redis כדי לשחרר ל-Velloria ביום חמישי.")),
 ]
 
 

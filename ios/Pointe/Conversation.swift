@@ -127,6 +127,8 @@ struct BrainstormPanel: View {
     let said: String
     let hearing: String
     let back: () -> Void
+    var challenge: (() -> Void)? = nil  // devil's advocate on what was said (Challenge.swift)
+    var problem: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -156,11 +158,23 @@ struct BrainstormPanel: View {
             }
             Text("When you're done: tap below, or say “over to you”, “summarize that”, or “send that to …”.")
                 .font(.footnote).foregroundStyle(.secondary)
-            Button(action: back) {
-                Label("Back to conversation", systemImage: "bubble.left.and.bubble.right.fill")
-                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+            if let problem {
+                Label(problem, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
             }
-            .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+            HStack(spacing: 10) {
+                if let challenge {
+                    Button(action: challenge) {
+                        Text(ChallengeCopy.fromBrainstorm).font(.headline).padding(.vertical, 6)
+                    }
+                    .buttonStyle(.bordered).tint(.gray).controlSize(.large)
+                    .accessibilityIdentifier("brainstorm.challenge")
+                }
+                Button(action: back) {
+                    Label("Back to conversation", systemImage: "bubble.left.and.bubble.right.fill")
+                        .font(.headline).lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity).padding(.vertical, 6)
+                }
+                .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

@@ -430,3 +430,50 @@ def test_the_drive_copy_follows_the_users_language(d, monkeypatch):
     d.state.last_utterance = "מצב נהיגה"
     asyncio.run(d.set_drive(True, "voice"))
     assert said[-2][0] == drive.entered(True) and "לא אאשר בזמן נהיגה" in said[-1][0] and "rm -rf build" in said[-1][0]
+
+
+# ---------- drive mode and a challenge: never both. Driving wins: entering drive ends a challenge, and a challenge is
+# refused while driving (a challenge is long arguing; drive mode keeps answers short and the eyes on the road) ----------
+
+from test_challenge import c, fed, start  # noqa: E402,F401
+
+
+def test_a_challenge_is_refused_while_driving(d, c):
+    asyncio.run(d.set_drive(True, "button"))
+    assert "driving" in start(d).lower()
+    assert d.state.challenge is None and d.current_mode() is modes.DRIVE
+    r = client_for(d).post("/voice/challenge", json={"action": "start"})
+    assert r.status_code == 409 and "driving" in r.json()["detail"].lower()
+
+
+def test_entering_drive_mode_ends_a_challenge_without_a_verdict(d, c):
+    assert start(d) is None and d.current_mode() is modes.CHALLENGE
+    r = client_for(d).post("/voice/drive", json={"on": True})
+    assert r.status_code == 200 and r.json()["drive"]["on"]
+    assert d.state.challenge is None and d.state.last_challenge is not None
+    assert d.current_mode() is modes.DRIVE and not fed(c, "[challenge ended]")
+
+
+def test_drive_mode_by_voice_ends_a_challenge(d, c):
+    assert start(d) is None
+    asyncio.run(d.SonioxEars()._take("drive mode"))
+    assert d.state.challenge is None and d.state.drive.on()
+
+
+def test_back_to_normal_during_a_challenge_ends_the_challenge_not_a_drive_mode_that_is_off(d, c):
+    assert start(d) is None
+    asyncio.run(d.SonioxEars()._take("back to normal"))
+    assert d.state.challenge is None and not d.state.drive.on()
+    assert d.state.last_challenge.verdict_pending  # the challenge's own end, with its verdict
+
+
+def test_back_to_normal_outside_any_mode_reaches_the_brain(d, monkeypatch):
+    d.state.conn = fake_conn()
+    pushed = []
+
+    async def push(frame, *a):
+        pushed.append(frame)
+
+    ears = SimpleNamespace(push_frame=push, broadcast_interruption=lambda: None)
+    asyncio.run(d.SonioxEars._take(ears, "back to normal"))
+    assert pushed and pushed[-1].text == "back to normal"
