@@ -4,7 +4,8 @@ recorded); daemon.py starts, ends and records it.
 
 What a challenge may never do is enforced in code, not in these prompts: modes.CHALLENGE takes away every tool that acts
 (sends, switches, renames, routing, briefings) and `daemon._send` refuses while it is on; its start and end phrases are
-caught before the permission check, so they never approve or deny; it cannot start in a meeting, and a meeting ends it.
+caught before the permission check, so they never approve; a spoken end phrase that is a no ("stop", "עצור") also
+denies the pending request (a no from any voice denies, in every mode); it cannot start in a meeting, and a meeting ends it.
 It speaks only in reply to the owner: no nudges, and session reports wait for its end.
 """
 

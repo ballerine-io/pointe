@@ -16,6 +16,9 @@ from test_orchestrator import _consent_setup, client_for, d, fake_conn, record_c
 from test_speaker import OTHER_HZ, OWNER_HZ  # noqa: E402
 from test_voice_lock import _ears, _utter, heard, level, v  # noqa: E402,F401
 from test_challenge import c, start  # noqa: E402,F401
+from test_briefing import b, night, sec  # noqa: E402,F401
+
+import briefing  # noqa: E402
 
 import conflicts  # noqa: E402
 import drive  # noqa: E402
@@ -169,3 +172,27 @@ def test_a_briefing_asked_by_voice_is_refused_during_a_challenge(d, c, monkeypat
     asyncio.run(ears._take("brief me on the night"))
     assert not started, "a briefing started inside a challenge"
     assert client_for(d).post("/voice/briefings", json={"action": "start"}).status_code == 409
+
+
+# ---------- 6. owner rule: a no from any voice denies, in every mode ----------
+
+def test_stop_during_a_briefing_ends_it_and_denies_the_pending_request(d, b, tmp_path, monkeypatch):
+    lantern, _, _ = night(d, b, tmp_path)
+    d.REGISTRY.active_id = lantern.id
+    lantern.permission_delivered_at = lantern.permission_read_at = time.time() - 1
+    posts = record_channel(d, monkeypatch)
+    d.state.briefing_play = d.BriefingPlay(briefing=briefing.assemble([sec("docs", "done")], "today", "normal", 0, 0))
+    asyncio.run(d.SonioxEars()._take("stop"))
+    assert d.state.briefing_play is None
+    assert [v["behavior"] for v in verdicts(posts)] == ["deny"] and lantern.permission_id is None
+
+
+@pytest.mark.parametrize("words", ["enough", "די", "skip"])
+def test_a_briefing_word_that_is_no_no_answers_nothing(d, b, tmp_path, monkeypatch, words):
+    lantern, _, _ = night(d, b, tmp_path)
+    d.REGISTRY.active_id = lantern.id
+    lantern.permission_delivered_at = lantern.permission_read_at = time.time() - 1
+    posts = record_channel(d, monkeypatch)
+    d.state.briefing_play = d.BriefingPlay(briefing=briefing.assemble([sec("docs", "done")], "today", "normal", 0, 0))
+    asyncio.run(d.SonioxEars()._take(words))
+    assert verdicts(posts) == [] and lantern.permission_id == "p9"

@@ -959,6 +959,7 @@ class SonioxEars(FrameProcessor):
     async def _take(self, heard: str) -> None:
         if state.briefing_play is not None and state.monologue is None and (steer := briefing.control_intent(heard)):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
+            await _no_also_denies(heard)
             await briefing_control(steer)
             return
         if state.monologue is None and (asked := briefing.briefing_intent(heard)) is not None \
@@ -988,6 +989,8 @@ class SonioxEars(FrameProcessor):
         if wanted and state.monologue is None:
             await _start_meeting_by_voice(heard, wanted)
             return
+        if state.challenge is not None and state.monologue is None and challenge.end_intent(heard):
+            await _no_also_denies(heard)
         if await _challenge_words(heard):
             return
         if state.monologue is not None:
@@ -2107,6 +2110,14 @@ async def _challenge_words(text: str) -> bool:
         await end_challenge(text)
         return True
     return False
+
+
+async def _no_also_denies(text: str) -> None:
+    """Owner rule: a no from any voice denies, in every mode. Spoken words that end a challenge or steer a briefing and
+    are a no ("stop", "עצור": guards._NO) also deny the pending request, under every rule that binds a no, before the
+    mode ends (its end would put the request to the user again). Denying is the safe direction; nothing here approves."""
+    if permission_answer(text) == "deny":
+        await _answer_permission(text, deny_only=True)
 
 
 def _challenge_note(kind: str, text: str) -> None:

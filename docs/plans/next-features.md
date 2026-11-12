@@ -1560,7 +1560,9 @@ from memory instead of calling its tool. The brain tool `briefing(since, scope)`
 today?"); no arguments plays the one that waits. Scope words that name no session narrow nothing. `since` is parsed in code: the night (the last call's end within 24 h, else 18:00
 yesterday), "since six" (the most recent six), "since 6pm"/"18:00", today, this morning, yesterday, "the last N hours",
 Hebrew equivalents; anything else is since the last call. While a briefing plays or is paused, a whole utterance "skip"
-/ "next", "stop" / "enough", "go on" / "continue" (and Hebrew) steers it and never reaches the brain. Anything else pauses
+/ "next", "stop" / "enough", "go on" / "continue" (and Hebrew) steers it and never reaches the brain; one that is a no
+("stop", "cancel the briefing", "עצור": `guards._NO`) also denies a pending request (a no from any voice denies, in every
+mode), under the rules that bind any no, before the briefing stops. Anything else pauses
 it; once the answer is over and the room quiet for 3 s, the rest is offered once. A push-to-talk press pauses it; with no
 words, it goes on 6 s after the release.
 
@@ -1910,7 +1912,10 @@ silent (`Brain.terse`).
 
 "Challenge this / challenge me / play devil's advocate / poke holes in this / תתקוף את זה / תאתגר אותי" and "you've made
 your point / verdict / back to normal / end challenge / stop / די / חזרה לרגיל", each as a whole utterance, spoken or
-typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve or deny.
+typed, are caught in code before the permission check: they never reach the brain as a turn, and never approve. Owner
+rule, a no from any voice denies in every mode: a spoken end phrase that is a no (a word in `guards._NO`: "stop",
+"עצור") also denies the pending request, under the rules that bind any no (read out, within its window, not the bot's
+echo), before the challenge ends; "you've made your point", "enough", "די" only end it. Typed words never answer.
 During a brainstorm, "challenge this" ends it and challenges what was said.
 
 ### What it may do, in code

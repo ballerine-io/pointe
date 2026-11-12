@@ -392,14 +392,22 @@ def test_typed_start_and_end_work_and_typed_text_never_approves(d, c, monkeypatc
     assert d.state.challenge is None
 
 
-def test_the_end_phrase_never_answers_a_permission(d, c, monkeypatch):
+def test_an_end_phrase_that_is_a_no_also_denies_and_others_answer_nothing(d, c, monkeypatch):
+    """Owner rule: a no from any voice denies, in every mode. "Stop" ends the challenge and denies the request read out;
+    "you've made your point" is no answer and only ends it."""
     posts = record_channel(d, monkeypatch)
     start(d)
     with_permission(c.lantern, "p8", delivered_at=time.time() - 1)
     c.lantern.permission_read_at = time.time() - 1
     ears = d.SonioxEars()
     asyncio.run(ears._take("stop"))
-    assert verdicts(posts) == [] and c.lantern.permission_id == "p8"
+    assert d.state.challenge is None
+    assert [v["behavior"] for v in verdicts(posts)] == ["deny"] and c.lantern.permission_id is None
+    start(d)
+    with_permission(c.lantern, "p9", delivered_at=time.time() - 1)
+    c.lantern.permission_read_at = time.time() - 1
+    asyncio.run(ears._take("you've made your point"))
+    assert d.state.challenge is None and len(verdicts(posts)) == 1 and c.lantern.permission_id == "p9"
 
 
 def test_a_yes_after_an_objection_does_not_approve(d, c, monkeypatch):
