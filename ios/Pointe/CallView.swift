@@ -35,6 +35,9 @@ struct CallView: View {
     @State private var showSheet = false
     @State private var showSettings = false
     @State private var showFollow = ShowFollow()
+    @State private var sensors = DriveSensors()
+    @State private var driveWanted: Bool?  // shown at once on a tap, before the Mac confirms
+    @State private var challengeClosed: String?  // the ended challenge closed here: a new one shows again
     @State private var showDictionary = false
     @State private var learnedToasts = LearnedToasts()
     @State private var toast: [String]?
@@ -65,6 +68,11 @@ struct CallView: View {
     private var speaking: Bool { demo == nil ? call.botSpeaking : false }
 
     private var brainstorming: Bool { brainstormWanted ?? (status?.monologue != nil) }
+    private var driving: Bool { driveWanted ?? (status?.driving ?? false) }
+    private var suggestingDrive: Bool {
+        sensors.suggester.suggests(enabled: sensors.enabled, live: phase == .live, driving: driving,
+                                   meeting: meeting?.isOn == true, now: Date())
+    }
     private var hearing: String { status?.hearing ?? "" }
 
     private var meeting: API.Meeting? { status?.meeting }
@@ -86,10 +94,22 @@ struct CallView: View {
         Group {
             if let meeting, meeting.isOn {
                 meetingScreen(meeting)
-            } else if brainstorming {
-                BrainstormPanel(said: status?.monologue?.said ?? "", hearing: hearing, back: { setBrainstorm(false) })
+            } else if let c = challengeShown, c.on || !driving {  // an ended one waits until you stop driving
+                ChallengePanel(challenge: c, problem: problem, end: { await challenge("end") }, close: { challengeClosed = c.id })
                     .padding(.horizontal, 14).padding(.vertical, 8)
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .safeAreaInset(edge: .top, spacing: 0) { top }
+                    .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
+            } else if brainstorming {
+                BrainstormPanel(said: status?.monologue?.said ?? "", hearing: hearing, back: { setBrainstorm(false) },
+                                challenge: { Task { await challenge("start") } }, problem: problem)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .safeAreaInset(edge: .top, spacing: 0) { top }
+                    .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
+            } else if driving {
+                DriveScreen(status: status, speaking: speaking, stop: { setDrive(false) })
+                    .transition(.opacity)
                     .safeAreaInset(edge: .top, spacing: 0) { top }
                     .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
             } else {
@@ -97,6 +117,13 @@ struct CallView: View {
             }
         }
         .animation(.smooth(duration: 0.3), value: brainstorming)
+        .animation(.smooth(duration: 0.3), value: driving)
+        .onChange(of: status?.drive) {
+            call.driving = status?.driving ?? false
+            if driving { typing = false }
+            DriveNowPlaying.update(status: status, driving: status?.driving ?? false)
+        }
+        .animation(.smooth(duration: 0.3), value: challengeShown?.id)
         .background(Brand.background.ignoresSafeArea())
         .sheet(isPresented: $showSessions) {
             SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode)
@@ -217,6 +244,7 @@ struct CallView: View {
             if let prefs { call.setMicrophone(prefs.microphone) }
         }
         .task { if demo == nil { await poll() } }
+        .task { if demo == nil { sensors.start() } }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, demo == nil { Task { await call.resume() } }  // back from the background: redial if it dropped
             if phase == .background, demo == nil {  // leaving the screen: what waits now goes to the lock screen and the watch
@@ -233,7 +261,7 @@ struct CallView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing,
-                                     large: status?.whisper?.on == true) { editing = $0 }
+                                     large: status?.whisper?.on == true && status?.whisper?.held == nil) { editing = $0 }
                     if let problem = problem ?? call.problem {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote).foregroundStyle(Brand.orange).padding(.bottom, 8)
@@ -341,8 +369,19 @@ struct CallView: View {
             }
             Button { showBriefing = true } label: { Label(BriefingCopy.title, systemImage: "sun.horizon") }
             Button { showBriefingSettings = true } label: { Label(BriefingCopy.settingsItem, systemImage: "clock") }
+            Button { Task { await challenge(challengeOn ? "end" : "start") } } label: {
+                Label(challengeOn ? ChallengeCopy.end : ChallengeCopy.menuItem, systemImage: "figure.fencing")
+            }
+            .disabled(phase != .live || meeting?.isOn == true || brainstorming || driving)  // never both: driving wins
+            .accessibilityIdentifier("menu.challenge")
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
             Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
+            if status?.drive != nil {
+                Toggle(isOn: Binding(get: { sensors.enabled }, set: { sensors.setEnabled($0) })) {
+                    Label(DriveCopy.suggestSetting, systemImage: "car")
+                }
+                .accessibilityIdentifier("driveSuggestSetting")
+            }
             if status?.dictionary != nil {
                 Button { showDictionary = true } label: { Label(VocabularyCopy.menuItem, systemImage: "text.book.closed") }
                     .accessibilityIdentifier("dictionaryItem")
@@ -384,7 +423,14 @@ struct CallView: View {
                                   dismiss: { await dismissBriefing(ready) })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            if let request = waiting.first {
+            if suggestingDrive {
+                DriveSuggestion(accept: { setDrive(true) }, dismiss: { sensors.suggester.dismiss() })
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if driving, let request = waiting.first {
+                DriveRequestCard(session: request, status: status, more: waiting.count - 1)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if let request = waiting.first {
                 RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 if voiceUnsure { unsureNote }
@@ -392,19 +438,20 @@ struct CallView: View {
                     Text("\(waiting.count - 1) more waiting").font(.caption).foregroundStyle(.secondary)
                 }
             }
-            if let w = status?.whisper, w.on {
+            if let w = status?.whisper, w.on, w.held == nil, !driving {
                 WhisperCard(status: w, suggestPushToTalk: whisperFollow.suggestsPushToTalk(w) && !call.talk.ptt,
                             pushToTalk: { setMicrophone("ptt") }, notNow: { whisperFollow.notNow() },
                             back: { Task { await setWhisper(false) } })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            if typing {
+            if typing && !driving {
                 TypeBar(send: say) { withAnimation(.snappy) { typing = false } }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             BottomBar(phase: phase, muted: muted, monologue: brainstorming, typing: typing,
                       mic: micTapped, listen: { setBrainstorm(!brainstorming) }, type: { withAnimation(.snappy) { typing.toggle() } },
-                      sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk)
+                      sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk,
+                      driving: driving, drive: status?.drive == nil ? nil : { setDrive(!driving) })
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
@@ -467,6 +514,7 @@ struct CallView: View {
         case .connecting: return "Connecting…"
         case .reconnecting: return "Reconnecting…"
         case .live:
+            if challengeOn { return ChallengeCopy.state }
             if brainstorming { return "Brainstorming" }
             if call.talk.ptt {
                 if talking { return "Talking" }
@@ -658,6 +706,42 @@ struct CallView: View {
         return ok
     }
 
+    // MARK: challenge me
+
+    private var challengeOn: Bool { status?.challenge?.on == true }
+
+    /// On, or ended and not closed here; an ended one gives way to a brainstorm, as on the page.
+    private var challengeShown: API.ChallengeStatus? {
+        guard let c = status?.challenge, ChallengeCopy.shown(c, dismissed: challengeClosed), c.on || !brainstorming else { return nil }
+        return c
+    }
+
+    /// start or end. The Mac's refusal is shown as it gives it. The demo plays along on its own status.
+    private func challenge(_ action: String) async {
+        problem = nil
+        if demo != nil {
+            if action == "start" {
+                status?.challenge = API.ChallengeStatus(id: "demo-\(Int(Date().timeIntervalSince1970))", on: true, since: nil, ended_at: nil,
+                                                        plan: status?.monologue?.said ?? "", sessions: [], objections: 0,
+                                                        verdict: nil, evidence: 0, items: [])
+            } else {
+                status?.challenge?.on = false
+                status?.challenge?.ended_at = Date().timeIntervalSince1970
+            }
+            return
+        }
+        do {
+            try await call.api.challenge(action)
+        } catch API.Failure.status(_, let detail) {
+            problem = Self.sentence(detail)
+            return
+        } catch {
+            problem = "The Mac did not answer."
+            return
+        }
+        status = try? await call.api.status()
+    }
+
     // MARK: audio briefings
 
     private var readyBriefing: API.Attention? {
@@ -829,6 +913,17 @@ struct CallView: View {
     private func micTapped() {
         if phase == .live && call.talk.ptt { return }  // the hold opens and closes it
         if phase == .live { call.toggleMute() } else if phase == .off { Task { await call.start() } }
+    }
+
+    /// Drive mode lives on the Mac. "I've stopped" leaves it: the request is then read out again normally, and the
+    /// normal card (Face ID) answers what had to wait.
+    private func setDrive(_ on: Bool) {
+        if demo != nil { status?.drive?.on = on; return }
+        driveWanted = on
+        Task {
+            await act { try await call.api.drive(on) }
+            driveWanted = nil  // from here the Mac's word decides
+        }
     }
 
     private func setBrainstorm(_ on: Bool) {

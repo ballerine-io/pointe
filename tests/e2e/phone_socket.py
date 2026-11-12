@@ -113,4 +113,5 @@ async def main() -> None:
         print(f"\n{sum(r['ok'] for r in results)}/{len(results)} passed (phone socket)")
 
 
-asyncio.run(main())
+if __name__ == "__main__":  # page_drive.py borrows Phone
+    asyncio.run(main())

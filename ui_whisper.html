@@ -1,5 +1,6 @@
 <!-- Whisper mode (feature 9, whisper.py): the voice answers briefly and quietly, typing is one tap away. Served inside
-     ui.html at {{WHISPER}}; the iPhone app has the same button, card and copy. The daemon's status is the truth. -->
+     ui.html at {{WHISPER}}; the iPhone app has the same button, card and copy. The daemon's status is the truth. While
+     drive mode is on, whisper mode is held (status `held`): the button stays pressed, the card and its effects wait. -->
 <style>
   body.whisper #caption { font-size: 30px; padding: 18px 22px; border-color: var(--orange-line); }
   #whispercard { padding: 0 28px; } #whispercard:empty { display: none; }
@@ -16,14 +17,14 @@
     if (!r.ok) $('problem').textContent = 'Whisper mode did not change: the voice is not reachable.';
     refresh();
   }
-  function whisperToggle() { whisperSet(!(wsp.on)); }
+  function whisperToggle() { whisperSet(!((status && status.whisper) || {}).on); }
   function whisperFollow(s) {
     const w = (s && s.whisper) || {on: false};
-    const on = !!w.on, was = wsp.on;
+    const on = !!w.on && !w.held, was = wsp.on;  // held: drive mode is on, and nothing of whisper mode applies
     wsp.on = on;
     document.body.classList.toggle('whisper', on);
     const btn = $('whisperbtn');
-    btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on);
+    btn.classList.toggle('on', !!w.on); btn.setAttribute('aria-pressed', !!w.on);
     $('whisper-label').textContent = on ? 'Whispering' : 'Whisper';
     if (on && was !== true) {  // on at the first look, or turned on here, on the phone or by voice: typing comes forward
       $('compose').classList.remove('folded');

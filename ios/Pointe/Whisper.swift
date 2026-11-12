@@ -7,6 +7,7 @@ import SwiftUI
 extension API {
     struct WhisperStatus: Decodable, Equatable {
         let on: Bool
+        var held: String? = nil  // "drive": drive mode holds it, and nothing of whisper mode applies until it ends
         let output_gain: Double?
         let max_words: Int?
         let suggest_ptt: Bool?  // on, and the microphone is not push to talk
@@ -35,7 +36,7 @@ struct WhisperFollow: Equatable {
 
     /// True when typing should open now.
     mutating func follow(_ status: API.WhisperStatus?) -> Bool {
-        let now = status?.on == true
+        let now = status?.on == true && status?.held == nil
         let opened = now && on != true
         on = now
         if !now { pttNotNow = false }
@@ -45,7 +46,7 @@ struct WhisperFollow: Equatable {
     mutating func notNow() { pttNotNow = true }
 
     func suggestsPushToTalk(_ status: API.WhisperStatus?) -> Bool {
-        status?.on == true && status?.suggest_ptt == true && !pttNotNow
+        status?.on == true && status?.held == nil && status?.suggest_ptt == true && !pttNotNow
     }
 }
 

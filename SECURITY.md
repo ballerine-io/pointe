@@ -47,6 +47,24 @@ Code history, about 13% of shell commands can be read out; the rest need a tap o
 Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
 the exact request. If you want no voice approvals, set `approvals: terminal`.
 
+### Drive mode (optional)
+
+Drive & walk mode (`drive.py`) only narrows the rules above; it never widens them. You enter it yourself ("drive mode",
+"מצב נהיגה", or the Drive button); it is shown on the page and the phone, and it ends with the call (at once on a hang-up
+or the idle timer; after 5 minutes when the link drops and does not come back). While it is on, a spoken yes approves a
+request only when, on top of every rule above:
+
+- the read-out allowlist can say it whole (a credential-like value is never read out: such a request waits for a tap);
+- it loses nothing (`drive.road_safe`, its own allowlist): read-only programs, tests, `mkdir`, `touch`, `git status`,
+  `diff`, `log`, `show`, `fetch`, `pull`, `add`, `commit`, `push` (no force, delete, mirror, `+ref` or `:ref`, no
+  `--amend`, `--no-verify`, `--rebase` or `--prune`), plain `curl` GETs, and edits inside the project. `rm`, `mv`,
+  `cp`, redirects into files, `git reset`, `clean`, `rebase`, `checkout`, `stash`, `npm run`, `make`, `gh` and edits
+  outside the project wait for a tap;
+- with a voiceprint stored, the yes itself is a strong match for your voice (`speaker.strong`), at any lock level.
+
+A no counts from any voice. A tap answers any request, as always: the page and the app hide the buttons while driving and
+"I've stopped" leaves the mode, after which the request is read out again normally.
+
 ### Owner-voice lock (optional)
 
 Settings → Voice lock learns your voice on a call and checks each thing said against it, on this Mac. Levels: **Off**
@@ -65,6 +83,18 @@ and their words are not shown or kept).
   `bench/results/speaker.md`.
 - **Model:** 3D-Speaker ERes2Net (Apache-2.0), run locally by `sherpa-onnx`, downloaded once from the sherpa-onnx
   GitHub release with a pinned SHA-256. No vendor sees the audio for this check or the voiceprint.
+
+### Whisper mode
+
+Whisper mode (`whisper.py`; "whisper mode", "מצב לחישה", or the Whisper button) changes how the call sounds, never what
+a word can do. The bot plays at half volume, the microphone is raised (x2.5, soft limiter) with a whisper profile for
+the voice detector, and replies are kept short. A whispered yes or no goes through exactly the same check as a spoken
+one (tested by running the approval cases with the mode off and on and comparing the outcomes). It is never an
+approval path and never lowers the voice lock: a voiceprint is learned from your normal voice, and a whisper scores
+low against it (no synthetic whispered sentence reached the strong-match threshold in `bench/results/whisper.md`), so
+with the lock on a whispered yes usually does not count and the request waits for a tap. Drive mode holds it: while
+driving the bot plays at full volume and whisper mode applies again when drive mode ends. With a challenge on, both
+apply; whisper mode adds nothing a challenge takes away.
 
 ### Audio briefings
 
@@ -156,7 +186,7 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
   heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
   enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
-  the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), the dictionary (`/voice/dictionary`: list, add, edit, delete), and the conflict alarm (`/voice/conflicts`: dismiss,
+  the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), the dictionary (`/voice/dictionary`: list, add, edit, delete), drive mode (`/voice/drive`: on, off), and the conflict alarm (`/voice/conflicts`: dismiss,
   or ask one side as typed words, which never approve). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from

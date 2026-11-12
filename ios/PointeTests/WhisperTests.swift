@@ -50,6 +50,15 @@ final class WhisperTests: XCTestCase {
         XCTAssertFalse(follow.suggestsPushToTalk(try status(#"{"on": true, "suggest_ptt": false}"#)), "push to talk is already on")
     }
 
+    func testDriveModeHoldsIt() throws {
+        let held = try status(#"{"on": true, "held": "drive", "suggest_ptt": false}"#)
+        var follow = WhisperFollow()
+        XCTAssertEqual(held.held, "drive")
+        XCTAssertFalse(follow.follow(held), "held by drive mode: no typing forward")
+        XCTAssertFalse(follow.suggestsPushToTalk(held))
+        XCTAssertTrue(follow.follow(try status(#"{"on": true}"#)), "drive mode ended: whisper mode applies again")
+    }
+
     /// The page and the app say the same thing (docs/plans/next-features.md: parity).
     func testTheCopyIsThePagesWordForWord() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

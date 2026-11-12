@@ -99,6 +99,8 @@ class Brain:
         self.context, self.speak, self.filler = context, speak, filler
         self.has_open, self.sent_lately = has_open or (lambda: None), sent_lately or (lambda: False)
         self.permission_pending = lambda: False
+        self.terse = lambda: False  # drive mode: the user cannot look, so no "Sorry, I lost that" chatter either
+        self.style_problem: Callable[[str], str | None] = lambda _s: None  # a mode's own limit (drive: length)
         self.on_usage = on_usage or (lambda _u: None)
         self.messages: list[dict] = []
         self._lock = asyncio.Lock()
@@ -161,6 +163,9 @@ class Brain:
         backstage = _BACKSTAGE.search(lowered)
         if backstage and not self._user_named(backstage.group(0).split()[-1]):  # "what's in the notes?" may get "the notes say"
             return "Do not mention notes, the feed, transcripts or tools. Say what you know, or that you do not know."
+        style = said and self.style_problem(said)
+        if style:
+            return style
         wrong_language = self.language_problem(said)
         if wrong_language:
             return wrong_language
@@ -258,7 +263,8 @@ class Brain:
             if not calls and step.said:  # a vendor without forced tool use answered in plain text
                 calls = [{"id": "text", "name": "speak", "args": {"text": step.said}, "plain": True}]
             if not calls:
-                await self.speak("Sorry, I lost that. Say it again?")
+                if not self.terse():
+                    await self.speak("Sorry, I lost that. Say it again?")
                 return
             real = [c for c in calls if not c.get("plain")]
             if real:

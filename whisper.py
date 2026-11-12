@@ -65,10 +65,13 @@ def scale(pcm: bytes, gain: float) -> bytes:
     return (np.frombuffer(pcm, dtype=np.int16).astype(np.float32) * gain).astype(np.int16).tobytes()
 
 
-def status(on: bool, lock: str, microphone: str) -> dict:
-    """What both clients show. `lock_note`: the voice lock stays as set, and a whisper may not match the voiceprint."""
-    return {"on": on, "output_gain": OUTPUT_GAIN if on else 1.0, "max_words": MAX_WORDS if on else None,
-            "suggest_ptt": on and microphone != "ptt", "lock_note": LOCK_NOTES.get(lock) if on else None}
+def status(on: bool, lock: str, microphone: str, held: str | None = None) -> dict:
+    """What both clients show. `on` is the setting; `held` names a mode that suspends it ("drive"), and then nothing of
+    whisper mode applies. `lock_note`: the voice lock stays as set, and a whisper may not match the voiceprint."""
+    live = on and not held
+    return {"on": on, "held": held if on else None, "output_gain": OUTPUT_GAIN if live else 1.0,
+            "max_words": MAX_WORDS if live else None, "suggest_ptt": live and microphone != "ptt",
+            "lock_note": LOCK_NOTES.get(lock) if live else None}
 
 
 LOCK_NOTES = {

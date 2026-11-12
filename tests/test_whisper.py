@@ -77,7 +77,8 @@ def test_whisper_is_a_pref_both_clients_share_and_status_shows_it(d):
     assert c.get("/voice/status").json()["whisper"]["on"] is False
     assert c.post("/voice/prefs", json={"whisper": True}).json()["whisper"] is True
     s = c.get("/voice/status").json()["whisper"]
-    assert s == {"on": True, "output_gain": 0.5, "max_words": whisper.MAX_WORDS, "suggest_ptt": True, "lock_note": None}
+    assert s == {"on": True, "held": None, "output_gain": 0.5, "max_words": whisper.MAX_WORDS, "suggest_ptt": True,
+                 "lock_note": None}
     assert c.post("/voice/prefs", json={"whisper": "yes"}).status_code == 400
 
 
@@ -268,3 +269,73 @@ def test_the_daemon_defines_everything_before_it_starts():
     tree = ast.parse((Path(__file__).resolve().parents[1] / "daemon.py").read_text())
     last = tree.body[-1]
     assert isinstance(last, ast.If) and "__main__" in ast.unparse(last.test)
+
+
+# ---------- with drive mode and a challenge ----------
+
+def _drive_on(d):
+    d.state.drive.enter("button")
+
+
+def test_drive_mode_holds_whisper_mode_full_volume_normal_microphone_and_drives_rules(d, monkeypatch):
+    """Drive wins: the user cannot look at a screen, and a half-volume voice in a car is a safety cost. The whisper
+    setting stays as set and comes back when drive mode ends."""
+    d.PREFS.update({"whisper": True})
+    _drive_on(d)
+    out, pushed = _processor(d, monkeypatch, d.WhisperOut)
+    _run(d, out, d.OutputAudioRawFrame(audio=_pcm(1000), sample_rate=24000, num_channels=1))
+    inp, raised = _processor(d, monkeypatch, d.WhisperIn)
+    _run(d, inp, d.InputAudioRawFrame(audio=_pcm(100), sample_rate=16000, num_channels=1))
+    assert _ints(pushed[-1].audio) == [1000] and _ints(raised[-1].audio) == [100] and _vad_updates(d, raised) == []
+    ctx = d._brain_context()
+    assert whisper.REPLY_RULE not in ctx and d.drives.RULES in ctx
+    s = client_for(d).get("/voice/status").json()["whisper"]
+    assert s["on"] is True and s["held"] == "drive" and s["output_gain"] == 1.0 and s["suggest_ptt"] is False
+    d.state.drive.leave()
+    _run(d, out, d.OutputAudioRawFrame(audio=_pcm(1000), sample_rate=24000, num_channels=1))
+    assert _ints(pushed[-1].audio) == [500] and whisper.REPLY_RULE in d._brain_context()
+    assert client_for(d).get("/voice/status").json()["whisper"]["held"] is None
+
+
+def test_back_to_normal_while_driving_and_whispering_ends_drive_mode_first(d, monkeypatch):
+    ears, reached, said = _ears(d, monkeypatch)
+    monkeypatch.setattr(d, "set_drive", lambda on, how: _leave(d))
+    d.PREFS.update({"whisper": True})
+    _drive_on(d)
+    asyncio.run(ears._take("back to normal"))
+    assert not d.state.drive.on() and d.PREFS.get("whisper") is True and not reached
+    asyncio.run(ears._take("back to normal"))
+    assert d.PREFS.get("whisper") is False and not reached
+
+
+async def _leave(d):
+    d.state.drive.leave()
+
+
+def test_back_to_normal_with_neither_mode_on_is_someone_elses_words(d, monkeypatch):
+    ears, reached, said = _ears(d, monkeypatch)
+    asyncio.run(ears._take("back to normal"))
+    assert reached and not said and d.PREFS.get("whisper") is False
+
+
+def test_a_challenge_and_whisper_mode_both_apply_and_whisper_widens_nothing(d, monkeypatch):
+    import challenge
+    import modes
+
+    d.state.challenge = challenge.Challenge(plan="Ship the retry fix on Friday.", sessions=["lantern"], evidence=[])
+    try:
+        ears, reached, said = _ears(d, monkeypatch)
+        asyncio.run(ears._take("whisper mode"))
+        assert d.PREFS.get("whisper") is True and d.state.challenge is not None  # the challenge goes on
+        assert d.current_mode() is modes.CHALLENGE and not d.current_mode().sends
+        ctx = d._brain_context()
+        assert whisper.REPLY_RULE in ctx and challenge.context_line(d.state.challenge) in ctx
+    finally:
+        d.state.challenge = None
+
+
+def test_whisper_mode_asked_while_driving_waits_for_the_end_of_drive_mode(d, monkeypatch):
+    ears, reached, said = _ears(d, monkeypatch)
+    _drive_on(d)
+    asyncio.run(ears._take("whisper mode"))
+    assert d.PREFS.get("whisper") is True and "drive mode ends" in said[-1]
