@@ -8,7 +8,8 @@ Redis) are generic terms.
 """
 
 import random
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass, field, replace
 
 import challenge
 
@@ -46,6 +47,18 @@ class Rubric:
     order: tuple = ()  # the first regex matches earlier in the reply than the second
     starts: str = ""  # this regex matches within the first 8 words
     silence_ok: bool = False  # saying nothing at all is a right answer here
+    lookup_ok: bool = False  # a send that only asks the session for information is not a banned send
+
+
+ACTION = (r"(?:^|[.:;!]\s+|\b(?:please|and|then|go ahead and|you should|(?:can|could|would) you)\s+)(?:change|edit|fix|merge|"
+          r"revert|put|move|delete|remove|deploy|ship|implement|apply|switch|add|drop|restore|rewrite|replace|run|push|commit|"
+          r"launch)\b|\bapprov\w*|\bgo ahead\b")  # an imperative: context such as "we plan to launch Friday" is not one
+LOOKUP = r"\b(?:find|look up|check|what|how (?:many|much)|which|when|report|tell (?:me|us)|pull|figure|confirm whether)\b|\?"
+
+
+def lookup_only(message: str) -> bool:
+    """A send that asks for information and asks for no change."""
+    return bool(re.search(LOOKUP, message, re.I)) and not re.search(ACTION, message, re.I)
 
 
 @dataclass
@@ -425,7 +438,9 @@ def _pair(name: str, before_words: str, after_words, rubric: Rubric, sessions, h
     """The same moment before and after the feature. after_words may be a callable of the challenge (its bracket)."""
     ch = chl if chl is not None else _chl(REDIS_PLAN)
     after = after_words(ch) if callable(after_words) else after_words
-    return [BrainCase(f"chl_{name}_before", "challenge_before", before_words, sessions, rubric, history=history,
+    # Before challenge.py nothing refused a send, and asking the session for a fact is a fair answer to a question.
+    before = replace(rubric, lookup_ok=True) if SEND in rubric.banned else rubric
+    return [BrainCase(f"chl_{name}_before", "challenge_before", before_words, sessions, before, history=history,
                       tools=dict(tools or {})),
             BrainCase(f"chl_{name}_after", "challenge_after", after, sessions, rubric, history=history + after_history,
                       tools=dict(tools or {}), challenge=None if after.startswith("[challenge ended]") else ch)]
