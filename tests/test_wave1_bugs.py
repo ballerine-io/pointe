@@ -581,3 +581,54 @@ def test_an_addressed_turn_in_the_bots_words_is_the_owners_command(d, monkeypatc
     m, turns = _bot_said_then_room_turn(d, monkeypatch, "Say Pointe, end the meeting, when you are done.",
                                         "Pointe, end the meeting.", "1")
     assert d.state.meeting is None, "the owner's end command was taken for the bot's echo"
+
+
+# ---------- 17. a stale transcript from the conversation's ears does not cut the bot off in a meeting ----------
+
+def test_a_stale_conversation_transcript_does_not_cut_the_bot_off_in_a_meeting(d, monkeypatch):
+    """Seen in the meeting e2e: every 25-35 s `barge-in: "Connected to pricing. I'm still catching up on it."` (the call's
+    greeting echo, left unfinalised when the meeting took the microphone) came back as an interim while the bot spoke to
+    the room, and cut it off."""
+    from pipecat.frames.frames import InterimTranscriptionFrame, TranscriptionFrame
+    from pipecat.processors.frame_processor import FrameDirection
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    ears = d.SonioxEars()
+    cuts, heard = [], []
+
+    async def cut():
+        cuts.append(True)
+
+    async def noop(*_a, **_k):
+        pass
+
+    async def took(text):
+        heard.append(text)
+
+    monkeypatch.setattr(ears, "broadcast_interruption", cut)
+    monkeypatch.setattr(ears, "push_frame", noop)
+    monkeypatch.setattr(ears, "_take", took)
+    monkeypatch.setattr(d.FrameProcessor, "process_frame", lambda self, f, dirn: asyncio.sleep(0))
+    d.ECHO.bot_started()
+    d.ECHO.bot_said("The refunds flow still uses the old prices.")
+    down = FrameDirection.DOWNSTREAM
+    stale = "Connected to pricing. I'm still catching up on it."
+    asyncio.run(d.SonioxEars.process_frame(ears, InterimTranscriptionFrame(text=stale, user_id="u", timestamp="t"), down))
+    asyncio.run(d.SonioxEars.process_frame(ears, TranscriptionFrame(text=stale, user_id="u", timestamp="t"), down))
+    d.ECHO.bot_stopped()
+    assert not cuts and not heard, (cuts, heard)
+
+
+def test_the_conversations_ears_are_finalised_when_a_meeting_takes_the_microphone(d, monkeypatch):
+    """So the words cut off by the meeting finish inside it (where they are dropped), not stuck until after it."""
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    gate = d.PttGate(SimpleNamespace(_websocket=SimpleNamespace(send=send)))
+    asyncio.run(gate.tick(T0))
+    d.state.meeting = SimpleNamespace(ending=False)
+    asyncio.run(gate.tick(T0 + 0.1))
+    asyncio.run(gate.tick(T0 + 0.2))
+    assert sent == ['{"type": "finalize"}'], sent

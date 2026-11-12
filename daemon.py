@@ -844,6 +844,9 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
             logger.info("barge-in: voice well above the echo")
             await self.broadcast_interruption()
+        elif isinstance(frame, (InterimTranscriptionFrame, TranscriptionFrame)) and direction == FrameDirection.DOWNSTREAM \
+                and _room_heard():
+            return  # MicGate sends the room to the meeting stream: these are words cut off when it took the microphone
         elif isinstance(frame, InterimTranscriptionFrame) and direction == FrameDirection.DOWNSTREAM:
             if lock_level() == "everything":
                 pass  # not shown until the final is checked: another voice's words never reach the screen
@@ -1670,18 +1673,27 @@ class PttGate(FrameProcessor):
         if state.ptt.closed_at and state.user_started_at > state.user_stopped_at:
             state.user_stopped_at = now  # a press with nothing said must not leave the user talking for good
 
+    _room = False  # a meeting had the microphone at the last tick
+
     async def tick(self, now: float) -> None:
+        room, was = _room_heard(), self._room
+        self._room = room
+        if room and not was:
+            await self._finalize()  # the words the meeting cut off finish now, inside it, where they are dropped
         for event in state.ptt.tick(PREFS.get("microphone"), now):
             if event == "closed":
                 logger.info(f"ptt: closed ({state.ptt.closed_why})")
                 self._release(now, state.ptt.closed_why)
             elif event == "finalize":
-                ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
-                if ws is not None:
-                    try:
-                        await ws.send('{"type": "finalize"}')
-                    except Exception as e:
-                        logger.info(f"ptt: finalize not sent: {type(e).__name__}")
+                await self._finalize()
+
+    async def _finalize(self) -> None:
+        ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
+        if ws is not None:
+            try:
+                await ws.send('{"type": "finalize"}')
+            except Exception as e:
+                logger.info(f"ptt: finalize not sent: {type(e).__name__}")
 
     async def _ticks(self) -> None:
         while True:
