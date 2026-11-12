@@ -557,6 +557,8 @@
       <div class="help" id="vl-levelhelp"></div>
       <div class="err" id="vl-err" role="alert"></div>
     </section>
+    <h3>Dictionary</h3>
+    <div class="row" style="justify-content:flex-start"><button type="button" id="dict-open" onclick="openDictionary()">Dictionary…</button></div>
     <h3>Briefings</h3>
     <label class="tick"><input type="checkbox" id="brf-sched" onchange="$('brf-time').disabled = !this.checked"> Scheduled briefing</label>
     <div class="field">Time<input type="time" id="brf-time" aria-label="Briefing time"></div>
@@ -776,6 +778,7 @@
     showBriefing(status);
     if (window.desktopAlerts) desktopAlerts(status);
     showShowing(status);
+    if (window.dictionaryFollow) dictionaryFollow(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
     $('ctx').textContent = s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context';
@@ -1415,7 +1418,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['endsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['dictsheet', 'endsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;
@@ -2198,5 +2201,6 @@
     $('pref-desktop-note').textContent = box.checked ? '' : DESK_BLOCKED;
   }
 </script>
+{{DICTIONARY}}
 </body>
 </html>

@@ -35,6 +35,7 @@ import modes
 import speaker
 from ptt import Ptt
 import vendors
+import vocabulary
 import watchdog
 from jobs import JobRunner
 from notes import Notes
@@ -171,6 +172,7 @@ JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meet
 ALARM = conflicts.Alarm()  # two sessions that disagree: their latest reports and the open conflicts
 PREFS = Prefs(STATE_DIR / "prefs.json")
 VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
+DICTIONARY = vocabulary.Dictionary(STATE_DIR / "dictionary.json")  # names the user fixed or added: this Mac only
 SHOWS = artifacts.Shows()  # show while it says: what is on screen while the voice reports a turn
 JOURNAL = STATE_DIR / "journal.jsonl"
 JOURNAL_MAX_BYTES = 20_000_000
@@ -655,6 +657,8 @@ def _brain_context() -> str:
         parts.append(f"Voice lock: {level} ({LOCK_HELP[level]}).")
     if playing := _briefing_context():
         parts.append(playing)
+    if names := vocabulary.brain_line(DICTIONARY):
+        parts.append(names)
     parts.append(_needs_now())
     return "\n".join(parts)
 
@@ -1074,6 +1078,7 @@ def _remember(who: str, text: str) -> None:
     """The recent conversation, so a short "yes" or "both" can be read against what it answers."""
     if who == "user":
         _journal_bot_turn()
+        DICTIONARY.heard(text)
     else:
         SHOWS.heard(text)
     if state.conversation and state.conversation[-1][0] == who == "assistant":
@@ -1088,12 +1093,18 @@ def _remember(who: str, text: str) -> None:
         _polish_later(state.conversation_base + len(state.conversation) - 1, text)
 
 
+def _spelling() -> str:
+    terms = DICTIONARY.ranked()[:vocabulary.BRAIN_TERMS]
+    return f" Spell these names this way: {', '.join(terms)}." if terms else ""
+
+
 def _polish_later(turn_id: int, text: str) -> None:
     async def run():
         try:
             prompt = (f"Rewrite what someone said aloud as one or two clear, well-formed sentences. Do not answer it or "
                       f"respond to it, even when it is a question: only reword it. Keep their meaning, names "
-                      f"and language exactly; drop fillers and false starts; add nothing. Reply with the sentences only.\n\n{text}")
+                      f"and language exactly; drop fillers and false starts; add nothing. Reply with the sentences only."
+                      f"{_spelling()}\n\n{text}")
             state.understood[turn_id] = (await asyncio.wait_for(vendors.text(setup().checker, prompt, max_tokens=120),
                                                                 CHECK_TIMEOUT_SECS)).strip()
             for old in [i for i in state.understood if i < state.conversation_base]:
@@ -1196,6 +1207,7 @@ class State:
     last_meeting: object = None  # the meeting that just ended: its record, for export and the action-items send
     meeting_ears: object = None
     mic_gate: object = None  # the MicGate in the call's pipeline
+    heard_as: dict[int, str] = field(default_factory=dict)  # user turn id -> what the ears wrote, before any fix
     ptt: Ptt = field(default_factory=Ptt)  # push to talk: the press that holds the microphone open
     client: dict = field(default_factory=dict)  # what the page or phone said about itself (protocol 3 hello)
     attention_dismissed: set = field(default_factory=set)
@@ -4017,19 +4029,100 @@ async def correct_a_turn(request: Request):
     if not text or not 0 <= index < len(state.conversation) or state.conversation[index][0] != "user":
         raise HTTPException(status_code=404, detail="no such thing you said")
     was = state.conversation[index][1]
+    heard_as = state.heard_as.setdefault(turn_id, was)  # a fix put back is not a new mishearing
+    for old in [i for i in state.heard_as if i < state.conversation_base]:
+        del state.heard_as[old]
+    learned = _learn(heard_as, text, typed=turn_id in state.typed)
     state.conversation[index] = ("user", text)
     state.corrected.add(turn_id)
     state.understood.pop(turn_id, None)
     logger.info(f"user corrected {was!r} -> {text!r}")
     if state.conn is None:
-        return {"ok": True}
+        return {"ok": True, "learned": learned}
     note = (f"[the user corrected the transcript] You heard: \"{was}\". They meant: \"{text}\". If you acted on the misheard "
             f"words, say what you did and fix it; otherwise answer what they meant.")
     state.heard_own_words = True
     state.last_utterance, state.last_user_speech_at = text, time.time()  # a send is checked against what they meant
     await state.conn.injector.push_frame(InputTextRawFrame(text=note))
     state.heard_own_words = False
-    return {"ok": True}
+    return {"ok": True, "learned": learned}
+
+
+# ---------- the dictionary (vocabulary.py): names the user fixed or added ----------
+
+def _learn(was: str, meant: str, typed: bool) -> list[str]:
+    """Only the owner's fix of words the ears heard: not a typed turn (a typo), never in a meeting (the room's words
+    are other people's), never with learning turned off."""
+    if typed or state.meeting is not None or state.meeting_starting or not PREFS.get("dictionary.learn"):
+        return []
+    learned = [e["term"] for e in DICTIONARY.learn(was, meant)]
+    if learned:
+        logger.info(f"dictionary learned {len(learned)} term(s) from a correction")
+    return learned
+
+
+def _brief_names() -> dict[str, list[str]]:
+    out = {}
+    for s in REGISTRY.sessions.values():
+        names = (_brief_of(s) or {}).get("people_and_names")
+        if isinstance(names, list):
+            out[s.name] = [str(n) for n in names if isinstance(n, str)]
+    return out
+
+
+def _dictionary_status() -> dict:
+    learned = DICTIONARY.learned_since(state.connected_at) if state.conn is not None else []
+    return {"count": len(DICTIONARY.entries), "cap": vocabulary.CAP, "full": DICTIONARY.full,
+            "learn": PREFS.get("dictionary.learn"), "learned_this_call": learned, "problem": DICTIONARY.problem}
+
+
+def _dictionary_page() -> dict:
+    learn = PREFS.get("dictionary.learn")
+    return {**_dictionary_status(), "entries": DICTIONARY.entries, "ignored": DICTIONARY.ignored,
+            "suggestions": DICTIONARY.suggestions(_brief_names(), [n for s in REGISTRY.sessions.values()
+                                                                  for n in [s.name, *s.name.replace("/", " ").split()]]) if learn else []}
+
+
+@app.get("/voice/dictionary")
+async def dictionary_list():
+    return _dictionary_page()
+
+
+@app.post("/voice/dictionary")
+async def dictionary_change(request: Request):
+    """`add {term, lang?, session?}`, `edit {term, to?, lang?}`, `ignore {term}`, `unignore {term}`. Every term passes
+    vocabulary.refusal: no consent word, no credential. A change reaches the ears on the next call."""
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="a JSON object, please")
+    action, term, lang = body.get("action"), str(body.get("term") or "").strip(), body.get("lang")
+    try:
+        if action == "add":
+            source = "session" if body.get("session") else "manual"
+            DICTIONARY.add(term, lang, source=source)
+        elif action == "edit":
+            to = body.get("to")
+            DICTIONARY.edit(term, to=str(to) if to is not None else None, lang=lang)
+        elif action == "ignore" and term:
+            DICTIONARY.ignore(term)
+        elif action == "unignore" and term:
+            DICTIONARY.unignore(term)
+        else:
+            raise HTTPException(status_code=400, detail="action is add, edit, ignore, unignore")
+    except vocabulary.Full as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="not in the dictionary")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _dictionary_page()
+
+
+@app.delete("/voice/dictionary")
+async def dictionary_delete(term: str = ""):
+    if not DICTIONARY.delete(term):
+        raise HTTPException(status_code=404, detail="not in the dictionary")
+    return _dictionary_page()
 
 
 @app.post("/voice/polish")
@@ -4115,6 +4208,7 @@ async def status(request: Request):
             "showing": SHOWS.view(time.time(), ECHO.speaking) if show else None,
             "shown_earlier": SHOWS.earlier() if show else [],
             "show_on_phone": PREFS.get("show.on_phone"),
+            "dictionary": _dictionary_status(),
             "tokens": state.tokens,
             "router": (f"orchestrator: named session → auto ({_setup.checker if _setup else 'gate'}) → active session"
                        if REGISTRY.mode == "orchestrator" else "session mode: every request goes to the active session"),
@@ -4488,7 +4582,8 @@ def context_breakdown(messages: list) -> list[dict]:
 async def page():
     here = Path(__file__).parent
     return ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
-            .replace("{{BALLERINE}}", (here / "assets" / "ballerine.svg").read_text()))
+            .replace("{{BALLERINE}}", (here / "assets" / "ballerine.svg").read_text())
+            .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text()))
 
 
 async def _add_worker(session: Session) -> None:
@@ -4636,17 +4731,19 @@ def build_front():
 
 
 def _recognition_terms() -> list[str]:
-    """Session names and repo directory names bias recognition toward real identifiers."""
-    terms: set[str] = set()
+    """The user's dictionary, session names, names from the sessions' notes and repo directory names bias recognition
+    toward real identifiers (vocabulary.terms_for: in that order, capped, no consent word from any source)."""
+    names: list[str] = []
+    folders: set[str] = set()
     for s in REGISTRY.sessions.values():
-        terms.update(s.name.replace("/", " ").split())
+        names += s.name.replace("/", " ").split()
         try:
             files = _git_files(s.cwd, 5).split("\0")
         except Exception:
             continue
         for f in files:
-            terms.update(p for p in f.split("/")[:2][:-1] if 2 < len(p) < 40 and not p.startswith("."))
-    return sorted(terms)[:300]
+            folders.update(p for p in f.split("/")[:2][:-1] if 2 < len(p) < 40 and not p.startswith("."))
+    return vocabulary.terms_for(DICTIONARY, names, _brief_names(), sorted(folders))
 
 
 def _opening_context() -> list[dict]:

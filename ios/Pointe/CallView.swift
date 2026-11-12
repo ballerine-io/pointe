@@ -35,6 +35,10 @@ struct CallView: View {
     @State private var showSheet = false
     @State private var showSettings = false
     @State private var showFollow = ShowFollow()
+    @State private var showDictionary = false
+    @State private var learnedToasts = LearnedToasts()
+    @State private var toast: [String]?
+    @State private var demoDictionary = DemoDictionary()
     private let demo: Demo?
 
     init(pairing: Pairing, unpair: @escaping () -> Void, demo: Demo? = nil) {
@@ -150,6 +154,20 @@ struct CallView: View {
                 .presentationBackground(.regularMaterial)
         }
         .onChange(of: showing?.id) { showFollow.follow(showing) }
+        .sheet(isPresented: $showDictionary) {
+            VocabularySheet(load: loadDictionary, change: changeDictionary, delete: deleteFromDictionary, setLearn: setLearn)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
+        .onChange(of: status?.dictionary) { showLearned(learnedToasts.fresh(status?.dictionary)) }
+        .overlay(alignment: .bottom) {
+            if let toast {
+                LearnedToast(terms: toast) { undoLearned(toast) }
+                    .padding(.bottom, 130)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: toast)
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
                 IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).presentationBackground(.regularMaterial)
@@ -188,7 +206,11 @@ struct CallView: View {
             }
         }
         .task {
-            if let demo { feed.useDemo(demo.notes); call.follow(demo.status.ptt); return }
+            if let demo {
+                feed.useDemo(demo.notes); call.follow(demo.status.ptt)
+                if demo.screen == .dictionaryLearned { toast = demo.status.dictionary?.learned_this_call?.map(\.term) }
+                return
+            }
             prefs = try? await call.api.prefs()
             if let prefs { call.setMicrophone(prefs.microphone) }
         }
@@ -312,6 +334,10 @@ struct CallView: View {
             Button { showBriefingSettings = true } label: { Label(BriefingCopy.settingsItem, systemImage: "clock") }
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
             Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
+            if status?.dictionary != nil {
+                Button { showDictionary = true } label: { Label(VocabularyCopy.menuItem, systemImage: "text.book.closed") }
+                    .accessibilityIdentifier("dictionaryItem")
+            }
             if status?.voice_lock != nil {
                 Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
             }
@@ -706,6 +732,48 @@ struct CallView: View {
         guard demo == nil else { return on }
         guard await savePrefs(["alerts.watch_approve": on]) else { return prefs?.watchApprove ?? false }
         return prefs?.watchApprove ?? on
+    }
+
+    // MARK: dictionary
+
+    private func loadDictionary() async -> Result<API.DictionaryPage, VocabularyFailure> {
+        if demo != nil { return .success(demoDictionary.page) }
+        do { return .success(try await call.api.dictionary()) } catch { return .failure(.from(error)) }
+    }
+
+    private func changeDictionary(_ body: [String: any Sendable]) async -> Result<API.DictionaryPage, VocabularyFailure> {
+        if demo != nil { return demoDictionary.apply(body) }
+        do { return .success(try await call.api.changeDictionary(body)) } catch { return .failure(.from(error)) }
+    }
+
+    private func deleteFromDictionary(_ term: String) async -> Result<API.DictionaryPage, VocabularyFailure> {
+        if demo != nil { return demoDictionary.delete(term) }
+        do { return .success(try await call.api.deleteFromDictionary(term)) } catch { return .failure(.from(error)) }
+    }
+
+    private func setLearn(_ on: Bool) async -> Bool {
+        if demo != nil {
+            let p = demoDictionary.page
+            demoDictionary.page = API.DictionaryPage(entries: p.entries, suggestions: on ? p.suggestions : [], ignored: p.ignored,
+                                                     count: p.count, cap: p.cap, full: p.full, learn: on, problem: nil)
+            return true
+        }
+        return await savePrefs(["dictionary.learn": on])
+    }
+
+    private func showLearned(_ terms: [String]) {
+        guard !terms.isEmpty else { return }
+        toast = terms
+        Task {
+            try? await Task.sleep(for: .seconds(8))
+            if toast == terms { toast = nil }
+        }
+    }
+
+    /// Undo: the learned terms come out of the dictionary again.
+    private func undoLearned(_ terms: [String]) {
+        toast = nil
+        Task { for term in terms { _ = await deleteFromDictionary(term) } }
     }
 
     // MARK: show while it says
