@@ -1187,7 +1187,7 @@ class State:
     last_meeting: object = None  # the meeting that just ended: its record, for export and the action-items send
     meeting_ears: object = None
     mic_gate: object = None  # the MicGate in the call's pipeline
-    ears: object = None  # the call's Soniox ears, for "Apply now" in the dictionary
+    heard_as: dict[int, str] = field(default_factory=dict)  # user turn id -> what the ears wrote, before any fix
     ptt: Ptt = field(default_factory=Ptt)  # push to talk: the press that holds the microphone open
     client: dict = field(default_factory=dict)  # what the page or phone said about itself (protocol 3 hello)
     attention_dismissed: set = field(default_factory=set)
@@ -3954,7 +3954,10 @@ async def correct_a_turn(request: Request):
     if not text or not 0 <= index < len(state.conversation) or state.conversation[index][0] != "user":
         raise HTTPException(status_code=404, detail="no such thing you said")
     was = state.conversation[index][1]
-    learned = _learn(was, text, typed=turn_id in state.typed)
+    heard_as = state.heard_as.setdefault(turn_id, was)  # a fix put back is not a new mishearing
+    for old in [i for i in state.heard_as if i < state.conversation_base]:
+        del state.heard_as[old]
+    learned = _learn(heard_as, text, typed=turn_id in state.typed)
     state.conversation[index] = ("user", text)
     state.corrected.add(turn_id)
     state.understood.pop(turn_id, None)
@@ -4002,8 +4005,7 @@ def _dictionary_page() -> dict:
     learn = PREFS.get("dictionary.learn")
     return {**_dictionary_status(), "entries": DICTIONARY.entries, "ignored": DICTIONARY.ignored,
             "suggestions": DICTIONARY.suggestions(_brief_names(), [n for s in REGISTRY.sessions.values()
-                                                                  for n in [s.name, *s.name.replace("/", " ").split()]]) if learn else [],
-            "can_apply": state.conn is not None and state.ears is not None}
+                                                                  for n in [s.name, *s.name.replace("/", " ").split()]]) if learn else []}
 
 
 @app.get("/voice/dictionary")
@@ -4013,8 +4015,8 @@ async def dictionary_list():
 
 @app.post("/voice/dictionary")
 async def dictionary_change(request: Request):
-    """`add {term, lang?, session?}`, `edit {term, to?, lang?}`, `ignore {term}`, `unignore {term}`, `apply`. Every
-    term passes vocabulary.refusal: no consent word, no credential."""
+    """`add {term, lang?, session?}`, `edit {term, to?, lang?}`, `ignore {term}`, `unignore {term}`. Every term passes
+    vocabulary.refusal: no consent word, no credential. A change reaches the ears on the next call."""
     body = await request.json()
     if not isinstance(body, dict):
         raise HTTPException(status_code=400, detail="a JSON object, please")
@@ -4030,13 +4032,8 @@ async def dictionary_change(request: Request):
             DICTIONARY.ignore(term)
         elif action == "unignore" and term:
             DICTIONARY.unignore(term)
-        elif action == "apply":
-            if state.conn is None or state.ears is None:
-                raise HTTPException(status_code=409, detail="no call with Pointe's ears: it applies on the next call")
-            await state.ears.queue_frame(vocabulary.apply_frame(_recognition_terms()))
-            logger.info("dictionary applied to the live ears")
         else:
-            raise HTTPException(status_code=400, detail="action is add, edit, ignore, unignore or apply")
+            raise HTTPException(status_code=400, detail="action is add, edit, ignore, unignore")
     except vocabulary.Full as e:
         raise HTTPException(status_code=409, detail=str(e))
     except KeyError:
@@ -4765,7 +4762,6 @@ async def run_call(transport) -> None:
     state.tokens = None
     injector = FeedInjector()
     ears, mirror, stt = [], [], None
-    state.ears = None
     if EARS != "native":
         if vendors.has("soniox"):
             mirror = [MirrorEars(_recognition_terms())]
@@ -4773,7 +4769,6 @@ async def run_call(transport) -> None:
         from pipecat.processors.audio.vad_processor import VADProcessor
 
         stt = vendors.build_ears(setup().ears, _recognition_terms())
-        state.ears = stt if setup().ears == "soniox" else None
         ears = [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()]
     gate = PttGate(stt)
     if FRONT == "brain":

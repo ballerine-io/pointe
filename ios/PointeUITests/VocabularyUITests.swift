@@ -1,7 +1,7 @@
 import XCTest
 
 /// The dictionary, on the -demo fixtures: no Mac needed. The menu item, the sheet (list with source and language, add,
-/// a refused consent word with the reason, edit, delete, a suggestion's Add and Ignore, Learn from my fixes, Apply now),
+/// a refused consent word with the reason, edit, delete, a suggestion's Add and Ignore, Learn from my fixes and when a change applies),
 /// and the "Learned: …" toast with Undo. Screenshots go to VOCAB_SHOTS when it names a folder.
 @MainActor
 final class VocabularyUITests: XCTestCase {
@@ -69,8 +69,8 @@ final class VocabularyUITests: XCTestCase {
         let field = app.alerts.textFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 5), "tapping an entry edits it")
         field.tap()
-        field.typeText("s")
-        app.alerts.buttons["Save"].tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "Tarnwicks")
+        app.alerts.buttons["Save"].firstMatch.tap()
         XCTAssertTrue(app.buttons["dictionaryTerm-Tarnwicks"].waitForExistence(timeout: 5), "the edit is saved")
 
         app.buttons["dictionaryDelete-Tarnwicks"].tap()
@@ -88,7 +88,7 @@ final class VocabularyUITests: XCTestCase {
         XCTAssertFalse(app.buttons["suggestAdd-Kestrelbay"].exists, "no longer suggested")
     }
 
-    func testLearningTogglesAndApplyNowSaysWhenItApplies() throws {
+    func testLearningTogglesAndTheSheetSaysWhenAChangeApplies() throws {
         launch("dictionary")
         openDictionary()
         let learn = app.switches["dictionaryLearn"]
@@ -97,12 +97,9 @@ final class VocabularyUITests: XCTestCase {
         XCTAssertEqual(learn.value as? String, "1", "on by default")
         learn.switches.firstMatch.exists ? learn.switches.firstMatch.tap() : learn.tap()
         XCTAssertTrue(NSPredicate(format: "value == '0'").evaluate(with: learn) || learn.value as? String == "0")
-        let apply = app.buttons["dictionaryApply"]
-        if !apply.exists { app.swipeUp() }
-        XCTAssertTrue(apply.waitForExistence(timeout: 5))
-        apply.tap()
-        XCTAssertTrue(text("the recognizer restarts after you finish speaking").waitForExistence(timeout: 5))
-        shot("dictionary-applied")
+        XCTAssertTrue(text("Applies on the next call.").exists)
+        XCTAssertFalse(text("Kestrelbay").exists, "learning off: no suggestions")
+        shot("dictionary-learn-off")
     }
 
     func testTheToastNamesWhatWasLearnedAndUndoRemovesIt() throws {

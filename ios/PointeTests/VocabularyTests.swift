@@ -29,13 +29,11 @@ final class VocabularyTests: XCTestCase {
         {"count": 2, "cap": 400, "full": false, "learn": true, "learned_this_call": [], "problem": null,
          "entries": [{"term": "Quillfeather", "lang": "en", "source": "correction", "hits": 3, "added_at": 1762900000, "confirmed": true},
                      {"term": "ליאורה", "lang": "he", "source": "manual", "hits": 0, "added_at": 1762900001, "confirmed": true}],
-         "ignored": ["Zentrak"], "suggestions": [{"term": "Kestrelbay", "session": "river-lantern", "lang": "en"}],
-         "can_apply": false}
+         "ignored": ["Zentrak"], "suggestions": [{"term": "Kestrelbay", "session": "river-lantern", "lang": "en"}]}
         """#.utf8))
         XCTAssertEqual(page.entries.map(\.term), ["Quillfeather", "ליאורה"])
         XCTAssertEqual(page.suggestions?.first?.session, "river-lantern")
         XCTAssertEqual(page.ignored, ["Zentrak"])
-        XCTAssertEqual(page.can_apply, false)
     }
 
     func testEachLearnedNameIsToastedOnceAndNoneFromBeforeTheAppFollowed() {
@@ -83,7 +81,7 @@ final class VocabularyTests: XCTestCase {
         let page = html.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
         for copy in [VocabularyCopy.title, VocabularyCopy.lede, VocabularyCopy.addPlaceholder, VocabularyCopy.empty,
                      VocabularyCopy.suggestions, VocabularyCopy.learn, VocabularyCopy.learnHelp, VocabularyCopy.appliesNext,
-                     VocabularyCopy.appliesNow, VocabularyCopy.applied, VocabularyCopy.applyNow, VocabularyCopy.undo,
+                     VocabularyCopy.undo,
                      "you fixed it", "you added it", "from a session", "EN + HE", "Full (", "Delete one to add another.", "Learned: "] {
             XCTAssertTrue(page.contains(copy), "the page says: \(copy)")
         }

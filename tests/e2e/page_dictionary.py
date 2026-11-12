@@ -5,9 +5,8 @@ reason; edit a spelling; change its language; a session's names are suggested (n
 work; Learn from my fixes turns learning and suggestions off and on; delete; the file is 0600; no page errors.
 
 Part 2, with --live (Soniox, the brain and the mouth; flaky by nature, as speech is): a fake microphone says a line with an
-invented name the ears mishear; you fix it in the page; "Learned: …" shows with Undo, and Undo takes it out; fixed again,
-Apply now restarts the ears in place and the next time the line is said the name is heard right; hang up, call again,
-and it is still heard right.
+invented name the ears mishear; you fix it in the page; "Learned: …" shows with Undo, and Undo takes it out; the fix put
+back and made again teaches only the name; hang up, call again, and the name is heard right.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-voc CLAUDE_VOICE_DAEMON_PORT=7975 CLAUDE_VOICE_TLS_PORT=7575 POINTE_CHROME_PORT=7978 \
      uv run python -u -I tests/e2e/page_dictionary.py [--live]
@@ -87,7 +86,7 @@ async def part_one(page: Page, session_id: str) -> None:
     await sheet(page)
     check("the sheet opens from Settings, empty, with the next-call note",
           await page.js("[document.querySelector('#dict-list .empty')?.textContent, document.getElementById('dict-applies').textContent,"
-                        " document.getElementById('dict-apply').hidden]"),
+                        " !document.getElementById('dict-apply')]"),
           ["No names yet. Fix a word Pointe misheard, or add one here.", "Applies on the next call.", True])
     await type_add(page, "Quillfeather")
     check("Add puts the name in the dictionary, marked as yours",
@@ -146,7 +145,6 @@ async def part_one(page: Page, session_id: str) -> None:
     await asyncio.sleep(0.6)
     check("Delete takes a name out", [e["term"] for e in entries()], ["QuillFeather"])
     check("the file is private (0600)", oct(stat.S_IMODE((STATE / "dictionary.json").stat().st_mode)), "0o600")
-    check("Apply now needs a call", status_of("POST", "/voice/dictionary", {"action": "apply"}), 409)
     await page.js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}))")
     await asyncio.sleep(0.3)
     check("Escape closes the sheet", await page.js("document.getElementById('dictsheet').classList.contains('open')"), False)
@@ -159,7 +157,7 @@ async def said_after(n: int, timeout: float) -> str | None:
     while time.time() < deadline:
         heard = log_lines(r"user said: ")
         if len(heard) > n:
-            return heard[n]
+            return re.sub(r"^.*user said: ", "", heard[n])
         await asyncio.sleep(0.5)
     return None
 
@@ -208,19 +206,7 @@ async def part_two(page: Page) -> None:
     await asyncio.sleep(1.5)
     await fix(LINE)
     await page.until("document.getElementById('dicttoast').classList.contains('on')", 8)
-    check("fixed again, it is learned again", [e["term"] for e in entries()], [NAME])
-
-    await page.js("openDictionary()")
-    await page.until("!document.getElementById('dict-apply').hidden", 5)
-    await page.js("dictApply()")
-    await asyncio.sleep(0.5)
-    check("Apply now says when it applies", await page.js("document.getElementById('dict-applies').textContent"),
-          "Applied: the recognizer restarts after you finish speaking.")
-    await page.js("closeSheet('dictsheet')")
-    n = len(log_lines(r"user said: "))
-    after = await said_after(n, 45)
-    print(f"  heard after Apply now: {after!r}")
-    _check("after Apply now, the next time the line is said the name is heard right", bool(after and NAME in after), heard=after)
+    check("put back and fixed again, only the name is learned", [e["term"] for e in entries()], [NAME])
 
     await page.js("endCall()")
     await asyncio.sleep(4)

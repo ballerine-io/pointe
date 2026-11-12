@@ -342,11 +342,3 @@ def brain_line(book: Dictionary) -> str | None:
     terms = book.ranked()[:BRAIN_TERMS]
     return f"[names the user uses, spell them this way in anything you send] {', '.join(terms)}" if terms else None
 
-
-def apply_frame(terms: list[str]):
-    """A settings update for live Soniox ears: Pipecat reconnects the stream with the new context, after the user's
-    current turn if they are speaking."""
-    from pipecat.frames.frames import STTUpdateSettingsFrame
-    from pipecat.services.soniox.stt import SonioxContextObject, SonioxSTTService
-
-    return STTUpdateSettingsFrame(delta=SonioxSTTService.Settings(context=SonioxContextObject(terms=terms)))

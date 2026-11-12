@@ -755,7 +755,7 @@ struct CallView: View {
         if demo != nil {
             let p = demoDictionary.page
             demoDictionary.page = API.DictionaryPage(entries: p.entries, suggestions: on ? p.suggestions : [], ignored: p.ignored,
-                                                     count: p.count, cap: p.cap, full: p.full, learn: on, problem: nil, can_apply: p.can_apply)
+                                                     count: p.count, cap: p.cap, full: p.full, learn: on, problem: nil)
             return true
         }
         return await savePrefs(["dictionary.learn": on])

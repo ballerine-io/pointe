@@ -42,7 +42,7 @@
     <div class="note">When you fix what Pointe heard, it learns the name you typed. It never learns yes, no or stop words,
       anything that looks like a password or key, or words from a meeting.</div>
     <div class="note" id="dict-applies">Applies on the next call.</div>
-    <div class="row"><button id="dict-apply" onclick="dictApply()" hidden>Apply now</button><button class="go" onclick="closeSheet('dictsheet')">Done</button></div>
+    <div class="row"><button class="go" onclick="closeSheet('dictsheet')">Done</button></div>
   </div>
 </div>
 <script>
@@ -72,8 +72,6 @@
     $('dict-problem').textContent = p.problem || '';
     $('dict-learn').checked = !!p.learn;
     $('dict-full').textContent = p.full ? `Full (${p.cap}). Delete one to add another.` : '';
-    $('dict-apply').hidden = !p.can_apply;
-    $('dict-applies').textContent = p.can_apply ? 'Applies on the next call, or now with Apply now.' : 'Applies on the next call.';
     const list = $('dict-list');
     if (!p.entries.length) list.replaceChildren(el('li', 'empty', 'No names yet. Fix a word Pointe misheard, or add one here.'));
     else list.replaceChildren(...p.entries.map(dictRow));
@@ -124,9 +122,6 @@
                                           body: JSON.stringify({'dictionary.learn': box.checked})});
     if (!r.ok) { box.checked = !box.checked; $('dict-err').textContent = 'Not saved'; return; }
     dictDo('GET');
-  }
-  async function dictApply() {
-    if (await dictDo('POST', {action: 'apply'})) $('dict-applies').textContent = 'Applied: the recognizer restarts after you finish speaking.';
   }
   // The toast: each term learned in this call is shown once, from the status the page polls anyway.
   function dictionaryFollow(s) {

@@ -322,6 +322,17 @@ def test_undo_deletes_what_was_learned(voc):
     assert client.request("DELETE", "/voice/dictionary", params={"term": "bluebell"}).status_code == 404
 
 
+def test_putting_a_fix_back_never_teaches_the_misheard_word(voc):
+    # Seen live: fixed, undone, the bubble edited back to what was heard, then fixed again taught "Pelusin" too.
+    d, client = voc
+    turn = heard(d, "Is Pelusin still on the preview environment?")
+    client.post("/voice/correct", json={"id": turn, "text": "Is Pellucine still on the preview environment?"})
+    client.request("DELETE", "/voice/dictionary", params={"term": "Pellucine"})
+    assert client.post("/voice/correct", json={"id": turn, "text": "Is Pelusin still on the preview environment?"}).json()["learned"] == []
+    client.post("/voice/correct", json={"id": turn, "text": "Is Pellucine still on the preview environment?"})
+    assert [e["term"] for e in client.get("/voice/dictionary").json()["entries"]] == ["Pellucine"]
+
+
 def test_fixing_a_typed_turn_teaches_nothing(voc):
     d, client = voc
     turn = heard(d, "open the blue bell repo")
@@ -437,24 +448,13 @@ def test_the_clean_up_rewrite_is_given_the_names(voc, monkeypatch):
     assert prompts and "Quillfeather" in prompts[0]
 
 
-def test_apply_now_hands_the_new_terms_to_the_live_ears(voc):
-    d, client = voc
-    frames = []
-
-    async def queue_frame(frame, *a):
-        frames.append(frame)
-    d.state.ears = SimpleNamespace(queue_frame=queue_frame)
-    client.post("/voice/dictionary", json={"action": "add", "term": "Quillfeather"})
-    r = client.post("/voice/dictionary", json={"action": "apply"})
-    assert r.status_code == 200, r.text
-    [frame] = frames
-    assert "Quillfeather" in frame.delta.context.terms
-
-
-def test_apply_now_without_a_call_is_409(voc):
-    d, client = voc
-    d.state.conn, d.state.ears = None, None
-    assert client.post("/voice/dictionary", json={"action": "apply"}).status_code == 409
+def test_there_is_no_apply_now_a_change_reaches_the_ears_on_the_next_call(voc):
+    """A live spike: Pipecat's Soniox reconnect waits for a user-turn end that Pointe's own turn handling never sends,
+    so an in-place restart lagged a whole utterance. The plan's fallback ships: the next call."""
+    _, client = voc
+    assert client.post("/voice/dictionary", json={"action": "apply"}).status_code == 400
+    assert "can_apply" not in client.get("/voice/dictionary").json()
+    assert not hasattr(vocabulary, "apply_frame")
 
 
 def test_status_counts_and_hits_from_what_the_user_says(voc):

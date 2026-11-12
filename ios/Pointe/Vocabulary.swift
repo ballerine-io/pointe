@@ -44,7 +44,6 @@ extension API {
         let full: Bool?
         let learn: Bool?
         let problem: String?
-        let can_apply: Bool?
     }
 
     // The Mac's own words on a refusal ("a yes, no or stop word…"), so the sheet can show why.
@@ -91,9 +90,6 @@ enum VocabularyCopy {
     static let learnHelp = "When you fix what Pointe heard, it learns the name you typed. It never learns yes, no or stop words, "
         + "anything that looks like a password or key, or words from a meeting."
     static let appliesNext = "Applies on the next call."
-    static let appliesNow = "Applies on the next call, or now with Apply now."
-    static let applied = "Applied: the recognizer restarts after you finish speaking."
-    static let applyNow = "Apply now"
     static let undo = "Undo"
     static let edit = "Edit"
     static let notSaved = "Not saved"
@@ -163,7 +159,7 @@ struct VocabularySheet: View {
     @State private var error: String?
     @State private var editing: API.DictionaryEntry?
     @State private var editText = ""
-    @State private var applied = false
+    @State private var editOriginal = ""  // kept apart: the alert clears `editing` as it closes, before Save runs
 
     var body: some View {
         NavigationStack {
@@ -222,16 +218,10 @@ struct VocabularySheet: View {
                         }))
                         .tint(Brand.orange)
                         .accessibilityIdentifier("dictionaryLearn")
-                        if page.can_apply == true {
-                            Button(VocabularyCopy.applyNow) {
-                                run { await change(["action": "apply"]) } then: { applied = true }
-                            }
-                            .accessibilityIdentifier("dictionaryApply")
-                        }
                     } footer: {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(VocabularyCopy.learnHelp)
-                            Text(applied ? VocabularyCopy.applied : page.can_apply == true ? VocabularyCopy.appliesNow : VocabularyCopy.appliesNext)
+                            Text(VocabularyCopy.appliesNext)
                                 .accessibilityIdentifier("dictionaryApplies")
                         }
                     }
@@ -249,8 +239,9 @@ struct VocabularySheet: View {
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .accessibilityIdentifier("dictionaryEditField")
                 Button("Save") {
-                    if let entry = editing, editText.trimmingCharacters(in: .whitespaces) != entry.term {
-                        run { await change(["action": "edit", "term": entry.term, "to": editText.trimmingCharacters(in: .whitespaces)]) }
+                    let original = editOriginal, to = editText.trimmingCharacters(in: .whitespaces)
+                    if !to.isEmpty, to != original {
+                        run { await change(["action": "edit", "term": original, "to": to]) }
                     }
                 }
                 .accessibilityIdentifier("dictionaryEditSave")
@@ -261,7 +252,7 @@ struct VocabularySheet: View {
 
     private func row(_ entry: API.DictionaryEntry) -> some View {
         HStack(spacing: 10) {
-            Button { editText = entry.term; editing = entry } label: {
+            Button { editText = entry.term; editOriginal = entry.term; editing = entry } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.term).fontWeight(.semibold).foregroundStyle(.primary)
                     Text(VocabularyCopy.source(entry.source)).font(.caption).foregroundStyle(.secondary)
@@ -332,7 +323,7 @@ struct DemoDictionary {
         entries: [API.DictionaryEntry(term: "Quillfeather", lang: "en", source: "correction", hits: 3),
                   API.DictionaryEntry(term: "Marrowind", lang: "both", source: "manual", hits: 1)],
         suggestions: [API.DictionarySuggestion(term: "Kestrelbay", session: "river-lantern", lang: "en")],
-        ignored: [], count: 2, cap: 400, full: false, learn: true, problem: nil, can_apply: true)
+        ignored: [], count: 2, cap: 400, full: false, learn: true, problem: nil)
 
     mutating func apply(_ body: [String: any Sendable]) -> Result<API.DictionaryPage, VocabularyFailure> {
         let term = (body["term"] as? String ?? "").trimmingCharacters(in: .whitespaces)
@@ -355,14 +346,14 @@ struct DemoDictionary {
         default: break
         }
         page = API.DictionaryPage(entries: entries, suggestions: suggestions, ignored: page.ignored, count: entries.count, cap: 400,
-                                  full: false, learn: page.learn, problem: nil, can_apply: true)
+                                  full: false, learn: page.learn, problem: nil)
         return .success(page)
     }
 
     mutating func delete(_ term: String) -> Result<API.DictionaryPage, VocabularyFailure> {
         let entries = page.entries.filter { $0.term != term }
         page = API.DictionaryPage(entries: entries, suggestions: page.suggestions, ignored: page.ignored, count: entries.count, cap: 400,
-                                  full: false, learn: page.learn, problem: nil, can_apply: true)
+                                  full: false, learn: page.learn, problem: nil)
         return .success(page)
     }
 }
