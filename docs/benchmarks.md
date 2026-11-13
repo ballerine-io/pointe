@@ -12,6 +12,10 @@ is synthetic.
   it measurably, including Opus, Fable, high effort and 11 OpenAI models. Those prompts were tuned on Sonnet, which
   favours it. From that earlier run, not re-measured: `gemini-4-argon` 93.5% but 17 s.
 - **Gate:** `tests/test_relevance_live.py`, report in `bench/results/gate.md`.
+- **Fully local (`pointe local`):** the same benchmarks on an M5 Pro with 64 GB, 2026-11-13, report in
+  `bench/results/local.md`. Brain `gemma-4-26b-a4b-it` (MLX 4-bit) passes 76.9% (67.9% to 85.5%) ignoring length,
+  median reply 3.4 s, against 91.9% and 1.8 s for `claude-sonnet-5-5`; as the reader it passes 51.0%
+  against 100% for Sonnet on 51 reports. Measured with other work running on the Mac.
 - **Which vendors and whole setups are covered, and what is not:** `bench/results/combinations.md`.
 - **Ears:** `bench/stt_extra.py`, report in `bench/results/report.txt`. 70 utterances (English, Hebrew, mixed, short
   yes/no) x 4 voices x clean/noisy = 560 clips, at real-time pace, with a blind intent judge.
@@ -28,6 +32,11 @@ is synthetic.
 | Gemini Live, as a whole | 79.6% | 0.240 | 1.13 / 2.45 s |
 | OpenAI gpt-live-transcribe | 81.1% | 0.195 | 0.66 / 1.59 s |
 | ElevenLabs scribe_v2_realtime | 68.9% | 0.378 | 0.77 / 1.78 s |
+| Whisper large-v3-turbo, local (MLX, M5 Pro) | 85.7% | 0.219 | 0.76 / 1.25 s |
+
+The local row is from a run on 2026-11-13 on the same 560 clips and the same judge; its latency is the voice detector's
+0.2 s wait plus the time to transcribe the clip on the Mac, not a network path, so it compares with the others only roughly.
+Details: [docs/features/local.md](features/local.md#measured).
 
 The v5 and v6 accuracy gap is inside the confidence intervals. v5 stays the default because v6 never finalised 3 clips of 560 and waited over 1 s more often (17.6% of clips against 13.9%).
 

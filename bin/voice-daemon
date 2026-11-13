@@ -29,7 +29,10 @@ case "${1:-ensure}" in
       kill -9 $KIDS "$PID" 2>/dev/null || true
       for _ in $(seq 1 20); do lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1 || break; sleep 0.25; done
     fi
-    rm -f "$PIDFILE"; echo "stopped"; exit 0 ;;
+    rm -f "$PIDFILE"
+    # The local text model holds about 17 GB of memory: stopping the voice frees it.
+    [ -f "$STATE/local/server.pid" ] && uv run --no-sync --project "$ROOT" python -I "$ROOT/local.py" stop
+    echo "stopped"; exit 0 ;;
   ensure) ;;
   *) echo "usage: voice-daemon ensure|stop|status" >&2; exit 2 ;;
 esac
@@ -68,6 +71,10 @@ else
 fi
 [ -d "$ROOT/.venv" ] || echo "voice-daemon: first run, downloading about 600 MB..." >&2
 uv sync --locked --quiet --project "$ROOT" ${EXTRA[@]+"${EXTRA[@]}"}
+# Fully local mode: its text-model server is started here, and loaded, before the first call needs it.
+if [ -f "$STATE/config.json" ] && grep -qE '"local_only": *true' "$STATE/config.json"; then
+  uv run --no-sync --project "$ROOT" python -I "$ROOT/local.py" ensure >&2 || true  # preflight explains a failure
+fi
 uv run --no-sync --project "$ROOT" python "$ROOT/doctor.py" --preflight >&2
 
 # Per-daemon secret for registration, hooks and channels; 0600 so only this user can read it.

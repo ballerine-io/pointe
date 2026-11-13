@@ -24,12 +24,13 @@ Pointe:  Duplicate charges during failover. It decided that an hour ago.
   right after it. Anything it cannot read out waits for a tap. A no from any voice denies.
 - **Any harness.** [Claude Code](https://code.claude.com), [OpenCode](https://opencode.ai) (v2) and
   [Codex CLI](https://github.com/openai/codex) (started as `codex --remote unix://`), side by side in one call.
-- **Your keys, local where possible.** You pay the vendors directly. The voice lock runs on your Mac, and every model
-  role can run locally.
+- **Your keys, or none.** You pay the vendors directly. Or run `pointe local`: every model on your Mac, no key, nothing
+  sent out, with its measured cost in speed and accuracy. [docs/features/local.md](docs/features/local.md).
 
 ## Install
 
-You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome, headphones, and one model key.
+You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome, headphones, and one model key, or an
+Apple-silicon Mac with 32 GB of memory for the fully local mode.
 
 ```
 claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
@@ -56,6 +57,7 @@ The first run downloads about 600 MB. A tab opens: allow the microphone, press C
 | `/pointe:leave` | take this session off the voice (or say "disconnect billing", or use × on the page) |
 | `/pointe:stop` | stop all voice |
 | `/pointe:doctor` | what runs here, what is missing, and the one key that would help most |
+| `pointe local` | fully local: download and start the local models, no keys ([details](docs/features/local.md)) |
 | `/pointe:voice-review` | ask a session what happened in the last call |
 
 OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
@@ -91,6 +93,7 @@ OpenCode and Codex sessions join with `pointe join opencode` or `pointe join cod
 | [Whisper mode](docs/features/whisper-mode.md) | Quiet replies and a raised microphone, with the same approval rules. |
 | [Conflict alarm](docs/features/conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once. |
 | [Meeting mode](docs/features/meeting-mode.md) | Notes, lookups and a raised hand in a meeting, with consent and no sends. |
+| [Fully local](docs/features/local.md) | Every model on your Mac, no keys, nothing sent out; slower and less accurate, by measure. |
 
 ## Safety model
 
@@ -150,7 +153,8 @@ briefings, meeting transcripts (in memory unless you export them), and the files
 the daemon only over your own paired link. Keys come from the environment or the macOS Keychain and reach the daemon only.
 
 With push to talk on, no audio leaves the Mac unless you hold the talk control (plus 0.4 s after release); the daemon
-enforces this whatever a client sends. With every role set to `local`, no model vendor is used at all. The full list of
+enforces this whatever a client sends. In fully local mode (`pointe local`), no key is read, so no model vendor is used
+at all. The full list of
 files and what they hold: [SECURITY.md](SECURITY.md#files).
 
 ## Models and cost
@@ -176,10 +180,11 @@ wins). A role you do not set takes the first vendor with a key.
 The audio test is the three suites in `tests/e2e/run_all.sh` with only those keys visible, one run each on 2026-11-13. `bin/voice-doctor` tells you which row you are on.
 The hourly cost is arithmetic from measured and list prices, not a metered bill.
 
-**Local models:** set every role to `local`. Ears are Whisper, the mouth is Kokoro, and text models come from any
-OpenAI-compatible server (Ollama by default, `CLAUDE_VOICE_LOCAL_URL` for others). The daemon installs the local
-extras the first time ears or mouth are set to `local`. It is not a conversation yet: the best local brains measured a median reply of 13 to 27
-seconds, against 1.8 for Sonnet. Local ears and mouth have not been benchmarked.
+**Fully local:** `pointe local` downloads and starts Whisper (ears), Kokoro (mouth) and Gemma 4 26B A4B (brain,
+reader and gate) on this Mac, and reads no key. On an M5 Pro with 64 GB, the brain passed 76.9% of 78 cases (Sonnet
+91.9%) and decided in 3.4 s at the median (Sonnet 1.8 s), the ears got 85.7% of intents (Soniox 95.4%), and 10 of 19
+single-session audio checks passed, every approval check among them. It has no Hebrew voice. It needs 32 GB of memory
+and about 19 GB of disk. [docs/features/local.md](docs/features/local.md).
 
 On macOS, keep keys in the Keychain: `pointe key <vendor>` opens a window for it.
 
@@ -202,6 +207,8 @@ The defaults come from benchmarks in `bench/`, all on synthetic data; re-run the
   [`bench/results/vocab.md`](bench/results/vocab.md)
 - **Challenge me:** 15/30 to 30/30 on Sonnet, 21/30 to 30/30 on Gemini Flash. [`bench/results/challenge.md`](bench/results/challenge.md)
 - **Whisper:** Soniox word error 1.4% on a synthetic whisper at -18 dB, 18.4% at -30 dB. [`bench/results/whisper.md`](bench/results/whisper.md)
+- **Fully local**, on an M5 Pro: brain 76.9% with a 3.4 s median reply, reader 51.0%, ears 85.7% intent at 0.76 s,
+  Kokoro's first English audio 1.3 s, 10 of 19 single-session audio checks. [`bench/results/local.md`](bench/results/local.md)
 - **Which setups were tested end to end:** [`bench/results/combinations.md`](bench/results/combinations.md)
 
 Not measured for any setup: a real human voice on a real call.

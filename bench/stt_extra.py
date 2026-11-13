@@ -22,8 +22,9 @@ from pathlib import Path
 import numpy as np
 import websockets
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path[:0] = [str(Path(__file__).parent), str(Path(__file__).parent.parent)]
 import stt_bench as sb  # noqa: E402
+import vendors  # noqa: E402
 
 OUT = sb.OUT
 UNMEASURED = OUT / "stt-unmeasured.json"
@@ -152,7 +153,34 @@ async def run_openai(audio: np.ndarray, model: str = "gpt-4o-transcribe") -> dic
             "error": times.get("error")}
 
 
-EXTRA = {"soniox-v6": run_soniox_v6, "gemini-transcribe-live": run_gemini_transcribe_live, "openai": run_openai,
+VAD_STOP_SECS = 0.2  # pipecat's Silero default: a segment closes this long after speech ends
+_WARM: set[str] = set()
+
+
+async def run_local_whisper(audio: np.ndarray, repo: str) -> dict:
+    """Whisper on this Mac, as vendors._mlx_ears drives it: one VAD segment, transcribed after it closes, with language
+    detection and pipecat's filters. Not streaming, so latency is the VAD wait plus the time
+    to transcribe the segment. Run with --concurrency 1: one model on one GPU."""
+    import mlx_whisper
+
+    speech_end_offset = len(audio) / sb.RATE - sb.TAIL_SILENCE
+    segment = audio[: int((speech_end_offset + VAD_STOP_SECS) * sb.RATE)].astype(np.float32) / 32768.0
+    if repo not in _WARM:  # the first call loads the model: a daemon does that once, before the first turn
+        await asyncio.to_thread(mlx_whisper.transcribe, segment, path_or_hf_repo=repo, temperature=0.0, language=None)
+        _WARM.add(repo)
+    began = time.time()
+    out = await asyncio.to_thread(mlx_whisper.transcribe, segment, path_or_hf_repo=repo, temperature=0.0, language=None)
+    took = time.time() - began
+    text = vendors.whisper_text(out)
+    speech_end = began - VAD_STOP_SECS
+    return {"text": text.strip(), "final_at": speech_end + VAD_STOP_SECS + took, "speech_end": speech_end,
+            "compute_s": took, "language": out.get("language")}
+
+
+EXTRA = {"local-whisper-turbo": lambda audio: run_local_whisper(audio, "mlx-community/whisper-large-v3-turbo"),
+         "local-whisper-large-v3": lambda audio: run_local_whisper(audio, "mlx-community/whisper-large-v3-mlx"),
+         "local-ivrit-turbo": lambda audio: run_local_whisper(audio, "mlx-community/ivrit-ai-whisper-large-v3-turbo-mlx"),
+         "soniox-v6": run_soniox_v6, "gemini-transcribe-live": run_gemini_transcribe_live, "openai": run_openai,
          "openai-mini": lambda audio: run_openai(audio, "gpt-4o-mini-transcribe"),
          "openai-live": lambda audio: run_openai(audio, "gpt-live-transcribe")}
 sb.RUNNERS.update(EXTRA)
