@@ -15,6 +15,12 @@ With Twingate: a Connector on this Mac (Docker or Colima), a resource for the Ma
 "Mac not reachable" while Safari on the phone reaches `https://<name>:7443/voice/status` (a warning, then "Forbidden"),
 pair again. If Safari can't reach it either, restart the Twingate client: new aliases sometimes don't resolve until then.
 
+## What stays on the Mac
+
+The app does what the page does, with one deliberate exception: the voice model's full context is shown only on the
+Mac. The page's "What the voice holds" lists the messages of the call's context; the app shows only the token count
+(Sessions sheet), and the phone's key is refused `/voice/context`.
+
 ## Alerts and the Apple Watch
 
 Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS
