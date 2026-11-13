@@ -29,12 +29,26 @@ struct API {
         var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
         var whisper: WhisperStatus?  // whisper mode (Whisper.swift); nil from a Mac without it
         var idle_hangup: Bool?      // the Mac's idle timer ended the last call: not redialled
+        var recent: [Dispatch]?     // the last requests and where each went, oldest first; the page's Recent requests
+        var tokens: Tokens?         // the voice model's own count of its context, after its last reply
         var local: LocalMode?       // local mode, read-only (local.summary); nil from a Mac without it
         var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
     }
 
     // MARK: show while it says (docs/features/show-while-it-says.md). Paths only in status; the
     // content comes from /voice/artifact, which the Mac refuses (403) until this phone turned the feature on.
+
+    struct Dispatch: Decodable, Equatable, Hashable {
+        let at: String?
+        let said: String?
+        let to: [String]?
+        let how: String?
+    }
+
+    struct Tokens: Decodable, Equatable {
+        let context: Int?
+        let at: String?
+    }
 
     struct LocalMode: Decodable, Equatable {
         let mode: String?           // full, voice, off

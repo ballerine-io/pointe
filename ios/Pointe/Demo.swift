@@ -106,7 +106,10 @@ struct Demo {
     private static let callJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": true,
      "hearing": "and after that ask river lantern whether the retry", "sessions": \(sessions), "talk": \(talk),
-     "local": {"mode": "voice", "models": "ready", "line": "Voice stays on your Mac: on · models on this Mac"}}
+     "local": {"mode": "voice", "models": "ready", "line": "Voice stays on your Mac: on · models on this Mac"},
+     "tokens": {"context": 12480, "at": "10:42:07"},
+     "recent": [{"at": "10:41:50", "said": "tell docs to update the change log", "to": ["docs"], "how": "(named)"},
+                {"at": "10:42:01", "said": "push it", "to": [], "how": "blocked: ambiguous between billing/main and docs"}]}
     """
 
     /// Push to talk, held open on the Mac: the ring and the state line show the Mac's gate.

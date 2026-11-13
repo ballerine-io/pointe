@@ -122,6 +122,24 @@ struct SessionsSheet: View {
                         }
                     }
                 }
+                Section("Recent requests") {
+                    let recent = Array((status?.recent ?? []).reversed())
+                    if recent.isEmpty { Text("Each request shows here with where it went.").foregroundStyle(.secondary) }
+                    ForEach(Array(recent.enumerated()), id: \.offset) { _, r in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\u{201C}\(TextDirection.isolated(r.said ?? ""))\u{201D}").lineLimit(2)
+                            Text(SessionsCopy.routed(r)).font(.caption).foregroundStyle((r.to ?? []).isEmpty ? Brand.orange : .secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                if let line = SessionsCopy.context(status?.tokens) {
+                    Section {
+                        Text(line).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("contextTokens")
+                    } header: { Text("What the voice holds") } footer: {
+                        Text("The voice model's own count, after its last reply. The messages themselves stay on your Mac: the page there shows them.")
+                    }
+                }
                 Section {
                 } footer: {
                     Text("Swipe a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.")
@@ -136,6 +154,20 @@ struct SessionsSheet: View {
     }
 }
 
+
+enum SessionsCopy {
+    /// "12:03:04 → billing/main (named)", or why it went nowhere, as the page's Recent requests.
+    static func routed(_ r: API.Dispatch) -> String {
+        let to = r.to ?? []
+        let at = r.at.map { "\($0) " } ?? ""
+        return to.isEmpty ? at + (r.how ?? "") : at + "→ " + to.joined(separator: " + ") + (r.how.map { " \($0)" } ?? "")
+    }
+
+    static func context(_ t: API.Tokens?) -> String? {
+        guard let n = t?.context else { return nil }
+        return "\(n.formatted()) tokens" + (t?.at.map { " as of \($0)" } ?? "")
+    }
+}
 
 extension View {
     /// Asks before a session leaves the voice, as the page's second click does: it keeps running in its terminal.

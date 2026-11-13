@@ -71,3 +71,17 @@ final class BriefingScheduleTests: XCTestCase {
         XCTAssertEqual(BriefingCopy.notSaved(nil), "Not saved: the Mac did not answer.")
     }
 }
+
+final class RecentRequestsTests: XCTestCase {
+    func testRecentRequestsAndTheContextCountAreDecodedAndWritten() throws {
+        let s = try JSONDecoder().decode(API.Status.self, from: Data(#"""
+            {"connected": true, "sessions": [], "tokens": {"context": 12480, "reply": 40, "audio_in": 0, "at": "10:42:07"},
+             "recent": [{"at": "10:41:50", "said": "tell docs", "message": "x", "to": ["docs", "billing/main"], "how": "(named)"},
+                        {"at": "10:42:01", "said": "push it", "message": "y", "to": [], "how": "blocked: ambiguous"}]}
+            """#.utf8))
+        XCTAssertEqual(SessionsCopy.routed(s.recent![0]), "10:41:50 → docs + billing/main (named)")
+        XCTAssertEqual(SessionsCopy.routed(s.recent![1]), "10:42:01 blocked: ambiguous")
+        XCTAssertEqual(SessionsCopy.context(s.tokens), "12,480 tokens as of 10:42:07")
+        XCTAssertNil(SessionsCopy.context(nil))  // no call yet: nothing to count
+    }
+}

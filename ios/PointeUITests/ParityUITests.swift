@@ -53,4 +53,14 @@ final class ParityUITests: XCTestCase {
         XCTAssertTrue(ask.waitForNonExistence(timeout: 5))
         XCTAssertTrue(row.exists, "Cancel keeps the session")
     }
+
+    func testTheSessionsSheetShowsRecentRequestsAndTheContextCount() throws {
+        launch("sessions")
+        XCTAssertTrue(app.staticTexts["Recent requests"].waitForExistence(timeout: 15) || app.otherElements["Recent requests"].exists)
+        app.swipeUp()
+        let routed = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "→ docs (named)")).firstMatch
+        XCTAssertTrue(routed.waitForExistence(timeout: 5), "where the request went")
+        XCTAssertTrue(app.descendants(matching: .any)["contextTokens"].waitForExistence(timeout: 5))
+        shot("sessions-recent")
+    }
 }
