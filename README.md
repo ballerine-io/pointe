@@ -58,6 +58,7 @@ The first run downloads about 600 MB. A tab opens: allow the microphone, press C
 | `/pointe:stop` | stop all voice |
 | `/pointe:doctor` | what runs here, what is missing, and the one key that would help most |
 | `pointe local` | fully local: download and start the local models, no keys ([details](docs/features/local.md)) |
+| `pointe local voice` | voice stays on your Mac: local ears and mouth, the brain in the cloud gets text only ([details](docs/features/voice-stays-local.md)) |
 | `/pointe:voice-review` | ask a session what happened in the last call |
 
 OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
@@ -93,6 +94,7 @@ OpenCode and Codex sessions join with `pointe join opencode` or `pointe join cod
 | [Whisper mode](docs/features/whisper-mode.md) | Quiet replies and a raised microphone, with the same approval rules. |
 | [Conflict alarm](docs/features/conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once. |
 | [Meeting mode](docs/features/meeting-mode.md) | Notes, lookups and a raised hand in a meeting, with consent and no sends. |
+| [Voice stays on your Mac](docs/features/voice-stays-local.md) | Ears and mouth on your Mac, so no audio goes to any vendor; the cloud brain gets text only. |
 | [Fully local](docs/features/local.md) | Every model on your Mac, no keys, nothing sent out; slower and less accurate, by measure. |
 
 ## Safety model
@@ -148,6 +150,10 @@ vendors you chose, under your keys:
 | What you said, each session's latest lines, goal, folder path and up to 40 file names | the gate vendor |
 | In a meeting you started: the room's audio, and transcript windows | Soniox, and the reader vendor |
 
+With "Voice stays on your Mac" (`pointe local voice`), the first and third rows stay on the Mac: Whisper hears and Kokoro
+speaks here, the Soniox and ElevenLabs keys are never read, meeting mode is off, and the daemon refuses any cloud audio
+path in code. Your words reach the brain, reader and gate vendors as text.
+
 Stays on the Mac: your voiceprint and the audio scored against it, the call journal, session notes, the dictionary,
 briefings, meeting transcripts (in memory unless you export them), and the files shown on screen. The phone reaches
 the daemon only over your own paired link. Keys come from the environment or the macOS Keychain and reach the daemon only.
@@ -176,6 +182,7 @@ wins). A role you do not set takes the first vendor with a key.
 | Anthropic, Soniox | 30 of 35 (31 with the two-session suite rerun); echo 3 of 4 | about $1.20 |
 | Gemini only (no echo guard: use headphones; replies take about 4 s) | 28 of 35; echo 0 of 4 | about $0.40, plus Gemini ears |
 | OpenAI only (no echo guard: use headphones; weak on Hebrew) | 24 of 35; echo 0 of 4 | about $0.60, plus OpenAI ears |
+| Anthropic, Gemini, voice on the Mac (`pointe local voice`; headphones; English speech only) | 30 of 35; echo 3 of 4, then 1 of 4 on four reruns | about $0.40 |
 
 The audio test is the three suites in `tests/e2e/run_all.sh` with only those keys visible, one run each on 2026-11-13. `bin/voice-doctor` tells you which row you are on.
 The hourly cost is arithmetic from measured and list prices, not a metered bill.
@@ -209,6 +216,9 @@ The defaults come from benchmarks in `bench/`, all on synthetic data; re-run the
 - **Whisper:** Soniox word error 1.4% on a synthetic whisper at -18 dB, 18.4% at -30 dB. [`bench/results/whisper.md`](bench/results/whisper.md)
 - **Fully local**, on an M5 Pro: brain 76.9% with a 3.4 s median reply, reader 51.0%, ears 85.7% intent at 0.76 s,
   Kokoro's first English audio 1.3 s, 10 of 19 single-session audio checks. [`bench/results/local.md`](bench/results/local.md)
+- **Voice stays on your Mac**, on an M5 Pro: Kokoro on MLX starts English speech in 185 ms at the median (kokoro-onnx 750 ms,
+  ElevenLabs 213 ms); Whisper large-v3-turbo got 82.7% of intents in the same run as Soniox's 94.6%; 30 of 35 audio checks.
+  [docs/features/voice-stays-local.md](docs/features/voice-stays-local.md)
 - **Which setups were tested end to end:** [`bench/results/combinations.md`](bench/results/combinations.md)
 
 Not measured for any setup: a real human voice on a real call.

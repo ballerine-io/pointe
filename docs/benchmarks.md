@@ -16,6 +16,10 @@ is synthetic.
   `bench/results/local.md`. Brain `gemma-4-26b-a4b-it` (MLX 4-bit) passes 76.9% (67.9% to 85.5%) ignoring length,
   median reply 3.4 s, against 91.9% and 1.8 s for `claude-sonnet-5-5`; as the reader it passes 51.0%
   against 100% for Sonnet on 51 reports. Measured with other work running on the Mac.
+- **Voice stays on your Mac (`pointe local voice`):** local Whisper and Kokoro on MLX with the cloud brain, 2026-11-13,
+  in [docs/features/voice-stays-local.md](features/voice-stays-local.md#measured). Kokoro on MLX, as the daemon runs it,
+  starts English speech in 185 ms at the median (kokoro-onnx 750 ms in the same run); the whole setup passed 30 of 35
+  audio checks.
 - **Which vendors and whole setups are covered, and what is not:** `bench/results/combinations.md`.
 - **Ears:** `bench/stt_extra.py`, report in `bench/results/report.txt`. 70 utterances (English, Hebrew, mixed, short
   yes/no) x 4 voices x clean/noisy = 560 clips, at real-time pace, with a blind intent judge.
@@ -65,5 +69,6 @@ Other setups, the same hour, from the measured cost per reply in `bench/results/
 | Anthropic, Soniox | $0.27 | $0.10 | $0.55 (Soniox) | $0.24 | $1.20 |
 | Gemini only | $0.25 | $0.03 | $0.13 | not priced here | $0.40 plus ears |
 | OpenAI only | $0.16 | $0.04 | $0.39 | not priced here | $0.60 plus ears |
+| Anthropic, Gemini, voice on the Mac | $0.27 | $0.10 | $0 (Kokoro, local) | $0 (Whisper, local) | $0.40 |
 
 The gate adds a small amount on every setup.

@@ -19,6 +19,7 @@ from any voice denies a pending request, in every mode.
 | [Whisper mode](whisper-mode.md) | Quiet replies, a raised microphone, the same approval rules |
 | [Conflict alarm](conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once |
 | [Meeting mode](meeting-mode.md) | Notes, lookups and a raised hand in a meeting, with consent and no sends |
+| [Voice stays on your Mac](voice-stays-local.md) | Ears and mouth on your Mac, no audio to any vendor; the cloud brain gets text only |
 | [Fully local](local.md) | Every model on your Mac, no keys, nothing sent out; slower and less accurate, by measure |
 
 The core, which these build on:

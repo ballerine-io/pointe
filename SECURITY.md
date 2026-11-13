@@ -143,6 +143,11 @@ In fully local mode (`pointe local`), none of these goes anywhere: no key is rea
 Keychain, so no vendor can be reached, and the text-model server listens on loopback only. See
 [docs/features/local.md](docs/features/local.md).
 
+With "Voice stays on your Mac" (`pointe local voice`), no audio goes to a vendor: ears and mouth run on the Mac, the
+Soniox and ElevenLabs keys are never read, meeting mode is off, and every path that would stream audio out (cloud ears or
+mouth, a realtime front, the echo guard's mirror stream, meeting ears) is refused in code. The brain, reader and gate
+vendors still receive text. See [docs/features/voice-stays-local.md](docs/features/voice-stays-local.md).
+
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
 
