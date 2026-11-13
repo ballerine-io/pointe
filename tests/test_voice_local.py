@@ -268,3 +268,31 @@ def test_the_mouth_loads_kokoro_from_the_downloaded_folder(monkeypatch, tmp_path
     monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda repo, local_files_only: str(tmp_path / "a71e4d38"))
     monkeypatch.setattr(mlx_audio_utils, "load_model", lambda path, **k: seen.update(path=path, **k) or "model")
     assert kokoro_mlx._model() == "model" and seen["model_type"] == "kokoro"
+
+
+def test_the_check_before_installing_refuses_what_install_would(state, capsys, monkeypatch):
+    monkeypatch.setattr(local, "supported_voice", lambda: None)
+    assert local.main(["check", "voice"]) == 1  # no text key
+    assert "pointe key anthropic" in capsys.readouterr().out
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    assert local.main(["check", "voice"]) == 0
+    monkeypatch.setattr(local, "supported", lambda text_model=local.TEXT_MODEL: "needs an Apple-silicon Mac")
+    assert local.main(["check"]) == 1
+
+
+def test_doctor_names_the_text_vendor_in_words(state, capsys, monkeypatch):
+    import doctor
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    voice_local_on(state)
+    monkeypatch.setattr(local, "cached_bytes", lambda repo: 1)
+    monkeypatch.setattr(local, "kokoro_bytes", lambda: 1)
+    doctor.main()
+    assert "Anthropic gets text only" in capsys.readouterr().out
+
+
+def test_local_messages_restart_the_voice_with_the_slash_commands(state, capsys, monkeypatch):
+    monkeypatch.setattr(local, "stop", lambda: None)
+    local.main(["off"])
+    out = capsys.readouterr().out
+    assert "/pointe:stop, then /pointe:voice" in out and "pointe stop," not in out

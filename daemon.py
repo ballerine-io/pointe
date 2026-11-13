@@ -194,9 +194,12 @@ def _note_problem(message) -> None:
     in words, and stays over the errors it causes next ("can no longer do its job", "completed with no audio")."""
     global _problem
     text = message.record["message"].split("\n")[0]
+    shown = current_problem()
     if (vendor := vendors.refused_key(text)) is not None:
+        if not vendor and shown and vendors.refused_key(shown):
+            return  # the same refusal, said without its vendor: keep the line that names it
         text = vendors.refused_help(vendor)
-    elif (shown := current_problem()) and vendors.refused_key(shown) is not None:
+    elif shown and vendors.refused_key(shown) is not None:
         return
     for env in vendors.KEY_ENVS:
         if os.environ.get(env):

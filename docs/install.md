@@ -51,12 +51,20 @@ press Connect.
 - The first time setup checks your Mac, about 180 MB of Python packages and a private copy of Python (about 530 MB on
   disk), in the plugin's folder and `~/.local/share/uv`. On a fast connection this takes under a minute.
 - Your keys, in the macOS Keychain only (`pointe key <vendor>` opens the window again).
+- Only if you choose a local setup: local libraries (about 290 MB to download, 1.1 GB on disk) in the plugin's folder,
+  and models in `~/.cache/huggingface`. "Voice stays on your Mac" adds 2 GB of models. "Fully local" adds 17.7 GB, and
+  a 0.4 GB text-model server in `~/.claude-voice/local`.
 
 To remove it: `/pointe:stop`, then remove the plugin in Claude Code's plugin settings (or
 `claude plugin uninstall pointe@pointe && claude plugin marketplace remove pointe`). Nothing keeps running. Claude Code
 deletes the plugin's folder, with its Python packages, by itself some days later. These stay until you remove them:
 
-- `~/.claude-voice`: Pointe's settings and logs, which hold what was said on calls. Delete the folder.
+- `~/.claude-voice`: Pointe's settings and logs, which hold what was said on calls, and the local text-model server.
+  Delete the folder.
+- Local models, if you chose a local setup: in `~/.cache/huggingface/hub`, the folders whose names start with
+  `models--mlx-community--whisper-large-v3-turbo`, `models--mlx-community--Kokoro-82M` and
+  `models--mlx-community--gemma-4`, and `~/.cache/pipecat/kokoro-onnx`. Other apps may share `~/.cache/huggingface`:
+  delete only these.
 - Your keys: open Keychain Access and delete the items named `gemini-api-key`, `anthropic-api-key`, `soniox-api-key`,
   `elevenlabs-api-key` and `openai-api-key`.
 - uv, if setup installed it: `uv cache clean`, then delete `~/.local/bin/uv`, `~/.local/bin/uvx` and `~/.local/share/uv`.

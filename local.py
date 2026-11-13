@@ -126,7 +126,11 @@ def cached_bytes(repo: str) -> int:
     """Bytes of a Hugging Face model already downloaded, 0 if any of it is missing."""
     try:
         from huggingface_hub import snapshot_download
-
+    except ImportError:  # the local extra is gone (pointe local off, then a daemon start): read the cache folder itself
+        hub = os.environ.get("HF_HUB_CACHE") or os.path.join(os.environ.get("HF_HOME") or Path.home() / ".cache" / "huggingface", "hub")
+        snapshots = Path(hub) / f"models--{repo.replace('/', '--')}" / "snapshots"  # finished files only, as links
+        return sum(f.stat().st_size for f in snapshots.rglob("*") if f.is_file()) if snapshots.is_dir() else 0
+    try:
         folder = Path(snapshot_download(repo, local_files_only=True))
     except Exception:
         return 0
@@ -270,14 +274,20 @@ def supported_voice() -> str | None:
     return None
 
 
+def voice_refused() -> str | None:
+    """Why this Mac cannot have its voice stay local, before anything is downloaded."""
+    if why := supported_voice():
+        return why
+    if not any(vendors.key(v) for v in ("anthropic", "gemini", "openai")):
+        return (f"{vendors.VOICE_LOCAL} keeps the brain in the cloud, so it needs one text key, best Anthropic's: "
+                "pointe key anthropic (a Gemini key also works: pointe key gemini). Then run pointe local voice again.")
+    return None
+
+
 def install_voice() -> int:
     """Voice stays on your Mac: download Whisper and Kokoro (MLX), check a text model has a key, turn it on."""
-    if why := supported_voice():
+    if why := voice_refused():
         print(why)
-        return 1
-    if not any(vendors.key(v) for v in ("anthropic", "gemini", "openai")):
-        print(f"{vendors.VOICE_LOCAL} keeps the brain in the cloud, so it needs one text key, best Anthropic's: "
-              "pointe key anthropic (a Gemini key also works: pointe key gemini). Then run pointe local voice again.")
         return 1
     from huggingface_hub import snapshot_download  # the local extra: after the checks, which need nothing installed
 
@@ -296,7 +306,7 @@ def install_voice() -> int:
     import kokoro_mlx
 
     kokoro_mlx.warm()
-    print(f"\n{vendors.VOICE_LOCAL} is on. Restart the voice to use it: pointe stop, then /pointe:voice. "
+    print(f"\n{vendors.VOICE_LOCAL} is on. Restart the voice to use it: /pointe:stop, then /pointe:voice. "
           "Use headphones. Back to your vendors: pointe local off.")
     return 0
 
@@ -341,7 +351,7 @@ def install(text_model: str = TEXT_MODEL) -> int:
     if not start(text_model):
         return 1
     print("\nFully local mode is on. Every model runs on this Mac and no key is read."
-          "\nRestart the voice to use it: pointe stop, then /pointe:voice. Back to your vendors: pointe local off.")
+          "\nRestart the voice to use it: /pointe:stop, then /pointe:voice. Back to your vendors: pointe local off.")
     return 0
 
 
@@ -376,6 +386,11 @@ def main(argv: list[str]) -> int:
         return install(text_model)
     if command == "voice":
         return install_voice()
+    if command == "check":  # bin/pointe, before it installs the local libraries: refuse here what install would refuse
+        why = voice_refused() if argv[1:2] == ["voice"] else supported(text_model)
+        if why:
+            print(why)
+        return 1 if why else 0
     if command == "status":
         print("\n".join(status_lines()))
         return 0
@@ -387,7 +402,7 @@ def main(argv: list[str]) -> int:
     if command == "off":
         restore_config()
         stop()
-        print("Local mode is off. Restart the voice to use your vendors: pointe stop, then /pointe:voice.")
+        print("Local mode is off. Restart the voice to use your vendors: /pointe:stop, then /pointe:voice.")
         return 0
     print(__doc__)
     return 2

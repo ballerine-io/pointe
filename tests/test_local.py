@@ -227,3 +227,27 @@ def test_a_small_mac_is_refused_the_default_model_but_may_choose_its_own(monkeyp
     monkeypatch.setattr(local.subprocess, "run", lambda *a, **k: __import__("types").SimpleNamespace(stdout=str(16 * 2**30)))
     assert "16 GB" in local.supported()
     assert local.supported("mlx-community/some-small-model") is None
+
+
+def test_a_downloaded_model_is_counted_without_the_local_extra(tmp_path, monkeypatch):
+    """After pointe local off, the daemon's sync removes huggingface_hub; the models it downloaded are still on disk."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_hub(name, *a, **k):
+        if name.startswith("huggingface_hub"):
+            raise ImportError(name)
+        return real_import(name, *a, **k)
+
+    monkeypatch.setattr(builtins, "__import__", no_hub)
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path))
+    repo = tmp_path / "models--mlx-community--whisper-large-v3-turbo"
+    store, snapshot = repo / "blobs" / "78", repo / "snapshots" / "rev1"
+    store.mkdir(parents=True)
+    snapshot.mkdir(parents=True)
+    (store / "weights").write_bytes(b"x" * 1000)
+    (snapshot / "model.safetensors").symlink_to(store / "weights")
+    (repo / "blobs" / "weights.ee45.incomplete").write_bytes(b"x")  # left by a download that was resumed later
+    assert local.cached_bytes("mlx-community/whisper-large-v3-turbo") == 1000
+    assert local.cached_bytes("mlx-community/not-here") == 0
