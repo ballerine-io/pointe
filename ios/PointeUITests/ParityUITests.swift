@@ -63,4 +63,27 @@ final class ParityUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["contextTokens"].waitForExistence(timeout: 5))
         shot("sessions-recent")
     }
+
+    /// The mic is the call's one primary control: in the middle of the screen, in every state (owner's 1.0 feedback).
+    /// Screenshots of each state, per device, go to PARITY_SHOTS for the eye.
+    func testTheMicSitsInTheMiddleInEveryState() throws {
+        let device = (ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] ?? "device").replacingOccurrences(of: " ", with: "-")
+        var off: [String] = []
+        func measure(_ name: String) {
+            let mic = app.buttons.matching(NSPredicate(format: "label IN %@", ["Mute", "Unmute", "Connect", "Talking", "Hold to talk"])).firstMatch
+            XCTAssertTrue(mic.waitForExistence(timeout: 15), name)
+            shot("mic-\(device)-\(name)")
+            let width = app.windows.firstMatch.frame.width
+            let gap = mic.frame.midX - width / 2
+            if abs(gap) > 1 { off.append("\(name): \(Int(gap)) pt from the middle") }
+        }
+        for screen in ["call", "talking", "meeting", "drive"] {
+            launch(screen)
+            measure(screen)
+        }
+        app.buttons["driveButton"].firstMatch.tap()  // drive mode off: the bar the Mac's 1.0 shows most of the time
+        sleep(1)
+        measure("drive-off")
+        XCTAssertTrue(off.isEmpty, off.joined(separator: "; "))
+    }
 }

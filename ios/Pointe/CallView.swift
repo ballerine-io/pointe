@@ -315,6 +315,19 @@ struct CallView: View {
             HStack(alignment: .center) {
                 BrandHeader()
                 Spacer()
+                if status?.drive != nil {  // a mode, like a meeting: switched here, so the mic below never moves
+                    Button { setDrive(!driving) } label: {
+                        Image(systemName: driving ? "car.fill" : "car").font(.subheadline.weight(.semibold))
+                            .foregroundStyle(driving ? Brand.orange : .primary)
+                            .frame(width: 36, height: 36)
+                            .background(driving ? AnyShapeStyle(Brand.orange.opacity(0.25)) : AnyShapeStyle(.thinMaterial), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(phase != .live && !driving)
+                    .accessibilityLabel(DriveCopy.button)
+                    .accessibilityIdentifier("driveButton")
+                    .accessibilityValue(driving ? "On" : "Off")
+                }
                 Button { openMeetingStart() } label: {
                     Image(systemName: "person.3.fill").font(.subheadline.weight(.semibold))
                         .frame(width: 36, height: 36).background(.thinMaterial, in: Circle())
@@ -454,7 +467,7 @@ struct CallView: View {
             BottomBar(phase: phase, muted: muted, monologue: brainstorming, typing: typing,
                       mic: micTapped, listen: { setBrainstorm(!brainstorming) }, type: { withAnimation(.snappy) { typing.toggle() } },
                       sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk,
-                      driving: driving, drive: status?.drive == nil ? nil : { setDrive(!driving) })
+                      driving: driving)
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
