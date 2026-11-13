@@ -8,6 +8,7 @@ STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 PIDFILE="$STATE/daemon.pid"
 PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 URL="http://127.0.0.1:$PORT"
+PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started before it ran does not have it on PATH
 mkdir -p "$STATE" && chmod 700 "$STATE"
 
 running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
@@ -66,7 +67,7 @@ if [ -f "$STATE/config.json" ] && grep -qE '"(ears|mouth)": *"local' "$STATE/con
 else
   EXTRA=()
 fi
-[ -d "$ROOT/.venv" ] || echo "voice-daemon: first run, downloading about 600 MB..." >&2
+[ -d "$ROOT/.venv" ] || echo "voice-daemon: first run, downloading about 180 MB..." >&2
 uv sync --locked --quiet --project "$ROOT" ${EXTRA[@]+"${EXTRA[@]}"}
 uv run --no-sync --project "$ROOT" python "$ROOT/doctor.py" --preflight >&2
 
