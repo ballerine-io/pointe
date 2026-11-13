@@ -12,7 +12,10 @@ Then start a new Claude Code session. It says "Pointe is installed. Run /pointe:
 your Mac, installs what is missing, helps you choose model vendors (with measured quality and cost), opens a Mac window
 for each key so it goes straight to your Keychain, starts your first voice call, and can set up your phone.
 
-If GitHub refuses (the repository is private for now), ask whoever shared Pointe to give your GitHub account access, or
+If macOS asks to install the command line developer tools, press Install, wait for it to finish, and run the command
+again: Claude Code needs `git` to fetch the plugin.
+
+If GitHub refuses (the repository is private for now; git says "unable to get password from user"), ask whoever shared Pointe to give your GitHub account access, or
 for a zip, and use the prompt below.
 
 ## Or let Claude do the install too
@@ -45,7 +48,15 @@ press Connect.
 
 - The Pointe plugin, into Claude Code's own plugin folder.
 - [uv](https://docs.astral.sh/uv/), which runs Pointe's Python, into `~/.local/bin`, if it is missing.
-- On the first `/pointe:voice`, about 600 MB of Python packages in the plugin's folder.
+- The first time setup checks your Mac, about 180 MB of Python packages and a private copy of Python (about 530 MB on
+  disk), in the plugin's folder and `~/.local/share/uv`. On a fast connection this takes under a minute.
 - Your keys, in the macOS Keychain only (`pointe key <vendor>` opens the window again).
 
-To remove it: `/pointe:stop`, then remove the plugin in Claude Code's plugin settings.
+To remove it: `/pointe:stop`, then remove the plugin in Claude Code's plugin settings (or
+`claude plugin uninstall pointe@pointe && claude plugin marketplace remove pointe`). Nothing keeps running. Claude Code
+deletes the plugin's folder, with its Python packages, by itself some days later. These stay until you remove them:
+
+- `~/.claude-voice`: Pointe's settings and logs, which hold what was said on calls. Delete the folder.
+- Your keys: open Keychain Access and delete the items named `gemini-api-key`, `anthropic-api-key`, `soniox-api-key`,
+  `elevenlabs-api-key` and `openai-api-key`.
+- uv, if setup installed it: `uv cache clean`, then delete `~/.local/bin/uv`, `~/.local/bin/uvx` and `~/.local/share/uv`.
