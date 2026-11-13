@@ -513,7 +513,7 @@ struct CallView: View {
 
     private var title: String {
         switch phase {
-        case .off: return reachable ? "Not connected" : "Mac not reachable"
+        case .off: return Self.offTitle(reachable: reachable, macOnACall: status?.connected == true)
         case .connecting: return "Connecting…"
         case .reconnecting: return "Reconnecting…"
         case .live:
@@ -527,6 +527,11 @@ struct CallView: View {
             }
             return muted ? "Muted" : speaking ? "Speaking" : "Listening"
         }
+    }
+
+    /// No call here: the Mac may still have one, on the page or another phone, and a tap would be turned away.
+    static func offTitle(reachable: Bool, macOnACall: Bool) -> String {
+        !reachable ? "Mac not reachable" : macOnACall ? "On a call elsewhere" : "Not connected"
     }
 
     private var subtitle: String {

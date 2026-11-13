@@ -39,3 +39,11 @@ final class LocalModeTests: XCTestCase {
         XCTAssertNil(try JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": []}"#.utf8)).local)
     }
 }
+
+final class CallElsewhereTests: XCTestCase {
+    func testWithNoCallHereTheMacsCallShowsAsElsewhere() {
+        XCTAssertEqual(CallView.offTitle(reachable: true, macOnACall: true), "On a call elsewhere")
+        XCTAssertEqual(CallView.offTitle(reachable: true, macOnACall: false), "Not connected")
+        XCTAssertEqual(CallView.offTitle(reachable: false, macOnACall: true), "Mac not reachable")  // a stale status says nothing
+    }
+}
