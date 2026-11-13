@@ -241,6 +241,13 @@ def refused_help(vendor: str) -> str:
             f"pointe key {vendor or '<vendor>'}, or run /pointe:setup again.")
 
 
+def refused_spoken(vendor: str, hebrew: bool = False) -> str:
+    """The refused key, short enough to say aloud."""
+    if hebrew:
+        return f"המפתח של {vendor} נדחה. בדוק אותו עם pointe key {vendor}."
+    return f"My {vendor} key was refused. Check it with pointe key {vendor}."
+
+
 def _say_if_refused(vendor: str, error: Exception) -> None:
     if refused_key(f"{type(error).__name__} {error}") is not None:
         logger.error(refused_help(vendor))  # callers log only the error's type: this says which key, for the page
