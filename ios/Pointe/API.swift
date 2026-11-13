@@ -28,6 +28,7 @@ struct API {
         var challenge: ChallengeStatus?  // devil's advocate (Challenge.swift): on, or the last one ended; nil from a Mac without it
         var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
         var whisper: WhisperStatus?  // whisper mode (Whisper.swift); nil from a Mac without it
+        var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
     }
 
     // MARK: show while it says (docs/features/show-while-it-says.md). Paths only in status; the

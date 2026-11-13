@@ -262,7 +262,7 @@ struct CallView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing,
                                      large: status?.whisper?.on == true && status?.whisper?.held == nil) { editing = $0 }
-                    if let problem = problem ?? call.problem {
+                    if let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote).foregroundStyle(Brand.orange).padding(.bottom, 8)
                     }
@@ -537,6 +537,11 @@ struct CallView: View {
         return "Orchestrating \(count) session\(count == 1 ? "" : "s")" + (needs > 0 ? " · \(needs) need\(needs == 1 ? "s" : "") you" : "") + health
     }
 
+    /// This screen's own problem first, then the call's, then the Mac's (a refused key, a vendor down), as the page does.
+    static func shownProblem(screen: String?, call: String?, mac: String?) -> String? {
+        [screen, call, mac].compactMap { $0 }.first { !$0.isEmpty }
+    }
+
     /// The Mac's reasons come in lower case without a full stop.
     static func sentence(_ s: String) -> String {
         let t = s.trimmingCharacters(in: .whitespaces)
@@ -566,7 +571,7 @@ struct CallView: View {
     private func meetingScreen(_ meeting: API.Meeting) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                if let problem = problem ?? call.problem {
+                if let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
                     Label(problem, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
                 }
                 NotesFeed(notes: feed.notes, transcript: feed.transcript, speakers: meeting.speakers ?? [], filter: $noteFilter,
