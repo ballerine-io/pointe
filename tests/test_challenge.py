@@ -23,11 +23,12 @@ from test_orchestrator import (CC_FINISHED, Params, add, client_for, d, fake_con
                                record_channel, record_dispatch, verdicts, with_permission)
 
 import challenge  # noqa: E402
+from fake_secrets import fake  # noqa: E402
 import guards  # noqa: E402
 import modes  # noqa: E402
 import readout  # noqa: E402
 
-SECRET = "sk-proj-AbCdEf0123456789AbCdEf0123456789"
+SECRET = fake("sk-proj-", "AbCdEf0123456789AbCdEf0123456789")
 
 
 # ---------- what starts and ends it ----------
