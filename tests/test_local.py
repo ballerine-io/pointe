@@ -251,3 +251,39 @@ def test_a_downloaded_model_is_counted_without_the_local_extra(tmp_path, monkeyp
     (repo / "blobs" / "weights.ee45.incomplete").write_bytes(b"x")  # left by a download that was resumed later
     assert local.cached_bytes("mlx-community/whisper-large-v3-turbo") == 1000
     assert local.cached_bytes("mlx-community/not-here") == 0
+
+
+def _voice_install(monkeypatch, warm):
+    import types
+
+    monkeypatch.setattr(local, "voice_refused", lambda: None)
+    monkeypatch.setattr(local, "cached_bytes", lambda repo: 1)
+    monkeypatch.setattr(local, "write_voice_config", lambda: None)
+    monkeypatch.setitem(sys.modules, "kokoro_mlx", types.SimpleNamespace(warm=warm))
+    monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(snapshot_download=lambda r: None))
+
+
+def test_pointe_local_voice_keeps_library_noise_in_the_daemon_log(state, monkeypatch, capfd):
+    import os
+    import warnings
+
+    def warm():
+        warnings.warn("torch.nn.utils.weight_norm is deprecated", FutureWarning)
+        print("Creating new KokoroPipeline")
+        os.write(2, b"native library chatter\n")
+
+    _voice_install(monkeypatch, warm)
+    assert local.install_voice() == 0
+    out = capfd.readouterr()
+    shown = out.out + out.err
+    assert "FutureWarning" not in shown and "KokoroPipeline" not in shown and "chatter" not in shown
+    assert "is on" in shown
+    log = (local.state() / "daemon.log").read_text()
+    assert "FutureWarning" in log and "KokoroPipeline" in log and "chatter" in log
+
+
+def test_pointe_local_voice_still_shows_a_real_failure(state, monkeypatch, capfd):
+    _voice_install(monkeypatch, lambda: "RuntimeError: no Metal device")
+    assert local.install_voice() == 1
+    out = capfd.readouterr()
+    assert "no Metal device" in out.out + out.err

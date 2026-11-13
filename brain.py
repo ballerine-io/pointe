@@ -102,6 +102,9 @@ class Brain:
         self.terse = lambda: False  # drive mode: the user cannot look, so no "Sorry, I lost that" chatter either
         self.style_problem: Callable[[str], str | None] = lambda _s: None  # a mode's own limit (drive: length)
         self.on_usage = on_usage or (lambda _u: None)
+        # The sentence for a refused key, by vendor; None when it cannot be heard (the mouth uses that key too).
+        self.key_refused: Callable[[str], str | None] = vendors.refused_spoken
+        self._key_refusal_said = False  # one Brain per call: said once, then the page explains
         self.messages: list[dict] = []
         self._lock = asyncio.Lock()
         self._current: asyncio.Task | None = None
@@ -251,6 +254,13 @@ class Brain:
             except Exception as e:
                 logger.error(f"brain failed: {type(e).__name__}: {str(e)[:200]}")
                 self._repair()
+                vendor = vendors.refused_key(f"{type(e).__name__} {e}")
+                if vendor is not None:
+                    line = None if self._key_refusal_said else self.key_refused(vendor or self.choice.split(":")[0])
+                    self._key_refusal_said = True
+                    if line:
+                        await self.speak(line)
+                    return
                 await self.speak("I lost my connection to the model for a moment. Say that again?")
                 return
             finally:

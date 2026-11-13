@@ -284,6 +284,36 @@ def voice_refused() -> str | None:
     return None
 
 
+@contextlib.contextmanager
+def _into_daemon_log():
+    """Libraries' warnings and chatter (torch's FutureWarning, "Creating new KokoroPipeline") go to daemon.log, not to the
+    person running the command. Real failures come back as values and are printed after."""
+    import warnings
+
+    log = state() / "daemon.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    saved = os.dup(1), os.dup(2)
+    fd = os.open(log, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    text = open(fd, "a", closefd=False)
+    try:
+        os.dup2(fd, 1)
+        os.dup2(fd, 2)
+        with warnings.catch_warnings(), contextlib.redirect_stdout(text), contextlib.redirect_stderr(text):
+            warnings.simplefilter("default")
+            warnings.showwarning = lambda m, c, f, n, file=None, line=None: text.write(warnings.formatwarning(m, c, f, n, line))
+            yield
+    finally:
+        text.flush()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os.dup2(saved[0], 1)
+        os.dup2(saved[1], 2)
+        for x in (fd, *saved):
+            os.close(x)
+
+
 def install_voice() -> int:
     """Voice stays on your Mac: download Whisper and Kokoro (MLX), check a text model has a key, turn it on."""
     if why := voice_refused():
@@ -305,7 +335,11 @@ def install_voice() -> int:
     print("Loading the voice once (about 20 s the first time)...", flush=True)
     import kokoro_mlx
 
-    kokoro_mlx.warm()
+    with _into_daemon_log():
+        problem = kokoro_mlx.warm()
+    if problem:
+        print(f"The voice did not load: {problem}. Details: {state() / 'daemon.log'}", file=sys.stderr)
+        return 1
     print(f"\n{vendors.VOICE_LOCAL} is on. Restart the voice to use it: /pointe:stop, then /pointe:voice. "
           "Use headphones. Back to your vendors: pointe local off.")
     return 0

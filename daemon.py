@@ -754,6 +754,13 @@ def fixed_greeting() -> str | None:
     return None
 
 
+def _key_refused_line(vendor: str) -> str | None:
+    """None when the mouth runs on the refused key: it cannot say anything, and the page already does."""
+    if (setup().mouth or "").split(":")[0] == vendor:
+        return None
+    return vendors.refused_spoken(vendor, bool(re.search(r"[\u0590-\u05ff]", state.last_utterance)))
+
+
 def make_brain(speak, filler=None) -> Brain:
     def usage(u: dict) -> None:
         state.tokens = {"context": u.get("context", 0), "reply": u.get("reply", 0), "audio_in": 0,
@@ -764,6 +771,7 @@ def make_brain(speak, filler=None) -> Brain:
                   _open_items, lambda: bool(state.unconfirmed), usage, fallback=vendors.BRAIN_FALLBACK.get(setup().brain),
                   may_stay_silent=lambda: ack_only(state.last_utterance), language_problem=_language_problem)
     brain.translate = _translate
+    brain.key_refused = _key_refused_line
     brain.permission_pending = lambda: bool(REGISTRY.active and REGISTRY.active.permission_id)
     brain.terse = lambda: current_mode() is modes.DRIVE
     brain.style_problem = lambda said: drives.length_problem(said) if current_mode() is modes.DRIVE else None
