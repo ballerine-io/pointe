@@ -413,6 +413,21 @@ def status_lines() -> list[str]:
     return lines
 
 
+def summary() -> dict:
+    """One read-only line for the page's and the phone's Settings: which local mode is on, and whether its models are here."""
+    if voice_on():
+        mode, label, fix = "voice", vendors.VOICE_LOCAL, "pointe local voice"
+        sizes = [cached_bytes(EARS_MODEL), cached_bytes(VOICE_MODEL)]
+    elif on():
+        mode, label, fix = "full", "Fully local", "pointe local"
+        sizes = [cached_bytes(EARS_MODEL), kokoro_bytes(), cached_bytes(model())]
+    else:
+        return {"mode": "off", "models": None, "line": "Local mode: off"}
+    models = "ready" if all(sizes) else "missing"
+    return {"mode": mode, "models": models,
+            "line": f"{label}: on · " + ("models on this Mac" if models == "ready" else f"models not downloaded ({fix})")}
+
+
 def main(argv: list[str]) -> int:
     command = argv[0] if argv and not argv[0].startswith("-") else "install"
     text_model = argv[argv.index("--model") + 1] if "--model" in argv else TEXT_MODEL

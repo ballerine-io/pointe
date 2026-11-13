@@ -2,6 +2,7 @@
 
 - Ending a meeting and discarding its notes each take two clicks: the first asks, the second does it.
 - Settings → Meetings offers "Ask again before the next meeting" once the consent step was accepted, and it resets it.
+- Settings shows the local mode line from the daemon's status.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-par CLAUDE_VOICE_DAEMON_PORT=7960 CLAUDE_VOICE_TLS_PORT=7560 POINTE_CHROME_PORT=7963 \
      uv run python -u -I tests/e2e/page_parity.py
@@ -64,6 +65,9 @@ async def settings(page: Page) -> None:
               f"{DAEMON}/voice/prefs", headers={"Authorization": f"Bearer {(STATE / 'token').read_text().strip()}"})).read())
           .get("meeting.consented") is False)
 
+    line = await page.until("document.getElementById('pref-local').textContent", 5)
+    check("Settings shows the local mode line from the daemon", line == call("/voice/status")["local"]["line"], line=line)
+    await page.shot("settings-local")
     await page.js("closeSheet('settingssheet')")
 
 

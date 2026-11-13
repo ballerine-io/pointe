@@ -29,11 +29,29 @@ struct API {
         var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
         var whisper: WhisperStatus?  // whisper mode (Whisper.swift); nil from a Mac without it
         var idle_hangup: Bool?      // the Mac's idle timer ended the last call: not redialled
+        var local: LocalMode?       // local mode, read-only (local.summary); nil from a Mac without it
         var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
     }
 
     // MARK: show while it says (docs/features/show-while-it-says.md). Paths only in status; the
     // content comes from /voice/artifact, which the Mac refuses (403) until this phone turned the feature on.
+
+    struct LocalMode: Decodable, Equatable {
+        let mode: String?           // full, voice, off
+        let models: String?         // ready, missing; nil when off
+        let line: String            // the page's Settings line, written by the Mac
+
+        /// A menu item holds about three short lines: the same facts as `line`, shorter.
+        var short: String {
+            let models = models == "ready" ? "models here" : "models missing"
+            switch mode {
+            case "full": return "Fully local · \(models)"
+            case "voice": return "Voice stays on your Mac · \(models)"
+            case "off": return "Local mode: off"
+            default: return line
+            }
+        }
+    }
 
     struct ShownArtifact: Decodable, Equatable, Identifiable, Hashable {
         let id: String

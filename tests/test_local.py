@@ -287,3 +287,39 @@ def test_pointe_local_voice_still_shows_a_real_failure(state, monkeypatch, capfd
     assert local.install_voice() == 1
     out = capfd.readouterr()
     assert "no Metal device" in out.out + out.err
+
+
+def test_the_summary_for_the_page_and_the_phone_names_the_mode_and_whether_its_models_are_here(state, monkeypatch):
+    monkeypatch.setattr(local, "cached_bytes", lambda repo: 0)
+    monkeypatch.setattr(local, "kokoro_bytes", lambda: 0)
+    assert local.summary() == {"mode": "off", "models": None, "line": "Local mode: off"}
+
+    local.write_config()
+    assert local.summary() == {"mode": "full", "models": "missing",
+                               "line": "Fully local: on · models not downloaded (pointe local)"}
+    monkeypatch.setattr(local, "cached_bytes", lambda repo: 2_000_000_000)
+    monkeypatch.setattr(local, "kokoro_bytes", lambda: 340_000_000)
+    assert local.summary() == {"mode": "full", "models": "ready", "line": "Fully local: on · models on this Mac"}
+
+    local.restore_config()
+    local.write_voice_config()
+    assert local.summary() == {"mode": "voice", "models": "ready",
+                               "line": f"{vendors.VOICE_LOCAL}: on · models on this Mac"}
+    monkeypatch.setattr(local, "cached_bytes", lambda repo: 0 if repo == local.VOICE_MODEL else 1)
+    assert local.summary()["models"] == "missing"
+    assert local.summary()["line"] == f"{vendors.VOICE_LOCAL}: on · models not downloaded (pointe local voice)"
+
+
+def test_status_carries_the_local_summary_without_reading_the_disk_on_every_poll(tmp_path, monkeypatch):
+    (tmp_path / "token").write_text("secret")
+    monkeypatch.setenv("CLAUDE_VOICE_STATE", str(tmp_path))
+    import daemon
+    from fastapi.testclient import TestClient
+
+    calls = []
+    monkeypatch.setattr(daemon.local, "summary", lambda: calls.append(1) or {"mode": "off", "models": None, "line": "Local mode: off"})
+    monkeypatch.setattr(daemon, "_local_cache", (0.0, None))
+    client = TestClient(daemon.app, base_url="http://127.0.0.1:7860", cookies={"pointe_local": daemon.PAGE_KEY})
+    for _ in range(3):
+        assert client.get("/voice/status").json()["local"] == {"mode": "off", "models": None, "line": "Local mode: off"}
+    assert len(calls) == 1

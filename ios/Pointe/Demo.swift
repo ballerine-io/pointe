@@ -93,7 +93,8 @@ struct Demo {
 
     private static let callJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": true,
-     "hearing": "and after that ask river lantern whether the retry", "sessions": \(sessions), "talk": \(talk)}
+     "hearing": "and after that ask river lantern whether the retry", "sessions": \(sessions), "talk": \(talk),
+     "local": {"mode": "voice", "models": "ready", "line": "Voice stays on your Mac: on · models on this Mac"}}
     """
 
     /// Push to talk, held open on the Mac: the ring and the state line show the Mac's gate.

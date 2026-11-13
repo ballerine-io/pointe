@@ -34,6 +34,7 @@ import drive as drives
 import remote
 import harnesses
 from harnesses import FINISHED_MARK
+import local
 import meeting as meetings
 import modes
 import speaker
@@ -1854,6 +1855,18 @@ def _schedule() -> dict:
     return {"time": PREFS.get("briefings.time"), "days": PREFS.get("briefings.days"),
             "length": PREFS.get("briefings.length"), "speak_on_connect": PREFS.get("briefings.speak_on_connect"),
             "skip_empty": PREFS.get("briefings.skip_empty")}
+
+
+_local_cache: tuple[float, dict | None] = (0.0, None)
+LOCAL_STATUS_SECS = 60  # it reads the model cache on disk: once a minute, not on every poll
+
+
+def _local_status() -> dict:
+    """Local mode, read-only, for both Settings screens (local.summary)."""
+    global _local_cache
+    if _local_cache[1] is None or time.time() - _local_cache[0] > LOCAL_STATUS_SECS:
+        _local_cache = (time.time(), local.summary())
+    return _local_cache[1]
 
 
 def _briefing_status() -> dict:
@@ -4582,6 +4595,7 @@ async def status(request: Request):
                                       held="drive" if state.drive.on() else None),
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "drive": _drive_status(),
+            "local": _local_status(),
             "meeting": state.meeting.status() if state.meeting is not None else (
                 {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},

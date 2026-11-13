@@ -28,3 +28,14 @@ final class IdleHangupTests: XCTestCase {
         XCTAssertFalse(Call.idleHangupNote.isEmpty)
     }
 }
+
+final class LocalModeTests: XCTestCase {
+    func testTheLocalModeLineIsDecodedAndAnOlderMacSendsNone() throws {
+        let s = try JSONDecoder().decode(API.Status.self, from: Data(
+            #"{"connected": true, "sessions": [], "local": {"mode": "full", "models": "missing", "line": "Fully local: on · models not downloaded (pointe local)"}}"#.utf8))
+        XCTAssertEqual(s.local?.line, "Fully local: on · models not downloaded (pointe local)")
+        XCTAssertEqual(s.local?.models, "missing")
+        XCTAssertEqual(s.local?.short, "Fully local · models missing")  // what fits a menu item
+        XCTAssertNil(try JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": []}"#.utf8)).local)
+    }
+}

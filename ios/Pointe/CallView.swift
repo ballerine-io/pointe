@@ -402,6 +402,9 @@ struct CallView: View {
             } label: { Label("Microphone", systemImage: "mic") }
                 .pickerStyle(.menu)
                 .accessibilityIdentifier("microphoneSetting")
+            if let line = status?.local?.short {
+                Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
+            }
             Divider()
             Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { call.hangUp(); unpair() }
         } label: {
