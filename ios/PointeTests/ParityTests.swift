@@ -17,3 +17,14 @@ final class ParityTests: XCTestCase {
         XCTAssertNil(CallView.shownProblem(screen: nil, call: nil, mac: ""))
     }
 }
+
+final class IdleHangupTests: XCTestCase {
+    func testAnIdleHangUpIsNotRedialledButADroppedLinkIs() throws {
+        let idle = try JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": false, "sessions": [], "idle_hangup": true}"#.utf8))
+        XCTAssertEqual(idle.idle_hangup, true)
+        XCTAssertFalse(Call.redials(idleHangup: idle.idle_hangup))
+        XCTAssertTrue(Call.redials(idleHangup: false))
+        XCTAssertTrue(Call.redials(idleHangup: nil))  // the Mac unreachable, or one without the field: keep trying
+        XCTAssertFalse(Call.idleHangupNote.isEmpty)
+    }
+}

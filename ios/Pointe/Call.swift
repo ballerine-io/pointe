@@ -305,8 +305,24 @@ final class Call {
         guard wanted else { return }  // keep trying until the user hangs up: a VPN can take a while to come back
         retries += 1
         let delay = UInt64(min(16, 1 << retries)) * 1_000_000_000
-        Task { try? await Task.sleep(nanoseconds: delay); if self.wanted { await self.start() } }
+        Task {
+            try? await Task.sleep(nanoseconds: delay)
+            guard self.wanted else { return }
+            // The Mac's idle timer closes the link like any hang-up: ask it before calling back, as the page does.
+            if let status = try? await self.api.status(), !Call.redials(idleHangup: status.idle_hangup) {
+                self.wanted = false
+                self.problem = Call.idleHangupNote
+                self.stop(state: .off)
+                return
+            }
+            await self.start()
+        }
     }
+
+    nonisolated static let idleHangupNote = "The Mac hung up after 30 minutes of quiet. Tap the mic to talk again."
+
+    /// A link that dropped is called back; a call the Mac's idle timer ended is not (nil: the Mac did not say).
+    nonisolated static func redials(idleHangup: Bool?) -> Bool { idleHangup != true }
 
     private func stop(state: State) {
         socket?.cancel(with: .normalClosure, reason: nil)
