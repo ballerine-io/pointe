@@ -797,21 +797,28 @@ struct CallView: View {
         if demo == nil { await act { try await call.api.dismissAttention(alert.id) } }
     }
 
-    private func saveBriefingSchedule(_ change: [String: any Sendable]) async -> API.BriefingSchedule? {
-        let fresh: API.BriefingSchedule?
+    private func saveBriefingSchedule(_ change: [String: any Sendable]) async -> Result<API.BriefingSchedule, BriefingNotSaved> {
         if demo != nil {
-            guard var s = demoSchedule else { return nil }
+            guard var s = demoSchedule else { return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(nil))) }
             if let t = change["time"] as? String { s.time = t }
             if let d = change["days"] as? [Int] { s.days = d }
             if let l = change["length"] as? String { s.length = l }
             if let v = change["speak_on_connect"] as? Bool { s.speak_on_connect = v }
             if let v = change["skip_empty"] as? Bool { s.skip_empty = v }
             demoSchedule = s
-            return s  // no reminder in the demo: it would ask for notification permission mid-test
+            return .success(s)  // no reminder in the demo: it would ask for notification permission mid-test
         }
-        fresh = try? await call.api.setBriefingSchedule(change)
-        if let fresh { await BriefingReminder.apply(fresh) }
-        return fresh
+        do {
+            guard let fresh = try await call.api.setBriefingSchedule(change) else {
+                return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(nil)))
+            }
+            await BriefingReminder.apply(fresh)
+            return .success(fresh)
+        } catch API.Failure.status(_, let detail) {
+            return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(detail)))
+        } catch {
+            return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(nil)))
+        }
     }
 
     // MARK: voice lock

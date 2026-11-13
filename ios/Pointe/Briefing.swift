@@ -98,6 +98,21 @@ enum BriefingCopy {
         return nil
     }
 
+    /// The page's checks before a schedule is sent: a scheduled briefing needs a time and at least one day.
+    static func check(time: String, days: [Int]) -> String? {
+        guard !time.isEmpty else { return nil }  // off: nothing to check
+        return days.isEmpty ? "Pick at least one day for the briefing." : nil
+    }
+
+    /// The Mac's 400 says what was wrong with the schedule; without it, why it was not saved is unknown.
+    static func notSaved(_ detail: String?) -> String {
+        guard let d = detail?.trimmingCharacters(in: .whitespaces), !d.isEmpty, !d.hasPrefix("HTTP ") else {
+            return "Not saved: the Mac did not answer."
+        }
+        let said = CallView.sentence(d)
+        return "Not saved: \(said.prefix(1).lowercased())\(said.dropFirst())"
+    }
+
     static func cannotStart(callUp: Bool, meetingOn: Bool) -> String? {
         if !callUp { return "Connect to hear it." }
         if meetingOn { return "Not during a meeting." }
@@ -287,11 +302,13 @@ struct AnyPrimitiveButtonStyle: PrimitiveButtonStyle {
     func makeBody(configuration: Configuration) -> some View { make(configuration) }
 }
 
+struct BriefingNotSaved: Error { let message: String }
+
 /// Settings → Briefings: the schedule, kept on the Mac. The phone also sets its own reminder at that time.
 struct BriefingSettingsSheet: View {
     let load: () async -> API.BriefingSchedule?
-    /// The changed fields; the Mac's schedule back, or nil when it refused.
-    let save: ([String: any Sendable]) async -> API.BriefingSchedule?
+    /// The changed fields; the Mac's schedule back, or why it was not saved.
+    let save: ([String: any Sendable]) async -> Result<API.BriefingSchedule, BriefingNotSaved>
     @Environment(\.dismiss) private var dismiss
     @State private var schedule: API.BriefingSchedule?
     @State private var loaded = false
@@ -352,13 +369,19 @@ struct BriefingSettingsSheet: View {
 
     private func update(_ change: [String: any Sendable]) {
         saved = nil
+        guard let s = schedule else { return }
+        if let why = BriefingCopy.check(time: change["time"] as? String ?? s.time, days: change["days"] as? [Int] ?? s.days) {
+            saved = why
+            return
+        }
         Task {
-            if let fresh = await save(change) {
+            switch await save(change) {
+            case .success(let fresh):
                 schedule = fresh
                 saved = "Saved."
-            } else {
+            case .failure(let why):
                 schedule = await load()
-                saved = "Not saved."
+                saved = why.message
             }
         }
     }

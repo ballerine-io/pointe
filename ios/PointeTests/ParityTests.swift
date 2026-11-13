@@ -56,3 +56,18 @@ final class DriveRefusedTests: XCTestCase {
         XCTAssertEqual(DriveCopy.refused(""), "Drive mode did not change.")
     }
 }
+
+final class BriefingScheduleTests: XCTestCase {
+    func testTheSchedulesChecksAreThePages() {
+        XCTAssertEqual(BriefingCopy.check(time: "08:30", days: []), "Pick at least one day for the briefing.")
+        XCTAssertNil(BriefingCopy.check(time: "08:30", days: [0]))
+        XCTAssertNil(BriefingCopy.check(time: "", days: []))  // not scheduled: no day needed
+    }
+
+    func testNotSavedSaysTheMacsReason() {
+        XCTAssertEqual(BriefingCopy.notSaved("not a setting, or a wrong value: briefing.days"),
+                       "Not saved: not a setting, or a wrong value: briefing.days.")
+        XCTAssertEqual(BriefingCopy.notSaved("HTTP 502"), "Not saved: the Mac did not answer.")
+        XCTAssertEqual(BriefingCopy.notSaved(nil), "Not saved: the Mac did not answer.")
+    }
+}
