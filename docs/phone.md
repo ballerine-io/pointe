@@ -24,7 +24,7 @@ only when it grants a Background App Refresh (rarely, never in Low Power Mode, n
 "Approve from notifications" (shared with the page's Settings, off by default) adds Approve to a notification for a
 request Pointe can read out; it needs an unlocked iPhone or a watch on the wrist instead of Face ID.
 
-Checked by hand on a real iPhone and watch (the simulator has no watch):
+To check by hand on a real iPhone and watch (the simulator has no watch; not yet done on real devices):
 1. Alerts on, call up, lock the iPhone, wear the watch. A request arrives: the watch taps, and shows the session and the
    read-out form, with Deny and Approve.
 2. Approve on the watch: the session gets it; the iPhone notification is gone.

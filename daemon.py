@@ -5155,7 +5155,7 @@ def _opening_context() -> list[dict]:
 
 @app.websocket("/voice/phone")
 async def phone_call(websocket: WebSocket):
-    """The phone app (docs/mobile-plan.md). LocalAuth has checked its key."""
+    """The phone app (docs/design/2026-11-mobile-plan.md). LocalAuth has checked its key."""
     await socket_call(websocket, "phone")
 
 

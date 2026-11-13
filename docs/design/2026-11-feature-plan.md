@@ -5,7 +5,7 @@
 Status: plan, 2026-11-11. Nothing here is built. Written against the code as it is today (`daemon.py` 3.2k lines,
 `brain.py`, `guards.py`, `echo.py`, `readout.py`, `sessions.py`, `brief.py`, `phone.py`, `harnesses/`, `ui.html`,
 `ios/Pointe`) and the docs (`README.md`, `SECURITY.md`, `docs/how-it-works.md`, `docs/harnesses.md`, `docs/phone.md`,
-`docs/mobile-plan.md`).
+`docs/design/2026-11-mobile-plan.md`).
 
 ## How to read this
 

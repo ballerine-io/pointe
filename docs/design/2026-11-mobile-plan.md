@@ -1,3 +1,5 @@
+> Historical plan from the first iPhone build. Current behavior: [docs/phone.md](../phone.md) and [docs/features/](../features/README.md).
+
 # Pointe for iPhone: plan
 
 Status: phases 1 and 2 built and tested in the simulator; not yet run on a real iPhone (signing needs the Ballerine
