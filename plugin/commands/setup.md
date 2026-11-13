@@ -45,8 +45,8 @@ command, and tell them briefly what it prints: each download and its size, then 
 still Anthropic's Claude and gets text only. It needs an Apple-silicon Mac and an Anthropic key (a Gemini key, if they
 have one, runs the check on each request). It cannot speak Hebrew, and on laptop speakers interrupting it by voice takes
 3 to 4 seconds, so recommend headphones. If they choose it, store the Anthropic key first (below), then run
-`${CLAUDE_PLUGIN_ROOT}/bin/pointe local voice` and tell them briefly what it prints: two downloads (about 2 GB, once),
-then that the setup is on.
+`${CLAUDE_PLUGIN_ROOT}/bin/pointe local voice` with a 10-minute timeout and tell them briefly what it prints: the local
+libraries and two models (about 2.3 GB, once; about a minute and a half on a fast link), then that the setup is on.
 
 Recommend: "Easiest start" if they want to try it in two minutes; "Best" if they will use it daily; "Voice stays on your
 Mac" if their voice must not leave it but the rest may; "Fully local" if nothing may leave their Mac. Ask which, then for
