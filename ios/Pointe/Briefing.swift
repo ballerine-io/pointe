@@ -274,7 +274,7 @@ struct BriefingSheet: View {
                                     .background(s.status == "waiting" || s.status == "failed" ? Brand.orange.opacity(0.3) : Color.secondary.opacity(0.2),
                                                 in: Capsule())
                             }
-                            Text(s.text).font(.footnote).foregroundStyle(.secondary)
+                            Text(s.text).readingDirection(of: s.text).font(.footnote).foregroundStyle(.secondary)
                         }
                     }
                 }

@@ -6,7 +6,7 @@ struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
-                       whisper, whisperOff }
+                       whisper, whisperOff, rtl }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -37,6 +37,7 @@ struct Demo {
         case .challengeEnded: challengeJSON(on: false)
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         case .whisper, .whisperOff: whisperJSON(on: screen == .whisper)
+        case .rtl: rtlJSON
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -90,6 +91,17 @@ struct Demo {
          "whisper": \(whisper)}
         """
     }
+
+    /// Right-to-left messages: Hebrew, Arabic, a sentence that starts in Hebrew with English inside, and English.
+    private static let rtlJSON = """
+    {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+     "hearing": "תבדוק את ה-retry ב-billing.", "sessions": \(sessions),
+     "talk": [{"id": 1, "who": "user", "text": "מה המצב של billing?", "typed": false, "corrected": false},
+              {"id": 2, "who": "assistant", "text": "הוא סיים את התיקון. הבדיקות עוברות."},
+              {"id": 3, "who": "user", "text": "أرسل الإصلاح للمراجعة.", "typed": false, "corrected": false},
+              {"id": 4, "who": "assistant", "text": "פתחתי PR חדש ל-billing. הוא מעלה את ה-timeout לשלושים שניות ומוסיף בדיקה לכפל חיובים בזמן failover."},
+              {"id": 5, "who": "user", "text": "And tell docs to update the changelog.", "typed": false, "corrected": false}]}
+    """
 
     private static let callJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": true,

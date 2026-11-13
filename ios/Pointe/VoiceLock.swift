@@ -208,7 +208,7 @@ struct IgnoredSheet: View {
                              + " · " + VoiceLockCopy.seconds(item.secs ?? 0))
                             .font(.subheadline.monospacedDigit())
                         if let text = item.text, !text.isEmpty {
-                            Text(text).font(.footnote).foregroundStyle(.secondary)
+                            Text(text).readingDirection(of: text).font(.footnote).foregroundStyle(.secondary)
                         }
                     }
                 }

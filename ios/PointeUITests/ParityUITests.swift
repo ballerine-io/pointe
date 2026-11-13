@@ -31,4 +31,12 @@ final class ParityUITests: XCTestCase {
         shot("settings-local")
         XCTAssertTrue(line.waitForExistence(timeout: 5), "the local mode line is in Settings")
     }
+
+    /// A screenshot for the eye: XCUITest cannot see where a glyph lands. Hebrew and Arabic end at the left edge.
+    func testRightToLeftMessagesSnapshot() throws {
+        launch("rtl")
+        let bot = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "הבדיקות עוברות")).firstMatch
+        XCTAssertTrue(bot.waitForExistence(timeout: 15))
+        shot("rtl-conversation")
+    }
 }
