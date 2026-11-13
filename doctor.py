@@ -101,7 +101,7 @@ def harnesses_here() -> list[str]:
         lines.append(f"  found    OpenCode      join: pointe join opencode, in the session's folder"
                      + ("" if up else " (its service is not running: start opencode first)"))
     if shutil.which("codex"):
-        lines.append("  found    Codex         not supported yet: coming next")
+        lines.append('  found    Codex         join: start it with codex --remote unix:// -C "$PWD", then pointe join codex in that folder')
     return lines
 
 
