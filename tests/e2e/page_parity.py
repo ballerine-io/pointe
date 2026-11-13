@@ -3,6 +3,9 @@
 - Ending a meeting and discarding its notes each take two clicks: the first asks, the second does it.
 - Settings → Meetings offers "Ask again before the next meeting" once the consent step was accepted, and it resets it.
 - Settings shows the local mode line from the daemon's status.
+- Right-to-left text (Hebrew, Arabic) reads from the right in the conversation, the caption, cards and lists: a final
+  full stop sits at the left end. English is unchanged. Each element takes its direction from its own first strong
+  letter (dir="auto"), not the page's.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-par CLAUDE_VOICE_DAEMON_PORT=7960 CLAUDE_VOICE_TLS_PORT=7560 POINTE_CHROME_PORT=7963 \
      uv run python -u -I tests/e2e/page_parity.py
@@ -71,6 +74,43 @@ async def settings(page: Page) -> None:
     await page.js("closeSheet('settingssheet')")
 
 
+# The first and last character of an element's text, on screen: where a sentence starts and where its full stop sits.
+EDGES = """(e => {
+  const walk = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let first = null, last = null, n;
+  while ((n = walk.nextNode())) if (n.textContent.trim()) { first = first || n; last = n; }
+  const box = (node, i) => { const r = document.createRange(); r.setStart(node, i); r.setEnd(node, i + 1); return r.getBoundingClientRect(); };
+  const end = last.textContent.replace(/\\s+$/, '').length - 1;
+  return {start: box(first, first.textContent.search(/\\S/)).left, stop: box(last, end).left, dir: getComputedStyle(e).direction};
+})"""
+LINES = {"Hebrew": "שלחתי את התיקון לבדיקה.", "Arabic": "أرسلت الإصلاح للمراجعة.",
+         "Hebrew with English inside": "פתחתי PR חדש ל-billing.", "English": "Billing is opening the PR.",
+         "English with Hebrew inside": "Send it to the תור team.", "digits first, then Hebrew": "42 בדיקות עברו."}
+RTL = {"Hebrew", "Arabic", "Hebrew with English inside", "digits first, then Hebrew"}
+
+
+async def rtl(page: Page) -> None:
+    for name, text in LINES.items():
+        places = {
+            "your bubble": f"turnItem({{id: -1, who: 'user', text: {json.dumps(text)}}}, false)",
+            "the bot's bubble": f"turnItem({{id: -2, who: 'assistant', text: {json.dumps(text)}}}, false)",
+            "a recent request": f"el('div', 'said', {json.dumps('“' + text + '”')})",
+        }
+        for where, make in places.items():
+            got = await page.js(f"(() => {{ const e = {make}; e.style.maxWidth = '600px'; $('talk').append(e);"
+                                f" const r = {EDGES}(e); e.remove(); return r; }})()")
+            ok = got["stop"] < got["start"] if name in RTL else got["stop"] > got["start"]
+            check(f"{name} in {where}: the full stop is at the {'left' if name in RTL else 'right'} end", ok, **got)
+        got = await page.js(f"(() => {{ $('caption-text').textContent = {json.dumps(text)}; $('caption').hidden = false;"
+                            f" const r = {EDGES}($('caption-text')); $('caption').hidden = true; return r; }})()")
+        ok = got["stop"] < got["start"] if name in RTL else got["stop"] > got["start"]
+        check(f"{name} in the caption: the full stop is at the {'left' if name in RTL else 'right'} end", ok, **got)
+    await page.js("$('talk').append(turnItem({id: -3, who: 'user', text: " + json.dumps(LINES["Hebrew"]) + "}, false),"
+                  " turnItem({id: -4, who: 'assistant', text: " + json.dumps(LINES["Arabic"]) + "}, false),"
+                  " turnItem({id: -5, who: 'user', text: " + json.dumps(LINES["English"]) + "}, false)); true")
+    await page.shot("rtl-conversation")
+    await page.js("[...$('talk').querySelectorAll('li')].filter(li => +li.dataset.id < 0 || !li.dataset.id).forEach(li => li.remove()); true")
+
+
 async def main() -> None:
     assert os.environ.get("CLAUDE_VOICE_STATE"), "use an isolated CLAUDE_VOICE_STATE"
     fresh_state()
@@ -94,6 +134,8 @@ async def main() -> None:
             await page.until("typeof meetPost === 'function' && !!status && !!status.sessions", 20)
             await two_clicks(page)
             await settings(page)
+            await page.js("for (let i = 1; i < 5000; i++) clearInterval(i); true")  # no poll redraws under the measurements
+            await rtl(page)
     finally:
         chrome.terminate()
         stop_daemon()

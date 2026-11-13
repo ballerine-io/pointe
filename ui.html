@@ -521,7 +521,7 @@
         <label><input type="radio" name="mmode" value="listening" checked><div><b>Listening</b><span>It never speaks. It writes what matters into your notes: open questions, answers, decisions, action items.</span></div></label>
         <label><input type="radio" name="mmode" value="participating"><div><b>Participating</b><span>It speaks only when you ask. Otherwise it raises a hand, and you let it speak.</span></div></label>
       </div>
-      <div class="field">Context<textarea id="meetbrief" placeholder="Paste or type the agenda, the goal, who is in the room…"></textarea></div>
+      <div class="field">Context<textarea id="meetbrief" dir="auto" placeholder="Paste or type the agenda, the goal, who is in the room…"></textarea></div>
       <div class="field">Sessions it may look things up in<div class="checks" id="meetsessions"></div></div>
       <label class="tick"><input type="checkbox" id="meetlookups"> Auto lookups: answer open questions from these sessions without asking first</label>
       <div class="err" id="meeterr1" role="alert"></div>
@@ -661,7 +661,7 @@
     <div class="grow">
       <div class="state" id="state">Not connected</div>
       <div class="sub" id="sub">Press the mic to start talking</div>
-      <div id="problem" role="alert"></div>
+      <div id="problem" role="alert" dir="auto"></div>
       <div id="vlproblem" role="alert"></div>
       <button id="vlignored" onclick="openIgnored()"></button>
     </div>
@@ -731,8 +731,8 @@
   <div id="attention"></div>
   <div id="briefalert"></div>
   <div id="whispercard"></div>
-  <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span id="caption-text"></span></div>
-  <form id="compose" onsubmit="sendTyped(event)"><input id="typed" placeholder="Type to the voice…" autocomplete="off" disabled>
+  <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span id="caption-text" dir="auto"></span></div>
+  <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" placeholder="Type to the voice…" autocomplete="off" disabled>
     <button id="typed-send" disabled>Send</button></form>
   <nav class="dock" aria-label="Call controls">
     <button class="btn" id="listen" onclick="toggleListen()" disabled title="Talk freely while the voice stays quiet">
@@ -786,8 +786,10 @@
 </aside>
 <script>
   const $ = id => document.getElementById(id);
+  // Text reads in its own direction, from its first strong letter, whatever the page's: Hebrew or Arabic from the
+  // right (a full stop at the left end), English from the left. dir="auto" is that rule, done by the browser.
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
-                                    if (text !== undefined) e.textContent = text; return e; };
+                                    if (text !== undefined) { e.textContent = text; e.dir = 'auto'; } return e; };
 
   // Long worktree names ("cfx-9994-replace-…/cfx-9994-replace-…") keep their ticket and their distinguishing tail.
   function short(name) {
@@ -1222,7 +1224,7 @@
   }
   function turnItem(t, polish) {
     if (t.who !== 'user') return el('li', 'bot', t.text);
-    const li = el('li', 'you fixable');
+    const li = el('li', 'you fixable'); li.dir = 'auto';
     li.dataset.id = t.id; li.dataset.text = t.text;
     li.title = 'Click to fix what it heard';
     if (polish && t.understood && t.understood !== t.text) li.append(el('span', 'raw', t.text), el('span', 'meant', t.understood));
