@@ -39,4 +39,18 @@ final class ParityUITests: XCTestCase {
         XCTAssertTrue(bot.waitForExistence(timeout: 15))
         shot("rtl-conversation")
     }
+
+    func testDisconnectingASessionAsksFirst() throws {
+        launch("sessions")
+        let row = app.cells.containing(.staticText, identifier: "docs").firstMatch  // the sheet's row, not the chip under it
+        XCTAssertTrue(row.waitForExistence(timeout: 15))
+        row.swipeLeft()
+        app.buttons["Disconnect"].firstMatch.tap()
+        let ask = app.staticTexts["Disconnect docs from the voice? It keeps running in its terminal."]
+        XCTAssertTrue(ask.waitForExistence(timeout: 5), "a swipe asks before it disconnects")
+        shot("disconnect-confirm")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.52)).tap()  // outside the popover: cancel
+        XCTAssertTrue(ask.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(row.exists, "Cancel keeps the session")
+    }
 }

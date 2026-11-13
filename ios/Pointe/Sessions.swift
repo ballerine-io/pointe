@@ -19,6 +19,7 @@ struct SessionChips: View {
     let orchestrate: () -> Void
     let disconnect: (String) -> Void
     let showAll: () -> Void
+    @State private var leaving: String?
 
     private var orchestrating: Bool { mode != "session" }
 
@@ -59,7 +60,7 @@ struct SessionChips: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         if !on { Button("Focus on this session", systemImage: "scope") { focus(s.name) } }
-                        Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { disconnect(s.name) }
+                        Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
                     }
                     .accessibilityLabel("\(s.name), \(state(s))\(on ? ", focused" : "")")
                     .accessibilityHint(on ? "" : "Focus on this session")
@@ -68,6 +69,7 @@ struct SessionChips: View {
             .sensoryFeedback(.selection, trigger: (mode ?? "") + (active ?? ""))
         }
         .scrollClipDisabled()
+        .confirmDisconnect($leaving, disconnect)
     }
 }
 
@@ -78,6 +80,7 @@ struct SessionsSheet: View {
     let disconnect: (String) -> Void
     let setMode: (String) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var leaving: String?
 
     var body: some View {
         NavigationStack {
@@ -115,7 +118,7 @@ struct SessionsSheet: View {
                         }
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing) {
-                            Button("Disconnect", systemImage: "xmark.circle", role: .destructive) { disconnect(s.name) }
+                            Button("Disconnect", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
                         }
                     }
                 }
@@ -125,6 +128,7 @@ struct SessionsSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .confirmDisconnect($leaving, disconnect)
             .navigationTitle("Sessions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
@@ -132,6 +136,19 @@ struct SessionsSheet: View {
     }
 }
 
+
+extension View {
+    /// Asks before a session leaves the voice, as the page's second click does: it keeps running in its terminal.
+    func confirmDisconnect(_ leaving: Binding<String?>, _ disconnect: @escaping (String) -> Void) -> some View {
+        confirmationDialog("Disconnect \(leaving.wrappedValue ?? "") from the voice? It keeps running in its terminal.",
+                           isPresented: Binding(get: { leaving.wrappedValue != nil }, set: { if !$0 { leaving.wrappedValue = nil } }),
+                           titleVisibility: .visible, presenting: leaving.wrappedValue) { name in
+            Button("Disconnect", role: .destructive) { disconnect(name) }
+                .accessibilityIdentifier("confirmDisconnect")
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+}
 
 /// The coding agent behind a session, shown only when the voice mixes agents: one kind needs no label.
 struct AgentBadge: View {
