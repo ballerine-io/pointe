@@ -143,8 +143,21 @@ In fully local mode (`pointe local`), none of these goes anywhere: no key is rea
 Keychain, so no vendor can be reached, and the text-model server listens on loopback only. See
 [docs/features/local.md](docs/features/local.md).
 
+With "Voice stays on your Mac" (`pointe local voice`), no audio goes to a vendor: ears and mouth run on the Mac, the
+Soniox and ElevenLabs keys are never read, meeting mode is off, and every path that would stream audio out (cloud ears or
+mouth, a realtime front, the echo guard's mirror stream, meeting ears) is refused in code. The brain, reader and gate
+vendors still receive text. See [docs/features/voice-stays-local.md](docs/features/voice-stays-local.md).
+
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
+
+**No telemetry from its libraries either.** onnxruntime, which runs the voice detector, the voice lock and kokoro-onnx,
+connects to Microsoft's telemetry collector (`*.events.data.microsoft.com`) when it loads, from native code (seen with
+1.31.1). Pointe sets `ORT_DISABLE_TELEMETRY=1` before onnxruntime can load, in every setup: `no_telemetry.py` is imported
+first by every module that can reach it, and `bin/voice-daemon`, `bin/pointe`, `bin/voice-doctor` and `bin/claude-voice`
+export it for their child processes. `tests/test_no_telemetry.py` fails if any module reaches onnxruntime without it.
+Measured: with it set, no connection to Microsoft in isolation or during an audio suite
+([docs/features/voice-stays-local.md](docs/features/voice-stays-local.md#measured)).
 
 ## Files
 

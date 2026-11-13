@@ -11,6 +11,8 @@ check the package itself for the authoritative text.
 | 3D-Speaker ERes2Net base (`3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx`, 40 MB) | the [voice lock](docs/features/voice-lock.md), on first enrolment | Apache-2.0 ([3D-Speaker](https://github.com/modelscope/3D-Speaker); ModelScope `iic/speech_eres2net_base_sv_zh-cn_3dspeaker_16k`) | https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx, checked against a SHA-256 pinned in `speaker.py` |
 | Whisper large-v3-turbo, MLX conversion (`mlx-community/whisper-large-v3-turbo`) | local ears on Apple silicon, only with `ears: local` | MIT (OpenAI Whisper); the conversion's repository states no license of its own | Hugging Face, by `mlx-whisper` |
 | Whisper large-v3-turbo, CTranslate2 conversion (`deepdml/faster-whisper-large-v3-turbo-ct2`) | local ears on other machines, only with `ears: local` | MIT | Hugging Face, by `faster-whisper` |
+| Kokoro-82M, MLX conversion (`mlx-community/Kokoro-82M-bf16`, 0.4 GB with its voices) | local mouth on Apple silicon, only with `mouth: local:kokoro-mlx` ("Voice stays on your Mac") | Apache-2.0 ([Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)) | Hugging Face, by `pointe local voice` or on first use |
+| spaCy English pipeline `en_core_web_sm` 3.8.0 | misaki's part-of-speech tags for English, with `mouth: local:kokoro-mlx` | MIT | installed by uv from the [spaCy models release](https://github.com/explosion/spacy-models/releases/tag/en_core_web_sm-3.8.0) (pinned in `pyproject.toml`), not at runtime |
 | Kokoro v1.0 (`kokoro-v1.0.onnx`, `voices-v1.0.bin`) | local mouth, only with `mouth: local` | Apache-2.0 ([Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)) | https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/, by Pipecat's Kokoro service |
 | Gemma 4 26B A4B instruct, MLX 4-bit conversion (`mlx-community/gemma-4-26b-a4b-it-4bit`, 15.4 GB) | local brain, reader and gate, only with `pointe local` | Apache-2.0 ([google/gemma-4-26B-A4B-it](https://huggingface.co/google/gemma-4-26B-A4B-it)) | Hugging Face, by `pointe local` |
 
@@ -63,12 +65,25 @@ Installed only when ears or mouth are set to `local`:
 | kokoro-onnx | 0.6.1 | MIT |
 | espeakng-loader | 0.2.4 | MIT; it loads eSpeak NG, which is GPL-3.0-or-later |
 | phonemizer | 3.6.0 | GPL-3.0-or-later |
+| mlx-audio (Apple silicon) | 0.6.5 | MIT |
+| misaki, with `en` (Apple silicon) | 0.9.4 | Apache-2.0 |
+| phonemizer-fork (Apple silicon; misaki's eSpeak fallback) | 3.3.2 | GPL-3.0-or-later |
+| spaCy (Apple silicon) | 3.8.18 | MIT |
+| en-core-web-sm (Apple silicon) | 3.8.0 | MIT |
 
-The `local` extra therefore brings in GPL-3.0 components. They run as separate libraries in your own environment;
-they are not part of Pointe's source.
+On Apple silicon mlx-audio, misaki and spaCy bring these in with them, by license: MIT: addict, catalogue, cloudpathlib,
+confection, curated-tokenizers, curated-transformers, cymem, jsonschema, jsonschema-specifications, language-tags,
+markdown-it-py, mdurl, miniaudio, murmurhash, preshed, pyparsing, referencing, rich, rpds-py, smart-open,
+spacy-curated-transformers, spacy-legacy, spacy-loggers, srsly, termcolor, thinc, typer, wasabi, weasel. Apache-2.0:
+csvw, rfc3986, safetensors, segments, sentencepiece, transformers, tzdata. BSD-3-Clause: babel, python-dateutil, rdflib.
+BSD (variant not declared): blis, isodate. BSD-2-Clause: wrapt. BSD-3-Clause OR Apache-2.0: uritemplate. ISC: shellingham.
+
+The `local` extra therefore brings in GPL-3.0 components (eSpeak NG, through phonemizer and phonemizer-fork). They run
+as separate libraries in your own environment; they are not part of Pointe's source, and nothing outside the `local`
+extra installs them.
 
 No permissive local voice that we could measure replaces Kokoro yet: Kokoro's other runtimes (mlx-audio, misaki) also use
-eSpeak NG for English, and Chatterbox Multilingual (MIT, no eSpeak, claims Hebrew) took 2.4 s to its first English audio
+eSpeak NG for English words misaki does not know, and Chatterbox Multilingual (MIT, no eSpeak, claims Hebrew) took 2.4 s to its first English audio
 on an M5 Pro, and its Hebrew was not intelligible ([docs/features/local.md](docs/features/local.md)). So the GPL-3.0 parts stay, only in the optional extra.
 
 ## Optional: the local text-model server (`pointe local`)

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One command for everything. Usage: pointe start|attach|open|doctor|status|log|context|pair|key|join|local|stop [args]
 set -euo pipefail
+export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started before it ran does not have it on PATH
 cmd="${1:-help}"; [ $# -gt 0 ] && shift

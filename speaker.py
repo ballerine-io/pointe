@@ -18,6 +18,7 @@ sentence. `owner_confident` accepts a weaker score only right after a strong mat
 
 from __future__ import annotations
 
+import no_telemetry  # noqa: F401  (before sherpa-onnx and onnxruntime load)
 import asyncio
 import hashlib
 import os

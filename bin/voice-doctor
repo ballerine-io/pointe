@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # What Pointe will run on this machine, and what is missing. Add --live to make one small paid call per model.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started before it ran does not have it on PATH
 command -v uv >/dev/null 2>&1 && echo "ok       uv" || { echo "MISSING  uv"; echo "Install uv first: https://docs.astral.sh/uv/"; exit 1; }
 command -v node >/dev/null 2>&1 && echo "ok       node" || echo "optional node     only for pointe start; /pointe:voice does not need it"

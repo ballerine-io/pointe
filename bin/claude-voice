@@ -3,6 +3,7 @@
 # its channel adds voice permission relay that /pointe:voice (attach) mode lacks.
 # Usage: [CLAUDE_VOICE_FRONT=brain|gemini|openai] [CLAUDE_VOICE_EARS=soniox|gemini|openai|elevenlabs] claude-voice [claude args...]
 set -euo pipefail
+export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"

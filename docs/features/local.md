@@ -41,6 +41,9 @@ in `config.json` or the environment is refused at start, with the command that t
 `tests/test_local.py`.
 
 What still goes out: model downloads, once, from Hugging Face and GitHub; your coding agents' own traffic, as always.
+onnxruntime (the voice detector, the voice lock, kokoro-onnx) connects to Microsoft's telemetry collector when it
+loads; Pointe turns that off in every setup (`ORT_DISABLE_TELEMETRY=1`, `no_telemetry.py`), found while measuring
+[Voice stays on your Mac](voice-stays-local.md#measured). The runs above predate it.
 
 ## Why these
 
@@ -100,8 +103,8 @@ models already downloaded. A fresh download is 17.3 GB; 1.5 GB took 37 s here, s
   request meant: it sent it. The gate, the same local model, checks each send against what you said, and approvals keep
   every rule in code, but more wrong requests reach your sessions. Reports pass 51% against 100%.
 - **Speech starts late.** kokoro-onnx makes a whole sentence before any of it plays. Kokoro on MLX (mlx-audio) started
-  English speech in 229 ms against 1283 ms; moving to it needs mlx-audio, misaki and a spaCy model in the daemon, or a
-  second local server, and keeps eSpeak NG. It is the first thing to do next.
+  English speech in 229 ms against 1283 ms. It is now in the daemon as `mouth: local:kokoro-mlx`, the mouth of
+  [Voice stays on your Mac](voice-stays-local.md); fully local mode does not use it yet.
 - **No Hebrew voice.** Kokoro has none: a Hebrew reply is spoken as noise. Speak English with it. Whisper hears Hebrew
   (93.3% of Hebrew clips right).
 - **No echo guard.** It needs Soniox's second stream: use headphones.

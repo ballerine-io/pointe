@@ -31,6 +31,7 @@ import websockets
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "bench"))
+import no_telemetry  # noqa: E402,F401  (before pipecat's Silero loads onnxruntime)
 import whisper  # noqa: E402
 import echo as echo_mod  # noqa: E402
 from echo import LevelGate  # noqa: E402

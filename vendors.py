@@ -9,6 +9,7 @@ Or the same names, in lower case, in ~/.claude-voice/config.json. "local" runs W
 Keychain item named here, and reach this process only when a role in use needs them.
 """
 
+import no_telemetry  # noqa: F401  (first: before anything loads onnxruntime)
 import json
 import os
 import subprocess
@@ -45,8 +46,30 @@ def local_only() -> bool:
     return os.environ.get("CLAUDE_VOICE_LOCAL_ONLY", "").lower() in ("1", "true") or config().get("local_only") is True
 
 
+VOICE_LOCAL = "Voice stays on your Mac"  # the setup's name, as /pointe:setup and the doctor show it
+LOCAL_MOUTH = "local:kokoro-mlx:af_heart"  # why: docs/features/voice-stays-local.md
+AUDIO_ONLY = ("soniox", "elevenlabs")  # vendors whose only use here is audio: their keys are not read when the voice stays local
+
+
+class CloudAudioRefused(RuntimeError):
+    """Audio was about to go to a vendor while the voice stays on this Mac."""
+
+
+def voice_local() -> bool:
+    """Ears, mouth and every other audio path on this Mac; text models may still be in the cloud (`pointe local voice`).
+    Fully local mode is this too."""
+    return (os.environ.get("CLAUDE_VOICE_VOICE_LOCAL", "").lower() in ("1", "true") or config().get("voice_local") is True
+            or local_only())
+
+
+def refuse_cloud_audio(what: str) -> None:
+    """The one check every path that would stream audio to a vendor passes first: the call, the mirror, meeting ears."""
+    if voice_local():
+        raise CloudAudioRefused(f"{VOICE_LOCAL}: {what} would send audio to a vendor, so it is off")
+
+
 def key(vendor: str) -> str | None:
-    if local_only():
+    if local_only() or (vendor in AUDIO_ONLY and voice_local()):
         return None
     env, item = KEYS[vendor]
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
@@ -132,6 +155,12 @@ def config() -> dict:
 def pick(env: str, order: list[str]) -> str:
     """The environment wins, then config.json, then the first vendor in the order that has a key."""
     wanted = os.environ.get(env) or config().get(env.removeprefix("CLAUDE_VOICE_").lower())
+    if env in ("CLAUDE_VOICE_EARS", "CLAUDE_VOICE_MOUTH") and voice_local():
+        if wanted and wanted != "auto" and wanted.split(":")[0] != LOCAL:
+            raise SystemExit(f"{env}={wanted}: {VOICE_LOCAL} is on, so ears and mouth run only on this Mac. "
+                             "Turn it off with: pointe local off")
+        if not wanted or wanted == "auto":
+            return LOCAL if env == "CLAUDE_VOICE_EARS" else LOCAL_MOUTH
     if wanted and wanted != "auto":
         if wanted.split(":")[0] not in {*KEYS, LOCAL}:
             raise SystemExit(f"{env}={wanted}: unknown vendor. Choose from: {', '.join([*KEYS, LOCAL])}")
@@ -164,6 +193,9 @@ class Setup:
 
 def resolve(front: str = "brain") -> Setup:
     """What will run, given the keys that exist. Fails at start, with the command to fix it, rather than mid-call."""
+    if front != "brain" and voice_local():
+        raise SystemExit(f"CLAUDE_VOICE_FRONT={front}: a realtime model hears the audio itself, and {VOICE_LOCAL} is on. "
+                         "Unset CLAUDE_VOICE_FRONT, or turn the setup off with: pointe local off")
     s = Setup(reader=pick("CLAUDE_VOICE_READER", READER_ORDER), checker=pick("CLAUDE_VOICE_CHECKER", CHECKER_ORDER))
     if front == "brain":
         s.brain = pick("CLAUDE_VOICE_BRAIN", BRAIN_ORDER)
@@ -171,6 +203,8 @@ def resolve(front: str = "brain") -> Setup:
     s.ears = pick("CLAUDE_VOICE_EARS", EARS_ORDER)
     if s.ears != "soniox":
         s.notes.append("Without Soniox the echo guard has no mirror stream: use headphones or browser echo cancellation.")
+    if voice_local() and not local_only():
+        s.notes.append(f"{VOICE_LOCAL}: ears and mouth run on this Mac; the text models get text only.")
     return s
 
 
@@ -456,6 +490,9 @@ def build_ears(vendor: str, terms: list[str]):
     """A speech-to-text service in the pipeline. Only Soniox takes vocabulary hints."""
     from pipecat.transcriptions.language import Language
 
+    if vendor != LOCAL and voice_local():
+        raise SystemExit(f"CLAUDE_VOICE_EARS={vendor}: {VOICE_LOCAL} is on, so the ears run only on this Mac")
+
     if vendor == "soniox":
         from pipecat.services.soniox.stt import SonioxContextObject, SonioxSTTService
 
@@ -544,6 +581,8 @@ def build_mouth(choice: str, rate: int, http):
     """A text-to-speech service in the pipeline, at the transport's output rate."""
     vendor, model, *rest = choice.split(":") + [""]
     voice = rest[0] if rest and rest[0] else None
+    if vendor != LOCAL and voice_local():
+        raise SystemExit(f"CLAUDE_VOICE_MOUTH={choice}: {VOICE_LOCAL} is on, so the mouth runs only on this Mac")
     if vendor == "elevenlabs":
         # HTTP streaming: eleven_v4_turbo, which speaks Hebrew, is refused on the WebSocket endpoint (HTTP 400).
         from pipecat.services.elevenlabs.tts import ElevenLabsHttpTTSService
@@ -564,6 +603,10 @@ def build_mouth(choice: str, rate: int, http):
         from pipecat.services.soniox.tts import SonioxTTSService
 
         return SonioxTTSService(api_key=key("soniox"), sample_rate=rate)
+    if vendor == LOCAL and model == "kokoro-mlx":
+        import kokoro_mlx
+
+        return kokoro_mlx.KokoroMLXTTSService(sample_rate=rate, voice=voice or kokoro_mlx.DEFAULT_VOICE)
     if vendor == LOCAL:
         from pipecat.services.kokoro.tts import KokoroTTSService
 

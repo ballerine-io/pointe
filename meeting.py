@@ -26,6 +26,7 @@ from pathlib import Path
 
 from loguru import logger
 
+import vendors
 from notes import Notes
 
 SILENCE_CLOSES_SECS = 1.2  # a pause this long ends a speaker turn
@@ -587,6 +588,7 @@ class MeetingEars:
     async def open(self) -> None:
         from websockets.asyncio.client import connect
 
+        vendors.refuse_cloud_audio("meeting ears (Soniox)")
         ws = await connect(self.URL, additional_headers={"Authorization": f"Bearer {self._key}"})
         await ws.send(json.dumps({
             "model": "stt-rt-v5", "audio_format": "pcm_s16le", "num_channels": 1, "sample_rate": self._rate,
