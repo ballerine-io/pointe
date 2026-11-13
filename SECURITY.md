@@ -160,7 +160,7 @@ stop word, anything `readout.mask` would hide, or words from a meeting. Delete w
   mode. Pointe does not defend against code already running as you; a separate OS user would.
 - **Launch mode uses `--dangerously-load-development-channels`.** Claude Code requires this flag for a channel outside its
   allowlist. It loads only `channel/voice-channel.mjs` from this repository, and Claude Code shows a warning at start.
-- **A spoken yes in conversation is not an approval.** See "Approvals" in the README. Permission prompts are different: they are answered through Claude Code's `PermissionRequest` hook, and its deny rules still apply.
+- **A spoken yes in conversation is not an approval.** See the [safety model](README.md#safety-model) in the README. Permission prompts are different: they are answered through Claude Code's `PermissionRequest` hook, and its deny rules still apply.
 - **Voice is not authentication.** Anyone your microphone can hear can answer a prompt, unless the voice lock is on; even
   then, a recording of your voice can pass it.
 - **The page key does not rotate by itself.** It lasts until you delete `~/.claude-voice/page_key`. It also passes through a
