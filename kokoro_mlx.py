@@ -48,9 +48,9 @@ def _model():
         return _loaded
 
 
-def warm(voice: str = DEFAULT_VOICE) -> None:
+def warm(voice: str = DEFAULT_VOICE) -> str | None:
     """The first sentence builds misaki's pipeline and compiles the kernels: about 20 s. Done at daemon start, on the
-    mouth's thread, so the greeting does not wait for it."""
+    mouth's thread, so the greeting does not wait for it. Returns the failure, or None."""
     def run():
         for _ in _model().generate("Ready.", voice=voice, lang_code=lang_code(voice), speed=1.0, verbose=False):
             pass
@@ -61,6 +61,8 @@ def warm(voice: str = DEFAULT_VOICE) -> None:
         logger.info(f"local mouth ready in {time.time() - began:.1f} s")
     except Exception as e:
         logger.warning(f"local mouth not warmed: {type(e).__name__}: {e}")
+        return f"{type(e).__name__}: {e}"
+    return None
 
 
 class KokoroMLXTTSService(TTSService):
