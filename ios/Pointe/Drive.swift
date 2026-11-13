@@ -59,6 +59,14 @@ enum DriveCopy {
     static let suggestNo = "Not now"
     static let suggestSetting = "Suggest Drive mode in the car"
     static let allQuiet = "All quiet"
+    static let unchanged = "Drive mode did not change."
+
+    /// Why the Mac did not switch: its reason, or the page's line when it gave none.
+    static func refused(_ detail: String) -> String {
+        let d = detail.trimmingCharacters(in: .whitespaces)
+        if d == "no call is up" { return "Start the call first." }
+        return d.isEmpty || d.hasPrefix("HTTP ") ? unchanged : CallView.sentence(d)
+    }
     static func needsYou(_ name: String) -> String { "\(name) needs you" }
     static func working(_ n: Int) -> String { "\(n) working" }
 

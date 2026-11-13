@@ -47,3 +47,12 @@ final class CallElsewhereTests: XCTestCase {
         XCTAssertEqual(CallView.offTitle(reachable: false, macOnACall: true), "Mac not reachable")  // a stale status says nothing
     }
 }
+
+final class DriveRefusedTests: XCTestCase {
+    func testTheMacsReasonOrThePagesLine() {
+        XCTAssertEqual(DriveCopy.refused("a meeting is on"), "A meeting is on.")
+        XCTAssertEqual(DriveCopy.refused("no call is up"), "Start the call first.")
+        XCTAssertEqual(DriveCopy.refused("HTTP 500"), "Drive mode did not change.")  // no reason given
+        XCTAssertEqual(DriveCopy.refused(""), "Drive mode did not change.")
+    }
+}

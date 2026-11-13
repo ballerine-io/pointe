@@ -934,7 +934,15 @@ struct CallView: View {
         if demo != nil { status?.drive?.on = on; return }
         driveWanted = on
         Task {
-            await act { try await call.api.drive(on) }
+            do {
+                try await call.api.drive(on)
+                problem = nil
+                status = try? await call.api.status()
+            } catch API.Failure.status(_, let detail) {
+                problem = DriveCopy.refused(detail)
+            } catch {
+                problem = "The Mac did not answer."
+            }
             driveWanted = nil  // from here the Mac's word decides
         }
     }
