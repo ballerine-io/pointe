@@ -29,7 +29,7 @@ You need [Claude Code](https://code.claude.com) 2.1.224 or newer, [uv](https://d
 
 ```
 export GOOGLE_API_KEY=...        # or OPENAI_API_KEY, in the shell you start Claude Code from
-claude plugin marketplace add ballerine-io/pointe
+claude plugin marketplace add https://github.com/ballerine-io/pointe.git
 claude plugin install pointe@pointe
 claude
 ```
@@ -40,7 +40,7 @@ Then, in any session:
 /pointe:voice
 ```
 
-The first run downloads about 600 MB. A tab opens: allow the mic, press Connect, and talk. Run `/pointe:voice` in each session you
+The first run downloads about 180 MB. A tab opens: allow the mic, press Connect, and talk. Run `/pointe:voice` in each session you
 want to reach.
 
 | | |
@@ -101,7 +101,8 @@ for `reader` and `checker`). Ears are Whisper, the mouth is Kokoro, and text mod
 (Ollama by default, `CLAUDE_VOICE_LOCAL_URL` for others). It is not a conversation yet: the best local brains
 measured a median reply of 13 to 27 seconds, against 1.8 for Sonnet. Local ears and mouth have not been benchmarked.
 
-On macOS, keep keys in the Keychain instead of the environment. The command prompts, so the key stays out of your history:
+On macOS, keep keys in the Keychain instead of the environment: `/pointe:setup`, or `bin/pointe key <vendor>`, opens a
+window that saves each one there. By hand, the command prompts, so the key stays out of your history:
 `security add-generic-password -U -s anthropic-api-key -a "$USER" -w`. The other names are `soniox-api-key`, `elevenlabs-api-key`,
 `gemini-api-key` and `openai-api-key`.
 

@@ -10,14 +10,15 @@ through the Mac window that `pointe key` opens.
 
 Go in this order and say which step you are on ("Step 2 of 6").
 
-**1. This Mac.** `sw_vers` (macOS needed). Check Chrome: `ls /Applications | grep -i "google chrome"`. If Chrome is
+**1. This Mac.** `sw_vers` (macOS needed). Check Chrome: `ls /Applications ~/Applications 2>/dev/null | grep -i "google chrome"`. If Chrome is
 missing, ask them to install it from google.com/chrome and come back.
 
 **2. uv**, which runs Pointe's Python: `command -v uv || ls ~/.local/bin/uv`. If missing, say you will install it with
 Astral's official installer, then run `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
 **3. Keys.** Pointe uses AI models from vendors you choose, with your own keys; you pay them directly. Run
-`${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor` to see which keys exist. Then show this table, and say what each key does:
+`${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor` with a 10-minute timeout to see which keys exist. The first run downloads Pointe's
+Python packages, about 180 MB: say so first ("this downloads what Pointe needs, usually under a minute"). Then show this table, and say what each key does:
 
 | Setup | Keys | Measured quality (35 real-call checks) | A busy hour |
 |---|---|---|---|
@@ -41,8 +42,8 @@ Always Allow.
 What leaves the Mac: their speech goes to the ears vendor, and their sessions' content to the others. Say so in one line,
 and that they should use vendors their company allows.
 
-**4. First call.** Run `${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach`. The first time downloads about 600 MB (a few
-minutes), then a Chrome tab opens. Tell them: put on headphones, allow the microphone, press Connect, and say "what are
+**4. First call.** Run `${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach`. The first start takes up to a minute, then a
+Chrome tab opens. Tell them: put on headphones, allow the microphone, press Connect, and say "what are
 you working on?". Explain: every Claude Code session where they run /pointe:voice joins the same voice; say a session's
 name to talk to it; "just listen" makes it stay quiet while they think out loud; permission prompts are read out and a
 plain yes or no answers them, and anything complex waits for a tap on the page.
