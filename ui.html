@@ -549,7 +549,7 @@
     <h3>Send action items to a session</h3>
     <div class="row" style="justify-content:flex-start"><select id="endsession" aria-label="Session"></select><button id="endsend" onclick="sendActions()">Send action items</button></div>
     <div class="ok" id="endok" role="status"></div><div class="err" id="enderr" role="alert"></div>
-    <div class="row"><button onclick="discardMeeting()">Discard</button><button class="go" onclick="closeEnd()">Done</button></div>
+    <div class="row"><button id="enddiscard" onclick="discardMeeting()">Discard</button><button class="go" onclick="closeEnd()">Done</button></div>
   </div>
 </div>
 <div class="sheetbg" id="settingssheet" onclick="if (event.target === this) closeSheet('settingssheet')">
@@ -1551,7 +1551,16 @@
     $('meetredial').disabled = false;
     refresh();
   }
+  // Two clicks, no dialog, as Send: ending stops the listening for good, and Discard drops the notes for good.
+  let endSure = 0, discardSure = 0;
+  const endLabel = () => Date.now() < endSure ? 'End the meeting?' : 'End meeting';
   async function endMeeting() {
+    if (Date.now() > endSure) {
+      endSure = Date.now() + 4000; $('meetend').textContent = endLabel();
+      setTimeout(() => { if (Date.now() > endSure && !$('meetend').disabled) $('meetend').textContent = endLabel(); }, 4100);
+      return;
+    }
+    endSure = 0; $('meetend').textContent = endLabel();
     try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { meetError(e.message); }
     refresh();
   }
@@ -1587,6 +1596,12 @@
     $('endsend').textContent = 'Send action items';
   }
   async function discardMeeting() {
+    if (Date.now() > discardSure) {
+      discardSure = Date.now() + 4000; $('enddiscard').textContent = 'Discard the notes?';
+      setTimeout(() => { if (Date.now() > discardSure) $('enddiscard').textContent = 'Discard'; }, 4100);
+      return;
+    }
+    discardSure = 0; $('enddiscard').textContent = 'Discard';
     try { await meetPost({action: 'discard'}); }
     catch (e) { if (!/gone/.test(e.message)) { $('enderr').textContent = e.message; return; } }  // gone: nothing left to keep
     notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes();
@@ -1745,7 +1760,7 @@
     document.title = '● Meeting · Ballerine Pointe';
     const n = (m.speakers || []).length;
     $('meetwhat').textContent = `Meeting · ${m.mode === 'participating' ? 'Participating' : 'Listening'}`;
-    $('meetend').disabled = !!m.ending; $('meetend').textContent = m.ending ? 'Ending…' : 'End meeting';
+    $('meetend').disabled = !!m.ending; $('meetend').textContent = m.ending ? 'Ending…' : endLabel();
     $('meetredial').hidden = !!m.ending;
     $('meetsub').replaceChildren([m.ending ? 'Ending: writing the summary…' : '', `${n} speaker${n === 1 ? '' : 's'}`, clock(Date.now() / 1000 - m.since),
       `audio to ${VENDOR[(m.vendors || {}).room_audio] || 'Soniox'}`, m.speaking ? 'speaking to the room' : '',

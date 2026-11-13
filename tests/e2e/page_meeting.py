@@ -219,7 +219,9 @@ async def main() -> None:
             check("Let it speak makes it say its point", bool(browser.speaker.speech_spans(since=let_at)))
             await asyncio.sleep(8)
 
-            await page.js("document.querySelector('#meetbar button[onclick=\"endMeeting()\"]').click()")
+            end = "document.querySelector('#meetbar button[onclick=\"endMeeting()\"]').click()"
+            await page.js(end)  # the first click asks
+            await page.js(end)
             ending = await page.until("document.getElementById('meetsub').textContent.includes('Ending: writing the summary') && "
                                       "document.getElementById('meetend').disabled", 10, 0.2)
             again = await page.js("meetPost({action: 'end'}).then(() => 'accepted', e => e.message)")
@@ -250,7 +252,7 @@ async def main() -> None:
             check("the second click sends the action items to the session", sent is True,
                   shown=sent, err=await page.js("document.getElementById('enderr').textContent"))
 
-            await page.js("discardMeeting()")
+            await page.js("discardMeeting(); discardMeeting()")  # the first click asks
             gone = await page.until("!document.getElementById('endsheet').classList.contains('open') && "
                                     "!document.body.classList.contains('meetend')", 6)
             check("Discard closes the end sheet", bool(gone))
