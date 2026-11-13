@@ -139,6 +139,10 @@ voice detector and every vendor, whatever a client sends. A press ends by itself
 meeting you started (it asks for consent and shows a recording indicator), the room's audio goes to the meeting's speech
 vendor without a press; talking to Pointe outside the meeting stream still needs one.
 
+In fully local mode (`pointe local`), none of these goes anywhere: no key is read, from the environment or the
+Keychain, so no vendor can be reached, and the text-model server listens on loopback only. See
+[docs/features/local.md](docs/features/local.md).
+
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
 
@@ -148,7 +152,9 @@ and no telemetry, and the page loads nothing from outside your machine.
 each call with what you said and session content. With phone access it also holds the pairing secret, a TLS key and the
 connector's tokens. With the voice lock it holds `voiceprint/` (0700; one file per enrolled device, 0600): biometric data,
 computed and kept only on this Mac, deleted from Settings → Voice lock on the page or in the app. `models/` holds the
-speaker model. The journal records an ignored utterance's length and score, never its words. `briefings.json` (0600) keeps
+speaker model. With fully local mode, `local/` holds the text-model server's environment, its log (which may hold session
+content in errors) and `config.before-local.json`, the choice `pointe local off` restores; the models themselves sit in
+the Hugging Face cache (`~/.cache/huggingface`) and Kokoro's in `~/.cache/pipecat`. The journal records an ignored utterance's length and score, never its words. `briefings.json` (0600) keeps
 the last seven briefings, written out per session and redacted. `dictionary.json` (0600) holds the names you added or
 fixed (Settings → Dictionary on the page or in the app shows, edits and deletes each one); it never takes a yes, no or
 stop word, anything `readout.mask` would hide, or words from a meeting. Delete what you no longer need.

@@ -12,6 +12,7 @@ check the package itself for the authoritative text.
 | Whisper large-v3-turbo, MLX conversion (`mlx-community/whisper-large-v3-turbo`) | local ears on Apple silicon, only with `ears: local` | MIT (OpenAI Whisper); the conversion's repository states no license of its own | Hugging Face, by `mlx-whisper` |
 | Whisper large-v3-turbo, CTranslate2 conversion (`deepdml/faster-whisper-large-v3-turbo-ct2`) | local ears on other machines, only with `ears: local` | MIT | Hugging Face, by `faster-whisper` |
 | Kokoro v1.0 (`kokoro-v1.0.onnx`, `voices-v1.0.bin`) | local mouth, only with `mouth: local` | Apache-2.0 ([Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)) | https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/, by Pipecat's Kokoro service |
+| Gemma 4 26B A4B instruct, MLX 4-bit conversion (`mlx-community/gemma-4-26b-a4b-it-4bit`, 15.4 GB) | local brain, reader and gate, only with `pointe local` | Apache-2.0 ([google/gemma-4-26B-A4B-it](https://huggingface.co/google/gemma-4-26B-A4B-it)) | Hugging Face, by `pointe local` |
 
 Silero VAD (MIT) ships inside the `pipecat-ai` package; it is not downloaded.
 
@@ -66,6 +67,32 @@ Installed only when ears or mouth are set to `local`:
 The `local` extra therefore brings in GPL-3.0 components. They run as separate libraries in your own environment;
 they are not part of Pointe's source.
 
+No permissive local voice that we could measure replaces Kokoro yet: Kokoro's other runtimes (mlx-audio, misaki) also use
+eSpeak NG for English, and Chatterbox Multilingual (MIT, no eSpeak, claims Hebrew) took 2.4 s to its first English audio
+on an M5 Pro, and its Hebrew was not intelligible ([docs/features/local.md](docs/features/local.md)). So the GPL-3.0 parts stay, only in the optional extra.
+
+## Optional: the local text-model server (`pointe local`)
+
+`pointe local` installs [mlx-lm](https://github.com/ml-explore/mlx-lm) 0.32.2 (MIT) in its own uv environment under
+`~/.claude-voice/local/mlx-lm`, separate from Pointe's. Its packages, as installed on 2026-11-13 (the versions below
+mlx-lm are not pinned):
+
+| License | Packages |
+|---|---|
+| MIT | mlx, mlx-metal, mlx-lm, annotated-doc, annotated-types, anyio, filelock, h11, markdown-it-py, mdurl, pydantic, pydantic-core, pyyaml, rich, truststore, typer, typing-inspection |
+| Apache-2.0 | transformers, tokenizers, safetensors, sentencepiece, huggingface-hub, hf-xet |
+| Apache-2.0 AND CNRI-Python | regex |
+| BSD-3-Clause | click, fsspec, httpcore2, httpx2, idna, markupsafe, protobuf |
+| BSD | jinja2 |
+| BSD-2-Clause | pygments |
+| BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | numpy |
+| Apache-2.0 OR BSD-2-Clause | packaging |
+| ISC | shellingham |
+| MPL-2.0 AND MIT | tqdm |
+| PSF-2.0 | typing-extensions |
+
+None is GPL.
+
 ## Claude Code channel (`channel/`, Node.js)
 
 Used only by channel mode (`bin/pointe start`): [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)
@@ -89,6 +116,6 @@ apply to what you send them; see [Privacy](README.md#privacy) for what each rece
 | [Soniox](https://soniox.com) | ears (with the echo guard's mirror stream), meeting ears, mouth |
 | [ElevenLabs](https://elevenlabs.io) | ears, mouth |
 
-Optional, only if you choose them: an OpenAI-compatible local server such as [Ollama](https://ollama.com) for local
-text models; [Tailscale](https://tailscale.com) or [Twingate](https://www.twingate.com) (`twingate/connector` container
+Optional, only if you choose them: an OpenAI-compatible local server for local text models (`pointe local` installs
+mlx-lm's; [Ollama](https://ollama.com) or another works when set by hand); [Tailscale](https://tailscale.com) or [Twingate](https://www.twingate.com) (`twingate/connector` container
 image) for phone access. Setup installs [uv](https://docs.astral.sh/uv/) with Astral's installer if it is missing.
