@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// The call's controls, at your thumb: the mic in the middle, brainstorm and the keyboard either side, hang up last.
+/// The call's controls, at your thumb: the mic in the exact middle in every state, two controls either side (brainstorm
+/// and the keyboard; sessions and hang up). A control that comes and goes (the keyboard while driving) never moves the
+/// mic: each side is half of what the mic leaves. Drive mode is a mode, like a meeting: its switch is in the header.
 struct BottomBar: View {
     let phase: Call.State
     let muted: Bool
@@ -13,36 +15,36 @@ struct BottomBar: View {
     let hangUp: () -> Void
     var talk: RingTalk? = nil  // push to talk: hold the ring
     var driving = false        // drive mode: typing folds away
-    var drive: (() -> Void)? = nil  // nil from a Mac without drive mode
 
     private var live: Bool { phase == .live || phase == .reconnecting }
 
     var body: some View {
         HStack(spacing: 0) {
-            side(monologue ? "Back" : "Brainstorm", monologue ? "bubble.left.and.bubble.right.fill" : "brain.head.profile",
-                 on: monologue, action: listen)
-                .disabled(!live)
-            Spacer()
-            if let drive {
-                side(DriveCopy.button, driving ? "car.fill" : "car", on: driving, action: drive)
-                    .disabled(!live && !driving)
-                    .accessibilityIdentifier("driveButton")
-                    .accessibilityValue(driving ? "On" : "Off")
-                Spacer()
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                side(monologue ? "Back" : "Brainstorm", monologue ? "bubble.left.and.bubble.right.fill" : "brain.head.profile",
+                     on: monologue, action: listen)
+                    .disabled(!live)
+                if !driving {
+                    Spacer(minLength: 0)
+                    side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
+                }
+                Spacer(minLength: 0)
             }
-            if !driving {
-                side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
-                Spacer()
-            }
+            .frame(maxWidth: .infinity)
             micButton
-            Spacer()
-            side("Sessions", "rectangle.stack", action: sessions)
-            Spacer()
-            if live {
-                side("Hang up", "phone.down.fill", tint: .red, action: hangUp)
-            } else {
-                side("Hang up", "phone.down.fill", action: {}).hidden().accessibilityHidden(true)
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                side("Sessions", "rectangle.stack", action: sessions)
+                Spacer(minLength: 0)
+                if live {
+                    side("Hang up", "phone.down.fill", tint: .red, action: hangUp)
+                } else {
+                    side("Hang up", "phone.down.fill", action: {}).hidden().accessibilityHidden(true)
+                }
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

@@ -418,7 +418,7 @@ async def main() -> None:
             await asyncio.sleep(10)
 
             # ---- end; Escape on the end sheet; the end bar ----
-            await page.js("document.querySelector('#meetbar .end').click()")
+            await page.js("document.querySelector('#meetbar .end').click(); document.querySelector('#meetbar .end').click()")  # asks, then ends
             ended = await page.until("document.getElementById('endsheet').classList.contains('open') && document.activeElement.id", 120, 1)
             await page.shot("qa-07-end")
             check("the end sheet opens with focus on its heading", ended == "end-h", focus=ended)
@@ -451,7 +451,7 @@ async def main() -> None:
             await room(browser, RISKY4, pause=1.5)
             hand = await wait_hand(page, 90)
             end_at = time.time()
-            await page.js("document.querySelector('#meetbar .end').click()")
+            await page.js("document.querySelector('#meetbar .end').click(); document.querySelector('#meetbar .end').click()")  # asks, then ends
             ended = await page.until("document.getElementById('endsheet').classList.contains('open')", 120, 1)
             ended_at = time.time()
             spans = [(round(a - end_at, 1), round(b - end_at, 1)) for a, b in browser.speaker.speech_spans(since=end_at - 1)]
@@ -459,7 +459,7 @@ async def main() -> None:
             check("ending while a hand is raised: the meeting ends, the hand is gone, it did not speak the hand",
                   bool(hand) and bool(ended) and hidden and not [x for x in spans if x[0] < ended_at - end_at - 1],
                   hand=hand, hidden=hidden, spans=spans, end_took=round(ended_at - end_at, 1))
-            await page.js("discardMeeting()")
+            await page.js("discardMeeting(); discardMeeting()")  # the first click asks
             await asyncio.sleep(1)
 
             # ---- a third meeting: the daemon restarts in the middle ----

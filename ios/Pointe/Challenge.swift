@@ -59,14 +59,7 @@ enum ChallengeCopy {
         return c.on || c.id != dismissed
     }
 
-    /// The first strong letter decides, as the browser's dir="auto" does: Hebrew or Arabic reads from the right.
-    static func rightToLeft(_ text: String) -> Bool {
-        for scalar in text.unicodeScalars where scalar.properties.isAlphabetic {
-            return (0x0590...0x08FF).contains(scalar.value) || (0xFB1D...0xFDFF).contains(scalar.value)
-                || (0xFE70...0xFEFF).contains(scalar.value)
-        }
-        return false
-    }
+    static func rightToLeft(_ text: String) -> Bool { TextDirection.of(text) == .rightToLeft }
 }
 
 /// Text that sits on the side its own language reads from, whatever the phone's language.
@@ -75,7 +68,7 @@ private struct NaturalText: View {
     var body: some View {
         let rtl = ChallengeCopy.rightToLeft(text)
         Text(text)
-            .multilineTextAlignment(rtl ? .trailing : .leading)
+            .readingDirection(of: text)
             .frame(maxWidth: .infinity, alignment: rtl ? .trailing : .leading)
     }
 }

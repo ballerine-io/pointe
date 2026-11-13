@@ -262,7 +262,7 @@ struct CallView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing,
                                      large: status?.whisper?.on == true && status?.whisper?.held == nil) { editing = $0 }
-                    if let problem = problem ?? call.problem {
+                    if let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote).foregroundStyle(Brand.orange).padding(.bottom, 8)
                     }
@@ -315,6 +315,19 @@ struct CallView: View {
             HStack(alignment: .center) {
                 BrandHeader()
                 Spacer()
+                if status?.drive != nil {  // a mode, like a meeting: switched here, so the mic below never moves
+                    Button { setDrive(!driving) } label: {
+                        Image(systemName: driving ? "car.fill" : "car").font(.subheadline.weight(.semibold))
+                            .foregroundStyle(driving ? Brand.orange : .primary)
+                            .frame(width: 36, height: 36)
+                            .background(driving ? AnyShapeStyle(Brand.orange.opacity(0.25)) : AnyShapeStyle(.thinMaterial), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(phase != .live && !driving)
+                    .accessibilityLabel(DriveCopy.button)
+                    .accessibilityIdentifier("driveButton")
+                    .accessibilityValue(driving ? "On" : "Off")
+                }
                 Button { openMeetingStart() } label: {
                     Image(systemName: "person.3.fill").font(.subheadline.weight(.semibold))
                         .frame(width: 36, height: 36).background(.thinMaterial, in: Circle())
@@ -326,7 +339,7 @@ struct CallView: View {
             }
             SessionChips(sessions: status?.sessions ?? [], active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
-                         showAll: { showSessions = true })
+                         showAll: { showSessions = true }, rename: rename)
             if let showing {
                 ShowCard(showing: showing) { showSheet = true }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -402,6 +415,9 @@ struct CallView: View {
             } label: { Label("Microphone", systemImage: "mic") }
                 .pickerStyle(.menu)
                 .accessibilityIdentifier("microphoneSetting")
+            if let line = status?.local?.short {
+                Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
+            }
             Divider()
             Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { call.hangUp(); unpair() }
         } label: {
@@ -451,7 +467,7 @@ struct CallView: View {
             BottomBar(phase: phase, muted: muted, monologue: brainstorming, typing: typing,
                       mic: micTapped, listen: { setBrainstorm(!brainstorming) }, type: { withAnimation(.snappy) { typing.toggle() } },
                       sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk,
-                      driving: driving, drive: status?.drive == nil ? nil : { setDrive(!driving) })
+                      driving: driving)
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
@@ -510,7 +526,7 @@ struct CallView: View {
 
     private var title: String {
         switch phase {
-        case .off: return reachable ? "Not connected" : "Mac not reachable"
+        case .off: return Self.offTitle(reachable: reachable, macOnACall: status?.connected == true)
         case .connecting: return "Connecting…"
         case .reconnecting: return "Reconnecting…"
         case .live:
@@ -526,6 +542,11 @@ struct CallView: View {
         }
     }
 
+    /// No call here: the Mac may still have one, on the page or another phone, and a tap would be turned away.
+    static func offTitle(reachable: Bool, macOnACall: Bool) -> String {
+        !reachable ? "Mac not reachable" : macOnACall ? "On a call elsewhere" : "Not connected"
+    }
+
     private var subtitle: String {
         if !reachable { return "Is Twingate, Tailscale or the same Wi-Fi on for this phone?" }
         guard let status else { return "Reaching your Mac…" }
@@ -535,6 +556,11 @@ struct CallView: View {
         let needs = status.sessions.filter { $0.waiting || $0.needs != nil }.count
         let count = status.sessions.count
         return "Orchestrating \(count) session\(count == 1 ? "" : "s")" + (needs > 0 ? " · \(needs) need\(needs == 1 ? "s" : "") you" : "") + health
+    }
+
+    /// This screen's own problem first, then the call's, then the Mac's (a refused key, a vendor down), as the page does.
+    static func shownProblem(screen: String?, call: String?, mac: String?) -> String? {
+        [screen, call, mac].compactMap { $0 }.first { !$0.isEmpty }
     }
 
     /// The Mac's reasons come in lower case without a full stop.
@@ -566,7 +592,7 @@ struct CallView: View {
     private func meetingScreen(_ meeting: API.Meeting) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                if let problem = problem ?? call.problem {
+                if let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
                     Label(problem, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
                 }
                 NotesFeed(notes: feed.notes, transcript: feed.transcript, speakers: meeting.speakers ?? [], filter: $noteFilter,
@@ -784,21 +810,28 @@ struct CallView: View {
         if demo == nil { await act { try await call.api.dismissAttention(alert.id) } }
     }
 
-    private func saveBriefingSchedule(_ change: [String: any Sendable]) async -> API.BriefingSchedule? {
-        let fresh: API.BriefingSchedule?
+    private func saveBriefingSchedule(_ change: [String: any Sendable]) async -> Result<API.BriefingSchedule, BriefingNotSaved> {
         if demo != nil {
-            guard var s = demoSchedule else { return nil }
+            guard var s = demoSchedule else { return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(nil))) }
             if let t = change["time"] as? String { s.time = t }
             if let d = change["days"] as? [Int] { s.days = d }
             if let l = change["length"] as? String { s.length = l }
             if let v = change["speak_on_connect"] as? Bool { s.speak_on_connect = v }
             if let v = change["skip_empty"] as? Bool { s.skip_empty = v }
             demoSchedule = s
-            return s  // no reminder in the demo: it would ask for notification permission mid-test
+            return .success(s)  // no reminder in the demo: it would ask for notification permission mid-test
         }
-        fresh = try? await call.api.setBriefingSchedule(change)
-        if let fresh { await BriefingReminder.apply(fresh) }
-        return fresh
+        do {
+            guard let fresh = try await call.api.setBriefingSchedule(change) else {
+                return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(nil)))
+            }
+            await BriefingReminder.apply(fresh)
+            return .success(fresh)
+        } catch API.Failure.status(_, let detail) {
+            return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(detail)))
+        } catch {
+            return .failure(BriefingNotSaved(message: BriefingCopy.notSaved(nil)))
+        }
     }
 
     // MARK: voice lock
@@ -921,7 +954,15 @@ struct CallView: View {
         if demo != nil { status?.drive?.on = on; return }
         driveWanted = on
         Task {
-            await act { try await call.api.drive(on) }
+            do {
+                try await call.api.drive(on)
+                problem = nil
+                status = try? await call.api.status()
+            } catch API.Failure.status(_, let detail) {
+                problem = DriveCopy.refused(detail)
+            } catch {
+                problem = "The Mac did not answer."
+            }
             driveWanted = nil  // from here the Mac's word decides
         }
     }
@@ -945,6 +986,21 @@ struct CallView: View {
     }
 
     private func disconnect(_ name: String) { Task { await act { try await call.api.disconnect(name) } } }
+
+    private func rename(_ name: String, _ newName: String) {
+        guard demo == nil else { return }
+        Task {
+            do {
+                try await call.api.rename(name, to: newName)
+                problem = nil
+                status = try? await call.api.status()
+            } catch API.Failure.status(_, let detail) {
+                problem = SessionsCopy.renameRefused(detail)
+            } catch {
+                problem = "The Mac did not answer."
+            }
+        }
+    }
     private func setMode(_ mode: String) { Task { await act { try await call.api.mode(mode) } } }
     private func setPolish(_ on: Bool) async { await act { try await call.api.polish(on) } }
 

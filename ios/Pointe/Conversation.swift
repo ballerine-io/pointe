@@ -55,10 +55,10 @@ struct Bubble: View {
             if turn.mine { Spacer(minLength: 56) }
             VStack(alignment: turn.mine ? .trailing : .leading, spacing: 4) {
                 if turn.mine, polish, let understood = turn.understood, understood != turn.text {
-                    Text(turn.text).font(.footnote).foregroundStyle(.white.opacity(0.5))
-                    Text(understood)
+                    Text(turn.text).readingDirection(of: turn.text).font(.footnote).foregroundStyle(.white.opacity(0.5))
+                    Text(understood).readingDirection(of: understood)
                 } else {
-                    Text(turn.text)
+                    Text(turn.text).readingDirection(of: turn.text)
                 }
                 if turn.mine && (turn.typed == true || turn.corrected == true || (pending && turn.understood == nil)) {
                     badges
@@ -109,6 +109,7 @@ struct LiveBubble: View {
                 Image(systemName: "waveform").font(.callout).foregroundStyle(Brand.orange)
                     .symbolEffect(.variableColor.iterative, options: .repeating)
                 Text(text)
+                    .readingDirection(of: text)
                     .font(large ? .title2.weight(.semibold) : .body.weight(.medium))
                     .multilineTextAlignment(.trailing)
                     .contentTransition(.interpolate)
@@ -148,8 +149,8 @@ struct BrainstormPanel: View {
                         if said.isEmpty && hearing.isEmpty {
                             Text("Say whatever is on your mind. Pauses are fine.").foregroundStyle(.secondary)
                         }
-                        if !said.isEmpty { Text(said).font(.title3) }
-                        if !hearing.isEmpty { Text(hearing).font(.title3).foregroundStyle(.white.opacity(0.6)) }
+                        if !said.isEmpty { Text(said).readingDirection(of: said).font(.title3) }
+                        if !hearing.isEmpty { Text(hearing).readingDirection(of: hearing).font(.title3).foregroundStyle(.white.opacity(0.6)) }
                         Color.clear.frame(height: 1).id("end")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -205,7 +206,7 @@ struct EditTurnSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Heard").font(.caption.bold()).foregroundStyle(.secondary)
-                Text(turn.text).font(.callout).foregroundStyle(.secondary)
+                Text(turn.text).readingDirection(of: turn.text).font(.callout).foregroundStyle(.secondary)
                 Text("You meant").font(.caption.bold()).foregroundStyle(.secondary)
                 TextField("What you said", text: $text, axis: .vertical)
                     .lineLimit(2...6)

@@ -19,6 +19,10 @@ struct SessionChips: View {
     let orchestrate: () -> Void
     let disconnect: (String) -> Void
     let showAll: () -> Void
+    var rename: ((String, String) -> Void)? = nil
+    @State private var leaving: String?
+    @State private var renaming: String?
+    @State private var newName = ""
 
     private var orchestrating: Bool { mode != "session" }
 
@@ -59,7 +63,10 @@ struct SessionChips: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         if !on { Button("Focus on this session", systemImage: "scope") { focus(s.name) } }
-                        Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { disconnect(s.name) }
+                        if rename != nil {
+                            Button("Rename", systemImage: "pencil") { newName = s.name; renaming = s.name }
+                        }
+                        Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
                     }
                     .accessibilityLabel("\(s.name), \(state(s))\(on ? ", focused" : "")")
                     .accessibilityHint(on ? "" : "Focus on this session")
@@ -68,6 +75,16 @@ struct SessionChips: View {
             .sensoryFeedback(.selection, trigger: (mode ?? "") + (active ?? ""))
         }
         .scrollClipDisabled()
+        .confirmDisconnect($leaving, disconnect)
+        .alert("Rename \(renaming ?? "")", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Name", text: $newName)
+            Button("Rename") {
+                let fresh = newName.trimmingCharacters(in: .whitespaces)
+                if let old = renaming, !fresh.isEmpty, fresh != old { rename?(old, fresh) }
+                renaming = nil
+            }
+            Button("Cancel", role: .cancel) { renaming = nil }
+        } message: { Text(SessionsCopy.renameHelp) }
     }
 }
 
@@ -78,6 +95,7 @@ struct SessionsSheet: View {
     let disconnect: (String) -> Void
     let setMode: (String) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var leaving: String?
 
     var body: some View {
         NavigationStack {
@@ -115,8 +133,26 @@ struct SessionsSheet: View {
                         }
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing) {
-                            Button("Disconnect", systemImage: "xmark.circle", role: .destructive) { disconnect(s.name) }
+                            Button("Disconnect", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
                         }
+                    }
+                }
+                Section("Recent requests") {
+                    let recent = Array((status?.recent ?? []).reversed())
+                    if recent.isEmpty { Text("Each request shows here with where it went.").foregroundStyle(.secondary) }
+                    ForEach(Array(recent.enumerated()), id: \.offset) { _, r in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\u{201C}\(TextDirection.isolated(r.said ?? ""))\u{201D}").lineLimit(2)
+                            Text(SessionsCopy.routed(r)).font(.caption).foregroundStyle((r.to ?? []).isEmpty ? Brand.orange : .secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                if let line = SessionsCopy.context(status?.tokens) {
+                    Section {
+                        Text(line).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("contextTokens")
+                    } header: { Text("What the voice holds") } footer: {
+                        Text("The voice model's own count, after its last reply. The messages themselves stay on your Mac: the page there shows them.")
                     }
                 }
                 Section {
@@ -125,6 +161,7 @@ struct SessionsSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .confirmDisconnect($leaving, disconnect)
             .navigationTitle("Sessions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
@@ -132,6 +169,43 @@ struct SessionsSheet: View {
     }
 }
 
+
+enum SessionsCopy {
+    static let renameHelp = "A name you can say: letters, digits, spaces, dots, slashes or dashes."
+
+    /// The Mac's refusal of a rename (taken, not a name voice can pick), as a sentence.
+    static func renameRefused(_ detail: String) -> String {
+        let d = detail.trimmingCharacters(in: .whitespaces)
+        if d.isEmpty || d.hasPrefix("HTTP ") { return "Not renamed: the Mac did not answer." }
+        let said = CallView.sentence(d)
+        return "Not renamed: \(said.prefix(1).lowercased())\(said.dropFirst())"
+    }
+
+    /// "12:03:04 → billing/main (named)", or why it went nowhere, as the page's Recent requests.
+    static func routed(_ r: API.Dispatch) -> String {
+        let to = r.to ?? []
+        let at = r.at.map { "\($0) " } ?? ""
+        return to.isEmpty ? at + (r.how ?? "") : at + "→ " + to.joined(separator: " + ") + (r.how.map { " \($0)" } ?? "")
+    }
+
+    static func context(_ t: API.Tokens?) -> String? {
+        guard let n = t?.context else { return nil }
+        return "\(n.formatted()) tokens" + (t?.at.map { " as of \($0)" } ?? "")
+    }
+}
+
+extension View {
+    /// Asks before a session leaves the voice, as the page's second click does: it keeps running in its terminal.
+    func confirmDisconnect(_ leaving: Binding<String?>, _ disconnect: @escaping (String) -> Void) -> some View {
+        confirmationDialog("Disconnect \(leaving.wrappedValue ?? "") from the voice? It keeps running in its terminal.",
+                           isPresented: Binding(get: { leaving.wrappedValue != nil }, set: { if !$0 { leaving.wrappedValue = nil } }),
+                           titleVisibility: .visible, presenting: leaving.wrappedValue) { name in
+            Button("Disconnect", role: .destructive) { disconnect(name) }
+                .accessibilityIdentifier("confirmDisconnect")
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+}
 
 /// The coding agent behind a session, shown only when the voice mixes agents: one kind needs no label.
 struct AgentBadge: View {

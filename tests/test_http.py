@@ -72,6 +72,19 @@ def test_click_rename(tmp_path):
     assert names == ["pricing", "beta/main"]
 
 
+def test_the_phone_app_renames_a_session_with_its_key_and_still_cannot_read_the_context(tmp_path):
+    daemon, client = _client(tmp_path)
+    from fastapi.testclient import TestClient
+
+    phone_client = TestClient(daemon.app, base_url="http://127.0.0.1:7860")  # no page cookie: only the phone's key
+    key = {"authorization": f"Bearer {daemon.phone.phone_key(daemon.STATE_DIR)}"}
+    name = _register(client, "a", "alpha/main").json()["name"]
+    assert phone_client.post("/voice/rename", headers=key, json={"name": name, "new_name": "pricing"}).json() == {"name": "pricing"}
+    assert phone_client.post("/voice/rename", headers=key, json={"name": "pricing", "new_name": "<b>"}).status_code == 400
+    assert phone_client.post("/voice/rename", json={"name": "pricing", "new_name": "docs"}).status_code == 403  # no key
+    assert phone_client.get("/voice/context", headers=key).status_code == 403
+
+
 def test_context_and_token_count_follow_the_models_usage_report(tmp_path):
     import asyncio
 

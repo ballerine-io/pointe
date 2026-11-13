@@ -247,7 +247,7 @@ def test_the_phone_key_reaches_status_and_approve_but_nothing_else(phone_app):
         assert client.get("/voice/status").status_code == 403
 
 
-def test_the_phone_key_can_switch_and_hang_up_but_not_read_the_context_or_change_settings(phone_app):
+def test_the_phone_key_can_switch_hang_up_and_rename_but_not_read_the_context_or_change_settings(phone_app):
     for path in ("/voice/switch", "/voice/hung-up", "/voice/rename", "/voice/permission"):
         phone_app.post(path)(lambda: {"ok": True})
     phone_app.get("/voice/context")(lambda: {"ok": True})
@@ -255,8 +255,8 @@ def test_the_phone_key_can_switch_and_hang_up_but_not_read_the_context_or_change
     for client in (local(phone_app), tls(phone_app)):
         assert client.post("/voice/switch", headers=key, json={}).status_code == 200
         assert client.post("/voice/hung-up", headers=key, json={}).status_code == 200
-        for path in ("/voice/rename", "/voice/permission"):
-            assert client.post(path, headers=key, json={}).status_code == 403, path
+        assert client.post("/voice/rename", headers=key, json={}).status_code == 200  # the app renames a session, as the page
+        assert client.post("/voice/permission", headers=key, json={}).status_code == 403
         assert client.get("/voice/context", headers=key).status_code == 403  # the model's whole context stays on the Mac
 
 

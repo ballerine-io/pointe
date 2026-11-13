@@ -148,7 +148,7 @@ struct ConflictCard: View {
                 if showAgents, let agent { Text(agent).font(.caption2).foregroundStyle(.secondary) }
                 Text(ConflictCopy.time(at)).font(.caption).foregroundStyle(.secondary)
             }
-            Text(text).font(.subheadline)
+            Text(text).readingDirection(of: text).font(.subheadline)
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(id)

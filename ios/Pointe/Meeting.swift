@@ -357,7 +357,7 @@ struct HandCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label { Text("Wants to say: ") + Text(hand.line).bold() } icon: {
+            Label { Text("Wants to say: ") + Text(TextDirection.isolated(hand.line)).bold() } icon: {
                 Image(systemName: "hand.raised.fill").foregroundStyle(Brand.orange)
             }
             .font(.subheadline)
@@ -485,7 +485,7 @@ struct NotesFeed: View {
                 ForEach(transcript) { turn in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(who(turn)).font(.caption.weight(.semibold)).foregroundStyle(Brand.orange)
-                        Text(turn.text).font(.callout)
+                        Text(turn.text).readingDirection(of: turn.text).font(.callout)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
@@ -523,7 +523,7 @@ struct NoteRow: View {
                     Text(Date(timeIntervalSince1970: at), style: .time).font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            Text(note.text).font(.callout).strikethrough(done).foregroundStyle(done ? .secondary : .primary)
+            Text(note.text).readingDirection(of: note.text).font(.callout).strikethrough(done).foregroundStyle(done ? .secondary : .primary)
                 .lineLimit(note.kind == "session_news" ? 2 : nil)
             if let extra { Text(extra).font(.caption).foregroundStyle(.secondary) }
             actions
@@ -745,14 +745,14 @@ struct MeetingEndSheet: View {
         NavigationStack {
             List {
                 Section("Summary") {  // a long summary is folded, so the export is not pages away
-                    Text(result.summary ?? "No summary.").font(.callout).lineLimit(wholeSummary ? nil : 6)
+                    Text(result.summary ?? "No summary.").readingDirection(of: result.summary ?? "").font(.callout).lineLimit(wholeSummary ? nil : 6)
                     if (result.summary ?? "").count > 320 {
                         Button(wholeSummary ? "Show less" : "Show all") { withAnimation { wholeSummary.toggle() } }
                             .font(.callout)
                     }
                 }
                 if let decisions = result.decisions, !decisions.isEmpty {
-                    Section("Decisions") { ForEach(decisions, id: \.self) { Label($0, systemImage: "flag") } }
+                    Section("Decisions") { ForEach(decisions, id: \.self) { d in Label { Text(d).readingDirection(of: d) } icon: { Image(systemName: "flag") } } }
                 }
                 if !actionItems.isEmpty {
                     Section("Action items") {
@@ -761,7 +761,7 @@ struct MeetingEndSheet: View {
                                 .compactMap { $0 }.joined(separator: " · ")
                             Label {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(a.what)
+                                    Text(a.what).readingDirection(of: a.what)
                                     if !who.isEmpty { Text(who).font(.caption).foregroundStyle(.secondary) }
                                 }
                             } icon: { Image(systemName: "checklist") }
@@ -769,7 +769,7 @@ struct MeetingEndSheet: View {
                     }
                 }
                 if let open = result.open_questions, !open.isEmpty {
-                    Section("Open questions") { ForEach(open, id: \.self) { Label($0, systemImage: "questionmark.circle") } }
+                    Section("Open questions") { ForEach(open, id: \.self) { q in Label { Text(q).readingDirection(of: q) } icon: { Image(systemName: "questionmark.circle") } } }
                 }
                 Section {
                     Toggle("Include the transcript", isOn: $withTranscript).tint(Brand.orange)

@@ -20,6 +20,8 @@ Two rules hold for everything:
 not ship. Where the form factor differs (a hotkey on the desktop, a long-press on the phone) the table says how. The
 daemon is the single source of truth: every mode, note, dictionary term and preference lives in the daemon and reaches
 both clients through `/voice/status`, so "sync between page and app" is never a separate feature.
+One exception, on purpose: the voice model's full context is shown only on the Mac (the page's "What the voice
+holds"). The app shows its token count; the phone's key is refused `/voice/context` (`tests/test_security.py`).
 
 **Security that must not regress** (today's rules, from `SECURITY.md`, `guards.py`, `daemon.py:on_user_utterance`):
 
