@@ -598,6 +598,8 @@
     <div class="field">Start in<select id="pref-mode"><option value="listening">Listening</option><option value="participating">Participating</option></select></div>
     <label class="tick"><input type="checkbox" id="pref-lookups"> Auto lookups by default</label>
     <div class="field">Notes language<select id="pref-lang"><option value="auto">Same as I speak</option><option value="en">English</option><option value="he">Hebrew</option></select></div>
+    <div id="pref-consent" hidden><div class="note">Consent step: accepted on this Mac. A voice start (“meeting mode, listening”) needs it accepted once.</div>
+      <div class="row" style="justify-content:flex-start"><button type="button" id="pref-consent-again" onclick="consentAgain()">Ask again before the next meeting</button></div></div>
     <h3>Show while it says</h3>
     <div class="note">Show the files and test output the voice talks about. On this Mac it is always on; the pane can be
       folded away for screen sharing. Code stays on your Mac unless you turn this on for the phone.</div>
@@ -2019,6 +2021,7 @@
     $('pref-mode').value = prefs['meeting.default_mode'] || 'listening';
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
+    $('pref-consent').hidden = !prefs['meeting.consented'];
     $('pref-mic').value = prefs.microphone || 'always';
     $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
     $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
@@ -2029,6 +2032,12 @@
     $('setok').textContent = ''; $('seterr').textContent = '';
     await loadSchedule();
     openSheet('settingssheet', 'pref-mode');
+  }
+  async function consentAgain() {  // at once, as in the app: a voice start then needs the consent step again
+    const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'},
+                                           body: JSON.stringify({'meeting.consented': false})});
+    if (r.ok) $('pref-consent').hidden = true;
+    else $('seterr').textContent = (await r.json().catch(() => ({}))).detail || 'Not saved';
   }
   async function saveSettings() {
     if (!await saveSchedule()) return;

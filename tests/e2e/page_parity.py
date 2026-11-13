@@ -1,6 +1,7 @@
 """What the iPhone app did and the page did not, in a real (headless) Chrome against a real daemon. No call, no paid API.
 
 - Ending a meeting and discarding its notes each take two clicks: the first asks, the second does it.
+- Settings → Meetings offers "Ask again before the next meeting" once the consent step was accepted, and it resets it.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-par CLAUDE_VOICE_DAEMON_PORT=7960 CLAUDE_VOICE_TLS_PORT=7560 POINTE_CHROME_PORT=7963 \
      uv run python -u -I tests/e2e/page_parity.py
@@ -49,6 +50,23 @@ async def two_clicks(page: Page) -> None:
     check("the second click discards", await page.js("window.__posted") == ["discard"])
 
 
+async def settings(page: Page) -> None:
+    call("/voice/prefs", {"meeting.consented": True})
+    await page.js("openSettings()")
+    await page.until("!document.getElementById('pref-consent').hidden", 5)
+    check("Settings → Meetings offers to ask again once consent was accepted",
+          await page.js("!document.getElementById('pref-consent').hidden"))
+    await page.shot("settings-consent")
+    await page.js("document.getElementById('pref-consent-again').click()")
+    await page.until("document.getElementById('pref-consent').hidden", 5)
+    check("Ask again resets the consent step on the Mac", call("/voice/status") is not None
+          and json.loads(urllib.request.urlopen(urllib.request.Request(
+              f"{DAEMON}/voice/prefs", headers={"Authorization": f"Bearer {(STATE / 'token').read_text().strip()}"})).read())
+          .get("meeting.consented") is False)
+
+    await page.js("closeSheet('settingssheet')")
+
+
 async def main() -> None:
     assert os.environ.get("CLAUDE_VOICE_STATE"), "use an isolated CLAUDE_VOICE_STATE"
     fresh_state()
@@ -71,6 +89,7 @@ async def main() -> None:
             await page.cdp("Runtime.enable")
             await page.until("typeof meetPost === 'function' && !!status && !!status.sessions", 20)
             await two_clicks(page)
+            await settings(page)
     finally:
         chrome.terminate()
         stop_daemon()
