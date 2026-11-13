@@ -31,6 +31,9 @@ NEXT_KEY = [
 # Fully local (`pointe local`), measured on an M5 Pro with 64 GB: docs/features/local.md.
 LOCAL_MEASURED = ("10 of 19 single-session audio checks passed, every approval check among them; replies took 6 to 12 s "
                   "and a Hebrew reply is not spoken: use headphones and English.")
+# Voice stays on your Mac (`pointe local voice`), measured the same way: docs/features/voice-stays-local.md.
+VOICE_LOCAL_MEASURED = ("30 of 35 audio checks passed (Anthropic and Gemini keys); English speech only, and on speakers a "
+                        "spoken interruption takes 3 to 4 s: use headphones")
 TEXT_VENDORS, AUDIO_VENDORS = {"anthropic", "gemini", "openai"}, {"soniox", "gemini", "openai", "elevenlabs"}
 
 
@@ -110,6 +113,9 @@ def main() -> int:
     print("\n".join(harnesses_here()))
     print("\nKeys (value never shown):" + (" none is read in fully local mode" if vendors.local_only() else ""))
     for vendor in vendors.KEYS:
+        if vendor in vendors.AUDIO_ONLY and vendors.voice_local() and not vendors.local_only():
+            print(f"  not read {vendor} (audio only: the voice stays on this Mac)")
+            continue
         print(f"  {'found  ' if vendors.has(vendor) else 'missing'}  {vendor}")
     print("\n" + "\n".join(local.status_lines()))
     print("\nRoles:")
@@ -126,7 +132,12 @@ def main() -> int:
     if chosen.get("ears") and chosen["ears"] != "soniox":
         print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
     present = {v for v in vendors.KEYS if vendors.has(v)}
-    if vendors.local_only():
+    if vendors.voice_local() and not vendors.local_only():
+        text = sorted({chosen[r].split(":")[0] for r in ("brain", "reader", "gate") if r in chosen})
+        print(f"\nThis setup: {vendors.VOICE_LOCAL}. Your voice is heard and spoken on this Mac, and no audio goes to any "
+              f"vendor; {', '.join(text) or 'the text models'} get text only. {VOICE_LOCAL_MEASURED}. "
+              "Back to your vendors: pointe local off.")
+    elif vendors.local_only():
         print(f"\nThis setup: fully local, no key read. {LOCAL_MEASURED} Back to vendors: pointe local off.")
     else:
         print("\n" + "\n".join(advice(present, {c.split(":")[0] for c in chosen.values()})))

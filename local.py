@@ -3,11 +3,12 @@
     pointe local            download what is missing (sizes first, then progress), start the text-model server, turn it on
     pointe local status     what is on disk, whether the server answers, and its memory
     pointe local start|stop the text-model server (the daemon starts it when needed; `pointe stop` stops it)
-    pointe local off        back to the vendors chosen before
+    pointe local voice      "Voice stays on your Mac": ears and mouth here, text models in the cloud (they get text only)
+    pointe local off        back to the vendors chosen before (from either)
 
 Ears are Whisper (mlx-whisper) and the mouth is Kokoro, inside the daemon. Text models (brain, reader, gate) are one model
 served by mlx-lm's OpenAI-compatible server, from its own uv environment under the state dir, as this user, on loopback.
-What was chosen and why, with the measurements: docs/features/local.md.
+What was chosen and why, with the measurements: docs/features/local.md and docs/features/voice-stays-local.md.
 """
 
 import contextlib
@@ -34,7 +35,9 @@ MLX_LM = "mlx-lm==0.32.2"
 MIN_RAM_GB = 32  # the text model took 17 GB while it ran (footprint), plus the daemon and macOS
 # Thinking off: with it on, a reply waits for hundreds of hidden tokens.
 SERVER_ARGS = ["--chat-template-args", json.dumps({"enable_thinking": False})]
-LOCAL_KEYS = ("brain", "reader", "checker", "ears", "mouth", "local_only", "local_url")
+LOCAL_KEYS = ("brain", "reader", "checker", "ears", "mouth", "local_only", "local_url", "voice_local")
+VOICE_MOUTH = vendors.LOCAL_MOUTH
+VOICE_MODEL = "mlx-community/Kokoro-82M-bf16"  # Kokoro on MLX, for VOICE_MOUTH; kokoro_mlx.MODEL
 
 
 def state() -> Path:
@@ -69,15 +72,35 @@ def _config_path() -> Path:
     return state() / "config.json"
 
 
-def write_config(text_model: str = TEXT_MODEL) -> None:
-    """Every role local and no key read. The choice it replaces is kept, once, for `pointe local off`."""
-    path, saved = _config_path(), home() / "config.before-local.json"
-    current = vendors.config()
-    if not current.get("local_only"):
+def _save_before() -> dict:
+    """The choice a local setup replaces, kept once (not over by a second local setup), for `pointe local off`."""
+    saved, current = home() / "config.before-local.json", vendors.config()
+    if not current.get("local_only") and not current.get("voice_local"):
         saved.parent.mkdir(parents=True, exist_ok=True)
         saved.write_text(json.dumps(current, indent=2))
+    return current
+
+
+def write_config(text_model: str = TEXT_MODEL) -> None:
+    """Every role local and no key read. The choice it replaces is kept, once, for `pointe local off`."""
+    path, current = _config_path(), _save_before()
+    current.pop("voice_local", None)
     current.update(brain=f"local:{text_model}", reader=f"local:{text_model}", checker=f"local:{text_model}",
                    ears="local", mouth=MOUTH, local_only=True, local_url=url())
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(current, indent=2) + "\n")
+
+
+def write_voice_config() -> None:
+    """Voice stays on your Mac: ears and mouth local, the text roles as they were (cloud ones: a local text model chosen
+    by fully local mode goes back to the vendors' order)."""
+    path, current = _config_path(), _save_before()
+    for role in ("brain", "reader", "checker"):
+        if str(current.get(role, "")).startswith(f"{vendors.LOCAL}:"):
+            current.pop(role)
+    for gone in ("local_only", "local_url"):
+        current.pop(gone, None)
+    current.update(ears=vendors.LOCAL, mouth=VOICE_MOUTH, voice_local=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(current, indent=2) + "\n")
 
@@ -107,6 +130,10 @@ def cached_bytes(repo: str) -> int:
     except Exception:
         return 0
     return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file())
+
+
+def voice_on() -> bool:
+    return vendors.voice_local() and not vendors.local_only()
 
 
 def kokoro_bytes() -> int:
@@ -232,6 +259,44 @@ def supported(text_model: str = TEXT_MODEL) -> str | None:
     return None
 
 
+def supported_voice() -> str | None:
+    if platform.system() != "Darwin" or platform.machine() != "arm64":
+        return (f"{vendors.VOICE_LOCAL} needs an Apple-silicon Mac (its voice runs on MLX). Elsewhere, set ears and "
+                "mouth to local by hand: see docs/features/local.md.")
+    return None
+
+
+def install_voice() -> int:
+    """Voice stays on your Mac: download Whisper and Kokoro (MLX), check a text model has a key, turn it on."""
+    from huggingface_hub import snapshot_download
+
+    if why := supported_voice():
+        print(why)
+        return 1
+    if not any(vendors.key(v) for v in ("anthropic", "gemini", "openai")):
+        print(f"{vendors.VOICE_LOCAL} keeps the brain in the cloud, so it needs one text key, best Anthropic's: "
+              "pointe key anthropic (a Gemini key also works: pointe key gemini). Then run pointe local voice again.")
+        return 1
+    wanted = [("Speech to text, Whisper large-v3-turbo (MIT)", EARS_MODEL), ("Voice, Kokoro-82M on MLX (Apache-2.0)", VOICE_MODEL)]
+    print(f"{vendors.VOICE_LOCAL}: your speech is heard and spoken on this Mac. The brain, the reader and the gate get "
+          "text only.\n\nTo download (once):")
+    for label, repo in wanted:
+        have = cached_bytes(repo)
+        print(f"  {label}: {gb(have or remote_size(repo) or 0)}{', already here' if have else ''}")
+    for label, repo in wanted:
+        if not cached_bytes(repo):
+            print(f"Downloading {label}...", flush=True)
+            snapshot_download(repo)
+    write_voice_config()
+    print("Loading the voice once (about 20 s the first time)...", flush=True)
+    import kokoro_mlx
+
+    kokoro_mlx.warm()
+    print(f"\n{vendors.VOICE_LOCAL} is on. Restart the voice to use it: pointe stop, then /pointe:voice. "
+          "Use headphones. Back to your vendors: pointe local off.")
+    return 0
+
+
 def install(text_model: str = TEXT_MODEL) -> int:
     from huggingface_hub import snapshot_download
 
@@ -280,6 +345,12 @@ def install(text_model: str = TEXT_MODEL) -> int:
 
 def status_lines() -> list[str]:
     text_model = model()
+    if voice_on():
+        lines = [f"{vendors.VOICE_LOCAL}: on (ears and mouth here; text models get text only; off: pointe local off)"]
+        for label, repo in (("ears", EARS_MODEL), ("mouth", VOICE_MODEL)):
+            size = cached_bytes(repo)
+            lines.append(f"  {label:6} {repo}: {gb(size) + ' on disk' if size else 'not downloaded (pointe local voice)'}")
+        return lines
     lines = [f"Fully local mode: {'on' if on() else 'off'}" + ("" if on() else " (turn it on: pointe local)")]
     for label, size in (("ears", cached_bytes(EARS_MODEL)), ("mouth", kokoro_bytes()), ("text", cached_bytes(text_model))):
         name = {"ears": EARS_MODEL, "mouth": "Kokoro v1.0", "text": text_model}[label]
@@ -299,6 +370,8 @@ def main(argv: list[str]) -> int:
     text_model = argv[argv.index("--model") + 1] if "--model" in argv else TEXT_MODEL
     if command == "install":
         return install(text_model)
+    if command == "voice":
+        return install_voice()
     if command == "status":
         print("\n".join(status_lines()))
         return 0
@@ -310,7 +383,7 @@ def main(argv: list[str]) -> int:
     if command == "off":
         restore_config()
         stop()
-        print("Fully local mode is off. Restart the voice to use your vendors: pointe stop, then /pointe:voice.")
+        print("Local mode is off. Restart the voice to use your vendors: pointe stop, then /pointe:voice.")
         return 0
     print(__doc__)
     return 2

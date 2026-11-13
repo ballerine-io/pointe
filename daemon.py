@@ -23,6 +23,10 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
 
+import vendors
+
+vendors.quiet_native_telemetry()  # before anything imports onnxruntime
+
 import aiohttp
 import alerts
 import artifacts
@@ -37,7 +41,6 @@ import meeting as meetings
 import modes
 import speaker
 from ptt import Ptt
-import vendors
 import vocabulary
 import watchdog
 import whisper
@@ -1081,6 +1084,7 @@ class MirrorEars(FrameProcessor):
     async def _open(self, rate: int) -> None:
         from websockets.asyncio.client import connect
 
+        vendors.refuse_cloud_audio("the echo guard's mirror stream (Soniox)")
         self._ws = await connect(self.URL, additional_headers={
             "Authorization": f"Bearer {os.environ['SONIOX_API_KEY']}"})
         self._rate = rate
@@ -2453,6 +2457,9 @@ async def start_meeting(mode: str, brief: str = "", sessions: list | None = None
                 "so it cannot be kept silent in a room.")
     if state.mic_gate is None:
         return "Meeting mode needs Pointe's own ears (CLAUDE_VOICE_EARS=auto), not the model hearing the audio itself."
+    if vendors.voice_local():
+        return (f"Meeting mode is off in {vendors.VOICE_LOCAL}: telling speakers apart needs Soniox's cloud stream, and "
+                "no local one does it yet.")
     if not vendors.has("soniox"):
         return "Meeting mode needs a Soniox key: it is the only speech vendor that tells speakers apart live."
     if state.monologue is not None:  # a brainstorm in progress becomes the meeting's brief
@@ -3927,6 +3934,11 @@ async def _with_housekeeping(_app):
         state.liveness = asyncio.create_task(_liveness())
     s = setup()  # load the model libraries now, off the loop, not in the middle of the first reply
     asyncio.create_task(asyncio.to_thread(vendors.warm, [getattr(s, role, "") for role in ("brain", "reader", "checker")]))
+    mouth = getattr(s, "mouth", "")
+    if mouth.startswith(f"{vendors.LOCAL}:kokoro-mlx"):  # its first sentence builds a pipeline: not the greeting's wait
+        import kokoro_mlx
+
+        asyncio.create_task(asyncio.to_thread(kokoro_mlx.warm, (mouth.split(":") + [""])[2] or kokoro_mlx.DEFAULT_VOICE))
     watchdog.start(threading.get_ident())  # logs where the loop is stuck when it freezes, which delays every reply
     state.heartbeat = asyncio.create_task(watchdog.heartbeat())
     scheduler = asyncio.create_task(_briefing_scheduler())  # a scheduled briefing is read with no call up too
@@ -5227,6 +5239,22 @@ def _spoken(frame) -> tuple[float, float] | None:
     return span if span and span[1] <= time.time() + 0.5 else None  # a clock out of step says nothing
 
 
+def _call_ears() -> tuple[list, list, object]:
+    """The call's ears, the echo guard's mirror (Soniox on the bot's own voice, when there is a key and the voice may leave
+    this Mac), and the speech-to-text service among the ears."""
+    if EARS == "native":
+        if vendors.voice_local():
+            raise SystemExit(f"CLAUDE_VOICE_EARS=native: a model would hear the audio, and {vendors.VOICE_LOCAL} is on")
+        return [], [], None
+    from pipecat.audio.vad.silero import SileroVADAnalyzer
+    from pipecat.processors.audio.vad_processor import VADProcessor
+
+    mirror = [MirrorEars(_recognition_terms())] if vendors.has("soniox") and not vendors.voice_local() else []
+    stt = vendors.build_ears(setup().ears, _recognition_terms())
+    _clock_ears(stt)
+    return [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()], mirror, stt
+
+
 async def run_call(transport) -> None:
     """One call, over the WebSocket link the page and the phone share."""
     state.http = state.http or aiohttp.ClientSession()
@@ -5238,16 +5266,7 @@ async def run_call(transport) -> None:
     opening = _opening_context()
     state.tokens = None
     injector = FeedInjector()
-    ears, mirror, stt = [], [], None
-    if EARS != "native":
-        if vendors.has("soniox"):
-            mirror = [MirrorEars(_recognition_terms())]
-        from pipecat.audio.vad.silero import SileroVADAnalyzer
-        from pipecat.processors.audio.vad_processor import VADProcessor
-
-        stt = vendors.build_ears(setup().ears, _recognition_terms())
-        _clock_ears(stt)
-        ears = [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()]
+    ears, mirror, stt = _call_ears()
     gate = [PttGate(stt), WhisperIn()]
     if FRONT == "brain":
         front = BrainFront(opening)
