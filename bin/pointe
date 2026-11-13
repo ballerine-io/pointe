@@ -16,8 +16,15 @@ case "$cmd" in
   stop)    exec "$BIN/voice-daemon" stop ;;
   pair)    cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I pair.py "$@" ;;
   key)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I keys.py "$@" ;;
-  local)   uv sync --locked --quiet --extra local --project "$BIN/.."  # Whisper and Kokoro run inside the daemon
-           exec uv run --no-sync --project "$BIN/.." python -I "$BIN/../local.py" "$@" ;;  # fully local: no keys
+  local)   case "${1:-}" in
+             off|stop|status) ;;  # nothing to install
+             *) # The Mac and the key first: the libraries below are 1.1 GB on disk, for nothing on a Mac that cannot use them.
+                uv run --locked --project "$BIN/.." python -I "$BIN/../local.py" check "$@" || exit 1
+                compgen -G "$BIN/../.venv/lib/python*/site-packages/kokoro_onnx" >/dev/null \
+                  || echo "Installing the local libraries once: about 290 MB to download, 1.1 GB on disk..." >&2
+                uv sync --locked --quiet --extra local --project "$BIN/.." ;;  # Whisper and Kokoro run inside the daemon
+           esac
+           exec uv run --locked --project "$BIN/.." python -I "$BIN/../local.py" "$@" ;;  # fully local: no keys
   join)    exec uv run --locked --project "$BIN/.." python -I "$BIN/../harnesses/join.py" "$@" ;;  # another harness: pointe join opencode
   leave)   exec uv run --locked --project "$BIN/.." python -I -c "import sys; sys.path.insert(0, \"$BIN/../harnesses\"); import join; join.main(sys.argv[1:], leave=True)" "$@" ;;
   *) sed -n 2p "${BASH_SOURCE[0]}" | cut -c3-; exit 2 ;;

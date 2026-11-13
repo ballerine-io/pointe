@@ -55,6 +55,9 @@ def advice(present: set[str], used: set[str]) -> list[str]:
     return lines + ["You have every key the best measured setup uses."]
 
 
+NAMES = {"anthropic": "Anthropic", "gemini": "Gemini", "openai": "OpenAI", "local": "the local model"}
+
+
 POINTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin", "pointe")
 NO_KEY = f"""No model key yet. One key is enough to start: Gemini alone runs every role (free tier available).
 
@@ -137,9 +140,9 @@ def main() -> int:
         print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
     present = {v for v in vendors.KEYS if vendors.has(v)}
     if vendors.voice_local() and not vendors.local_only():
-        text = sorted({chosen[r].split(":")[0] for r in ("brain", "reader", "gate") if r in chosen})
+        text = sorted({NAMES.get(v, v) for v in (chosen[r].split(":")[0] for r in ("brain", "reader", "gate") if r in chosen)})
         print(f"\nThis setup: {vendors.VOICE_LOCAL}. Your voice is heard and spoken on this Mac, and no audio goes to any "
-              f"vendor; {', '.join(text) or 'the text models'} get text only. {VOICE_LOCAL_MEASURED}. "
+              f"vendor; {' and '.join(text) or 'the text models'} {'gets' if len(text) == 1 else 'get'} text only. {VOICE_LOCAL_MEASURED}. "
               "Back to your vendors: pointe local off.")
     elif vendors.local_only():
         print(f"\nThis setup: fully local, no key read. {LOCAL_MEASURED} Back to vendors: pointe local off.")

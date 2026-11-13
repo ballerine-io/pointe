@@ -157,3 +157,38 @@ def test_a_keyless_doctor_says_one_thing_to_do(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "security add-generic-password" not in out
     assert out.count("pointe key gemini") == 1
+
+
+def refusing_check(stranger):
+    """uv as in the stranger's HOME, except that local.py's check refuses this Mac (no key, or not Apple silicon)."""
+    uv = stranger.home / ".local" / "bin" / "uv"
+    uv.write_text(FAKE_UV + 'case "$*" in *"local.py check"*) exit 1 ;; esac\n')
+
+
+def test_pointe_local_checks_the_mac_and_key_before_installing_the_local_libraries(stranger):
+    refusing_check(stranger)
+    out = run("pointe", "local", "voice", env=stranger.env)
+    assert out.returncode != 0
+    assert "local.py check voice" in stranger.calls()
+    assert "--extra local" not in stranger.calls()  # 1.1 GB of libraries, for a Mac that cannot use them
+
+
+def test_pointe_local_says_what_it_installs_before_installing_it(stranger):
+    out = run("pointe", "local", env=stranger.env)
+    calls = stranger.calls()
+    assert calls.index("local.py check") < calls.index("--extra local")
+    assert "about 290 MB" in out.stdout + out.stderr
+
+
+@pytest.mark.parametrize("command", ["off", "stop", "status"])
+def test_pointe_local_off_stop_and_status_install_nothing(stranger, command):
+    run("pointe", "local", command, env=stranger.env)
+    assert "local.py" in stranger.calls() and "--extra local" not in stranger.calls()
+
+
+def test_a_refusal_that_names_no_vendor_keeps_the_one_that_did(monkeypatch):
+    monkeypatch.setattr(daemon, "_problem", (0.0, ""))
+    note(vendors.refused_help("anthropic"))
+    note("brain failed: AuthenticationError: Error code: 401 - {'type': 'error', 'error': {'type': "
+         "'authentication_error', 'message': 'Invalid bearer token'}}")
+    assert "anthropic key was refused" in daemon.current_problem()
