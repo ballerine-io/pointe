@@ -1,7 +1,7 @@
 import SwiftUI
 import UserNotifications
 
-// Audio briefings (docs/plans/next-features.md, "5. Audio briefings"): what each session did, failed and waits on, most
+// Audio briefings (docs/features/briefings.md): what each session did, failed and waits on, most
 // urgent first. The Mac builds and speaks it; the phone starts it, steers it, shows it written, and sets the schedule.
 
 extension API {

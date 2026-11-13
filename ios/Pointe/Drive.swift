@@ -3,7 +3,7 @@ import CoreMotion
 import MediaPlayer
 import SwiftUI
 
-// Drive & walk mode (docs/plans/next-features.md, "3. Drive & walk mode"): short answers, nothing to read or tap. The
+// Drive & walk mode (docs/features/drive-mode.md): short answers, nothing to read or tap. The
 // Mac owns the mode and its rules (drive.py): a spoken yes approves only what it can read out whole and is safe from the
 // road, a no counts from anyone, and anything else waits for a tap once the user has stopped. The phone asks for the
 // mode, shows it, and suggests it in the car; it never enters it by itself.

@@ -74,7 +74,7 @@ final class VocabularyTests: XCTestCase {
         XCTAssertTrue(demo.page.entries.contains { $0.term == "Tarnwick" })
     }
 
-    /// The page and the app say the same thing (docs/plans/next-features.md: parity).
+    /// The page and the app say the same thing (docs/design/2026-11-feature-plan.md: parity).
     func testTheCopyIsThePagesWordForWord() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let html = try String(contentsOf: root.appendingPathComponent("ui_dictionary.html"), encoding: .utf8)

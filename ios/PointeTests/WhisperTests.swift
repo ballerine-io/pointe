@@ -59,7 +59,7 @@ final class WhisperTests: XCTestCase {
         XCTAssertTrue(follow.follow(try status(#"{"on": true}"#)), "drive mode ended: whisper mode applies again")
     }
 
-    /// The page and the app say the same thing (docs/plans/next-features.md: parity).
+    /// The page and the app say the same thing (docs/design/2026-11-feature-plan.md: parity).
     func testTheCopyIsThePagesWordForWord() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let html = try String(contentsOf: root.appendingPathComponent("ui_whisper.html"), encoding: .utf8)
