@@ -445,6 +445,9 @@ struct API {
     /// Take a session off the voice. It keeps running in its terminal.
     func disconnect(_ name: String) async throws { try await post("voice/disconnect", ["name": name]) }
 
+    /// The page's rename: the Mac checks the name (letters, a word voice can pick) and that no session has it.
+    func rename(_ name: String, to newName: String) async throws { try await post("voice/rename", ["name": name, "new_name": newName]) }
+
     /// Typed instead of spoken. It never answers a permission prompt: Approve asks for Face ID.
     func say(_ text: String) async throws { try await post("voice/say", ["text": text]) }
 

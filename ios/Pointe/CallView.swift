@@ -339,7 +339,7 @@ struct CallView: View {
             }
             SessionChips(sessions: status?.sessions ?? [], active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
-                         showAll: { showSessions = true })
+                         showAll: { showSessions = true }, rename: rename)
             if let showing {
                 ShowCard(showing: showing) { showSheet = true }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -986,6 +986,21 @@ struct CallView: View {
     }
 
     private func disconnect(_ name: String) { Task { await act { try await call.api.disconnect(name) } } }
+
+    private func rename(_ name: String, _ newName: String) {
+        guard demo == nil else { return }
+        Task {
+            do {
+                try await call.api.rename(name, to: newName)
+                problem = nil
+                status = try? await call.api.status()
+            } catch API.Failure.status(_, let detail) {
+                problem = SessionsCopy.renameRefused(detail)
+            } catch {
+                problem = "The Mac did not answer."
+            }
+        }
+    }
     private func setMode(_ mode: String) { Task { await act { try await call.api.mode(mode) } } }
     private func setPolish(_ on: Bool) async { await act { try await call.api.polish(on) } }
 

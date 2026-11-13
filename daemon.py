@@ -4543,7 +4543,7 @@ async def mode_by_click(request: Request):
 
 @app.post("/voice/rename")
 async def rename_by_click(request: Request):
-    """Inline rename in the voice tab. Same-origin only (remote.Remote.guard)."""
+    """Inline rename in the voice tab, and the phone app's Rename (its key). Same-origin only (remote.Remote.guard)."""
     body = await request.json()
     session = next((s for s in REGISTRY.sessions.values() if s.name == body.get("name")), None)
     new_name = str(body.get("new_name", "")).strip()

@@ -19,7 +19,10 @@ struct SessionChips: View {
     let orchestrate: () -> Void
     let disconnect: (String) -> Void
     let showAll: () -> Void
+    var rename: ((String, String) -> Void)? = nil
     @State private var leaving: String?
+    @State private var renaming: String?
+    @State private var newName = ""
 
     private var orchestrating: Bool { mode != "session" }
 
@@ -60,6 +63,9 @@ struct SessionChips: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         if !on { Button("Focus on this session", systemImage: "scope") { focus(s.name) } }
+                        if rename != nil {
+                            Button("Rename", systemImage: "pencil") { newName = s.name; renaming = s.name }
+                        }
                         Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
                     }
                     .accessibilityLabel("\(s.name), \(state(s))\(on ? ", focused" : "")")
@@ -70,6 +76,15 @@ struct SessionChips: View {
         }
         .scrollClipDisabled()
         .confirmDisconnect($leaving, disconnect)
+        .alert("Rename \(renaming ?? "")", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Name", text: $newName)
+            Button("Rename") {
+                let fresh = newName.trimmingCharacters(in: .whitespaces)
+                if let old = renaming, !fresh.isEmpty, fresh != old { rename?(old, fresh) }
+                renaming = nil
+            }
+            Button("Cancel", role: .cancel) { renaming = nil }
+        } message: { Text(SessionsCopy.renameHelp) }
     }
 }
 
@@ -156,6 +171,16 @@ struct SessionsSheet: View {
 
 
 enum SessionsCopy {
+    static let renameHelp = "A name you can say: letters, digits, spaces, dots, slashes or dashes."
+
+    /// The Mac's refusal of a rename (taken, not a name voice can pick), as a sentence.
+    static func renameRefused(_ detail: String) -> String {
+        let d = detail.trimmingCharacters(in: .whitespaces)
+        if d.isEmpty || d.hasPrefix("HTTP ") { return "Not renamed: the Mac did not answer." }
+        let said = CallView.sentence(d)
+        return "Not renamed: \(said.prefix(1).lowercased())\(said.dropFirst())"
+    }
+
     /// "12:03:04 → billing/main (named)", or why it went nowhere, as the page's Recent requests.
     static func routed(_ r: API.Dispatch) -> String {
         let to = r.to ?? []

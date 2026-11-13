@@ -85,3 +85,10 @@ final class RecentRequestsTests: XCTestCase {
         XCTAssertNil(SessionsCopy.context(nil))  // no call yet: nothing to count
     }
 }
+
+final class RenameTests: XCTestCase {
+    func testARefusedRenameSaysTheMacsReason() {
+        XCTAssertEqual(SessionsCopy.renameRefused("pricing is already taken"), "Not renamed: pricing is already taken.")
+        XCTAssertEqual(SessionsCopy.renameRefused("HTTP 500"), "Not renamed: the Mac did not answer.")
+    }
+}

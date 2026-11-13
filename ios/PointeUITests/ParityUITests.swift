@@ -86,4 +86,19 @@ final class ParityUITests: XCTestCase {
         measure("drive-off")
         XCTAssertTrue(off.isEmpty, off.joined(separator: "; "))
     }
+
+    func testASessionChipCanBeRenamed() throws {
+        launch("call")
+        let chip = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "river-lantern")).firstMatch
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1.2)  // under the header material: not "hittable", still on screen
+        app.buttons["Rename"].firstMatch.tap()
+        let field = app.alerts.textFields.firstMatch
+        let opened = field.waitForExistence(timeout: 5)
+        shot("rename")
+        XCTAssertTrue(opened, "the rename box opens")
+        XCTAssertEqual(field.value as? String, "river-lantern", "with the current name")
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5))
+    }
 }
