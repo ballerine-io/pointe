@@ -75,7 +75,7 @@ def main(argv: list[str]) -> int:
     if not save(item, secret):
         print(f"Could not save it in the Keychain (item {item}).")
         return 1
-    print(f"Saved your {vendor} key in the Keychain as {item}. Restart the voice to use it: pointe stop, then /pointe:voice.")
+    print(f"Saved your {vendor} key in the Keychain as {item}. If the voice is running, restart it to use it: /pointe:stop, then /pointe:voice.")
     return 0
 
 
