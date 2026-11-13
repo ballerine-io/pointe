@@ -250,7 +250,7 @@ harness: [docs/harnesses.md](docs/harnesses.md).
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md): the offline tests (no keys, under a minute), the rules for changing behavior, and
+[CONTRIBUTING.md](CONTRIBUTING.md): the offline tests (no keys, about a minute and a half), the rules for changing behavior, and
 the DCO sign-off. Report a vulnerability privately: [SECURITY.md](SECURITY.md). Please follow the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 

@@ -3,10 +3,11 @@
 ```
 git clone <this repo> && cd pointe
 bin/voice-doctor                                 # what runs here, and what is missing
-uv run pytest -q tests/test_orchestrator.py tests/test_units.py tests/test_http.py tests/test_security.py tests/test_remote.py tests/test_local.py
+uv run --locked pytest -q tests/ --ignore=tests/e2e
 ```
 
-These run in under a minute, with no keys and no cost. CI runs the same set.
+These run in about a minute and a half, with no keys and no cost; tests that call vendors (RUN_LIVE=1) or need Apple
+silicon or the local extra skip themselves. CI runs the same command on Ubuntu.
 
 ## Before you change behavior
 
