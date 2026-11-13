@@ -15,10 +15,10 @@ ROLES = [("brain", "CLAUDE_VOICE_BRAIN", vendors.BRAIN_ORDER), ("reader", "CLAUD
 # Whole setups through the real audio suite (tests/e2e/run_all.sh), keyed by the vendors whose roles run. Busy hour: 60 replies
 # of 30 words, 10 reports, two ears streams, by arithmetic from docs/benchmarks.md, not a metered bill.
 MEASURED = {
-    frozenset({"anthropic", "soniox", "gemini", "elevenlabs"}): ("33 of 35 audio checks passed, echo 4 of 4", "about $1 an hour"),
-    frozenset({"anthropic", "soniox"}): ("30 of 35 audio checks passed, echo 2 of 4 (3 of 4 on a rerun)", "about $1.20 an hour"),
-    frozenset({"gemini"}): ("27 of 35 audio checks passed: replies take about 4 s, and a Hebrew yes is heard as \"Ken\"", "about $0.40 an hour plus Gemini ears, not priced here"),
-    frozenset({"openai"}): ("29 of 35 audio checks passed, echo 1 of 4: use headphones", "about $0.60 an hour plus OpenAI ears, not priced here"),
+    frozenset({"anthropic", "soniox", "gemini", "elevenlabs"}): ("34 of 35 audio checks passed, echo 4 of 4", "about $1 an hour"),
+    frozenset({"anthropic", "soniox"}): ("30 of 35 audio checks passed (31 on a rerun), echo 3 of 4", "about $1.20 an hour"),
+    frozenset({"gemini"}): ("28 of 35 audio checks passed: replies take about 4 s, no echo guard: use headphones", "about $0.40 an hour plus Gemini ears, not priced here"),
+    frozenset({"openai"}): ("24 of 35 audio checks passed, echo 0 of 4: use headphones", "about $0.60 an hour plus OpenAI ears, not priced here"),
 }
 # The next key, by how much it measurably improves a role (docs/benchmarks.md).
 NEXT_KEY = [

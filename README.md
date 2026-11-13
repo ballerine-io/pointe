@@ -168,12 +168,12 @@ wins). A role you do not set takes the first vendor with a key.
 
 | Keys | Full audio test (real sessions, synthetic speech) | A busy hour |
 |---|---|---|
-| Anthropic, Soniox, ElevenLabs, Gemini | 33 of 35; echo 4 of 4 | about $1 |
-| Anthropic, Soniox | 30 of 35; echo 2 of 4, 3 of 4 on a rerun | about $1.20 |
-| Gemini only (no echo guard: use headphones; replies take about 4 s) | 27 of 35; echo 3 of 4 | about $0.40, plus Gemini ears |
-| OpenAI only (no echo guard: use headphones; weak on Hebrew) | 29 of 35; echo 1 of 4 | about $0.60, plus OpenAI ears |
+| Anthropic, Soniox, ElevenLabs, Gemini | 34 of 35; echo 4 of 4 | about $1 |
+| Anthropic, Soniox | 30 of 35 (31 with the two-session suite rerun); echo 3 of 4 | about $1.20 |
+| Gemini only (no echo guard: use headphones; replies take about 4 s) | 28 of 35; echo 0 of 4 | about $0.40, plus Gemini ears |
+| OpenAI only (no echo guard: use headphones; weak on Hebrew) | 24 of 35; echo 0 of 4 | about $0.60, plus OpenAI ears |
 
-The audio test is the three suites in `tests/e2e/run_all.sh` with only those keys visible, one run each on 2026-11-08.
+The audio test is the three suites in `tests/e2e/run_all.sh` with only those keys visible, one run each on 2026-11-13. `bin/voice-doctor` tells you which row you are on.
 The hourly cost is arithmetic from measured and list prices, not a metered bill.
 
 **Local models:** set every role to `local`. Ears are Whisper, the mouth is Kokoro, and text models come from any
