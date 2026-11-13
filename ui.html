@@ -176,7 +176,7 @@
   #compose button:disabled { opacity: .35; cursor: default; }
 
   /* the bar */
-  .dock { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 12px 28px 18px; padding: 12px 22px;
+  .dock { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px clamp(6px, calc((100% - 760px) / 9), 22px); margin: 12px 28px 18px; padding: 12px 22px;
          border-radius: 26px; background: rgba(21, 32, 49, .85); border: 1px solid var(--line); backdrop-filter: blur(14px); }
   .dock .btn { display: flex; flex-direction: column; align-items: center; gap: 5px; border: 0; background: none; color: var(--text);
               font: 500 12px 'Inter', sans-serif; cursor: pointer; min-width: 74px; padding: 0; }
@@ -187,6 +187,11 @@
   .dock .btn.on { color: var(--orange); }
   .dock .btn.hang { color: #FF453A; }
   .dock .btn:disabled { opacity: .35; cursor: default; }
+  /* With the Showing pane open the middle column can be under 500 px: tighter, and it wraps rather than spilling over the
+     sessions column and under the pane. */
+  body.showing .dock { gap: 8px 4px; padding: 10px 12px; margin-left: 16px; margin-right: 16px; }
+  body.showing .dock .btn { min-width: 52px; }
+  .dock #mic { flex: none; }  /* never squeezed into an oval */
   #mic { width: 74px; height: 74px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
          background: var(--orange); color: #fff; box-shadow: 0 8px 26px rgba(255, 79, 31, .35); transition: transform .15s, background .2s; }
   #mic:hover { transform: scale(1.04); }

@@ -1,4 +1,4 @@
-"""Conflict alarm (docs/plans/next-features.md, "10. Conflict alarm"): two sessions that disagree about the same work.
+"""Conflict alarm (docs/features/conflict-alarm.md): two sessions that disagree about the same work.
 
 Offline: a fake reading model, temp git repositories, transcripts in each harness's own shape. What it must never do is
 tested as hard as what it does: send to a session, answer or hold a permission, talk into a meeting, talk over a

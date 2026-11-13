@@ -24,6 +24,7 @@ from test_orchestrator import (Params, add, client_for, d, fake_conn, record_cha
                                with_permission)
 
 import briefing  # noqa: E402
+from fake_secrets import AWS_KEY_ID, fake  # noqa: E402
 import readout  # noqa: E402
 
 
@@ -78,11 +79,11 @@ def test_since_never_lies_in_the_future():
 
 @pytest.mark.parametrize("secret", [
     "sk-proj-AbCdEf0123456789AbCdEf0123456789",
-    "AKIAABCDEFGHIJKLMNOP",
-    "ghp_0123456789abcdefghijABCDEFGHIJ012345",
+    AWS_KEY_ID,
+    fake("ghp", "_0123456789abcdefghijABCDEFGHIJ012345"),
     "xoxb-123456789012-abcdefghijklmnop",
     "AIzaSyA0123456789abcdefghijklmnopqrstu",
-    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJlc2lnbmF0dXJl",
+    fake("eyJhbGciOiJIUzI1NiJ9", ".eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJlc2lnbmF0dXJl"),
 ])
 def test_secrets_are_redacted(secret):
     out = briefing.redact(f"It set the key to {secret} and moved on.")
@@ -90,11 +91,12 @@ def test_secrets_are_redacted(secret):
 
 
 def test_assignments_bearer_and_private_keys_are_redacted():
-    text = ("export STRIPE_SECRET=4f9a8b7c6d5e4f3a2b1c and password=hunter2-orchard\n"
-            "curl -H 'Authorization: Bearer abc.def-ghi_jkl012345' https://api.example.test\n"
+    stripe, bearer = fake("4f9a8b7c", "6d5e4f3a2b1c"), fake("abc.def", "-ghi_jkl012345")
+    text = (f"export STRIPE_SECRET={stripe} and password=hunter2-orchard\n"
+            f"curl -H 'Authorization: Bearer {bearer}' https://api.example.test\n"
             "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----")
     out = briefing.redact(text)
-    for gone in ("4f9a8b7c6d5e4f3a2b1c", "hunter2-orchard", "abc.def-ghi_jkl012345", "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC"):
+    for gone in (stripe, "hunter2-orchard", bearer, "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC"):
         assert gone not in out, gone
     assert "api.example.test" in out
 
@@ -102,7 +104,8 @@ def test_assignments_bearer_and_private_keys_are_redacted():
 def test_briefings_keep_no_credential_rule_of_their_own():
     """readout.mask is the one rule for the voice, the alerts, the screen and briefings."""
     assert not hasattr(briefing, "_SECRETS")
-    assert briefing.redact("token=abcd1234efgh") == readout.mask("token=abcd1234efgh")
+    text = fake("token=", "abcd1234efgh")
+    assert briefing.redact(text) == readout.mask(text)
 
 
 def test_plain_work_is_not_redacted():
@@ -148,7 +151,7 @@ def test_a_session_that_waits_is_waiting_whatever_the_reader_says():
 
 
 def test_the_reader_output_is_redacted_too():
-    s = briefing.section_from_reply("ops", {"status": "done", "say": "It printed ghp_0123456789abcdefghijABCDEFGHIJ012345."},
+    s = briefing.section_from_reply("ops", {"status": "done", "say": fake("It printed ghp", "_0123456789abcdefghijABCDEFGHIJ012345.")},
                                     "normal", waits=[])
     assert "ghp_" not in s.text
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Conflict alarm (docs/plans/next-features.md, "10. Conflict alarm"): two sessions that disagree about the same work.
+// Conflict alarm (docs/features/conflict-alarm.md): two sessions that disagree about the same work.
 // The card shows both claims. Ask puts one side's question to the Mac as the user's own typed words, so the voice sends
 // it through the usual checks and it can never approve anything; Dismiss quiets that pair for the call. Nothing here
 // sends by itself.

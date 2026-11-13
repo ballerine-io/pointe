@@ -22,17 +22,26 @@ Python packages, about 180 MB: say so first ("this downloads what Pointe needs, 
 
 | Setup | Keys | Measured quality (35 real-call checks) | A busy hour |
 |---|---|---|---|
-| Best | Anthropic, Soniox, ElevenLabs, Gemini | 33 of 35, works on laptop speakers | about $1 |
+| Best | Anthropic, Soniox, ElevenLabs, Gemini | 34 of 35, works on laptop speakers | about $1 |
 | Two keys | Anthropic, Soniox | 30 of 35 | about $1.20 |
-| Easiest start | Gemini only (free tier available) | 27 of 35, needs headphones, replies take ~4 s | about $0.40 |
-| One key, OpenAI | OpenAI only | 29 of 35, needs headphones, weak on Hebrew | about $0.60 |
+| Easiest start | Gemini only (free tier available) | 28 of 35, needs headphones, replies take ~4 s | about $0.40 |
+| One key, OpenAI | OpenAI only | 24 of 35, needs headphones, weak on Hebrew | about $0.60 |
+| Fully local | none: nothing leaves your Mac | 10 of 19 one-session checks, needs headphones, replies take 6 to 12 s, English only | $0 |
 
 What each one does: Soniox hears you (the best speech recognition we measured, Hebrew and English), Anthropic's Claude
 decides what to say and reads your sessions, ElevenLabs is the voice, Gemini checks each request before it is sent.
 Where to get them: console.anthropic.com/settings/keys, console.soniox.com, elevenlabs.io/app/settings/api-keys,
 aistudio.google.com/apikey, platform.openai.com/api-keys.
 
-Recommend: "Easiest start" if they want to try it in two minutes; "Best" if they will use it daily. Ask which, then for
+Fully local needs an Apple-silicon Mac with 32 GB of memory or more, and about 19 GB of disk; it is free and private, and
+slower and less accurate than the keyed setups: its brain passed 77% of our test cases against 92% for the best keyed
+setup, a reply took 6 to 12 seconds in a measured call, and it cannot speak Hebrew. If they choose it, skip the keys:
+say that everything it needs will be downloaded once (about 8 minutes on a fast link), that it runs only on this Mac
+and no key is read, then run `${CLAUDE_PLUGIN_ROOT}/bin/pointe local` in the background, as it outlasts a normal
+command, and tell them briefly what it prints: each download and its size, then that the local model is ready. If it says the Mac is not supported, offer "Easiest start" instead. Then go to step 4.
+
+Recommend: "Easiest start" if they want to try it in two minutes; "Best" if they will use it daily; "Fully local" if
+nothing may leave their Mac. Ask which, then for
 each key, one at a time, run `${CLAUDE_PLUGIN_ROOT}/bin/pointe key <vendor>` (gemini, anthropic, soniox, elevenlabs,
 openai). Tell them first: "A small Mac window will open. Paste the key there and press Save. It goes straight into your
 Mac's Keychain, the same safe place that holds your passwords; it is never written in a file or shown here." After each
@@ -40,7 +49,7 @@ one, run the doctor again and confirm in one line. If the Mac asks to allow acce
 Always Allow.
 
 What leaves the Mac: their speech goes to the ears vendor, and their sessions' content to the others. Say so in one line,
-and that they should use vendors their company allows.
+and that they should use vendors their company allows. (Fully local: nothing leaves it.)
 
 **4. First call.** Run `${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach`. The first start takes up to a minute, then a
 Chrome tab opens. Tell them: put on headphones, allow the microphone, press Connect, and say "what are

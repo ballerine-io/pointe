@@ -1,3 +1,5 @@
+> Historical plan from the first iPhone build. Current behavior: [docs/phone.md](../phone.md) and [docs/features/](../features/README.md).
+
 # Pointe for iPhone: plan
 
 Status: phases 1 and 2 built and tested in the simulator; not yet run on a real iPhone (signing needs the Ballerine
@@ -51,7 +53,7 @@ Offered at pairing; all of them need the pairing secret and the app key on top.
 |---|---|---|
 | Same Wi-Fi | trying it at home | none: the app finds the Mac on the local network (Bonjour); TLS with a pinned certificate |
 | Tailscale | most developers | Tailscale on both; the app uses the Mac's tailnet name |
-| Twingate | teams that have it (Ballerine) | the existing `bin/voice-remote` path |
+| Twingate | teams that already use it | the existing `bin/voice-remote` path |
 | Cloudflare Tunnel with Access | no VPN, away from home | `cloudflared` on the Mac, an Access policy for your email; the most setup |
 
 Open to the internet with no access layer (a bare ngrok URL, a port forward) is not offered: the pairing secret would be

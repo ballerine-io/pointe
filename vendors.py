@@ -27,7 +27,8 @@ KEYS = {
 }
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names
 LOCAL = "local"  # needs no key: Whisper and Kokoro on this machine, and an OpenAI-compatible server for text models
-LOCAL_URL = "http://localhost:11434/v1"  # Ollama; CLAUDE_VOICE_LOCAL_URL points it at LM Studio, vLLM, Groq, OpenRouter...
+LOCAL_URL = "http://localhost:11434/v1"  # Ollama; CLAUDE_VOICE_LOCAL_URL or "local_url" points it at mlx-lm, LM Studio, vLLM...
+LOCAL_EARS_MODEL = "mlx-community/whisper-large-v3-turbo"  # why: bench/results/local.md
 KEY_ENVS = {env for env, _ in KEYS.values()} | set(ENV_ALIASES.values()) | {"CLAUDE_VOICE_LOCAL_KEY"}
 # First available wins. The order is the result of bench/results; see README, "Benchmarks".
 BRAIN_ORDER = ["anthropic:claude-sonnet-5-5", "gemini:gemini-3.8-flash", "openai:gpt-6-sol"]
@@ -39,7 +40,14 @@ EARS_ORDER = ["soniox", "gemini", "openai", "elevenlabs"]
 MOUTH_ORDER = ["elevenlabs:eleven_v4_turbo", "gemini:gemini-3.8-flash-lite-tts", "soniox:tts-rt-v2", "openai:gpt-4o-mini-tts"]
 
 
+def local_only() -> bool:
+    """Fully local mode (`pointe local`): no key is read, so no role, mirror or meeting can reach a vendor."""
+    return os.environ.get("CLAUDE_VOICE_LOCAL_ONLY", "").lower() in ("1", "true") or config().get("local_only") is True
+
+
 def key(vendor: str) -> str | None:
+    if local_only():
+        return None
     env, item = KEYS[vendor]
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
@@ -101,7 +109,8 @@ def warm(choices: list[str]) -> None:
 def _local():
     from openai import AsyncOpenAI
 
-    return _clients.setdefault(LOCAL, AsyncOpenAI(base_url=os.environ.get("CLAUDE_VOICE_LOCAL_URL", LOCAL_URL),
+    url = os.environ.get("CLAUDE_VOICE_LOCAL_URL") or config().get("local_url") or LOCAL_URL
+    return _clients.setdefault(LOCAL, AsyncOpenAI(base_url=url,
                                                   api_key=os.environ.get("CLAUDE_VOICE_LOCAL_KEY", "none")))
 
 
@@ -126,6 +135,9 @@ def pick(env: str, order: list[str]) -> str:
     if wanted and wanted != "auto":
         if wanted.split(":")[0] not in {*KEYS, LOCAL}:
             raise SystemExit(f"{env}={wanted}: unknown vendor. Choose from: {', '.join([*KEYS, LOCAL])}")
+        if local_only() and wanted.split(":")[0] != LOCAL:
+            raise SystemExit(f"{env}={wanted}: fully local mode is on, so only local models run. "
+                             "Turn it off with: pointe local off")
         if not has(wanted.split(":")[0]):
             raise SystemExit(f"{env}={wanted} needs a key: {missing_key_help(wanted.split(':')[0])}")
         return wanted
@@ -269,7 +281,9 @@ async def _openai_text(model, prompt, system, json_reply, thinking, max_tokens, 
 async def _local_text(model, prompt, system, json_reply, thinking, max_tokens, temperature) -> str:
     system = ((system or "") + ("\nReply with JSON only." if json_reply else "")).strip()
     messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
-    resp = await _local().chat.completions.create(model=model, messages=messages, temperature=temperature, reasoning_effort="low")
+    extra = {"max_tokens": max_tokens} if max_tokens else {}
+    resp = await _local().chat.completions.create(model=model, messages=messages, temperature=temperature, reasoning_effort="low",
+                                                  **extra)
     return resp.choices[0].message.content or ""
 
 
@@ -475,12 +489,55 @@ def _local_ears():
     import platform
 
     if platform.system() == "Darwin" and platform.machine() == "arm64":
-        from pipecat.services.whisper.stt import MLXModel, WhisperSTTServiceMLX
-
-        return WhisperSTTServiceMLX(settings=WhisperSTTServiceMLX.Settings(model=MLXModel.LARGE_V3_TURBO, language=None))
+        return _mlx_ears()
     from pipecat.services.whisper.stt import Model, WhisperSTTService
 
     return WhisperSTTService(settings=WhisperSTTService.Settings(model=Model.LARGE_V3_TURBO, language=None))
+
+
+def whisper_text(result: dict) -> str:
+    """The words of an mlx-whisper result, without the segments Whisper likely made up: pipecat's MLX filters."""
+    return " ".join(s.get("text", "").strip() for s in result.get("segments", [])
+                    if s.get("compression_ratio") != 0.5555555555555556 and s.get("no_speech_prob", 0.0) < 0.6).strip()
+
+
+def _mlx_ears():
+    """pipecat's WhisperSTTServiceMLX, without its module, which imports faster-whisper first: the local extra installs
+    only mlx-whisper on Apple silicon. Language is detected per utterance."""
+    import asyncio
+
+    import numpy as np
+    from pipecat.frames.frames import ErrorFrame, TranscriptionFrame
+    from pipecat.services.settings import STTSettings
+    from pipecat.services.stt_service import SegmentedSTTService
+    from pipecat.utils.time import time_now_iso8601
+
+    try:  # a path, not a repo name: mlx-whisper asks the Hugging Face Hub about a repo name once per daemon
+        from huggingface_hub import snapshot_download
+
+        path = snapshot_download(LOCAL_EARS_MODEL, local_files_only=True)
+    except Exception:
+        path = LOCAL_EARS_MODEL  # not downloaded yet: mlx-whisper fetches it on the first utterance
+
+    class MLXWhisperEars(SegmentedSTTService):
+        model_path = path
+
+        async def run_stt(self, audio: bytes):
+            import mlx_whisper
+
+            samples = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+            await self.start_processing_metrics()
+            try:
+                result = await asyncio.to_thread(mlx_whisper.transcribe, samples, path_or_hf_repo=self.model_path,
+                                                 temperature=0.0, language=None)
+            except Exception as e:
+                yield ErrorFrame(error=f"local ears: {type(e).__name__}: {e}")
+                return
+            await self.stop_processing_metrics()
+            if text := whisper_text(result):
+                yield TranscriptionFrame(text, self._user_id, time_now_iso8601(), None)
+
+    return MLXWhisperEars(settings=STTSettings(model=LOCAL_EARS_MODEL, language=None))
 
 
 def build_mouth(choice: str, rate: int, http):

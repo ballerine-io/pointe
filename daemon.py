@@ -2892,8 +2892,8 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         await _read_out(session)  # its drive form: it waits until the user stops, and a no still counts
         return
     if verdict == "allow" and session.permission_cut:
-        await say(f"[permission not readable] {session.name}'s request cannot be read out exactly. Tell the user in one line to "
-                  f"read it on the page and answer in that session's terminal. A no by voice still works.")
+        await say(f"[permission not readable] {session.name}'s request cannot be read out exactly. Tell the user in one line that it "
+                  f"waits for a tap on the page or phone, or in the terminal. A no by voice still works.")
         return
     begun_over_the_bot = state.user_started_at and state.user_started_at < ECHO.stopped_at
     if verdict == "allow" and (ECHO.speaking or time.time() - ECHO.stopped_at < YES_AFTER_BOT_SECS or begun_over_the_bot):
@@ -4117,7 +4117,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     session.permission_delivered_at = float("inf")
     session.permission_since = time.time()
     session.permission_cut = not session.permission_spoken  # a yes must not approve what was never read out
-    cut = " [cannot be read out exactly: a yes will not count here, and the terminal must answer it]" if session.permission_cut else ""
+    cut = " [cannot be read out exactly: a yes will not count here; it waits for a tap on the page or phone, or the terminal]" if session.permission_cut else ""
     session.permission_text = f"[permission request] {tool_name}: {description}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
     session.permission_full = f"{tool_name}: {description}\n{preview}"
     alerts.note_request(request_id, tool_name, readable)
@@ -5160,7 +5160,7 @@ def _opening_context() -> list[dict]:
 
 @app.websocket("/voice/phone")
 async def phone_call(websocket: WebSocket):
-    """The phone app (docs/mobile-plan.md). LocalAuth has checked its key."""
+    """The phone app (docs/design/2026-11-mobile-plan.md). LocalAuth has checked its key."""
     await socket_call(websocket, "phone")
 
 

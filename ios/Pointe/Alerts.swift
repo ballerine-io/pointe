@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 import UserNotifications
 
-// Wrist approvals and alerts (docs/plans/next-features.md, "7."). Pointe has no push server: these are local
+// Wrist approvals and alerts (docs/features/alerts.md). Pointe has no push server: these are local
 // notifications the app posts from its own status polls. iOS mirrors them to an Apple Watch on the wrist while the
 // iPhone is locked, and hands an action on the watch back to this app.
 //

@@ -5,6 +5,7 @@ import os
 import socket
 import sys
 
+import local
 import vendors
 
 ROLES = [("brain", "CLAUDE_VOICE_BRAIN", vendors.BRAIN_ORDER), ("reader", "CLAUDE_VOICE_READER", vendors.READER_ORDER),
@@ -15,10 +16,10 @@ ROLES = [("brain", "CLAUDE_VOICE_BRAIN", vendors.BRAIN_ORDER), ("reader", "CLAUD
 # Whole setups through the real audio suite (tests/e2e/run_all.sh), keyed by the vendors whose roles run. Busy hour: 60 replies
 # of 30 words, 10 reports, two ears streams, by arithmetic from docs/benchmarks.md, not a metered bill.
 MEASURED = {
-    frozenset({"anthropic", "soniox", "gemini", "elevenlabs"}): ("33 of 35 audio checks passed, echo 4 of 4", "about $1 an hour"),
-    frozenset({"anthropic", "soniox"}): ("30 of 35 audio checks passed, echo 2 of 4 (3 of 4 on a rerun)", "about $1.20 an hour"),
-    frozenset({"gemini"}): ("27 of 35 audio checks passed: replies take about 4 s, and a Hebrew yes is heard as \"Ken\"", "about $0.40 an hour plus Gemini ears, not priced here"),
-    frozenset({"openai"}): ("29 of 35 audio checks passed, echo 1 of 4: use headphones", "about $0.60 an hour plus OpenAI ears, not priced here"),
+    frozenset({"anthropic", "soniox", "gemini", "elevenlabs"}): ("34 of 35 audio checks passed, echo 4 of 4", "about $1 an hour"),
+    frozenset({"anthropic", "soniox"}): ("30 of 35 audio checks passed (31 on a rerun), echo 3 of 4", "about $1.20 an hour"),
+    frozenset({"gemini"}): ("28 of 35 audio checks passed: replies take about 4 s, no echo guard: use headphones", "about $0.40 an hour plus Gemini ears, not priced here"),
+    frozenset({"openai"}): ("24 of 35 audio checks passed, echo 0 of 4: use headphones", "about $0.60 an hour plus OpenAI ears, not priced here"),
 }
 # The next key, by how much it measurably improves a role (docs/benchmarks.md).
 NEXT_KEY = [
@@ -27,6 +28,9 @@ NEXT_KEY = [
     ("elevenlabs", "the voice starts in 0.21 s, against 0.44 s on Gemini and 0.80 s on OpenAI"),
     ("gemini", "the check on each send is the fastest measured"),
 ]
+# Fully local (`pointe local`), measured on an M5 Pro with 64 GB: docs/features/local.md.
+LOCAL_MEASURED = ("10 of 19 single-session audio checks passed, every approval check among them; replies took 6 to 12 s "
+                  "and a Hebrew reply is not spoken: use headphones and English.")
 TEXT_VENDORS, AUDIO_VENDORS = {"anthropic", "gemini", "openai"}, {"soniox", "gemini", "openai", "elevenlabs"}
 
 
@@ -57,11 +61,16 @@ NO_KEY = f"""No model key yet. One key is enough to start: Gemini alone runs eve
 
 The best setup uses four: Anthropic (brain, reader), Soniox (ears, echo guard), ElevenLabs (mouth), Gemini (gate).
 Without a Keychain (Linux, CI): export GOOGLE_API_KEY=... (or OPENAI_API_KEY, ANTHROPIC_API_KEY, SONIOX_API_KEY,
-ELEVENLABS_API_KEY). Or no key at all: see "Run without any cloud" in the README."""
+ELEVENLABS_API_KEY). Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it
+(docs/features/local.md)."""
 
 
 def preflight() -> int:
     """Run before the daemon starts: a missing key is reported here, in words, not as a daemon that died."""
+    if vendors.local_only() and not local.answering():
+        print(f"Fully local mode is on, but the local text model does not answer at "
+              f"{vendors.config().get('local_url') or local.url()}. Start it: pointe local start (or run pointe local).")
+        return 1
     try:
         for note in vendors.resolve(os.environ.get("CLAUDE_VOICE_FRONT", "brain")).notes:
             print(note)
@@ -102,9 +111,10 @@ def main() -> int:
     live, problems = "--live" in sys.argv, 0
     print("\nCoding agents:")
     print("\n".join(harnesses_here()))
-    print("\nKeys (value never shown):")
+    print("\nKeys (value never shown):" + (" none is read in fully local mode" if vendors.local_only() else ""))
     for vendor in vendors.KEYS:
         print(f"  {'found  ' if vendors.has(vendor) else 'missing'}  {vendor}")
+    print("\n" + "\n".join(local.status_lines()))
     print("\nRoles:")
     chosen, keyless = {}, not any(vendors.has(v) for v in vendors.KEYS)
     for role, env, order in ROLES:
@@ -119,7 +129,10 @@ def main() -> int:
     if chosen.get("ears") and chosen["ears"] != "soniox":
         print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
     present = {v for v in vendors.KEYS if vendors.has(v)}
-    print("\n" + "\n".join(advice(present, {c.split(":")[0] for c in chosen.values()})))
+    if vendors.local_only():
+        print(f"\nThis setup: fully local, no key read. {LOCAL_MEASURED} Back to vendors: pointe local off.")
+    else:
+        print("\n" + "\n".join(advice(present, {c.split(":")[0] for c in chosen.values()})))
     port = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
     with socket.socket() as s:
         in_use = s.connect_ex(("127.0.0.1", port)) == 0
@@ -143,4 +156,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    from loguru import logger
+
+    logger.remove()  # pipecat, imported for the local status, logs a banner: this output is for people
     sys.exit(main())

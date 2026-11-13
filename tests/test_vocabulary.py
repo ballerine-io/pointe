@@ -22,6 +22,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_orchestrator import add, client_for, d, fake_conn  # noqa: E402,F401
+from fake_secrets import AWS_KEY_ID, GITHUB_PAT  # noqa: E402
 
 import vocabulary  # noqa: E402
 from vocabulary import Dictionary, candidates  # noqa: E402
@@ -126,7 +127,7 @@ def test_names_that_merely_contain_a_consent_word_are_fine():
 
 @pytest.mark.parametrize("was, meant", [
     ("the key is s k live", "the key is sk-live-4f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c"),
-    ("use token g h p", "use token ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"),
+    ("use token g h p", f"use token {GITHUB_PAT}"),
     ("my password is hunter", "my password is hunter22x"),
     ("the password is blue", "the password: Zebra-77"),
     ("הסיסמה היא אחת", "הסיסמה היא Kite-4412"),
@@ -136,8 +137,8 @@ def test_nothing_that_looks_like_a_credential_is_learned(was, meant):
     assert terms(was, meant) == []
 
 
-@pytest.mark.parametrize("term", ["sk-live-4f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c", "AKIAABCDEFGHIJKLMNOP",
-                                  "ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8", "api_key=abc123"])
+@pytest.mark.parametrize("term", ["sk-live-4f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c", AWS_KEY_ID,
+                                  GITHUB_PAT, "api_key=abc123"])
 def test_a_credential_cannot_be_added_by_hand(term):
     assert vocabulary.refusal(term) is not None
 
@@ -259,7 +260,7 @@ def test_suggestions_come_from_briefs_and_skip_known_ignored_and_refused_names(t
     book = Dictionary(tmp_path / "d.json")
     book.add("Dana", source="manual")
     book.ignore("Okta")
-    out = book.suggestions({"lantern": ["Dana", "Okta", "Quillfeather", "yes", "ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"]})
+    out = book.suggestions({"lantern": ["Dana", "Okta", "Quillfeather", "yes", GITHUB_PAT]})
     assert out == [{"term": "Quillfeather", "session": "lantern", "lang": "en"}]
     assert Dictionary(tmp_path / "d.json").ignored == ["Okta"]  # an ignore outlives a restart
 

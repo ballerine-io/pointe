@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|doctor|status|log|context|pair|key|join|stop [args]
+# One command for everything. Usage: pointe start|attach|open|doctor|status|log|context|pair|key|join|local|stop [args]
 set -euo pipefail
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started before it ran does not have it on PATH
@@ -15,6 +15,8 @@ case "$cmd" in
   stop)    exec "$BIN/voice-daemon" stop ;;
   pair)    cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I pair.py "$@" ;;
   key)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I keys.py "$@" ;;
+  local)   uv sync --locked --quiet --extra local --project "$BIN/.."  # Whisper and Kokoro run inside the daemon
+           exec uv run --no-sync --project "$BIN/.." python -I "$BIN/../local.py" "$@" ;;  # fully local: no keys
   join)    exec uv run --locked --project "$BIN/.." python -I "$BIN/../harnesses/join.py" "$@" ;;  # another harness: pointe join opencode
   leave)   exec uv run --locked --project "$BIN/.." python -I -c "import sys; sys.path.insert(0, \"$BIN/../harnesses\"); import join; join.main(sys.argv[1:], leave=True)" "$@" ;;
   *) sed -n 2p "${BASH_SOURCE[0]}" | cut -c3-; exit 2 ;;

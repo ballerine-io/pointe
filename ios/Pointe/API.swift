@@ -30,7 +30,7 @@ struct API {
         var whisper: WhisperStatus?  // whisper mode (Whisper.swift); nil from a Mac without it
     }
 
-    // MARK: show while it says (docs/plans/next-features.md, "8. Show while it says"). Paths only in status; the
+    // MARK: show while it says (docs/features/show-while-it-says.md). Paths only in status; the
     // content comes from /voice/artifact, which the Mac refuses (403) until this phone turned the feature on.
 
     struct ShownArtifact: Decodable, Equatable, Identifiable, Hashable {
@@ -84,7 +84,7 @@ struct API {
         let focus: Int?
     }
 
-    // MARK: owner-voice lock (docs/plans/next-features.md, "1. Owner-voice lock"). Every field optional, like the meeting's.
+    // MARK: owner-voice lock (docs/features/voice-lock.md). Every field optional, like the meeting's.
 
     struct VoiceLock: Decodable, Equatable {
         var level: String?              // off, approvals, commands, everything
@@ -147,7 +147,7 @@ struct API {
         let room_heard: Bool?    // a meeting is on: the room reaches the meeting without a press; talking to Pointe still needs one
     }
 
-    // MARK: meeting mode (docs/plans/next-features.md, "Meeting API (as built)"). Every field optional: an older daemon
+    // MARK: meeting mode (docs/features/meeting-mode.md). Every field optional: an older daemon
     // sends none of them, and the app must still decode its status.
 
     struct Meeting: Decodable, Equatable {

@@ -28,7 +28,9 @@ from pathlib import Path
 from websockets.asyncio.client import connect
 
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parents[1]))
 from page_meeting import CHROME, SHOTS, Page, call  # noqa: E402
+from fake_secrets import fake  # noqa: E402
 from rig import DAEMON, ROOT, STATE, fresh_state, log_lines, stop_daemon  # noqa: E402
 from scenarios import check, results  # noqa: E402
 
@@ -39,7 +41,7 @@ FAILING = ("tests/test_pricing.py::test_gold_discount FAILED\n"
            ">       assert rule_14(100) == 80\n"
            "E       AssertionError: assert 100 == 80\n"
            "=========== 1 failed, 6 passed in 0.12s ===========")
-SECRET = "sk-synthetic-e2e-0123456789abcdef"
+SECRET = fake("sk-synthetic-e2e-", "0123456789abcdef")
 
 
 def phone(path: str, body: dict | None = None) -> tuple[int, dict]:

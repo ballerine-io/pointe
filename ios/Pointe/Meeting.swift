@@ -2,7 +2,7 @@ import SwiftUI
 
 // Meeting mode: Pointe sits in a meeting for one person, the owner. Listening: it never speaks and writes notes.
 // Participating: it speaks only when asked, and otherwise raises a hand. Copy and behavior match the page
-// (docs/plans/next-features.md, meeting mode, UX table).
+// (docs/design/2026-11-feature-plan.md, meeting mode, UX table).
 
 enum MeetingCopy {
     static let listening = "Listening"

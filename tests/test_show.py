@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_orchestrator import _entry, add, client_for, d, fake_conn  # noqa: E402,F401  (d is a fixture)
 
 import artifacts  # noqa: E402
+from fake_secrets import fake  # noqa: E402
 from harnesses import codex, opencode  # noqa: E402
 from sessions import Session  # noqa: E402
 
@@ -259,7 +260,7 @@ def test_a_name_with_hidden_characters_is_refused(tmp_path):
 
 def test_a_refused_artifact_shows_its_name_only(tmp_path):
     root = repo(tmp_path)
-    (root / ".env").write_text("SYNTHETIC_TOKEN=abcdef123456\n")
+    (root / ".env").write_text(fake("SYNTHETIC_TOKEN=", "abcdef123456\n"))
     view = artifacts.render({"kind": "edit", "path": str(root / ".env"), "range": None, "at": time.time()}, str(root))
     assert view["problem"] and "lines" not in view and "diff" not in view and "abcdef" not in json.dumps(view)
 
@@ -328,22 +329,24 @@ def test_the_failing_line_of_a_test_is_the_focus(tmp_path):
 
 def test_secrets_in_files_output_and_commands_are_masked(tmp_path, monkeypatch):
     root = repo(tmp_path)
-    monkeypatch.setenv("SONIOX_API_KEY", "synthetic-live-key-0123456789")
-    (root / "settings.py").write_text('API_KEY = "sk-synthetic0123456789abcdef"\nDEBUG = True\n'
+    live, sk = fake("synthetic-live", "-key-0123456789"), fake("sk-synthetic", "0123456789abcdef")
+    monkeypatch.setenv("SONIOX_API_KEY", live)
+    (root / "settings.py").write_text(f'API_KEY = "{sk}"\nDEBUG = True\n'
                                       'URL = "postgres://app:pa55word-synthetic@db.example/shop"\n'
-                                      'aws = "AKIASYNTHETIC1234567"\nlive = "synthetic-live-key-0123456789"\n')
+                                      f'aws = "AKIASYNTHETIC1234567"\nlive = "{live}"\n')
     view = artifacts.render({"kind": "read", "path": str(root / "settings.py"), "range": None, "at": time.time()}, str(root))
     shown = json.dumps(view)
-    for secret in ("sk-synthetic0123456789abcdef", "pa55word-synthetic", "AKIASYNTHETIC1234567", "synthetic-live-key-0123456789"):
+    for secret in (sk, "pa55word-synthetic", "AKIASYNTHETIC1234567", live):
         assert secret not in shown, secret
     assert "DEBUG = True" in shown
     turn = artifacts.Turn()
-    turn.use(use("a", "Bash", command="STRIPE_SECRET=sk_live_synthetic99999999 pytest -q"), str(root))
+    stripe = fake("sk_live", "_synthetic99999999")
+    turn.use(use("a", "Bash", command=f"STRIPE_SECRET={stripe} pytest -q"), str(root))
     turn.result(result("a", "-----BEGIN RSA PRIVATE KEY-----\nMIIEsynthetic\n-----END RSA PRIVATE KEY-----\n1 failed", True))
     test = turn.finish("", str(root))[0]
     view = artifacts.render(test, str(root))
     shown = json.dumps(view)
-    assert "sk_live_synthetic99999999" not in shown and "MIIEsynthetic" not in shown and "1 failed" in shown
+    assert stripe not in shown and "MIIEsynthetic" not in shown and "1 failed" in shown
 
 
 def test_any_name_ending_in_key_has_its_value_masked():
