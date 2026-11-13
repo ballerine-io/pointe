@@ -2,6 +2,7 @@
 # The one shared voice daemon. Usage: voice-daemon ensure|stop|status
 # ensure: start it if it is not running (prints its URL). Sessions then register with it.
 set -euo pipefail
+export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"

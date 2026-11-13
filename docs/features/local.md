@@ -42,8 +42,8 @@ in `config.json` or the environment is refused at start, with the command that t
 
 What still goes out: model downloads, once, from Hugging Face and GitHub; your coding agents' own traffic, as always.
 onnxruntime (the voice detector, the voice lock, kokoro-onnx) connects to Microsoft's telemetry collector when it
-loads; the daemon turns that off in this mode (`ORT_DISABLE_TELEMETRY=1`, set by `vendors.quiet_native_telemetry`),
-found while measuring [Voice stays on your Mac](voice-stays-local.md#measured). The runs above predate it.
+loads; Pointe turns that off in every setup (`ORT_DISABLE_TELEMETRY=1`, `no_telemetry.py`), found while measuring
+[Voice stays on your Mac](voice-stays-local.md#measured). The runs above predate it.
 
 ## Why these
 

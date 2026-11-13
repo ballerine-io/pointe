@@ -9,6 +9,7 @@ Or the same names, in lower case, in ~/.claude-voice/config.json. "local" runs W
 Keychain item named here, and reach this process only when a role in use needs them.
 """
 
+import no_telemetry  # noqa: F401  (first: before anything loads onnxruntime)
 import json
 import os
 import subprocess
@@ -59,14 +60,6 @@ def voice_local() -> bool:
     Fully local mode is this too."""
     return (os.environ.get("CLAUDE_VOICE_VOICE_LOCAL", "").lower() in ("1", "true") or config().get("voice_local") is True
             or local_only())
-
-
-def quiet_native_telemetry() -> None:
-    """onnxruntime (the voice detector, the voice lock) opens a connection to Microsoft's telemetry collector when it is
-    imported, from native code. Off while the voice stays local: an unexplained connection from the process that holds the
-    audio. Must run before onnxruntime is first imported."""
-    if voice_local():
-        os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
 
 def refuse_cloud_audio(what: str) -> None:

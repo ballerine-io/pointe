@@ -26,6 +26,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
+import no_telemetry  # noqa: E402,F401  (before anything imports onnxruntime)
 import vendors  # noqa: E402
 
 TEXT_MODEL = "mlx-community/gemma-4-26b-a4b-it-4bit"  # Apache-2.0; why: docs/features/local.md

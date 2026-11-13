@@ -23,10 +23,7 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
 
-import vendors
-
-vendors.quiet_native_telemetry()  # before anything imports onnxruntime
-
+import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
 import aiohttp
 import alerts
 import artifacts
@@ -41,6 +38,7 @@ import meeting as meetings
 import modes
 import speaker
 from ptt import Ptt
+import vendors
 import vocabulary
 import watchdog
 import whisper

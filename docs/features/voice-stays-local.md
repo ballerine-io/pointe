@@ -39,7 +39,7 @@ memory is not a limit, as no text model runs here.
 - **To the gate vendor (Gemini, if its key exists):** what you said, as text, each session's latest lines, goal, folder
   path and up to 40 file names. The same as in every keyed setup.
 - **Never:** audio of any kind: your microphone, the bot's voice, the room. Not the voiceprint. Not onnxruntime's
-  telemetry, which the daemon turns off in this setup (see Measured).
+  telemetry, which Pointe turns off in every setup (see Measured).
 - **Once:** model downloads from Hugging Face (and the spaCy English model from GitHub, when uv installs it).
 - **Phone:** with the iPhone app, its audio crosses your own paired link (Tailscale, Twingate or Wi-Fi, TLS with a
   pinned certificate) to the Mac. That carries audio between your devices; no vendor transcribes or stores it.
@@ -55,7 +55,6 @@ With the setup on (`"voice_local": true` in `config.json`, or `CLAUDE_VOICE_VOIC
   and `CLAUDE_VOICE_EARS=native`, where a model hears the audio, are refused.
 - The echo guard's mirror stream and meeting ears, the two other paths that stream audio to Soniox, call
   `vendors.refuse_cloud_audio` before connecting, and are not built in the first place.
-- onnxruntime's telemetry is turned off before it loads (`vendors.quiet_native_telemetry`; see Measured).
 - Fully local mode (`pointe local`) implies all of this.
 
 `tests/test_voice_local.py` checks it offline: with every vendor's key present, constructing any cloud speech client
@@ -119,9 +118,11 @@ the same run).
 What the daemons connected to during the suites, by sampling their sockets every second: Anthropic
 (`160.79.104.10`), Google (`172.217.x`, the Gemini gate), and Microsoft's telemetry collector
 (`*.events.data.microsoft.com`). The last is `onnxruntime` 1.31, which runs the voice detector (Silero) in every setup:
-it connects on import, from native code, so Python's own socket hooks never saw it. Its content was not inspected. In
-this setup the daemon now sets `ORT_DISABLE_TELEMETRY=1` before onnxruntime loads (`vendors.quiet_native_telemetry`),
-which stopped the connection in isolation and in a rerun of the echo suite (only Anthropic connected; the Gemini gate had nothing to check). The other setups still make it.
+it connects on import, from native code, so Python's own socket hooks never saw it. Its content was not inspected. Pointe
+now sets `ORT_DISABLE_TELEMETRY=1` before onnxruntime can load, in every setup (`no_telemetry.py`, imported first by every
+module that can reach it, and exported by the launchers), which stopped the connection in isolation and in a rerun of the
+echo suite (only Anthropic connected; the Gemini gate had nothing to check). `tests/test_no_telemetry.py` fails if any
+module reaches onnxruntime without it.
 
 ## Why these
 

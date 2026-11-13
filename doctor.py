@@ -5,6 +5,7 @@ import os
 import socket
 import sys
 
+import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
 import local
 import vendors
 

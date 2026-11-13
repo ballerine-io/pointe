@@ -139,7 +139,7 @@ separate, opt-in TLS listener with a pinned certificate.
 
 ## Privacy
 
-Pointe has no server and no telemetry, and the page loads nothing from outside your Mac. What leaves the Mac goes to the
+Pointe has no server and no telemetry (its libraries' telemetry is turned off too: [SECURITY.md](SECURITY.md)), and the page loads nothing from outside your Mac. What leaves the Mac goes to the
 vendors you chose, under your keys:
 
 | What | Goes to |

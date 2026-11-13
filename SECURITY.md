@@ -151,6 +151,14 @@ vendors still receive text. See [docs/features/voice-stays-local.md](docs/featur
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
 
+**No telemetry from its libraries either.** onnxruntime, which runs the voice detector, the voice lock and kokoro-onnx,
+connects to Microsoft's telemetry collector (`*.events.data.microsoft.com`) when it loads, from native code (seen with
+1.31.1). Pointe sets `ORT_DISABLE_TELEMETRY=1` before onnxruntime can load, in every setup: `no_telemetry.py` is imported
+first by every module that can reach it, and `bin/voice-daemon`, `bin/pointe`, `bin/voice-doctor` and `bin/claude-voice`
+export it for their child processes. `tests/test_no_telemetry.py` fails if any module reaches onnxruntime without it.
+Measured: with it set, no connection to Microsoft in isolation or during an audio suite
+([docs/features/voice-stays-local.md](docs/features/voice-stays-local.md#measured)).
+
 ## Files
 
 `~/.claude-voice` is 0700. It holds the token, the page key, session notes, `daemon.log`, and `journal.jsonl`, a full record of

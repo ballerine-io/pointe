@@ -24,7 +24,8 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).parent
-sys.path.insert(0, str(HERE))
+sys.path[:0] = [str(HERE), str(HERE.parent)]
+import no_telemetry  # noqa: E402,F401  (before kokoro-onnx loads onnxruntime)
 from tts_corpus import TTS_CORPUS  # noqa: E402
 
 OUT = HERE / "results"

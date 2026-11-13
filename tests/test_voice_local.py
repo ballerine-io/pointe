@@ -268,18 +268,3 @@ def test_the_mouth_loads_kokoro_from_the_downloaded_folder(monkeypatch, tmp_path
     monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda repo, local_files_only: str(tmp_path / "a71e4d38"))
     monkeypatch.setattr(mlx_audio_utils, "load_model", lambda path, **k: seen.update(path=path, **k) or "model")
     assert kokoro_mlx._model() == "model" and seen["model_type"] == "kokoro"
-
-
-def test_onnxruntime_telemetry_is_off_while_the_voice_stays_local(state, monkeypatch):
-    monkeypatch.delenv("ORT_DISABLE_TELEMETRY", raising=False)
-    vendors.quiet_native_telemetry()
-    assert "ORT_DISABLE_TELEMETRY" not in __import__("os").environ  # other setups: unchanged, until decided
-    voice_local_on(state)
-    vendors.quiet_native_telemetry()
-    assert __import__("os").environ["ORT_DISABLE_TELEMETRY"] == "1"
-
-
-def test_the_daemon_turns_it_off_before_any_import_of_onnxruntime():
-    source = (Path(__file__).resolve().parents[1] / "daemon.py").read_text()
-    assert source.index("vendors.quiet_native_telemetry()") < min(
-        source.index(m) for m in ("import speaker", "import vocabulary", "from pipecat", "import phone"))
