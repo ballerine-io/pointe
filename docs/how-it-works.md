@@ -123,7 +123,7 @@ it: `bin/voice-log --call` (the latest call, with everything the model was given
 Tests run against an isolated daemon so they never touch a voice you are using:
 
 ```
-uv run pytest -q tests/test_orchestrator.py tests/test_units.py tests/test_http.py tests/test_security.py tests/test_remote.py   # offline, no keys
+uv run --locked pytest -q tests/ --ignore=tests/e2e   # offline, no keys
 export CLAUDE_VOICE_STATE=/tmp/cv-state CLAUDE_VOICE_DAEMON_PORT=7861
 uv run python -I tests/e2e/scenarios.py brain       # one session, about 15 min
 uv run python -I tests/e2e/multi_session.py         # two sessions: routing, switching, permissions

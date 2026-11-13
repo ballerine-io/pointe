@@ -192,9 +192,14 @@ _problem: tuple[float, str] = (0.0, "")
 
 
 def _note_problem(message) -> None:
-    """A wrong key or a vendor outage otherwise shows only in a log, while the page says Listening."""
+    """A wrong key or a vendor outage otherwise shows only in a log, while the page says Listening. A refused key is said
+    in words, and stays over the errors it causes next ("can no longer do its job", "completed with no audio")."""
     global _problem
     text = message.record["message"].split("\n")[0]
+    if (vendor := vendors.refused_key(text)) is not None:
+        text = vendors.refused_help(vendor)
+    elif (shown := current_problem()) and vendors.refused_key(shown) is not None:
+        return
     for env in vendors.KEY_ENVS:
         if os.environ.get(env):
             text = text.replace(os.environ[env], "[key]")
@@ -737,7 +742,7 @@ def fixed_greeting() -> str | None:
     """Before anything is read there is nothing to say, so no model call and nothing to get wrong."""
     session = REGISTRY.active
     if session is None:
-        return "Connected. Run slash voice in Claude Code, or pointe join in another agent, and I'll pick it up."
+        return "Connected. Run slash pointe voice in Claude Code, or pointe join in another agent, and I'll pick it up."
     if REGISTRY.mode == "orchestrator" and len(REGISTRY.sessions) > 1:  # every session, not the one last used
         if any(not _brief_of(s) for s in REGISTRY.sessions.values()):
             names = ", ".join(_spoken_names(s.name) for s in REGISTRY.sessions.values())

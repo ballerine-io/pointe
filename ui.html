@@ -1052,7 +1052,7 @@
     const where = !s ? '' : !sessions.length ? 'No sessions yet: /pointe:voice in Claude Code, or pointe join opencode'
       : s.mode === 'session' ? `Focused on <b>${short(s.active || '').replace(/[<&]/g, '')}</b>`
       : `Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}` + (need ? ` · <b>${need} need${need === 1 ? 's' : ''} you</b>` : '');
-    $('problem').textContent = micError || callNote || (Date.now() < meetProblemUntil ? meetProblem : '') || (s && s.problem ? `${s.problem} Check the keys: /pointe:doctor` : '');
+    $('problem').textContent = micError || callNote || (Date.now() < meetProblemUntil ? meetProblem : '') || (s && s.problem ? s.problem : '');
     if (fails >= 3) [st, title] = ['reconnecting', 'Daemon not responding'];
     else if (wantCall && !mine) [st, title] = ['reconnecting', 'Reconnecting…'];
     else if (call.state === 'connecting') [st, title] = ['connecting', 'Connecting…'];

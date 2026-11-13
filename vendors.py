@@ -185,7 +185,7 @@ def pick(env: str, order: list[str]) -> str:
 
 def missing_key_help(vendor: str) -> str:
     env, item = KEYS[vendor]
-    return f"set {env}, or on macOS: security add-generic-password -U -s {item} -a \"$USER\" -w"
+    return f"save one with pointe key {vendor} (it goes to the Keychain item {item}), or set {env}"
 
 
 @dataclass
@@ -226,6 +226,33 @@ def _out_of_quota(error: Exception) -> bool:
     return any(sign in text for sign in ("429", "resource_exhausted", "rate_limit", "ratelimit", "quota", "insufficient_quota"))
 
 
+# What each vendor says to a wrong, revoked or unpaid key (captured with made-up keys), and our own sentence for it.
+_REFUSED = ("api key not valid", "invalid api key", "invalid_api_key", "incorrect api key", "invalid x-api-key",
+            "invalid bearer token", "authentication_error", "key was refused")
+_VENDOR_NAMES = {"gemini": "gemini", "google": "gemini", "anthropic": "anthropic", "openai": "openai", "soniox": "soniox",
+                 "elevenlabs": "elevenlabs"}
+
+
+def refused_key(text: str) -> str | None:
+    """The vendor an error says refused its key: "" when the text does not name one, None when it is not a refused key.
+    The first vendor named wins: a pipeline error starts with its service (GeminiSTTService#1 ...)."""
+    low = text.lower()
+    if not any(sign in low for sign in _REFUSED):
+        return None
+    named = [(low.find(name), vendor) for name, vendor in _VENDOR_NAMES.items() if name in low]
+    return min(named)[1] if named else ""
+
+
+def refused_help(vendor: str) -> str:
+    return (f"The {vendor or 'model'} key was refused: it is wrong, revoked or out of credit. Save the right one with "
+            f"pointe key {vendor or '<vendor>'}, or run /pointe:setup again.")
+
+
+def _say_if_refused(vendor: str, error: Exception) -> None:
+    if refused_key(f"{type(error).__name__} {error}") is not None:
+        logger.error(refused_help(vendor))  # callers log only the error's type: this says which key, for the page
+
+
 def _stand_in(choice: str) -> str | None:
     """The next model in the same role's order whose vendor has a key and has not just run out."""
     for order in (CHECKER_ORDER, READER_ORDER, BRAIN_ORDER):
@@ -247,6 +274,7 @@ async def text(choice: str, prompt: str, system: str | None = None, json_reply: 
     try:
         return await _TEXT[vendor](model, prompt, system, json_reply, thinking, max_tokens, temperature)
     except Exception as error:
+        _say_if_refused(vendor, error)
         if not _out_of_quota(error):
             raise
         _EXHAUSTED[vendor] = time.time()
@@ -450,7 +478,11 @@ async def step(choice: str, system: str, messages: list[dict], tools: list[dict]
     vendor, model = choice.split(":", 1)
     # After a handover (quota), earlier turns came from another vendor: their raw form means nothing here, so they go
     # in the neutral form, as calls and text.
-    result = await _STEP[vendor](model, system, _as_text_where_foreign(messages, vendor), tools)
+    try:
+        result = await _STEP[vendor](model, system, _as_text_where_foreign(messages, vendor), tools)
+    except Exception as error:
+        _say_if_refused(vendor, error)
+        raise
     result.vendor = vendor
     return result
 

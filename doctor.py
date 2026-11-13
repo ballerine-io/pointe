@@ -54,15 +54,18 @@ def advice(present: set[str], used: set[str]) -> list[str]:
     return lines + ["You have every key the best measured setup uses."]
 
 
-NO_KEY = """No model key found. One key is enough to start:
+POINTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin", "pointe")
+NO_KEY = f"""No model key yet. One key is enough to start: Gemini alone runs every role (free tier available).
 
-  Gemini alone    export GOOGLE_API_KEY=...     (https://aistudio.google.com/apikey)
-  OpenAI alone    export OPENAI_API_KEY=...
+  In Claude Code: /pointe:setup compares the vendors and saves each key for you.
+  Or yourself:    {POINTE} key gemini
+                  opens a Mac window; the key goes straight to your Keychain, never into a file or this chat.
+                  Get one at https://aistudio.google.com/apikey
 
 The best setup uses four: Anthropic (brain, reader), Soniox (ears, echo guard), ElevenLabs (mouth), Gemini (gate).
-Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it (docs/features/local.md).
-On macOS, keep each in the Keychain instead of exporting it; the command prompts, so the key stays out of your history:
-""" + "\n".join(f"  security add-generic-password -U -s {item} -a \"$USER\" -w" for _, item in vendors.KEYS.values())
+Without a Keychain (Linux, CI): export GOOGLE_API_KEY=... (or OPENAI_API_KEY, ANTHROPIC_API_KEY, SONIOX_API_KEY,
+ELEVENLABS_API_KEY). Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it
+(docs/features/local.md)."""
 
 
 def preflight() -> int:
@@ -101,7 +104,7 @@ def harnesses_here() -> list[str]:
         lines.append(f"  found    OpenCode      join: pointe join opencode, in the session's folder"
                      + ("" if up else " (its service is not running: start opencode first)"))
     if shutil.which("codex"):
-        lines.append("  found    Codex         not supported yet: coming next")
+        lines.append('  found    Codex         join: start it with codex --remote unix:// -C "$PWD", then pointe join codex in that folder')
     return lines
 
 
@@ -119,15 +122,15 @@ def main() -> int:
         print(f"  {'found  ' if vendors.has(vendor) else 'missing'}  {vendor}")
     print("\n" + "\n".join(local.status_lines()))
     print("\nRoles:")
-    chosen = {}
+    chosen, keyless = {}, not any(vendors.has(v) for v in vendors.KEYS)
     for role, env, order in ROLES:
         try:
             chosen[role] = vendors.pick(env, order)
             print(f"  {role:7} {chosen[role]}")
         except SystemExit as e:
             problems += 1
-            print(f"  {role:7} NOT AVAILABLE: {e}")
-    if problems and not any(vendors.has(v) for v in vendors.KEYS):
+            print(f"  {role:7} needs a key" if keyless else f"  {role:7} NOT AVAILABLE: {e}")
+    if problems and keyless:
         print("\n" + NO_KEY)
     if chosen.get("ears") and chosen["ears"] != "soniox":
         print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
@@ -155,7 +158,10 @@ def main() -> int:
                     print(f"  ok      {role} {chosen[role]}")
                 except Exception as e:
                     problems += 1
-                    print(f"  FAILED  {role} {chosen[role]}: {type(e).__name__}. Check the key and that it can use this model.")
+                    vendor = chosen[role].split(":")[0]
+                    why = (vendors.refused_help(vendor) if vendors.refused_key(f"{type(e).__name__} {e}") is not None
+                           else "Check the key and that it can use this model.")
+                    print(f"  FAILED  {role} {chosen[role]}: {type(e).__name__}. {why}")
     print("\nChange a role: CLAUDE_VOICE_<ROLE>=vendor:model, or ~/.claude-voice/config.json (for the gate, the name is \"checker\").")
     return 1 if problems else 0
 

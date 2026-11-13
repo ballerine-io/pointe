@@ -137,7 +137,10 @@ def voice_on() -> bool:
 
 
 def kokoro_bytes() -> int:
-    from pipecat.services.kokoro.tts import KOKORO_CACHE_DIR
+    try:
+        from pipecat.services.kokoro.tts import KOKORO_CACHE_DIR
+    except ImportError:  # the local extra is not installed (pointe local installs it): nothing downloaded
+        return 0
 
     files = [KOKORO_CACHE_DIR / "kokoro-v1.0.onnx", KOKORO_CACHE_DIR / "voices-v1.0.bin"]
     return sum(f.stat().st_size for f in files) if all(f.exists() for f in files) else 0
