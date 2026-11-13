@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Challenge me: the voice plays devil's advocate against your plan. The Mac runs it and enforces its rules (nothing
-// is sent while it is on, it never approves or denies, never during a meeting); the phone starts it, shows the
+// is sent while it is on, it never approves anything (a spoken "stop" also denies a pending request, as any "no" does), never during a meeting); the phone starts it, shows the
 // exchange and ends it.
 
 extension API {

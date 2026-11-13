@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Whisper mode (docs/plans/next-features.md, "9. Whisper mode"): the Mac answers briefly and plays the voice at half
+/// Whisper mode (docs/features/whisper-mode.md): the Mac answers briefly and plays the voice at half
 /// volume; the phone shows it, brings typing forward, and suggests push to talk. The Mac's pref "whisper" is the truth,
 /// set here, on the page, or by saying "whisper mode" / "back to normal". The audio itself is changed on the Mac, so the
 /// phone sends and plays as always.

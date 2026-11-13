@@ -1,5 +1,5 @@
 """Alerts that reach the user away from the screen: iPhone notifications (mirrored to the watch) and desktop
-notifications from the page. Feature 7 in docs/plans/next-features.md.
+notifications from the page. docs/features/alerts.md.
 
 A notification sits on a lock screen and a wrist, so it shows less than the page's approval card:
 - a permission shows the read-out form (readout.py's allowlist, through guards.readable_request) and nothing else; a

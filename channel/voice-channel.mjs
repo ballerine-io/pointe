@@ -16,7 +16,7 @@ if (!TOKEN) {
 }
 
 const mcp = new Server(
-  { name: 'voice', version: '0.1.0' },
+  { name: 'voice', version: '1.0.0' },
   {
     capabilities: {
       experimental: { 'claude/channel': {}, 'claude/channel/permission': {} },

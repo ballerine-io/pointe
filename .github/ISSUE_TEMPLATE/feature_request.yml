@@ -1,0 +1,29 @@
+name: Feature request
+description: Something Pointe should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you were trying to do, and what got in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+      description: How it would work, on the page, in the app, or by voice.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and privacy
+      description: |
+        Does this change what a spoken word can approve or send, or what leaves the Mac? Pointe's rule is that a
+        feature may only narrow what voice can do, never widen it. See SECURITY.md.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

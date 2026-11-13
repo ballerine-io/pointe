@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Self-learning vocabulary (docs/plans/next-features.md, "2."): names Pointe learned from your fixes, or that you added,
+// Self-learning vocabulary (docs/features/vocabulary.md): names Pointe learned from your fixes, or that you added,
 // so the ears hear them right. The dictionary lives only on the Mac (vocabulary.py); the phone shows it, edits it and
 // deletes from it through /voice/dictionary, and shows "Learned: …" with Undo when a fix taught a name.
 
