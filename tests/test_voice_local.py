@@ -258,9 +258,8 @@ def test_british_voices_use_the_british_pipeline():
 
 def test_the_mouth_loads_kokoro_from_the_downloaded_folder(monkeypatch, tmp_path):
     """mlx-audio guesses the model type from a folder's name; a snapshot folder is named by a hash, so it is told."""
-    import huggingface_hub
-
     mlx_audio_utils = pytest.importorskip("mlx_audio.tts.utils", reason="the local extra on Apple silicon")
+    import huggingface_hub
 
     import kokoro_mlx
 

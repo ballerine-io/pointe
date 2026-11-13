@@ -271,8 +271,6 @@ def supported_voice() -> str | None:
 
 def install_voice() -> int:
     """Voice stays on your Mac: download Whisper and Kokoro (MLX), check a text model has a key, turn it on."""
-    from huggingface_hub import snapshot_download
-
     if why := supported_voice():
         print(why)
         return 1
@@ -280,6 +278,8 @@ def install_voice() -> int:
         print(f"{vendors.VOICE_LOCAL} keeps the brain in the cloud, so it needs one text key, best Anthropic's: "
               "pointe key anthropic (a Gemini key also works: pointe key gemini). Then run pointe local voice again.")
         return 1
+    from huggingface_hub import snapshot_download  # the local extra: after the checks, which need nothing installed
+
     wanted = [("Speech to text, Whisper large-v3-turbo (MIT)", EARS_MODEL), ("Voice, Kokoro-82M on MLX (Apache-2.0)", VOICE_MODEL)]
     print(f"{vendors.VOICE_LOCAL}: your speech is heard and spoken on this Mac. The brain, the reader and the gate get "
           "text only.\n\nTo download (once):")
