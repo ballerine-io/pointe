@@ -3,7 +3,7 @@
 ```
 git clone <this repo> && cd pointe
 bin/voice-doctor                                 # what runs here, and what is missing
-uv run pytest -q tests/test_orchestrator.py tests/test_units.py tests/test_http.py tests/test_security.py tests/test_remote.py
+uv run pytest -q tests/test_orchestrator.py tests/test_units.py tests/test_http.py tests/test_security.py tests/test_remote.py tests/test_local.py
 ```
 
 These run in under a minute, with no keys and no cost. CI runs the same set.

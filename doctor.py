@@ -5,6 +5,7 @@ import os
 import socket
 import sys
 
+import local
 import vendors
 
 ROLES = [("brain", "CLAUDE_VOICE_BRAIN", vendors.BRAIN_ORDER), ("reader", "CLAUDE_VOICE_READER", vendors.READER_ORDER),
@@ -27,6 +28,9 @@ NEXT_KEY = [
     ("elevenlabs", "the voice starts in 0.21 s, against 0.44 s on Gemini and 0.80 s on OpenAI"),
     ("gemini", "the check on each send is the fastest measured"),
 ]
+# Fully local (`pointe local`), measured on an M5 Pro with 64 GB: docs/features/local.md.
+LOCAL_MEASURED = ("10 of 19 single-session audio checks passed, every approval check among them; replies took 6 to 12 s "
+                  "and a Hebrew reply is not spoken: use headphones and English.")
 TEXT_VENDORS, AUDIO_VENDORS = {"anthropic", "gemini", "openai"}, {"soniox", "gemini", "openai", "elevenlabs"}
 
 
@@ -53,13 +57,17 @@ NO_KEY = """No model key found. One key is enough to start:
   OpenAI alone    export OPENAI_API_KEY=...
 
 The best setup uses four: Anthropic (brain, reader), Soniox (ears, echo guard), ElevenLabs (mouth), Gemini (gate).
-Or no key at all: see "Run without any cloud" in the README.
+Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it (docs/features/local.md).
 On macOS, keep each in the Keychain instead of exporting it; the command prompts, so the key stays out of your history:
 """ + "\n".join(f"  security add-generic-password -U -s {item} -a \"$USER\" -w" for _, item in vendors.KEYS.values())
 
 
 def preflight() -> int:
     """Run before the daemon starts: a missing key is reported here, in words, not as a daemon that died."""
+    if vendors.local_only() and not local.answering():
+        print(f"Fully local mode is on, but the local text model does not answer at "
+              f"{vendors.config().get('local_url') or local.url()}. Start it: pointe local start (or run pointe local).")
+        return 1
     try:
         for note in vendors.resolve(os.environ.get("CLAUDE_VOICE_FRONT", "brain")).notes:
             print(note)
@@ -100,9 +108,10 @@ def main() -> int:
     live, problems = "--live" in sys.argv, 0
     print("\nCoding agents:")
     print("\n".join(harnesses_here()))
-    print("\nKeys (value never shown):")
+    print("\nKeys (value never shown):" + (" none is read in fully local mode" if vendors.local_only() else ""))
     for vendor in vendors.KEYS:
         print(f"  {'found  ' if vendors.has(vendor) else 'missing'}  {vendor}")
+    print("\n" + "\n".join(local.status_lines()))
     print("\nRoles:")
     chosen = {}
     for role, env, order in ROLES:
@@ -117,7 +126,10 @@ def main() -> int:
     if chosen.get("ears") and chosen["ears"] != "soniox":
         print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
     present = {v for v in vendors.KEYS if vendors.has(v)}
-    print("\n" + "\n".join(advice(present, {c.split(":")[0] for c in chosen.values()})))
+    if vendors.local_only():
+        print(f"\nThis setup: fully local, no key read. {LOCAL_MEASURED} Back to vendors: pointe local off.")
+    else:
+        print("\n" + "\n".join(advice(present, {c.split(":")[0] for c in chosen.values()})))
     port = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
     with socket.socket() as s:
         in_use = s.connect_ex(("127.0.0.1", port)) == 0
@@ -138,4 +150,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    from loguru import logger
+
+    logger.remove()  # pipecat, imported for the local status, logs a banner: this output is for people
     sys.exit(main())
