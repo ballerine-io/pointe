@@ -222,7 +222,7 @@ def test_redact_withholds_common_credential_shapes_and_keeps_plain_text():
                  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJlLXg", "https://deploy:hunter2-synthetic@git.example.test/r"]:
         assert readout.redact(text) is None, text
     for text in ["run: git push origin dev", "run: pytest", "edit checkout.py", "run: rm -r build",
-                 "run: git push origin bal-10052-enterprise-sso-customer-guide", "run: npm run task-runner-integration",
+                 "run: git push origin fix-10052-invoice-export-guide", "run: npm run task-runner-integration",
                  "run: git checkout f3a9c2e1d4b5a6978877665544332211aabbccdd"]:  # a commit is not a secret
         assert readout.redact(text) == text, text
 
