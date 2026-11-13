@@ -70,7 +70,7 @@ class Connection:
             path = str(self.path or control_socket())
             self._socket = await unix_connect(path, uri="ws://localhost/", max_size=None, open_timeout=5)
             self._reader = asyncio.create_task(self._read(self._socket))
-            await self.request("initialize", {"clientInfo": {"name": "pointe", "version": "1"},
+            await self.request("initialize", {"clientInfo": {"name": "pointe", "version": "1.0.0"},
                                               "capabilities": {"experimentalApi": True}})
             await self._send({"jsonrpc": "2.0", "method": "initialized"})
             self.down_since = None
