@@ -21,10 +21,10 @@ Astral's official installer, then run `curl -LsSf https://astral.sh/uv/install.s
 
 | Setup | Keys | Measured quality (35 real-call checks) | A busy hour |
 |---|---|---|---|
-| Best | Anthropic, Soniox, ElevenLabs, Gemini | 33 of 35, works on laptop speakers | about $1 |
+| Best | Anthropic, Soniox, ElevenLabs, Gemini | 34 of 35, works on laptop speakers | about $1 |
 | Two keys | Anthropic, Soniox | 30 of 35 | about $1.20 |
-| Easiest start | Gemini only (free tier available) | 27 of 35, needs headphones, replies take ~4 s | about $0.40 |
-| One key, OpenAI | OpenAI only | 29 of 35, needs headphones, weak on Hebrew | about $0.60 |
+| Easiest start | Gemini only (free tier available) | 28 of 35, needs headphones, replies take ~4 s | about $0.40 |
+| One key, OpenAI | OpenAI only | 24 of 35, needs headphones, weak on Hebrew | about $0.60 |
 
 What each one does: Soniox hears you (the best speech recognition we measured, Hebrew and English), Anthropic's Claude
 decides what to say and reads your sessions, ElevenLabs is the voice, Gemini checks each request before it is sent.

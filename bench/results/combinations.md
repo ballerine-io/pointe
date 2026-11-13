@@ -1,19 +1,20 @@
-# Which vendors are covered, 2026-11-08
+# Which vendors are covered, 2026-11-13
 
 Each role is benchmarked on its own; a whole setup is then checked by the real audio suite (`tests/e2e/run_all.sh`), with each role set by `CLAUDE_VOICE_*`.
 
 ## Whole setups, real audio
 
-2026-11-08, the current code (WebSocket call, 19 single-session checks, 12 multi-session, 4 echo). One run each; only the listed keys
-were visible to the daemon (a Keychain shim refused the others). Counts are passes of 35.
+2026-11-13, the current code (WebSocket call, 19 single-session checks, 12 multi-session, 4 echo at speaker gain 0.5). One run each;
+only the listed keys were visible to the daemon (a test-only `security` shim on `PATH` refused the other Keychain items), and the
+Gemini key was the paid one. Counts are passes of 35; the single-session suite counts a skipped check as passed, as it did on 2026-11-08.
 
-| Keys | Ears / brain / reader / gate / mouth | Single | Multi | Echo | Total | Failures, from the daemon log |
-|---|---|---|---|---|---|---|
-| Soniox, Anthropic, Gemini, ElevenLabs (default) | stt-rt-v5 / sonnet / sonnet / flash-lite / eleven_v4_turbo | 18 | 11 | 4 | 33 | research report cut off by queued chat answers; the notes session's answer never spoken (daemon log not kept: cause not read) |
-| Anthropic, Soniox | stt-rt-v5 / sonnet / sonnet / haiku / soniox tts-rt-v2 | 18 | 10 | 2 (3 on a rerun) | 30 | research report cut off; two requests not sent in multi; barge-in missed once, then an echoed "Four" heard as the user |
-| Gemini only | gemini-3.5-transcribe-live / 3.8-flash / 3.8-flash / flash-lite / 3.8-flash-lite-tts | 14 | 10 | 3 | 27 | replies over the 3.5 s mark (3.8 to 4.7 s); Hebrew "yes" heard as "Ken", so the edit was never approved; the launch date answer refused by the speech check for saying "notes"; no echo guard |
-| OpenAI only | gpt-4o-transcribe / gpt-6-sol / gpt-6-sol / gpt-5.6-luna / gpt-4o-mini-tts | 17 | 11 | 1 | 29 | research report cut off; the Hebrew fix never landed (daemon log not kept: cause not read); no echo guard, so its own voice reached the brain |
-| Anthropic + ElevenLabs | scribe / sonnet / sonnet / haiku / eleven_v4_turbo | not run | | | | Scribe scored 68.9% intent, the weakest ears |
+| Keys | Ears / brain / reader / gate / mouth | Single | Multi | Echo | Total | 2026-11-08 | Failures, from the suite and daemon logs |
+|---|---|---|---|---|---|---|---|
+| Soniox, Anthropic, Gemini, ElevenLabs (default) | stt-rt-v5 / sonnet / sonnet / flash-lite / eleven_v4_turbo | 18 | 12 | 4 | 34 | 33 | research report not picked up: the bot came back to the earlier notes2.txt answer instead |
+| Anthropic, Soniox | stt-rt-v5 / sonnet / sonnet / haiku / soniox tts-rt-v2 | 19 | 8 (9 on a rerun) | 3 | 30 (31) | 30 | run 1: the test's call socket dropped mid-suite, so the last four multi checks failed together; the rerun failed on its own: the session list answer did not name both, an unnamed request went to the wrong session (routing: thread), a by-the-way question got no answer. Echo: after the barge-in the bot kept telling the story |
+| Gemini only | gemini-3.5-transcribe-live / 3.8-flash / 3.8-flash / flash-lite / 3.8-flash-lite-tts | 17 | 11 | 0 | 28 | 27 | replies over the 3.5 s mark (4.0 to 4.5 s); the launch date answer was spoken (daemon log) but the check heard none of it; no echo guard: its own "One sec." reached the brain as the user, and the user's "Stop" did not cut in |
+| OpenAI only | gpt-4o-transcribe / gpt-6-sol / gpt-6-sol / gpt-5.6-luna / gpt-4o-mini-tts | 15 | 9 | 0 | 24 | 29 | the scratch-file request was never sent while the README delete waited for a typed approval, so the two voice-approval checks had nothing to approve; research report not picked up; the Hebrew fix never landed; multi: session list cut short, the notes answer not reported, a by-the-way question unanswered; no echo guard |
+| Anthropic + ElevenLabs | scribe / sonnet / sonnet / haiku / eleven_v4_turbo | not run | | | | | Scribe scored 68.9% intent, the weakest ears |
 
 A Gemini key on the free tier runs out of quota within one run: the first Gemini-only attempt passed 3 of 19 on 429 errors.
 
