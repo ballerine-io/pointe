@@ -450,6 +450,11 @@ struct CallView: View {
                     .pickerStyle(.menu)
                     .accessibilityIdentifier("talkStyleSetting")
             }
+            Picker(selection: Binding(get: { prefs?.patience ?? TurnsCopy.defaultLevel }, set: { setPatience($0) })) {
+                ForEach(TurnsCopy.levels, id: \.value) { level in Text(level.label).tag(level.value) }
+            } label: { Label(TurnsCopy.setting, systemImage: "hourglass") }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("patienceSetting")
             if let line = status?.local?.short {
                 Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
             }
@@ -577,6 +582,7 @@ struct CallView: View {
         case .live:
             if challengeOn { return ChallengeCopy.state }
             if brainstorming { return "Brainstorming" }
+            if status?.hold != nil { return TurnsCopy.holding }
             if call.talk.ptt {
                 if talking { return call.talkStyle.talkingLine }
                 if speaking { return "Speaking" }
@@ -996,6 +1002,10 @@ struct CallView: View {
     }
 
     // MARK: actions
+
+    private func setPatience(_ level: String) {
+        Task { if !(await savePrefs(["turns.patience": level])) { problem = TurnsCopy.failed } }
+    }
 
     private func setMicrophone(_ mode: String) {
         let before = call.talk.mode

@@ -26,6 +26,7 @@ SCHEMA: dict[str, tuple] = {
     "show.on_phone": (False, bool),
     "whisper": (False, bool),  # whisper mode (whisper.py): a quieter bot, a raised microphone, short replies  # show while it says on the phone: off until enabled (the page always shows it)
     "dictionary.learn": (True, bool),  # a correction teaches the names it fixed; suggestions from session notes
+    "turns.patience": ("normal", ("quick", "normal", "patient")),  # wait before answering (turns.LEVELS): how long a pause ends a sentence
 }
 
 

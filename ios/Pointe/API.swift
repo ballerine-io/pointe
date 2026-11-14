@@ -11,6 +11,7 @@ struct API {
         let connected: Bool
         let sessions: [Session]
         let monologue: Monologue?
+        let hold: Hold?        // "don't interrupt me" (Turns.swift): quiet until a release; nil when none, or from an older Mac
         let talk: [Turn]?       // the last turns of the conversation, oldest first
         let hearing: String?    // the user's words while they speak
         let mode: String?       // "orchestrator" or "session"
@@ -352,6 +353,7 @@ struct API {
         var conflictsSpoken: Bool
         var watchApprove: Bool  // Approve on a notification, without Face ID
         var showOnPhone: Bool   // show while it says on this phone: off until turned on
+        var patience: String    // "turns.patience": quick, normal or patient (Turns.swift)
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
@@ -359,6 +361,7 @@ struct API {
             case conflictsOn = "conflicts.on", conflictsSpoken = "conflicts.spoken"
             case watchApprove = "alerts.watch_approve"
             case showOnPhone = "show.on_phone"
+            case patience = "turns.patience"
         }
 
         init(from decoder: Decoder) throws {
@@ -372,6 +375,7 @@ struct API {
             conflictsSpoken = (try? c.decode(Bool.self, forKey: .conflictsSpoken)) ?? true
             watchApprove = (try? c.decode(Bool.self, forKey: .watchApprove)) ?? false
             showOnPhone = (try? c.decode(Bool.self, forKey: .showOnPhone)) ?? false
+            patience = (try? c.decode(String.self, forKey: .patience)) ?? TurnsCopy.defaultLevel  // an older Mac: Normal
         }
     }
 
@@ -386,6 +390,11 @@ struct API {
     }
 
     struct Monologue: Decodable, Equatable {
+        let said: String
+    }
+
+    struct Hold: Decodable, Equatable {
+        let since: Double?
         let said: String
     }
 

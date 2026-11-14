@@ -830,6 +830,7 @@
         <button type="button" data-section="g-local" onclick="settingsJump('g-local')">Local mode</button>
         <button type="button" data-section="g-show" onclick="settingsJump('g-show')">Show while it says</button>
         <button type="button" data-section="g-mic" onclick="settingsJump('g-mic')">Microphone</button>
+        <button type="button" data-section="g-turns" onclick="settingsJump('g-turns')">Turn taking</button>
         <button type="button" data-section="g-conflicts" onclick="settingsJump('g-conflicts')">Conflict alarm</button>
         <button type="button" data-section="g-alerts" onclick="settingsJump('g-alerts')">Alerts</button>
       </nav>
@@ -985,6 +986,15 @@
               (the page or the iPhone app). For hold to talk from any app, a tool such as Raycast, Hammerspoon or BetterTouchTool runs
               the command with <b>on</b> on key down and <b>off</b> on key up.</div>
           </div>
+        </section>
+        <section class="group" id="g-turns">
+          <h3>Turn taking</h3>
+          <div class="card">
+            <div class="field">Wait before answering<select id="pref-patience"><option value="quick">Quick</option><option value="normal">Normal</option><option value="patient">Patient</option></select></div>
+          </div>
+          <div class="note foot">How long a pause ends your sentence. Normal waits about a second after a whole sentence and three after
+            a half one; Patient waits longer; Quick answers as soon as you stop. Say “don't interrupt me” or “hold on” and it stays
+            quiet until you say “go ahead” or “I'm done”, or until 8 seconds of quiet.</div>
         </section>
         <section class="group" id="g-conflicts">
           <h3>Conflict alarm</h3>
@@ -1714,6 +1724,7 @@
     else if (micError) [st, title] = ['off', 'Cannot hear you'];
     else if (pttMode() && pttOpen()) [st, title] = ['talking', pttTap() ? 'Talking · tap to send' : 'Talking'];
     else if (s.monologue) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', 'Brainstorming'];
+    else if (s.hold) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', 'Holding · say “go ahead” when you\'re done'];
     else if (s.challenge && s.challenge.on && !(muted && !pttMode()) && !s.speaking) [st, title] = [pttMode() ? 'ptt' : 'live', 'Challenging'];
     else if (muted && !pttMode()) [st, title] = ['muted', 'Muted'];
     else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking'];
@@ -2720,6 +2731,7 @@
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
     $('pref-consent').hidden = !prefs['meeting.consented'];
     $('pref-mic').value = prefs.microphone || 'always';
+    $('pref-patience').value = prefs['turns.patience'] || 'normal';
     $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
     $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
     $('pref-watch').checked = !!prefs['alerts.watch_approve'];
@@ -2976,7 +2988,7 @@
     if (!await saveSchedule()) return;
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
-      microphone: $('pref-mic').value, 'alerts.watch_approve': $('pref-watch').checked,
+      microphone: $('pref-mic').value, 'turns.patience': $('pref-patience').value, 'alerts.watch_approve': $('pref-watch').checked,
       'show.on_phone': $('pref-showphone').checked, 'conflicts.on': $('pref-conflicts').checked,
       'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken'})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); pttSetStyle($('pref-style').value); refresh(); }

@@ -71,11 +71,17 @@ _DISMISSALS = ("no worries", "stop asking")  # fine for a send, not for running 
 _UNFINISHED = {"and", "so", "then", "the", "that", "well", "um", "uh", "just", "את", "ו"}
 # Words a sentence never ends on: the rest is coming.
 _DANGLING = {"a", "an", "the", "and", "or", "but", "so", "because", "if", "than", "between", "whether", "my", "your", "our",
-             "their", "um", "uh",
-             "של", "את", "עם", "בין", "או", "כי", "אז", "ש", "ו", "ה", "ל", "ב", "מ", "כמו", "אם"}
+             "their", "his", "um", "uh", "er", "hmm", "which", "while", "after", "before", "until", "unless", "although",
+             "also", "plus", "versus", "very", "pretty", "quite", "basically", "actually",
+             "של", "את", "עם", "בין", "או", "כי", "אז", "ש", "ו", "ה", "ל", "ב", "מ", "כמו", "אם",
+             "אבל", "וגם", "ואז", "כאילו", "בעצם", "אחרי", "לפני", "עד", "כש", "בגלל", "למרות", "בשביל", "לגבי", "בתוך",
+             "ליד", "מול", "אצל", "בלי", "כדי", "שאני", "שאתה", "שהוא", "שזה", "שהם", "אה", "אמ"}
 # Words a question can end on ("what are you looking at", "what the date is"): unfinished only outside a question.
 _DANGLING_OUTSIDE_QUESTIONS = {"to", "at", "of", "for", "with", "about", "from", "into", "like", "is", "are", "was", "were",
-                               "על", "גם"}
+                               "when", "where", "who", "על", "גם"}
+# Fillers and connectives of more than one word ("and then", "you know"): a pause after them is a pause for the rest.
+_DANGLING_PHRASES = re.compile(r"\b(?:and then|i mean|you know|kind of|sort of|such as|rather than|as well as|in order to|"
+                               r"as soon as|or maybe|but then)\W*$|(?:^|\W)(?:ולא רק|וגם את|זה אומר ש|מה ש)\W*$")
 _QUESTION = re.compile(r"\b(what|where|who|whom|which|when|why|how|whose)\b|\?|\b(מה|איפה|מי|מתי|למה|איך|איזה)\b")
 
 
@@ -84,10 +90,14 @@ def unfinished(text: str) -> bool:
     stripped = text.strip()
     if re.search(r"(—|–|-|…|\.\.\.|,)$", stripped):
         return True
-    words = re.findall(r"[\w']+", stripped.lower())
+    lowered = re.sub(r"[.!?…]+$", "", stripped.lower()).rstrip()  # Soniox closes a cut clause with a full stop too
+    if _DANGLING_PHRASES.search(lowered):
+        return True
+    words = re.findall(r"[\w']+", lowered)
     if not words:
         return False
-    return words[-1] in _DANGLING or words[-1] in _DANGLING_OUTSIDE_QUESTIONS and not _QUESTION.search(stripped.lower())
+    before = " ".join(words[:-1])  # "it fails when" is cut; "tell me when" asks (the question word before the last)
+    return words[-1] in _DANGLING or words[-1] in _DANGLING_OUTSIDE_QUESTIONS and not _QUESTION.search(before)
 _ASKS_THE_USER = {"AskUserQuestion", "ExitPlanMode"}  # an answer, not an approval: "allow" would send none
 _FILE_VERBS = {"Edit": "edit", "MultiEdit": "edit", "NotebookEdit": "edit", "Write": "write", "Read": "read"}
 

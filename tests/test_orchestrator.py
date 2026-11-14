@@ -105,6 +105,8 @@ def d(tmp_path, monkeypatch):
                                                                ears="soniox", mouth="elevenlabs:m"))
     daemon.TOKEN = "secret"
     monkeypatch.setattr(daemon, "PERMISSION_ANSWER_SECS", float("inf"))  # these tests use small clock values
+    # A whole sentence is the turn at once here; the settle time itself is tested in tests/test_turn_taking.py.
+    monkeypatch.setitem(daemon.turns.LEVELS, "normal", daemon.turns.Patience(complete=0.0, unfinished=0.3, maximum=10.0))
     reg = daemon.REGISTRY
     reg.sessions.clear()
     reg.recent.clear()
@@ -3559,8 +3561,8 @@ def test_a_half_sentence_waits_for_the_rest_and_becomes_one_turn(d, monkeypatch)
     from pipecat.frames.frames import TranscriptionFrame
     from pipecat.processors.frame_processor import FrameDirection
 
-    monkeypatch.setattr(d, "HOLD_UNFINISHED_SECS", 0.3)
-    taken = []
+    taken = []  # the fixture's fast level: 0.3 s for a half sentence
+
 
     async def run():
         ears = d.SonioxEars()

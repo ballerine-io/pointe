@@ -46,6 +46,7 @@ import local
 import meeting as meetings
 import modes
 import speaker
+import turns
 from ptt import Ptt
 import vendors
 import vocabulary
@@ -300,8 +301,7 @@ _journal_sink = None
 MIRROR_RATE = 24000  # Gemini Live's output rate; a different rate reopens the stream
 SPOKEN_CHARS_PER_SEC = 14  # the bot's speech, measured on ElevenLabs: how far a cut-off reply got
 SWITCH_WORDS_SECS = 10.0  # a switch asked this recently still counts when another sentence came right after it
-HOLD_UNFINISHED_SECS = 2.5  # a sentence that ends on "at" or "between" waits this much silence for the rest
-HOLD_MAX_SECS = 10.0  # and while the user is talking again, up to this long
+# How long a final transcript waits for silence before it is the turn: turns.LEVELS, by the "turns.patience" setting.
 HEARING_SECS = 3.0  # live words older than this are stale: the user stopped
 ECHO_SETTLE_SECS = 0.8  # how far the mirror's transcript can trail the user's ears
 LEVEL = LevelGate()
@@ -1137,13 +1137,15 @@ class SonioxEars(FrameProcessor):
                 if ECHO.speaking:  # the user's words surfaced only when Soniox finalized them
                     logger.info(f"barge-in: {heard!r}")
                     await self.broadcast_interruption()
-                if self._held:
+                held = bool(self._held)
+                if held:
                     heard = f"{self._held} {heard}"
                     self._held = ""
-                if state.monologue is None and unfinished(heard):
-                    self._held = re.sub(r"[\s.—–…,-]+$", "", heard)
-                    logger.info(f"holding an unfinished sentence: {heard!r}")
-                    self.create_task(self._release_held(self._held, time.time()), f"held-{time.time()}")
+                wait = turns.settle(heard, held, _patience()) if state.monologue is None and state.hold is None else 0.0
+                if wait > 0:  # Soniox's endpoint is a candidate: the turn is the text once the user has been quiet this long
+                    self._held = re.sub(r"[\s.—–…,-]+$", "", heard) if unfinished(heard) else heard
+                    logger.info(f"settling {wait:.1f} s: {heard!r}")
+                    self.create_task(self._release_held(self._held, time.time(), wait), f"held-{time.time()}")
                     return
                 await self._take(heard)
             return
@@ -1176,18 +1178,63 @@ class SonioxEars(FrameProcessor):
             return False
         return True
 
-    async def _release_held(self, held: str, at: float) -> None:
-        """No more words came: the half sentence is the turn. While the user is talking again, the next final takes it."""
+    async def _release_held(self, held: str, at: float, wait: float) -> None:
+        """No more words came: the text is the turn. While the user is talking again, the next final takes it."""
         # Counted from when the voice stopped, not from the transcript, which comes later; and never while they talk.
-        while self._held == held and time.time() - at < HOLD_MAX_SECS and (
+        while self._held == held and time.time() - at < turns.maximum(_patience()) and (
                 state.user_started_at > state.user_stopped_at
-                or time.time() - max(state.user_stopped_at, state.user_heard_at) < HOLD_UNFINISHED_SECS):
+                or time.time() - max(state.user_stopped_at, state.user_heard_at) < wait):
             await asyncio.sleep(0.1)
         if self._held == held:
             self._held = ""
             await self._take(held)
 
+    async def _start_hold(self, heard: str) -> None:
+        """"Don't interrupt me": the bot stops talking and answers nothing until a release phrase or a long silence."""
+        await self.broadcast_interruption()
+        now = time.time()
+        state.hold = turns.Hold(since=now, said=[rest] if (rest := turns.before_hold(heard)) else [], last_at=now)
+        _remember("user", heard)
+        state.last_utterance, state.last_user_speech_at = heard, now  # its language; not fresh speech for a send
+        active = REGISTRY.active
+        if active and active.permission_id:
+            active.permission_delivered_at = float("inf")  # a yes said while holding approves nothing (modes.HOLD)
+        logger.info(f"hold: {heard!r}")
+        self.create_task(self._watch_hold(state.hold), f"hold-{now}")
+
+    async def _watch_hold(self, hold: turns.Hold) -> None:
+        while state.hold is hold:
+            quiet = time.time() - max(hold.last_at, state.user_stopped_at, state.user_heard_at)
+            if state.user_started_at <= state.user_stopped_at and quiet >= turns.HOLD_RELEASE_SILENCE_SECS:
+                logger.info(f"hold: released by {turns.HOLD_RELEASE_SILENCE_SECS:.0f} s of silence")
+                await self._release_hold(None)
+                return
+            await asyncio.sleep(0.2)
+
+    async def _release_hold(self, final: str | None) -> None:
+        """Everything said during the hold, then the release words, as one turn; then the news that waited."""
+        hold, state.hold = state.hold, None
+        if hold is None:
+            return
+        text = " ".join(hold.said + ([final] if final else [])).strip()
+        logger.info(f"hold released after {len(hold.said)} utterances: {final!r}")
+        if text:
+            await on_user_utterance(text)
+            await self.push_frame(InputTextRawFrame(text=text))
+        await _after_monologue()
+
     async def _take(self, heard: str) -> None:
+        if state.hold is not None and state.monologue is None:
+            if turns.release_intent(heard):
+                await self._release_hold(heard)
+                return
+            state.hold.said.append(heard)
+            state.hold.last_at = state.last_user_speech_at = time.time()
+            logger.info(f"hold: {heard!r}")
+            return
+        if state.monologue is None and state.meeting is None and turns.hold_intent(heard):
+            await self._start_hold(heard)
+            return
         if state.briefing_play is not None and state.monologue is None and (steer := briefing.control_intent(heard)):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
             await _no_also_denies(heard)
@@ -1526,6 +1573,7 @@ class State:
     monologue: list[str] | None = None  # thinking out loud: what was said so far; None when not in one
     monologue_since: float = 0.0
     monologue_held: list[tuple[str, bool]] = field(default_factory=list)  # session news that waits for its end
+    hold: turns.Hold | None = None  # "don't interrupt me": quiet until a release phrase or 8 s of silence (turns.py)
     challenge: object = None  # challenge.Challenge while the voice plays devil's advocate
     last_challenge: object = None  # the one that just ended: its verdict and record, for the screen
     context: LLMContext | None = None  # the call's local copy of the voice model's context
@@ -1963,6 +2011,10 @@ async def _build_and_play(ready: briefing.Briefing | None, since_words: str, sco
     play = state.briefing_play = BriefingPlay(briefing=b)
     BRIEFINGS.mark_heard(b)
     await _play_briefing(play)
+
+
+def _patience() -> str:
+    return PREFS.get("turns.patience")
 
 
 def _voice_busy() -> bool:
@@ -2497,6 +2549,8 @@ def current_mode() -> modes.Mode:
         return modes.MEETING_PARTICIPATING if state.meeting.mode == "participating" else modes.MEETING_LISTENING
     if state.monologue is not None:
         return modes.BRAINSTORM
+    if state.hold is not None:
+        return modes.HOLD
     if state.challenge is not None:
         return modes.CHALLENGE
     if state.drive.on():
@@ -5169,6 +5223,7 @@ async def status(request: Request):
             "idle_hangup": state.idle_hangup,
             "monologue": None if state.monologue is None else {"since": state.monologue_since,
                                                                "said": " ".join(state.monologue)[-600:]},
+            "hold": None if state.hold is None else state.hold.status(),
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
             "version": VERSION,

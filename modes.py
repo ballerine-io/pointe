@@ -41,7 +41,9 @@ DRIVE = Mode("drive", approvals="drive")  # short answers, and a yes only for wh
 # Devil's advocate (challenge.py): argues and looks things up, never acts. Permissions are read out and answered as in
 # conversation; session reports wait for its end (daemon.FeedInjector.inject), so holds_news stays off here.
 CHALLENGE = Mode("challenge", tools=READ_ONLY_TOOLS, nudges=False, sends=False)
-ALL = (CONVERSATION, BRAINSTORM, MEETING_LISTENING, MEETING_PARTICIPATING, CHALLENGE, DRIVE)
+# "Don't interrupt me" (turns.py): quiet until the user hands the turn back or 8 s of silence; a yes mid-thought approves nothing.
+HOLD = Mode("hold", approvals="tap", holds_news=True, nudges=False, reads_out=False, speech="never")
+ALL = (CONVERSATION, BRAINSTORM, MEETING_LISTENING, MEETING_PARTICIPATING, CHALLENGE, DRIVE, HOLD)
 
 
 def narrows(mode: Mode, base: Mode = CONVERSATION) -> bool:

@@ -22,7 +22,7 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 # Every id the page tests (tests/e2e/page_*.py) and the iPhone parity tests look up. Renaming one breaks them silently
 # until the e2e runs; here it fails at once.
-IDS = """settingsbtn settingssheet set-h pref-mode pref-lookups pref-lang pref-consent pref-consent-again pref-local pref-mic pref-style pref-key
+IDS = """settingsbtn settingssheet set-h pref-mode pref-lookups pref-lang pref-consent pref-consent-again pref-local pref-mic pref-style pref-key pref-patience
 pref-conflicts pref-conflicts-spoken pref-desktop pref-desktop-note pref-watch pref-showphone setok seterr brf-sched brf-time brf-days
 brf-deflen brf-connect brf-skipempty dict-open voicelock vl-h vl-intro vl-problem vl-enrol vl-line vl-bar vl-fill vl-pct vl-why vl-model
 vl-cancel vl-devices vl-needcall vl-actions vl-enrolbtn vl-deleteall vl-confirm vl-levels vl-levelhelp vl-err machines mach-h mach-list
