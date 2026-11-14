@@ -28,6 +28,16 @@ def get(name: str | None) -> Harness:
 
 
 # Set by the hub's node link (harnesses/remote.py): wraps the inner adapter of a session on another machine.
+#
+# The rest of the seam between the daemon and the node link (docs/design/multi-machine.md):
+#   RemoteHarness, beyond Harness: answer(session, request_id, verdict, how, spoken) -> bool sends `permission.answer`
+#     (how: voice | tap | notification; spoken only for voice) and returns the node's `permission.answered` ok;
+#     leave(session) sends `leave`.
+#   sessions.MACHINES: name -> sessions.Machine (online, since, rtt_ms, skew, os, key_fp, id), kept current by the link.
+#   Set by the daemon on HOST: register_remote(node_id, machine, entry) -> Session | None (an entry of `sessions`, or
+#     `session.joined`), remote_permission(session, request_id, tool, description, preview, readable) -> bool (False:
+#     not held here, so no `holding`), remote_resolved(session, request_id, how), call_state() -> {up, approvals_terminal}.
+#   Set by the link on HOST: on_call(call_state) to send `call` when it changes; invite() -> {code, expires_in} | None.
 _REMOTE: Callable[[Session, Harness], Harness] | None = None
 
 
@@ -43,7 +53,11 @@ def of(session: Session) -> Harness:
     inner = get(session.harness)
     if not session.machine:
         return inner
-    return _REMOTE(session, inner) if _REMOTE else UnknownHarness(inner.name)
+    if _REMOTE:
+        return _REMOTE(session, inner)
+    stand_in = UnknownHarness(inner.name)
+    stand_in.label, stand_in.agent = inner.label, inner.agent  # the feed and the brain still name its agent
+    return stand_in
 
 
 def labels() -> list[str]:

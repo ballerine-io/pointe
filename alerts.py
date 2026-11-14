@@ -37,13 +37,14 @@ def approvable(request_id: str) -> bool:
     return bool(_shown(request_id))
 
 
-def permission_alert(session: str, request_id: str, at: float) -> dict:
+def permission_alert(session: str, request_id: str, at: float, title: str = "") -> dict:
+    """`title` names the session for the person, when that differs from its name (its machine, "shop (devbox)")."""
     shown = _shown(request_id)
     tool = (_REQUESTS.get(request_id) or {}).get("tool", "")
     tool = tool if _TOOL.match(tool or "") else "a tool"
     body = shown or f"{tool}: open Pointe to see the exact request"
     return {"id": f"permission:{request_id}", "kind": "permission", "session": session, "request_id": request_id,
-            "title": f"{session} needs approval", "body": body, "text": body, "approvable": bool(shown), "at": at}
+            "title": f"{title or session} needs approval", "body": body, "text": body, "approvable": bool(shown), "at": at}
 
 
 def question_alert(session: str, need: str, since: float) -> dict:

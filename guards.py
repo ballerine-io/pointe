@@ -115,6 +115,18 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None) -> str
     return None if _words(lowered) & (_YES | _WEAK_YES) or any(p in lowered for p in _YES_PHRASES) else what
 
 
+def remote_readable(readable) -> str | None:
+    """A node's read-out of its own request, after the cheap checks readable_request ends with: the node built it from
+    the unmasked input the hub never sees, so the hub does not rebuild it from the masked preview. Anything that fails is
+    unreadable: tap only."""
+    if not isinstance(readable, str) or not readable.strip() or len(readable.split()) >= 25:
+        return None
+    if readout.redact(readable) is None or readout._hidden(readable):
+        return None
+    lowered = _lower(readable)
+    return None if _words(lowered) & (_YES | _WEAK_YES) or any(p in lowered for p in _YES_PHRASES) else readable
+
+
 _WAIT = {"wait", "רגע"}
 
 
@@ -253,7 +265,7 @@ _EVERYONE = r"everyone|everybody|all (?:the )?sessions|every session|all of them
 # Only where the words say who it is for: "tell everyone ...", "everyone, ...", "everyone except beta should ...".
 _BROADCAST = re.compile(
     rf"\b(?:{_TELL})\s+(?:{_EVERYONE}|each session)\b"
-    rf"|^\W*(?:(?:ok|okay|so|now|hey)\W+)*(?:{_EVERYONE})\s*"
+    rf"|^\W*(?:(?:ok|okay|so|now|hey)\W+)*(?:{_EVERYONE})\s*(?:(?:on|at|in) (?:the )?[\w-]+\s*)?"  # "everyone on devbox, ..."
     rf"(?:,|should|must|needs?\b|has to|have to|except|but\b|other than)"
     rf"|\b(?:send|say|broadcast|post)\b[^.;?!]*?\bto (?:all (?:the )?sessions|every session)\b"
     rf"|(?<!\w){_TELL_HE}\s*[למ]\s*-?\s*(?:כולם|כל הסשנים)(?!\w)"
@@ -286,7 +298,8 @@ _HOLD = re.compile(r"^\W*(?:(?:no,?\s+)?(?:not yet|hold off|hold on|wait)\W*(?:$
                    r"(?:עוד לא|חכה|רגע)\W*$)|\b(?:do not|don't) send (?:it|that|this|anything)\b|\bbefore you send\b|אל תשלח")
 _STATUS = ("need me", "needs me", "need from me", "needs from me", "need to do", "waiting on me", "waiting for me",
            "on me", "anything i need", "what's left", "what is left", "still open", "open items", "where are we",
-           "what's open", "מה אני צריך", "מה נשאר", "מה פתוח", "מי מחכה", "איפה אנחנו", "מחכה לי", "מחכים לי")
+           "what's open", "everywhere", "every machine", "all machines", "all the machines", "each machine",
+           "מה אני צריך", "מה נשאר", "מה פתוח", "מי מחכה", "איפה אנחנו", "מחכה לי", "מחכים לי", "בכל המכונות")
 
 
 def status_intent(text: str) -> bool:
