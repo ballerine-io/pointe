@@ -159,6 +159,28 @@ export it for their child processes. `tests/test_no_telemetry.py` fails if any m
 Measured: with it set, no connection to Microsoft in isolation or during an audio suite
 ([docs/features/voice-stays-local.md](docs/features/voice-stays-local.md#measured)).
 
+## Supply chain
+
+Pointe is installed from this repository and runs with your keys, so what reaches your machine matters as much as what
+leaves it. The inventory, with each source's pin and its verification, is
+[docs/security/supply-chain.md](docs/security/supply-chain.md).
+
+- **How it is built.** There is no build and no package: `claude plugin install` clones `main`, and everything runs
+  from that checkout with `uv run --locked`. Python packages come from PyPI at the exact versions and SHA-256s in
+  `uv.lock`; uv refuses a mismatch. The Node channel (launch mode only) installs with `npm ci --ignore-scripts` from
+  its lockfile. uv itself, when setup installs it, comes from the installer for one version, checked against a SHA-256
+  before it runs (`bin/install-uv`). Models are fetched by SHA-256 (release files) or by commit (Hugging Face), pinned
+  in `assets.py`, and refused on a mismatch. Nothing in `bin/`, `hooks/` or `plugin/` fetches code at run time; the page
+  loads nothing from outside your machine; onnxruntime's telemetry is off.
+- **How to verify.** In Claude Code's plugin folder: `git rev-parse HEAD` against the tag on GitHub, `uv lock --check`,
+  and `uv run --locked pytest -q tests/test_supply_chain.py`, which checks the pins, the allowlists and the egress list
+  against the tree. CI runs the same on every push, plus pip-audit over every locked version, and Dependabot opens
+  grouped weekly bumps that a person reviews (`.github/`).
+- **How to report.** A suspicious dependency, download or install step is a vulnerability: use GitHub's private
+  vulnerability reporting on this repository, as at the top of this page.
+- **Known limits.** You get `main` at install time (release tags are not signed yet); `bin/voice-connector` pulls
+  `twingate/connector:1`, a moving tag, by design; a model you name by hand (`pointe local --model`) is not pinned.
+
 ## Files
 
 `~/.claude-voice` is 0700. It holds the token, the page key, session notes, `daemon.log`, and `journal.jsonl`, a full record of
