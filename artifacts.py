@@ -135,12 +135,14 @@ class Turn:
                 continue  # an edit that did not apply, a read that failed
             self.found.append(draft)
 
-    def finish(self, final: str, cwd: str) -> list[dict]:
-        """The turn's artifacts, de-duplicated and ordered: failing tests, edited files, passing tests, read files."""
+    def finish(self, final: str, cwd: str, local: bool = True) -> list[dict]:
+        """The turn's artifacts, de-duplicated and ordered: failing tests, edited files, passing tests, read files.
+        A file the final message names is added only if it is on this disk: never with `local` False (a session on
+        another machine, whose folder is on its node)."""
         found, self.found, self._waiting = self.found, [], {}
         now = time.time()
         known = {a["path"] for a in found if a.get("path")}
-        for match in _PATH.finditer(final or ""):
+        for match in _PATH.finditer(final or "") if local else ():
             path = os.path.normpath(os.path.join(cwd or "/", match.group(1)))
             if path in known or not cwd:
                 continue

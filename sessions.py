@@ -649,7 +649,7 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
                 elif block.get("type") == "text" and block.get("text", "").strip():
                     text = block["text"].strip()
                     if message.get("stop_reason") == "end_turn":
-                        session.artifacts = session.turn.finish(text, session.cwd)
+                        session.artifacts = session.turn.finish(text, session.cwd, local=not session.machine)
                         _turn_ended(session)
                         on_turn_end()
                         await feed(session, f"{finished_tag(who)} {FINAL_MARK}{text}", True)

@@ -599,7 +599,6 @@ def test_drive_mode_reads_no_path_on_this_mac_for_a_remote_prompt(d, node, tmp_p
     assert looked == [] and not d.state.drive.is_road_safe("req1")
 
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_a_remote_turns_final_message_is_not_checked_against_files_on_this_mac(tmp_path, monkeypatch):
     """Turn.finish adds a 'read' artifact for a file named in the final message if os.path.isfile finds it at the
     session's folder: for a remote session that folder is on the node."""
