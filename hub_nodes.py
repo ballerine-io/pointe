@@ -593,6 +593,9 @@ class Hub:
             await self._send(node, encode("welcome", protocol=nodelink.PROTOCOL, call_up=call["up"],
                                           approvals_terminal=call["approvals_terminal"], vendors=self._vendors(),
                                           resume=self.mirrors.resume(node.id)))
+            for sid in self.mirrors.sids(node.id):
+                if self.mirrors.in_backlog(node.id, sid):  # left by a restart mid-backlog: the rest may never come
+                    self._backlog_wait(node, sid)
             tasks = {asyncio.create_task(self._read(node, ws, heartbeat)),
                      asyncio.create_task(self._keep_alive(node, ws, heartbeat))}
             try:

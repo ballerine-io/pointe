@@ -217,8 +217,7 @@ def test_a_backlog_arriving_at_a_new_gen_of_a_known_session_is_not_fed_as_news(w
 # ---------- 5. a hub restart in the middle of a backlog leaves the .part file forever ----------
 
 @pytest.mark.parametrize("rest", [
-    pytest.param(False, marks=pytest.mark.xfail(strict=True, reason="fixed in a later commit")),
-    True])
+False, True])
 def test_a_backlog_part_file_left_by_a_hub_restart_becomes_the_mirror(world, monkeypatch, rest):
     """With nothing more to come (the hub had it all) the .part must still be promoted; with the rest of the backlog
     still crossing, it stays history until it is all here."""

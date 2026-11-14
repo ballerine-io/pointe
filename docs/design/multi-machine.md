@@ -677,6 +677,8 @@ Deviations from the text above, decided while building:
   follower cannot see, and becomes the mirror after `HISTORY_QUIET_SECS` (1.5 s) without a frame. The follower opens it
   at its end, so history is in the record but not fed as news. A live line in the second after that can be missed (the
   follower polls for the file once a second), as for a local session's first lines.
+  A `.part` left by a hub restart mid-backlog gets the same quiet timer when its node reconnects: the rest of the
+  backlog (resumed from the `.offset` file) still goes to it, and if nothing more comes it becomes the mirror.
 - `pointe hub invite --name X` wins over the name the node offers.
 - A departed session's mirrors go 7 days after the hub first sees it off the voice (a `<id>.left` mark).
 - `pointe pair link|off|rotate`; `pointe hub invite|nodes|revoke` (daemon token); `pointe node ...` runs `node.py` in
