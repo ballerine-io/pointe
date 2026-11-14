@@ -2501,8 +2501,8 @@ def _start_dump(text: str = "") -> None:
         state.dump.state, state.dump.problem = "dumping", None
         logger.info("brain dump: adding more")
     else:
-        state.dump, state.monologue_held = braindump.Dump(), []
-        logger.info("brain dump started")
+        state.dump, state.monologue_held = braindump.Dump(route=braindump.capture(REGISTRY.mode, REGISTRY.active)), []
+        logger.info(f"brain dump started ({state.dump.route})")
     if rest := braindump.strip_start(text):
         state.dump.add(rest)
     active = REGISTRY.active
@@ -2520,15 +2520,26 @@ def _keep_thought(text: str) -> None:
 
 
 def _dump_target(words: str) -> None:
-    """"Send it to billing": the session named is preselected for the review; an unknown name is said on the screen."""
+    """"Send it to billing" (or "to the orchestrator"): preselected for the review; an unknown name is said on the screen."""
     named = braindump.send_target(words)
     if not named:
         return
     found = named_sessions(named, list(REGISTRY.sessions.values()))
-    if found:
-        state.dump.target = found[0].name
+    if braindump.orchestrator_named(named):
+        state.dump.target, state.dump.to_orchestrator = None, True
+    elif found:
+        state.dump.target, state.dump.to_orchestrator = found[0].name, False
     else:
         state.dump.problem = f"No session called {named}."
+
+
+def _dump_send_to() -> dict:
+    """Where Send goes by default (braindump.send_to): the routing when the dump started, against the sessions now."""
+    return braindump.send_to(state.dump, REGISTRY.mode, REGISTRY.active, {s.id: s.name for s in REGISTRY.sessions.values()})
+
+
+def _dump_status() -> dict | None:
+    return {**state.dump.status(), "send_to": _dump_send_to()} if state.dump is not None else None
 
 
 async def _finish_dump(words: str = "") -> None:
@@ -2586,16 +2597,22 @@ async def _discard_dump() -> None:
         await _after_quiet()
 
 
-async def _send_dump(name: str) -> dict:
-    """The reviewed prompt to the named session (the active one when none is named), word for word, by the user's
-    explicit send. The rules that are not judgment still hold: no send during a meeting, never a relay of an approval
-    the session takes only typed, and production credentials are refused once with the risk stated."""
+async def _send_dump(name: str = "", orchestrator: bool = False) -> dict:
+    """The reviewed prompt to the named session, or to the orchestrator, or where `_dump_send_to` says when neither is
+    named. To a session: word for word, by the user's explicit send. The rules that are not judgment still hold: no
+    send during a meeting, never a relay of an approval the session takes only typed, and production credentials are
+    refused once with the risk stated."""
     dump = state.dump
     if dump is None or dump.state != "review":
         raise HTTPException(status_code=409, detail="nothing to send: say done first")
-    target = next((s for s in REGISTRY.sessions.values() if s.name == name), None) if name else REGISTRY.active
+    if not name and not orchestrator:
+        default = _dump_send_to()
+        name, orchestrator = default["session"] or "", default["orchestrator"]
+    if orchestrator:
+        return await _dump_to_orchestrator(dump)
+    target = next((s for s in REGISTRY.sessions.values() if s.name == name), None)
     if target is None:
-        raise HTTPException(status_code=409, detail=f"no session called {name}" if name else "no session to send to")
+        raise HTTPException(status_code=409, detail=f"no session called {name}")
     if not online(target):
         raise HTTPException(status_code=409, detail=_offline_line(target))
     if not current_mode().sends:
@@ -2628,6 +2645,20 @@ async def _send_dump(name: str) -> dict:
     return {"sent_to": target.name}
 
 
+async def _dump_to_orchestrator(dump) -> dict:
+    """The reviewed prompt as the user's turn to the voice model, the way words typed in the app reach it (`_user_text`):
+    it answers, or routes it to a session through send_to_claude_code and every check that holds there."""
+    if state.conn is None:
+        raise HTTPException(status_code=409, detail="no call is up: the orchestrator answers on a call")
+    if not current_mode().sends:
+        raise HTTPException(status_code=409, detail="a meeting is on: end it first")
+    logger.info(f"-> orchestrator: brain dump ({len(dump.text)} chars, sent by the user)")
+    state.dump = None  # first: the words below are a request, not a review command
+    _save_dump()
+    await _user_text(braindump.orchestrator_turn(dump.text))
+    return {"sent_to": "orchestrator"}
+
+
 async def _dump_words(text: str) -> bool:
     """Spoken or typed words, against the dump: a thought while dumping, done, a review command, or the start of one.
     True when the words were taken; nothing taken here reaches the voice model."""
@@ -2644,15 +2675,16 @@ async def _dump_words(text: str) -> bool:
         state.last_utterance = text  # its language; never fresh speech for a send
         if asked == "send":
             named = braindump.send_target(text)
-            found = named_sessions(named, list(REGISTRY.sessions.values())) if named else []
-            if named and not found:
+            to_orchestrator = braindump.orchestrator_named(named)
+            found = named_sessions(named, list(REGISTRY.sessions.values())) if named and not to_orchestrator else []
+            if named and not found and not to_orchestrator:
                 state.dump.problem = f"No session called {named}."
                 _save_dump()
                 await say(f"[brain dump] The user asked to send it to \"{named}\", and no session has that name. Say so in "
                           "one short sentence and name the sessions there are. Do not call any tool.")
                 return True
             try:
-                await _send_dump(found[0].name if found else (state.dump.target or ""))
+                await _send_dump(found[0].name if found else "", orchestrator=to_orchestrator)
             except HTTPException as e:
                 state.dump.problem = e.detail
                 _save_dump()
@@ -4994,8 +5026,9 @@ async def listen(request: Request):
 
 @app.post("/voice/dump")
 async def dump_action(request: Request):
-    """The brain dump's buttons: {action: start | done | more | edit | discard | send | read, text?, session?}. The same
-    as the spoken words; send delivers the reviewed prompt word for word to the named session (the active one by default)."""
+    """The brain dump's buttons: {action: start | done | more | edit | discard | send | read, text?, session?, to?}. The
+    same as the spoken words; send delivers the reviewed prompt to the named session, or to the orchestrator with
+    to = "orchestrator", or where status brain_dump.send_to says when neither is given."""
     body = await _body(request)
     action = body.get("action")
     if action not in ("start", "done", "more", "edit", "discard", "send", "read"):
@@ -5033,14 +5066,14 @@ async def dump_action(request: Request):
             raise HTTPException(status_code=409, detail="no brain dump to discard")
         await _discard_dump()
     elif action == "send":
-        extra = await _send_dump(str(body.get("session") or ""))
+        extra = await _send_dump(str(body.get("session") or ""), orchestrator=body.get("to") == "orchestrator")
     elif action == "read":
         if state.dump is None or state.dump.prompt is None:
             raise HTTPException(status_code=409, detail="nothing to read yet")
         if state.conn is None:
             raise HTTPException(status_code=409, detail="no call is up")
         await say(braindump.read_line(state.dump))
-    return {"brain_dump": state.dump.status() if state.dump is not None else None, **extra}
+    return {"brain_dump": _dump_status(), **extra}
 
 
 TALK_ACTIONS = {"on": True, "off": False, "toggle": None}
@@ -5424,7 +5457,7 @@ async def status(request: Request):
             "problem": current_problem(),
             "idle_hangup": state.idle_hangup,
             "monologue": state.dump.compat() if _dumping() else None,  # an older app reads this
-            "brain_dump": state.dump.status() if state.dump is not None else None,
+            "brain_dump": _dump_status(),
             "hold": None if state.hold is None else state.hold.status(),
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,

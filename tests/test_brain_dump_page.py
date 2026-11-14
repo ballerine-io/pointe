@@ -1,6 +1,8 @@
 """The brain dump on the page (ui.html), rendered in a headless Chrome against the stub Mac (tests/page_rig.py): the panel
-while dumping shows every thought and the live line; Done posts done and the review sheet opens with the prompt, the session
-picker and Send; Send takes two clicks and posts the session; Add more, Discard (two clicks) and Close do what they say; the
+while dumping shows every thought and the live line; Done posts done and the review sheet opens with the prompt, the To:
+picker (Orchestrator first, then the sessions; preselected where the user was when the dump started) and Send; Send takes
+two clicks and posts the session or the orchestrator; a pinned session that is gone is said; Add more, Discard (two clicks)
+and Close do what they say; the
 dock button reads Brain dump, Done, Review; the Drive button is gone and the drive bar still shows while drive mode is on.
 Skipped where that Chrome is not installed (CI on Linux).
 
@@ -25,9 +27,13 @@ THOUGHTS = ["so the checkout keeps timing out for some customers",
             "we must not touch the tax service this sprint"]
 
 
+ORCHESTRATOR = {"orchestrator": True, "session": None, "gone": None}
+
+
 def dumping(thoughts=THOUGHTS, state="dumping", prompt=None, **more) -> dict:
     return {"id": "d1", "state": state, "since": time.time() - 60, "thoughts": [{"text": t, "at": time.time()} for t in thoughts],
-            "dropped": 0, "prompt": prompt, "target": None, "problem": None, "resumed": False, "fallback": False, **more}
+            "dropped": 0, "prompt": prompt, "target": None, "problem": None, "resumed": False, "fallback": False,
+            "send_to": ORCHESTRATOR, **more}
 
 
 PROMPT = {"goal": "stop the checkout timing out for some customers", "context": ["the retry loop retries five times with no backoff"],
@@ -120,8 +126,8 @@ def test_done_opens_the_review_and_send_takes_two_clicks_and_names_the_session()
             await _shot(page, "web-2-review")
             assert got["text"].startswith("Goal\n" + THOUGHTS[0] + "\n\nContext\n- " + THOUGHTS[1]) and "Brain dump from" not in got["text"]
             assert got["h"].startswith("Your brain dump, structured") and got["label"] == "Review" and got["panel"] and got["fallback"]
-            assert got["options"] == ["s0-shop", "s1-api", "s2-mobile"] and got["picked"] == "s0-shop"
-            assert got["to"] == "To:" and got["send"] == "Send" and got["sendLabel"] == "Send to s0-shop"  # the picker says where, Send says what
+            assert got["options"] == ["", "s0-shop", "s1-api", "s2-mobile"] and got["picked"] == ""  # orchestrator mode: the orchestrator
+            assert got["to"] == "To:" and got["send"] == "Send" and got["sendLabel"] == "Send to Orchestrator"  # the picker says where, Send says what
             assert got["primaries"] == ["dump-send"] and got["discardRed"] == "rgb(255, 69, 58)" and not got["discardInRow"]  # Discard apart, destructive
             # pick another session, then send: the first click asks, the second posts
             await page.eval("$('dump-session').value = 's1-api'; $('dump-session').dispatchEvent(new Event('change'))")
@@ -135,6 +141,78 @@ def test_done_opens_the_review_and_send_takes_two_clicks_and_names_the_session()
             assert sent and [b for b in _posts(stub) if b.get("action") == "send"] == [{"action": "send", "session": "s1-api"}]
             gone = await _until(page, "!document.getElementById('dumpsheet').classList.contains('open') && $('listen-label').textContent === 'Brain dump'", 6)
             assert gone
+        finally:
+            await _close(stub, browser)
+
+    asyncio.run(run())
+
+
+def _picker(page):
+    return page.eval("""({options: [...$('dump-session').options].map(o => [o.value, o.textContent]), picked: $('dump-session').value,
+                          sendLabel: $('dump-send').getAttribute('aria-label'), gone: $('dump-gone').hidden ? null : $('dump-gone').textContent,
+                          lede: document.querySelector('#dumpsheet .lede').textContent})""")
+
+
+@needs_chrome
+def test_the_picker_lists_the_orchestrator_first_and_defaults_to_it_in_orchestrator_mode():
+    async def run():
+        status = fixture(sessions=2, connected=True)
+        status["brain_dump"] = dumping(state="review", prompt=dict(PROMPT))
+        stub, browser, page = await _page(status)
+        try:
+            assert await _until(page, "document.getElementById('dumpsheet').classList.contains('open')", 6)
+            got = await _picker(page)
+            await _shot(page, "web-4-orchestrator")
+            assert got["options"] == [["", "Orchestrator"], ["s0-shop", "s0-shop"], ["s1-api", "s1-api"]], got
+            assert got["picked"] == "" and got["sendLabel"] == "Send to Orchestrator" and got["gone"] is None
+            assert got["lede"] == "In your words. Edit it, add more, or send it."
+            await page.eval("document.getElementById('dump-send').click()")
+            await page.eval("document.getElementById('dump-send').click()")
+            sent = await _until(page, "$('dump-ok').textContent === 'Sent to Orchestrator.'", 6)
+            assert sent and [b for b in _posts(stub) if b.get("action") == "send"] == [{"action": "send", "to": "orchestrator"}]
+        finally:
+            await _close(stub, browser)
+
+    asyncio.run(run())
+
+
+@needs_chrome
+def test_the_picker_defaults_to_the_pinned_session_and_the_users_pick_survives_a_refresh():
+    async def run():
+        status = fixture(sessions=3, connected=True)
+        status["brain_dump"] = dumping(state="review", prompt=dict(PROMPT), send_to={"orchestrator": False, "session": "s1-api", "gone": None})
+        stub, browser, page = await _page(status)
+        try:
+            assert await _until(page, "document.getElementById('dumpsheet').classList.contains('open')", 6)
+            got = await _picker(page)
+            assert got["picked"] == "s1-api" and got["sendLabel"] == "Send to s1-api" and got["options"][0] == ["", "Orchestrator"], got
+            await page.eval("$('dump-session').value = ''; $('dump-session').dispatchEvent(new Event('change'))")
+            stub.status["sessions"] = stub.status["sessions"][:2]  # a refresh that redraws the picker keeps the user's choice
+            assert await _until(page, "$('dump-session').options.length === 3", 4)
+            assert (await _picker(page))["picked"] == ""
+            await page.eval("document.getElementById('dump-send').click()")
+            await page.eval("document.getElementById('dump-send').click()")
+            assert await _until(page, "$('dump-ok').textContent === 'Sent to Orchestrator.'", 6)
+            assert [b for b in _posts(stub) if b.get("action") == "send"] == [{"action": "send", "to": "orchestrator"}]
+        finally:
+            await _close(stub, browser)
+
+    asyncio.run(run())
+
+
+@needs_chrome
+def test_a_pinned_session_that_is_gone_falls_back_to_the_orchestrator_and_the_sheet_says_so():
+    async def run():
+        status = fixture(sessions=2, connected=True)
+        status["brain_dump"] = dumping(state="review", prompt=dict(PROMPT), send_to={"orchestrator": True, "session": None, "gone": "river-lantern"})
+        stub, browser, page = await _page(status)
+        try:
+            assert await _until(page, "document.getElementById('dumpsheet').classList.contains('open')", 6)
+            got = await _picker(page)
+            await _shot(page, "web-5-gone")
+            assert got["picked"] == "" and got["gone"] == "river-lantern is gone, so this goes to the orchestrator.", got
+            await page.eval("$('dump-session').value = 's0-shop'; $('dump-session').dispatchEvent(new Event('change'))")
+            assert (await _picker(page))["gone"] is None  # picked a session: the note no longer applies
         finally:
             await _close(stub, browser)
 

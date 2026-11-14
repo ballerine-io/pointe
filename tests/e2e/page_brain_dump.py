@@ -1,8 +1,9 @@
 """Brain dump in the page, live: a stand-in user on a real call (synthetic speech over the page's own call socket) and the
 page in a real (headless) Chrome, with one synthetic session (lantern) listening on an inbox socket. "Brain dump." opens the panel; three thoughts land on
 it and the voice says nothing; "Okay, done." structures them and the review opens with the prompt; nothing reached lantern
-yet; Send (two clicks) delivers the text on screen, word for word, and the voice says it went. A second dump, started from
-the dock, is discarded by voice and reaches nothing. Every session, path and thought here is made up.
+yet; the To: picker defaults to Orchestrator (the call is in orchestrator mode); Send (two clicks) to lantern delivers the
+text on screen, word for word, and the voice says it went. A second dump, sent to the orchestrator by default, becomes the
+user's turn and the voice answers it. A third, started from the dock, is discarded by voice and reaches nothing. Every session, path and thought here is made up.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-dump CLAUDE_VOICE_DAEMON_PORT=7996 CLAUDE_VOICE_TLS_PORT=7596 POINTE_CHROME_PORT=7999 \
      uv run python -u -I tests/e2e/page_brain_dump.py
@@ -156,6 +157,11 @@ async def main() -> None:
 
             # ---- Send to lantern, two clicks: the text on screen, word for word ----
             on_screen = await page.js("document.getElementById('dump-text').value")
+            picker = await page.js("({picked: $('dump-session').value, first: $('dump-session').options[0].textContent, "
+                                   "label: $('dump-send').getAttribute('aria-label')})")
+            check("the To: picker lists Orchestrator first and defaults to it: the dump started in orchestrator mode",
+                  picker == {"picked": "", "first": "Orchestrator", "label": "Send to Orchestrator"}
+                  and (dump() or {}).get("send_to", {}).get("orchestrator") is True, picker=picker, mode=status()["mode"])
             await page.js("$('dump-session').value = 'lantern'; $('dump-session').dispatchEvent(new Event('change'))")
             await page.js("document.getElementById('dump-send').click()")
             asks = await page.js("document.getElementById('dump-send').textContent")
@@ -172,7 +178,28 @@ async def main() -> None:
                   asks=asks, inbox=body[:300])
             await quiet()
 
-            # ---- a second dump from the dock, discarded by voice ----
+            # ---- a second dump, sent to the orchestrator by default: the user's turn, and the voice answers ----
+            await page.js("document.getElementById('listen').click()")
+            await until(lambda: (dump() or {}).get("state") == "dumping", 10)
+            await say(browser, "What do you think makes a good name for a cache that lives per merchant?", settle=3)
+            await until(lambda: (dump() or {}).get("thoughts"), 15)
+            await page.js("document.getElementById('dump-done').click()")
+            await until(lambda: (dump() or {}).get("state") == "review", 45)
+            await page.until("document.getElementById('dumpsheet').classList.contains('open') && document.getElementById('dump-text').value", 10)
+            await quiet()
+            t2 = time.time()
+            await page.js("document.getElementById('dump-send').click()")
+            await page.js("document.getElementById('dump-send').click()")
+            handed = await until(lambda: dump() is None and any(t["who"] == "user" and t["text"].startswith("My brain dump, structured")
+                                                                for t in status().get("talk", [])), 15)
+            answered = await until(lambda: spoke_since(t2), 30)
+            await page.shot("dump-4-orchestrator")
+            check("Send with the default hands the dump to the orchestrator as the user's turn, and the voice answers it",
+                  bool(handed) and bool(answered) and bool(log_lines(r"-> orchestrator: brain dump")),
+                  talk=status().get("talk", [])[-2:], spoke=answered[-1:] if answered else [])
+            await quiet()
+
+            # ---- a third dump from the dock, discarded by voice ----
             before = len(INBOX)
             await page.js("document.getElementById('listen').click()")
             again = await until(lambda: (dump() or {}).get("state") == "dumping", 10)

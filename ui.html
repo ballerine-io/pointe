@@ -405,7 +405,7 @@
   /* the review: the structured prompt, editable, and where it goes */
   #dumpsheet .sheetbox { width: min(680px, 100%); }
   #dump-text { min-height: 220px; font: 15px/1.5 'Inter', sans-serif; white-space: pre-wrap; }
-  #dump-fallback { color: var(--orange); font-size: 13px; }
+  #dump-fallback, #dump-gone { color: var(--orange); font-size: 13px; }
   /* To: a field, like Mail's, so it never reads as a second button; Send is the one primary action */
   #dump-to { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 0 0 14px; border-radius: 12px; border: 1px solid var(--line);
              background: var(--card); cursor: pointer; }
@@ -842,10 +842,11 @@
 <div class="sheetbg" id="dumpsheet">
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="dumprev-h">
     <h2 id="dumprev-h" tabindex="-1">Your brain dump, structured<button class="x" onclick="closeDump()" aria-label="Close">×</button></h2>
-    <div class="lede">In your words. Edit it, add more, or send it to a session.</div>
+    <div class="lede">In your words. Edit it, add more, or send it.</div>
     <div id="dump-fallback" hidden>Pointe could not structure it; this is what you said.</div>
     <textarea id="dump-text" dir="auto" aria-label="The prompt" onchange="dumpEdit()"></textarea>
-    <label id="dump-to"><span>To:</span><select id="dump-session" aria-label="Send to session"></select></label>
+    <label id="dump-to"><span>To:</span><select id="dump-session" aria-label="Send to"></select></label>
+    <div id="dump-gone" role="status" hidden></div>
     <div class="ok" id="dump-ok" role="status"></div><div class="err" id="dump-err" role="alert"></div>
     <button id="dump-send" onclick="dumpSend()">Send</button>
     <div class="row" id="dump-secondary">
@@ -1678,7 +1679,7 @@
     hint: 'When you\'re done: tap Done, or say “done” or “over to you”.',
     structuring: 'Structuring your thoughts…',
     reviewTitle: 'Your brain dump, structured',
-    reviewLede: 'In your words. Edit it, add more, or send it to a session.',
+    reviewLede: 'In your words. Edit it, add more, or send it.',
     reviewHint: 'Or say “send it to …”, “add more”, “read it back” or “discard”.',
     addMore: 'Add more',
     discard: 'Discard',
@@ -1688,6 +1689,8 @@
     sendSure: 'Tap again to send',
     sendTo: 'Send to',
     sent: 'Sent to',
+    orchestrator: 'Orchestrator',
+    gone: 'is gone, so this goes to the orchestrator.',
     readBack: 'Read it back',
     fallback: 'Pointe could not structure it; this is what you said.',
     resumed: 'Still here from earlier.',
@@ -1697,7 +1700,9 @@
   const dumpOf = s => (s && s.brain_dump) || null;
   const dumping = s => { const d = dumpOf(s); return !!(d && d.state !== 'review'); };
   const dumpClosed = () => sessionStorage.getItem('pointe.dumpClosed') || '';
-  let dumpShown = '', dumpSure = 0, dumpDiscardSure = 0;
+  let dumpShown = '', dumpSure = 0, dumpDiscardSure = 0, dumpPicked = null;  // dumpPicked: {id, value}, the To: the user chose for this dump
+  // To: the orchestrator is the empty value (no session has an empty name); a session is its name
+  const dumpToName = v => v ? short(v) : DUMP_COPY.orchestrator;
   async function dumpPost(body) {
     const r = await fetch('/voice/dump', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
     const j = await r.json().catch(() => ({}));
@@ -1739,14 +1744,13 @@
   }
   async function dumpSend() {  // two clicks, no dialog: the first names where it goes, the second sends
     const session = $('dump-session').value;
-    if (!session) { $('dump-err').textContent = 'No session to send to.'; return; }
     if (Date.now() > dumpSure) { dumpSure = Date.now() + 4000; dumpSendLabel(true);
       setTimeout(() => { if (Date.now() > dumpSure) dumpSendLabel(false); }, 4100); return; }
     dumpSure = 0; dumpSendLabel(false); $('dump-send').disabled = true; $('dump-err').textContent = '';
     try {
       await dumpEdit();  // what is on screen is what goes
-      await dumpPost({action: 'send', session});
-      $('dump-ok').textContent = `${DUMP_COPY.sent} ${short(session)}.`;
+      await dumpPost(session ? {action: 'send', session} : {action: 'send', to: 'orchestrator'});
+      $('dump-ok').textContent = `${DUMP_COPY.sent} ${dumpToName(session)}.`;
       setTimeout(() => { closeSheet('dumpsheet'); $('dump-ok').textContent = ''; }, 1200);
     } catch (e) { $('dump-err').textContent = e.message; }
     $('dump-send').disabled = false;
@@ -1756,7 +1760,7 @@
     const b = $('dump-send');
     b.textContent = sure ? DUMP_COPY.sendSure : DUMP_COPY.send;
     b.classList.toggle('sure', sure);
-    b.setAttribute('aria-label', sure ? DUMP_COPY.sendSure : `${DUMP_COPY.sendTo} ${short($('dump-session').value || '')}`.trim());
+    b.setAttribute('aria-label', sure ? DUMP_COPY.sendSure : `${DUMP_COPY.sendTo} ${dumpToName($('dump-session').value)}`);
   }
   function closeDump() {
     const d = dumpOf(status);
@@ -1786,22 +1790,33 @@
     // the review: opens once per dump when the prompt arrives; Close hides it here until Review is pressed
     const review = !!(d && d.state === 'review' && d.prompt);
     if (!review) { if ($('dumpsheet').classList.contains('open')) closeSheet('dumpsheet'); dumpShown = ''; return; }
-    const key = `${d.id}:${d.prompt.text}:${d.target || ''}:${d.problem || ''}:${(s.sessions || []).map(x => x.name).join(',')}`;
+    const key = `${d.id}:${d.prompt.text}:${JSON.stringify(d.send_to || null)}:${d.problem || ''}:${(s.sessions || []).map(x => x.name).join(',')}`;
     if (key === dumpShown) return;
     const fresh = !dumpShown.startsWith(d.id + ':');
     dumpShown = key;
     if (document.activeElement !== $('dump-text')) $('dump-text').value = d.prompt.text || '';
     $('dump-fallback').hidden = !d.fallback;
     const sessions = (s.sessions || []).filter(x => x.online !== false);
-    const pick = $('dump-session'), was = pick.value;
-    pick.replaceChildren(...sessions.map(x => { const o = el('option', '', short(x.name)); o.value = x.name; return o; }));
-    pick.value = [d.target, was, s.active].find(n => n && sessions.some(x => x.name === n)) || (sessions[0] || {}).name || '';
+    const pick = $('dump-session'), to = d.send_to || {orchestrator: true};
+    pick.replaceChildren(...['', ...sessions.map(x => x.name)].map(v => { const o = el('option', '', dumpToName(v)); o.value = v; return o; }));
+    // the user's choice for this dump stands; else where the Mac says it goes: the routing when the dump started
+    const chosen = dumpPicked && dumpPicked.id === d.id && [...pick.options].some(o => o.value === dumpPicked.value) ? dumpPicked.value : null;
+    pick.value = chosen ?? (!to.orchestrator && sessions.some(x => x.name === to.session) ? to.session : '');
+    dumpGone(d);
     if (Date.now() > dumpSure) dumpSendLabel(false);
-    $('dump-send').disabled = !pick.value;
     $('dump-err').textContent = d.problem || '';
     if (fresh && d.id !== dumpClosed()) openSheet('dumpsheet', 'dump-text');
   }
-  $('dump-session').addEventListener('change', () => { dumpSure = 0; dumpSendLabel(false); });
+  function dumpGone(d) {  // the pinned session left: the default fell back to the orchestrator, and the sheet says why
+    const gone = d && d.send_to && d.send_to.gone, show = !!gone && $('dump-session').value === '';
+    $('dump-gone').hidden = !show;
+    $('dump-gone').textContent = show ? `${short(gone)} ${DUMP_COPY.gone}` : '';
+  }
+  $('dump-session').addEventListener('change', () => {
+    const d = dumpOf(status);
+    if (d) dumpPicked = {id: d.id, value: $('dump-session').value};
+    dumpSure = 0; dumpSendLabel(false); dumpGone(d);
+  });
   function endCall() {  // hung up by the user: a prompt the voice holds goes back to the terminal now
     wantCall = false; clearTimeout(retry); retry = null; callNote = '';
     fetch('/voice/hung-up', {method: 'POST'});

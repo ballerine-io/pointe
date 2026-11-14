@@ -19,6 +19,14 @@ extension API {
         var text: String
     }
 
+    /// Where Send goes unless the user picks another (braindump.send_to): the routing when the dump started. `gone`: the
+    /// pinned session that left, so the default fell back to the orchestrator.
+    struct DumpSendTo: Decodable, Equatable {
+        var orchestrator: Bool
+        var session: String?
+        var gone: String?
+    }
+
     /// Dumping, structuring, or in review; nil when there is none.
     struct BrainDump: Decodable, Equatable {
         var id: String
@@ -31,6 +39,7 @@ extension API {
         var problem: String?         // why the last action was refused
         var resumed: Bool?           // left from a dropped call or the last run
         var fallback: Bool?          // the model could not structure it: the prompt is the thoughts as said
+        var send_to: DumpSendTo?     // nil from a Mac before 1.7, which cannot send to the orchestrator
 
         var isDumping: Bool { state != "review" }
         var inReview: Bool { state == "review" && prompt != nil }
@@ -52,7 +61,7 @@ enum BrainDumpCopy {
     static let hint = "When you're done: tap Done, or say “done” or “over to you”."
     static let structuring = "Structuring your thoughts…"
     static let reviewTitle = "Your brain dump, structured"
-    static let reviewLede = "In your words. Edit it, add more, or send it to a session."
+    static let reviewLede = "In your words. Edit it, add more, or send it."
     static let reviewHint = "Or say “send it to …”, “add more”, “read it back” or “discard”."
     static let addMore = "Add more"
     static let discard = "Discard"
@@ -62,6 +71,8 @@ enum BrainDumpCopy {
     static let sendSure = "Tap again to send"
     static let sendTo = "Send to"
     static let sent = "Sent to"
+    static let orchestrator = "Orchestrator"
+    static let gone = "is gone, so this goes to the orchestrator."
     static let readBack = "Read it back"
     static let fallback = "Pointe could not structure it; this is what you said."
     static let resumed = "Still here from earlier."
@@ -74,9 +85,40 @@ enum BrainDumpCopy {
         return dump.isDumping ? done : review
     }
 
-    /// Which session the send goes to: the one named by voice, else the one picked here, else the active one.
-    static func target(_ dump: API.BrainDump, picked: String?, active: String?, sessions: [String]) -> String? {
-        [dump.target, picked, active].compactMap { $0 }.first { sessions.contains($0) } ?? sessions.first
+    /// Where the send goes: the one picked here, else where the Mac says (the routing when the dump started). A Mac
+    /// before 1.7 sends no `send_to` and cannot take the orchestrator: there, the session named by voice, else the active one.
+    static func target(_ dump: API.BrainDump, picked: DumpTarget?, active: String?, sessions: [String]) -> DumpTarget? {
+        let offered = choices(dump, sessions: sessions)
+        if let picked, offered.contains(picked) { return picked }
+        guard let to = dump.send_to else {
+            return ([dump.target, active].compactMap { $0 }.first { sessions.contains($0) } ?? sessions.first).map { .session($0) }
+        }
+        if !to.orchestrator, let name = to.session, sessions.contains(name) { return .session(name) }
+        return .orchestrator
+    }
+
+    /// The To: menu, the orchestrator first, as on the page; only the sessions for a Mac that cannot take the orchestrator.
+    static func choices(_ dump: API.BrainDump, sessions: [String]) -> [DumpTarget] {
+        (dump.send_to == nil ? [] : [.orchestrator]) + sessions.map { .session($0) }
+    }
+
+    /// The pinned session that left, when the send falls back to the orchestrator because of it: said under To:.
+    static func goneNote(_ dump: API.BrainDump, target: DumpTarget?) -> String? {
+        guard target == .orchestrator, let name = dump.send_to?.gone else { return nil }
+        return "\(name) \(gone)"
+    }
+}
+
+/// Where a reviewed dump goes: Pointe's orchestrator voice (it answers or routes it), or one session, word for word.
+enum DumpTarget: Hashable {
+    case orchestrator
+    case session(String)
+
+    var label: String {
+        switch self {
+        case .orchestrator: BrainDumpCopy.orchestrator
+        case .session(let name): name
+        }
     }
 }
 
@@ -167,20 +209,20 @@ struct BrainDumpReview: View {
     let active: String?
     let problem: String?
     let edit: (String) async -> Bool
-    let send: (String) async -> Bool
+    let send: (DumpTarget) async -> Bool
     let more: () async -> Void
     let read: () async -> Void
     let challenge: () async -> Void
     let discard: () async -> Void
     let close: () -> Void
     @State private var text = ""
-    @State private var picked: String?
+    @State private var picked: DumpTarget?
     @State private var sure = false
     @State private var discardSure = false
     @State private var busy = false
     @FocusState private var editing: Bool
 
-    private var target: String? { BrainDumpCopy.target(dump, picked: picked, active: active, sessions: sessions) }
+    private var target: DumpTarget? { BrainDumpCopy.target(dump, picked: picked, active: active, sessions: sessions) }
 
     var body: some View {
         NavigationStack {
@@ -202,13 +244,13 @@ struct BrainDumpReview: View {
                         .accessibilityIdentifier("dump.text")
                     // To: a field, like Mail's, so it never reads as a second button; Send is the one primary action.
                     Menu {
-                        Picker("Session", selection: Binding(get: { target ?? "" }, set: { picked = $0; sure = false })) {
-                            ForEach(sessions, id: \.self) { Text($0).tag($0) }
+                        Picker("Send to", selection: Binding(get: { target ?? .orchestrator }, set: { picked = $0; sure = false })) {
+                            ForEach(BrainDumpCopy.choices(dump, sessions: sessions), id: \.self) { Text($0.label).tag($0) }
                         }
                     } label: {
                         HStack(spacing: 8) {
                             Text(BrainDumpCopy.to).foregroundStyle(.secondary)
-                            Text(target ?? "").fontWeight(.semibold).foregroundStyle(.primary).lineLimit(1)
+                            Text(target?.label ?? "").fontWeight(.semibold).foregroundStyle(.primary).lineLimit(1)
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.up.chevron.down").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
                         }
@@ -217,8 +259,12 @@ struct BrainDumpReview: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.1)))
                     }
                     .tint(.primary)  // a field, not an accent: the orange is Send's
-                    .accessibilityLabel("\(BrainDumpCopy.to) \(target ?? "")")
+                    .accessibilityLabel("\(BrainDumpCopy.to) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.session")
+                    if let note = BrainDumpCopy.goneNote(dump, target: target) {
+                        Label(note, systemImage: "arrow.uturn.left").font(.footnote).foregroundStyle(Brand.orange)
+                            .accessibilityIdentifier("dump.gone")
+                    }
                     if let note = problem ?? dump.problem {
                         Label(note, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
                             .accessibilityIdentifier("dump.problem")
@@ -240,7 +286,7 @@ struct BrainDumpReview: View {
                     .overlay(Capsule().stroke(Brand.orange, lineWidth: 2).padding(-4).opacity(sure ? 1 : 0))
                     .animation(.easeOut(duration: 0.15), value: sure)
                     .disabled(target == nil || busy)
-                    .accessibilityLabel(sure ? BrainDumpCopy.sendSure : "\(BrainDumpCopy.sendTo) \(target ?? "")")
+                    .accessibilityLabel(sure ? BrainDumpCopy.sendSure : "\(BrainDumpCopy.sendTo) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.send")
                     HStack(spacing: 8) {
                         quiet(BrainDumpCopy.addMore, id: "dump.more") { await more() }

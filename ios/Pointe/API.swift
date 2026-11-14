@@ -649,12 +649,13 @@ struct API {
 
     // MARK: brain dump (BrainDump.swift)
 
-    /// The dump's buttons, the same as the words: start, done, more, edit (with text), discard, send (to a session), read.
-    /// 409 carries the Mac's reason; done waits for the reading model.
-    func dump(_ action: String, text: String? = nil, session: String? = nil) async throws {
+    /// The dump's buttons, the same as the words: start, done, more, edit (with text), discard, send (to a session, or
+    /// to = "orchestrator"), read. 409 carries the Mac's reason; done waits for the reading model.
+    func dump(_ action: String, text: String? = nil, session: String? = nil, to: String? = nil) async throws {
         var body: [String: Any] = ["action": action]
         if let text { body["text"] = text }
         if let session { body["session"] = session }
+        if let to { body["to"] = to }
         var r = request("voice/dump", method: "POST", body: body)
         r.timeoutInterval = 30
         _ = try await checked(r)

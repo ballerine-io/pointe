@@ -330,7 +330,7 @@ def test_send_delivers_the_reviewed_text_word_for_word_and_records_it(d, monkeyp
     assert not (d.STATE_DIR / "brain_dump.json").exists()
 
 
-def test_the_send_button_names_the_session_or_takes_the_active_one(d, monkeypatch):
+def test_the_send_button_names_the_session(d, monkeypatch):
     call(d, monkeypatch)
     delivered = []
 
@@ -545,6 +545,152 @@ def test_typed_words_count_too(d, monkeypatch):
 def test_the_phone_key_reaches_the_dump_route(d):
     from guards import _PHONE_PATHS
     assert "/voice/dump" in _PHONE_PATHS
+
+
+# ---------- where Send goes: the routing when the dump started ----------
+
+@pytest.mark.parametrize("said,named", [("send it to the orchestrator", "the orchestrator"), ("Send that to the orchestrator.", "the orchestrator"),
+                                        ("okay, send it to orchestrator", "orchestrator"), ("שלח את זה לאורקסטרטור", "אורקסטרטור"),
+                                        ("תשלח את זה לאורקסטרטור", "אורקסטרטור")])
+def test_send_it_to_the_orchestrator_names_the_orchestrator_in_english_and_hebrew(said, named):
+    assert braindump.send_target(said) == named and braindump.orchestrator_named(named) and braindump.review_intent(said) == "send"
+
+
+@pytest.mark.parametrize("name", ["", None, "billing", "orchestrator billing", "the orchestrator service"])
+def test_a_session_name_is_not_the_orchestrator(name):
+    assert not braindump.orchestrator_named(name)
+
+
+def _review(d, monkeypatch, *, mode="orchestrator", pinned="b"):
+    """Two sessions, the routing as given, a dump started and structured: the brain and what reached a session."""
+    brain = call(d, monkeypatch)
+    delivered = []
+
+    async def deliver(session, text):
+        delivered.append(session.name)
+        return True
+
+    monkeypatch.setattr(d, "deliver", deliver)
+    add(d, "b", "billing", "/w/billing")
+    add(d, "x", "docs", "/w/docs")
+    d.REGISTRY.mode, d.REGISTRY.active_id = mode, pinned
+    take(d, "brain dump", *THOUGHTS[:2], "done")
+    assert d.state.dump.state == "review"
+    return brain, delivered
+
+
+def test_the_routing_is_captured_when_the_dump_starts_and_kept_through_add_more(d, monkeypatch):
+    _review(d, monkeypatch, mode="session", pinned="x")
+    assert d.state.dump.route == {"mode": "session", "session_id": "x", "session": "docs"}
+    assert json.loads(d.DUMP_FILE.read_text())["route"] == d.state.dump.route  # on disk, so a restart keeps it
+    d.REGISTRY.mode, d.REGISTRY.active_id = "orchestrator", "b"  # moved on mid-review: the dump keeps where it began
+    take(d, "add more", THOUGHTS[2], "done")
+    assert d.state.dump.route["session"] == "docs"
+    d.state.dump = None
+    d.REGISTRY.mode = "orchestrator"
+    take(d, "brain dump")
+    assert d.state.dump.route == {"mode": "orchestrator", "session_id": None, "session": None}
+
+
+def test_in_orchestrator_mode_send_it_hands_the_dump_to_the_orchestrator_as_the_users_turn(d, monkeypatch):
+    brain, delivered = _review(d, monkeypatch, mode="orchestrator")
+    status = client_for(d).get("/voice/status").json()["brain_dump"]
+    assert status["send_to"] == {"orchestrator": True, "session": None, "gone": None}
+    text = d.state.dump.text
+    take(d, "send it")
+    turn = braindump.orchestrator_turn(text)
+    assert brain.turns == [turn] and delivered == [] and d.state.dump is None and not d.DUMP_FILE.exists()
+    assert d.state.last_utterance == turn and d.state.conversation[-1] == ("user", turn)  # the user's turn, as typed words are
+    assert not any(t.startswith("[brain dump sent]") for t, _ in brain.told)  # the orchestrator answers the turn itself
+
+
+def test_in_session_mode_send_it_goes_to_the_pinned_session_even_after_the_routing_moved(d, monkeypatch):
+    brain, delivered = _review(d, monkeypatch, mode="session", pinned="x")
+    d.REGISTRY.mode, d.REGISTRY.active_id = "orchestrator", "b"
+    assert client_for(d).get("/voice/status").json()["brain_dump"]["send_to"] == {"orchestrator": False, "session": "docs", "gone": None}
+    take(d, "send it")
+    assert delivered == ["docs"] and brain.turns == [] and d.state.dump is None
+
+
+def test_the_picker_overrides_the_default_both_ways(d, monkeypatch):
+    brain, delivered = _review(d, monkeypatch, mode="orchestrator")
+    r = client_for(d).post("/voice/dump", json={"action": "send", "session": "billing"})
+    assert r.status_code == 200 and r.json()["sent_to"] == "billing" and delivered == ["billing"] and brain.turns == []
+    d.REGISTRY.mode, d.REGISTRY.active_id = "session", "b"
+    take(d, "brain dump", THOUGHTS[0], "done")
+    assert d.state.dump.route["session"] == "billing"
+    text = d.state.dump.text
+    r = client_for(d).post("/voice/dump", json={"action": "send", "to": "orchestrator"})
+    assert r.status_code == 200 and r.json() == {"brain_dump": None, "sent_to": "orchestrator"}
+    assert delivered == ["billing"] and brain.turns == [braindump.orchestrator_turn(text)]
+
+
+def test_by_voice_the_named_target_overrides_the_default_both_ways(d, monkeypatch):
+    brain, delivered = _review(d, monkeypatch, mode="session", pinned="b")
+    take(d, "send it to the orchestrator")
+    assert delivered == [] and len(brain.turns) == 1 and d.state.dump is None
+    d.REGISTRY.mode = "orchestrator"
+    take(d, "brain dump", THOUGHTS[0], "send that to docs")  # named while dumping: preselected, not sent
+    assert d.state.dump.state == "review" and delivered == []
+    assert client_for(d).get("/voice/status").json()["brain_dump"]["send_to"]["session"] == "docs"
+    take(d, "send it")
+    assert delivered == ["docs"]
+    d.REGISTRY.mode, d.REGISTRY.active_id = "session", "b"
+    take(d, "brain dump", THOUGHTS[0], "תשלח את זה לאורקסטרטור")
+    assert d.state.dump.to_orchestrator and client_for(d).get("/voice/status").json()["brain_dump"]["send_to"]["orchestrator"]
+    take(d, "send it")
+    assert delivered == ["docs"] and len(brain.turns) == 2
+
+
+def test_a_pinned_session_gone_by_review_falls_back_to_the_orchestrator_and_says_so(d, monkeypatch):
+    brain, delivered = _review(d, monkeypatch, mode="session", pinned="x")
+    d.REGISTRY.rename("x", "manuals")  # a rename is not gone: matched by id
+    assert client_for(d).get("/voice/status").json()["brain_dump"]["send_to"]["session"] == "manuals"
+    d.REGISTRY.remove("x")
+    assert client_for(d).get("/voice/status").json()["brain_dump"]["send_to"] == {"orchestrator": True, "session": None, "gone": "docs"}
+    add(d, "x2", "docs", "/w/docs")  # back under a new id, the same name: it is the pinned session again
+    assert client_for(d).get("/voice/status").json()["brain_dump"]["send_to"]["session"] == "docs"
+    d.REGISTRY.remove("x2")
+    take(d, "send it")
+    assert delivered == [] and len(brain.turns) == 1 and d.state.dump is None
+
+
+def test_sending_to_the_orchestrator_needs_a_call_and_no_meeting(d, monkeypatch):
+    brain, delivered = _review(d, monkeypatch, mode="orchestrator")
+    client = client_for(d)
+    d.state.meeting = SimpleNamespace(mode="listening")
+    r = client.post("/voice/dump", json={"action": "send"})
+    assert r.status_code == 409 and "meeting" in r.json()["detail"] and d.state.dump is not None
+    d.state.meeting, conn, d.state.conn = None, d.state.conn, None
+    r = client.post("/voice/dump", json={"action": "send"})
+    assert r.status_code == 409 and "no call" in r.json()["detail"] and d.state.dump is not None and brain.turns == []
+    d.state.conn = conn
+    assert client.post("/voice/dump", json={"action": "send"}).status_code == 200 and len(brain.turns) == 1
+
+
+@pytest.mark.parametrize("mode,pinned,expected", [("session", "b", {"orchestrator": False, "session": "billing", "gone": None}),
+                                                  ("orchestrator", "b", {"orchestrator": True, "session": None, "gone": None})])
+def test_a_dump_saved_before_the_routing_was_kept_follows_the_routing_now(d, monkeypatch, mode, pinned, expected):
+    call(d, monkeypatch)
+    add(d, "b", "billing", "/w/billing")
+    d.DUMP_FILE.write_text(json.dumps({"id": "d1", "since": 1, "state": "review", "thoughts": [{"text": THOUGHTS[0], "at": 1}],
+                                       "dropped": 0, "structured": 1, "prompt": braindump.structured(STRUCTURED), "target": None,
+                                       "problem": None, "resumed": False, "fallback": False}))  # 1.6.1's file: no route
+    d._load_dump()
+    assert d.state.dump is not None and d.state.dump.route is None and not d.state.dump.to_orchestrator
+    d.REGISTRY.mode, d.REGISTRY.active_id = mode, pinned
+    assert client_for(d).get("/voice/status").json()["brain_dump"]["send_to"] == expected
+
+
+def test_send_to_without_the_daemon():
+    s = SimpleNamespace(id="b", name="billing")
+    dump = braindump.Dump(route=braindump.capture("session", s))
+    assert braindump.send_to(dump, "orchestrator", None, {"b": "billing"}) == {"orchestrator": False, "session": "billing", "gone": None}
+    assert braindump.send_to(dump, "orchestrator", None, {}) == {"orchestrator": True, "session": None, "gone": "billing"}
+    assert braindump.capture("session", None) == {"mode": "session", "session_id": None, "session": None}
+    assert braindump.send_to(braindump.Dump(route=braindump.capture("session", None)), "session", None, {"b": "billing"})["orchestrator"]
+    dump.target = "gone-now"  # a voice target that left: the routing decides
+    assert braindump.send_to(dump, "orchestrator", None, {"b": "billing"})["session"] == "billing"
 
 
 # ---------- the page and the app share their words ----------

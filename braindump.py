@@ -9,6 +9,8 @@ Rules enforced here, each with a test in tests/test_brain_dump.py:
 - The prompt is the user's words: an item whose words are not mostly theirs is dropped (`invented`); when the model
   fails, the raw thoughts are the prompt.
 - A dump is written to disk on every change and loaded at start, so it outlives the call and the daemon.
+- Send goes where the user was talking when the dump started (`send_to`): the session they were pinned to in session
+  mode, the orchestrator in orchestrator mode; a pinned session that is gone by then falls back to the orchestrator.
 """
 
 import json
@@ -37,7 +39,7 @@ COPY = {
     "hint": "When you're done: tap Done, or say “done” or “over to you”.",
     "structuring": "Structuring your thoughts…",
     "reviewTitle": "Your brain dump, structured",
-    "reviewLede": "In your words. Edit it, add more, or send it to a session.",
+    "reviewLede": "In your words. Edit it, add more, or send it.",
     "reviewHint": "Or say “send it to …”, “add more”, “read it back” or “discard”.",
     "addMore": "Add more",
     "discard": "Discard",
@@ -47,6 +49,8 @@ COPY = {
     "sendSure": "Tap again to send",
     "sendTo": "Send to",
     "sent": "Sent to",
+    "orchestrator": "Orchestrator",
+    "gone": "is gone, so this goes to the orchestrator.",
     "readBack": "Read it back",
     "fallback": "Pointe could not structure it; this is what you said.",
     "resumed": "Still here from earlier.",
@@ -63,6 +67,8 @@ _DONE = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|right|alright|and)\W+)*(?:done|i'?m 
                    r"structure (?:it|that|this|them)|wrap (?:it|that) up|make (?:it|that) a prompt|סיימתי|זהו|תסדר את זה)\W*$", re.I)
 _SEND_TO = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|right|alright|and|yes|yeah)\W+)*(?:send|ship|give|pass) (?:it|that|this|the dump|the prompt)"
                       r"(?: (?:over|on|out))?(?: to (?P<to>[\w./ -]+?))?\W*$|^\W*(?:תשלח|שלח) את זה(?: ל(?P<to_he>[\w./ -]+?))?\W*$", re.I)
+# "Send it to the orchestrator": the voice model takes the dump as the user's turn, as in orchestrator mode.
+_ORCHESTRATOR = re.compile(r"^(?:the |pointe'?s? )?orchestrator(?: mode)?$|^ה?אורקסטרטור$", re.I)
 _MORE = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|wait|no|hold on|actually)\W+)*(?:add more|more|not yet|one more thing|keep going|"
                    r"let me add(?: something| more)?|i(?:'ve| have) got more|עוד|רגע, עוד|עוד משהו)\W*$", re.I)
 _DISCARD = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|no|actually)\W+)*(?:discard(?: (?:it|that|this|the dump))?|forget (?:it|that|this|the dump)|"
@@ -92,6 +98,11 @@ def send_target(text: str) -> str | None:
     if not found:
         return None
     return (found.group("to") or found.group("to_he") or "").strip()
+
+
+def orchestrator_named(name: str | None) -> bool:
+    """The name a send gives ("the orchestrator", "האורקסטרטור") is Pointe's orchestrator, not a session."""
+    return bool(name and _ORCHESTRATOR.match(name.strip()))
 
 
 def discard_intent(text: str) -> bool:
@@ -141,6 +152,8 @@ class Dump:
     structured: int = 0  # how many thoughts the prompt covers; "add more" folds the rest in at the next done
     prompt: dict | None = None  # {goal, context, constraints, open_questions, text} once structured
     target: str | None = None  # the session named for the send, when one was
+    to_orchestrator: bool = False  # "send that to the orchestrator" while dumping
+    route: dict | None = None  # the routing when it started (`capture`); None in a dump saved before it was kept
     problem: str | None = None  # why the last action was refused, for the screen
     resumed: bool = False  # came back from the file after a dropped call or a restart
     fallback: bool = False  # the model could not structure it: the prompt is the raw thoughts
@@ -169,11 +182,40 @@ class Dump:
         return {"id": self.id, "state": self.state, "since": self.since,
                 "thoughts": [asdict(t) for t in self.thoughts], "dropped": self.dropped,
                 "prompt": self.prompt, "target": self.target, "problem": self.problem, "resumed": self.resumed,
-                "fallback": self.fallback}
+                "fallback": self.fallback, "route": self.route}
 
     def compat(self) -> dict:
         """The old status field, for an app that still reads `monologue`."""
         return {"since": self.since, "said": self.said[-600:]}
+
+
+# ---------- where Send goes ----------
+
+def capture(mode: str, active) -> dict:
+    """The routing when the dump starts: the mode, and in session mode the session it is pinned to (by id, which
+    survives a rename, and by name, which survives the session coming back under a new id)."""
+    pinned = active if mode == "session" else None
+    return {"mode": mode, "session_id": pinned.id if pinned else None, "session": pinned.name if pinned else None}
+
+
+def send_to(dump: Dump, mode: str, active, sessions: dict[str, str]) -> dict:
+    """Where Send goes unless the user picks another: {orchestrator, session, gone}. A target named by voice wins; else
+    the routing when the dump started (`route`), or the routing now for a dump saved before it was kept. Session mode:
+    the pinned session; once it is gone, the orchestrator, with its name in `gone` so the screen says why.
+    `sessions`: id -> name of the sessions there are now."""
+    orchestrator = {"orchestrator": True, "session": None, "gone": None}
+    if dump.to_orchestrator:
+        return orchestrator
+    names = set(sessions.values())
+    if dump.target in names:
+        return {"orchestrator": False, "session": dump.target, "gone": None}
+    route = dump.route or capture(mode, active)
+    if route.get("mode") != "session":
+        return orchestrator
+    name = sessions.get(route.get("session_id") or "") or (route.get("session") if route.get("session") in names else None)
+    if name:
+        return {"orchestrator": False, "session": name, "gone": None}
+    return {**orchestrator, "gone": route.get("session")}
 
 
 # ---------- the file ----------
@@ -329,6 +371,12 @@ def resumed_line(dump: Dump) -> str:
     return (f"[brain dump still here] The user was dumping thoughts ({n} so far) when the call ended, and the dump is still "
             "on. Say in one short sentence: their brain dump is still here; keep going, say done, or discard. Then stay "
             "quiet. Do not call any tool.")
+
+
+def orchestrator_turn(text: str) -> str:
+    """The reviewed dump as the user's own turn to the voice model, which answers or routes it as orchestrator mode does
+    any request. Plain words, no [tag]: a tag marks the feed, not the user (daemon.Front)."""
+    return f"My brain dump, structured:\n\n{text}"
 
 
 def sent_header(session: str) -> str:

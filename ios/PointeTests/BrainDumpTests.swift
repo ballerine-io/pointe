@@ -41,15 +41,49 @@ final class BrainDumpTests: XCTestCase {
         XCTAssertEqual(BrainDumpCopy.buttonLabel(review), "Review")
     }
 
-    func testTheSendTargetIsTheNamedThenThePickedThenTheActiveSession() throws {
+    private let sessions = ["billing/main", "docs", "river-lantern"]
+
+    func testInOrchestratorModeTheDefaultIsTheOrchestratorListedFirst() throws {
+        let dump = try XCTUnwrap(Demo.make(.brainDumpReview)).status.brain_dump!
+        XCTAssertEqual(dump.send_to, API.DumpSendTo(orchestrator: true, session: nil, gone: nil))
+        XCTAssertEqual(BrainDumpCopy.target(dump, picked: nil, active: "billing/main", sessions: sessions), .orchestrator)
+        XCTAssertEqual(BrainDumpCopy.choices(dump, sessions: sessions).map(\.label), ["Orchestrator", "billing/main", "docs", "river-lantern"])
+        XCTAssertNil(BrainDumpCopy.goneNote(dump, target: .orchestrator))
+    }
+
+    func testInSessionModeTheDefaultIsThePinnedSession() throws {
+        let status = try XCTUnwrap(Demo.make(.brainDumpPinned)).status
+        let dump = try XCTUnwrap(status.brain_dump)
+        XCTAssertEqual(status.mode, "session")
+        XCTAssertEqual(BrainDumpCopy.target(dump, picked: nil, active: "billing/main", sessions: sessions), .session("docs"),
+                       "where the dump started, not the active session now")
+    }
+
+    func testAPickOverridesTheDefaultBothWaysAndAGonePickFallsBack() throws {
+        let orchestrated = try XCTUnwrap(Demo.make(.brainDumpReview)).status.brain_dump!
+        XCTAssertEqual(BrainDumpCopy.target(orchestrated, picked: .session("docs"), active: nil, sessions: sessions), .session("docs"))
+        let pinned = try XCTUnwrap(Demo.make(.brainDumpPinned)).status.brain_dump!
+        XCTAssertEqual(BrainDumpCopy.target(pinned, picked: .orchestrator, active: nil, sessions: sessions), .orchestrator)
+        XCTAssertEqual(BrainDumpCopy.target(pinned, picked: .session("left"), active: nil, sessions: sessions), .session("docs"),
+                       "a pick that is no longer offered gives way to the default")
+    }
+
+    func testAPinnedSessionThatIsGoneFallsBackToTheOrchestratorAndSaysSo() throws {
+        let dump = try XCTUnwrap(Demo.make(.brainDumpGone)).status.brain_dump!
+        let target = BrainDumpCopy.target(dump, picked: nil, active: "billing/main", sessions: sessions)
+        XCTAssertEqual(target, .orchestrator)
+        XCTAssertEqual(BrainDumpCopy.goneNote(dump, target: target), "old-lantern is gone, so this goes to the orchestrator.")
+        XCTAssertNil(BrainDumpCopy.goneNote(dump, target: .session("docs")), "picked a session: the note no longer applies")
+    }
+
+    func testAnOlderMacWithoutSendToOffersOnlySessionsAsBefore() throws {
         var dump = try XCTUnwrap(Demo.make(.brainDumpReview)).status.brain_dump!
-        let sessions = ["billing/main", "docs", "river-lantern"]
-        XCTAssertEqual(BrainDumpCopy.target(dump, picked: nil, active: "billing/main", sessions: sessions), "billing/main")
-        XCTAssertEqual(BrainDumpCopy.target(dump, picked: "docs", active: "billing/main", sessions: sessions), "docs")
+        dump.send_to = nil  // 1.6.1 sends none, and its send without a session goes to the active one, never the orchestrator
+        XCTAssertEqual(BrainDumpCopy.choices(dump, sessions: sessions), sessions.map { .session($0) })
+        XCTAssertEqual(BrainDumpCopy.target(dump, picked: nil, active: "billing/main", sessions: sessions), .session("billing/main"))
         dump.target = "river-lantern"
-        XCTAssertEqual(BrainDumpCopy.target(dump, picked: "docs", active: "billing/main", sessions: sessions), "river-lantern")
-        dump.target = "gone"
-        XCTAssertEqual(BrainDumpCopy.target(dump, picked: nil, active: "gone", sessions: sessions), "billing/main", "an unknown name falls back to the first")
+        XCTAssertEqual(BrainDumpCopy.target(dump, picked: nil, active: "billing/main", sessions: sessions), .session("river-lantern"))
+        XCTAssertEqual(BrainDumpCopy.target(dump, picked: .orchestrator, active: "billing/main", sessions: sessions), .session("river-lantern"))
         XCTAssertNil(BrainDumpCopy.target(dump, picked: nil, active: nil, sessions: []))
     }
 

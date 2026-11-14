@@ -52,7 +52,8 @@ conversation ──"brain dump" / button──► dumping ──"done" / Done─
   Context, Constraints, Open questions), the goal as a line, the rest as `- ` bullets, a blank line between; empty
   sections are left out. No machine framing in it: "in their own words, nothing added" is in the header `_send_dump`
   puts above the text at send time (`braindump.sent_header`), so the user never edits it. Under the text, a **To:**
-  field (the active session preselected; a field, not a button), then **Send**, the one primary action (two clicks:
+  field (a field, not a button): **Orchestrator** first, then the sessions, preselected by where the user was when the
+  dump started (see "Where Send goes"), then **Send**, the one primary action (two clicks:
   the first arms it, reading "Tap again to send" with a ring, for four seconds). Below, quiet outlined **Add more** (back
   to dumping; the next Done folds the new thoughts into the existing prompt), **Read it back**, **Challenge it**; then
   **Discard** apart, in red (two clicks). Page and app have the same words and the same order. Pointe says one line: "Your brain dump is structured: send it, add more, or
@@ -65,6 +66,23 @@ conversation ──"brain dump" / button──► dumping ──"done" / Done─
   is refused once with the risk stated (a second Send goes), as in `_send_now`. A spoken "send it to X" while still
   dumping structures first and preselects X; the send itself waits for "send" or the button, so what goes is what was
   shown.
+
+### Where Send goes
+
+The user dumps from wherever they were: pinned to one session, or talking to the orchestrator. Send defaults back to
+there. `_start_dump` keeps the routing (`braindump.capture`: the mode, and in session mode the pinned session's id and
+name) in the dump's `route`, saved with it in `brain_dump.json`; "add more" keeps it. `braindump.send_to` turns it into
+the default, against the sessions there are at review time: a target named by voice while dumping ("send that to X",
+"send that to the orchestrator") wins; else session mode gives the pinned session (by id, so a rename keeps it; else by
+name, so a session that came back under a new id keeps it), and orchestrator mode the orchestrator. A pinned session
+that is gone falls back to the orchestrator, and `gone` carries its name for the sheet to say so. A dump saved before
+`route` existed follows the routing at review time. Status carries the result as `brain_dump.send_to`; the page and the
+app preselect it, list **Orchestrator** first, and keep the user's own pick.
+
+Sending to the orchestrator does not deliver anything itself: `_dump_to_orchestrator` clears the dump and hands the text
+to `_user_text`, the path words typed in the app take, as the user's turn ("My brain dump, structured:" above it,
+`braindump.orchestrator_turn`). The voice model answers it or calls `send_to_claude_code`, and every check there applies
+(fresh speech, relevance, session mode pinning, production credentials). It needs a call and no meeting (409).
 
 ### Interruptions
 
@@ -90,9 +108,9 @@ conversation ──"brain dump" / button──► dumping ──"done" / Done─
 
 | | |
 |---|---|
-| `POST /voice/dump` | `{action: start \| done \| more \| edit \| discard \| send \| read, text?, session?}` → `{brain_dump}`. 400 on a bad action or an edit with no text; 409 with the reason: no call, a meeting on, nothing to send, no such session, offline, a meeting on at send time, credentials (once). Page cookie, bearer token, phone key |
+| `POST /voice/dump` | `{action: start \| done \| more \| edit \| discard \| send \| read, text?, session?, to?}` → `{brain_dump}`. Send: `session`, or `to: "orchestrator"`, or neither for `send_to`. 400 on a bad action or an edit with no text; 409 with the reason: no call, a meeting on, nothing to send, no such session, offline, a meeting on at send time, credentials (once). Page cookie, bearer token, phone key |
 | `POST /voice/listen` | `{on}`: alias of start / done |
-| status `brain_dump` | `null`, or `{id, state: dumping \| structuring \| review, since, thoughts: [{text, at}], prompt: {goal, context: [], constraints: [], open_questions: [], text} \| null, target, problem, resumed, dropped}` |
+| status `brain_dump` | `null`, or `{id, state: dumping \| structuring \| review, since, thoughts: [{text, at}], prompt: {goal, context: [], constraints: [], open_questions: [], text} \| null, target, problem, resumed, dropped, route, send_to: {orchestrator, session, gone}}` |
 | status `monologue` | while dumping, `{since, said}` (compat) |
 | status `mode_state.mode` | `brain-dump` while dumping |
 
@@ -122,10 +140,17 @@ Drive control are unchanged.
   the model while dumping, Done with nothing said is silent, Done structures and reads the review line, held news and a
   pending approval follow, Send delivers verbatim and records, Send refusals (meeting, typed approval, credentials once),
   Discard, Add more, the reconnect line, meeting and challenge take the thoughts, the listen alias and the `monologue`
-  mirror, the page and the app share their copy.
+  mirror, the page and the app share their copy; where Send goes: the routing captured at start and kept through add
+  more and on disk, the default in both modes, the picker and the voice overriding it both ways, "send it to the
+  orchestrator" in English and Hebrew, the gone-session fallback (rename and return by name kept), the orchestrator send
+  needing a call and no meeting, and a 1.6 file without `route` following the routing now.
 - `tests/test_ui_page.py`: ids; the drive button gone from the dock and the More sheet; `tests/test_brain_dump_page.py`:
-  the panel and the review sheet rendered against the stub Mac (`tests/page_rig.py`), clicks post the right actions.
+  the panel and the review sheet rendered against the stub Mac (`tests/page_rig.py`), clicks post the right actions; the
+  To: picker lists Orchestrator first, preselects `send_to`, keeps the user's pick across a redraw, and says when the
+  pinned session is gone.
 - `tests/e2e/page_brain_dump.py`: live: a stand-in phone dumps three thoughts, says done; the page shows the review;
-  Send to a registered fake session delivers the exact text; Discard. `tests/e2e/page_drive.py`: drive mode via
+  the To: picker defaults to Orchestrator (orchestrator mode); Send to a registered fake session delivers the exact
+  text; a second dump sent to the orchestrator becomes the user's turn and the voice answers it; Discard. `tests/e2e/page_drive.py`: drive mode via
   `POST /voice/drive`, the banner shows, no `#drivebtn`.
-- iOS: `BrainDumpTests` (decoding, copy parity, state), `BrainDumpUITests` on `-demo brainDump` / `brainDumpReview`.
+- iOS: `BrainDumpTests` (decoding, copy parity, state, the To: default in both modes, override, gone, an older Mac),
+  `BrainDumpUITests` on `-demo brainDump` / `brainDumpReview` / `brainDumpPinned` / `brainDumpGone`.

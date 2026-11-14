@@ -49,14 +49,14 @@ final class BrainDumpUITests: XCTestCase {
         any("dump.done").tap()
         XCTAssertTrue(any("dump.review").waitForExistence(timeout: 10), "the review sheet")
         XCTAssertTrue(app.staticTexts["Your brain dump, structured"].exists)
-        XCTAssertTrue(text("In your words. Edit it, add more, or send it to a session.").exists)
+        XCTAssertTrue(text("In your words. Edit it, add more, or send it.").exists)
         let editor = any("dump.text")
         XCTAssertTrue(editor.exists)
         XCTAssertTrue((editor.value as? String ?? "").hasPrefix("Goal\nSo the checkout keeps timing out"), editor.value as? String ?? "")
         XCTAssertFalse((editor.value as? String ?? "").contains("nothing added"), "the framing is added at send time, not here")
-        XCTAssertEqual(any("dump.session").label, "To: billing/main", "the active session is preselected, in a To field")
+        XCTAssertEqual(any("dump.session").label, "To: Orchestrator", "started in orchestrator mode: the orchestrator, in a To field")
         let send = any("dump.send")
-        XCTAssertEqual(send.label, "Send to billing/main")
+        XCTAssertEqual(send.label, "Send to Orchestrator")
         shot("dump-2-review")
         send.tap()
         XCTAssertEqual(send.label, "Tap again to send", "the first tap arms it")
@@ -80,6 +80,35 @@ final class BrainDumpUITests: XCTestCase {
         any("dump.more").tap()
         XCTAssertTrue(any("dump.panel").waitForExistence(timeout: 5), "back to dumping, the thoughts kept")
         XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "dump.thought").count, 3)
+    }
+
+    func testPinnedInSessionModeTheSessionIsPreselectedAndTheOrchestratorIsFirstInTheMenu() {
+        launch("brainDumpPinned")
+        XCTAssertTrue(any("dump.review").waitForExistence(timeout: 15))
+        XCTAssertEqual(any("dump.session").label, "To: docs", "where the dump started: the pinned session")
+        XCTAssertEqual(any("dump.send").label, "Send to docs")
+        XCTAssertFalse(any("dump.gone").exists)
+        any("dump.session").tap()
+        let orchestrator = app.buttons["Orchestrator"]
+        XCTAssertTrue(orchestrator.waitForExistence(timeout: 5), "the orchestrator is offered")
+        let names = app.buttons.allElementsBoundByIndex.map(\.label)
+        if let o = names.firstIndex(of: "Orchestrator"), let b = names.firstIndex(of: "billing/main") {
+            XCTAssertLessThan(o, b, "listed first: \(names)")
+        }
+        shot("dump-4-menu")
+        orchestrator.tap()
+        XCTAssertTrue(any("dump.send").waitForExistence(timeout: 5))
+        XCTAssertEqual(any("dump.session").label, "To: Orchestrator", "the pick overrides the default")
+        XCTAssertEqual(any("dump.send").label, "Send to Orchestrator")
+    }
+
+    func testAPinnedSessionThatIsGoneFallsBackToTheOrchestratorAndTheSheetSaysSo() {
+        launch("brainDumpGone")
+        XCTAssertTrue(any("dump.review").waitForExistence(timeout: 15))
+        XCTAssertEqual(any("dump.session").label, "To: Orchestrator")
+        XCTAssertTrue(any("dump.gone").exists)
+        XCTAssertTrue(text("old-lantern is gone, so this goes to the orchestrator.").exists)
+        shot("dump-5-gone")
     }
 
     func testDiscardAsksFirstAndCloseLeavesReviewInTheBar() {

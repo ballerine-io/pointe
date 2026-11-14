@@ -188,8 +188,10 @@ class StubMac:
         elif path == "/voice/dump":  # as daemon.py's route would, with the model's part stubbed
             d, action = s.get("brain_dump"), body.get("action")
             if action == "start":
+                pinned = s["active"] if s.get("mode") == "session" else None  # the routing now, as braindump.capture keeps it
                 s["brain_dump"] = {"id": f"d{int(time.time() * 1000)}", "state": "dumping", "since": time.time(), "thoughts": [], "dropped": 0,
-                                   "prompt": None, "target": None, "problem": None, "resumed": False, "fallback": False}
+                                   "prompt": None, "target": None, "problem": None, "resumed": False, "fallback": False,
+                                   "send_to": {"orchestrator": not pinned, "session": pinned, "gone": None}}
             elif action == "done" and d:
                 thoughts = [t["text"] for t in d["thoughts"]]
                 d["state"], d["prompt"] = "review", {"goal": thoughts[0] if thoughts else "", "context": thoughts[1:], "constraints": [],

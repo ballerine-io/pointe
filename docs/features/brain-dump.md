@@ -1,7 +1,8 @@
 # Brain dump
 
 Dump your thoughts; Pointe stays quiet and keeps every word. Say done, and it structures them into a prompt in your own
-words (goal, context, constraints, open questions) for you to review. Only when you say send does it reach a session.
+words (goal, context, constraints, open questions) for you to review. Only when you say send does it go anywhere: to
+the session you were pinned to, or to the orchestrator, as you were talking when you started.
 This replaces "brainstorm"; every old phrase still works.
 
 The rules live in `braindump.py` (what starts and ends it, the review commands, the record, structuring and its guard,
@@ -17,13 +18,22 @@ the file); `daemon.py` runs it. Design and the bugs it fixed: [docs/design/brain
   the conversation, silently. Otherwise a rising chime, and in a few seconds the review. "Discard", "forget it",
   "never mind" (the whole utterance), or **Discard**, ends it with nothing kept.
 - **Review:** the structured prompt, editable, as plain sections (Goal, Context, Constraints, Open questions; empty ones
-  left out) with bullets; a **To:** field (the active session preselected); **Send** (two clicks: the first reads "Tap
+  left out) with bullets; a **To:** field (**Orchestrator** first, then the sessions; preselected where you were when the
+  dump started: the pinned session in session mode, the orchestrator in orchestrator mode); **Send** (two clicks: the first reads "Tap
   again to send"), **Add more** (keep dumping; the next Done folds the new thoughts in), **Read it back**,
-  **Challenge it** ([devil's advocate](challenge.md) on the prompt), **Discard** (two clicks). By voice: "send it to X",
-  "send it" (the preselected session), "add more", "read it back", "discard". Anything else you say is ordinary
-  conversation; the card waits.
-- **Send:** the text as shown goes to the session word for word, headed `[from the user, by voice: their brain dump for
-  X, in their own words, structured; nothing added]`. Pointe says it went. It shows in Recent requests like a spoken send.
+  **Challenge it** ([devil's advocate](challenge.md) on the prompt), **Discard** (two clicks). By voice: "send it" (the
+  preselected target), "send it to X", "send it to the orchestrator" ("תשלח את זה לאורקסטרטור"), "add more", "read it
+  back", "discard". Anything else you say is ordinary conversation; the card waits.
+- **Send to a session:** the text as shown goes to the session word for word, headed `[from the user, by voice: their
+  brain dump for X, in their own words, structured; nothing added]`. Pointe says it went. It shows in Recent requests
+  like a spoken send.
+- **Send to the orchestrator:** the text as shown becomes your turn to the voice model ("My brain dump, structured:"
+  above it), the same path as words typed in the app. It answers, or sends it on to a session the way it handles any
+  request, with every check `send_to_claude_code` makes. It follows the routing mode at that moment: in session mode,
+  anything it sends goes to the pinned session.
+- **The pinned session is gone** by the review (it left the voice): the To: field falls back to the orchestrator and says
+  "X is gone, so this goes to the orchestrator." A session that was renamed, or came back under the same name, is still
+  the one.
 
 ## What holds, in code
 
@@ -43,13 +53,15 @@ the file); `daemon.py` runs it. Design and the bugs it fixed: [docs/design/brain
   say done, or discard).
 - A meeting that starts takes the thoughts as its brief; "challenge this" takes them as the plan. Both end the dump.
 - Not in a meeting (409). Works in drive mode by voice alone.
+- Where it started is kept in the dump (`route`: the mode, and the pinned session by id and name) and on disk, so a
+  restart does not change the default. A dump saved by an older version has none and follows the routing now.
 
 ## API
 
 | | |
 |---|---|
-| `POST /voice/dump` | `{action: start \| done \| more \| edit \| discard \| send \| read, text?, session?}` → `{brain_dump, sent_to?}`. 400 on a bad action or an edit without text; 409 with the reason: no call, a meeting on, a dump already in review, nothing to send, no such session, offline, credentials (once). Page cookie, bearer token, phone key |
+| `POST /voice/dump` | `{action: start \| done \| more \| edit \| discard \| send \| read, text?, session?, to?}` → `{brain_dump, sent_to?}`. Send: `session` names one, `to: "orchestrator"` the orchestrator, neither goes to `send_to`. 400 on a bad action or an edit without text; 409 with the reason: no call, a meeting on, a dump already in review, nothing to send, no such session, offline, credentials (once). Page cookie, bearer token, phone key |
 | `POST /voice/listen` | `{on}`: the old switch; on = start, off = done |
-| status `brain_dump` | `null`, or `{id, state: dumping \| structuring \| review, since, thoughts: [{text, at}], dropped, prompt: {goal, context, constraints, open_questions, text} \| null, target, problem, resumed, fallback}` |
+| status `brain_dump` | `null`, or `{id, state: dumping \| structuring \| review, since, thoughts: [{text, at}], dropped, prompt: {goal, context, constraints, open_questions, text} \| null, target, problem, resumed, fallback, route, send_to: {orchestrator, session, gone}}` |
 | status `monologue` | while dumping, `{since, said}`: the old field, for an older app |
 | status `mode_state.mode` | `brain-dump` while dumping |

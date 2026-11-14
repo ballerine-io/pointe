@@ -4,7 +4,7 @@ import SwiftUI
 /// `-demo [call|sessions|edit|typing|request]` at launch (Debug builds only, for tests and screenshots), and
 /// "Try a demo" on the pairing screen (every build: App Review has no Mac to pair with), which shows the Demo badge.
 struct Demo {
-    enum Screen: String { case call, sessions, edit, typing, request, brainDump, brainDumpReview, meetingStart, meeting, meetingHand, meetingEnd, talking,
+    enum Screen: String { case call, sessions, edit, typing, request, brainDump, brainDumpReview, brainDumpPinned, brainDumpGone, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive }
@@ -37,6 +37,8 @@ struct Demo {
         case .drive: driveJSON
         case .brainDump: brainDumpJSON(review: false)
         case .brainDumpReview: brainDumpJSON(review: true)
+        case .brainDumpPinned: brainDumpJSON(review: true, pinned: "docs")
+        case .brainDumpGone: brainDumpJSON(review: true, gone: "old-lantern")
         case .meeting: meetingJSON(hand: false)
         case .meetingHand: meetingJSON(hand: true)
         case .meetingEnd: meetingEndJSON
@@ -280,9 +282,12 @@ struct Demo {
         """
     }
 
-    // MARK: brain dump (BrainDump.swift): dumping, with two thoughts landed and a third being heard; or the structured prompt in review.
+    // MARK: brain dump (BrainDump.swift): dumping, with two thoughts landed and a third being heard; or the structured prompt in review,
+    // started in orchestrator mode, or in session mode pinned to `pinned`, or pinned to `gone`, which has since left.
 
-    private static func brainDumpJSON(review: Bool) -> String {
+    private static func brainDumpJSON(review: Bool, pinned: String? = nil, gone: String? = nil) -> String {
+        let quoted = { (s: String?) in s.map { "\"\($0)\"" } ?? "null" }
+        let sendTo = #"{"orchestrator": \#(pinned == nil), "session": \#(quoted(pinned)), "gone": \#(quoted(gone))}"#
         let thoughts = """
         [{"text": "So the checkout keeps timing out for some customers.", "at": 1700000100},
          {"text": "I think it's the retry loop, it retries five times with no backoff.", "at": 1700000130},
@@ -296,10 +301,11 @@ struct Demo {
          "text": "Goal\\nstop the checkout timing out for some customers\\n\\nContext\\n- the retry loop retries five times with no backoff\\n\\nConstraints\\n- we must not touch the tax service this sprint\\n\\nOpen questions\\n- whether the timeout is on our side or the provider's"}
         """
         return """
-        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+        {"active": \(quoted(pinned ?? "billing/main")), "connected": true, "mode": \(pinned == nil ? "\"orchestrator\"" : "\"session\""), "polish": false,
          "hearing": \(review ? "\"\"" : "\"and maybe the cache should live per merchant\""), "sessions": \(sessions), "talk": \(talk),
          "brain_dump": {"id": "demo-dump", "state": \(review ? "\"review\"" : "\"dumping\""), "since": 1700000090, "thoughts": \(thoughts),
-                        "dropped": 0, "prompt": \(review ? prompt : "null"), "target": null, "problem": null, "resumed": false, "fallback": false}}
+                        "dropped": 0, "prompt": \(review ? prompt : "null"), "target": null, "problem": null, "resumed": false, "fallback": false,
+                        "send_to": \(sendTo)}}
         """
     }
 

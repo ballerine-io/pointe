@@ -140,7 +140,12 @@ struct CallView: View {
                 BrainDumpReview(dump: dump, sessions: (status?.sessions ?? []).filter { $0.online != false }.map(\.name), active: status?.active,
                                 problem: problem,
                                 edit: { text in await dumpAction("edit", text: text) },
-                                send: { to in await dumpAction("send", session: to) },
+                                send: { to in
+                                    switch to {
+                                    case .orchestrator: await dumpAction("send", to: "orchestrator")
+                                    case .session(let name): await dumpAction("send", session: name)
+                                    }
+                                },
                                 more: { showDumpReview = false; await dumpAction("more") },
                                 read: { await dumpAction("read") },
                                 challenge: { showDumpReview = false; await challenge("start") },
@@ -1081,9 +1086,9 @@ struct CallView: View {
     }
 
     /// edit, send, more, read, discard. The Mac's refusal is shown as it gives it. The demo plays along on its own status.
-    private func dumpAction(_ action: String, text: String? = nil, session: String? = nil) async -> Bool {
+    private func dumpAction(_ action: String, text: String? = nil, session: String? = nil, to: String? = nil) async -> Bool {
         if demo != nil { demoDump(action, text: text, session: session); return true }
-        return await act { try await call.api.dump(action, text: text, session: session) }
+        return await act { try await call.api.dump(action, text: text, session: session, to: to) }
     }
 
     private func demoDump(_ action: String, text: String? = nil, session: String? = nil) {
