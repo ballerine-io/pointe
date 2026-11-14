@@ -35,6 +35,7 @@ import artifacts
 import briefing
 import braindump
 import challenge
+import conversation as flow  # State has a field named conversation
 import conflicts
 import drive as drives
 import remote
@@ -328,7 +329,7 @@ PERMISSION_ANSWER_SECS = 120.0
 YES_AFTER_BOT_SECS = 1.0
 EARLY_YES_PROMPTS = 2  # yeses refused for coming too early, per request, that the bot answers; after that it waits quietly
 KEEP_WINDOW = "keep-window"  # a line about the request that neither reads it out nor takes the user away from it
-READ_OUT_WAIT_SECS = 8.0
+UPDATE_POLL_SECS = 0.1  # how often queued updates look for a gap in the conversation
 PERMISSION_VOICE_CHARS = 500
 CHECK_TIMEOUT_SECS = 5.0  # a stuck Flash-Lite call must not freeze the voice
 REPLY_WAIT_SECS = 4.0  # how long a reply the bot was asked for may take to start before held speech goes anyway
@@ -390,7 +391,13 @@ is the truth.
 and let the user talk. No filler such as "let me know".
 
 How to talk:
-- Speak like a sharp colleague on a call: short, direct, one to three sentences unless asked for more.
+- Speak like a sharp colleague on a call. Answer exactly what was asked, in one or two short sentences, and stop. \
+Details, background and the rest of a list wait until the user asks for them ("tell me more", "elaborate", "details", \
+"תפרט", "תרחיב").
+- A spoken list has three items at most: name the three that matter most, say how many more there are, and stop.
+- One question per turn, and only when you need the answer. After you ask, the turn is the user's: never follow your own \
+question with more, never fill a silence, and never say that you are waiting or what you will report later.
+- Several updates at once are one short line: "Two updates: billing finished, docs needs your yes."
 - The user speaks only English or Hebrew, never any other language. Answer in the language of their \
 latest utterance, even if everything before it was in another language. Hebrew in, Hebrew out. Keep \
 technical terms in English.
@@ -447,7 +454,7 @@ then exactly what to deliver and anything left open. Resolve every reference ("t
 it means. Clean up spoken filler and false starts. Never add scope, steps, opinions, dates or decisions the user did not express: \
 digest, do not invent. If "that" or "the rollback" could mean more than one thing, or you do not know what it means, \
 ask one short question instead of sending a guess. While the user is still discussing or has said not yet, send nothing. For big or parallel work in a Claude Code session, tell it to use subagents.
-- After delegating, say in a few words that it is on it, then keep talking. Results arrive in the feed later.
+- After delegating, say in a few words that it is on it, then stop. Results arrive in the feed later.
 - When Claude Code asks the user questions, say how many, ask them one at a time and collect every answer first. \
 Send nothing until all are answered (or the user says to send what you have), then send one message with \
 every answer, each matched to its question. Never send answers one by one: an answer to one of several \
@@ -477,11 +484,7 @@ user what it says."""
 # ---------- pipeline processors ----------
 
 def _feed_priority(text: str) -> int:
-    if "and this is urgent]" in text:
-        return -1
-    if "permission request]" in text or FINISHED_MARK in text or text.startswith("[resume]"):
-        return 0
-    return 2 if text.startswith("[idle session]") or "[idle session]" in text[:80] else 1
+    return flow.priority(text)
 
 
 def _note_bot_speech(text: str, request_id: str | None = None) -> None:
@@ -515,6 +518,17 @@ def _user_talking() -> bool:
         time.time() - max(state.user_stopped_at, state.user_heard_at) < USER_GAP_SECS
 
 
+def _floor_blocked(urgent: bool = False) -> str | None:
+    """Why nothing unsolicited may be spoken now, or None: the user is mid-sentence (voicing, a sentence still settling,
+    a push-to-talk press, a hold), Pointe is answering, its question is still open, or the exchange has had no gap yet
+    (flow.Floor). `urgent` waits only for the first two."""
+    front = state.front
+    busy = bool(front is not None and getattr(getattr(front, "brain", None), "busy", False))
+    pending = _user_talking() or state.settling or state.hold is not None \
+        or (PREFS.get("microphone") == "ptt" and state.ptt.open)
+    return state.floor.blocked(time.time(), busy=busy, pending=pending, urgent=urgent)
+
+
 def _report_of(text: str) -> str | None:
     """The session a finished-turn report is about, or None for anything else (permissions, nudges, resumes)."""
     labels = "|".join(re.escape(label) for label in harnesses.labels())
@@ -529,6 +543,9 @@ class FeedInjector(FrameProcessor):
     pipeline head is consumed by the user aggregator instead and never reaches the model.
     Speech the model is asked for waits until it is done talking (or about to talk), and a result
     report the user talked over is re-offered once their barge-in has been answered.
+
+    Updates nobody asked for (flow.is_update: reports, nudges, joins) wait in a queue for a gap in the
+    conversation (_floor_blocked) and are then said as one turn, however many there are.
     """
 
     def __init__(self):
@@ -544,14 +561,28 @@ class FeedInjector(FrameProcessor):
         self._cut_at = 0.0
         self._cut_ended = False  # the cut speech has stopped; the next stop ends the reply to the barge-in
         self._cut_heard = ""  # about how much of the report the user heard before cutting in
+        self._updates = flow.Updates()
+        self._deliverer: asyncio.Task | None = None
+        self._offered: list[str] = []  # updates handed to the voice and not heard yet
+        self._offered_at = 0.0
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
         if isinstance(frame, BotStartedSpeakingFrame):
             self.bot_started_at = time.time()
             self._bot_speaking, self._asked_at = True, 0.0
+            state.floor.bot_started(self.bot_started_at)
+            self._offered = []
             if self._report:
                 self._report_speaking = True
+        elif isinstance(frame, InputTextRawFrame) and direction == FrameDirection.DOWNSTREAM and self._offered \
+                and not frame.text.startswith("["):
+            # The user spoke before a word of it was heard: the voice drops what it was about to say for their words.
+            if time.time() - self._offered_at < REPLY_WAIT_SECS * 2:
+                logger.info("update not heard, the user spoke first: it comes back at the next gap")
+                for text in reversed(self._offered):
+                    self._queue_update(text, front=True)
+            self._offered = []
         elif isinstance(frame, InterruptionFrame) and self._report_speaking:
             self._cut, self._cut_at, self._cut_ended = self._report, time.time(), False
             spoken = next((text for who, text in reversed(state.conversation) if who == "assistant"), "")
@@ -559,6 +590,7 @@ class FeedInjector(FrameProcessor):
             self._report, self._report_speaking = None, False
         elif isinstance(frame, BotStoppedSpeakingFrame):
             self._bot_speaking = False
+            state.floor.bot_stopped(time.time())
             if self._report_speaking:
                 self._report, self._report_speaking = None, False
             held, self._held = self._held, []
@@ -568,8 +600,8 @@ class FeedInjector(FrameProcessor):
                 elif state.last_user_speech_at >= self._cut_at and dismiss_intent(state.last_utterance):
                     logger.info("[resume] dropped: the user waved the report off")
                     self._cut = None
-                elif not held:
-                    held = [self._resume_text()]
+                else:
+                    self._queue_update(self._resume_text(), front=True)  # at the next gap, like any update
             if held:
                 # One at a time, results first: given a report and a nudge together, the model blends
                 # them and can drop the answer. The rest goes out when it stops talking again.
@@ -592,9 +624,8 @@ class FeedInjector(FrameProcessor):
         comes back as soon as the bot stops, instead of after a reply. Only a cut made since `since` (that utterance)."""
         if self._cut is None or self._cut_at < since - 1.0:
             return
-        if self._cut_ended:  # already quiet: offer it now
-            self._asked_at = time.time()
-            asyncio.create_task(self._respond(self._resume_text(), delay=0.3))
+        if self._cut_ended:  # already quiet: offer it at the next gap
+            self._queue_update(self._resume_text(), front=True)
         else:
             self._cut_ended = True  # the stop that is coming ends it
 
@@ -602,18 +633,68 @@ class FeedInjector(FrameProcessor):
     def holding(self) -> bool:
         return bool(self._held)
 
+    @property
+    def queued(self) -> int:
+        """Updates waiting for a gap in the conversation."""
+        return len(self._updates)
+
     def forget_report(self) -> None:
         """The owner moved to another session by a click: a report being read, or one they cut off, is not offered again."""
         self._report, self._report_speaking, self._cut = None, False, None
 
-    async def inject(self, text: str, respond: bool) -> None:
-        if respond and state.challenge is not None and (FINISHED_MARK in text or text.startswith("[idle session]")):
-            state.monologue_held.append((text, respond))  # a session's report waits for the end of the challenge
-            return
-        if respond and current_mode().holds_news:
-            state.monologue_held.append((text, respond))  # news waits for the end of the mode (brainstorm, meeting)
+    def _parked(self, text: str) -> bool:
+        """True when the mode keeps this for its end: it is added to what waits there."""
+        if state.challenge is not None and (FINISHED_MARK in text or text.startswith("[idle session]")):
+            state.monologue_held.append((text, True))  # a session's report waits for the end of the challenge
+            return True
+        if current_mode().holds_news:
+            state.monologue_held.append((text, True))  # news waits for the end of the mode (brainstorm, meeting)
             if state.meeting is not None:
                 NOTES.add("session_news", text.split("]", 1)[-1].strip()[:300] or text[:300], dedup=False)
+            return True
+        return False
+
+    def _queue_update(self, text: str, front: bool = False) -> None:
+        self._updates.add(text, key=_report_of(text), front=front)
+        logger.info(f"update queued, {len(self._updates)} waiting: {_floor_blocked() or 'the floor is free'}")
+        if self._deliverer is None or self._deliverer.done():
+            self._deliverer = asyncio.create_task(self._deliver_updates())
+
+    def call_over(self) -> None:
+        """The call ended: what was queued is not said into the next one; the page and the notes have it."""
+        self._updates = flow.Updates()
+        if self._deliverer is not None:
+            self._deliverer.cancel()
+
+    async def _deliver_updates(self) -> None:
+        """Queued updates go out at the first gap: the user is not mid-sentence, Pointe has answered them, no question of
+        its own is open, and it has been quiet for a moment. All of them as one turn."""
+        while self._updates:
+            if state.conn is not None and state.conn.injector is not self:
+                return  # another call took over
+            if not await self._deliver_if_free():
+                await asyncio.sleep(UPDATE_POLL_SECS)
+
+    async def _deliver_if_free(self) -> bool:
+        if self._bot_speaking or self._held or time.time() - self._asked_at < REPLY_WAIT_SECS or _floor_blocked() is not None:
+            return False
+        items = [text for text in self._updates.take() if not self._parked(text)]
+        if not items:
+            return True
+        self._offered, self._offered_at = items, time.time()
+        if len(items) == 1:
+            await self._respond(items[0])
+        else:
+            logger.info(f"updates: {len(items)} said as one turn")
+            await self._respond(flow.batch(items, bool(re.search(r"[\u0590-\u05ff]", state.last_utterance))))
+        return True
+
+    async def inject(self, text: str, respond: bool) -> None:
+        if respond and self._parked(text):
+            return
+        if respond and flow.is_update(text):
+            self._queue_update(text)
+            await self._deliver_if_free()  # nobody is talking: said at once
             return
         if respond and not self._bot_speaking and time.time() - self._asked_at >= REPLY_WAIT_SECS and _user_talking():
             self._hold(text)  # only the user is in the way: go the moment they stop, not after the reply timer
@@ -684,8 +765,11 @@ You talk through the speak tool: every reply is one speak call, and nothing else
 if you need them, in the same step or before. [right now] messages come from the daemon before you reply: the latest one \
 is the truth about the active session, about what each session needs, and about the language to speak, so do not call \
 list_sessions for what it already answers.
-Length: this is heard, not read. One or two short sentences, under 30 words, unless the user asked for detail or a report \
-needs more. "Quick" means one sentence. After nothing but "okay" or "thanks", speak empty text and say nothing; only then.
+Length: this is heard, not read. One or two short sentences, under 30 words, answering only what was asked. Only when \
+the user asks for more ("tell me more", "elaborate", "details", "explain", "תפרט", "תרחיב") may it be longer. A report \
+of a session's result is three short sentences at most. Never more than three items in a list: say how many more there \
+are. A reply over the limit is sent back to you once and then cut, so say the most important thing first. "Quick" means \
+one sentence. After nothing but "okay" or "thanks", speak empty text and say nothing; only then.
 Thinking out loud: a message that starts "[the user thought out loud" holds everything they said while you stayed silent, \
 then how they handed you the turn. Do what the hand-off asks. "What do you think" or "over to you": react like a sharp \
 colleague in two or three sentences, naming the one or two points that matter most, a gap or risk they did not mention, \
@@ -971,7 +1055,16 @@ def make_brain(speak, filler=None) -> Brain:
     brain.permission_pending = lambda: bool(REGISTRY.active and REGISTRY.active.permission_id)
     brain.terse = lambda: current_mode() is modes.DRIVE
     brain.style_problem = lambda said: drives.length_problem(said) if current_mode() is modes.DRIVE else None
+    brain.limit = _reply_limit
     return brain
+
+
+def _reply_limit(trigger: str | None, asked: str) -> flow.Limit | None:
+    """How long this turn's reply may be (flow.limit_for). A challenge and a meeting keep their own rules."""
+    if state.challenge is not None or state.meeting is not None:
+        return None
+    return flow.limit_for(trigger, asked, status=status_intent(asked),
+                                  drive_words=drives.MAX_WORDS if current_mode() is modes.DRIVE else None)
 
 
 class BrainFront(FrameProcessor):
@@ -1002,6 +1095,7 @@ class BrainFront(FrameProcessor):
         logger.info(f"speak: ({len(text)} chars, meeting)" if state.meeting else f"speak: {text!r}")
         # The whole text, up front: the echo guard can match all of it, and memory keeps real words (TTS sends word by word).
         ECHO.bot_said(text)
+        state.floor.said(text, time.time())
         _note_bot_speech(text, request_id)
         _remember("assistant", text + " ")
         if request_id is None:
@@ -1070,9 +1164,11 @@ class SonioxEars(FrameProcessor):
         await super().process_frame(frame, direction)
         if isinstance(frame, VADUserStartedSpeakingFrame):
             state.user_started_at = state.ptt.speech_began(time.time(), PREFS.get("microphone"))
+            state.floor.user_started(time.time())
             self._voiced = True
         elif isinstance(frame, VADUserStoppedSpeakingFrame):
             state.user_stopped_at = time.time()
+            state.floor.user_stopped(state.user_stopped_at)
             self._voiced = False
         if isinstance(frame, BotStartedSpeakingFrame):
             ECHO.bot_started()
@@ -1100,6 +1196,7 @@ class SonioxEars(FrameProcessor):
                 pass  # not shown until the final is checked: another voice's words never reach the screen
             elif part := ECHO.user_part(frame.text):
                 state.user_heard_at = time.time()
+                state.floor.user_heard(state.user_heard_at)
                 state.hearing = (state.user_heard_at, part)
             if ECHO.speaking and ECHO.is_barge_in(frame.text, _spoken(frame)):
                 logger.info(f"barge-in: {frame.text!r}")
@@ -1150,8 +1247,17 @@ class SonioxEars(FrameProcessor):
             return
         await self.push_frame(frame, direction)
 
-    _held = ""
+    _held_words = ""
     _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
+
+    @property
+    def _held(self) -> str:
+        """Words heard that are not a turn yet. While there are any, the floor is the user's (state.settling)."""
+        return self._held_words
+
+    @_held.setter
+    def _held(self, words: str) -> None:
+        self._held_words, state.settling = words, bool(words)
 
     async def _owner_gate(self, heard: str) -> bool:
         """The voice lock, on one final transcript: False when it must not reach Pointe (enrolment lines, or another
@@ -1433,6 +1539,7 @@ class BotSpeechTap(FrameProcessor):
         if isinstance(frame, TTSTextFrame) and direction == FrameDirection.DOWNSTREAM:
             if FRONT != "brain":
                 ECHO.bot_said(frame.text)
+                state.floor.said(frame.text, time.time())
                 _remember("assistant", frame.text)
         elif isinstance(frame, MetricsFrame):
             for d in frame.data:
@@ -1563,6 +1670,8 @@ class State:
     orchestrated_turn: str = ""  # a brain dump sent to the orchestrator: routed as in orchestrator mode while it is the last utterance
     monologue_held: list[tuple[str, bool]] = field(default_factory=list)  # session news that waits for the dump's end
     hold: turns.Hold | None = None  # "don't interrupt me": quiet until a release phrase or 8 s of silence (turns.py)
+    floor: flow.Floor = field(default_factory=flow.Floor)  # who may speak now (conversation.py)
+    settling: bool = False  # the ears hold words that are not a turn yet (the settle time of turns.py)
     challenge: object = None  # challenge.Challenge while the voice plays devil's advocate
     last_challenge: object = None  # the one that just ended: its verdict and record, for the screen
     context: LLMContext | None = None  # the call's local copy of the voice model's context
@@ -1832,7 +1941,8 @@ async def _nudger() -> None:
         if conn is None or REGISTRY.mode != "orchestrator" or not current_mode().nudges:
             continue
         now = time.time()
-        if now - state.connected_at < NUDGE_CONNECT_GRACE_SECS or ECHO.speaking or conn.injector.holding:
+        if now - state.connected_at < NUDGE_CONNECT_GRACE_SECS or ECHO.speaking or conn.injector.holding \
+                or _floor_blocked() is not None:
             continue
         # Quiet is measured from when the bot stopped, not started: a nudge takes a while to speak.
         last_bot = max(ECHO.stopped_at, conn.injector.bot_started_at, state.last_nudge_at)
@@ -3366,6 +3476,7 @@ async def _tone(up: bool) -> None:
 async def on_user_utterance(text: str) -> None:
     _journal_bot_turn()  # what the bot said comes before the reply to it
     logger.info(f"user said: {text!r}")
+    state.floor.user_turn(time.time())  # an answer, or a new topic: a question of Pointe's is no longer open
     _briefing_heard(text)
     state.last_utterance, state.last_user_speech_at = text, time.time()
     state.recent_said.append((time.time(), text))
@@ -4912,7 +5023,7 @@ async def _early_yes(session: Session, heard_it: bool) -> None:
     await state.front._speak(line, KEEP_WINDOW)
 
 
-async def _read_out(session: Session, unsure: bool = False, early: bool = False) -> None:
+async def _read_out(session: Session, unsure: bool = False, early: bool = False, urgent: bool = False) -> None:
     if not current_mode().reads_out:
         if current_mode() is modes.BRAIN_DUMP:
             await _tone(False)  # the user is dumping thoughts: the page shows it, and it is asked at the review
@@ -4948,6 +5059,8 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False)
                 "I couldn't tell that was you. Say it again, or tap. ") + text
     elif early:
         text = ("אני צריך את הכן אחרי שאני מסיים. " if hebrew else "I need the yes after I finish. ") + text
+    elif urgent:  # it cuts into an exchange because it is about to go back to its terminal: say so
+        text = ("דבר אחד דחוף. " if hebrew else "One urgent thing. ") + text
     session.permission_delivered_at = float("inf")
     await state.conn.injector.inject(f"[read out to the user, by the daemon] {text}", False)
     await front._speak(text, None if session.permission_cut else session.permission_id)
@@ -4968,13 +5081,33 @@ async def _ask_permission(session: Session) -> None:
     await _read_out(session)
 
 
+def _permission_urgent(session: Session) -> bool:
+    """The one exception to the floor: this request goes back to its terminal within URGENT_LEFT_SECS."""
+    since = session.permission_since
+    return bool(since) and since + harnesses.of(session).permission_deadline - time.time() <= flow.URGENT_LEFT_SECS
+
+
 async def _read_out_when_quiet(session: Session, request_id: str) -> None:
-    """After the reply in progress: a line spoken after the read-out would close the window it just opened."""
-    deadline = time.time() + READ_OUT_WAIT_SECS
-    while state.front is not None and state.front.brain.busy and time.time() < deadline:
-        await asyncio.sleep(0.1)
-    if session.permission_id == request_id and session is REGISTRY.active and state.conn is not None and online(session):
-        await _read_out(session)
+    """At a gap in the conversation: never over the user, not while they answer a question of Pointe's, and after the
+    reply in progress (a line spoken after the read-out would close the window it just opened). A request about to go back
+    to its terminal waits only for the user to finish the sentence and for Pointe's reply to it, then cuts in. The card on
+    the page and the phone shows the request all along."""
+    if request_id in _READ_OUT_WAITING:
+        return  # asked twice (a switch away and back): one read-out
+    _READ_OUT_WAITING.add(request_id)
+    try:
+        while session.permission_id == request_id and session is REGISTRY.active and state.conn is not None \
+                and online(session) and current_mode().reads_out:  # a mode that does not read out asks again at its end
+            urgent = _permission_urgent(session)
+            if _floor_blocked(urgent=urgent) is None:
+                await _read_out(session, urgent=urgent and _floor_blocked() is not None)
+                return
+            await asyncio.sleep(UPDATE_POLL_SECS)
+    finally:
+        _READ_OUT_WAITING.discard(request_id)
+
+
+_READ_OUT_WAITING: set[str] = set()
 
 
 async def _permission_watchdog(session: Session, request_id: str, text: str) -> None:
@@ -6259,6 +6392,8 @@ async def run_call(transport) -> None:
     @transport.event_handler("on_client_disconnected")
     async def on_disconnected(transport, client):
         state.conn = None
+        injector.call_over()
+        state.floor, state.settling = flow.Floor(), False  # the next call starts with nobody mid-sentence
         _call_ended()
         _hand_prompts_back()
         if state.meeting is not None:

@@ -107,6 +107,9 @@ def d(tmp_path, monkeypatch):
     monkeypatch.setattr(daemon, "PERMISSION_ANSWER_SECS", float("inf"))  # these tests use small clock values
     # A whole sentence is the turn at once here; the settle time itself is tested in tests/test_turn_taking.py.
     monkeypatch.setitem(daemon.turns.LEVELS, "normal", daemon.turns.Patience(complete=0.0, unfinished=0.3, maximum=10.0))
+    # An update is said as soon as nobody is talking here; the floor's waits are tested in tests/test_conversation_flow.py.
+    for wait in ("USER_GAP_SECS", "QUIET_GAP_SECS", "QUESTION_FLOOR_SECS"):
+        monkeypatch.setattr(daemon.flow, wait, 0.0)
     reg = daemon.REGISTRY
     reg.sessions.clear()
     reg.recent.clear()
@@ -3431,6 +3434,7 @@ def test_session_news_waits_for_the_end_of_a_monologue(d, monkeypatch):
     injector = d.FeedInjector.__new__(d.FeedInjector)
     injector.push_frame, injector._respond = AsyncMock(), AsyncMock()
     injector._bot_speaking, injector._asked_at, injector._held = False, 0.0, []
+    injector._updates, injector._deliverer, injector._offered, injector._offered_at = d.flow.Updates(), None, [], 0.0
     d._start_dump()
     asyncio.run(injector.inject("[billing finished its turn] done", True))
     assert injector._respond.await_count == 0 and d.state.monologue_held

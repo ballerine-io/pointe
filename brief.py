@@ -66,7 +66,7 @@ fields in this order, then write "say" from them. Reply with JSON only:
  "need": "what it waits for from the owner, under 12 words, or empty; never the voice's own join steps (allow the microphone, press Connect)",
  "unblock": "a short sentence the owner could say to move it forward, naming the session, or empty",
  "speak": true or false,
- "say": "what to tell the owner: at most 65 words, short spoken sentences; up to 90 words when urgency is high. The full message stays available for follow-ups, so leave out what does not change the decision",
+ "say": "what to tell the owner: at most 45 words in three short spoken sentences at most; up to 60 words when urgency is high. The owner asks for details when they want them and the full message stays available, so say only the verdict, the one limit that matters and what it needs from them",
  "line": "the same in at most 30 words, keeping what is urgent, the top limit, and what it waits on"}
 How to write "say":
 1. First the verdict or the answer to what the owner asked, plainly. Bad news first. Never "the analysis suggests", never \

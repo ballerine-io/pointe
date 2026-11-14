@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 from loguru import logger
 
+import conversation
 import vendors
 from brief import unsupported_in
 from guards import status_intent
@@ -94,8 +95,16 @@ def without_recent_repeats(said: str, recent: list[str], asked: str) -> str:
     return " ".join(kept)
 
 
+# A last sentence that only promises to speak later, or says it is waiting. The update comes when it comes.
+_PROMISE_CLOSER = re.compile(
+    r"(?<=[.!?…])\s+(?:(?:and )?i(?:'ll| will) (?:let you know|tell you|read (?:it|them) out|report back|update you|come back to you|"
+    r"get back to you|flag it)\b[^.!?]*|(?:still )?waiting (?:on|for) (?:its|their|the|that|an?) [^.!?]*|"
+    r"(?:אני )?(?:אעדכן|אודיע|אקריא|אחזור אליך)[^.!?]*|(?:אני )?(?:מחכה|ממתין) ל[^.!?]*)[.!…]*\s*$", re.I)
+
+
 def without_closer(said: str) -> str:
-    return _EMPTY_CLOSER.sub("", said).strip()
+    said = _EMPTY_CLOSER.sub("", said).strip()
+    return _PROMISE_CLOSER.sub("", said).strip()
 
 
 class Brain:
@@ -120,6 +129,8 @@ class Brain:
         self.permission_pending = lambda: False
         self.terse = lambda: False  # drive mode: the user cannot look, so no "Sorry, I lost that" chatter either
         self.style_problem: Callable[[str], str | None] = lambda _s: None  # a mode's own limit (drive: length)
+        # How long this turn's reply may be, from what started it and the user's latest words (conversation.limit_for).
+        self.limit: Callable[[str | None, str], conversation.Limit | None] = lambda _trigger, _asked: None
         self.on_usage = on_usage or (lambda _u: None)
         # The sentence for a refused key, by vendor; None when it cannot be heard (the mouth uses that key too).
         self.key_refused: Callable[[str], str | None] = vendors.refused_spoken
@@ -318,7 +329,8 @@ class Brain:
             async with self._lock:
                 if generation != self._generation:
                     return  # the words stay in the history; the turn that follows answers them
-                await self._run(generation)
+                unasked = text is not None and (conversation.is_update(text) or bool(conversation.BATCH_HEAD.match(text)))
+                await self._run(generation, not unasked, text)
         finally:
             if user:
                 self._user_turns -= 1
@@ -330,10 +342,18 @@ class Brain:
                 else:
                     self.add_news(news)
 
-    async def _run(self, generation: int) -> None:
+    def _asked(self) -> str:
+        """The user's own latest words, not session news (which arrives bracketed)."""
+        return next((m["content"] for m in reversed(self.messages) if m["role"] == "user"
+                     and isinstance(m.get("content"), str) and not m["content"].startswith("[")), "")
+
+    async def _run(self, generation: int, user: bool = True, trigger: str | None = None) -> None:
+        """`user`: this turn answers the user's words or something they just did. A turn nobody asked for (a report, a
+        nudge: conversation.is_update) never says "one sec" or "say that again": the user said nothing, and may be
+        thinking."""
         decls = [SPEAK] + [{"name": t.name, "description": t.description, "properties": t.properties,
                             "required": t.required} for t in self.tools]
-        sent, retries, filled, refused = False, 0, False, False
+        sent, retries, filled, refused, shortened = False, 0, not user, False, False
         for _ in range(MAX_STEPS):
             self._trim()
             now = self.context()
@@ -359,7 +379,8 @@ class Brain:
                         await self.speak(line)
                     return
                 # A step past the timeout is the model being slow, not a lost connection: the words must not say otherwise
-                await self.speak(SLOW_LINE if isinstance(e, TimeoutError) else LOST_LINE)
+                if user:
+                    await self.speak(SLOW_LINE if isinstance(e, TimeoutError) else LOST_LINE)
                 return
             finally:
                 self._current = None
@@ -372,7 +393,7 @@ class Brain:
             if not calls and step.said:  # a vendor without forced tool use answered in plain text
                 calls = [{"id": "text", "name": "speak", "args": {"text": step.said}, "plain": True}]
             if not calls:
-                if not self.terse():
+                if user and not self.terse():
                     await self.speak("Sorry, I lost that. Say it again?")
                 return
             real = [c for c in calls if not c.get("plain")]
@@ -385,9 +406,18 @@ class Brain:
                 results[call["id"]] = result
                 sent = sent or (call["name"] == "send_to_claude_code" and "sent_to" in (result or {}))
                 refused = refused or (call["name"] == "send_to_claude_code" and "error" in (result or {}))
-            for call in [c for c in calls if c["name"] == "speak"]:
+            speaks = [c for c in calls if c["name"] == "speak"]
+            for call in speaks[:-1]:  # a draft and its rewrite in one step: one reply per turn, the last
+                logger.info(f"speak dropped, a later one in the same step replaces it: {call['args'].get('text', '')!r}")
+                results[call["id"]] = "replaced by your next speak call: one reply per turn"
+            asked = self._asked()
+            limit = self.limit(trigger, asked)
+            for call in speaks[-1:]:
                 said = plain(str(call["args"].get("text", "")))
                 problem = self.speech_problem(said, sent, refused) if retries < 2 else None
+                if not problem and not shortened and retries < 2:
+                    # Sent back once: the model shortens better than a cut does. A second long one is cut in code below.
+                    problem, shortened = conversation.length_problem(without_closer(said), limit), True
                 if problem:
                     retries += 1
                     logger.info(f"speech refused: {said!r}: {problem[:160]}")
@@ -401,8 +431,6 @@ class Brain:
                     said = without_repeat(without_closer(said), self._last_spoken)
                     now = time.time()
                     self._recent_spoken = [(t, x) for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]
-                    asked = next((m["content"] for m in reversed(self.messages) if m["role"] == "user"
-                                  and isinstance(m.get("content"), str) and not m["content"].startswith("[")), "")
                     # A report the user talked over comes back ([resume]): it was sent whole but heard only in part,
                     # so it is no repeat. The answer to a status question ("what's going on everywhere") asks for the
                     # state again, so it is said whole; only that answer: the turns after it are filtered as ever.
@@ -412,6 +440,10 @@ class Brain:
                         logger.info(f"repeat cut: {said!r} -> {trimmed!r}")
                         # A first answer to new words must still say something; a second reply to the same words need not.
                         said = trimmed if (trimmed or self._answered_user) else said
+                    cut = conversation.trim(said, limit)
+                    if cut != said:
+                        logger.info(f"length cut: {len(said.split())} -> {len(cut.split())} words")
+                        said = cut
                     if said and self.translate and self.language_problem(said):  # it was told twice; the user must still follow
                         said = await self.translate(said)
                         if generation != self._generation:  # the user moved on while it was translated
@@ -432,7 +464,8 @@ class Brain:
                 self.append(text)
             if done or generation != self._generation:
                 return
-        await self.speak("That took too many steps, so I stopped. Tell me what you need first.")
+        if user:
+            await self.speak("That took too many steps, so I stopped. Tell me what you need first.")
 
     async def _step(self, decls: list[dict], filled: bool) -> tuple[vendors.Step, bool]:
         """One model step that cannot stall the call: a filler past a few seconds, the fast model past the timeout."""
