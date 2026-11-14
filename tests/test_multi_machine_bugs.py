@@ -564,3 +564,74 @@ def test_the_conflict_scan_runs_no_git_for_a_remote_session(d, node, tmp_path, n
     assert no_processes == []
     remembered = d.ALARM.reports[s.id]
     assert remembered.root == "" and remembered.cwd != str(tmp_path)  # "same folder" only on the same machine
+
+
+def test_recognition_terms_run_no_git_for_a_remote_session_and_use_its_nodes_file_names(d, node, tmp_path, no_processes):
+    from test_mixed_harnesses import _join
+
+    s = _join(d, "devbox", "s1", "shop", files=["billing/pricing.py", "README.md"])
+    s.cwd = str(tmp_path)
+    (tmp_path / ".git").mkdir()
+    terms = d._recognition_terms()
+    assert no_processes == []  # _git_files swallows any error, so the refusal itself proves nothing: the record does
+    assert "billing" in terms
+
+
+@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
+def test_drive_mode_reads_no_path_on_this_mac_for_a_remote_prompt(d, node, tmp_path, monkeypatch):
+    """Whether a road yes may approve a file edit rested on os.path.realpath of the node's folder, resolved on this
+    Mac's disk. For a remote session there is nothing here to resolve: a file tool is not road safe."""
+    import drive as drives
+    from test_mixed_harnesses import _join
+
+    looked = []
+    real = drives.os.path.realpath
+    monkeypatch.setattr(drives.os.path, "realpath", lambda p, *a, **k: looked.append(p) or real(p, *a, **k))
+
+    async def quiet(*a, **k):
+        return None
+
+    monkeypatch.setattr(d, "say", quiet)
+    monkeypatch.setattr(d, "_ask_permission", quiet)
+    s = _join(d, "devbox", "s1", "shop")
+    s.cwd = str(tmp_path)
+    preview = json.dumps({"file_path": "pricing.py", "old_string": "a", "new_string": "b"})
+    asyncio.run(d._put_permission(s, "req1", "Edit", "edit pricing", preview, node_readable=None))
+    assert looked == [] and not d.state.drive.is_road_safe("req1")
+
+
+@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
+def test_a_remote_turns_final_message_is_not_checked_against_files_on_this_mac(tmp_path, monkeypatch):
+    """Turn.finish adds a 'read' artifact for a file named in the final message if os.path.isfile finds it at the
+    session's folder: for a remote session that folder is on the node."""
+    import artifacts
+
+    looked = []
+    monkeypatch.setattr(artifacts.os.path, "isfile", lambda p: looked.append(p) or True)
+    s = sessions.Session(id="n1-s1", name="shop", cwd=str(tmp_path), machine="devbox", harness="claude-code",
+                         harness_data={"remote_id": "s1", "node_id": "n1"})
+    mirror = tmp_path / "mirror.jsonl"
+    mirror.write_text("")
+    s.transcript = str(mirror)
+    monkeypatch.setattr(sessions, "current_transcript", lambda session: str(mirror))
+
+    async def go():
+        fed = []
+
+        async def feed(session, text, respond):
+            fed.append(text)
+
+        task = asyncio.create_task(sessions.follow_transcript(s, feed, lambda: None))
+        await asyncio.sleep(0.2)
+        with mirror.open("a") as f:
+            f.write(json.dumps({"type": "assistant", "message": {"stop_reason": "end_turn", "content": [
+                {"type": "text", "text": "I checked pricing.py and it is fine."}]}}) + "\n")
+        for _ in range(30):
+            if fed:
+                break
+            await asyncio.sleep(0.1)
+        task.cancel()
+        return fed
+
+    assert run(go())
+    assert looked == [] and s.artifacts == []

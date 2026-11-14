@@ -5530,10 +5530,13 @@ def _recognition_terms() -> list[str]:
     folders: set[str] = set()
     for s in REGISTRY.sessions.values():
         names += s.name.replace("/", " ").split()
-        try:
-            files = _git_files(s.cwd, 5).split("\0")
-        except Exception:
-            continue
+        if s.machine:  # its folder is on its node: the names it sent, never git at that path on this Mac
+            files = [str(f) for f in s.harness_data.get("files") or []]
+        else:
+            try:
+                files = _git_files(s.cwd, 5).split("\0")
+            except Exception:
+                continue
         for f in files:
             folders.update(p for p in f.split("/")[:2][:-1] if 2 < len(p) < 40 and not p.startswith("."))
     return vocabulary.terms_for(DICTIONARY, names, _brief_names(), sorted(folders))
