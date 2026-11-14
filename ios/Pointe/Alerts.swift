@@ -52,8 +52,14 @@ enum AlertPlan {
     }
 
     /// The Mac's own title and body, never the request's full text: an older Mac sends neither, and gets no notification.
-    static func note(_ a: API.Attention, watchApprove: Bool) -> AlertNote? {
+    /// The Mac names the machine in the title (alerts.py). A session whose machine is offline gets no actions: an answer
+    /// would be stale, its prompt went back to its terminal.
+    static func note(_ a: API.Attention, watchApprove: Bool, machines: MachineView = MachineView(nil)) -> AlertNote? {
         guard let title = a.title, !title.isEmpty, let body = a.body, !body.isEmpty else { return nil }
+        let s = a.session.flatMap { name in machines.sessions.first { $0.name == name } }
+        if s?.isOffline == true {
+            return AlertNote(id: a.id, title: title, body: body, category: openCategory, kind: a.kind ?? "", session: a.session, requestId: nil)
+        }
         let kind = a.kind ?? ""
         if kind == "briefing" { return nil }  // the phone schedules its own "Your briefing is ready" (BriefingReminder)
         guard kind == "permission" else {
@@ -68,7 +74,7 @@ enum AlertPlan {
     /// `posted`: what this app already posted (once each, even if the user swiped it away); `delivered`: what is on
     /// screen now. On screen, the card is enough: an item is posted once the app leaves the screen.
     static func plan(_ items: [API.Attention], posted: Set<String>, delivered: Set<String>, appActive: Bool, enabled: Bool,
-                     watchApprove: Bool) -> Result {
+                     watchApprove: Bool, machines: MachineView = MachineView(nil)) -> Result {
         let shown = delivered.union(posted)
         guard enabled else { return Result(post: [], withdraw: shown.sorted(), posted: []) }
         let ids = Set(items.map(\.id))
@@ -76,7 +82,7 @@ enum AlertPlan {
         var post: [AlertNote] = []
         if !appActive {
             for a in items where !kept.contains(a.id) {
-                guard let n = note(a, watchApprove: watchApprove) else { continue }
+                guard let n = note(a, watchApprove: watchApprove, machines: machines) else { continue }
                 post.append(n)
                 kept.insert(a.id)
             }
@@ -159,7 +165,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// After each status poll. A failed poll (nil) changes nothing: it is not "everything was answered".
-    func sync(_ attention: [API.Attention]?, api: API?) async {
+    func sync(_ attention: [API.Attention]?, api: API?, machines: MachineView = MachineView(nil)) async {
         guard let attention else { return }
         let delivered = Set(await center.deliveredNotifications().map(\.request.identifier).filter { !$0.hasPrefix(Self.resultPrefix) })
         let active = UIApplication.shared.applicationState == .active
@@ -169,7 +175,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
             watchApprove = (try? await api.prefs())?.watchApprove ?? false
         }
         let r = AlertPlan.plan(attention, posted: posted, delivered: delivered, appActive: active, enabled: enabled,
-                               watchApprove: watchApprove)
+                               watchApprove: watchApprove, machines: machines)
         if !r.withdraw.isEmpty {
             center.removeDeliveredNotifications(withIdentifiers: r.withdraw)
             center.removePendingNotificationRequests(withIdentifiers: r.withdraw)
@@ -207,7 +213,8 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         Self.schedule()
         guard enabled, let pairing = PairingStore.load() else { return }
         let api = API.standalone(pairing)
-        await sync((try? await api.status())?.attention, api: api)
+        let status = try? await api.status()
+        await sync(status?.attention, api: api, machines: MachineView(status))
     }
 
     // MARK: actions
