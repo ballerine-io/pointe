@@ -782,6 +782,7 @@ class Hub:
             except Exception:  # WebSocketDisconnect, or a receive after close
                 return
             node.heard.set()
+            heartbeat.heard()
             frame = decode(text, NODE_FRAMES)
             if frame is None:
                 continue

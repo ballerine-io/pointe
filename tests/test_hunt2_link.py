@@ -198,3 +198,29 @@ def test_a_link_replaced_from_the_same_address_says_nothing(world, monkeypatch):
     monkeypatch.setattr(hub_nodes, "STALE_PROBE_SECS", 0.2, raising=False)
     node = paired(hub)
     assert _takeover(hub, node, "100.64.0.5", "100.64.0.5") == ""
+
+
+# ---------- 5. frames arriving are not counted as life: only pongs are ----------
+
+def test_a_node_that_keeps_sending_frames_is_not_declared_dead_for_late_pongs(world, monkeypatch):
+    hub, host, registry, clock, mono, state = world
+    monkeypatch.setattr(nodelink, "PING_SECS", 0.01)
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        welcome = await fake.connect()
+        assert welcome["t"] == "welcome"
+        await fake.send_sessions(entry())
+        line = json.dumps({"n": 1}) + "\n"
+        offset = 0
+        for _ in range(6):  # a backlog streaming over a slow uplink: data arrives, the pongs wait behind it
+            mono.now += 2.5
+            await fake.send("transcript", id="s1", gen=0, offset=offset, next_offset=offset + len(line), entries=[line])
+            offset += len(line)
+            await asyncio.sleep(0.03)
+        await settle()
+        assert fake.pipe.closed is None, f"closed {fake.pipe.closed} while its frames were arriving"
+        await fake.drop()
+
+    run(go())

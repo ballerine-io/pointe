@@ -335,5 +335,9 @@ class Heartbeat:
         self.rtt_ms = round((self._clock() - sent) * 1000)
         self.last_heard = self._clock()
 
+    def heard(self) -> None:
+        """Any frame from the node: a link streaming a backlog over a slow uplink is alive while its pongs queue behind."""
+        self.last_heard = self._clock()
+
     def dead(self) -> bool:
         return self._clock() - self.last_heard > DEAD_AFTER_SECS
