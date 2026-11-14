@@ -175,7 +175,9 @@ class PhoneLink:
 def _svg(link: str) -> str:
     import segno
 
-    return segno.make(link, error="m").svg_inline(scale=5, border=4, dark="#000", light="#fff")
+    # omitsize: a viewBox and no fixed size, so the page's tile scales the whole code; with width/height attributes
+    # the browser kept the 285 px drawing and clipped it to the 220 px box (two finder squares fell off the edge).
+    return segno.make(link, error="m").svg_inline(scale=5, border=4, dark="#000", light="#fff", omitsize=True)
 
 
 def install(app, link: PhoneLink, page_key: str, listener,

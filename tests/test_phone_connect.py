@@ -181,6 +181,8 @@ def redeem(client, code, **extra):
 def test_the_page_gets_a_qr_with_a_one_time_code_and_the_app_trades_it_for_the_key(world):
     made = make(world)
     assert made["svg"].startswith("<svg") and made["link"].startswith("pointe://pair?v=2&")
+    # the page sizes the code by CSS: a fixed width/height on the svg kept the drawing at 285 px and clipped it
+    assert 'viewBox="' in made["svg"] and ' width="' not in made["svg"].split(">", 1)[0]
     assert made["expires_in"] == 300 and parse_qs(urlparse(made["link"]).query)["code"] == [made["code"]]
     got = redeem(tls(world), made["code"])
     assert got.status_code == 200 and got.json()["mac"] == "studio" and len(got.json()["key"]) >= 40
