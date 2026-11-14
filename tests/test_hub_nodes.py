@@ -257,10 +257,16 @@ def test_a_second_connection_with_the_same_key_is_closed_4409_and_the_first_stay
     hub, *_ = world
     node = paired(hub)
 
+    async def answer_pings(fake):
+        while await fake.recv("never", timeout=10) is not None:
+            pass
+
     async def go():
         first, clone = FakeNode(hub, node), FakeNode(hub, node)
         assert (await first.connect())["t"] == "welcome"
+        reader = asyncio.create_task(answer_pings(first))  # alive: the hub's probe of it gets a pong
         assert await clone.connect() is None
+        reader.cancel()
         assert clone.pipe.closed[0] == nodelink.CLOSE_ALREADY_CONNECTED
         assert hub.live[node["id"]].online and first.pipe.closed is None
         await first.send_sessions(entry())

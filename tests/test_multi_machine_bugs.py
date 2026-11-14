@@ -442,3 +442,56 @@ def test_an_invite_is_cancelled_after_too_many_wrong_codes_and_says_so(world):
     assert hub.invites.status() is None
     assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "127.0.0.1")[0] == 403  # the code is gone
     assert "127.0.0.1" in hub.invites.ended and "connector" in hub.invites.ended
+
+
+# ---------- 14. a node that crashed waits out the hub's heartbeat before it can link again ----------
+
+def test_a_new_connection_replaces_an_old_link_that_no_longer_answers(world, monkeypatch):
+    """The laptop slept or the node's machine rebooted: its old link stays open on the hub, silent, until the heartbeat
+    gives up (about 15 s), and every reconnect meanwhile is refused 4409. A new connection with the key now makes the
+    hub ping the old one; silence for STALE_PROBE_SECS proves it stale, and the new one is welcomed."""
+    hub, host, registry, *_ = world
+    monkeypatch.setattr(hub_nodes, "STALE_PROBE_SECS", 0.2, raising=False)
+    node = paired(hub)
+
+    async def go():
+        old, new = FakeNode(hub, node), FakeNode(hub, node)
+        assert (await old.connect())["t"] == "welcome"
+        await old.send_sessions(entry())
+        welcome = await new.connect()  # old never reads again: it answers no ping
+        await asyncio.wait_for(old.task, 2)  # the old link's handler ended
+        await new.send_sessions(entry("s2", "api"))
+        alive = hub.live[node["id"]].online
+        await new.drop()
+        return welcome, old.pipe.closed, alive
+
+    welcome, old_closed, alive = run(go())
+    assert welcome and welcome["t"] == "welcome", "the restarted node was refused while its dead link lingered"
+    assert old_closed and old_closed[0] == nodelink.CLOSE_DEAD
+    assert alive  # the old handler ending did not mark the node offline under the new link
+    assert nodelink.hub_session_id(node["id"], "s2") in registry.sessions
+
+
+def test_a_second_connection_is_still_refused_4409_while_the_first_answers(world, monkeypatch):
+    """The protection the probe must keep: a cloned VM or a stolen key cannot shadow a node whose link is alive."""
+    hub, *_ = world
+    monkeypatch.setattr(hub_nodes, "STALE_PROBE_SECS", 0.5, raising=False)
+    node = paired(hub)
+
+    async def answer_pings(fake):
+        while await fake.recv("never", timeout=10) is not None:
+            pass
+
+    async def go():
+        first, clone = FakeNode(hub, node), FakeNode(hub, node)
+        assert (await first.connect())["t"] == "welcome"
+        reader = asyncio.create_task(answer_pings(first))
+        refused = await clone.connect()
+        still = hub.live[node["id"]].online and first.pipe.closed is None and hub.live[node["id"]].socket is first.pipe
+        reader.cancel()
+        await first.drop()
+        return refused, clone.pipe.closed, still, first.pings
+
+    refused, closed, still, pings = run(go())
+    assert refused is None and closed[0] == nodelink.CLOSE_ALREADY_CONNECTED
+    assert still and pings >= 1  # it was asked, answered, and stays

@@ -177,7 +177,11 @@ node delete its key. No `hello` within 10 s, or a first frame that is not a vali
 keeps its key and reconnects, so a laptop that stalls mid-handshake does not unpair itself. The key is never sent, so
 a hub that logged a request, or a listener that was not the hub, learns nothing reusable. **One live connection per key:** a second connection that
 authenticates with a key already connected is closed with 4409 `already connected`, and the first stays; a cloned VM or
-a stale process cannot shadow the real node.
+a stale process cannot shadow the real node. Before refusing it, the hub pings the first link: if no frame comes from
+it within 3 s (`STALE_PROBE_SECS`), that link is stale (the node crashed, slept or lost its network and is now
+reconnecting), so the hub closes it 4408 and welcomes the new one, instead of refusing every reconnect until the
+heartbeat gives up about 15 s later. A first link that answers stays, so the protection holds against any copy of the
+key while the real node is connected.
 
 ### Node to hub
 

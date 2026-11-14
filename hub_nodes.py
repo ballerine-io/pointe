@@ -45,6 +45,7 @@ PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses, since 
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
+STALE_PROBE_SECS = 3.0  # a new connection with a key already linked: the old link must answer a ping within this
 MAX_MIRROR_BYTES_PER_NODE = 4 << 30  # every mirror of one node together; past it, entries are counted, not written
 HISTORY_QUIET_SECS = 1.5  # a newly joined session's backlog: no frame for this long and it is all here
 _ID = re.compile(r"[\w-]{1,128}")  # a node's session id: it names a mirror file, so nothing that walks a path
@@ -457,6 +458,10 @@ class Node:
     lock: asyncio.Lock | None = None
     backlog: dict[str, asyncio.TimerHandle] = field(default_factory=dict)
     full: bool = False  # its mirrors reached MAX_MIRROR_BYTES_PER_NODE (logged once)
+    heartbeat: nodelink.Heartbeat | None = None  # the live link's
+    link_tasks: set[asyncio.Task] = field(default_factory=set)  # the live link's reader and keep-alive
+    heard: asyncio.Event = field(default_factory=asyncio.Event)  # set on every frame from the node
+    probing: bool = False
 
     @property
     def name(self) -> str:
@@ -686,7 +691,7 @@ class Hub:
         if paired is None or not nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
             logger.warning(f"node link refused: {hello['node']['name']!r} is not paired, or its key is wrong")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not paired with this hub")
-        if not self.links.claim(paired["id"], ws):
+        if not self.links.claim(paired["id"], ws) and not await self._replace_stale(paired, ws):
             logger.warning(f"node {paired['name']}: a second connection with its key refused")
             return await _close(ws, nodelink.CLOSE_ALREADY_CONNECTED, "already connected")
         node = self.live.get(paired["id"]) or self._track(paired)
@@ -694,18 +699,20 @@ class Hub:
         sessions.MACHINES[node.name] = node.machine
         node.machine.online, node.machine.since = True, None
         node.machine.skew = self._clock() - hello["now"]
-        heartbeat = nodelink.Heartbeat(self._mono)
+        heartbeat = node.heartbeat = nodelink.Heartbeat(self._mono)
         logger.info(f"node {node.name} connected (skew {node.machine.skew:+.1f} s)")
         try:
             call = self._call_state()
             await self._send(node, encode("welcome", protocol=nodelink.PROTOCOL, call_up=call["up"],
                                           approvals_terminal=call["approvals_terminal"], vendors=self._vendors(),
                                           resume=self.mirrors.resume(node.id)))
+            if node.socket is not ws:  # replaced (_replace_stale) while the welcome was going out
+                return
             for sid in self.mirrors.sids(node.id):
                 if self.mirrors.in_backlog(node.id, sid):  # left by a restart mid-backlog: the rest may never come
                     self._backlog_wait(node, sid)
-            tasks = {asyncio.create_task(self._read(node, ws, heartbeat)),
-                     asyncio.create_task(self._keep_alive(node, ws, heartbeat))}
+            tasks = node.link_tasks = {asyncio.create_task(self._read(node, ws, heartbeat)),
+                                       asyncio.create_task(self._keep_alive(node, ws, heartbeat))}
             try:
                 await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             finally:
@@ -715,6 +722,38 @@ class Hub:
             self.links.release(paired["id"], ws)
             if node.socket is ws:
                 self._went_offline(node)
+
+    async def _replace_stale(self, paired: dict, ws) -> bool:
+        """A new connection proved it holds the key of a node whose link is still open: True if that old link is stale
+        and `ws` now holds the slot. The old link is pinged; any frame from it within STALE_PROBE_SECS proves it alive
+        and the new one is refused 4409, so a clone or a stolen key still cannot shadow a node that answers. Silence
+        means the node crashed, slept or lost its network, and is reconnecting: without this it would be refused until
+        the heartbeat gave up (DEAD_AFTER_SECS)."""
+        old = self.live.get(paired["id"])
+        stale = old.socket if old is not None else None
+        if stale is None or old.probing or old.heartbeat is None:
+            return False
+        old.probing = True
+        try:
+            old.heard.clear()
+            if await self._send(old, old.heartbeat.ping()):
+                try:
+                    await asyncio.wait_for(old.heard.wait(), STALE_PROBE_SECS)
+                    return False
+                except asyncio.TimeoutError:
+                    pass
+        finally:
+            old.probing = False
+        if old.socket is not stale:  # it went, or was replaced, while we waited
+            return self.links.claim(paired["id"], ws)
+        logger.warning(f"node {old.name}: a new connection with its key, and its old link did not answer for "
+                       f"{STALE_PROBE_SECS:.0f} s: the old link is closed")
+        for task in old.link_tasks:
+            task.cancel()
+        self.links.release(paired["id"], stale)
+        self._went_offline(old)
+        self._spawn(_close(stale, nodelink.CLOSE_DEAD, "replaced by a new connection"))
+        return self.links.claim(paired["id"], ws)
 
     async def _keep_alive(self, node: Node, ws, heartbeat: nodelink.Heartbeat) -> None:
         while True:
@@ -731,6 +770,7 @@ class Hub:
                 text = await ws.receive_text()
             except Exception:  # WebSocketDisconnect, or a receive after close
                 return
+            node.heard.set()
             frame = decode(text, NODE_FRAMES)
             if frame is None:
                 continue
