@@ -2453,17 +2453,11 @@
       if (desk.seen.has(a.id)) continue;
       desk.seen.add(a.id);  // shown on the page or alerted once: never alerted again
       if (!away || !deskWanted() || !deskAllowed()) continue;
-      const n = new Notification(alertTitle(a, s), {body: a.body || a.text || '', tag: a.id,
+      const n = new Notification(a.title || 'Pointe wants to speak', {body: a.body || a.text || '', tag: a.id,
                                                                      requireInteraction: a.kind === 'permission'});
       n.onclick = () => { window.focus(); n.close(); };
       desk.shown.set(a.id, n);
     }
-  }
-  function alertTitle(a, s) {  // "shop · devbox needs approval" once the session's machine needs saying
-    const title = a.title || 'Pointe wants to speak', x = a.session && (s.sessions || []).find(y => y.name === a.session);
-    if (!x) return title;
-    const mv = machineView(s), label = whoLabel(x, mv);
-    return label === short(x.name) || title.includes(' · ') || !title.startsWith(x.name) ? title : label + title.slice(x.name.length);
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;

@@ -246,8 +246,6 @@ async def machines(page: Page) -> None:
     await page.shot("machines-offline-request")
 
     await use(page, machines_fixture(recorded, now))
-    title = await page.js("alertTitle(status.attention[0], status)")
-    check("a desktop alert's title says shop · devbox", title == "shop · devbox needs approval", title=title)
 
     got = await page.js("(() => { const nm = [...document.querySelectorAll('#list .s .nm')].find(e => e.firstChild.textContent === 'חנות');"
                         " return {dir: getComputedStyle(nm).direction, tag: getComputedStyle(nm.querySelector('.machine')).direction}; })()")
