@@ -1133,6 +1133,8 @@
   // right (a full stop at the left end), English from the left. dir="auto" is that rule, done by the browser.
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
                                     if (text !== undefined) { e.textContent = text; e.dir = 'auto'; } return e; };
+  // Writes only on change: setting the same text again still lays the page out, and the status is drawn every 700 ms.
+  const text = (id, value) => { const e = $(id); if (e.textContent !== value) e.textContent = value; };
 
   // Long worktree names ("cfx-9994-replace-…/cfx-9994-replace-…") keep their ticket and their distinguishing tail.
   function short(name) {
@@ -1157,19 +1159,45 @@
   function meetError(text, secs = 12) { meetProblem = text; meetProblemUntil = Date.now() + secs * 1000; $('problem').textContent = text; }
   // One at a time: overlapping polls can come back out of order, and an older answer would undo a newer one
   // (a turn that appeared, then vanished for seconds). A refresh asked for meanwhile runs right after.
+  let polled = 0;
   async function refresh() {
     if (inflight) { again = true; return; }
-    inflight = true;
+    if (document.hidden && Date.now() - polled < 2000) return;  // nobody sees a hidden tab: every 2 s is enough
+    inflight = true; polled = Date.now();
     try { await poll(); } finally { inflight = false; }
     if (again) { again = false; refresh(); }
   }
   async function poll() {
+    const started = Date.now();
     try {
       status = await (await fetch('/voice/status')).json();
       fails = 0;
     } catch (e) {
       fails++;
     }
+    settle(started);
+    render();
+  }
+  // What the user just asked for shows at once and stays on top of each poll until a status fetched after the Mac answered
+  // the request arrives; the Mac's answer is the truth, the override only bridges the round trip (a stalled Mac must not
+  // leave a click looking ignored). A refused request drops the override; the next poll shows what the Mac has.
+  const wants = new Map();  // key -> {apply, settledAt, until}
+  function want(key, apply, request) {
+    const w = {apply, settledAt: 0, until: Date.now() + 8000};
+    wants.set(key, w);
+    if (status) { apply(status); render(); }
+    request.then(ok => { if (ok === false) wants.delete(key); else w.settledAt = Date.now(); }, () => wants.delete(key));
+  }
+  function settle(started) {
+    if (!status) return;
+    for (const [key, w] of wants) {
+      if ((w.settledAt && started >= w.settledAt) || Date.now() > w.until) wants.delete(key);
+      else w.apply(status);
+    }
+  }
+  // Draws the status the page holds. Each part writes only what changed: a same-value write still lays the page out, and
+  // a list rebuilt under the pointer swallows the click whose press and release land on different elements.
+  function render() {
     pttFollow(status);
     showState();
     showTalk(status);
@@ -1188,9 +1216,9 @@
     if (window.whisperFollow) whisperFollow(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
-    $('ctx').textContent = s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context';
-    for (const m of ['orchestrator', 'session']) $('m-' + m).className = s.mode === m ? 'on' : '';
-    $('modehelp').textContent = MODE_HELP[s.mode] || '';
+    text('ctx', s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context');
+    for (const m of ['orchestrator', 'session']) $('m-' + m).classList.toggle('on', s.mode === m);
+    text('modehelp', MODE_HELP[s.mode] || '');
 
     // One approval card at a time, pinned above the bar, as in the app; the rest are counted.
     // which coding agent runs each session: shown only when there is more than one kind, so the common case stays clean
@@ -1211,13 +1239,18 @@
     const focused = s.mode === 'session';
     const mv = machineView(s);
     const byUrgency = list => list.slice().sort((a, b) => urgency(a) - urgency(b) || a.name.localeCompare(b.name));
-    $('mchips').replaceChildren(...(mv.multi ? ['', ...mv.names].map(n => {
-      const m = mv.info(n), chip = el('button', (machineFilter === n ? 'on' : '') + (n && m.online === false ? ' away' : ''), n || 'All');
-      chip.setAttribute('aria-pressed', machineFilter === n);
-      chip.title = !n ? 'Sessions on every machine' : m.online === false ? `${n}: offline since ${sinceText(m.since)}` : `Only the sessions on ${n}`;
-      chip.onclick = () => { machineFilter = n; refresh(); };
-      return chip;
-    }) : []));
+    const chipsKey = JSON.stringify(mv.multi ? [mv.names, machineFilter, mv.names.map(n => mv.info(n).online === false)] : null);
+    if (chipsKey !== chipsShown) {
+      chipsShown = chipsKey;
+      $('mchips').replaceChildren(...(mv.multi ? ['', ...mv.names].map(n => {
+        const m = mv.info(n), chip = el('button', (machineFilter === n ? 'on' : '') + (n && m.online === false ? ' away' : ''), n || 'All');
+        chip.setAttribute('aria-pressed', machineFilter === n);
+        chip.title = !n ? 'Sessions on every machine' : m.online === false ? `${n}: offline since ${sinceText(m.since)}` : `Only the sessions on ${n}`;
+        chip.onclick = () => { machineFilter = n; render(); };  // a view only: nothing to ask the Mac
+        return chip;
+      }) : []));
+    }
+    const asking = confirming && Date.now() < confirming.until ? confirming.name : '';
     const row = x => {
       const pinned = focused && x.name === s.active, away = x.online === false;
       const b = el('div', 's' + (pinned ? ' on' : '') + (focused && !pinned ? ' dim' : '') + (away ? ' away' : ''));
@@ -1227,8 +1260,8 @@
       tools.append(el('span', 'tag' + (hot ? ' hot' : ''), away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'));
       const pen = el('span', 'edit', '✎'); pen.title = 'Rename';
       pen.onclick = ev => { ev.stopPropagation(); startRename(b, x.name); };
-      const asking = confirming && confirming.name === x.name && Date.now() < confirming.until;
-      const cut = el('span', 'edit' + (asking ? ' sure' : ''), asking ? 'disconnect?' : '×');
+      const sure = asking === x.name;
+      const cut = el('span', 'edit' + (sure ? ' sure' : ''), sure ? 'disconnect?' : '×');
       cut.title = 'Disconnect from the voice (it keeps running in its terminal)';
       cut.onclick = ev => { ev.stopPropagation(); disconnect(x.name); };
       tools.append(pen, cut);
@@ -1252,19 +1285,30 @@
       else if (!m.here && m.rtt_ms != null) h.append(el('span', '', `${m.rtt_ms} ms`));
       const need = g.sessions.filter(x => needsYou(x) && x.online !== false).length;
       if (need) h.append(el('span', 'hot', `${need} need${need === 1 ? 's' : ''} you`));
-      h.onclick = () => { foldMachine(m.name, !folded); refresh(); };
+      h.onclick = () => { foldMachine(m.name, !folded); render(); };
       return h;
     };
-    const rows = !s.sessions.length ? []
-      : !mv.multi ? byUrgency(s.sessions).map(row)
-      : mv.groups.flatMap(g => [header(g), ...(machinesFolded().includes(g.m.name) ? [] : byUrgency(g.sessions).map(row))]);
-    $('list').replaceChildren(...(s.sessions.length ? rows
-      : [el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.')]));
+    // Rows keyed by session and headers by machine, each redrawn only when what it shows changed (its signature): the
+    // pointer, the hover and the keyboard focus stay on the same element across polls.
+    const foldedNames = machinesFolded(), seen = new Set();
+    const rowSig = x => JSON.stringify([x, focused && x.name === s.active, focused, agentBadges, mv.mixed && !machineFilter ? mv.of(x) : '',
+                                        asking === x.name, x.online === false ? mv.info(mv.of(x)).since : 0]);
+    const headerSig = g => JSON.stringify([g.m, foldedNames.includes(g.m.name), g.sessions.filter(x => needsYou(x) && x.online !== false).length]);
+    const keyed = x => { let key = x.name; while (seen.has(key)) key += ' '; seen.add(key); return [key, rowSig(x), () => row(x)]; };
+    const wanted = !s.sessions.length
+      ? [['', '', () => el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.')]]
+      : !mv.multi ? byUrgency(s.sessions).map(keyed)
+      : mv.groups.flatMap(g => [['@' + g.m.name, headerSig(g), () => header(g)],
+                                ...(foldedNames.includes(g.m.name) ? [] : byUrgency(g.sessions).map(keyed))]);
+    reconcile($('list'), listShown, wanted);
     showMachines(s, mv);
     showPhones(s);
     syncSettingsNav();
     document.body.classList.toggle('nosessions', false);
 
+    const recentKey = JSON.stringify(s.recent || []);
+    if (recentKey === recentShown) return;
+    recentShown = recentKey;
     const recent = (s.recent || []).slice().reverse();
     $('recent').replaceChildren(...(recent.length ? recent.map(r => {
       const li = el('li');
@@ -1276,7 +1320,35 @@
       li.append(said, meta); return li;
     }) : [el('li', 'empty', 'Each request shows here with where it went.')]));
   }
-  let attentionShown = '', agentBadges = false, agentOf = x => x.harness;
+  let attentionShown = '', chipsShown = '', recentShown = '', agentBadges = false, agentOf = x => x.harness;
+  const listShown = new Map();  // key -> {el, sig}: a row per session (its name), a header per machine ("@name")
+  // Makes the children of `parent` the `wanted` list of [key, signature, make], touching only what changed: a key that
+  // is gone is removed, one whose signature changed is replaced in place (the keyboard focus moves with it), and an
+  // element is moved only when out of order.
+  function reconcile(parent, shown, wanted) {
+    const place = new Map(wanted.map((w, i) => [w[0], i]));
+    for (const [key, item] of shown) if (!place.has(key)) { item.el.remove(); shown.delete(key); }
+    const keyOf = new Map([...shown].map(([key, item]) => [item.el, key]));
+    let prev = null;
+    for (const [i, [key, sig, make]] of wanted.entries()) {
+      let item = shown.get(key);
+      if (!item) { item = {el: make(), sig}; shown.set(key, item); }
+      else if (item.sig !== sig) {
+        const fresh = make(), focused = item.el.contains(document.activeElement);
+        item.el.replaceWith(fresh); item.el = fresh; item.sig = sig;
+        if (focused) fresh.focus();
+      }
+      keyOf.set(item.el, key);
+      // Into place with the fewest moves: an element sitting here that belongs further down than this one is from its
+      // place steps aside once, instead of every element after it moving up one by one.
+      for (let at; (at = prev ? prev.nextElementSibling : parent.firstElementChild) !== item.el;) {
+        const atPlace = at ? place.get(keyOf.get(at)) : undefined;
+        if (at && item.el.parentNode === parent && atPlace !== undefined && atPlace - i > [...parent.children].indexOf(item.el) - i) parent.append(at);
+        else { prev ? prev.after(item.el) : parent.prepend(item.el); break; }
+      }
+      prev = item.el;
+    }
+  }
 
   // Machines (docs/multi-machine.md). A session's `machine` names the machine it runs on ("" or none: this Mac). The
   // filter is a view only: it sends nothing and changes no mode.
@@ -1429,9 +1501,12 @@
   }
   async function toggleListen() {
     if (!(status && status.connected)) return;
-    await fetch('/voice/listen', {method: 'POST', headers: {'content-type': 'application/json'},
-                                  body: JSON.stringify({on: !(status && status.monologue)})});
-    refresh();
+    const on = !status.monologue;
+    want('monologue', s => { s.monologue = on ? {since: Date.now() / 1000, said: ''} : null; }, (async () => {
+      const r = await fetch('/voice/listen', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
+      refresh();
+      return r.ok;
+    })());
   }
   function endCall() {  // hung up by the user: a prompt the voice holds goes back to the terminal now
     wantCall = false; clearTimeout(retry); retry = null;
@@ -1475,7 +1550,7 @@
     const where = !s ? '' : !(s.sessions || []).length ? 'No sessions yet: /pointe:voice in Claude Code, or pointe join opencode'
       : s.mode === 'session' ? `Focused on <b>${short(s.active || '').replace(/[<&]/g, '')}</b>`
       : `Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}${on}` + (need ? ` · <b>${need} need${need === 1 ? 's' : ''} you</b>` : '');
-    $('problem').textContent = micError || callNote || (Date.now() < meetProblemUntil ? meetProblem : '') || (s && s.problem ? s.problem : '');
+    text('problem', micError || callNote || (Date.now() < meetProblemUntil ? meetProblem : '') || (s && s.problem ? s.problem : ''));
     if (fails >= 3) [st, title] = ['reconnecting', 'Daemon not responding'];
     else if (wantCall && !mine) [st, title] = ['reconnecting', 'Reconnecting…'];
     else if (call.state === 'connecting') [st, title] = ['connecting', 'Connecting…'];
@@ -1490,37 +1565,43 @@
     else if (pttMode()) [st, title] = ['ptt', Date.now() < ptt.whyUntil ? ptt.why
                                        : roomHeard() ? 'Meeting: room is heard · hold to talk' : 'Hold to talk'];
     else [st, title] = ['live', 'Listening'];
-    document.body.dataset.state = st; $('state').textContent = title;
+    document.body.dataset.state = st; text('state', title);
     // the link itself, from the call's heartbeat, so "connected" is never a guess
     const quiet = mine && call.heard ? (Date.now() - call.heard) / 1000 : 0;
     const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : call.rtt != null ? ` · ${call.rtt} ms` : '';
-    $('sub').innerHTML = st === 'off' && !(s && s.connected) ? (where ? where + ' · press the mic to talk' : 'Press the mic to start talking') : where + health;
+    const sub = st === 'off' && !(s && s.connected) ? (where ? where + ' · press the mic to talk' : 'Press the mic to start talking') : where + health;
+    if (sub !== subShown) { subShown = sub; $('sub').innerHTML = sub; }
     const live = !!(s && s.connected && mine);
     $('hangup').disabled = !live;
     $('listen').disabled = !live || meetOn;
     const mono = s && s.monologue;
     $('listen').classList.toggle('on', !!mono);
-    $('listen-label').textContent = mono ? 'Back' : 'Brainstorm';
+    text('listen-label', mono ? 'Back' : 'Brainstorm');
     $('brainstorm').hidden = !mono;
     if (mono && $('mono-text').textContent !== (mono.said || '')) {
       const box = $('mono-text'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
       box.textContent = mono.said || '';
       if (atEnd) box.scrollTop = box.scrollHeight;
     }
-    $('mic').title = $('mic').ariaLabel = st === 'off' ? 'Connect' : st === 'connecting' ? 'Connecting'
+    const micTitle = st === 'off' ? 'Connect' : st === 'connecting' ? 'Connecting'
       : pttMode() ? (pttOpen() ? 'Talking' : 'Hold to talk') : muted ? 'Unmute' : 'Mute';
-    $('miclabel').textContent = $('mic').title;
-    $('keyhint').textContent = st === 'off' || st === 'connecting' ? 'Press to connect'
-      : pttMode() ? `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles` : 'Space or AirPods to mute';
+    if ($('mic').title !== micTitle) $('mic').title = $('mic').ariaLabel = micTitle;
+    text('miclabel', micTitle);
+    text('keyhint', st === 'off' || st === 'connecting' ? 'Press to connect'
+      : pttMode() ? `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles` : 'Space or AirPods to mute');
     const micMode = pttMode() ? 'ptt' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
     for (const m of ['always', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }
     if (live && silence.paused) claimMediaKeys();
   }
+  let subShown = null;
   async function setMicMode(mode) {  // the dock's switch and Settings → Microphone set the same preference
     $('pref-mic').value = mode;
-    const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({microphone: mode})});
-    if (!r.ok) $('problem').textContent = 'The microphone mode did not change: the voice is not reachable.';
-    refresh();
+    want('micmode', s => { if (s.ptt) s.ptt.mode = mode; }, (async () => {  // the switch moves now; the Mac confirms on the next poll
+      const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({microphone: mode})});
+      if (!r.ok) $('problem').textContent = 'The microphone mode did not change: the voice is not reachable.';
+      refresh();
+      return r.ok;
+    })());
   }
   async function answer(x, decision, button) {
     button.disabled = true;
@@ -1531,8 +1612,9 @@
   }
 
   async function post(path, body) {
-    await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+    const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
     refresh();
+    return r.ok;
   }
   let renaming = false;
   function startRename(button, name) {
@@ -1542,6 +1624,7 @@
     input.onclick = e => e.stopPropagation();
     const done = async save => {
       if (!renaming) return; renaming = false;
+      const shown = listShown.get(name); if (shown) shown.sig = '';  // the row holds the box: redrawn whatever the outcome
       $('renameproblem').textContent = '';
       if (save && input.value.trim() && input.value.trim() !== name) {
         const r = await fetch('/voice/rename', {method: 'POST', headers: {'content-type': 'application/json'},
@@ -1558,8 +1641,9 @@
     if (call.state === 'live') toggleMute();
     else if (call.state === 'off') startCall();
   }
-  const setMode = mode => post('/voice/mode', {mode});
-  const switchTo = name => post('/voice/switch', {name});
+  // The row and the mode switch move at once; the Mac's status takes over once it has the request.
+  const setMode = mode => want('mode', s => { s.mode = mode; }, post('/voice/mode', {mode}));
+  const switchTo = name => want('mode', s => { s.mode = 'session'; s.active = name; }, post('/voice/switch', {name}));
 
   // Mute: an AirPods tap reaches Chrome as a play/pause media key, sent to the page that owns the active media
   // session; a silent loop keeps this page that session. A muted track sends silence.
@@ -1701,15 +1785,18 @@
     refresh();
   }
   async function setPolish(on) {
-    await fetch('/voice/polish', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
-    talkShown = ''; refresh();
+    want('polish', s => { s.polish = on; }, (async () => {
+      const r = await fetch('/voice/polish', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
+      talkShown = ''; refresh();
+      return r.ok;
+    })());
   }
   function showCompose(s) {
     const live = !!(s && s.connected);  // any call: the phone's too
     $('typed').disabled = $('typed-send').disabled = !live;
     const want = !meetOn ? 'Type to the voice…' : (meetingOf(s) || {}).mode === 'participating' ? 'Ask Pointe (it answers the room)…' : 'Ask Pointe (the answer is a note)…';
-    if (live && $('typed').placeholder !== want && !$('typed').value) $('typed').placeholder = want;
-    if (!live) $('typed').placeholder = 'Type to the voice… (connect first)';
+    const placeholder = live ? want : 'Type to the voice… (connect first)';  // a placeholder set again lays the page out
+    if ($('typed').placeholder !== placeholder && (!live || !$('typed').value)) $('typed').placeholder = placeholder;
     if (document.activeElement !== $('polish')) $('polish').checked = !!(s && s.polish);
   }
   function typeNow() {  // narrow screens keep the box folded until asked for
@@ -1717,12 +1804,12 @@
     $('typed').focus();
   }
   function toggleSessions() { document.body.classList.toggle('sheet'); }
-  // Two clicks, no dialog: the first asks, the second does it. Kept outside the list, which is redrawn every refresh.
+  // Two clicks, no dialog: the first asks, the second does it. Kept outside the list, whose rows are redrawn as it changes.
   let confirming = null;
   async function disconnect(name) {
     if (!(confirming && confirming.name === name && Date.now() < confirming.until)) {
       confirming = {name, until: Date.now() + 3000};
-      refresh(); setTimeout(refresh, 3100);
+      render(); setTimeout(render, 3100);
       return;
     }
     confirming = null;
@@ -2182,7 +2269,7 @@
     }
     document.body.classList.toggle('meeting', meetOn);
     document.body.classList.toggle('meetend', !meetOn && ended && notesById.size > 0 && !notesClosed);
-    $('meet-label').textContent = m && m.ending ? 'Ending…' : meetOn ? 'End' : 'Meeting';
+    text('meet-label', m && m.ending ? 'Ending…' : meetOn ? 'End' : 'Meeting');
     $('meetbtn').classList.toggle('on', meetOn);
     $('meetbtn').disabled = (!(s && s.connected) && !meetOn) || !!(m && m.ending);
     $('meetbtn').title = meetOn ? 'End the meeting' : 'A meeting: the voice listens and takes notes';
@@ -2269,10 +2356,10 @@
     const v = s && s.voice_lock;
     $('voicelock').hidden = !v;
     $('vlignored').classList.toggle('on', !!(v && v.ignored.count));
-    $('vlignored').textContent = v && v.ignored.count ? `${v.ignored.count} ignored (not your voice)` : '';
-    $('vlproblem').textContent = v && v.problem && v.level !== 'off' ? `Voice lock can't check voices: ${v.problem}. Until it can, only a tap approves.` : '';
+    text('vlignored', v && v.ignored.count ? `${v.ignored.count} ignored (not your voice)` : '');
+    text('vlproblem', v && v.problem && v.level !== 'off' ? `Voice lock can't check voices: ${v.problem}. Until it can, only a tap approves.` : '');
     if (!v) return;
-    $('vl-problem').textContent = $('vlproblem').textContent;
+    text('vl-problem', $('vlproblem').textContent);
     const e = v.enrolling, live = !!s.connected;
     $('vl-intro').hidden = v.enrolled;
     $('vl-enrol').hidden = !e;
@@ -2293,9 +2380,9 @@
       row.append(b);
       return row;
     }));
-    $('vl-needcall').textContent = !live && !e ? 'Connect a call first: enrolment listens on the call.' : '';
+    text('vl-needcall', !live && !e ? 'Connect a call first: enrolment listens on the call.' : '');
     $('vl-actions').hidden = !!e;
-    $('vl-enrolbtn').textContent = v.enrolled ? 'Add this device' : 'Enrol my voice';
+    text('vl-enrolbtn', v.enrolled ? 'Add this device' : 'Enrol my voice');
     $('vl-enrolbtn').disabled = !live;
     $('vl-deleteall').hidden = !v.enrolled;
     if (deleting && Date.now() > deleting.until) { deleting = null; $('vl-confirm').textContent = ''; }
@@ -2304,7 +2391,7 @@
       b.className = on ? 'on' : ''; b.setAttribute('aria-checked', on);
       b.disabled = b.dataset.level !== 'off' && !v.devices.length;
     }
-    $('vl-levelhelp').textContent = LOCK_HELP[v.level] || '';
+    text('vl-levelhelp', LOCK_HELP[v.level] || '');
   }
 
   // Show while it says (artifacts.py): the files and test output a report is about, while the voice speaks it. The
@@ -2448,23 +2535,24 @@
     }));
   }
   async function openSettings() {
-    const prefs = await (await fetch('/voice/prefs')).json().catch(() => ({}));
+    // The sheet opens on the click, with the values it last had; the Mac's answers fill it in as they land.
+    $('pref-local').textContent = (status && status.local && status.local.line) || 'Pointe on this Mac does not report it: update it.';
+    pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
+    $('setok').textContent = ''; $('seterr').textContent = '';
+    if (window.desktopAlertsShow) desktopAlertsShow();
+    openSheet('settingssheet');
+    $('set-panel').scrollTop = 0; syncSettingsNav();  // after it shows: a scroll set while display:none does not stick
+    const prefs = await fetch('/voice/prefs').then(r => r.json()).catch(() => ({}));
     $('pref-mode').value = prefs['meeting.default_mode'] || 'listening';
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
     $('pref-consent').hidden = !prefs['meeting.consented'];
-    $('pref-local').textContent = (status && status.local && status.local.line) || 'Pointe on this Mac does not report it: update it.';
     $('pref-mic').value = prefs.microphone || 'always';
     $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
     $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
     $('pref-watch').checked = !!prefs['alerts.watch_approve'];
-    if (window.desktopAlertsShow) desktopAlertsShow();
     $('pref-showphone').checked = !!prefs['show.on_phone'];
-    pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
-    $('setok').textContent = ''; $('seterr').textContent = '';
     await loadSchedule();
-    openSheet('settingssheet');
-    $('set-panel').scrollTop = 0; syncSettingsNav();  // after it shows: a scroll set while display:none does not stick
   }
   // Settings' section list: a click scrolls the panel to the group; scrolling marks the group in view. A group the
   // daemon hides (no voice lock, no hub) has no entry.
@@ -2476,7 +2564,7 @@
     $('set-panel').scrollTo({top: $(id).offsetTop - 12, behavior: 'smooth'});
   }
   function syncSettingsNav() {
-    for (const b of $('set-nav').querySelectorAll('button')) b.hidden = $(b.dataset.section).hidden;
+    for (const b of $('set-nav').querySelectorAll('button')) { const h = $(b.dataset.section).hidden; if (b.hidden !== h) b.hidden = h; }
     if (!$('set-nav').querySelector('button.on:not([hidden])')) settingsMark(SETTINGS_SECTIONS.find(id => !$(id).hidden));
   }
   $('set-panel').addEventListener('scroll', () => {
@@ -2561,7 +2649,7 @@
   async function revokeMachine(name) {  // two clicks, no dialog, as Disconnect
     if (!(revoking && revoking.name === name && Date.now() < revoking.until)) {
       revoking = {name, until: Date.now() + 3000};
-      refresh(); setTimeout(refresh, 3100);
+      render(); setTimeout(render, 3100);
       return;
     }
     revoking = null;
@@ -2855,10 +2943,10 @@
     $('briefbtn').classList.toggle('on', going);
     $('brf-go').hidden = going; $('brf-skip').hidden = !b.playing; $('brf-continue').hidden = !b.paused; $('brf-stop').hidden = !going;
     $('brf-go').disabled = !live || meeting || b.building;
-    $('brf-why').textContent = !live ? 'Connect to hear it.' : meeting ? 'Not during a meeting.' : '';
+    text('brf-why', !live ? 'Connect to hear it.' : meeting ? 'Not during a meeting.' : '');
     const n = Math.max(b.part, 1);  // part is the index of the next one: while one is said, that is its number
-    $('brf-state').textContent = b.building ? 'Reading your sessions…' : b.paused ? `Paused: part ${n} of ${b.parts}`
-                                 : b.playing ? `Part ${n} of ${b.parts}` : '';
+    text('brf-state', b.building ? 'Reading your sessions…' : b.paused ? `Paused: part ${n} of ${b.parts}`
+                      : b.playing ? `Part ${n} of ${b.parts}` : '');
     if (b.latest_id !== brfLatest) {
       const first = brfLatest === undefined; brfLatest = b.latest_id;
       if (!first && $('briefsheet').classList.contains('open'))
@@ -3059,7 +3147,7 @@
     const driving = !!(s.drive && s.drive.on);  // never both: driving wins (drive.py)
     btn.disabled = !live || meeting || !!s.monologue || driving;
     btn.classList.toggle('on', on);
-    $('chl-label').textContent = on ? 'End challenge' : 'Challenge';
+    text('chl-label', on ? 'End challenge' : 'Challenge');
     btn.title = meeting ? 'Not during a meeting.' : 'The voice argues against your plan, one objection at a time';
     $('bs-challenge').disabled = !live;
     const shown = !!c && (on || (c.id !== chlClosed() && !s.monologue && !meeting && !driving));
