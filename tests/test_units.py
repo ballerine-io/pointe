@@ -844,3 +844,136 @@ def test_a_warning_already_given_is_not_repeated_in_the_next_reply():
                                   apology, "fix it") == "Sorry about the misrouting."
     # asked about again by the user: it is said again
     assert "still hasn't got" in without_recent_repeats(again, said, "did Misc 2 get my question 2 answer?")
+
+
+# ---------- sessions on other machines (docs/design/multi-machine.md, "Routing and the brain") ----------
+
+@pytest.fixture
+def machines(monkeypatch):
+    """The node link's view of the paired machines, as hub_nodes.py keeps it in sessions.MACHINES."""
+    import sessions
+
+    table: dict = {}
+    monkeypatch.setattr(sessions, "MACHINES", table)
+    table["devbox"] = sessions.Machine(name="devbox", id="n3f2a1", os="linux", online=True)
+    table["laptop"] = sessions.Machine(name="laptop", id="n9c0de", os="macos", online=True)
+    return table
+
+
+def on(name: str, machine: str, sid: str | None = None) -> Session:
+    return Session(id=sid or f"{machine}-{name}", name=name, cwd=f"/srv/{name}", pid=0, machine=machine)
+
+
+def test_go_to_a_machine_with_one_session_names_it(machines):
+    from sessions import name_groups
+
+    shop, api = session("shop"), on("api", "devbox")
+    for said in ("go to devbox", "switch to the devbox one", "tell devbox to pull", "what's on devbox"):
+        assert name_groups(said, [shop, api]) == [[api]], said
+
+
+def test_go_to_a_machine_with_two_sessions_is_a_tie(machines):
+    from sessions import name_groups
+
+    shop, api, shop_dev = session("shop"), on("api", "devbox"), on("shop devbox", "devbox")
+    assert name_groups("go to devbox", [shop, api, shop_dev]) == [[api, shop_dev]]
+    assert name_groups("tell shop on devbox to pull", [shop, api, shop_dev]) == [[shop_dev]]
+
+
+def test_a_machine_word_inside_a_request_names_nothing(machines):
+    """The machine alias counts only where the words say who it is for: "fix the devbox config" is a task."""
+    from sessions import name_groups
+
+    shop, api, shop_dev = session("shop"), on("api", "devbox"), on("shop devbox", "devbox")
+    assert name_groups("fix the devbox config", [shop, api]) == []
+    assert name_groups("fix the devbox config", [api, shop_dev]) == []
+
+
+def test_this_macs_own_name_is_never_an_alias(machines):
+    from sessions import _aliases
+
+    assert all(label != "studio" for label, _ in _aliases(session("shop")))
+    assert ("devbox", 0) in _aliases(on("api", "devbox"))
+
+
+def test_everyone_on_a_machine_and_everyone_except_one(machines):
+    from guards import broadcast_intent
+    from sessions import excluded_sessions, machines_named
+
+    shop, api, web = session("shop"), on("api", "devbox"), on("web", "laptop")
+    for said in ("tell everyone on devbox to pull", "everyone on devbox, pull main"):
+        assert broadcast_intent(said), said
+        assert machines_named(said, [shop, api, web]) == ["devbox"], said
+    assert machines_named("tell everyone to pull the devbox branch", [shop, api, web]) == []
+    assert machines_named("fix the devbox config", [shop, api, web]) == []
+    said = "tell everyone except the laptop to pull"
+    assert broadcast_intent(said) and excluded_sessions(said, [shop, api, web]) == [web]
+    assert machines_named(said, [shop, api, web]) == []  # ruled out, not the scope
+
+
+def test_what_is_going_on_everywhere_is_a_status_question():
+    from guards import status_intent
+
+    for said in ("what's going on everywhere", "what's happening on every machine", "status across all machines"):
+        assert status_intent(said), said
+
+
+def test_a_session_cannot_take_a_machines_name(machines):
+    reg = Registry()
+    reg.add(session("shop"))
+    assert "machine" in (reg.rename_check("shop", "devbox") or "")
+    assert "machine" in (reg.rename("shop", "Devbox") or "") and reg.sessions["shop"].name == "shop"
+    assert reg.rename_check("shop", "storefront") is None
+
+
+def test_a_remote_session_survives_a_hub_restart_offline(tmp_path, machines):
+    """Its pid is the node's: no pid check and no transcript needed, and it is offline until its node reconnects."""
+    import sessions
+
+    reg = Registry(path=tmp_path / "sessions.json")
+    reg.add(Session(id="n3f2a1-abc", name="api", cwd="/srv/api", pid=4242, machine="devbox",
+                    harness_data={"remote_id": "abc"}))
+    machines.clear()  # a fresh hub process: no node has connected yet
+    again = Registry()
+    again.load(tmp_path / "sessions.json")
+    kept = again.sessions["n3f2a1-abc"]
+    assert kept.machine == "devbox" and kept.harness_data["remote_id"] == "abc"
+    assert not sessions.online(kept) and machines["devbox"].since is not None
+
+
+def test_a_local_session_is_always_online(machines):
+    import sessions
+
+    assert sessions.online(session("shop"))
+    api = on("api", "devbox")
+    assert sessions.online(api)
+    machines["devbox"].online = False
+    assert not sessions.online(api)
+
+
+def test_since_on_a_remote_record_is_shifted_by_the_nodes_clock_skew(tmp_path, machines):
+    """The node's clock runs 100 s behind the hub's: an entry written 10 s ago carries a stamp 110 s old."""
+    import json
+    import time
+    from datetime import datetime, timezone
+
+    from sessions import recent_history
+
+    now = time.time()
+    stamp = datetime.fromtimestamp(now - 110, timezone.utc).isoformat().replace("+00:00", "Z")
+    path = tmp_path / "mirror.jsonl"
+    path.write_text(json.dumps({"type": "user", "timestamp": stamp, "message": {"role": "user", "content": "ship it"}}) + "\n")
+    api = Session(id="n3f2a1-abc", name="api", cwd="/srv/api", transcript=str(path), machine="devbox")
+    assert recent_history(api, 10, 1000, since=now - 60) == ""  # red until the skew is applied
+    machines["devbox"].skew = 100.0
+    assert "ship it" in recent_history(api, 10, 1000, since=now - 60)
+
+
+def test_a_nodes_read_out_is_used_only_after_the_cheap_checks():
+    from fake_secrets import GITHUB_PAT
+    from guards import remote_readable
+
+    assert remote_readable("run: git status") == "run: git status"
+    for bad in (None, 7, "", "run: " + " ".join(["word"] * 30), "run: echo yes", f"run: echo {GITHUB_PAT}",
+                "run: curl https://admin:hunter2secret@x.io"):
+        assert remote_readable(bad) is None, bad
