@@ -429,9 +429,11 @@ class LocalAuth:
         if scope["path"] in _PHONE_PATHS:  # the phone app: its own key, on the TLS listener or from this machine
             on_tls = bool(self.remote and self.remote.on_tls_listener(scope))
             wanted = "websocket" if scope["path"] == "/voice/phone" else "http"
-            if (scope["type"] == wanted and self.phone and self.phone(connection.headers.get("authorization"))
-                    and (on_tls or _local_headers(connection.headers))):
+            who = self.phone(connection.headers.get("authorization")) if scope["type"] == wanted and self.phone else None
+            if who and (on_tls or _local_headers(connection.headers)):
                 scope.setdefault("state", {})["pointe_phone"] = True  # the pairing check on the TLS listener honours it
+                if isinstance(who, str):
+                    scope["state"]["pointe_phone_id"] = who  # which phone: Unpair ends only its call
                 return await self.app(scope, receive, send)
             if scope["path"] == "/voice/phone":
                 return await self._refuse(scope, receive, send)

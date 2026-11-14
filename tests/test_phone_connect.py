@@ -140,8 +140,8 @@ def world(tmp_path, pair):
     listener = Listener(remote)
     unpaired = []
 
-    async def on_unpair():
-        unpaired.append(True)
+    async def on_unpair(ids):
+        unpaired.append(ids)
 
     phone_pairing.install(app, link, page_key="page-key", listener=listener, on_unpair=on_unpair)
     app.add_middleware(LocalAuth, token="daemon-token", page_key="page-key", remote=remote, phone=phones.allowed)
@@ -182,9 +182,10 @@ def test_the_page_gets_a_qr_with_a_one_time_code_and_the_app_trades_it_for_the_k
     made = make(world)
     assert made["svg"].startswith("<svg") and made["link"].startswith("pointe://pair?v=2&")
     assert made["expires_in"] == 300 and parse_qs(urlparse(made["link"]).query)["code"] == [made["code"]]
-    assert key_of(world) not in json.dumps(made)
     got = redeem(tls(world), made["code"])
-    assert got.status_code == 200 and got.json() == {"key": key_of(world), "mac": "studio"}
+    assert got.status_code == 200 and got.json()["mac"] == "studio" and len(got.json()["key"]) >= 40
+    assert got.json()["key"] not in json.dumps(made)
+    assert not (world.state / "phone_key").exists()  # its own key, minted here: no shared key is made or handed out
     assert redeem(tls(world), made["code"]).status_code == 403  # single use
     state = page(world).get("/voice/phone/invite").json()
     assert state["paired"]["name"] == "Alon's iPhone" and state["expires_in"] == 0 and "code" not in state
@@ -231,7 +232,7 @@ def test_the_new_key_opens_the_phone_routes(world):
 @pytest.mark.parametrize("method,path", [("get", "/voice/phone/routes"), ("post", "/voice/phone/invite"),
                                          ("get", "/voice/phone/invite"), ("post", "/voice/phone/unpair")])
 def test_only_the_page_on_this_mac_reaches_the_owner_routes(world, method, path):
-    body = {"json": {"kind": "host", "host": HOST}} if method == "post" else {}
+    body = {"json": {"all": True} if path.endswith("unpair") else {"kind": "host", "host": HOST}} if method == "post" else {}
     phone_key = {"authorization": f"Bearer {key_of(world)}"}
     assert getattr(tls(world), method)(path, headers=phone_key, **body).status_code == 403  # the phone app
     assert getattr(local(world), method)(path, headers=phone_key, **body).status_code == 403
@@ -280,25 +281,113 @@ def test_a_listener_that_cannot_start_makes_no_code(world):
     assert r.status_code == 409 and "could not listen" in r.text and world.link.invites.code is None
 
 
-# ---------- paired phones, last seen, unpair ----------
+# ---------- paired phones: one key each, last seen, unpair ----------
+
+def phone(w, device="Alon's iPhone", device_id="dev-1") -> tuple[str, str]:
+    """Pair a phone: (its key, its id on the Mac)."""
+    key = redeem(tls(w), make(w)["code"], device=device, id=device_id).json()["key"]
+    entry = next(p for p in w.phones.status()["paired"] if p["name"] == device)
+    return key, entry["id"]
+
+
+def status_with(w, key: str) -> int:
+    return tls(w).get("/voice/status", headers={"authorization": f"Bearer {key}"}).status_code
+
 
 def test_a_paired_phone_is_listed_online_then_last_seen(world):
-    assert world.phones.status() == {"paired": [], "last_seen": None, "online": False}
-    key = redeem(tls(world), make(world)["code"]).json()["key"]
-    tls(world).get("/voice/status", headers={"authorization": f"Bearer {key}"})
-    status = world.phones.status()
-    assert [p["name"] for p in status["paired"]] == ["Alon's iPhone"] and status["online"]
-    assert status["last_seen"] == world.clock.now
+    assert world.phones.status() == {"paired": []}
+    key, _ = phone(world)
+    status_with(world, key)
+    [entry] = world.phones.status()["paired"]
+    assert entry["name"] == "Alon's iPhone" and entry["online"] and entry["last_seen"] == world.clock.now
+    assert not entry["legacy"] and key not in json.dumps(entry)
     world.clock.now += 60
-    assert not world.phones.status()["online"]
+    assert not world.phones.status()["paired"][0]["online"]
 
 
-def test_pairing_the_same_phone_again_keeps_one_entry_and_another_phone_shares_the_key(world):
-    first = redeem(tls(world), make(world)["code"]).json()["key"]
-    redeem(tls(world), make(world)["code"])
-    second = redeem(tls(world), make(world)["code"], id="dev-2", device="iPad").json()["key"]
-    assert first == second  # pair.py's rule: one phone key; a phone already paired stays paired
+def test_each_phone_gets_its_own_key_and_both_work(world):
+    first, a = phone(world)
+    second, b = phone(world, "iPad", "dev-2")
+    assert first != second and a != b
+    assert status_with(world, first) == status_with(world, second) == 200
     assert [p["name"] for p in world.phones.status()["paired"]] == ["Alon's iPhone", "iPad"]
+
+
+def test_pairing_the_same_phone_again_replaces_its_entry_and_retires_its_old_key(world):
+    old, _ = phone(world)
+    new, _ = phone(world)
+    assert status_with(world, old) == 403 and status_with(world, new) == 200
+    assert [p["name"] for p in world.phones.status()["paired"]] == ["Alon's iPhone"]
+
+
+def test_unpair_one_signs_out_only_that_phone_and_ends_only_its_call(world):
+    first, a = phone(world)
+    second, b = phone(world, "iPad", "dev-2")
+    assert page(world).post("/voice/phone/unpair", json={"id": a}).json() == {"ok": True}
+    assert status_with(world, first) == 403  # at once
+    assert status_with(world, second) == 200  # the other stays connected
+    assert [p["id"] for p in world.phones.status()["paired"]] == [b] and world.unpaired == [{a}]
+    assert page(world).post("/voice/phone/unpair", json={"id": a}).status_code == 404
+
+
+def test_unpair_all_signs_out_every_phone_and_the_legacy_key(world):
+    legacy = key_of(world)
+    first, _ = phone(world)
+    second, _ = phone(world, "iPad", "dev-2")
+    assert page(world).post("/voice/phone/unpair", json={"all": True}).json() == {"ok": True}
+    assert [status_with(world, k) for k in (legacy, first, second)] == [403, 403, 403]
+    assert world.phones.status() == {"paired": []} and world.unpaired == [None]
+    assert not (world.state / "phone_key").exists()
+
+
+def test_the_shared_key_from_before_is_one_legacy_phone_until_it_reports_its_name(world):
+    legacy = key_of(world)  # `pointe pair` made it before the upgrade: the owner's iPhone holds it
+    [entry] = world.phones.status()["paired"]
+    assert entry == {**entry, "id": "legacy", "name": "Paired phone", "legacy": True, "last_seen": None}
+    assert status_with(world, legacy) == 200  # not signed out by the upgrade
+    world.phones.report("legacy", "Alon’s iPhone")
+    world.phones.report("legacy", "someone else")  # named once: a later report does not rename it
+    assert world.phones.status()["paired"][0]["name"] == "Alon’s iPhone"
+    assert world.phones.status()["paired"][0]["online"]
+
+
+def test_a_minted_phone_is_never_renamed_by_a_report(world):
+    _, a = phone(world)
+    world.phones.report(a, "renamed")
+    assert world.phones.status()["paired"][0]["name"] == "Alon's iPhone"
+
+
+def test_unpair_the_legacy_phone_deletes_the_shared_key_and_pointe_pair_show_mints_a_new_one(world):
+    legacy = key_of(world)
+    other, _ = phone(world)
+    assert page(world).post("/voice/phone/unpair", json={"id": "legacy"}).json() == {"ok": True}
+    assert status_with(world, legacy) == 403 and status_with(world, other) == 200
+    assert world.unpaired == [{"legacy"}]
+    link = world.pair.pairing_link()  # `pointe pair show`: the old v1 link carries the legacy key, made again
+    fresh = parse_qs(urlparse(link).query)["key"][0]
+    assert fresh != legacy and status_with(world, fresh) == 200
+    assert [p["id"] for p in world.phones.status()["paired"]][-1] == "legacy"
+
+
+def test_every_key_is_compared_in_constant_time_with_no_early_exit(world, monkeypatch):
+    import phone_pairing
+
+    key_of(world)
+    first, _ = phone(world)
+    phone(world, "iPad", "dev-2")
+    calls = []
+    real = phone_pairing.hmac.compare_digest
+    monkeypatch.setattr(phone_pairing.hmac, "compare_digest", lambda a, b: calls.append(1) or real(a, b))
+    assert world.phones.allowed(f"Bearer {first}")
+    assert len(calls) == 3  # both minted keys and the legacy one, though the first already matched
+    calls.clear()
+    assert not world.phones.allowed("Bearer " + "x" * 43) and len(calls) == 3
+
+
+@pytest.mark.parametrize("bad", [None, "", "Bearer ", "Bearer  ", "Basic abc", "bearer abc"])
+def test_no_key_or_a_malformed_header_opens_nothing(world, bad):
+    phone(world)
+    assert not world.phones.allowed(bad)
 
 
 def test_a_device_name_is_cut_and_cleaned(world):
@@ -307,20 +396,24 @@ def test_a_device_name_is_cut_and_cleaned(world):
     assert "\x1b" not in name and "\n" not in name and len(name) <= 60
 
 
-def test_unpair_revokes_the_key_for_every_phone_and_ends_its_call(world):
-    key = redeem(tls(world), make(world)["code"]).json()["key"]
-    headers = {"authorization": f"Bearer {key}"}
-    assert tls(world).get("/voice/status", headers=headers).status_code == 200  # control
-    assert page(world).post("/voice/phone/unpair", json={}).json() == {"ok": True}
-    assert tls(world).get("/voice/status", headers=headers).status_code == 403
-    assert world.phones.status() == {"paired": [], "last_seen": None, "online": False} and world.unpaired == [True]
-    assert key_of(world) != key  # a new key for the next phone
+def test_the_phones_file_is_private_and_holds_only_hashes(world):
+    import hashlib
 
-
-def test_the_phones_file_is_private_and_holds_no_key(world):
-    key = redeem(tls(world), make(world)["code"]).json()["key"]
+    key, _ = phone(world)
     path = world.state / "phones.json"
-    assert stat.S_IMODE(path.stat().st_mode) == 0o600 and key not in path.read_text()
+    stored = path.read_text()
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600 and key not in stored
+    assert hashlib.sha256(key.encode()).hexdigest() in stored
+
+
+def test_unpair_survives_a_restart(world):
+    import phone_pairing
+
+    first, a = phone(world)
+    second, _ = phone(world, "iPad", "dev-2")
+    page(world).post("/voice/phone/unpair", json={"id": a})
+    again = phone_pairing.Phones(world.state, clock=world.clock)
+    assert not again.allowed(f"Bearer {first}") and again.allowed(f"Bearer {second}")
 
 
 def test_no_code_link_or_key_reaches_the_log(world, caplog):
@@ -421,10 +514,12 @@ from test_orchestrator import d  # noqa: E402,F401  (a fixture)
 def test_the_daemon_installs_the_phone_routes_and_reports_phones_in_status(d):
     paths = {getattr(r, "path", None) for r in d.app.routes}
     assert {"/voice/phone/pair", "/voice/phone/routes", "/voice/phone/invite", "/voice/phone/unpair"} <= paths
-    key = d.phone.phone_key(d.STATE_DIR)
+    key = d.phone.phone_key(d.STATE_DIR)  # the shared key from before: one legacy phone
     client = TestClient(d.app, base_url="http://127.0.0.1:7860")
-    status = client.get("/voice/status", headers={"authorization": f"Bearer {key}"}).json()
-    assert status["phones"]["online"] is True and status["phones"]["last_seen"]  # the phone key marks it seen
+    headers = {"authorization": f"Bearer {key}", "x-pointe-device": "Alon%E2%80%99s%20iPhone"}
+    status = client.get("/voice/status", headers=headers).json()
+    [entry] = [p for p in status["phones"]["paired"] if p["id"] == "legacy"]
+    assert entry["online"] is True and entry["name"] == "Alon’s iPhone"  # seen, and named by the app's report
     assert key not in json.dumps(status)
 
 
@@ -436,3 +531,19 @@ def test_the_daemon_refuses_the_phone_key_and_daemon_token_on_the_owner_routes(d
         assert client.post("/voice/phone/unpair", headers=headers, json={}).status_code == 403
     page_client = TestClient(d.app, base_url="http://127.0.0.1:7860", cookies={"pointe_local": d.PAGE_KEY})
     assert page_client.get("/voice/phone/invite").status_code == 200  # control
+
+
+def test_the_daemon_ends_only_the_unpaired_phones_call(d, monkeypatch):
+    closed = []
+
+    class Socket:
+        async def close(self, code, reason):
+            closed.append(code)
+
+    monkeypatch.setattr(d.state, "phone_socket", Socket())
+    monkeypatch.setattr(d.state, "phone_socket_id", "aaa")
+    asyncio.run(d._end_phone_call({"bbb"}))
+    assert closed == []  # another phone was unpaired: this call stays up
+    asyncio.run(d._end_phone_call({"aaa"}))
+    asyncio.run(d._end_phone_call(None))
+    assert closed == [4401, 4401]

@@ -97,10 +97,12 @@ def main() -> None:
     deadline, phones = time.time() + 20, {}
     while time.time() < deadline:
         phones = with_token("/voice/status")["phones"]
-        if phones["paired"] and phones["last_seen"]:
+        if any(p["last_seen"] for p in phones["paired"]):
             break
         time.sleep(1)
-    check("the daemon lists the phone, seen with the key it was given", bool(phones["paired"] and phones["last_seen"]), phones=phones)
+    entry = next((p for p in phones["paired"] if not p["legacy"]), {})
+    check("the daemon lists the phone, seen with a key of its own", bool(entry.get("last_seen")) and not (STATE / "phone_key").exists(),
+          phones=phones)
     stop_daemon()
     print(f"\n{sum(ok for _, ok in results)}/{len(results)} passed (ios phone pair)")
     sys.exit(0 if all(ok for _, ok in results) else 1)

@@ -426,6 +426,12 @@ struct API {
 
     enum Failure: Error { case status(Int, String) }
 
+    /// This phone's name for the Mac's list, percent-encoded: a header is ASCII, and a name is often "Alon’s iPhone".
+    static func header(for name: String) -> String {
+        name.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "iPhone"
+    }
+    nonisolated(unsafe) static var deviceHeader = "iPhone"  // set once at launch, on the main actor (PointeApp)
+
     private func request(_ path: String, method: String = "GET", body: [String: Any]? = nil,
                          query: [URLQueryItem] = []) -> URLRequest {
         var url = pairing.base.appendingPathComponent(path)
@@ -436,6 +442,7 @@ struct API {
         var r = URLRequest(url: url)
         r.httpMethod = method
         r.setValue("Bearer \(pairing.key)", forHTTPHeaderField: "Authorization")
+        r.setValue(API.deviceHeader, forHTTPHeaderField: "X-Pointe-Device")  // names a phone paired before per-phone keys
         if let body {
             r.setValue("application/json", forHTTPHeaderField: "Content-Type")
             r.httpBody = try? JSONSerialization.data(withJSONObject: body)

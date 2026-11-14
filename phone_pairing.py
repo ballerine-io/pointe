@@ -5,18 +5,22 @@ certificate's fingerprint and a one-time code (pair.invite_pairing_link). The ap
 with POST /voice/phone/pair over the listener it pins, so the QR holds no lasting secret. The code is single use, ends
 after PHONE_INVITE_SECS, is kept only as a hash, and wrong guesses are bounded as for machines (hub_nodes.Invites).
 
-The key is pair.py's: one phone key for every phone (phone.phone_key). Connecting another phone keeps those already
-paired; Unpair deletes the key, so every paired phone must connect again.
+Each pairing mints the phone its own key; phones.json keeps only its SHA-256. Unpair signs out that phone alone, at its
+next request, and ends its call; Unpair all signs out every phone. The shared `phone_key` from before (and from
+`pointe pair show`, which still prints the old link with that key, minting it again if it was unpaired) counts as one
+more phone, so upgrading signs no one out.
 
 The owner routes (/voice/phone/routes, /voice/phone/invite, /voice/phone/unpair) answer only the page on this Mac, by
 its cookie: not the phone key, not the daemon token, not a page opened over the TLS listener.
 """
 
 import asyncio
+import hashlib
 import hmac
 import json
 import os
 import re
+import secrets
 import time
 from pathlib import Path
 from typing import Awaitable, Callable
@@ -25,12 +29,12 @@ from loguru import logger
 
 import hub_nodes
 import pair
-import phone
 
 PHONE_INVITE_SECS = 300
 ONLINE_SECS = 10.0  # the app asks for the status every second or less while it is open
 SEEN_WRITE_SECS = 60.0  # last seen reaches the disk at most this often; in memory it is exact
 MAX_DEVICE_CHARS = 60
+LEGACY = "legacy"  # the shared phone_key from before per-phone keys, and from `pointe pair show`
 _UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f]|\x1b\[[0-9;]*[A-Za-z]")
 
 
@@ -39,7 +43,9 @@ def _clean(text, most: int) -> str:
 
 
 class Phones:
-    """phones.json (0600): who paired and when, and when the phone key was last used. Never the key."""
+    """phones.json (0600): each paired phone's name, the SHA-256 of its own key, and when it paired and was last seen.
+    Never a key. The `phone_key` file from before per-phone keys (and from `pointe pair show`) is one more phone,
+    LEGACY, named "Paired phone" until the app reports its name, so the upgrade signs no one out."""
 
     def __init__(self, state_dir: Path, clock: Callable[[], float] = time.time):
         self.state_dir, self.path, self._clock = state_dir, state_dir / "phones.json", clock
@@ -47,44 +53,96 @@ class Phones:
             data = json.loads(self.path.read_text())
         except (OSError, ValueError):
             data = {}
-        self.paired: list[dict] = [p for p in data.get("paired") or [] if isinstance(p, dict)]
-        self.last_seen: float | None = data.get("last_seen")
-        self._written = self.last_seen or 0.0
+        self.paired: list[dict] = [p for p in data.get("paired") or []
+                                   if isinstance(p, dict) and isinstance(p.get("hash"), str) and p.get("id")]
+        self.legacy_name: str | None = data.get("legacy_name")
+        self.seen: dict[str, float] = {k: v for k, v in (data.get("seen") or {}).items() if isinstance(v, (int, float))}
+        self._written = max(self.seen.values(), default=0.0)
 
     def _save(self) -> None:
         old = os.umask(0o077)
         try:
-            self.path.write_text(json.dumps({"paired": self.paired, "last_seen": self.last_seen}) + "\n")
+            self.path.write_text(json.dumps({"paired": self.paired, "legacy_name": self.legacy_name, "seen": self.seen}) + "\n")
         finally:
             os.umask(old)
         self.path.chmod(0o600)
-        self._written = self.last_seen or 0.0
+        self._written = max(self.seen.values(), default=0.0)
 
-    def allowed(self, authorization: str | None) -> bool:
-        """LocalAuth's phone check, which also marks the phone seen."""
-        if not phone.phone_allowed(self.state_dir, authorization):
-            return False
-        self.last_seen = self._clock()
-        if self.last_seen - self._written >= SEEN_WRITE_SECS:
+    def _legacy_key(self) -> str | None:
+        try:
+            return (self.state_dir / "phone_key").read_text().strip() or None
+        except OSError:
+            return None
+
+    def allowed(self, authorization: str | None) -> str | None:
+        """LocalAuth's phone check: which phone holds this key, or None. Every key is compared, each in constant time,
+        with no early exit. Marks that phone seen."""
+        if not authorization or not authorization.startswith("Bearer ") or not authorization[7:].strip():
+            return None
+        offered = authorization[7:]
+        digest = hashlib.sha256(offered.encode()).digest()
+        found = None
+        for p in self.paired:
+            if hmac.compare_digest(digest, bytes.fromhex(p["hash"])) and found is None:
+                found = p["id"]
+        legacy = self._legacy_key()
+        if legacy is not None and hmac.compare_digest(offered.encode(), legacy.encode()) and found is None:
+            found = LEGACY
+        if found:
+            now = self.seen[found] = self._clock()
+            if now - self._written >= SEEN_WRITE_SECS:
+                self._save()
+        return found
+
+    def mint(self, name: str, device_id: str, address: str) -> str:
+        """A new phone's key, returned once. Pairing the same phone again (its id) replaces its entry and old key."""
+        for p in [p for p in self.paired if device_id and p.get("device") == device_id]:
+            self.seen.pop(p["id"], None)
+        self.paired = [p for p in self.paired if not (device_id and p.get("device") == device_id)]
+        key = secrets.token_urlsafe(32)
+        self.paired.append({"id": secrets.token_hex(6), "name": name, "device": device_id, "paired_at": self._clock(),
+                            "address": address, "hash": hashlib.sha256(key.encode()).hexdigest()})
+        self._save()
+        return key
+
+    def report(self, phone_id: str | None, name: str | None) -> None:
+        """The app said its name: names the legacy phone, once. A phone paired here keeps the name it paired with."""
+        name = _clean(name, MAX_DEVICE_CHARS)
+        if phone_id == LEGACY and name and not self.legacy_name:
+            self.legacy_name = name
             self._save()
+
+    def unpair(self, phone_id: str) -> bool:
+        if phone_id == LEGACY:
+            if self._legacy_key() is None:
+                return False
+            (self.state_dir / "phone_key").unlink(missing_ok=True)  # `pointe pair show` makes a new one when asked
+            self.legacy_name = None
+        elif not any(p["id"] == phone_id for p in self.paired):
+            return False
+        self.paired = [p for p in self.paired if p["id"] != phone_id]
+        self.seen.pop(phone_id, None)
+        self._save()
         return True
 
-    def add(self, name: str, device_id: str, address: str) -> None:
-        """Pairing the same phone again (its id) replaces its entry."""
-        self.paired = [p for p in self.paired if not (device_id and p.get("id") == device_id)]
-        self.paired.append({"name": name, "id": device_id, "paired_at": self._clock(), "address": address})
-        self._save()
-
-    def unpair(self) -> None:
-        (self.state_dir / "phone_key").unlink(missing_ok=True)  # phone.phone_key makes a new one when next asked
-        self.paired, self.last_seen = [], None
+    def unpair_all(self) -> None:
+        (self.state_dir / "phone_key").unlink(missing_ok=True)
+        self.paired, self.legacy_name, self.seen = [], None, {}
         self._save()
 
     def status(self) -> dict:
-        """For /voice/status: names and times only."""
-        seen = self.last_seen
-        return {"paired": [{"name": p.get("name") or "iPhone", "paired_at": p.get("paired_at")} for p in self.paired],
-                "last_seen": seen, "online": bool(seen and self._clock() - seen < ONLINE_SECS)}
+        """For /voice/status: ids, names and times only."""
+        now = self._clock()
+
+        def entry(phone_id: str, name: str, paired_at, legacy: bool) -> dict:
+            seen = self.seen.get(phone_id)
+            return {"id": phone_id, "name": name, "paired_at": paired_at, "last_seen": seen, "legacy": legacy,
+                    "online": bool(seen and now - seen < ONLINE_SECS)}
+
+        out = [entry(p["id"], p.get("name") or "iPhone", p.get("paired_at"), False) for p in self.paired]
+        if self._legacy_key() is not None:
+            out.append(entry(LEGACY, self.legacy_name or "Paired phone", None, True))
+        return {"paired": out}
 
 
 class PhoneLink:
@@ -111,10 +169,10 @@ class PhoneLink:
             return (403, "wrong code") if invites.admit(address) else (429, "too many attempts: wait a minute")
         invites.cancel()
         name = _clean(body.get("device"), MAX_DEVICE_CHARS) or "iPhone"
-        self.phones.add(name, _clean(body.get("id"), 80), address)
+        key = self.phones.mint(name, _clean(body.get("id"), 80), address)
         invites.paired = {"name": name, "address": address, "at": time.time()}
         logger.info(f"phone paired: {name} from {address}")
-        return 200, {"key": phone.phone_key(self.state_dir), "mac": hub_nodes._here(self.state_dir)}
+        return 200, {"key": key, "mac": hub_nodes._here(self.state_dir)}
 
 
 def _svg(link: str) -> str:
@@ -123,9 +181,10 @@ def _svg(link: str) -> str:
     return segno.make(link, error="m").svg_inline(scale=5, border=4, dark="#000", light="#fff")
 
 
-def install(app, link: PhoneLink, page_key: str, listener, on_unpair: Callable[[], Awaitable[None]] | None = None) -> None:
-    """The routes. `listener` is remote.Remote (its restart serves a newly chosen route now); `on_unpair` ends a phone
-    call that is up."""
+def install(app, link: PhoneLink, page_key: str, listener,
+            on_unpair: Callable[[set[str] | None], Awaitable[None]] | None = None) -> None:
+    """The routes. `listener` is remote.Remote (its restart serves a newly chosen route now); `on_unpair(ids)` ends the
+    call of a phone just unpaired (None: every phone)."""
     from fastapi import Request
     from fastapi.responses import JSONResponse, PlainTextResponse
 
@@ -197,11 +256,21 @@ def install(app, link: PhoneLink, page_key: str, listener, on_unpair: Callable[[
 
     @app.post("/voice/phone/unpair")
     async def phone_unpair(request: Request):
+        """{"id": ...} signs out that phone only; {"all": true} every phone, the legacy key included."""
         if not the_page(request):
             return refused
-        link.invites.cancel()
-        link.phones.unpair()
-        logger.info("phones unpaired from the page: the phone key is deleted")
+        body = await body_of(request)
+        if body.get("all"):
+            link.invites.cancel()
+            link.phones.unpair_all()
+            ids = None
+            logger.info("every phone unpaired from the page")
+        else:
+            phone_id = str(body.get("id") or "")
+            if not link.phones.unpair(phone_id):
+                return PlainTextResponse("no such phone is paired", status_code=404)
+            ids = {phone_id}
+            logger.info(f"phone {phone_id} unpaired from the page")
         if on_unpair:
-            await on_unpair()
+            await on_unpair(ids)
         return {"ok": True}

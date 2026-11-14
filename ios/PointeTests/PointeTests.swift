@@ -57,6 +57,11 @@ final class PairingInviteTests: XCTestCase {
         XCTAssertEqual(body, ["code": "ABCD-EFGH", "device": "Alon's iPhone", "id": "dev-1"])
     }
 
+    func testTheDeviceNameTravelsAsASCII() {
+        XCTAssertEqual(API.header(for: "Alon’s iPhone"), "Alon%E2%80%99s%20iPhone")
+        XCTAssertTrue(API.header(for: "Alon’s iPhone").allSatisfy(\.isASCII))
+    }
+
     func testARefusalSaysWhatToDoNext() {
         XCTAssertTrue(PairingInvite.problem(status: 403, text: "invite expired").contains("Connect your phone"))
         XCTAssertTrue(PairingInvite.problem(status: 403, text: "wrong code").contains("expired or was already used"))

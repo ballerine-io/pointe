@@ -8,6 +8,7 @@ struct PointeApp: App {
     init() {
         if ProcessInfo.processInfo.environment["POINTE_FORGET"] == "1" { PairingStore.forget() }  // UI tests start unpaired
         _pairing = State(initialValue: PairingStore.load())
+        API.deviceHeader = API.header(for: UIDevice.current.name)
         AlertCenter.shared.start()  // before an action that launched the app is handed over
     }
 

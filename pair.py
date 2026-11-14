@@ -284,7 +284,7 @@ def show() -> None:
     if sys.platform == "darwin":
         subprocess.run(["open", str(image)], check=False)
     print(f"Scan with the Pointe app. It connects to {config['host']}:{TLS_PORT} and checks certificate {fingerprint()[:16]}...")
-    print("This code holds a secret. To revoke it, delete ~/.claude-voice/phone_key and restart the daemon.")
+    print("This code holds a secret. To revoke it, Unpair the phone in Settings → Phone, or delete ~/.claude-voice/phone_key.")
 
 
 def main(argv: list[str]) -> None:
