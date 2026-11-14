@@ -6,17 +6,20 @@ struct ConversationView: View {
     let polish: Bool
     let hearing: String
     var large = false  // whisper mode: the words heard so far, big enough to check before they are acted on
+    var placeholder = true  // false while the Connect stage stands where the words will be (no call up yet)
     let edit: (API.Turn) -> Void
     @Namespace private var speech
 
     var body: some View {
         if turns.isEmpty && hearing.isEmpty {
-            ContentUnavailableView {
-                Label("Nothing said yet", systemImage: "waveform")
-            } description: {
-                Text("Talk, or tap the keyboard to type. Tap anything you said to fix it.")
+            if placeholder {
+                ContentUnavailableView {
+                    Label("Nothing said yet", systemImage: "waveform")
+                } description: {
+                    Text("Talk, or tap the keyboard to type. Tap anything you said to fix it.")
+                }
+                .padding(.top, 40)
             }
-            .padding(.top, 40)
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(Array(turns.enumerated()), id: \.element.id) { index, turn in
