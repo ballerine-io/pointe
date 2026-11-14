@@ -12,3 +12,4 @@ bench/recordings/
 xcuserdata/
 *.xcuserstate
 ios/.team
+ios/build/

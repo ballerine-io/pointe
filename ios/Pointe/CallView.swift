@@ -46,6 +46,7 @@ struct CallView: View {
     @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
+    @State private var demoAnswered: Set<String> = []  // the demo's requests answered here: their card goes, as a Mac's would
     private let demo: Demo?
 
     init(pairing: Pairing, unpair: @escaping () -> Void, demo: Demo? = nil) {
@@ -334,6 +335,7 @@ struct CallView: View {
             HStack(alignment: .center) {
                 BrandHeader(mac: status?.version)
                 Spacer()
+                if demo?.tried == true { DemoBadge { call.hangUp(); unpair() } }
                 if status?.drive != nil {  // a mode, like a meeting: switched here, so the mic below never moves
                     Button { setDrive(!driving) } label: {
                         Image(systemName: driving ? "car.fill" : "car").font(.subheadline.weight(.semibold))
@@ -444,7 +446,11 @@ struct CallView: View {
                 Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
             }
             Divider()
-            Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { call.hangUp(); unpair() }
+            if demo?.tried == true {
+                Button(DemoBadge.exit, systemImage: "xmark.circle") { call.hangUp(); unpair() }
+            } else {
+                Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { call.hangUp(); unpair() }
+            }
         } label: {
             Image(systemName: "ellipsis").font(.body.weight(.semibold))
                 .frame(width: 36, height: 36).background(.thinMaterial, in: Circle())
@@ -539,7 +545,7 @@ struct CallView: View {
 
     /// An answerable request first: one whose machine is offline is back in its terminal.
     private var waiting: [API.Session] {
-        (status?.sessions.filter { $0.waiting && $0.canApprove } ?? []).enumerated()
+        (status?.sessions.filter { $0.waiting && $0.canApprove && !demoAnswered.contains($0.request_id ?? "") } ?? []).enumerated()
             .sorted { ($0.element.isOffline ? 1 : 0, $0.offset) < ($1.element.isOffline ? 1 : 0, $1.offset) }.map(\.element)
     }
 
@@ -1155,6 +1161,7 @@ struct CallView: View {
                 else { return }
             } catch { return }
         }
+        if demo != nil { demoAnswered.insert(s.request_id ?? ""); return }
         await act { try await call.api.answer(s, allow: allow) }
     }
 }

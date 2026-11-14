@@ -11,6 +11,23 @@ jobs:
         with:
           version: "0.12.21"  # the version bin/install-uv installs and the e2e images carry
       - run: uv run --locked pytest -q tests/ --ignore=tests/e2e
+  # The iPhone app: a simulator build, unsigned, and its unit tests (PointeTests). The UI tests need a test daemon or
+  # drive the simulator for minutes; they run locally (ios/e2e/, tests/e2e/ios_app.py).
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: Build for the simulator and run PointeTests
+        working-directory: ios
+        run: |
+          SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" -only-testing:PointeTests \
+            CODE_SIGNING_ALLOWED=NO -quiet
   # docs/security/supply-chain.md. Fails on an unpinned action, a lockfile that drifted from pyproject.toml, a package
   # missing from docs/security/dependencies-allowlist.txt, a URL to a host missing from docs/security/egress-allowlist.txt,
   # an install path that resolves unpinned, a download without a hash, or a known vulnerability in any locked version.

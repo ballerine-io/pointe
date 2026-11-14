@@ -173,7 +173,7 @@ struct MachinesFailure: Error, Equatable {
     }
 }
 
-// MARK: demo screens (Debug only): the machine fields as the design defines them. Every name is made up.
+// MARK: demo screens: the machine fields as the design defines them. Every name is made up.
 
 extension Demo {
     static func machinesJSON(_ screen: Screen, now: Double = Date().timeIntervalSince1970) -> String {

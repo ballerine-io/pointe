@@ -295,15 +295,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pointe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe scans the pairing code your Mac shows.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe asks for Face ID to approve a command or manage your machines.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your Mac on this network when you pair over Wi-Fi.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe sends your voice to your Mac, where it drives your Claude Code sessions.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe uses the camera to scan the QR code your Mac shows when you pair this iPhone with it.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe uses Face ID to confirm it is you before it approves a command or changes your paired machines.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your own Mac on your local network to carry your voice calls.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe uses the microphone to send your voice to your own Mac, which runs your coding sessions.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -311,7 +311,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -325,15 +325,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pointe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe scans the pairing code your Mac shows.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe asks for Face ID to approve a command or manage your machines.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your Mac on this network when you pair over Wi-Fi.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe sends your voice to your Mac, where it drives your Claude Code sessions.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe uses the camera to scan the QR code your Mac shows when you pair this iPhone with it.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe uses Face ID to confirm it is you before it approves a command or changes your paired machines.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your own Mac on your local network to carry your voice calls.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe uses the microphone to send your voice to your own Mac, which runs your coding sessions.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -341,7 +341,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

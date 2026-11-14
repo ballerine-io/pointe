@@ -1,7 +1,8 @@
-import Foundation
+import SwiftUI
 
-/// Sample calls for looking at the screens without a Mac: `-demo [call|sessions|edit|typing|request]` at launch,
-/// Debug builds only. Every name and word here is made up.
+/// Sample calls for looking at the screens without a Mac. Every name and word here is made up. Two ways in:
+/// `-demo [call|sessions|edit|typing|request]` at launch (Debug builds only, for tests and screenshots), and
+/// "Try a demo" on the pairing screen (every build: App Review has no Mac to pair with), which shows the Demo badge.
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
@@ -10,12 +11,27 @@ struct Demo {
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
+    /// Entered from "Try a demo": the header says Demo and offers the way out.
+    var tried = false
 
     static func fromLaunch() -> Demo? {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-demo") else { return nil }
-        let screen = args.indices.contains(i + 1) ? Screen(rawValue: args[i + 1]) ?? .call : .call
+        return make(args.indices.contains(i + 1) ? Screen(rawValue: args[i + 1]) ?? .call : .call)
+        #else
+        return nil
+        #endif
+    }
+
+    /// "Try a demo": a call with a request waiting, so the approval card, the conversation and the sessions all show.
+    static var tryIt: Demo? {
+        guard var demo = make(.request) else { return nil }
+        demo.tried = true
+        return demo
+    }
+
+    static func make(_ screen: Screen) -> Demo? {
         let json = switch screen {
         case .request: requestJSON
         case .drive: driveJSON
@@ -44,9 +60,6 @@ struct Demo {
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
         let notes = (try? JSONDecoder().decode([API.Note].self, from: Data(notesJSON.utf8))) ?? []
         return Demo(screen: screen, status: status, notes: [.meeting, .meetingHand, .meetingEnd].contains(screen) ? notes : [])
-        #else
-        return nil
-        #endif
     }
 
     static let pairing = Pairing(host: "demo.invalid", port: 7443, fingerprint: String(repeating: "0", count: 64),
@@ -331,4 +344,27 @@ struct Demo {
      {"id": 7, "kind": "action", "at": 1700000700, "text": "Open the PR for the retry fix", "meta": {"owner": "You", "due": "Thursday"}, "state": "open"},
      {"id": 8, "kind": "action", "at": 1700000800, "text": "Draft the rollout note", "meta": {"owner": "Dana"}, "state": "done"}]
     """
+}
+
+/// The header's mark while "Try a demo" runs: nothing here is a real Mac, and a tap goes back to pairing.
+struct DemoBadge: View {
+    static let label = "Demo"
+    static let exit = "Exit demo"
+    let tap: () -> Void
+
+    var body: some View {
+        Button(action: tap) {
+            HStack(spacing: 4) {
+                Text(Self.label).font(.caption.weight(.bold))
+                Image(systemName: "xmark").font(.caption2.weight(.bold))
+            }
+            .foregroundStyle(Brand.orange)
+            .padding(.horizontal, 10).frame(height: 26)
+            .background(Brand.orange.opacity(0.18), in: Capsule())
+            .overlay(Capsule().stroke(Brand.orange.opacity(0.6)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Self.exit)
+        .accessibilityIdentifier("demoBadge")
+    }
 }

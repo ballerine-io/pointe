@@ -4,6 +4,7 @@ import SwiftUI
 struct PointeApp: App {
     @State private var pairing: Pairing?
     @State private var note: PairingNote?
+    @State private var tried: Demo?  // "Try a demo" on the pairing screen; nothing is paired or saved
 
     init() {
         if ProcessInfo.processInfo.environment["POINTE_FORGET"] == "1" { PairingStore.forget() }  // UI tests start unpaired
@@ -17,11 +18,13 @@ struct PointeApp: App {
             Group {
                 if let demo = Demo.fromLaunch() {
                     CallView(pairing: Demo.pairing, unpair: {}, demo: demo)
+                } else if let tried {
+                    CallView(pairing: Demo.pairing, unpair: { self.tried = nil }, demo: tried)
                 } else if let pairing {
                     CallView(pairing: pairing, unpair: { PairingStore.forget(); self.pairing = nil })
                         .id(pairing)  // a new pairing is a new call: the old one pins the old certificate
                 } else {
-                    PairView(submit: accept)
+                    PairView(submit: accept, tryDemo: { tried = Demo.tryIt })
                 }
             }
             .overlay(alignment: .top) { if let note { PairingBanner(note: note) { self.note = nil } } }
@@ -44,6 +47,7 @@ struct PointeApp: App {
 
     /// A `pointe://pair` link from the Camera, the scanner or a paste: a pairing to keep, or a one-time code to trade.
     private func accept(_ link: String) {
+        tried = nil  // a pairing code opened during the demo leaves it
         switch PairingLink(link) {
         case .ready(let p)?:
             PairingStore.save(p); pairing = p

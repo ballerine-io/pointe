@@ -18,7 +18,10 @@
 	<dict><key>NSAllowsArbitraryLoads</key><true/></dict>
 	<!-- Drive.swift: only to suggest Drive mode after a minute of driving, and only once turned on with a tap. -->
 	<key>NSMotionUsageDescription</key>
-	<string>Pointe suggests Drive mode when your iPhone senses you are driving. It never turns it on by itself.</string>
+	<string>Pointe uses motion activity to suggest Drive mode while you drive, and it never turns Drive mode on by itself.</string>
+	<!-- Export compliance: only Apple's standard TLS (URLSession) and a SHA-256 of the Mac's certificate for the pin. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UIBackgroundModes</key>
 	<array><string>audio</string><string>fetch</string></array>
 	<!-- Alerts.swift: Background App Refresh checks for a waiting request while the app is suspended, when iOS allows. -->

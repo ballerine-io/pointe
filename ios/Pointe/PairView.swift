@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PairView: View {
     let submit: (String) -> Void  // a pointe://pair link; PointeApp pairs with it and says how it went
+    var tryDemo: () -> Void = {}  // a sample call, no Mac needed
     @State private var link = ""
     @State private var problem: String?
     @State private var scanning = true
@@ -25,6 +26,13 @@ struct PairView: View {
             Button("Pair", action: use).buttonStyle(.borderedProminent).tint(Brand.orange).disabled(link.isEmpty)
             if let problem { Text(problem).foregroundStyle(Brand.orange) }
             Spacer()
+            Button(action: tryDemo) {
+                Label("No Mac yet? Try a demo", systemImage: "play.circle")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("tryDemo")
             Text("The code holds a secret that opens a call into your coding sessions. Scan only your own.")
                 .font(.footnote).foregroundStyle(.secondary)
         }
