@@ -329,6 +329,14 @@ class Node:
                                      else {}, only=session.id)
         return {"name": session.name, "active": False, "node": True}
 
+    async def leave(self) -> bool:
+        """`pointe node leave`: forget the hub. True when `bye` reached it (it forgets this machine too); False when the
+        link is down, so the hub still lists this machine until `pointe hub revoke` there."""
+        told = await self._send("bye")
+        forget(self.state)
+        self.finished.set()
+        return told
+
     async def disconnect(self, session_id: str, notify: bool = True) -> bool:
         """The session leaves the voice (pointe leave, claude-voice-attach off, or the hub's `leave`)."""
         session = self.registry.sessions.get(session_id)
@@ -409,10 +417,7 @@ class Node:
 
         @api.post("/voice/node/leave")
         async def leave():
-            await self._send("bye")
-            forget(self.state)
-            self.finished.set()
-            return {"left": True}
+            return {"left": True, "told_hub": await self.leave()}
 
         return _LocalOnly(api, lambda: self.token)
 

@@ -1158,3 +1158,32 @@ def test_pointe_node_runs_join_status_and_leave(tmp_path):
     joined = subprocess.run([str(ROOT / "bin" / "pointe"), "node", "join", "pointe://pair?v=1"], env=env,
                             capture_output=True, text=True, timeout=120)
     assert joined.returncode != 0 and "not a Pointe hub invite" in joined.stderr, joined.stderr[-400:]
+
+
+def test_leave_says_whether_the_hub_was_told(tmp_path):
+    async def scenario(hub, n):
+        assert await n.leave() is True  # linked: `bye` went out, so the hub forgets this machine too
+        assert (await hub.next("bye"))["t"] == "bye"
+
+    run(scenario, tmp_path)
+
+
+def test_leave_with_the_link_down_says_the_hub_was_not_told(tmp_path):
+    async def go():
+        n = node.Node(tmp_path / "state", port=0)
+        return await n.leave()
+
+    (tmp_path / "state").mkdir()
+    assert asyncio.run(go()) is False
+
+
+def test_leave_tells_the_owner_to_revoke_on_the_hub_when_the_hub_was_not_told(tmp_path, monkeypatch, capsys):
+    """After pointe pair rotate the node cannot reach the hub: leave must not read as if the hub forgot it."""
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "node.json").write_text(json.dumps({"name": "devbox", "hub": {"id": "h1", "name": "studio"}}))
+    monkeypatch.setattr(node_cli, "_local", lambda *a, **k: {"left": True, "told_hub": False})
+    monkeypatch.setattr(node_cli.subprocess, "run", lambda *a, **k: None)
+    node_cli.leave(state, 0)
+    out = capsys.readouterr().out
+    assert "Left studio" in out and "pointe hub revoke devbox" in out

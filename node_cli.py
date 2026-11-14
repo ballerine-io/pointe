@@ -159,8 +159,13 @@ def leave(state: Path = STATE, port: int = PORT) -> None:
     forget(state)
     if told is not None:
         subprocess.run([str(ROOT / "bin" / "voice-node"), "stop"], check=False, capture_output=True)
-    print(f"Left {hub}." + ("" if told else f" The node was not running, so {hub} still lists this machine: "
-                                            f"pointe hub revoke {config.get('name')} there."))
+    if told is None:
+        why = "The node was not running"
+    elif told.get("told_hub") is False:
+        why = f"The link to {hub} was down"
+    else:
+        return print(f"Left {hub}.")
+    print(f"Left {hub}. {why}, so {hub} still lists this machine: pointe hub revoke {config.get('name')} there.")
 
 
 def main(argv: list[str]) -> None:
