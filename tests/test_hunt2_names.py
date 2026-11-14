@@ -105,3 +105,12 @@ def test_a_node_title_one_letter_off_a_local_name_does_not_make_every_request_to
     _join(d, "devbox", "r1", "api", title="shops")
     assert d.REGISTRY.sessions["n3f2a1-r1"].name == "api"  # refused: one letter off a session on another machine
     assert sessions.match_session("tell shop to run the tests", _names(d)) is local
+
+
+def test_a_remote_session_cannot_be_named_after_this_mac(d, node):
+    """_tell_apart: this Mac's name is never an alias ("go to studio" must mean the machine). The node side has no check:
+    a node names its session "studio" and "go to studio" picks it."""
+    add(d, "cc1", "api", "/repos/api")
+    s = _join(d, "devbox", "r1", "studio")
+    assert "studio" not in s.name.lower().split(), s.name
+    assert sessions.name_groups("go to studio", _names(d)) == []

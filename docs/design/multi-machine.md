@@ -440,10 +440,11 @@ WireGuard across sites 20 to 60 ms; Twingate 30 to 100 ms.
 - A session's name, local or remote, may not hold a yes or no word (`guards._YES`, `_WEAK_YES`, `_NO`;
   `sessions.answers_a_prompt`): a session called `yes` would take the user's yes to a prompt as aimed at it. A folder
   with such a word is not an alias either.
-- A session may not take a name, or a title, that shares a distinctive word with a session on another machine
-  or is one letter off one (`shops`; `Registry.cross_machine_problem`): a node titling its session `shop deploy` beside the hub's `shop` would take
-  "what is shop doing with the deploy". The machine suffix (`shop devbox` beside `shop`) is the one exception. A node's
-  session whose name is refused at join is called `session <id>`.
+- A session may not take a name, or a title, that shares a distinctive word with a session on another machine or is
+  one letter off one (`shops`; `Registry.cross_machine_problem`): a node titling its session `shop deploy` beside the
+  hub's `shop` would take "what is shop doing with the deploy". The machine suffix (`shop devbox` beside `shop`) is
+  the one exception. A remote session may not take a word of the hub's own name, as a name or a folder alias ("go to
+  studio" must mean the hub). A node's session whose name is refused at join is called `session <id>`.
 - `sessions._aliases` (`sessions.py:357-367`) adds `(machine, 0)` for a remote session, as it adds the harness label.
   **The machine alias is scored only against address slots**: the positions `_address` marks (`sessions.py:312-355`,
   used at `sessions.py:407`), where the words say who something is for ("tell X", "on X", "the X one"). A machine word

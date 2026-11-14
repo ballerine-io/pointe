@@ -133,6 +133,7 @@ from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.workers.base_worker import BaseWorker
 from pipecat.workers.runner import WorkerRunner
+import sessions as sessions_module
 from sessions import (
     NUDGE_REPEAT_SECS,
     REGISTRY,
@@ -768,6 +769,9 @@ def _here() -> str:
     """This Mac's name among the machines: config.json "machine", else its short host name. Never an alias: every "on
     this Mac" would match it."""
     return str(vendors.config().get("machine") or socket.gethostname().split(".")[0] or "this Mac")
+
+
+sessions_module.this_machine = _here
 
 
 def _machine_of(s: Session) -> str:

@@ -122,6 +122,11 @@ def machines() -> list[Machine]:
     return list(MACHINES.values())
 
 
+def this_machine() -> str:
+    """This Mac's name among the machines; the daemon sets it (daemon._here). "" on a node."""
+    return ""
+
+
 def _machine_names(sessions) -> set[str]:
     return {n.lower() for n in MACHINES} | {s.machine.lower() for s in sessions if s.machine}
 
@@ -248,10 +253,13 @@ class Registry:
         """Why a session on `machine` ("" is this Mac) may not be called `name` beside sessions on other machines, or
         None. A name another machine's session already uses a word of ("shop deploy" beside "shop"), or one letter off
         ("shops"), would take requests meant for it or tie every one, so a node's title could capture this Mac's
-        sessions. The machine suffix that tells two
-        equal names apart ("shop devbox" beside "shop", daemon._tell_apart) is allowed."""
+        sessions. The machine suffix that tells two equal names apart ("shop devbox" beside "shop",
+        daemon._tell_apart) is allowed. A remote session never takes a word of this Mac's own name: "go to studio"
+        must mean this Mac."""
         name = " ".join(name.split())
         words = [w for w in _name_words(name) if _distinctive(w)]
+        if machine and set(words) & set(_name_words(this_machine())):
+            return f"{name} has this Mac's name in it"
         across = [o for o in self.sessions.values() if o.id != session_id and (o.machine or "") != (machine or "")]
         if machine and name.lower().endswith(" " + machine.lower()):
             base = name[:-len(machine) - 1].lower()
@@ -443,10 +451,11 @@ def _address(tokens: list[str], vocab: set[str]) -> set[int]:
 
 def _aliases(s: Session) -> list[tuple[str, int]]:
     """(label, said-by-name) pairs: its name, and its folder when a rename left the folder out of the name and the
-    folder has no yes or no word in it (answers_a_prompt)."""
+    folder has no yes or no word in it (answers_a_prompt) nor, on another machine, a word of this Mac's name."""
     folder = Path(s.cwd).name
     out = [(s.name, 1)]
-    if folder and not set(_name_words(folder)) <= set(_name_words(s.name)) and not answers_a_prompt(folder):
+    if (folder and not set(_name_words(folder)) <= set(_name_words(s.name)) and not answers_a_prompt(folder)
+            and not (s.machine and set(_name_words(folder)) & set(_name_words(this_machine())))):
         out.append((folder, 0))
     if s.harness != "claude-code":  # "the opencode one": another harness's name picks its sessions out. Never "claude",
         import harnesses             # which every "ask Claude Code to ..." would match
