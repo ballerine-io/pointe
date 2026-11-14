@@ -71,20 +71,40 @@ enum AlertPlan {
                          kind: kind, session: session, requestId: requestId)
     }
 
-    /// `posted`: what this app already posted (once each, even if the user swiped it away); `delivered`: what is on
-    /// screen now. On screen, the card is enough: an item is posted once the app leaves the screen.
+    /// What `posted` records for a note: its id and its category. A request posted without actions while its machine was
+    /// offline is posted again, with them, once the machine is back (same identifier: it replaces the old one). An entry
+    /// stored by an older build is a bare id: it counts as posted with actions, so nothing is posted twice.
+    static func key(_ n: AlertNote) -> String { "\(n.id)|\(n.category)" }
+
+    /// The notification id of a `posted` entry (one stored by an older build is a bare id).
+    static func id(ofKey key: String) -> String {
+        guard let bar = key.lastIndex(of: "|") else { return key }
+        return String(key[..<bar])
+    }
+
+    /// Posted for this id with its actions, or for anything but a permission: no Mac setting needs reading again.
+    static func postedWithActions(_ id: String, in posted: Set<String>) -> Bool {
+        posted.contains { Self.id(ofKey: $0) == id && !$0.hasSuffix("|" + openCategory) }
+    }
+
+    /// `posted`: what this app already posted (once each per category, even if the user swiped it away); `delivered`:
+    /// what is on screen now. On screen, the card is enough: an item is posted once the app leaves the screen.
     static func plan(_ items: [API.Attention], posted: Set<String>, delivered: Set<String>, appActive: Bool, enabled: Bool,
                      watchApprove: Bool, machines: MachineView = MachineView(nil)) -> Result {
-        let shown = delivered.union(posted)
+        let shown = delivered.union(posted.map { id(ofKey: $0) })
         guard enabled else { return Result(post: [], withdraw: shown.sorted(), posted: []) }
         let ids = Set(items.map(\.id))
-        var kept = posted.intersection(ids)
+        var kept = posted.filter { ids.contains(id(ofKey: $0)) }
         var post: [AlertNote] = []
         if !appActive {
-            for a in items where !kept.contains(a.id) {
+            for a in items {
                 guard let n = note(a, watchApprove: watchApprove, machines: machines) else { continue }
+                // Once per id; again only when one posted with no actions (its machine offline) now has them.
+                if let before = kept.first(where: { id(ofKey: $0) == n.id }),
+                   !(before.hasSuffix("|" + openCategory) && n.category != openCategory) { continue }
                 post.append(n)
-                kept.insert(a.id)
+                kept = kept.filter { id(ofKey: $0) != n.id }
+                kept.insert(key(n))
             }
         }
         return Result(post: post, withdraw: shown.subtracting(ids).sorted(), posted: kept)
@@ -170,7 +190,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         let delivered = Set(await center.deliveredNotifications().map(\.request.identifier).filter { !$0.hasPrefix(Self.resultPrefix) })
         let active = UIApplication.shared.applicationState == .active
         var watchApprove = false
-        let fresh = attention.contains { $0.kind == "permission" && !posted.contains($0.id) }
+        let fresh = attention.contains { $0.kind == "permission" && !AlertPlan.postedWithActions($0.id, in: posted) }
         if enabled, !active, fresh, let api {  // read the Mac's setting as the notification is built; unknown is off
             watchApprove = (try? await api.prefs())?.watchApprove ?? false
         }
@@ -246,7 +266,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
             failure = error
         }
         guard let message = AlertAnswer.outcome(failure) else { return }
-        if message == AlertCopy.unreachable { posted.remove(id) }  // still pending: post it again on the next check
+        if message == AlertCopy.unreachable { posted = posted.filter { AlertPlan.id(ofKey: $0) != id } }  // still pending: post it again on the next check
         let c = UNMutableNotificationContent()
         c.title = title
         c.body = message

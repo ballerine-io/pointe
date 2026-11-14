@@ -146,6 +146,25 @@ final class MachinesTests: XCTestCase {
         XCTAssertNil(n?.requestId)
     }
 
+    func testANotificationPostedWhileItsMachineWasOfflineGetsApproveWhenItIsBack() {
+        let offline = AlertPlan.plan([attention("notes", "r2")], posted: [], delivered: [], appActive: false, enabled: true,
+                                     watchApprove: true, machines: MachineView(three))
+        XCTAssertEqual(offline.post.first?.category, AlertPlan.openCategory)
+        let back = status("""
+        {"connected": true, "sessions": [{"name": "notes", "working": false, "waiting": true, "request_id": "r2",
+                                         "machine": "laptop", "online": true}],
+         "machines": [{"id": "hub", "name": "studio", "here": true, "online": true},
+                      {"id": "n91c0de", "name": "laptop", "here": false, "online": true}]}
+        """)
+        let again = AlertPlan.plan([attention("notes", "r2")], posted: offline.posted, delivered: [], appActive: false,
+                                   enabled: true, watchApprove: true, machines: MachineView(back))
+        XCTAssertEqual(again.post.map(\.category), [AlertPlan.approveCategory], "the node reconnected: Approve is back")
+        XCTAssertEqual(again.post.first?.id, "permission:r2", "the same notification, replaced")
+        let later = AlertPlan.plan([attention("notes", "r2")], posted: again.posted, delivered: [], appActive: false,
+                                   enabled: true, watchApprove: true, machines: MachineView(back))
+        XCTAssertEqual(later.post, [])
+    }
+
     func testOneMachineNotificationsAreUnchanged() {
         let n = AlertPlan.note(attention("river-lantern", "a1"), watchApprove: true)
         XCTAssertEqual(n?.title, "river-lantern needs approval")

@@ -32,8 +32,18 @@ final class AlertsTests: XCTestCase {
         XCTAssertEqual(n.category, AlertPlan.approveCategory)
         XCTAssertEqual(n.session, "river-lantern")
         XCTAssertEqual(n.requestId, "a1b2c3d4")
-        XCTAssertEqual(r.posted, ["permission:a1b2c3d4"])
+        XCTAssertEqual(r.posted, [AlertPlan.key(n)])
         XCTAssertEqual(plan(attention(readable), posted: r.posted).post, [], "never posted twice")
+        XCTAssertEqual(plan(attention(readable), posted: r.posted, watch: false).post, [],
+                       "a later poll that did not read the setting does not post it again with fewer actions")
+        XCTAssertEqual(plan(attention(readable), posted: ["permission:a1b2c3d4"]).post, [], "an older build's entry counts")
+    }
+
+    func testAfterAnActionTheLastGoodStatusIsKeptWhenTheFetchFails() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("Pointe/CallView.swift"), encoding: .utf8)
+        XCTAssertFalse(source.contains("status = try? await"), "a failed fetch would blank the Machines list")
+        XCTAssertTrue(source.contains("if let fresh = try? await call.api.status() { status = fresh }"))
     }
 
     func testWithoutTheSettingOrForAnUnreadableRequestThereIsNoApprove() {

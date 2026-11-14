@@ -521,7 +521,7 @@ struct CallView: View {
         } catch {
             return "The Mac did not answer."
         }
-        status = try? await call.api.status()
+        await refreshStatus()
         return nil
     }
 
@@ -744,7 +744,7 @@ struct CallView: View {
         } catch {
             return "The Mac did not answer."
         }
-        status = try? await call.api.status()
+        await refreshStatus()
         return nil
     }
 
@@ -792,7 +792,7 @@ struct CallView: View {
             problem = "The Mac did not answer."
             return
         }
-        status = try? await call.api.status()
+        await refreshStatus()
     }
 
     // MARK: audio briefings
@@ -828,7 +828,7 @@ struct CallView: View {
         } catch {
             return "The Mac did not answer."
         }
-        status = try? await call.api.status()
+        await refreshStatus()
         return nil
     }
 
@@ -876,7 +876,7 @@ struct CallView: View {
         } catch {
             return "The Mac did not answer."
         }
-        status = try? await call.api.status()
+        await refreshStatus()
         return nil
     }
 
@@ -954,7 +954,7 @@ struct CallView: View {
     private func setShowOnPhone(_ on: Bool) async -> String? {
         if demo != nil { status?.show_on_phone = on; return nil }
         guard await savePrefs(["show.on_phone": on]) else { return "The Mac did not take the setting. Is Pointe on the Mac up to date?" }
-        status = try? await call.api.status()
+        await refreshStatus()
         return nil
     }
 
@@ -984,7 +984,7 @@ struct CallView: View {
             do {
                 try await call.api.drive(on)
                 problem = nil
-                status = try? await call.api.status()
+                await refreshStatus()
             } catch API.Failure.status(_, let detail) {
                 problem = DriveCopy.refused(detail)
             } catch {
@@ -1033,7 +1033,7 @@ struct CallView: View {
         }
         do {
             try await call.api.revoke(name)
-            status = try? await call.api.status()
+            await refreshStatus()
             return nil
         } catch { return .from(error) }
     }
@@ -1044,7 +1044,7 @@ struct CallView: View {
             do {
                 try await call.api.rename(name, to: newName)
                 problem = nil
-                status = try? await call.api.status()
+                await refreshStatus()
             } catch API.Failure.status(_, let detail) {
                 problem = SessionsCopy.renameRefused(detail)
             } catch {
@@ -1094,8 +1094,14 @@ struct CallView: View {
             problem = "The Mac did not answer."
             return false
         }
-        status = try? await call.api.status()
+        await refreshStatus()
         return true
+    }
+
+    /// After an action: a failed fetch keeps the last good status, as poll() does. Setting nil blanked the Machines list
+    /// (and every other list) until the next poll.
+    private func refreshStatus() async {
+        if let fresh = try? await call.api.status() { status = fresh }
     }
 
     private func poll() async {
