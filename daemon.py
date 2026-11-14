@@ -16,7 +16,9 @@ import logging
 import os
 import re
 import secrets
+import socket
 import subprocess
+import sys
 import threading
 import time
 from dataclasses import dataclass, field
@@ -69,7 +71,7 @@ from brief import parse as parse_reply
 from echo import AudioClock, EchoGuard, LevelGate, lone_stop, spoken_form, words as echo_words
 import phone
 from readout import mask
-from guards import (relays_approval, 
+from guards import (relays_approval, remote_readable, 
     LocalAuth,
     permission_answer,
     listen_intent,
@@ -138,6 +140,9 @@ from sessions import (
     current_transcript,
     how_it_began,
     excluded_sessions,
+    machines as paired_machines,
+    machines_named,
+    online,
     name_groups,
     named_sessions,
     pick_nudge,
@@ -691,6 +696,8 @@ def _brain_context() -> str:
         parts.append(names)
     if _whispering():
         parts.append(whisper.REPLY_RULE)
+    if machines := _machines_line():
+        parts.append(machines)
     parts.append(_needs_now())
     return "\n".join(parts)
 
@@ -732,13 +739,141 @@ def _open_items() -> str | None:
 
 
 def _spoken_names(text: str) -> str:
-    """"pelican/search-reindex" is read as "pelican slash search dash reindex": say the part a person would."""
-    for s in REGISTRY.sessions.values():
-        if "/" in s.name:
-            first, last = s.name.split("/", 1)[0], s.name.rsplit("/", 1)[-1]
-            plain = first if last.lower() in GENERIC_WORDS else last  # "cv-notes/main" is "cv notes", not "main"
-            text = text.replace(s.name, plain.replace("-", " "))
+    """"pelican/search-reindex" is read as "pelican slash search dash reindex": say the part a person would. A name
+    suffixed with its machine to tell it apart ("shop devbox") is said with where it runs: "shop on devbox"."""
+    here = _here() if _multi_machine() else None
+    for s in sorted(REGISTRY.sessions.values(), key=lambda s: -len(s.name)):  # "shop/main devbox" before "shop/main"
+        base, where = s.name, ""
+        machine = s.machine or here
+        if machine and base.lower().endswith(f" {machine}".lower()) and len(base) > len(machine) + 1:
+            base, where = base[:-len(machine) - 1], f" on {machine}"
+        if "/" in base:
+            first, last = base.split("/", 1)[0], base.rsplit("/", 1)[-1]
+            base = (first if last.lower() in GENERIC_WORDS else last).replace("-", " ")  # "cv-notes/main" is "cv notes"
+        if base + where != s.name:
+            text = text.replace(s.name, base + where)
     return text
+
+
+# ---------- machines: sessions on other machines (docs/design/multi-machine.md) ----------
+
+_OS_NAMES = {"linux": "Linux", "macos": "macOS", "darwin": "macOS"}
+
+
+def _here() -> str:
+    """This Mac's name among the machines: config.json "machine", else its short host name. Never an alias: every "on
+    this Mac" would match it."""
+    return str(vendors.config().get("machine") or socket.gethostname().split(".")[0] or "this Mac")
+
+
+def _machine_of(s: Session) -> str:
+    return s.machine or _here()
+
+
+def _multi_machine() -> bool:
+    """Sessions on more than one machine: only then does the brain hear, or the voice say, where each one runs."""
+    return len({s.machine for s in REGISTRY.sessions.values()}) > 1
+
+
+def _offline_line(s: Session) -> str:
+    return f"{s.machine} is offline, so {s.name} cannot be reached until it reconnects"
+
+
+def _since(t: float | None) -> str:
+    return f"offline since {time.strftime('%H:%M', time.localtime(t))}" if t else "offline"
+
+
+def _count(n: int) -> str:
+    return f"{n} session{'' if n == 1 else 's'}"
+
+
+def _needs_user(s: Session) -> bool:
+    return bool(s.permission_id or (s.needs and s.needs.get("need")) or s.open_questions)
+
+
+def _machines_line() -> str | None:
+    """For the brain, when sessions run on more than one machine: where, and how to speak of it."""
+    if not _multi_machine():
+        return None
+    on = [s.machine for s in REGISTRY.sessions.values()]
+    parts = [f"{_here()} (this Mac, {_count(on.count(''))})"] if "" in on else []
+    known = {m.name: m for m in paired_machines()}
+    for name in sorted({m for m in on if m}):
+        m = known.get(name)
+        if m is not None and m.online:
+            facts = [_OS_NAMES.get(m.os, m.os), _count(on.count(name))] + ([f"{m.rtt_ms} ms"] if m.rtt_ms is not None else [])
+        else:
+            facts = [_since(m.since if m else None), _count(on.count(name))]
+        parts.append(f"{name} ({', '.join(f for f in facts if f)})")
+    return (f"Machines: {', '.join(parts)}. Say a session's machine only when it tells two sessions apart, when you move "
+            "to a session on another machine, and when asked where one runs or what is going on everywhere (then answer "
+            "machine by machine). Machine names come from list_sessions, never from memory. An offline session cannot be "
+            "sent to or approved: say its machine is offline.")
+
+
+def _capabilities(s: Session) -> dict:
+    """A session on another machine has no forked side questions (phase 2): the transcript reader answers."""
+    caps = harnesses.of(s).capabilities()
+    return {**caps, "side_questions": False} if s.machine else caps
+
+
+def _status_machines() -> list[dict]:
+    """/voice/status `machines`: this Mac first, then each paired node, with or without sessions."""
+    sessions = list(REGISTRY.sessions.values())
+
+    def counts(name: str) -> tuple[int, int]:
+        on = [s for s in sessions if s.machine == name]
+        return len(on), sum(1 for s in on if _needs_user(s))
+
+    n, need = counts("")
+    out = [{"id": "hub", "name": _here(), "here": True, "os": "macos" if sys.platform == "darwin" else "linux",
+            "online": True, "sessions": n, "need": need}]
+    for m in paired_machines():
+        n, need = counts(m.name)
+        out.append({"id": m.id, "name": m.name, "here": False, "os": m.os, "online": m.online, "since": m.since,
+                    "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp})
+    return out
+
+
+def _shows_invite(request) -> bool:
+    """A one-time invite code goes to the page on this Mac (its cookie) and the phone app (its key), never to a page
+    opened over the TLS listener."""
+    return bool(request.scope.get("state", {}).get("pointe_phone")) or not remote.Remote.on_tls_listener(request.scope)
+
+
+def _invite(request) -> dict | None:
+    made = getattr(harnesses.HOST, "invite", None)  # the node link's (hub_nodes.py): the outstanding code, or None
+    return made() if made and _shows_invite(request) else None
+
+
+def _call_state() -> dict:
+    """What a node needs to know to forward prompts: a call is up, and the hub does not leave approvals to terminals."""
+    return {"up": state.conn is not None, "approvals_terminal": vendors.config().get("approvals") == "terminal"}
+
+
+def _notify_call() -> None:
+    """The node link sends `call` to every node when this changes (a call starts or ends, the approvals setting)."""
+    call = _call_state()
+    told = getattr(harnesses.HOST, "on_call", None)
+    if call == state.call_sent or told is None:
+        return
+    state.call_sent = call
+    try:
+        told(call)
+    except Exception as e:
+        logger.error(f"telling the nodes about the call failed: {type(e).__name__}: {e}")
+
+
+async def _watch_machines() -> None:
+    """A node's link dropped: it handed what it held back to its terminals. Said once, in one line, when that was a
+    prompt the user may be about to answer."""
+    down = {m.name for m in paired_machines() if not m.online}
+    for name in sorted(down - state.machines_down):
+        held = [s.name for s in REGISTRY.sessions.values() if s.machine == name and s.permission_id]
+        if held:
+            await say(f"[machine offline] {name} dropped, so {', '.join(held)}'s approval went back to its terminal. Tell "
+                      f"the user in one line.")
+    state.machines_down = down
 
 
 def fixed_greeting() -> str | None:
@@ -1289,6 +1424,9 @@ class State:
     heartbeat_info: object = None  # the call's ping state: round trip and when the client last answered
     connected_at: float = 0.0
     last_nudge_at: float = 0.0
+    call_sent: dict | None = None  # the last `call` state the node link was given (_notify_call)
+    machines_down: set[str] = field(default_factory=set)  # nodes already known offline (_watch_machines)
+    remote_held: dict[str, str] = field(default_factory=dict)  # session id -> the node prompt put to the user, this run
     sending: asyncio.Lock = field(default_factory=asyncio.Lock)  # concurrent tool calls see one utterance in turn
     clauses_at: float = 0.0  # the utterance (by speech time) whose clauses clauses_used counts
     clauses_used: set[int] = field(default_factory=set)
@@ -1422,7 +1560,10 @@ async def feed(session: Session, text: str, respond: bool) -> None:
                     f"name:\n{report.get('line') or report['excerpt'][-600:]}")
     else:
         text = f"[{_tag(session)}{text[1:]}" if text.startswith("[") else text
-    if report is not None and respond and session.artifacts:
+    if report is not None and respond and session.artifacts and session.machine:
+        logger.info(f"show: nothing put on screen for {session.name}: it runs on {session.machine}, and show while it "
+                    f"says reads files on this Mac only (remote sessions are phase 2)")
+    elif report is not None and respond and session.artifacts:
         line = _on_screen(session)
         if line:
             text = text[:MAX_FEED_CHARS - len(line)] + line
@@ -1593,7 +1734,7 @@ async def _nudger() -> None:
             continue
         # Quiet is measured from when the bot stopped, not started: a nudge takes a while to speak.
         last_bot = max(ECHO.stopped_at, conn.injector.bot_started_at, state.last_nudge_at)
-        session = pick_nudge(list(REGISTRY.sessions.values()), now, state.last_user_speech_at, last_bot)
+        session = pick_nudge([s for s in REGISTRY.sessions.values() if online(s)], now, state.last_user_speech_at, last_bot)
         if session is None:
             continue
         session.nudged_at = state.last_nudge_at = now
@@ -1943,6 +2084,7 @@ async def _briefing_scheduler() -> None:
 def _call_ended() -> None:
     """"The night" starts here; a briefing does not outlive its call."""
     BRIEFINGS.call_ended(time.time())
+    _notify_call()  # the nodes stop forwarding prompts: they stay in their terminals
     state.briefing_play = None
     _challenge_off_silently()  # the next call's brain starts without this one's history
     state.drive.dropped()  # a tunnel: the mode waits drives.DROP_GRACE_SECS for the call to come back
@@ -2111,6 +2253,10 @@ async def _challenge_evidence(sessions: list[Session]) -> list[str]:
     lines = []
     for s in sessions:
         history = await asyncio.to_thread(recent_history, s, 12, 4000)
+        if s.machine:  # its files are on its node: never read from this Mac's disk (phase 2)
+            lines += challenge.evidence(s.name, _brief_of(s), history, [])
+            lines.append(f"{s.name}: no diffs here, since it runs on {s.machine} and its files are not read from this Mac.")
+            continue
         diffs = await asyncio.to_thread(_challenge_diffs, s)
         lines += challenge.evidence(s.name, _brief_of(s), history, diffs)
     return lines
@@ -2922,6 +3068,12 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     session = REGISTRY.active
     if not session or not session.permission_id or state.conn is None:
         return
+    if not online(session):  # its node handed the prompt back to its terminal when the link dropped
+        if permission_answer(text) is not None:
+            state.utterance_spent = True
+            await say(f"[permission offline] {_offline_line(session)}: its request went back to its terminal. Tell "
+                      f"the user in one line to answer it there.")
+        return
     window_open = state.conn.injector.bot_started_at >= session.permission_delivered_at
     # The bot's own read-out heard back is never an answer, a no included (echo.repeats_bot).
     verdict = None if state.heard_own_words or ECHO.repeats_bot(text) else permission_answer(text)
@@ -2986,7 +3138,8 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
 async def _apply_answer(session: Session, request_id: str, verdict: str, how: str) -> bool:
     session.permission_id = None
     logger.info(f"permission {session.name}/{request_id} -> {verdict} ({how})")
-    if not await _deliver_verdict(session, request_id, verdict):
+    if not await (_deliver_remote(session, request_id, verdict, how) if session.machine
+                  else _deliver_verdict(session, request_id, verdict)):
         session.permission_id = request_id
         await say(f"[permission failed] The user's answer did not reach {session.name}. Tell the user in one "
                   f"line to answer it in that session's terminal.")
@@ -3007,7 +3160,8 @@ def _waiting_items(s: Session) -> list[str]:
     if not waits and notes.get("waiting_on_user"):
         waits = [notes["waiting_on_user"]]
     if s.permission_id:
-        waits.insert(0, "a permission approval")
+        waits.insert(0, "a permission approval" if online(s) else
+                     "a permission approval, now only in its terminal: its machine is offline")
     if s.typed_approval:
         waits.append(f"the user must type this approval in its terminal: {s.typed_approval}")
     return waits
@@ -3017,13 +3171,24 @@ def _needs_now() -> str:
     """What each session waits on, from the daemon's records: a question about this is never answered from memory."""
     items = _waiting_items
     order = sorted(REGISTRY.sessions.values(), key=lambda s: (not items(s), s.urgency != "high", s is not REGISTRY.active))
-    lines = []
+    several = _multi_machine()
+    if several:  # grouped by machine, the machine of the most urgent session first
+        first = list(dict.fromkeys(s.machine for s in order))
+        order = sorted(order, key=lambda s: first.index(s.machine))
+    known = {m.name: m for m in paired_machines()}
+    lines, group = [], None
     for s in order:
+        if several and s.machine != group:
+            group, m = s.machine, known.get(s.machine)
+            where = " (this Mac)" if not s.machine else "" if online(s) else f" ({_since(m.since if m else None)})"
+            lines.append(f"On {_machine_of(s)}{where}:")
         sent = state.unconfirmed.get(s.id) or []
         notes = _brief_of(s) or {}
         promised = "; ".join(str(p) for p in notes.get("owner_promised") or [])
-        lines.append(f"- {s.name} ({harnesses.of(s).agent}, {'working' if s.busy else 'not working'}). "
-                     f"{notes.get('state') or 'No notes on it yet.'}"
+        machine = f" on {_machine_of(s)}" if several else ""
+        lines.append(f"- {s.name} ({harnesses.of(s).agent}{machine}, {'working' if s.busy else 'not working'}). "
+                     + ("" if online(s) else "OFFLINE: cannot be sent to. ")
+                     + f"{notes.get('state') or 'No notes on it yet.'}"
                      f"{' URGENT.' if s.urgency == 'high' and items(s) else ''} "
                      f"Waits on the user for: {'; '.join(items(s)) or 'nothing'}."
                      + (f" Clocks: {'; '.join(s.deadlines)}." if s.deadlines else "")
@@ -3118,7 +3283,9 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
     sessions = list(REGISTRY.sessions.values())
     if broadcast_intent(said):
         excluded = excluded_sessions(said, sessions)
-        return [s for s in sessions if not s.on_hold and all(s is not x for x in excluded)], "all"
+        scope = machines_named(said, sessions)  # "everyone on devbox"
+        return [s for s in sessions if not s.on_hold and all(s is not x for x in excluded)
+                and (not scope or s.machine in scope)], "all"
     groups = name_groups(said, sessions)
     if groups:
         targets, how = [], "named"
@@ -3164,8 +3331,8 @@ def _thread() -> Session | None:
 
 def _unrouted(how: str, said: str) -> str:
     if how == "ambiguous":
-        tied = [s.name for g in name_groups(said, list(REGISTRY.sessions.values())) if len(g) > 1 for s in g]
-        return f"Not sent: the user's words fit more than one session: {', '.join(tied)}. Ask which one."
+        tied = [s for g in name_groups(said, list(REGISTRY.sessions.values())) if len(g) > 1 for s in g]
+        return f"Not sent: the user's words fit more than one session: {', '.join(s.name for s in tied)}. {_ask_which(said, tied)}"
     if how == "closed":
         gone = [s.name for g in name_groups(said, list(REGISTRY.departed.values())) for s in g]
         return (f"Not sent: {', '.join(gone)} closed. Open sessions: {_names()}. Ask the user where it should "
@@ -3175,6 +3342,14 @@ def _unrouted(how: str, said: str) -> str:
         return (f"Not sent: you were talking about {thread}, but this sounds like it is for {picked}. Ask the user "
                 f"which session it is for.")
     return "No session to send to."
+
+
+def _ask_which(said: str, tied: list[Session]) -> str:
+    """"Go to devbox" with two sessions there: ask which on devbox."""
+    on = machines_named(said, tied) if tied else []
+    if len(on) == 1 and all(s.machine == on[0] for s in tied):
+        return f"Ask which on {on[0]}: {' or '.join(s.name for s in tied)}."
+    return "Ask which one."
 
 
 def _pinned_refusal(said: str) -> str | None:
@@ -3204,7 +3379,10 @@ def _git_files(cwd: str, timeout: float) -> str:
 
 
 def _tracked_files(session: Session) -> str:
-    """A few of its file names: "show me pricing.py" belongs to the session that has it."""
+    """A few of its file names: "show me pricing.py" belongs to the session that has it. A session on another machine:
+    the names its node sent, since git here would list a folder on this Mac."""
+    if session.machine:
+        return " ".join(str(f) for f in (session.harness_data.get("files") or [])[:40])
     try:
         listed = _git_files(session.cwd, 1)
     except (OSError, subprocess.SubprocessError):
@@ -3223,13 +3401,14 @@ def _checker(attempt: int) -> str:
 async def _classify_target(message: str, sessions: list[Session]) -> Session | None:
     """A fast model picks the session a request belongs to; None when it is not clear."""
     lines = []
+    several = _multi_machine()
     for s in sessions:
         latest = recent_history(s, max_entries=2, max_chars=500).replace("\n", " ")
         notes = _brief_of(s) or {}
         about = f"goal: {notes['goal']}; " if notes.get("goal") else ""
         files = _tracked_files(s)
         about += f"files: {files}; " if files else ""
-        lines.append(f"- {s.name} ({harnesses.of(s).agent} session, folder {s.cwd})"
+        lines.append(f"- {s.name} ({harnesses.of(s).agent} session, folder {s.cwd}{f', on {_machine_of(s)}' if several else ''})"
                      f"{' [active]' if s is REGISTRY.active else ''}: {about}latest: {latest}")
     asked = next((text for who, text in reversed(state.conversation) if who == "assistant"), "")
     prompt = (f"Coding-agent sessions:\n" + "\n".join(lines) + f"\n\nThe assistant last said: {asked[-400:]!r}\n"
@@ -3410,6 +3589,11 @@ async def _send_now(message: str) -> dict:
         state.pending_route = (time.time(), picked if how == "off-thread" else None, message)
         _record(message, [], f"blocked: {how}")
         return {"error": _unrouted(how, said)}
+    offline = [t for t in targets if not online(t)]
+    if offline and len(offline) == len(targets):
+        _record(message, [], "blocked: its machine is offline")
+        return {"error": f"Not sent: {'; '.join(_offline_line(t) for t in offline)}. Tell the user in one line."}
+    targets = [t for t in targets if online(t)]
     sent_to, failed = [], []
     for target in targets:
         logger.info(f"-> {target.name}: {message!r} (routing: {how})")
@@ -3446,6 +3630,10 @@ async def _send_now(message: str) -> dict:
         result["failed"] = failed
     if how in ("auto", "thread") and targets[0] is not REGISTRY.active:
         result["say"] = f"Tell the user it went to {targets[0].name}."
+    if offline:
+        result["offline"] = [t.name for t in offline]
+        result["say"] = (result.get("say", "") + f" Tell the user it did not reach "
+                         f"{'; '.join(_offline_line(t) for t in offline)}.").strip()
     return result
 
 
@@ -3613,7 +3801,8 @@ async def _is_current_request(message: str, utterance: str, earlier: list[str],
 
 
 async def list_sessions(params: FunctionCallParams):
-    sessions = [{"name": s.name, "agent": harnesses.of(s).agent, "active": s is REGISTRY.active, "working": s.busy,
+    sessions = [{"name": s.name, "agent": harnesses.of(s).agent, "machine": _machine_of(s), "online": online(s),
+                 "active": s is REGISTRY.active, "working": s.busy,
                  "waiting_for_permission": bool(s.permission_id),
                  "needs_from_user": _waiting_items(s),
                  "clocks": s.deadlines, "urgent": s.urgency == "high",
@@ -3653,9 +3842,12 @@ async def switch_session(params: FunctionCallParams):
     if not groups and back_intent(asked) and REGISTRY.recent:
         spoken = REGISTRY.sessions.get(REGISTRY.recent[-1])
     if spoken is None:
-        options = ", ".join(s.name for g in groups for s in g) if groups else _names()
+        tied = [s for g in groups for s in g]
+        which = _ask_which(asked, tied) if len(groups) == 1 else "Ask which one."
+        options = ", ".join(s.name for s in tied) if groups else _names()
         await params.result_callback(
-            {"error": f"Not switched. The user did not clearly name one session. Ask which: {options}."})
+            {"error": f"Not switched. The user did not clearly name one session. "
+                      + (which if which.startswith("Ask which on") else f"Ask which: {options}.")})
         return
     await params.result_callback(await activate(spoken))
 
@@ -3676,6 +3868,7 @@ async def disconnect_session(params: FunctionCallParams):
 
 async def activate(session: Session) -> dict:
     """Make a session active and give the voice model its recent history."""
+    before = REGISTRY.active
     REGISTRY.set_active(session.id)
     SHOWS.clear()  # the user moved on: what was on screen belonged to the last report
     state.thread = (session.id, time.time())  # an explicit switch outranks the last topic
@@ -3699,6 +3892,11 @@ async def activate(session: Session) -> dict:
     if session.permission_id:
         note["waiting_permission"] = True
         await _ask_permission(session)
+    if before is not None and before.machine != session.machine:  # a switch across machines: say where it now is
+        note["machine"] = _machine_of(session)
+        name = _spoken_names(session.name)
+        note["say"] = (f"Say you are now on {name}" + ("" if _machine_of(session) in name else f", on {_machine_of(session)}")
+                       + (", which is offline: it cannot be sent to" if not online(session) else "") + ".")
     return note
 
 
@@ -3831,7 +4029,7 @@ async def ask_about_session(params: FunctionCallParams):
         return
     state.thread = (target.id, time.time())  # asking about a session is talking about it
     question = params.arguments.get("question", "")
-    if COPY_SESSIONS and harnesses.of(target).side_questions and not quote_intent(question) and not quote_intent(state.last_utterance):
+    if COPY_SESSIONS and _capabilities(target)["side_questions"] and not quote_intent(question) and not quote_intent(state.last_utterance):
         asyncio.create_task(_ask_copy(target, question))
         await params.result_callback({"asking": target.name, "say": f"Tell the user in a few words that you are asking "
                                       f"{target.name}, and that the answer comes in about ten seconds. Do not guess it."})
@@ -3917,7 +4115,8 @@ TOOLS = ToolsSchema(standard_tools=[
     FunctionSchema(
         name="list_sessions",
         description="The coding-agent sessions (Claude Code, OpenCode), which is active, and each one's latest activity. Use it for status "
-        "briefings: one short line per session.",
+        "briefings: one short line per session. Sessions may run on several machines: each has its machine and whether "
+        "it is online. Answer \"what's going on everywhere\" and \"what's on <machine>\" machine by machine.",
         properties={}, required=[], handler=_traced(list_sessions)),
     FunctionSchema(
         name="switch_session",
@@ -4025,15 +4224,7 @@ async def register(request: Request, authorization: str | None = Header(None)):
         title = adapter.title(session)
         if title and not REGISTRY.rename_check(session.id, title):
             session.name, session.named_by = title, "title"
-    other_harness = [o for o in REGISTRY.sessions.values() if o.id != session.id and o.harness != harness]
-    if session.id not in REGISTRY.sessions and any(o.name.lower() == session.name.lower() or
-                                                   o.name.lower().startswith(session.name.lower() + "/") or
-                                                   session.name.lower().startswith(o.name.lower() + "/")
-                                                   for o in other_harness):
-        # the same folder in two harnesses ("shop" in Claude Code and in OpenCode): the harness tells them apart
-        labelled = f"{session.name} {adapter.label}"[:40]
-        if valid_name(labelled) and not REGISTRY.rename_check(session.id, labelled):
-            session.name = labelled
+    _tell_apart(session, adapter.label)
     existing = REGISTRY.sessions.get(session.id)
     if existing:
         for key in ("inbox_socket", "inbox_token", "channel_url", "transcript", "pid", "home"):
@@ -4051,11 +4242,141 @@ async def register(request: Request, authorization: str | None = Header(None)):
     return {"name": session.name, "active": session is REGISTRY.active}
 
 
+def _clean_name(raw: str) -> str:
+    return " ".join(re.sub(r"[^\w ./-]+", " ", raw).split())[:40].strip(" ./-")
+
+
 def _session_name(body: dict) -> str:
-    """Always a valid name: the one given or the folder's, cleaned and cut to length, else from the id."""
-    raw = str(body.get("name") or Path(body["cwd"]).name)
-    name = " ".join(re.sub(r"[^\w ./-]+", " ", raw).split())[:40].strip(" ./-")
-    return name if valid_name(name) else f"session {str(body['id'])[:6]}"
+    """Always a valid name: the one given or the folder's, cleaned and cut to length, else from the id. Never a
+    machine's name: "go to devbox" must mean the machine."""
+    name = _clean_name(str(body.get("name") or Path(body["cwd"]).name))
+    taken = {m.name.lower() for m in paired_machines()}
+    return name if valid_name(name) and name.lower() not in taken else f"session {str(body['id'])[:6]}"
+
+
+def _clash(a: str, b: str) -> bool:
+    a, b = a.lower(), b.lower()
+    return a == b or a.startswith(b + "/") or b.startswith(a + "/")
+
+
+def _tell_apart(session: Session, label: str) -> None:
+    """A name another session already has ("shop"), on another machine or in another harness: the machine ("shop
+    devbox"), else the harness ("shop opencode"), tells them apart. The first to join keeps the plain name; when the
+    suffix does not fit, the registry's "-2" does."""
+    if session.id in REGISTRY.sessions:
+        return
+    clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
+    if any(o.machine != session.machine for o in clashing):
+        suffix = _machine_of(session)
+    elif any(o.harness != session.harness for o in clashing):
+        suffix = label
+    else:
+        return
+    labelled = f"{session.name} {suffix}"[:40]
+    if valid_name(labelled) and not REGISTRY.rename_check(session.id, labelled):
+        session.name = labelled
+
+
+async def register_remote(node_id: str, machine: str, entry: dict) -> Session | None:
+    """A session on a node, from its `sessions` snapshot or `session.joined` (the node link calls this through
+    harnesses.HOST): register() for another machine. The hub-side id is `<node_short>-<id>`, unique across machines, with
+    the node's own id in harness_data["remote_id"]. A session already here is refreshed: title, folder, file names, and
+    the prompt the node holds (`pending`, when the entry carries the key). None for an entry that cannot be used."""
+    remote_id = str(entry.get("id") or "")
+    sid = f"{node_id[:6]}-{remote_id}"
+    harness = str(entry.get("harness") or "claude-code")
+    if not machine or not re.fullmatch(r"[\w-]{1,128}", remote_id) or harness not in harnesses.names():
+        logger.error(f"a session from {machine or 'a node'} was refused: bad id or unknown harness {harness!r}")
+        return None
+    files = [str(f) for f in entry.get("files") or [] if isinstance(f, str)][:40] if isinstance(entry.get("files"), list) else None
+    title = _clean_name(str(entry.get("title") or ""))
+    session = REGISTRY.sessions.get(sid)
+    if session is not None:
+        session.cwd = str(entry.get("cwd") or session.cwd)
+        if files is not None:
+            session.harness_data["files"] = files
+        if session.named_by != "user" and title and title != session.name and not REGISTRY.rename(session.id, title):
+            session.named_by = "title"
+        REGISTRY.save()
+        if "pending" in entry:
+            await _remote_pending(session, entry["pending"])
+        return session
+    session = Session(id=sid, name=_session_name({"id": remote_id, "name": entry.get("name"), "cwd": entry.get("cwd") or remote_id}),
+                      cwd=str(entry.get("cwd") or ""), pid=int(entry.get("pid") or 0), harness=harness,
+                      home=str(entry.get("home") or ""), machine=machine,
+                      harness_data={"remote_id": remote_id, "node_id": node_id, "files": files or []})
+    if entry.get("name_given"):
+        session.named_by = "user"
+    elif title and not REGISTRY.rename_check(session.id, title):
+        session.name, session.named_by = title, "title"
+    _tell_apart(session, harnesses.get(harness).label)
+    session.transcript = harnesses.of(session).transcript_path(session)  # its mirror on this Mac
+    session.joining = harnesses.get(harness).joins_mid_turn  # /pointe:voice on the node runs inside a turn too
+    REGISTRY.add(session)
+    asyncio.create_task(_refresh_brief(session))
+    logger.info(f"registered {session.name} on {machine} (pid {session.pid}, remote, {harness})")
+    await _add_worker(session)
+    if state.conn and len(REGISTRY.sessions) > 1:
+        await say(f"[session joined] {session.name}, on {machine}, is now available. Mention it in a few words.")
+    if entry.get("pending"):
+        await _remote_pending(session, entry["pending"])
+    return session
+
+
+async def _remote_pending(session: Session, pending) -> None:
+    """The prompt the node holds for this session, from its snapshot. None clears a card the node no longer holds (it was
+    answered in its terminal while the link was down); one not yet put to the user here is put (after a hub restart)."""
+    if not isinstance(pending, dict) or not pending.get("request_id"):
+        if session.permission_id:
+            remote_resolved(session, session.permission_id, "terminal")
+        return
+    await remote_permission(session, str(pending["request_id"]), str(pending.get("tool") or ""),
+                            str(pending.get("description") or ""), str(pending.get("preview") or "{}"), pending.get("readable"))
+
+
+async def remote_permission(session: Session, request_id: str, tool_name: str, description: str, preview: str,
+                            readable) -> bool:
+    """A node's `permission.request`, put to the user as a channel request is put. `readable` is the node's own read-out,
+    from the unmasked input: used after the cheap checks (guards.remote_readable), never rebuilt from the masked
+    preview. False when it is not held here (no call, or the user approves in terminals): the node then hands it back to
+    its terminal. The same request again (a snapshot and a frame) is put once."""
+    if session.id not in REGISTRY.sessions or state.conn is None:
+        return False
+    if vendors.config().get("approvals") == "terminal":
+        await say(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in one line.")
+        return False
+    if state.remote_held.get(session.id) == request_id and session.permission_id == request_id:
+        return True
+    state.remote_held[session.id] = request_id
+    await _put_permission(session, request_id, tool_name, description, preview, node_readable=remote_readable(readable))
+    return True
+
+
+def remote_resolved(session: Session, request_id: str, how: str) -> None:
+    """The node's `permission.resolved`: the prompt is no longer the hub's to answer (answered in its terminal, timed out,
+    or the session left). Its card goes."""
+    if session.permission_id != request_id:
+        return
+    session.permission_id, session.permission_since = None, None
+    state.remote_held.pop(session.id, None)
+    REGISTRY.save()
+    logger.info(f"permission {session.name}/{request_id} resolved on {session.machine} ({how})")
+
+
+_VERDICT_HOW = {"tapped": "tap", "from a notification": "notification"}  # anything else: "user said: ..."
+
+
+async def _deliver_remote(session: Session, request_id: str, verdict: str, how: str) -> bool:
+    """_deliver_verdict for a session on another machine: `permission.answer` to its node, which re-checks it (a voice
+    yes only for the exact line read out, a notification only for a readable request) and says whether it took it."""
+    kind = _VERDICT_HOW.get(how, "voice")
+    answer = getattr(harnesses.of(session), "answer", None)
+    if answer is None or not online(session):
+        return False
+    took = await answer(session, request_id, verdict, kind, session.permission_spoken if kind == "voice" else None)
+    if took:
+        state.remote_held.pop(session.id, None)
+    return bool(took)
 
 
 async def _deliver_verdict(session: Session, request_id: str, verdict: str) -> bool:
@@ -4161,12 +4482,16 @@ async def on_permission(request: Request, authorization: str | None = Header(Non
     return await _put_permission(session, p["request_id"], p["tool_name"], p["description"], p["input_preview"])
 
 
-async def _put_permission(session: Session, request_id: str, tool_name: str, description: str, preview: str) -> dict:
+async def _put_permission(session: Session, request_id: str, tool_name: str, description: str, preview: str,
+                          node_readable: str | None = None) -> dict:
     try:
         tool_input = json.loads(preview)
     except ValueError:  # an older Claude Code cuts the preview, so what runs is not all here
         tool_input = None
-    readable = readable_request(tool_name, tool_input, session.cwd) if isinstance(tool_input, dict) else None
+    if session.machine:  # the node's read-out, from the unmasked input: the preview here is masked
+        readable = node_readable
+    else:
+        readable = readable_request(tool_name, tool_input, session.cwd) if isinstance(tool_input, dict) else None
     session.permission_spoken = (readable or "") if FRONT == "brain" else ""  # a realtime model words it itself: no line to bind
     session.permission_id = request_id
     session.permission_read_at = 0.0
@@ -4254,8 +4579,8 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False)
 async def _ask_permission(session: Session) -> None:
     """Put a session's pending permission to the user; only then can a yes or no answer it. While the mode does not read
     out (a meeting, a brainstorm) the brain is not told either: it could say the exact command into the room. The card
-    shows it, and the hand-off asks again (_after_monologue)."""
-    if not current_mode().reads_out:
+    shows it, and the hand-off asks again (_after_monologue). An offline session's prompt is in its terminal."""
+    if not current_mode().reads_out or not online(session):
         return
     if FRONT == "brain" and state.front is not None:
         await feed(session, session.permission_text, False)
@@ -4269,7 +4594,7 @@ async def _read_out_when_quiet(session: Session, request_id: str) -> None:
     deadline = time.time() + READ_OUT_WAIT_SECS
     while state.front is not None and state.front.brain.busy and time.time() < deadline:
         await asyncio.sleep(0.1)
-    if session.permission_id == request_id and session is REGISTRY.active and state.conn is not None:
+    if session.permission_id == request_id and session is REGISTRY.active and state.conn is not None and online(session):
         await _read_out(session)
 
 
@@ -4278,7 +4603,7 @@ async def _permission_watchdog(session: Session, request_id: str, text: str) -> 
     for _ in range(PERMISSION_RETRIES):
         await asyncio.sleep(PERMISSION_NUDGE_SECS)
         conn = state.conn
-        if session.permission_id != request_id or conn is None or session is not REGISTRY.active:
+        if session.permission_id != request_id or conn is None or session is not REGISTRY.active or not online(session):
             return
         if conn.injector.holding or conn.injector.bot_started_at > conn.injector.responded_at or session.permission_read_at:
             continue  # once read out, the page and the nudger keep it visible: no more speech from here
@@ -4297,6 +4622,8 @@ async def approve(request: Request):
         raise HTTPException(status_code=400, detail="session and decision (allow or deny) are required")
     if not session.permission_id or not hmac.compare_digest(str(p.get("request_id", "")), session.permission_id):
         raise HTTPException(status_code=409, detail="that request is no longer pending")
+    if not online(session):
+        raise HTTPException(status_code=409, detail=f"{session.machine} is offline: answer it in its terminal")
     notified = p.get("via") == "notification"  # an action on a notification: the phone could not ask for Face ID
     if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.permission_id)):
         raise HTTPException(status_code=403, detail="approve this one in the app or on the page")
@@ -4640,12 +4967,24 @@ async def status(request: Request):
             "talk": _talk(),
             "polish": state.polish,
             "hearing": state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
-            "sessions": [{"name": s.name, "harness": s.harness, "capabilities": harnesses.of(s).capabilities(), "working": s.busy, "waiting": bool(s.permission_id),
+            "machines": _status_machines(),
+            "invite": _invite(request),
+            "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
+                          "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
                           "request_id": s.permission_id,
-                          "voice_can_approve": bool(s.permission_id and not s.permission_cut),
+                          "voice_can_approve": bool(s.permission_id and not s.permission_cut and online(s)),
                           "needs": s.needs["need"] if s.needs else None,
                           "mode": "channel" if s.channel_url else "inbox"} for s in REGISTRY.sessions.values()]}
+
+
+def _alert_name(s: Session) -> str:
+    """"shop (devbox)" when sessions span machines, the machine said once even if the name carries it; else the name."""
+    if not _multi_machine():
+        return s.name
+    machine = _machine_of(s)
+    base = s.name[:-len(machine) - 1] if s.name.lower().endswith(f" {machine}".lower()) else s.name
+    return f"{base} ({machine})"
 
 
 def _attention() -> list[dict]:
@@ -4653,7 +4992,8 @@ def _attention() -> list[dict]:
     items = []
     for s in REGISTRY.sessions.values():
         if s.permission_id:
-            items.append(alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time()))
+            item = alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time(), _alert_name(s))
+            items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
         elif s.idle_since and s.needs and s.needs.get("need"):
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
     for c in ALARM.conflicts:
@@ -5044,6 +5384,8 @@ async def _liveness() -> None:
                 logger.info("a harness probe took over 4 s; checked again in 5")
         await _reap_dead()
         _follow_titles()
+        await _watch_machines()
+        _notify_call()  # also catches a change of the approvals setting in config.json
 
 
 def _follow_titles() -> None:
@@ -5063,6 +5405,7 @@ async def _drop(session: Session) -> bool:
     if session.permission_answer is not None and not session.permission_answer.done():
         session.permission_answer.set_result(None)
     pinned = session is REGISTRY.active and REGISTRY.mode == "session"
+    state.remote_held.pop(session.id, None)  # a node's prompt: the node hands it back when the session leaves
     REGISTRY.remove(session.id)
     if pinned:  # session mode has nothing left to pin to
         REGISTRY.mode = "orchestrator"
@@ -5076,6 +5419,11 @@ async def _drop(session: Session) -> bool:
 async def disconnect(session: Session, how: str) -> dict:
     """The user took a session off the voice. It keeps running in its terminal; /pointe:voice there joins it again."""
     was_active = session is REGISTRY.active
+    if session.machine:  # its node takes it off its own registry; it keeps running in its terminal there
+        try:
+            await harnesses.of(session).leave(session)
+        except Exception as e:
+            logger.error(f"telling {session.machine} that {session.name} left failed: {type(e).__name__}")
     pinned = await _drop(session)
     logger.info(f"{session.name} disconnected ({how})")
     if was_active and REGISTRY.active and REGISTRY.active.permission_id and state.conn is not None:
@@ -5105,6 +5453,7 @@ async def _on_connect(conn: Connection) -> None:
     """A new voice connection: nothing said before it counts, and pending permissions are asked again."""
     now = time.time()
     state.conn, state.idle_hangup = conn, False
+    _notify_call()
     state.connected_at = now
     state.last_delegation_at = state.last_switch_at = now
     state.last_utterance = ""
@@ -5127,7 +5476,7 @@ async def _on_connect(conn: Connection) -> None:
     active = REGISTRY.active
     if active and active.permission_id:
         await _ask_permission(active)
-    waiting = [s.name for s in REGISTRY.sessions.values() if s is not active and s.permission_id]
+    waiting = [s.name for s in REGISTRY.sessions.values() if s is not active and s.permission_id and online(s)]
     if waiting:
         await say(f"[waiting for a permission, not the active session] {', '.join(waiting)}. Tell the user in one "
                   f"line; they can switch to it by name.")
@@ -5370,6 +5719,11 @@ async def run_call(transport) -> None:
 harnesses.HOST.hold_permission = _harness_permission
 harnesses.HOST.post_channel = post_channel
 harnesses.HOST.state_dir = STATE_DIR
+# ...and what the node link (hub_nodes.py, harnesses/remote.py) calls; see harnesses/__init__.py for the whole seam.
+harnesses.HOST.register_remote = register_remote
+harnesses.HOST.remote_permission = remote_permission
+harnesses.HOST.remote_resolved = remote_resolved
+harnesses.HOST.call_state = _call_state
 
 
 def main() -> None:

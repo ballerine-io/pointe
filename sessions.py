@@ -83,8 +83,46 @@ class Session:
 
 PERSISTED = ("id", "name", "named_by", "cwd", "pid", "transcript", "inbox_socket", "inbox_token", "channel_url",
              "permission_id", "permission_text", "permission_since", "permission_cut", "permission_full", "permission_spoken",
-             "harness", "home", "harness_data")  # Claude Code still waits after a restart
+             "harness", "home", "harness_data", "machine")  # Claude Code still waits after a restart
 MAX_DEPARTED = 20
+
+
+@dataclass
+class Machine:
+    """A paired machine whose sessions this hub voices (a node). The node link (hub_nodes.py) keeps these current in
+    MACHINES, keyed by name; routing, the brain's context and the status read them."""
+    name: str
+    id: str = ""
+    os: str = ""
+    online: bool = False
+    since: float | None = None  # offline since, epoch seconds; None while online
+    rtt_ms: int | None = None
+    key_fp: str = ""
+    skew: float = 0.0  # the hub's clock minus the node's, measured at its hello: node stamps are shifted by it
+
+
+MACHINES: dict[str, Machine] = {}
+
+
+def online(session: "Session") -> bool:
+    """A session on this machine always is; one on a node, while its node's link is up. Offline sessions stay listed
+    (until RemoteHarness.alive gives up on them) but cannot be sent to or approved."""
+    if not session.machine:
+        return True
+    m = MACHINES.get(session.machine)
+    return bool(m and m.online)
+
+
+def machine(name: str) -> Machine | None:
+    return MACHINES.get(name)
+
+
+def machines() -> list[Machine]:
+    return list(MACHINES.values())
+
+
+def _machine_names(sessions) -> set[str]:
+    return {n.lower() for n in MACHINES} | {s.machine.lower() for s in sessions if s.machine}
 
 
 @dataclass
@@ -130,12 +168,15 @@ class Registry:
                 raw["named_by"] = "folder" if raw["name"] == folder or raw["name"].startswith(folder + "/") else "user"
             try:
                 session = Session(**{k: v for k, v in raw.items() if k in PERSISTED})
-                if session.harness == "claude-code" and not (session.pid and session.transcript):
+                if session.harness == "claude-code" and not session.machine and not (session.pid and session.transcript):
                     raise TypeError("a Claude Code session needs its process and transcript")
             except (TypeError, AttributeError):
                 logger.error(f"skipping a bad session entry in {path}")
                 continue
-            if session.alive():
+            if session.machine:  # its pid is the node's: kept, offline until the node reconnects (or its grace ends)
+                MACHINES.setdefault(session.machine, Machine(name=session.machine, since=time.time()))
+                self.sessions[session.id] = session
+            elif session.alive():
                 self.sessions[session.id] = session
         self.active_id = data.get("active") if data.get("active") in self.sessions else next(iter(self.sessions), None)
         self.recent = [i for i in data.get("recent", []) if i in self.sessions and i != self.active_id]
@@ -165,6 +206,8 @@ class Registry:
         others = [o for o in self.sessions.values() if o.id != session_id]
         if any(o.name.lower() == new_name.lower() for o in others):
             return f"another session is already called {new_name}"
+        if new_name.lower() in _machine_names(self.sessions.values()):
+            return f"{new_name} is the name of a machine"
         if not speakable(new_name):
             return f"{new_name} cannot be picked by voice"
         mine = {w for w in _name_words(new_name) if _distinctive(w)}
@@ -177,6 +220,8 @@ class Registry:
         others = [o for o in self.sessions.values() if o.id != session_id]
         if any(o.name.lower() == new_name.lower() for o in others):
             return f"another session is already called {new_name}"
+        if new_name.lower() in _machine_names(self.sessions.values()):
+            return f"{new_name} is the name of a machine, so voice could not tell the session from the machine"
         if not speakable(new_name):
             return (f"{new_name} cannot be picked by voice: words like dev, main or session never select a "
                     f"session on their own. Use a name with a distinctive word")
@@ -364,21 +409,30 @@ def _aliases(s: Session) -> list[tuple[str, int]]:
         import harnesses             # which every "ask Claude Code to ..." would match
 
         out.append((harnesses.of(s).label, 0))
+    if s.machine:  # "go to devbox", "the devbox one": scored only where the words say who it is for (_score)
+        out.append((s.machine, 0))
     return out
 
 
-def _score(s: Session, tokens: list[str], idx: list[int]) -> tuple[tuple, set[int]] | None:
+def _vocab(sessions: list[Session]) -> set[str]:
+    return {w for s in sessions for label, _ in _aliases(s) for w in _name_words(label)}
+
+
+def _score(s: Session, tokens: list[str], idx: list[int], address=()) -> tuple[tuple, set[int]] | None:
     """(score, distinctive token positions heard) for the best way the user said this session, or None.
 
-    Score: name words heard, whole repo heard, whole name heard, said by its name (not its folder).
+    Score: name words heard, whole repo heard, whole name heard, said by its name (not its folder). Its machine's words
+    count only at `address` positions, also inside a name suffixed with the machine ("shop devbox"): "fix the devbox
+    config" names nothing.
     """
     best = None
+    machine = set(_name_words(s.machine)) if s.machine else set()
     for label, by_name in _aliases(s):
         words = _name_words(label)
         repo = _name_words(label.split("/")[0])
         heard, where = set(), set()
         for w in words:
-            hits = {i for i in idx if _hears(w, tokens[i])}
+            hits = {i for i in (address if w in machine else idx) if _hears(w, tokens[i])}
             if hits:
                 heard.add(w)
                 if _distinctive(w):
@@ -401,13 +455,13 @@ def name_groups(utterance: str, sessions: list[Session], addressed: bool = False
     the words that say where something goes, never a name word inside a request ("fix the voice settings").
     """
     tokens = _tokens(strip_tasks(utterance))
-    vocab = {w for s in sessions for label, _ in _aliases(s) for w in _name_words(label)}
+    vocab = _vocab(sessions)
     negated = _negated(tokens, vocab)
     live = [i for i in range(len(tokens)) if i not in negated]
     address = sorted(set(live) & _address(tokens, vocab))
     found = {}
     for idx in ((address,) if addressed else (address, live)):
-        found = {k: sc for k, s in enumerate(sessions) if (sc := _score(s, tokens, idx))}
+        found = {k: sc for k, s in enumerate(sessions) if (sc := _score(s, tokens, idx, address))}
         if found:
             break
     components: list[set[int]] = []
@@ -439,9 +493,22 @@ def mentions(utterance: str, sessions: list[Session]) -> bool:
 def excluded_sessions(utterance: str, sessions: list[Session]) -> list[Session]:
     """Sessions the user ruled out: "everyone except beta"."""
     tokens = _tokens(strip_tasks(utterance))
-    vocab = {w for s in sessions for label, _ in _aliases(s) for w in _name_words(label)}
-    negated = sorted(_negated(tokens, vocab))
-    return [s for s in sessions if negated and _score(s, tokens, negated)]
+    negated = sorted(_negated(tokens, _vocab(sessions)))
+    return [s for s in sessions if negated and _score(s, tokens, negated, negated)]
+
+
+def machines_named(utterance: str, sessions: list[Session]) -> list[str]:
+    """The machines the words say something is for ("tell everyone on devbox", "everyone on the laptop, ..."), never
+    one ruled out ("except the laptop") or one inside the request ("pull the devbox branch")."""
+    tokens = _tokens(strip_tasks(utterance))
+    vocab = _vocab(sessions)
+    address = sorted(_address(tokens, vocab) - _negated(tokens, vocab))
+    found = []
+    for machine in sorted({s.machine for s in sessions if s.machine}):
+        words = [w for w in _name_words(machine) if _distinctive(w)]
+        if words and all(any(_hears(w, tokens[i]) for i in address) for w in words):
+            found.append(machine)
+    return found
 
 
 # ---------- delivery ----------
@@ -626,8 +693,11 @@ def recent_history(session: Session, max_entries: int, max_chars: int, line_cap:
                    max_bytes: int = TAIL_MAX_BYTES, since: float | None = None) -> str:
     """The session's recent conversation as plain text; with `since`, only entries stamped at or after it.
 
-    Read backwards from the end: transcripts grow to hundreds of megabytes, and routing reads several.
+    Read backwards from the end: transcripts grow to hundreds of megabytes, and routing reads several. A remote
+    session's record carries its node's clock, so `since` is shifted by that node's measured skew.
     """
+    if since is not None and session.machine and (m := MACHINES.get(session.machine)):
+        since -= m.skew
     return "\n".join(_recent_lines(session, max_entries, max_chars, line_cap, max_bytes, since)[0])[-max_chars:]
 
 
