@@ -301,7 +301,7 @@
 				INFOPLIST_FILE = Pointe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe scans the pairing code your Mac shows.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe asks for Face ID before it approves a command.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe asks for Face ID to approve a command or manage your machines.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your Mac on this network when you pair over Wi-Fi.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe sends your voice to your Mac, where it drives your Claude Code sessions.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -331,7 +331,7 @@
 				INFOPLIST_FILE = Pointe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe scans the pairing code your Mac shows.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe asks for Face ID before it approves a command.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe asks for Face ID to approve a command or manage your machines.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your Mac on this network when you pair over Wi-Fi.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe sends your voice to your Mac, where it drives your Claude Code sessions.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

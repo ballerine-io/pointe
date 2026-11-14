@@ -142,8 +142,76 @@ final class MachinesTests: XCTestCase {
     }
 
     func testEveryMultiMachineDemoScreenDecodes() {
-        for screen in [Demo.Screen.machines, .machinesOne, .machinesOffline] {
+        for screen in [Demo.Screen.machines, .machinesOne, .machinesOffline, .machinesDrive] {
             XCTAssertNoThrow(try JSONDecoder().decode(API.Status.self, from: Data(Demo.machinesJSON(screen).utf8)), "\(screen)")
         }
     }
+
+    // MARK: the hub's routes (hub_nodes.py): what the app sends, and how a refusal reads
+
+    private func api(_ status: Int, _ reply: String) -> API {
+        HubStub.reply = (status, reply); HubStub.bodies = []
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [HubStub.self]
+        return API(pairing: Demo.pairing, session: URLSession(configuration: config))
+    }
+
+    func testMakingACodeSendsAnEmptyBody() async throws {
+        let i = try await api(200, #"{"code": "K7PQ-2MXD", "expires_in": 600, "link": "pointe://hub?code=K7PQ-2MXD"}"#).invite()
+        XCTAssertEqual(HubStub.bodies.first?["path"] as? String, "/voice/hub/invite")
+        XCTAssertEqual((HubStub.bodies.first?["body"] as? [String: Any])?.isEmpty, true, "{} makes a code")
+        XCTAssertEqual(i.link, "pointe://hub?code=K7PQ-2MXD")
+    }
+
+    /// The hub makes a new code for any body without "cancel": a Cancel that sent anything else would make one.
+    func testCancelSendsCancelTrue() async throws {
+        try await api(200, #"{"ok": true}"#).cancelInvite()
+        XCTAssertEqual(HubStub.bodies.first?["path"] as? String, "/voice/hub/invite")
+        XCTAssertEqual((HubStub.bodies.first?["body"] as? [String: Any])?["cancel"] as? Bool, true)
+    }
+
+    @MainActor
+    func testRevokingAnUnknownMachineShowsTheHubsReason() async {
+        do {
+            try await api(404, "no machine called nosuch is paired").revoke("nosuch")
+            XCTFail("a 404 is a refusal")
+        } catch {
+            XCTAssertEqual(MachinesFailure.from(error).text, "No machine called nosuch is paired.")
+        }
+        XCTAssertEqual((HubStub.bodies.first?["body"] as? [String: Any])?["name"] as? String, "nosuch")
+    }
+
+    @MainActor
+    func testAMacWithoutTheRoutesSaysToUpdate() async {
+        do { _ = try await api(404, #"{"detail": "Not Found"}"#).invite(); XCTFail() } catch {
+            XCTAssertEqual(MachinesFailure.from(error).text, "Not Found.")
+        }
+        do { _ = try await api(404, "").invite(); XCTFail() } catch {
+            XCTAssertEqual(MachinesFailure.from(error).text, "This Mac's Pointe does not pair machines yet: update it.")
+        }
+    }
+}
+
+/// Answers every request with one canned reply and records each path and JSON body.
+final class HubStub: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var reply: (Int, String) = (200, "{}")
+    nonisolated(unsafe) static var bodies: [[String: Any]] = []
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        var data = request.httpBody ?? Data()
+        if data.isEmpty, let stream = request.httpBodyStream {
+            stream.open(); defer { stream.close() }
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable { let n = stream.read(&buffer, maxLength: buffer.count); if n <= 0 { break }; data.append(buffer, count: n) }
+        }
+        let body = (try? JSONSerialization.jsonObject(with: data)) ?? [:]
+        Self.bodies.append(["path": request.url?.path ?? "", "body": body])
+        let response = HTTPURLResponse(url: request.url!, statusCode: Self.reply.0, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(Self.reply.1.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
 }
