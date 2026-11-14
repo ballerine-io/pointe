@@ -99,6 +99,7 @@ class Brain:
         self.translate: Callable[[str], Awaitable[str]] | None = None
         self._last_spoken = ""
         self._recent_spoken: list[tuple[float, str]] = []  # (when, what) the voice said lately
+        self._resuming = False  # this turn answers [resume]: what it repeats was sent before but not heard
         self._answered_user = False  # the user's latest words already got a spoken reply
         self.may_stay_silent = may_stay_silent or (lambda: True)
         self.fallback, self.on_tool = fallback, on_tool or (lambda *_a: None)
@@ -221,6 +222,8 @@ class Brain:
             self._after_user.append((text, True))
             return
         generation = self._generation
+        if text is not None:
+            self._resuming = text.startswith("[resume]")  # the daemon asks for the rest of a report talked over
         if user:
             self._user_turns += 1
         try:
@@ -311,7 +314,10 @@ class Brain:
                     self._recent_spoken = [(t, x) for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]
                     asked = next((m["content"] for m in reversed(self.messages) if m["role"] == "user"
                                   and isinstance(m.get("content"), str) and not m["content"].startswith("[")), "")
-                    trimmed = without_recent_repeats(said, [x for _, x in self._recent_spoken], asked)
+                    # A report the user talked over comes back ([resume]): it was sent whole but heard only in part,
+                    # so it is no repeat
+                    trimmed = said if self._resuming else \
+                        without_recent_repeats(said, [x for _, x in self._recent_spoken], asked)
                     if trimmed != said:
                         logger.info(f"repeat cut: {said!r} -> {trimmed!r}")
                         # A first answer to new words must still say something; a second reply to the same words need not.
