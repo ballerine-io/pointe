@@ -637,6 +637,7 @@ def test_the_node_link_hears_when_the_call_or_the_approvals_setting_changes(d, n
 def test_a_by_the_way_question_about_a_remote_session_is_answered_from_its_record(d, node, monkeypatch):
     api = _join(d, "devbox", "abc", "api")
     monkeypatch.setattr(d, "COPY_SESSIONS", True)
+    monkeypatch.setattr(__import__("harnesses.claude_code").claude_code.ClaudeCode, "side_questions", True)  # no claude binary needed
     assert harnesses.of(api).side_questions  # the inner adapter could fork; the node cannot
 
     async def from_record(target, question):
