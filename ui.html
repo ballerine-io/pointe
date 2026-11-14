@@ -827,6 +827,7 @@
               <button type="button" id="mach-invitebtn" onclick="inviteMachine()">Invite a machine</button>
               <button type="button" id="mach-cancel" onclick="cancelInvite()" hidden>Cancel the code</button>
             </div>
+            <div class="err" id="mach-ended" role="status" hidden></div>
             <div class="err" id="mach-err" role="alert"></div>
           </div>
           <div class="note foot">Sessions on your other Macs and Linux machines join this voice through a small Pointe there. Their
@@ -2481,9 +2482,14 @@
   });
   // Settings → Machines: the paired machines, a one-time code to pair another, and Revoke in two clicks.
   let machinesShown = '', revoking = null, invite = null;  // invite: {code, link, until}, counted down here between polls
+  let canInvite = true;  // false over the TLS listener: the Mac would make a code this page is never shown
   function showMachines(s, mv) {
     $('machines').hidden = !Array.isArray(s.machines);
     if (!Array.isArray(s.machines)) return;
+    canInvite = s.can_invite !== false;  // a Mac without the field: as before
+    const ended = !s.invite && s.invite_ended ? `${s.invite_ended[0].toUpperCase()}${s.invite_ended.slice(1)}.` : '';
+    $('mach-ended').hidden = !ended;
+    $('mach-ended').textContent = ended;
     const st = s.invite;
     if (st && st.code) {  // the status has no link: the one the make answered stays while the code does
       const link = st.link || (invite && invite.code === st.code ? invite.link : '');
@@ -2502,6 +2508,7 @@
         const facts = [OS[m.os] || m.os, away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
+        if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
         if (!m.here) {
           const sure = asking === m.name, b = el('button', sure ? 'sure' : '', sure ? `Revoke ${m.name}?` : 'Revoke');
           b.title = 'Unpair it: its sessions leave the voice, and it needs a new code to come back';
@@ -2518,7 +2525,7 @@
     const live = !!(invite && invite.code && left > 0);
     $('mach-invite').hidden = !live;
     $('mach-cancel').hidden = !live;
-    $('mach-invitebtn').hidden = live;
+    $('mach-invitebtn').hidden = live || !canInvite;
     if (!live) return;
     $('mach-code').textContent = invite.code;
     $('mach-link').textContent = invite.link ? `pointe node join '${invite.link}'` : '';

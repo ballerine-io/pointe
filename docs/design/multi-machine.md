@@ -191,7 +191,7 @@ key while the real node is connected.
 | `sessions` | `[{id, name, name_given, cwd, pid, harness, home, title, capabilities, files: [≤40], pending: permission?}]` | full snapshot, after `welcome` and whenever the set, a title or the pending prompt changes. Never `inbox_socket` or `inbox_token`: they stay on the node |
 | `session.joined` / `session.left` | `id`; `left` adds `why: exited \| disconnected` | incremental |
 | `transcript` | `id, gen, offset, next_offset, entries: [raw JSONL lines]` | only complete lines (ending in `\n`); a partial tail waits for the next poll. `offset` is the node-file byte offset of the first entry, `next_offset` the offset after the last. The hub appends only if `offset == stored next_offset`, else drops the frame and sends `resume` |
-| `transcript.repointed` | `id, gen, history?` | the session moved to a new file (`claude_code.transcript_path`, `harnesses/claude_code.py:63-76`); the hub opens `<id>.<gen>.jsonl` with offset 0. `history: true` when the node opened the gen from a resume (it re-ships a file from byte 0 that already happened), not a live move: the hub writes it as a backlog (`.part`, below), never as news |
+| `transcript.repointed` | `id, gen, history?` | the session moved to a new file (`claude_code.transcript_path`, `harnesses/claude_code.py:63-76`); the hub opens `<id>.<gen>.jsonl` with offset 0. `history: true` when the node opened the gen from a resume (it re-ships a file from byte 0 that already happened), or when a live move lands on a file that already holds lines (`/resume` in the session): the hub writes it as a backlog (`.part`, below), never as news. A move to an empty file (`/clear`) is live |
 | `files` | `id, names` | routing hints, after a repoint |
 | `permission.request` | `id, request_id, tool, description, preview, readable, deadline_ms` | `preview` is `tool_input` JSON after the transcript masking rules; `readable` is the node's own `guards.readable_request(tool, tool_input, cwd)` on the **unmasked** input, or null. `deadline_ms` is relative |
 | `permission.resolved` | `id, request_id, how: terminal \| timeout \| left` | the prompt is no longer the hub's to answer |
@@ -261,11 +261,14 @@ pointe://hub?v=1&host=studio.tail1234.ts.net&port=7443&fp=3b1c…&code=K7PQ-2MXD
 - `host`, `port` and `fp` are what the phone's pairing link carries (`pair.pairing_link`, `pair.py:133-137`).
 - `code` is 8 characters from a 32-letter alphabet (about 40 bits), single use, valid 10 minutes. The daemon keeps a
   SHA-256 of it in memory (`POST /voice/hub/invite`, token-protected, from the CLI), never on disk. `/voice/node/pair`
-  answers only while an invite is outstanding, and at most 5 wrong codes a minute per source address and 10 a minute
-  in all (429). The right code pairs even then: behind `bin/voice-connector` every attempt comes from 127.0.0.1, so a
-  guesser would otherwise lock the real node out. What bounds the guesses is the invite itself: after 20 wrong codes
-  (429s included, since each was checked) it is cancelled, and `GET /voice/hub/invite` says so (`ended`, with the last
-  source address); while it is live, the status shows `wrong_codes` and `pointe hub invite` prints each new one.
+  answers only while an invite is outstanding. Each source address has a token bucket (`Invites.check`), taken from
+  before the code is compared: 5 at once, then one about every 43 s (for a 10-minute invite), so one address can try
+  at most 19 codes in the invite's life and a guess over its rate (429) is never compared. That bounds what one
+  address can do: it cannot cancel the invite. After 20 wrong codes from all addresses together the invite is
+  cancelled, and `GET /voice/hub/invite` says so (`ended`, with each address and its count), as do the page and the
+  app (status `invite_ended`) until the next invite; while it is live, the status shows `wrong_codes` and
+  `pointe hub invite` prints each new one. The cost: behind `bin/voice-connector` every attempt comes from 127.0.0.1,
+  so a guesser there delays the real node until a token is back, never for good. Phone codes use the same limiter.
 - The page and the app show the same one-time code as text with a countdown (Settings → Machines → "Invite a
   machine"; the app asks for Face ID to show it).
 
@@ -375,9 +378,9 @@ request is in the session's own terminal.
 
 | Threat | Mitigation |
 |---|---|
-| A machine on the same tailnet or LAN pairs itself as a node | needs a live invite code: single use, 10 minutes, ~40 bits, stored hashed, at most 20 wrong codes before the invite is cancelled, route open only while an invite is outstanding; the owner sees the count of wrong codes, and the source address and key fingerprint of whatever paired |
+| A machine on the same tailnet or LAN pairs itself as a node | needs a live invite code: single use, 10 minutes, ~40 bits, stored hashed, at most 20 wrong codes before the invite is cancelled, and a token bucket per source address checked before the code is compared, so one address cannot cancel it (19 tries at most in its life); route open only while an invite is outstanding; the owner sees the count of wrong codes, the addresses of an invite cancelled by guessing (page, app, `pointe hub invite`), and the source address and key fingerprint of whatever paired |
 | A machine in the middle between node and hub | the node pins the hub certificate's SHA-256 before sending a byte; the hub authenticates the node by HMAC over its nonce, so the key never crosses |
-| A stolen node key | the holder can offer fake sessions and fake transcript lines (prompt injection into the brain: no worse than a malicious local session, which `SECURITY.md` treats as data behind the gate), receive sends aimed at those sessions, and approve prompts it itself forwards. It cannot read other sessions, the journal, notes or keys, and cannot connect while the real node is connected (one connection per key). `pointe hub revoke` ends it |
+| A stolen node key | the holder can offer fake sessions and fake transcript lines (prompt injection into the brain: no worse than a malicious local session, which `SECURITY.md` treats as data behind the gate), receive sends aimed at those sessions, and approve prompts it itself forwards. It cannot read other sessions, the journal, notes or keys, and cannot connect while the real node is connected (one connection per key). `pointe hub revoke` ends it. A stolen key can also take over the real node's link while that link is silent (the stale probe, `_replace_stale`): when the new link comes from another address than the old one, the Machines list on the page and in the app shows it in one line ("a connection from X replaced its silent link from Y"), and the log says it |
 | A stolen hub state dir (`nodes.json` holds node keys) | the holder can pose as any node to this hub, with the same reach as a stolen node key. Posing as the hub to a node also needs the TLS key and the route. Revoke and re-invite; `pointe pair rotate` forces a new certificate |
 | A stolen hub TLS key plus control of the route to the hub's name | can impersonate the hub to a node: receive its transcripts, send into its sessions, and tap-approve prompts the node holds (voice approvals still need the node's own read-out text, which the impersonator also sees, so they are not protected against this case). The 0600 key file is the control; `remote_taps: readable_only` limits taps to what could have been read out |
 | A hub bug approves by voice what should not be | the node's check: id-bound, and a spoken yes only for the node's own read-out text |
@@ -387,6 +390,9 @@ request is in the session's own terminal.
 | Version skew | `protocol` in `hello`; the hub refuses below its minimum; the node's `readable` is the only read-out text, so a newer `readout.py` on one side cannot produce two forms |
 | Clock skew | time filters on remote mirrors are shifted by the measured skew; nothing else compares wall clocks |
 | A huge or hostile transcript | the hub caps an entry at 256 kB and a frame at 1 MB, drops the rest of that entry with a logged warning, and refuses a gap in offsets rather than guessing. Every other string a node sends is cut before the daemon sees it (`hub_nodes.MAX_*_CHARS`: a folder or file name 4096, a name, title or tool 200, a description 2000, a preview 20 000); a read-out over 1000 characters is dropped (tap only), never cut |
+| A node names its session after one on the hub, so the hub's requests go to the node | a session on the hub always keeps its plain name: a remote session holding it is renamed `<name> <machine>` when the local one joins (`_tell_apart`) |
+| A node names its session `yes` or `no`, so the user's answer to a prompt goes nowhere | a name, title or folder alias with a yes or no word is refused, on every machine (`sessions.answers_a_prompt`) |
+| A node titles its session to extend one on the hub (`shop deploy` beside `shop`), so requests for it go to the node | a name or title sharing a distinctive word with a session on another machine is refused (`Registry.cross_machine_problem`), except the machine suffix |
 | A node floods permission requests | the node serializes one prompt per session (as `_PERMISSION_LOCKS` does, `daemon.py:4087-4098`); the hub announces a non-active session's prompt in one line (`daemon.py:4162-4165`) |
 | A credential in a remote command reaches a screen or notification | it does not: masked on the node, and an unreadable request shows only its tool in a notification (`alerts.py:40-47`) |
 
@@ -394,14 +400,14 @@ request is in the session's own terminal.
 
 | Event | What happens | The user sees / hears |
 |---|---|---|
-| Link drops (VPN down, node asleep) | heartbeat dead after 12 s; the hub marks the node and its sessions **offline** (kept, not removed); workers keep following the mirror (nothing new arrives); node reconnects with backoff. After 10 minutes offline `RemoteHarness.alive` turns false and `_reap_dead` moves them to `departed` | the group greys out with "offline since 14:02"; a send to one is refused and the voice says "devbox is offline"; a prompt it held went back to its terminal |
+| Link drops (VPN down, node asleep) | heartbeat dead after 12 s with no frame of any kind from the node (a pong or anything else: a backlog over a slow uplink keeps the link alive); the hub marks the node and its sessions **offline** (kept, not removed); workers keep following the mirror (nothing new arrives); node reconnects with backoff. After 10 minutes offline `RemoteHarness.alive` turns false and `_reap_dead` moves them to `departed` | the group greys out with "offline since 14:02"; a send to one is refused and the voice says "devbox is offline"; a prompt it held went back to its terminal |
 | Node offline mid-approval | the node keeps the hook held for a grace window of 20 s (`GRACE_SECS`, `node.py`), so a hub restart or a short network drop does not lose it; if the hub is back within it, the node re-offers the prompt (below); else it releases the hook with `None` and the prompt is in the terminal. The hub's card says "offline: answer it in its terminal"; a late tap or yes gets `stale`. A link back with `approvals: terminal` hands it back at once; a link back with no call up yet (a restarted hub, before its page reconnects) keeps it for the rest of the grace window and re-offers it when `call` says the call is up | one line: "devbox dropped; shop's approval waits up to 20 seconds for it, then goes to its terminal" |
-| Hub restart | `REGISTRY` reloads remote sessions offline; the node reconnects; `welcome.resume` carries the persisted `next_offset` per mirror; the node ships what the hub missed and, for prompts still held in the 20 s grace window, lists them as `pending` in its `sessions` snapshot and re-sends `permission.request` with the same `request_id` (and the remaining `deadline_ms`; `holding` is due again within 10 s), which the hub puts to the user again (as `_on_connect` re-asks local ones, `daemon.py:5105-5111`) | the call reconnects as today; a held prompt is read out again |
+| Hub restart | `REGISTRY` reloads remote sessions offline; the node reconnects; `welcome.resume` carries the persisted `next_offset` per mirror; the node ships what the hub missed and, for prompts still held in the 20 s grace window, lists them as `pending` in its `sessions` snapshot and re-sends `permission.request` with the same `request_id` (and the remaining `deadline_ms`; `holding` is due again within 10 s), which the hub puts to the user again (as `_on_connect` re-asks local ones, `daemon.py:5105-5111`). A prompt the hub restored from its own records and `_on_connect` already put is marked held on that link, so the node's re-offer is not asked a second time | the call reconnects as today; a held prompt is read out again, once |
 | Node restart | its `sessions.json` reloads and dead pids are dropped (`sessions.py:138`); it reconnects and sends a fresh `sessions` snapshot; the hub reconciles (joins, lefts) | a session that died meanwhile is announced as closed, in one line |
 | Hub has no call up, or `approvals: terminal` on the hub | the node's hook returns `{}` at once: the prompt stays in the terminal, as a local session's does | nothing; as today |
 | The hub does not answer `holding` within 10 s | the node hands the prompt to the terminal and sends `permission.resolved {how: timeout}`; a later verdict is `stale` | the card disappears |
 | The user answers in the terminal first | the node's `gone()` sees it; `permission.resolved {how: terminal}`; the hub clears the card | the card disappears |
-| Two sessions named `shop` on two machines | the hub suffixes the later one with the machine, the way it suffixes a second harness (`daemon.py:4006-4014`): `shop devbox` | "shop devbox finished…" |
+| Two sessions named `shop` on two machines | the hub suffixes the later one with the machine, the way it suffixes a second harness (`daemon.py:4006-4014`): `shop devbox`. A session on the hub always keeps the plain name: a remote `shop` that joined first becomes `shop devbox` when a local `shop` joins | "shop devbox finished…" |
 | Same session id on two nodes (a cloned VM) | hub ids are prefixed by node; and a clone with the same node key cannot connect while the original is connected | |
 | A node is revoked while its session holds a prompt | the link closes; the node hands the prompt to the terminal | the group disappears; one line |
 | Invite expires, is mistyped, or the address is rate-limited | `403 invite expired` / `403 wrong code` / `429` | `pointe node join` prints the hub's message |
@@ -428,11 +434,20 @@ WireGuard across sites 20 to 60 ms; Twingate 30 to 100 ms.
   is editable in `config.json` (`"machine": "studio"`); a node's name is set at pairing.
 - Collision across machines: when a session joins with a name another machine already uses (same rule as the harness
   suffix, `daemon.py:4006-4014`), it is named `<name> <machine>` if that is `valid_name` and passes `rename_check`; else
-  the registry's `-2` fallback (`sessions.py:149-153`). The first to join keeps the plain name. A session on the hub
-  that joins after a remote one of the same name is never suffixed with the hub's own name (that would make the hub's
-  name an alias of one session): it takes the harness suffix if that tells them apart, else the `-2` fallback.
+  the registry's `-2` fallback (`sessions.py:149-153`). Between two remote sessions, the first to join keeps the plain
+  name. A session on the hub always keeps it: a remote one that holds it is renamed `<name> <machine>` when the local one
+  joins (`_tell_apart`), so "tell shop" never goes to another machine because that session joined first. The hub's own
+  name is never a suffix (that would make it an alias of one session).
 - A session may not be named, or renamed to, a machine's name (`rename_check` and `_session_name` refuse it), and a node
   may not take a name whose words are in a session's name (pairing refuses it).
+- A session's name, local or remote, may not hold a yes or no word (`guards._YES`, `_WEAK_YES`, `_NO`;
+  `sessions.answers_a_prompt`): a session called `yes` would take the user's yes to a prompt as aimed at it. A folder
+  with such a word is not an alias either.
+- A session may not take a name, or a title, that shares a distinctive word with a session on another machine or is
+  one letter off one (`shops`; `Registry.cross_machine_problem`): a node titling its session `shop deploy` beside the
+  hub's `shop` would take "what is shop doing with the deploy". The machine suffix (`shop devbox` beside `shop`) is
+  the one exception. A remote session may not take a word of the hub's own name, as a name or a folder alias ("go to
+  studio" must mean the hub). A node's session whose name is refused at join is called `session <id>`.
 - `sessions._aliases` (`sessions.py:357-367`) adds `(machine, 0)` for a remote session, as it adds the harness label.
   **The machine alias is scored only against address slots**: the positions `_address` marks (`sessions.py:312-355`,
   used at `sessions.py:407`), where the words say who something is for ("tell X", "on X", "the X one"). A machine word
@@ -579,7 +594,7 @@ Anyone who ran `voice-remote setup` keeps working: `remote.json` and `remote_tok
   devbox"; `_needs_now` grouping; mirror pruning.
 - `tests/test_security.py` (append a section): `/voice/node` refuses without a good HMAC, with the phone key, with the
   page cookie, and on the loopback listener from a non-local `Host`; `/voice/node/pair` refuses without an outstanding
-  invite, a wrong code, a sixth attempt in a minute from one address, a reused code; a revoked key gets 4401; `invite`
+  invite, a wrong code, a sixth attempt at once from one address, a reused code; a revoked key gets 4401; `invite`
   is absent from status over the TLS listener; mirrors are 0600.
 - `tests/test_pair.py`: the invite URL round trip, `speakable` and the session-word rule on node names, the fingerprint
   and source address in the pairing result.

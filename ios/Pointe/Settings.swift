@@ -33,6 +33,9 @@ struct MachinesSheet: View {
                     if let done {
                         Text(done).foregroundStyle(.secondary).accessibilityIdentifier("machinesDone")
                     }
+                    if let ended = MachinesCopy.ended(status) {
+                        Text(ended).foregroundStyle(Brand.orange).accessibilityIdentifier("inviteEnded")
+                    }
                 } footer: { Text(MachinesCopy.help) }
                 Section { inviteSection }
             }
@@ -61,6 +64,10 @@ struct MachinesSheet: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(m.isHere ? "\(m.name) (this Mac)" : m.name).font(.body.weight(.semibold))
                 Text(facts(m)).font(.caption).foregroundStyle(m.isOffline ? Brand.orange : .secondary)
+                if let notice = m.notice, !notice.isEmpty {
+                    Text(notice).font(.caption).foregroundStyle(Brand.orange)
+                        .accessibilityIdentifier("machineNotice.\(m.name)")
+                }
             }
             Spacer()
             if !m.isHere {

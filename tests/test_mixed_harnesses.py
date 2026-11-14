@@ -387,11 +387,12 @@ def test_a_name_another_machine_uses_gets_the_machine_suffix(d, node):
     add(d, "cc1", "shop", "/repos/shop")
     assert _join(d, "devbox", "s1", "shop").name == "shop devbox"
     client = client_for(d)
-    _join(d, "laptop", "w1", "web")
+    remote = _join(d, "laptop", "w1", "web")
     joined = client.post("/voice/register", headers={"authorization": "Bearer secret"},
                          json={"id": "cc2", "name": "web", "cwd": "/repos/web", "pid": os.getpid(),
                                "transcript": "/tmp/none.jsonl", "name_given": True}).json()
-    assert joined["name"] == "web-2"  # the first to join keeps the plain name; this Mac's name is never a suffix
+    assert joined["name"] == "web"  # a session on this Mac keeps the plain name; this Mac's name is never a suffix
+    assert remote.name == "web laptop"
 
 
 def test_a_session_is_never_named_after_a_machine(d, node):
@@ -412,6 +413,20 @@ def test_the_invite_goes_only_to_the_page_on_this_mac_and_the_phone_key(d, node,
     tls_page = SimpleNamespace(scope={"server": ("studio", remote.TLS_PORT), "state": {}})
     phone_app = SimpleNamespace(scope={"server": ("studio", remote.TLS_PORT), "state": {"pointe_phone": True}})
     assert d._shows_invite(tls_page) is False and d._shows_invite(phone_app) is True
+
+
+def test_the_page_over_tls_is_told_it_cannot_invite_and_hides_the_button(d, node, monkeypatch):
+    import remote
+
+    monkeypatch.setattr(harnesses.HOST, "invite", lambda: None, raising=False)
+    assert client_for(d).get("/voice/status").json()["can_invite"] is True
+    tls_page = SimpleNamespace(scope={"server": ("studio", remote.TLS_PORT), "state": {}})
+    phone_app = SimpleNamespace(scope={"server": ("studio", remote.TLS_PORT), "state": {"pointe_phone": True}})
+    assert d._can_invite(tls_page) is False and d._can_invite(phone_app) is True
+    monkeypatch.delattr(harnesses.HOST, "invite")
+    assert d._can_invite(phone_app) is False  # no node link: nothing to invite to
+    page = (Path(__file__).resolve().parents[1] / "ui.html").read_text()
+    assert "$('mach-invitebtn').hidden = live || !canInvite;" in page and "s.can_invite !== false" in page
 
 
 def test_list_sessions_tells_the_brain_each_sessions_machine_and_whether_it_is_online(d, node):
@@ -729,11 +744,11 @@ def test_an_approval_alert_names_the_machine_only_when_sessions_span_machines(d,
                 if a["kind"] == "permission"}
 
     assert titles() == {"shop": "shop needs approval"}  # one machine: as today
-    twin = _join(d, "devbox", "s1", "shop")  # named "shop devbox": the title says it once, in brackets
+    twin = _join(d, "devbox", "s1", "shop")  # named "shop devbox": the title says the machine once, as the card does
     api = _join(d, "devbox", "abc", "api")
     twin.permission_id, api.permission_id = "p2", "p3"
-    assert titles() == {"shop": "shop (studio) needs approval", "shop devbox": "shop (devbox) needs approval",
-                        "api": "api (devbox) needs approval"}
+    assert titles() == {"shop": "shop · studio needs approval", "shop devbox": "shop · devbox needs approval",
+                        "api": "api · devbox needs approval"}
 
 
 def test_a_hub_shutting_down_does_not_tell_its_nodes_the_call_ended(d, node, monkeypatch):

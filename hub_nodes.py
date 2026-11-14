@@ -19,7 +19,6 @@ import secrets
 import socket
 import sys
 import time
-from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -38,10 +37,8 @@ from sessions import Machine, Registry, Session, _distinctive, _name_words, spea
 INVITE_SECS = 600
 CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # Crockford's 32: no I, L, O or U to misread
 CODE_LETTERS = 8  # 40 bits
-PAIR_WINDOW_SECS = 60.0
-PAIR_PER_ADDRESS = 5
-PAIR_PER_WINDOW = 10
-PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses, since the right code passes the rate limit
+PAIR_BURST = 5  # codes one address may try at once; its bucket refills so it alone never reaches PAIR_WRONG_PER_INVITE
+PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses from all addresses together
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
@@ -248,14 +245,16 @@ class Invites:
         self.name: str | None = None
         self._until = 0.0
         self.paired: dict | None = None  # the last pairing: name, source address, key fingerprint
-        self._attempts: deque[tuple[float, str]] = deque()
+        self._buckets: dict[str, tuple[float, float]] = {}  # address -> (tokens, when counted)
         self.wrong = 0  # wrong codes against this invite
+        self.guessers: dict[str, int] = {}  # address -> wrong codes from it, against this invite
         self.ended: str | None = None  # why the last invite ended early, for the owner
 
     def make(self, name: str | None = None) -> str:
         letters = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LETTERS))
         self.code, self._hash, self.name = f"{letters[:4]}-{letters[4:]}", _digest(letters), name
         self._until, self.paired, self.wrong, self.ended = self._clock() + self._secs, None, 0, None
+        self._buckets, self.guessers = {}, {}
         return self.code
 
     def cancel(self) -> None:
@@ -270,25 +269,42 @@ class Invites:
             return None
         return {"code": self.code, "expires_in": max(0, round(self._until - self._clock())), "wrong_codes": self.wrong}
 
-    def refuse(self, address: str) -> str | None:
-        """A wrong code from this address: why the invite ended, once PAIR_WRONG_PER_INVITE have come."""
-        self.wrong += 1
-        if self.wrong < PAIR_WRONG_PER_INVITE:
+    def check(self, code, address: str) -> tuple[int, str] | None:
+        """None when `code` is this invite's, else (status, why) for the caller to answer. Each address has a token
+        bucket, taken from BEFORE the code is compared: a guess over its rate is not tried at all, so it cannot burn the
+        invite either. It holds PAIR_BURST and refills at a rate that keeps one address under PAIR_WRONG_PER_INVITE for
+        the invite's whole life, so only guesses from several addresses together can end it (the backstop). The cost:
+        a guesser sharing the real node's address (127.0.0.1 behind bin/voice-connector) delays it until a token is
+        back, about a minute at most; it cannot lock it out for good."""
+        if not self._take(address):
+            return 429, "too many attempts: wait a minute"
+        if self.matches(code):
             return None
-        where = f" ({network(address)})" if network(address) else ""
-        self.ended = f"the invite was cancelled after {self.wrong} wrong codes, the last from {address}{where}"
+        self.wrong += 1
+        self.guessers[address] = self.guessers.get(address, 0) + 1
+        if self.wrong < PAIR_WRONG_PER_INVITE:
+            return 403, "wrong code"
+        self.ended = f"the invite was cancelled after {self.wrong} wrong codes, from {self._from()}"
         self.cancel()
-        return self.ended
+        return 403, self.ended
 
-    def admit(self, address: str) -> bool:
-        """At most PAIR_PER_ADDRESS wrong codes a minute from one address, and PAIR_PER_WINDOW in all."""
+    def _take(self, address: str) -> bool:
         now = self._clock()
-        while self._attempts and now - self._attempts[0][0] >= PAIR_WINDOW_SECS:
-            self._attempts.popleft()
-        if len(self._attempts) >= PAIR_PER_WINDOW or sum(a == address for _, a in self._attempts) >= PAIR_PER_ADDRESS:
+        rate = (PAIR_WRONG_PER_INVITE - PAIR_BURST - 1) / self._secs  # tokens a second
+        tokens, then = self._buckets.get(address, (float(PAIR_BURST), now))
+        tokens = min(float(PAIR_BURST), tokens + (now - then) * rate)
+        if tokens < 1:
+            self._buckets[address] = (tokens, now)
             return False
-        self._attempts.append((now, address))
+        self._buckets[address] = (tokens - 1, now)
         return True
+
+    def _from(self) -> str:
+        """The addresses wrong codes came from, most first, each with its network."""
+        ranked = sorted(self.guessers.items(), key=lambda kv: -kv[1])
+        named = [f"{a or 'an unknown address'}{f' ({network(a)})' if network(a) else ''}: {n}" for a, n in ranked[:5]]
+        more = f", and {len(ranked) - 5} more" if len(ranked) > 5 else ""
+        return "; ".join(named) + more
 
     def matches(self, code) -> bool:
         return self._hash is not None and hmac.compare_digest(_digest(_normal_code(code)), self._hash)
@@ -462,6 +478,7 @@ class Node:
     link_tasks: set[asyncio.Task] = field(default_factory=set)  # the live link's reader and keep-alive
     heard: asyncio.Event = field(default_factory=asyncio.Event)  # set on every frame from the node
     probing: bool = False
+    address: str = ""  # the peer address of the live link
 
     @property
     def name(self) -> str:
@@ -649,17 +666,10 @@ class Hub:
         if not invites.outstanding:
             return 403, "invite expired"
         body = body if isinstance(body, dict) else {}
-        # The right code pairs whatever the rate limit says: behind bin/voice-connector every attempt comes from
-        # 127.0.0.1, so a guesser would otherwise lock the real node out. PAIR_WRONG_PER_INVITE bounds the guesses.
-        if not invites.matches(body.get("code", "")):
-            logger.warning(f"node pairing from {address}: wrong code")
-            ended = invites.refuse(address)
-            if ended:
-                logger.warning(ended)
-                return 403, ended
-            if not invites.admit(address):
-                return 429, "too many attempts: wait a minute"
-            return 403, "wrong code"
+        refused = invites.check(body.get("code", ""), address)
+        if refused:
+            logger.warning(f"node pairing from {address}: {refused[1]}")
+            return refused
         name = " ".join(str(invites.name or body.get("name") or "").split())
         problem = self.name_problem(name)
         if problem:
@@ -693,11 +703,12 @@ class Hub:
         if paired is None or not nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
             logger.warning(f"node link refused: {hello['node']['name']!r} is not paired, or its key is wrong")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not paired with this hub")
-        if not self.links.claim(paired["id"], ws) and not await self._replace_stale(paired, ws):
+        address = _peer(ws)
+        if not self.links.claim(paired["id"], ws) and not await self._replace_stale(paired, ws, address):
             logger.warning(f"node {paired['name']}: a second connection with its key refused")
             return await _close(ws, nodelink.CLOSE_ALREADY_CONNECTED, "already connected")
         node = self.live.get(paired["id"]) or self._track(paired)
-        node.socket, node.lock = ws, asyncio.Lock()
+        node.socket, node.lock, node.address = ws, asyncio.Lock(), address
         sessions.MACHINES[node.name] = node.machine
         node.machine.online, node.machine.since = True, None
         node.machine.link += 1
@@ -726,12 +737,13 @@ class Hub:
             if node.socket is ws:
                 self._went_offline(node)
 
-    async def _replace_stale(self, paired: dict, ws) -> bool:
+    async def _replace_stale(self, paired: dict, ws, address: str = "") -> bool:
         """A new connection proved it holds the key of a node whose link is still open: True if that old link is stale
         and `ws` now holds the slot. The old link is pinged; any frame from it within STALE_PROBE_SECS proves it alive
         and the new one is refused 4409, so a clone or a stolen key still cannot shadow a node that answers. Silence
         means the node crashed, slept or lost its network, and is reconnecting: without this it would be refused until
-        the heartbeat gave up (DEAD_AFTER_SECS)."""
+        the heartbeat gave up (DEAD_AFTER_SECS). A takeover from another address than the old link's can also be a
+        stolen key that silenced the real node's link: the owner is told in one line (Machine.notice, and the log)."""
         old = self.live.get(paired["id"])
         stale = old.socket if old is not None else None
         if stale is None or old.probing or old.heartbeat is None:
@@ -751,6 +763,11 @@ class Hub:
             return self.links.claim(paired["id"], ws)
         logger.warning(f"node {old.name}: a new connection with its key, and its old link did not answer for "
                        f"{STALE_PROBE_SECS:.0f} s: the old link is closed")
+        if address != old.address:
+            old.machine.notice = (f"At {time.strftime('%H:%M', time.localtime(self._clock()))} a connection from "
+                                  f"{address or 'an unknown address'} replaced its silent link from "
+                                  f"{old.address or 'an unknown address'}. If that was not this machine, revoke it")
+            logger.warning(f"node {old.name}: {old.machine.notice}")
         for task in old.link_tasks:
             task.cancel()
         self.links.release(paired["id"], stale)
@@ -774,6 +791,7 @@ class Hub:
             except Exception:  # WebSocketDisconnect, or a receive after close
                 return
             node.heard.set()
+            heartbeat.heard()
             frame = decode(text, NODE_FRAMES)
             if frame is None:
                 continue
@@ -881,6 +899,11 @@ class Hub:
         self.mirrors.prune(self._clock(), live)
 
 
+def _peer(ws) -> str:
+    client = getattr(ws, "client", None)
+    return str(getattr(client, "host", "") or "")
+
+
 async def _close(ws, code: int, reason: str) -> None:
     try:
         await ws.close(code=code, reason=reason)
@@ -905,6 +928,7 @@ def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
     harnesses.set_remote(hub.wrap)
     hub.host.on_call = hub.on_call
     hub.host.invite = hub.invites.status
+    hub.host.invite_ended = lambda: hub.invites.ended  # cancelled by guessing: shown to the owner until the next invite
 
     @app.websocket(nodelink.PATH)
     async def node_socket(websocket: WebSocket):

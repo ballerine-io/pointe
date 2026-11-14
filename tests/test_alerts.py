@@ -264,8 +264,9 @@ def test_a_credential_request_is_put_like_an_unreadable_one(d, two):
 def test_old_requests_are_forgotten_so_the_record_stays_small():
     import alerts
     for i in range(alerts.KEEP + 10):
-        alerts.note_request(f"r{i}", "Bash", "run: ls")
-    assert len(alerts._REQUESTS) == alerts.KEEP and not alerts.approvable("r0") and alerts.approvable(f"r{alerts.KEEP + 9}")
+        alerts.note_request("s1", f"r{i}", "Bash", "run: ls")
+    assert len(alerts._REQUESTS) == alerts.KEEP and not alerts.approvable("s1", "r0")
+    assert alerts.approvable("s1", f"r{alerts.KEEP + 9}")
 
 
 # ---------- an answer reaches a channel before any call has run ----------

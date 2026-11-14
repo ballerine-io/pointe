@@ -15,32 +15,39 @@ import readout
 
 KEEP = 64  # recent requests remembered; a request older than that is no longer pending anyway
 
-_REQUESTS: dict[str, dict] = {}  # request id -> {"tool", "readable"}, recorded when the request arrives
+# (session id, request id) -> {"tool", "readable"}, recorded when the request arrives. Keyed by session as well: a node
+# picks its own request ids, so one equal to a local pending id must not replace that request's record.
+_REQUESTS: dict[tuple[str, str], dict] = {}
 
 _TOOL = re.compile(r"^[\w.:-]{1,64}$")
 
 
-def note_request(request_id: str, tool: str, readable: str | None) -> None:
-    _REQUESTS.pop(request_id, None)
-    _REQUESTS[request_id] = {"tool": tool, "readable": readable or ""}
+def note_request(session_id: str, request_id: str, tool: str, readable: str | None) -> None:
+    key = (session_id, request_id)
+    _REQUESTS.pop(key, None)
+    _REQUESTS[key] = {"tool": tool, "readable": readable or ""}
     while len(_REQUESTS) > KEEP:
-        _REQUESTS.pop(next(iter(_REQUESTS)))
+        # Each session's newest request is the one it can still have pending: a session (a node) that sends many
+        # cannot push another session's newest out. Only when every record is a newest does the oldest go.
+        newest = {sid: rid for sid, rid in _REQUESTS}
+        old = next((k for k in _REQUESTS if newest[k[0]] != k[1]), next(iter(_REQUESTS)))
+        del _REQUESTS[old]
 
 
-def _shown(request_id: str) -> str:
+def _shown(session_id: str, request_id: str) -> str:
     """The read-out form when it may be shown, else empty."""
-    return (_REQUESTS.get(request_id) or {}).get("readable", "")  # readable_request already ran readout.redact
+    return (_REQUESTS.get((session_id, request_id)) or {}).get("readable", "")  # readable_request already ran readout.redact
 
 
-def approvable(request_id: str) -> bool:
+def approvable(session_id: str, request_id: str) -> bool:
     """A notification's Approve may answer it: the notification showed what a spoken yes would approve."""
-    return bool(_shown(request_id))
+    return bool(_shown(session_id, request_id))
 
 
-def permission_alert(session: str, request_id: str, at: float, title: str = "") -> dict:
-    """`title` names the session for the person, when that differs from its name (its machine, "shop (devbox)")."""
-    shown = _shown(request_id)
-    tool = (_REQUESTS.get(request_id) or {}).get("tool", "")
+def permission_alert(session: str, session_id: str, request_id: str, at: float, title: str = "") -> dict:
+    """`title` names the session for the person, when that differs from its name (its machine, "shop · devbox")."""
+    shown = _shown(session_id, request_id)
+    tool = (_REQUESTS.get((session_id, request_id)) or {}).get("tool", "")
     tool = tool if _TOOL.match(tool or "") else "a tool"
     body = shown or f"{tool}: open Pointe to see the exact request"
     return {"id": f"permission:{request_id}", "kind": "permission", "session": session, "request_id": request_id,

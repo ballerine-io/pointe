@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 import json
 import logging
 import os
+import posixpath
 import re
 import secrets
 import socket
@@ -134,9 +135,11 @@ from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.workers.base_worker import BaseWorker
 from pipecat.workers.runner import WorkerRunner
+import sessions as sessions_module
 from sessions import (
     NUDGE_REPEAT_SECS,
     REGISTRY,
+    answers_a_prompt,
     GENERIC_WORDS,
     Feed,
     Session,
@@ -769,6 +772,9 @@ def _here() -> str:
     return str(vendors.config().get("machine") or socket.gethostname().split(".")[0] or "this Mac")
 
 
+sessions_module.this_machine = _here
+
+
 def _machine_of(s: Session) -> str:
     return s.machine or _here()
 
@@ -834,7 +840,8 @@ def _status_machines() -> list[dict]:
     for m in paired_machines():
         n, need = counts(m.name)
         out.append({"id": m.id, "name": m.name, "here": False, "os": m.os, "online": m.online, "since": m.since,
-                    "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp})
+                    "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp,
+                    **({"notice": m.notice} if m.notice else {})})
     return out
 
 
@@ -842,6 +849,17 @@ def _shows_invite(request) -> bool:
     """A one-time invite code goes to the page on this Mac (its cookie) and the phone app (its key), never to a page
     opened over the TLS listener."""
     return bool(request.scope.get("state", {}).get("pointe_phone")) or not remote.Remote.on_tls_listener(request.scope)
+
+
+def _can_invite(request) -> bool:
+    """The client may make an invite: the node link is running and the invite would be shown to it (not over TLS)."""
+    return getattr(harnesses.HOST, "invite", None) is not None and _shows_invite(request)
+
+
+def _invite_ended(request) -> str | None:
+    """Why the last invite ended early (wrong codes, with their addresses), for the same clients that see the code."""
+    ended = getattr(harnesses.HOST, "invite_ended", None)
+    return ended() if ended and _shows_invite(request) else None
 
 
 def _invite(request) -> dict | None:
@@ -1815,12 +1833,13 @@ def _user_language() -> str:
 
 
 def _briefing_groups(scope: str) -> list[list[Session]]:
-    """Who a briefing covers: each live session, with a departed one from the same folder joined to it (a restart), and
-    the departed sessions left alone. At most MAX_SESSIONS: the ones waiting on the user first, then the most recent."""
+    """Who a briefing covers: each live session, with a departed one from the same folder on the same machine joined to
+    it (a restart), and the departed sessions left alone. At most MAX_SESSIONS: the ones waiting on the user first, then
+    the most recent."""
     live = list(REGISTRY.sessions.values())
     groups = [[s] for s in live]
     for gone in REGISTRY.departed.values():
-        home = next((g for g in groups if g[-1].cwd and g[-1].cwd == gone.cwd), None)
+        home = next((g for g in groups if g[-1].cwd and (g[-1].machine, g[-1].cwd) == (gone.machine, gone.cwd)), None)
         if home is not None:
             home.insert(0, gone)
         else:
@@ -3407,11 +3426,17 @@ def _git_files(cwd: str, timeout: float) -> str:
                           timeout=timeout).stdout
 
 
+REMOTE_FILE_CHARS, REMOTE_FILES_CHARS = 80, 2000
+
+
 def _tracked_files(session: Session) -> str:
     """A few of its file names: "show me pricing.py" belongs to the session that has it. A session on another machine:
-    the names its node sent, since git here would list a folder on this Mac."""
+    the names its node sent, since git here would list a folder on this Mac. A node's names are its own strings, each
+    up to 4096 characters: each is cut to its last part and REMOTE_FILE_CHARS, and the whole to REMOTE_FILES_CHARS, so
+    one node cannot swell every routing prompt."""
     if session.machine:
-        return " ".join(str(f) for f in (session.harness_data.get("files") or [])[:40])
+        names = [posixpath.basename(str(f).rstrip("/"))[:REMOTE_FILE_CHARS] for f in (session.harness_data.get("files") or [])[:40]]
+        return " ".join(n for n in names if n)[:REMOTE_FILES_CHARS]
     try:
         listed = _git_files(session.cwd, 1)
     except (OSError, subprocess.SubprocessError):
@@ -4293,10 +4318,12 @@ def _clean_name(raw: str) -> str:
 
 def _session_name(body: dict) -> str:
     """Always a valid name: the one given or the folder's, cleaned and cut to length, else from the id. Never a
-    machine's name: "go to devbox" must mean the machine."""
+    machine's name: "go to devbox" must mean the machine. Never a yes or no word (sessions.answers_a_prompt)."""
     name = _clean_name(str(body.get("name") or Path(body["cwd"]).name))
     taken = {m.name.lower() for m in paired_machines()}
-    return name if valid_name(name) and name.lower() not in taken else f"session {str(body['id'])[:6]}"
+    if valid_name(name) and name.lower() not in taken and not answers_a_prompt(name):
+        return name
+    return f"session {str(body['id'])[:6]}"
 
 
 def _clash(a: str, b: str) -> bool:
@@ -4306,12 +4333,20 @@ def _clash(a: str, b: str) -> bool:
 
 def _tell_apart(session: Session, label: str) -> None:
     """A name another session already has ("shop"), on another machine or in another harness: the machine ("shop
-    devbox"), else the harness ("shop opencode"), tells them apart. The first to join keeps the plain name; when the
-    suffix does not fit, the registry's "-2" does. A session on this Mac never takes this Mac's name: that would make it
-    an alias ("go to studio" would pick one of its sessions), which _here() must never be."""
+    devbox"), else the harness ("shop opencode"), tells them apart. The first to join keeps the plain name, except
+    that a session on this Mac always does: a remote one holding it is renamed "<name> <machine>", so "tell shop" never
+    goes to another machine because it joined first. When the suffix does not fit, the registry's "-2" does. A session
+    on this Mac never takes this Mac's name: that would make it an alias ("go to studio" would pick one of its
+    sessions), which _here() must never be."""
     if session.id in REGISTRY.sessions:
         return
     clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
+    if not session.machine:
+        for other in [o for o in clashing if o.machine]:
+            labelled = f"{other.name} {other.machine}"[:40]
+            if valid_name(labelled) and not REGISTRY.rename(other.id, labelled):
+                logger.info(f"{session.name} joined on this Mac: the one on {other.machine} is now {labelled}")
+        clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
     if session.machine and any(o.machine != session.machine for o in clashing):
         suffix = session.machine
     elif any(o.harness != session.harness for o in clashing):
@@ -4319,7 +4354,7 @@ def _tell_apart(session: Session, label: str) -> None:
     else:
         return
     labelled = f"{session.name} {suffix}"[:40]
-    if valid_name(labelled) and not REGISTRY.rename_check(session.id, labelled):
+    if valid_name(labelled) and not REGISTRY.rename_check(session.id, labelled, session.machine):
         session.name = labelled
 
 
@@ -4353,9 +4388,13 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
                       harness_data={"remote_id": remote_id, "node_id": node_id, "files": files or []})
     if entry.get("name_given"):
         session.named_by = "user"
-    elif title and not REGISTRY.rename_check(session.id, title):
+    elif title and not REGISTRY.rename_check(session.id, title, machine):
         session.name, session.named_by = title, "title"
     _tell_apart(session, harnesses.get(harness).label)
+    clash = REGISTRY.cross_machine_problem(session.id, session.name, machine)
+    if clash:  # the name the node gave, beside this Mac's or another machine's sessions
+        logger.info(f"a session from {machine} not called {session.name}: {clash}")
+        session.name, session.named_by = f"session {remote_id[:6]}", "folder"
     session.transcript = harnesses.of(session).transcript_path(session)  # its mirror on this Mac
     session.joining = harnesses.get(harness).joins_mid_turn  # /pointe:voice on the node runs inside a turn too
     REGISTRY.add(session)
@@ -4385,15 +4424,20 @@ async def remote_permission(session: Session, request_id: str, tool_name: str, d
     """A node's `permission.request`, put to the user as a channel request is put. `readable` is the node's own read-out,
     from the unmasked input: used after the cheap checks (guards.remote_readable), never rebuilt from the masked
     preview. False when it is not held here (no call, or the user approves in terminals): the node then hands it back to
-    its terminal. The same request again on one link (a snapshot and a frame) is put once; re-offered on a new link
-    (the node held it through a drop or a hub restart) it is asked again, so the owner hears it."""
+    its terminal. The same request again on one link (a snapshot and a frame) is put once, also while the user's answer
+    to it is on its way (permission_id is cleared then, remote_held is not): a snapshot sent before the node released
+    it must not bring the card back. Re-offered on a new link (the node held it through a drop or a hub restart) it is
+    asked again, so the owner hears it."""
     if session.id not in REGISTRY.sessions or state.conn is None:
+        return False
+    if not re.fullmatch(r"[\w-]{1,64}", request_id):  # an empty id can be put to the user but never answered
+        logger.error(f"a permission request from {session.machine} was refused: bad request id")
         return False
     if vendors.config().get("approvals") == "terminal":
         await say(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in one line.")
         return False
     held = (request_id, getattr(paired_machine(session.machine), "link", 0))
-    if state.remote_held.get(session.id) == held and session.permission_id == request_id:
+    if state.remote_held.get(session.id) == held:
         return True
     state.remote_held[session.id] = held
     await _put_permission(session, request_id, tool_name, description, preview, node_readable=remote_readable(readable))
@@ -4405,6 +4449,10 @@ def remote_resolved(session: Session, request_id: str, how: str) -> None:
     or the session left). Its card goes."""
     if session.permission_id != request_id:
         return
+    if how == "timeout" and current_mode().holds_news:  # as _hold_one says a local one's, at the hand-off
+        what = mask((session.permission_full or "").split("\n")[0])[:120]  # said aloud later: the one credential rule
+        state.monologue_held.append((f"[{session.name}: its approval request waited while the user thought out loud, "
+                                     f"then went back to its terminal] {what}", True))
     session.permission_id, session.permission_since = None, None
     state.remote_held.pop(session.id, None)
     REGISTRY.save()
@@ -4549,7 +4597,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     cut = " [cannot be read out exactly: a yes will not count here; it waits for a tap on the page or phone, or the terminal]" if session.permission_cut else ""
     session.permission_text = f"[permission request] {tool_name}: {description}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
     session.permission_full = f"{tool_name}: {description}\n{preview}"
-    alerts.note_request(request_id, tool_name, readable)
+    alerts.note_request(session.id, request_id, tool_name, readable)
     state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine))
     REGISTRY.save()
     if session is REGISTRY.active:
@@ -4673,7 +4721,7 @@ async def approve(request: Request):
     if not online(session):
         raise HTTPException(status_code=409, detail=f"{session.machine} is offline: answer it in its terminal")
     notified = p.get("via") == "notification"  # an action on a notification: the phone could not ask for Face ID
-    if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.permission_id)):
+    if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.id, session.permission_id)):
         raise HTTPException(status_code=403, detail="approve this one in the app or on the page")
     if not await _apply_answer(session, session.permission_id, decision, "from a notification" if notified else "tapped"):
         raise HTTPException(status_code=502, detail="the answer did not reach the session; answer in its terminal")
@@ -5019,6 +5067,8 @@ async def status(request: Request):
             "hearing": state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
             "machines": _status_machines(),
             "invite": _invite(request),
+            "can_invite": _can_invite(request),
+            "invite_ended": _invite_ended(request),
             "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
@@ -5030,12 +5080,14 @@ async def status(request: Request):
 
 
 def _alert_name(s: Session) -> str:
-    """"shop (devbox)" when sessions span machines, the machine said once even if the name carries it; else the name."""
-    if not _multi_machine():
+    """As the approval card names the session (ui.html whoLabel, MachineView.label): "shop · devbox" for a session on
+    another machine, and for every session when sessions span machines; the machine said once even if a remote name
+    carries it. Else the name."""
+    if not s.machine and not _multi_machine():
         return s.name
     machine = _machine_of(s)
-    base = s.name[:-len(machine) - 1] if s.name.lower().endswith(f" {machine}".lower()) else s.name
-    return f"{base} ({machine})"
+    base = s.name[:-len(machine) - 1] if s.machine and s.name.lower().endswith(f" {machine}".lower()) else s.name
+    return f"{base} · {machine}"
 
 
 def _attention() -> list[dict]:
@@ -5043,7 +5095,7 @@ def _attention() -> list[dict]:
     items = []
     for s in REGISTRY.sessions.values():
         if s.permission_id:
-            item = alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time(), _alert_name(s))
+            item = alerts.permission_alert(s.name, s.id, s.permission_id, s.permission_since or time.time(), _alert_name(s))
             items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
         elif s.idle_since and s.needs and s.needs.get("need"):
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
@@ -5524,6 +5576,9 @@ async def _on_connect(conn: Connection) -> None:
         await _add_worker(session)
     _start_briefs()
     await conn.voice.queue_frames([LLMRunFrame()])
+    for s in REGISTRY.sessions.values():  # put here, so the node's re-offer on this link (call up) is not asked again
+        if s.machine and s.permission_id and online(s):
+            state.remote_held[s.id] = (s.permission_id, getattr(paired_machine(s.machine), "link", 0))
     active = REGISTRY.active
     if active and active.permission_id:
         await _ask_permission(active)

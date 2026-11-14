@@ -39,6 +39,26 @@ final class MachinesTests: XCTestCase {
         XCTAssertNil(s.sessions[1].machine, "a session from this Mac may carry no machine")
     }
 
+    func testALinkNoticeDecodesAndIsAbsentOtherwise() {
+        let s = status("""
+        {"connected": true, "sessions": [],
+         "machines": [{"id": "n3f2a1", "name": "devbox", "here": false, "online": true,
+                       "notice": "At 14:02 a connection from 100.64.0.99 replaced its silent link from 100.64.0.5."}]}
+        """)
+        XCTAssertEqual(s.machines?[0].notice?.hasPrefix("At 14:02"), true)
+        XCTAssertNil(three.machines?[1].notice)
+    }
+
+    func testAnInviteCancelledByGuessingIsShownWithItsAddresses() {
+        let s = status("""
+        {"connected": true, "sessions": [], "invite": null,
+         "invite_ended": "the invite was cancelled after 20 wrong codes, from 100.64.0.66 (Tailscale): 19; 10.0.0.2 (LAN): 1"}
+        """)
+        XCTAssertEqual(MachinesCopy.ended(s),
+                       "The invite was cancelled after 20 wrong codes, from 100.64.0.66 (Tailscale): 19; 10.0.0.2 (LAN): 1.")
+        XCTAssertNil(MachinesCopy.ended(three), "a new invite is out, or none ended early")
+    }
+
     func testAnOlderMacWithoutMachinesLooksAsBefore() {
         let s = status(#"{"connected": true, "sessions": [{"name": "docs", "working": false, "waiting": false}]}"#)
         XCTAssertNil(s.machines)
@@ -134,6 +154,25 @@ final class MachinesTests: XCTestCase {
         let n = AlertPlan.note(attention("notes", "r2"), watchApprove: true, machines: MachineView(three))
         XCTAssertEqual(n?.category, AlertPlan.openCategory)
         XCTAssertNil(n?.requestId)
+    }
+
+    func testANotificationPostedWhileItsMachineWasOfflineGetsApproveWhenItIsBack() {
+        let offline = AlertPlan.plan([attention("notes", "r2")], posted: [], delivered: [], appActive: false, enabled: true,
+                                     watchApprove: true, machines: MachineView(three))
+        XCTAssertEqual(offline.post.first?.category, AlertPlan.openCategory)
+        let back = status("""
+        {"connected": true, "sessions": [{"name": "notes", "working": false, "waiting": true, "request_id": "r2",
+                                         "machine": "laptop", "online": true}],
+         "machines": [{"id": "hub", "name": "studio", "here": true, "online": true},
+                      {"id": "n91c0de", "name": "laptop", "here": false, "online": true}]}
+        """)
+        let again = AlertPlan.plan([attention("notes", "r2")], posted: offline.posted, delivered: [], appActive: false,
+                                   enabled: true, watchApprove: true, machines: MachineView(back))
+        XCTAssertEqual(again.post.map(\.category), [AlertPlan.approveCategory], "the node reconnected: Approve is back")
+        XCTAssertEqual(again.post.first?.id, "permission:r2", "the same notification, replaced")
+        let later = AlertPlan.plan([attention("notes", "r2")], posted: again.posted, delivered: [], appActive: false,
+                                   enabled: true, watchApprove: true, machines: MachineView(back))
+        XCTAssertEqual(later.post, [])
     }
 
     func testOneMachineNotificationsAreUnchanged() {

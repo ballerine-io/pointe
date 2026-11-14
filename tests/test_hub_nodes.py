@@ -981,14 +981,15 @@ def test_a_name_shared_with_a_session_on_another_machine_is_still_refused(world)
     assert "shares a word" in (hub.name_problem("orion") or "")
 
 
-def test_rate_limit_is_five_a_minute_per_address_and_ten_in_all(world):
+def test_rate_limit_is_a_burst_of_five_per_address_then_a_slow_refill(world):
     hub, host, registry, clock, mono, state = world
     hub.invites.make()
     bad = {"code": "AAAA-AAAA", "name": "devbox", "os": "linux"}
     assert [hub.pair(bad, "10.0.0.2")[0] for _ in range(6)] == [403] * 5 + [429]
-    assert [hub.pair(bad, f"10.0.1.{i}")[0] for i in range(6)] == [403] * 5 + [429]  # ten in all
-    mono.now += 61
-    assert hub.pair(bad, "10.0.0.2")[0] == 403
+    assert [hub.pair(bad, f"10.0.1.{i}")[0] for i in range(6)] == [403] * 6  # each address has its own bucket
+    assert hub.invites.wrong == 11  # a 429 was never compared, so it does not count
+    mono.now += hub_nodes.INVITE_SECS / (hub_nodes.PAIR_WRONG_PER_INVITE - hub_nodes.PAIR_BURST - 1) + 0.1
+    assert [hub.pair(bad, "10.0.0.2")[0] for _ in range(2)] == [403, 429]  # one token back
 
 
 def test_a_used_code_cannot_pair_twice(world):

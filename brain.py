@@ -66,10 +66,7 @@ def _content(text: str) -> set[str]:
 
 def without_recent_repeats(said: str, recent: list[str], asked: str) -> str:
     """Sentences the voice already said in the last minute and a half are cut, unless the user's latest words ask about
-    them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath. A
-    status question ("what's going on everywhere") asks for the state again, so its answer is said whole."""
-    if status_intent(asked):
-        return said
+    them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath."""
     asked_words = _content(asked)
     kept = []
     sentences = re.split(r"(?<=[.!?…])\s+", said.strip())
@@ -315,9 +312,10 @@ class Brain:
                     asked = next((m["content"] for m in reversed(self.messages) if m["role"] == "user"
                                   and isinstance(m.get("content"), str) and not m["content"].startswith("[")), "")
                     # A report the user talked over comes back ([resume]): it was sent whole but heard only in part,
-                    # so it is no repeat
-                    trimmed = said if self._resuming else \
-                        without_recent_repeats(said, [x for _, x in self._recent_spoken], asked)
+                    # so it is no repeat. The answer to a status question ("what's going on everywhere") asks for the
+                    # state again, so it is said whole; only that answer: the turns after it are filtered as ever.
+                    whole = self._resuming or (not self._answered_user and status_intent(asked))
+                    trimmed = said if whole else without_recent_repeats(said, [x for _, x in self._recent_spoken], asked)
                     if trimmed != said:
                         logger.info(f"repeat cut: {said!r} -> {trimmed!r}")
                         # A first answer to new words must still say something; a second reply to the same words need not.
