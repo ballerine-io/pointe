@@ -41,8 +41,22 @@ final class ParityUITests: XCTestCase {
         shot("rtl-conversation")
     }
 
+    /// The Sessions sheet opens at half height: on an SE its lazy list has not drawn the lower rows yet. Pull it up.
+    private func expandSessionsSheet() {
+        let bar = app.navigationBars["Sessions"]
+        XCTAssertTrue(bar.waitForExistence(timeout: 15))
+        let top = app.windows.firstMatch.frame.height * 0.2
+        for _ in 0..<4 where bar.frame.minY > top {  // a swipe now and then only scrolls: until the sheet is full height
+            bar.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.02)))
+            sleep(1)
+        }
+        XCTAssertLessThanOrEqual(bar.frame.minY, top, "the Sessions sheet is full height")
+    }
+
     func testDisconnectingASessionAsksFirst() throws {
         launch("sessions")
+        expandSessionsSheet()
         let row = app.cells.containing(.staticText, identifier: "docs").firstMatch  // the sheet's row, not the chip under it
         XCTAssertTrue(row.waitForExistence(timeout: 15))
         row.swipeLeft()
@@ -50,13 +64,15 @@ final class ParityUITests: XCTestCase {
         let ask = app.staticTexts["Disconnect docs from the voice? It keeps running in its terminal."]
         XCTAssertTrue(ask.waitForExistence(timeout: 5), "a swipe asks before it disconnects")
         shot("disconnect-confirm")
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.52)).tap()  // outside the popover: cancel
+        // outside the popover, above it, whatever the screen size: cancel
+        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: ask.frame.midX, dy: max(30, ask.frame.minY - 80))).tap()
         XCTAssertTrue(ask.waitForNonExistence(timeout: 5))
         XCTAssertTrue(row.exists, "Cancel keeps the session")
     }
 
     func testTheSessionsSheetShowsRecentRequestsAndTheContextCount() throws {
         launch("sessions")
+        expandSessionsSheet()
         XCTAssertTrue(app.staticTexts["Recent requests"].waitForExistence(timeout: 15) || app.otherElements["Recent requests"].exists)
         app.swipeUp()
         let routed = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "→ docs (named)")).firstMatch
@@ -153,6 +169,14 @@ final class ParityUITests: XCTestCase {
         XCTAssertTrue(label("shop · devbox needs approval").waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["Approve"].exists && app.buttons["Deny"].exists)
         shot("machines-request")
+    }
+
+    func testTheDriveCardSaysShopDotDevboxToo() throws {
+        launch("machinesDrive")
+        let card = any("driveRequest")
+        XCTAssertTrue(card.waitForExistence(timeout: 15))
+        XCTAssertTrue(card.label.contains("shop · devbox needs approval"), card.label)
+        shot("machines-drive")
     }
 
     func testAnOfflineRequestHasNoApproveOrDeny() throws {

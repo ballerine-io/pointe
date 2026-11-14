@@ -47,7 +47,10 @@ struct MachinesSheet: View {
                 Button("Cancel", role: .cancel) {}
             }
             .onChange(of: status?.invite) { old, new in
-                if let new, unlocked { shown = new; until = Date().addingTimeInterval(new.expires_in ?? 600) }
+                if let new, unlocked {  // the status has no link: the one the make answered stays while the code does
+                    shown = API.Invite(code: new.code, expires_in: new.expires_in, link: new.link ?? (shown?.code == new.code ? shown?.link : nil))
+                    until = Date().addingTimeInterval(new.expires_in ?? 600)
+                }
                 else if new == nil, old != nil { shown = nil; until = nil }  // used, or cancelled on the Mac
             }
         }
@@ -154,7 +157,9 @@ struct MachinesFailure: Error, Equatable {
 
     @MainActor static func from(_ error: Error) -> MachinesFailure {
         if case API.Failure.status(let code, let detail) = error {
-            if code == 404 { return MachinesFailure(text: "This Mac's Pointe does not pair machines yet: update it.") }
+            if detail.hasPrefix("HTTP ") {
+                return MachinesFailure(text: code == 404 ? "This Mac's Pointe does not pair machines yet: update it." : "The Mac did not do it.")
+            }
             return MachinesFailure(text: CallView.sentence(detail))
         }
         return MachinesFailure(text: "The Mac did not answer.")
@@ -189,9 +194,13 @@ extension Demo {
          {"id": "n3f2a1", "name": "devbox", "here": false, "os": "linux", "online": true, "sessions": 3, "need": 2, "rtt_ms": 23, "key_fp": "3f2a9c41d07be215"},
          {"id": "n91c0de", "name": "laptop", "here": false, "os": "macos", "online": false, "since": \(now - 1800), "sessions": 1, "need": 0, "key_fp": "91c0de77aa013b42"}]
         """
+        let drive = """
+         "drive": {"on": true, "since": \(now - 300), "how": "voice",
+                   "pending": [{"session": "shop devbox", "request_id": "r-dev-1", "voice": false}]},
+        """
         return """
         {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
-         "sessions": \(sessions), "machines": \(machines), "invite": null,
+         "sessions": \(sessions), "machines": \(machines), "invite": null,\(screen == .machinesDrive ? drive : "")
          "talk": [{"id": 1, "who": "user", "text": "what's going on everywhere", "typed": false, "corrected": false},
                   {"id": 2, "who": "assistant", "text": "On studio, billing is running its tests. On devbox, shop wants to run the tests and api needs a retry budget. The laptop is offline."}]}
         """

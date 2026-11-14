@@ -154,9 +154,10 @@ FAKE = r"""(() => {  // the status comes from the fixture; hub, approve and swit
     }
     if (/^\/voice\/(hub\/|approve|switch|mode)/.test(u)) {
       window.__posts.push({url: u, body});
-      const make = u === '/voice/hub/invite' && body.action === 'make';
+      const make = u === '/voice/hub/invite' && !body.cancel;
       if (u === '/voice/hub/invite') window.__invite = make ? {code: 'K7PQ-2MXD', until: Date.now() + 600000} : null;
-      return new Response(JSON.stringify(make ? {code: 'K7PQ-2MXD', expires_in: 600} : {}));
+      return new Response(JSON.stringify(make ? {code: 'K7PQ-2MXD', expires_in: 600,
+        link: 'pointe://hub?v=1&host=studio.example.ts.net&port=7443&fp=3b1c&code=K7PQ-2MXD'} : {ok: true}));
     }
     return window.__realFetch(url, opts);
   };
@@ -262,12 +263,15 @@ async def machines(page: Page) -> None:
     code = await page.until("!$('mach-invite').hidden && $('mach-code').textContent", 3)
     check("Invite a machine shows the one-time code as text", code == "K7PQ-2MXD", code=code,
           posts=await page.js("window.__posts"))
-    check("the invite asks the Mac for a code", await page.js("window.__posts[0]") == {"url": "/voice/hub/invite", "body": {"action": "make"}})
+    check("the invite asks the Mac for a code", await page.js("window.__posts[0]") == {"url": "/voice/hub/invite", "body": {}})
+    await asyncio.sleep(1.5)  # polls whose status carries the code but no link
+    check("the join line from the make survives the polls", (await page.js("$('mach-link').textContent")).startswith(
+        "pointe node join 'pointe://hub?v=1&host=studio.example.ts.net"))
     first = await page.js("$('mach-left').textContent")
     await asyncio.sleep(2.2)
     later = await page.js("$('mach-left').textContent")
-    check("with a 10-minute countdown", first in ("Expires in 10:00", "Expires in 9:59") and later in ("Expires in 9:58", "Expires in 9:57"),
-          first=first, later=later)
+    secs = lambda s: int(s.split()[-1].split(":")[0]) * 60 + int(s.split(":")[-1])  # noqa: E731
+    check("with a 10-minute countdown", 594 <= secs(first) <= 600 and 1 <= secs(first) - secs(later) <= 3, first=first, later=later)
     await page.shot("settings-machines-invite")
     await page.js("window.__invite = null; true")
     await use(page, machines_fixture(recorded, now, invite={"code": "K7PQ-2MXD", "expires_in": 540,
@@ -279,7 +283,7 @@ async def machines(page: Page) -> None:
     await page.js("window.__posts = []; $('mach-cancel').click(); true")
     posted = await page.until("window.__posts[0]", 3)
     await use(page, machines_fixture(recorded, now))
-    check("Cancel withdraws the code", posted == {"url": "/voice/hub/invite", "body": {"action": "cancel"}}
+    check("Cancel withdraws the code", posted == {"url": "/voice/hub/invite", "body": {"cancel": True}}
           and await page.js("$('mach-invite').hidden && !$('mach-invitebtn').hidden"), posted=posted)
 
     await page.js("window.__posts = []; [...$('mach-list').querySelectorAll('button')][0].click(); true")
@@ -295,21 +299,79 @@ async def machines(page: Page) -> None:
     await asyncio.sleep(0.9)
 
 
+NODE_STATE = Path(os.environ.get("POINTE_NODE_STATE", "/tmp/cv-state-mmd-node"))
+NODE_ENV = {**os.environ, "CLAUDE_VOICE_STATE": str(NODE_STATE),
+            "CLAUDE_VOICE_DAEMON_PORT": os.environ.get("POINTE_NODE_PORT", "7976"), "UV_PROJECT_ENVIRONMENT": str(NODE_STATE / "node-env")}
+
+
+def node(*args: str) -> subprocess.CompletedProcess:
+    """This checkout as a node on its own state dir and port (node_cli.py: `pointe node` does not reach it yet)."""
+    return subprocess.run(["uv", "run", "-q", "--locked", "--only-group", "node", "--project", str(ROOT), "python",
+                           str(ROOT / "node_cli.py"), *args], env=NODE_ENV, capture_output=True, text=True, timeout=300)
+
+
 async def live_machines(page: Page) -> None:
-    """Against a hub with nodes: the daemon's own fields render (run after integration)."""
+    """Against the hub's real routes (hub_nodes.py), with a real node paired from the page's own code."""
     s = call("/voice/status")
-    check("the daemon sends machines", isinstance(s.get("machines"), list) and any(m.get("here") for m in s["machines"]),
-          machines=s.get("machines"))
+    check("the daemon sends this Mac as the first machine", (s.get("machines") or [{}])[0].get("here") is True, machines=s.get("machines"))
     await page.js("openSettings()")
-    shown = await page.until("!$('machines').hidden && $('mach-list').children.length", 5)
-    check("Settings → Machines lists the daemon's machines", shown == len(s.get("machines") or []), shown=shown)
-    await page.shot("live-settings-machines")
+    await page.until("!$('machines').hidden", 5)
+
+    await page.js("$('mach-invitebtn').click(); true")
+    code = await page.until("!$('mach-invite').hidden && $('mach-code').textContent", 5)
+    link = await page.js("$('mach-link').textContent")
+    check("Invite a machine makes a real code, shown with its join line", bool(code) and code in link, code=code, link=link,
+          err=await page.js("$('mach-err').textContent"))
+    check("the hub holds that code", call("/voice/hub/invite").get("code") == code)
+    left = await page.until("$('mach-left').textContent", 3)
+    check("its countdown starts near 10 minutes", left.startswith("Expires in 9:") or left == "Expires in 10:00", left=left)
+    await asyncio.sleep(1.6)
+    check("the join line survives the polls (the status carries no link)", await page.js("$('mach-link').textContent") == link)
+    await page.shot("live-settings-machines-invite")
+
+    await page.js("$('mach-cancel').click(); true")
+    await page.until("$('mach-invite').hidden", 5)
+    after = call("/voice/hub/invite")
+    check("Cancel ends the code on the hub, and makes no new one", after.get("code") is None, after=after)
+    await asyncio.sleep(1.5)
+    check("and the page stays without a code", await page.js("$('mach-invite').hidden && !$('mach-invitebtn').hidden"))
+
+    await page.js("$('mach-invitebtn').click(); true")
+    await page.until("!$('mach-invite').hidden && $('mach-link').textContent", 5)
+    line = (await page.js("$('mach-link').textContent")).removeprefix("pointe node join ").strip("'")
+    joined = node("join", line, "--name", "devbox-sim")
+    check("a real node pairs with the page's code", joined.returncode == 0, out=(joined.stdout + joined.stderr)[-400:])
+    try:
+        row = await page.until("[...$('mach-list').children].map(li => li.textContent).find(t => t.startsWith('devbox-sim'))", 30)
+        check("Settings → Machines lists the node", bool(row), row=row)
+        online = await page.until("(([...$('mach-list').children].map(li => li.textContent).find(t => t.startsWith('devbox-sim')) || '').match(/online · \\d+ ms/) || [''])[0]", 30)
+        check("online, with its round trip and key", bool(online) and "key " in (row or ""), online=online, row=row)
+        chips = await page.js("[...$('mchips').children].map(b => b.textContent)")
+        check("with a second machine the filter chips appear", "devbox-sim" in chips, chips=chips)
+        await page.shot("live-settings-machines-node")
+        await page.js("hubPost('/voice/hub/revoke', {name: 'no-such-box'}); true")
+        err = await page.until("$('mach-err').textContent", 5)
+        check("revoking an unknown machine shows the hub's reason", "no machine called no-such-box" in (err or ""), err=err)
+        btn = "[...$('mach-list').querySelectorAll('li')].find(li => li.textContent.startsWith('devbox-sim')).querySelector('button')"
+        await page.js(f"{btn}.click(); true")
+        await asyncio.sleep(0.9)
+        check("the first click on Revoke asks", await page.js(f"{btn}.textContent") == "Revoke devbox-sim?"
+              and any(m["name"] == "devbox-sim" for m in call("/voice/status")["machines"]))
+        await page.js(f"{btn}.click(); true")
+        gone = await page.until("![...$('mach-list').children].some(li => li.textContent.startsWith('devbox-sim'))", 10)
+        check("the second click revokes it on the hub", gone and not any(m["name"] == "devbox-sim" for m in call("/voice/status")["machines"]))
+    finally:
+        subprocess.run([str(ROOT / "bin" / "voice-node"), "stop"], env=NODE_ENV, capture_output=True, timeout=60)
     await page.js("closeSheet('settingssheet')")
 
 
 async def main() -> None:
     assert os.environ.get("CLAUDE_VOICE_STATE"), "use an isolated CLAUDE_VOICE_STATE"
     fresh_state()
+    if os.environ.get("POINTE_LIVE_MACHINES"):  # a node reaches the hub on the phone's listener: pair it first
+        import shutil
+        shutil.rmtree(NODE_STATE, ignore_errors=True)
+        assert subprocess.run([str(ROOT / "bin" / "pointe"), "pair", "host", "127.0.0.1"], capture_output=True, env=dict(os.environ)).returncode == 0
     assert subprocess.run([str(ROOT / "bin" / "voice-daemon"), "ensure"], capture_output=True, env=dict(os.environ)).returncode == 0
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
     chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
