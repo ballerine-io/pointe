@@ -14,7 +14,35 @@ clients agree.
 |---|---|---|
 | Hold | **Space**, or another key you choose (stored per browser); hold the mic ring with the mouse | touch and hold the mic ring (it opens on touch down); hold the conversation area for 0.35 s (so scrolling still works) |
 | Toggle | **Caps Lock**: press to open, press to close | AirPods stem press |
+| From any app | a system-wide shortcut running `pointe talk` (below) | the Action button, Back Tap or Siri: "Talk to Pointe" (below) |
 | Shows | "Talking" / "Hold to talk" | the same |
+
+## Talk from any app
+
+The page's keys work only while its tab is focused: a browser gets no key events otherwise. To talk from whatever app
+you are in, bind a system-wide shortcut to the daemon's CLI; the page or the phone app stays in the background with
+the call up.
+
+1. Settings → Microphone on the page shows the command and copies it: `<pointe>/bin/pointe talk`.
+2. In the Shortcuts app: new shortcut → action **Run Shell Script** → paste the command.
+3. Open the shortcut's details (ⓘ) → **Add Keyboard Shortcut**, for example ⌃⌥Space. Shortcuts' keyboard shortcuts are
+   system-wide; nothing else to install, no permission to grant.
+
+Press once to talk, again to stop: the shortcut is a **toggle**, not a hold. Seeing a key held from any app needs an
+event tap (Input Monitoring or Accessibility permission, a keylogger-class grant), which Pointe does not ask for. The
+daemon's own limits still apply: a press forgotten open closes after 90 s, as Caps Lock does. For a real hold from any
+app, a tool that sees key down and key up (Raycast, Hammerspoon, BetterTouchTool) runs `pointe talk on` on the press
+and `pointe talk off` on the release.
+
+The CLI prints one line and exits 0, or 1 with the reason: "Microphone is Always on: set it to Push to talk in
+Settings", "No call is up: press the mic on the page or open the app first", "Pointe is not running on this Mac".
+
+On the iPhone the same thing is the **"Talk"** App Intent ("Talk to Pointe"): bind it to the Action button (Settings →
+Action Button → Shortcut), to Back Tap, or say it to Siri. It toggles the app's own press on the call that is up, in the
+background too (the call keeps the audio session); with no call up it opens the app and says so.
+
+Either way the gate on the Mac is pressed, so the rules below hold, and the client that holds the call is told to send
+its audio (it sends only while a press holds, its own or the shortcut's).
 
 ## What the daemon enforces
 
@@ -46,6 +74,11 @@ the app takes that mute as the toggle and unmutes the input again. It also handl
 - Setting: `"microphone": "always" | "ptt"` in `GET/POST /voice/prefs` (default `always`).
 - Control, client text on the call socket: `{"type": "ptt", "open": true|false, "at": <client ms>}`. Ignored unless the
   setting is `ptt`.
+- From outside the call: `POST /voice/talk` `{"action": "on" | "off" | "toggle"}` (default `toggle`), with the page's
+  key or the CLI token (`$STATE/token`), never a phone key. 409 with a plain-words `detail` when the microphone is Always
+  on or no call is up; otherwise the gate is pressed as a client's message would press it, the client gets
+  `{"type": "ptt", "open": bool, "by": "shortcut"}` on the call socket and sends accordingly, and the reply is
+  `{"open": bool, "mode": "ptt"}`. `GET /voice/status` carries `talk_command` (the command to bind) on this Mac only.
 - Status `ptt: {mode, open, opened_at, closed_at, closed_why, sent_bytes, room_heard, room_bytes}`. `closed_why`:
   `released`, `held too long`, `no audio`, `switched to push to talk`. `sent_bytes` counts audio that passed the gate in
   this call. Clients show `open` as the truth.

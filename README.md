@@ -87,7 +87,7 @@ OpenCode and Codex sessions join with `pointe join opencode` or `pointe join cod
 | [Voice lock](docs/features/voice-lock.md) | Only your voice counts, for approvals or for everything. Checked on this Mac. |
 | [Self-learning vocabulary](docs/features/vocabulary.md) | Fix a misheard name once, and the next call hears it right. |
 | [Drive & walk mode](docs/features/drive-mode.md) | Short answers, nothing to look at, and only requests that lose nothing approved by voice. |
-| [Push to talk](docs/features/push-to-talk.md) | No audio leaves the Mac unless you hold the key or the button. |
+| [Push to talk](docs/features/push-to-talk.md) | No audio leaves the Mac unless you hold the key or the button; a system-wide shortcut talks from any app. |
 | [Audio briefings](docs/features/briefings.md) | "Brief me on the night": what each session did, failed and waits on. |
 | [Challenge me](docs/features/challenge.md) | The voice argues against your plan, grounded in your sessions, and cannot send. |
 | [Wrist approvals and desktop alerts](docs/features/alerts.md) | A session needs you: the watch taps, the desktop notifies. |
