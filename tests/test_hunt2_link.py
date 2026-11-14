@@ -95,3 +95,49 @@ def test_after_a_hub_restart_the_held_prompt_is_asked_once_when_the_page_connect
 
     run(go())
     assert asked == ["p1"], f"the one held prompt was asked {len(asked)} times: {asked}"
+
+
+# ---------- 2. a snapshot that lands while the answer is in flight resurrects the prompt ----------
+
+def test_a_snapshot_during_delivery_of_an_answer_does_not_bring_the_prompt_back(real, monkeypatch):
+    d, hub, mono = real
+    node = paired(hub)
+    put: list[str] = []
+    original = d._put_permission
+
+    async def recording(session, request_id, *a, **k):
+        put.append(request_id)
+        return await original(session, request_id, *a, **k)
+
+    async def no_worker(_s):
+        pass
+
+    monkeypatch.setattr(d, "_put_permission", recording)
+    monkeypatch.setattr(d, "_add_worker", no_worker)
+    d.state.conn = fake_conn()
+    pending = {k: v for k, v in _request().items() if k != "id"}
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(pending=pending))
+        await fake.send("permission.request", **_request())
+        await fake.recv("permission.holding")
+        await settle()
+        session = d.REGISTRY.sessions[nodelink.hub_session_id(node["id"], "s1")]
+        assert put == ["p1"] and session.permission_id == "p1"
+        answering = asyncio.create_task(d._apply_answer(session, "p1", "allow", "tapped"))
+        answer = await fake.recv("permission.answer")
+        assert answer["request_id"] == "p1"
+        # The node's liveness tick sends a snapshot (a title changed) before its permission.answered goes out; the
+        # prompt is still listed as pending there because the node has not released the hook yet.
+        await fake.send_sessions(entry(pending=pending, title="New title"))
+        await fake.send("permission.answered", request_id="p1", ok=True)
+        assert await answering is True
+        await settle()
+        await fake.drop()
+        return session
+
+    session = run(go())
+    assert put == ["p1"], f"the answered prompt was put to the user again: {put}"
+    assert session.permission_id is None, "a prompt the node released is pending again on the hub (a ghost card)"

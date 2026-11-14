@@ -4388,15 +4388,17 @@ async def remote_permission(session: Session, request_id: str, tool_name: str, d
     """A node's `permission.request`, put to the user as a channel request is put. `readable` is the node's own read-out,
     from the unmasked input: used after the cheap checks (guards.remote_readable), never rebuilt from the masked
     preview. False when it is not held here (no call, or the user approves in terminals): the node then hands it back to
-    its terminal. The same request again on one link (a snapshot and a frame) is put once; re-offered on a new link
-    (the node held it through a drop or a hub restart) it is asked again, so the owner hears it."""
+    its terminal. The same request again on one link (a snapshot and a frame) is put once, also while the user's answer
+    to it is on its way (permission_id is cleared then, remote_held is not): a snapshot sent before the node released
+    it must not bring the card back. Re-offered on a new link (the node held it through a drop or a hub restart) it is
+    asked again, so the owner hears it."""
     if session.id not in REGISTRY.sessions or state.conn is None:
         return False
     if vendors.config().get("approvals") == "terminal":
         await say(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in one line.")
         return False
     held = (request_id, getattr(paired_machine(session.machine), "link", 0))
-    if state.remote_held.get(session.id) == held and session.permission_id == request_id:
+    if state.remote_held.get(session.id) == held:
         return True
     state.remote_held[session.id] = held
     await _put_permission(session, request_id, tool_name, description, preview, node_readable=remote_readable(readable))
