@@ -100,8 +100,7 @@ def masked_frames(session_id: str, gen: int, offset: int, data: bytes) -> tuple[
                                       entries=entries))
         start, entries, size = pos, [], 0
 
-    end = data.rfind(b"\n") + 1
-    for raw in data[:end].splitlines(keepends=True):
+    for raw in nodelink.complete_lines(data):
         entry = mask_line(raw.decode("utf-8", "replace")) if len(raw) <= nodelink.MAX_ENTRY_BYTES else None
         if entry is None or len(entry.encode()) > nodelink.MAX_ENTRY_BYTES:
             logger.warning(f"{session_id}: a transcript line of {len(raw)} bytes not shipped")

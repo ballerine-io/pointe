@@ -302,7 +302,6 @@ def test_a_corrupt_nodes_file_is_moved_aside_and_the_hub_id_kept(tmp_path):
 
 # ---------- 8. transcript lines split on a bare carriage return ----------
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_transcript_frames_survive_a_bare_carriage_return_inside_a_line():
     data = b'{"a": "x\ry"}\n{"b": 2}\n'
     frames, nxt = nodelink.transcript_frames("s1", 0, 0, data)
@@ -310,7 +309,6 @@ def test_transcript_frames_survive_a_bare_carriage_return_inside_a_line():
     assert [e for f in frames for e in json.loads(f)["entries"]] == ['{"a": "x\ry"}\n', '{"b": 2}\n']
 
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_masked_frames_survive_a_bare_carriage_return_inside_a_line():
     data = b'{"a": "x\ry"}\n{"b": 2}\n'
     frames, nxt = node_mod.masked_frames("s1", 0, 0, data)

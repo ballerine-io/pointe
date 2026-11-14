@@ -170,6 +170,13 @@ def decode(text: str, frames: dict[str, dict[str, Check]]) -> dict | None:
     return frame
 
 
+def complete_lines(data: bytes) -> list[bytes]:
+    """The complete lines in `data`, each with its b"\\n"; a partial tail is left out. Split on b"\\n" only (JSONL's
+    separator), never splitlines(): a bare CR inside a line would cut it into pieces that are not entries."""
+    end = data.rfind(b"\n") + 1
+    return [line + b"\n" for line in data[:end].split(b"\n")[:-1]]
+
+
 def transcript_frames(session_id: str, gen: int, offset: int, data: bytes) -> tuple[list[str], int]:
     """`transcript` frames for the bytes read from a session's file at `offset`, and the offset to read from next.
 
@@ -187,8 +194,7 @@ def transcript_frames(session_id: str, gen: int, offset: int, data: bytes) -> tu
         frames.append(encode("transcript", id=session_id, gen=gen, offset=start, next_offset=pos, entries=entries))
         start, entries, size = pos, [], 0
 
-    end = data.rfind(b"\n") + 1
-    for raw in data[:end].splitlines(keepends=True):
+    for raw in complete_lines(data):
         if len(raw) > MAX_ENTRY_BYTES:
             logger.warning(f"{session_id}: a transcript line of {len(raw)} bytes not shipped")
         else:
