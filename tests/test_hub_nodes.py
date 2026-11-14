@@ -1129,3 +1129,25 @@ def test_with_no_call_up_the_daemon_does_not_hold_a_remote_prompt_so_no_holding(
         await fake.drop()
 
     run(go())
+
+
+# ---------- the daemon wires the link (integration) ----------
+
+def test_the_daemon_installs_the_node_link(d):
+    paths = {getattr(r, "path", None) for r in d.app.routes}
+    assert {nodelink.PATH, nodelink.PAIR_PATH, "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"} <= paths
+    assert isinstance(d.HUB, hub_nodes.Hub) and d.HUB.registry is d.REGISTRY
+    assert harnesses.HOST.invite == d.HUB.invites.status and harnesses.HOST.on_call == d.HUB.on_call
+
+
+def test_the_hub_tells_a_node_its_vendors_by_name_never_a_model_or_key(d, monkeypatch):
+    assert harnesses.HOST.vendors is d._vendor_names
+    assert d._vendor_names() == ["Gemini", "Soniox", "ElevenLabs"]  # the fixture's brain/reader/checker are gemini:...
+    monkeypatch.setattr(d, "_setup", d.vendors.Setup(brain="anthropic:claude-sonnet-5-5", reader="gemini:gemini-3.8-flash",
+                                                     checker="anthropic:claude-haiku-5-5", ears="soniox",
+                                                     mouth="local:kokoro-mlx:af_heart"))
+    assert d._vendor_names() == ["Anthropic", "Gemini", "Soniox"]  # a local mouth sends nothing anywhere
+    monkeypatch.setattr(d.vendors, "local_only", lambda: True)
+    assert d._vendor_names() == []
+
+

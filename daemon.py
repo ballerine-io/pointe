@@ -35,6 +35,7 @@ import conflicts
 import drive as drives
 import remote
 import harnesses
+import hub_nodes
 from harnesses import FINISHED_MARK
 import local
 import meeting as meetings
@@ -849,6 +850,20 @@ def _invite(request) -> dict | None:
 def _call_state() -> dict:
     """What a node needs to know to forward prompts: a call is up, and the hub does not leave approvals to terminals."""
     return {"up": state.conn is not None, "approvals_terminal": vendors.config().get("approvals") == "terminal"}
+
+
+_VENDOR_LABELS = {"anthropic": "Anthropic", "gemini": "Gemini", "openai": "OpenAI", "soniox": "Soniox",
+                  "elevenlabs": "ElevenLabs"}
+
+
+def _vendor_names() -> list[str]:
+    """Who a node's transcripts reach through this hub, by company name only (never a model or a key): the roles in
+    use, minus what runs on this Mac. Shown by `pointe node join` and `pointe node status`."""
+    if vendors.local_only():
+        return []
+    s = setup()
+    named = [(getattr(s, role, "") or "").split(":")[0] for role in ("brain", "reader", "checker", "ears", "mouth")]
+    return list(dict.fromkeys(_VENDOR_LABELS[v] for v in named if v in _VENDOR_LABELS))
 
 
 def _notify_call() -> None:
@@ -4196,6 +4211,8 @@ async def _with_housekeeping(_app):
 
 
 app.router.lifespan_context = _with_housekeeping
+HUB = hub_nodes.Hub(STATE_DIR, REGISTRY)  # the machines paired with this Mac: their links, invites and mirrors
+hub_nodes.install(app, HUB)  # wraps the lifespan just set
 
 
 @app.post("/voice/register")
@@ -5724,6 +5741,7 @@ harnesses.HOST.register_remote = register_remote
 harnesses.HOST.remote_permission = remote_permission
 harnesses.HOST.remote_resolved = remote_resolved
 harnesses.HOST.call_state = _call_state
+harnesses.HOST.vendors = _vendor_names
 
 
 def main() -> None:
