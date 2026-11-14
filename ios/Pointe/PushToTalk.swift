@@ -163,7 +163,7 @@ struct TalkIntent: AppIntent, ForegroundContinuableIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let call = Call.current
         switch Self.decide(call: call?.state, ptt: call?.talk.ptt ?? false) {
-        case .noCall: throw needsToContinueInForegroundError("No call is up: press the mic in Pointe first.")
+        case .noCall: throw needsToContinueInForegroundError("No call is up: tap Connect in Pointe first.")
         case .alwaysOn: return .result(dialog: "Microphone is Always on: set it to Push to talk in Pointe's settings.")
         case .toggle:
             call?.talkToggle()

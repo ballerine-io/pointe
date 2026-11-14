@@ -14,7 +14,7 @@ final class ConflictLiveUITests: XCTestCase {
         let connect = app.buttons["Connect"]
         XCTAssertTrue(connect.waitForExistence(timeout: 30), "the app paired and shows Connect")
         connect.tap()
-        XCTAssertTrue(app.buttons["Hang up"].waitForExistence(timeout: 20), "the call is up")
+        XCTAssertTrue(app.buttons["hangUp"].waitForExistence(timeout: 20), "the call is up")
         let mute = app.buttons["Mute"]
         if mute.waitForExistence(timeout: 5) { mute.tap() }  // the simulator hears the Mac's microphone
 
@@ -35,7 +35,7 @@ final class ConflictLiveUITests: XCTestCase {
         waitForExpectations(timeout: 15)
         app.buttons["conflictDismiss"].tap()
         XCTAssertTrue(card.waitForNonExistence(timeout: 15), "Dismiss removes the card")
-        app.buttons["Hang up"].tap()
+        app.buttons["hangUp"].tap()
         XCTAssertTrue(connect.waitForExistence(timeout: 15))
     }
 }

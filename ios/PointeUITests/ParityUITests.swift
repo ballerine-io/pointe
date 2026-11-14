@@ -87,7 +87,7 @@ final class ParityUITests: XCTestCase {
         let device = (ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] ?? "device").replacingOccurrences(of: " ", with: "-")
         var off: [String] = []
         func measure(_ name: String) {
-            let mic = app.buttons.matching(NSPredicate(format: "label IN %@", ["Mute", "Unmute", "Connect", "Talking", "Hold to talk"])).firstMatch
+            let mic = app.buttons.matching(NSPredicate(format: "label IN %@", ["Mute", "Unmute", "Microphone", "Talking", "Hold to talk"])).firstMatch
             XCTAssertTrue(mic.waitForExistence(timeout: 15), name)
             shot("mic-\(device)-\(name)")
             let width = app.windows.firstMatch.frame.width

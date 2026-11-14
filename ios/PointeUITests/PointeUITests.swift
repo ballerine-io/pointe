@@ -13,7 +13,7 @@ final class PointeUITests: XCTestCase {
         let connect = app.buttons["Connect"]
         XCTAssertTrue(connect.waitForExistence(timeout: 20), "the app paired and shows Connect")
         connect.tap()
-        XCTAssertTrue(app.buttons["Hang up"].waitForExistence(timeout: 20), "the call is up")
+        XCTAssertTrue(app.buttons["hangUp"].waitForExistence(timeout: 20), "the call is up")
 
         // The simulator hears the Mac's microphone: room talk must not answer the request before the tap does.
         let mute = app.buttons["Mute"]
@@ -24,7 +24,7 @@ final class PointeUITests: XCTestCase {
                       "the exact command is on screen")
         deny.tap()
         XCTAssertTrue(deny.waitForNonExistence(timeout: 15), "the request is answered")
-        app.buttons["Hang up"].tap()
+        app.buttons["hangUp"].tap()
         XCTAssertTrue(connect.waitForExistence(timeout: 15))
     }
 }

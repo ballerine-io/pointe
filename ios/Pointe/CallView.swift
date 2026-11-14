@@ -7,7 +7,7 @@ struct CallView: View {
     let unpair: () -> Void
     @State private var call: Call
     @State private var status: API.Status?
-    @State private var reachable = true
+    @State private var reach = Reach.ok
     @State private var problem: String?
     @State private var showSessions = false
     @State private var editing: API.Turn?
@@ -276,7 +276,7 @@ struct CallView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing,
                                      large: status?.whisper?.on == true && status?.whisper?.held == nil) { editing = $0 }
-                    if let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
+                    if !panelShown, let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote).foregroundStyle(Brand.orange).padding(.bottom, 8)
                     }
@@ -285,6 +285,10 @@ struct CallView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
             }
+            .overlay {  // the empty stage: Connect in the middle, where the conversation will be
+                if panelShown { ConnectPanel(title: title, face: face, tap: connectTap).transition(.opacity) }
+            }
+            .animation(.easeInOut(duration: 0.2), value: panelShown)
             .scrollDismissesKeyboard(.interactively)
             .accessibilityIdentifier("conversation")
             .holdToTalk(call.talk.ptt && phase == .live, press: { call.talkPress(.caption) }, release: { call.talkRelease(.caption) })
@@ -367,6 +371,7 @@ struct CallView: View {
                         .font(.caption).foregroundStyle(.secondary).buttonStyle(.plain)
                         .accessibilityIdentifier("voiceIgnored")
                 }
+                if !panelShown { ConnectPill(phase: phase, face: face, tap: connectTap) }
             }
         }
         .padding(.horizontal, 18)
@@ -551,8 +556,8 @@ struct CallView: View {
 
     private var title: String {
         switch phase {
-        case .off: return Self.offTitle(reachable: reachable, macOnACall: status?.connected == true)
-        case .connecting: return "Connecting…"
+        case .off: return ConnectCopy.offTitle(reach: reach, macOnACall: status?.connected == true)
+        case .connecting: return ConnectCopy.connecting(macName)
         case .reconnecting: return "Reconnecting…"
         case .live:
             if challengeOn { return ChallengeCopy.state }
@@ -567,15 +572,30 @@ struct CallView: View {
         }
     }
 
-    /// No call here: the Mac may still have one, on the page or another phone, and a tap would be turned away.
-    static func offTitle(reachable: Bool, macOnACall: Bool) -> String {
-        !reachable ? "Mac not reachable" : macOnACall ? "On a call elsewhere" : "Not connected"
+    private var reachable: Bool { reach == .ok }
+
+    /// The Mac's own name when its status says which machine is here; its address until then.
+    private var macName: String { status?.machines?.first { $0.here == true }?.name ?? pairing.host }
+
+    /// What Connect shows: the reason the last attempt failed, or what a tap does.
+    private var face: ConnectFace {
+        ConnectFace.make(phase: phase, reach: reach, host: call.place, problem: call.problem, macOnACall: status?.connected == true)
+    }
+
+    /// The empty stage: no call up here and nothing said yet. Its Connect is the only one on screen; the header's pill
+    /// takes over once the conversation covers it.
+    private var panelShown: Bool { phase != .live && (status?.talk ?? []).isEmpty && demo == nil }
+
+    /// Connect, Try again, Cancel or Hang up: the one button, by state.
+    private func connectTap() {
+        if phase == .off { Task { await call.start() } } else { call.hangUp() }
     }
 
     private var subtitle: String {
-        if !reachable { return "Is Twingate, Tailscale or the same Wi-Fi on for this phone?" }
+        if reach == .rejected { return "Pair this phone again from the page." }
+        if reach == .unreachable { return "Is Twingate, Tailscale or the same Wi-Fi on for this phone?" }
         guard let status else { return "Reaching your Mac…" }
-        if phase == .off { return "Tap the mic to start talking" }
+        if phase == .off { return ConnectCopy.tapConnect }
         if status.sessions.isEmpty { return "No session yet: /pointe:voice or pointe join on the Mac" }
         if status.mode == "session", let active = status.active { return "Focused on \(active)" + health }
         let shown = machines.shown(machineFilter)  // the machine filter narrows this line too
@@ -644,6 +664,7 @@ struct CallView: View {
                 HStack {
                     BrandHeader(mac: status?.version)
                     Spacer()
+                    ConnectPill(phase: phase, face: face, tap: connectTap)
                     menu
                 }
                 MeetingBanner(meeting: meeting, setMode: setMeetingMode, speakers: { showSpeakers = true },
@@ -739,7 +760,7 @@ struct CallView: View {
         do {
             try await call.api.startMeeting(mode: mode, brief: brief, sessions: sessions, autoLookups: autoLookups)
         } catch API.Failure.status(_, let detail) {
-            if detail == "No call is up." { return "No call is up. Start one here with the mic, or on the Mac, then start the meeting." }
+            if detail == "No call is up." { return "No call is up. Start one here with Connect, or on the Mac, then start the meeting." }
             return detail.isEmpty ? "The Mac refused." : Self.refusal(409, detail)
         } catch {
             return "The Mac did not answer."
@@ -970,9 +991,10 @@ struct CallView: View {
         }
     }
 
+    /// The mic is a mic: it mutes a live call. Starting one is Connect's job (the ring reads disabled until then).
     private func micTapped() {
         if phase == .live && call.talk.ptt { return }  // the hold opens and closes it
-        if phase == .live { call.toggleMute() } else if phase == .off { Task { await call.start() } }
+        if phase == .live { call.toggleMute() }
     }
 
     /// Drive mode lives on the Mac. "I've stopped" leaves it: the request is then read out again normally, and the
@@ -1112,9 +1134,11 @@ struct CallView: View {
                 if fresh != status { status = fresh }
                 call.follow(fresh.ptt)
                 await AlertCenter.shared.sync(fresh.attention, api: call.api, machines: MachineView(fresh))
-                reachable = true
+                reach = .ok
+            } catch API.Failure.status(let code, _) where code == 401 || code == 403 {
+                reach = .rejected  // the Mac answers, and refuses this phone's key: not the same as the Mac being away
             } catch {
-                reachable = false
+                reach = .unreachable
             }
             // Live words need a quick refresh while the call is up; idle, once a second is enough.
             try? await Task.sleep(nanoseconds: call.state == .live ? 400_000_000 : 1_000_000_000)

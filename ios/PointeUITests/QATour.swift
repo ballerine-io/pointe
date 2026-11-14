@@ -32,7 +32,7 @@ final class QATour: XCTestCase {
         XCTAssertTrue(connect.waitForExistence(timeout: 30), "paired, shows Connect")
         shot("00-before-connect")
         connect.tap()
-        XCTAssertTrue(app.buttons["Hang up"].waitForExistence(timeout: 30), "the call is up")
+        XCTAssertTrue(app.buttons["hangUp"].waitForExistence(timeout: 30), "the call is up")
         sleep(2)
         app.buttons["Mute"].tap()  // the simulator hears the Mac's room: typing drives this tour
         sleep(5)  // the greeting
@@ -140,7 +140,7 @@ final class QATour: XCTestCase {
         deny.tap()
         XCTAssertTrue(deny.waitForNonExistence(timeout: 15), "answered")
 
-        app.buttons["Hang up"].tap()
+        app.buttons["hangUp"].tap()
         XCTAssertTrue(connect.waitForExistence(timeout: 15), "hung up")
         shot("13-hung-up")
     }

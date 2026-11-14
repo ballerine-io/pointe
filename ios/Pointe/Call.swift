@@ -52,6 +52,8 @@ final class Call {
     }
 
     var api: API { API(pairing: pairing, session: session) }
+    /// Where the Mac is dialled, for a reason that names it.
+    var place: String { "\(pairing.host):\(pairing.port)" }
 
     func start() async {
         guard state == .off || state == .reconnecting else { return }
@@ -59,12 +61,12 @@ final class Call {
         state = state == .off ? .connecting : state
         problem = nil
         guard await AVAudioApplication.requestRecordPermission() else {
-            problem = "Pointe needs the microphone: allow it in Settings."
+            problem = ConnectCopy.micDenied
             state = .off; wanted = false
             return
         }
         do { try startAudio() } catch {
-            problem = "The microphone could not start: \(error.localizedDescription)"
+            problem = ConnectCopy.micFailed(error.localizedDescription)
             state = .off; wanted = false
             return
         }
@@ -299,8 +301,11 @@ final class Call {
     }
 
     private func dropped(code: URLSessionWebSocketTask.CloseCode) {
-        if code.rawValue == 4409 && retries == 0 {  // while redialling it is our own dead call, closed by the Mac within 12 s
-            problem = "A call is already up on another page or phone."
+        let http = (socket?.response as? HTTPURLResponse)?.statusCode
+        let reason = socket?.closeReason.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        if let why = Call.refusal(code: code.rawValue, http: http, reason: reason, firstDial: state == .connecting,
+                                  retries: retries, place: place) {
+            problem = why
             wanted = false
         }
         stop(state: wanted ? .reconnecting : .off)
@@ -321,7 +326,20 @@ final class Call {
         }
     }
 
-    nonisolated static let idleHangupNote = "The Mac hung up after 30 minutes of quiet. Tap the mic to talk again."
+    nonisolated static let idleHangupNote = ConnectCopy.idleHangup
+
+    /// Why a dropped link is not called back, in the words Connect shows; nil for a live call that dropped, which is
+    /// redialled by itself. The Mac turning this phone away (its key unpaired: 401/403 at the upgrade, or a 4401 or 1008
+    /// close), a call already up (4409 on the first try: while redialling it is our own dead call, closed by the Mac
+    /// within 12 s), or a first dial that never opened: that one stays off and says why, instead of redialling for ever
+    /// against a Mac that is away.
+    nonisolated static func refusal(code: Int, http: Int?, reason: String, firstDial: Bool, retries: Int, place: String) -> String? {
+        if code == 4401 || code == 1008 || http == 401 || http == 403 { return ConnectCopy.notPaired }
+        if code == 4409 && retries == 0 { return ConnectCopy.busy }
+        guard firstDial else { return nil }
+        if http == nil && code <= 0 { return ConnectCopy.unreachable(place) }  // never answered: no upgrade, no close frame
+        return ConnectCopy.failed(reason.isEmpty ? (http.map { "HTTP \($0)" } ?? "code \(code)") : reason)
+    }
 
     /// A link that dropped is called back; a call the Mac's idle timer ended is not (nil: the Mac did not say).
     nonisolated static func redials(idleHangup: Bool?) -> Bool { idleHangup != true }

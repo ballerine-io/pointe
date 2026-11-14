@@ -101,7 +101,7 @@ final class AlertsUITests: XCTestCase {
         let connect = app.buttons["Connect"]
         XCTAssertTrue(connect.waitForExistence(timeout: 30), "paired")
         connect.tap()
-        XCTAssertTrue(app.buttons["Hang up"].waitForExistence(timeout: 30), "the call is up")
+        XCTAssertTrue(app.buttons["hangUp"].waitForExistence(timeout: 30), "the call is up")
         let mute = app.buttons["Mute"]
         if mute.waitForExistence(timeout: 5) { mute.tap() }  // the simulator hears the Mac's microphone
         openAlerts()
@@ -157,7 +157,7 @@ final class AlertsUITests: XCTestCase {
         XCUIDevice.shared.press(.home)
 
         app.activate()
-        let hangUp = app.buttons["Hang up"]
+        let hangUp = app.buttons["hangUp"]
         if hangUp.waitForExistence(timeout: 10) { hangUp.tap() }
     }
 }

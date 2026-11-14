@@ -634,16 +634,19 @@ struct MeetingBar: View {
             Button(action: mic) {
                 ZStack {
                     Circle().fill(hot ? AnyShapeStyle(Color.red.gradient) : AnyShapeStyle(Brand.card))
-                    Image(systemName: hot ? "mic.fill" : phase == .off ? "mic" : "mic.slash.fill")
-                        .font(.system(size: 26, weight: .semibold)).foregroundStyle(.white)
+                    Image(systemName: hot ? "mic.fill" : phase == .live ? "mic.slash.fill" : "mic")
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundStyle(phase == .live ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
                         .contentTransition(.symbolEffect(.replace))
                     if phase == .connecting || phase == .reconnecting { ProgressView().tint(.white).offset(y: 30) }
                 }
                 .frame(width: 70, height: 70)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Connect" : "Connecting")
-            .accessibilityHint(phase == .off ? "The meeting runs on the Mac's call; this joins it from the phone" : "")
+            .disabled(phase != .live)
+            .accessibilityIdentifier("micRing")
+            .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Microphone" : "Connecting")
+            .accessibilityHint(phase == .off ? "\(ConnectCopy.connectFirst): the meeting runs on the Mac's call; Connect joins it from the phone" : "")
             .ringTalk(phase == .live ? talk : nil)
             Spacer()
             side("Speakers", "person.2", action: speakers)

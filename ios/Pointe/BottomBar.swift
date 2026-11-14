@@ -38,7 +38,7 @@ struct BottomBar: View {
                 side("Sessions", "rectangle.stack", action: sessions)
                 Spacer(minLength: 0)
                 if live {
-                    side("Hang up", "phone.down.fill", tint: .red, action: hangUp)
+                    side("Hang up", "phone.down.fill", tint: .red, action: hangUp).accessibilityIdentifier("hangUp")
                 } else {
                     side("Hang up", "phone.down.fill", action: {}).hidden().accessibilityHidden(true)
                 }
@@ -55,13 +55,15 @@ struct BottomBar: View {
 
     private var hot: Bool { phase == .live && (talk?.talking ?? !muted) }
 
+    /// The mic is a mic: mute and unmute, or hold to talk. With no call it reads disabled and points at Connect.
     private var micButton: some View {
         Button(action: mic) {
             ZStack {
                 Circle().fill(hot ? AnyShapeStyle(Brand.orange.gradient) : AnyShapeStyle(Brand.card))
-                Image(systemName: hot ? "mic.fill" : phase == .off ? "mic" : "mic.slash.fill")
+                    .overlay(Circle().stroke(.white.opacity(phase == .live ? 0 : 0.1)))
+                Image(systemName: hot ? "mic.fill" : phase == .live ? "mic.slash.fill" : "mic")
                     .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(phase == .live ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
                     .contentTransition(.symbolEffect(.replace))
                 if phase == .connecting || phase == .reconnecting { ProgressView().tint(.white).offset(y: 30) }
             }
@@ -69,7 +71,10 @@ struct BottomBar: View {
             .shadow(color: hot ? Brand.orange.opacity(0.5) : .clear, radius: 12)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Connect" : "Connecting")
+        .disabled(phase != .live)
+        .accessibilityIdentifier("micRing")
+        .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Microphone" : "Connecting")
+        .accessibilityHint(phase == .off ? ConnectCopy.connectFirst : "")
         .ringTalk(phase == .live ? talk : nil)
     }
 
