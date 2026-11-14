@@ -43,6 +43,9 @@ struct CallView: View {
     @State private var toast: [String]?
     @State private var demoDictionary = DemoDictionary()
     @State private var whisperFollow = WhisperFollow()
+    @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
+    @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
+    @State private var showMachines = false
     private let demo: Demo?
 
     init(pairing: Pairing, unpair: @escaping () -> Void, demo: Demo? = nil) {
@@ -128,6 +131,17 @@ struct CallView: View {
         .sheet(isPresented: $showSessions) {
             SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode)
                 .presentationDetents([.medium, .large])
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(item: $sessionsOn) { on in
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id)
+                .presentationDetents([.large])
+                .presentationBackground(.regularMaterial)
+        }
+        .sheet(isPresented: $showMachines) {
+            MachinesSheet(status: status, pairing: pairing, ownerCheck: ownerCheck, invite: makeInvite,
+                          cancelInvite: cancelInvite, revoke: revokeMachine)
+                .presentationDetents([.large])  // the code and its countdown must be on screen, on an SE too
                 .presentationBackground(.regularMaterial)
         }
         .sheet(item: $editing) { turn in
@@ -248,7 +262,7 @@ struct CallView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, demo == nil { Task { await call.resume() } }  // back from the background: redial if it dropped
             if phase == .background, demo == nil {  // leaving the screen: what waits now goes to the lock screen and the watch
-                Task { await AlertCenter.shared.sync(status?.attention, api: call.api); AlertCenter.schedule() }
+                Task { await AlertCenter.shared.sync(status?.attention, api: call.api, machines: machines); AlertCenter.schedule() }
             }
         }
     }
@@ -339,7 +353,8 @@ struct CallView: View {
             }
             SessionChips(sessions: status?.sessions ?? [], active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
-                         showAll: { showSessions = true }, rename: rename)
+                         showAll: { showSessions = true }, rename: rename, machines: machines, filter: $machineFilter,
+                         showMachine: { sessionsOn = MachineName(id: $0) })
             if let showing {
                 ShowCard(showing: showing) { showSheet = true }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -373,6 +388,10 @@ struct CallView: View {
                 .accessibilityIdentifier("whisperItem")
             }
             Button { showSessions = true } label: { Label("Sessions and mode", systemImage: "rectangle.stack") }
+            if status?.machines != nil {
+                Button { showMachines = true } label: { Label(MachinesCopy.title, systemImage: "desktopcomputer") }
+                    .accessibilityIdentifier("machinesItem")
+            }
             if meeting?.isOn != true {
                 Button { openMeetingStart() } label: { Label("Start a meeting", systemImage: "person.3") }
             }
@@ -447,7 +466,7 @@ struct CallView: View {
                 DriveRequestCard(session: request, status: status, more: waiting.count - 1)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if let request = waiting.first {
-                RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
+                RequestCard(session: request, who: machines.label(request), showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 if voiceUnsure { unsureNote }
                 if waiting.count > 1 {
@@ -512,7 +531,13 @@ struct CallView: View {
         Text(VoiceLockCopy.unsure).font(.caption).foregroundStyle(Brand.orange).accessibilityIdentifier("voiceUnsure")
     }
 
-    private var waiting: [API.Session] { status?.sessions.filter { $0.waiting && $0.canApprove } ?? [] }
+    /// An answerable request first: one whose machine is offline is back in its terminal.
+    private var waiting: [API.Session] {
+        (status?.sessions.filter { $0.waiting && $0.canApprove } ?? []).enumerated()
+            .sorted { ($0.element.isOffline ? 1 : 0, $0.offset) < ($1.element.isOffline ? 1 : 0, $1.offset) }.map(\.element)
+    }
+
+    private var machines: MachineView { MachineView(status) }
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -553,9 +578,11 @@ struct CallView: View {
         if phase == .off { return "Tap the mic to start talking" }
         if status.sessions.isEmpty { return "No session yet: /pointe:voice or pointe join on the Mac" }
         if status.mode == "session", let active = status.active { return "Focused on \(active)" + health }
-        let needs = status.sessions.filter { $0.waiting || $0.needs != nil }.count
-        let count = status.sessions.count
-        return "Orchestrating \(count) session\(count == 1 ? "" : "s")" + (needs > 0 ? " · \(needs) need\(needs == 1 ? "s" : "") you" : "") + health
+        let shown = machines.shown(machineFilter)  // the machine filter narrows this line too
+        let needs = shown.filter { ($0.waiting || $0.needs != nil) && !$0.isOffline }.count
+        let count = shown.count
+        let on = machines.valid(machineFilter).map { " on \($0)" } ?? ""
+        return "Orchestrating \(count) session\(count == 1 ? "" : "s")\(on)" + (needs > 0 ? " · \(needs) need\(needs == 1 ? "s" : "") you" : "") + health
     }
 
     /// This screen's own problem first, then the call's, then the Mac's (a refused key, a vendor down), as the page does.
@@ -642,7 +669,7 @@ struct CallView: View {
                 }
                 conflictCard(inMeeting: true)
                 if let request = waiting.first {
-                    RequestCard(session: request, showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
+                    RequestCard(session: request, who: machines.label(request), showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     if voiceUnsure { unsureNote }
                 }
                 if typing {
@@ -987,6 +1014,30 @@ struct CallView: View {
 
     private func disconnect(_ name: String) { Task { await act { try await call.api.disconnect(name) } } }
 
+    // MARK: machines
+
+    private func makeInvite() async -> Result<API.Invite, MachinesFailure> {
+        if demo != nil { return .success(Demo.demoInvite) }
+        do { return .success(try await call.api.invite()) } catch { return .failure(.from(error)) }
+    }
+
+    private func cancelInvite() async -> MachinesFailure? {
+        if demo != nil { return nil }
+        do { try await call.api.cancelInvite(); return nil } catch { return .from(error) }
+    }
+
+    private func revokeMachine(_ name: String) async -> MachinesFailure? {
+        if demo != nil {
+            status?.machines?.removeAll { $0.name == name }
+            return nil
+        }
+        do {
+            try await call.api.revoke(name)
+            status = try? await call.api.status()
+            return nil
+        } catch { return .from(error) }
+    }
+
     private func rename(_ name: String, _ newName: String) {
         guard demo == nil else { return }
         Task {
@@ -1054,7 +1105,7 @@ struct CallView: View {
                 let fresh = try await call.api.status()
                 if fresh != status { status = fresh }
                 call.follow(fresh.ptt)
-                await AlertCenter.shared.sync(fresh.attention, api: call.api)
+                await AlertCenter.shared.sync(fresh.attention, api: call.api, machines: MachineView(fresh))
                 reachable = true
             } catch {
                 reachable = false
@@ -1111,6 +1162,8 @@ struct StatusLine: View {
 
 struct RequestCard: View {
     let session: API.Session
+    /// "shop · devbox" when its machine needs saying.
+    var who: String? = nil
     var showAgent = false
     let answer: (API.Session, Bool) async -> Void
     @State private var busy = false
@@ -1119,7 +1172,7 @@ struct RequestCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
-                Label { Text("\(session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.orange) }
+                Label { Text("\(who ?? session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.orange) }
                     .font(.headline)
                 if showAgent { AgentBadge(session: session) }
             }
@@ -1128,15 +1181,21 @@ struct RequestCard: View {
                 .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12).background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
-            Text(session.voice_can_approve == true ? "Say yes or no, or tap." : "Too complex to read out: check it, then tap.")
-                .font(.caption).foregroundStyle(.secondary)
-            HStack(spacing: 10) {
-                Button { act(false) } label: { Text("Deny").frame(maxWidth: .infinity) }
-                    .buttonStyle(.bordered).tint(.gray).controlSize(.large)
-                Button { act(true) } label: { Label("Approve", systemImage: "faceid").frame(maxWidth: .infinity) }
-                    .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+            if session.isOffline {  // its machine dropped: the prompt is back in its terminal, and an answer would be stale
+                Label(MachinesCopy.offlineCard, systemImage: "bolt.horizontal.circle")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("requestOffline")
+            } else {
+                Text(session.voice_can_approve == true ? "Say yes or no, or tap." : "Too complex to read out: check it, then tap.")
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    Button { act(false) } label: { Text("Deny").frame(maxWidth: .infinity) }
+                        .buttonStyle(.bordered).tint(.gray).controlSize(.large)
+                    Button { act(true) } label: { Label("Approve", systemImage: "faceid").frame(maxWidth: .infinity) }
+                        .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+                }
+                .disabled(busy)
             }
-            .disabled(busy)
         }
         .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 20))
@@ -1162,3 +1221,6 @@ struct RequestCard: View {
         Task { await answer(session, allow); busy = false; answered += 1 }
     }
 }
+
+/// A machine's name, as a sheet item.
+struct MachineName: Identifiable, Equatable { let id: String }
