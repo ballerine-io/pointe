@@ -14,44 +14,79 @@
 <style>
   :root {
     --orange: #FF4F1F; --orange-soft: rgba(255, 79, 31, .10); --orange-line: rgba(255, 79, 31, .55);
-    --bg: #0A0F17; --navy: #0E1622; --card: #152031; --card2: #1A2638; --line: rgba(255, 255, 255, .07);
-    --text: #F2F0EE; --muted: #8E98A8; --dim: #5F6B7D; --green: #34C759; --mine: rgba(255, 79, 31, .16);
-    --mine-line: rgba(255, 79, 31, .38);
+    --bg: #0A0F17; --navy: #0E1622; --card: #152031; --card2: #1A2638; --card3: #22314A; --line: rgba(255, 255, 255, .07);
+    --text: #F2F0EE; --muted: #8E98A8; --dim: #5F6B7D; --green: #34C759; --red: #FF453A; --mine: rgba(255, 79, 31, .16);
+    --mine-line: rgba(255, 79, 31, .38); --track: #2B3850;
+    color-scheme: dark;  /* native pickers (the time field, a select's list) come up dark, not grey */
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
-  body { display: grid; grid-template-columns: 320px 1fr; font: 14px/1.45 'Inter', -apple-system, system-ui, sans-serif;
-         color: var(--text); background: var(--bg); overflow: hidden; }
-  body.nosessions { grid-template-columns: 0 1fr; }
-  button { font-family: inherit; }
   /* An id or class rule with its own display (flex, grid) outranks the browser's [hidden] rule, so `el.hidden = true`
-     left such an element on screen (the voice-lock enrol panel, its action row). One rule, instead of a patch per id;
+     left #vl-enrol, #vl-actions and #voicelock on screen. One rule, above every other, keeps hidden meaning hidden;
      #caption[hidden] below still wins by specificity, as its fade needs. */
   [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body { display: grid; grid-template-columns: 320px 1fr; font: 14px/1.45 'Inter', -apple-system, system-ui, sans-serif;
+         color: var(--text); background: var(--bg); overflow: hidden; -webkit-font-smoothing: antialiased; }
+  body.nosessions { grid-template-columns: 0 1fr; }
+  button { font-family: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role=button]:focus-visible {
+    outline: 2px solid var(--orange); outline-offset: 2px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-  /* sessions column */
-  aside { display: flex; flex-direction: column; gap: 22px; padding: 22px 18px 14px; border-right: 1px solid var(--line);
+  /* ---- controls: the iOS set. A setting is a switch, a choice is a select or a segmented control, days are chips. ---- */
+  .toggle input[type=checkbox], .tick input[type=checkbox] {
+    appearance: none; -webkit-appearance: none; flex: none; width: 42px; height: 26px; margin: 0; border: 0; border-radius: 13px;
+    background: var(--track); position: relative; cursor: pointer; transition: background .2s; }
+  .toggle input[type=checkbox]::after, .tick input[type=checkbox]::after {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,.45); transition: transform .2s; }
+  .toggle input[type=checkbox]:checked, .tick input[type=checkbox]:checked { background: var(--orange); }
+  .toggle input[type=checkbox]:checked::after, .tick input[type=checkbox]:checked::after { transform: translateX(16px); }
+  .toggle input[type=checkbox]:disabled, .tick input[type=checkbox]:disabled { opacity: .4; cursor: default; }
+  .tick { display: flex; align-items: center; gap: 12px; color: var(--text); font-size: 14px; cursor: pointer; user-select: none; }
+  .tick input { margin-left: auto; order: 2; }
+  select, #pref-key {
+    appearance: none; -webkit-appearance: none; border: 1px solid var(--line); border-radius: 10px; background: var(--card2);
+    color: var(--text); font: 500 14px 'Inter', sans-serif; padding: 8px 32px 8px 12px; cursor: pointer; min-height: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E98A8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; }
+  select:hover, #pref-key:hover { background-color: var(--card3); }
+  select option { background: var(--navy); color: var(--text); }
+  #pref-key { text-align: left; min-width: 96px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px;
+              background-image: none; padding-right: 12px; }
+  input[type=time] { appearance: none; -webkit-appearance: none; border: 1px solid var(--line); border-radius: 10px; background: var(--card2);
+                     color: var(--text); font: 500 14px 'Inter', sans-serif; padding: 7px 10px; min-height: 36px; }
+  input[type=time]::-webkit-calendar-picker-indicator { opacity: .55; cursor: pointer; }
+  input[type=time]:disabled { opacity: .4; }
+  .seg { display: flex; background: rgba(0, 0, 0, .28); border-radius: 10px; padding: 2px; box-shadow: inset 0 0 0 1px var(--line); }
+  .seg button { flex: 1; border: 0; background: transparent; color: var(--muted); font: 600 13px 'Inter', sans-serif;
+                padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: background .15s, color .15s; white-space: nowrap; }
+  .seg button.on { background: var(--card2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.45), 0 0 0 .5px rgba(255,255,255,.06); }
+  .seg button:disabled { opacity: .4; cursor: default; }
+  .choice input[type=radio], .proutes input[type=radio] {
+    appearance: none; -webkit-appearance: none; flex: none; width: 20px; height: 20px; margin: 1px 0 0; border-radius: 50%;
+    border: 2px solid var(--dim); display: grid; place-items: center; cursor: pointer; background: transparent; }
+  .choice input[type=radio]:checked, .proutes input[type=radio]:checked { border-color: var(--orange); background: var(--orange); }
+  .choice input[type=radio]:checked::after, .proutes input[type=radio]:checked::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+  .sheetbox input[type=checkbox]:not(.tick input) { accent-color: var(--orange); }
+
+  /* ---- sessions column ---- */
+  aside { display: flex; flex-direction: column; gap: 20px; padding: 20px 16px 12px; border-right: 1px solid var(--line);
           background: linear-gradient(180deg, #111A28 0%, var(--bg) 70%); overflow: hidden; min-width: 0; }
   body.nosessions aside { padding: 0; border: 0; }
-  .brand { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--muted); padding: 0 2px; }
   .logo { height: 18px; width: auto; color: #FFFFFF; }
   .brand .ballerine { height: 24px; width: auto; color: #FFFFFF; }
   .brand .bar { width: 1px; height: 30px; background: rgba(255,255,255,.25); flex: none; }
-  .brand .serif { white-space: nowrap; }
   .brand .name { font-weight: 700; color: var(--text); font-size: 19px; line-height: 1.1; }
-  .brand .serif { font-family: 'New York', 'Playfair Display', Georgia, serif; font-style: italic; font-size: 14px; }
-  .label { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
-           margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .brand .serif { font-family: 'New York', 'Playfair Display', Georgia, serif; font-style: italic; font-size: 14px; white-space: nowrap; }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--dim);
+           margin: 0 0 8px 4px; display: flex; align-items: center; gap: 8px; }
+  .modehelp { color: var(--muted); font-size: 12.5px; margin: 8px 4px 0; line-height: 1.45; }
 
-  .seg { display: flex; background: var(--card); border-radius: 10px; padding: 3px; }
-  .seg button { flex: 1; border: 0; background: transparent; color: var(--muted); font: 600 13px 'Inter', sans-serif;
-                padding: 7px 10px; border-radius: 8px; cursor: pointer; }
-  .seg button.on { background: var(--card2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.35); }
-  .modehelp { color: var(--muted); font-size: 12.5px; margin-top: 8px; line-height: 1.45; }
-
-  #list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; }
-  .s { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 2px;
-       width: 100%; padding: 10px 12px; border-radius: 12px; cursor: pointer; border: 1px solid transparent;
+  #list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; min-height: 0; padding: 2px; margin: -2px; scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
+  .s { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 1px;
+       width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px; cursor: pointer; border: 1px solid transparent;
        background: var(--card); color: var(--text); font: 500 14px 'Inter', sans-serif; text-align: left; transition: background .15s; }
   .s:hover { background: var(--card2); }
   .s.on { border-color: var(--orange-line); background: var(--orange-soft); }
@@ -59,7 +94,7 @@
   .s .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .s .why { grid-column: 2 / 4; color: var(--orange); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .s .tools { display: flex; align-items: center; gap: 6px; }
-  .st { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); }
+  .st { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); justify-self: center; }
   .st.working { background: var(--green); animation: breathe 1.6s ease-in-out infinite; }
   .st.wait { background: var(--orange); }
   @keyframes breathe { 50% { opacity: .35; } }
@@ -71,46 +106,46 @@
   #mchips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
   #mchips:empty { display: none; }
   #mchips button { border: 1px solid var(--line); background: var(--card); color: var(--muted); font: 600 12px 'Inter', sans-serif;
-                   padding: 4px 11px; border-radius: 999px; cursor: pointer; }
+                   padding: 5px 12px; border-radius: 999px; cursor: pointer; }
   #mchips button.on { color: var(--text); border-color: var(--orange-line); background: var(--orange-soft); }
   #mchips button.away { opacity: .55; }
-  .mh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; margin: 8px 2px 0; padding: 0; border: 0; background: none;
-        color: var(--dim); font: 500 11.5px 'Inter', sans-serif; cursor: pointer; text-align: left; }
+  .mh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; margin: 10px 4px 2px; padding: 0; border: 0; background: none;
+        color: var(--dim); font: 600 11px 'Inter', sans-serif; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; text-align: left; }
   #list > .mh:first-child { margin-top: 0; }
-  .mh::before { content: '▾'; color: var(--dim); }
+  .mh::before { content: '▾'; color: var(--dim); letter-spacing: 0; }
   .mh.folded::before { content: '▸'; }
-  .mh .mn { color: var(--text); font-weight: 600; font-size: 12.5px; }
-  .mh .hot { color: var(--orange); font-weight: 600; }
-  .mh.away .mn { color: var(--muted); }
+  .mh .mn { color: var(--muted); font-weight: 700; }
+  .mh .hot { color: var(--orange); }
+  .mh.away .mn { color: var(--dim); }
   .s.away { opacity: .45; }
   .s.away .st { background: transparent; border: 1px solid var(--dim); }
   .mlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
   .mlist li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; background: var(--card);
-              border-radius: 12px; padding: 10px 14px; font-size: 13.5px; }
-  .mlist .mmeta { grid-column: 1; color: var(--muted); font-size: 12px; }
+              border-radius: 12px; padding: 10px 14px; font-size: 14px; min-height: 46px; }
+  .mlist .mmeta { grid-column: 1; color: var(--muted); font-size: 12.5px; }
   .mlist .mmeta.away { color: var(--orange); }
-  .mlist button { grid-row: 1 / 3; grid-column: 2; border: 0; border-radius: 10px; padding: 7px 12px; background: var(--card2);
-                  color: var(--text); font: 600 12.5px 'Inter', sans-serif; cursor: pointer; }
+  .mlist button { grid-row: 1 / 3; grid-column: 2; border: 0; border-radius: 10px; padding: 8px 14px; background: var(--card2);
+                  color: var(--text); font: 600 13px 'Inter', sans-serif; cursor: pointer; min-height: 36px; }
   .mlist button.sure { background: var(--orange); color: #fff; }
-  #mach-code { font: 700 28px 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .12em; user-select: all; }
+  #mach-code { font: 700 30px 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .14em; user-select: all; padding: 4px 0; }
   #mach-link { font: 12px 'JetBrains Mono', ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
   #mach-link:empty { display: none; }
   /* Settings → Phone (phone_pairing.py) */
   .proutes { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
-  .proutes label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; background: var(--card);
+  .proutes label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; background: var(--card2);
                    border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; font-size: 13.5px; }
   .proutes label.on { border-color: var(--orange-line); background: var(--orange-soft); }
   .proutes label.off { opacity: .55; cursor: default; }
-  .proutes input { grid-row: 1 / 4; margin-top: 3px; accent-color: var(--orange); }
+  .proutes input { grid-row: 1 / 4; margin-top: 2px; }
   .proutes .pl { font-weight: 600; }
   .proutes .pl .best { color: var(--green); font-weight: 600; font-size: 11.5px; margin-left: 6px; }
   .proutes .pl .now { color: var(--muted); font-weight: 500; font-size: 11.5px; margin-left: 6px; }
   .proutes .pw { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
   .proutes .pp { color: var(--orange); font-size: 12.5px; line-height: 1.4; }
   #ph-hostform { display: flex; gap: 8px; margin: 6px 0; }
-  #ph-hostform input { flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line); color: var(--text);
-                       border-radius: 10px; padding: 7px 10px; font: 13px 'Inter', sans-serif; }
-  #ph-hostform button { border: 0; border-radius: 10px; padding: 7px 14px; background: var(--card2); color: var(--text);
+  #ph-hostform input { flex: 1; min-width: 0; background: var(--card2); border: 1px solid var(--line); color: var(--text);
+                       border-radius: 10px; padding: 8px 12px; font: 14px 'Inter', sans-serif; min-height: 40px; }
+  #ph-hostform button { border: 0; border-radius: 10px; padding: 0 16px; background: var(--card3); color: var(--text);
                         font: 600 13px 'Inter', sans-serif; cursor: pointer; }
   #ph-svg svg { display: block; width: 230px; height: 230px; border-radius: 12px; margin: 8px 0; }
   #ph-link { font: 11.5px 'JetBrains Mono', ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
@@ -129,47 +164,58 @@
   #renameproblem:empty { display: none; }
 
   .routing { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  #recent { margin: 0; padding: 0; list-style: none; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
-  #recent li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  #recent { margin: 0; padding: 0 4px; list-style: none; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
+  #recent li { padding: 9px 0; border-bottom: 1px solid var(--line); }
   #recent li:last-child { border-bottom: 0; }
   .said { color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; }
   .meta { color: var(--dim); margin-top: 3px; font-size: 11px; display: flex; gap: 6px; align-items: baseline; }
   .t { font: 11px 'JetBrains Mono', ui-monospace, monospace; }
   .to { color: var(--muted); font-weight: 600; }
   .blocked { color: var(--orange); }
-  footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; color: var(--dim); font-size: 11px;
-           padding-top: 10px; border-top: 1px solid var(--line); }
-  #ctx { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0; }
-  #ctx:hover { color: var(--text); }
+  footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  footer button { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line);
+                  background: var(--card); color: var(--muted); font: 600 12px 'Inter', sans-serif; cursor: pointer; white-space: nowrap; min-width: 0; }
+  footer button:hover { color: var(--text); background: var(--card2); }
+  footer button::before { content: ''; width: 15px; height: 15px; flex: none; background: currentColor;
+                          -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
+  #settingsbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'/%3E%3C/svg%3E"); }
+  #ctx { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19a8 8 0 1 1 16 0'/%3E%3Cpath d='M12 13l3.5-3.5'/%3E%3C/svg%3E");
+         margin-left: auto; overflow: hidden; text-overflow: ellipsis; }
 
-  /* the call */
+  /* ---- the call ---- */
   main { min-width: 0; display: flex; flex-direction: column; min-height: 0; height: 100vh; position: relative; }
-  .top { display: flex; align-items: center; gap: 14px; padding: 16px 28px 14px; border-bottom: 1px solid var(--line);
+  .top { display: flex; align-items: center; gap: 12px; padding: 14px 24px; min-height: 66px; border-bottom: 1px solid var(--line);
          background: rgba(14, 22, 34, .7); backdrop-filter: blur(12px); }
   .top .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); flex: none; }
   [data-state=live] .top .dot, [data-state=user] .top .dot { background: var(--green); }
   [data-state=bot] .top .dot { background: var(--orange); animation: breathe 1s ease-in-out infinite; }
   [data-state=muted] .top .dot { background: var(--orange); }
   [data-state=connecting] .top .dot, [data-state=reconnecting] .top .dot { background: var(--orange); animation: breathe 1s infinite; }
-  .state { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .state { font-size: 17px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
   [data-state=muted] .state { color: var(--orange); }
-  .sub { color: var(--muted); font-size: 13.5px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 1px; }
   .sub b { color: var(--text); font-weight: 600; }
   .top .grow { flex: 1; min-width: 0; }
-  .toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; cursor: pointer; user-select: none; white-space: nowrap; }
-  .toggle input { accent-color: var(--orange); margin: 0; }
+  .toggle { display: flex; flex-direction: row-reverse; align-items: center; gap: 10px; color: var(--muted); font-size: 12.5px; font-weight: 500;
+            cursor: pointer; user-select: none; white-space: nowrap; }
   #problem { color: var(--orange); font-size: 13px; overflow-wrap: anywhere; }
   #problem:empty { display: none; }
 
   .stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
-  #talk { list-style: none; margin: 0; padding: 22px 28px 12px; flex: 1; min-height: 0; overflow-y: auto; display: flex;
+  #talk { list-style: none; margin: 0; padding: 22px 24px 12px; flex: 1; min-height: 0; overflow-y: auto; display: flex;
           flex-direction: column; gap: 4px; scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
   #talk li { max-width: min(640px, 78%); padding: 11px 16px; border-radius: 20px; line-height: 1.45; font-size: 15.5px;
              background: var(--card); white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--line); }
   #talk li.bot { align-self: flex-start; border-bottom-left-radius: 6px; }
   #talk li.you { align-self: flex-end; background: var(--mine); border-color: var(--mine-line); border-bottom-right-radius: 6px; }
   #talk li.gap { margin-top: 10px; }
-  #talk li.empty { align-self: center; background: none; border: 0; color: var(--muted); margin: auto; }
+  #talk li.empty { align-self: center; background: none; border: 0; color: var(--muted); margin: auto; display: flex; flex-direction: column;
+                   align-items: center; gap: 12px; font-size: 15px; text-align: center; }
+  #talk li.empty::before { content: ''; width: 64px; height: 64px; border-radius: 50%; background: var(--card); box-shadow: inset 0 0 0 1px var(--line);
+                           -webkit-mask: none; position: relative;
+                           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E98A8' stroke-width='1.8' stroke-linecap='round'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 17v4'/%3E%3C/svg%3E");
+                           background-repeat: no-repeat; background-position: center; background-size: 28px; }
+  #talk li.empty::after { content: 'Or type below · Press Space to mute'; color: var(--dim); font-size: 12.5px; }
   #talk li.enter { animation: enter .28s ease-out; }
   @keyframes enter { from { opacity: 0; transform: translateY(10px) scale(.98); } }
   #talk li.you.fixable { cursor: text; }
@@ -187,21 +233,21 @@
              box-shadow: 0 6px 18px rgba(0,0,0,.4); }
 
   /* approval cards, pinned above the bar like the app */
-  #attention { display: flex; flex-direction: column; gap: 8px; padding: 0 28px; }
+  #attention { display: flex; flex-direction: column; gap: 8px; padding: 0 24px; }
   #attention:empty { display: none; }
-  .ask { border: 1px solid var(--orange-line); border-radius: 16px; padding: 12px 14px; background: var(--card); color: var(--text); text-align: left; }
+  .ask { border: 1px solid var(--orange-line); border-radius: 16px; padding: 14px 16px; background: var(--card); color: var(--text); text-align: left; }
   .ask .what { font-weight: 700; font-size: 14px; }
   .ask .what span { color: var(--orange); font-weight: 600; }
   .ask .need { color: var(--muted); margin-top: 4px; font-size: 13px; }
   .ask .need.exact { display: block; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto;
-                     font: 12.5px/1.5 ui-monospace, Menlo, monospace; background: rgba(0,0,0,.28); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
-  .ask .answer { display: flex; gap: 8px; margin-top: 10px; }
-  .ask .answer button { flex: 1; padding: 10px; border-radius: 12px; border: 0; font: 600 14px 'Inter', sans-serif; cursor: pointer; }
+                     font: 12.5px/1.5 ui-monospace, Menlo, monospace; background: rgba(0,0,0,.28); border-radius: 10px; padding: 8px 10px; margin-top: 8px; }
+  .ask .answer { display: flex; gap: 8px; margin-top: 12px; }
+  .ask .answer button { flex: 1; min-height: 44px; padding: 10px; border-radius: 12px; border: 0; font: 600 14px 'Inter', sans-serif; cursor: pointer; }
   .ask .answer .allow { background: var(--orange); color: #fff; }
   .ask .answer .deny { background: var(--card2); color: var(--text); }
   .ask .more { color: var(--muted); font-size: 12px; margin-top: 6px; }
   /* conflict alarm: two sessions that disagree */
-  #conflicts { display: flex; flex-direction: column; gap: 8px; padding: 0 28px 8px; }
+  #conflicts { display: flex; flex-direction: column; gap: 8px; padding: 0 24px 8px; }
   #conflicts:empty { display: none; }
   #conflicts > .more { color: var(--muted); font-size: 12px; }
   .clash .claim { margin-top: 8px; font-size: 13.5px; overflow-wrap: anywhere; }
@@ -210,7 +256,7 @@
   .clash .answer button:disabled { opacity: .45; cursor: default; }
 
   /* the live caption: your words as you speak */
-  #caption { margin: 6px 28px 0; padding: 14px 18px; border-radius: 18px; background: var(--card); border: 1px solid var(--line);
+  #caption { margin: 6px 24px 0; padding: 14px 18px; border-radius: 18px; background: var(--card); border: 1px solid var(--line);
              display: flex; gap: 14px; align-items: center; font-size: 21px; font-weight: 600; line-height: 1.3;
              transition: opacity .25s, transform .25s; }
   #caption[hidden] { display: flex !important; opacity: 0; transform: translateY(8px); pointer-events: none; height: 0; padding: 0 18px;
@@ -222,52 +268,69 @@
   @keyframes wave { 50% { height: 20px; } }
 
   /* typing */
-  #compose { display: flex; gap: 8px; padding: 10px 28px 0; }
-  #compose input { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 11px 14px;
+  #compose { display: flex; gap: 8px; padding: 10px 24px 0; }
+  #compose input { flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 0 16px; min-height: 44px;
                    color: var(--text); font: 15px 'Inter', sans-serif; outline: none; }
   #compose input:focus { border-color: var(--orange-line); }
   #compose input:disabled { opacity: .5; }
-  #compose button { border: 0; border-radius: 14px; padding: 0 18px; background: var(--orange); color: #fff;
+  #compose button { border: 0; border-radius: 14px; padding: 0 18px; min-height: 44px; background: var(--orange); color: #fff;
                     font: 600 14px 'Inter', sans-serif; cursor: pointer; }
   #compose button:disabled { opacity: .35; cursor: default; }
 
-  /* the bar */
-  .dock { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px clamp(6px, calc((100% - 760px) / 9), 22px); margin: 12px 28px 18px; padding: 12px 22px;
-         border-radius: 26px; background: rgba(21, 32, 49, .85); border: 1px solid var(--line); backdrop-filter: blur(14px); }
-  .dock .btn { display: flex; flex-direction: column; align-items: center; gap: 5px; border: 0; background: none; color: var(--text);
-              font: 500 12px 'Inter', sans-serif; cursor: pointer; min-width: 74px; padding: 0; }
-  .dock .btn .ic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--card2); transition: background .15s; }
-  .dock .btn:hover .ic { background: #22314A; }
-  .dock .btn svg { width: 22px; height: 22px; }
-  .dock .btn.on .ic { background: var(--orange-soft); box-shadow: inset 0 0 0 1px var(--orange); }
-  .dock .btn.on { color: var(--orange); }
-  .dock .btn.hang { color: #FF453A; }
-  .dock .btn:disabled { opacity: .35; cursor: default; }
-  /* With the Showing pane open the middle column can be under 500 px: tighter, and it wraps rather than spilling over the
-     sessions column and under the pane. */
-  body.showing .dock { gap: 8px 4px; padding: 10px 12px; margin-left: 16px; margin-right: 16px; }
-  body.showing .dock .btn { min-width: 52px; }
-  .dock #mic { flex: none; }  /* never squeezed into an oval */
-  #mic { width: 74px; height: 74px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
-         background: var(--orange); color: #fff; box-shadow: 0 8px 26px rgba(255, 79, 31, .35); transition: transform .15s, background .2s; }
+  /* ---- the bar: the mic in the middle, four controls each side, Hang up beside the mic ---- */
+  .dock { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0 14px; margin: 10px 24px 16px; padding: 10px 16px 12px;
+          border-radius: 28px; background: rgba(21, 32, 49, .85); border: 1px solid var(--line); backdrop-filter: blur(14px); position: relative; }
+  .dock-side { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 2px 4px; min-width: 0; }
+  .dock-side.left { justify-content: flex-end; }
+  .dock-side.right { justify-content: flex-start; }
+  .dock .btn, #more-list .btn { display: flex; flex-direction: column; align-items: center; gap: 5px; border: 0; background: none; color: var(--muted);
+                                font: 500 11.5px 'Inter', sans-serif; cursor: pointer; min-width: 66px; padding: 4px 2px; border-radius: 14px; }
+  .dock .btn .ic, #more-list .btn .ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--card2);
+                                        color: var(--text); transition: background .15s, transform .1s; }
+  .dock .btn:hover .ic, #more-list .btn:hover .ic { background: var(--card3); }
+  .dock .btn:active .ic { transform: scale(.94); }
+  .dock .btn svg, #more-list .btn svg { width: 21px; height: 21px; }
+  .dock .btn.on, #more-list .btn.on { color: var(--orange); }
+  .dock .btn.on .ic, #more-list .btn.on .ic { background: var(--orange-soft); box-shadow: inset 0 0 0 1.5px var(--orange); color: var(--orange); }
+  .dock .btn:disabled, #more-list .btn:disabled { opacity: .35; cursor: default; }
+  .dock .btn .lb { white-space: nowrap; }
+  .dock-center { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .micmode button { padding: 4px 12px; font-size: 12px; min-width: 92px; }
+  .microw { position: relative; display: flex; justify-content: center; }
+  #mic { width: 68px; height: 68px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+         background: var(--orange); color: #fff; box-shadow: 0 8px 26px rgba(255, 79, 31, .35); transition: transform .15s, background .2s, box-shadow .2s;
+         touch-action: none; user-select: none; -webkit-user-select: none; }
   #mic:hover { transform: scale(1.04); }
-  #mic svg { width: 30px; height: 30px; }
+  #mic svg { width: 28px; height: 28px; }
   #mic .off { display: none; }
+  #miclabel { font: 600 12px 'Inter', sans-serif; color: var(--text); line-height: 1; }
+  #keyhint { font: 11px 'Inter', sans-serif; color: var(--dim); line-height: 1; white-space: nowrap; }
+  #hangup { position: absolute; left: calc(50% + 34px + 12px); top: 50%; transform: translateY(-50%); min-width: 0; padding: 0; color: var(--red); }
+  #hangup .ic { width: 48px; height: 48px; background: var(--red); color: #fff; }
+  #hangup:hover .ic { background: #FF5F55; }
+  #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #hangup:disabled { visibility: hidden; }
   [data-state=muted] #mic { background: var(--card2); color: var(--orange); box-shadow: inset 0 0 0 2px var(--orange); }
   [data-state=muted] #mic .on { display: none; } [data-state=muted] #mic .off { display: block; }
-  [data-state=off] #mic { background: var(--card2); box-shadow: inset 0 0 0 2px var(--orange); color: var(--orange); }
+  [data-state=off] #mic { background: var(--orange); color: #fff; }
   [data-state=bot] #mic { animation: speak 1.1s ease-in-out infinite; }
   [data-state=user] #mic { box-shadow: 0 0 0 8px var(--orange-soft), 0 8px 26px rgba(255, 79, 31, .35); }
   [data-state=connecting] #mic, [data-state=reconnecting] #mic { opacity: .7; }
   /* push to talk: an outlined ring while closed, filled orange while a press holds it open */
-  #mic { touch-action: none; user-select: none; -webkit-user-select: none; }
   [data-state=ptt] #mic { background: var(--card2); color: var(--orange); box-shadow: inset 0 0 0 2px var(--orange); }
-  [data-state=talking] #mic { background: var(--orange); color: #fff; box-shadow: 0 0 0 8px var(--orange-soft), 0 8px 26px rgba(255, 79, 31, .35); }
+  [data-state=talking] #mic { background: var(--orange); color: #fff; box-shadow: 0 0 0 10px var(--orange-soft), 0 8px 26px rgba(255, 79, 31, .45); transform: scale(1.04); }
   [data-state=ptt] .top .dot { background: var(--green); } [data-state=talking] .top .dot { background: var(--orange); }
-  [data-state=talking] .state { color: var(--orange); }
-  #pref-key { text-align: left; }
-  .sheetbox .note { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: -6px; }
+  [data-state=talking] .state, [data-state=talking] #miclabel { color: var(--orange); }
   @keyframes speak { 50% { box-shadow: 0 0 0 10px rgba(255, 79, 31, .16); } }
+  /* With the Showing pane open the middle column can be under 500 px: tighter, and the sides wrap rather than spilling. */
+  body.showing .dock { gap: 0 8px; padding: 8px 10px 10px; margin-left: 12px; margin-right: 12px; }
+  body.showing .dock .btn { min-width: 50px; }
+  #more-list { display: flex; flex-direction: column; gap: 2px; }
+  #more-list .btn { flex-direction: row; justify-content: flex-start; gap: 14px; width: 100%; min-height: 54px; padding: 6px 10px; font-size: 15px;
+                    color: var(--text); border-radius: 14px; }
+  #more-list .btn:hover { background: var(--card); }
+  #more-list .btn .ic { width: 40px; height: 40px; }
+  #more-list:empty::before { content: 'Nothing more on this screen size.'; color: var(--muted); font-size: 13px; }
 
   /* brainstorm: the user talks, the voice stays quiet */
   #brainstorm { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -300,15 +363,15 @@
   #chl-close { background: var(--card2); color: var(--text); }
   #challenge .hint { color: var(--dim); font-size: 12.5px; }
   #bs-challenge { border: 0; border-radius: 999px; padding: 12px 24px; background: var(--card2); color: var(--text); font: 600 15px 'Inter', sans-serif; cursor: pointer; }
-  #challenge :focus-visible, #bs-challenge:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
   /* context drawer */
   #ctxpanel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100vw); z-index: 30; display: none;
               flex-direction: column; gap: 16px; padding: 20px; background: var(--navy); border-left: 1px solid var(--line);
               box-shadow: -12px 0 32px rgba(0,0,0,.4); overflow-y: auto; padding-top: calc(20px + env(safe-area-inset-top)); }
   #ctxpanel.open { display: flex; }
-  #ctxpanel h2 { margin: 0; font-size: 15px; display: flex; align-items: center; }
-  #ctxpanel h2 button { margin-left: auto; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; }
+  #ctxpanel h2 { margin: 0; font-size: 16px; display: flex; align-items: center; }
+  #ctxpanel h2 button, #ctxmodal h2 button { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--card2);
+                                             color: var(--muted); font: 400 20px/1 'Inter', sans-serif; cursor: pointer; display: grid; place-items: center; }
   #ctx-total { font-size: 30px; font-weight: 700; } #ctx-total small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 8px; }
   .ctx-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 13px; margin-bottom: 8px; }
   .ctx-row .n { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -325,26 +388,25 @@
   #ctxmodal { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center;
               background: rgba(0,0,0,.55); padding: 16px; }
   #ctxmodal.open { display: flex; }
-  #ctxmodal .box { width: min(720px, 100%); max-height: 85vh; display: flex; flex-direction: column; gap: 10px; padding: 16px;
-                   background: var(--navy); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  #ctxmodal .box { width: min(720px, 100%); max-height: 85vh; display: flex; flex-direction: column; gap: 12px; padding: 20px;
+                   background: var(--navy); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
   #ctxmodal h2 { margin: 0; font-size: 13px; display: flex; align-items: center; }
-  #ctxmodal h2 button { margin-left: auto; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; }
-  #ctxmodal pre { margin: 0; padding: 12px 14px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line);
+  #ctxmodal pre { margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line);
                   white-space: pre-wrap; word-break: break-word; font: 12.5px/1.6 ui-monospace, Menlo, monospace; color: var(--text); overflow: auto; }
 
   /* meeting mode: a participant that takes notes, raises a hand, speaks only when let */
-  #meetbar { display: none; align-items: center; gap: 12px; padding: 9px 28px; background: rgba(255, 69, 58, .10);
+  #meetbar { display: none; align-items: center; gap: 12px; padding: 9px 24px; background: rgba(255, 69, 58, .10);
              border-bottom: 1px solid rgba(255, 69, 58, .35); font-size: 13px; flex-wrap: wrap; }
   body.meeting #meetbar { display: flex; }
-  #meetbar .rec { width: 9px; height: 9px; border-radius: 50%; background: #FF453A; flex: none; animation: breathe 1.4s ease-in-out infinite; }
+  #meetbar .rec { width: 9px; height: 9px; border-radius: 50%; background: var(--red); flex: none; animation: breathe 1.4s ease-in-out infinite; }
   #meetbar .what { font-weight: 600; }
   #meetbar .grow { flex: 1; min-width: 0; color: var(--muted); }
   #meetbar .seg { flex: none; }
   #meetbar .seg button { padding: 4px 10px; font-size: 12px; }
-  #meetbar .redial { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; background: var(--card); color: var(--text);
+  #meetbar .redial { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: var(--card); color: var(--text);
                      font: 600 12px 'Inter', sans-serif; cursor: pointer; }
   #meetbar button:disabled { opacity: .55; cursor: default; }
-  #meetbar .end { border: 0; border-radius: 999px; padding: 6px 14px; background: #FF453A; color: #fff; font: 600 12.5px 'Inter', sans-serif; cursor: pointer; }
+  #meetbar .end { border: 0; border-radius: 999px; padding: 7px 14px; background: var(--red); color: #fff; font: 600 12.5px 'Inter', sans-serif; cursor: pointer; }
   #speakers { display: flex; gap: 6px; flex-wrap: wrap; }
   #speakers .chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: 12px; background: var(--card); cursor: pointer; color: var(--text); }
   #speakers .chip.you { border-color: var(--orange-line); color: var(--orange); }
@@ -353,11 +415,11 @@
   #notes { display: none; flex: 1; min-height: 0; flex-direction: column; }
   body.meeting #notes, body.meetend #notes { display: flex; }
   body.meeting #talk, body.meetend #talk { display: none; }
-  #notes .filters { display: flex; gap: 6px; padding: 14px 28px 6px; flex-wrap: wrap; }
+  #notes .filters { display: flex; gap: 6px; padding: 14px 24px 6px; flex-wrap: wrap; }
   #notes .filters button { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 999px; padding: 5px 12px;
                            font: 600 12px 'Inter', sans-serif; cursor: pointer; }
   #notes .filters button.on { color: var(--text); border-color: var(--orange-line); background: var(--orange-soft); }
-  #notelist { list-style: none; margin: 0; padding: 8px 28px 16px; overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  #notelist { list-style: none; margin: 0; padding: 8px 24px 16px; overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
   #notelist li { border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; background: var(--card); }
   #notelist li .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: flex; gap: 8px; align-items: center; }
   #notelist li .k .t { margin-left: auto; font-variant-numeric: tabular-nums; }
@@ -366,65 +428,125 @@
   #notelist li.answer .k { color: var(--green); } #notelist li.decision .k, #notelist li.action .k { color: #64D2FF; }
   #notelist li.done, #notelist li.dismissed { opacity: .45; }
   #notelist li .acts { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-  #notelist li .acts button { border: 1px solid var(--line); background: var(--card2); color: var(--text); border-radius: 10px; padding: 5px 11px;
+  #notelist li .acts button { border: 1px solid var(--line); background: var(--card2); color: var(--text); border-radius: 10px; padding: 6px 12px;
                               font: 600 12px 'Inter', sans-serif; cursor: pointer; }
   #notelist li .acts button.go { background: var(--orange); border-color: var(--orange); color: #fff; }
   #notelist li.turn { background: transparent; }
   #notelist li.turn .who { color: var(--orange); font-weight: 600; margin-right: 6px; }
   #notelist li .acts .busy { color: var(--muted); font-size: 12.5px; padding: 5px 0; }
-  #endbar { display: none; align-items: center; gap: 10px; padding: 12px 28px 0; color: var(--muted); font-size: 13px; }
+  #endbar { display: none; align-items: center; gap: 10px; padding: 12px 24px 0; color: var(--muted); font-size: 13px; }
   body.meetend #endbar { display: flex; }
-  #endbar button { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; padding: 5px 11px; font: 600 12px 'Inter', sans-serif; cursor: pointer; }
+  #endbar button { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; padding: 6px 12px; font: 600 12px 'Inter', sans-serif; cursor: pointer; }
   #notelist li.empty { background: none; border: 0; color: var(--muted); text-align: center; margin: auto; }
 
-  #hand { margin: 8px 28px 0; border: 1px solid var(--orange); border-radius: 16px; padding: 12px 14px; background: var(--orange-soft); }
+  #hand { margin: 8px 24px 0; border: 1px solid var(--orange); border-radius: 16px; padding: 12px 14px; background: var(--orange-soft); }
   #hand .line { font-size: 15px; font-weight: 600; }
   #hand .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   #hand .row button { border: 0; border-radius: 12px; padding: 9px 14px; font: 600 13px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
   #hand .row button.go { background: var(--orange); color: #fff; }
   #hand .hint { color: var(--muted); font-size: 11.5px; margin-top: 6px; }
 
-  /* sheets: start a meeting, consent, end of meeting, settings */
-  .sheetbg { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 16px; }
+  /* ---- sheets: one card for every dialog ---- */
+  .sheetbg { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.6);
+             padding: 16px; backdrop-filter: blur(6px); }
   .sheetbg.open { display: flex; }
-  .sheetbox { width: min(560px, 100%); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px;
-              background: var(--navy); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
-  .sheetbox h2 { margin: 0; font-size: 19px; display: flex; align-items: center; }
-  .sheetbox h2 button.x { margin-left: auto; background: none; border: 0; color: var(--muted); font-size: 22px; cursor: pointer; }
-  .sheetbox .lede { color: var(--muted); font-size: 13.5px; margin-top: -8px; }
+  .sheetbox { width: min(560px, 100%); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 24px;
+              background: var(--navy); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 24px 70px rgba(0,0,0,.55); }
+  .sheetbox h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+  .sheetbox h2 button.x, .shead button.x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--card2); color: var(--muted);
+                                            font: 400 20px/1 'Inter', sans-serif; cursor: pointer; display: grid; place-items: center; flex: none; padding: 0; }
+  .sheetbox h2 button.x:hover, .shead button.x:hover { background: var(--card3); color: var(--text); }
+  .sheetbox .lede { color: var(--muted); font-size: 13.5px; margin-top: -6px; line-height: 1.45; }
   .choice { display: flex; flex-direction: column; gap: 8px; }
-  .choice label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; cursor: pointer; background: var(--card); }
+  .choice label { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; cursor: pointer; background: var(--card); }
   .choice label:has(input:checked) { border-color: var(--orange-line); background: var(--orange-soft); }
-  .choice input { accent-color: var(--orange); margin-top: 3px; }
   .choice b { display: block; font-size: 14.5px; } .choice span { color: var(--muted); font-size: 12.5px; }
   .sheetbox textarea { min-height: 84px; resize: vertical; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px;
                        padding: 10px 12px; font: 14px 'Inter', sans-serif; outline: none; }
   .sheetbox textarea:focus { border-color: var(--orange-line); }
   .sheetbox .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
   .sheetbox .checks { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
-  .sheetbox .checks label, .sheetbox .tick { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: 13.5px; cursor: pointer; }
-  .sheetbox input[type=checkbox] { accent-color: var(--orange); }
-  .sheetbox .vendors { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; background: var(--card); border-radius: 12px; padding: 12px 14px; }
+  .sheetbox .checks label { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: 13.5px; cursor: pointer; }
+  .sheetbox .vendors { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; background: var(--card); border-radius: 12px; padding: 12px 14px; margin: 0; }
   .sheetbox .vendors dt { color: var(--muted); } .sheetbox .vendors dd { margin: 0; font-weight: 600; }
-  .sheetbox .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-  .sheetbox .row button, .sheetbox select, #pref-key { border: 0; border-radius: 12px; padding: 10px 16px; font: 600 14px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
+  .sheetbox .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
+  .sheetbox .row button { border: 0; border-radius: 12px; padding: 0 18px; min-height: 44px; font: 600 14px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
+  .sheetbox .row button:hover { background: var(--card3); }
   .sheetbox .row button.go { background: var(--orange); color: #fff; }
+  .sheetbox .row button.go:hover { background: #FF6236; }
   .sheetbox .row button:disabled { opacity: .4; cursor: default; }
   .sheetbox .err { color: var(--orange); font-size: 13px; } .sheetbox .err:empty { display: none; }
   .sheetbox ul.items { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; }
-  #voicelock { display: flex; flex-direction: column; gap: 10px; }
-  #voicelock .help, #voicelock .note { color: var(--muted); font-size: 13px; }
-  #voicelock .note:empty, #vl-problem:empty, #vl-err:empty { display: none; }
+  .sheetbox .note { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  .sheetbox h3 { margin: 4px 0 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+  .sheetbox .ok { color: var(--green); font-size: 13px; } .sheetbox .ok:empty { display: none; }
+  #meetbar .warn { color: var(--orange); font-weight: 600; }
+
+  /* Settings: a sticky header, a section list on the left, grouped inset cards on the right (iOS Settings) */
+  .sheetbox.settings { width: min(840px, 100%); height: min(86vh, 880px); max-height: 86vh; padding: 0; gap: 0; overflow: hidden; }
+  .settings .shead { flex: none; display: flex; flex-direction: column; gap: 4px; padding: 16px 20px 14px; border-bottom: 1px solid var(--line); background: var(--navy); }
+  .settings .shead .bar { display: flex; align-items: center; gap: 10px; }
+  .settings .shead h2 { flex: 1; }
+  .settings .shead .done { height: 34px; padding: 0 16px; border-radius: 999px; border: 0; background: var(--orange); color: #fff; font: 600 14px 'Inter', sans-serif; cursor: pointer; }
+  .settings .shead .done:hover { background: #FF6236; }
+  .settings .shead button.x { margin-left: 0; }
+  .settings .sbody { flex: 1; min-height: 0; display: flex; }
+  .settings .snav { flex: none; width: 196px; padding: 12px 10px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  .settings .snav button { text-align: left; border: 0; background: none; color: var(--muted); font: 500 13.5px 'Inter', sans-serif; padding: 9px 12px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+  .settings .snav button:hover { background: var(--card); color: var(--text); }
+  .settings .snav button.on { background: var(--orange-soft); color: var(--orange); font-weight: 600; }
+  .settings .spanel { flex: 1; min-width: 0; overflow-y: auto; padding: 18px 22px 40px; display: flex; flex-direction: column; gap: 26px; position: relative;
+                      scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
+  .settings .group { display: flex; flex-direction: column; gap: 8px; }
+  .settings .group > h3 { margin: 0 0 0 14px; }
+  .settings .card { background: var(--card); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; }
+  .settings .card > * + * { border-top: 1px solid var(--line); }
+  .settings .card > .err:empty + *, .settings .card > .note:empty + *, .settings .card > .ok:empty + * { border-top: 0; }
+  .settings .r, .settings .tick, .settings .field { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px;
+                                                     padding: 8px 14px; font-size: 14.5px; color: var(--text); margin: 0; }
+  .settings .field { flex-direction: row; }
+  .settings .r.col { flex-direction: column; align-items: stretch; gap: 10px; padding-top: 12px; padding-bottom: 12px; }
+  .settings .r.col > .seg { width: 100%; }
+  .settings .tick:hover, .settings .r.nav:hover { background: var(--card2); }
+  .settings .r.nav { width: 100%; border: 0; background: none; color: var(--text); font: 500 14.5px 'Inter', sans-serif; cursor: pointer; text-align: left; }
+  .settings .r.nav::after { content: ''; width: 8px; height: 8px; border-right: 2px solid var(--dim); border-bottom: 2px solid var(--dim); transform: rotate(-45deg); flex: none; margin-right: 4px; }
+  .settings .card .note, .settings .card .help, .settings .card .err, .settings .card .ok { padding: 10px 14px; margin: 0; font-size: 13px; }
+  .settings .note:empty, .settings .help:empty, .settings .card > div:empty { display: none; }
+  .settings .card .help { color: var(--muted); line-height: 1.45; }
+  .settings .note.foot, .settings .group > .err { padding: 0 14px; margin: 0; }
+  .settings .card .row { padding: 10px 14px; }
+  .settings .card .row button { min-height: 40px; padding: 0 16px; font-size: 13.5px; }
+  .settings .card .mlist { gap: 0; }
+  .settings .card .mlist li { background: none; border-radius: 0; padding: 10px 14px; }
+  .settings .card .mlist li + li { border-top: 1px solid var(--line); }
+  .settings #phone .note, .settings #phone .row { margin: 0; }
+  .settings .proutes { margin: 0; padding: 10px 14px; }
+  .settings #ph-hostform { margin: 0; padding: 0 14px 10px; }
+  .settings #ph-svg { padding: 0 14px; } .settings #ph-link { padding: 0 14px; margin: 0; }
+  .settings #ph-done { padding: 12px 14px; margin: 0; }
+  .settings #pref-local { font-size: 14px; color: var(--text); }
+  .settings #mach-invite { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
+  .settings #mach-invite .note { padding: 0; }
+  .settings #pref-consent .note { padding-bottom: 4px; } .settings #pref-consent .row { padding-top: 0; }
+
+  /* Voice lock: one primary action while idle; the line to read is the hero while enrolling */
+  #voicelock .help { color: var(--muted); font-size: 13px; }
+  #voicelock .note:empty, #vl-problem:empty, #vl-err:empty, #vl-needcall:empty, #vl-confirm:empty { display: none; }
   #vl-problem { color: var(--orange); font-size: 13px; }
-  #vl-enrol { background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-  #vl-enrol .line { font-size: 17px; line-height: 1.4; font-weight: 600; color: var(--text); }
-  #vl-enrol .bar { height: 6px; border-radius: 3px; background: var(--card2); overflow: hidden; }
-  #vl-enrol .bar i { display: block; height: 100%; background: var(--orange); transition: width .3s; }
-  #vl-devices { display: flex; flex-direction: column; gap: 6px; }
-  #vl-devices .dev { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  #vl-enrol { display: flex; flex-direction: column; gap: 10px; padding: 16px 14px 14px; background: linear-gradient(180deg, rgba(255,79,31,.08), transparent); }
+  #vl-enrol .line { font-size: 22px; line-height: 1.3; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+  #vl-enrol .bar { height: 8px; border-radius: 4px; background: var(--card2); overflow: hidden; }
+  #vl-enrol .bar i { display: block; height: 100%; background: var(--orange); transition: width .3s; border-radius: 4px; }
+  #vl-enrol .row { padding: 4px 0 0 !important; }
+  #vl-devices { display: flex; flex-direction: column; }
+  #vl-devices:empty { display: none; }
+  #vl-devices .dev { display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 48px; padding: 6px 14px; }
+  #vl-devices .dev + .dev { border-top: 1px solid var(--line); }
   #vl-devices .dev span { flex: 1; }
-  #vl-devices .dev button, #voicelock .row button { border: 0; border-radius: 10px; padding: 7px 12px; font: 600 13px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
-  #voicelock .row button.go { background: var(--orange); color: #fff; }
+  #vl-devices .dev button { border: 0; border-radius: 10px; padding: 8px 12px; font: 600 13px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
+  #vl-actions { padding: 12px 14px 4px !important; border-top: 0 !important; }
+  #vl-needcall, #vl-confirm { color: var(--muted); font-size: 12.5px; padding: 0 14px 12px !important; border-top: 0 !important; line-height: 1.45; }
+  #vl-confirm { color: var(--orange); }
   #voicelock button:disabled { opacity: .4; cursor: default; }
   #vl-levels button:disabled { opacity: .35; }
   #vlignored { display: none; border: 0; background: none; color: var(--muted); font: 500 12.5px 'Inter', sans-serif; padding: 0; cursor: pointer; text-decoration: underline dotted; }
@@ -440,17 +562,13 @@
   #brf-list .sec { margin-top: 6px; } #brf-list .sec b { margin-right: 6px; }
   .chip { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; background: var(--card2); color: var(--muted); margin-right: 6px; }
   .chip.waiting { background: var(--orange-soft); color: var(--orange); } .chip.failed { color: #FF6B5E; }
-  #brf-days { flex-wrap: wrap; } #brf-days button { flex: 1 0 auto; }
-  #brf-days button[aria-pressed=true] { background: var(--card2); color: var(--text); box-shadow: inset 0 0 0 1px var(--orange-line); }
-  #briefalert { padding: 0 28px; } #briefalert:empty { display: none; }
-  .sheetbox h3 { margin: 4px 0 0; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
-  .sheetbox .ok { color: var(--green); font-size: 13px; } .sheetbox .ok:empty { display: none; }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .sheetbox :focus-visible, #meetbar :focus-visible, #notes :focus-visible, #hand :focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
-  #meetbar .warn { color: var(--orange); font-weight: 600; }
-  #settingsbtn { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+  #brf-days { display: flex; flex-wrap: wrap; gap: 6px; background: none; padding: 0; box-shadow: none; border-radius: 0; }
+  #brf-days button { flex: none; width: 38px; height: 38px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: transparent;
+                     color: var(--muted); font: 600 11px 'Inter', sans-serif; box-shadow: none; }
+  #brf-days button:hover { background: var(--card2); color: var(--text); }
+  #brf-days button[aria-pressed=true] { background: var(--orange); border-color: var(--orange); color: #fff; }
+  #briefalert { padding: 0 24px; } #briefalert:empty { display: none; }
   #settingsbtn:hover { color: var(--text); }
-
 
   /* show while it says: what the voice talks about, on screen (artifacts.py) */
   body.showing { grid-template-columns: 320px minmax(0, 1fr) minmax(360px, 38vw); }
@@ -495,8 +613,14 @@
   body.showfold #show > :not(.head) { display: none; }
   body.showfold #show .head { flex-direction: column; padding: 14px 6px; }
   body.showfold #show .head > :not(#show-fold) { display: none; }
-  #show :focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
+  @media (max-width: 1100px) {  /* the dock keeps its icons; the labels become tooltips */
+    .dock { padding-left: 12px; padding-right: 12px; gap: 0 10px; }
+    .dock-side { gap: 2px; }
+    .dock .btn { min-width: 46px; }
+    .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .micmode button { min-width: 80px; padding-left: 9px; padding-right: 9px; }
+  }
   @media (max-width: 900px) {  /* narrow: the sessions column becomes a sheet behind the Sessions button */
     body { grid-template-columns: 1fr; }
     aside { position: fixed; inset: 0 auto 0 0; width: min(360px, 92vw); z-index: 20; transform: translateX(-102%);
@@ -507,8 +631,7 @@
     #hand { margin-left: 12px; margin-right: 12px; }
     #caption, .dock { margin-left: 12px; margin-right: 12px; }
     #briefalert { padding-left: 16px; padding-right: 16px; }
-    .dock { gap: 8px; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); }
-    .dock .btn { min-width: 56px; }
+    .dock { gap: 0 8px; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
     #compose.folded { display: none; }
     body.showing, body.showing.showfold, body.showing.nosessions, body.showing.showfold.nosessions { grid-template-columns: 1fr; }
     #show { position: fixed; left: 0; right: 0; bottom: 0; height: 62vh; z-index: 25; border: 0; border-top: 1px solid var(--line);
@@ -517,6 +640,32 @@
     body.showfold #show .head { flex-direction: row; padding: 10px 16px; }
     body.showfold #show .head > :not(#show-fold) { display: block; }
     body.showfold #show .head > .tools { display: none; }
+  }
+  @media (max-width: 760px) {  /* the page on an iPad or a phone: sheets rise from the bottom, Settings' sections become a strip */
+    .sheetbg { padding: 0; align-items: flex-end; }
+    .sheetbox { width: 100%; max-height: 92vh; border-radius: 22px 22px 0 0; border-bottom: 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); }
+    .sheetbox.settings { height: 92vh; max-height: 92vh; padding: 0; }
+    .settings .sbody { flex-direction: column; }
+    .settings .snav { width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 12px; gap: 4px;
+                      scrollbar-width: none; }
+    .settings .snav button { padding: 7px 12px; border-radius: 999px; background: var(--card); }
+    .settings .spanel { padding: 16px 14px calc(30px + env(safe-area-inset-bottom)); gap: 22px; }
+    .toggle { font-size: 0; gap: 0; }  /* the switch alone; its title says what it does */
+    .micmode button { min-width: 0; padding: 4px 9px; font-size: 11px; }
+    .dock .btn { min-width: 46px; }
+    #hangup { left: calc(50% + 34px + 8px); } #hangup .ic { width: 44px; height: 44px; }
+  }
+  @media (max-width: 560px) {  /* a phone: the mode switch takes its own row, the mic keeps the middle of the next */
+    .dock { grid-template-rows: auto auto auto; gap: 6px; padding: 8px 8px calc(10px + env(safe-area-inset-bottom)); }
+    .dock-center { display: contents; }
+    .micmode { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
+    .microw { grid-column: 2; grid-row: 2; padding: 0 44px; }  /* the same room both sides: Hang up sits in the right one */
+    #miclabel { grid-column: 1 / -1; grid-row: 3; justify-self: center; }
+    #keyhint { display: none; }
+    .dock-side { grid-row: 2; align-self: center; gap: 4px; }
+    .dock .btn { min-width: 40px; padding: 4px 0; } .dock .btn .ic { width: 40px; height: 40px; }
+    #hangup { left: calc(50% + 34px + 4px); } #hangup .ic { width: 40px; height: 40px; }
+    .top { padding-left: 14px; padding-right: 14px; }
   }
 </style>
 </head>
@@ -546,7 +695,6 @@
   </section>
 
   <footer>
-    <span id="keyhint">Space or AirPods to mute</span>
     <button id="settingsbtn" onclick="openSettings()" title="Voice lock and meeting defaults">Settings</button>
     <button id="ctx" onclick="openCtx()" title="What the voice model holds"></button>
   </footer>
@@ -607,132 +755,190 @@
   </div>
 </div>
 <div class="sheetbg" id="settingssheet" onclick="if (event.target === this) closeSheet('settingssheet')">
-  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="set-h">
-    <h2 id="set-h">Settings<button class="x" onclick="closeSheet('settingssheet')" aria-label="Close">×</button></h2>
-    <section id="voicelock" aria-labelledby="vl-h" hidden>
-      <h3 id="vl-h">Voice lock</h3>
-      <div class="help" id="vl-intro">Pointe can learn your voice so other voices in the room can't approve or command. Your voiceprint stays on your Mac.</div>
-      <div id="vl-problem" role="alert"></div>
-      <div id="vl-enrol" hidden>
-        <div class="help">Read this line aloud</div>
-        <div class="line" id="vl-line" lang="und"></div>
-        <div class="bar" role="progressbar" aria-label="Enrolment" aria-valuemin="0" aria-valuemax="100" id="vl-bar"><i id="vl-fill" style="width:0"></i></div>
-        <div class="help" id="vl-pct"></div>
-        <div class="note" id="vl-why" role="status"></div>
-        <div class="note" id="vl-model"></div>
-        <div class="row" style="justify-content:flex-start"><button id="vl-cancel" onclick="voicePrint({action: 'cancel'})">Cancel</button></div>
+  <div class="sheetbox settings" role="dialog" aria-modal="true" aria-labelledby="set-h">
+    <div class="shead">
+      <div class="bar">
+        <button class="x" onclick="closeSheet('settingssheet')" aria-label="Close">×</button>
+        <h2 id="set-h">Settings</h2>
+        <button type="button" class="done" onclick="saveSettings()">Done</button>
       </div>
-      <div id="vl-devices"></div>
-      <div class="note" id="vl-needcall"></div>
-      <div class="row" style="justify-content:flex-start" id="vl-actions">
-        <button class="go" id="vl-enrolbtn" onclick="enrolVoice()">Enrol my voice</button>
-        <button id="vl-deleteall" onclick="deleteVoice()">Delete my voiceprint</button>
+      <div class="ok" id="setok" role="status"></div><div class="err" id="seterr" role="alert"></div>
+    </div>
+    <div class="sbody">
+      <nav class="snav" id="set-nav" aria-label="Settings sections">
+        <button type="button" data-section="voicelock" onclick="settingsJump('voicelock')">Voice lock</button>
+        <button type="button" data-section="machines" onclick="settingsJump('machines')">Machines</button>
+        <button type="button" data-section="phone" onclick="settingsJump('phone')">Phone</button>
+        <button type="button" data-section="g-dictionary" onclick="settingsJump('g-dictionary')">Dictionary</button>
+        <button type="button" data-section="g-briefings" onclick="settingsJump('g-briefings')">Briefings</button>
+        <button type="button" data-section="g-meetings" onclick="settingsJump('g-meetings')">Meetings</button>
+        <button type="button" data-section="g-local" onclick="settingsJump('g-local')">Local mode</button>
+        <button type="button" data-section="g-show" onclick="settingsJump('g-show')">Show while it says</button>
+        <button type="button" data-section="g-mic" onclick="settingsJump('g-mic')">Microphone</button>
+        <button type="button" data-section="g-conflicts" onclick="settingsJump('g-conflicts')">Conflict alarm</button>
+        <button type="button" data-section="g-alerts" onclick="settingsJump('g-alerts')">Alerts</button>
+      </nav>
+      <div class="spanel" id="set-panel">
+        <section id="voicelock" class="group" aria-labelledby="vl-h" hidden>
+          <h3 id="vl-h">Voice lock</h3>
+          <div class="card">
+            <div class="help" id="vl-intro">Pointe can learn your voice so other voices in the room can't approve or command. Your voiceprint stays on your Mac.</div>
+            <div id="vl-problem" role="alert"></div>
+            <div id="vl-enrol" hidden>
+              <div class="help">Read this line aloud</div>
+              <div class="line" id="vl-line" lang="und"></div>
+              <div class="bar" role="progressbar" aria-label="Enrolment" aria-valuemin="0" aria-valuemax="100" id="vl-bar"><i id="vl-fill" style="width:0"></i></div>
+              <div class="help" id="vl-pct"></div>
+              <div class="note" id="vl-why" role="status"></div>
+              <div class="note" id="vl-model"></div>
+              <div class="row" style="justify-content:flex-start"><button id="vl-cancel" onclick="voicePrint({action: 'cancel'})">Cancel</button></div>
+            </div>
+            <div id="vl-devices"></div>
+            <div class="row" style="justify-content:flex-start" id="vl-actions">
+              <button class="go" id="vl-enrolbtn" onclick="enrolVoice()">Enrol my voice</button>
+              <button id="vl-deleteall" onclick="deleteVoice()">Delete my voiceprint</button>
+            </div>
+            <div class="note" id="vl-needcall"></div>
+            <div class="note" id="vl-confirm" role="alert"></div>
+          </div>
+          <div class="card">
+            <div class="r col"><span>Lock level</span>
+              <div class="seg" role="radiogroup" aria-label="Lock level" id="vl-levels">
+                <button role="radio" data-level="off" onclick="setLock('off')">Off</button>
+                <button role="radio" data-level="approvals" onclick="setLock('approvals')">Approvals</button>
+                <button role="radio" data-level="commands" onclick="setLock('commands')">Commands</button>
+                <button role="radio" data-level="everything" onclick="setLock('everything')">Everything</button>
+              </div></div>
+            <div class="help" id="vl-levelhelp"></div>
+          </div>
+          <div class="err" id="vl-err" role="alert"></div>
+        </section>
+        <section id="machines" class="group" aria-labelledby="mach-h" hidden>
+          <h3 id="mach-h">Machines</h3>
+          <div class="card">
+            <ul class="mlist" id="mach-list"></ul>
+            <div id="mach-invite" hidden>
+              <div class="note">On the other machine, run <b>pointe node join</b> with this code. It works once.</div>
+              <div id="mach-code" dir="ltr"></div>
+              <div id="mach-link" dir="ltr"></div>
+              <div class="note" id="mach-left" role="timer"></div>
+            </div>
+            <div class="row" style="justify-content:flex-start">
+              <button type="button" id="mach-invitebtn" onclick="inviteMachine()">Invite a machine</button>
+              <button type="button" id="mach-cancel" onclick="cancelInvite()" hidden>Cancel the code</button>
+            </div>
+            <div class="err" id="mach-err" role="alert"></div>
+          </div>
+          <div class="note foot">Sessions on your other Macs and Linux machines join this voice through a small Pointe there. Their
+            transcripts, with credentials masked, come to this Mac and go to the same services as this Mac's own.</div>
+        </section>
+        <section id="phone" class="group" aria-labelledby="ph-h">
+          <h3 id="ph-h">Phone</h3>
+          <div class="card">
+            <ul class="mlist" id="ph-list" aria-label="Paired phones"></ul>
+            <div id="ph-pick" hidden>
+              <div class="help">How should your phone reach this Mac?</div>
+              <div class="proutes" id="ph-routes" role="radiogroup" aria-label="How the phone reaches this Mac"></div>
+              <form id="ph-hostform" onsubmit="event.preventDefault(); phoneRoutes($('ph-host').value)">
+                <input id="ph-host" aria-label="A network name you set up" placeholder="Or a name you set up (Twingate, a VPN)" autocomplete="off" spellcheck="false">
+                <button type="submit" id="ph-check">Check</button>
+              </form>
+              <div class="note" id="ph-advice" role="alert"></div>
+              <div class="note" id="ph-cert"></div>
+              <div class="row" style="justify-content:flex-start">
+                <button class="go" type="button" id="ph-show" onclick="phoneCode()">Show the code</button>
+                <button type="button" onclick="phonePickDone()">Cancel</button>
+              </div>
+            </div>
+            <div id="ph-qr" hidden>
+              <div class="note">On your iPhone, open the Camera, point it at this code, and tap “Open in Pointe”. Or scan it in the
+                Pointe app.</div>
+              <div id="ph-svg" role="img" aria-label="Pairing code"></div>
+              <div id="ph-link" dir="ltr"></div>
+              <div class="note" id="ph-left" role="timer"></div>
+              <div class="note">It works once. It holds a one-time code, not the phone's key: the app gets the key from this Mac
+                over the encrypted link it checks by certificate.</div>
+              <div class="row" style="justify-content:flex-start"><button type="button" id="ph-cancel" onclick="phoneCancel()">Cancel the code</button></div>
+            </div>
+            <div class="ok" id="ph-done" role="status"></div>
+            <div class="row" style="justify-content:flex-start" id="ph-actions">
+              <button type="button" class="go" id="ph-connect" onclick="phoneConnect()">Connect your phone</button>
+              <button type="button" id="ph-unpair" onclick="phoneUnpair('all')" hidden>Unpair all</button>
+            </div>
+            <div class="note" id="ph-rule"></div>
+            <div class="err" id="ph-err" role="alert"></div>
+          </div>
+          <div class="note foot">The Pointe iPhone app calls into your sessions wherever your phone can reach this Mac.</div>
+        </section>
+        <section class="group" id="g-dictionary">
+          <h3>Dictionary</h3>
+          <div class="card"><button type="button" class="r nav" id="dict-open" onclick="openDictionary()">Dictionary…</button></div>
+          <div class="note foot">The names Pointe should hear right: learned from your fixes, or added by you.</div>
+        </section>
+        <section class="group" id="g-briefings">
+          <h3>Briefings</h3>
+          <div class="card">
+            <label class="tick"><input type="checkbox" id="brf-sched" onchange="$('brf-time').disabled = !this.checked"> Scheduled briefing</label>
+            <div class="field">Time<input type="time" id="brf-time" aria-label="Briefing time"></div>
+            <div class="field r col">Days<div class="seg" id="brf-days" role="group" aria-label="Days"></div></div>
+            <div class="field">Length<select id="brf-deflen"><option value="short">Short</option><option value="normal">Normal</option><option value="full">Full</option></select></div>
+            <label class="tick"><input type="checkbox" id="brf-connect"> Speak when I connect</label>
+            <label class="tick"><input type="checkbox" id="brf-skipempty"> Skip empty briefings</label>
+          </div>
+          <div class="note foot">The briefing is read on your Mac at that time, with or without a call. Nothing is sent to your sessions.</div>
+        </section>
+        <section class="group" id="g-meetings">
+          <h3>Meetings</h3>
+          <div class="card">
+            <div class="field">Start in<select id="pref-mode"><option value="listening">Listening</option><option value="participating">Participating</option></select></div>
+            <label class="tick"><input type="checkbox" id="pref-lookups"> Auto lookups by default</label>
+            <div class="field">Notes language<select id="pref-lang"><option value="auto">Same as I speak</option><option value="en">English</option><option value="he">Hebrew</option></select></div>
+            <div id="pref-consent" hidden><div class="note">Consent step: accepted on this Mac. A voice start (“meeting mode, listening”) needs it accepted once.</div>
+              <div class="row" style="justify-content:flex-start"><button type="button" id="pref-consent-again" onclick="consentAgain()">Ask again before the next meeting</button></div></div>
+          </div>
+        </section>
+        <section class="group" id="g-local">
+          <h3>Local mode</h3>
+          <div class="card"><div class="note" id="pref-local"></div></div>
+        </section>
+        <section class="group" id="g-show">
+          <h3>Show while it says</h3>
+          <div class="card"><label class="tick"><input type="checkbox" id="pref-showphone"> Also show on the phone</label></div>
+          <div class="note foot">Show the files and test output the voice talks about. On this Mac it is always on; the pane can be
+            folded away for screen sharing. Code stays on your Mac unless you turn this on for the phone.</div>
+        </section>
+        <section class="group" id="g-mic">
+          <h3>Microphone</h3>
+          <div class="card">
+            <div class="field">Microphone<select id="pref-mic"><option value="always">Always on</option><option value="ptt">Push to talk</option></select></div>
+            <div class="field">Hold to talk key<button type="button" id="pref-key" onclick="captureKey()"></button></div>
+          </div>
+          <div class="note foot">In push to talk, nothing you say leaves this Mac unless you hold the key or the mic button, except
+            during a meeting you started: the room is heard for its notes, and talking to Pointe still needs the hold. Caps Lock
+            turns talking on and off (a toggle: a browser cannot see it held). Keys work only while this tab is focused.</div>
+        </section>
+        <section class="group" id="g-conflicts">
+          <h3>Conflict alarm</h3>
+          <div class="card">
+            <label class="tick"><input type="checkbox" id="pref-conflicts"> Check sessions against each other</label>
+            <div class="field">Alarm<select id="pref-conflicts-spoken"><option value="spoken">Spoken</option><option value="card">Card only</option></select></div>
+          </div>
+          <div class="note foot">When two sessions disagree about the same work, Pointe shows both claims and asks whether to put the
+            question to one of them. It never asks a session on its own. In a meeting it is a card only.</div>
+        </section>
+        <section class="group" id="g-alerts">
+          <h3>Alerts</h3>
+          <div class="card">
+            <label class="tick"><input type="checkbox" id="pref-desktop" onchange="desktopAlertsAsk(this)"> Desktop alerts while this tab is in the background</label>
+            <div class="note" id="pref-desktop-note"></div>
+            <label class="tick"><input type="checkbox" id="pref-watch"> Approve from notifications (iPhone and Apple Watch)</label>
+          </div>
+          <div class="note foot">A notification shows what Pointe would read out, never the hidden full text. Its Approve needs an
+            unlocked iPhone or a watch on your wrist instead of Face ID, and only for a request Pointe can read out; anything
+            else opens the app. Phone alerts need the call to be up or the app open.</div>
+        </section>
       </div>
-      <div class="note" id="vl-confirm" role="alert"></div>
-      <div class="seg" role="radiogroup" aria-label="Lock level" id="vl-levels">
-        <button role="radio" data-level="off" onclick="setLock('off')">Off</button>
-        <button role="radio" data-level="approvals" onclick="setLock('approvals')">Approvals</button>
-        <button role="radio" data-level="commands" onclick="setLock('commands')">Commands</button>
-        <button role="radio" data-level="everything" onclick="setLock('everything')">Everything</button>
-      </div>
-      <div class="help" id="vl-levelhelp"></div>
-      <div class="err" id="vl-err" role="alert"></div>
-    </section>
-    <section id="machines" aria-labelledby="mach-h" hidden>
-      <h3 id="mach-h">Machines</h3>
-      <div class="note">Sessions on your other Macs and Linux machines join this voice through a small Pointe there. Their
-        transcripts, with credentials masked, come to this Mac and go to the same services as this Mac's own.</div>
-      <ul class="mlist" id="mach-list"></ul>
-      <div id="mach-invite" hidden>
-        <div class="note">On the other machine, run <b>pointe node join</b> with this code. It works once.</div>
-        <div id="mach-code" dir="ltr"></div>
-        <div id="mach-link" dir="ltr"></div>
-        <div class="note" id="mach-left" role="timer"></div>
-      </div>
-      <div class="row" style="justify-content:flex-start">
-        <button type="button" id="mach-invitebtn" onclick="inviteMachine()">Invite a machine</button>
-        <button type="button" id="mach-cancel" onclick="cancelInvite()" hidden>Cancel the code</button>
-      </div>
-      <div class="err" id="mach-err" role="alert"></div>
-    </section>
-    <section id="phone" aria-labelledby="ph-h">
-      <h3 id="ph-h">Phone</h3>
-      <div class="note">The Pointe iPhone app calls into your sessions wherever your phone can reach this Mac.</div>
-      <ul class="mlist" id="ph-list" aria-label="Paired phones"></ul>
-      <div id="ph-pick" hidden>
-        <div class="help">How should your phone reach this Mac?</div>
-        <div class="proutes" id="ph-routes" role="radiogroup" aria-label="How the phone reaches this Mac"></div>
-        <form id="ph-hostform" onsubmit="event.preventDefault(); phoneRoutes($('ph-host').value)">
-          <input id="ph-host" aria-label="A network name you set up" placeholder="Or a name you set up (Twingate, a VPN)" autocomplete="off" spellcheck="false">
-          <button type="submit" id="ph-check">Check</button>
-        </form>
-        <div class="note" id="ph-advice" role="alert"></div>
-        <div class="note" id="ph-cert"></div>
-        <div class="row" style="justify-content:flex-start">
-          <button class="go" type="button" id="ph-show" onclick="phoneCode()">Show the code</button>
-          <button type="button" onclick="phonePickDone()">Cancel</button>
-        </div>
-      </div>
-      <div id="ph-qr" hidden>
-        <div class="note">On your iPhone, open the Camera, point it at this code, and tap “Open in Pointe”. Or scan it in the
-          Pointe app.</div>
-        <div id="ph-svg" role="img" aria-label="Pairing code"></div>
-        <div id="ph-link" dir="ltr"></div>
-        <div class="note" id="ph-left" role="timer"></div>
-        <div class="note">It works once. It holds a one-time code, not the phone's key: the app gets the key from this Mac
-          over the encrypted link it checks by certificate.</div>
-        <div class="row" style="justify-content:flex-start"><button type="button" id="ph-cancel" onclick="phoneCancel()">Cancel the code</button></div>
-      </div>
-      <div class="ok" id="ph-done" role="status"></div>
-      <div class="row" style="justify-content:flex-start" id="ph-actions">
-        <button type="button" class="go" id="ph-connect" onclick="phoneConnect()">Connect your phone</button>
-        <button type="button" id="ph-unpair" onclick="phoneUnpair('all')" hidden>Unpair all</button>
-      </div>
-      <div class="note" id="ph-rule"></div>
-      <div class="err" id="ph-err" role="alert"></div>
-    </section>
-    <h3>Dictionary</h3>
-    <div class="row" style="justify-content:flex-start"><button type="button" id="dict-open" onclick="openDictionary()">Dictionary…</button></div>
-    <h3>Briefings</h3>
-    <label class="tick"><input type="checkbox" id="brf-sched" onchange="$('brf-time').disabled = !this.checked"> Scheduled briefing</label>
-    <div class="field">Time<input type="time" id="brf-time" aria-label="Briefing time"></div>
-    <div class="field">Days<div class="seg" id="brf-days" role="group" aria-label="Days"></div></div>
-    <div class="field">Length<select id="brf-deflen"><option value="short">Short</option><option value="normal">Normal</option><option value="full">Full</option></select></div>
-    <label class="tick"><input type="checkbox" id="brf-connect"> Speak when I connect</label>
-    <label class="tick"><input type="checkbox" id="brf-skipempty"> Skip empty briefings</label>
-    <div class="note">The briefing is read on your Mac at that time, with or without a call. Nothing is sent to your sessions.</div>
-    <h3>Meetings</h3>
-    <div class="field">Start in<select id="pref-mode"><option value="listening">Listening</option><option value="participating">Participating</option></select></div>
-    <label class="tick"><input type="checkbox" id="pref-lookups"> Auto lookups by default</label>
-    <div class="field">Notes language<select id="pref-lang"><option value="auto">Same as I speak</option><option value="en">English</option><option value="he">Hebrew</option></select></div>
-    <div id="pref-consent" hidden><div class="note">Consent step: accepted on this Mac. A voice start (“meeting mode, listening”) needs it accepted once.</div>
-      <div class="row" style="justify-content:flex-start"><button type="button" id="pref-consent-again" onclick="consentAgain()">Ask again before the next meeting</button></div></div>
-    <h3>Local mode</h3>
-    <div class="note" id="pref-local"></div>
-    <h3>Show while it says</h3>
-    <div class="note">Show the files and test output the voice talks about. On this Mac it is always on; the pane can be
-      folded away for screen sharing. Code stays on your Mac unless you turn this on for the phone.</div>
-    <label class="tick"><input type="checkbox" id="pref-showphone"> Also show on the phone</label>
-    <h3>Microphone</h3>
-    <div class="field">Microphone<select id="pref-mic"><option value="always">Always on</option><option value="ptt">Push to talk</option></select></div>
-    <div class="field">Hold to talk key<button type="button" id="pref-key" onclick="captureKey()"></button></div>
-    <div class="note">In push to talk, nothing you say leaves this Mac unless you hold the key or the mic button, except
-      during a meeting you started: the room is heard for its notes, and talking to Pointe still needs the hold. Caps Lock
-      turns talking on and off (a toggle: a browser cannot see it held). Keys work only while this tab is focused.</div>
-    <h3>Conflict alarm</h3>
-    <label class="tick"><input type="checkbox" id="pref-conflicts"> Check sessions against each other</label>
-    <div class="field">Alarm<select id="pref-conflicts-spoken"><option value="spoken">Spoken</option><option value="card">Card only</option></select></div>
-    <div class="note">When two sessions disagree about the same work, Pointe shows both claims and asks whether to put the
-      question to one of them. It never asks a session on its own. In a meeting it is a card only.</div>
-    <h3>Alerts</h3>
-    <label class="tick"><input type="checkbox" id="pref-desktop" onchange="desktopAlertsAsk(this)"> Desktop alerts while this tab is in the background</label>
-    <div class="note" id="pref-desktop-note"></div>
-    <label class="tick"><input type="checkbox" id="pref-watch"> Approve from notifications (iPhone and Apple Watch)</label>
-    <div class="note">A notification shows what Pointe would read out, never the hidden full text. Its Approve needs an
-      unlocked iPhone or a watch on your wrist instead of Face ID, and only for a request Pointe can read out; anything
-      else opens the app. Phone alerts need the call to be up or the app open.</div>
-    <div class="ok" id="setok" role="status"></div><div class="err" id="seterr" role="alert"></div>
-    <div class="row"><button onclick="closeSheet('settingssheet')">Cancel</button><button class="go" onclick="saveSettings()">Save</button></div>
+    </div>
   </div>
 </div>
 <div class="sheetbg" id="briefsheet" onclick="if (event.target === this) closeSheet('briefsheet')">
@@ -760,6 +966,12 @@
     <h2 id="ign-h">Ignored<button class="x" onclick="closeSheet('ignoredsheet')" aria-label="Close">×</button></h2>
     <div class="lede">Speech the voice lock kept from Pointe because it was not your voice.</div>
     <ul id="ignoredlist"></ul>
+  </div>
+</div>
+<div class="sheetbg" id="moresheet" onclick="if (event.target === this) closeSheet('moresheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="more-h">
+    <h2 id="more-h">More<button class="x" onclick="closeSheet('moresheet')" aria-label="Close">×</button></h2>
+    <div id="more-list"></div>
   </div>
 </div>
 <main>
@@ -842,37 +1054,54 @@
   <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" placeholder="Type to the voice…" autocomplete="off" disabled>
     <button id="typed-send" disabled>Send</button></form>
   <nav class="dock" aria-label="Call controls">
-    <button class="btn" id="listen" onclick="toggleListen()" disabled title="Talk freely while the voice stays quiet">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.4 1 2.3V16h6v-.2c0-.9.4-1.7 1-2.3A6 6 0 0 0 12 3z"/></svg></span>
-      <span id="listen-label">Brainstorm</span></button>
-    <button class="btn" id="meetbtn" onclick="meetingButton()" title="A meeting: the voice listens and takes notes">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14.5 14.6c.8-.4 1.6-.6 2.5-.6 2.8 0 4 2.2 4 5"/></svg></span>
-      <span id="meet-label">Meeting</span></button>
-    <button class="btn" id="briefbtn" onclick="openBriefing()" title="What each session did, failed and waits on">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h10M4 15h16M4 20h8"/></svg></span>
-      Briefing</button>
-    <button class="btn" id="drivebtn" onclick="toggleDrive()" disabled aria-pressed="false" title="Driving or walking: short answers, nothing to look at or tap">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6h12l2 6v4H4z"/><circle cx="8" cy="14.5" r=".8"/><circle cx="16" cy="14.5" r=".8"/></svg></span>
-      Drive</button>
-    <button class="btn" id="chlbtn" onclick="challengeButton()" disabled title="The voice argues against your plan, one objection at a time">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></svg></span>
-      <span id="chl-label">Challenge</span></button>
-    <button class="btn" id="whisperbtn" onclick="whisperToggle()" aria-pressed="false" title="Short, quiet replies for an open office">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h2M8 9v6M12 6v12M16 9v6M20 12h0"/></svg></span>
-      <span id="whisper-label">Whisper</span></button>
-    <button class="btn" id="typebtn" onclick="typeNow()" title="Type instead of talking">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
-      Type</button>
-    <button id="mic" onclick="ringTap(event)" title="Connect" aria-label="Connect">
-      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>
+    <div class="dock-side left">
+      <button class="btn" id="listen" onclick="toggleListen()" disabled title="Talk freely while the voice stays quiet">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.4 1 2.3V16h6v-.2c0-.9.4-1.7 1-2.3A6 6 0 0 0 12 3z"/></svg></span>
+        <span class="lb" id="listen-label">Brainstorm</span></button>
+      <button class="btn" id="meetbtn" onclick="meetingButton()" title="A meeting: the voice listens and takes notes">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14.5 14.6c.8-.4 1.6-.6 2.5-.6 2.8 0 4 2.2 4 5"/></svg></span>
+        <span class="lb" id="meet-label">Meeting</span></button>
+      <button class="btn" id="briefbtn" onclick="openBriefing()" title="What each session did, failed and waits on">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h10M4 15h16M4 20h8"/></svg></span>
+        <span class="lb">Briefing</span></button>
+      <button class="btn" id="drivebtn" onclick="toggleDrive()" disabled aria-pressed="false" title="Driving or walking: short answers, nothing to look at or tap">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M4 13l2-6h12l2 6v4H4z"/><circle cx="8" cy="14.5" r=".8"/><circle cx="16" cy="14.5" r=".8"/></svg></span>
+        <span class="lb">Drive</span></button>
+    </div>
+    <div class="dock-center">
+      <div class="seg micmode" role="radiogroup" aria-label="Microphone">
+        <button type="button" role="radio" id="micmode-always" class="on" aria-checked="true" onclick="setMicMode('always')" title="The voice hears you whenever you are not muted">Always on</button>
+        <button type="button" role="radio" id="micmode-ptt" aria-checked="false" onclick="setMicMode('ptt')" title="Nothing is heard unless you hold the key or the mic">Hold to talk</button>
+      </div>
+      <div class="microw">
+        <button id="mic" onclick="ringTap(event)" title="Connect" aria-label="Connect">
+          <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>
       <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l20 20M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v3a3 3 0 0 0 5.1 2.1M19 10a7 7 0 0 1-1.2 3.9M5 10a7 7 0 0 0 10.7 5.9M12 17v4"/></svg>
-    </button>
-    <button class="btn" id="sessbtn" onclick="toggleSessions()" title="Sessions and mode">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M6 4h12M8 1.5h8"/></svg></span>
-      Sessions</button>
-    <button class="btn hang" id="hangup" onclick="endCall()" disabled title="Hang up">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-3.9 0-7.4 1.3-9.5 3.4-.4.4-.4 1 0 1.4l2 2c.4.4 1 .4 1.4.1l2.4-1.7c.3-.2.4-.5.4-.8V11c1-.3 2.1-.5 3.3-.5s2.3.2 3.3.5v2.4c0 .3.2.6.4.8l2.4 1.7c.4.3 1 .3 1.4-.1l2-2c.4-.4.4-1 0-1.4C19.4 10.3 15.9 9 12 9z"/></svg></span>
-      Hang up</button>
+        </button>
+        <button class="btn hang" id="hangup" onclick="endCall()" disabled title="Hang up">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-3.9 0-7.4 1.3-9.5 3.4-.4.4-.4 1 0 1.4l2 2c.4.4 1 .4 1.4.1l2.4-1.7c.3-.2.4-.5.4-.8V11c1-.3 2.1-.5 3.3-.5s2.3.2 3.3.5v2.4c0 .3.2.6.4.8l2.4 1.7c.4.3 1 .3 1.4-.1l2-2c.4-.4.4-1 0-1.4C19.4 10.3 15.9 9 12 9z"/></svg></span>
+          <span class="lb">Hang up</span></button>
+      </div>
+      <span id="miclabel" aria-hidden="true">Connect</span>
+      <span id="keyhint">Press to connect</span>
+    </div>
+    <div class="dock-side right">
+      <button class="btn" id="chlbtn" onclick="challengeButton()" disabled title="The voice argues against your plan, one objection at a time">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></svg></span>
+        <span class="lb" id="chl-label">Challenge</span></button>
+      <button class="btn" id="whisperbtn" onclick="whisperToggle()" aria-pressed="false" title="Short, quiet replies for an open office">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h2M8 9v6M12 6v12M16 9v6M20 12h0"/></svg></span>
+        <span class="lb" id="whisper-label">Whisper</span></button>
+      <button class="btn" id="typebtn" onclick="typeNow()" title="Type instead of talking">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
+        <span class="lb">Type</span></button>
+      <button class="btn" id="sessbtn" onclick="toggleSessions()" title="Sessions and mode">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M6 4h12M8 1.5h8"/></svg></span>
+        <span class="lb">Sessions</span></button>
+      <button class="btn" id="morebtn" onclick="openSheet('moresheet')" title="More" hidden>
+        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
+        <span class="lb">More</span></button>
+    </div>
   </nav>
 </main>
 <aside id="show" role="region" aria-labelledby="show-title">
@@ -1026,6 +1255,7 @@
       : [el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.')]));
     showMachines(s, mv);
     showPhones(s);
+    syncSettingsNav();
     document.body.classList.toggle('nosessions', false);
 
     const recent = (s.recent || []).slice().reverse();
@@ -1272,8 +1502,18 @@
     }
     $('mic').title = $('mic').ariaLabel = st === 'off' ? 'Connect' : st === 'connecting' ? 'Connecting'
       : pttMode() ? (pttOpen() ? 'Talking' : 'Hold to talk') : muted ? 'Unmute' : 'Mute';
-    $('keyhint').textContent = pttMode() ? `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles` : 'Space or AirPods to mute';
+    $('miclabel').textContent = $('mic').title;
+    $('keyhint').textContent = st === 'off' || st === 'connecting' ? 'Press to connect'
+      : pttMode() ? `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles` : 'Space or AirPods to mute';
+    const micMode = pttMode() ? 'ptt' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
+    for (const m of ['always', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }
     if (live && silence.paused) claimMediaKeys();
+  }
+  async function setMicMode(mode) {  // the dock's switch and Settings → Microphone set the same preference
+    $('pref-mic').value = mode;
+    const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({microphone: mode})});
+    if (!r.ok) $('problem').textContent = 'The microphone mode did not change: the voice is not reachable.';
+    refresh();
   }
   async function answer(x, decision, button) {
     button.disabled = true;
@@ -1664,7 +1904,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['dictsheet', 'endsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['dictsheet', 'endsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;
@@ -2216,8 +2456,29 @@
     pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
     $('setok').textContent = ''; $('seterr').textContent = '';
     await loadSchedule();
-    openSheet('settingssheet', 'pref-mode');
+    openSheet('settingssheet');
+    $('set-panel').scrollTop = 0; syncSettingsNav();  // after it shows: a scroll set while display:none does not stick
   }
+  // Settings' section list: a click scrolls the panel to the group; scrolling marks the group in view. A group the
+  // daemon hides (no voice lock, no hub) has no entry.
+  const SETTINGS_SECTIONS = [...$('set-nav').querySelectorAll('button')].map(b => b.dataset.section);
+  let settingsJumping = 0;
+  function settingsMark(id) { for (const b of $('set-nav').querySelectorAll('button')) b.classList.toggle('on', b.dataset.section === id); }
+  function settingsJump(id) {
+    settingsJumping = Date.now() + 700; settingsMark(id);
+    $('set-panel').scrollTo({top: $(id).offsetTop - 12, behavior: 'smooth'});
+  }
+  function syncSettingsNav() {
+    for (const b of $('set-nav').querySelectorAll('button')) b.hidden = $(b.dataset.section).hidden;
+    if (!$('set-nav').querySelector('button.on:not([hidden])')) settingsMark(SETTINGS_SECTIONS.find(id => !$(id).hidden));
+  }
+  $('set-panel').addEventListener('scroll', () => {
+    if (Date.now() < settingsJumping) return;
+    const top = $('set-panel').scrollTop + 60;
+    let cur = null;
+    for (const id of SETTINGS_SECTIONS) if (!$(id).hidden && (cur === null || $(id).offsetTop <= top)) cur = id;
+    if (cur) settingsMark(cur);
+  });
   // Settings → Machines: the paired machines, a one-time code to pair another, and Revoke in two clicks.
   let machinesShown = '', revoking = null, invite = null;  // invite: {code, link, until}, counted down here between polls
   function showMachines(s, mv) {
@@ -2633,6 +2894,30 @@
   }
 
   if (matchMedia('(max-width: 900px)').matches) $('compose').classList.add('folded');
+  // Narrow screens (a phone, the page on an iPad): six controls move into the More sheet and Sessions to the mic's left;
+  // the mic stays in the middle. A button keeps its id wherever it sits, so nothing that finds one by id changes.
+  const DOCK_MORE = ['listen', 'meetbtn', 'briefbtn', 'drivebtn', 'chlbtn', 'whisperbtn'];
+  const dockHome = new Map();  // id -> [its side, the fixed sibling it sits before]
+  function layoutDock() {
+    const narrow = matchMedia('(max-width: 760px)').matches;
+    const place = (id, into) => {
+      const b = $(id);
+      if (!dockHome.has(id)) {
+        let next = b.nextElementSibling;
+        while (next && (DOCK_MORE.includes(next.id) || next.id === 'sessbtn')) next = next.nextElementSibling;
+        dockHome.set(id, [b.parentElement, next]);
+      }
+      const [home, next] = dockHome.get(id);
+      if (into ? b.parentElement !== into : b.parentElement !== home) (into || home).insertBefore(b, into ? null : next);
+    };
+    for (const id of DOCK_MORE) place(id, narrow ? $('more-list') : null);
+    place('sessbtn', narrow ? document.querySelector('.dock-side.left') : null);
+    $('morebtn').hidden = !narrow;
+    if (!narrow && $('moresheet').classList.contains('open')) closeSheet('moresheet');
+  }
+  matchMedia('(max-width: 760px)').addEventListener('change', layoutDock);
+  layoutDock();
+  $('more-list').addEventListener('click', e => { if (e.target.closest('button') && !e.target.closest('button').disabled) closeSheet('moresheet'); });
   refresh(); setInterval(refresh, 700);
 </script>
 <script>
