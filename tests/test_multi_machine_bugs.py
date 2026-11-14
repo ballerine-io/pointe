@@ -4,6 +4,7 @@
 import asyncio
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from remote import TLS_PORT, Remote  # noqa: E402
 from test_hub_nodes import FakeNode, _line, entry, paired, run, settle, world  # noqa: E402,F401  (world is a fixture)
 from test_node import FakeHub, _body, _pair  # noqa: E402
 from test_node import run as node_run  # noqa: E402
+from test_mixed_harnesses import node  # noqa: E402,F401  (a fixture)
 from test_orchestrator import d  # noqa: E402,F401  (d is a fixture)
 
 
@@ -331,3 +333,20 @@ def test_a_deny_releases_a_held_prompt_even_after_approvals_turned_terminal_on_t
         assert await asyncio.wait_for(task, 2) == "deny"
 
     node_run(scenario, tmp_path)
+
+
+# ---------- 10. the collision suffix makes this Mac's own name an alias of one session ----------
+
+def test_a_local_session_that_joins_after_a_remote_one_is_not_named_after_this_mac(d, node):
+    """This Mac's name is never an alias (every "on this Mac" would match). Suffixing a late local "web" with it made
+    "go to studio" pick that one session, though api runs on studio too."""
+    from test_mixed_harnesses import _join
+    from test_orchestrator import add, client_for
+
+    add(d, "cc1", "api", "/repos/api")
+    _join(d, "laptop", "w1", "web")
+    joined = client_for(d).post("/voice/register", headers={"authorization": "Bearer secret"},
+                                json={"id": "cc2", "name": "web", "cwd": "/repos/web", "pid": os.getpid(),
+                                      "transcript": "/tmp/none.jsonl", "name_given": True}).json()
+    assert "studio" not in joined["name"]
+    assert sessions.name_groups("go to studio", list(d.REGISTRY.sessions.values())) == []

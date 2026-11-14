@@ -419,7 +419,9 @@ WireGuard across sites 20 to 60 ms; Twingate 30 to 100 ms.
   is editable in `config.json` (`"machine": "studio"`); a node's name is set at pairing.
 - Collision across machines: when a session joins with a name another machine already uses (same rule as the harness
   suffix, `daemon.py:4006-4014`), it is named `<name> <machine>` if that is `valid_name` and passes `rename_check`; else
-  the registry's `-2` fallback (`sessions.py:149-153`). The first to join keeps the plain name.
+  the registry's `-2` fallback (`sessions.py:149-153`). The first to join keeps the plain name. A session on the hub
+  that joins after a remote one of the same name is never suffixed with the hub's own name (that would make the hub's
+  name an alias of one session): it takes the harness suffix if that tells them apart, else the `-2` fallback.
 - A session may not be named, or renamed to, a machine's name (`rename_check` and `_session_name` refuse it), and a node
   may not take a name whose words are in a session's name (pairing refuses it).
 - `sessions._aliases` (`sessions.py:357-367`) adds `(machine, 0)` for a remote session, as it adds the harness label.

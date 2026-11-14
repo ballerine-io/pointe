@@ -390,7 +390,7 @@ def test_a_name_another_machine_uses_gets_the_machine_suffix(d, node):
     joined = client.post("/voice/register", headers={"authorization": "Bearer secret"},
                          json={"id": "cc2", "name": "web", "cwd": "/repos/web", "pid": os.getpid(),
                                "transcript": "/tmp/none.jsonl", "name_given": True}).json()
-    assert joined["name"] == "web studio"  # the first to join keeps the plain name
+    assert joined["name"] == "web-2"  # the first to join keeps the plain name; this Mac's name is never a suffix
 
 
 def test_a_session_is_never_named_after_a_machine(d, node):

@@ -4262,12 +4262,13 @@ def _clash(a: str, b: str) -> bool:
 def _tell_apart(session: Session, label: str) -> None:
     """A name another session already has ("shop"), on another machine or in another harness: the machine ("shop
     devbox"), else the harness ("shop opencode"), tells them apart. The first to join keeps the plain name; when the
-    suffix does not fit, the registry's "-2" does."""
+    suffix does not fit, the registry's "-2" does. A session on this Mac never takes this Mac's name: that would make it
+    an alias ("go to studio" would pick one of its sessions), which _here() must never be."""
     if session.id in REGISTRY.sessions:
         return
     clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
-    if any(o.machine != session.machine for o in clashing):
-        suffix = _machine_of(session)
+    if session.machine and any(o.machine != session.machine for o in clashing):
+        suffix = session.machine
     elif any(o.harness != session.harness for o in clashing):
         suffix = label
     else:
