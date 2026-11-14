@@ -6,7 +6,7 @@ struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
-                       whisper, whisperOff, rtl, machines, machinesOne, machinesOffline }
+                       whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -38,7 +38,7 @@ struct Demo {
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         case .whisper, .whisperOff: whisperJSON(on: screen == .whisper)
         case .rtl: rtlJSON
-        case .machines, .machinesOne, .machinesOffline: machinesJSON(screen)  // Settings.swift
+        case .machines, .machinesOne, .machinesOffline, .machinesDrive: machinesJSON(screen)  // Settings.swift
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }

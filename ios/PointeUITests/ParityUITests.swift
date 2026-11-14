@@ -155,6 +155,14 @@ final class ParityUITests: XCTestCase {
         shot("machines-request")
     }
 
+    func testTheDriveCardSaysShopDotDevboxToo() throws {
+        launch("machinesDrive")
+        let card = any("driveRequest")
+        XCTAssertTrue(card.waitForExistence(timeout: 15))
+        XCTAssertTrue(card.label.contains("shop · devbox needs approval"), card.label)
+        shot("machines-drive")
+    }
+
     func testAnOfflineRequestHasNoApproveOrDeny() throws {
         launch("machinesOffline")
         XCTAssertTrue(label("notes · laptop needs approval").waitForExistence(timeout: 15))

@@ -502,15 +502,28 @@ struct API {
 
     // MARK: machines
 
-    /// A one-time code another machine pairs with: single use, 10 minutes.
-    func invite() async throws -> Invite {
-        try JSONDecoder().decode(Invite.self, from: try await checked(request("voice/hub/invite", method: "POST", body: ["action": "make"])))
+    /// The hub's routes (hub_nodes.py) answer a refusal as plain text ("no machine called x is paired"), not JSON.
+    private func hub(_ path: String, _ body: [String: Any]) async throws -> Data {
+        let (data, response) = try await session.data(for: request(path, method: "POST", body: body))
+        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(code) else {
+            let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+            let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String
+            throw Failure.status(code, detail ?? (text.isEmpty || text.hasPrefix("{") ? "HTTP \(code)" : text))
+        }
+        return data
     }
 
-    func cancelInvite() async throws { try await post("voice/hub/invite", ["action": "cancel"]) }
+    /// A one-time code another machine pairs with: single use, 10 minutes. `{}` makes one (replacing any other).
+    func invite() async throws -> Invite {
+        try JSONDecoder().decode(Invite.self, from: try await hub("voice/hub/invite", [:]))
+    }
 
-    /// Unpairs a machine: its sessions leave the voice, and it needs a new code to come back.
-    func revoke(_ name: String) async throws { try await post("voice/hub/revoke", ["name": name]) }
+    /// `{"cancel": true}`: anything else would make a new code.
+    func cancelInvite() async throws { _ = try await hub("voice/hub/invite", ["cancel": true]) }
+
+    /// Unpairs a machine: its sessions leave the voice, and it needs a new code to come back. 404 names an unknown one.
+    func revoke(_ name: String) async throws { _ = try await hub("voice/hub/revoke", ["name": name]) }
 
     // MARK: meeting
 

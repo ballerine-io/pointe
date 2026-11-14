@@ -2162,7 +2162,10 @@
     $('machines').hidden = !Array.isArray(s.machines);
     if (!Array.isArray(s.machines)) return;
     const st = s.invite;
-    if (st && st.code) invite = {code: st.code, link: st.link || '', until: Date.now() + (st.expires_in || 0) * 1000};
+    if (st && st.code) {  // the status has no link: the one the make answered stays while the code does
+      const link = st.link || (invite && invite.code === st.code ? invite.link : '');
+      invite = {code: st.code, link, until: Date.now() + (st.expires_in || 0) * 1000};
+    }
     // cancelled, used or expired on the Mac (a Mac without the field sends none); a poll that left before the code was
     // made says null too, so a code made here is kept for a moment
     else if (st === null && !(invite && Date.now() - (invite.made || 0) < 3000)) invite = null;
@@ -2202,17 +2205,21 @@
   async function hubPost(path, body) {
     $('mach-err').textContent = '';
     const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-    const reply = await r.json().catch(() => ({}));
-    if (!r.ok) $('mach-err').textContent = reply.detail || 'The Mac did not do it.';
-    return r.ok ? reply : null;
+    if (!r.ok) {  // the hub's routes answer a refusal as plain text ("no machine called x is paired")
+      const text = (await r.text().catch(() => '')).trim();
+      let said = text; try { said = JSON.parse(text).detail || text; } catch (e) {}
+      $('mach-err').textContent = said || 'The Mac did not do it.';
+      return null;
+    }
+    return await r.json().catch(() => ({}));
   }
   async function inviteMachine() {
-    const reply = await hubPost('/voice/hub/invite', {action: 'make'});
+    const reply = await hubPost('/voice/hub/invite', {});
     if (reply && reply.code) invite = {code: reply.code, link: reply.link || '', made: Date.now(), until: Date.now() + (reply.expires_in || 600) * 1000};
     showInvite(); refresh();
   }
   async function cancelInvite() {
-    if (await hubPost('/voice/hub/invite', {action: 'cancel'})) invite = null;
+    if (await hubPost('/voice/hub/invite', {cancel: true})) invite = null;
     showInvite(); refresh();
   }
   async function revokeMachine(name) {  // two clicks, no dialog, as Disconnect
