@@ -316,7 +316,7 @@ def seed_history(b, case: bc.BrainCase) -> None:
             b.append(text)
 
 
-FALLBACKS = ("I lost my connection to the model", "Sorry, I lost that", "That took too many steps")
+FALLBACKS = ("I lost my connection to the model", "The model took too long", "Sorry, I lost that", "That took too many steps")
 
 
 def daemon_gates(case: bc.BrainCase) -> dict:

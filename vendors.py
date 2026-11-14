@@ -392,14 +392,19 @@ async def _anthropic_step(model: str, system: str, messages: list[dict], tools: 
                 {"type": "tool_result", "tool_use_id": r["id"], "content": json.dumps(r["result"], ensure_ascii=False)}
                 for r in m["results"]]})
     # Forced tool choice is refused on the newest models: `speak` is required by the prompt, and text counts as speech.
+    # Two cache points: the marker on the system block keeps tools and prompt cached whatever the history does; the
+    # top-level marker is the automatic one, placed by the API on the last block, so each step reads the steps before it.
     resp = await _anthropic().messages.create(
         model=model, max_tokens=4000, system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         tools=[{"name": t["name"], "description": t["description"], "input_schema": _schema(t)} for t in tools],
-        messages=converted, output_config={"effort": os.environ.get("CLAUDE_VOICE_BRAIN_THINKING", "low")})
+        messages=converted, output_config={"effort": os.environ.get("CLAUDE_VOICE_BRAIN_THINKING", "low")},
+        cache_control={"type": "ephemeral"})
     calls = [{"id": b.id, "name": b.name, "args": dict(b.input or {})} for b in resp.content if b.type == "tool_use"]
     said = "".join(b.text for b in resp.content if b.type == "text").strip()
-    return Step(calls, resp.content, said, {"context": resp.usage.input_tokens + (resp.usage.cache_read_input_tokens or 0),
-                                            "reply": resp.usage.output_tokens})
+    u = resp.usage
+    read, written = u.cache_read_input_tokens or 0, u.cache_creation_input_tokens or 0
+    # input_tokens is the uncached remainder only: the whole prompt is the sum of the three
+    return Step(calls, resp.content, said, {"context": u.input_tokens + read + written, "cached": read, "reply": u.output_tokens})
 
 
 async def _openai_step(model: str, system: str, messages: list[dict], tools: list[dict]) -> Step:

@@ -961,7 +961,8 @@ def make_brain(speak, filler=None) -> Brain:
     def usage(u: dict) -> None:
         state.tokens = {"context": u.get("context", 0), "reply": u.get("reply", 0), "audio_in": 0,
                         "at": time.strftime("%H:%M:%S"), "ms": u.get("ms")}
-        logger.info(f"brain step: {u.get('ms')} ms, {u.get('context')} tokens in")
+        logger.info(f"brain step: {u.get('ms')} ms, {u.get('context')} tokens in"
+                    + (f", {u['cached']} of them cached" if u.get("cached") else ""))
 
     brain = Brain(setup().brain, INSTRUCTIONS + BRAIN_RULES, TOOLS.standard_tools, _brain_context, speak, filler,
                   _open_items, lambda: bool(state.unconfirmed), usage, fallback=vendors.BRAIN_FALLBACK.get(setup().brain),

@@ -33,6 +33,9 @@ class ClaudeCode(Harness):
     joins_mid_turn = True  # /pointe:voice runs inside one of its turns
     permission_deadline = 280.0  # under the hook's own timeout, in hooks/hooks.json
 
+    def __init__(self) -> None:
+        self._gone: dict[int, bool] = {}  # pid -> the last probe found it a zombie (or unknown to ps)
+
     @property
     def side_questions(self) -> bool:  # type: ignore[override]
         return shutil.which("claude") is not None
@@ -44,9 +47,18 @@ class ClaudeCode(Harness):
             os.kill(session.pid, 0)
         except (ProcessLookupError, PermissionError):
             return False
-        # A killed process its parent has not reaped yet is a zombie: it answers kill(0) but is gone.
-        stat = subprocess.run(["ps", "-o", "stat=", "-p", str(session.pid)], capture_output=True, text=True).stdout
-        return bool(stat.strip()) and "Z" not in stat
+        # A killed process its parent has not reaped yet is a zombie: it answers kill(0) but is gone. That check
+        # asks ps, which stalled the event loop on a live call, so probe() runs it in a thread and this reads its verdict.
+        return not self._gone.get(session.pid, False)
+
+    async def probe(self, session) -> None:
+        if not session.pid:
+            return
+        try:
+            stat = await asyncio.to_thread(_stat_of, session.pid)
+        except (OSError, subprocess.SubprocessError):
+            return  # no verdict this round: alive() keeps the last one
+        self._gone[session.pid] = not stat.strip() or "Z" in stat
 
     def watch(self, session, feed):
         from sessions import follow_transcript
@@ -112,6 +124,10 @@ class ClaudeCode(Harness):
                 proc.kill()
             raise
         return None
+
+
+def _stat_of(pid: int) -> str:
+    return subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, timeout=5).stdout
 
 
 def _model_of(session) -> str | None:

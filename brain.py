@@ -20,9 +20,23 @@ SPEAK = {"name": "speak",
          "right reply to a plain acknowledgment such as okay or thanks.",
          "properties": {"text": {"type": "string"}}, "required": ["text"]}
 MAX_STEPS = 6
-MAX_MESSAGES = 400  # a long call is trimmed from the front; the notes carry what the oldest turns held
+MAX_MESSAGES = 400  # a hard cap on count; the token budget below is what a long call runs into first
+# A step's time grows with its input: on a live call 14k tokens took 2.1 s and 340k took 7.4 s (about 16 ms per 1k
+# tokens over a 1.9 s floor), until both models passed the 8 s timeout. The history is held near the size where the
+# model's p95 was measured, so the timeout stays a stall guard and not a ceiling the call grows into.
+HISTORY_TOKENS = 24_000  # over this, before a turn, older items shrink (the system prompt and tools add about 6k)
+HISTORY_AFTER_TRIM = 16_000  # a trim brings it down to this: trims come every few turns, not every step
+RECENT_TOKENS = 6_000  # the newest part stays as it came: the latest report, its reply and the turns around it
+CHARS_PER_TOKEN = 3.5  # a first guess, English prose; corrected from each vendor's own count (Hebrew is nearer 2)
+MAX_ITEM_CHARS = 16_000  # one user message or feed item; the daemon's own caps are lower, this is the net under them
+MAX_RESULT_CHARS = 8_000  # one tool result
+STUB_CHARS = 240  # what an old feed item keeps: its first line says what arrived; the notes carry the rest
+OLD_RESULT = "[an earlier result, dropped from the history]"
+OLD_NEWS = " […cut: older news; the notes and ask_about_session have the rest]"
 FILLER_AFTER_SECS = 4.5  # silence past this says "one sec"; the model's p95 is under it, so it is rare
 STEP_TIMEOUT_SECS = 8.0  # past this the fast model answers: p95 is 2.3 s, and stalls of 20 s were seen
+SLOW_LINE = "The model took too long to answer. Say that again?"
+LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
 _CLAIMS_SENT = re.compile(r"^on it\b|\b(?:i've|i have|i just|i) (?:asked|sent|told|instructed)\b(?! nothing| anything)|^sending\b|"
                           r"(?<!לא )שלחתי|(?<!לא )ביקשתי")
 _CLAIMS_ANSWERED = re.compile(r"\b(?:denied|declined|approved|granted|applying your yes|your yes (?:was|is|has)|won't run)\b|נדחה|אושר")
@@ -111,6 +125,7 @@ class Brain:
         self.key_refused: Callable[[str], str | None] = vendors.refused_spoken
         self._key_refusal_said = False  # one Brain per call: said once, then the page explains
         self.messages: list[dict] = []
+        self._chars_per_token = CHARS_PER_TOKEN  # what the vendor last counted, so the budget holds in its tokens
         self._lock = asyncio.Lock()
         self._current: asyncio.Task | None = None
         self._given = ""
@@ -123,6 +138,8 @@ class Brain:
     def append(self, text: str) -> None:
         if not (text and text.strip()):
             return
+        if len(text) > MAX_ITEM_CHARS:
+            text = text[:MAX_ITEM_CHARS].rstrip() + " […cut]"
         if self._tools_running:  # between a tool call and its result nothing may be added: vendors refuse that history
             self._waiting.append(text)
         else:
@@ -201,13 +218,85 @@ class Brain:
         self.messages = kept
         self._tools_running = False
 
+    @staticmethod
+    def _chars(m: dict) -> int:
+        """A message's size as the vendors send it."""
+        if m["role"] == "user":
+            return len(m["content"])
+        if m["role"] == "assistant":
+            return len(json.dumps(m["calls"], ensure_ascii=False, default=str)) + len(m.get("said") or "")
+        return len(json.dumps(m["results"], ensure_ascii=False, default=str))
+
+    def history_tokens(self) -> int:
+        return int(sum(map(self._chars, self.messages)) / self._chars_per_token)
+
+    def _calibrate(self, chars: int, tokens: int) -> None:
+        """The vendor's count of what was just sent corrects the chars-per-token guess the budget runs on."""
+        if chars > 0 and tokens > 0:
+            self._chars_per_token = min(6.0, max(1.5, chars / tokens))
+
+    @staticmethod
+    def _capped(result: object) -> object:
+        text = json.dumps(result, ensure_ascii=False, default=str)
+        return result if len(text) <= MAX_RESULT_CHARS else {"cut": True, "result": text[:MAX_RESULT_CHARS] + "…"}
+
+    @staticmethod
+    def _shrunk(m: dict, superseded: bool) -> dict | None:
+        """An old message, small: feed items keep their first line, old tool results a stub, a [right now] block that a
+        later one replaced goes (None). Assistant turns stay: their calls are short, and the results need them."""
+        if m["role"] == "user":
+            text = m["content"]
+            if text.startswith("[right now]"):
+                return None if superseded else m
+            if text.startswith("[") and len(text) > STUB_CHARS:
+                return {"role": "user", "content": text[:STUB_CHARS].rstrip() + OLD_NEWS}
+            return m
+        if m["role"] == "tool":
+            results = [r if len(json.dumps(r["result"], ensure_ascii=False, default=str)) <= STUB_CHARS
+                       else {**r, "result": OLD_RESULT} for r in m["results"]]
+            return m if results == m["results"] else {**m, "results": results}
+        return m
+
     def _trim(self) -> None:
-        if len(self.messages) <= MAX_MESSAGES:
+        """The history stays under its token budget. The newest turns stay as they came; before them, the oldest items
+        shrink first (see _shrunk), then whole turns go from the front. Never between a call and its result: the vendors
+        refuse a pending call whose turn was edited. A trim edits the replay, so vendor state (raw) goes with it."""
+        if self._tools_running or (self.messages and self.messages[-1]["role"] == "tool"):
             return
-        cut = len(self.messages) - MAX_MESSAGES
-        while cut < len(self.messages) and self.messages[cut]["role"] != "user":
+        sizes = [self._chars(m) for m in self.messages]
+        total = sum(sizes)
+        if len(self.messages) <= MAX_MESSAGES and total / self._chars_per_token <= HISTORY_TOKENS:
+            return
+        goal = HISTORY_AFTER_TRIM * self._chars_per_token
+        recent, tail = len(self.messages), 0
+        while recent > 0 and tail + sizes[recent - 1] <= RECENT_TOKENS * self._chars_per_token:
+            recent -= 1
+            tail += sizes[recent]
+        while recent < len(self.messages) and self.messages[recent]["role"] != "user":
+            recent += 1
+        recent_ids = {id(m) for m in self.messages[recent:]}
+        newest_now = max((i for i, m in enumerate(self.messages)
+                          if m["role"] == "user" and m["content"].startswith("[right now]")), default=-1)
+        kept = []
+        for i, m in enumerate(self.messages):
+            stale_now = i != newest_now and m["role"] == "user" and m["content"].startswith("[right now]")
+            if i < recent and (total > goal or stale_now):  # a replaced [right now] block is waste whatever the total
+                small = self._shrunk(m, superseded=i != newest_now)
+                total -= sizes[i] - (self._chars(small) if small else 0)
+                if small is None:
+                    continue
+                m = small
+            kept.append(m)
+        cut = 0
+        while cut < len(kept) and id(kept[cut]) not in recent_ids and (total > goal or len(kept) - cut > MAX_MESSAGES):
+            total -= self._chars(kept[cut])
             cut += 1
-        self.messages = [{k: v for k, v in m.items() if k != "raw"} for m in self.messages[cut:]]  # vendors refuse edited replays
+        while cut < len(kept) and kept[cut]["role"] != "user":  # a history starts with the user, never a reply
+            cut += 1
+        before = sum(sizes)
+        self.messages = [{k: v for k, v in m.items() if k != "raw"} for m in kept[cut:]]  # vendors refuse edited replays
+        logger.info(f"brain history trimmed: ~{int(before / self._chars_per_token)} -> ~{self.history_tokens()} tokens, "
+                    f"{len(sizes)} -> {len(self.messages)} messages")
 
     async def turn(self, text: str | None = None) -> None:
         """One reply: tools as needed, then speech. A turn that is interrupted leaves a valid history behind.
@@ -252,6 +341,7 @@ class Brain:
                 self.append(now)
                 self._given = now
             started = time.time()
+            sent_chars = sum(map(self._chars, self.messages)) + len(self.instructions) + len(json.dumps(decls, ensure_ascii=False))
             try:
                 step, filled = await self._step(decls, filled)
             except asyncio.CancelledError:
@@ -268,13 +358,15 @@ class Brain:
                     if line:
                         await self.speak(line)
                     return
-                await self.speak("I lost my connection to the model for a moment. Say that again?")
+                # A step past the timeout is the model being slow, not a lost connection: the words must not say otherwise
+                await self.speak(SLOW_LINE if isinstance(e, TimeoutError) else LOST_LINE)
                 return
             finally:
                 self._current = None
             if generation != self._generation:
                 return
             ms = int((time.time() - started) * 1000)
+            self._calibrate(sent_chars, step.usage.get("context") or 0)
             self.on_usage({**step.usage, "ms": ms})
             calls = step.calls
             if not calls and step.said:  # a vendor without forced tool use answered in plain text
@@ -333,7 +425,7 @@ class Brain:
                     done = True
             if real:
                 self.messages.append({"role": "tool", "results": [
-                    {"id": c["id"], "name": c["name"], "result": results.get(c["id"])} for c in real]})
+                    {"id": c["id"], "name": c["name"], "result": self._capped(results.get(c["id"]))} for c in real]})
             self._tools_running = False
             waiting, self._waiting = self._waiting, []
             for text in waiting:
