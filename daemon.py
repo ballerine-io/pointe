@@ -4290,12 +4290,20 @@ def _clash(a: str, b: str) -> bool:
 
 def _tell_apart(session: Session, label: str) -> None:
     """A name another session already has ("shop"), on another machine or in another harness: the machine ("shop
-    devbox"), else the harness ("shop opencode"), tells them apart. The first to join keeps the plain name; when the
-    suffix does not fit, the registry's "-2" does. A session on this Mac never takes this Mac's name: that would make it
-    an alias ("go to studio" would pick one of its sessions), which _here() must never be."""
+    devbox"), else the harness ("shop opencode"), tells them apart. The first to join keeps the plain name, except
+    that a session on this Mac always does: a remote one holding it is renamed "<name> <machine>", so "tell shop" never
+    goes to another machine because it joined first. When the suffix does not fit, the registry's "-2" does. A session
+    on this Mac never takes this Mac's name: that would make it an alias ("go to studio" would pick one of its
+    sessions), which _here() must never be."""
     if session.id in REGISTRY.sessions:
         return
     clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
+    if not session.machine:
+        for other in [o for o in clashing if o.machine]:
+            labelled = f"{other.name} {other.machine}"[:40]
+            if valid_name(labelled) and not REGISTRY.rename(other.id, labelled):
+                logger.info(f"{session.name} joined on this Mac: the one on {other.machine} is now {labelled}")
+        clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
     if session.machine and any(o.machine != session.machine for o in clashing):
         suffix = session.machine
     elif any(o.harness != session.harness for o in clashing):

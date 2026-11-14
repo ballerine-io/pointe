@@ -387,6 +387,7 @@ request is in the session's own terminal.
 | Version skew | `protocol` in `hello`; the hub refuses below its minimum; the node's `readable` is the only read-out text, so a newer `readout.py` on one side cannot produce two forms |
 | Clock skew | time filters on remote mirrors are shifted by the measured skew; nothing else compares wall clocks |
 | A huge or hostile transcript | the hub caps an entry at 256 kB and a frame at 1 MB, drops the rest of that entry with a logged warning, and refuses a gap in offsets rather than guessing. Every other string a node sends is cut before the daemon sees it (`hub_nodes.MAX_*_CHARS`: a folder or file name 4096, a name, title or tool 200, a description 2000, a preview 20 000); a read-out over 1000 characters is dropped (tap only), never cut |
+| A node names its session after one on the hub, so the hub's requests go to the node | a session on the hub always keeps its plain name: a remote session holding it is renamed `<name> <machine>` when the local one joins (`_tell_apart`) |
 | A node floods permission requests | the node serializes one prompt per session (as `_PERMISSION_LOCKS` does, `daemon.py:4087-4098`); the hub announces a non-active session's prompt in one line (`daemon.py:4162-4165`) |
 | A credential in a remote command reaches a screen or notification | it does not: masked on the node, and an unreadable request shows only its tool in a notification (`alerts.py:40-47`) |
 
@@ -401,7 +402,7 @@ request is in the session's own terminal.
 | Hub has no call up, or `approvals: terminal` on the hub | the node's hook returns `{}` at once: the prompt stays in the terminal, as a local session's does | nothing; as today |
 | The hub does not answer `holding` within 10 s | the node hands the prompt to the terminal and sends `permission.resolved {how: timeout}`; a later verdict is `stale` | the card disappears |
 | The user answers in the terminal first | the node's `gone()` sees it; `permission.resolved {how: terminal}`; the hub clears the card | the card disappears |
-| Two sessions named `shop` on two machines | the hub suffixes the later one with the machine, the way it suffixes a second harness (`daemon.py:4006-4014`): `shop devbox` | "shop devbox finished…" |
+| Two sessions named `shop` on two machines | the hub suffixes the later one with the machine, the way it suffixes a second harness (`daemon.py:4006-4014`): `shop devbox`. A session on the hub always keeps the plain name: a remote `shop` that joined first becomes `shop devbox` when a local `shop` joins | "shop devbox finished…" |
 | Same session id on two nodes (a cloned VM) | hub ids are prefixed by node; and a clone with the same node key cannot connect while the original is connected | |
 | A node is revoked while its session holds a prompt | the link closes; the node hands the prompt to the terminal | the group disappears; one line |
 | Invite expires, is mistyped, or the address is rate-limited | `403 invite expired` / `403 wrong code` / `429` | `pointe node join` prints the hub's message |
@@ -428,9 +429,10 @@ WireGuard across sites 20 to 60 ms; Twingate 30 to 100 ms.
   is editable in `config.json` (`"machine": "studio"`); a node's name is set at pairing.
 - Collision across machines: when a session joins with a name another machine already uses (same rule as the harness
   suffix, `daemon.py:4006-4014`), it is named `<name> <machine>` if that is `valid_name` and passes `rename_check`; else
-  the registry's `-2` fallback (`sessions.py:149-153`). The first to join keeps the plain name. A session on the hub
-  that joins after a remote one of the same name is never suffixed with the hub's own name (that would make the hub's
-  name an alias of one session): it takes the harness suffix if that tells them apart, else the `-2` fallback.
+  the registry's `-2` fallback (`sessions.py:149-153`). Between two remote sessions, the first to join keeps the plain
+  name. A session on the hub always keeps it: a remote one that holds it is renamed `<name> <machine>` when the local one
+  joins (`_tell_apart`), so "tell shop" never goes to another machine because that session joined first. The hub's own
+  name is never a suffix (that would make it an alias of one session).
 - A session may not be named, or renamed to, a machine's name (`rename_check` and `_session_name` refuse it), and a node
   may not take a name whose words are in a session's name (pairing refuses it).
 - `sessions._aliases` (`sessions.py:357-367`) adds `(machine, 0)` for a remote session, as it adds the harness label.
