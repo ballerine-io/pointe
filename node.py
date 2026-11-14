@@ -6,28 +6,19 @@ work unchanged; it ships each session's transcript to the hub as complete lines 
 delivers the hub's sends, and holds permission prompts, re-checking every verdict against its own copy of the request.
 No model, no vendor key, no Pipecat: tests/test_node.py asserts the import set.
 
-    node.py join '<invite>' [--name NAME]   pair with a hub (pointe node join)
-    node.py status                          the hub, the link, sessions here, the key fingerprint
-    node.py leave                           forget the hub
-    node.py serve [--port PORT]             run the node (bin/voice-node starts it)
+    node.py serve [--port PORT]   run the node (bin/voice-node starts it)
+Pairing and the everyday commands (pointe node join|status|leave) are node_cli.py.
 """
 
 import argparse
 import asyncio
-import hashlib
 import hmac
 import json
 import os
 import platform
 import re
-import shutil
-import socket
-import ssl
-import subprocess
 import sys
 import time
-import urllib.error
-import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -50,6 +41,7 @@ PORT = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
 POLL_SECS = 0.3  # as the daemon tails a local transcript (sessions.py)
 READ_MAX = 4 << 20  # bytes read from one transcript per poll: a long backlog ships over several polls
 LIVENESS_SECS = 5
+GRACE_SECS = 20.0  # a held prompt outlives a dropped link this long, so a restarting hub can ask it again
 
 
 # ---------- masking: the high-precision rules only ----------
@@ -192,7 +184,10 @@ class Held:
     frame: dict  # the permission.request sent, for the snapshot's `pending`
     readable: str | None
     future: asyncio.Future
+    deadline: float  # loop time
+    holding_by: float  # loop time by which the hub must say `holding`
     holding: asyncio.Event = field(default_factory=asyncio.Event)
+    offline_since: float | None = None  # loop time the link dropped while this was held
     why: str | None = None  # why it went back to the terminal, if not a verdict
 
 
@@ -217,6 +212,7 @@ class Node:
         self.link_error = ""
         self.poll = POLL_SECS
         self.holding_wait = nodelink.HOLDING_WAIT_SECS
+        self.grace = GRACE_SECS
         self.backoff = nodelink.backoff
         self._send_lock = asyncio.Lock()
         self._background: list[asyncio.Task] = []
@@ -497,6 +493,7 @@ class Node:
         if code == nodelink.CLOSE_UNAUTHORIZED:
             self.link_error = "the hub no longer knows this machine (revoked): the key is deleted; pair again"
             forget(self.state)
+            self._release_all("revoked")
             self.finished.set()
         elif code == nodelink.CLOSE_ALREADY_CONNECTED:
             self.link_error = "already connected: another process with this machine's key is linked to the hub"
@@ -515,19 +512,37 @@ class Node:
         self.hub_offsets = {}
         self.linked.set()
         logger.info(f"linked to the hub (call {'up' if self.call_up else 'down'})")
-        await self._snapshot()
+        if not self._forwarding():
+            self._release_all("call")  # back, but with no call (or approvals: terminal): the terminal answers
+        await self._snapshot()  # `pending` carries any prompt held over the drop
+        await self._reoffer()
         await self._apply_resume(welcome["resume"], everyone=True)
 
+    async def _reoffer(self) -> None:
+        """Prompts held through a dropped link, asked again with their request ids: the hub (restarted, or back from a
+        network drop) puts them to the user as a re-asked prompt. `holding` is due again."""
+        loop = asyncio.get_running_loop()
+        for held in list(self.held.values()):
+            if held.future.done() or held.offline_since is None:
+                continue
+            held.offline_since, held.holding_by = None, loop.time() + self.holding_wait
+            held.frame["deadline_ms"] = max(0, int((held.deadline - loop.time()) * 1000))
+            await self._send(**held.frame)
+
     def _unlinked(self) -> None:
-        if self.linked is not None and self.linked.is_set():
-            logger.info("link to the hub dropped: held prompts go back to their terminals")
+        if self.linked.is_set() and self.held:
+            logger.info(f"link to the hub dropped: held prompts wait {self.grace:.0f} s for it, "
+                        f"then go to their terminals")
         self.ws = None
-        if self.linked is not None:
-            self.linked.clear()
+        self.linked.clear()
         self.call_up = False
         for tail in self.tails.values():
             tail.offset = None  # the hub says where to resume
-        self._release_all("dropped")
+        now = asyncio.get_running_loop().time()
+        for held in self.held.values():
+            if held.offline_since is None:
+                held.offline_since = now
+                held.holding.clear()
 
     async def _watchdog(self, ws) -> None:
         """The hub pings every 2 s: silence for DEAD_AFTER_SECS is a dead link (a VPN down, the hub asleep)."""
@@ -589,6 +604,7 @@ class Node:
         elif t == "unpaired":
             self.link_error = "the hub revoked this machine: the key is deleted"
             forget(self.state)
+            self._release_all("revoked")
             self.finished.set()
             if self.ws is not None:
                 await self.ws.close()
@@ -691,8 +707,8 @@ class Node:
             return
         proc = None
         try:
-            proc = await asyncio.create_subprocess_exec("git", "-C", session.cwd, "ls-files",
-                                                        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+            proc = await asyncio.create_subprocess_exec(
+                "git", "-C", session.cwd, "ls-files", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
             out, _ = await asyncio.wait_for(proc.communicate(), 5)
         except (OSError, asyncio.TimeoutError):
             return
@@ -781,21 +797,32 @@ class Node:
                  "description": precise_mask(str(tool_input.get("description") or "use this tool")),
                  "preview": precise_mask(json.dumps(tool_input, ensure_ascii=False)), "readable": readable,
                  "deadline_ms": max(0, int((deadline - loop.time()) * 1000))}
-        held = Held(request_id=request_id, frame=frame, readable=readable, future=loop.create_future())
+        held = Held(request_id=request_id, frame=frame, readable=readable, future=loop.create_future(),
+                    deadline=deadline, holding_by=loop.time() + self.holding_wait)
         self.held[session.id] = held
         session.permission_id, session.permission_answer = request_id, held.future  # a turn end releases it
-        holding_by = loop.time() + self.holding_wait
         try:
             if not await self._send(**frame):
                 return None
             await self._snapshot()
             while not held.future.done():
                 now = loop.time()
-                if now >= deadline or (not held.holding.is_set() and now >= holding_by):
+                if now >= deadline:
                     held.why = "timeout"
                     break
-                wait = min(1.0, deadline - now, *(() if held.holding.is_set() else (holding_by - now,)))
-                await asyncio.wait([held.future], timeout=max(0.01, wait))
+                if held.offline_since is not None:  # the link dropped: wait out the grace window for the hub
+                    if now >= held.offline_since + self.grace:
+                        held.why = "dropped"
+                        break
+                    until = held.offline_since + self.grace
+                elif not held.holding.is_set():
+                    if now >= held.holding_by:
+                        held.why = "timeout"
+                        break
+                    until = held.holding_by
+                else:
+                    until = deadline
+                await asyncio.wait([held.future], timeout=max(0.01, min(1.0, deadline - now, until - now)))
                 if not held.future.done() and gone is not None and await gone():
                     held.why = "terminal"
                     break
@@ -902,55 +929,11 @@ class _LocalOnly:
         return await self.app(scope, receive, send)
 
 
-# ---------- the command line ----------
-
-def parse_invite(invite: str) -> dict:
-    """`pointe://hub?v=1&host=…&port=…&fp=…&code=…` (pointe hub invite). ValueError for anything else."""
-    url = urllib.parse.urlsplit(invite.strip())
-    query = dict(urllib.parse.parse_qsl(url.query))
-    if url.scheme != "pointe" or url.netloc != "hub" or query.get("v") != "1":
-        raise ValueError("not a hub invite: expected pointe://hub?v=1&…, from `pointe hub invite` on the hub")
-    if not (query.get("host") and query.get("code") and re.fullmatch(r"[0-9a-fA-F]{64}", query.get("fp", ""))
-            and query.get("port", "").isdigit()):
-        raise ValueError("the invite is incomplete: copy the whole line `pointe hub invite` printed")
-    return {"host": query["host"], "port": int(query["port"]), "fp": query["fp"].lower(), "code": query["code"]}
-
-
-def peer_fingerprint(host: str, port: int, timeout: float = 10) -> str:
-    """The SHA-256 of the certificate the listener presents, read with verification off: the pin is the check."""
-    context = ssl.create_default_context()
-    context.check_hostname, context.verify_mode = False, ssl.CERT_NONE
-    with socket.create_connection((host, port), timeout=timeout) as raw, \
-            context.wrap_socket(raw, server_hostname=host if not _is_address(host) else None) as tls:
-        return hashlib.sha256(tls.getpeercert(binary_form=True)).hexdigest()
-
-
-def _is_address(host: str) -> bool:
-    import ipaddress
-
-    try:
-        ipaddress.ip_address(host)
-        return True
-    except ValueError:
-        return False
-
+# ---------- running ----------
 
 def _local_health(port: int) -> dict | None:
     try:
         return json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/voice/health", timeout=2).read())
-    except (OSError, ValueError):
-        return None
-
-
-def _local(path: str, port: int, state: Path, body: dict | None = None) -> dict | None:
-    """A call to the node running on this machine, or None when none answers."""
-    try:
-        token = (state / "token").read_text().strip()
-        request = urllib.request.Request(
-            f"http://127.0.0.1:{port}{path}", method="POST" if body is not None else "GET",
-            data=json.dumps(body).encode() if body is not None else None,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
-        return json.loads(urllib.request.urlopen(request, timeout=5).read())
     except (OSError, ValueError):
         return None
 
@@ -962,111 +945,6 @@ DAEMON_HERE = ("a Pointe daemon (a hub, with the call) is running on port {port}
 def _daemon_here(port: int) -> bool:
     health = _local_health(port)
     return bool(health) and not health.get("node")
-
-
-def can_tell_who_listens() -> bool:
-    """The permission hook releases a prompt only to our own process on the port: it needs lsof, ss or /proc to know."""
-    return bool(shutil.which("lsof") or shutil.which("ss") or Path("/proc/net/tcp").exists())
-
-
-def join(invite: str, name: str | None, state: Path = STATE, port: int = PORT, start: bool = True) -> None:
-    if pairing(state) or (state / "node.json").exists():
-        hub = (_read_json(state / "node.json").get("hub") or {}).get("name") or "a hub"
-        raise SystemExit(f"this machine is paired with {hub}: leave {hub} first: pointe node leave")
-    invited = parse_invite(invite)
-    if not can_tell_who_listens():
-        raise SystemExit("install lsof or iproute2 (ss): the permission hook needs one to check that the answer comes "
-                         "from this machine's node")
-    if not shutil.which("ps"):  # how a session's process is checked (harnesses/claude_code.py): slim images lack it
-        raise SystemExit("install procps (ps): the node checks that each session's process still runs")
-    if start and not (shutil.which("uv") or (Path.home() / ".local/bin/uv").exists()):
-        raise SystemExit("uv is missing. Install it: https://docs.astral.sh/uv/")
-    if _daemon_here(port):
-        raise SystemExit(DAEMON_HERE.format(port=port))
-    try:
-        seen = peer_fingerprint(invited["host"], invited["port"])
-    except OSError as e:
-        raise SystemExit(f"cannot reach the hub at {invited['host']}:{invited['port']} ({type(e).__name__}). It must "
-                         f"be on the same private network (Tailscale, Twingate, the LAN)")
-    if not hmac.compare_digest(seen, invited["fp"]):
-        raise SystemExit("the hub's certificate is not the one in the invite. If the hub re-paired or rotated its "
-                         "certificate (pointe pair rotate), ask for a new invite.")
-    name = name or socket.gethostname().split(".")[0].lower()
-    body = {"code": invited["code"], "name": name, "os": _os(), "arch": platform.machine(), "version": _version()}
-    got = asyncio.run(_pair_request(invited, body))
-    state.mkdir(parents=True, exist_ok=True, mode=0o700)
-    hub = got["hub"]
-    _write_private(state / "node_keys" / str(hub["id"]), got["node_key"])
-    _write_private(state / "node.json", json.dumps({
-        "id": got["node_id"], "name": name,
-        "hub": {"id": hub["id"], "name": hub["name"], "host": invited["host"], "port": invited["port"],
-                "fp": invited["fp"]}}) + "\n")  # one line: bin/voice-node and bin/voice-open read it with sed
-    vendors = ", ".join(got.get("vendors") or []) or "none (fully local)"
-    if start:
-        subprocess.run([str(ROOT / "bin" / "voice-node"), "ensure"], check=False)
-    print(f"Paired with {hub['name']} as {name} (key {nodelink.fingerprint(got['node_key'])}). Sessions you join here "
-          f"reach its voice: /pointe:voice in Claude Code, pointe join opencode|codex in a folder. Their transcripts "
-          f"(credentials masked) go to {hub['name']} and its vendors: {vendors}.")
-
-
-async def _pair_request(invited: dict, body: dict) -> dict:
-    url = f"https://{_netloc(invited['host'], invited['port'])}{nodelink.PAIR_PATH}"
-    try:
-        async with aiohttp.ClientSession() as http, http.post(
-                url, json=body, ssl=aiohttp.Fingerprint(bytes.fromhex(invited["fp"])),
-                timeout=aiohttp.ClientTimeout(total=20)) as response:
-            text = await response.text()
-            if response.status != 200:
-                raise SystemExit(f"the hub refused: {text.strip() or response.status}")
-            got = json.loads(text)
-    except aiohttp.ServerFingerprintMismatch:
-        raise SystemExit("the hub's certificate is not the one in the invite. If the hub re-paired or rotated its "
-                         "certificate (pointe pair rotate), ask for a new invite.")
-    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
-        raise SystemExit(f"pairing failed: {type(e).__name__}")
-    if not (isinstance(got, dict) and re.fullmatch(r"[0-9a-f]{64}", str(got.get("node_key")))
-            and isinstance(got.get("hub"), dict) and got.get("node_id")):
-        raise SystemExit("the hub's answer is not a pairing")
-    return got
-
-
-def status(state: Path = STATE, port: int = PORT) -> None:
-    paired = pairing(state)
-    if paired is None:
-        print("This machine is not paired with a hub. Pair it: pointe node join '<invite from pointe hub invite>'")
-        return
-    config, key = paired
-    hub = config["hub"]
-    live = _local("/voice/status", port, state)
-    print(f"Node {config.get('name')}, paired with {hub['name']} at {hub['host']}:{hub.get('port')}, "
-          f"key {nodelink.fingerprint(key)}")
-    if live is None or not live.get("node"):
-        print("The node is not running here: bin/voice-node ensure (or /pointe:voice in a session) starts it.")
-        return
-    link = "up" if live["link"] == "up" else f"down ({live.get('link_error') or 'connecting'})"
-    print(f"Link: {link}" + (f", round trip {live['rtt_ms']} ms" if live.get("rtt_ms") is not None else ""))
-    print(f"Call on {hub['name']}: {'up' if live.get('connected') else 'not up'}. Remote taps: "
-          f"{'only for requests that can be read out' if live.get('remote_taps') == 'readable_only' else 'trusted'}.")
-    vendors = ", ".join(live.get("vendors") or []) or "none known yet"
-    print(f"Transcripts of sessions here (credentials masked) go to {hub['name']} and its vendors: {vendors}.")
-    for s in live.get("sessions") or []:
-        print(f"  {s['name']} ({s['harness']}, {s['cwd']})" + ("  waiting on an approval" if s.get("pending") else ""))
-    if not live.get("sessions"):
-        print("  no sessions here yet: /pointe:voice in Claude Code, pointe join opencode|codex")
-
-
-def leave(state: Path = STATE, port: int = PORT) -> None:
-    config = _read_json(state / "node.json")
-    if not config:
-        print("This machine is not paired with a hub.")
-        return
-    hub = (config.get("hub") or {}).get("name") or "the hub"
-    told = _local("/voice/node/leave", port, state, {})  # the running node says `bye`, so the hub forgets it too
-    forget(state)
-    if told is not None:
-        subprocess.run([str(ROOT / "bin" / "voice-node"), "stop"], check=False, capture_output=True)
-    print(f"Left {hub}." + ("" if told else f" The node was not running, so {hub} still lists this machine: "
-                                            f"pointe hub revoke {config.get('name')} there."))
 
 
 def serve(port: int = PORT, state: Path = STATE) -> None:
@@ -1092,29 +970,10 @@ def serve(port: int = PORT, state: Path = STATE) -> None:
 
 
 def main(argv: list[str]) -> None:
-    parser = argparse.ArgumentParser(prog="pointe node",
-                                     description="This machine's sessions, on another machine's voice")
+    parser = argparse.ArgumentParser(prog="node.py", description="Run this machine's node (bin/voice-node starts it)")
     sub = parser.add_subparsers(dest="command", required=True)
-    joining = sub.add_parser("join", help="pair with a hub: pointe node join '<invite>'")
-    joining.add_argument("invite")
-    joining.add_argument("--name")
-    joining.add_argument("--no-start", action="store_true", help=argparse.SUPPRESS)
-    sub.add_parser("status")
-    sub.add_parser("leave")
-    serving = sub.add_parser("serve")
-    serving.add_argument("--port", type=int, default=PORT)
-    args = parser.parse_args(argv)
-    if args.command == "join":
-        try:
-            join(args.invite, args.name, start=not args.no_start)
-        except ValueError as e:
-            raise SystemExit(str(e))
-    elif args.command == "status":
-        status()
-    elif args.command == "leave":
-        leave()
-    else:
-        serve(args.port)
+    sub.add_parser("serve").add_argument("--port", type=int, default=PORT)
+    serve(parser.parse_args(argv).port)
 
 
 if __name__ == "__main__":

@@ -349,6 +349,11 @@ The node adds, in `node.py`, with its own tests:
 | `how: tap`, `verdict: allow` | the id check. **A tap is trusted from the hub**, as the hub's own page and app are trusted today: the node cannot see the page cookie or Face ID, and the exact request a tap approves may have no read-out form. A node that wants less exposure sets `remote_taps: readable_only` in its `$STATE/config.json` (default off): then a remote tap is refused (`why: unreadable`) for a request with no readable form, and such prompts are answered only in the node's terminal. `/pointe:doctor` on the node says which it is |
 | anything | the node's `approvals` is not `terminal` in its `$STATE/config.json` (then the node never forwards prompts, matching `daemon.py:4075-4077`) |
 
+A verdict the re-check refuses does not end the hold: the node answers `permission.answered {ok: false, why}`
+(`stale`, `unreadable`, `mismatch` or `terminal`) and keeps the prompt held, so the user can still answer it by a
+verdict that passes, in the terminal, or by letting it time out. Only an accepted verdict, a terminal answer, the
+deadline, or a hand-back releases the hook.
+
 Honest summary for `SECURITY.md`: the node re-checks voice and notification approvals; a tap is trusted from the hub,
 as the hub's own page is trusted. What a tap approves on the hub's screens is the masked preview; the exact unmasked
 request is in the session's own terminal.
@@ -377,8 +382,8 @@ request is in the session's own terminal.
 | Event | What happens | The user sees / hears |
 |---|---|---|
 | Link drops (VPN down, node asleep) | heartbeat dead after 12 s; the hub marks the node and its sessions **offline** (kept, not removed); workers keep following the mirror (nothing new arrives); node reconnects with backoff. After 10 minutes offline `RemoteHarness.alive` turns false and `_reap_dead` moves them to `departed` | the group greys out with "offline since 14:02"; a send to one is refused and the voice says "devbox is offline"; a prompt it held went back to its terminal |
-| Node offline mid-approval | the node released the hook with `None` when the link died, so the prompt is in the terminal; the hub's card changes to "offline: answer it in its terminal"; a late tap or yes gets `stale` | one line: "devbox dropped, shop's approval went back to its terminal" |
-| Hub restart | `REGISTRY` reloads remote sessions offline; the node reconnects; `welcome.resume` carries the persisted `next_offset` per mirror; the node ships what the hub missed and re-sends `pending` prompts with the same `request_id`, which the hub puts to the user again (as `_on_connect` re-asks local ones, `daemon.py:5105-5111`) | the call reconnects as today; a held prompt is read out again |
+| Node offline mid-approval | the node keeps the hook held for a grace window of 20 s (`GRACE_SECS`, `node.py`), so a hub restart or a short network drop does not lose it; if the hub is back within it, the node re-offers the prompt (below); else it releases the hook with `None` and the prompt is in the terminal. The hub's card says "offline: answer it in its terminal"; a late tap or yes gets `stale`. A link back with no call up, or `approvals: terminal`, hands it back at once | one line: "devbox dropped, shop's approval went back to its terminal" |
+| Hub restart | `REGISTRY` reloads remote sessions offline; the node reconnects; `welcome.resume` carries the persisted `next_offset` per mirror; the node ships what the hub missed and, for prompts still held in the 20 s grace window, lists them as `pending` in its `sessions` snapshot and re-sends `permission.request` with the same `request_id` (and the remaining `deadline_ms`; `holding` is due again within 10 s), which the hub puts to the user again (as `_on_connect` re-asks local ones, `daemon.py:5105-5111`) | the call reconnects as today; a held prompt is read out again |
 | Node restart | its `sessions.json` reloads and dead pids are dropped (`sessions.py:138`); it reconnects and sends a fresh `sessions` snapshot; the hub reconciles (joins, lefts) | a session that died meanwhile is announced as closed, in one line |
 | Hub has no call up, or `approvals: terminal` on the hub | the node's hook returns `{}` at once: the prompt stays in the terminal, as a local session's does | nothing; as today |
 | The hub does not answer `holding` within 10 s | the node hands the prompt to the terminal and sends `permission.resolved {how: timeout}`; a later verdict is `stale` | the card disappears |
@@ -540,7 +545,8 @@ Anyone who ran `voice-remote setup` keeps working: `remote.json` and `remote_tok
   repoint; the hook path: a request forwarded with the node's `readable`, hub `holding` within 10 s or back to the
   terminal; **the re-check table above, one test per row**, including `spoken` off by one character, a stale id,
   `approvals: terminal`, `remote_taps: readable_only` refusing a tap on an unreadable request and allowing one on a
-  readable one; `gone()` → `permission.resolved`; link drop mid-hold releases `None`; the import-set assertion (no
+  readable one; `gone()` → `permission.resolved`; link drop mid-hold releases `None` after the grace window, and a hub back within it is re-offered the same
+  `request_id`; the import-set assertion (no
   Pipecat, onnxruntime or vendor SDK in `sys.modules`); `lsof` absent → `ss` fallback → `/proc` fallback in the hook
   (run the real script with `PATH` trimmed).
 - `tests/test_hub_nodes.py`: `daemon.py` against a fake node: a remote session appears in `/voice/status` with

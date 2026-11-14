@@ -141,9 +141,9 @@ async def main() -> None:
     await web.TCPSite(runner, "127.0.0.1", HUB_PORT, ssl_context=context).start()
 
     invite = f"pointe://hub?v=1&host=127.0.0.1&port={HUB_PORT}&fp={fp}&code={CODE}"
-    bad = await run(sys.executable, str(POINTE / "node.py"), "join", invite.replace(fp, "0" * 64))
+    bad = await run(sys.executable, str(POINTE / "node_cli.py"), "join", invite.replace(fp, "0" * 64))
     check(bad[0] != 0 and "not the one in the invite" in bad[2], "join refuses a certificate not in the invite")
-    code, out, err = await run(sys.executable, str(POINTE / "node.py"), "join", invite, "--name", "devbox")
+    code, out, err = await run(sys.executable, str(POINTE / "node_cli.py"), "join", invite, "--name", "devbox")
     check(code == 0 and "Paired with studio" in out, f"join pairs and starts the node ({out.strip()[:80]}{err[-300:]})")
     await asyncio.wait_for(hub.hello.wait(), 20)
     check(True, "the node dialed the hub, pinned its certificate and answered the HMAC challenge")
@@ -214,7 +214,7 @@ async def main() -> None:
         forwarded = False
     check(out == "" and not forwarded, f"[{tool}] the hook answers nothing when the port's owner is not the node")
 
-    _, out, _ = await run(sys.executable, str(POINTE / "node.py"), "status")
+    _, out, _ = await run(sys.executable, str(POINTE / "node_cli.py"), "status")
     check("Link: up" in out and "shop" in out, "pointe node status shows the link and the session")
     _, out, _ = await run(str(POINTE / "bin" / "voice-open"))
     check("the call is on studio" in out, "voice-open on a node says where the call is")

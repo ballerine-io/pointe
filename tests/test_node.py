@@ -29,7 +29,7 @@ import nodelink  # noqa: E402
 # since imported the daemon).
 NODE_IMPORTS = """
 import json, sys
-import node, harnesses
+import node, node_cli, harnesses
 harnesses.names()
 node.precise_mask("ANTHROPIC_API_KEY=sk-ant-0123456789abcdef")
 print(json.dumps(sorted(sys.modules)))
@@ -48,6 +48,7 @@ def test_a_node_imports_nothing_that_loads_a_model_or_a_vendor_sdk(tmp_path):
 
 
 import node  # noqa: E402: after the fresh-interpreter test, which must not see this process's imports
+import node_cli  # noqa: E402
 
 
 # ---------- masking: only the high-precision rules ----------
@@ -700,11 +701,55 @@ def test_the_pending_prompt_is_in_the_snapshot(tmp_path):
     run(scenario, tmp_path)
 
 
-def test_a_link_drop_mid_hold_hands_the_prompt_back(tmp_path):
+def test_a_link_drop_mid_hold_hands_the_prompt_back_once_the_grace_window_passes(tmp_path):
     async def scenario(hub, n):
+        n.grace = 0.8
         task, frame = await _prompt(hub, n, tmp_path)
+        hub.refuse_with = nodelink.CLOSE_ALREADY_CONNECTED  # the hub does not come back
+        await hub.ws.close(code=WSCloseCode.GOING_AWAY)
+        await asyncio.sleep(0.4)
+        assert not task.done()  # still held: a hub restart has the window to come back
+        assert await asyncio.wait_for(task, 5) is None
+
+    run(scenario, tmp_path)
+
+
+def test_a_hub_back_within_the_grace_window_is_offered_the_same_prompt_again(tmp_path):
+    async def scenario(hub, n):
+        n.grace = 10
+        n.backoff = lambda attempt: 0.1
+        task, frame = await _prompt(hub, n, tmp_path)
+        await hub.ws.close(code=WSCloseCode.GOING_AWAY)  # a hub restart
+        again = await hub.next("permission.request", request_id=frame["request_id"])
+        assert again["readable"] == frame["readable"] and again["deadline_ms"] < frame["deadline_ms"]
+        pending = [s["pending"] for f in hub.seen if f["t"] == "sessions" for s in f["sessions"] if s["pending"]]
+        assert pending and pending[-1]["request_id"] == frame["request_id"]
+        assert not task.done()
+        await hub.send("permission.holding", request_id=frame["request_id"])
+        assert (await _answer(hub, frame, how="tap"))["ok"] is True
+        assert await task == "allow"
+
+    run(scenario, tmp_path)
+
+
+def test_a_hub_back_without_a_call_gets_the_prompt_handed_back(tmp_path):
+    async def scenario(hub, n):
+        n.grace = 10
+        n.backoff = lambda attempt: 0.1
+        task, frame = await _prompt(hub, n, tmp_path)
+        hub.call_up = False
         await hub.ws.close(code=WSCloseCode.GOING_AWAY)
         assert await asyncio.wait_for(task, 5) is None
+
+    run(scenario, tmp_path)
+
+
+def test_a_revoked_node_hands_its_prompts_back_at_once(tmp_path):
+    async def scenario(hub, n):
+        n.grace = 10
+        task, frame = await _prompt(hub, n, tmp_path)
+        await hub.send("unpaired")
+        assert await asyncio.wait_for(task, 3) is None
 
     run(scenario, tmp_path)
 
@@ -944,17 +989,17 @@ def _invite(hub: FakeHub, code: str = "K7PQ-2MXD", fp: str | None = None) -> str
 
 
 def test_parse_invite():
-    got = node.parse_invite("pointe://hub?v=1&host=studio.ts.net&port=7443&fp=" + "ab" * 32 + "&code=K7PQ-2MXD")
+    got = node_cli.parse_invite("pointe://hub?v=1&host=studio.ts.net&port=7443&fp=" + "ab" * 32 + "&code=K7PQ-2MXD")
     assert got == {"host": "studio.ts.net", "port": 7443, "fp": "ab" * 32, "code": "K7PQ-2MXD"}
     for bad in ("https://x", "pointe://pair?v=1&host=a&port=1&fp=ab&code=x", "pointe://hub?v=1&host=a&port=x&fp=ab&code=c"):
         with pytest.raises(ValueError):
-            node.parse_invite(bad)
+            node_cli.parse_invite(bad)
 
 
 def _join(tmp: Path, hub: FakeHub, invite: str, *extra) -> subprocess.CompletedProcess:
     state = tmp / "state"
     env = {**os.environ, "CLAUDE_VOICE_STATE": str(state), "CLAUDE_VOICE_DAEMON_PORT": str(_free_port())}
-    return subprocess.run([sys.executable, str(ROOT / "node.py"), "join", invite, "--name", "devbox", "--no-start", *extra],
+    return subprocess.run([sys.executable, str(ROOT / "node_cli.py"), "join", invite, "--name", "devbox", "--no-start", *extra],
                           env=env, capture_output=True, text=True, timeout=30)
 
 
@@ -1025,11 +1070,11 @@ def test_leave_deletes_the_pairing(tmp_path):
         assert _join(tmp_path, hub, _invite(hub)).returncode == 0
         state = tmp_path / "state"
         env = {**os.environ, "CLAUDE_VOICE_STATE": str(state), "CLAUDE_VOICE_DAEMON_PORT": str(_free_port())}
-        status = subprocess.run([sys.executable, str(ROOT / "node.py"), "status"], env=env, capture_output=True,
+        status = subprocess.run([sys.executable, str(ROOT / "node_cli.py"), "status"], env=env, capture_output=True,
                                 text=True, timeout=30)
         assert "studio" in status.stdout and nodelink.fingerprint(hub.key) in status.stdout
         assert "not running" in status.stdout
-        out = subprocess.run([sys.executable, str(ROOT / "node.py"), "leave"], env=env, capture_output=True, text=True,
+        out = subprocess.run([sys.executable, str(ROOT / "node_cli.py"), "leave"], env=env, capture_output=True, text=True,
                              timeout=30)
         assert out.returncode == 0, out.stderr
         assert not (state / "node.json").exists() and not list((state / "node_keys").iterdir())
@@ -1046,7 +1091,7 @@ def test_join_refuses_where_a_daemon_runs(tmp_path):
             state.mkdir()
             (state / "daemon.pid").write_text(str(os.getpid()))
             env = {**os.environ, "CLAUDE_VOICE_STATE": str(state), "CLAUDE_VOICE_DAEMON_PORT": str(port)}
-            out = subprocess.run([sys.executable, str(ROOT / "node.py"), "join", _invite(hub), "--no-start"], env=env,
+            out = subprocess.run([sys.executable, str(ROOT / "node_cli.py"), "join", _invite(hub), "--no-start"], env=env,
                                  capture_output=True, text=True, timeout=30)
             assert out.returncode != 0 and "voice-daemon stop" in out.stderr and not hub.pairs
 
