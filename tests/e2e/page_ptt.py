@@ -2,8 +2,9 @@
 
 Settings switches the microphone to push to talk and picks a hold key; closed, the page sends nothing and the daemon
 hears nothing; the hold key, Caps Lock (a toggle, both the macOS and the other keyboards' event shapes) and a mouse hold
-on the ring each open it; leaving the window lets go; a press held 90 s is closed by the daemon and the page says so;
-back to always on, Space mutes again.
+on the ring each open it; `pointe talk` from a shell (a system-wide shortcut, the page in the background) opens it and
+the page shows Talking and sends; leaving the window lets go; a press held 90 s is closed by the daemon and the page says
+so; back to always on, Space mutes again.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-ptt CLAUDE_VOICE_DAEMON_PORT=7921 CLAUDE_VOICE_TLS_PORT=7521 \
      uv run python -u -I tests/e2e/page_ptt.py
@@ -167,6 +168,30 @@ async def main() -> None:
             off2 = await until(lambda: not gate()["open"], 3)
             check("Caps Lock opens and closes talking as a toggle, in both keyboard event shapes",
                   bool(on) and still and bool(off) and bool(on2) and bool(off2), on=on, held_open=still, off=off, on2=on2, off2=off2)
+
+            # ---- pointe talk, as a system-wide shortcut runs it: the page is told, shows Talking and sends ----
+            await until(lambda: call("/voice/status")["speaking"] != "bot", 30)
+            await page.js("document.activeElement.blur()")
+            before_bytes, before_chunks = gate()["sent_bytes"], await page.js("call.sent || 0")
+            cli = subprocess.run([str(ROOT / "bin" / "pointe"), "talk"], env=dict(os.environ), capture_output=True, text=True)
+            remote_on = await until(lambda: gate()["open"], 3)
+            remote_talking = await page.until("document.body.dataset.state === 'talking' && document.getElementById('state').textContent", 3)
+            await asyncio.sleep(3)
+            grew = gate()["sent_bytes"] > before_bytes and await page.js("call.sent || 0") > before_chunks
+            await page.shot("ptt-2b-shortcut")
+            cli_off = subprocess.run([str(ROOT / "bin" / "pointe"), "talk"], env=dict(os.environ), capture_output=True, text=True)
+            remote_off = await until(lambda: not gate()["open"], 3)
+            idle_again = await page.until("document.body.dataset.state !== 'talking' && document.getElementById('state').textContent", 5)
+            await asyncio.sleep(1)
+            quiet = await page.js("call.sent || 0")
+            await asyncio.sleep(2)
+            check("pointe talk from outside the page opens the gate, the page shows Talking and its audio passes; again closes it and the page stops",
+                  cli.returncode == 0 and cli.stdout.strip() == "Talking." and bool(remote_on) and remote_talking == "Talking" and grew
+                  and cli_off.returncode == 0 and cli_off.stdout.strip() == "Not talking." and bool(remote_off)
+                  and not idle_again.startswith("Talk closed") and await page.js("call.sent || 0") == quiet,
+                  cli=[cli.stdout.strip(), cli.stderr.strip()[-200:]], cli_off=cli_off.stdout.strip(), talking=remote_talking,
+                  after=idle_again, gate=gate())
+            await until(lambda: call("/voice/status")["speaking"] != "bot", 30)
 
             # ---- a mouse hold on the ring; a click is not a mute ----
             await mouse(page, "mousePressed")
