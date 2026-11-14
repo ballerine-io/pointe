@@ -95,3 +95,13 @@ def test_the_machine_suffix_and_unrelated_names_still_pass_across_machines(d, no
     add(d, "cc1", "shop", "/repos/shop")
     assert _join(d, "devbox", "s1", "shop").name == "shop devbox"
     assert _join(d, "devbox", "a1", "api").name == "api"
+
+
+def test_a_node_title_one_letter_off_a_local_name_does_not_make_every_request_to_it_a_tie(d, node):
+    """"shops" hears "shop" (SequenceMatcher 0.89 >= 0.8) with the same score as "shop": every "tell shop ..." becomes
+    "which one?"."""
+    local = add(d, "cc1", "shop", "/repos/shop")
+    _join(d, "devbox", "r1", "api")
+    _join(d, "devbox", "r1", "api", title="shops")
+    assert d.REGISTRY.sessions["n3f2a1-r1"].name == "api"  # refused: one letter off a session on another machine
+    assert sessions.match_session("tell shop to run the tests", _names(d)) is local

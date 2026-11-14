@@ -246,8 +246,9 @@ class Registry:
 
     def cross_machine_problem(self, session_id: str, name: str, machine: str) -> str | None:
         """Why a session on `machine` ("" is this Mac) may not be called `name` beside sessions on other machines, or
-        None. A name another machine's session already uses a word of ("shop deploy" beside "shop") would take
-        requests meant for it, so a node's title could capture this Mac's sessions. The machine suffix that tells two
+        None. A name another machine's session already uses a word of ("shop deploy" beside "shop"), or one letter off
+        ("shops"), would take requests meant for it or tie every one, so a node's title could capture this Mac's
+        sessions. The machine suffix that tells two
         equal names apart ("shop devbox" beside "shop", daemon._tell_apart) is allowed."""
         name = " ".join(name.split())
         words = [w for w in _name_words(name) if _distinctive(w)]
@@ -259,7 +260,7 @@ class Registry:
                 return None
         for o in across:
             theirs = [w for w in _name_words(o.name) if _distinctive(w)]
-            if set(words) & set(theirs):
+            if any(_alike(a, b) for a in words for b in theirs):
                 return f"{name} is too close to {o.name}, on {o.machine or 'this Mac'}"
         return None
 
@@ -307,6 +308,11 @@ def answers_a_prompt(name: str) -> bool:
     """A word of the name is a yes or a no: a session called "yes" would take the user's yes to a prompt as aimed at
     it, and nothing would answer."""
     return bool(set(_words(name.replace("'", "").replace("\u2019", ""))) & (_YES | _WEAK_YES | _NO))
+
+
+def _alike(a: str, b: str) -> bool:
+    """Two name words voice could take for each other: equal, or one letter off ("shops", "shop")."""
+    return a == b or (min(len(a), len(b)) >= 3 and _similar(a, b) >= WORD_MATCH)
 
 
 def speakable(name: str) -> bool:
