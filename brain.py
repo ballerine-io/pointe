@@ -12,6 +12,7 @@ from loguru import logger
 
 import vendors
 from brief import unsupported_in
+from guards import status_intent
 
 SPEAK = {"name": "speak",
          "description": "Say this to the user. It is the only way to reach them, and it ends your turn. Only what they "
@@ -65,13 +66,19 @@ def _content(text: str) -> set[str]:
 
 def without_recent_repeats(said: str, recent: list[str], asked: str) -> str:
     """Sentences the voice already said in the last minute and a half are cut, unless the user's latest words ask about
-    them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath."""
+    them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath. A
+    status question ("what's going on everywhere") asks for the state again, so its answer is said whole."""
+    if status_intent(asked):
+        return said
     asked_words = _content(asked)
     kept = []
-    for sentence in re.split(r"(?<=[.!?…])\s+", said.strip()):
+    sentences = re.split(r"(?<=[.!?…])\s+", said.strip())
+    for i, sentence in enumerate(sentences):
         words = _content(sentence)
         repeated = len(words) >= 3 and any(len(words & _content(old)) / len(words) >= 0.7 for old in recent)
-        if not repeated or (asked_words and len(words & asked_words) >= 2):
+        # "Which one?" alone cannot be answered: the sentence before it holds the options it asks between
+        offers = i + 1 < len(sentences) and sentences[i + 1].endswith("?") and len(_content(sentences[i + 1])) < 3
+        if not repeated or offers or (asked_words and len(words & asked_words) >= 2):
             kept.append(sentence)
     return " ".join(kept)
 
@@ -92,6 +99,7 @@ class Brain:
         self.translate: Callable[[str], Awaitable[str]] | None = None
         self._last_spoken = ""
         self._recent_spoken: list[tuple[float, str]] = []  # (when, what) the voice said lately
+        self._resuming = False  # this turn answers [resume]: what it repeats was sent before but not heard
         self._answered_user = False  # the user's latest words already got a spoken reply
         self.may_stay_silent = may_stay_silent or (lambda: True)
         self.fallback, self.on_tool = fallback, on_tool or (lambda *_a: None)
@@ -214,6 +222,8 @@ class Brain:
             self._after_user.append((text, True))
             return
         generation = self._generation
+        if text is not None:
+            self._resuming = text.startswith("[resume]")  # the daemon asks for the rest of a report talked over
         if user:
             self._user_turns += 1
         try:
@@ -304,7 +314,10 @@ class Brain:
                     self._recent_spoken = [(t, x) for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]
                     asked = next((m["content"] for m in reversed(self.messages) if m["role"] == "user"
                                   and isinstance(m.get("content"), str) and not m["content"].startswith("[")), "")
-                    trimmed = without_recent_repeats(said, [x for _, x in self._recent_spoken], asked)
+                    # A report the user talked over comes back ([resume]): it was sent whole but heard only in part,
+                    # so it is no repeat
+                    trimmed = said if self._resuming else \
+                        without_recent_repeats(said, [x for _, x in self._recent_spoken], asked)
                     if trimmed != said:
                         logger.info(f"repeat cut: {said!r} -> {trimmed!r}")
                         # A first answer to new words must still say something; a second reply to the same words need not.
