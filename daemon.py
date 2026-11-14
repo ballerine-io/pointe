@@ -4978,12 +4978,21 @@ async def status(request: Request):
                           "mode": "channel" if s.channel_url else "inbox"} for s in REGISTRY.sessions.values()]}
 
 
+def _alert_name(s: Session) -> str:
+    """"shop (devbox)" when sessions span machines, the machine said once even if the name carries it; else the name."""
+    if not _multi_machine():
+        return s.name
+    machine = _machine_of(s)
+    base = s.name[:-len(machine) - 1] if s.name.lower().endswith(f" {machine}".lower()) else s.name
+    return f"{base} ({machine})"
+
+
 def _attention() -> list[dict]:
     """What may need the user right now, for alerts on the phone, the watch and the desktop: one entry each."""
     items = []
     for s in REGISTRY.sessions.values():
         if s.permission_id:
-            item = alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time())
+            item = alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time(), _alert_name(s))
             items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
         elif s.idle_since and s.needs and s.needs.get("need"):
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))

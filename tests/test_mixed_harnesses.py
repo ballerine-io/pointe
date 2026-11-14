@@ -715,3 +715,19 @@ def test_a_remote_session_beside_a_local_one_each_with_its_own_prompt(d, node):
     reply = asyncio.run(scenario())
     assert reply["hookSpecificOutput"]["decision"]["behavior"] == "allow"
     assert node.answers == [(shop.id, "r9", "deny", "tap", None)] and shop.harness == "opencode"
+
+
+def test_an_approval_alert_names_the_machine_only_when_sessions_span_machines(d, node):
+    shop = add(d, "cc1", "shop", "/repos/shop")
+    shop.permission_id = "p1"
+
+    def titles():
+        return {a["session"]: a["title"] for a in client_for(d).get("/voice/status").json()["attention"]
+                if a["kind"] == "permission"}
+
+    assert titles() == {"shop": "shop needs approval"}  # one machine: as today
+    twin = _join(d, "devbox", "s1", "shop")  # named "shop devbox": the title says it once, in brackets
+    api = _join(d, "devbox", "abc", "api")
+    twin.permission_id, api.permission_id = "p2", "p3"
+    assert titles() == {"shop": "shop (studio) needs approval", "shop devbox": "shop (devbox) needs approval",
+                        "api": "api (devbox) needs approval"}
