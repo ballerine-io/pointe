@@ -23,7 +23,9 @@ The page's keys work only while its tab is focused: a browser gets no key events
 you are in, bind a system-wide shortcut to the daemon's CLI; the page or the phone app stays in the background with
 the call up.
 
-1. Settings → Microphone on the page shows the command and copies it: `<pointe>/bin/pointe talk`.
+1. Settings → Microphone on the page shows the command and copies it: `~/.claude-voice/bin/pointe talk`. That
+   launcher is written by the daemon at each start and runs the Pointe it runs from, so the shortcut survives a
+   plugin update (the plugin cache path changes with each version).
 2. In the Shortcuts app: new shortcut → action **Run Shell Script** → paste the command.
 3. Open the shortcut's details (ⓘ) → **Add Keyboard Shortcut**, for example ⌃⌥Space. Shortcuts' keyboard shortcuts are
    system-wide; nothing else to install, no permission to grant.

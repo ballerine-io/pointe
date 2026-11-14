@@ -4241,6 +4241,7 @@ async def _with_housekeeping(_app):
     logger.info(f"setup: {setup()}")  # fails here, with the command to fix it, rather than when a call starts
     """Exited sessions drop off and titles are followed even when no call is connected."""
     _start_journal()
+    _write_launcher()  # ~/.claude-voice/bin/pointe: what Settings → Microphone tells a Shortcut to run
     if state.liveness is None or state.liveness.done():
         state.liveness = asyncio.create_task(_liveness())
     s = setup()  # load the model libraries now, off the loop, not in the middle of the first reply
@@ -4770,7 +4771,18 @@ async def listen(request: Request):
 
 
 TALK_ACTIONS = {"on": True, "off": False, "toggle": None}
-TALK_COMMAND = f"{shlex.quote(str(Path(__file__).resolve().parent / 'bin' / 'pointe'))} talk"  # what a shortcut runs
+LAUNCHER = STATE_DIR / "bin" / "pointe"  # stable across plugin updates: the cache path the daemon runs from is not
+TALK_COMMAND = f"{shlex.quote(str(LAUNCHER))} talk"  # what a shortcut runs
+
+
+def _write_launcher(root: Path = Path(__file__).resolve().parent, launcher: Path = LAUNCHER) -> Path:
+    """At startup: a shell script (not a symlink, which would dangle into a deleted cache dir) that runs this
+    checkout's bin/pointe, so a Shortcut bound to it survives the next plugin update."""
+    launcher.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    launcher.write_text(f'#!/bin/sh\n# Written by the Pointe daemon at each start: runs the Pointe it runs from.\n'
+                        f'exec {shlex.quote(str(root / "bin" / "pointe"))} "$@"\n')
+    launcher.chmod(0o755)
+    return launcher
 
 
 @app.post("/voice/talk")
