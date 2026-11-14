@@ -5524,6 +5524,9 @@ async def _on_connect(conn: Connection) -> None:
         await _add_worker(session)
     _start_briefs()
     await conn.voice.queue_frames([LLMRunFrame()])
+    for s in REGISTRY.sessions.values():  # put here, so the node's re-offer on this link (call up) is not asked again
+        if s.machine and s.permission_id and online(s):
+            state.remote_held[s.id] = (s.permission_id, getattr(paired_machine(s.machine), "link", 0))
     active = REGISTRY.active
     if active and active.permission_id:
         await _ask_permission(active)
