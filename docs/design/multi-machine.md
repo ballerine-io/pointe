@@ -389,6 +389,7 @@ request is in the session's own terminal.
 | A huge or hostile transcript | the hub caps an entry at 256 kB and a frame at 1 MB, drops the rest of that entry with a logged warning, and refuses a gap in offsets rather than guessing. Every other string a node sends is cut before the daemon sees it (`hub_nodes.MAX_*_CHARS`: a folder or file name 4096, a name, title or tool 200, a description 2000, a preview 20 000); a read-out over 1000 characters is dropped (tap only), never cut |
 | A node names its session after one on the hub, so the hub's requests go to the node | a session on the hub always keeps its plain name: a remote session holding it is renamed `<name> <machine>` when the local one joins (`_tell_apart`) |
 | A node names its session `yes` or `no`, so the user's answer to a prompt goes nowhere | a name, title or folder alias with a yes or no word is refused, on every machine (`sessions.answers_a_prompt`) |
+| A node titles its session to extend one on the hub (`shop deploy` beside `shop`), so requests for it go to the node | a name or title sharing a distinctive word with a session on another machine is refused (`Registry.cross_machine_problem`), except the machine suffix |
 | A node floods permission requests | the node serializes one prompt per session (as `_PERMISSION_LOCKS` does, `daemon.py:4087-4098`); the hub announces a non-active session's prompt in one line (`daemon.py:4162-4165`) |
 | A credential in a remote command reaches a screen or notification | it does not: masked on the node, and an unreadable request shows only its tool in a notification (`alerts.py:40-47`) |
 
@@ -439,6 +440,10 @@ WireGuard across sites 20 to 60 ms; Twingate 30 to 100 ms.
 - A session's name, local or remote, may not hold a yes or no word (`guards._YES`, `_WEAK_YES`, `_NO`;
   `sessions.answers_a_prompt`): a session called `yes` would take the user's yes to a prompt as aimed at it. A folder
   with such a word is not an alias either.
+- A session may not take a name, or a title, that shares a distinctive word with a session on another machine
+  (`Registry.cross_machine_problem`): a node titling its session `shop deploy` beside the hub's `shop` would take
+  "what is shop doing with the deploy". The machine suffix (`shop devbox` beside `shop`) is the one exception. A node's
+  session whose name is refused at join is called `session <id>`.
 - `sessions._aliases` (`sessions.py:357-367`) adds `(machine, 0)` for a remote session, as it adds the harness label.
   **The machine alias is scored only against address slots**: the positions `_address` marks (`sessions.py:312-355`,
   used at `sessions.py:407`), where the words say who something is for ("tell X", "on X", "the X one"). A machine word

@@ -70,3 +70,28 @@ def test_a_session_cannot_be_renamed_or_titled_with_a_consent_word(d, node):
     remote = _join(d, "devbox", "r1", "api")
     _join(d, "devbox", "r1", "api", title="don't stop")  # a later snapshot: the node's title
     assert remote.name == "api"
+
+
+def test_a_node_title_that_extends_a_local_sessions_name_does_not_capture_its_requests(d, node):
+    """rename() refuses an exact clash and a name that is *part of* another's, not one that *contains* another's.
+    A node titles its session "shop deploy" next to the local "shop"; "ask shop about the deploy" now picks the node."""
+    local = add(d, "cc1", "shop", "/repos/shop")
+    remote = _join(d, "devbox", "r1", "api")
+    _join(d, "devbox", "r1", "api", title="shop deploy")  # a later snapshot: the node's title
+    assert remote.name == "api", remote.name  # refused: it shares "shop" with a session on another machine
+    said = "what is shop doing with the deploy"  # ("ask shop about the deploy" survives: strip_tasks drops the task words)
+    picked = sessions.match_session(said, _names(d))
+    assert picked is local, f"{said!r} -> {getattr(picked, 'name', None)!r}"
+
+
+def test_a_node_name_sharing_a_word_with_a_local_session_is_refused_at_join(d, node):
+    add(d, "cc1", "shop", "/repos/shop")
+    s = _join(d, "devbox", "r1", "shop deploy", cwd="/srv/storefront")
+    assert "shop" not in s.name.split(), s.name
+    assert sessions.match_session("what is shop doing with the deploy", _names(d)).id == "cc1"
+
+
+def test_the_machine_suffix_and_unrelated_names_still_pass_across_machines(d, node):
+    add(d, "cc1", "shop", "/repos/shop")
+    assert _join(d, "devbox", "s1", "shop").name == "shop devbox"
+    assert _join(d, "devbox", "a1", "api").name == "api"

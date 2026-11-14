@@ -201,42 +201,66 @@ class Registry:
             self.active_id = session.id
         self.save()
 
-    def rename_check(self, session_id: str, new_name: str) -> str | None:
-        """Why new_name cannot be used for this session, or None if it can."""
-        new_name = " ".join(new_name.split())
-        others = [o for o in self.sessions.values() if o.id != session_id]
-        if any(o.name.lower() == new_name.lower() for o in others):
-            return f"another session is already called {new_name}"
-        if new_name.lower() in _machine_names(self.sessions.values()):
-            return f"{new_name} is the name of a machine"
-        if not speakable(new_name):
-            return f"{new_name} cannot be picked by voice"
-        if answers_a_prompt(new_name):
-            return f"{new_name} has a yes or no word in it"
-        mine = {w for w in _name_words(new_name) if _distinctive(w)}
-        inside = next((o for o in others if mine <= set(_name_words(o.name))), None)
-        return f"{new_name} is part of {inside.name}" if inside else None
+    def rename_check(self, session_id: str, new_name: str, machine: str = "") -> str | None:
+        """Why new_name cannot be used for this session, or None if it can. `machine` is the session's when it is
+        not registered yet."""
+        why = self._why_not(session_id, new_name, machine)
+        return why[0] if why else None
 
     def rename(self, session_id: str, new_name: str) -> str | None:
         """Rename a session; returns an error message, or None on success."""
         new_name = " ".join(new_name.split())
+        why = self._why_not(session_id, new_name)
+        if why:
+            return why[1]
+        self.sessions[session_id].name = new_name
+        self.save()
+        return None
+
+    def _why_not(self, session_id: str, new_name: str, machine: str = "") -> tuple[str, str] | None:
+        """(short, spoken) reasons new_name cannot be used, or None."""
+        new_name = " ".join(new_name.split())
         others = [o for o in self.sessions.values() if o.id != session_id]
         if any(o.name.lower() == new_name.lower() for o in others):
-            return f"another session is already called {new_name}"
+            why = f"another session is already called {new_name}"
+            return why, why
         if new_name.lower() in _machine_names(self.sessions.values()):
-            return f"{new_name} is the name of a machine, so voice could not tell the session from the machine"
+            return (f"{new_name} is the name of a machine",
+                    f"{new_name} is the name of a machine, so voice could not tell the session from the machine")
         if not speakable(new_name):
-            return (f"{new_name} cannot be picked by voice: words like dev, main or session never select a "
+            return (f"{new_name} cannot be picked by voice",
+                    f"{new_name} cannot be picked by voice: words like dev, main or session never select a "
                     f"session on their own. Use a name with a distinctive word")
         if answers_a_prompt(new_name):
-            return (f"{new_name} has a yes or no word in it, so a yes or no to an approval could be taken as aimed "
+            return (f"{new_name} has a yes or no word in it",
+                    f"{new_name} has a yes or no word in it, so a yes or no to an approval could be taken as aimed "
                     f"at the session")
         mine = {w for w in _name_words(new_name) if _distinctive(w)}
         inside = next((o for o in others if mine <= set(_name_words(o.name))), None)
         if inside:
-            return f"{new_name} is part of {inside.name}, so voice could not tell them apart"
-        self.sessions[session_id].name = new_name
-        self.save()
+            return (f"{new_name} is part of {inside.name}",
+                    f"{new_name} is part of {inside.name}, so voice could not tell them apart")
+        own = self.sessions[session_id].machine if session_id in self.sessions else machine
+        clash = self.cross_machine_problem(session_id, new_name, own)
+        return (clash, f"{clash}, so voice could not tell them apart") if clash else None
+
+    def cross_machine_problem(self, session_id: str, name: str, machine: str) -> str | None:
+        """Why a session on `machine` ("" is this Mac) may not be called `name` beside sessions on other machines, or
+        None. A name another machine's session already uses a word of ("shop deploy" beside "shop") would take
+        requests meant for it, so a node's title could capture this Mac's sessions. The machine suffix that tells two
+        equal names apart ("shop devbox" beside "shop", daemon._tell_apart) is allowed."""
+        name = " ".join(name.split())
+        words = [w for w in _name_words(name) if _distinctive(w)]
+        across = [o for o in self.sessions.values() if o.id != session_id and (o.machine or "") != (machine or "")]
+        if machine and name.lower().endswith(" " + machine.lower()):
+            base = name[:-len(machine) - 1].lower()
+            if any(base == o.name.lower() or base.startswith(o.name.lower() + "/")
+                   or o.name.lower().startswith(base + "/") for o in across):
+                return None
+        for o in across:
+            theirs = [w for w in _name_words(o.name) if _distinctive(w)]
+            if set(words) & set(theirs):
+                return f"{name} is too close to {o.name}, on {o.machine or 'this Mac'}"
         return None
 
     def remove(self, session_id: str) -> Session | None:

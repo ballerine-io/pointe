@@ -4314,7 +4314,7 @@ def _tell_apart(session: Session, label: str) -> None:
     else:
         return
     labelled = f"{session.name} {suffix}"[:40]
-    if valid_name(labelled) and not REGISTRY.rename_check(session.id, labelled):
+    if valid_name(labelled) and not REGISTRY.rename_check(session.id, labelled, session.machine):
         session.name = labelled
 
 
@@ -4348,9 +4348,13 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
                       harness_data={"remote_id": remote_id, "node_id": node_id, "files": files or []})
     if entry.get("name_given"):
         session.named_by = "user"
-    elif title and not REGISTRY.rename_check(session.id, title):
+    elif title and not REGISTRY.rename_check(session.id, title, machine):
         session.name, session.named_by = title, "title"
     _tell_apart(session, harnesses.get(harness).label)
+    clash = REGISTRY.cross_machine_problem(session.id, session.name, machine)
+    if clash:  # the name the node gave, beside this Mac's or another machine's sessions
+        logger.info(f"a session from {machine} not called {session.name}: {clash}")
+        session.name, session.named_by = f"session {remote_id[:6]}", "folder"
     session.transcript = harnesses.of(session).transcript_path(session)  # its mirror on this Mac
     session.joining = harnesses.get(harness).joins_mid_turn  # /pointe:voice on the node runs inside a turn too
     REGISTRY.add(session)
