@@ -386,7 +386,7 @@ def is_local_request(request: Request) -> bool:
 
 LOCAL_COOKIE = "pointe_local"
 _OPEN_PATHS = {"/voice/health"}
-_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive"}  # all the phone app needs; nothing else takes its key
+_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"}  # all the phone app needs; nothing else takes its key
 # A node's own routes: each authenticates in its handler (an HMAC over the hub's nonce; a one-time invite code), so no
 # page, phone or daemon secret is asked for. On loopback they still need local headers, and a page never reaches them.
 _NODE_PATHS = {"/voice/node": "websocket", "/voice/node/pair": "http"}
