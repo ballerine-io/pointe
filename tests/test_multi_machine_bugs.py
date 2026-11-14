@@ -90,7 +90,6 @@ def test_a_node_keeps_its_key_when_the_hub_only_timed_out_waiting_for_hello(tmp_
 HOST = "phone.example.internal"
 
 
-@pytest.mark.xfail(strict=True, reason="guards._PHONE_PATHS: fixed on the mm-wire branch, not here")
 def test_the_phone_key_reaches_the_hub_routes_over_the_tls_listener(tmp_path, monkeypatch):
     """ios/Pointe/API.swift posts voice/hub/invite and voice/hub/revoke with the phone key; guards must let it through."""
     monkeypatch.setattr(sessions, "MACHINES", {})
@@ -113,10 +112,10 @@ def test_the_phone_key_reaches_the_hub_routes_over_the_tls_listener(tmp_path, mo
 
 # ---------- 3. a prompt re-offered after a link drop is swallowed by the hub's dedupe ----------
 
-@pytest.mark.xfail(strict=True, reason="daemon.remote_permission's dedupe: fixed on the mm-wire branch, not here")
 def test_a_prompt_reoffered_after_a_link_drop_is_put_to_the_user_again(d, monkeypatch):
-    """The voice said the approval went back to its terminal; when the node comes back within its grace window and
-    re-sends the same request, the design puts it to the user again. The hub's "same request twice" dedupe eats it."""
+    """The voice said the approval waits for the machine; when the node comes back within its grace window on a new
+    link and re-sends the same request, the design puts it to the user again. The hub's "same request twice" dedupe
+    ate it."""
     monkeypatch.setattr(sessions, "MACHINES", {"devbox": sessions.Machine(name="devbox", id="n1", online=True)})
     puts, said = [], []
 
@@ -140,10 +139,11 @@ def test_a_prompt_reoffered_after_a_link_drop_is_put_to_the_user_again(d, monkey
         assert puts == ["req1"]
         sessions.MACHINES["devbox"].online = False  # the link dropped
         await d._watch_machines()
-        assert said and "went back to its terminal" in said[-1]
-        sessions.MACHINES["devbox"].online = True  # back within the node's grace window: it re-offers req1
+        assert said and "waits up to" in said[-1]
+        sessions.MACHINES["devbox"].online = True  # back within the node's grace window, on a new link: it re-offers req1
+        sessions.MACHINES["devbox"].link += 1  # as hub_nodes.serve counts each link it accepts
         await d.remote_permission(s, "req1", "Bash", "d", "{}", "run: git status")
-        assert puts == ["req1", "req1"], "the re-offer was not put to the user again: the voice's last word was 'went back to its terminal'"
+        assert puts == ["req1", "req1"], "the re-offer on a new link was not put to the user again"
 
     run(go())
 
