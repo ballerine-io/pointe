@@ -1099,3 +1099,15 @@ def test_join_refuses_where_a_daemon_runs(tmp_path):
         _with_hub(tmp_path, then)
     finally:
         daemon.close()
+
+
+@pytest.mark.skipif(not shutil.which("uv"), reason="bin/pointe runs the node's commands with uv")
+def test_pointe_node_runs_join_status_and_leave(tmp_path):
+    """The command a person types: bin/pointe node <command>, in the node's own environment."""
+    env = {**os.environ, "CLAUDE_VOICE_STATE": str(tmp_path / "state"), "CLAUDE_VOICE_DAEMON_PORT": str(_free_port())}
+    status = subprocess.run([str(ROOT / "bin" / "pointe"), "node", "status"], env=env, capture_output=True, text=True,
+                            timeout=300)
+    assert status.returncode == 0 and "not paired with a hub" in status.stdout, status.stderr[-400:]
+    joined = subprocess.run([str(ROOT / "bin" / "pointe"), "node", "join", "pointe://pair?v=1"], env=env,
+                            capture_output=True, text=True, timeout=120)
+    assert joined.returncode != 0 and "not a Pointe hub invite" in joined.stderr, joined.stderr[-400:]

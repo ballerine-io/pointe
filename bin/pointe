@@ -16,7 +16,7 @@ case "$cmd" in
   stop)    exec "$BIN/voice-daemon" stop ;;
   pair)    cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I pair.py "$@" ;;
   node)    ROOT="$BIN/.."; STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"  # this machine as a node: no Pipecat, no keys
-           exec env UV_PROJECT_ENVIRONMENT="$STATE/node-env" uv run -q --locked --only-group node --project "$ROOT" python "$ROOT/node.py" "$@" ;;
+           exec env UV_PROJECT_ENVIRONMENT="$STATE/node-env" uv run -q --locked --only-group node --project "$ROOT" python "$ROOT/node_cli.py" "$@" ;;
   hub)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I hub_nodes.py "$@" ;;  # machines: invite, nodes, revoke
   key)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I keys.py "$@" ;;
   local)   case "${1:-}" in
