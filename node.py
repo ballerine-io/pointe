@@ -85,11 +85,26 @@ def mask_line(line: str) -> str:
     return line if masked == entry else json.dumps(masked, ensure_ascii=False) + "\n"
 
 
-def masked_frames(session_id: str, gen: int, offset: int, data: bytes) -> tuple[list[str], int]:
+def _line_end(f, read: int) -> int | None:
+    """Bytes from the read's start to the end of the line it is in, with `read` bytes already read and no newline in
+    them; None when the file ends before the line does."""
+    while True:
+        chunk = f.read(READ_MAX)
+        if not chunk:
+            return None
+        i = chunk.find(b"\n")
+        if i >= 0:
+            return read + i + 1
+        read += len(chunk)
+
+
+def masked_frames(session_id: str, gen: int, offset: int, data: bytes, skipped: int = 0) -> tuple[list[str], int]:
     """nodelink.transcript_frames, with each line masked: offsets count this file's bytes, entries are the masked
-    lines (masking changes lengths, which is why the hub persists next_offset and never trusts a mirror's size)."""
+    lines (masking changes lengths, which is why the hub persists next_offset and never trusts a mirror's size).
+    `skipped` bytes at `offset`, before `data`, are a line not shipped: the first frame counts them."""
     frames: list[str] = []
-    start = pos = offset
+    start = offset
+    pos = offset + skipped
     entries: list[str] = []
     size = 0
     overhead = len(nodelink.encode("transcript", id=session_id, gen=gen, offset=0, next_offset=0, entries=[])) + 40
@@ -698,8 +713,17 @@ class Node:
         with open(path, "rb") as f:
             f.seek(tail.offset)
             data = f.read(min(size - tail.offset, READ_MAX))
+            skipped = 0
+            if len(data) == READ_MAX and b"\n" not in data:
+                # one line longer than a read (a pasted screenshot): without this, every poll re-reads the same bytes
+                skipped = _line_end(f, len(data))
+                if skipped is None:
+                    return  # the line is not written to its end yet
+                logger.warning(f"{session.name}: a transcript line of {skipped} bytes not shipped")
+                f.seek(tail.offset + skipped)
+                data = f.read(max(0, min(size - tail.offset - skipped, READ_MAX)))
         gen, start = tail.gen, tail.offset
-        frames, nxt = masked_frames(session.id, gen, start, data)
+        frames, nxt = masked_frames(session.id, gen, start, data, skipped)
         for frame in frames:
             if not await self._send_raw(frame):
                 return  # the link dropped: the hub's resume says where to start again
