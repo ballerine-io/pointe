@@ -840,7 +840,8 @@ def _status_machines() -> list[dict]:
     for m in paired_machines():
         n, need = counts(m.name)
         out.append({"id": m.id, "name": m.name, "here": False, "os": m.os, "online": m.online, "since": m.since,
-                    "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp})
+                    "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp,
+                    **({"notice": m.notice} if m.notice else {})})
     return out
 
 

@@ -2179,6 +2179,7 @@
         const facts = [OS[m.os] || m.os, away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
+        if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
         if (!m.here) {
           const sure = asking === m.name, b = el('button', sure ? 'sure' : '', sure ? `Revoke ${m.name}?` : 'Revoke');
           b.title = 'Unpair it: its sessions leave the voice, and it needs a new code to come back';

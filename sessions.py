@@ -100,6 +100,7 @@ class Machine:
     key_fp: str = ""
     skew: float = 0.0  # the hub's clock minus the node's, measured at its hello: node stamps are shifted by it
     link: int = 0  # links accepted since this hub started: a prompt a node re-offers on a new link is asked again
+    notice: str = ""  # one line for the owner about its link (a takeover from another address), shown with the machine
 
 
 MACHINES: dict[str, Machine] = {}

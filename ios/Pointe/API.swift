@@ -50,6 +50,7 @@ struct API {
         let need: Int?
         let rtt_ms: Int?
         let key_fp: String?         // the first hex of the node key's SHA-256, as `pointe node status` prints it
+        let notice: String?         // one line about its link, e.g. a takeover from another address
 
         var isHere: Bool { here == true }
         var isOffline: Bool { online == false }

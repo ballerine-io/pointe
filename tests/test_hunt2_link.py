@@ -165,3 +165,36 @@ def test_a_move_to_a_file_that_already_holds_a_conversation_is_shipped_as_histor
             "straight into the mirror and the follower feeds whatever lands after its reopen as news")
 
     test_node.run(scenario, tmp_path)
+
+
+# ---------- a stale-probe takeover from another address is told to the owner ----------
+
+def _takeover(hub, node, old_address, new_address):
+    from types import SimpleNamespace
+
+    async def go():
+        old, new = FakeNode(hub, node), FakeNode(hub, node)
+        old.pipe.client, new.pipe.client = SimpleNamespace(host=old_address), SimpleNamespace(host=new_address)
+        assert (await old.connect())["t"] == "welcome"
+        assert (await new.connect())["t"] == "welcome"  # old answers no ping: its link is replaced
+        await asyncio.wait_for(old.task, 2)
+        notice = hub.live[node["id"]].machine.notice
+        await new.drop()
+        return notice
+
+    return run(go())
+
+
+def test_a_link_replaced_from_another_address_is_told_to_the_owner(world, monkeypatch):
+    hub, *_ = world
+    monkeypatch.setattr(hub_nodes, "STALE_PROBE_SECS", 0.2, raising=False)
+    node = paired(hub)
+    notice = _takeover(hub, node, "100.64.0.5", "100.64.0.99")
+    assert "100.64.0.99" in notice and "100.64.0.5" in notice and "revoke" in notice
+
+
+def test_a_link_replaced_from_the_same_address_says_nothing(world, monkeypatch):
+    hub, *_ = world
+    monkeypatch.setattr(hub_nodes, "STALE_PROBE_SECS", 0.2, raising=False)
+    node = paired(hub)
+    assert _takeover(hub, node, "100.64.0.5", "100.64.0.5") == ""

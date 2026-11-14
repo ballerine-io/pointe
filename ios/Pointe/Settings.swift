@@ -61,6 +61,10 @@ struct MachinesSheet: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(m.isHere ? "\(m.name) (this Mac)" : m.name).font(.body.weight(.semibold))
                 Text(facts(m)).font(.caption).foregroundStyle(m.isOffline ? Brand.orange : .secondary)
+                if let notice = m.notice, !notice.isEmpty {
+                    Text(notice).font(.caption).foregroundStyle(Brand.orange)
+                        .accessibilityIdentifier("machineNotice.\(m.name)")
+                }
             }
             Spacer()
             if !m.isHere {

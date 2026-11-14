@@ -39,6 +39,16 @@ final class MachinesTests: XCTestCase {
         XCTAssertNil(s.sessions[1].machine, "a session from this Mac may carry no machine")
     }
 
+    func testALinkNoticeDecodesAndIsAbsentOtherwise() {
+        let s = status("""
+        {"connected": true, "sessions": [],
+         "machines": [{"id": "n3f2a1", "name": "devbox", "here": false, "online": true,
+                       "notice": "At 14:02 a connection from 100.64.0.99 replaced its silent link from 100.64.0.5."}]}
+        """)
+        XCTAssertEqual(s.machines?[0].notice?.hasPrefix("At 14:02"), true)
+        XCTAssertNil(three.machines?[1].notice)
+    }
+
     func testAnOlderMacWithoutMachinesLooksAsBefore() {
         let s = status(#"{"connected": true, "sessions": [{"name": "docs", "working": false, "waiting": false}]}"#)
         XCTAssertNil(s.machines)

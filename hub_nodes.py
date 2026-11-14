@@ -462,6 +462,7 @@ class Node:
     link_tasks: set[asyncio.Task] = field(default_factory=set)  # the live link's reader and keep-alive
     heard: asyncio.Event = field(default_factory=asyncio.Event)  # set on every frame from the node
     probing: bool = False
+    address: str = ""  # the peer address of the live link
 
     @property
     def name(self) -> str:
@@ -693,11 +694,12 @@ class Hub:
         if paired is None or not nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
             logger.warning(f"node link refused: {hello['node']['name']!r} is not paired, or its key is wrong")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not paired with this hub")
-        if not self.links.claim(paired["id"], ws) and not await self._replace_stale(paired, ws):
+        address = _peer(ws)
+        if not self.links.claim(paired["id"], ws) and not await self._replace_stale(paired, ws, address):
             logger.warning(f"node {paired['name']}: a second connection with its key refused")
             return await _close(ws, nodelink.CLOSE_ALREADY_CONNECTED, "already connected")
         node = self.live.get(paired["id"]) or self._track(paired)
-        node.socket, node.lock = ws, asyncio.Lock()
+        node.socket, node.lock, node.address = ws, asyncio.Lock(), address
         sessions.MACHINES[node.name] = node.machine
         node.machine.online, node.machine.since = True, None
         node.machine.link += 1
@@ -726,12 +728,13 @@ class Hub:
             if node.socket is ws:
                 self._went_offline(node)
 
-    async def _replace_stale(self, paired: dict, ws) -> bool:
+    async def _replace_stale(self, paired: dict, ws, address: str = "") -> bool:
         """A new connection proved it holds the key of a node whose link is still open: True if that old link is stale
         and `ws` now holds the slot. The old link is pinged; any frame from it within STALE_PROBE_SECS proves it alive
         and the new one is refused 4409, so a clone or a stolen key still cannot shadow a node that answers. Silence
         means the node crashed, slept or lost its network, and is reconnecting: without this it would be refused until
-        the heartbeat gave up (DEAD_AFTER_SECS)."""
+        the heartbeat gave up (DEAD_AFTER_SECS). A takeover from another address than the old link's can also be a
+        stolen key that silenced the real node's link: the owner is told in one line (Machine.notice, and the log)."""
         old = self.live.get(paired["id"])
         stale = old.socket if old is not None else None
         if stale is None or old.probing or old.heartbeat is None:
@@ -751,6 +754,11 @@ class Hub:
             return self.links.claim(paired["id"], ws)
         logger.warning(f"node {old.name}: a new connection with its key, and its old link did not answer for "
                        f"{STALE_PROBE_SECS:.0f} s: the old link is closed")
+        if address != old.address:
+            old.machine.notice = (f"At {time.strftime('%H:%M', time.localtime(self._clock()))} a connection from "
+                                  f"{address or 'an unknown address'} replaced its silent link from "
+                                  f"{old.address or 'an unknown address'}. If that was not this machine, revoke it")
+            logger.warning(f"node {old.name}: {old.machine.notice}")
         for task in old.link_tasks:
             task.cancel()
         self.links.release(paired["id"], stale)
@@ -879,6 +887,11 @@ class Hub:
         live = {(s.harness_data.get("node_id"), s.harness_data.get("remote_id"))
                 for s in self.registry.sessions.values() if s.machine}
         self.mirrors.prune(self._clock(), live)
+
+
+def _peer(ws) -> str:
+    client = getattr(ws, "client", None)
+    return str(getattr(client, "host", "") or "")
 
 
 async def _close(ws, code: int, reason: str) -> None:
