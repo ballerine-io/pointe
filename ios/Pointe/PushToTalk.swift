@@ -52,6 +52,13 @@ struct TalkGate: Equatable {
         }
     }
 
+    /// The Mac's word on the call link: a system-wide shortcut there pressed the gate, so this phone sends as if its own
+    /// press held it; said again for the state it is in, nothing changes.
+    mutating func set(open: Bool, at now: Date = Date()) {
+        guard ptt, open != isOpen else { return }
+        toggle(at: now)
+    }
+
     /// Whether a chunk of microphone audio goes to the Mac now.
     func sends(at now: Date = Date()) -> Bool {
         !ptt || roomHeard || isOpen || releasedAt.map { now.timeIntervalSince($0) < Self.tail } ?? false
@@ -137,18 +144,31 @@ extension View {
     }
 }
 
-/// "Pointe: Talk" for the Action button and Shortcuts: starts or stops talking on the call that is up.
-struct TalkIntent: AppIntent {
+/// "Pointe: Talk" for the Action button, Back Tap and Siri: starts or stops talking on the call that is up, with the app
+/// in the background too (the call holds the audio session). With no call up it opens the app and says so.
+struct TalkIntent: AppIntent, ForegroundContinuableIntent {
     static let title: LocalizedStringResource = "Talk"
     static let description = IntentDescription("Start or stop talking to Pointe, when the microphone is set to push to talk.")
     static let openAppWhenRun = false
 
+    /// What a press does, from the call's state alone.
+    enum Decision: Equatable { case toggle, noCall, alwaysOn }
+
+    nonisolated static func decide(call: Call.State?, ptt: Bool) -> Decision {
+        guard call == .live else { return .noCall }
+        return ptt ? .toggle : .alwaysOn
+    }
+
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        guard let call = Call.current, call.state == .live else { return .result(dialog: "Start a call in Pointe first.") }
-        guard call.talk.ptt else { return .result(dialog: "Set the microphone to push to talk in Pointe first.") }
-        call.talkToggle()
-        return .result(dialog: call.talk.isOpen ? "Talking." : "Stopped.")
+        let call = Call.current
+        switch Self.decide(call: call?.state, ptt: call?.talk.ptt ?? false) {
+        case .noCall: throw needsToContinueInForegroundError("No call is up: press the mic in Pointe first.")
+        case .alwaysOn: return .result(dialog: "Microphone is Always on: set it to Push to talk in Pointe's settings.")
+        case .toggle:
+            call?.talkToggle()
+            return .result(dialog: call?.talk.isOpen == true ? "Talking." : "Stopped.")
+        }
     }
 }
 

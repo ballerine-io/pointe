@@ -104,11 +104,35 @@ final class TalkGateTests: XCTestCase {
         XCTAssertFalse(g.sends(at: t0))
     }
 
+    func testTheMacsShortcutOpensAndClosesThePressAndIsIgnoredWhenAlwaysOn() {
+        var g = ptt()
+        g.set(open: true, at: t0)
+        XCTAssertTrue(g.isOpen)
+        XCTAssertTrue(g.sends(at: t0))
+        g.set(open: true, at: t0)  // said again: still the one press
+        XCTAssertTrue(g.isOpen)
+        g.set(open: false, at: t0)
+        XCTAssertFalse(g.isOpen)
+        var always = TalkGate()
+        always.set(open: true, at: t0)
+        XCTAssertFalse(always.isOpen, "always on: the Mac's gate takes no press, and the phone shows none")
+    }
+
     func testStatusAndPrefsDecodeWithAndWithoutPushToTalk() throws {
         let prefs = try JSONDecoder().decode(API.Prefs.self, from: Data(#"{"microphone":"ptt"}"#.utf8))
         XCTAssertEqual(prefs.microphone, "ptt")
         XCTAssertEqual(try JSONDecoder().decode(API.Prefs.self, from: Data("{}".utf8)).microphone, "always")
         let old = try JSONDecoder().decode(API.Status.self, from: Data(#"{"connected":true,"sessions":[]}"#.utf8))
         XCTAssertNil(old.ptt)
+    }
+}
+
+final class TalkIntentTests: XCTestCase {
+    func testThePressTogglesOnALiveCallInPushToTalkAndOtherwiseSaysWhy() {
+        XCTAssertEqual(TalkIntent.decide(call: .live, ptt: true), .toggle)
+        XCTAssertEqual(TalkIntent.decide(call: .live, ptt: false), .alwaysOn)
+        XCTAssertEqual(TalkIntent.decide(call: nil, ptt: true), .noCall, "no call: the app opens with a notice")
+        XCTAssertEqual(TalkIntent.decide(call: .connecting, ptt: true), .noCall)
+        XCTAssertEqual(TalkIntent.decide(call: .reconnecting, ptt: true), .noCall)
     }
 }

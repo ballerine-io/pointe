@@ -263,12 +263,14 @@ final class Call {
         }
     }
 
-    /// Text from the Mac: an interrupt, or a heartbeat ping to answer (protocol 2).
+    /// Text from the Mac: an interrupt, a heartbeat ping to answer (protocol 2), or a press made on the Mac (protocol 3).
     private func control(_ text: String, on socket: URLSessionWebSocketTask) {
         guard let data = text.data(using: .utf8),
               let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
         switch message["type"] as? String {
         case "interrupt": flush()
+        case "ptt":  // a system-wide shortcut on the Mac pressed the gate: this phone sends as if its own press held it
+            if let open = message["open"] as? Bool { changeTalk { $0.set(open: open) } }
         case "ping":
             rttMs = message["rtt_ms"] as? Int
             if let id = message["id"] as? Int,
