@@ -13,7 +13,7 @@ final class MachinesTests: XCTestCase {
     private var three: API.Status {
         status("""
         {"connected": true, "mode": "orchestrator",
-         "sessions": [{"name": "billing/main", "working": true, "waiting": false, "machine": "", "online": true},
+         "sessions": [{"name": "billing/main", "working": true, "waiting": false, "machine": "studio", "online": true},
                       {"name": "shop", "working": false, "waiting": false},
                       {"name": "shop devbox", "working": true, "waiting": true, "request_id": "r1", "machine": "devbox", "online": true},
                       {"name": "api", "working": false, "waiting": false, "needs": "a budget", "machine": "devbox", "online": true},

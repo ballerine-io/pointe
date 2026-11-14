@@ -225,6 +225,7 @@ final class ParityUITests: XCTestCase {
         if !item.waitForExistence(timeout: 3) { app.swipeUp() }
         item.tap()
         XCTAssertTrue(any("machine.devbox").waitForExistence(timeout: 5))
+        if !any("inviteMachine").exists { app.swipeUp() }  // a small screen: the invite sits under the list
     }
 
     func testSettingsMachinesListsEachMachine() throws {

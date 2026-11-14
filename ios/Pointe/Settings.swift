@@ -27,14 +27,14 @@ struct MachinesSheet: View {
             Form {
                 Section {
                     ForEach(machines) { m in row(m) }
+                    if let problem {
+                        Text(problem).foregroundStyle(Brand.orange).accessibilityIdentifier("machinesProblem")
+                    }
+                    if let done {
+                        Text(done).foregroundStyle(.secondary).accessibilityIdentifier("machinesDone")
+                    }
                 } footer: { Text(MachinesCopy.help) }
                 Section { inviteSection }
-                if let problem {
-                    Text(problem).foregroundStyle(Brand.orange).accessibilityIdentifier("machinesProblem")
-                }
-                if let done {
-                    Text(done).foregroundStyle(.secondary).accessibilityIdentifier("machinesDone")
-                }
             }
             .scrollContentBackground(.hidden)
             .navigationTitle(MachinesCopy.title)
@@ -170,17 +170,17 @@ extension Demo {
         let caps = #"{"approvals": true, "side_questions": false}"#
         let one = screen == .machinesOne
         let sessions = one ? """
-        [{"name": "billing/main", "working": true, "waiting": false, "needs": null, "machine": "", "online": true},
-         {"name": "shop", "working": false, "waiting": false, "needs": null, "machine": "", "online": true}]
+        [{"name": "billing/main", "working": true, "waiting": false, "needs": null, "machine": "studio", "online": true},
+         {"name": "shop", "working": false, "waiting": false, "needs": null, "machine": "studio", "online": true}]
         """ : """
-        [{"name": "billing/main", "working": true, "waiting": false, "needs": null, "machine": "", "online": true},
-         {"name": "shop", "working": false, "waiting": false, "needs": null, "machine": "", "online": true},
+        [{"name": "billing/main", "working": true, "waiting": false, "needs": null, "machine": "studio", "online": true},
+         {"name": "shop", "working": false, "waiting": false, "needs": null, "machine": "studio", "online": true},
          {"name": "shop devbox", "working": true, "waiting": \(!offline), "needs": null, "machine": "devbox", "online": true,
           "capabilities": \(caps), "request": \(offline ? "null" : "\"\(request)\""), "request_id": \(offline ? "null" : "\"r-dev-1\""), "voice_can_approve": true},
          {"name": "api", "working": false, "waiting": false, "needs": "which retry budget to use", "machine": "devbox", "online": true, "capabilities": \(caps)},
          {"name": "חנות", "working": false, "waiting": false, "needs": null, "machine": "devbox", "online": true, "capabilities": \(caps)},
          {"name": "notes", "working": false, "waiting": \(offline), "needs": null, "machine": "laptop", "online": false,
-          "capabilities": \(caps), "request": \(offline ? "\"\(request)\"" : "null"), "request_id": \(offline ? "\"r-lap-1\"" : "null"), "voice_can_approve": true}]
+          "capabilities": \(caps), "request": \(offline ? "\"\(request)\"" : "null"), "request_id": \(offline ? "\"r-lap-1\"" : "null"), "voice_can_approve": false}]
         """
         let machines = one ? """
         [{"id": "hub", "name": "studio", "here": true, "os": "macos", "online": true, "sessions": 2, "need": 0}]

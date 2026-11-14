@@ -141,7 +141,7 @@ struct CallView: View {
         .sheet(isPresented: $showMachines) {
             MachinesSheet(status: status, pairing: pairing, ownerCheck: ownerCheck, invite: makeInvite,
                           cancelInvite: cancelInvite, revoke: revokeMachine)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])  // the code and its countdown must be on screen, on an SE too
                 .presentationBackground(.regularMaterial)
         }
         .sheet(item: $editing) { turn in
