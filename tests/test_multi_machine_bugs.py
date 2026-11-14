@@ -577,7 +577,6 @@ def test_recognition_terms_run_no_git_for_a_remote_session_and_use_its_nodes_fil
     assert "billing" in terms
 
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_drive_mode_reads_no_path_on_this_mac_for_a_remote_prompt(d, node, tmp_path, monkeypatch):
     """Whether a road yes may approve a file edit rested on os.path.realpath of the node's folder, resolved on this
     Mac's disk. For a remote session there is nothing here to resolve: a file tool is not road safe."""

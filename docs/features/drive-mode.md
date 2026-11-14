@@ -32,7 +32,7 @@ A spoken yes approves only when every normal rule holds (the daemon's own read-o
    `git status`, `diff`, `log`, `show`, `fetch`, `pull`, `add`, `commit`, and `push` without force, delete, mirror,
    `+ref` or `:ref`; no `--amend`, `--no-verify`, `--rebase`, `--prune`, or `add -f`; plain `curl` GETs; and edits inside
    the project. `rm`, `mv`, `cp`, redirects into files, `git reset`, `clean`, `rebase`, `checkout`, `stash`, `npm run`,
-   `make`, `gh` and edits outside the project wait;
+   `make`, `gh`, edits outside the project, and any edit in a session on another machine wait;
 3. with a voiceprint stored, the yes itself is a strong match for your voice (score ≥ 0.55, ≥ 1 s of speech), at any
    [voice lock](voice-lock.md) level, Off included. Utterances are scored while driving even with the lock off.
 

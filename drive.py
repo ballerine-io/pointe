@@ -116,9 +116,10 @@ def _command_safe(words: list[str]) -> bool:
     return True
 
 
-def road_safe(tool: str, tool_input: dict, cwd: str | None) -> bool:
+def road_safe(tool: str, tool_input: dict, cwd: str | None, remote: bool = False) -> bool:
     """May a spoken yes approve this from the road? Only for requests the read-out allowlist can say whole; this narrows
-    that further to what loses nothing. Fails closed: anything unknown is not road safe."""
+    that further to what loses nothing. Fails closed: anything unknown is not road safe. `remote`: the session runs on
+    a node, so its folder cannot be resolved on this disk (_inside follows symlinks here): a file tool is not road safe."""
     if not isinstance(tool_input, dict):
         return False
     if tool == "Bash":
@@ -131,7 +132,7 @@ def road_safe(tool: str, tool_input: dict, cwd: str | None) -> bool:
         return True
     if tool in _FILE_TOOLS:
         path = tool_input.get("file_path") or tool_input.get("notebook_path")
-        return isinstance(path, str) and _inside(path, cwd)
+        return not remote and isinstance(path, str) and _inside(path, cwd)
     return False
 
 
@@ -174,8 +175,8 @@ class Drive:
         if self.on(now):
             self.dropped_at = None
 
-    def note(self, request_id: str, tool: str, tool_input, cwd: str | None) -> None:
-        self.road[request_id] = road_safe(tool, tool_input, cwd)
+    def note(self, request_id: str, tool: str, tool_input, cwd: str | None, remote: bool = False) -> None:
+        self.road[request_id] = road_safe(tool, tool_input, cwd, remote)
         while len(self.road) > 50:
             self.road.pop(next(iter(self.road)))
 

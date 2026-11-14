@@ -59,7 +59,7 @@ request only when, on top of every rule above:
   `diff`, `log`, `show`, `fetch`, `pull`, `add`, `commit`, `push` (no force, delete, mirror, `+ref` or `:ref`, no
   `--amend`, `--no-verify`, `--rebase` or `--prune`, no `add -f`, which adds what `.gitignore` keeps out), plain `curl` GETs, and edits inside the project. `rm`, `mv`,
   `cp`, redirects into files, `git reset`, `clean`, `rebase`, `checkout`, `stash`, `npm run`, `make`, `gh` and edits
-  outside the project wait for a tap;
+  outside the project wait for a tap, as does any edit in a session on another machine (its folder is not on this disk);
 - with a voiceprint stored, the yes itself is a strong match for your voice (`speaker.strong`), at any lock level.
 
 A no counts from any voice. A tap answers any request, as always: the page and the app hide the buttons while driving and

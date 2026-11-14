@@ -4507,7 +4507,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     session.permission_text = f"[permission request] {tool_name}: {description}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
     session.permission_full = f"{tool_name}: {description}\n{preview}"
     alerts.note_request(request_id, tool_name, readable)
-    state.drive.note(request_id, tool_name, tool_input, session.cwd)
+    state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine))
     REGISTRY.save()
     if session is REGISTRY.active:
         await _ask_permission(session)
