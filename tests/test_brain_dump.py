@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_orchestrator import add, client_for, d, fake_conn  # noqa: E402,F401  (d is a fixture)
+from test_orchestrator import add, client_for, d, fake_conn, record_dispatch, send  # noqa: E402,F401  (d is a fixture)
 
 import braindump  # noqa: E402
 import modes  # noqa: E402
@@ -653,6 +653,42 @@ def test_a_pinned_session_gone_by_review_falls_back_to_the_orchestrator_and_says
     d.REGISTRY.remove("x2")
     take(d, "send it")
     assert delivered == [] and len(brain.turns) == 1 and d.state.dump is None
+
+
+def test_in_session_mode_the_dump_turn_may_go_to_any_session_and_the_next_turn_is_pinned_again(d, monkeypatch):
+    """Sent to the orchestrator while pinned to billing: that one turn routes as orchestrator mode does, so it reaches docs;
+    the mode never changes, and the next thing the user says is pinned to billing again."""
+    brain = call(d, monkeypatch, reply=RuntimeError("down"))  # the prompt is the thoughts as said, naming docs
+    add(d, "b", "billing", "/w/billing")
+    add(d, "x", "docs", "/w/docs")
+    d.REGISTRY.mode, d.REGISTRY.active_id = "session", "b"
+    sent = record_dispatch(d, monkeypatch)
+
+    async def relevant(*_a, **_k):
+        return True
+
+    monkeypatch.setattr(d, "_is_current_request", relevant)
+    take(d, "brain dump", "the docs session should rewrite the retry guide for merchants", "done")
+    r = client_for(d).post("/voice/dump", json={"action": "send", "to": "orchestrator"})
+    assert r.status_code == 200 and r.json()["sent_to"] == "orchestrator"
+    assert brain.told[-1] == (braindump.orchestrated_line("billing"), False)  # told, no reply of its own
+    assert d._routing_mode() == "orchestrator" and d.REGISTRY.mode == "session" and d.REGISTRY.active.name == "billing"
+    result = asyncio.run(send(d, "Rewrite the retry guide for merchants."))
+    assert sent == [("docs", "Rewrite the retry guide for merchants.")], result
+    # the next turn: pinned to billing again, so a request naming docs is refused, as session mode does
+    take(d, "tell docs to also update the changelog")
+    assert d._routing_mode() == "session" and d.REGISTRY.mode == "session"
+    result = asyncio.run(send(d, "Update the changelog."))
+    assert "pinned" in result.get("error", "") and sent == [("docs", "Rewrite the retry guide for merchants.")], result
+    take(d, "run the tests")
+    asyncio.run(send(d, "Run the tests."))
+    assert sent[-1] == ("billing", "Run the tests.")  # an unnamed request goes to the pinned session
+
+
+def test_in_orchestrator_mode_the_dump_turn_needs_no_grant_note(d, monkeypatch):
+    brain, _ = _review(d, monkeypatch, mode="orchestrator")
+    take(d, "send it")
+    assert not any(t.startswith("[brain dump to the orchestrator]") for t, _ in brain.told) and d._routing_mode() == "orchestrator"
 
 
 def test_sending_to_the_orchestrator_needs_a_call_and_no_meeting(d, monkeypatch):

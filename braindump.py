@@ -379,6 +379,13 @@ def orchestrator_turn(text: str) -> str:
     return f"My brain dump, structured:\n\n{text}"
 
 
+def orchestrated_line(pinned: str) -> str:
+    """Told to the voice model, without a reply, before a dump sent to the orchestrator in session mode."""
+    return (f"[brain dump to the orchestrator] The user sent their next words to you, the orchestrator. For that turn only, "
+            f"route as in orchestrator mode: send to whichever session(s) it is about, not only {pinned}. After it, session "
+            f"mode stays on, pinned to {pinned}.")
+
+
 def sent_header(session: str) -> str:
     """What the session reads above the prompt, added at send time only: the text the user reviewed carries no framing."""
     return f"[from the user, by voice: their brain dump for {session}, in their own words, structured; nothing added]"

@@ -29,8 +29,8 @@ the file); `daemon.py` runs it. Design and the bugs it fixed: [docs/design/brain
   like a spoken send.
 - **Send to the orchestrator:** the text as shown becomes your turn to the voice model ("My brain dump, structured:"
   above it), the same path as words typed in the app. It answers, or sends it on to a session the way it handles any
-  request, with every check `send_to_claude_code` makes. It follows the routing mode at that moment: in session mode,
-  anything it sends goes to the pinned session.
+  request, with every check `send_to_claude_code` makes. In session mode that one turn gets orchestrator routing: it may
+  go to any session. The mode does not change; the next thing you say is pinned to the session again.
 - **The pinned session is gone** by the review (it left the voice): the To: field falls back to the orchestrator and says
   "X is gone, so this goes to the orchestrator." A session that was renamed, or came back under the same name, is still
   the one.

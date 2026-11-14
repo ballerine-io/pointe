@@ -82,7 +82,11 @@ app preselect it, list **Orchestrator** first, and keep the user's own pick.
 Sending to the orchestrator does not deliver anything itself: `_dump_to_orchestrator` clears the dump and hands the text
 to `_user_text`, the path words typed in the app take, as the user's turn ("My brain dump, structured:" above it,
 `braindump.orchestrator_turn`). The voice model answers it or calls `send_to_claude_code`, and every check there applies
-(fresh speech, relevance, session mode pinning, production credentials). It needs a call and no meeting (409).
+(fresh speech, relevance, production credentials). It needs a call and no meeting (409). In session mode, that one
+turn is routed as in orchestrator mode: `state.orchestrated_turn` holds the turn's text, and `_routing_mode()` answers
+"orchestrator" while it is still `last_utterance`, for `_route`, `_brain_named` and the pinned-session refusals; the
+voice model is told so first, without a reply (`braindump.orchestrated_line`). `REGISTRY.mode` never changes, and the
+user's next words replace `last_utterance`, so the turn after is pinned again.
 
 ### Interruptions
 
@@ -143,7 +147,8 @@ Drive control are unchanged.
   mirror, the page and the app share their copy; where Send goes: the routing captured at start and kept through add
   more and on disk, the default in both modes, the picker and the voice overriding it both ways, "send it to the
   orchestrator" in English and Hebrew, the gone-session fallback (rename and return by name kept), the orchestrator send
-  needing a call and no meeting, and a 1.6 file without `route` following the routing now.
+  needing a call and no meeting, a 1.6 file without `route` following the routing now, and in session mode the dump's
+  turn reaching another session while the next turn is pinned again.
 - `tests/test_ui_page.py`: ids; the drive button gone from the dock and the More sheet; `tests/test_brain_dump_page.py`:
   the panel and the review sheet rendered against the stub Mac (`tests/page_rig.py`), clicks post the right actions; the
   To: picker lists Orchestrator first, preselects `send_to`, keeps the user's pick across a redraw, and says when the

@@ -701,7 +701,7 @@ def _brain_context() -> str:
     session = REGISTRY.active
     notes = _brief_of(session) if session else None
     parts = [f"[right now] The user's latest words are in {lang}: speak {lang}.",
-             f"Active session: {session.name if session else 'none'}. Routing mode: {REGISTRY.mode}."]
+             f"Active session: {session.name if session else 'none'}. Routing mode: {_routing_mode()}."]
     if session and notes:
         parts.append(render_brief(session.name, notes))
     elif session:
@@ -1560,6 +1560,7 @@ class State:
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
     last_line_id: str | None = None  # the request id the bot's latest line was spoken for (KEEP_WINDOW: the early-yes line)
     dump: object = None  # braindump.Dump while the user dumps thoughts or reviews the prompt; None otherwise
+    orchestrated_turn: str = ""  # a brain dump sent to the orchestrator: routed as in orchestrator mode while it is the last utterance
     monologue_held: list[tuple[str, bool]] = field(default_factory=list)  # session news that waits for the dump's end
     hold: turns.Hold | None = None  # "don't interrupt me": quiet until a release phrase or 8 s of silence (turns.py)
     challenge: object = None  # challenge.Challenge while the voice plays devil's advocate
@@ -2647,7 +2648,8 @@ async def _send_dump(name: str = "", orchestrator: bool = False) -> dict:
 
 async def _dump_to_orchestrator(dump) -> dict:
     """The reviewed prompt as the user's turn to the voice model, the way words typed in the app reach it (`_user_text`):
-    it answers, or routes it to a session through send_to_claude_code and every check that holds there."""
+    it answers, or routes it to a session through send_to_claude_code and every check that holds there. In session mode
+    that one turn is routed as in orchestrator mode (`_routing_mode`); the mode stays, pinned, for the next."""
     if state.conn is None:
         raise HTTPException(status_code=409, detail="no call is up: the orchestrator answers on a call")
     if not current_mode().sends:
@@ -2655,7 +2657,11 @@ async def _dump_to_orchestrator(dump) -> dict:
     logger.info(f"-> orchestrator: brain dump ({len(dump.text)} chars, sent by the user)")
     state.dump = None  # first: the words below are a request, not a review command
     _save_dump()
-    await _user_text(braindump.orchestrator_turn(dump.text))
+    turn = braindump.orchestrator_turn(dump.text)
+    state.orchestrated_turn = turn
+    if REGISTRY.mode == "session" and REGISTRY.active:
+        await state.conn.injector.inject(braindump.orchestrated_line(REGISTRY.active.name), False)
+    await _user_text(turn)
     return {"sent_to": "orchestrator"}
 
 
@@ -3583,6 +3589,15 @@ def _said_for(message: str) -> str:
     return _clauses()[clause] if clause is not None else state.last_utterance
 
 
+def _routing_mode() -> str:
+    """The mode a send is routed by: REGISTRY.mode, except for a brain dump the user sent to the orchestrator in
+    session mode, which may go to any session. The grant is that one turn: the next thing the user says replaces
+    last_utterance, and routing is pinned again. Session mode itself never changes."""
+    if REGISTRY.mode == "session" and state.orchestrated_turn and state.last_utterance == state.orchestrated_turn:
+        return "orchestrator"
+    return REGISTRY.mode
+
+
 async def _route(message: str, said: str | None = None) -> tuple[list[Session], str]:
     """Where a request goes, decided in code.
 
@@ -3592,7 +3607,7 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
     a classifier says it is about another one, which is asked rather than guessed ("off-thread"); else the one
     the classifier picks, else the active one.
     """
-    if REGISTRY.mode == "session":
+    if _routing_mode() == "session":
         return ([REGISTRY.active] if REGISTRY.active else []), "session mode"
     said = said or _said_for(message)
     sessions = list(REGISTRY.sessions.values())
@@ -3849,7 +3864,7 @@ async def _send_now(message: str) -> dict:
     # Naming a session answers "which one?" for the request that was waiting, and only for that request.
     answering = confirmed or (live_pending and name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
                               and _mostly_same(message, state.pending_route[2]))
-    if REGISTRY.mode == "session" and (pinned := _pinned_refusal(state.last_utterance)):
+    if _routing_mode() == "session" and (pinned := _pinned_refusal(state.last_utterance)):
         _record(message, [], "blocked: session mode, another session named")
         return {"error": pinned}  # before the relevance check: the true reason, not a wrong one
     if _needs_warning(message):
@@ -3896,7 +3911,7 @@ async def _send_now(message: str) -> dict:
         _record(message, [], "blocked: that part was already sent")
         return {"error": "Not sent: that part of what the user said was already sent."}
     said = parts[clause] if clause is not None else state.last_utterance
-    refusal = _pinned_refusal(said) if REGISTRY.mode == "session" else None
+    refusal = _pinned_refusal(said) if _routing_mode() == "session" else None
     if refusal:
         _record(message, [], "blocked: session mode, another session named")
         return {"error": refusal}
@@ -4001,7 +4016,7 @@ def _brain_named(said: str) -> Session | None:
     """The session the brain chose, by exact name. It read the whole sentence and the call; "tell Claude" or a word in
     another session's name does not fool it the way name matching can. Session mode stays pinned, and "all" stays a broadcast."""
     wanted = (state.brain_target or "").strip().lower()
-    if REGISTRY.mode == "session" or not wanted or broadcast_intent(said):
+    if _routing_mode() == "session" or not wanted or broadcast_intent(said):
         return None
     chosen = next((s for s in REGISTRY.sessions.values() if s.name.lower() == wanted), None)
     if not chosen:
