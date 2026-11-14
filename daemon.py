@@ -4813,7 +4813,7 @@ async def talk(request: Request):
     if PREFS.get("microphone") != "ptt":
         raise HTTPException(status_code=409, detail="Microphone is Always on: set it to Push to talk in Settings")
     if state.conn is None or state.conn.ptt is None:
-        raise HTTPException(status_code=409, detail="No call is up: press the mic on the page or open the app first")
+        raise HTTPException(status_code=409, detail="No call is up: press Connect on the page or in the app first")
     want = TALK_ACTIONS[action] if TALK_ACTIONS[action] is not None else not state.ptt.open
     open = await state.conn.ptt.remote(want)
     if state.call_socket is not None:  # the clients send only while they hold a press: this one is held for them
@@ -5136,6 +5136,7 @@ async def status(request: Request):
             "can_invite": _can_invite(request),
             "invite_ended": _invite_ended(request),
             "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
+            "phone_listener": REMOTE.enabled,  # false: no phone can reach this Mac yet; the page's Connect panel says so
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form

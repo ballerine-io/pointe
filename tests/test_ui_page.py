@@ -28,6 +28,7 @@ brf-deflen brf-connect brf-skipempty dict-open voicelock vl-h vl-intro vl-proble
 vl-cancel vl-devices vl-needcall vl-actions vl-enrolbtn vl-deleteall vl-confirm vl-levels vl-levelhelp vl-err machines mach-h mach-list
 mach-invite mach-code mach-link mach-left mach-invitebtn mach-cancel mach-err phone ph-h ph-list ph-pick ph-routes ph-hostform ph-host
 ph-check ph-advice ph-cert ph-show ph-qr ph-svg ph-link ph-left ph-cancel ph-done ph-actions ph-connect ph-unpair ph-rule ph-err
+ph-copy ph-foot topconnect connectempty connectbtn connectbtn-label connect-title connect-why connect-hint connect-phone
 mic hangup listen listen-label meetbtn meet-label briefbtn drivebtn chlbtn chl-label whisperbtn whisper-label typebtn sessbtn keyhint
 state sub problem vlproblem vlignored polish talk newpill compose typed typed-send caption caption-text attention conflicts briefalert
 whispercard drivebar drive-line drive-stop brainstorm mono-text back bs-challenge challenge chl-h chl-plan chl-items chl-end chl-close
@@ -234,3 +235,77 @@ def test_dock_keeps_the_mic_centred_and_fits_at_every_width():
         assert "sessbtn" in got[w]["inDock"] and "typebtn" in got[w]["inDock"] and "mic" in got[w]["inDock"]
     wide = [i for i in got[1440]["inDock"] if i]
     assert wide.index("listen") < wide.index("mic") < wide.index("chlbtn") < wide.index("sessbtn")
+
+
+# ---------- Connect: the one control that starts the call; the mic is a mic ----------
+
+CONNECT_STATES = """(async () => {
+    const q = id => document.getElementById(id);
+    const t = id => q(id)?.textContent ?? null;  // the panel leaves the DOM once a conversation shows
+    const snap = () => ({state: document.body.dataset.state, title: t('state'), panelTitle: t('connect-title'),
+                         why: t('connect-why'), bad: !!q('connect-why')?.classList.contains('bad'),
+                         button: q('connectbtn')?.hidden === false ? t('connectbtn-label') : null, busy: !!q('connectbtn')?.classList.contains('busy'),
+                         pill: q('topconnect').hidden ? null : t('topconnect'), problem: t('problem'),
+                         mic: [q('mic').getAttribute('aria-label'), q('mic').title, q('mic').getAttribute('aria-disabled'), t('keyhint')],
+                         hint: t('connect-hint'), phone: q('connect-phone')?.hidden === false});
+    const out = {};
+    out.idle = snap();
+    // the mic with no call: it does not dial, it points at Connect
+    let dialled = 0; const realStart = startCall; startCall = () => { dialled++; };
+    ringTap({detail: 1}); out.ringNoCall = {dialled, nudged: q('connectbtn').classList.contains('nudge'), focused: document.activeElement.id};
+    connectTap(); out.connectDials = dialled; startCall = realStart;
+    // a Mac without the phone's listener: the panel says so
+    window.__status = {...window.__status, phone_listener: false}; await refresh(); out.noListener = snap();
+    window.__status = {...window.__status, phone_listener: true}; await refresh();
+    call.state = 'connecting'; showState(); out.connecting = snap(); call.state = 'off';
+    // (a) the Mac stops answering
+    const realFetch = window.fetch; window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    await refresh(); await refresh(); await refresh(); out.unreachable = snap();
+    // (b) the key is refused
+    window.fetch = async () => new Response('forbidden', {status: 403}); await refresh(); out.notPaired = snap();
+    window.fetch = realFetch; await refresh(); out.back = snap();
+    // (d) no microphone
+    micError = 'The browser blocked the microphone. Allow it for this page, then press Connect.'; showState(); out.micDenied = snap(); micError = '';
+    // a first dial that never opened
+    callNote = 'The call did not connect.'; showState(); out.failed = snap(); callNote = '';
+    // live: the panel loses its button, the pill hangs up, the mic is a mic
+    window.__status = {...window.__status, connected: true}; call.state = 'live'; call.heard = Date.now(); await refresh(); out.live = snap();
+    // with a conversation on screen the top bar carries the reason and the pill is the way back
+    call.state = 'off'; window.__status = {...window.__status, connected: false, talk: [{id: 1, who: 'user', text: 'hello'}, {id: 2, who: 'assistant', text: 'hi'}]};
+    callNote = 'The call did not connect.'; await refresh(); out.dropped = {...snap(), panelShown: !!document.getElementById('connectempty'),
+        pillClass: q('topconnect').className};
+    callNote = '';
+    return out;
+})()"""
+
+
+@needs_chrome
+def test_connect_is_its_own_control_and_says_why_it_failed():
+    got = asyncio.run(_render(CONNECT_STATES))
+    idle = got["idle"]
+    assert idle["state"] == "off" and idle["title"] == "Not connected" and idle["panelTitle"] == "Not connected"
+    assert idle["why"] == "Starts the call on this Mac's microphone" and not idle["bad"]
+    assert idle["button"] == "Connect" and idle["pill"] is None, idle  # one Connect on screen: the panel's
+    assert idle["mic"] == ["Microphone", "Connect first", "true", "Connect first"]
+    assert idle["hint"] == "Or type below once connected" and not idle["phone"]
+    assert got["ringNoCall"] == {"dialled": 0, "nudged": True, "focused": "connectbtn"}
+    assert got["connectDials"] == 1
+    assert got["noListener"]["phone"] is True
+    assert got["connecting"]["title"] == "Connecting to studio…" and got["connecting"]["button"] == "Cancel" and got["connecting"]["busy"]
+    assert got["connecting"]["state"] == "connecting" and got["connecting"]["mic"][3] == "Connecting to studio…"
+    un = got["unreachable"]
+    assert un["title"] == "Pointe is not answering" and un["button"] == "Try again" and un["bad"]
+    assert un["why"].startswith("Pointe on this Mac is not answering") and "pointe doctor" in un["why"]
+    assert un["problem"] == "", un  # the panel carries it, not the top bar as well
+    npd = got["notPaired"]
+    assert npd["title"] == "Not paired" and npd["state"] == "off" and npd["button"] == "Try again"
+    assert npd["why"] == "This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open."
+    assert got["back"]["title"] == "Not connected" and got["back"]["button"] == "Connect"
+    assert got["micDenied"]["why"].startswith("The browser blocked the microphone") and got["micDenied"]["button"] == "Try again"
+    assert got["failed"]["why"] == "The call did not connect." and got["failed"]["button"] == "Try again"
+    live = got["live"]
+    assert live["state"] == "live" and live["button"] is None and live["pill"] == "Hang up"
+    assert live["mic"] == ["Mute", "Mute", "false", "Space or AirPods to mute"] and live["hint"] == "Or type below · Press Space to mute"
+    dropped = got["dropped"]
+    assert not dropped["panelShown"] and dropped["pill"] == "Try again" and dropped["problem"] == "The call did not connect."
+    assert "hang" not in dropped["pillClass"]

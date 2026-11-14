@@ -6,6 +6,7 @@
 - Right-to-left text (Hebrew, Arabic) reads from the right in the conversation, the caption, cards and lists: a final
   full stop sits at the left end. English is unchanged. Each element takes its direction from its own first strong
   letter (dir="auto"), not the page's.
+- The Connect control (the empty stage's button, the top bar's pill, the mic as a mic) uses the app's words (ConnectCopy).
 - Machines (docs/design/multi-machine.md, "Page"), on a status recorded from this daemon with the design's machine
   fields added: one machine looks as before; with several, filter chips (client-side, nothing sent), a group per machine
   with this Mac first, a machine tag on each row, offline dimming with no Approve or Deny, "shop · devbox" on the card
@@ -35,6 +36,32 @@ from scenarios import check, results  # noqa: E402
 
 DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "7963"))
 SHOTS = Path(os.environ["POINTE_SHOTS"])
+
+
+# The Connect control's words, as ios/PointeTests/ParityTests.swift (ConnectCopyTests) holds them for the app: the same
+# label on both surfaces, the same sentence for each reason where the surface allows.
+CONNECT_WORDS = {"connect": "Connect", "tryAgain": "Try again", "hangUp": "Hang up", "cancel": "Cancel", "connectFirst": "Connect first",
+                 "notConnected": "Not connected", "notPairedTitle": "Not paired", "elsewhere": "On a call elsewhere",
+                 "busy": "A call is already up on another page or phone. Hang up there first.",
+                 "noListener": "Your phone cannot reach this Mac yet: Settings → Phone → Connect your phone."}
+
+
+async def connect_control(page: Page) -> None:
+    words = await page.js("(() => { const o = {}; for (const k in CONNECT_COPY) if (typeof CONNECT_COPY[k] === 'string') o[k] = CONNECT_COPY[k]; return o; })()")
+    same = {k: words.get(k) for k in CONNECT_WORDS}
+    check("the Connect control's words are the app's (ConnectCopy)", same == CONNECT_WORDS, page=same, app=CONNECT_WORDS)
+    check("a reason names the Mac's address, as the app does",
+          await page.js("CONNECT_COPY.unreachable('studio.example:7443')") == "Can't reach your Mac at studio.example:7443. Is Twingate or Tailscale on? Is the Mac awake?")
+    check("the idle hang-up and the microphone each say how to come back",
+          await page.js("CONNECT_COPY.idleHangup") == "The Mac hung up after 30 minutes of quiet. Press Connect to talk again."
+          and (await page.js("CONNECT_COPY.micDenied")).endswith("then press Connect."))
+    got = await page.js("({button: $('connectbtn-label').textContent, shown: !$('connectbtn').hidden, pill: $('topconnect').hidden, "
+                        "mic: [$('mic').getAttribute('aria-label'), $('mic').title, $('mic').getAttribute('aria-disabled')], "
+                        "why: $('connect-why').textContent, title: $('connect-title').textContent})")
+    check("with no call the empty stage shows Connect and what it does; the mic is a mic that says Connect first",
+          got == {"button": "Connect", "shown": True, "pill": True, "mic": ["Microphone", "Connect first", "true"],
+                  "why": "Starts the call on this Mac's microphone", "title": "Not connected"}, **got)
+    await page.shot("connect-idle")
 
 
 async def two_clicks(page: Page) -> None:
@@ -390,6 +417,7 @@ async def main() -> None:
             page = Page(socket)
             await page.cdp("Runtime.enable")
             await page.until("typeof meetPost === 'function' && !!status && !!status.sessions", 20)
+            await connect_control(page)
             await two_clicks(page)
             await settings(page)
             await (live_machines(page) if os.environ.get("POINTE_LIVE_MACHINES") else machines(page))

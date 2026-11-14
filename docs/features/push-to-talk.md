@@ -37,7 +37,7 @@ app, a tool that sees key down and key up (Raycast, Hammerspoon, BetterTouchTool
 and `pointe talk off` on the release.
 
 The CLI prints one line and exits 0, or 1 with the reason: "Microphone is Always on: set it to Push to talk in
-Settings", "No call is up: press the mic on the page or open the app first", "Pointe is not running on this Mac".
+Settings", "No call is up: press Connect on the page or in the app first", "Pointe is not running on this Mac".
 
 On the iPhone the same thing is the **"Talk"** App Intent ("Talk to Pointe"): bind it to the Action button (Settings →
 Action Button → Shortcut), to Back Tap, or say it to Siri. It toggles the app's own press on the call that is up, in the
