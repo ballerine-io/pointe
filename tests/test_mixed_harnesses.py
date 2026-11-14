@@ -730,11 +730,11 @@ def test_an_approval_alert_names_the_machine_only_when_sessions_span_machines(d,
                 if a["kind"] == "permission"}
 
     assert titles() == {"shop": "shop needs approval"}  # one machine: as today
-    twin = _join(d, "devbox", "s1", "shop")  # named "shop devbox": the title says it once, in brackets
+    twin = _join(d, "devbox", "s1", "shop")  # named "shop devbox": the title says the machine once, as the card does
     api = _join(d, "devbox", "abc", "api")
     twin.permission_id, api.permission_id = "p2", "p3"
-    assert titles() == {"shop": "shop (studio) needs approval", "shop devbox": "shop (devbox) needs approval",
-                        "api": "api (devbox) needs approval"}
+    assert titles() == {"shop": "shop · studio needs approval", "shop devbox": "shop · devbox needs approval",
+                        "api": "api · devbox needs approval"}
 
 
 def test_a_hub_shutting_down_does_not_tell_its_nodes_the_call_ended(d, node, monkeypatch):

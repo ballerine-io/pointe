@@ -45,7 +45,7 @@ def approvable(session_id: str, request_id: str) -> bool:
 
 
 def permission_alert(session: str, session_id: str, request_id: str, at: float, title: str = "") -> dict:
-    """`title` names the session for the person, when that differs from its name (its machine, "shop (devbox)")."""
+    """`title` names the session for the person, when that differs from its name (its machine, "shop · devbox")."""
     shown = _shown(session_id, request_id)
     tool = (_REQUESTS.get((session_id, request_id)) or {}).get("tool", "")
     tool = tool if _TOOL.match(tool or "") else "a tool"

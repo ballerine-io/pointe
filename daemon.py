@@ -5048,12 +5048,14 @@ async def status(request: Request):
 
 
 def _alert_name(s: Session) -> str:
-    """"shop (devbox)" when sessions span machines, the machine said once even if the name carries it; else the name."""
-    if not _multi_machine():
+    """As the approval card names the session (ui.html whoLabel, MachineView.label): "shop · devbox" for a session on
+    another machine, and for every session when sessions span machines; the machine said once even if a remote name
+    carries it. Else the name."""
+    if not s.machine and not _multi_machine():
         return s.name
     machine = _machine_of(s)
-    base = s.name[:-len(machine) - 1] if s.name.lower().endswith(f" {machine}".lower()) else s.name
-    return f"{base} ({machine})"
+    base = s.name[:-len(machine) - 1] if s.machine and s.name.lower().endswith(f" {machine}".lower()) else s.name
+    return f"{base} · {machine}"
 
 
 def _attention() -> list[dict]:
