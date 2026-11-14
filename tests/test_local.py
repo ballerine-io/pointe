@@ -260,7 +260,7 @@ def _voice_install(monkeypatch, warm):
     monkeypatch.setattr(local, "cached_bytes", lambda repo: 1)
     monkeypatch.setattr(local, "write_voice_config", lambda: None)
     monkeypatch.setitem(sys.modules, "kokoro_mlx", types.SimpleNamespace(warm=warm))
-    monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(snapshot_download=lambda r: None))
+    monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(snapshot_download=lambda r, **k: None))
 
 
 def test_pointe_local_voice_keeps_library_noise_in_the_daemon_log(state, monkeypatch, capfd):

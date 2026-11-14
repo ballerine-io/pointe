@@ -20,17 +20,17 @@ from __future__ import annotations
 
 import no_telemetry  # noqa: F401  (before sherpa-onnx and onnxruntime load)
 import asyncio
-import hashlib
 import os
 import re
 import time
-import urllib.request
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 from loguru import logger
+
+import assets
 
 LEVELS = ("off", "approvals", "commands", "everything")
 RATE = 16000  # what both clients send (phone.IN_RATE)
@@ -62,11 +62,8 @@ LINES = (
     "שלושה עפיפונים צבעוניים עפו מעל הנמל ביום סוער.",
 )
 
-MODEL_NAME = "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx"
-MODEL_URL = f"https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/{MODEL_NAME}"
-MODEL_SHA256 = "1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b"
-MODEL_MB = 40
-MODEL_LICENSE = "Apache-2.0: 3D-Speaker ERes2Net base (modelscope iic/speech_eres2net_base_sv_zh-cn_3dspeaker_16k)"
+MODEL = assets.ASSETS["speaker"]  # URL, SHA-256 and license: pinned in assets.py with every other download
+MODEL_NAME, MODEL_URL, MODEL_SHA256, MODEL_MB, MODEL_LICENSE = MODEL.name, MODEL.url, MODEL.sha256, MODEL.mb, MODEL.license
 
 
 @dataclass(frozen=True)
@@ -201,16 +198,7 @@ class Embedder:
                 self.state = "downloading"
                 logger.info(f"voice lock: downloading the speaker model once ({MODEL_MB} MB, {MODEL_LICENSE}) "
                             f"from {MODEL_URL}")
-                self.path.parent.mkdir(parents=True, exist_ok=True)
-                part = self.path.with_suffix(".part")
-                with urllib.request.urlopen(MODEL_URL, timeout=60) as r, open(part, "wb") as f:
-                    while chunk := r.read(1 << 20):
-                        f.write(chunk)
-                digest = hashlib.sha256(part.read_bytes()).hexdigest()
-                if digest != MODEL_SHA256:
-                    part.unlink(missing_ok=True)
-                    raise ValueError("the downloaded model's checksum does not match")
-                os.replace(part, self.path)
+                assets.fetch(MODEL, self.path)
             import sherpa_onnx
 
             self._extractor = sherpa_onnx.SpeakerEmbeddingExtractor(

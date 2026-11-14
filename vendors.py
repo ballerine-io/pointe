@@ -19,6 +19,8 @@ from pathlib import Path
 
 from loguru import logger
 
+import assets
+
 KEYS = {
     "gemini": ("GOOGLE_API_KEY", "gemini-api-key"),
     "openai": ("OPENAI_API_KEY", "openai-api-key"),
@@ -29,7 +31,8 @@ KEYS = {
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names
 LOCAL = "local"  # needs no key: Whisper and Kokoro on this machine, and an OpenAI-compatible server for text models
 LOCAL_URL = "http://localhost:11434/v1"  # Ollama; CLAUDE_VOICE_LOCAL_URL or "local_url" points it at mlx-lm, LM Studio, vLLM...
-LOCAL_EARS_MODEL = "mlx-community/whisper-large-v3-turbo"  # why: bench/results/local.md
+LOCAL_EARS_MODEL = "mlx-community/whisper-large-v3-turbo"  # why: bench/results/local.md; its commit: assets.HF_MODELS
+LOCAL_EARS_MODEL_CT2 = "deepdml/faster-whisper-large-v3-turbo-ct2"  # the same model for faster-whisper, off Apple silicon
 KEY_ENVS = {env for env, _ in KEYS.values()} | set(ENV_ALIASES.values()) | {"CLAUDE_VOICE_LOCAL_KEY"}
 # First available wins. The order is the result of bench/results; see README, "Benchmarks".
 BRAIN_ORDER = ["anthropic:claude-sonnet-5-5", "gemini:gemini-3.8-flash", "openai:gpt-6-sol"]
@@ -534,9 +537,10 @@ def _local_ears():
 
     if platform.system() == "Darwin" and platform.machine() == "arm64":
         return _mlx_ears()
-    from pipecat.services.whisper.stt import Model, WhisperSTTService
+    from pipecat.services.whisper.stt import WhisperSTTService
 
-    return WhisperSTTService(settings=WhisperSTTService.Settings(model=Model.LARGE_V3_TURBO, language=None))
+    # A folder, not a repository name: faster-whisper would otherwise read the repository at `main`.
+    return WhisperSTTService(settings=WhisperSTTService.Settings(model=assets.snapshot(LOCAL_EARS_MODEL_CT2), language=None))
 
 
 def whisper_text(result: dict) -> str:
@@ -557,11 +561,9 @@ def _mlx_ears():
     from pipecat.utils.time import time_now_iso8601
 
     try:  # a path, not a repo name: mlx-whisper asks the Hugging Face Hub about a repo name once per daemon
-        from huggingface_hub import snapshot_download
-
-        path = snapshot_download(LOCAL_EARS_MODEL, local_files_only=True)
+        path = assets.snapshot(LOCAL_EARS_MODEL, local_files_only=True)
     except Exception:
-        path = LOCAL_EARS_MODEL  # not downloaded yet: mlx-whisper fetches it on the first utterance
+        path = None  # not downloaded yet: fetched at the pinned commit on the first utterance, as mlx-whisper would at `main`
 
     class MLXWhisperEars(SegmentedSTTService):
         model_path = path
@@ -572,6 +574,8 @@ def _mlx_ears():
             samples = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
             await self.start_processing_metrics()
             try:
+                if self.model_path is None:
+                    self.model_path = await asyncio.to_thread(assets.snapshot, LOCAL_EARS_MODEL)
                 result = await asyncio.to_thread(mlx_whisper.transcribe, samples, path_or_hf_repo=self.model_path,
                                                  temperature=0.0, language=None)
             except Exception as e:
@@ -617,5 +621,7 @@ def build_mouth(choice: str, rate: int, http):
     if vendor == LOCAL:
         from pipecat.services.kokoro.tts import KokoroTTSService
 
-        return KokoroTTSService(sample_rate=rate, settings=KokoroTTSService.Settings(voice=voice or "af_heart"))
+        model_file, voices_file = assets.ensure_kokoro()  # verified by hash first: Pipecat's own download has none
+        return KokoroTTSService(sample_rate=rate, model_path=str(model_file), voices_path=str(voices_file),
+                                settings=KokoroTTSService.Settings(voice=voice or "af_heart"))
     raise SystemExit(f"CLAUDE_VOICE_MOUTH: unknown vendor {vendor}")
