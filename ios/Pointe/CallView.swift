@@ -86,11 +86,11 @@ struct CallView: View {
         return status?.attention?.first { $0.kind == "hand" }?.id ?? "at:\(hand.at ?? 0)"
     }
 
-    /// Push to talk: the press here at once, and the Mac's gate as the truth.
-    private var talking: Bool { call.talk.isOpen || (call.talk.ptt && status?.ptt?.open == true) }
+    /// Push to talk: this phone's press, at once; the Mac's gate only while the phone holds none (TalkGate.shows).
+    private var talking: Bool { call.talk.ptt && call.talk.shows(macOpen: status?.ptt?.open == true) }
     private var ringTalk: RingTalk? {
         guard call.talk.ptt else { return nil }
-        return RingTalk(talking: talking, press: { call.talkPress(.ring) }, release: { call.talkRelease(.ring) },
+        return RingTalk(talking: talking, style: call.talkStyle, press: { call.talkPress(.ring) }, release: { call.talkRelease(.ring) },
                         toggle: { call.talkToggle() })
     }
 
@@ -293,7 +293,8 @@ struct CallView: View {
             .animation(.easeInOut(duration: 0.2), value: panelShown)
             .scrollDismissesKeyboard(.interactively)
             .accessibilityIdentifier("conversation")
-            .holdToTalk(call.talk.ptt && phase == .live, press: { call.talkPress(.caption) }, release: { call.talkRelease(.caption) })
+            .holdToTalk(call.talk.ptt && phase == .live, style: call.talkStyle, press: { call.talkPress(.caption) },
+                        release: { call.talkRelease(.caption) }, toggle: { call.talkToggle() })
             .defaultScrollAnchor(.bottom, for: .initialOffset)  // only where it starts: growing content must not pull you down
             .defaultScrollAnchor(.top, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { geo in
@@ -442,6 +443,13 @@ struct CallView: View {
             } label: { Label("Microphone", systemImage: "mic") }
                 .pickerStyle(.menu)
                 .accessibilityIdentifier("microphoneSetting")
+            if call.talk.ptt {
+                Picker(selection: Binding(get: { call.talkStyle }, set: { call.talkStyle = $0 })) {
+                    ForEach(TalkStyle.allCases, id: \.self) { Text($0.label).tag($0) }
+                } label: { Label("Talk button", systemImage: "hand.tap") }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("talkStyleSetting")
+            }
             if let line = status?.local?.short {
                 Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
             }
@@ -498,7 +506,7 @@ struct CallView: View {
             BottomBar(phase: phase, muted: muted, monologue: brainstorming, typing: typing,
                       mic: micTapped, listen: { setBrainstorm(!brainstorming) }, type: { withAnimation(.snappy) { typing.toggle() } },
                       sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk,
-                      driving: driving)
+                      trace: call.talkTrace, driving: driving)
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
@@ -570,10 +578,11 @@ struct CallView: View {
             if challengeOn { return ChallengeCopy.state }
             if brainstorming { return "Brainstorming" }
             if call.talk.ptt {
-                if talking { return "Talking" }
+                if talking { return call.talkStyle.talkingLine }
                 if speaking { return "Speaking" }
-                if let why = call.talkClosedWhy { return "Talk closed: \(why)" }
-                return call.talk.roomHeard ? "Meeting: room is heard · hold to talk" : "Hold to talk"
+                if let note = call.talkNote { return note }
+                if let why = call.talkClosedWhy { return TalkGate.closedLine(why, style: call.talkStyle) }
+                return call.talk.roomHeard ? "Meeting: room is heard · \(call.talkStyle.label.lowercased())" : call.talkStyle.label
             }
             return muted ? "Muted" : speaking ? "Speaking" : "Listening"
         }

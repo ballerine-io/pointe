@@ -104,6 +104,26 @@ final class TalkGateTests: XCTestCase {
         XCTAssertFalse(g.sends(at: t0))
     }
 
+    func testTheRingShowsThePhonesPressAndTheMacsGateOnlyWhileItHoldsNone() {
+        var g = ptt()
+        XCTAssertTrue(g.shows(macOpen: true), "no press of its own yet: the Mac's open gate shows (a shortcut, the demo)")
+        XCTAssertFalse(g.shows(macOpen: false))
+        g.press(.ring, at: t0)
+        XCTAssertTrue(g.shows(macOpen: false), "the press shows at the touch, before the Mac's status")
+        g.release(.ring, at: t0.addingTimeInterval(1))
+        XCTAssertFalse(g.shows(macOpen: true), "the status still says open after a lift: the lift wins, and a new press is not swallowed")
+        g.press(.ring, at: t0.addingTimeInterval(1.1))
+        XCTAssertTrue(g.isOpen && g.shows(macOpen: true))
+        g.reset()
+        XCTAssertTrue(g.shows(macOpen: true), "a new call: nothing let go yet")
+    }
+
+    func testTheLinesForAPressTheMacClosedAreThePages() {
+        XCTAssertEqual(TalkGate.closedLine("held too long", style: .hold), "Talk closed after 90 s: press again")
+        XCTAssertEqual(TalkGate.closedLine("held too long", style: .tap), "Talk closed after 90 s: tap again")
+        XCTAssertEqual(TalkGate.closedLine("no audio", style: .tap), "Talk closed: no audio reached the Mac")
+    }
+
     func testTheMacsShortcutOpensAndClosesThePressAndIsIgnoredWhenAlwaysOn() {
         var g = ptt()
         g.set(open: true, at: t0)
@@ -134,5 +154,29 @@ final class TalkIntentTests: XCTestCase {
         XCTAssertEqual(TalkIntent.decide(call: nil, ptt: true), .noCall, "no call: the app opens with a notice")
         XCTAssertEqual(TalkIntent.decide(call: .connecting, ptt: true), .noCall)
         XCTAssertEqual(TalkIntent.decide(call: .reconnecting, ptt: true), .noCall)
+    }
+}
+
+/// Hold or tap: the device's choice, with the page's words (tests/test_ptt_modes.py reads both).
+final class TalkStyleTests: XCTestCase {
+    func testStoredPerDeviceAndHoldByDefault() {
+        let defaults = UserDefaults(suiteName: "TalkStyleTests")!
+        defaults.removePersistentDomain(forName: "TalkStyleTests")
+        XCTAssertEqual(TalkStyle.stored(in: defaults), .hold)
+        defaults.set("tap", forKey: TalkStyle.key)
+        XCTAssertEqual(TalkStyle.stored(in: defaults), .tap)
+        defaults.set("lean", forKey: TalkStyle.key)
+        XCTAssertEqual(TalkStyle.stored(in: defaults), .hold, "an unknown value is the default, not a crash")
+    }
+
+    func testTheWordsAreThePages() {
+        XCTAssertEqual(TalkStyle.allCases.map(\.rawValue), ["hold", "tap"])
+        XCTAssertEqual(TalkStyle.hold.label, "Hold to talk")
+        XCTAssertEqual(TalkStyle.tap.label, "Tap to talk")
+        XCTAssertEqual(TalkStyle.hold.talkingLine, "Talking")
+        XCTAssertEqual(TalkStyle.tap.talkingLine, "Talking · tap to send")
+        XCTAssertEqual(TalkStyle.sentLine, "Sent")
+        XCTAssertEqual(TalkStyle.shortPressLine, "Hold to talk · or choose Tap to talk in Settings")
+        XCTAssertEqual(TalkStyle.shortPress, 0.25)
     }
 }

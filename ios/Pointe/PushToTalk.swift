@@ -59,6 +59,18 @@ struct TalkGate: Equatable {
         toggle(at: now)
     }
 
+    /// What the ring shows. This phone's own press, which changes at the touch; the Mac's open gate (polled, so up to
+    /// half a second behind) only while this phone holds no press and has not just let one go. Taking the Mac's word
+    /// first kept the ring orange after a lift and swallowed a press made inside that lag.
+    func shows(macOpen: Bool) -> Bool {
+        isOpen || (macOpen && releasedAt == nil)
+    }
+
+    /// The line when the Mac closed a press by itself, in the page's words (tests/test_ptt_modes.py holds both).
+    static func closedLine(_ why: String, style: TalkStyle) -> String {
+        why == "held too long" ? "Talk closed after 90 s: \(style == .tap ? "tap" : "press") again" : "Talk closed: no audio reached the Mac"
+    }
+
     /// Whether a chunk of microphone audio goes to the Mac now.
     func sends(at now: Date = Date()) -> Bool {
         !ptt || roomHeard || isOpen || releasedAt.map { now.timeIntervalSince($0) < Self.tail } ?? false
@@ -106,38 +118,78 @@ struct TalkGate: Equatable {
     }
 }
 
+/// How the talk button is pressed, this device's choice (docs/design/push-to-talk-modes.md). The page offers the same two
+/// (Settings → Microphone → Talk button); the daemon sees one press either way.
+enum TalkStyle: String, CaseIterable {
+    case hold, tap
+
+    static let key = "talkStyle"
+    static func stored(in defaults: UserDefaults = .standard) -> TalkStyle {
+        defaults.string(forKey: key).flatMap(TalkStyle.init) ?? .hold
+    }
+
+    var label: String { self == .tap ? "Tap to talk" : "Hold to talk" }
+    /// The state line and the ring while the gate is open.
+    var talkingLine: String { self == .tap ? "Talking · tap to send" : "Talking" }
+    /// The state line, then idle, right after a press closed: the send reads as taken.
+    static let sentLine = "Sent"
+    static let sentFor: TimeInterval = 0.6
+    /// A press shorter than this in Hold mode heard no word: the line points at the other style.
+    static let shortPress: TimeInterval = 0.25
+    static let shortPressLine = "Hold to talk · or choose Tap to talk in Settings"
+    static let shortPressFor: TimeInterval = 2
+    var hint: String { self == .tap ? "Tap to start talking, tap again to send." : "Hold to talk. With VoiceOver, activate to start and again to stop." }
+}
+
 /// The mic ring's push-to-talk side: what it shows, and what a press does.
 struct RingTalk {
     let talking: Bool
+    let style: TalkStyle
     let press: () -> Void
     let release: () -> Void
     let toggle: () -> Void
 }
 
+/// Hold to talk: open on touch down, closed on lift (a tap is a short press). Tap to talk: touch down toggles, the lift
+/// does nothing. Either way the first touch acts at once, before any word from the Mac. VoiceOver's activate toggles.
+private struct RingTalkModifier: ViewModifier {
+    let talk: RingTalk
+    @State private var down = false
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    guard !down else { return }
+                    down = true
+                    talk.style == .tap ? talk.toggle() : talk.press()  // press is idempotent: a second finger is not a new press
+                }
+                .onEnded { _ in
+                    down = false
+                    if talk.style == .hold { talk.release() }
+                })
+            .accessibilityLabel(talk.talking ? "Talking" : talk.style.label)
+            .accessibilityHint(talk.style.hint)
+            .accessibilityAction { talk.toggle() }
+            .sensoryFeedback(.impact(weight: .medium), trigger: talk.talking)
+    }
+}
+
 extension View {
-    /// Hold the ring to talk: open on touch down, closed on lift (a tap is a short press). VoiceOver's activate toggles.
     @ViewBuilder func ringTalk(_ talk: RingTalk?) -> some View {
-        if let talk {
-            simultaneousGesture(DragGesture(minimumDistance: 0)
-                .onChanged { _ in if !talk.talking { talk.press() } }
-                .onEnded { _ in talk.release() })
-                .accessibilityLabel(talk.talking ? "Talking" : "Hold to talk")
-                .accessibilityHint("Hold to talk. With VoiceOver, activate to start and again to stop.")
-                .accessibilityAction { talk.toggle() }
-                .sensoryFeedback(.impact(weight: .medium), trigger: talk.talking)
-        } else {
-            self
-        }
+        if let talk { modifier(RingTalkModifier(talk: talk)) } else { self }
     }
 
-    /// Hold anywhere on the conversation to talk, after a short press so scrolling stays free.
-    @ViewBuilder func holdToTalk(_ enabled: Bool, press: @escaping () -> Void, release: @escaping () -> Void) -> some View {
+    /// Talk from anywhere on the conversation, after a short press so scrolling stays free: a hold in Hold mode, a toggle
+    /// in Tap mode.
+    @ViewBuilder func holdToTalk(_ enabled: Bool, style: TalkStyle, press: @escaping () -> Void, release: @escaping () -> Void,
+                                 toggle: @escaping () -> Void) -> some View {
         if enabled {
             // A long press ends when it is recognised, not at the lift: the drag after it sees the finger come up.
             simultaneousGesture(LongPressGesture(minimumDuration: 0.35, maximumDistance: 12)
                 .sequenced(before: DragGesture(minimumDistance: 0))
-                .onChanged { value in if case .second(true, _) = value { press() } }
-                .onEnded { value in if case .second(true, _) = value { release() } })
+                .onChanged { value in if case .second(true, _) = value { style == .tap ? toggle() : press() } }
+                .onEnded { value in if case .second(true, _) = value, style == .hold { release() } })
         } else {
             self
         }

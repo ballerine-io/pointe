@@ -14,6 +14,7 @@ struct BottomBar: View {
     let sessions: () -> Void
     let hangUp: () -> Void
     var talk: RingTalk? = nil  // push to talk: hold the ring
+    var trace = ""             // debug builds: the last press, for the UI tests
     var driving = false        // drive mode: typing folds away
 
     private var live: Bool { phase == .live || phase == .reconnecting }
@@ -73,6 +74,7 @@ struct BottomBar: View {
         .buttonStyle(.plain)
         .disabled(phase != .live)
         .accessibilityIdentifier("micRing")
+        .accessibilityValue(trace)
         .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Microphone" : "Connecting")
         .accessibilityHint(phase == .off ? ConnectCopy.connectFirst : "")
         .ringTalk(phase == .live ? talk : nil)

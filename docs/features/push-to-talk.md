@@ -1,21 +1,29 @@
 # Push to talk
 
-Hold a key or a button to be heard. Release it, and nothing is heard, transcribed or sent to any vendor. For open
-offices, noisy rooms, meetings, and anyone who does not want an open microphone.
+Press a key or a button to be heard. Otherwise nothing is heard, transcribed or sent to any vendor. For open offices,
+noisy rooms, meetings, and anyone who does not want an open microphone.
 
-The state lives in `ptt.py`; the gate (`PttGate`) is in `daemon.py`.
+The state lives in `ptt.py`; the gate (`PttGate`) is in `daemon.py`. The two ways to press are designed in
+[docs/design/push-to-talk-modes.md](../design/push-to-talk-modes.md).
 
 ## Use it
 
 Settings → Microphone: "Always on" or "Push to talk", on the page or in the app. It is one daemon setting, so both
-clients agree.
+clients agree. Then **Talk button**, each device's own choice: **Hold to talk** (the default: press and hold, let go to
+send) or **Tap to talk** (tap to start, the microphone stays open, tap again to send).
 
 | | Page | iPhone app |
 |---|---|---|
-| Hold | **Space**, or another key you choose (stored per browser); hold the mic ring with the mouse | touch and hold the mic ring (it opens on touch down); hold the conversation area for 0.35 s (so scrolling still works) |
-| Toggle | **Caps Lock**: press to open, press to close | AirPods stem press |
+| The button | the mic ring with the mouse; **Space**, or another key you choose (stored per browser) | the mic ring (it acts on touch down); the conversation area after a 0.35 s press (so scrolling still works) |
+| Hold to talk | press opens, release sends | the same |
+| Tap to talk | press opens, the next press sends; the release is nothing | the same |
+| Toggle, in both | **Caps Lock**: press to open, press to close | AirPods stem press |
 | From any app | a system-wide shortcut running `pointe talk` (below) | the Action button, Back Tap or Siri: "Talk to Pointe" (below) |
-| Shows | "Talking" / "Hold to talk" | the same |
+| Shows | "Hold to talk" or "Tap to talk"; "Talking" ("Talking · tap to send"); "Sent" for a moment after a send | the same, with a haptic at the press and the send |
+
+A press under 0.25 s in Hold mode heard no word; the line says "Hold to talk · or choose Tap to talk in Settings" for
+two seconds. A tap forgotten open closes after 90 s by the daemon's rule below; the line says "Talk closed after 90 s:
+tap again".
 
 ## Talk from any app
 

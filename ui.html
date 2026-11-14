@@ -968,9 +968,11 @@
           <h3>Microphone</h3>
           <div class="card">
             <div class="field">Microphone<select id="pref-mic"><option value="always">Always on</option><option value="ptt">Push to talk</option></select></div>
-            <div class="field">Hold to talk key<button type="button" id="pref-key" onclick="captureKey()"></button></div>
+            <div class="field">Talk button<select id="pref-style"><option value="hold">Hold to talk</option><option value="tap">Tap to talk</option></select></div>
+            <div class="field">Talk key<button type="button" id="pref-key" onclick="captureKey()"></button></div>
           </div>
-          <div class="note foot">In push to talk, nothing you say leaves this Mac unless you hold the key or the mic button, except
+          <div class="note foot">In push to talk, nothing you say leaves this Mac unless you press the key or the mic button (hold it, or tap to start and
+            tap again to send: this browser's choice), except
             during a meeting you started: the room is heard for its notes, and talking to Pointe still needs the hold. Caps Lock
             turns talking on and off (a toggle: a browser cannot see it held). Keys work only while this tab is focused; for any
             app, bind the shortcut below.</div>
@@ -1710,14 +1712,14 @@
     else if (call.state === 'connecting') [st, title] = ['connecting', CONNECT_COPY.connecting(macName())];
     else if (!s || !s.connected || !mine) [st, title] = ['off', s && s.connected ? CONNECT_COPY.elsewhere : CONNECT_COPY.notConnected];
     else if (micError) [st, title] = ['off', 'Cannot hear you'];
-    else if (pttMode() && pttOpen()) [st, title] = ['talking', 'Talking'];
+    else if (pttMode() && pttOpen()) [st, title] = ['talking', pttTap() ? 'Talking · tap to send' : 'Talking'];
     else if (s.monologue) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', 'Brainstorming'];
     else if (s.challenge && s.challenge.on && !(muted && !pttMode()) && !s.speaking) [st, title] = [pttMode() ? 'ptt' : 'live', 'Challenging'];
     else if (muted && !pttMode()) [st, title] = ['muted', 'Muted'];
     else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking'];
     else if (s.speaking === 'user') [st, title] = ['user', 'Hearing you'];
     else if (pttMode()) [st, title] = ['ptt', Date.now() < ptt.whyUntil ? ptt.why
-                                       : roomHeard() ? 'Meeting: room is heard · hold to talk' : 'Hold to talk'];
+                                       : roomHeard() ? `Meeting: room is heard · ${pttStyleLabel().toLowerCase()}` : pttStyleLabel()];
     else [st, title] = ['live', 'Listening'];
     document.body.dataset.state = st; text('state', title);
     // the link itself, from the call's heartbeat, so "connected" is never a guess
@@ -1739,14 +1741,15 @@
     }
     // The mic is a mic: it reads as off until the call is live, and its tooltip points at Connect.
     const micOff = !mine;
-    const micTitle = micOff ? CONNECT_COPY.connectFirst : pttMode() ? (pttOpen() ? 'Talking' : 'Hold to talk') : muted ? 'Unmute' : 'Mute';
+    const micTitle = micOff ? CONNECT_COPY.connectFirst : pttMode() ? (pttOpen() ? 'Talking' : pttStyleLabel()) : muted ? 'Unmute' : 'Mute';
     const micLabel = micOff ? 'Microphone' : micTitle;
     if ($('mic').title !== micTitle) $('mic').title = micTitle;
     if ($('mic').ariaLabel !== micLabel) $('mic').ariaLabel = micLabel;
     if ($('mic').getAttribute('aria-disabled') !== String(micOff)) $('mic').setAttribute('aria-disabled', micOff);
     text('miclabel', micLabel);
     text('keyhint', micOff ? (st === 'connecting' || st === 'reconnecting' ? title : CONNECT_COPY.connectFirst)
-      : pttMode() ? `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles` : 'Space or AirPods to mute');
+      : pttMode() ? (pttTap() ? `Tap ${keyName(ptt.key)} to talk, again to send · Caps Lock toggles` : `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles`)
+      : 'Space or AirPods to mute');
     // The top bar's pill: Hang up on a call, Cancel while dialling, Connect (or Try again) with none; hidden while the
     // empty stage shows the same control, so there is one Connect on screen.
     const dialling = call.state === 'connecting' || (wantCall && !mine);
@@ -1757,6 +1760,7 @@
     showConnect();
     const micMode = pttMode() ? 'ptt' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
     for (const m of ['always', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }
+    text('micmode-ptt', pttStyleLabel());
     if (live && silence.paused) claimMediaKeys();
   }
   let subShown = null;
@@ -2703,7 +2707,7 @@
   async function openSettings() {
     // The sheet opens on the click, with the values it last had; the Mac's answers fill it in as they land.
     $('pref-local').textContent = (status && status.local && status.local.line) || 'Pointe on this Mac does not report it: update it.';
-    pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key);
+    pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key); $('pref-style').value = ptt.style;
     const talkCmd = (status && status.talk_command) || '';
     $('pref-talk').hidden = !talkCmd; $('pref-talk-cmd').textContent = talkCmd; $('pref-talk-copy').textContent = 'Copy command';
     $('setok').textContent = ''; $('seterr').textContent = '';
@@ -2975,7 +2979,7 @@
       microphone: $('pref-mic').value, 'alerts.watch_approve': $('pref-watch').checked,
       'show.on_phone': $('pref-showphone').checked, 'conflicts.on': $('pref-conflicts').checked,
       'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken'})});
-    if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); refresh(); }
+    if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); pttSetStyle($('pref-style').value); refresh(); }
     if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
     else $('seterr').textContent = (await r.json().catch(() => ({}))).detail || 'Not saved';
@@ -2994,10 +2998,17 @@
   });
   // Push to talk (Settings → Microphone). The daemon's gate is the rule (ptt.py): it drops audio unless a press holds it
   // open. The page also stops sending, after a tail of 0.4 s so the last word is not cut. Open while any input holds it.
-  const PTT_TAIL_MS = 400;
-  const ptt = {held: new Set(), toggled: false, sent: false, seenOpen: false, tailUntil: 0, why: '', whyUntil: 0, capsAt: 0,
-               key: localStorage.getItem('pointe.pttKey') || 'Space'};
+  // The talk button is held (press opens, release sends) or tapped (tap opens, tap again sends): this browser's choice,
+  // docs/design/push-to-talk-modes.md. The daemon sees one press either way; its 90 s limit covers a tap forgotten open.
+  const PTT_TAIL_MS = 400, PTT_SHORT_MS = 250;
+  const PTT_STYLES = {hold: 'Hold to talk', tap: 'Tap to talk'};
+  const ptt = {held: new Set(), toggled: false, sent: false, seenOpen: false, tailUntil: 0, why: '', whyUntil: 0, capsAt: 0, openedAt: 0,
+               key: localStorage.getItem('pointe.pttKey') || 'Space', style: PTT_STYLES[localStorage.getItem('pointe.pttStyle')] ? localStorage.getItem('pointe.pttStyle') : 'hold'};
   const pttMode = () => !!(status && status.ptt && status.ptt.mode === 'ptt');
+  const pttTap = () => ptt.style === 'tap';
+  const pttStyleLabel = () => PTT_STYLES[ptt.style];
+  function pttSetStyle(style) { if (!PTT_STYLES[style]) return; ptt.style = style; localStorage.setItem('pointe.pttStyle', style); }
+  function pttNote(why, ms) { ptt.why = why; ptt.whyUntil = Date.now() + ms; setTimeout(showState, ms + 50); }
   const pttOpen = () => ptt.held.size > 0 || ptt.toggled;
   const roomHeard = () => !!(status && status.ptt && status.ptt.room_heard);  // a meeting takes the room without a press
   const micSends = () => !pttMode() || roomHeard() || pttOpen() || Date.now() < ptt.tailUntil;
@@ -3006,7 +3017,12 @@
     const open = pttMode() && pttOpen();
     if (open !== ptt.sent) {
       ptt.sent = open; ptt.seenOpen = false; ptt.whyUntil = 0;
-      if (!open) ptt.tailUntil = Date.now() + PTT_TAIL_MS;
+      if (open) ptt.openedAt = Date.now();
+      else {
+        ptt.tailUntil = Date.now() + PTT_TAIL_MS;
+        const short = !pttTap() && Date.now() - ptt.openedAt < PTT_SHORT_MS;  // a tap in Hold mode heard no word: say where Tap to talk is
+        if (short) pttNote('Hold to talk · or choose Tap to talk in Settings', 2000); else pttNote('Sent', 600);
+      }
       if (call.ws && call.ws.readyState === 1) call.ws.send(JSON.stringify({type: 'ptt', open, at: Date.now()}));
     }
     showState();
@@ -3033,8 +3049,8 @@
     else if (ptt.sent && ptt.seenOpen) {  // closed by the daemon while this page still holds it
       pttReset();
       if (p.closed_why === 'released') return;  // a shortcut on the Mac let go: its message follows on the call link
-      ptt.why = p.closed_why === 'held too long' ? 'Talk closed after 90 s: press again' : 'Talk closed: no audio reached the Mac';
-      ptt.whyUntil = Date.now() + 8000; tone(false);
+      pttNote(p.closed_why === 'held too long' ? `Talk closed after 90 s: ${pttTap() ? 'tap' : 'press'} again` : 'Talk closed: no audio reached the Mac', 8000);
+      tone(false);
     }
   }
   const typingNow = () => /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
@@ -3044,7 +3060,7 @@
     if (e.code !== ptt.key || typingNow() || openSheetId() || e.metaKey || e.ctrlKey || e.altKey) return;
     if (document.activeElement.closest('button, [role=button]') && document.activeElement.id !== 'mic') return;  // it presses the focused control
     e.preventDefault();
-    if (!e.repeat) pttHold('key', true);
+    if (!e.repeat) { if (pttTap()) pttToggle(); else pttHold('key', true); }  // tapped: the key-up is nothing
   });
   document.addEventListener('keyup', e => {
     if (e.code === 'CapsLock') {  // a toggle: macOS sends a keydown when it turns on and a keyup when it turns off
@@ -3056,7 +3072,8 @@
   addEventListener('blur', () => { if (ptt.held.size) { ptt.held.clear(); pttSync(); } });  // a key let go elsewhere never comes back up here
   $('mic').addEventListener('pointerdown', e => {
     if (!pttMode() || call.state !== 'live' || e.button !== 0) return;
-    e.preventDefault(); $('mic').setPointerCapture(e.pointerId); pttHold('ring', true);
+    e.preventDefault(); $('mic').setPointerCapture(e.pointerId);
+    if (pttTap()) pttToggle(); else pttHold('ring', true);  // either way at the press, before any word from the Mac
   });
   for (const ev of ['pointerup', 'pointercancel']) $('mic').addEventListener(ev, () => { if (ptt.held.has('ring')) pttHold('ring', false); });
   let capturing = false, pendingKey = ptt.key;

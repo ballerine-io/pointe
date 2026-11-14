@@ -24,6 +24,14 @@ final class Call {
     private(set) var talk = TalkGate()
     /// Why the Mac closed the last press by itself ("held too long", "no audio"), until the next press.
     private(set) var talkClosedWhy: String?
+    /// Hold or tap (PushToTalk.swift): this phone's choice, kept on it.
+    var talkStyle = TalkStyle.stored() { didSet { UserDefaults.standard.set(talkStyle.rawValue, forKey: TalkStyle.key) } }
+    /// A word on the state line right after a press closed ("Sent"; or, after a tap in Hold mode, where Tap to talk is).
+    private(set) var talkNote: String?
+    /// Debug builds: what the last press did and for how long ("open", "held 2480 ms"), read by the UI tests.
+    private(set) var talkTrace = ""
+    private var talkOpenedAt: Date?
+    private var talkNotes = 0
     /// Drive mode is on (the Mac's word): an AirPods or lock-screen play/pause mutes, when iOS sends it as one.
     var driving = false { didSet { if driving != oldValue { remoteCommands(on: talk.ptt) } } }
     /// The call on screen, for the "Pointe: Talk" intent.
@@ -121,8 +129,32 @@ final class Call {
         let was = talk.isOpen
         change(&talk)
         guard talk.isOpen != was else { return }
-        if talk.isOpen { talkClosedWhy = nil }
+        if talk.isOpen {
+            talkClosedWhy = nil
+            talkNote = nil
+            talkOpenedAt = Date()
+            #if DEBUG
+            talkTrace = "open"
+            #endif
+        } else {
+            let held = talkOpenedAt.map { Date().timeIntervalSince($0) } ?? 0
+            #if DEBUG
+            talkTrace = "held \(Int(held * 1000)) ms"
+            #endif
+            let short = talkStyle == .hold && held < TalkStyle.shortPress
+            note(short ? TalkStyle.shortPressLine : TalkStyle.sentLine, for: short ? TalkStyle.shortPressFor : TalkStyle.sentFor)
+        }
         sendTalk(talk.isOpen)
+    }
+
+    private func note(_ line: String, for secs: TimeInterval) {
+        talkNotes += 1
+        let n = talkNotes
+        talkNote = line
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(secs))
+            if let self, talkNotes == n { talkNote = nil }
+        }
     }
 
     private func sendTalk(_ open: Bool) {
