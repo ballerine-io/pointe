@@ -33,7 +33,8 @@ import vendors  # noqa: E402
 TEXT_MODEL = "mlx-community/gemma-4-26b-a4b-it-4bit"  # Apache-2.0; why: docs/features/local.md
 EARS_MODEL = vendors.LOCAL_EARS_MODEL
 MOUTH = "local:kokoro:af_heart"
-MLX_LM = "mlx-lm==0.32.2"
+MLX_LM = "mlx-lm==0.32.2"  # the `mlx-lm` dependency group in pyproject.toml, locked in uv.lock
+ROOT = Path(__file__).resolve().parent
 MIN_RAM_GB = 32  # the text model took 17 GB while it ran (footprint), plus the daemon and macOS
 # Thinking off: with it on, a reply waits for hundreds of hidden tokens.
 SERVER_ARGS = ["--chat-template-args", json.dumps({"enable_thinking": False})]
@@ -370,9 +371,9 @@ def install(text_model: str = TEXT_MODEL) -> int:
 
     if not server_bin().exists():
         print(f"Installing {MLX_LM}...", flush=True)
-        env_dir = home() / "mlx-lm"
-        subprocess.run(["uv", "venv", "--quiet", "--python", "3.12", str(env_dir)], check=True)
-        subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(env_dir / "bin" / "python"), MLX_LM], check=True)
+        # Its own environment, from the lockfile: the same pinned, hashed packages as every other install path.
+        subprocess.run(["uv", "sync", "--locked", "--quiet", "--only-group", "mlx-lm", "--project", str(ROOT)], check=True,
+                       env={**os.environ, "UV_PROJECT_ENVIRONMENT": str(home() / "mlx-lm")})
     for label, repo in wanted:
         if not cached_bytes(repo):
             print(f"Downloading {label}...", flush=True)

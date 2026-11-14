@@ -89,8 +89,8 @@ on an M5 Pro, and its Hebrew was not intelligible ([docs/features/local.md](docs
 ## Optional: the local text-model server (`pointe local`)
 
 `pointe local` installs [mlx-lm](https://github.com/ml-explore/mlx-lm) 0.32.2 (MIT) in its own uv environment under
-`~/.claude-voice/local/mlx-lm`, separate from Pointe's. Its packages, as installed on 2026-11-13 (the versions below
-mlx-lm are not pinned):
+`~/.claude-voice/local/mlx-lm`, separate from Pointe's, from the `mlx-lm` dependency group of `pyproject.toml`: its
+packages are the versions and hashes in `uv.lock`, by license:
 
 | License | Packages |
 |---|---|
