@@ -350,3 +350,34 @@ def test_a_local_session_that_joins_after_a_remote_one_is_not_named_after_this_m
                                       "transcript": "/tmp/none.jsonl", "name_given": True}).json()
     assert "studio" not in joined["name"]
     assert sessions.name_groups("go to studio", list(d.REGISTRY.sessions.values())) == []
+
+
+# ---------- 11. node-supplied strings reach the brain's context and the screens at any length ----------
+
+def test_strings_from_a_node_are_cut_before_they_reach_the_daemon(world):
+    """A frame may be 1 MB: a node's folder goes into the brain's context every turn, a prompt's description and preview
+    into the read-out and the cards, its read-out into the voice."""
+    from test_hub_nodes import _request
+
+    hub, host, registry, *_ = world
+    node = paired(hub)
+    huge = "x" * 200_000
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(cwd="/home/" + huge, home="/h/" + huge, title=huge, files=[huge]))
+        await fake.send("files", id="s1", names=[huge, "ok.py"])
+        await fake.send("permission.request", **_request(tool="T" * 50_000, description=huge, preview=huge,
+                                                          readable="run: " + huge))
+        await fake.recv("permission.holding", timeout=1)
+        await fake.drop()
+
+    run(go())
+    s = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
+    assert len(s.cwd) <= 4096
+    assert all(len(f) <= 4096 for f in s.harness_data["files"])
+    [call] = [c for c in host.calls if c[0] == "permission"]
+    _, _, _, tool, description, preview, readable = call
+    assert len(tool) <= 200 and len(description) <= 2_000 and len(preview) <= 20_100
+    assert readable is None  # too long to be read out: never cut, since a voice yes must match it exactly

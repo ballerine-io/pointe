@@ -377,7 +377,7 @@ request is in the session's own terminal.
 | Replay | TLS, a fresh nonce per connection, random request ids, and a verdict for a request not pending is dropped |
 | Version skew | `protocol` in `hello`; the hub refuses below its minimum; the node's `readable` is the only read-out text, so a newer `readout.py` on one side cannot produce two forms |
 | Clock skew | time filters on remote mirrors are shifted by the measured skew; nothing else compares wall clocks |
-| A huge or hostile transcript | the hub caps an entry at 256 kB and a frame at 1 MB, drops the rest of that entry with a logged warning, and refuses a gap in offsets rather than guessing |
+| A huge or hostile transcript | the hub caps an entry at 256 kB and a frame at 1 MB, drops the rest of that entry with a logged warning, and refuses a gap in offsets rather than guessing. Every other string a node sends is cut before the daemon sees it (`hub_nodes.MAX_*_CHARS`: a folder or file name 4096, a name, title or tool 200, a description 2000, a preview 20 000); a read-out over 1000 characters is dropped (tap only), never cut |
 | A node floods permission requests | the node serializes one prompt per session (as `_PERMISSION_LOCKS` does, `daemon.py:4087-4098`); the hub announces a non-active session's prompt in one line (`daemon.py:4162-4165`) |
 | A credential in a remote command reaches a screen or notification | it does not: masked on the node, and an unreadable request shows only its tool in a notification (`alerts.py:40-47`) |
 

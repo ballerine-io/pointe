@@ -46,6 +46,36 @@ PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
 HISTORY_QUIET_SECS = 1.5  # a newly joined session's backlog: no frame for this long and it is all here
 _ID = re.compile(r"[\w-]{1,128}")  # a node's session id: it names a mirror file, so nothing that walks a path
+# What a node says reaches the brain's context every turn (a folder, file names), the read-out and the cards (a
+# prompt's tool, description and preview) and the voice (its read-out): each is cut to these before the daemon sees it.
+MAX_PATH_CHARS = 4096
+MAX_LABEL_CHARS = 200  # names, titles, tool names
+MAX_DESCRIPTION_CHARS = 2000
+MAX_PREVIEW_CHARS = 20_000
+MAX_READABLE_CHARS = 1000  # over this the read-out is dropped (unreadable), never cut: a voice yes must match it exactly
+_LIMITS = {"cwd": MAX_PATH_CHARS, "home": MAX_PATH_CHARS, "name": MAX_LABEL_CHARS, "title": MAX_LABEL_CHARS,
+           "harness": MAX_LABEL_CHARS, "tool": MAX_LABEL_CHARS, "description": MAX_DESCRIPTION_CHARS,
+           "preview": MAX_PREVIEW_CHARS}
+
+
+def _cut(text: str, most: int) -> str:
+    return text if len(text) <= most else text[:most - 1] + "…"
+
+
+def _bounded(fields: dict) -> dict:
+    """A copy of a node's session entry or permission request with every string it carries cut to its limit."""
+    out = {k: _cut(v, _LIMITS[k]) if k in _LIMITS and isinstance(v, str) else v for k, v in fields.items()}
+    if isinstance(out.get("files"), list):
+        out["files"] = _names(out["files"])
+    if isinstance(out.get("pending"), dict):
+        out["pending"] = _bounded(out["pending"])
+    if isinstance(out.get("readable"), str) and len(out["readable"]) > MAX_READABLE_CHARS:
+        out["readable"] = None
+    return out
+
+
+def _names(names: list) -> list:
+    return [_cut(n, MAX_PATH_CHARS) if isinstance(n, str) else n for n in names]
 
 
 def _here(state_dir: Path) -> str:
@@ -707,7 +737,7 @@ class Hub:
         elif t == "files":
             session = self._session(node, frame["id"])
             if session is not None:
-                session.harness_data["files"] = frame["names"]
+                session.harness_data["files"] = _names(frame["names"])
         elif t == "permission.request":
             await self._permission(node, frame)
         elif t == "permission.resolved":
@@ -735,7 +765,7 @@ class Hub:
     async def _snapshot(self, node: Node, entries: list[dict]) -> None:
         """A node's full list. New ones join through the daemon's register_remote (it also refreshes known ones and
         puts a prompt the node still holds, `pending`); ones no longer listed are no longer alive."""
-        node.sessions = {e["id"]: e for e in entries if _ID.fullmatch(e["id"])}
+        node.sessions = {e["id"]: _bounded(e) for e in entries if _ID.fullmatch(e["id"])}
         register = self._hook("register_remote")
         for entry in node.sessions.values():
             session = await register(node.id, node.name, entry) if register else None
@@ -752,6 +782,7 @@ class Hub:
         put = self._hook("remote_permission")
         if session is None or put is None:
             return
+        frame = _bounded(frame)
         held = await put(session, frame["request_id"], frame["tool"], frame["description"], frame["preview"],
                          frame["readable"])
         if held:
