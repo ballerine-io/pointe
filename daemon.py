@@ -17,6 +17,7 @@ import os
 import posixpath
 import re
 import secrets
+import shlex
 import socket
 import subprocess
 import sys
@@ -1444,6 +1445,7 @@ class Connection:
     voice: PipelineWorker
     runner: WorkerRunner
     workers: dict[str, ClaudeSessionWorker]
+    ptt: "PttGate | None" = None  # the call's push-to-talk gate: POST /voice/talk presses it from outside the call
 
 
 @dataclass
@@ -1465,6 +1467,7 @@ class State:
     heartbeat_info: object = None  # the call's ping state: round trip and when the client last answered
     phone_socket: object = None  # the phone app's call while it is up: Unpair on the page ends it
     phone_socket_id: str | None = None  # which phone holds it (phone_pairing.Phones)
+    call_socket: object = None  # the call's link, page or phone: /voice/talk tells the client to send its audio
     connected_at: float = 0.0
     last_nudge_at: float = 0.0
     call_sent: dict | None = None  # the last `call` state the node link was given (_notify_call)
@@ -2641,6 +2644,12 @@ class PttGate(FrameProcessor):
             logger.info(f"ptt: closed ({why})")
         if state.ptt.closed_at and state.user_started_at > state.user_stopped_at:
             state.user_stopped_at = now  # a press with nothing said must not leave the user talking for good
+
+    async def remote(self, open: bool) -> bool:
+        """A press from outside the call (`pointe talk`, bound to a system-wide shortcut): the frame a client's message
+        becomes, through the same handler, so every rule above applies. True when the gate is open afterwards."""
+        await self.process_frame(phone.PttFrame(open=open), FrameDirection.DOWNSTREAM)
+        return state.ptt.open
 
     _room = False  # a meeting had the microphone at the last tick
 
@@ -4760,6 +4769,37 @@ async def listen(request: Request):
     return {"monologue": state.monologue is not None}
 
 
+TALK_ACTIONS = {"on": True, "off": False, "toggle": None}
+TALK_COMMAND = f"{shlex.quote(str(Path(__file__).resolve().parent / 'bin' / 'pointe'))} talk"  # what a shortcut runs
+
+
+@app.post("/voice/talk")
+async def talk(request: Request):
+    """`pointe talk [on|off|toggle]`, bound to a system-wide shortcut: press to talk from any app, with the page or the
+    phone app in the background. The page's key or the CLI token only (never a phone key: a phone has the ring in hand).
+    The gate's own rules apply, and the client is told to send its audio, as its own press would."""
+    raw = await request.body()
+    try:
+        body = json.loads(raw) if raw else {}
+    except ValueError:
+        body = None
+    action = body.get("action", "toggle") if isinstance(body, dict) else None
+    if action not in TALK_ACTIONS:
+        raise HTTPException(status_code=400, detail="action must be on, off or toggle")
+    if PREFS.get("microphone") != "ptt":
+        raise HTTPException(status_code=409, detail="Microphone is Always on: set it to Push to talk in Settings")
+    if state.conn is None or state.conn.ptt is None:
+        raise HTTPException(status_code=409, detail="No call is up: press the mic on the page or open the app first")
+    want = TALK_ACTIONS[action] if TALK_ACTIONS[action] is not None else not state.ptt.open
+    open = await state.conn.ptt.remote(want)
+    if state.call_socket is not None:  # the clients send only while they hold a press: this one is held for them
+        try:
+            await state.call_socket.send_text(json.dumps({"type": "ptt", "open": open, "by": "shortcut"}))
+        except Exception:  # the link just went: the gate's quiet-link rule closes it
+            pass
+    return {"open": open, "mode": "ptt"}
+
+
 @app.post("/voice/hung-up")
 async def hung_up():
     """The page hung up. The server alone would notice about 45 seconds later, with a prompt held from the terminal until then."""
@@ -5038,6 +5078,7 @@ async def status(request: Request):
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
             "ptt": state.ptt.status(PREFS.get("microphone"), _room_heard()),
+            "talk_command": None if _off_the_mac(request) else TALK_COMMAND,  # Settings: the recipe shows a path of this Mac's
             "whisper": whisper.status(PREFS.get("whisper"), lock_level(), PREFS.get("microphone"),
                                       held="drive" if state.drive.on() else None),
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
@@ -5715,6 +5756,7 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
                 return
 
     pinger = asyncio.create_task(keep_alive())
+    state.call_socket = websocket
     if who == "phone":
         state.phone_socket = websocket
         state.phone_socket_id = websocket.scope.get("state", {}).get("pointe_phone_id")
@@ -5723,6 +5765,8 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
     finally:
         pinger.cancel()
         state.heartbeat_info = None
+        if state.call_socket is websocket:
+            state.call_socket = None
         if state.phone_socket is websocket:
             state.phone_socket = None
 
@@ -5805,7 +5849,7 @@ async def run_call(transport) -> None:
     async def on_connected(transport, client):
         logger.info(f"client connected, front={FRONT} {setup() if FRONT == 'brain' else ''} model={MODEL or 'default'}, "
                     f"sessions: {_names()}")
-        await _on_connect(Connection(injector=injector, voice=voice, runner=runner, workers={}))
+        await _on_connect(Connection(injector=injector, voice=voice, runner=runner, workers={}, ptt=gate[0]))
 
     @transport.event_handler("on_client_disconnected")
     async def on_disconnected(transport, client):

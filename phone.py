@@ -13,8 +13,9 @@ it as up:
 - client to daemon, text: {"type": "pong", "id": n}.
 Version 3 adds a client hello, text, once after connecting: {"type": "hello", "protocol": 3, "device": "...",
 "capabilities": [...]}, and push to talk: {"type": "ptt", "open": true|false} when a press opens or closes the
-microphone (ptt.py; the daemon's gate is the rule, whatever the client sends). Unknown text is ignored both ways, so
-version 2 clients keep working.
+microphone (ptt.py; the daemon's gate is the rule, whatever the client sends). The same message goes daemon to client,
+with "by": "shortcut", when a system-wide shortcut on the Mac (POST /voice/talk) opened or closed the gate: the client
+then sends its audio as if its own press held it. Unknown text is ignored both ways, so version 2 clients keep working.
 A client that heard nothing for 6 s treats the call as dead and reconnects. The daemon closes a call (code 4408) that
 has answered pings before and then stops answering for 12 s, so the line is free for the reconnect.
 """
