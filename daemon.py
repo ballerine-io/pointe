@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 import json
 import logging
 import os
+import posixpath
 import re
 import secrets
 import socket
@@ -3410,11 +3411,17 @@ def _git_files(cwd: str, timeout: float) -> str:
                           timeout=timeout).stdout
 
 
+REMOTE_FILE_CHARS, REMOTE_FILES_CHARS = 80, 2000
+
+
 def _tracked_files(session: Session) -> str:
     """A few of its file names: "show me pricing.py" belongs to the session that has it. A session on another machine:
-    the names its node sent, since git here would list a folder on this Mac."""
+    the names its node sent, since git here would list a folder on this Mac. A node's names are its own strings, each
+    up to 4096 characters: each is cut to its last part and REMOTE_FILE_CHARS, and the whole to REMOTE_FILES_CHARS, so
+    one node cannot swell every routing prompt."""
     if session.machine:
-        return " ".join(str(f) for f in (session.harness_data.get("files") or [])[:40])
+        names = [posixpath.basename(str(f).rstrip("/"))[:REMOTE_FILE_CHARS] for f in (session.harness_data.get("files") or [])[:40]]
+        return " ".join(n for n in names if n)[:REMOTE_FILES_CHARS]
     try:
         listed = _git_files(session.cwd, 1)
     except (OSError, subprocess.SubprocessError):

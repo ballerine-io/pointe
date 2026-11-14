@@ -114,3 +114,13 @@ def test_a_remote_session_cannot_be_named_after_this_mac(d, node):
     s = _join(d, "devbox", "r1", "studio")
     assert "studio" not in s.name.lower().split(), s.name
     assert sessions.name_groups("go to studio", _names(d)) == []
+
+
+# ---------- Q5: file names ----------
+
+def test_a_nodes_file_names_are_bounded_before_the_routing_prompt(d, node):
+    """40 names of 4096 chars pass hub_nodes._bounded and register_remote's [:40]; _tracked_files joins them whole into
+    the _classify_target prompt, per session, on every routed send."""
+    s = _join(d, "devbox", "r1", "api", files=["x" * 4095 + str(i) for i in range(40)])
+    files = d._tracked_files(s)
+    assert len(files) <= 4_000, f"{len(files)} chars of file names go into the routing prompt for one session"
