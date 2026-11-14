@@ -512,10 +512,13 @@ class Node:
         self.hub_offsets = {}
         self.linked.set()
         logger.info(f"linked to the hub (call {'up' if self.call_up else 'down'})")
-        if not self._forwarding():
-            self._release_all("call")  # back, but with no call (or approvals: terminal): the terminal answers
+        if self.approvals_terminal or _config(self.state).get("approvals") == "terminal":
+            self._release_all("call")  # back, but approvals are answered in terminals: the terminal answers
         await self._snapshot()  # `pending` carries any prompt held over the drop
-        await self._reoffer()
+        if self._forwarding():
+            await self._reoffer()
+        # Back with no call yet (a restarted hub, before its page reconnects): held prompts wait out their grace
+        # window for the call, and are re-offered when `call` says it is up.
         await self._apply_resume(welcome["resume"], everyone=True)
 
     async def _reoffer(self) -> None:
@@ -528,6 +531,11 @@ class Node:
             held.offline_since, held.holding_by = None, loop.time() + self.holding_wait
             held.frame["deadline_ms"] = max(0, int((held.deadline - loop.time()) * 1000))
             await self._send(**held.frame)
+
+    def _waiting_for_call(self) -> bool:
+        """Some prompt is still held over a drop (its grace window running): a `call` down that only repeats what the
+        welcome said must not hand it back early."""
+        return any(h.offline_since is not None and not h.future.done() for h in self.held.values())
 
     def _unlinked(self) -> None:
         if self.linked.is_set() and self.held:
@@ -584,8 +592,10 @@ class Node:
             await self._send("pong", id=frame["id"])
         elif t == "call":
             self.call_up, self.approvals_terminal = frame["up"], frame["approvals_terminal"]
-            if not self.call_up or self.approvals_terminal:
+            if self.approvals_terminal or (not self.call_up and not self._waiting_for_call()):
                 self._release_all("call")  # as the daemon hands prompts back when a call ends
+            elif self._forwarding():
+                await self._reoffer()  # prompts held since before the link came back, now that someone can answer
         elif t == "send":
             self._spawn(self._deliver(frame))
         elif t == "permission.holding":

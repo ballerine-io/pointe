@@ -734,14 +734,48 @@ def test_a_hub_back_within_the_grace_window_is_offered_the_same_prompt_again(tmp
     run(scenario, tmp_path)
 
 
-def test_a_hub_back_without_a_call_gets_the_prompt_handed_back(tmp_path):
+def test_a_restarted_hub_whose_call_is_not_back_yet_gets_the_prompt_when_the_call_returns(tmp_path):
+    """After a hub restart the page reconnects its call a moment after the node relinks: the prompt waits out the
+    grace window for it, and is re-offered once the call is up."""
     async def scenario(hub, n):
         n.grace = 10
         n.backoff = lambda attempt: 0.1
         task, frame = await _prompt(hub, n, tmp_path)
         hub.call_up = False
         await hub.ws.close(code=WSCloseCode.GOING_AWAY)
+        await hub.next("sessions")  # relinked
+        await asyncio.sleep(0.5)
+        assert not task.done()  # not handed back yet: the call may be on its way
+        assert await hub.quiet("permission.request")  # nobody to ask yet
+        await hub.send("call", up=True, approvals_terminal=False)
+        again = await hub.next("permission.request", request_id=frame["request_id"])
+        await hub.send("permission.holding", request_id=again["request_id"])
+        assert (await _answer(hub, frame, how="tap"))["ok"] is True
+        assert await task == "allow"
+
+    run(scenario, tmp_path)
+
+
+def test_a_hub_back_without_a_call_hands_the_prompt_back_after_the_grace_window(tmp_path):
+    async def scenario(hub, n):
+        n.grace = 0.8
+        n.backoff = lambda attempt: 0.1
+        task, frame = await _prompt(hub, n, tmp_path)
+        hub.call_up = False
+        await hub.ws.close(code=WSCloseCode.GOING_AWAY)
         assert await asyncio.wait_for(task, 5) is None
+
+    run(scenario, tmp_path)
+
+
+def test_a_hub_back_with_approvals_in_terminals_hands_the_prompt_back_at_once(tmp_path):
+    async def scenario(hub, n):
+        n.grace = 10
+        n.backoff = lambda attempt: 0.1
+        task, frame = await _prompt(hub, n, tmp_path)
+        hub.approvals_terminal = True
+        await hub.ws.close(code=WSCloseCode.GOING_AWAY)
+        assert await asyncio.wait_for(task, 3) is None
 
     run(scenario, tmp_path)
 
