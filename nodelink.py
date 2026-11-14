@@ -11,10 +11,12 @@ import json
 import secrets
 import time
 from typing import Any, Callable
+from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
 
 PROTOCOL = 1
+INVITE_VERSION = 1  # the `pointe://hub?v=` line's format
 MIN_PROTOCOL = 1  # the hub refuses a hello below this with CLOSE_TOO_OLD
 PATH = "/voice/node"
 PAIR_PATH = "/voice/node/pair"
@@ -133,7 +135,7 @@ def _valid(frame: dict, fields: dict[str, Check]) -> bool:
 
 def encode(t: str, **fields) -> str:
     """A frame to send. Raises ValueError for one the other side would drop: that is a bug on this side."""
-    schema = NODE_FRAMES.get(t) or HUB_FRAMES.get(t)
+    schema = NODE_FRAMES[t] if t in NODE_FRAMES else HUB_FRAMES.get(t)
     frame = {"t": t, **fields}
     if schema is None or not _valid(frame, schema):
         raise ValueError(f"not a valid {t!r} frame")
@@ -197,6 +199,19 @@ def transcript_frames(session_id: str, gen: int, offset: int, data: bytes) -> tu
     if pos > start:
         flush()
     return frames, pos
+
+
+def parse_invite(line: str) -> dict:
+    """What `pointe node join` needs from the hub's invite line: {host, port, fp, code}. ValueError for anything else."""
+    url = urlparse(line.strip())
+    query = {k: v[0] for k, v in parse_qs(url.query).items()}
+    if url.scheme != "pointe" or url.netloc != "hub" or query.get("v") != str(INVITE_VERSION):
+        raise ValueError("not a Pointe hub invite (pointe://hub?v=1&...)")
+    fp, port = query.get("fp", ""), query.get("port", "")
+    if not (query.get("host") and query.get("code") and port.isdigit() and 0 < int(port) < 65536
+            and len(fp) == 64 and all(c in "0123456789abcdef" for c in fp)):
+        raise ValueError("the invite is incomplete: copy the whole line `pointe hub invite` printed")
+    return {"host": query["host"], "port": int(port), "fp": fp, "code": query["code"]}
 
 
 def new_nonce() -> str:

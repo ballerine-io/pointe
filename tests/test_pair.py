@@ -3,6 +3,7 @@ import os
 import ssl
 import stat
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -82,3 +83,88 @@ def test_the_certificate_is_one_ios_accepts(tmp_path, monkeypatch):
     usage = cert.extensions.get_extension_for_class(x509.ExtendedKeyUsage).value
     assert x509.oid.ExtendedKeyUsageOID.SERVER_AUTH in usage
     assert (cert.not_valid_after_utc - cert.not_valid_before_utc).days <= 825  # Apple's limit for any TLS server certificate
+
+
+# ---------- machines: the invite, and the browser link `bin/voice-remote` used to print ----------
+
+def test_the_invite_line_round_trips_to_what_the_node_needs(pair, tmp_path):
+    import nodelink
+
+    pair.setup("studio.tail1234.ts.net", "100.64.0.1")
+    line = pair.invite_link("K7PQ-2MXD")
+    assert line.startswith("pointe://hub?")
+    assert nodelink.parse_invite(line) == {"host": "studio.tail1234.ts.net", "port": 7443, "fp": pair.fingerprint(),
+                                           "code": "K7PQ-2MXD"}
+    assert (tmp_path / "remote_token").read_text() not in line and "key=" not in line  # nothing but the one-time code
+
+
+@pytest.mark.parametrize("bad", ["https://hub?v=1", "pointe://pair?v=1&host=h&port=1&fp=" + "a" * 64 + "&code=X",
+                                 "pointe://hub?v=2&host=h&port=7443&fp=" + "a" * 64 + "&code=K7PQ-2MXD",
+                                 "pointe://hub?v=1&host=h&port=x&fp=" + "a" * 64 + "&code=K7PQ-2MXD",
+                                 "pointe://hub?v=1&host=h&port=7443&fp=short&code=K7PQ-2MXD",
+                                 "pointe://hub?v=1&port=7443&fp=" + "a" * 64 + "&code=K7PQ-2MXD"])
+def test_a_line_that_is_not_an_invite_is_refused(bad):
+    import nodelink
+
+    with pytest.raises(ValueError):
+        nodelink.parse_invite(bad)
+
+
+def test_an_invite_needs_a_paired_address_first(pair):
+    with pytest.raises(SystemExit, match="pointe pair tailscale"):
+        pair.invite_link("K7PQ-2MXD")
+
+
+def test_link_prints_the_browser_pairing_address(pair, tmp_path, capsys):
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    pair.main(["link"])
+    out = capsys.readouterr().out
+    assert f"https://pointe.example.internal:7443/voice?pair={(tmp_path / 'remote_token').read_text()}" in out
+
+
+def test_off_removes_the_listener_and_keeps_the_connector(pair, tmp_path, capsys):
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    (tmp_path / "connector.json").write_text("{}")
+    pair.main(["off"])
+    assert not any((tmp_path / f).exists() for f in ("tls", "remote.json", "remote_token"))
+    assert (tmp_path / "connector.json").exists() and "connector" in capsys.readouterr().out
+    pair.main(["off"])  # twice is fine
+
+
+def test_rotate_forces_a_new_certificate_and_says_who_must_pair_again(pair, tmp_path, capsys):
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    first = pair.fingerprint()
+    capsys.readouterr()
+    pair.main(["rotate"])
+    out = capsys.readouterr().out
+    assert pair.fingerprint() != first and "phone" in out and "node" in out
+    assert json.loads((tmp_path / "remote.json").read_text())["host"] == "pointe.example.internal"
+
+
+def test_rotate_needs_a_paired_address(pair):
+    with pytest.raises(SystemExit, match="pointe pair"):
+        pair.main(["rotate"])
+
+
+@pytest.mark.parametrize("name,refused", [("devbox", False), ("dev", True), ("main", True), ("shop", True),
+                                          ("billing box", True), ("studio", True), ("laptop", True), ("", True)])
+def test_node_names_must_be_speakable_and_apart_from_every_session_and_machine(name, refused):
+    import hub_nodes
+    from sessions import Session
+
+    sessions = [Session(id="a", name="shop/main", cwd="/x"), Session(id="b", name="billing", cwd="/y")]
+    problem = hub_nodes.name_problem(name, taken=["laptop"], sessions=sessions, hub_name="studio")
+    assert (problem is not None) is refused
+
+
+def test_the_pairing_result_carries_the_fingerprint_and_source_address(tmp_path):
+    import hub_nodes
+    import nodelink
+    from sessions import Registry
+
+    hub = hub_nodes.Hub(tmp_path, Registry(), SimpleNamespace())
+    status, body = hub.pair({"code": hub.invites.make(), "name": "devbox", "os": "linux"}, "100.101.5.7")
+    assert status == 200
+    assert hub.invites.paired["key_fp"] == nodelink.fingerprint(body["node_key"])
+    assert hub.invites.paired["address"] == "100.101.5.7" and hub.invites.paired["network"] == "Tailscale"
+    assert hub_nodes.paired_line(hub.invites.paired).startswith("devbox paired from 100.101.5.7 (Tailscale), key ")

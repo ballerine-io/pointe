@@ -644,6 +644,42 @@ After that, no two tracks edit the same file.
 | **C. Brain, routing, status** | `sessions.py` (`machine`, `PERSISTED`, address-slot machine alias, machine-name refusals, `harnesses.of` at its four sites, `since` skew hook; day one: the worker move), `harnesses/__init__.py` (`of()`, day one), `daemon.py` (`ClaudeSessionWorker` lands here; `register_remote`, `status` fields including `machines` and `invite`, `list_sessions`, `_brain_context`, `_needs_now`, `_classify_target`, `_spoken_names`, `_tracked_files`, `_deliver_verdict` and `_drop` for remote, offline handling, `call {approvals_terminal}`), `guards.py` intent functions (after A's day-one lines), `brain.py` if a prompt line is needed, `tests/test_orchestrator.py`, `tests/test_units.py`, `tests/test_mixed_harnesses.py`, `bench/` cases for the new intents | a daemon that treats a `Session` with `machine` set correctly everywhere, against a fake `RemoteHarness` until A lands |
 | **D. UI and docs** | `ui.html` (groups, filter chips, tags, offline, Settings → Machines with invite and revoke), `ios/Pointe/{API,Sessions,CallView,Alerts,Settings}.swift` (parity list above, Face ID gates), `ios/PointeUITests/ParityUITests.swift`, `tests/e2e/page_parity.py`, `docs/multi-machine.md` (user doc), `README.md` (one feature row, Architecture block), `SECURITY.md` (a "Machines" section with the honest tap sentence), `docs/harnesses.md` (one paragraph: adapters run on the session's machine; remote sessions have no forked side questions), `plugin/commands/` (`/pointe:voice` and `/pointe:doctor` output on a node) | both clients rendering `machines`, `machine` and `invite` from a recorded status fixture, then live |
 
+### Track A as built: the seam with Track C
+
+`hub_nodes.py` is the hub side; `harnesses/remote.py` is `RemoteHarness`. It uses the seam Track C defined in
+`harnesses/__init__.py`: it calls `HOST.register_remote(node_id, machine, entry)` for every entry of every snapshot,
+`HOST.remote_permission(...)` (and sends `permission.holding` only when it returns True), `HOST.remote_resolved(...)` and
+`HOST.call_state()`; it sets `HOST.on_call` (sends `call` to every node) and `HOST.invite` (the outstanding code); it keeps
+`sessions.MACHINES[name]` current (online, since, rtt_ms, skew, os, key_fp, id). `RemoteHarness.answer(...) -> bool` and
+`leave(session)` go over the link. A session the node no longer lists, or a revoked node's, is no longer `alive()`, so
+`_reap_dead` takes it off; an offline node's sessions stay alive for `OFFLINE_GRACE_SECS`.
+
+The one call site daemon.py needs, after `app.router.lifespan_context = _with_housekeeping` (install wraps the lifespan):
+
+```python
+hub_nodes.install(app, hub_nodes.Hub(STATE_DIR, REGISTRY))
+```
+
+Optional: `HOST.vendors = lambda: [...]`, the hub's vendor names for `welcome` and the pairing reply (empty without it).
+The phone app needs `/voice/hub/invite`, `/voice/hub/nodes` and `/voice/hub/revoke` in `guards._PHONE_PATHS`; the page
+and the daemon token reach them already, a browser over the TLS listener never does.
+
+Deviations from the text above, decided while building:
+
+- `welcome.resume` and `resume` are keyed by the **node's** session id (the `id` every frame carries), not the hub's.
+- The invite code is compared by its SHA-256, but the plain code is also kept in memory (never on disk) while valid,
+  because status `invite.code` must show it.
+- `permission.holding` is sent once the daemon's `remote_permission` returns True: it returns before the read-out is
+  spoken, so the ack still never waits for the brain. False sends nothing; the node hands the prompt back in 10 s.
+- A session the hub has no mirror of arrives from offset 0: that backlog goes to `<id>.<gen>.jsonl.part`, which the
+  follower cannot see, and becomes the mirror after `HISTORY_QUIET_SECS` (1.5 s) without a frame. The follower opens it
+  at its end, so history is in the record but not fed as news. A live line in the second after that can be missed (the
+  follower polls for the file once a second), as for a local session's first lines.
+- `pointe hub invite --name X` wins over the name the node offers.
+- A departed session's mirrors go 7 days after the hub first sees it off the voice (a `<id>.left` mark).
+- `pointe pair link|off|rotate`; `pointe hub invite|nodes|revoke` (daemon token); `pointe node ...` runs `node.py` in
+  `$STATE/node-env` with only the `node` group.
+
 Integration, after the tracks: `tests/e2e/two_machines.py`, the Docker run, the hardware checklist. Then the separate
 small PR that deletes `bin/voice-remote` (needs Track A's `pointe pair link|off`).
 

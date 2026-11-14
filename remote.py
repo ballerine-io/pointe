@@ -93,7 +93,7 @@ class Remote:
             self._set_cookie(response)
             return response
         if not self._paired(request):
-            return PlainTextResponse("not paired: open the pairing link from `bin/voice-remote link` once",
+            return PlainTextResponse("not paired: open the pairing link from `pointe pair link` once",
                                      status_code=403)
         return await call_next(request)
 
