@@ -141,3 +141,27 @@ def test_a_snapshot_during_delivery_of_an_answer_does_not_bring_the_prompt_back(
     session = run(go())
     assert put == ["p1"], f"the answered prompt was put to the user again: {put}"
     assert session.permission_id is None, "a prompt the node released is pending again on the hub (a ghost card)"
+
+
+# ---------- 4. a /resume on the node ships an old conversation as live news ----------
+
+def test_a_move_to_a_file_that_already_holds_a_conversation_is_shipped_as_history(tmp_path):
+    home = tmp_path / "claude-home"
+    (home / "sessions").mkdir(parents=True)
+    (home / "projects" / "p").mkdir(parents=True)
+    old = "".join(json.dumps({"type": "assistant", "message": {"content": f"turn {i} finished"}}) + "\n" for i in range(50))
+
+    async def scenario(hub, n):
+        body = _body(tmp_path)
+        Path(body["transcript"]).write_text('{"n": 0}\n')
+        await n.register(body)
+        await hub.next("transcript")
+        resumed = home / "projects" / "p" / "old-id.jsonl"
+        resumed.write_text(old)  # /resume: Claude Code moves the session onto a file that already happened
+        (home / "sessions" / f"{os.getpid()}.json").write_text(json.dumps({"sessionId": "old-id"}))
+        repointed = await hub.next("transcript.repointed")
+        assert repointed.get("history") is True, (
+            "a repoint onto a file that already holds a conversation is sent as a live move: the hub writes it "
+            "straight into the mirror and the follower feeds whatever lands after its reopen as news")
+
+    test_node.run(scenario, tmp_path)

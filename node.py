@@ -657,7 +657,8 @@ class Node:
     async def _apply_resume(self, resume: dict, everyone: bool = False, only: str | None = None) -> None:
         """Reseek to where the hub's mirror ends. With `everyone` (a welcome) or `only` (one session joining), a
         session the hub has no offset for starts at 0 in its current gen. Every gen opened here re-ships a file from
-        byte 0 that already happened, so its repoint says `history`; a live move (_ship) does not."""
+        byte 0 that already happened, so its repoint says `history`; a live move (_ship) says it only when the file it
+        moved to already holds lines."""
         wanted = {self._unprefixed(k): v for k, v in resume.items()}
         self.hub_offsets.update(wanted)
         for sid, tail in self.tails.items():
@@ -699,7 +700,9 @@ class Node:
             session.transcript = path
             self._save_tails()
             logger.info(f"{session.name} moved to a new transcript (gen {tail.gen})")
-            await self._send("transcript.repointed", id=session.id, gen=tail.gen)
+            # A file that already holds lines (/resume) is history, as a local follower seeks to the end of the file
+            # it moves to; an empty one (/clear) is live from its first line.
+            await self._send("transcript.repointed", id=session.id, gen=tail.gen, history=_size(path) > 0)
             self._spawn(self._send_files(session))
         if tail.offset is None:
             return
