@@ -1751,6 +1751,24 @@ wheels = [
 ]
 
 [[package]]
+name = "mlx-lm"
+version = "0.32.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jinja2" },
+    { name = "mlx" },
+    { name = "numpy" },
+    { name = "protobuf" },
+    { name = "pyyaml" },
+    { name = "sentencepiece" },
+    { name = "transformers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e1/46/eff1c17019b82912020d4d716527e6fcf4ac392b55cddef03eeb60566ab4/mlx_lm-0.32.2.tar.gz", hash = "sha256:1af8a92f6a141c3e2bf5b0369ac4464203a8e2189c47b9e40d3e921e5b3a1fe9", size = 449827, upload-time = "2026-10-16T02:49:34.781Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/4f/000eefdeb41388782b47e7f39904cf2d9e7e49a60df5e172097c358dba8e/mlx_lm-0.32.2-py3-none-any.whl", hash = "sha256:5c0991248cfff5872503d74f466d2532dd8cb7fb3670cb9be7a06d7305dadc04", size = 546040, upload-time = "2026-10-16T02:49:33.32Z" },
+]
+
+[[package]]
 name = "mlx-metal"
 version = "0.32.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2350,6 +2368,9 @@ dev = [
     { name = "pytest" },
     { name = "sounddevice" },
 ]
+mlx-lm = [
+    { name = "mlx-lm", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
+]
 node = [
     { name = "aiohttp" },
     { name = "cryptography" },
@@ -2382,6 +2403,7 @@ dev = [
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "sounddevice", specifier = ">=0.5.6" },
 ]
+mlx-lm = [{ name = "mlx-lm", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = "==0.32.2" }]
 node = [
     { name = "aiohttp", specifier = ">=3.14.5" },
     { name = "cryptography", specifier = ">=50.0.2" },

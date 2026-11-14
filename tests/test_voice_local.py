@@ -265,7 +265,7 @@ def test_the_mouth_loads_kokoro_from_the_downloaded_folder(monkeypatch, tmp_path
 
     seen = {}
     monkeypatch.setattr(kokoro_mlx, "_loaded", None)
-    monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda repo, local_files_only: str(tmp_path / "a71e4d38"))
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda repo, revision, local_files_only: str(tmp_path / revision[:8]))
     monkeypatch.setattr(mlx_audio_utils, "load_model", lambda path, **k: seen.update(path=path, **k) or "model")
     assert kokoro_mlx._model() == "model" and seen["model_type"] == "kokoro"
 

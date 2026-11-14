@@ -129,7 +129,7 @@ module reaches onnxruntime without it.
 - **Mouth: Kokoro on MLX, voice `af_heart`.** The same Kokoro weights as fully local mode's kokoro-onnx, run on the
   GPU: English speech starts in 185 ms at the median, against 750 ms for kokoro-onnx in the same run. `af_heart` is the only voice Kokoro's own card grades A. Seven candidate voices were rendered with
   the same passage; all were heard back by Whisper word for word, so intelligibility does not separate them. How they
-  sound is for a person to judge: `uv run --extra local python -I bench/local_tts_bench.py voices` writes them to
+  sound is for a person to judge: `uv run --locked --extra local python -I bench/local_tts_bench.py voices` writes them to
   `bench/.audio/voice-samples/`.
 - **Ears: Whisper large-v3-turbo**, as in fully local mode ([why](local.md#why-these)).
 - **Brain in the cloud.** The local brain was fully local mode's bottleneck: 76.9% of cases against 91.9% for Sonnet,

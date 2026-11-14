@@ -18,6 +18,8 @@ from pipecat.frames.frames import ErrorFrame, Frame, TTSAudioRawFrame
 from pipecat.services.settings import TTSSettings
 from pipecat.services.tts_service import TTSService
 
+import assets
+
 MODEL = "mlx-community/Kokoro-82M-bf16"  # Apache-2.0 (hexgrad/Kokoro-82M)
 DEFAULT_VOICE = "af_heart"  # the voice Kokoro's own card grades highest; samples of the others: docs/features/voice-stays-local.md
 RATE = 24000
@@ -33,17 +35,16 @@ def lang_code(voice: str) -> str:
 
 
 def _model():
-    """Loaded once per daemon, on the mouth's thread, from the local copy (the Hub is asked only when it is missing)."""
+    """Loaded once per daemon, on the mouth's thread, from the local copy; downloaded at the pinned commit when missing."""
     global _loaded
     with _lock:
         if _loaded is None:
-            from huggingface_hub import snapshot_download
             from mlx_audio.tts.utils import load_model
 
             try:
-                path = snapshot_download(MODEL, local_files_only=True)
+                path = assets.snapshot(MODEL, local_files_only=True)
             except Exception:
-                path = MODEL
+                path = assets.snapshot(MODEL)
             _loaded = load_model(path, model_type="kokoro")  # from a folder, mlx-audio guesses the type from its name
         return _loaded
 

@@ -33,6 +33,11 @@ local = [
 package = false  # scripts run from the checkout; nothing is installed as a package
 
 [dependency-groups]
+# The local text-model server (`pointe local`, local.py), in its own environment under ~/.claude-voice/local/mlx-lm:
+# `uv sync --locked --only-group mlx-lm`. Locked here so its packages carry hashes like every other install.
+mlx-lm = [
+    "mlx-lm==0.32.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
 # A node (another machine whose sessions the hub voices, docs/design/multi-machine.md): `uv sync --locked --only-group
 # node`. No Pipecat, model library or vendor SDK. websockets is the Codex adapter's app-server client.
 node = [

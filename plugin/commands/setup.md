@@ -1,6 +1,6 @@
 ---
 description: Set Pointe up on this Mac, start to finish, for someone who does not use a terminal
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-daemon:*), Bash(command -v:*), Bash(ls:*), Bash(sw_vers:*), Bash(open:*), Bash(curl -LsSf https\://astral.sh/uv/install.sh:*), Bash(sh:*), Bash(echo:*), Bash(mkdir -p ~/.claude-voice:*), Bash(touch ~/.claude-voice/setup-done:*)
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-daemon:*), Bash(command -v:*), Bash(ls:*), Bash(sw_vers:*), Bash(open:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/install-uv:*), Bash(echo:*), Bash(mkdir -p ~/.claude-voice:*), Bash(touch ~/.claude-voice/setup-done:*)
 ---
 
 Set Pointe up for the user, start to finish. They may not be a developer. Do the work yourself; explain each step in one
@@ -13,8 +13,9 @@ Go in this order and say which step you are on ("Step 2 of 6").
 **1. This Mac.** `sw_vers` (macOS needed). Check Chrome: `ls /Applications ~/Applications 2>/dev/null | grep -i "google chrome"`. If Chrome is
 missing, ask them to install it from google.com/chrome and come back.
 
-**2. uv**, which runs Pointe's Python: `command -v uv || ls ~/.local/bin/uv`. If missing, say you will install it with
-Astral's official installer, then run `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+**2. uv**, which runs Pointe's Python: `command -v uv || ls ~/.local/bin/uv`. If missing, say you will install one
+pinned version of it with Astral's installer, checked against a known checksum first, then run
+`${CLAUDE_PLUGIN_ROOT}/bin/install-uv`.
 
 **3. Keys.** Pointe uses AI models from vendors you choose, with your own keys; you pay them directly. Run
 `${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor` with a 10-minute timeout to see which keys exist. The first run downloads Pointe's

@@ -27,12 +27,14 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
 import no_telemetry  # noqa: E402,F401  (before anything imports onnxruntime)
+import assets  # noqa: E402
 import vendors  # noqa: E402
 
 TEXT_MODEL = "mlx-community/gemma-4-26b-a4b-it-4bit"  # Apache-2.0; why: docs/features/local.md
 EARS_MODEL = vendors.LOCAL_EARS_MODEL
 MOUTH = "local:kokoro:af_heart"
-MLX_LM = "mlx-lm==0.32.2"
+MLX_LM = "mlx-lm==0.32.2"  # the `mlx-lm` dependency group in pyproject.toml, locked in uv.lock
+ROOT = Path(__file__).resolve().parent
 MIN_RAM_GB = 32  # the text model took 17 GB while it ran (footprint), plus the daemon and macOS
 # Thinking off: with it on, a reply waits for hundreds of hidden tokens.
 SERVER_ARGS = ["--chat-template-args", json.dumps({"enable_thinking": False})]
@@ -125,13 +127,13 @@ def on() -> bool:
 def cached_bytes(repo: str) -> int:
     """Bytes of a Hugging Face model already downloaded, 0 if any of it is missing."""
     try:
-        from huggingface_hub import snapshot_download
+        import huggingface_hub  # noqa: F401
     except ImportError:  # the local extra is gone (pointe local off, then a daemon start): read the cache folder itself
         hub = os.environ.get("HF_HUB_CACHE") or os.path.join(os.environ.get("HF_HOME") or Path.home() / ".cache" / "huggingface", "hub")
         snapshots = Path(hub) / f"models--{repo.replace('/', '--')}" / "snapshots"  # finished files only, as links
         return sum(f.stat().st_size for f in snapshots.rglob("*") if f.is_file()) if snapshots.is_dir() else 0
     try:
-        folder = Path(snapshot_download(repo, local_files_only=True))
+        folder = Path(assets.snapshot(repo, local_files_only=True))  # the pinned commit: another revision does not count
     except Exception:
         return 0
     return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file())
@@ -147,7 +149,7 @@ def kokoro_bytes() -> int:
     except ImportError:  # the local extra is not installed (pointe local installs it): nothing downloaded
         return 0
 
-    files = [KOKORO_CACHE_DIR / "kokoro-v1.0.onnx", KOKORO_CACHE_DIR / "voices-v1.0.bin"]
+    files = [KOKORO_CACHE_DIR / assets.ASSETS["kokoro-model"].name, KOKORO_CACHE_DIR / assets.ASSETS["kokoro-voices"].name]
     return sum(f.stat().st_size for f in files) if all(f.exists() for f in files) else 0
 
 
@@ -319,7 +321,7 @@ def install_voice() -> int:
     if why := voice_refused():
         print(why)
         return 1
-    from huggingface_hub import snapshot_download  # the local extra: after the checks, which need nothing installed
+    import huggingface_hub  # noqa: F401  the local extra: after the checks, which need nothing installed
 
     wanted = [("Speech to text, Whisper large-v3-turbo (MIT)", EARS_MODEL), ("Voice, Kokoro-82M on MLX (Apache-2.0)", VOICE_MODEL)]
     print(f"{vendors.VOICE_LOCAL}: your speech is heard and spoken on this Mac. The brain, the reader and the gate get "
@@ -330,7 +332,7 @@ def install_voice() -> int:
     for label, repo in wanted:
         if not cached_bytes(repo):
             print(f"Downloading {label}...", flush=True)
-            snapshot_download(repo)
+            assets.snapshot(repo)
     write_voice_config()
     print("Loading the voice once (about 20 s the first time)...", flush=True)
     import kokoro_mlx
@@ -346,7 +348,7 @@ def install_voice() -> int:
 
 
 def install(text_model: str = TEXT_MODEL) -> int:
-    from huggingface_hub import snapshot_download
+    import huggingface_hub  # noqa: F401  the local extra
 
     if why := supported(text_model):
         print(why)
@@ -369,18 +371,16 @@ def install(text_model: str = TEXT_MODEL) -> int:
 
     if not server_bin().exists():
         print(f"Installing {MLX_LM}...", flush=True)
-        env_dir = home() / "mlx-lm"
-        subprocess.run(["uv", "venv", "--quiet", "--python", "3.12", str(env_dir)], check=True)
-        subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(env_dir / "bin" / "python"), MLX_LM], check=True)
+        # Its own environment, from the lockfile: the same pinned, hashed packages as every other install path.
+        subprocess.run(["uv", "sync", "--locked", "--quiet", "--only-group", "mlx-lm", "--project", str(ROOT)], check=True,
+                       env={**os.environ, "UV_PROJECT_ENVIRONMENT": str(home() / "mlx-lm")})
     for label, repo in wanted:
         if not cached_bytes(repo):
             print(f"Downloading {label}...", flush=True)
-            snapshot_download(repo)
+            assets.snapshot(repo)
     if not kokoro:
         print("Downloading the voice...", flush=True)
-        from pipecat.services.kokoro.tts import KOKORO_CACHE_DIR, _ensure_model_files
-
-        _ensure_model_files(KOKORO_CACHE_DIR / "kokoro-v1.0.onnx", KOKORO_CACHE_DIR / "voices-v1.0.bin")
+        assets.ensure_kokoro()  # by hash, not Pipecat's own unverified download
     write_config(text_model)
     if not start(text_model):
         return 1
