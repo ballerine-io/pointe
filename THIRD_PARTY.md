@@ -133,4 +133,4 @@ apply to what you send them; see [Privacy](README.md#privacy) for what each rece
 
 Optional, only if you choose them: an OpenAI-compatible local server for local text models (`pointe local` installs
 mlx-lm's; [Ollama](https://ollama.com) or another works when set by hand); [Tailscale](https://tailscale.com) or [Twingate](https://www.twingate.com) (`twingate/connector` container
-image) for phone access. Setup installs [uv](https://docs.astral.sh/uv/) with Astral's installer if it is missing.
+image) for phone access. Setup installs [uv](https://docs.astral.sh/uv/) if it is missing, with Astral's installer for one pinned version, checked against a SHA-256 before it runs (`bin/install-uv`).

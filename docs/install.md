@@ -47,7 +47,8 @@ press Connect.
 ## What it installs
 
 - The Pointe plugin, into Claude Code's own plugin folder.
-- [uv](https://docs.astral.sh/uv/), which runs Pointe's Python, into `~/.local/bin`, if it is missing.
+- [uv](https://docs.astral.sh/uv/), which runs Pointe's Python, into `~/.local/bin`, if it is missing: one pinned
+  version, whose installer is checked against a SHA-256 before it runs (`bin/install-uv`).
 - The first time setup checks your Mac, about 180 MB of Python packages and a private copy of Python (about 530 MB on
   disk), in the plugin's folder and `~/.local/share/uv`. On a fast connection this takes under a minute.
 - Your keys, in the macOS Keychain only (`pointe key <vendor>` opens the window again).
