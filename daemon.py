@@ -164,6 +164,18 @@ from sessions import (
 )
 
 STATE_DIR = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
+
+
+def _version() -> str:
+    """The plugin's version, from the manifest next to this file: the page and the app show it so an owner can tell
+    which build they are looking at."""
+    try:
+        return json.loads((Path(__file__).resolve().parent / ".claude-plugin" / "plugin.json").read_text())["version"]
+    except (OSError, ValueError, KeyError):
+        return "dev"
+
+
+VERSION = _version()
 TOKEN = (STATE_DIR / "token").read_text().strip()
 if not TOKEN:
     raise SystemExit(f"{STATE_DIR / 'token'} is empty: stop the daemon and start it again")
@@ -5089,6 +5101,7 @@ async def status(request: Request):
                                                                "said": " ".join(state.monologue)[-600:]},
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
+            "version": VERSION,
             "ptt": state.ptt.status(PREFS.get("microphone"), _room_heard()),
             "talk_command": None if _off_the_mac(request) else TALK_COMMAND,  # Settings: the recipe shows a path of this Mac's
             "whisper": whisper.status(PREFS.get("whisper"), lock_level(), PREFS.get("microphone"),

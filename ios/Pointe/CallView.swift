@@ -327,7 +327,7 @@ struct CallView: View {
     private var top: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center) {
-                BrandHeader()
+                BrandHeader(mac: status?.version)
                 Spacer()
                 if status?.drive != nil {  // a mode, like a meeting: switched here, so the mic below never moves
                     Button { setDrive(!driving) } label: {
@@ -642,7 +642,7 @@ struct CallView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    BrandHeader()
+                    BrandHeader(mac: status?.version)
                     Spacer()
                     menu
                 }

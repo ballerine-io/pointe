@@ -6,6 +6,7 @@ struct API {
     let session: URLSession
 
     struct Status: Decodable, Equatable {
+        let version: String?   // the Mac's Pointe; the brand line shows it when it differs from this app
         let active: String?
         let connected: Bool
         let sessions: [Session]
