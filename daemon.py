@@ -4403,6 +4403,9 @@ async def remote_permission(session: Session, request_id: str, tool_name: str, d
     asked again, so the owner hears it."""
     if session.id not in REGISTRY.sessions or state.conn is None:
         return False
+    if not re.fullmatch(r"[\w-]{1,64}", request_id):  # an empty id can be put to the user but never answered
+        logger.error(f"a permission request from {session.machine} was refused: bad request id")
+        return False
     if vendors.config().get("approvals") == "terminal":
         await say(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in one line.")
         return False

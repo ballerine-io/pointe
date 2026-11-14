@@ -176,3 +176,31 @@ def test_a_remote_request_id_cannot_rewrite_what_a_local_requests_notification_s
     asyncio.run(d.remote_permission(remote, "ab12cd34", "Bash", "list", json.dumps({"command": "ls"}), "run: ls"))
     shown = alerts.permission_alert(local.name, local.id, local.permission_id, 0.0)
     assert not shown["approvable"] and "ls" not in shown["body"], shown
+
+
+def test_an_empty_remote_request_id_is_not_put_to_the_user(d, node, monkeypatch):
+    """nodelink's schema takes any string. An empty id is read out and shown, but no yes or tap can ever answer it
+    (`if not session.permission_id` everywhere)."""
+    async def quiet(*a, **k):
+        return None
+
+    monkeypatch.setattr(d, "say", quiet)
+    monkeypatch.setattr(d, "_ask_permission", quiet)
+    remote = _join(d, "devbox", "r1", "api")
+    d.state.conn = fake_conn()
+    held = asyncio.run(d.remote_permission(remote, "", "Bash", "status", "{}", "run: git status"))
+    assert held is False and not remote.permission_text, (held, remote.permission_text)
+
+
+def test_an_odd_remote_request_id_is_not_put_to_the_user(d, node, monkeypatch):
+    async def quiet(*a, **k):
+        return None
+
+    monkeypatch.setattr(d, "say", quiet)
+    monkeypatch.setattr(d, "_ask_permission", quiet)
+    remote = _join(d, "devbox", "r1", "api")
+    d.state.conn = fake_conn()
+    for bad in ("a b", "x" * 65, "../p1", "p1\n"):
+        assert asyncio.run(d.remote_permission(remote, bad, "Bash", "status", "{}", "run: git status")) is False
+    assert remote.permission_id is None
+    assert asyncio.run(d.remote_permission(remote, "req-1_a", "Bash", "status", "{}", "run: git status")) is True
