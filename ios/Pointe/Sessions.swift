@@ -333,6 +333,12 @@ struct MachineView: Equatable {
 
 enum MachinesCopy {
     static let title = "Machines"
+
+    /// "The invite was cancelled after 20 wrong codes, from …." while no new invite is out; nil otherwise.
+    static func ended(_ status: API.Status?) -> String? {
+        guard status?.invite == nil, let why = status?.invite_ended, let first = why.first else { return nil }
+        return first.uppercased() + why.dropFirst() + "."
+    }
     static let invite = "Invite a machine"
     static let inviteReason = "Show a code that pairs another machine with this voice"
     static let revokeReason = "Revoke a machine"

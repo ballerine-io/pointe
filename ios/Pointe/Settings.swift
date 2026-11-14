@@ -33,6 +33,9 @@ struct MachinesSheet: View {
                     if let done {
                         Text(done).foregroundStyle(.secondary).accessibilityIdentifier("machinesDone")
                     }
+                    if let ended = MachinesCopy.ended(status) {
+                        Text(ended).foregroundStyle(Brand.orange).accessibilityIdentifier("inviteEnded")
+                    }
                 } footer: { Text(MachinesCopy.help) }
                 Section { inviteSection }
             }

@@ -419,29 +419,65 @@ def test_a_nodes_mirrors_stop_growing_at_its_cap_and_the_link_stays_in_step(worl
 
 def test_wrong_codes_from_the_connector_do_not_lock_out_the_right_one(world):
     """Through bin/voice-connector every pairing attempt arrives from 127.0.0.1, so the per-address limit is shared with
-    the real node: five wrong guesses a minute kept it at 429 for the invite's whole life."""
-    hub, *_ = world
+    the real node. A guesser there delays it until a token is back, never for the invite's whole life, and cannot
+    cancel the invite."""
+    hub, host, registry, clock, mono, _ = world
     code = hub.invites.make()
     wrong = {"code": "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB", "name": "devbox", "os": "linux"}
     assert [hub.pair(wrong, "127.0.0.1")[0] for _ in range(6)] == [403] * 5 + [429]
+    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "127.0.0.1")[0] == 429  # not compared
+    mono.now += 60
     status, body = hub.pair({"code": code, "name": "devbox", "os": "linux"}, "127.0.0.1")
     assert status == 200, body
 
 
-def test_an_invite_is_cancelled_after_too_many_wrong_codes_and_says_so(world):
-    """Letting the right code through a rate limit must not let a guesser try without bound: the invite ends after
-    PAIR_WRONG_PER_INVITE wrong codes, and the owner sees how many came and from where."""
+def test_an_invite_is_cancelled_after_too_many_wrong_codes_and_says_from_where(world):
+    """The backstop: PAIR_WRONG_PER_INVITE wrong codes from all addresses together end the invite, and the owner sees
+    how many came and from which addresses."""
     hub, *_ = world
     code = hub.invites.make()
     wrong = {"code": "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB", "name": "devbox", "os": "linux"}
-    for i in range(hub_nodes.PAIR_WRONG_PER_INVITE - 1):
-        assert hub.pair(wrong, "127.0.0.1")[0] in (403, 429)  # a guess answered 429 was still checked: it counts
+    addresses = [f"192.168.1.{i // 4 + 10}" for i in range(hub_nodes.PAIR_WRONG_PER_INVITE)]  # 4 each, under the burst
+    for i, address in enumerate(addresses[:-1]):
+        assert hub.pair(wrong, address)[0] == 403
         assert hub.invites.status()["wrong_codes"] == i + 1
-    status, why = hub.pair(wrong, "127.0.0.1")
+    status, why = hub.pair(wrong, addresses[-1])
     assert status == 403 and "cancelled" in why
     assert hub.invites.status() is None
-    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "127.0.0.1")[0] == 403  # the code is gone
-    assert "127.0.0.1" in hub.invites.ended and "connector" in hub.invites.ended
+    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "192.168.1.99")[0] == 403  # the code is gone
+    assert all(a in hub.invites.ended for a in set(addresses)) and "LAN" in hub.invites.ended
+
+
+def test_the_page_and_the_app_are_shown_an_invite_cancelled_by_guessing(d, monkeypatch):
+    import remote
+    from types import SimpleNamespace
+
+    from test_orchestrator import client_for
+
+    monkeypatch.setattr(harnesses.HOST, "invite", lambda: None, raising=False)
+    monkeypatch.setattr(harnesses.HOST, "invite_ended", lambda: "the invite was cancelled after 20 wrong codes, from "
+                        "100.64.0.66 (Tailscale): 20", raising=False)
+    assert "100.64.0.66" in client_for(d).get("/voice/status").json()["invite_ended"]
+    tls_page = SimpleNamespace(scope={"server": ("studio", remote.TLS_PORT), "state": {}})
+    assert d._invite_ended(tls_page) is None  # as the code itself: never to a page over the TLS listener
+    page = (Path(__file__).resolve().parents[1] / "ui.html").read_text()
+    assert "s.invite_ended" in page and 'id="mach-ended"' in page
+
+
+def test_one_address_cannot_cancel_an_invite_by_guessing(world):
+    """Twenty wrong codes in two seconds from one address used to cancel the invite. Its token bucket is taken from
+    before the code is compared, and refills too slowly for one address to reach the cap in the invite's life."""
+    hub, host, registry, clock, mono, _ = world
+    code = hub.invites.make()
+    wrong = {"code": "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB", "name": "devbox", "os": "linux"}
+    answers = []
+    for _ in range(hub_nodes.INVITE_SECS - 1):  # a guess every second, the invite's whole life
+        answers.append(hub.pair(wrong, "100.64.0.66")[0])
+        mono.now += 1
+    assert hub.invites.outstanding and hub.invites.wrong < hub_nodes.PAIR_WRONG_PER_INVITE
+    assert answers.count(403) == hub.invites.wrong and set(answers) == {403, 429}
+    status, body = hub.pair({"code": code, "name": "devbox", "os": "linux"}, "100.64.0.7")  # the real node
+    assert status == 200, body
 
 
 # ---------- 14. a node that crashed waits out the hub's heartbeat before it can link again ----------

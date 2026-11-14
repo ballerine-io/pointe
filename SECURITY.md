@@ -178,9 +178,11 @@ Sessions on another Mac or a Linux host join the voice through a node there ([do
 The Mac with the call (the hub) keeps every rule above for them.
 
 - **Pairing.** The hub makes a one-time code: single use, 10 minutes, about 40 bits, kept only as a hash in memory, and
-  accepted only while it is outstanding. After 20 wrong codes the invite is cancelled, and the hub says how many came
-  and from where (5 wrong codes a minute per address are answered 429, but the right code always pairs, so a guesser
-  behind the same connector cannot lock your machine out). Making it from the app needs Face ID.
+  accepted only while it is outstanding. Each address may try 5 codes at once, then about one a minute, checked before
+  the code is compared, so one address cannot try enough to cancel the invite. After 20 wrong codes from all addresses
+  together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
+  A guesser behind the same connector as your machine can delay it by a minute, not lock it out. Making it from the
+  app needs Face ID.
   The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. The hub
   then shows the node's name, address and key fingerprint, so you can see that the machine that paired is yours.
 - **The link.** The node dials the hub's TLS listener (the phone's) and proves its 256-bit key with an HMAC over a fresh
@@ -232,8 +234,8 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 - **Pairing from the page** (Settings → Phone, `phone_pairing.py`). The page lists the routes this Mac has (Tailscale, a
   name you set up, the Wi-Fi) and shows a QR code made on the Mac, with no outside service. The QR holds the listener's
   name, its certificate's SHA-256 and a one-time code, not the phone key: single use, 5 minutes, about 40 bits, kept only
-  as a hash in memory, with the same bounds on wrong codes as a machine invite (5 a minute per address answered 429, the
-  invite cancelled after 20). The app checks the certificate first and only then sends the code to `/voice/phone/pair`,
+  as a hash in memory, with the same bounds on wrong codes as a machine invite (5 at once per address, then a slow refill,
+  checked before the code; the invite cancelled after 20 from all addresses together). The app checks the certificate first and only then sends the code to `/voice/phone/pair`,
   which answers the phone key. That route takes no other secret and refuses a request with an `Origin` (a web page).
   The routes that make a code, list routes and unpair answer only the page on this Mac, by its cookie: the phone key,
   the daemon token and a page opened over the TLS listener get 403. The status shows paired phones by name and time

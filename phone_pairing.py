@@ -160,13 +160,10 @@ class PhoneLink:
         if not invites.outstanding:
             return 403, "invite expired"
         body = body if isinstance(body, dict) else {}
-        if not invites.matches(body.get("code", "")):  # the right code pairs whatever the rate limit says (hub_nodes)
-            logger.warning(f"phone pairing from {address}: wrong code")
-            ended = invites.refuse(address)
-            if ended:
-                logger.warning(ended)
-                return 403, ended
-            return (403, "wrong code") if invites.admit(address) else (429, "too many attempts: wait a minute")
+        refused = invites.check(body.get("code", ""), address)  # the rate limit, then the code (hub_nodes.Invites)
+        if refused:
+            logger.warning(f"phone pairing from {address}: {refused[1]}")
+            return refused
         invites.cancel()
         name = _clean(body.get("device"), MAX_DEVICE_CHARS) or "iPhone"
         key = self.phones.mint(name, _clean(body.get("id"), 80), address)

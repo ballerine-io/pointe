@@ -653,6 +653,7 @@
         <button type="button" id="mach-invitebtn" onclick="inviteMachine()">Invite a machine</button>
         <button type="button" id="mach-cancel" onclick="cancelInvite()" hidden>Cancel the code</button>
       </div>
+      <div class="err" id="mach-ended" role="status" hidden></div>
       <div class="err" id="mach-err" role="alert"></div>
     </section>
     <section id="phone" aria-labelledby="ph-h">
@@ -2225,6 +2226,9 @@
     $('machines').hidden = !Array.isArray(s.machines);
     if (!Array.isArray(s.machines)) return;
     canInvite = s.can_invite !== false;  // a Mac without the field: as before
+    const ended = !s.invite && s.invite_ended ? `${s.invite_ended[0].toUpperCase()}${s.invite_ended.slice(1)}.` : '';
+    $('mach-ended').hidden = !ended;
+    $('mach-ended').textContent = ended;
     const st = s.invite;
     if (st && st.code) {  // the status has no link: the one the make answered stays while the code does
       const link = st.link || (invite && invite.code === st.code ? invite.link : '');

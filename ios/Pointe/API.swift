@@ -35,6 +35,7 @@ struct API {
         var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
         var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
         var invite: Invite?         // the one-time code to pair another machine, while one is outstanding
+        var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
     }
 
     // MARK: machines (docs/multi-machine.md). With one machine, `machines` has only this Mac and nothing changes on screen.

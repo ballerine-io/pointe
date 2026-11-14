@@ -202,6 +202,7 @@ def test_wrong_codes_are_limited_and_end_the_invite_after_twenty(world):
     codes = [redeem(tls(world), "AAAA-AAAA").status_code for _ in range(6)]
     assert codes[:5] == [403] * 5 and codes[5] == 429
     world.link.invites.wrong = 19
+    world.mono.now += 30  # the address has a token again: the limit is checked before the code
     assert "cancelled after 20 wrong codes" in redeem(tls(world), "AAAA-AAAA").text
     assert page(world).get("/voice/phone/invite").json()["ended"].startswith("the invite was cancelled")
 

@@ -856,6 +856,12 @@ def _can_invite(request) -> bool:
     return getattr(harnesses.HOST, "invite", None) is not None and _shows_invite(request)
 
 
+def _invite_ended(request) -> str | None:
+    """Why the last invite ended early (wrong codes, with their addresses), for the same clients that see the code."""
+    ended = getattr(harnesses.HOST, "invite_ended", None)
+    return ended() if ended and _shows_invite(request) else None
+
+
 def _invite(request) -> dict | None:
     made = getattr(harnesses.HOST, "invite", None)  # the node link's (hub_nodes.py): the outstanding code, or None
     return made() if made and _shows_invite(request) else None
@@ -5062,6 +5068,7 @@ async def status(request: Request):
             "machines": _status_machines(),
             "invite": _invite(request),
             "can_invite": _can_invite(request),
+            "invite_ended": _invite_ended(request),
             "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),

@@ -49,6 +49,16 @@ final class MachinesTests: XCTestCase {
         XCTAssertNil(three.machines?[1].notice)
     }
 
+    func testAnInviteCancelledByGuessingIsShownWithItsAddresses() {
+        let s = status("""
+        {"connected": true, "sessions": [], "invite": null,
+         "invite_ended": "the invite was cancelled after 20 wrong codes, from 100.64.0.66 (Tailscale): 19; 10.0.0.2 (LAN): 1"}
+        """)
+        XCTAssertEqual(MachinesCopy.ended(s),
+                       "The invite was cancelled after 20 wrong codes, from 100.64.0.66 (Tailscale): 19; 10.0.0.2 (LAN): 1.")
+        XCTAssertNil(MachinesCopy.ended(three), "a new invite is out, or none ended early")
+    }
+
     func testAnOlderMacWithoutMachinesLooksAsBefore() {
         let s = status(#"{"connected": true, "sessions": [{"name": "docs", "working": false, "waiting": false}]}"#)
         XCTAssertNil(s.machines)
