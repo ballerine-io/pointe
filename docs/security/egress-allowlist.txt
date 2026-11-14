@@ -1,0 +1,51 @@
+# Every host the software can contact, one per line: host, whitespace, why. `*.` at the start matches any subdomain.
+# A line that starts with `link` names a host that appears in the source only as text shown to a person (where to get a
+# key, an XML namespace) and is never contacted. tests/test_supply_chain.py fails when a URL literal in the source names
+# a host that is not here, so a dependency bump or a pull request cannot add an egress silently. The human-readable
+# table, with when each is reached, is docs/security/supply-chain.md.
+
+# loopback: the daemon, the node, the local text-model server, Ollama
+127.0.0.1                  the daemon and the node (bin/*, channel, hooks, the page)
+localhost                  the page's address; Ollama's default (vendors.LOCAL_URL)
+*.localhost                the page's private cookie origin (guards.py)
+
+# vendors, with the user's own keys
+api.anthropic.com          brain, reader, checker: the Anthropic SDK
+generativelanguage.googleapis.com   Gemini text, ears, mouth and realtime front (google-genai)
+api.openai.com             OpenAI text, ears, mouth and realtime front (openai SDK; bench)
+api.elevenlabs.io          ElevenLabs ears and mouth (pipecat; bench)
+stt-rt.soniox.com          Soniox ears, meeting ears (daemon.py, meeting.py, bench)
+tts-rt.soniox.com          Soniox mouth (pipecat; bench)
+
+# models, at the commits and hashes pinned in assets.py
+huggingface.co             model repositories (huggingface_hub, mlx-whisper, mlx-audio, faster-whisper; bench)
+cdn-lfs.huggingface.co     model files (huggingface_hub)
+cdn-lfs-us-1.huggingface.co   model files (huggingface_hub)
+cas-bridge.xethub.hf.co    model files (hf-xet)
+transfer.xethub.hf.co      model files (hf-xet)
+github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); links in the page and the site
+objects.githubusercontent.com        where github.com release downloads redirect
+release-assets.githubusercontent.com where github.com release downloads redirect
+
+# installers
+astral.sh                  the pinned uv installer (bin/install-uv)
+releases.astral.sh         where astral.sh redirects the installer and uv's binaries
+pypi.org                   Python packages, by hash (uv sync --locked)
+files.pythonhosted.org     Python packages, by hash (uv sync --locked)
+registry.npmjs.org         the channel's packages, by integrity (npm ci, launch mode only)
+registry-1.docker.io       twingate/connector:1 (bin/voice-connector only)
+auth.docker.io             twingate/connector:1 (bin/voice-connector only)
+production.cloudflare.docker.com   twingate/connector:1 (bin/voice-connector only)
+
+# blocked
+*.events.data.microsoft.com   onnxruntime telemetry: ORT_DISABLE_TELEMETRY=1 before it loads (no_telemetry.py, tested)
+
+# shown to a person, never contacted
+link docs.astral.sh        where to install uv by hand (bin/voice-daemon, bin/voice-doctor, bin/voice-node, node_cli.py)
+link aistudio.google.com   where to get a Gemini key (doctor.py, bench)
+link platform.claude.com   where to get an Anthropic key (bench)
+link developers.openai.com where OpenAI's models are documented (bench)
+link code.claude.com       where to get Claude Code (doctor.py, site)
+link tailscale.com         where to get Tailscale (pair.py)
+link ballerine.com         the maker (site)
+link www.w3.org            XML namespace of inline SVG icons (ui.html, site)

@@ -1,0 +1,172 @@
+# Every package in uv.lock, with why it is there. tests/test_supply_chain.py fails when the lockfile and this file
+# disagree in either direction. A new package (direct or transitive) needs a line here with a reason, a row in
+# THIRD_PARTY.md, and the owner's yes in the pull request. Format: name, whitespace, reason.
+
+addict                           needed by misaki
+aiofiles                         needed by pipecat-ai
+aiohappyeyeballs                 needed by aiohttp
+aiohttp                          the daemon's HTTP client and WebSockets (vendors, the node link); also the node group
+aiosignal                        needed by aiohttp
+annotated-doc                    needed by fastapi, typer
+annotated-types                  needed by pydantic
+anthropic                        the Claude SDK: brain, reader, checker
+anyio                            needed by anthropic, google-genai, httpx, httpx2, openai, starlette
+attrs                            needed by aiohttp, jsonschema, phonemizer, phonemizer-fork, referencing
+audioop-lts                      needed by pipecat-ai
+av                               needed by faster-whisper
+babel                            needed by csvw
+blis                             needed by thinc
+catalogue                        needed by spacy, srsly, thinc
+certifi                          needed by httpcore, httpx, requests
+cffi                             needed by cryptography, miniaudio, sounddevice, soundfile
+charset-normalizer               needed by requests
+click                            needed by huggingface-hub, spacy, uvicorn, weasel
+cloudpathlib                     needed by weasel
+cloudpickle                      needed by joblib
+colorama                         needed by loguru, pytest, tqdm
+confection                       needed by spacy, thinc, weasel
+cryptography                     node group: the node's TLS link and pairing (nodelink.py); also google-auth
+csvw                             needed by segments
+ctranslate2                      needed by faster-whisper
+curated-tokenizers               needed by spacy-curated-transformers
+curated-transformers             needed by spacy-curated-transformers
+cymem                            needed by preshed, spacy, thinc
+distro                           needed by google-genai
+dlinfo                           needed by phonemizer, phonemizer-fork
+docopt                           needed by num2words
+docstring-parser                 needed by anthropic, pipecat-ai
+en-core-web-sm                   local extra: spaCy's English pipeline for misaki, pinned by URL so misaki does not pip-install it at run time
+espeakng-loader                  needed by kokoro-onnx, misaki[en]
+fastapi                          node group: the node's HTTP app; also pipecat-ai[websocket]
+faster-whisper                   needed by pipecat-ai[whisper]
+filelock                         needed by huggingface-hub, torch
+flatbuffers                      needed by onnxruntime
+frozenlist                       needed by aiohttp, aiosignal
+fsspec                           needed by huggingface-hub, torch
+google-api-core                  needed by google-cloud-speech, google-cloud-texttospeech
+google-auth                      needed by google-api-core, google-cloud-speech, google-cloud-texttospeech, google-genai
+google-cloud-speech              needed by pipecat-ai[google]
+google-cloud-texttospeech        needed by pipecat-ai[google]
+google-genai                     needed by pipecat-ai[google]
+googleapis-common-protos         needed by google-api-core, grpcio-status
+grpcio                           needed by google-api-core[grpc], google-cloud-speech, google-cloud-texttospeech, grpcio-status
+grpcio-status                    needed by google-api-core[grpc]
+h11                              needed by httpcore, httpcore2, uvicorn
+h2                               needed by httpx[http2]
+hf-xet                           needed by huggingface-hub
+hpack                            needed by h2
+httpcore                         needed by httpx
+httpcore2                        needed by httpx2
+httpx                            dev group: the tests' HTTP client; also google-genai, pipecat-ai[openai], weasel
+httpx2                           needed by anthropic, huggingface-hub, openai
+httpx2-jsfetch                   needed by httpx2
+huggingface-hub                  needed by faster-whisper, mlx-audio, mlx-whisper, tokenizers, transformers
+hyperframe                       needed by h2
+idna                             needed by anyio, httpx, httpx2, requests, yarl
+iniconfig                        needed by pytest
+isodate                          needed by csvw
+jinja2                           needed by mlx-audio, mlx-lm, spacy, torch, transformers[chat-template]
+jiter                            needed by anthropic, openai
+joblib                           needed by phonemizer, phonemizer-fork
+jsonschema                       needed by csvw
+jsonschema-specifications        needed by jsonschema
+kokoro-onnx                      needed by pipecat-ai[kokoro]
+language-tags                    needed by csvw
+llvmlite                         needed by numba
+loguru                           logging, the logger pipecat uses; also the node group
+loudness                         needed by pipecat-ai
+markdown                         needed by pipecat-ai
+markdown-it-py                   needed by rich
+markupsafe                       needed by jinja2
+mdurl                            needed by markdown-it-py
+miniaudio                        needed by mlx-audio
+misaki                           local extra: English phonemizer for Kokoro on MLX (kokoro_mlx.py)
+mlx                              needed by mlx-audio, mlx-lm, mlx-whisper
+mlx-audio                        local extra: Kokoro on the Mac's GPU (kokoro_mlx.py)
+mlx-lm                           mlx-lm group: the local text-model server of `pointe local`, in its own environment (local.py)
+mlx-metal                        needed by mlx
+mlx-whisper                      needed by pipecat-ai[mlx-whisper]
+more-itertools                   needed by mlx-whisper
+mpmath                           needed by sympy
+multidict                        needed by aiohttp, yarl
+murmurhash                       needed by preshed, spacy, thinc
+networkx                         needed by torch
+num2words                        needed by misaki[en], pipecat-ai
+numba                            needed by mlx-whisper, pipecat-ai, resampy
+numpy                            needed by blis, ctranslate2, kokoro-onnx, loudness, mlx-audio, mlx-lm, mlx-whisper, numba, onnxruntime, pipecat-ai, resampy, scipy, soundfile, soxr, spacy, thinc, transformers
+onnxruntime                      needed by faster-whisper, kokoro-onnx, pipecat-ai
+openai                           needed by pipecat-ai
+opentelemetry-api                needed by anthropic, fastapi, google-api-core
+packaging                        needed by huggingface-hub, onnxruntime, pytest, spacy, thinc, transformers, weasel
+phonemizer                       needed by kokoro-onnx
+phonemizer-fork                  needed by misaki[en]
+pillow                           needed by pipecat-ai
+pipecat-ai                       the voice pipeline: transport, voice detector, speech/text/voice adapters (extras google, openai, silero, soniox, websocket; kokoro, whisper, mlx-whisper in the local extra)
+pluggy                           needed by pytest
+preshed                          needed by spacy, thinc
+propcache                        needed by aiohttp, yarl
+proto-plus                       needed by google-api-core, google-cloud-speech, google-cloud-texttospeech
+protobuf                         needed by google-api-core, google-cloud-speech, google-cloud-texttospeech, googleapis-common-protos, grpcio-status, mlx-lm, onnxruntime, pipecat-ai, proto-plus
+pyasn1                           needed by pyasn1-modules
+pyasn1-modules                   needed by google-auth
+pycparser                        needed by cffi
+pydantic                         needed by anthropic, fastapi, google-genai, openai, pipecat-ai, spacy, thinc, typer, weasel
+pydantic-core                    needed by pydantic
+pygments                         needed by pytest, rich
+pyparsing                        needed by rdflib
+pytest                           dev group: the test runner
+python-dateutil                  needed by csvw
+python-dotenv                    needed by pipecat-ai
+pyyaml                           needed by ctranslate2, huggingface-hub, mlx-lm, pipecat-ai, transformers
+rdflib                           needed by csvw
+referencing                      needed by jsonschema, jsonschema-specifications
+regex                            needed by curated-tokenizers, misaki, segments, tiktoken, transformers
+requests                         needed by google-api-core, google-auth[requests], google-genai, pipecat-ai[kokoro], smart-open[http], spacy, tiktoken
+resampy                          needed by pipecat-ai
+rfc3986                          needed by csvw
+rich                             needed by typer
+rpds-py                          needed by jsonschema, referencing
+safetensors                      needed by transformers
+scipy                            needed by mlx-audio, mlx-whisper
+segments                         needed by phonemizer-fork
+segno                            QR codes for pairing a phone (pair.py, phone_pairing.py)
+sentencepiece                    needed by mlx-audio, mlx-lm
+sentencex                        needed by pipecat-ai
+setuptools                       needed by spacy, thinc, torch
+shellingham                      needed by typer
+sherpa-onnx                      runs the speaker-verification model of the voice lock (speaker.py)
+sherpa-onnx-core                 needed by sherpa-onnx
+smart-open                       needed by weasel
+sniffio                          needed by anthropic, google-genai, openai
+sounddevice                      dev group: bench recording and playback; also mlx-audio
+soundfile                        needed by pipecat-ai
+soxr                             needed by pipecat-ai
+spacy                            needed by misaki[en]
+spacy-curated-transformers       needed by misaki[en]
+spacy-legacy                     needed by spacy
+spacy-loggers                    needed by spacy
+srsly                            needed by spacy, thinc, weasel
+starlette                        needed by fastapi
+sympy                            needed by torch
+tenacity                         needed by google-genai
+termcolor                        needed by csvw
+thinc                            needed by spacy
+tiktoken                         needed by mlx-whisper
+tokenizers                       needed by faster-whisper, transformers
+torch                            needed by curated-transformers, mlx-whisper, spacy-curated-transformers
+tqdm                             needed by faster-whisper, huggingface-hub, mlx-audio, mlx-whisper, spacy, transformers
+transformers                     needed by mlx-audio, mlx-lm
+truststore                       needed by httpcore2, httpx2
+typer                            needed by spacy, transformers, weasel
+typing-extensions                needed by aiohttp, aiosignal, anthropic, anyio, fastapi, google-genai, grpcio, httpx2, huggingface-hub, openai, opentelemetry-api, phonemizer, phonemizer-fork, pipecat-ai, pydantic, pydantic-core, referencing, starlette, torch, typing-inspection
+typing-inspection                needed by fastapi, pydantic
+tzdata                           needed by python-dateutil
+uritemplate                      needed by csvw
+urllib3                          needed by requests
+uvicorn                          the ASGI server the daemon and the node listen with
+wasabi                           needed by spacy, thinc, weasel
+weasel                           needed by spacy
+websockets                       node group: the Codex app-server client (harnesses/codex.py); also google-genai, pipecat-ai
+win32-setctime                   needed by loguru
+wrapt                            needed by smart-open
+yarl                             needed by aiohttp

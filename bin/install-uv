@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install uv, pinned: one version, whose installer is fetched to a file and checked against a SHA-256 before it runs.
 # That installer in turn checks each uv binary it downloads against the SHA-256 it carries. /pointe:setup runs this when
-# uv is missing, in place of `curl … | sh` of the newest installer. Usage: install-uv (prints what it did; exit 1 on a mismatch)
+# uv is missing, in place of piping the newest installer into sh unread. Usage: install-uv (prints what it did; exit 1 on a mismatch)
 set -euo pipefail
 UV_VERSION="0.12.21"  # the same version as .github/workflows/test.yml and tests/e2e/linux_node/*Dockerfile; tests/test_supply_chain.py checks
 INSTALLER_SHA256="0722d6c438395e39e1c27a86a79054d3b2820dd9399c7f8b0f6f84cd27ce36c3"  # of https://astral.sh/uv/0.12.21/install.sh

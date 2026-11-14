@@ -6,6 +6,35 @@ jobs:
   offline:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
+        with:
+          version: "0.12.21"  # the version bin/install-uv installs and the e2e images carry
       - run: uv run --locked pytest -q tests/ --ignore=tests/e2e
+  # docs/security/supply-chain.md. Fails on an unpinned action, a lockfile that drifted from pyproject.toml, a package
+  # missing from docs/security/dependencies-allowlist.txt, a URL to a host missing from docs/security/egress-allowlist.txt,
+  # an install path that resolves unpinned, a download without a hash, or a known vulnerability in any locked version.
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
+        with:
+          version: "0.12.21"
+      - name: The lockfile matches pyproject.toml
+        run: uv lock --check
+      - name: Pins, allowlists, egress, install paths
+        run: uv run --locked pytest -q tests/test_supply_chain.py
+      - name: Known vulnerabilities, in every locked version (not only this platform's)
+        run: |
+          uv run --locked python tools/locked_requirements.py > "$RUNNER_TEMP/locked.txt"
+          uvx pip-audit@2.10.1 --no-deps --disable-pip --progress-spinner off -r "$RUNNER_TEMP/locked.txt"
+      - name: SBOM (CycloneDX) and the exported lock
+        run: |
+          mkdir -p sbom
+          uv export --locked --all-extras --all-groups --no-emit-project --format requirements-txt -o sbom/requirements.txt
+          uvx --from cyclonedx-bom@8.0.1 cyclonedx-py requirements sbom/requirements.txt --pyproject pyproject.toml --of JSON -o sbom/pointe.cdx.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: sbom
+          path: sbom/

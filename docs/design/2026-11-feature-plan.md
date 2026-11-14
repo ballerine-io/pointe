@@ -188,7 +188,7 @@ card once per week until enrolled or dismissed.
 ### Rollout
 
 `config.json`: `"voice_lock": "off" | "approvals" | "commands" | "everything"` (daemon-owned, UI-set). Default `off`
-until enrolled; `approvals` after enrolment. Optional dependency group `uv sync --extra speaker`.
+until enrolled; `approvals` after enrolment. Optional dependency group `uv sync --locked --extra speaker`.
 
 ### Effort and dependencies
 
