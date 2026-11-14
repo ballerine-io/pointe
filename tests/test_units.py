@@ -1007,3 +1007,17 @@ def test_a_status_answer_is_never_cut_for_repeating_what_the_join_lines_said():
     answer = ("Nothing needs you right now. On studio, shop/main is idle. You asked it to run the voice attach command, "
               "but I can't see that it ran. On devbox, four sessions are idle: shop/main, lighthouse/main, orchard and harbor.")
     assert without_recent_repeats(answer, said, "What's going on everywhere?") == answer
+
+
+@pytest.mark.parametrize("asked", ["What's going on with all my sessions?", "what is going on", "how are all the sessions",
+                                   "what's every session doing"])
+def test_a_question_about_all_sessions_is_a_status_question_and_its_answer_is_said_whole(asked):
+    """From harness_matrix.py on the integrated build: "What's going on with all my sessions?" lost "Lighthouse main is
+    idle" to the repeat filter, so the status answer left a session out."""
+    from brain import without_recent_repeats
+    from guards import status_intent
+
+    assert status_intent(asked)
+    said = ["Lighthouse main just joined. It is idle, and it needs nothing from you."]
+    answer = "Nothing needs you. Lighthouse main is idle and needs nothing. Orchard and harbor just joined and are idle."
+    assert without_recent_repeats(answer, said, asked) == answer

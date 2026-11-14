@@ -299,6 +299,7 @@ _HOLD = re.compile(r"^\W*(?:(?:no,?\s+)?(?:not yet|hold off|hold on|wait)\W*(?:$
 _STATUS = ("need me", "needs me", "need from me", "needs from me", "need to do", "waiting on me", "waiting for me",
            "on me", "anything i need", "what's left", "what is left", "still open", "open items", "where are we",
            "what's open", "everywhere", "every machine", "all machines", "all the machines", "each machine",
+           "what's going on", "what is going on", "all my sessions", "all the sessions", "every session",
            "מה אני צריך", "מה נשאר", "מה פתוח", "מי מחכה", "איפה אנחנו", "מחכה לי", "מחכים לי", "בכל המכונות")
 
 
