@@ -2,7 +2,7 @@ import AVFoundation
 import SwiftUI
 
 struct PairView: View {
-    let paired: (Pairing) -> Void
+    let submit: (String) -> Void  // a pointe://pair link; PointeApp pairs with it and says how it went
     @State private var link = ""
     @State private var problem: String?
     @State private var scanning = true
@@ -10,11 +10,11 @@ struct PairView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             BrandHeader()
-            Text("On your Mac, run `pointe pair host <name>` (Twingate or any VPN name), `pointe pair tailscale`, or `pointe pair wifi`, then scan the code it shows.")
+            Text("On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone. Scan the code it shows here, or with the Camera app.")
                 .foregroundStyle(.secondary)
             if scanning {
                 Scanner { code in
-                    if let p = Pairing(link: code) { paired(p) } else { problem = "That code is not a Pointe pairing code." }
+                    if PairingLink(code) != nil { submit(code) } else { problem = "That code is not a Pointe pairing code." }
                 }
                 .frame(maxWidth: .infinity, minHeight: 280)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -33,7 +33,7 @@ struct PairView: View {
     }
 
     private func use() {
-        if let p = Pairing(link: link) { paired(p) } else { problem = "That link is not a Pointe pairing link." }
+        if PairingLink(link) != nil { submit(link) } else { problem = "That link is not a Pointe pairing link." }
     }
 }
 

@@ -37,6 +37,7 @@ import drive as drives
 import remote
 import harnesses
 import hub_nodes
+import phone_pairing
 import nodelink
 from harnesses import FINISHED_MARK
 import local
@@ -51,7 +52,7 @@ import whisper
 from jobs import JobRunner
 from notes import Notes
 from prefs import Prefs
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 import numpy as np
 from fastapi import FastAPI, Header, HTTPException, Request, WebSocket
 from fastapi.responses import HTMLResponse
@@ -170,7 +171,6 @@ if not PAGE_KEY_FILE.exists() or not PAGE_KEY_FILE.read_text().strip():  # empty
     PAGE_KEY_FILE.touch(mode=0o600)
     PAGE_KEY_FILE.write_text(secrets.token_urlsafe(32))
 PAGE_KEY = PAGE_KEY_FILE.read_text().strip()
-phone.phone_key(STATE_DIR)  # made at start, so pairing can show it before the phone first connects
 REGISTRY.load(STATE_DIR / "sessions.json")
 FRONT = os.environ.get("CLAUDE_VOICE_FRONT", "brain")  # or a realtime model that also decides: gemini, openai
 _setup: vendors.Setup | None = None
@@ -1457,6 +1457,8 @@ class State:
     nudger: asyncio.Task | None = None
     heartbeat: asyncio.Task | None = None
     heartbeat_info: object = None  # the call's ping state: round trip and when the client last answered
+    phone_socket: object = None  # the phone app's call while it is up: Unpair on the page ends it
+    phone_socket_id: str | None = None  # which phone holds it (phone_pairing.Phones)
     connected_at: float = 0.0
     last_nudge_at: float = 0.0
     call_sent: dict | None = None  # the last `call` state the node link was given (_notify_call)
@@ -4213,8 +4215,8 @@ TOOLS = ToolsSchema(standard_tools=[
 app = FastAPI()
 REMOTE = remote.Remote(STATE_DIR)
 remote.install(REMOTE, app)  # localhost as before; a paired phone over HTTPS through the private network
-app.add_middleware(LocalAuth, token=TOKEN, page_key=PAGE_KEY, remote=REMOTE,
-                   phone=lambda authorization: phone.phone_allowed(STATE_DIR, authorization))
+PHONES = phone_pairing.Phones(STATE_DIR)  # each phone's key (hashed), name and last seen (Settings → Phone)
+app.add_middleware(LocalAuth, token=TOKEN, page_key=PAGE_KEY, remote=REMOTE, phone=PHONES.allowed)
 
 _listeners = app.router.lifespan_context  # remote.install's: the phone's HTTPS listener runs inside it
 
@@ -4244,6 +4246,20 @@ async def _with_housekeeping(_app):
 app.router.lifespan_context = _with_housekeeping
 HUB = hub_nodes.Hub(STATE_DIR, REGISTRY)  # the machines paired with this Mac: their links, invites and mirrors
 hub_nodes.install(app, HUB)  # wraps the lifespan just set
+
+
+async def _end_phone_call(ids: set[str] | None) -> None:
+    """Unpair on the page: that phone's call ends now, not when it next reconnects with the revoked key. Another
+    phone's call stays up. None: every phone."""
+    if state.phone_socket is not None and (ids is None or state.phone_socket_id in ids):
+        try:
+            await state.phone_socket.close(code=4401, reason="unpaired")
+        except Exception:  # already closed
+            pass
+
+
+phone_pairing.install(app, phone_pairing.PhoneLink(STATE_DIR, PHONES), page_key=PAGE_KEY, listener=REMOTE,
+                      on_unpair=_end_phone_call)
 
 
 @app.post("/voice/register")
@@ -5003,6 +5019,8 @@ def _may_show(request: Request) -> bool:
 
 @app.get("/voice/status")
 async def status(request: Request):
+    # The app's name for itself, percent-encoded (a header is ASCII): names the phone paired before per-phone keys.
+    PHONES.report(request.scope.get("state", {}).get("pointe_phone_id"), unquote(request.headers.get("x-pointe-device", "")))
     SHOWS.watched("phone" if _off_the_mac(request) else "page", time.time())
     show = _may_show(request)
     return {"active": REGISTRY.active.name if REGISTRY.active else None,
@@ -5044,6 +5062,7 @@ async def status(request: Request):
             "machines": _status_machines(),
             "invite": _invite(request),
             "can_invite": _can_invite(request),
+            "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
@@ -5689,11 +5708,16 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
                 return
 
     pinger = asyncio.create_task(keep_alive())
+    if who == "phone":
+        state.phone_socket = websocket
+        state.phone_socket_id = websocket.scope.get("state", {}).get("pointe_phone_id")
     try:
         await run_call(transport)
     finally:
         pinger.cancel()
         state.heartbeat_info = None
+        if state.phone_socket is websocket:
+            state.phone_socket = None
 
 
 def _clock_ears(stt) -> None:

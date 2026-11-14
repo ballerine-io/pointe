@@ -91,6 +91,31 @@
   #mach-code { font: 700 28px 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .12em; user-select: all; }
   #mach-link { font: 12px 'JetBrains Mono', ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
   #mach-link:empty { display: none; }
+  /* Settings → Phone (phone_pairing.py) */
+  .proutes { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+  .proutes label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; background: var(--card);
+                   border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; font-size: 13.5px; }
+  .proutes label.on { border-color: var(--orange-line); background: var(--orange-soft); }
+  .proutes label.off { opacity: .55; cursor: default; }
+  .proutes input { grid-row: 1 / 4; margin-top: 3px; accent-color: var(--orange); }
+  .proutes .pl { font-weight: 600; }
+  .proutes .pl .best { color: var(--green); font-weight: 600; font-size: 11.5px; margin-left: 6px; }
+  .proutes .pl .now { color: var(--muted); font-weight: 500; font-size: 11.5px; margin-left: 6px; }
+  .proutes .pw { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+  .proutes .pp { color: var(--orange); font-size: 12.5px; line-height: 1.4; }
+  #ph-hostform { display: flex; gap: 8px; margin: 6px 0; }
+  #ph-hostform input { flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line); color: var(--text);
+                       border-radius: 10px; padding: 7px 10px; font: 13px 'Inter', sans-serif; }
+  #ph-hostform button { border: 0; border-radius: 10px; padding: 7px 14px; background: var(--card2); color: var(--text);
+                        font: 600 13px 'Inter', sans-serif; cursor: pointer; }
+  #ph-svg svg { display: block; width: 230px; height: 230px; border-radius: 12px; margin: 8px 0; }
+  #ph-link { font: 11.5px 'JetBrains Mono', ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
+  #phone [hidden] { display: none; }  /* .row is a flex box, which would show a hidden one */
+  #phone .note { margin: 4px 0 8px; }
+  #phone .row { margin: 8px 0; }
+  #ph-link { margin: 0 0 8px; line-height: 1.45; }
+  #ph-done { font-weight: 600; margin: 8px 0 0; }
+  #ph-actions .sure { background: var(--orange); color: #fff; border-color: var(--orange); }
   .s .edit { color: var(--dim); font-size: 13px; opacity: 0; padding: 0 2px; }
   .s:hover .edit { opacity: 1; } .s .edit:hover { color: var(--text); }
   .s .edit.sure { opacity: 1; color: var(--orange); font-weight: 600; font-size: 11.5px; }
@@ -630,6 +655,42 @@
       </div>
       <div class="err" id="mach-err" role="alert"></div>
     </section>
+    <section id="phone" aria-labelledby="ph-h">
+      <h3 id="ph-h">Phone</h3>
+      <div class="note">The Pointe iPhone app calls into your sessions wherever your phone can reach this Mac.</div>
+      <ul class="mlist" id="ph-list" aria-label="Paired phones"></ul>
+      <div id="ph-pick" hidden>
+        <div class="help">How should your phone reach this Mac?</div>
+        <div class="proutes" id="ph-routes" role="radiogroup" aria-label="How the phone reaches this Mac"></div>
+        <form id="ph-hostform" onsubmit="event.preventDefault(); phoneRoutes($('ph-host').value)">
+          <input id="ph-host" aria-label="A network name you set up" placeholder="Or a name you set up (Twingate, a VPN)" autocomplete="off" spellcheck="false">
+          <button type="submit" id="ph-check">Check</button>
+        </form>
+        <div class="note" id="ph-advice" role="alert"></div>
+        <div class="note" id="ph-cert"></div>
+        <div class="row" style="justify-content:flex-start">
+          <button class="go" type="button" id="ph-show" onclick="phoneCode()">Show the code</button>
+          <button type="button" onclick="phonePickDone()">Cancel</button>
+        </div>
+      </div>
+      <div id="ph-qr" hidden>
+        <div class="note">On your iPhone, open the Camera, point it at this code, and tap “Open in Pointe”. Or scan it in the
+          Pointe app.</div>
+        <div id="ph-svg" role="img" aria-label="Pairing code"></div>
+        <div id="ph-link" dir="ltr"></div>
+        <div class="note" id="ph-left" role="timer"></div>
+        <div class="note">It works once. It holds a one-time code, not the phone's key: the app gets the key from this Mac
+          over the encrypted link it checks by certificate.</div>
+        <div class="row" style="justify-content:flex-start"><button type="button" id="ph-cancel" onclick="phoneCancel()">Cancel the code</button></div>
+      </div>
+      <div class="ok" id="ph-done" role="status"></div>
+      <div class="row" style="justify-content:flex-start" id="ph-actions">
+        <button type="button" class="go" id="ph-connect" onclick="phoneConnect()">Connect your phone</button>
+        <button type="button" id="ph-unpair" onclick="phoneUnpair('all')" hidden>Unpair all</button>
+      </div>
+      <div class="note" id="ph-rule"></div>
+      <div class="err" id="ph-err" role="alert"></div>
+    </section>
     <h3>Dictionary</h3>
     <div class="row" style="justify-content:flex-start"><button type="button" id="dict-open" onclick="openDictionary()">Dictionary…</button></div>
     <h3>Briefings</h3>
@@ -964,6 +1025,7 @@
     $('list').replaceChildren(...(s.sessions.length ? rows
       : [el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.')]));
     showMachines(s, mv);
+    showPhones(s);
     document.body.classList.toggle('nosessions', false);
 
     const recent = (s.recent || []).slice().reverse();
@@ -2235,6 +2297,136 @@
     await hubPost('/voice/hub/revoke', {name});
     refresh();
   }
+  // Settings → Phone (phone_pairing.py): the paired phones, the routes to this Mac, a one-time QR, Unpair in two clicks.
+  // Only on this Mac: a page opened over the phone's listener is refused these routes.
+  let phoneRoutesSeen = null, phonePick = null, phoneQR = null, phonesShown = '';
+  let phoneSure = {id: '', until: 0};  // which Unpair (a phone's id, or 'all') was clicked once, until when
+  const PHONE_RULE = 'Each phone has its own key. Connecting another phone keeps the ones already paired; Unpair signs ' +
+    'out only that phone.';
+  function showPhones(s) {
+    $('phone').hidden = location.protocol === 'https:';
+    const paired = ((s && s.phones) || {}).paired || [];
+    const sure = Date.now() < phoneSure.until ? phoneSure.id : '';
+    const sig = JSON.stringify([paired, sure, Math.floor(Date.now() / 30000)]);
+    if (sig === phonesShown) return;
+    phonesShown = sig;
+    const rows = paired.map(p => {
+      const li = el('li');
+      const seen = p.online ? 'online now' : p.last_seen ? `last seen ${sinceText(p.last_seen)}` : 'not seen yet';
+      const when = p.legacy ? 'paired before this Mac gave each phone its own key' : `paired ${sinceText(p.paired_at)}`;
+      li.append(el('span', 'mn', p.name), el('span', 'mmeta', `${seen} · ${when}`));
+      const b = el('button', sure === p.id ? 'sure' : '', sure === p.id ? `Unpair ${p.name}?` : 'Unpair');
+      b.title = 'Sign out this phone only: its key stops working at once, and a call it has up ends';
+      b.onclick = () => phoneUnpair(p.id);
+      li.append(b);
+      return li;
+    });
+    $('ph-list').replaceChildren(...(rows.length ? rows : [el('li', 'mmeta', 'No phone paired yet.')]));
+    $('ph-connect').textContent = paired.length ? 'Connect another phone' : 'Connect your phone';
+    $('ph-unpair').hidden = paired.length < 2;
+    $('ph-unpair').textContent = sure === 'all' ? 'Unpair every phone?' : 'Unpair all';
+    $('ph-unpair').classList.toggle('sure', sure === 'all');
+    $('ph-rule').textContent = paired.length ? PHONE_RULE : '';
+  }
+  async function phoneFetch(path, body) {
+    $('ph-err').textContent = '';
+    const r = await fetch(path, body === undefined ? {} : {method: 'POST', headers: {'content-type': 'application/json'},
+                                                          body: JSON.stringify(body)}).catch(() => null);
+    if (!r || !r.ok) {
+      const text = r ? (await r.text().catch(() => '')).trim() : '';
+      $('ph-err').textContent = text || 'The Mac did not answer.';
+      return null;
+    }
+    return await r.json().catch(() => ({}));
+  }
+  function showRoutes(found, typed) {
+    phoneRoutesSeen = found;
+    const routes = found.routes || [];
+    const want = typed && routes.find(r => r.kind === 'host' && r.host === typed.trim().toLowerCase() && r.usable);
+    if (want) phonePick = want;
+    else if (!phonePick || !routes.some(r => r.kind === phonePick.kind && r.host === phonePick.host && r.usable))
+      phonePick = routes.find(r => r.recommended) || null;
+    $('ph-routes').replaceChildren(...routes.map(r => {
+      const on = !!phonePick && r.kind === phonePick.kind && r.host === phonePick.host;
+      const label = el('label', (on ? 'on' : '') + (r.usable ? '' : ' off'));
+      const radio = el('input'); radio.type = 'radio'; radio.name = 'ph-route'; radio.checked = on; radio.disabled = !r.usable;
+      radio.onchange = () => { phonePick = r; showRoutes(phoneRoutesSeen); };
+      const title = el('span', 'pl', r.label);
+      if (r.recommended) title.append(el('span', 'best', 'Recommended'));
+      if (r.current) title.append(el('span', 'now', 'set up now'));
+      label.append(radio, title, el('span', 'pw', r.words));
+      if (r.problem) label.append(el('span', 'pp', r.problem));
+      return label;
+    }));
+    $('ph-advice').textContent = found.advice || '';
+    $('ph-cert').textContent = phonePick && phonePick.new_certificate
+      ? 'Choosing this makes a new certificate for this Mac: a phone or machine paired now must connect again.' : '';
+    $('ph-show').disabled = !phonePick;
+  }
+  async function phoneRoutes(typed) {
+    const q = typed && typed.trim() ? `?host=${encodeURIComponent(typed.trim())}` : '';
+    $('ph-check').disabled = true;
+    const found = await phoneFetch('/voice/phone/routes' + q);
+    $('ph-check').disabled = false;
+    if (found) showRoutes(found, typed);
+  }
+  async function phoneConnect() {
+    $('ph-done').textContent = ''; phonePick = null;
+    $('ph-pick').hidden = false; $('ph-actions').hidden = true;
+    $('ph-routes').replaceChildren(el('div', 'note', 'Looking for ways your phone can reach this Mac…'));
+    await phoneRoutes('');
+  }
+  function phonePickDone() {
+    $('ph-pick').hidden = true; $('ph-actions').hidden = false;
+  }
+  async function phoneCode() {
+    if (!phonePick) return;
+    $('ph-show').disabled = true;
+    const made = await phoneFetch('/voice/phone/invite', {kind: phonePick.kind, host: phonePick.host});
+    $('ph-show').disabled = false;
+    if (!made || !made.code) return;
+    phoneQR = {...made, until: Date.now() + made.expires_in * 1000};
+    $('ph-pick').hidden = true; $('ph-qr').hidden = false;
+    $('ph-svg').innerHTML = made.svg;  // made by this Mac (segno): no image service sees the code
+    $('ph-link').textContent = made.link;
+    phoneTick();
+  }
+  async function phoneTick() {  // once a second while the code shows: the countdown, and the phone pairing
+    if (!phoneQR) return;
+    const left = Math.max(0, Math.round((phoneQR.until - Date.now()) / 1000));
+    $('ph-left').textContent = `Waiting for your phone. The code expires in ${clock(left)}.`;
+    const st = await fetch('/voice/phone/invite').then(r => r.ok ? r.json() : null).catch(() => null);
+    if (!phoneQR) return;
+    if (st && st.paired) return phoneFinish(`Connected: ${st.paired.name}`);
+    if (st && st.ended) return phoneFinish('', st.ended);
+    if (left <= 0 || (st && !st.expires_in)) return phoneFinish('', 'The code expired. Connect your phone again to make a new one.');
+    setTimeout(phoneTick, 1000);
+  }
+  function phoneFinish(done, problem) {
+    phoneQR = null;
+    $('ph-qr').hidden = true; $('ph-svg').replaceChildren(); $('ph-link').textContent = '';
+    $('ph-actions').hidden = false;
+    $('ph-done').textContent = done || '';
+    $('ph-err').textContent = problem || '';
+    phonesShown = ''; refresh();
+  }
+  async function phoneCancel() {
+    await phoneFetch('/voice/phone/invite', {cancel: true});
+    phoneFinish('');
+  }
+  async function phoneUnpair(id) {  // two clicks, no dialog, as Revoke; id 'all' signs out every phone
+    if (!(phoneSure.id === id && Date.now() < phoneSure.until)) {
+      phoneSure = {id, until: Date.now() + 3000}; phonesShown = '';
+      showPhones(status); setTimeout(() => { phonesShown = ''; showPhones(status); }, 3100);
+      return;
+    }
+    phoneSure = {id: '', until: 0};
+    const name = id === 'all' ? '' : ((((status || {}).phones || {}).paired || []).find(p => p.id === id) || {}).name;
+    if (await phoneFetch('/voice/phone/unpair', id === 'all' ? {all: true} : {id}))
+      $('ph-done').textContent = id === 'all' ? 'Unpaired every phone. Each must connect again.' : `Unpaired ${name || 'that phone'}.`;
+    phonesShown = ''; refresh();
+  }
+
   async function consentAgain() {  // at once, as in the app: a voice start then needs the consent step again
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'},
                                            body: JSON.stringify({'meeting.consented': false})});
