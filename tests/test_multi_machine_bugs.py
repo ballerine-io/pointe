@@ -528,3 +528,39 @@ def test_a_lone_surrogate_in_a_frame_does_not_wedge_the_link(world):
     text = mirror.read_text() if mirror.exists() else hub.mirrors._part(mirror).read_text()
     assert len(text.splitlines()) == 2 and "after" in text.splitlines()[1]  # the bad line kept, replaced, in step
     assert all(s.name.encode() for s in registry.sessions.values())
+
+
+# ---------- 16. this Mac runs processes and reads its own disk at a node's paths ----------
+
+@pytest.fixture
+def no_processes(monkeypatch):
+    """Every way the daemon starts a process, recorded and refused."""
+    import subprocess
+
+    started = []
+
+    def refuse(*a, **k):
+        started.append((a, k))
+        raise AssertionError(f"a process was started: {a} {k}")
+
+    async def refuse_async(*a, **k):
+        refuse(*a, **k)
+
+    monkeypatch.setattr(subprocess, "run", refuse)
+    monkeypatch.setattr(subprocess, "Popen", refuse)
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", refuse_async)
+    return started
+
+
+def test_the_conflict_scan_runs_no_git_for_a_remote_session(d, node, tmp_path, no_processes):
+    """A node's folder names a place on the node. On this Mac the same path may exist (or be planted): git there
+    describes the wrong repository, and a repository's config can run code."""
+    from test_mixed_harnesses import _join
+
+    s = _join(d, "devbox", "s1", "shop")
+    s.cwd = str(tmp_path)  # a path that also exists on this Mac
+    (tmp_path / ".git").mkdir()
+    asyncio.run(d._scan_conflicts(s, {"verdict": "done"}, "finished"))
+    assert no_processes == []
+    remembered = d.ALARM.reports[s.id]
+    assert remembered.root == "" and remembered.cwd != str(tmp_path)  # "same folder" only on the same machine

@@ -2115,11 +2115,15 @@ def _start_conflict_scan(session: Session, report: dict, final: str) -> None:
 
 
 async def _scan_conflicts(session: Session, report: dict, final: str) -> None:
-    root, branch = await asyncio.to_thread(conflicts.git_place, session.cwd)
+    if session.machine:  # its folder is on its node: never run git at that path on this Mac (as _tracked_files)
+        root, branch, cwd = "", "", f"{session.machine}:{session.cwd}"  # "same folder" only on the same machine
+    else:
+        root, branch = await asyncio.to_thread(conflicts.git_place, session.cwd)
+        cwd = session.cwd
     edited = await asyncio.to_thread(conflicts.edited_stems, session.transcript)
     notes = _brief_of(session) or {}
     new = conflicts.Report(
-        session_id=session.id, name=session.name, agent=harnesses.of(session).agent, cwd=session.cwd,
+        session_id=session.id, name=session.name, agent=harnesses.of(session).agent, cwd=cwd,
         root=root, branch=branch, at=time.time(), final=final[-conflicts.SOURCE_CHARS:],
         verdict=str(report.get("verdict") or ""), limits=[str(x) for x in report.get("limits") or []][:6],
         say=str(report.get("say") or ""), state=str(notes.get("state") or ""),
