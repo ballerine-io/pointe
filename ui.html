@@ -248,7 +248,7 @@
   .connect.quiet { background: var(--card2); color: var(--text); box-shadow: none; }
   .connect.quiet:hover { background: var(--card3); }
   .connect.nudge { animation: nudge .5s ease; }
-  @keyframes nudge { 30% { transform: scale(1.06); box-shadow: 0 0 0 10px var(--orange-soft), 0 8px 26px rgba(255, 79, 31, .45); } }
+  @keyframes nudge { 30% { transform: scale(1.08); } }  /* transform only: a shadow in a keyframe repaints every frame */
   .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .3); border-top-color: #fff; animation: spin .8s linear infinite; flex: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .connect > .spin { display: none; } .connect.busy > .spin { display: block; } .connect.busy > svg { display: none; }
