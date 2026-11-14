@@ -22,6 +22,7 @@ import socket
 import subprocess
 import sys
 import threading
+import textwrap
 import time
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
@@ -601,6 +602,10 @@ class FeedInjector(FrameProcessor):
     @property
     def holding(self) -> bool:
         return bool(self._held)
+
+    def forget_report(self) -> None:
+        """The owner moved to another session by a click: a report being read, or one they cut off, is not offered again."""
+        self._report, self._report_speaking, self._cut = None, False, None
 
     async def inject(self, text: str, respond: bool) -> None:
         if respond and state.challenge is not None and (FINISHED_MARK in text or text.startswith("[idle session]")):
@@ -1469,6 +1474,7 @@ class State:
     user_heard_at: float = 0.0  # last live words of the user's, echo removed: drives the speaking ring
     last_delegation_at: float = 0.0
     last_switch_at: float = 0.0
+    focus_clicks: int = 0  # clicks on a session so far: only the newest of a burst is announced
     sent: list[str] = field(default_factory=list)
     conversation: list[tuple[str, str]] = field(default_factory=list)  # (who, words), newest last
     bot_logged: tuple | None = None  # the bot turn last written to the journal
@@ -4832,18 +4838,79 @@ async def hung_up():
     return {}
 
 
+FOCUS_SETTLE_SECS = 0.35  # a burst of clicks is announced once, for the last; and the cut reaches the mouth before the line
+FOCUS_LINE = "I'm now in session {name}."  # the owner's fixed words for a click
+
+
+def _sentence(text: str) -> str:
+    text = textwrap.shorten(" ".join(text.split()), 220, placeholder="…")
+    return text if text.endswith((".", "?", "!", "…")) else text + "."
+
+
+def _focus_line(s: Session) -> str:
+    """What a click on a session says, from the daemon's records only: a model's paraphrase could drop the wait or
+    invent a state. The name, what it waits on the user for, then the notes' last state."""
+    parts = [FOCUS_LINE.format(name=s.name)]
+    waits = _waiting_items(s)
+    if s.permission_id and online(s):
+        parts.append("It's waiting for your approval.")  # the read-out that follows says what, and opens the yes
+    elif waits:
+        parts.append(f"It's waiting on you: {_sentence(waits[0])}")
+    elif s.busy:
+        parts.append("It's working, not waiting on you.")
+    else:
+        parts.append("It's not waiting on anything.")
+    where = (_brief_of(s) or {}).get("state")
+    parts.append(f"Last state: {_sentence(where)}" if where else "I have no notes on it yet.")
+    return " ".join(parts)
+
+
+async def _drop_old_topic() -> None:
+    """The owner moved on by a click: what the bot is saying, the reply being generated, and a report it would come
+    back to all belong to the session before. The same cut as a barge-in."""
+    if state.front is not None:
+        state.front.brain.interrupt()
+    if state.conn is not None:
+        state.conn.injector.forget_report()
+        cut = getattr(state.conn.injector, "broadcast_interruption", None)
+        if cut is not None:
+            await cut()
+
+
+async def focus_by_click(session: Session) -> None:
+    """A click on a session, on the page or the phone app, in either mode. The status moves at once; after
+    FOCUS_SETTLE_SECS, if no newer click came, the fixed line is said and the session is activated (its history, and
+    a pending permission read out after the line). A click on the session already focused announces it again: a
+    deliberate re-click asks where it stands now."""
+    state.focus_clicks += 1
+    click = state.focus_clicks
+    await _drop_old_topic()
+    REGISTRY.set_active(session.id)
+    if state.conn is None:  # no call: nothing to say, the next call starts on it
+        await activate(session)
+        return
+    await asyncio.sleep(FOCUS_SETTLE_SECS)
+    if click != state.focus_clicks or REGISTRY.active is not session or state.conn is None:
+        return
+    line = _focus_line(session)
+    logger.info(f"focus by click -> {session.name}")
+    if FRONT == "brain" and state.front is not None:
+        await state.conn.injector.inject(f"[switched by click; said to the user, by the daemon] {line} Do not say "
+                                         f"it again.", False)
+        await state.front._speak(line)
+    else:  # a realtime model speaks only for itself: it is given the words
+        await state.conn.injector.inject(f"[switched by click] Say exactly this, nothing else: {_spoken_names(line)}", True)
+    await activate(session)
+
+
 @app.post("/voice/switch")
 async def switch_by_click(request: Request):
-    """A click in the voice tab. Same-origin only (remote.Remote.guard); switching sends nothing."""
+    """A click in the voice tab or the phone app. Same-origin only (remote.Remote.guard); switching sends nothing."""
     name = (await request.json()).get("name")
     session = next((s for s in REGISTRY.sessions.values() if s.name == name), None)
     if session is None:
         raise HTTPException(status_code=404, detail="no such session")
-    if session is not REGISTRY.active:
-        note = await activate(session)
-        if "waiting_permission" not in note:  # otherwise the permission request itself is the announcement
-            await state.conn.injector.inject(f"[switched by click] Now on {session.name}. The screen shows it: do not "
-                                             f"announce it.", False) if state.conn else None
+    await focus_by_click(session)
     return {"active": session.name}
 
 
