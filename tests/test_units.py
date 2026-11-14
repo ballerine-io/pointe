@@ -1,5 +1,6 @@
 import pytest
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -997,27 +998,37 @@ def test_a_plugin_command_tells_a_node_from_its_own_tools_output_not_by_reading_
     assert "node.json" not in text
 
 
-def test_a_status_answer_is_never_cut_for_repeating_what_the_join_lines_said():
+def test_a_status_answer_is_never_cut_for_repeating_what_the_join_lines_said(monkeypatch):
     """From the two-machine run: "what's going on everywhere" lost "On studio, shop/main is idle." because a join line
     had said it, leaving "You asked it to run..." with no session and no machine."""
-    from brain import without_recent_repeats
+    from test_orchestrator import _brain, _say, _scripted
 
-    said = ["Shop main on devbox just joined, alongside shop main on studio. Neither needs anything from you right now.",
-            "On studio, shop/main is idle, and nothing is waiting."]
+    joined = "Shop main on devbox just joined, alongside shop main on studio. Neither needs anything from you right now."
+    idle = "On studio, shop/main is idle, and nothing is waiting."
     answer = ("Nothing needs you right now. On studio, shop/main is idle. You asked it to run the voice attach command, "
               "but I can't see that it ran. On devbox, four sessions are idle: shop/main, lighthouse/main, orchard and harbor.")
-    assert without_recent_repeats(answer, said, "What's going on everywhere?") == answer
+    b, spoken = _brain([])
+    b.may_stay_silent = lambda: False
+    _scripted(monkeypatch, [_say(joined), _say(idle), _say(answer)])
+    asyncio.run(b.turn("[shop main on devbox joined]"))
+    asyncio.run(b.turn("[shop main on studio is idle]"))
+    asyncio.run(b.turn("What's going on everywhere?"))
+    assert spoken[-1] == answer
 
 
 @pytest.mark.parametrize("asked", ["What's going on with all my sessions?", "what is going on", "how are all the sessions",
                                    "what's every session doing"])
-def test_a_question_about_all_sessions_is_a_status_question_and_its_answer_is_said_whole(asked):
+def test_a_question_about_all_sessions_is_a_status_question_and_its_answer_is_said_whole(asked, monkeypatch):
     """From harness_matrix.py on the integrated build: "What's going on with all my sessions?" lost "Lighthouse main is
     idle" to the repeat filter, so the status answer left a session out."""
-    from brain import without_recent_repeats
     from guards import status_intent
+    from test_orchestrator import _brain, _say, _scripted
 
     assert status_intent(asked)
-    said = ["Lighthouse main just joined. It is idle, and it needs nothing from you."]
     answer = "Nothing needs you. Lighthouse main is idle and needs nothing. Orchard and harbor just joined and are idle."
-    assert without_recent_repeats(answer, said, asked) == answer
+    b, spoken = _brain([])
+    b.may_stay_silent = lambda: False
+    _scripted(monkeypatch, [_say("Lighthouse main just joined. It is idle, and it needs nothing from you."), _say(answer)])
+    asyncio.run(b.turn("[lighthouse main joined]"))
+    asyncio.run(b.turn(asked))
+    assert spoken[-1] == answer

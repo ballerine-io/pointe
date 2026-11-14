@@ -303,10 +303,15 @@ _STATUS = ("need me", "needs me", "need from me", "needs from me", "need to do",
            "מה אני צריך", "מה נשאר", "מה פתוח", "מי מחכה", "איפה אנחנו", "מחכה לי", "מחכים לי", "בכל המכונות")
 
 
+# Whole phrases: "on me" is in "turn on meeting mode". Hebrew phrases match inside words, as a prefix letter ("ומה
+# נשאר") is part of the word.
+_STATUS_RE = re.compile("|".join(rf"(?<![\w']){re.escape(p)}(?![\w'])" if p.isascii() else re.escape(p)
+                                 for p in _STATUS))
+
+
 def status_intent(text: str) -> bool:
     """A question about what is open or who needs the user: answered from the daemon's list, never from memory."""
-    lowered = _lower(text)
-    return any(p in lowered for p in _STATUS)
+    return bool(_STATUS_RE.search(_lower(text)))
 
 
 def cut_off(text: str) -> bool:
