@@ -94,7 +94,7 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
     "session.joined": {"id": _str},
     "session.left": {"id": _str, "why": _one_of("exited", "disconnected")},
     "transcript": {"id": _str, "gen": _count, "offset": _count, "next_offset": _count, "entries": _list_of(_line)},
-    "transcript.repointed": {"id": _str, "gen": _count},
+    "transcript.repointed": {"id": _str, "gen": _count, "history?": _bool},
     "files": {"id": _str, "names": _list_of(_str, MAX_FILES)},
     "permission.request": {"id": _str, "request_id": _str, "tool": _str, "description": _str, "preview": _str,
                            "readable": _or_none(_str), "deadline_ms": _count},

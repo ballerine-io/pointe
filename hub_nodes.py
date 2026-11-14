@@ -264,21 +264,23 @@ class Mirrors:
         _private_dir(path.parent)
         os.close(os.open(path, os.O_WRONLY | os.O_CREAT, 0o600))
 
-    def repoint(self, node_id: str, sid: str, gen: int) -> bool:
+    def repoint(self, node_id: str, sid: str, gen: int, history: bool = False) -> bool:
         """The session moved to a new file (/clear, /resume), or this hub sees it for the first time: a new mirror from
-        offset 0; older ones go. True when it is a backlog (no mirror of this session before)."""
+        offset 0; older ones go. True when it is a backlog: no mirror of this session before, or the node said the
+        new gen re-ships a file that already happened (`history`)."""
         latest = self.latest(node_id, sid)
         if latest is not None and gen <= latest:
             return False
         path = self.path(node_id, sid, gen)
-        self._create(self._part(path) if latest is None else path)
+        backlog = latest is None or history
+        self._create(self._part(path) if backlog else path)
         _write_private(self._offset(path), "0\n")
         for old in self._gens(node_id, sid):
             if old < gen:
                 old_path = self.path(node_id, sid, old)
                 for p in (old_path, self._part(old_path), self._offset(old_path)):
                     p.unlink(missing_ok=True)
-        return latest is None
+        return backlog
 
     def promote(self, node_id: str, sid: str) -> None:
         gen = self.latest(node_id, sid)
@@ -657,7 +659,7 @@ class Hub:
                     self._backlog_wait(node, sid)
         elif t == "transcript.repointed":
             if _ID.fullmatch(frame["id"]) and frame["id"] in (node.sessions or {}):
-                if self.mirrors.repoint(node.id, frame["id"], frame["gen"]):
+                if self.mirrors.repoint(node.id, frame["id"], frame["gen"], history=frame.get("history", False)):
                     self._backlog_wait(node, frame["id"])
         elif t == "files":
             session = self._session(node, frame["id"])

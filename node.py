@@ -627,7 +627,8 @@ class Node:
 
     async def _apply_resume(self, resume: dict, everyone: bool = False, only: str | None = None) -> None:
         """Reseek to where the hub's mirror ends. With `everyone` (a welcome) or `only` (one session joining), a
-        session the hub has no offset for starts at 0 in its current gen."""
+        session the hub has no offset for starts at 0 in its current gen. Every gen opened here re-ships a file from
+        byte 0 that already happened, so its repoint says `history`; a live move (_ship) does not."""
         wanted = {self._unprefixed(k): v for k, v in resume.items()}
         self.hub_offsets.update(wanted)
         for sid, tail in self.tails.items():
@@ -637,7 +638,7 @@ class Node:
             if at is None:
                 if everyone or only is not None:
                     tail.offset = 0
-                    await self._send("transcript.repointed", id=sid, gen=tail.gen)
+                    await self._send("transcript.repointed", id=sid, gen=tail.gen, history=True)
                 continue
             size = _size(tail.path)
             if at["gen"] == tail.gen and at["offset"] <= size:
@@ -647,7 +648,7 @@ class Node:
             tail.gen = max(tail.gen, at["gen"]) + (0 if at["gen"] < tail.gen else 1)
             tail.offset = 0
             self._save_tails()
-            await self._send("transcript.repointed", id=sid, gen=tail.gen)
+            await self._send("transcript.repointed", id=sid, gen=tail.gen, history=True)
 
     async def _tail(self, session: Session) -> None:
         while True:

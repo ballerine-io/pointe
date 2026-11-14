@@ -148,7 +148,6 @@ def test_a_prompt_reoffered_after_a_link_drop_is_put_to_the_user_again(d, monkey
 
 # ---------- 4. a backlog re-shipped at a new gen of a known session is fed as news ----------
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_a_hub_ahead_in_gen_makes_the_node_reship_its_whole_file_as_history(tmp_path):
     """The node has no tail state (left and rejoined); the hub's mirror is at gen 2. The node cannot adopt the hub's
     offset, so it bumps to gen 3 and ships the file from byte 0: a backlog, and it says so."""
@@ -168,12 +167,12 @@ def test_a_hub_ahead_in_gen_makes_the_node_reship_its_whole_file_as_history(tmp_
     assert repointed.get("history") is True, "nothing in transcript.repointed tells the hub this gen opens with a backlog"
 
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_a_backlog_arriving_at_a_new_gen_of_a_known_session_is_not_fed_as_news(world, monkeypatch):
     """The session already has a mirror (gen 0) and the follower is live on it. The node re-ships its file as history
     at gen 1: the hub must hold it back as it holds a first-join backlog, so the follower never reads it as reports."""
     hub, host, registry, *_ = world
     monkeypatch.setattr(sessions, "REPOINT_EVERY_SECS", 0.05)
+    monkeypatch.setattr(hub_nodes, "HISTORY_QUIET_SECS", 0.3)
     node = paired(hub)
     fed = []
 
@@ -192,7 +191,7 @@ def test_a_backlog_arriving_at_a_new_gen_of_a_known_session_is_not_fed_as_news(w
         await fake.connect()
         await fake.send_sessions(entry())
         await fake.send("transcript", id="s1", gen=0, offset=0, next_offset=1, entries=[_line("earlier")])
-        await settle()
+        await asyncio.sleep(0.5)  # the first-join backlog is promoted
         s = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
         [watcher] = harnesses.of(s).watch(s, feed)
         task = asyncio.create_task(watcher)
@@ -205,7 +204,7 @@ def test_a_backlog_arriving_at_a_new_gen_of_a_known_session_is_not_fed_as_news(w
         for i in range(3):
             await fake.send("transcript", id="s1", gen=1, offset=i, next_offset=i + 1, entries=[_line(f"old {i}")])
             await asyncio.sleep(0.05)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1.6)  # promoted, and the follower's once-a-second look for the file has found it
         await fake.send("transcript", id="s1", gen=1, offset=3, next_offset=4, entries=[_line("new work")])
         await wait_for("new work")  # the follower moved to the promoted mirror and reads what comes after it
         task.cancel()
