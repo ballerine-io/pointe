@@ -201,6 +201,7 @@ def load_daemon():
         return sys.modules["daemon"]
     tmp = tempfile.mkdtemp(prefix="brain-bench-")
     Path(tmp, "token").write_text("bench")
+    Path(tmp, "config.json").write_text(json.dumps({"machine": "studio"}))  # this Mac's name, for cases on several machines
     os.environ["CLAUDE_VOICE_STATE"] = tmp
     import daemon
     return daemon
@@ -227,14 +228,20 @@ def daemon_context(case: bc.BrainCase) -> tuple[str, str]:
     registry and state seeded with the case, so the bench sends what the daemon sends. Synchronous: replies run in
     parallel on one daemon state, and nothing else can run between seeding and reading."""
     d = load_daemon()
-    from sessions import REGISTRY, Session
+    from sessions import MACHINES, REGISTRY, Machine, Session
     REGISTRY.path = None
     REGISTRY.sessions = {}
     REGISTRY.mode = case.mode
     d.state.unconfirmed = {}
+    MACHINES.clear()
+    for s in case.sessions:
+        if s.machine:
+            MACHINES[s.machine] = Machine(name=s.machine, os="linux", online=s.online, rtt_ms=23 if s.online else None,
+                                          since=None if s.online else 1731590520.0)
     for i, s in enumerate(case.sessions):
         sid = f"s{i}"
         REGISTRY.sessions[sid] = Session(id=sid, name=s.name, cwd="/tmp", pid=1, transcript="", busy=s.busy, brief=s.notes,
+                                         machine=s.machine,
                                          open_questions=list(s.waits), deadlines=list(s.clocks), urgency="high" if s.urgent else "normal",
                                          typed_approval=s.typed, permission_id="p" if s.permission else None)
         if s.sent:
@@ -252,7 +259,8 @@ def default_tool_result(case: bc.BrainCase, name: str, args: dict):
     if name == "send_to_claude_code":
         return {"sent_to": [active.name], "routing": "active", "note": "Sent is not done: say you asked Claude, not that it happened."}
     if name == "list_sessions":
-        return {"sessions": [{"name": s.name, "active": s is active, "working": s.busy, "waiting_for_permission": s.permission,
+        return {"sessions": [{"name": s.name, "machine": s.machine or "studio", "online": s.online, "active": s is active,
+                              "working": s.busy, "waiting_for_permission": s.permission,
                               "needs_from_user": list(s.waits) or None, "clocks": list(s.clocks), "urgent": s.urgent,
                               "where_it_stands": (s.notes or {}).get("state") or s.state, "latest": ""} for s in case.sessions]}
     if name == "ask_about_session":
