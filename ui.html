@@ -63,6 +63,34 @@
   .s .tag.hot { color: var(--orange); font-weight: 600; }
   .agent { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted); border: 1px solid rgba(255,255,255,.14);
            border-radius: 6px; padding: 0 5px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+  /* machines (docs/multi-machine.md): with one machine none of this shows */
+  #mchips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  #mchips:empty { display: none; }
+  #mchips button { border: 1px solid var(--line); background: var(--card); color: var(--muted); font: 600 12px 'Inter', sans-serif;
+                   padding: 4px 11px; border-radius: 999px; cursor: pointer; }
+  #mchips button.on { color: var(--text); border-color: var(--orange-line); background: var(--orange-soft); }
+  #mchips button.away { opacity: .55; }
+  .mh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; margin: 8px 2px 0; padding: 0; border: 0; background: none;
+        color: var(--dim); font: 500 11.5px 'Inter', sans-serif; cursor: pointer; text-align: left; }
+  #list > .mh:first-child { margin-top: 0; }
+  .mh::before { content: '▾'; color: var(--dim); }
+  .mh.folded::before { content: '▸'; }
+  .mh .mn { color: var(--text); font-weight: 600; font-size: 12.5px; }
+  .mh .hot { color: var(--orange); font-weight: 600; }
+  .mh.away .mn { color: var(--muted); }
+  .s.away { opacity: .45; }
+  .s.away .st { background: transparent; border: 1px solid var(--dim); }
+  .mlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .mlist li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; background: var(--card);
+              border-radius: 12px; padding: 10px 14px; font-size: 13.5px; }
+  .mlist .mmeta { grid-column: 1; color: var(--muted); font-size: 12px; }
+  .mlist .mmeta.away { color: var(--orange); }
+  .mlist button { grid-row: 1 / 3; grid-column: 2; border: 0; border-radius: 10px; padding: 7px 12px; background: var(--card2);
+                  color: var(--text); font: 600 12.5px 'Inter', sans-serif; cursor: pointer; }
+  .mlist button.sure { background: var(--orange); color: #fff; }
+  #mach-code { font: 700 28px 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .12em; user-select: all; }
+  #mach-link { font: 12px 'JetBrains Mono', ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
+  #mach-link:empty { display: none; }
   .s .edit { color: var(--dim); font-size: 13px; opacity: 0; padding: 0 2px; }
   .s:hover .edit { opacity: 1; } .s .edit:hover { color: var(--text); }
   .s .edit.sure { opacity: 1; color: var(--orange); font-weight: 600; font-size: 11.5px; }
@@ -482,6 +510,7 @@
 
   <section style="display:flex;flex-direction:column;min-height:0">
     <h3 class="label">Sessions</h3>
+    <div id="mchips" role="group" aria-label="Show sessions on"></div>
     <div id="list"></div>
     <div id="renameproblem" role="alert"></div>
   </section>
@@ -583,6 +612,23 @@
       </div>
       <div class="help" id="vl-levelhelp"></div>
       <div class="err" id="vl-err" role="alert"></div>
+    </section>
+    <section id="machines" aria-labelledby="mach-h" hidden>
+      <h3 id="mach-h">Machines</h3>
+      <div class="note">Sessions on your other Macs and Linux machines join this voice through a small Pointe there. Their
+        transcripts, with credentials masked, come to this Mac and go to the same services as this Mac's own.</div>
+      <ul class="mlist" id="mach-list"></ul>
+      <div id="mach-invite" hidden>
+        <div class="note">On the other machine, run <b>pointe node join</b> with this code. It works once.</div>
+        <div id="mach-code" dir="ltr"></div>
+        <div id="mach-link" dir="ltr"></div>
+        <div class="note" id="mach-left" role="timer"></div>
+      </div>
+      <div class="row" style="justify-content:flex-start">
+        <button type="button" id="mach-invitebtn" onclick="inviteMachine()">Invite a machine</button>
+        <button type="button" id="mach-cancel" onclick="cancelInvite()" hidden>Cancel the code</button>
+      </div>
+      <div class="err" id="mach-err" role="alert"></div>
     </section>
     <h3>Dictionary</h3>
     <div class="row" style="justify-content:flex-start"><button type="button" id="dict-open" onclick="openDictionary()">Dictionary…</button></div>
@@ -854,9 +900,10 @@
     const AGENTS = {'claude-code': 'Claude', opencode: 'OpenCode', codex: 'Codex', pi: 'Pi'};
     agentBadges = s.sessions.some(x => (x.harness || 'claude-code') !== 'claude-code');
     agentOf = x => AGENTS[x.harness || 'claude-code'] || x.harness;
-    const waiting = s.sessions.filter(x => x.waiting && x.request_id && (x.capabilities || {}).approvals !== false).sort((a, b) => (b.name === s.active) - (a.name === s.active));
+    const waiting = s.sessions.filter(x => x.waiting && x.request_id && (x.capabilities || {}).approvals !== false).sort((a, b) => (a.online === false) - (b.online === false) || (b.name === s.active) - (a.name === s.active));
     const first = waiting[0];
-    const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) + !!(s.drive && s.drive.on) : '';
+    const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) + !!(s.drive && s.drive.on)
+                        + (first.online === false) + machineView(s).mixed : '';
     if (key !== attentionShown) {
       attentionShown = key;
       $('attention').replaceChildren(...(first ? [approvalCard(first, s, waiting.length - 1)] : []));
@@ -865,14 +912,22 @@
     if (!meetOn) document.title = (blocked.length ? `(${blocked.length}) ` : '') + 'Ballerine Pointe';
 
     const focused = s.mode === 'session';
-    const sessions = s.sessions.slice().sort((a, b) => urgency(a) - urgency(b) || a.name.localeCompare(b.name));
-    $('list').replaceChildren(...(sessions.length ? sessions.map(x => {
-      const pinned = focused && x.name === s.active;
-      const b = el('div', 's' + (pinned ? ' on' : '') + (focused && !pinned ? ' dim' : ''));
+    const mv = machineView(s);
+    const byUrgency = list => list.slice().sort((a, b) => urgency(a) - urgency(b) || a.name.localeCompare(b.name));
+    $('mchips').replaceChildren(...(mv.multi ? ['', ...mv.names].map(n => {
+      const m = mv.info(n), chip = el('button', (machineFilter === n ? 'on' : '') + (n && m.online === false ? ' away' : ''), n || 'All');
+      chip.setAttribute('aria-pressed', machineFilter === n);
+      chip.title = !n ? 'Sessions on every machine' : m.online === false ? `${n}: offline since ${sinceText(m.since)}` : `Only the sessions on ${n}`;
+      chip.onclick = () => { machineFilter = n; refresh(); };
+      return chip;
+    }) : []));
+    const row = x => {
+      const pinned = focused && x.name === s.active, away = x.online === false;
+      const b = el('div', 's' + (pinned ? ' on' : '') + (focused && !pinned ? ' dim' : '') + (away ? ' away' : ''));
       b.tabIndex = 0; b.setAttribute('role', 'button');
-      const hot = needsYou(x);
+      const hot = needsYou(x) && !away;
       const tools = el('span', 'tools');
-      tools.append(el('span', 'tag' + (hot ? ' hot' : ''), x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'));
+      tools.append(el('span', 'tag' + (hot ? ' hot' : ''), away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'));
       const pen = el('span', 'edit', '✎'); pen.title = 'Rename';
       pen.onclick = ev => { ev.stopPropagation(); startRename(b, x.name); };
       const asking = confirming && confirming.name === x.name && Date.now() < confirming.until;
@@ -882,13 +937,33 @@
       tools.append(pen, cut);
       const nm = el('span', 'nm', short(x.name));
       if (agentBadges) nm.append(el('span', 'agent', agentOf(x)));
-      b.append(el('span', 'st' + (hot ? ' wait' : x.working ? ' working' : '')), nm, tools);
+      if (mv.mixed && !machineFilter) nm.append(el('span', 'agent machine', mv.of(x)));
+      b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, tools);
       if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n')[0] : x.needs));
-      b.title = x.name + (focused ? (pinned ? ' (focused)' : ' — click to focus on it') : ' — click to talk to it next');
-      b.onclick = () => switchTo(x.name);
+      b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
+                          : focused ? (pinned ? ' (focused)' : ' — click to focus on it') : ' — click to talk to it next');
+      b.onclick = () => switchTo(x.name);  // offline too: the voice can still say what its notes hold
       b.onkeydown = e => { if (e.key === 'Enter') switchTo(x.name); };
       return b;
-    }) : [el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.')]));
+    };
+    const header = g => {  // name, this Mac or its OS, offline since or round trip, how many need you; a click folds it
+      const m = g.m, away = m.online === false, folded = machinesFolded().includes(m.name);
+      const h = el('button', 'mh' + (away ? ' away' : '') + (folded ? ' folded' : ''));
+      h.setAttribute('aria-expanded', !folded);
+      h.append(el('span', 'mn', m.name), el('span', '', m.here ? 'this Mac' : OS[m.os] || m.os || ''));
+      if (away) h.append(el('span', '', `offline since ${sinceText(m.since)}`));
+      else if (!m.here && m.rtt_ms != null) h.append(el('span', '', `${m.rtt_ms} ms`));
+      const need = g.sessions.filter(x => needsYou(x) && x.online !== false).length;
+      if (need) h.append(el('span', 'hot', `${need} need${need === 1 ? 's' : ''} you`));
+      h.onclick = () => { foldMachine(m.name, !folded); refresh(); };
+      return h;
+    };
+    const rows = !s.sessions.length ? []
+      : !mv.multi ? byUrgency(s.sessions).map(row)
+      : mv.groups.flatMap(g => [header(g), ...(machinesFolded().includes(g.m.name) ? [] : byUrgency(g.sessions).map(row))]);
+    $('list').replaceChildren(...(s.sessions.length ? rows
+      : [el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.')]));
+    showMachines(s, mv);
     document.body.classList.toggle('nosessions', false);
 
     const recent = (s.recent || []).slice().reverse();
@@ -903,13 +978,55 @@
     }) : [el('li', 'empty', 'Each request shows here with where it went.')]));
   }
   let attentionShown = '', agentBadges = false, agentOf = x => x.harness;
+
+  // Machines (docs/multi-machine.md). A session's `machine` names the machine it runs on ("" or none: this Mac). The
+  // filter is a view only: it sends nothing and changes no mode.
+  let machineFilter = '';
+  const OS = {macos: 'macOS', linux: 'Linux'};
+  function machineView(s) {
+    const list = (s && s.machines) || [], sessions = (s && s.sessions) || [];
+    const here = (list.find(m => m.here) || {}).name || '';
+    const of = x => x.machine || here;
+    const info = n => list.find(m => m.name === n) || {name: n, here: n === here};
+    const names = [...new Set([here, ...list.filter(m => !m.here).map(m => m.name), ...sessions.map(of)])].filter(Boolean);
+    const multi = names.length > 1;
+    if (!multi || !names.includes(machineFilter)) machineFilter = '';
+    const on = n => !machineFilter || n === machineFilter;
+    return {multi, here, of, info, names, mixed: new Set(sessions.map(of)).size > 1,
+            groups: names.filter(on).map(n => ({m: info(n), sessions: sessions.filter(x => of(x) === n)})),
+            shown: sessions.filter(x => on(of(x)))};
+  }
+  // "shop · devbox": a name suffixed with its machine ("shop devbox", the second shop to join) loses the suffix here.
+  function whoLabel(x, mv) {
+    const m = mv.of(x), remote = m !== mv.here;
+    if (!mv.mixed && !remote) return short(x.name);
+    const base = remote && x.name.endsWith(' ' + m) ? x.name.slice(0, -m.length - 1) : x.name;
+    return `${short(base)} · ${m}`;
+  }
+  const sinceText = t => {
+    if (!t) return 'a while';
+    const d = new Date(t * 1000);
+    return d.toDateString() === new Date().toDateString() ? hhmm(t)
+      : d.toLocaleString([], {weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false});
+  };
+  const machinesFolded = () => { try { return JSON.parse(localStorage.getItem('pointe.machinesFolded') || '[]'); } catch (e) { return []; } };
+  function foldMachine(name, fold) {
+    const now = machinesFolded().filter(n => n !== name);
+    localStorage.setItem('pointe.machinesFolded', JSON.stringify(fold ? [...now, name] : now));
+  }
+
   function approvalCard(x, s, more) {
     if (s.drive && s.drive.on && window.driveCard) return driveCard(x, s, more);  // no buttons while driving
     const b = el('div', 'ask');
-    const what = el('div', 'what', short(x.name) + ' ');
+    const what = el('div', 'what', whoLabel(x, machineView(s)) + ' ');
     if (agentBadges) what.append(el('span', 'agent', agentOf(x)), ' ');
     what.append(el('span', '', 'needs approval'));
     b.append(what, el('div', 'need exact', x.request || ''));  // never clamped: this is what a tap approves
+    if (x.online === false) {  // its machine dropped: the prompt went back to that terminal, and an answer would be stale
+      b.append(el('div', 'need offline', 'offline: answer it in its terminal'));
+      if (more > 0) b.append(el('div', 'more', `${more} more waiting`));
+      return b;
+    }
     b.append(el('div', 'need', meetOn ? 'In a meeting, nothing is approved by voice: click to answer.'
                                : !x.voice_can_approve ? 'Too complex to read out: check it, then tap.'
                                : x.name === s.active ? 'Say yes or no, or tap.' : 'Say its name and yes or no, or tap.'));
@@ -1054,10 +1171,11 @@
   function showState() {
     const mine = call.state === 'live';  // this page's own call, not the daemon's: the call may be on the phone
     let st, title;
-    const s = status, sessions = (s && s.sessions) || [], need = sessions.filter(needsYou).length;
-    const where = !s ? '' : !sessions.length ? 'No sessions yet: /pointe:voice in Claude Code, or pointe join opencode'
+    const s = status, mv = machineView(s), sessions = mv.shown, need = sessions.filter(x => needsYou(x) && x.online !== false).length;
+    const on = machineFilter ? ` on ${machineFilter.replace(/[<&]/g, '')}` : '';  // the machine filter narrows this line too
+    const where = !s ? '' : !(s.sessions || []).length ? 'No sessions yet: /pointe:voice in Claude Code, or pointe join opencode'
       : s.mode === 'session' ? `Focused on <b>${short(s.active || '').replace(/[<&]/g, '')}</b>`
-      : `Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}` + (need ? ` · <b>${need} need${need === 1 ? 's' : ''} you</b>` : '');
+      : `Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}${on}` + (need ? ` · <b>${need} need${need === 1 ? 's' : ''} you</b>` : '');
     $('problem').textContent = micError || callNote || (Date.now() < meetProblemUntil ? meetProblem : '') || (s && s.problem ? s.problem : '');
     if (fails >= 3) [st, title] = ['reconnecting', 'Daemon not responding'];
     else if (wantCall && !mine) [st, title] = ['reconnecting', 'Reconnecting…'];
@@ -2038,6 +2156,75 @@
     await loadSchedule();
     openSheet('settingssheet', 'pref-mode');
   }
+  // Settings → Machines: the paired machines, a one-time code to pair another, and Revoke in two clicks.
+  let machinesShown = '', revoking = null, invite = null;  // invite: {code, link, until}, counted down here between polls
+  function showMachines(s, mv) {
+    $('machines').hidden = !Array.isArray(s.machines);
+    if (!Array.isArray(s.machines)) return;
+    const st = s.invite;
+    if (st && st.code) invite = {code: st.code, link: st.link || '', until: Date.now() + (st.expires_in || 0) * 1000};
+    // cancelled, used or expired on the Mac (a Mac without the field sends none); a poll that left before the code was
+    // made says null too, so a code made here is kept for a moment
+    else if (st === null && !(invite && Date.now() - (invite.made || 0) < 3000)) invite = null;
+    const asking = revoking && Date.now() < revoking.until ? revoking.name : '';
+    const sig = JSON.stringify([s.machines, asking]);
+    if (sig !== machinesShown) {
+      machinesShown = sig;
+      $('mach-list').replaceChildren(...[...s.machines].sort((a, b) => b.here - a.here).map(m => {
+        const li = el('li'), away = m.online === false;
+        li.append(el('span', 'mn', m.here ? `${m.name} (this Mac)` : m.name));
+        const facts = [OS[m.os] || m.os, away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
+                       `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
+        li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
+        if (!m.here) {
+          const sure = asking === m.name, b = el('button', sure ? 'sure' : '', sure ? `Revoke ${m.name}?` : 'Revoke');
+          b.title = 'Unpair it: its sessions leave the voice, and it needs a new code to come back';
+          b.onclick = () => revokeMachine(m.name);
+          li.append(b);
+        }
+        return li;
+      }));
+    }
+    showInvite();
+  }
+  function showInvite() {
+    const left = invite ? Math.max(0, Math.round((invite.until - Date.now()) / 1000)) : 0;
+    const live = !!(invite && invite.code && left > 0);
+    $('mach-invite').hidden = !live;
+    $('mach-cancel').hidden = !live;
+    $('mach-invitebtn').hidden = live;
+    if (!live) return;
+    $('mach-code').textContent = invite.code;
+    $('mach-link').textContent = invite.link ? `pointe node join '${invite.link}'` : '';
+    $('mach-left').textContent = `Expires in ${clock(left)}`;
+  }
+  setInterval(() => { if (invite) showInvite(); }, 1000);
+  async function hubPost(path, body) {
+    $('mach-err').textContent = '';
+    const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+    const reply = await r.json().catch(() => ({}));
+    if (!r.ok) $('mach-err').textContent = reply.detail || 'The Mac did not do it.';
+    return r.ok ? reply : null;
+  }
+  async function inviteMachine() {
+    const reply = await hubPost('/voice/hub/invite', {action: 'make'});
+    if (reply && reply.code) invite = {code: reply.code, link: reply.link || '', made: Date.now(), until: Date.now() + (reply.expires_in || 600) * 1000};
+    showInvite(); refresh();
+  }
+  async function cancelInvite() {
+    if (await hubPost('/voice/hub/invite', {action: 'cancel'})) invite = null;
+    showInvite(); refresh();
+  }
+  async function revokeMachine(name) {  // two clicks, no dialog, as Disconnect
+    if (!(revoking && revoking.name === name && Date.now() < revoking.until)) {
+      revoking = {name, until: Date.now() + 3000};
+      refresh(); setTimeout(refresh, 3100);
+      return;
+    }
+    revoking = null;
+    await hubPost('/voice/hub/revoke', {name});
+    refresh();
+  }
   async function consentAgain() {  // at once, as in the app: a voice start then needs the consent step again
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'},
                                            body: JSON.stringify({'meeting.consented': false})});
@@ -2266,11 +2453,17 @@
       if (desk.seen.has(a.id)) continue;
       desk.seen.add(a.id);  // shown on the page or alerted once: never alerted again
       if (!away || !deskWanted() || !deskAllowed()) continue;
-      const n = new Notification(a.title || 'Pointe wants to speak', {body: a.body || a.text || '', tag: a.id,
+      const n = new Notification(alertTitle(a, s), {body: a.body || a.text || '', tag: a.id,
                                                                      requireInteraction: a.kind === 'permission'});
       n.onclick = () => { window.focus(); n.close(); };
       desk.shown.set(a.id, n);
     }
+  }
+  function alertTitle(a, s) {  // "shop · devbox needs approval" once the session's machine needs saying
+    const title = a.title || 'Pointe wants to speak', x = a.session && (s.sessions || []).find(y => y.name === a.session);
+    if (!x) return title;
+    const mv = machineView(s), label = whoLabel(x, mv);
+    return label === short(x.name) || title.includes(' · ') || !title.startsWith(x.name) ? title : label + title.slice(x.name.length);
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
