@@ -33,6 +33,39 @@ struct API {
         var tokens: Tokens?         // the voice model's own count of its context, after its last reply
         var local: LocalMode?       // local mode, read-only (local.summary); nil from a Mac without it
         var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
+        var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
+        var invite: Invite?         // the one-time code to pair another machine, while one is outstanding
+    }
+
+    // MARK: machines (docs/multi-machine.md). With one machine, `machines` has only this Mac and nothing changes on screen.
+
+    struct Machine: Decodable, Equatable, Identifiable, Hashable {
+        let id: String
+        let name: String
+        let here: Bool?             // this Mac, the one with the call
+        let os: String?             // "macos", "linux"
+        let online: Bool?
+        let since: Double?          // offline since (epoch seconds)
+        let sessions: Int?
+        let need: Int?
+        let rtt_ms: Int?
+        let key_fp: String?         // the first hex of the node key's SHA-256, as `pointe node status` prints it
+
+        var isHere: Bool { here == true }
+        var isOffline: Bool { online == false }
+        var osName: String {
+            switch os ?? "" {
+            case "macos": "macOS"
+            case "linux": "Linux"
+            case let other: other
+            }
+        }
+    }
+
+    struct Invite: Decodable, Equatable {
+        let code: String
+        let expires_in: Double?     // seconds left when the status was made
+        let link: String?           // the whole pointe://hub?… line, when the Mac sends it
     }
 
     // MARK: show while it says (docs/features/show-while-it-says.md). Paths only in status; the
@@ -364,7 +397,12 @@ struct API {
         /// Which coding agent runs it: "claude-code", "opencode", "codex"... Older daemons send nothing: Claude Code.
         let harness: String?
         let capabilities: Capabilities?
+        /// The machine it runs on; nil or empty is this Mac. Older Macs send neither field.
+        var machine: String? = nil
+        /// False while its machine is offline: sends are refused and its prompt is back in its terminal.
+        var online: Bool? = nil
         var id: String { name }
+        var isOffline: Bool { online == false }
 
         var agent: String {
             switch harness ?? "claude-code" {
@@ -461,6 +499,18 @@ struct API {
     func mode(_ mode: String) async throws { try await post("voice/mode", ["mode": mode]) }
 
     func hungUp() async throws { try await post("voice/hung-up") }
+
+    // MARK: machines
+
+    /// A one-time code another machine pairs with: single use, 10 minutes.
+    func invite() async throws -> Invite {
+        try JSONDecoder().decode(Invite.self, from: try await checked(request("voice/hub/invite", method: "POST", body: ["action": "make"])))
+    }
+
+    func cancelInvite() async throws { try await post("voice/hub/invite", ["action": "cancel"]) }
+
+    /// Unpairs a machine: its sessions leave the voice, and it needs a new code to come back.
+    func revoke(_ name: String) async throws { try await post("voice/hub/revoke", ["name": name]) }
 
     // MARK: meeting
 
