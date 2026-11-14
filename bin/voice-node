@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# This machine's node: its sessions on another machine's voice (docs/design/multi-machine.md). Usage: voice-node ensure|stop|status
+# It listens where the daemon would (127.0.0.1:$CLAUDE_VOICE_DAEMON_PORT) with the same token and daemon.pid files, so
+# /pointe:voice, the permission hook and `pointe join` work here unchanged. bin/voice-daemon hands over to it once
+# `pointe node join` has paired this machine.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+PIDFILE="$STATE/daemon.pid"
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+URL="http://127.0.0.1:$PORT"
+# Outside the checkout: a plugin dir can be read-only, and the hub's full environment is not needed here.
+ENV_DIR="$STATE/node-env"
+PATH="$PATH:$HOME/.local/bin"
+mkdir -p "$STATE" && chmod 700 "$STATE"
+
+hub() { sed -n 's/.*"hub": *{[^}]*"name": *"\([^"]*\)".*/\1/p' "$STATE/node.json" 2>/dev/null | head -1; }
+running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+health() { curl -sf -m 2 "$URL/voice/health" 2>/dev/null; }
+is_node() { [[ "$(health)" =~ \"node\":\ *true ]]; }
+ours() {  # started below as the python process itself, so the listener is that pid
+  local pids rc=0
+  pids="$("$ROOT/bin/voice-listeners" pids "$PORT")" || rc=$?
+  [ "$rc" -eq 3 ] && return 0  # nothing here can tell who listens: as bin/voice-daemon does without lsof
+  grep -qxF "$(cat "$PIDFILE")" <<<"$pids"
+}
+refuse_daemon() {
+  echo "voice-node: a Pointe daemon (a hub, with the call) is running on port $PORT. A machine is the hub or a node, not both: stop it first with bin/voice-daemon stop, or use another port with CLAUDE_VOICE_DAEMON_PORT" >&2
+  exit 1
+}
+
+case "${1:-ensure}" in
+  status)
+    if running && is_node; then echo "node running (pid $(cat "$PIDFILE")), paired with $(hub)"; else echo "node stopped, paired with $(hub)"; fi
+    exit 0 ;;
+  stop)
+    if running && is_node; then
+      PID="$(cat "$PIDFILE")"
+      kill "$PID" 2>/dev/null || true
+      for _ in $(seq 1 20); do kill -0 "$PID" 2>/dev/null || break; sleep 0.25; done
+      kill -9 "$PID" 2>/dev/null || true
+      rm -f "$PIDFILE"
+    elif running; then
+      echo "voice-node: what runs on port $PORT is not the node; leaving it (bin/voice-daemon stop stops a daemon)" >&2
+    else
+      rm -f "$PIDFILE"
+    fi
+    echo "stopped"; exit 0 ;;
+  ensure) ;;
+  *) echo "usage: voice-node ensure|stop|status" >&2; exit 2 ;;
+esac
+
+[ -f "$STATE/node.json" ] || { echo "voice-node: this machine is not paired with a hub. Pair it: pointe node join '<invite>'" >&2; exit 1; }
+if running; then
+  for _ in $(seq 1 40); do
+    if health >/dev/null; then is_node || refuse_daemon; ours && { echo "$URL"; exit 0; }; fi
+    running || break
+    sleep 0.25
+  done
+fi
+rm -f "$PIDFILE"
+if "$ROOT/bin/voice-listeners" taken "$PORT"; then
+  health >/dev/null && ! is_node && refuse_daemon
+  echo "voice-node: port $PORT is taken by another process. Use another: CLAUDE_VOICE_DAEMON_PORT=7870" >&2; exit 1
+fi
+
+command -v uv >/dev/null 2>&1 || { echo "voice-node: uv is missing. Install it: https://docs.astral.sh/uv/" >&2; exit 1; }
+[ -d "$ENV_DIR" ] || echo "voice-node: first run, downloading about 35 MB..." >&2
+UV_PROJECT_ENVIRONMENT="$ENV_DIR" uv sync --locked --quiet --only-group node --project "$ROOT"
+PY="$ENV_DIR/bin/python"
+
+( umask 077; "$PY" -c 'import secrets; print(secrets.token_hex(24))' >"$STATE/token" )
+umask 077  # the log holds session content
+rm -f "$STATE/daemon.log"
+UNSET=(-u CLAUDE_CONFIG_DIR -u CLAUDECODE -u CLAUDE_PID)
+for var in $(env | sed -n 's/^\(CLAUDE_CODE_[A-Z_]*\)=.*/\1/p'); do UNSET+=(-u "$var"); done
+env "${UNSET[@]}" CLAUDE_VOICE_STATE="$STATE" nohup "$PY" "$ROOT/node.py" serve --port "$PORT" \
+  >"$STATE/daemon.log" 2>&1 </dev/null &
+echo $! >"$PIDFILE"
+disown || true
+
+for _ in $(seq 1 120); do
+  is_node && ours && { echo "$URL"; exit 0; }
+  running || break
+  sleep 0.25
+done
+tail -5 "$STATE/daemon.log" >&2 || true
+echo "voice-node: did not start, see $STATE/daemon.log" >&2
+exit 1

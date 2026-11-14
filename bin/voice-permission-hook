@@ -4,9 +4,13 @@
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 [ -r "$STATE/token" ] && [ -r "$STATE/daemon.pid" ] || exit 0
-# The reply can approve a tool call, so it must come from our daemon, not from whatever holds the port now.
+# The reply can approve a tool call, so it must come from our daemon (or node), not from whatever holds the port now.
+# No lsof (a Linux box): ss, then /proc; with none of them, nothing is forwarded.
+BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PID="$(cat "$STATE/daemon.pid")"
-lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | grep -qxFf <({ echo "$PID"; pgrep -P "$PID" 2>/dev/null; }) || exit 0
+OURS="$({ echo "$PID"; pgrep -P "$PID" 2>/dev/null || tr ' ' '\n' </proc/"$PID"/task/"$PID"/children 2>/dev/null; } |
+  grep -x '[0-9][0-9]*')"
+"$BIN/voice-listeners" pids "$PORT" 2>/dev/null | grep -qxF "$OURS" || exit 0
 REPLY="$(curl -sf --connect-timeout 1 --max-time 290 --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") \
   -H 'content-type: application/json' --data-binary @- "http://127.0.0.1:$PORT/voice/permission-hook")" || exit 0
 [ "$REPLY" = "{}" ] || printf '%s\n' "$REPLY"

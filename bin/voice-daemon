@@ -11,6 +11,9 @@ PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 URL="http://127.0.0.1:$PORT"
 PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started before it ran does not have it on PATH
 mkdir -p "$STATE" && chmod 700 "$STATE"
+# A node (paired with a hub by `pointe node join`) runs the node in the daemon's place: no call, no keys, no models.
+grep -qs '"hub"' "$STATE/node.json" && exec "$ROOT/bin/voice-node" "$@"
+LISTENERS="$ROOT/bin/voice-listeners"  # lsof, else ss, else /proc: a Linux box often lacks lsof
 
 running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
 
@@ -29,7 +32,7 @@ case "${1:-ensure}" in
         sleep 0.25
       done
       kill -9 $KIDS "$PID" 2>/dev/null || true
-      for _ in $(seq 1 20); do lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1 || break; sleep 0.25; done
+      for _ in $(seq 1 20); do "$LISTENERS" taken "$PORT" || break; sleep 0.25; done
     fi
     rm -f "$PIDFILE"
     # The local text model holds about 17 GB of memory: stopping the voice frees it.
@@ -41,9 +44,10 @@ esac
 
 # Answering is not enough: a squatter on the port would then be handed the token and the page key.
 ours() {
-  command -v lsof >/dev/null 2>&1 || return 0
-  local pid; pid="$(cat "$PIDFILE")"
-  lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN | grep -qxE "$pid|$(pgrep -P "$pid" | paste -sd'|' -)"
+  local pid pids rc=0; pid="$(cat "$PIDFILE")"
+  pids="$("$LISTENERS" pids "$PORT")" || rc=$?
+  [ "$rc" -eq 3 ] && return 0  # nothing here can tell who listens
+  [ -n "$pids" ] && grep -qxE "$pid|$(pgrep -P "$pid" | paste -sd'|' -)" <<<"$pids"
 }
 healthy() { curl -sf -m 2 -o /dev/null "$URL/voice/health" && ours; }
 wait_healthy() {
@@ -59,8 +63,8 @@ wait_healthy() {
 
 running && wait_healthy  # up, or still starting: never report a URL nothing answers on
 rm -f "$PIDFILE"
-if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
-  echo "voice-daemon: port $PORT is taken by another process ($(lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN | head -1 | xargs ps -o comm= -p)). Use another: CLAUDE_VOICE_DAEMON_PORT=7870" >&2; exit 1
+if "$LISTENERS" taken "$PORT"; then
+  echo "voice-daemon: port $PORT is taken by another process ($("$LISTENERS" pids "$PORT" | head -1 | xargs ps -o comm= -p 2>/dev/null)). Use another: CLAUDE_VOICE_DAEMON_PORT=7870" >&2; exit 1
 fi
 
 # First run downloads the dependencies; done here so that time does not count against the start below.

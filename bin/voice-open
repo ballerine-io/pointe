@@ -3,6 +3,11 @@
 set -euo pipefail
 PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+if grep -qs '"hub"' "$STATE/node.json"; then  # a node (pointe node join): the page and the call are on the hub
+  HUB="$(sed -n 's/.*"hub": *{[^}]*"name": *"\([^"]*\)".*/\1/p' "$STATE/node.json" | head -1)"
+  echo "This machine is a node: the call is on ${HUB:-the hub}. Open Pointe there, or use the phone app."
+  exit 0
+fi
 [ -r "$STATE/page_key" ] || { echo "voice-open: the daemon has not started yet; run /pointe:voice in a Claude Code session" >&2; exit 1; }
 URL="http://localhost:$PORT/voice?key=$(cat "$STATE/page_key")"
 if command -v open >/dev/null 2>&1; then open "$URL"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
