@@ -25,6 +25,12 @@ COOKIE = "pointe_pair"
 class Remote:
     def __init__(self, state_dir: Path):
         self.state_dir = state_dir
+        self._app, self._task, self._servers = None, None, []
+        self.load()
+
+    def load(self) -> None:
+        """Read remote.json, remote_token and the certificate: at start, and when Settings → Phone picks a route."""
+        state_dir = self.state_dir
         config = state_dir / "remote.json"
         settings = json.loads(config.read_text()) if config.exists() else {}
         self.host = settings["host"].lower() if settings.get("host") else None
@@ -97,7 +103,7 @@ class Remote:
                                      status_code=403)
         return await call_next(request)
 
-    async def serve(self, app) -> None:
+    async def serve(self, app, fatal: bool = True) -> None:
         """The HTTPS listener: loopback for a connector on this machine, or the private address `pointe pair` chose."""
         if not self.enabled:
             return
@@ -113,7 +119,48 @@ class Remote:
         servers = [Quiet(uvicorn.Config(app, host=address, port=TLS_PORT, log_level="warning", lifespan="off",
                                         proxy_headers=False, ssl_certfile=str(self.cert), ssl_keyfile=str(self.key)))
                    for address in self.listen]
-        await asyncio.gather(*(server.serve() for server in servers))
+        self._servers = servers
+
+        async def one(server) -> None:
+            try:
+                await server.serve()
+            except SystemExit:  # uvicorn exits when it cannot bind: at start that ends the daemon, as it always did
+                if fatal:
+                    raise
+
+        await asyncio.gather(*(one(server) for server in servers))
+
+    def start(self, app, fatal: bool = True) -> None:
+        """`fatal`: a listener that cannot start ends the daemon (at start), or only itself (a restart says why)."""
+        self._app = app
+        self._task = asyncio.create_task(self.serve(app) if fatal else self.serve(app, False)) if self.enabled else None
+
+    async def stop(self) -> None:
+        """Close the sockets, not just the task: a cancelled uvicorn server keeps its port bound."""
+        for server in self._servers:
+            server.should_exit = True
+        if self._task:
+            try:
+                await asyncio.wait_for(asyncio.shield(self._task), 5)
+            except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+                self._task.cancel()
+        self._task, self._servers = None, []
+
+    async def restart(self) -> str | None:
+        """Serve what remote.json says now, without a daemon restart. None once every address listens, else why not."""
+        await self.stop()
+        self.load()
+        if self._app is None or not self.enabled:
+            return None if self._app is None else "the listener is not set up"
+        self.start(self._app, fatal=False)
+        for _ in range(50):
+            if self._task.done():
+                break
+            if self._servers and all(server.started for server in self._servers):
+                return None
+            await asyncio.sleep(0.1)
+        await self.stop()
+        return f"could not listen on {', '.join(self.listen)} port {TLS_PORT} (is another program using it?)"
 
 
 def install(remote: Remote, app) -> None:
@@ -126,12 +173,12 @@ def install(remote: Remote, app) -> None:
 
     @asynccontextmanager
     async def lifespan(_app):
-        task = asyncio.create_task(remote.serve(app)) if remote.enabled else None
+        remote.start(app)
         try:
             async with previous(_app):
                 yield
         finally:
-            if task:
-                task.cancel()
+            if remote._task:
+                remote._task.cancel()
 
     app.router.lifespan_context = lifespan  # the runner later combines its own lifespan with this one

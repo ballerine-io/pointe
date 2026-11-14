@@ -229,6 +229,19 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 
 - **Pairing.** `pointe pair tailscale|wifi|host <name>` makes a TLS certificate for that one name, and a QR code with its
   SHA-256 and the phone's own key (`phone_key`, 0600). The app keeps both in the Keychain and talks only to that Mac.
+- **Pairing from the page** (Settings → Phone, `phone_pairing.py`). The page lists the routes this Mac has (Tailscale, a
+  name you set up, the Wi-Fi) and shows a QR code made on the Mac, with no outside service. The QR holds the listener's
+  name, its certificate's SHA-256 and a one-time code, not the phone key: single use, 5 minutes, about 40 bits, kept only
+  as a hash in memory, with the same bounds on wrong codes as a machine invite (5 a minute per address answered 429, the
+  invite cancelled after 20). The app checks the certificate first and only then sends the code to `/voice/phone/pair`,
+  which answers the phone key. That route takes no other secret and refuses a request with an `Origin` (a web page).
+  The routes that make a code, list routes and unpair answer only the page on this Mac, by its cookie: the phone key,
+  the daemon token and a page opened over the TLS listener get 403. The status shows paired phones by name and time
+  only; neither the status nor the log carries a code, a link or a key. Choosing another route makes a new certificate
+  (the page says so first): every phone and machine paired before must pair again.
+- **One key for every phone.** As with `pointe pair`, every paired phone holds the same `phone_key`. Connecting another
+  phone keeps those already paired. Unpair on the page (two clicks) deletes the key at once, so every phone is signed
+  out and must connect again; a phone call that is up ends.
 - **Pinning, and App Transport Security off.** The app accepts exactly the certificate it paired with, and nothing else,
   CA-signed or not. iOS's App Transport Security can't be scoped to a name you pick (a Twingate or VPN name), and it
   refuses a self-signed certificate before the app's own check runs, so it is off for this app. The pin is the stronger
@@ -255,6 +268,6 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 - **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
   description; a request that cannot be read out shows only its tool. Credential-like values follow the same rule as
   the voice (`readout.redact`): never shown, never said.
-- **Revoke:** delete `~/.claude-voice/phone_key` and restart the daemon. Pairing again with the same name keeps the
+- **Revoke:** Unpair in Settings → Phone, or delete `~/.claude-voice/phone_key` (it takes effect at the next request). Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.

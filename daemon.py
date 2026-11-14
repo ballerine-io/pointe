@@ -36,6 +36,7 @@ import drive as drives
 import remote
 import harnesses
 import hub_nodes
+import phone_pairing
 import nodelink
 from harnesses import FINISHED_MARK
 import local
@@ -1445,6 +1446,7 @@ class State:
     nudger: asyncio.Task | None = None
     heartbeat: asyncio.Task | None = None
     heartbeat_info: object = None  # the call's ping state: round trip and when the client last answered
+    phone_socket: object = None  # the phone app's call while it is up: Unpair on the page ends it
     connected_at: float = 0.0
     last_nudge_at: float = 0.0
     call_sent: dict | None = None  # the last `call` state the node link was given (_notify_call)
@@ -4194,8 +4196,8 @@ TOOLS = ToolsSchema(standard_tools=[
 app = FastAPI()
 REMOTE = remote.Remote(STATE_DIR)
 remote.install(REMOTE, app)  # localhost as before; a paired phone over HTTPS through the private network
-app.add_middleware(LocalAuth, token=TOKEN, page_key=PAGE_KEY, remote=REMOTE,
-                   phone=lambda authorization: phone.phone_allowed(STATE_DIR, authorization))
+PHONES = phone_pairing.Phones(STATE_DIR)  # who paired, and when the phone key was last used (Settings → Phone)
+app.add_middleware(LocalAuth, token=TOKEN, page_key=PAGE_KEY, remote=REMOTE, phone=PHONES.allowed)
 
 _listeners = app.router.lifespan_context  # remote.install's: the phone's HTTPS listener runs inside it
 
@@ -4225,6 +4227,19 @@ async def _with_housekeeping(_app):
 app.router.lifespan_context = _with_housekeeping
 HUB = hub_nodes.Hub(STATE_DIR, REGISTRY)  # the machines paired with this Mac: their links, invites and mirrors
 hub_nodes.install(app, HUB)  # wraps the lifespan just set
+
+
+async def _end_phone_call() -> None:
+    """Unpair on the page: the phone's call ends now, not when it next reconnects with the deleted key."""
+    if state.phone_socket is not None:
+        try:
+            await state.phone_socket.close(code=4401, reason="unpaired")
+        except Exception:  # already closed
+            pass
+
+
+phone_pairing.install(app, phone_pairing.PhoneLink(STATE_DIR, PHONES), page_key=PAGE_KEY, listener=REMOTE,
+                      on_unpair=_end_phone_call)
 
 
 @app.post("/voice/register")
@@ -5001,6 +5016,7 @@ async def status(request: Request):
             "hearing": state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
             "machines": _status_machines(),
             "invite": _invite(request),
+            "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
@@ -5641,11 +5657,15 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
                 return
 
     pinger = asyncio.create_task(keep_alive())
+    if who == "phone":
+        state.phone_socket = websocket
     try:
         await run_call(transport)
     finally:
         pinger.cancel()
         state.heartbeat_info = None
+        if state.phone_socket is websocket:
+            state.phone_socket = None
 
 
 def _clock_ears(stt) -> None:

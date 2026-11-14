@@ -23,6 +23,48 @@ final class PairingTests: XCTestCase {
     }
 }
 
+/// The page's QR (Settings → Phone): a one-time code the app trades for the key over the pinned listener.
+final class PairingInviteTests: XCTestCase {
+    let fp = String(repeating: "ab", count: 32)
+
+    func testACodeLinkFromThePageIsRead() {
+        let i = PairingInvite(link: "pointe://pair?v=2&host=pointe.example.internal&port=7443&fp=\(fp)&code=TKMC-PNM7")
+        XCTAssertEqual(i, PairingInvite(host: "pointe.example.internal", port: 7443, fingerprint: fp, code: "TKMC-PNM7"))
+        XCTAssertEqual(i?.pairURL.absoluteString, "https://pointe.example.internal:7443/voice/phone/pair")
+    }
+
+    func testEitherKindOfLinkIsRecognisedAndNothingElse() {
+        let key = String(repeating: "k", count: 43)
+        guard case .ready? = PairingLink("pointe://pair?v=1&host=a.b&port=7443&fp=\(fp)&key=\(key)") else { return XCTFail("v1") }
+        guard case .invite? = PairingLink("pointe://pair?v=2&host=a.b&port=7443&fp=\(fp)&code=ABCD-EFGH") else { return XCTFail("v2") }
+        for link in ["pointe://pair?v=2&host=a&port=7443&fp=\(fp)&key=\(key)",         // a key, no code
+                     "pointe://pair?v=1&host=a&port=7443&fp=\(fp)&code=ABCD-EFGH",       // a code under the old version
+                     "pointe://pair?v=2&host=a/b&port=7443&fp=\(fp)&code=ABCD-EFGH",     // a path smuggled into the host
+                     "pointe://pair?v=2&host=a&port=7443&fp=abc&code=ABCD-EFGH",          // no real fingerprint
+                     "pointe://pair?v=2&host=a&port=7443&fp=\(fp)&code=AB",              // not a code
+                     "pointe://hub?v=2&host=a&port=7443&fp=\(fp)&code=ABCD-EFGH",        // a machine invite
+                     "https://evil.example/pair?v=2&host=a&port=7443&fp=\(fp)&code=ABCD-EFGH", ""] {
+            XCTAssertNil(PairingLink(link), link)
+        }
+    }
+
+    func testTheTradeSendsTheCodeAndTheDeviceAndNoSecret() throws {
+        let i = PairingInvite(host: "mac.example", port: 7443, fingerprint: fp, code: "ABCD-EFGH")
+        let r = i.request(device: "Alon's iPhone", id: "dev-1")
+        XCTAssertEqual(r.httpMethod, "POST")
+        XCTAssertNil(r.value(forHTTPHeaderField: "Authorization"))
+        let body = try JSONSerialization.jsonObject(with: r.httpBody ?? Data()) as? [String: String]
+        XCTAssertEqual(body, ["code": "ABCD-EFGH", "device": "Alon's iPhone", "id": "dev-1"])
+    }
+
+    func testARefusalSaysWhatToDoNext() {
+        XCTAssertTrue(PairingInvite.problem(status: 403, text: "invite expired").contains("Connect your phone"))
+        XCTAssertTrue(PairingInvite.problem(status: 403, text: "wrong code").contains("expired or was already used"))
+        XCTAssertTrue(PairingInvite.problem(status: 429, text: "too many attempts: wait a minute").contains("Wait a minute"))
+        XCTAssertTrue(PairingInvite.unreachable(host: "mac.example").contains("Can't reach your Mac at mac.example"))
+    }
+}
+
 final class WireTests: XCTestCase {
     func testPCMRoundTrip() {
         let samples: [Float] = [0, 0.5, -0.5, 1, -1]

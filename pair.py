@@ -17,7 +17,9 @@ import hashlib
 import ipaddress
 import json
 import os
+import re
 import shutil
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -32,6 +34,7 @@ STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice")
 
 
 PAIRING_VERSION = 1  # the QR code's format; the call protocol (phone.PROTOCOL) moves on its own
+CODE_PAIRING_VERSION = 2  # the page's QR: a one-time code the app trades for the key, instead of the key itself
 
 
 def _run(*args: str) -> str:
@@ -139,6 +142,96 @@ def pairing_link() -> str:
     config = json.loads((STATE / "remote.json").read_text())
     return "pointe://pair?" + urlencode({"v": PAIRING_VERSION, "host": config["host"], "port": TLS_PORT,
                                          "fp": fingerprint(), "key": phone_key(STATE)})
+
+
+def invite_pairing_link(code: str) -> str:
+    """The page's QR (Settings → Phone): where the Mac listens, its certificate, and a one-time code. No lasting secret:
+    the app trades the code for the phone key over the pinned listener (phone_pairing.py)."""
+    config = _config()
+    return "pointe://pair?" + urlencode({"v": CODE_PAIRING_VERSION, "host": config["host"], "port": TLS_PORT,
+                                         "fp": fingerprint(), "code": code})
+
+
+_HOST_NAME = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*")
+INSTALL_ADVICE = ("Nothing can carry your phone to this Mac yet. Install Tailscale on this Mac and on your iPhone "
+                  "(https://tailscale.com/download) and sign in to both with the same account, then check again. "
+                  "Or put this Mac and the phone on the same Wi-Fi.")
+
+
+def _resolve(host: str) -> list[str]:
+    try:
+        return sorted({info[4][0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)})
+    except (OSError, UnicodeError):
+        return []
+
+
+def _host_route(host: str) -> dict:
+    """A name the owner routes (Twingate, a VPN, a tunnel): served on loopback, for a connector on this Mac."""
+    route = {"kind": "host", "host": host, "listen": "127.0.0.1", "label": host, "problem": None, "usable": True}
+    if not _HOST_NAME.fullmatch(host):
+        return {**route, "usable": False, "problem": "That is not a host name.", "words": host}
+    addresses = _resolve(host)
+    ips = [ipaddress.ip_address(a.split("%")[0]) for a in addresses]
+    if not ips:
+        problem = ("This Mac can't look it up, so Pointe can't check it. Use it if your phone reaches it (a Twingate "
+                   "name often resolves only on the phone).")
+    elif all(ip.is_loopback for ip in ips):
+        problem = (f"It points at this Mac itself ({addresses[0]}): your phone needs its own way to it, such as a "
+                   "Twingate resource or a tunnel.")
+    elif any(ip.is_global for ip in ips):
+        problem = (f"It resolves to a public internet address ({addresses[0]}). Use it only if just you can reach it "
+                   "(for example a tunnel behind Cloudflare Access).")
+    else:
+        problem = None
+    shown = f" ({', '.join(addresses)})" if addresses else ""
+    words = (f"{host}{shown}: the private network name you set up, such as Twingate or a VPN. It works wherever that "
+             "network reaches your phone; a connector or tunnel on this Mac forwards it to Pointe.")
+    return {**route, "problem": problem, "words": words, "checked": problem is None}
+
+
+def routes(typed: str | None = None) -> dict:
+    """What can carry the phone to this Mac, in plain words, with one recommended: the route paired now (nothing
+    paired has to pair again, even when this Mac can't check it), else Tailscale, else a checked private name, else the Wi-Fi. `typed` adds a name to check."""
+    current = json.loads((STATE / "remote.json").read_text()) if (STATE / "remote.json").exists() else None
+    found = []
+    try:
+        name, ip = _tailscale()
+        found.append({"kind": "tailscale", "host": name, "listen": ip, "label": "Tailscale", "usable": True,
+                      "problem": None, "checked": True,
+                      "words": f"Tailscale ({name}): works wherever this Mac and the phone have internet. The iPhone "
+                               "needs the Tailscale app, signed in to the same account."})
+    except SystemExit as e:
+        found.append({"kind": "tailscale", "host": "", "listen": "", "label": "Tailscale", "usable": False,
+                      "problem": str(e), "words": "Tailscale: works wherever this Mac and the phone have internet."})
+    names = [] if current is None or current["host"] in (r["host"] for r in found) else [current["host"]]
+    if typed and typed.strip().lower() not in names:
+        names.append(typed.strip().lower())
+    try:
+        wifi, _ = _wifi()
+    except SystemExit as e:
+        wifi_route = {"kind": "wifi", "host": "", "listen": "", "label": "Same Wi-Fi", "usable": False,
+                      "problem": str(e), "words": "Same Wi-Fi: only while the phone is on this Mac's Wi-Fi."}
+    else:
+        wifi_route = {"kind": "wifi", "host": wifi, "listen": wifi, "label": "Same Wi-Fi", "usable": True,
+                      "problem": None, "checked": True,
+                      "words": f"Same Wi-Fi ({wifi}): only while the phone is on this Wi-Fi, and until the Mac's address "
+                               "changes (then connect again)."}
+    if current is not None and current["host"] == wifi_route["host"]:
+        names = [n for n in names if n != wifi]
+    found += [_host_route(n) for n in names] + [wifi_route]
+    has_cert = (STATE / "tls" / "cert.pem").exists()
+    for r in found:
+        r["current"] = bool(current and r["usable"] and r["host"] == current["host"])
+        r["new_certificate"] = bool(has_cert and r["usable"] and not r["current"] and not _covers(r["host"]))
+    order = ([r for r in found if r["current"]]
+             + [r for r in found if r["kind"] == "tailscale"] + [r for r in found if r["kind"] == "host" and r.get("checked")]
+             + [r for r in found if r["kind"] == "wifi"])
+    best = next((r for r in order if r["usable"]), None)
+    for r in found:
+        r["recommended"] = r is best
+        r.pop("checked", None)
+    return {"current": current["host"] if current else None, "routes": found,
+            "advice": None if any(r["usable"] for r in found) else INSTALL_ADVICE}
 
 
 _NOT_SET_UP = "Not set up yet: run `pointe pair tailscale`, `pointe pair wifi`, or `pointe pair host <name>`."

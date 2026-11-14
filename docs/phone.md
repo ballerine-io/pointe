@@ -2,7 +2,14 @@
 
 ## The iPhone app
 
-On the Mac, pick how the phone reaches it, then scan the QR code in the app:
+On the Mac, open Pointe's page: Settings → Phone → **Connect your phone**. The page lists the ways your phone can
+reach this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), recommends one, and shows a QR
+code. Point the iPhone's Camera at it and tap "Open in Pointe" (or scan it in the app). The page turns to "Connected:
+<phone>" when the app has paired. The code works once, for 5 minutes; the app gets its key from the Mac over the
+certificate it checks. Connecting another phone keeps the phones already paired (they share one key); **Unpair** signs
+them all out. If no way works, the page says what to install.
+
+Or, in a terminal, pick how the phone reaches the Mac, then scan the QR code in the app:
 
 | Command | When |
 |---|---|

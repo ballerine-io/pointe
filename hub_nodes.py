@@ -241,8 +241,8 @@ class Invites:
     """At most one invite at a time, in memory only. The code is compared by its SHA-256; the plain code is kept only
     so the page and the app can show it while it is valid (status `invite`)."""
 
-    def __init__(self, clock: Callable[[], float]):
-        self._clock = clock
+    def __init__(self, clock: Callable[[], float], secs: float = INVITE_SECS):
+        self._clock, self._secs = clock, secs
         self._hash: bytes | None = None
         self.code: str | None = None
         self.name: str | None = None
@@ -255,7 +255,7 @@ class Invites:
     def make(self, name: str | None = None) -> str:
         letters = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LETTERS))
         self.code, self._hash, self.name = f"{letters[:4]}-{letters[4:]}", _digest(letters), name
-        self._until, self.paired, self.wrong, self.ended = self._clock() + INVITE_SECS, None, 0, None
+        self._until, self.paired, self.wrong, self.ended = self._clock() + self._secs, None, 0, None
         return self.code
 
     def cancel(self) -> None:
