@@ -231,3 +231,8 @@ def test_an_entry_over_the_cap_is_skipped_but_its_bytes_are_counted():
 
 def test_hub_session_ids_are_prefixed_by_node():
     assert nodelink.hub_session_id("3f2a1c9e", "abc-123") == "3f2a1c-abc-123"
+
+
+def test_a_frame_with_no_fields_encodes():
+    assert decode(encode("bye"), NODE_FRAMES) == {"t": "bye"}
+    assert decode(encode("unpaired"), HUB_FRAMES) == {"t": "unpaired"}
