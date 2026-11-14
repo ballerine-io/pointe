@@ -61,7 +61,7 @@ listed in the allowlist as `link` and are never contacted by the software.
 ## Audit record
 
 - **pip-audit 2.10.1**, 2026-11-14, every one of the 167 locked package versions (not only the current platform's):
-  no known vulnerabilities. Command: `uv run --locked python tools/locked_requirements.py | uvx pip-audit@2.10.1 --no-deps --disable-pip -r /dev/stdin`.
+  no known vulnerabilities. Command: `uv run --locked python tools/locked_requirements.py > locked.txt && uvx pip-audit@2.10.1 --no-deps --disable-pip -r locked.txt`.
 - **osv-scanner**: not installed here; not run.
 - **gitleaks 8.30.1**, tree and all 306 commits: 7 and 30 hits, all of them synthetic tokens in tests that exercise
   `readout.mask` (the redaction) and a 16-hex key fingerprint shown in the app's UI. No real secret. `.gitleaks.toml`
@@ -72,7 +72,8 @@ listed in the allowlist as `link` and are never contacted by the software.
 
 `.github/workflows/test.yml` has two jobs. `offline` runs the whole suite with no keys and no network beyond PyPI.
 `supply-chain` runs `uv lock --check`, `tests/test_supply_chain.py`, pip-audit (pinned version) on every locked version,
-and writes a CycloneDX SBOM (`uvx cyclonedx-bom@8.0.1`) plus `uv export --locked` as a build artifact. Dependabot
+and writes a CycloneDX SBOM (`uvx --from cyclonedx-bom@8.0.1 cyclonedx-py requirements`) plus `uv export --locked` as a
+build artifact. Dependabot
 (`.github/dependabot.yml`) opens one grouped pull request a week per ecosystem: uv, GitHub Actions, npm.
 
 ## Adding something
