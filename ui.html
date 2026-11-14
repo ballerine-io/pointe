@@ -149,12 +149,25 @@
                        border-radius: 10px; padding: 8px 12px; font: 14px 'Inter', sans-serif; min-height: 40px; }
   #ph-hostform button { border: 0; border-radius: 10px; padding: 0 16px; background: var(--card3); color: var(--text);
                         font: 600 13px 'Inter', sans-serif; cursor: pointer; }
-  #ph-svg svg { display: block; width: 230px; height: 230px; border-radius: 12px; margin: 8px 0; }
-  #ph-link { font: 11.5px 'JetBrains Mono', ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
-  #phone .note { margin: 4px 0 8px; }
-  #phone .row { margin: 8px 0; }
-  #ph-link { margin: 0 0 8px; line-height: 1.45; }
-  #ph-done { font-weight: 600; margin: 8px 0 0; }
+  /* the pairing code: a white tile for the camera, one status pill under it, the link behind a Copy button */
+  #ph-qr { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  #ph-qr .help { text-align: center; }
+  .qrtile { background: #fff; border-radius: 16px; padding: 16px; width: 252px; box-shadow: 0 8px 28px rgba(0, 0, 0, .35); }
+  .qrtile svg { display: block; width: 220px; height: 220px; }
+  #ph-left { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; background: var(--card2); color: var(--muted);
+             font: 500 12.5px 'Inter', sans-serif; }
+  #ph-left:empty { display: none; }
+  #ph-left::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); animation: breathe 1.4s ease-in-out infinite; flex: none; }
+  #ph-qr .row { justify-content: center; }
+  #ph-copy { background: none; color: var(--muted); font-weight: 500; }
+  #ph-copy:hover { color: var(--text); background: none; }
+  #ph-done { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  #ph-done:empty { display: none; }
+  #ph-done::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
+  #ph-list li.none { display: flex; align-items: center; gap: 10px; color: var(--muted); min-height: 52px; }
+  #ph-list li.none::before { content: ''; width: 18px; height: 18px; flex: none; background: var(--dim);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7' y='2' width='10' height='20' rx='2.5'/%3E%3Cpath d='M11 18h2'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7' y='2' width='10' height='20' rx='2.5'/%3E%3Cpath d='M11 18h2'/%3E%3C/svg%3E") center / contain no-repeat; }
   #ph-actions .sure { background: var(--orange); color: #fff; border-color: var(--orange); }
   .s .edit { color: var(--dim); font-size: 13px; opacity: 0; padding: 0 2px; }
   .s:hover .edit { opacity: 1; } .s .edit:hover { color: var(--text); }
@@ -563,7 +576,8 @@
   .settings #phone .note, .settings #phone .row { margin: 0; }
   .settings .proutes { margin: 0; padding: 10px 14px; }
   .settings #ph-hostform { margin: 0; padding: 0 14px 10px; }
-  .settings #ph-svg { padding: 0 14px; } .settings #ph-link { padding: 0 14px; margin: 0; }
+  .settings #ph-qr { padding: 16px 14px 14px; } .settings #ph-qr .help { padding: 0; }
+  .settings #ph-qr .row { padding: 0; gap: 12px; }
   .settings #ph-done { padding: 12px 14px; margin: 0; }
   .settings #pref-local { font-size: 14px; color: var(--text); }
   .settings #mach-invite { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
@@ -878,6 +892,7 @@
           <h3 id="ph-h">Phone</h3>
           <div class="card">
             <ul class="mlist" id="ph-list" aria-label="Paired phones"></ul>
+            <div class="ok" id="ph-done" role="status"></div>
             <div id="ph-pick" hidden>
               <div class="help">How should your phone reach this Mac?</div>
               <div class="proutes" id="ph-routes" role="radiogroup" aria-label="How the phone reaches this Mac"></div>
@@ -893,16 +908,15 @@
               </div>
             </div>
             <div id="ph-qr" hidden>
-              <div class="note">On your iPhone, open the Camera, point it at this code, and tap “Open in Pointe”. Or scan it in the
-                Pointe app.</div>
-              <div id="ph-svg" role="img" aria-label="Pairing code"></div>
-              <div id="ph-link" dir="ltr"></div>
-              <div class="note" id="ph-left" role="timer"></div>
-              <div class="note">It works once. It holds a one-time code, not the phone's key: the app gets the key from this Mac
-                over the encrypted link it checks by certificate.</div>
-              <div class="row" style="justify-content:flex-start"><button type="button" id="ph-cancel" onclick="phoneCancel()">Cancel the code</button></div>
+              <div class="help">Scan with your iPhone's Camera, or in the Pointe app.</div>
+              <div class="qrtile"><div id="ph-svg" role="img" aria-label="Pairing code"></div></div>
+              <div id="ph-left" role="timer"></div>
+              <div class="row">
+                <button type="button" id="ph-copy" onclick="phoneCopyLink()">Can't scan? Copy the link</button>
+                <button type="button" id="ph-cancel" onclick="phoneCancel()">Cancel</button>
+              </div>
+              <div id="ph-link" class="sr" dir="ltr"></div>
             </div>
-            <div class="ok" id="ph-done" role="status"></div>
             <div class="row" style="justify-content:flex-start" id="ph-actions">
               <button type="button" class="go" id="ph-connect" onclick="phoneConnect()">Connect your phone</button>
               <button type="button" id="ph-unpair" onclick="phoneUnpair('all')" hidden>Unpair all</button>
@@ -910,6 +924,7 @@
             <div class="note" id="ph-rule"></div>
             <div class="err" id="ph-err" role="alert"></div>
           </div>
+          <div class="note foot" id="ph-foot" hidden>The code works once and expires in 5 minutes; the phone's key never leaves this Mac.</div>
           <div class="note foot">The Pointe iPhone app calls into your sessions wherever your phone can reach this Mac.</div>
         </section>
         <section class="group" id="g-dictionary">
@@ -2833,7 +2848,7 @@
       li.append(b);
       return li;
     });
-    $('ph-list').replaceChildren(...(rows.length ? rows : [el('li', 'mmeta', 'No phone paired yet.')]));
+    $('ph-list').replaceChildren(...(rows.length ? rows : [el('li', 'none', 'No phone paired yet.')]));
     $('ph-connect').textContent = paired.length ? 'Connect another phone' : 'Connect your phone';
     $('ph-unpair').hidden = paired.length < 2;
     $('ph-unpair').textContent = sure === 'all' ? 'Unpair every phone?' : 'Unpair all';
@@ -2898,15 +2913,21 @@
     $('ph-show').disabled = false;
     if (!made || !made.code) return;
     phoneQR = {...made, until: Date.now() + made.expires_in * 1000};
-    $('ph-pick').hidden = true; $('ph-qr').hidden = false;
+    $('ph-pick').hidden = true; $('ph-qr').hidden = false; $('ph-foot').hidden = false; $('ph-done').textContent = '';
     $('ph-svg').innerHTML = made.svg;  // made by this Mac (segno): no image service sees the code
     $('ph-link').textContent = made.link;
+    $('ph-copy').textContent = "Can't scan? Copy the link";
     phoneTick();
+  }
+  async function phoneCopyLink() {  // the link stays off the screen (64 hex of fingerprint); the clipboard carries it
+    try { await navigator.clipboard.writeText($('ph-link').textContent); $('ph-copy').textContent = 'Copied'; }
+    catch (e) { $('ph-link').classList.remove('sr'); $('ph-copy').textContent = 'Select and copy it'; }
+    setTimeout(() => { if (phoneQR) $('ph-copy').textContent = "Can't scan? Copy the link"; }, 1500);
   }
   async function phoneTick() {  // once a second while the code shows: the countdown, and the phone pairing
     if (!phoneQR) return;
     const left = Math.max(0, Math.round((phoneQR.until - Date.now()) / 1000));
-    $('ph-left').textContent = `Waiting for your phone. The code expires in ${clock(left)}.`;
+    $('ph-left').textContent = `Waiting for your phone · expires in ${clock(left)}`;
     const st = await fetch('/voice/phone/invite').then(r => r.ok ? r.json() : null).catch(() => null);
     if (!phoneQR) return;
     if (st && st.paired) return phoneFinish(`Connected: ${st.paired.name}`);
@@ -2916,7 +2937,7 @@
   }
   function phoneFinish(done, problem) {
     phoneQR = null;
-    $('ph-qr').hidden = true; $('ph-svg').replaceChildren(); $('ph-link').textContent = '';
+    $('ph-qr').hidden = true; $('ph-foot').hidden = true; $('ph-svg').replaceChildren(); $('ph-link').textContent = ''; $('ph-link').classList.add('sr');
     $('ph-actions').hidden = false;
     $('ph-done').textContent = done || '';
     $('ph-err').textContent = problem || '';
@@ -2933,9 +2954,11 @@
       return;
     }
     phoneSure = {id: '', until: 0};
-    const name = id === 'all' ? '' : ((((status || {}).phones || {}).paired || []).find(p => p.id === id) || {}).name;
+    const phone = id === 'all' ? null : (((status || {}).phones || {}).paired || []).find(p => p.id === id);
+    // The phone paired before per-phone keys has no name of its own ("Paired phone"): say "Phone", not its label
+    const name = !phone || phone.legacy || !phone.name ? 'Phone' : phone.name;
     if (await phoneFetch('/voice/phone/unpair', id === 'all' ? {all: true} : {id}))
-      $('ph-done').textContent = id === 'all' ? 'Unpaired every phone. Each must connect again.' : `Unpaired ${name || 'that phone'}.`;
+      $('ph-done').textContent = id === 'all' ? 'Every phone unpaired. Each must connect again.' : `${name} unpaired.`;
     phonesShown = ''; refresh();
   }
 

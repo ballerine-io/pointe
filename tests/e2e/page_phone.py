@@ -163,7 +163,7 @@ async def run(page: Page, legacy: str) -> None:
           (link.startswith("pointe://pair?"), query.get("v"), query.get("host"), query.get("port"), "key" in query,
            len(query.get("code", "")) == 9), (True, "2", NAME, str(TLS_PORT), False, True))
     left = await page.js("document.getElementById('ph-left').textContent")
-    _check("a countdown shows", left.startswith("Waiting for your phone. The code expires in 4:") or "5:00" in left, left=left)
+    _check("a countdown shows", left.startswith("Waiting for your phone · expires in 4:") or "5:00" in left, left=left)
     _check("the QR is an SVG made on the Mac, with nothing loaded from elsewhere", await page.js(
         "(() => { const s = document.querySelector('#ph-svg svg'); return !!s.querySelector('path') && !s.querySelector('image') "
         "&& !performance.getEntriesByType('resource').some(e => !e.name.startsWith(location.origin)); })()"), link=link)
@@ -224,7 +224,7 @@ async def run(page: Page, legacy: str) -> None:
     await unpair(page, "E2E iPhone")
     check("unpair one: its key is refused at once, the others keep working",
           [key_works(phone_key), key_works(ipad_key), key_works(legacy)], [403, 200, 200])
-    check("and the page says which", await page.js("document.getElementById('ph-done').textContent"), "Unpaired E2E iPhone.")
+    check("and the page says which", await page.js("document.getElementById('ph-done').textContent"), "E2E iPhone unpaired.")
     await page.shot("phone-8-unpaired-one")
 
     await page.js("phoneUnpair('all')")
@@ -233,7 +233,7 @@ async def run(page: Page, legacy: str) -> None:
     await page.until("document.getElementById('ph-list').textContent === 'No phone paired yet.'", 5)
     check("Unpair all: every key, the shared one included, is refused", [key_works(ipad_key), key_works(legacy)], [403, 403])
     check("and the page says so", await page.js("document.getElementById('ph-done').textContent"),
-          "Unpaired every phone. Each must connect again.")
+          "Every phone unpaired. Each must connect again.")
     await page.shot("phone-9-unpaired-all")
     check("no page errors", await page.js("window.__errors"), [])
 
