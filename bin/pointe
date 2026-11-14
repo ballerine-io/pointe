@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|doctor|status|log|context|pair|hub|node|key|join|local|stop [args]
+# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|join|local|stop [args]
 set -euo pipefail
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -9,6 +9,7 @@ case "$cmd" in
   start)   exec "$BIN/claude-voice" "$@" ;;        # a new session, with Claude Code's channel
   attach)  exec "$BIN/claude-voice-attach" "$@" ;; # from inside a session; /pointe:voice runs this
   open)    exec "$BIN/voice-open" "$@" ;;
+  talk)    exec "$BIN/voice-talk" "$@" ;;        # push to talk from any app: bind it to a system-wide shortcut
   doctor)  exec "$BIN/voice-doctor" "$@" ;;
   status)  exec "$BIN/voice-daemon" status ;;
   log)     exec "$BIN/voice-log" "$@" ;;
