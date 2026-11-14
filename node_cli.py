@@ -17,7 +17,6 @@ import socket
 import ssl
 import subprocess
 import sys
-import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -25,18 +24,6 @@ import aiohttp
 
 from node import (DAEMON_HERE, PORT, ROOT, STATE, _daemon_here, _netloc, _os, _read_json, _version, _write_private,
                   forget, nodelink, pairing)
-
-def parse_invite(invite: str) -> dict:
-    """`pointe://hub?v=1&host=…&port=…&fp=…&code=…` (pointe hub invite). ValueError for anything else."""
-    url = urllib.parse.urlsplit(invite.strip())
-    query = dict(urllib.parse.parse_qsl(url.query))
-    if url.scheme != "pointe" or url.netloc != "hub" or query.get("v") != "1":
-        raise ValueError("not a hub invite: expected pointe://hub?v=1&…, from `pointe hub invite` on the hub")
-    if not (query.get("host") and query.get("code") and re.fullmatch(r"[0-9a-fA-F]{64}", query.get("fp", ""))
-            and query.get("port", "").isdigit()):
-        raise ValueError("the invite is incomplete: copy the whole line `pointe hub invite` printed")
-    return {"host": query["host"], "port": int(query["port"]), "fp": query["fp"].lower(), "code": query["code"]}
-
 
 def peer_fingerprint(host: str, port: int, timeout: float = 10) -> str:
     """The SHA-256 of the certificate the listener presents, read with verification off: the pin is the check."""
@@ -79,7 +66,7 @@ def join(invite: str, name: str | None, state: Path = STATE, port: int = PORT, s
     if pairing(state) or (state / "node.json").exists():
         hub = (_read_json(state / "node.json").get("hub") or {}).get("name") or "a hub"
         raise SystemExit(f"this machine is paired with {hub}: leave {hub} first: pointe node leave")
-    invited = parse_invite(invite)
+    invited = nodelink.parse_invite(invite)
     if not can_tell_who_listens():
         raise SystemExit("install lsof or iproute2 (ss): the permission hook needs one to check that the answer comes "
                          "from this machine's node")

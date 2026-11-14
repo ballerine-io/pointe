@@ -988,12 +988,13 @@ def _invite(hub: FakeHub, code: str = "K7PQ-2MXD", fp: str | None = None) -> str
     return f"pointe://hub?v=1&host=127.0.0.1&port={hub.port}&fp={fp or hub.fp}&code={code}"
 
 
-def test_parse_invite():
-    got = node_cli.parse_invite("pointe://hub?v=1&host=studio.ts.net&port=7443&fp=" + "ab" * 32 + "&code=K7PQ-2MXD")
-    assert got == {"host": "studio.ts.net", "port": 7443, "fp": "ab" * 32, "code": "K7PQ-2MXD"}
+def test_join_reads_the_invite_with_the_one_parser_the_hub_writes_for():
+    assert not hasattr(node_cli, "parse_invite")  # one parser: nodelink's, beside the line's format
+    got = nodelink.parse_invite("pointe://hub?v=1&host=studio.ts.net&port=7443&fp=" + "AB" * 32 + "&code=K7PQ-2MXD")
+    assert got == {"host": "studio.ts.net", "port": 7443, "fp": "ab" * 32, "code": "K7PQ-2MXD"}  # a pasted fp in caps pins
     for bad in ("https://x", "pointe://pair?v=1&host=a&port=1&fp=ab&code=x", "pointe://hub?v=1&host=a&port=x&fp=ab&code=c"):
         with pytest.raises(ValueError):
-            node_cli.parse_invite(bad)
+            nodelink.parse_invite(bad)
 
 
 def _join(tmp: Path, hub: FakeHub, invite: str, *extra) -> subprocess.CompletedProcess:
