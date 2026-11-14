@@ -314,3 +314,20 @@ def test_masked_frames_survive_a_bare_carriage_return_inside_a_line():
     frames, nxt = node_mod.masked_frames("s1", 0, 0, data)
     assert nxt == len(data)
     assert [e for f in frames for e in json.loads(f)["entries"]] == ['{"a": "x\ry"}\n', '{"b": 2}\n']
+
+
+# ---------- 9. a deny is refused once the node's approvals turned terminal mid-hold ----------
+
+def test_a_deny_releases_a_held_prompt_even_after_approvals_turned_terminal_on_the_node(tmp_path):
+    """The re-check table: a deny releases the hook always. Approvals: terminal set while the prompt is held must not
+    turn the user's no into a refusal that leaves the prompt hanging until its deadline."""
+    from test_node import READABLE, _answer, _prompt
+
+    async def scenario(hub, n):
+        task, frame = await _prompt(hub, n, tmp_path, READABLE)
+        (tmp_path / "state" / "config.json").write_text(json.dumps({"approvals": "terminal"}))
+        answered = await _answer(hub, frame, "deny", how="tap")
+        assert answered["ok"] is True, f"the no was refused: {answered}"
+        assert await asyncio.wait_for(task, 2) == "deny"
+
+    node_run(scenario, tmp_path)

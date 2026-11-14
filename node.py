@@ -856,10 +856,10 @@ class Node:
 
     def recheck(self, held: Held, frame: dict) -> str | None:
         """Why a verdict may not release the hook, or None if it may (the design's re-check table)."""
+        if frame["verdict"] == "deny":
+            return None  # a no from anywhere denies, even once approvals turned terminal mid-hold
         if _config(self.state).get("approvals") == "terminal":
             return "terminal"
-        if frame["verdict"] == "deny":
-            return None  # a no from anywhere denies
         how = frame["how"]
         if how == "voice":
             if not held.readable:
