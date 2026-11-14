@@ -995,3 +995,15 @@ def test_a_plugin_command_tells_a_node_from_its_own_tools_output_not_by_reading_
     the session was on the voice, so every /pointe:voice stopped at a terminal permission prompt."""
     text = (Path(__file__).resolve().parents[1] / "plugin" / "commands" / command).read_text()
     assert "node.json" not in text
+
+
+def test_a_status_answer_is_never_cut_for_repeating_what_the_join_lines_said():
+    """From the two-machine run: "what's going on everywhere" lost "On studio, shop/main is idle." because a join line
+    had said it, leaving "You asked it to run..." with no session and no machine."""
+    from brain import without_recent_repeats
+
+    said = ["Shop main on devbox just joined, alongside shop main on studio. Neither needs anything from you right now.",
+            "On studio, shop/main is idle, and nothing is waiting."]
+    answer = ("Nothing needs you right now. On studio, shop/main is idle. You asked it to run the voice attach command, "
+              "but I can't see that it ran. On devbox, four sessions are idle: shop/main, lighthouse/main, orchard and harbor.")
+    assert without_recent_repeats(answer, said, "What's going on everywhere?") == answer

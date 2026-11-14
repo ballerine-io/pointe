@@ -12,6 +12,7 @@ from loguru import logger
 
 import vendors
 from brief import unsupported_in
+from guards import status_intent
 
 SPEAK = {"name": "speak",
          "description": "Say this to the user. It is the only way to reach them, and it ends your turn. Only what they "
@@ -65,7 +66,10 @@ def _content(text: str) -> set[str]:
 
 def without_recent_repeats(said: str, recent: list[str], asked: str) -> str:
     """Sentences the voice already said in the last minute and a half are cut, unless the user's latest words ask about
-    them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath."""
+    them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath. A
+    status question ("what's going on everywhere") asks for the state again, so its answer is said whole."""
+    if status_intent(asked):
+        return said
     asked_words = _content(asked)
     kept = []
     sentences = re.split(r"(?<=[.!?…])\s+", said.strip())
