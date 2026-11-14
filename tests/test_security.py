@@ -264,3 +264,53 @@ def test_the_phone_key_can_disconnect_a_session(phone_app):
     phone_app.post("/voice/disconnect")(lambda: {"ok": True})
     for client in (local(phone_app), tls(phone_app)):
         assert client.post("/voice/disconnect", headers={"authorization": "Bearer phone-key"}, json={}).status_code == 200
+
+
+# ---------- machines: the node link's routes (docs/design/multi-machine.md, "Authentication") ----------
+
+@pytest.fixture
+def node_app(phone_app):
+    @phone_app.websocket("/voice/node")
+    async def node(socket: WebSocket):  # the real handler authenticates by HMAC over its own nonce
+        await socket.accept()
+        await socket.send_text("in")
+        await socket.close()
+
+    @phone_app.post("/voice/node/pair")
+    def pair():  # the real handler checks the invite code
+        return {"ok": True}
+
+    return phone_app
+
+
+def test_the_node_socket_reaches_its_own_check_with_no_page_or_phone_secret(node_app):
+    assert _phone_gets_in(tls(node_app), "/voice/node")
+    assert _phone_gets_in(local(node_app), "/voice/node")  # loopback, for tests and two simulated machines
+
+
+def test_the_pair_route_reaches_its_own_check_with_no_pairing_cookie(node_app):
+    assert tls(node_app).post("/voice/node/pair", json={}).status_code == 200
+    assert local(node_app).post("/voice/node/pair", json={}).status_code == 200
+
+
+def test_the_node_routes_refuse_a_forged_host_off_the_tls_listener(node_app):
+    client = TestClient(node_app, base_url="http://evil.example:7860")
+    assert not _phone_gets_in(client, "/voice/node")
+    assert client.post("/voice/node/pair", json={}).status_code == 403
+
+
+def test_the_node_routes_refuse_a_web_page(node_app):
+    page_origin = {"origin": f"https://{HOST}"}
+    assert not _phone_gets_in(tls(node_app), "/voice/node", **page_origin)  # a node is never a page
+    assert tls(node_app).post("/voice/node/pair", json={}, headers=page_origin).status_code == 403
+
+
+def test_each_node_route_takes_only_its_own_kind_of_connection(node_app):
+    for client in (tls(node_app), local(node_app)):
+        assert client.get("/voice/node").status_code == 403
+        assert not _phone_gets_in(client, "/voice/node/pair")
+
+
+def test_the_node_routes_open_nothing_else(node_app):
+    assert tls(node_app).get("/voice/status").status_code == 403
+    assert local(node_app).post("/voice/register").status_code == 403

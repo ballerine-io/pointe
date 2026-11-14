@@ -69,7 +69,8 @@ class Remote:
                 and (origin is None or (urlparse(origin).hostname or "").lower() == self.host))
 
     async def guard(self, request: Request, call_next):
-        if request.scope.get("state", {}).get("pointe_phone"):  # LocalAuth checked the phone app's key for this path
+        state = request.scope.get("state", {})
+        if state.get("pointe_phone") or state.get("pointe_node"):  # LocalAuth passed the phone key, or a node route
             return await call_next(request)
         if not self.on_tls_listener(request.scope):
             return await call_next(request) if is_local_request(request) else PlainTextResponse("forbidden", status_code=403)
