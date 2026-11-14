@@ -293,7 +293,7 @@ struct Demo {
          "context": ["the retry loop retries five times with no backoff"],
          "constraints": ["we must not touch the tax service this sprint"],
          "open_questions": ["whether the timeout is on our side or the provider's"],
-         "text": "Brain dump from the user, in their own words, structured; nothing added:\\nGoal: stop the checkout timing out for some customers\\nContext:\\n- the retry loop retries five times with no backoff\\nConstraints:\\n- we must not touch the tax service this sprint\\nOpen questions:\\n- whether the timeout is on our side or the provider's"}
+         "text": "Goal\\nstop the checkout timing out for some customers\\n\\nContext\\n- the retry loop retries five times with no backoff\\n\\nConstraints\\n- we must not touch the tax service this sprint\\n\\nOpen questions\\n- whether the timeout is on our side or the provider's"}
         """
         return """
         {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,

@@ -406,7 +406,27 @@
   #dumpsheet .sheetbox { width: min(680px, 100%); }
   #dump-text { min-height: 220px; font: 15px/1.5 'Inter', sans-serif; white-space: pre-wrap; }
   #dump-fallback { color: var(--orange); font-size: 13px; }
-  #dumpsheet select { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 0 12px; font: 600 14px 'Inter', sans-serif; }
+  /* To: a field, like Mail's, so it never reads as a second button; Send is the one primary action */
+  #dump-to { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 0 0 14px; border-radius: 12px; border: 1px solid var(--line);
+             background: var(--card); cursor: pointer; }
+  #dump-to span { color: var(--muted); font-size: 14px; }
+  #dump-to select { flex: 1; min-height: 44px; border: 0; background-color: transparent; color: var(--text); font: 600 15px 'Inter', sans-serif;
+                    padding: 0 36px 0 0; background-position: right 14px center; }
+  #dump-to:hover { background: var(--card2); }
+  #dump-send { border: 0; border-radius: 999px; min-height: 50px; background: var(--orange); color: #fff; font: 700 16px 'Inter', sans-serif;
+               cursor: pointer; }
+  #dump-send:hover { background: #FF6236; }
+  #dump-send.sure, #dump-send.sure:hover { background: #A82E0C; box-shadow: 0 0 0 2px var(--navy), 0 0 0 4px var(--orange), 0 8px 26px rgba(255, 79, 31, .35); }
+  #dump-send:disabled { opacity: .4; cursor: default; }
+  #dump-secondary { justify-content: stretch; flex-wrap: nowrap; }
+  #dump-secondary button { flex: 1; min-height: 40px; border-radius: 999px; background: transparent; border: 1px solid var(--line); color: var(--text);
+                           font: 500 14px 'Inter', sans-serif; }
+  #dump-secondary button:hover { background: var(--card); }
+  #dump-secondary button:disabled { opacity: .4; }
+  #dump-discard2 { align-self: center; margin-top: 6px; border: 0; background: transparent; color: var(--red); font: 600 14px 'Inter', sans-serif;
+                   padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+  #dump-discard2:hover { background: rgba(255, 69, 58, .12); }
+  #dumpsheet .hint { text-align: center; }
 
   /* challenge me: the voice argues against the plan, one objection at a time (challenge.py) */
   #challenge { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 14px;
@@ -825,14 +845,15 @@
     <div class="lede">In your words. Edit it, add more, or send it to a session.</div>
     <div id="dump-fallback" hidden>Pointe could not structure it; this is what you said.</div>
     <textarea id="dump-text" dir="auto" aria-label="The prompt" onchange="dumpEdit()"></textarea>
-    <div class="row" style="justify-content:flex-start"><select id="dump-session" aria-label="Session"></select><button id="dump-send" class="go" onclick="dumpSend()">Send to</button></div>
+    <label id="dump-to"><span>To:</span><select id="dump-session" aria-label="Send to session"></select></label>
     <div class="ok" id="dump-ok" role="status"></div><div class="err" id="dump-err" role="alert"></div>
-    <div class="row">
+    <button id="dump-send" onclick="dumpSend()">Send</button>
+    <div class="row" id="dump-secondary">
       <button id="dump-more" onclick="dumpAction('more')">Add more</button>
       <button id="dump-read" onclick="dumpAction('read')" title="Pointe reads it to you">Read it back</button>
       <button id="dump-challenge" onclick="challengeAction('start')" title="The voice argues against what you wrote">Challenge it</button>
-      <button id="dump-discard2" onclick="dumpDiscard('dump-discard2')">Discard</button>
     </div>
+    <button id="dump-discard2" onclick="dumpDiscard('dump-discard2')">Discard</button>
     <div class="hint">Or say “send it to …”, “add more”, “read it back” or “discard”.</div>
   </div>
 </div>
@@ -1662,8 +1683,12 @@
     addMore: 'Add more',
     discard: 'Discard',
     discardSure: 'Discard the dump?',
-    send: 'Send to',
+    to: 'To:',
+    send: 'Send',
+    sendSure: 'Tap again to send',
+    sendTo: 'Send to',
     sent: 'Sent to',
+    readBack: 'Read it back',
     fallback: 'Pointe could not structure it; this is what you said.',
     resumed: 'Still here from earlier.',
     state: 'Brain dump',
@@ -1715,9 +1740,9 @@
   async function dumpSend() {  // two clicks, no dialog: the first names where it goes, the second sends
     const session = $('dump-session').value;
     if (!session) { $('dump-err').textContent = 'No session to send to.'; return; }
-    if (Date.now() > dumpSure) { dumpSure = Date.now() + 4000; $('dump-send').textContent = `${DUMP_COPY.send} ${short(session)}?`;
-      setTimeout(() => { if (Date.now() > dumpSure) $('dump-send').textContent = `${DUMP_COPY.send} ${short(session)}`; }, 4100); return; }
-    dumpSure = 0; $('dump-send').disabled = true; $('dump-err').textContent = '';
+    if (Date.now() > dumpSure) { dumpSure = Date.now() + 4000; dumpSendLabel(true);
+      setTimeout(() => { if (Date.now() > dumpSure) dumpSendLabel(false); }, 4100); return; }
+    dumpSure = 0; dumpSendLabel(false); $('dump-send').disabled = true; $('dump-err').textContent = '';
     try {
       await dumpEdit();  // what is on screen is what goes
       await dumpPost({action: 'send', session});
@@ -1726,6 +1751,12 @@
     } catch (e) { $('dump-err').textContent = e.message; }
     $('dump-send').disabled = false;
     refresh();
+  }
+  function dumpSendLabel(sure) {  // the first click arms it: the words and the look both change, the second click sends
+    const b = $('dump-send');
+    b.textContent = sure ? DUMP_COPY.sendSure : DUMP_COPY.send;
+    b.classList.toggle('sure', sure);
+    b.setAttribute('aria-label', sure ? DUMP_COPY.sendSure : `${DUMP_COPY.sendTo} ${short($('dump-session').value || '')}`.trim());
   }
   function closeDump() {
     const d = dumpOf(status);
@@ -1765,12 +1796,12 @@
     const pick = $('dump-session'), was = pick.value;
     pick.replaceChildren(...sessions.map(x => { const o = el('option', '', short(x.name)); o.value = x.name; return o; }));
     pick.value = [d.target, was, s.active].find(n => n && sessions.some(x => x.name === n)) || (sessions[0] || {}).name || '';
-    $('dump-send').textContent = `${DUMP_COPY.send} ${short(pick.value || '')}`.trim();
+    if (Date.now() > dumpSure) dumpSendLabel(false);
     $('dump-send').disabled = !pick.value;
     $('dump-err').textContent = d.problem || '';
     if (fresh && d.id !== dumpClosed()) openSheet('dumpsheet', 'dump-text');
   }
-  $('dump-session').addEventListener('change', () => { dumpSure = 0; $('dump-send').textContent = `${DUMP_COPY.send} ${short($('dump-session').value)}`; });
+  $('dump-session').addEventListener('change', () => { dumpSure = 0; dumpSendLabel(false); });
   function endCall() {  // hung up by the user: a prompt the voice holds goes back to the terminal now
     wantCall = false; clearTimeout(retry); retry = null; callNote = '';
     fetch('/voice/hung-up', {method: 'POST'});

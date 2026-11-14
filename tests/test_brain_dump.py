@@ -114,7 +114,7 @@ def test_the_status_carries_the_whole_text_not_a_600_char_tail():
 def test_the_text_sent_is_the_prompt_else_the_thoughts_under_context():
     dump = braindump.Dump()
     dump.add("the retry loop has no backoff")
-    assert dump.text == "Brain dump from the user, in their own words, structured; nothing added:\nGoal: (not stated)\nContext:\n- the retry loop has no backoff"
+    assert dump.text == "Context\n- the retry loop has no backoff"
     dump.prompt = braindump.edited("Goal: fix the retry loop\nConstraints:\n- no backoff changes")
     assert dump.text == "Goal: fix the retry loop\nConstraints:\n- no backoff changes"
 
@@ -155,10 +155,16 @@ def test_invented_is_about_content_words_not_glue():
 
 def test_the_prompt_text_is_the_sections_in_order_with_empty_ones_left_out():
     text = braindump.render({**STRUCTURED, "constraints": []})
-    assert text.splitlines()[0].startswith("Brain dump from the user")
-    assert "Goal: stop the checkout" in text and "Context:\n- the retry loop" in text and "Open questions:\n- whether" in text
-    assert "Constraints" not in text
-    assert "Goal: (not stated)" in braindump.render({"context": ["x"]})
+    assert text.startswith(f"Goal\n{STRUCTURED['goal']}\n\nContext\n- {STRUCTURED['context'][0]}")
+    assert "\n\nOpen questions\n- whether" in text
+    assert "Constraints" not in text and ":" not in text.splitlines()[0]
+    assert braindump.render({"goal": "", "context": ["x"], "constraints": [" "], "open_questions": []}) == "Context\n- x"  # no empty Goal
+
+
+def test_the_framing_is_added_at_send_time_never_in_the_text_the_user_edits():
+    text = braindump.structured(STRUCTURED)["text"]
+    assert "nothing added" not in text and "Brain dump from the user" not in text
+    assert "nothing added" in braindump.sent_header("billing") and "billing" in braindump.sent_header("billing")
 
 
 def test_a_credential_in_a_thought_is_masked_in_the_prompt():
@@ -170,7 +176,7 @@ def test_a_credential_in_a_thought_is_masked_in_the_prompt():
 
 def test_the_fallback_is_the_thoughts_under_context_and_add_more_folds_into_the_existing_text():
     fb = braindump.fallback(THOUGHTS[:2])
-    assert fb["context"] == THOUGHTS[:2] and "Goal: (not stated)" in fb["text"] and THOUGHTS[1] in fb["text"]
+    assert fb["context"] == THOUGHTS[:2] and fb["text"].startswith("Context\n- ") and "Goal" not in fb["text"] and THOUGHTS[1] in fb["text"]
     prompt = braindump.structure_prompt(["one more thing"], existing="Goal: x\nContext:\n- y")
     assert "already reviewed" in prompt and "- one more thing" in prompt and "keep the existing lines" in prompt
     assert braindump.structure_prompt(THOUGHTS[:1]).startswith("The thoughts, in order:")
@@ -259,7 +265,7 @@ def test_while_dumping_nothing_reaches_the_brain_and_done_structures_for_review(
     take(d, "Okay, done.")
     dump = d.state.dump
     assert dump.state == "review" and not d._dumping() and d.current_mode() is modes.CONVERSATION
-    assert dump.prompt["goal"] == STRUCTURED["goal"] and dump.prompt["text"].startswith("Brain dump from the user")
+    assert dump.prompt["goal"] == STRUCTURED["goal"] and dump.prompt["text"].startswith("Goal\n")
     assert brain.turns == [] and len(brain.told) == 1 and brain.told[0][0].startswith("[brain dump ready]") and brain.told[0][1]
     assert "retry loop" not in brain.told[0][0]  # the brain is told it is ready, never the content
     choice, prompt, system, kw = brain.calls[0]

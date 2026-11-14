@@ -148,7 +148,8 @@ async def main() -> None:
             prompt = (dump() or {}).get("prompt") or {}
             text = (prompt.get("text") or "").lower()
             check("\"done\" structures the thoughts: the review opens with a prompt in the user's words, the voice says it is ready, nothing was sent",
-                  bool(review) and bool(sheet) and "goal:" in text and ("retry" in text or "backoff" in text) and "tax" in text
+                  bool(review) and bool(sheet) and any(h in "\n" + text for h in ("\ngoal\n", "\ncontext\n"))
+                  and "nothing added" not in text and "(not stated)" not in text and ("retry" in text or "backoff" in text) and "tax" in text
                   and not prompt.get("fallback") and bool(spoke) and not INBOX and status()["mode_state"]["mode"] == "conversation",
                   prompt=text[:300], spoke=spoke[-1:] if spoke else [], sections={k: prompt.get(k) for k in ("goal", "constraints")})
             await quiet()
@@ -158,14 +159,16 @@ async def main() -> None:
             await page.js("$('dump-session').value = 'lantern'; $('dump-session').dispatchEvent(new Event('change'))")
             await page.js("document.getElementById('dump-send').click()")
             asks = await page.js("document.getElementById('dump-send').textContent")
+            await page.shot("dump-2b-armed")
             await page.js("document.getElementById('dump-send').click()")
             arrived = await until(lambda: INBOX, 20)
             gone = await until(lambda: dump() is None and not (STATE / "brain_dump.json").exists(), 10)
             told = await until(lambda: log_lines(r"-> lantern: brain dump"), 5)
             await page.shot("dump-3-sent")
             body = "\n".join(INBOX)
-            check("Send asks first, then delivers exactly the text on screen to lantern, and the dump is gone",
-                  asks == "Send to lantern?" and bool(arrived) and on_screen.strip() in body.replace("\\n", "\n") and bool(gone) and bool(told),
+            check("Send asks first, then delivers exactly the text on screen to lantern, framed at send time only, and the dump is gone",
+                  asks == "Tap again to send" and bool(arrived) and on_screen.strip() in body.replace("\\n", "\n") and "nothing added" in body
+                  and "nothing added" not in on_screen and bool(gone) and bool(told),
                   asks=asks, inbox=body[:300])
             await quiet()
 

@@ -29,7 +29,8 @@ final class BrainDumpTests: XCTestCase {
         XCTAssertEqual(dump?.thoughts.count, 3)
         let review = try XCTUnwrap(Demo.make(.brainDumpReview)).status.brain_dump
         XCTAssertEqual(review?.inReview, true)
-        XCTAssertTrue(review?.prompt?.text.hasPrefix("Brain dump from the user") ?? false)
+        XCTAssertTrue(review?.prompt?.text.hasPrefix("Goal\nstop the checkout") ?? false, "sections as headings, no machine framing")
+        XCTAssertFalse(review?.prompt?.text.contains("nothing added") ?? true)
     }
 
     func testTheButtonReadsBrainDumpThenDoneThenReview() throws {
@@ -59,5 +60,8 @@ final class BrainDumpTests: XCTestCase {
         XCTAssertEqual(BrainDumpCopy.hint, "When you're done: tap Done, or say “done” or “over to you”.")
         XCTAssertEqual(BrainDumpCopy.state, "Brain dump")
         XCTAssertEqual(ChallengeCopy.fromDump, "Challenge it")
+        XCTAssertEqual(BrainDumpCopy.to, "To:")
+        XCTAssertEqual(BrainDumpCopy.send, "Send")
+        XCTAssertEqual(BrainDumpCopy.sendSure, "Tap again to send")
     }
 }

@@ -1094,7 +1094,7 @@ struct CallView: View {
             d.state = "review"
             let thoughts = d.thoughts.map(\.text)
             d.prompt = API.DumpPrompt(goal: thoughts.first ?? "", context: Array(thoughts.dropFirst()), constraints: [], open_questions: [],
-                                      text: (["Goal: \(thoughts.first ?? "")"] + (thoughts.count > 1 ? ["Context:"] + thoughts.dropFirst().map { "- \($0)" } : [])).joined(separator: "\n"))
+                                      text: (["Goal\n\(thoughts.first ?? "")"] + (thoughts.count > 1 ? [(["Context"] + thoughts.dropFirst().map { "- \($0)" }).joined(separator: "\n")] : [])).joined(separator: "\n\n"))
             status?.brain_dump = d
         case "more": status?.brain_dump?.state = "dumping"
         case "edit": if let text { status?.brain_dump?.prompt?.text = text }

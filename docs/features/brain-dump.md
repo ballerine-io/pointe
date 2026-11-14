@@ -16,13 +16,14 @@ the file); `daemon.py` runs it. Design and the bugs it fixed: [docs/design/brain
 - **Done:** "done", "over to you", "what do you think", "structure it", "סיימתי"; or **Done**. Nothing said: back to
   the conversation, silently. Otherwise a rising chime, and in a few seconds the review. "Discard", "forget it",
   "never mind" (the whole utterance), or **Discard**, ends it with nothing kept.
-- **Review:** the structured prompt, editable; a session picker (the active session preselected); **Send to X** (two
-  clicks: the first asks), **Add more** (keep dumping; the next Done folds the new thoughts in), **Read it back**,
+- **Review:** the structured prompt, editable, as plain sections (Goal, Context, Constraints, Open questions; empty ones
+  left out) with bullets; a **To:** field (the active session preselected); **Send** (two clicks: the first reads "Tap
+  again to send"), **Add more** (keep dumping; the next Done folds the new thoughts in), **Read it back**,
   **Challenge it** ([devil's advocate](challenge.md) on the prompt), **Discard** (two clicks). By voice: "send it to X",
   "send it" (the preselected session), "add more", "read it back", "discard". Anything else you say is ordinary
   conversation; the card waits.
-- **Send:** the text as shown goes to the session word for word, headed `[from the user, by voice: their brain dump,
-  structured for X]`. Pointe says it went. It shows in Recent requests like a spoken send.
+- **Send:** the text as shown goes to the session word for word, headed `[from the user, by voice: their brain dump for
+  X, in their own words, structured; nothing added]`. Pointe says it went. It shows in Recent requests like a spoken send.
 
 ## What holds, in code
 

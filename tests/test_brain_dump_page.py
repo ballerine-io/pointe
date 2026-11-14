@@ -32,8 +32,8 @@ def dumping(thoughts=THOUGHTS, state="dumping", prompt=None, **more) -> dict:
 
 PROMPT = {"goal": "stop the checkout timing out for some customers", "context": ["the retry loop retries five times with no backoff"],
           "constraints": ["we must not touch the tax service this sprint"], "open_questions": [],
-          "text": "Brain dump from the user, in their own words, structured; nothing added:\nGoal: stop the checkout timing out for some customers\n"
-                  "Context:\n- the retry loop retries five times with no backoff\nConstraints:\n- we must not touch the tax service this sprint"}
+          "text": "Goal\nstop the checkout timing out for some customers\n\n"
+                  "Context\n- the retry loop retries five times with no backoff\n\nConstraints\n- we must not touch the tax service this sprint"}
 
 
 async def _page(status):
@@ -112,17 +112,23 @@ def test_done_opens_the_review_and_send_takes_two_clicks_and_names_the_session()
             opened = await _until(page, "document.getElementById('dumpsheet').classList.contains('open')", 6)
             assert opened and _posts(stub)[-1] == {"action": "done"}
             got = await page.eval("""({text: $('dump-text').value, h: $('dumprev-h').textContent, send: $('dump-send').textContent,
+                                      sendLabel: $('dump-send').getAttribute('aria-label'), to: $('dump-to').querySelector('span').textContent,
+                                      primaries: [...document.querySelectorAll('#dumpsheet button')].filter(b => getComputedStyle(b).backgroundColor === 'rgb(255, 79, 31)').map(b => b.id),
+                                      discardRed: getComputedStyle($('dump-discard2')).color, discardInRow: !!$('dump-discard2').closest('.row'),
                                       options: [...$('dump-session').options].map(o => o.value), picked: $('dump-session').value,
                                       label: $('listen-label').textContent, panel: $('dump').hidden, fallback: $('dump-fallback').hidden})""")
             await _shot(page, "web-2-review")
-            assert got["text"].startswith("Goal: " + THOUGHTS[0]) and "- " + THOUGHTS[1] in got["text"]
+            assert got["text"].startswith("Goal\n" + THOUGHTS[0] + "\n\nContext\n- " + THOUGHTS[1]) and "Brain dump from" not in got["text"]
             assert got["h"].startswith("Your brain dump, structured") and got["label"] == "Review" and got["panel"] and got["fallback"]
-            assert got["options"] == ["s0-shop", "s1-api", "s2-mobile"] and got["picked"] == "s0-shop" and got["send"] == "Send to s0-shop"
+            assert got["options"] == ["s0-shop", "s1-api", "s2-mobile"] and got["picked"] == "s0-shop"
+            assert got["to"] == "To:" and got["send"] == "Send" and got["sendLabel"] == "Send to s0-shop"  # the picker says where, Send says what
+            assert got["primaries"] == ["dump-send"] and got["discardRed"] == "rgb(255, 69, 58)" and not got["discardInRow"]  # Discard apart, destructive
             # pick another session, then send: the first click asks, the second posts
             await page.eval("$('dump-session').value = 's1-api'; $('dump-session').dispatchEvent(new Event('change'))")
             await page.eval("document.getElementById('dump-send').click()")
-            asked = await page.eval("$('dump-send').textContent")
-            assert asked == "Send to s1-api?" and not [b for b in _posts(stub) if b.get("action") == "send"]
+            asked = await page.eval("({text: $('dump-send').textContent, armed: $('dump-send').classList.contains('sure')})")
+            await _shot(page, "web-2b-armed")
+            assert asked == {"text": "Tap again to send", "armed": True} and not [b for b in _posts(stub) if b.get("action") == "send"]
             await page.eval("document.getElementById('dump-send').click()")
             sent = await _until(page, "$('dump-ok').textContent.startsWith('Sent to s1-api')", 6)
             await _shot(page, "web-3-sent")

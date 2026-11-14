@@ -193,8 +193,9 @@ class StubMac:
             elif action == "done" and d:
                 thoughts = [t["text"] for t in d["thoughts"]]
                 d["state"], d["prompt"] = "review", {"goal": thoughts[0] if thoughts else "", "context": thoughts[1:], "constraints": [],
-                                                      "open_questions": [], "text": "Goal: " + (thoughts[0] if thoughts else "(not stated)")
-                                                      + ("\nContext:\n" + "\n".join(f"- {t}" for t in thoughts[1:]) if thoughts[1:] else "")}
+                                                      "open_questions": [],
+                                                      "text": "\n\n".join(([f"Goal\n{thoughts[0]}"] if thoughts else [])
+                                                                          + (["Context\n" + "\n".join(f"- {t}" for t in thoughts[1:])] if thoughts[1:] else []))}
             elif action == "more" and d:
                 d["state"] = "dumping"
             elif action == "edit" and d and d.get("prompt"):

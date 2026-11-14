@@ -42,8 +42,12 @@ COPY = {
     "addMore": "Add more",
     "discard": "Discard",
     "discardSure": "Discard the dump?",
-    "send": "Send to",
+    "to": "To:",
+    "send": "Send",
+    "sendSure": "Tap again to send",
+    "sendTo": "Send to",
     "sent": "Sent to",
+    "readBack": "Read it back",
     "fallback": "Pointe could not structure it; this is what you said.",
     "resumed": "Still here from earlier.",
     "state": "Brain dump",
@@ -263,17 +267,18 @@ def parse(reply: str, said: str) -> dict:
 
 
 def render(sections: dict) -> str:
-    """The prompt as it is shown and sent: a heading per section, the user's items under it. Empty sections are left out,
-    except Goal, which says so."""
-    lines = ["Brain dump from the user, in their own words, structured; nothing added:"]
+    """The prompt as the user reads and edits it: a heading line per section that has something, the goal as a line,
+    the other sections as bullets, a blank line between. Empty sections are left out, the goal too. The machine framing
+    for the session is not here: `sent_header` adds it at send time, so the user never edits it."""
+    blocks = []
     goal = (sections.get("goal") or "").strip()
-    lines.append(f"Goal: {goal}" if goal else "Goal: (not stated)")
+    if goal:
+        blocks.append(f"Goal\n{goal}")
     for key, label in SECTIONS[1:]:
-        items = [i for i in (sections.get(key) or []) if str(i).strip()]
+        items = [str(i).strip() for i in (sections.get(key) or []) if str(i).strip()]
         if items:
-            lines.append(f"{label}:")
-            lines += [f"- {i}" for i in items]
-    return "\n".join(lines)[:PROMPT_CHARS]
+            blocks.append("\n".join([label, *(f"- {i}" for i in items)]))
+    return "\n\n".join(blocks)[:PROMPT_CHARS]
 
 
 def structured(sections: dict) -> dict:
@@ -327,4 +332,5 @@ def resumed_line(dump: Dump) -> str:
 
 
 def sent_header(session: str) -> str:
-    return f"[from the user, by voice: their brain dump, structured for {session}]"
+    """What the session reads above the prompt, added at send time only: the text the user reviewed carries no framing."""
+    return f"[from the user, by voice: their brain dump for {session}, in their own words, structured; nothing added]"

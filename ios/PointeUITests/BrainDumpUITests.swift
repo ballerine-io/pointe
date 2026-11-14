@@ -52,12 +52,15 @@ final class BrainDumpUITests: XCTestCase {
         XCTAssertTrue(text("In your words. Edit it, add more, or send it to a session.").exists)
         let editor = any("dump.text")
         XCTAssertTrue(editor.exists)
-        XCTAssertTrue((editor.value as? String ?? "").contains("Goal: So the checkout keeps timing out"), editor.value as? String ?? "")
+        XCTAssertTrue((editor.value as? String ?? "").hasPrefix("Goal\nSo the checkout keeps timing out"), editor.value as? String ?? "")
+        XCTAssertFalse((editor.value as? String ?? "").contains("nothing added"), "the framing is added at send time, not here")
+        XCTAssertEqual(any("dump.session").label, "To: billing/main", "the active session is preselected, in a To field")
         let send = any("dump.send")
-        XCTAssertEqual(send.label, "Send to billing/main", "the active session is preselected")
+        XCTAssertEqual(send.label, "Send to billing/main")
         shot("dump-2-review")
         send.tap()
-        XCTAssertEqual(send.label, "Send to billing/main?", "the first tap asks")
+        XCTAssertEqual(send.label, "Tap again to send", "the first tap arms it")
+        shot("dump-2b-armed")
         send.tap()
         XCTAssertTrue(app.buttons["Brain dump"].waitForExistence(timeout: 5), "sent: the dump is gone and the bar offers a new one")
         XCTAssertFalse(any("dump.review").exists)
@@ -68,7 +71,8 @@ final class BrainDumpUITests: XCTestCase {
         launch("brainDumpReview")
         XCTAssertTrue(any("dump.review").waitForExistence(timeout: 15))
         let value = any("dump.text").value as? String ?? ""
-        for part in ["Goal: stop the checkout timing out", "Context:", "Constraints:", "- we must not touch the tax service", "Open questions:"] {
+        XCTAssertTrue(value.hasPrefix("Goal\nstop the checkout timing out"), value)
+        for part in ["\n\nContext\n- the retry loop", "\n\nConstraints\n- we must not touch the tax service", "\n\nOpen questions\n- whether"] {
             XCTAssertTrue(value.contains(part), "\(part) in \(value)")
         }
         XCTAssertTrue(text("Or say “send it to …”, “add more”, “read it back” or “discard”.").exists)

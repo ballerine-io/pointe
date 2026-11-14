@@ -48,9 +48,14 @@ conversation ──"brain dump" / button──► dumping ──"done" / Done─
   guard in code drops any item whose words are not mostly yours (`braindump.invented`), and when the model fails or is
   unavailable the prompt is your raw thoughts under Context, still editable and sendable. Held session news and a
   pending approval follow the review line.
-- **Review:** the structured prompt, editable as text; a session picker (the active session preselected); **Send to
-  X** (two clicks: the first asks "Send to X?"), **Add more** (back to dumping; the next Done folds the new thoughts into
-  the existing prompt), **Discard**. Pointe says one line: "Your brain dump is structured: send it, add more, or
+- **Review:** the structured prompt, editable as one text: a heading line per section that has something (Goal,
+  Context, Constraints, Open questions), the goal as a line, the rest as `- ` bullets, a blank line between; empty
+  sections are left out. No machine framing in it: "in their own words, nothing added" is in the header `_send_dump`
+  puts above the text at send time (`braindump.sent_header`), so the user never edits it. Under the text, a **To:**
+  field (the active session preselected; a field, not a button), then **Send**, the one primary action (two clicks:
+  the first arms it, reading "Tap again to send" with a ring, for four seconds). Below, quiet outlined **Add more** (back
+  to dumping; the next Done folds the new thoughts into the existing prompt), **Read it back**, **Challenge it**; then
+  **Discard** apart, in red (two clicks). Page and app have the same words and the same order. Pointe says one line: "Your brain dump is structured: send it, add more, or
   discard." In review, speech that is not one of those commands is ordinary conversation; the card stays until you act.
   "Read it back" has Pointe read the prompt aloud.
 - **Send:** the reviewed text goes to the named session **verbatim**, through `deliver`, with the same bookkeeping as a

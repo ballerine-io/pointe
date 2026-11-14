@@ -57,8 +57,12 @@ enum BrainDumpCopy {
     static let addMore = "Add more"
     static let discard = "Discard"
     static let discardSure = "Discard the dump?"
-    static let send = "Send to"
+    static let to = "To:"
+    static let send = "Send"
+    static let sendSure = "Tap again to send"
+    static let sendTo = "Send to"
     static let sent = "Sent to"
+    static let readBack = "Read it back"
     static let fallback = "Pointe could not structure it; this is what you said."
     static let resumed = "Still here from earlier."
     static let state = "Brain dump"
@@ -196,14 +200,25 @@ struct BrainDumpReview: View {
                         .focused($editing)
                         .onChange(of: editing) { if !editing { Task { await saveEdit() } } }
                         .accessibilityIdentifier("dump.text")
-                    HStack(spacing: 10) {
+                    // To: a field, like Mail's, so it never reads as a second button; Send is the one primary action.
+                    Menu {
                         Picker("Session", selection: Binding(get: { target ?? "" }, set: { picked = $0; sure = false })) {
                             ForEach(sessions, id: \.self) { Text($0).tag($0) }
                         }
-                        .pickerStyle(.menu).tint(.primary)
-                        .accessibilityIdentifier("dump.session")
-                        Spacer(minLength: 0)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(BrainDumpCopy.to).foregroundStyle(.secondary)
+                            Text(target ?? "").fontWeight(.semibold).foregroundStyle(.primary).lineLimit(1)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.up.chevron.down").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14).frame(minHeight: 46)
+                        .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.1)))
                     }
+                    .tint(.primary)  // a field, not an accent: the orange is Send's
+                    .accessibilityLabel("\(BrainDumpCopy.to) \(target ?? "")")
+                    .accessibilityIdentifier("dump.session")
                     if let note = problem ?? dump.problem {
                         Label(note, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
                             .accessibilityIdentifier("dump.problem")
@@ -218,32 +233,34 @@ struct BrainDumpReview: View {
                             busy = false
                         }
                     } label: {
-                        Text(sure ? "\(BrainDumpCopy.send) \(target ?? "")?" : "\(BrainDumpCopy.send) \(target ?? "")")
+                        Text(sure ? BrainDumpCopy.sendSure : BrainDumpCopy.send)
                             .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
                     }
-                    .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+                    .buttonStyle(.borderedProminent).tint(sure ? Brand.orange.mix(with: .black, by: 0.35) : Brand.orange).controlSize(.large)
+                    .overlay(Capsule().stroke(Brand.orange, lineWidth: 2).padding(-4).opacity(sure ? 1 : 0))
+                    .animation(.easeOut(duration: 0.15), value: sure)
                     .disabled(target == nil || busy)
+                    .accessibilityLabel(sure ? BrainDumpCopy.sendSure : "\(BrainDumpCopy.sendTo) \(target ?? "")")
                     .accessibilityIdentifier("dump.send")
-                    HStack(spacing: 10) {
-                        Button { Task { await more() } } label: { Text(BrainDumpCopy.addMore).font(.subheadline).frame(maxWidth: .infinity) }
-                            .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("dump.more")
-                        Button { Task { await read() } } label: { Text("Read it back").font(.subheadline).frame(maxWidth: .infinity) }
-                            .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("dump.read")
+                    HStack(spacing: 8) {
+                        quiet(BrainDumpCopy.addMore, id: "dump.more") { await more() }
+                        quiet(BrainDumpCopy.readBack, id: "dump.read") { await read() }
+                        quiet(ChallengeCopy.fromDump, id: "dump.challenge") { await challenge() }
                     }
-                    HStack(spacing: 10) {
-                        Button { Task { await challenge() } } label: { Text(ChallengeCopy.fromDump).font(.subheadline).frame(maxWidth: .infinity) }
-                            .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("dump.challenge")
-                        Button {
-                            if discardSure { discardSure = false; Task { await discard() } } else {
-                                discardSure = true
-                                Task { try? await Task.sleep(for: .seconds(4)); discardSure = false }
-                            }
-                        } label: {
-                            Text(discardSure ? BrainDumpCopy.discardSure : BrainDumpCopy.discard).font(.subheadline).frame(maxWidth: .infinity)
+                    Button(role: .destructive) {
+                        if discardSure { discardSure = false; Task { await discard() } } else {
+                            discardSure = true
+                            Task { try? await Task.sleep(for: .seconds(4)); discardSure = false }
                         }
-                        .buttonStyle(.bordered).tint(.gray).controlSize(.large).accessibilityIdentifier("dump.discard")
+                    } label: {
+                        Text(discardSure ? BrainDumpCopy.discardSure : BrainDumpCopy.discard).font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16).padding(.vertical, 8)
                     }
+                    .buttonStyle(.plain).foregroundStyle(.red)
+                    .frame(maxWidth: .infinity).padding(.top, 6)
+                    .accessibilityIdentifier("dump.discard")
                     Text(BrainDumpCopy.reviewHint).font(.footnote).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center).frame(maxWidth: .infinity)
                 }
                 .padding(20)
                 .accessibilityElement(children: .contain)
@@ -255,6 +272,17 @@ struct BrainDumpReview: View {
         }
         .onAppear { text = dump.prompt?.text ?? "" }
         .onChange(of: dump.prompt?.text) { if !editing, let t = dump.prompt?.text { text = t } }
+    }
+
+    /// A secondary action: quiet, outlined, never competing with Send.
+    private func quiet(_ title: String, id: String, _ action: @escaping () async -> Void) -> some View {
+        Button { Task { await action() } } label: {
+            Text(title).font(.subheadline).lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity).frame(minHeight: 40)
+                .overlay(Capsule().stroke(.white.opacity(0.18)))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain).foregroundStyle(.primary)
+        .accessibilityIdentifier(id)
     }
 
     private func saveEdit() async -> Bool {
