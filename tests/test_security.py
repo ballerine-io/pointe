@@ -314,3 +314,123 @@ def test_each_node_route_takes_only_its_own_kind_of_connection(node_app):
 def test_the_node_routes_open_nothing_else(node_app):
     assert tls(node_app).get("/voice/status").status_code == 403
     assert local(node_app).post("/voice/register").status_code == 403
+
+
+# ---------- machines: the real node handlers (hub_nodes.py) ----------
+
+@pytest.fixture
+def hub_app(tmp_path, monkeypatch):
+    import hub_nodes
+    import nodelink
+    from sessions import Registry
+
+    monkeypatch.setattr(nodelink, "PING_SECS", 3600.0)
+    (tmp_path / "tls").mkdir()
+    (tmp_path / "tls" / "cert.pem").write_text("x")  # enabled, so a paired browser over TLS passes Remote.guard
+    (tmp_path / "tls" / "key.pem").write_text("x")
+    (tmp_path / "remote.json").write_text(json.dumps({"host": HOST}))
+    (tmp_path / "remote_token").write_text("s3cret-token")
+    remote = Remote(tmp_path)
+    app = FastAPI()
+    app.middleware("http")(remote.guard)
+    app.get("/voice/status")(lambda: {"ok": True})
+    hub = hub_nodes.Hub(tmp_path, Registry(), hub_nodes.Host())
+    hub_nodes.install(app, hub, link=lambda code: f"pointe://hub?code={code}")
+    app.add_middleware(LocalAuth, token="daemon-token", page_key="page-key", remote=remote,
+                       phone=lambda authorization: authorization == "Bearer phone-key")
+    app.state.hub = hub
+    return app
+
+
+def _node_close_code(client, key: str, node_id: str, **headers) -> int | None:
+    """Connect as a node with this key; the hub's close code, or None if it welcomed us."""
+    import nodelink
+
+    base = str(client.base_url).replace("http", "ws", 1)
+    try:
+        with client.websocket_connect(base + "/voice/node", headers=headers) as socket:
+            challenge = json.loads(socket.receive_text())
+            auth = nodelink.answer(key, challenge["nonce"], challenge["hub"]["id"]) if key else "00"
+            socket.send_text(nodelink.encode("hello", protocol=1, auth=auth, now=0.0, node={
+                "id": node_id, "name": "devbox", "os": "linux", "arch": "arm64", "version": "1", "harnesses": []}))
+            frame = json.loads(socket.receive_text())
+            return None if frame["t"] == "welcome" else -1
+    except WebSocketDisconnect as e:
+        return e.code
+
+
+def test_the_node_socket_needs_the_hmac_and_no_other_secret_opens_it(hub_app):
+    hub = hub_app.state.hub
+    node = hub.nodes.add("devbox", "linux")
+    assert _node_close_code(tls(hub_app), node["key"], node["id"]) is None  # control: the right key gets in
+    assert _node_close_code(tls(hub_app), "cd" * 32, node["id"]) == 4401
+    assert _node_close_code(local(hub_app), "", node["id"], authorization="Bearer phone-key") == 4401
+    assert _node_close_code(local(hub_app), "", node["id"], authorization="Bearer daemon-token") == 4401
+    page = local(hub_app)
+    page.cookies.set(LOCAL_COOKIE, "page-key")
+    assert _node_close_code(page, "", node["id"]) == 4401
+
+
+def test_the_real_node_socket_refuses_a_forged_host_on_loopback(hub_app):
+    node = hub_app.state.hub.nodes.add("devbox", "linux")
+    assert _node_close_code(TestClient(hub_app, base_url="http://evil.example:7860"), node["key"], node["id"]) == 1008
+
+
+def test_a_revoked_key_gets_4401(hub_app):
+    import asyncio
+
+    hub = hub_app.state.hub
+    node = hub.nodes.add("devbox", "linux")
+    asyncio.run(hub.revoke("devbox"))
+    assert _node_close_code(tls(hub_app), node["key"], node["id"]) == 4401
+
+
+def _pair(client, code, name="devbox"):
+    return client.post("/voice/node/pair", json={"code": code, "name": name, "os": "linux", "arch": "x86_64",
+                                                 "version": "1.0.1"})
+
+
+def test_pairing_needs_an_outstanding_invite_and_the_right_code_once(hub_app):
+    hub = hub_app.state.hub
+    assert _pair(tls(hub_app), "AAAA-AAAA").status_code == 403  # no invite: closed
+    code = hub.invites.make()
+    wrong = _pair(tls(hub_app), "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB")
+    assert wrong.status_code == 403 and wrong.text == "wrong code"
+    good = _pair(tls(hub_app), code)
+    assert good.status_code == 200 and len(good.json()["node_key"]) == 64
+    assert _pair(tls(hub_app), code, "other").status_code == 403  # single use
+
+
+def test_pairing_answers_five_attempts_a_minute_from_one_address(hub_app):
+    hub_app.state.hub.invites.make()
+    codes = [_pair(tls(hub_app), "AAAA-AAAA").status_code for _ in range(6)]
+    assert codes[:5] == [403] * 5 and codes[5] == 429
+
+
+def test_the_invite_routes_take_the_page_or_the_daemon_token_but_not_a_page_over_the_tls_listener(hub_app):
+    assert local(hub_app).post("/voice/hub/invite", json={}).status_code == 403  # no secret
+    made = local(hub_app).post("/voice/hub/invite", json={}, headers={"authorization": "Bearer daemon-token"})
+    assert made.status_code == 200 and made.json()["link"].startswith("pointe://hub?code=")
+    remote_page = tls(hub_app)
+    remote_page.cookies.set(COOKIE, "s3cret-token")  # a browser paired over the TLS listener: not shown the code
+    assert remote_page.get("/voice/status").status_code == 200  # control: it is paired
+    for method, path in (("post", "/voice/hub/invite"), ("get", "/voice/hub/invite"), ("get", "/voice/hub/nodes"),
+                         ("post", "/voice/hub/revoke")):
+        assert getattr(remote_page, method)(path, **({"json": {}} if method == "post" else {})).status_code == 403
+    page = TestClient(hub_app, base_url=f"http://{page_host('page-key')}:7860")
+    page.cookies.set(LOCAL_COOKIE, "page-key")
+    assert page.get("/voice/hub/invite").json()["code"] == made.json()["code"]
+
+
+def test_mirrors_are_private(hub_app, tmp_path):
+    hub = hub_app.state.hub
+    node = hub.nodes.add("devbox", "linux")
+    hub.mirrors.append(node["id"], {"id": "s1", "gen": 0, "offset": 0, "next_offset": 3, "entries": ["{}\n"]})
+    mirror = tmp_path / "harness" / "remote" / node["id"] / "s1.0.jsonl"
+    assert mirror.stat().st_mode & 0o077 == 0 and mirror.parent.stat().st_mode & 0o077 == 0
+    assert (tmp_path / "nodes.json").stat().st_mode & 0o077 == 0
+
+
+def test_the_not_paired_page_points_at_pointe_pair_link(app):
+    r = tls(app).get("/voice/status")
+    assert r.status_code == 403 and "pointe pair link" in r.text and "voice-remote" not in r.text

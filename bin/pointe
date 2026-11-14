@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|doctor|status|log|context|pair|key|join|local|stop [args]
+# One command for everything. Usage: pointe start|attach|open|doctor|status|log|context|pair|hub|key|join|local|stop [args]
 set -euo pipefail
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -15,6 +15,7 @@ case "$cmd" in
   context) exec "$BIN/voice-context" "$@" ;;
   stop)    exec "$BIN/voice-daemon" stop ;;
   pair)    cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I pair.py "$@" ;;
+  hub)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I hub_nodes.py "$@" ;;  # machines: invite, nodes, revoke
   key)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I keys.py "$@" ;;
   local)   case "${1:-}" in
              off|stop|status) ;;  # nothing to install

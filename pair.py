@@ -4,6 +4,9 @@
   pointe pair wifi           this Mac's address on the current Wi-Fi (pair again if it changes)
   pointe pair host <name>    a name you route yourself (Twingate, Cloudflare Tunnel with Access); listens on 127.0.0.1
   pointe pair show           the QR code again
+  pointe pair link           the address that pairs a phone's browser page (what bin/voice-remote link printed)
+  pointe pair rotate         a new certificate: the phone and every machine paired with this Mac must pair again
+  pointe pair off            stop listening: removes the certificate, remote.json and remote_token
 
 The QR code holds a secret that opens a call into your sessions: show it only to your own phone. The app pins this
 listener's certificate by its fingerprint, so nothing has to be installed on the phone.
@@ -21,6 +24,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
+import nodelink  # noqa: E402
 from phone import phone_key  # noqa: E402
 from remote import TLS_PORT  # noqa: E402
 
@@ -137,12 +141,48 @@ def pairing_link() -> str:
                                          "fp": fingerprint(), "key": phone_key(STATE)})
 
 
+_NOT_SET_UP = "Not set up yet: run `pointe pair tailscale`, `pointe pair wifi`, or `pointe pair host <name>`."
+
+
+def _config() -> dict:
+    if not (STATE / "remote.json").exists():
+        raise SystemExit(_NOT_SET_UP)
+    return json.loads((STATE / "remote.json").read_text())
+
+
+def invite_link(code: str) -> str:
+    """The line `pointe node join` takes: the listener the phone uses, its certificate's fingerprint, a one-time code.
+    No lasting secret: the code is single use and dies in ten minutes."""
+    return "pointe://hub?" + urlencode({"v": nodelink.INVITE_VERSION, "host": _config()["host"], "port": TLS_PORT,
+                                        "fp": fingerprint(), "code": code})
+
+
+def link() -> None:
+    host = _config()["host"]
+    token = (STATE / "remote_token").read_text().strip()
+    print(f"https://{host}:{TLS_PORT}/voice?pair={token}")
+    print("Open it once on the phone's browser. It holds a secret: send it only to your own phone.")
+
+
+def rotate() -> None:
+    _certificate(_config()["host"])
+    print(f"New certificate {fingerprint()[:16]}... for the next daemon start (`pointe stop`, then /pointe:voice).")
+    print("The phone app and every node paired with this Mac must pair again: `pointe pair show` for the phone, "
+          "`pointe hub invite` for each node. A browser that trusted the old certificate must trust this one.")
+
+
+def off() -> None:
+    shutil.rmtree(STATE / "tls", ignore_errors=True)
+    for name in ("remote.json", "remote_token"):
+        (STATE / name).unlink(missing_ok=True)
+    print("The phone listener is off once the daemon restarts. A network connector (bin/voice-connector) and its tokens "
+          "are left as they are.")
+
+
 def show() -> None:
     import segno
 
-    if not (STATE / "remote.json").exists():
-        raise SystemExit("Not set up yet: run `pointe pair tailscale`, `pointe pair wifi`, or `pointe pair host <name>`.")
-    config = json.loads((STATE / "remote.json").read_text())
+    config = _config()
     code = segno.make(pairing_link(), error="m")
     code.terminal(compact=True)
     image = STATE / "pair-qr.png"  # a chat window cannot show the terminal code: open it as a picture instead
@@ -158,8 +198,9 @@ def main(argv: list[str]) -> None:
     if not argv or argv[0] in ("-h", "--help", "help"):
         print(__doc__.strip())
         return
-    if argv[0] == "show":
-        return show()
+    commands = {"show": show, "link": link, "rotate": rotate, "off": off}
+    if argv[0] in commands:
+        return commands[argv[0]]()
     if argv[0] == "tailscale":
         host, listen = _tailscale()
     elif argv[0] == "wifi":
