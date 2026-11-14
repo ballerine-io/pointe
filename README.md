@@ -83,6 +83,7 @@ OpenCode and Codex sessions join with `pointe join opencode` or `pointe join cod
 
 | | |
 |---|---|
+| [Machines](docs/multi-machine.md) | Sessions on your other Macs and Linux machines join the same voice, each shown with its machine. |
 | [Voice lock](docs/features/voice-lock.md) | Only your voice counts, for approvals or for everything. Checked on this Mac. |
 | [Self-learning vocabulary](docs/features/vocabulary.md) | Fix a misheard name once, and the next call hears it right. |
 | [Drive & walk mode](docs/features/drive-mode.md) | Short answers, nothing to look at, and only requests that lose nothing approved by voice. |
@@ -230,20 +231,25 @@ Not measured for any setup: a real human voice on a real call.
           \                               /
            one WebSocket per call: audio both ways, plus status and taps
                               |
-   daemon on your Mac (Python, Pipecat)
+   daemon on your Mac, the hub (Python, Pipecat)
      ears -> echo guard -> brain (tools; speech is a tool call, checked in code) -> mouth
      approvals: read-out allowlist, bound yes, tap, voice lock (local model)
      gate: each send checked against what you said
      reader: session notes, reports, briefings, conflicts, meeting notes
                               |
    one adapter per session: watch its record, send to it, hold its permission prompts
-          |                        |                        |
-     Claude Code               OpenCode                   Codex
-  (PermissionRequest hook)
+          |                        |                        |                     |
+     Claude Code               OpenCode                   Codex          a session on another machine
+  (PermissionRequest hook)                                                        |
+                                              pinned TLS, HMAC-authenticated link |
+                                                                                  |
+                              node on another Mac or a Linux host (no audio, no keys):
+                              the same adapters run there; it ships masked transcripts,
+                              types your requests in, and re-checks each approval
 ```
 
 The pipeline and the rules in detail: [docs/how-it-works.md](docs/how-it-works.md). The adapter contract and how to add a
-harness: [docs/harnesses.md](docs/harnesses.md).
+harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.md](docs/multi-machine.md).
 
 ## Limits
 

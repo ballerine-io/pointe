@@ -34,6 +34,15 @@ reports and approvals work per session. In practice:
 - **Several Claude accounts:** a session registers its config dir (`CLAUDE_CONFIG_DIR`), so its transcripts, title and
   "by the way" copy come from that account's folder. The daemon itself does not inherit the starting session's account.
 
+## Sessions on other machines
+
+An adapter always runs on the session's own machine. A session on another Mac or a Linux host joins through the Pointe
+node there ([multi-machine.md](multi-machine.md)): the node runs the same adapter (join, watch, send, approvals), and the
+hub sees the session through one wrapper, `harnesses/remote.py`, that reads a mirror of its transcript and passes sends
+and verdicts over the link. Badges, feed labels and `capabilities` still come from the real adapter, with one change:
+`side_questions` is false, because a forked copy would have to run on the node. "By the way" questions about a remote
+session are answered by the transcript reader, as for a harness that cannot fork.
+
 ## Claude Code (`harnesses/claude_code.py`)
 
 | Capability | How |

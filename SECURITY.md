@@ -172,6 +172,35 @@ the last seven briefings, written out per session and redacted. `dictionary.json
 fixed (Settings → Dictionary on the page or in the app shows, edits and deletes each one); it never takes a yes, no or
 stop word, anything `readout.mask` would hide, or words from a meeting. Delete what you no longer need.
 
+## Machines
+
+Sessions on another Mac or a Linux host join the voice through a node there ([docs/multi-machine.md](docs/multi-machine.md)).
+The Mac with the call (the hub) keeps every rule above for them.
+
+- **Pairing.** The hub makes a one-time code: single use, 10 minutes, about 40 bits, kept only as a hash in memory, and
+  accepted only while it is outstanding, at most 5 tries a minute per address. Making it from the app needs Face ID.
+  The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. The hub
+  then shows the node's name, address and key fingerprint, so you can see that the machine that paired is yours.
+- **The link.** The node dials the hub's TLS listener (the phone's) and proves its 256-bit key with an HMAC over a fresh
+  challenge from the hub; the key itself never crosses. One connection per key: a copy of a node cannot connect while
+  the node is connected. `pointe hub revoke <name>`, Settings → Machines on the page (two clicks) or in the app (a
+  confirm, then Face ID) ends it.
+- **What crosses.** To the hub: each session's transcript and permission requests, with credentials masked on the node
+  (`readout.mask`), names, folder paths and up to 40 file names. To the node: your requests to its sessions and your
+  answers to its prompts. A node holds no vendor key. Its sessions' content reaches the hub's vendors, as the hub's own
+  sessions' does; `pointe node join` and `pointe node status` name them.
+- **Approvals, checked twice.** The node re-checks voice and notification approvals against its own copy of the request:
+  a spoken yes counts only if the hub read out exactly the text the node computed from the unmasked request, and a
+  notification's Approve only for a request the node can read out. **A tap is trusted from the hub, as the hub's own
+  page is trusted. What a tap approves on the hub's screens is the masked preview; the exact unmasked request is in the
+  session's own terminal.** A node can refuse remote taps on requests it cannot read out: `"remote_taps":
+  "readable_only"` in its `~/.claude-voice/config.json` (off by default).
+- **Offline.** When a node's link drops, every prompt it held goes back to its own terminal, and a late answer is refused
+  as stale. The screens show no Approve or Deny for a session that is offline.
+- **Files.** On the hub, `nodes.json` (0600) holds each node's key; anyone who reads it can act as any node toward this
+  hub. On a node, `node_keys/<hub id>` (0600). Mirrors of remote transcripts sit under `harness/remote/` (0700, files
+  0600), and are deleted 7 days after their session left.
+
 ## Known limits
 
 - **Code running as you is trusted.** It can read the token and forge anything: register a session, read the journal, inject a
