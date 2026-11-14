@@ -118,11 +118,11 @@ async def rtl(page: Page) -> None:
 # The machine fields as the design defines them ("UI" in docs/design/multi-machine.md). Built on a status recorded from
 # the running daemon, so every other field is the real shape. Names are invented.
 def machines_fixture(recorded: dict, now: float, *, offline_request: bool = False, invite: dict | None = None) -> dict:
-    def session(name, machine="", working=False, waiting=False, needs=None, request=None, request_id=None, online=True, harness="claude-code"):
-        return {"name": name, "harness": harness, "capabilities": {"approvals": True, "side_questions": machine == "",
-                                                                   "attach": True, "spawn": machine == ""},
+    def session(name, machine="studio", working=False, waiting=False, needs=None, request=None, request_id=None, online=True, harness="claude-code"):
+        return {"name": name, "harness": harness, "capabilities": {"approvals": True, "side_questions": machine == "studio",
+                                                                   "attach": True, "spawn": machine == "studio"},
                 "working": working, "waiting": waiting, "request": request, "request_id": request_id,
-                "voice_can_approve": bool(request_id), "needs": needs, "mode": "inbox", "machine": machine, "online": online}
+                "voice_can_approve": bool(request_id) and online, "needs": needs, "mode": "inbox", "machine": machine, "online": online}
     tests = 'Bash: Run the tests\n{"command": "uv run pytest -q"}'
     sessions = [session("billing/main", working=True), session("shop"),
                 session("shop devbox", "devbox", working=True, waiting=not offline_request, request=None if offline_request else tests,
@@ -178,8 +178,6 @@ async def machines(page: Page) -> None:
     one = {**recorded, "sessions": machines_fixture(recorded, now)["sessions"][:2],
            "machines": [{"id": "hub", "name": "studio", "here": True, "os": "macos", "online": True, "sessions": 2, "need": 0}],
            "invite": None}
-    for x in one["sessions"]:
-        x.pop("machine"), x.pop("online")
     await use(page, one)
     check("one machine: no chips, no machine headers, no machine tags (the page as before)",
           await page.js("!$('mchips').children.length && !document.querySelector('#list .mh, #list .machine')")
