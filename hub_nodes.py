@@ -44,6 +44,7 @@ PAIR_PER_WINDOW = 10
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
+MAX_MIRROR_BYTES_PER_NODE = 4 << 30  # every mirror of one node together; past it, entries are counted, not written
 HISTORY_QUIET_SECS = 1.5  # a newly joined session's backlog: no frame for this long and it is all here
 _ID = re.compile(r"[\w-]{1,128}")  # a node's session id: it names a mirror file, so nothing that walks a path
 # What a node says reaches the brain's context every turn (a folder, file names), the read-out and the cards (a
@@ -290,6 +291,13 @@ class Mirrors:
 
     def __init__(self, root: Path):
         self.root = root
+        self._used: dict[str, int] = {}  # bytes of each node's mirror files, summed on first use
+
+    def used(self, node_id: str) -> int:
+        if node_id not in self._used:
+            folder = self.root / node_id
+            self._used[node_id] = sum(p.stat().st_size for p in folder.glob("*.jsonl*")) if folder.is_dir() else 0
+        return self._used[node_id]
 
     def path(self, node_id: str, sid: str, gen: int) -> Path:
         return self.root / node_id / f"{sid}.{gen}.jsonl"
@@ -350,6 +358,7 @@ class Mirrors:
                 old_path = self.path(node_id, sid, old)
                 for p in (old_path, self._part(old_path), self._offset(old_path)):
                     p.unlink(missing_ok=True)
+        self._used.pop(node_id, None)
         return backlog
 
     def promote(self, node_id: str, sid: str) -> None:
@@ -361,9 +370,13 @@ class Mirrors:
         gen = self.latest(node_id, sid)
         return gen is not None and self._part(self.path(node_id, sid, gen)).exists()
 
+    def full(self, node_id: str) -> bool:
+        return self.used(node_id) >= MAX_MIRROR_BYTES_PER_NODE
+
     def append(self, node_id: str, frame: dict) -> bool:
         """Append a `transcript` frame's entries if it starts where the last one ended; False for a gap or a stale gen,
-        and the caller asks the node to resume from resume_point()."""
+        and the caller asks the node to resume from resume_point(). Entries that would take the node's mirrors past
+        MAX_MIRROR_BYTES_PER_NODE are not written, but the offset still moves, so the link stays in step (full())."""
         sid, gen = frame["id"], frame["gen"]
         latest = self.latest(node_id, sid)
         if latest is not None and gen < latest:
@@ -372,10 +385,14 @@ class Mirrors:
             self.repoint(node_id, sid, gen)
         if frame["offset"] != self.stored(node_id, sid, gen):
             return False
-        target = self._file(node_id, sid, gen)
-        fd = os.open(target, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
-        with os.fdopen(fd, "a") as f:
-            f.write("".join(frame["entries"]))
+        data = "".join(frame["entries"]).encode()
+        if self.used(node_id) + len(data) <= MAX_MIRROR_BYTES_PER_NODE:
+            fd = os.open(self._file(node_id, sid, gen), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            with os.fdopen(fd, "ab") as f:
+                f.write(data)
+            self._used[node_id] += len(data)
+        else:
+            self._used[node_id] = MAX_MIRROR_BYTES_PER_NODE  # full until a repoint or a prune frees some
         _write_private(self._offset(self.path(node_id, sid, gen)), f"{frame['next_offset']}\n")
         return True
 
@@ -408,6 +425,7 @@ class Mirrors:
                 if now - left >= PRUNE_AFTER_SECS:
                     for p in folder.glob(f"{sid}.*"):
                         p.unlink(missing_ok=True)
+                    self._used.pop(folder.name, None)
             if not any(folder.iterdir()):
                 folder.rmdir()
 
@@ -425,6 +443,7 @@ class Node:
     waiting: dict[str, asyncio.Future] = field(default_factory=dict)
     lock: asyncio.Lock | None = None
     backlog: dict[str, asyncio.TimerHandle] = field(default_factory=dict)
+    full: bool = False  # its mirrors reached MAX_MIRROR_BYTES_PER_NODE (logged once)
 
     @property
     def name(self) -> str:
@@ -728,7 +747,13 @@ class Hub:
             if _ID.fullmatch(sid) and (sid in (node.sessions or {}) or self.mirrors.latest(node.id, sid) is not None):
                 if not self.mirrors.append(node.id, frame):
                     await self._send(node, encode("resume", resume={sid: self.mirrors.resume_point(node.id, sid)}))
-                elif self.mirrors.in_backlog(node.id, sid):
+                    return
+                if self.mirrors.full(node.id) != node.full:
+                    node.full = not node.full
+                    if node.full:
+                        logger.error(f"node {node.name}: its mirrors reached {MAX_MIRROR_BYTES_PER_NODE >> 20} MB; new "
+                                     f"transcript lines are not written until a session moves to a new file or leaves")
+                if self.mirrors.in_backlog(node.id, sid):
                     self._backlog_wait(node, sid)
         elif t == "transcript.repointed":
             if _ID.fullmatch(frame["id"]) and frame["id"] in (node.sessions or {}):

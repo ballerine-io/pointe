@@ -224,7 +224,9 @@ content, like `daemon.log`). Beside each, `<id>.<gen>.offset` holds the node's `
 frame, written with the same temp-and-replace the registry uses (`Registry.save`, `sessions.py:105-113`). On hub
 restart `welcome.resume` is built from these files, never from mirror sizes: masking changes line lengths, so a mirror's
 size says nothing about the node's file. Mirrors of a session that left are pruned 7 days after it departed, and
-`<id>.<gen-1>` files once `gen` advanced, so `/clear`-heavy sessions do not accumulate.
+`<id>.<gen-1>` files once `gen` advanced, so `/clear`-heavy sessions do not accumulate. All of one node's mirrors together are
+capped at 4 GB (`MAX_MIRROR_BYTES_PER_NODE`): past it the hub still counts each frame's offsets, so the link stays in
+step, but writes no entries until a repoint or a prune frees space, and logs it once.
 
 ### Clock skew
 

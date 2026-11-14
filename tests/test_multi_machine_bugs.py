@@ -381,3 +381,35 @@ def test_strings_from_a_node_are_cut_before_they_reach_the_daemon(world):
     _, _, _, tool, description, preview, readable = call
     assert len(tool) <= 200 and len(description) <= 2_000 and len(preview) <= 20_100
     assert readable is None  # too long to be read out: never cut, since a voice yes must match it exactly
+
+
+# ---------- 12. a node can fill the hub's disk with mirrors ----------
+
+def test_a_nodes_mirrors_stop_growing_at_its_cap_and_the_link_stays_in_step(world, monkeypatch):
+    """Each frame is capped, but nothing capped their sum: a runaway or hostile node filled the hub's disk."""
+    hub, host, registry, *_ = world
+    monkeypatch.setattr(hub_nodes, "MAX_MIRROR_BYTES_PER_NODE", 3000, raising=False)
+    node = paired(hub)
+    line = _line("y" * 900)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(), entry("s2", "api"))
+        offset = {"s1": 0, "s2": 0}
+        for i in range(6):
+            sid = ("s1", "s2")[i % 2]
+            n = len(line.encode())
+            await fake.send("transcript", id=sid, gen=0, offset=offset[sid], next_offset=offset[sid] + n, entries=[line])
+            offset[sid] += n
+            await settle()
+        with pytest.raises(asyncio.TimeoutError):  # no resume: the hub stays in step with the node's offsets
+            await fake.recv("resume", timeout=0.2)
+        await fake.drop()
+        return offset
+
+    offset = run(go())
+    folder = hub.mirrors.root / node["id"]
+    used = sum(p.stat().st_size for p in folder.glob("*.jsonl*"))
+    assert used <= 3000, f"{used} bytes of mirrors for one node"
+    assert hub.mirrors.resume(node["id"]) == {sid: {"gen": 0, "offset": at} for sid, at in offset.items()}
