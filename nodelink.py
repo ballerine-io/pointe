@@ -8,6 +8,7 @@ dropped, so one side can move first. A node imports this module: nothing here ma
 import hashlib
 import hmac
 import json
+import math
 import secrets
 import time
 from typing import Any, Callable
@@ -54,7 +55,8 @@ def _count(v) -> bool:
 
 
 def _num(v) -> bool:
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    """A finite number: json.loads takes NaN and Infinity, and a NaN skew makes every `since` filter false."""
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
 def _bool(v) -> bool:

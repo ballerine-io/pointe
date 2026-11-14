@@ -258,7 +258,6 @@ def test_a_backlog_part_file_left_by_a_hub_restart_becomes_the_mirror(world, mon
 
 # ---------- 6. a NaN or infinite clock in hello is accepted ----------
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 @pytest.mark.parametrize("now", [float("nan"), float("inf")])
 def test_a_hello_with_a_non_finite_clock_is_refused(world, now):
     """`since` filters on that node's mirrors compare against the skew: a NaN one never applies."""
@@ -266,14 +265,21 @@ def test_a_hello_with_a_non_finite_clock_is_refused(world, now):
     node = paired(hub)
 
     async def go():
-        fake = FakeNode(hub, node, now=now)
-        welcome = await fake.connect()
-        skew = sessions.MACHINES["devbox"].skew
-        await fake.drop()
-        return welcome, skew
+        fake = FakeNode(hub, node)
+        fake.task = asyncio.create_task(hub.serve(fake.pipe))
+        challenge = await fake.recv("challenge")
+        hello = {"t": "hello", "protocol": nodelink.PROTOCOL, "now": now,
+                 "auth": nodelink.answer(node["key"], challenge["nonce"], challenge["hub"]["id"]),
+                 "node": {"id": node["id"], "name": "devbox", "os": "linux", "arch": "x86_64", "version": "1",
+                          "harnesses": []}}
+        await fake.pipe.to_hub.put(json.dumps(hello))  # json.dumps writes NaN and Infinity; encode() refuses them
+        welcome = await fake.recv()
+        await asyncio.wait_for(fake.task, 2)
+        return welcome, sessions.MACHINES["devbox"].skew, fake.pipe.closed
 
-    welcome, skew = run(go())
-    assert welcome is None or math.isfinite(skew), f"welcomed with skew {skew!r}"
+    welcome, skew, closed = run(go())
+    assert welcome is None and skew == 0.0, f"welcomed with skew {skew!r}"
+    assert closed[0] == nodelink.CLOSE_BAD_HELLO
 
 
 # ---------- 7. an unreadable nodes.json is replaced at once by an empty one with a new hub id ----------
