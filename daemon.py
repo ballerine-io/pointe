@@ -4563,7 +4563,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     cut = " [cannot be read out exactly: a yes will not count here; it waits for a tap on the page or phone, or the terminal]" if session.permission_cut else ""
     session.permission_text = f"[permission request] {tool_name}: {description}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
     session.permission_full = f"{tool_name}: {description}\n{preview}"
-    alerts.note_request(request_id, tool_name, readable)
+    alerts.note_request(session.id, request_id, tool_name, readable)
     state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine))
     REGISTRY.save()
     if session is REGISTRY.active:
@@ -4687,7 +4687,7 @@ async def approve(request: Request):
     if not online(session):
         raise HTTPException(status_code=409, detail=f"{session.machine} is offline: answer it in its terminal")
     notified = p.get("via") == "notification"  # an action on a notification: the phone could not ask for Face ID
-    if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.permission_id)):
+    if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.id, session.permission_id)):
         raise HTTPException(status_code=403, detail="approve this one in the app or on the page")
     if not await _apply_answer(session, session.permission_id, decision, "from a notification" if notified else "tapped"):
         raise HTTPException(status_code=502, detail="the answer did not reach the session; answer in its terminal")
@@ -5054,7 +5054,7 @@ def _attention() -> list[dict]:
     items = []
     for s in REGISTRY.sessions.values():
         if s.permission_id:
-            item = alerts.permission_alert(s.name, s.permission_id, s.permission_since or time.time(), _alert_name(s))
+            item = alerts.permission_alert(s.name, s.id, s.permission_id, s.permission_since or time.time(), _alert_name(s))
             items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
         elif s.idle_since and s.needs and s.needs.get("need"):
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))

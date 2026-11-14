@@ -136,3 +136,43 @@ def test_a_remote_session_does_not_inherit_a_departed_local_sessions_briefing_gr
     remote = _join(d, "devbox", "r1", "api", cwd="/repos/shop")
     groups = d._briefing_groups("all")
     assert [gone, remote] not in groups, [[s.name for s in g] for g in groups]
+
+
+# ---------- Q2: request ids share one keyspace across machines ----------
+
+def test_a_flood_of_remote_requests_does_not_forget_a_local_requests_read_out(d, node, monkeypatch):
+    """alerts._REQUESTS keeps the last 64 ids of any session on any machine. A node that sends 64 requests evicts the
+    local request's record: its notification Approve is then refused (approvable() False)."""
+    async def quiet(*a, **k):
+        return None
+
+    monkeypatch.setattr(d, "say", quiet)
+    monkeypatch.setattr(d, "_ask_permission", quiet)
+    local = add(d, "cc1", "shop", "/repos/shop")
+    remote = _join(d, "devbox", "r1", "api")
+    d.state.conn = fake_conn()
+    asyncio.run(d._put_permission(local, "ab12cd34", "Bash", "status", json.dumps({"command": "git status"})))
+    assert alerts.approvable(local.id, "ab12cd34")
+    for i in range(alerts.KEEP):
+        asyncio.run(d.remote_permission(remote, f"r{i}", "Bash", "status", "{}", "run: git status"))
+    assert local.permission_id == "ab12cd34"
+    assert alerts.approvable(local.id, "ab12cd34"), "the local request's read-out was evicted by the node's requests"
+
+
+def test_a_remote_request_id_cannot_rewrite_what_a_local_requests_notification_shows(d, node, monkeypatch):
+    """alerts.note_request is keyed by request id alone, and a node picks its own ids. One equal to a local pending id
+    (8 hex chars: a guess, or a hub that ever reveals them) replaces the local record: the local request, unreadable
+    (WebFetch), becomes approvable from a notification that shows the node's words."""
+    async def quiet(*a, **k):
+        return None
+
+    monkeypatch.setattr(d, "say", quiet)
+    monkeypatch.setattr(d, "_ask_permission", quiet)
+    local = add(d, "cc1", "shop", "/repos/shop")
+    remote = _join(d, "devbox", "r1", "api")
+    d.state.conn = fake_conn()
+    asyncio.run(d._put_permission(local, "ab12cd34", "WebFetch", "fetch", json.dumps({"url": "https://x"})))
+    assert not alerts.approvable(local.id, "ab12cd34")
+    asyncio.run(d.remote_permission(remote, "ab12cd34", "Bash", "list", json.dumps({"command": "ls"}), "run: ls"))
+    shown = alerts.permission_alert(local.name, local.id, local.permission_id, 0.0)
+    assert not shown["approvable"] and "ls" not in shown["body"], shown
