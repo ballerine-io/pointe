@@ -956,6 +956,24 @@ def test_a_node_name_the_voice_could_not_tell_apart_is_refused(world, name, why)
     assert hub.invites.outstanding  # a refused name does not use the code up
 
 
+def test_a_revoked_machine_can_pair_again_under_its_name_while_its_old_sessions_are_still_listed(world):
+    """From the two-machine run: revoke devbox, invite devbox again (a rotated certificate). Its own leftover session,
+    named "shop/main devbox" by the machine suffix, is not a session the new name could be confused with."""
+    hub, host, registry, *_ = world
+    node = paired(hub)
+    run(hub.revoke("devbox"))
+    registry.add(Session(id=nodelink.hub_session_id(node["id"], "s1"), name="shop/main devbox", cwd="/x", machine="devbox",
+                         harness_data={"node_id": node["id"], "remote_id": "s1"}))  # not reaped yet
+    status, body = hub.pair({"code": hub.invites.make(name="devbox"), "name": "devbox", "os": "linux"}, "10.0.0.1")
+    assert status == 200, body
+
+
+def test_a_name_shared_with_a_session_on_another_machine_is_still_refused(world):
+    hub, host, registry, *_ = world
+    registry.add(Session(id="local9", name="orion notes", cwd="/y"))
+    assert "shares a word" in (hub.name_problem("orion") or "")
+
+
 def test_rate_limit_is_five_a_minute_per_address_and_ten_in_all(world):
     hub, host, registry, clock, mono, state = world
     hub.invites.make()
