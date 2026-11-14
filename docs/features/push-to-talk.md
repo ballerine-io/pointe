@@ -28,6 +28,12 @@ again (Tap to talk). Then all of it goes to Pointe as one turn, at once, without
 since the release already says you are done. A press with nothing heard sends nothing. Always on is unchanged: there a
 pause after a sentence still ends the turn ([turn taking](../design/turn-taking.md)).
 
+On the page, a headset or AirPods button press reaches it as a media key (play/pause) and toggles talking, or mutes in
+Always on. The system sends play/pause by itself too: when the call connects or media starts, on an audio route change
+(a headset joins or leaves, an AirPod comes out), often several in a second. The page takes a media key as a press only
+when it comes alone (nothing else within 0.3 s, so a press acts 0.3 s late) and not within 1.5 s of any of those; an
+ignored one extends the 1.5 s. Each is logged as a page event, ignored or not.
+
 A press under 0.25 s in Hold mode heard no word; the line says "Hold to talk · or choose Tap to talk in Settings" for
 two seconds. A tap forgotten open closes after 90 s by the daemon's rule below; the line says "Talk closed after 90 s:
 tap again".

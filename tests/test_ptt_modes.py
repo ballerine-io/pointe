@@ -192,3 +192,111 @@ def test_settings_shows_the_choice_and_saves_it_for_this_browser():
     assert shown == "hold"
     assert saved == ("tap", "tap", "Tap to talk")
     assert posted and all("style" not in k and "tap" not in str(v) for b in posted for k, v in b.items())  # the daemon is not told
+
+
+# ---------- media keys: an AirPods press toggles, the system's own play/pause does not ----------
+
+# The page's media-session handlers, kept so the test can fire them as Chrome would.
+CAPTURE_MEDIA = """(() => { window.__media = {}; const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+  navigator.mediaSession.setActionHandler = (a, h) => { window.__media[a] = h; return set(a, h); }; })()"""
+WATCH_OPEN = "(() => { window.__opened = 0; setInterval(() => { if (pttOpen()) window.__opened++; }, 5); return true; })()"
+# As seen from a headless Chrome on a Mac (tests/e2e/page_ptt.py, a failed run): bursts of pause right after the call
+# connected and when the greeting began, each toggling the gate.
+BURSTS = {"on connect": [0, 47, 87, 466], "at the greeting": [0, 105, 112, 475]}
+
+
+async def _media_page(mode: str):
+    status = fixture(connected=True)
+    status["ptt"]["mode"] = mode
+    stub = await StubMac(free_port()).start()
+    stub.status = status
+    browser = Browser()
+    await browser.__aenter__()
+    page = await browser.open(stub.url)
+    await page.cdp("Page.addScriptToEvaluateOnNewDocument", {"source": CAPTURE_MEDIA})
+    await page.eval("localStorage.setItem('pointe.pttStyle', 'hold'); true")
+    await page.cdp("Page.reload")
+    await page.wait_for_page()
+    await page.eval(f"(() => {{ call.state = 'live'; status.ptt.mode = '{mode}'; pttFollow(status); showState(); return true; }})()")
+    return stub, browser, page
+
+
+async def _fire(page, action: str, at_ms: list[int]):
+    for i, t in enumerate(at_ms):
+        await asyncio.sleep((t - (at_ms[i - 1] if i else 0)) / 1000)
+        await page.eval(f"window.__media['{action}']({{action: '{action}'}}); true")
+
+
+@needs_chrome
+def test_a_lone_media_key_press_toggles_talking_and_the_system_s_bursts_never_open_the_gate():
+    async def run():
+        stub, browser, page = await _media_page("ptt")
+        out = {}
+        try:
+            assert await page.eval("Object.keys(window.__media).sort().join(',')") == "nexttrack,pause,play,previoustrack,stop,togglemicrophone"
+            await page.eval(WATCH_OPEN)
+            await page.eval("media.quietUntil = 0; true")  # the call has been up a while
+            await _fire(page, "pause", [0])
+            out["at_once"] = await page.eval("pttOpen()")  # waits a moment, to see that it is a press
+            await asyncio.sleep(0.45)
+            out["press"] = await page.eval("pttOpen()")
+            await asyncio.sleep(1.7)
+            await _fire(page, "play", [0])
+            await asyncio.sleep(0.45)
+            out["press_again"] = await page.eval("pttOpen()")
+            for name, burst in BURSTS.items():
+                await asyncio.sleep(2)
+                await page.eval("window.__opened = 0; true")
+                await _fire(page, "pause", burst)
+                await asyncio.sleep(0.6)
+                out[name] = (await page.eval("window.__opened"), await page.eval("pttOpen()"))
+            await asyncio.sleep(2)
+            await page.eval("mediaQuiet(); window.__opened = 0; true")  # as the call connecting does (ws.onopen)
+            await _fire(page, "pause", [200])
+            await asyncio.sleep(0.5)
+            out["after connect"] = await page.eval("window.__opened")
+            await asyncio.sleep(2)
+            await page.eval("navigator.mediaDevices.dispatchEvent(new Event('devicechange')); window.__opened = 0; true")
+            await _fire(page, "pause", [100])  # an AirPod came out: the route changed
+            await asyncio.sleep(0.5)
+            out["after a route change"] = await page.eval("window.__opened")
+            await asyncio.sleep(2)
+            await _fire(page, "pause", [0])
+            await asyncio.sleep(0.45)
+            out["still a press"] = await page.eval("pttOpen()")
+            return out
+        finally:
+            await _close(stub, browser)
+
+    out = asyncio.run(run())
+    assert out["at_once"] is False and out["press"] is True and out["press_again"] is False
+    for name in BURSTS:
+        assert out[name] == (0, False), name
+    assert out["after connect"] == 0 and out["after a route change"] == 0
+    assert out["still a press"] is True
+
+
+@needs_chrome
+def test_always_on_a_lone_media_key_mutes_and_a_burst_does_not():
+    async def run():
+        stub, browser, page = await _media_page("always")
+        out = {}
+        try:
+            await page.eval("media.quietUntil = 0; window.__muted = 0; setInterval(() => { if (muted) window.__muted++; }, 5); true")
+            await _fire(page, "pause", BURSTS["on connect"])
+            await asyncio.sleep(0.6)
+            out["burst"] = (await page.eval("window.__muted"), await page.eval("muted"))
+            await asyncio.sleep(2)
+            await _fire(page, "pause", [0])
+            await asyncio.sleep(0.45)
+            out["press"] = await page.eval("muted")
+            return out
+        finally:
+            await _close(stub, browser)
+
+    out = asyncio.run(run())
+    assert out == {"burst": (0, False), "press": True}  # never muted, not even for a moment
+
+
+def test_the_call_connecting_opens_the_media_key_quiet_window():
+    assert re.search(r"ws\.onopen = \(\) => \{[^}]*mediaQuiet\(\)", PAGE)

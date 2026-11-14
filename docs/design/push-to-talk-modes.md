@@ -106,6 +106,7 @@ applies.
 | page: the talk key (Space or chosen) | hold (keydown opens, keyup closes; auto-repeat ignored) | keydown toggles; the keyup is ignored |
 | page: Caps Lock | toggle | toggle |
 | page: keyboard-activated ring (Enter/Space on the focused button), media keys | toggle | toggle |
+| page: media keys the system sends itself (connect, media start, a route change; bursts) | ignored | ignored |
 | page: leaving the window (blur) | lets go of a held key | nothing: a toggled press stays (the daemon's 90 s rule covers it) |
 | `pointe talk` (system-wide shortcut), the Talk intent, AirPods stem, VoiceOver activate | toggle | toggle |
 | app: the ring | hold (touch down opens, lift closes) | touch down toggles; the lift is ignored |

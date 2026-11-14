@@ -1645,7 +1645,7 @@
     } catch (e) { call.state = 'off'; micError = CONNECT_COPY.micFailed(e.message || e.name); showState(); return; }
     const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/voice/call`);
     ws.binaryType = 'arraybuffer'; call.ws = ws;
-    ws.onopen = () => { call.state = 'live'; wantCall = true; retries = 0; call.heard = Date.now(); claimMediaKeys(); pttReset(); showState(); };
+    ws.onopen = () => { call.state = 'live'; wantCall = true; retries = 0; call.heard = Date.now(); mediaQuiet(); claimMediaKeys(); pttReset(); showState(); };
     ws.onmessage = e => {
       call.heard = Date.now();  // anything from the Mac proves the link is up
       if (typeof e.data === 'string') {
@@ -2034,6 +2034,8 @@
     if (navigator.mediaSession.metadata) claimMediaKeys();
     showState();
   }
+  const MEDIA_BURST_MS = 300, MEDIA_QUIET_MS = 1500;
+  const media = {quietUntil: 0, pending: null};
   const silence = (() => {  // 10 s of silence: Chrome gives media keys only to media longer than a few seconds
     const rate = 8000, n = rate * 10, b = new DataView(new ArrayBuffer(44 + n));
     const str = (o, v) => [...v].forEach((c, i) => b.setUint8(o + i, c.charCodeAt(0)));
@@ -2044,7 +2046,7 @@
     const a = new Audio(URL.createObjectURL(new Blob([b], {type: 'audio/wav'}))); a.loop = true; return a;
   })();
   function claimMediaKeys() {
-    if (silence.paused) silence.play().catch(e => pageEvent(`media keys not claimed: ${e.name}`));
+    if (silence.paused) { mediaQuiet(); silence.play().catch(e => pageEvent(`media keys not claimed: ${e.name}`)); }
     navigator.mediaSession.metadata = new MediaMetadata({title: 'Pointe', artist: muted ? 'Mic muted' : 'Mic live'});
     navigator.mediaSession.playbackState = 'playing';
   }
@@ -2052,10 +2054,29 @@
     fetch('/voice/page-event', {method: 'POST', headers: {'content-type': 'application/json'},
       body: JSON.stringify({event: `page: ${event}`})}).catch(() => {});
   }
+  // An AirPods or headset press arrives as play/pause, and so does the system's own churn: on connect, when media starts,
+  // on an audio route change (a headset joins or leaves, an AirPod comes out) Chrome and macOS send play/pause by
+  // themselves, often several in a second. Taken as presses they opened the push-to-talk gate, or muted, unasked. So a
+  // press counts only alone (nothing else within MEDIA_BURST_MS) and outside the quiet window after any of those; one
+  // that is ignored extends the window, as the churn is still going.
+  function mediaQuiet() {
+    media.quietUntil = Date.now() + MEDIA_QUIET_MS;
+    if (media.pending) { clearTimeout(media.pending); media.pending = null; }
+  }
+  function mediaPress(action) {
+    if (Date.now() < media.quietUntil || media.pending) {
+      pageEvent(`media key ${action} ignored: ${media.pending ? 'more than one at once' : 'the system, not a press'}`);
+      mediaQuiet();
+      return;
+    }
+    pageEvent(`media key ${action}`);
+    media.pending = setTimeout(() => { media.pending = null; if (pttMode() && call.state === 'live') pttToggle(); else toggleMute(); }, MEDIA_BURST_MS);
+  }
   for (const action of ['play', 'pause', 'togglemicrophone'])
-    try { navigator.mediaSession.setActionHandler(action, () => { pageEvent(`media key ${action}`);
-                                                                  if (pttMode() && call.state === 'live') pttToggle(); else toggleMute(); }); }
+    try { navigator.mediaSession.setActionHandler(action, () => mediaPress(action)); }
     catch (e) { pageEvent(`no ${action} handler: ${e.name}`); }
+  for (const ev of ['play', 'pause']) silence.addEventListener(ev, mediaQuiet);  // the system moved our media: a route change
+  try { navigator.mediaDevices.addEventListener('devicechange', mediaQuiet); } catch (e) {}
   for (const action of ['nexttrack', 'previoustrack', 'stop'])  // logged only: which gesture a device sends
     try { navigator.mediaSession.setActionHandler(action, () => pageEvent(`media key ${action}`)); } catch (e) {}
   addEventListener('pointerdown', claimMediaKeys);
