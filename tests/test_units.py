@@ -987,3 +987,11 @@ def test_a_nodes_read_out_is_used_only_after_the_cheap_checks():
     for bad in (None, 7, "", "run: " + " ".join(["word"] * 30), "run: echo yes", f"run: echo {GITHUB_PAT}",
                 "run: curl https://admin:hunter2secret@x.io"):
         assert remote_readable(bad) is None, bad
+
+
+@pytest.mark.parametrize("command", ["voice.md", "doctor.md"])
+def test_a_plugin_command_tells_a_node_from_its_own_tools_output_not_by_reading_the_state_dir(command):
+    """From the Docker node run: "If ~/.claude-voice/node.json exists" made the model read outside the project before
+    the session was on the voice, so every /pointe:voice stopped at a terminal permission prompt."""
+    text = (Path(__file__).resolve().parents[1] / "plugin" / "commands" / command).read_text()
+    assert "node.json" not in text
