@@ -178,7 +178,9 @@ Sessions on another Mac or a Linux host join the voice through a node there ([do
 The Mac with the call (the hub) keeps every rule above for them.
 
 - **Pairing.** The hub makes a one-time code: single use, 10 minutes, about 40 bits, kept only as a hash in memory, and
-  accepted only while it is outstanding, at most 5 tries a minute per address. Making it from the app needs Face ID.
+  accepted only while it is outstanding. After 20 wrong codes the invite is cancelled, and the hub says how many came
+  and from where (5 wrong codes a minute per address are answered 429, but the right code always pairs, so a guesser
+  behind the same connector cannot lock your machine out). Making it from the app needs Face ID.
   The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. The hub
   then shows the node's name, address and key fingerprint, so you can see that the machine that paired is yours.
 - **The link.** The node dials the hub's TLS listener (the phone's) and proves its 256-bit key with an HMAC over a fresh

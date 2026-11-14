@@ -413,3 +413,32 @@ def test_a_nodes_mirrors_stop_growing_at_its_cap_and_the_link_stays_in_step(worl
     used = sum(p.stat().st_size for p in folder.glob("*.jsonl*"))
     assert used <= 3000, f"{used} bytes of mirrors for one node"
     assert hub.mirrors.resume(node["id"]) == {sid: {"gen": 0, "offset": at} for sid, at in offset.items()}
+
+
+# ---------- 13. behind a connector every attempt is from 127.0.0.1: a guesser locks the real node out ----------
+
+def test_wrong_codes_from_the_connector_do_not_lock_out_the_right_one(world):
+    """Through bin/voice-connector every pairing attempt arrives from 127.0.0.1, so the per-address limit is shared with
+    the real node: five wrong guesses a minute kept it at 429 for the invite's whole life."""
+    hub, *_ = world
+    code = hub.invites.make()
+    wrong = {"code": "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB", "name": "devbox", "os": "linux"}
+    assert [hub.pair(wrong, "127.0.0.1")[0] for _ in range(6)] == [403] * 5 + [429]
+    status, body = hub.pair({"code": code, "name": "devbox", "os": "linux"}, "127.0.0.1")
+    assert status == 200, body
+
+
+def test_an_invite_is_cancelled_after_too_many_wrong_codes_and_says_so(world):
+    """Letting the right code through a rate limit must not let a guesser try without bound: the invite ends after
+    PAIR_WRONG_PER_INVITE wrong codes, and the owner sees how many came and from where."""
+    hub, *_ = world
+    code = hub.invites.make()
+    wrong = {"code": "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB", "name": "devbox", "os": "linux"}
+    for i in range(hub_nodes.PAIR_WRONG_PER_INVITE - 1):
+        assert hub.pair(wrong, "127.0.0.1")[0] in (403, 429)  # a guess answered 429 was still checked: it counts
+        assert hub.invites.status()["wrong_codes"] == i + 1
+    status, why = hub.pair(wrong, "127.0.0.1")
+    assert status == 403 and "cancelled" in why
+    assert hub.invites.status() is None
+    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "127.0.0.1")[0] == 403  # the code is gone
+    assert "127.0.0.1" in hub.invites.ended and "connector" in hub.invites.ended

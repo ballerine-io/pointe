@@ -41,6 +41,7 @@ CODE_LETTERS = 8  # 40 bits
 PAIR_WINDOW_SECS = 60.0
 PAIR_PER_ADDRESS = 5
 PAIR_PER_WINDOW = 10
+PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses, since the right code passes the rate limit
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
@@ -247,11 +248,13 @@ class Invites:
         self._until = 0.0
         self.paired: dict | None = None  # the last pairing: name, source address, key fingerprint
         self._attempts: deque[tuple[float, str]] = deque()
+        self.wrong = 0  # wrong codes against this invite
+        self.ended: str | None = None  # why the last invite ended early, for the owner
 
     def make(self, name: str | None = None) -> str:
         letters = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LETTERS))
         self.code, self._hash, self.name = f"{letters[:4]}-{letters[4:]}", _digest(letters), name
-        self._until, self.paired = self._clock() + INVITE_SECS, None
+        self._until, self.paired, self.wrong, self.ended = self._clock() + INVITE_SECS, None, 0, None
         return self.code
 
     def cancel(self) -> None:
@@ -264,10 +267,20 @@ class Invites:
     def status(self) -> dict | None:
         if not self.outstanding:
             return None
-        return {"code": self.code, "expires_in": max(0, round(self._until - self._clock()))}
+        return {"code": self.code, "expires_in": max(0, round(self._until - self._clock())), "wrong_codes": self.wrong}
+
+    def refuse(self, address: str) -> str | None:
+        """A wrong code from this address: why the invite ended, once PAIR_WRONG_PER_INVITE have come."""
+        self.wrong += 1
+        if self.wrong < PAIR_WRONG_PER_INVITE:
+            return None
+        where = f" ({network(address)})" if network(address) else ""
+        self.ended = f"the invite was cancelled after {self.wrong} wrong codes, the last from {address}{where}"
+        self.cancel()
+        return self.ended
 
     def admit(self, address: str) -> bool:
-        """At most PAIR_PER_ADDRESS attempts a minute from one address, and PAIR_PER_WINDOW in all."""
+        """At most PAIR_PER_ADDRESS wrong codes a minute from one address, and PAIR_PER_WINDOW in all."""
         now = self._clock()
         while self._attempts and now - self._attempts[0][0] >= PAIR_WINDOW_SECS:
             self._attempts.popleft()
@@ -626,13 +639,19 @@ class Hub:
         invites = self.invites
         if invites.code is None:
             return 403, "no invite outstanding"
-        if not invites.admit(address):
-            return 429, "too many attempts: wait a minute"
         if not invites.outstanding:
             return 403, "invite expired"
         body = body if isinstance(body, dict) else {}
+        # The right code pairs whatever the rate limit says: behind bin/voice-connector every attempt comes from
+        # 127.0.0.1, so a guesser would otherwise lock the real node out. PAIR_WRONG_PER_INVITE bounds the guesses.
         if not invites.matches(body.get("code", "")):
             logger.warning(f"node pairing from {address}: wrong code")
+            ended = invites.refuse(address)
+            if ended:
+                logger.warning(ended)
+                return 403, ended
+            if not invites.admit(address):
+                return 429, "too many attempts: wait a minute"
             return 403, "wrong code"
         name = " ".join(str(invites.name or body.get("name") or "").split())
         problem = self.name_problem(name)
@@ -892,7 +911,8 @@ def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
     async def hub_invite_status(request: Request):
         if not owner(request):
             return refused
-        return {**(hub.invites.status() or {"code": None, "expires_in": 0}), "paired": hub.invites.paired}
+        return {**(hub.invites.status() or {"code": None, "expires_in": 0}), "paired": hub.invites.paired,
+                "ended": hub.invites.ended}
 
     @app.get("/voice/hub/nodes")
     async def hub_node_list(request: Request):
@@ -960,6 +980,7 @@ def main(argv: list[str]) -> None:
         made = _daemon("POST", "/voice/hub/invite", {"name": name} if name else {})
         print(made["link"])
         print("Valid once, for ten minutes. On the other machine: pointe node join '<the line above>'", flush=True)
+        wrong = 0
         try:
             while True:
                 time.sleep(1)
@@ -967,7 +988,13 @@ def main(argv: list[str]) -> None:
                 if now.get("paired"):
                     return print(paired_line(now["paired"]))
                 if not now.get("code"):
-                    raise SystemExit("The invite expired or was cancelled: run pointe hub invite again.")
+                    why = f"{now['ended'][0].upper()}{now['ended'][1:]}" if now.get("ended") else \
+                        "The invite expired or was cancelled"
+                    raise SystemExit(f"{why}: run pointe hub invite again.")
+                if now.get("wrong_codes", 0) > wrong:
+                    wrong = now["wrong_codes"]
+                    print(f"{wrong} wrong code{'s' if wrong > 1 else ''} tried against this invite (it ends at "
+                          f"{PAIR_WRONG_PER_INVITE})", flush=True)
         except KeyboardInterrupt:
             print("\nThe invite stays valid until it expires.")
     elif command == "nodes":

@@ -257,8 +257,11 @@ pointe://hub?v=1&host=studio.tail1234.ts.net&port=7443&fp=3b1c…&code=K7PQ-2MXD
 - `host`, `port` and `fp` are what the phone's pairing link carries (`pair.pairing_link`, `pair.py:133-137`).
 - `code` is 8 characters from a 32-letter alphabet (about 40 bits), single use, valid 10 minutes. The daemon keeps a
   SHA-256 of it in memory (`POST /voice/hub/invite`, token-protected, from the CLI), never on disk. `/voice/node/pair`
-  answers at most 5 attempts a minute per source address and 10 a minute in all, and only while an invite is
-  outstanding.
+  answers only while an invite is outstanding, and at most 5 wrong codes a minute per source address and 10 a minute
+  in all (429). The right code pairs even then: behind `bin/voice-connector` every attempt comes from 127.0.0.1, so a
+  guesser would otherwise lock the real node out. What bounds the guesses is the invite itself: after 20 wrong codes
+  (429s included, since each was checked) it is cancelled, and `GET /voice/hub/invite` says so (`ended`, with the last
+  source address); while it is live, the status shows `wrong_codes` and `pointe hub invite` prints each new one.
 - The page and the app show the same one-time code as text with a countdown (Settings → Machines → "Invite a
   machine"; the app asks for Face ID to show it).
 
@@ -368,7 +371,7 @@ request is in the session's own terminal.
 
 | Threat | Mitigation |
 |---|---|
-| A machine on the same tailnet or LAN pairs itself as a node | needs a live invite code: single use, 10 minutes, ~40 bits, stored hashed, 5 attempts a minute per address, route open only while an invite is outstanding; the owner sees the source address and key fingerprint of whatever paired |
+| A machine on the same tailnet or LAN pairs itself as a node | needs a live invite code: single use, 10 minutes, ~40 bits, stored hashed, at most 20 wrong codes before the invite is cancelled, route open only while an invite is outstanding; the owner sees the count of wrong codes, and the source address and key fingerprint of whatever paired |
 | A machine in the middle between node and hub | the node pins the hub certificate's SHA-256 before sending a byte; the hub authenticates the node by HMAC over its nonce, so the key never crosses |
 | A stolen node key | the holder can offer fake sessions and fake transcript lines (prompt injection into the brain: no worse than a malicious local session, which `SECURITY.md` treats as data behind the gate), receive sends aimed at those sessions, and approve prompts it itself forwards. It cannot read other sessions, the journal, notes or keys, and cannot connect while the real node is connected (one connection per key). `pointe hub revoke` ends it |
 | A stolen hub state dir (`nodes.json` holds node keys) | the holder can pose as any node to this hub, with the same reach as a stolen node key. Posing as the hub to a node also needs the TLS key and the route. Revoke and re-invite; `pointe pair rotate` forces a new certificate |
