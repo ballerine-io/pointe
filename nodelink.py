@@ -148,13 +148,37 @@ def encode(t: str, **fields) -> str:
     return text
 
 
+_unencodable_logged = False
+
+
+def _encodable(value):
+    """`value` with every string UTF-8 can encode. json.loads turns a "\\ud800" escape into a lone surrogate, which
+    raises at the first .encode() (the entry size check, a mirror write) and took the link down with it: a lone
+    surrogate becomes U+FFFD, logged once."""
+    global _unencodable_logged
+    if isinstance(value, str):
+        try:
+            value.encode()
+            return value
+        except UnicodeEncodeError:
+            if not _unencodable_logged:
+                _unencodable_logged = True
+                logger.warning("a frame carried a string UTF-8 cannot encode (a lone surrogate): replaced with U+FFFD")
+            return value.encode("utf-16", "surrogatepass").decode("utf-16", "replace")
+    if isinstance(value, list):
+        return [_encodable(v) for v in value]
+    if isinstance(value, dict):
+        return {_encodable(k): _encodable(v) for k, v in value.items()}
+    return value
+
+
 def decode(text: str, frames: dict[str, dict[str, Check]]) -> dict | None:
     """A frame received, checked against the table of what this side may receive (NODE_FRAMES on the hub,
     HUB_FRAMES on the node). None for anything else: unknown, malformed, or over the size cap."""
     if not isinstance(text, str) or len(text.encode()) > MAX_FRAME_BYTES:
         return None
     try:
-        frame = json.loads(text)
+        frame = _encodable(json.loads(text))
     except ValueError:
         return None
     if not isinstance(frame, dict) or not isinstance(frame.get("t"), str) or frame["t"] not in frames:

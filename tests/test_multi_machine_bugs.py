@@ -495,3 +495,36 @@ def test_a_second_connection_is_still_refused_4409_while_the_first_answers(world
     refused, closed, still, pings = run(go())
     assert refused is None and closed[0] == nodelink.CLOSE_ALREADY_CONNECTED
     assert still and pings >= 1  # it was asked, answered, and stays
+
+
+# ---------- 15. a lone surrogate in a frame wedges the link ----------
+
+def test_a_lone_surrogate_in_a_frame_does_not_wedge_the_link(world):
+    """json.loads turns a "\\ud800" escape into a string UTF-8 cannot encode. decode() measured the entry with
+    .encode() and raised, the reader died with the link, and the node reconnected and resent the same frame forever."""
+    hub, host, registry, *_ = world
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(cwd="/home/u/x\ud800y".encode("utf-8", "surrogatepass").decode("utf-8", "replace")))
+        bad = '{"t": "transcript", "id": "s1", "gen": 0, "offset": 0, "next_offset": 9, "entries": ["{\\"a\\": \\"\\ud800\\"}\\n"]}'
+        await fake.pipe.to_hub.put(bad)
+        await fake.pipe.to_hub.put('{"t": "sessions", "sessions": [{"id": "s1", "name": "sh\\udc00op", "cwd": "/x", '
+                                   '"harness": "claude-code"}]}')
+        await settle()
+        await fake.send("transcript", id="s1", gen=0, offset=9, next_offset=10, entries=[_line("after")])
+        await settle()
+        up = hub.live[node["id"]].online
+        resume = hub.mirrors.resume(node["id"])
+        await fake.drop()
+        return up, resume
+
+    up, resume = run(go())
+    assert up, "the link dropped on an un-encodable string"
+    assert resume == {"s1": {"gen": 0, "offset": 10}}
+    mirror = hub.mirrors.path(node["id"], "s1", 0)
+    text = mirror.read_text() if mirror.exists() else hub.mirrors._part(mirror).read_text()
+    assert len(text.splitlines()) == 2 and "after" in text.splitlines()[1]  # the bad line kept, replaced, in step
+    assert all(s.name.encode() for s in registry.sessions.values())
