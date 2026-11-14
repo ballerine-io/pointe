@@ -156,6 +156,7 @@ async def main() -> None:
               shown: !document.getElementById('voicelock').hidden,
               enrol: document.getElementById('vl-enrolbtn').textContent, disabled: document.getElementById('vl-enrolbtn').disabled,
               need: document.getElementById('vl-needcall').textContent,
+              enrol_panel: getComputedStyle(document.getElementById('vl-enrol')).display,
               levels: [...document.querySelectorAll('#vl-levels button')].map(b => b.disabled),
               help: document.getElementById('vl-levelhelp').textContent}))()""")
             await page.shot("ovl-0-card")
@@ -163,6 +164,8 @@ async def main() -> None:
                   before["shown"] and before["enrol"] == "Enrol my voice" and before["disabled"]
                   and "Connect a call first" in before["need"] and before["levels"] == [False, True, True, True]
                   and before["help"] == "Any voice works, as before.", **before)
+            check("before enrolment starts, the read-this-line panel is off screen (not just marked hidden)",
+                  before["enrol_panel"] == "none", display=before["enrol_panel"])
             await page.js("closeSheet('settingssheet')")
 
             # ---- enrolment on the call ----

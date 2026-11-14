@@ -24,6 +24,10 @@
          color: var(--text); background: var(--bg); overflow: hidden; }
   body.nosessions { grid-template-columns: 0 1fr; }
   button { font-family: inherit; }
+  /* An id or class rule with its own display (flex, grid) outranks the browser's [hidden] rule, so `el.hidden = true`
+     left such an element on screen (the voice-lock enrol panel, its action row). One rule, instead of a patch per id;
+     #caption[hidden] below still wins by specificity, as its fade needs. */
+  [hidden] { display: none !important; }
 
   /* sessions column */
   aside { display: flex; flex-direction: column; gap: 22px; padding: 22px 18px 14px; border-right: 1px solid var(--line);
@@ -110,7 +114,6 @@
                         font: 600 13px 'Inter', sans-serif; cursor: pointer; }
   #ph-svg svg { display: block; width: 230px; height: 230px; border-radius: 12px; margin: 8px 0; }
   #ph-link { font: 11.5px 'JetBrains Mono', ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
-  #phone [hidden] { display: none; }  /* .row is a flex box, which would show a hidden one */
   #phone .note { margin: 4px 0 8px; }
   #phone .row { margin: 8px 0; }
   #ph-link { margin: 0 0 8px; line-height: 1.45; }
@@ -269,7 +272,6 @@
   /* brainstorm: the user talks, the voice stays quiet */
   #brainstorm { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center;
                 gap: 18px; padding: 40px; background: radial-gradient(ellipse at center, #16233A 0%, var(--bg) 75%); text-align: center; }
-  #brainstorm[hidden] { display: none; }
   #brainstorm h2 { margin: 0; font-size: 24px; font-weight: 700; }
   #brainstorm .lede { color: var(--muted); font-size: 15px; margin-top: -8px; }
   #mono-text { max-width: 720px; max-height: 45vh; overflow-y: auto; white-space: pre-wrap; font-size: 18px; line-height: 1.55;
@@ -282,7 +284,6 @@
   /* challenge me: the voice argues against the plan, one objection at a time (challenge.py) */
   #challenge { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 14px;
                padding: 32px 40px; background: radial-gradient(ellipse at center, #2A1A14 0%, var(--bg) 75%); overflow-y: auto; }
-  #challenge[hidden] { display: none; }
   #challenge h2 { margin: 0; font-size: 24px; font-weight: 700; }
   #challenge .lede { color: var(--muted); font-size: 15px; margin-top: -6px; text-align: center; }
   #challenge h3 { margin: 6px 0 0; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
@@ -377,7 +378,6 @@
   #notelist li.empty { background: none; border: 0; color: var(--muted); text-align: center; margin: auto; }
 
   #hand { margin: 8px 28px 0; border: 1px solid var(--orange); border-radius: 16px; padding: 12px 14px; background: var(--orange-soft); }
-  #hand[hidden] { display: none; }
   #hand .line { font-size: 15px; font-weight: 600; }
   #hand .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   #hand .row button { border: 0; border-radius: 12px; padding: 9px 14px; font: 600 13px 'Inter', sans-serif; cursor: pointer; background: var(--card2); color: var(--text); }
