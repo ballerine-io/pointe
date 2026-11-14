@@ -5,6 +5,7 @@ struct ConversationView: View {
     let turns: [API.Turn]
     let polish: Bool
     let hearing: String
+    var draft: String? = nil  // push to talk: the hearing is a press's words, not sent yet (TalkDraft)
     var large = false  // whisper mode: the words heard so far, big enough to check before they are acted on
     var placeholder = true  // false while the Connect stage stands where the words will be (no call up yet)
     let edit: (API.Turn) -> Void
@@ -35,7 +36,7 @@ struct ConversationView: View {
                         .transition(.opacity)
                 }
                 if !hearing.isEmpty {
-                    LiveBubble(text: hearing, large: large)
+                    LiveBubble(text: hearing, large: large, draft: draft)
                         .matchedGeometryEffect(id: "speech", in: speech)
                         .padding(.bottom, 14)
                         .transition(.opacity)
@@ -104,6 +105,7 @@ struct Bubble: View {
 struct LiveBubble: View {
     let text: String
     var large = false
+    var draft: String? = nil
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
@@ -111,12 +113,20 @@ struct LiveBubble: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: "waveform").font(.callout).foregroundStyle(Brand.orange)
                     .symbolEffect(.variableColor.iterative, options: .repeating)
-                Text(text)
-                    .readingDirection(of: text)
-                    .font(large ? .title2.weight(.semibold) : .body.weight(.medium))
-                    .multilineTextAlignment(.trailing)
-                    .contentTransition(.interpolate)
-                    .animation(.easeOut(duration: 0.12), value: text)
+                VStack(alignment: .trailing, spacing: 2) {
+                    if let draft {
+                        Text(draft).font(.caption.weight(.semibold)).foregroundStyle(Brand.orange)
+                            .accessibilityIdentifier("talkDraft")
+                    }
+                    Text(text)
+                        .readingDirection(of: text)
+                        .font(large ? .title2.weight(.semibold) : .body.weight(.medium))
+                        .italic(draft != nil)
+                        .foregroundStyle(draft != nil ? AnyShapeStyle(.white.opacity(0.7)) : AnyShapeStyle(.primary))
+                        .multilineTextAlignment(.trailing)
+                        .contentTransition(.interpolate)
+                        .animation(.easeOut(duration: 0.12), value: text)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
@@ -124,7 +134,7 @@ struct LiveBubble: View {
             .overlay(RoundedRectangle(cornerRadius: 18).stroke(Brand.orange.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
             .frame(maxWidth: 520, alignment: .trailing)
         }
-        .accessibilityLabel("Hearing: \(text)")
+        .accessibilityLabel(draft.map { "\($0): \(text)" } ?? "Hearing: \(text)")
     }
 }
 

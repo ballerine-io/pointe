@@ -180,3 +180,20 @@ final class TalkStyleTests: XCTestCase {
         XCTAssertEqual(TalkStyle.shortPress, 0.25)
     }
 }
+
+/// A press is one message: its words show as a draft until the Mac sends them (tests/test_ptt_message.py holds the page's).
+final class TalkDraftTests: XCTestCase {
+    func testThePressDraftIsLabelledUntilItIsSent() {
+        XCTAssertEqual(TalkDraft.line(draft: true, open: true), "Draft · not sent yet")
+        XCTAssertEqual(TalkDraft.line(draft: true, open: false), "Sending", "closed: the last words are being finalized")
+        XCTAssertNil(TalkDraft.line(draft: false, open: true), "sent, or always on: the usual live bubble")
+        XCTAssertNil(TalkDraft.line(draft: nil, open: true), "an older Mac says nothing about drafts")
+    }
+
+    func testTheDraftFlagDecodesAndAnOlderMacSendsNone() throws {
+        let now = try JSONDecoder().decode(API.PTTStatus.self, from: Data(#"{"mode":"ptt","open":true,"draft":true}"#.utf8))
+        XCTAssertEqual(now.draft, true)
+        let old = try JSONDecoder().decode(API.PTTStatus.self, from: Data(#"{"mode":"ptt","open":true}"#.utf8))
+        XCTAssertNil(old.draft)
+    }
+}

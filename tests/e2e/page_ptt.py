@@ -58,6 +58,10 @@ async def until(test, timeout: float, every: float = 0.2):
     return test()
 
 
+DRAFT = ("!document.getElementById('caption').hidden && document.getElementById('caption').classList.contains('draft') "
+         "&& document.getElementById('caption-draft').textContent")
+
+
 def heard(word: str) -> int:
     return sum(word.lower() in line.lower() for line in log_lines(r"user said: "))
 
@@ -136,11 +140,15 @@ async def main() -> None:
                   page_chunks=[sent, sent_after], gate=gate(), heard=heard("Lisbon"))
 
             # ---- the hold key ----
+            turns_before = len(log_lines(r"user said: "))
             await key(page, "f", "keyDown")
             opened = await until(lambda: gate()["open"], 3)
             talking = await page.until("document.body.dataset.state === 'talking' && document.getElementById('state').textContent", 3)
             await page.shot("ptt-2-talking")
-            await asyncio.sleep(8)  # one whole question
+            draft = await page.until(DRAFT, 10)
+            await page.shot("ptt-2a-draft")
+            await asyncio.sleep(6)  # the question again, and the pauses between
+            mid_press = len(log_lines(r"user said: ")) - turns_before
             await key(page, "f", "keyUp")
             closed = await until(lambda: not gate()["open"], 3)
             got = await until(lambda: heard("Lisbon"), 15)
@@ -150,6 +158,10 @@ async def main() -> None:
             check("holding the key opens the gate (ring filled, Talking), the words are heard, and letting go closes it",
                   bool(opened) and talking == "Talking" and bool(closed) and bool(got) and await page.js("call.sent || 0") == tail,
                   talking=talking, heard=got, gate=gate())
+            turns = len(log_lines(r"user said: ")) - turns_before
+            check("held, the words show as a draft and none is a turn, pauses included; letting go sends all of it as one turn",
+                  draft == "Draft · not sent yet" and mid_press == 0 and turns == 1,
+                  draft=draft, turns_while_held=mid_press, turns_after=turns)
             await until(lambda: call("/voice/status")["speaking"] != "bot", 30)
 
             # ---- Caps Lock is a toggle, in both event shapes ----

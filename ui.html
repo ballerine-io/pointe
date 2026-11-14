@@ -313,6 +313,11 @@
   #caption[hidden] .wave i { animation: none; }
   #caption .wave i:nth-child(2) { animation-delay: .15s; } #caption .wave i:nth-child(3) { animation-delay: .3s; }
   #caption .wave i:nth-child(4) { animation-delay: .45s; } #caption .wave i:nth-child(5) { animation-delay: .6s; }
+  /* push to talk: what the press heard so far, sent only when it closes */
+  #caption .cap-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  #caption-draft { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--orange); }
+  #caption.draft { border-style: dashed; border-color: var(--orange); }
+  #caption.draft #caption-text { color: var(--muted); font-style: italic; }
   @keyframes wave { 50% { transform: scaleY(1); } }
 
   /* typing */
@@ -1195,7 +1200,7 @@
   <div id="attention"></div>
   <div id="briefalert"></div>
   <div id="whispercard"></div>
-  <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span id="caption-text" dir="auto"></span></div>
+  <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
   <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" placeholder="Type to the voice…" autocomplete="off" disabled>
     <button id="typed-send" disabled>Send</button></form>
   <nav class="dock" aria-label="Call controls">
@@ -1341,7 +1346,7 @@
     showState();
     showCompose(status);
     // In a meeting the room's words go to the transcript, and the main recognizer is paused: its last words would hang.
-    showHearing(status && status.connected && !meetingOf(status)?.on ? status.hearing : null);
+    showHearing(status && status.connected && !meetingOf(status)?.on ? status.hearing : null, !!(status && status.ptt && status.ptt.draft));
     showMeeting(status);
     showVoiceLock(status);
     showConflicts(status);
@@ -2179,11 +2184,17 @@
     refresh();
   }
   // Your words as you speak, in the caption above the bar. When the turn is final the caption fades and the bubble
-  // slides into the conversation: the same words never show twice.
-  function showHearing(text) {
+  // slides into the conversation: the same words never show twice. In push to talk the words of a press are a draft:
+  // nothing in it is a turn until the press closes and the whole of it is sent (docs/design/push-to-talk-modes.md).
+  const PTT_DRAFT = {open: 'Draft · not sent yet', sending: 'Sending'};
+  function showHearing(text, draft) {
     const cap = $('caption');
     if (text) {
       $('caption-text').textContent = text;
+      cap.classList.toggle('draft', !!draft);
+      const label = $('caption-draft'), line = draft ? (pttOpen() || status.ptt.open ? PTT_DRAFT.open : PTT_DRAFT.sending) : '';
+      if (label.textContent !== line) label.textContent = line;
+      label.hidden = !draft;
       if (cap.hidden) { cap.hidden = false; if (pinned) requestAnimationFrame(() => toBottom(false)); }
     } else if (!cap.hidden) cap.hidden = true;
   }

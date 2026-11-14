@@ -217,6 +217,7 @@ struct API {
         let open: Bool?
         let closed_why: String?  // "released", "held too long", "no audio", "switched to push to talk"
         let room_heard: Bool?    // a meeting is on: the room reaches the meeting without a press; talking to Pointe still needs one
+        let draft: Bool?         // `hearing` is a press's words, sent as one message when it closes; nil from an older Mac
     }
 
     // MARK: meeting mode (docs/features/meeting-mode.md). Every field optional: an older daemon

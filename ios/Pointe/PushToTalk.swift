@@ -118,6 +118,19 @@ struct TalkGate: Equatable {
     }
 }
 
+/// A press is one message, as a voice message is: its words show as a draft until the press closes and the Mac sends
+/// all of it as one turn (docs/design/push-to-talk-modes.md). The page says the same (tests/test_ptt_message.py).
+enum TalkDraft {
+    static let openLine = "Draft · not sent yet"
+    static let sendingLine = "Sending"
+
+    /// The label over the live bubble; nil when the words are not a press's draft (always on, or an older Mac).
+    static func line(draft: Bool?, open: Bool) -> String? {
+        guard draft == true else { return nil }
+        return open ? openLine : sendingLine
+    }
+}
+
 /// How the talk button is pressed, this device's choice (docs/design/push-to-talk-modes.md). The page offers the same two
 /// (Settings → Microphone → Talk button); the daemon sees one press either way.
 enum TalkStyle: String, CaseIterable {

@@ -59,6 +59,10 @@ async def until(test, timeout: float, every: float = 0.2):
     return test()
 
 
+DRAFT = ("!document.getElementById('caption').hidden && document.getElementById('caption').classList.contains('draft') "
+         "&& document.getElementById('caption-draft').textContent")
+
+
 def heard(word: str) -> int:
     return sum(word.lower() in line.lower() for line in log_lines(r"user said: "))
 
@@ -136,12 +140,17 @@ async def main() -> None:
             await until(lambda: call("/voice/status")["speaking"] == "bot", 12)  # the greeting on connect
             await bot_quiet()
             await asyncio.sleep(1)
+            turns_before = len(log_lines(r"user said: "))
             await click(page)
             opened = await until(lambda: gate()["open"], 3)
             talking = await page.until(f"document.body.dataset.state === 'talking' && {STATE_LINE}", 3)
             await page.shot("ptt-tap-2-talking")
-            await asyncio.sleep(8)  # one whole question, no button held
+            draft = await page.until(DRAFT, 10)  # the words show as a draft while the press is open
+            await page.shot("ptt-tap-2b-draft")
+            await asyncio.sleep(6)  # the question again, and its pauses, with nothing held
             still = gate()["open"] and await page.js("pttOpen()")
+            mid_press = len(log_lines(r"user said: ")) - turns_before
+            kept = len(log_lines(r"ptt: heard "))
             await click(page)
             sent = await page.js(STATE_LINE)  # "Sent" for 0.6 s, unless the answer already began
             closed = await until(lambda: not gate()["open"], 3)
@@ -151,6 +160,12 @@ async def main() -> None:
                   bool(opened) and talking == "Talking · tap to send" and bool(still) and bool(closed) and bool(got)
                   and sent in ("Sent", "Speaking", "Hearing you") and settled in ("Tap to talk", "Speaking", "Hearing you"),
                   talking=talking, still_open=still, sent=sent, heard=got, settled=settled, gate=gate())
+            await asyncio.sleep(2)
+            turns = len(log_lines(r"user said: ")) - turns_before
+            check("a press is one message: nothing said while open is a turn, pauses included; the second tap sends it all as one",
+                  draft == "Draft · not sent yet" and mid_press == 0 and kept >= 1 and turns == 1
+                  and len(log_lines(r"ptt: sent as one turn")) >= 1,
+                  draft=draft, turns_while_open=mid_press, finals_kept=kept, turns_after=turns)
             await bot_quiet()
 
             # ---- the key taps too: the key-up is nothing ----

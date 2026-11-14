@@ -20,6 +20,13 @@ send) or **Tap to talk** (tap to start, the microphone stays open, tap again to 
 | Toggle, in both | **Caps Lock**: press to open, press to close | AirPods stem press |
 | From any app | a system-wide shortcut running `pointe talk` (below) | the Action button, Back Tap or Siri: "Talk to Pointe" (below) |
 | Shows | "Hold to talk" or "Tap to talk"; "Talking" ("Talking · tap to send"); "Sent" for a moment after a send | the same, with a haptic at the press and the send |
+| Your words | in the caption, dashed and labelled "Draft · not sent yet", then "Sending" after the release | the live bubble, with the same label |
+
+A press is one message, like a voice message: nothing you say while the button is open is a turn. Pause as long as you
+like, start over, say "hold on" or "brain dump" mid-thought: none of it is acted on until you let go (Hold to talk) or tap
+again (Tap to talk). Then all of it goes to Pointe as one turn, at once, without the "Wait before answering" delay,
+since the release already says you are done. A press with nothing heard sends nothing. Always on is unchanged: there a
+pause after a sentence still ends the turn ([turn taking](../design/turn-taking.md)).
 
 A press under 0.25 s in Hold mode heard no word; the line says "Hold to talk · or choose Tap to talk in Settings" for
 two seconds. A tap forgotten open closes after 90 s by the daemon's rule below; the line says "Talk closed after 90 s:
@@ -58,8 +65,12 @@ its audio (it sends only while a press holds, its own or the shortcut's).
 
 - The gate sits first after the transport, before the voice detector, the ears and any realtime model. Closed, it drops
   the microphone audio. Whatever a client sends, no audio passes it.
+- While a press is open (and until it is sent) every final transcript is kept, not answered: no settle time, no hold
+  phrase, no command, no reply, and no news spoken over it. Interim words and kept finals show as the draft.
 - On release it keeps 0.4 s more, plus 0.2 s of link slack, so your last word is not cut, then asks the ears to finish
-  the utterance.
+  the utterance. Soniox answers with the last words and a `<fin>` marker; once that marker is in, everything said in the
+  press is one turn. Ears that give no marker get 2 s (`FINAL_WAIT_SECS`), then what was heard is sent.
+- A second press before the first was sent (within that second or so) continues the same message.
 - A press closes by itself after 90 s, or after 2 s with no audio (a lost release). The 90 s limit applies to toggles
   (Caps Lock, AirPods) as well as holds, because the daemon cannot tell them apart. When a press closes by itself, the
   clients drop the hold and say why: `held too long`, `no audio`.
@@ -89,6 +100,7 @@ the app takes that mute as the toggle and unmutes the input again. It also handl
   on or no call is up; otherwise the gate is pressed as a client's message would press it, the client gets
   `{"type": "ptt", "open": bool, "by": "shortcut"}` on the call socket and sends accordingly, and the reply is
   `{"open": bool, "mode": "ptt"}`. `GET /voice/status` carries `talk_command` (the command to bind) on this Mac only.
-- Status `ptt: {mode, open, opened_at, closed_at, closed_why, sent_bytes, room_heard, room_bytes}`. `closed_why`:
+- Status `ptt: {mode, open, opened_at, closed_at, closed_why, sent_bytes, room_heard, room_bytes, draft}`. `draft: true`
+  while a press's words are kept and not sent yet; `hearing` is then all of them so far, however long the pause. `closed_why`:
   `released`, `held too long`, `no audio`, `switched to push to talk`. `sent_bytes` counts audio that passed the gate in
   this call. Clients show `open` as the truth.

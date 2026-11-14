@@ -2,12 +2,17 @@
 gate open (plus a short tail), so nothing reaches the ears or any vendor otherwise. One exception: while a meeting is
 on, the room's audio goes to the meeting stream without a press (starting a meeting took consent and shows a recording
 indicator); the conversation still hears only a press. The clients stop sending too, but
-this gate is the rule: the daemon is what talks to vendors. Pure state, driven by the call's PttGate with the clock."""
+this gate is the rule: the daemon is what talks to vendors. Pure state, driven by the call's PttGate with the clock.
+
+A press is one message, as a voice message is (docs/design/push-to-talk-modes.md): what the ears hear while it is on is
+kept here, shown as a draft, and sent as one turn once the press has closed and the ears have given its last words."""
 
 TAIL_SECS = 0.4  # kept after a release, so the last word is not cut; the clients send the same tail
 LINK_SLACK_SECS = 0.2  # the tail's audio arrives after the release message, by up to the link's jitter
 MAX_OPEN_SECS = 90.0  # a thumb on the phone in a pocket: the press ends itself
 QUIET_LINK_SECS = 2.0  # open but no audio arriving: the release was lost with the link
+FINAL_WAIT_SECS = 2.0  # after the finalize, the longest a send waits for the last words: Soniox says when (its <fin>),
+# well inside this; other ears never say, and their words after it are their own turn
 
 
 class Ptt:
@@ -27,14 +32,46 @@ class Ptt:
         self.dropped_bytes = 0
         self.room_bytes = 0  # passed for the meeting stream only, with the gate closed
         self._mode = None  # the mode last seen, to notice a switch to push to talk mid-sentence
+        self.collecting = False  # a press's words are being kept: from the press until they are sent
+        self.said: list[str] = []  # its final transcripts, in order
+        self.live = ""  # the words being heard now, not final yet
+        self.speakers: list = []  # the voice lock's verdict on each final; the weakest answers for the message
+        self.own_words = False  # a final repeated the bot's own suggestion: the message answers no permission
+        self.finalized = False  # the tail is over and the ears were asked for the last words
+        self.final_due = 0.0  # the send goes without them then
 
-    def press(self, now: float) -> bool:
-        """True when this opened the gate; a second input pressing while it is open is not a new press."""
+    def press(self, now: float, collect: bool = True) -> bool:
+        """True when this opened the gate; a second input pressing while it is open is not a new press. collect=False:
+        no ears of Pointe's own in the call (a realtime model hears the audio and ends its own turns)."""
         if self.open:
             return False
         self.open, self.opened_at, self.last_audio_at = True, now, now
         self.closed_why, self.until, self.finalize_due = "", 0.0, False
+        if collect and not self.collecting:  # pressed again before the last one was sent: the same message goes on
+            self.said, self.live, self.speakers, self.own_words = [], "", [], False
+        self.collecting = self.collecting or collect
+        self.finalized, self.final_due = False, 0.0
         return True
+
+    def hear(self, text: str, speaker=None, own_words: bool = False) -> None:
+        """A final transcript inside the press: kept for the message, never a turn of its own."""
+        self.said.append(text)
+        self.speakers.append(speaker)
+        self.own_words = self.own_words or own_words
+        self.live = ""
+
+    def draft(self) -> str:
+        return " ".join(p for p in self.said + [self.live] if p)
+
+    def sendable(self) -> bool:
+        """Closed, and the ears were asked for the last words: the message may go."""
+        return self.collecting and not self.open and self.finalized
+
+    def take(self) -> str:
+        """The message, once: everything said in the press, as one turn ("" when nothing was heard)."""
+        text = " ".join(self.said).strip()
+        self.collecting, self.said, self.live, self.finalized, self.final_due = False, [], "", False, 0.0
+        return text
 
     def release(self, now: float, why: str = "released") -> bool:
         if not self.open:
@@ -72,7 +109,8 @@ class Ptt:
         return ok
 
     def tick(self, mode: str, now: float) -> list[str]:
-        """Run often. "closed" when the gate closed by itself (closed_why says why); "finalize" once the tail is over."""
+        """Run often. "closed" when the gate closed by itself (closed_why says why); "finalize" once the tail is over;
+        "send" when the last words of a press did not come within FINAL_WAIT_SECS of the finalize."""
         events = ["closed"] if self._follow(mode, now) else []
         if mode == "ptt" and self.open:
             if now - self.opened_at > MAX_OPEN_SECS:
@@ -84,6 +122,11 @@ class Ptt:
         if self.finalize_due and now >= self.until:
             self.finalize_due = False
             events.append("finalize")
+            if self.collecting and not self.open:
+                self.finalized, self.final_due = True, now + FINAL_WAIT_SECS
+        if self.final_due and now >= self.final_due and self.sendable():
+            self.final_due = 0.0
+            events.append("send")  # the ears never said the last words were in: what was heard goes now
         return events
 
     def speech_began(self, now: float, mode: str) -> float:
@@ -96,4 +139,5 @@ class Ptt:
         """room_heard: a meeting is on, so the room is heard without a press (the conversation is not)."""
         return {"mode": mode, "open": self.open, "opened_at": self.opened_at or None,
                 "closed_at": self.closed_at or None, "closed_why": self.closed_why,
-                "sent_bytes": self.passed_bytes, "room_heard": mode == "ptt" and room, "room_bytes": self.room_bytes}
+                "sent_bytes": self.passed_bytes, "room_heard": mode == "ptt" and room, "room_bytes": self.room_bytes,
+                "draft": self.collecting}  # "hearing" is then the press's words so far, not sent yet

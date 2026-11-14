@@ -302,6 +302,7 @@ struct CallView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing,
+                                     draft: TalkDraft.line(draft: status?.ptt?.draft, open: call.talk.isOpen || status?.ptt?.open == true),
                                      large: status?.whisper?.on == true && status?.whisper?.held == nil,
                                      placeholder: !panelShown) { editing = $0 }
                     if !panelShown, let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {

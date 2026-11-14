@@ -111,6 +111,7 @@ from pipecat.frames.frames import (
     BotStartedSpeakingFrame,
     BotStoppedSpeakingFrame,
     CancelFrame,
+    ControlFrame,
     EndFrame,
     Frame,
     InputAudioRawFrame,
@@ -514,7 +515,7 @@ USER_GAP_SECS = 1.2  # this long after the user's last word, news may start
 
 
 def _user_talking() -> bool:
-    return state.user_started_at > state.user_stopped_at or \
+    return state.user_started_at > state.user_stopped_at or state.ptt.collecting or \
         time.time() - max(state.user_stopped_at, state.user_heard_at) < USER_GAP_SECS
 
 
@@ -1188,6 +1189,10 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
             logger.info("barge-in: voice well above the echo")
             await self.broadcast_interruption()
+        elif isinstance(frame, PressEnd):
+            if state.ptt.sendable():
+                await self._send_press(frame.why)
+            return
         elif isinstance(frame, (InterimTranscriptionFrame, TranscriptionFrame)) and direction == FrameDirection.DOWNSTREAM \
                 and _room_heard():
             return  # MicGate sends the room to the meeting stream: these are words cut off when it took the microphone
@@ -1198,6 +1203,8 @@ class SonioxEars(FrameProcessor):
                 state.user_heard_at = time.time()
                 state.floor.user_heard(state.user_heard_at)
                 state.hearing = (state.user_heard_at, part)
+                if state.ptt.collecting:
+                    state.ptt.live = part
             if ECHO.speaking and ECHO.is_barge_in(frame.text, _spoken(frame)):
                 logger.info(f"barge-in: {frame.text!r}")
                 await self.broadcast_interruption()
@@ -1233,6 +1240,10 @@ class SonioxEars(FrameProcessor):
                 if ECHO.speaking:  # the user's words surfaced only when Soniox finalized them
                     logger.info(f"barge-in: {heard!r}")
                     await self.broadcast_interruption()
+                if state.ptt.collecting:  # push to talk: the press is one message, sent when it closes (_send_press)
+                    state.ptt.hear(heard, state.last_speaker, state.heard_own_words)
+                    logger.info(f"ptt: heard {heard!r}")
+                    return
                 held = bool(self._held)
                 if held:
                     heard = f"{self._held} {heard}"
@@ -1283,6 +1294,22 @@ class SonioxEars(FrameProcessor):
             return False
         return True
 
+    async def _send_press(self, why: str) -> None:
+        """The press closed and its last words are in: all of it is one turn, at once. Release is the end of the turn,
+        so no settle time, and nothing in it was acted on before. The weakest voice-lock verdict among its parts, and
+        any part that repeated the bot, answer for the whole."""
+        speakers, own_words = state.ptt.speakers, state.ptt.own_words
+        text = state.ptt.take()
+        state.hearing = (0.0, "")  # it shows in the conversation now
+        if not text:
+            logger.info(f"ptt: nothing heard in the press ({why}): nothing sent")
+            return
+        if speakers:
+            state.last_speaker = min(speakers, key=lambda v: (VOICE.confident(v), speaker.strong(v)))
+        state.heard_own_words = own_words
+        logger.info(f"ptt: sent as one turn ({why}, {len(speakers)} parts)")
+        await self._take(text)
+
     async def _release_held(self, held: str, at: float, wait: float) -> None:
         """No more words came: the text is the turn. While the user is talking again, the next final takes it."""
         # Counted from when the voice stopped, not from the transcript, which comes later; and never while they talk.
@@ -1310,7 +1337,8 @@ class SonioxEars(FrameProcessor):
     async def _watch_hold(self, hold: turns.Hold) -> None:
         while state.hold is hold:
             quiet = time.time() - max(hold.last_at, state.user_stopped_at, state.user_heard_at)
-            if state.user_started_at <= state.user_stopped_at and quiet >= turns.HOLD_RELEASE_SILENCE_SECS:
+            if state.user_started_at <= state.user_stopped_at and not state.ptt.collecting \
+                    and quiet >= turns.HOLD_RELEASE_SILENCE_SECS:  # a pause inside a press is no silence
                 logger.info(f"hold: released by {turns.HOLD_RELEASE_SILENCE_SECS:.0f} s of silence")
                 await self._release_hold(None)
                 return
@@ -2972,6 +3000,14 @@ def _room_heard() -> bool:
     return state.meeting is not None or state.meeting_starting
 
 
+@dataclass
+class PressEnd(ControlFrame):
+    """A press's words may be sent: the ears gave the last of them ("finalized", after Soniox's <fin>) or the gate
+    stopped waiting ("timeout"). In order behind the transcripts, and kept through an interruption."""
+    why: str = "finalized"
+    interruptible: bool = field(default=False, init=False)
+
+
 class PttGate(FrameProcessor):
     """First after the transport: with the microphone set to push to talk, audio passes only while a press holds the
     gate open, so nothing reaches the voice detector, the ears or a realtime model otherwise. While a meeting is on the
@@ -3003,7 +3039,7 @@ class PttGate(FrameProcessor):
         await self.push_frame(frame, direction)
 
     async def _press(self) -> None:
-        if PREFS.get("microphone") != "ptt" or not state.ptt.press(time.time()):
+        if PREFS.get("microphone") != "ptt" or not state.ptt.press(time.time(), collect=self._stt is not None):
             return
         logger.info("ptt: open over the bot: it stops" if ECHO.speaking else "ptt: open")
         state.user_started_at = state.ptt.opened_at  # the consent rules time the answer from the press
@@ -3037,6 +3073,9 @@ class PttGate(FrameProcessor):
                 self._release(now, state.ptt.closed_why)
             elif event == "finalize":
                 await self._finalize()
+            elif event == "send":
+                logger.info("ptt: the ears never gave the last words: sending what was heard")
+                await self.push_frame(PressEnd(why="timeout"))
 
     async def _finalize(self) -> None:
         ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
@@ -5638,7 +5677,8 @@ async def status(request: Request):
             "call": _call_health(),
             "talk": _talk(),
             "polish": state.polish,
-            "hearing": state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
+            "hearing": state.ptt.draft() if state.ptt.collecting  # a press's words, kept until it is sent
+            else state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
             "machines": _status_machines(),
             "invite": _invite(request),
             "can_invite": _can_invite(request),
@@ -6309,6 +6349,40 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
             state.phone_socket = None
 
 
+SONIOX_FIN = "<fin>"  # Soniox's answer to a finalize request, after the last words
+
+
+def _tell_finalized(stt) -> None:
+    """Soniox answers a finalize with the last words and then <fin>: told in the frame stream, behind those words, so a
+    push-to-talk press is sent once all of it is in (PressEnd). The receive loop reads its socket through
+    _get_websocket (tests/test_ptt_message.py checks pipecat still does). Other ears give no sign: the gate's
+    FINAL_WAIT_SECS covers them."""
+    from pipecat.services.soniox.stt import SonioxSTTService
+
+    if not isinstance(stt, SonioxSTTService):  # elsewhere _get_websocket may also be what sends
+        return
+    get = stt._get_websocket
+
+    def websocket():
+        ws = get()
+
+        async def messages():
+            async for message in ws:
+                yield message  # the next line runs once the loop has handled it, and pushed its words downstream
+                if _has_fin(message):  # parsed, not searched: Soniox may send it escaped, "\u003cfin\u003e"
+                    await stt.push_frame(PressEnd(why="finalized"))
+        return messages()
+
+    stt._get_websocket = websocket
+
+
+def _has_fin(message) -> bool:
+    try:
+        return any(t.get("text") == SONIOX_FIN for t in json.loads(message).get("tokens") or [])
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
 def _clock_ears(stt) -> None:
     """Counts the audio a streaming recognizer really receives (Soniox: only on an open socket), so the word timings in its
     transcripts map to wall time (EARS_CLOCK). Other ears give no timings and keep the arrival-time echo rules."""
@@ -6347,6 +6421,7 @@ def _call_ears() -> tuple[list, list, object]:
     mirror = [MirrorEars(_recognition_terms())] if vendors.has("soniox") and not vendors.voice_local() else []
     stt = vendors.build_ears(setup().ears, _recognition_terms())
     _clock_ears(stt)
+    _tell_finalized(stt)
     return [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()], mirror, stt
 
 
