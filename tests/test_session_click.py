@@ -138,3 +138,40 @@ def test_the_click_endpoint_announces(call):
     """The page and the phone app share /voice/switch: the endpoint itself runs the focus change."""
     assert client_for(call.d).post("/voice/switch", json={"name": "gamma/main"}).json() == {"active": "gamma/main"}
     assert lines(call) == ["I'm now in session gamma/main. It's not waiting on anything. I have no notes on it yet."]
+
+
+def test_a_click_puts_the_voice_in_session_mode_as_the_phone_does(call):
+    """The phone app's focus() asks for session mode after the switch; the page did not, so its row showed session mode
+    until the next poll put orchestrator back. The switch itself now pins it, for both."""
+    call.d.REGISTRY.mode = "orchestrator"
+    client = client_for(call.d)
+    assert client.post("/voice/switch", json={"name": "beta/main"}).json() == {"active": "beta/main"}
+    status = client.get("/voice/status").json()
+    assert (status["mode"], status["active"]) == ("session", "beta/main")
+
+
+def test_the_page_stub_switches_as_the_daemon_does(d):
+    """tests/page_rig.py plays the daemon for the page tests: a switch must leave it where the daemon is left."""
+    import aiohttp
+    from page_rig import StubMac, fixture, free_port
+
+    add(d, "a", "alpha/main"), add(d, "b", "beta/main")
+    d.REGISTRY.set_active("a")
+    d.REGISTRY.mode = "orchestrator"
+    client = client_for(d)
+    client.post("/voice/switch", json={"name": "beta/main"})
+    real = client.get("/voice/status").json()
+
+    async def stub_after_switch():
+        stub = await StubMac(free_port()).start()
+        try:
+            stub.status = fixture(sessions=2)
+            stub.status["mode"] = "orchestrator"
+            name = stub.status["sessions"][1]["name"]
+            async with aiohttp.ClientSession() as http:
+                await http.post(f"http://127.0.0.1:{stub.port}/voice/switch", json={"name": name})
+            return stub.status["mode"], stub.status["active"] == name
+        finally:
+            await stub.stop()
+
+    assert asyncio.run(stub_after_switch()) == (real["mode"], True)

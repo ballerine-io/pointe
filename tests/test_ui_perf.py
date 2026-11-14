@@ -198,3 +198,26 @@ def test_a_press_that_spans_a_poll_still_clicks_the_row():
     pressed, under, switches = asyncio.run(run())
     assert under == pressed
     assert [p[1] for p in switches] == [{"name": pressed}]
+
+
+@needs_chrome
+def test_a_row_click_stays_in_session_mode_after_the_next_poll():
+    """In orchestrator mode a click on a row focuses that session, as a tap in the phone app does: the page shows session
+    mode at once, and the Mac's status, polled after it answered, keeps it there."""
+    async def run():
+        stub, browser, page = await _page(fixture(sessions=4))
+        try:
+            assert stub.status["mode"] == "orchestrator"
+            name = await page.eval(f"""(() => {{ const b = document.querySelectorAll('#list .s')[2]; b.click(); return ({ROW_NAME})(b); }})()""")
+            await asyncio.sleep(0.3)
+            polled = stub.status_hits
+            while stub.status_hits < polled + 2:  # two polls after the switch was answered
+                await asyncio.sleep(0.1)
+            shown = await page.eval("[document.getElementById('m-session').className, document.getElementById('m-orchestrator').className]")
+            return name, shown, stub.status["mode"], stub.status["active"]
+        finally:
+            await _close(stub, browser)
+
+    name, shown, mode, active = asyncio.run(run())
+    assert (mode, active) == ("session", name)
+    assert shown == ["on", ""]

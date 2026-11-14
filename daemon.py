@@ -4878,14 +4878,16 @@ async def _drop_old_topic() -> None:
 
 
 async def focus_by_click(session: Session) -> None:
-    """A click on a session, on the page or the phone app, in either mode. The status moves at once; after
-    FOCUS_SETTLE_SECS, if no newer click came, the fixed line is said and the session is activated (its history, and
-    a pending permission read out after the line). A click on the session already focused announces it again: a
-    deliberate re-click asks where it stands now."""
+    """A click on a session, on the page or the phone app, from either mode: it ends in session mode on it. The status
+    moves at once; after FOCUS_SETTLE_SECS, if no newer click came, the fixed line is said and the session is activated
+    (its history, and a pending permission read out after the line). A click on the session already focused announces
+    it again: a deliberate re-click asks where it stands now."""
     state.focus_clicks += 1
     click = state.focus_clicks
     await _drop_old_topic()
     REGISTRY.set_active(session.id)
+    if REGISTRY.mode != "session":  # a click focuses one session, on the page as in the phone app
+        _apply_mode("session")
     if state.conn is None:  # no call: nothing to say, the next call starts on it
         await activate(session)
         return
