@@ -25,7 +25,7 @@
     document.body.classList.toggle('whisper', on);
     const btn = $('whisperbtn');
     btn.classList.toggle('on', !!w.on); btn.setAttribute('aria-pressed', !!w.on);
-    $('whisper-label').textContent = on ? 'Whispering' : 'Whisper';
+    text('whisper-label', on ? 'Whispering' : 'Whisper');
     if (on && was !== true) {  // on at the first look, or turned on here, on the phone or by voice: typing comes forward
       $('compose').classList.remove('folded');
       const busy = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
