@@ -127,12 +127,13 @@ from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.services.llm_service import FunctionCallParams
+from pipecat.workers.base_worker import BaseWorker
 from pipecat.workers.runner import WorkerRunner
 from sessions import (
     NUDGE_REPEAT_SECS,
     REGISTRY,
     GENERIC_WORDS,
-    ClaudeSessionWorker,
+    Feed,
     Session,
     current_transcript,
     how_it_began,
@@ -1240,6 +1241,27 @@ class UserSpeechTap(FrameProcessor):
 
 # ---------- connection state ----------
 
+class ClaudeSessionWorker(BaseWorker):
+    """One Claude Code session on the voice bus: follows its transcript and feeds its activity to the voice
+    model, tagged with the session name. Requests are delivered directly, so the sender knows if they arrived."""
+
+    def __init__(self, session: Session, feed: Feed):
+        super().__init__(name=f"session:{session.id}")
+        self.session = session
+        self._feed = feed
+        self._tasks: list[asyncio.Task] = []
+
+    async def start(self) -> None:
+        await super().start()
+        self._tasks = [asyncio.create_task(c) for c in harnesses.of(self.session).watch(self.session, self._feed)]
+
+    async def stop(self) -> None:
+        """Stops this worker only. BaseWorker.end() would end the whole bus session."""
+        for task in self._tasks:
+            task.cancel()
+        await super().stop()
+
+
 @dataclass
 class Connection:
     injector: FeedInjector
@@ -1383,7 +1405,7 @@ async def feed(session: Session, text: str, respond: bool) -> None:
     if report is not None:
         matters = active or report.get("urgency") == "high" or report.get("waiting")
         if matters and report.get("say") and len(report["final"]) > len(report["say"]):
-            kept = (f"[{_tag(session)}{harnesses.get(session.harness).label}'s full final message: the source for any follow-up such as why, what "
+            kept = (f"[{_tag(session)}{harnesses.of(session).label}'s full final message: the source for any follow-up such as why, what "
                     f"exactly, or what it recommends. Do not read it out]\n{report['final'][:MAX_REPORT_CHARS]}")
             logger.info(f"feed: {kept!r}")
             await state.conn.injector.inject(kept, False)
@@ -1425,13 +1447,13 @@ def _on_screen(session: Session) -> str:
 
 def _active_report(session: Session, report: dict) -> str:
     if current_mode() is modes.DRIVE and report.get("line"):
-        return (f"[{_tag(session)}{harnesses.get(session.harness).label} {FINISHED_MARK} Say this one line, adding "
+        return (f"[{_tag(session)}{harnesses.of(session).label} {FINISHED_MARK} Say this one line, adding "
                 f"nothing:\n{report['line']}")
     if report.get("say"):
         lang = "Hebrew" if re.search(r"[\u0590-\u05ff]", state.last_utterance) else "English"
-        return (f"[{_tag(session)}{harnesses.get(session.harness).label} {FINISHED_MARK} Tell the user this in {lang}, no longer than it is, "
+        return (f"[{_tag(session)}{harnesses.of(session).label} {FINISHED_MARK} Tell the user this in {lang}, no longer than it is, "
                 f"keeping every number and caveat and adding nothing:\n{report['say']}")
-    return (f"[{_tag(session)}{harnesses.get(session.harness).label} {FINISHED_MARK} Report the outcome and what it needs from the user, "
+    return (f"[{_tag(session)}{harnesses.of(session).label} {FINISHED_MARK} Report the outcome and what it needs from the user, "
             f"in at most three sentences. Part of its final message:\n{report['excerpt']}")
 
 
@@ -1452,14 +1474,14 @@ async def _digest_turn(session: Session, text: str) -> dict:
     try:
         report = await asyncio.wait_for(
             # Low thinking: about 3 s instead of 8, and the user is waiting to hear it.
-            _read_model(for_agent(REPORT_SYSTEM, harnesses.get(session.harness).agent), report_prompt(session.name, final, _brief_of(session), asked, session.open_questions, session.deadlines,
+            _read_model(for_agent(REPORT_SYSTEM, harnesses.of(session).agent), report_prompt(session.name, final, _brief_of(session), asked, session.open_questions, session.deadlines,
                                                      recent, sent, state.last_report.get(session.id, "")), "low"),
             REPORT_TIMEOUT_SECS)
         wrong = unsupported(f"{report.get('say', '')} {report.get('line', '')}", f"{final} {recent}")
         if wrong:  # a report once said "live" of a fix that only had a PR open
             logger.warning(f"report for {session.name} rewritten, not in the message: {wrong}")
             report = await asyncio.wait_for(
-                _read_model(for_agent(REPORT_SYSTEM, harnesses.get(session.harness).agent), report_prompt(session.name, final, _brief_of(session), asked, session.open_questions, session.deadlines,
+                _read_model(for_agent(REPORT_SYSTEM, harnesses.of(session).agent), report_prompt(session.name, final, _brief_of(session), asked, session.open_questions, session.deadlines,
                                                          recent, sent, state.last_report.get(session.id, ""))
                             + f"\n\nThese words are not in the message, so do not use them or anything they claim: {wrong}", "low"),
                 REPORT_TIMEOUT_SECS)
@@ -1523,7 +1545,7 @@ async def _refresh_brief(session: Session) -> None:
     try:
         record = (recent_history(session, max_entries=80, max_chars=BRIEF_UPDATE_CHARS, line_cap=6000) if known else
                   await asyncio.to_thread(session_record, session, BRIEF_RECORD_CHARS))
-        notes = await asyncio.wait_for(_read_model(for_agent(BRIEF_SYSTEM, harnesses.get(session.harness).agent), brief_prompt(session.name, known, record, state.owner_words.get(session.id, [])), "low"),
+        notes = await asyncio.wait_for(_read_model(for_agent(BRIEF_SYSTEM, harnesses.of(session).agent), brief_prompt(session.name, known, record, state.owner_words.get(session.id, [])), "low"),
                                        BRIEF_TIMEOUT_SECS)
         if not (notes.get("goal") or notes.get("state")):
             return
@@ -1667,7 +1689,7 @@ async def _brief_section(group: list[Session], since: float, since_label: str, l
     if not record.strip() and not waits:
         return briefing.Section(session=s.name, status="quiet", text=f"{s.name}: nothing new.")
     prompt = briefing.section_prompt(s.name, lang, since_label, _brief_of(s), waits, s.deadlines, record)
-    system = for_agent(briefing.BRIEFING_SYSTEM, harnesses.get(s.harness).agent)
+    system = for_agent(briefing.BRIEFING_SYSTEM, harnesses.of(s).agent)
     reply = await BRIEFING_JOBS.run(f"briefing/{s.name}", lambda: _read_model(system, prompt, "low"), BRIEFING_TIMEOUT_SECS)
     if not reply:
         last = record or await asyncio.to_thread(recent_history, s, 4, 2000, 1500)
@@ -1955,7 +1977,7 @@ async def _scan_conflicts(session: Session, report: dict, final: str) -> None:
     edited = await asyncio.to_thread(conflicts.edited_stems, session.transcript)
     notes = _brief_of(session) or {}
     new = conflicts.Report(
-        session_id=session.id, name=session.name, agent=harnesses.get(session.harness).agent, cwd=session.cwd,
+        session_id=session.id, name=session.name, agent=harnesses.of(session).agent, cwd=session.cwd,
         root=root, branch=branch, at=time.time(), final=final[-conflicts.SOURCE_CHARS:],
         verdict=str(report.get("verdict") or ""), limits=[str(x) for x in report.get("limits") or []][:6],
         say=str(report.get("say") or ""), state=str(notes.get("state") or ""),
@@ -2049,7 +2071,7 @@ async def post_channel(session: Session, path: str, body: dict) -> bool:
 
 async def deliver(session: Session, text: str) -> bool:
     """Through the session's harness: for Claude Code, its voice channel when it has one, else its inbox socket."""
-    return await harnesses.get(session.harness).send(session, text)
+    return await harnesses.of(session).send(session, text)
 
 
 # ---------- devil's advocate (the rules: challenge.py) ----------
@@ -2706,8 +2728,8 @@ async def _meeting_lookup(note_id: int, session_name: str, question: str) -> Non
     if target is None:
         return
     answer = None
-    if COPY_SESSIONS and harnesses.get(target.harness).side_questions:
-        answer = await JOBS.run(f"meeting-lookup/{target.name}", lambda: harnesses.get(target.harness).side_question(
+    if COPY_SESSIONS and harnesses.of(target).side_questions:
+        answer = await JOBS.run(f"meeting-lookup/{target.name}", lambda: harnesses.of(target).side_question(
             target, f"{question}\n\n(Answer in two or three plain sentences, for someone reading during a meeting.)"),
                                 COPY_TIMEOUT_SECS)
     if not answer:
@@ -3000,7 +3022,7 @@ def _needs_now() -> str:
         sent = state.unconfirmed.get(s.id) or []
         notes = _brief_of(s) or {}
         promised = "; ".join(str(p) for p in notes.get("owner_promised") or [])
-        lines.append(f"- {s.name} ({harnesses.get(s.harness).agent}, {'working' if s.busy else 'not working'}). "
+        lines.append(f"- {s.name} ({harnesses.of(s).agent}, {'working' if s.busy else 'not working'}). "
                      f"{notes.get('state') or 'No notes on it yet.'}"
                      f"{' URGENT.' if s.urgency == 'high' and items(s) else ''} "
                      f"Waits on the user for: {'; '.join(items(s)) or 'nothing'}."
@@ -3207,7 +3229,7 @@ async def _classify_target(message: str, sessions: list[Session]) -> Session | N
         about = f"goal: {notes['goal']}; " if notes.get("goal") else ""
         files = _tracked_files(s)
         about += f"files: {files}; " if files else ""
-        lines.append(f"- {s.name} ({harnesses.get(s.harness).agent} session, folder {s.cwd})"
+        lines.append(f"- {s.name} ({harnesses.of(s).agent} session, folder {s.cwd})"
                      f"{' [active]' if s is REGISTRY.active else ''}: {about}latest: {latest}")
     asked = next((text for who, text in reversed(state.conversation) if who == "assistant"), "")
     prompt = (f"Coding-agent sessions:\n" + "\n".join(lines) + f"\n\nThe assistant last said: {asked[-400:]!r}\n"
@@ -3591,7 +3613,7 @@ async def _is_current_request(message: str, utterance: str, earlier: list[str],
 
 
 async def list_sessions(params: FunctionCallParams):
-    sessions = [{"name": s.name, "agent": harnesses.get(s.harness).agent, "active": s is REGISTRY.active, "working": s.busy,
+    sessions = [{"name": s.name, "agent": harnesses.of(s).agent, "active": s is REGISTRY.active, "working": s.busy,
                  "waiting_for_permission": bool(s.permission_id),
                  "needs_from_user": _waiting_items(s),
                  "clocks": s.deadlines, "urgent": s.urgency == "high",
@@ -3809,7 +3831,7 @@ async def ask_about_session(params: FunctionCallParams):
         return
     state.thread = (target.id, time.time())  # asking about a session is talking about it
     question = params.arguments.get("question", "")
-    if COPY_SESSIONS and harnesses.get(target.harness).side_questions and not quote_intent(question) and not quote_intent(state.last_utterance):
+    if COPY_SESSIONS and harnesses.of(target).side_questions and not quote_intent(question) and not quote_intent(state.last_utterance):
         asyncio.create_task(_ask_copy(target, question))
         await params.result_callback({"asking": target.name, "say": f"Tell the user in a few words that you are asking "
                                       f"{target.name}, and that the answer comes in about ten seconds. Do not guess it."})
@@ -3825,7 +3847,7 @@ async def _ask_copy(target: Session, question: str) -> None:
     started = time.time()
     answer = None
     try:
-        answer = await asyncio.wait_for(harnesses.get(target.harness).side_question(target, prompt), COPY_TIMEOUT_SECS)
+        answer = await asyncio.wait_for(harnesses.of(target).side_question(target, prompt), COPY_TIMEOUT_SECS)
     except Exception as e:
         logger.warning(f"copy of {target.name} failed: {type(e).__name__}")
     logger.info(f"copy of {target.name} answered in {time.time() - started:.1f}s: {(answer or '')[:200]!r}")
@@ -4083,7 +4105,7 @@ async def hold_permission(session: Session, tool_name: str, tool_input: dict, go
     """Put a harness's permission request to the user and wait for their answer: "allow", "deny", or None, when it
     goes back to the harness's own prompt (no answer in time, or `gone()` says it was answered there)."""
     preview = json.dumps(tool_input, ensure_ascii=False)
-    deadline = time.time() + (deadline_secs or harnesses.get(session.harness).permission_deadline)
+    deadline = time.time() + (deadline_secs or harnesses.of(session).permission_deadline)
     # Several at once (OpenCode and Codex run tools in parallel): each waits its turn and is read out after the one before
     # is answered. Handing the earlier one "back to the terminal" left it unanswered where no terminal prompt is in view.
     lock = _PERMISSION_LOCKS.setdefault(session.id, asyncio.Lock())
@@ -4618,7 +4640,7 @@ async def status(request: Request):
             "talk": _talk(),
             "polish": state.polish,
             "hearing": state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
-            "sessions": [{"name": s.name, "harness": s.harness, "capabilities": harnesses.get(s.harness).capabilities(), "working": s.busy, "waiting": bool(s.permission_id),
+            "sessions": [{"name": s.name, "harness": s.harness, "capabilities": harnesses.of(s).capabilities(), "working": s.busy, "waiting": bool(s.permission_id),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
                           "request_id": s.permission_id,
                           "voice_can_approve": bool(s.permission_id and not s.permission_cut),
@@ -5014,7 +5036,7 @@ async def _add_worker(session: Session) -> None:
 async def _liveness() -> None:
     while True:
         await asyncio.sleep(5)
-        probes = [harnesses.get(s.harness).probe(s) for s in list(REGISTRY.sessions.values())]
+        probes = [harnesses.of(s).probe(s) for s in list(REGISTRY.sessions.values())]
         if probes:  # a service-backed harness learns here that a session was deleted, with no call up
             try:
                 await asyncio.wait_for(asyncio.gather(*probes, return_exceptions=True), 4)
@@ -5029,7 +5051,7 @@ def _follow_titles() -> None:
     for session in list(REGISTRY.sessions.values()):
         if session.named_by == "user":
             continue
-        title = harnesses.get(session.harness).title(session)
+        title = harnesses.of(session).title(session)
         if title and title != session.name and not REGISTRY.rename(session.id, title):
             logger.info(f"{session.id[:8]} now named {title!r} after its Claude Code title")
             session.named_by = "title"

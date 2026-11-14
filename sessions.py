@@ -2,7 +2,7 @@
 
 The registry outlives browser connections: sessions register once (from `/voice` or the
 launcher's SessionStart hook) and stay until their process exits. Each connection turns
-the registry into Pipecat bus workers, one per session.
+the registry into Pipecat bus workers, one per session (daemon.ClaudeSessionWorker). No Pipecat here: a node imports this.
 """
 
 import asyncio
@@ -24,7 +24,6 @@ from artifacts import Turn
 from brief import FINAL_MARK, agent_finding, excerpt, human_text
 from echo import NUMBERS
 from guards import strip_tasks
-from pipecat.workers.base_worker import BaseWorker
 
 Feed = Callable[["Session", str, bool], Awaitable[None]]
 
@@ -72,13 +71,14 @@ class Session:
     on_hold: bool = False  # the user said to hold this session: a broadcast skips it, and only its name reaches it
     noise: int = 0  # harness messages kept out of the feed: "how much was junk" has an answer
     harness: str = "claude-code"  # which coding agent runs it: harnesses/ (claude-code, opencode)
+    machine: str = ""  # the node it runs on; "" is this machine. Its adapter is harnesses.of(session), never get()
     turn: Turn = field(default_factory=Turn)  # what the turn in progress touched (show while it says)
     artifacts: list = field(default_factory=list)  # what the last finished turn touched, for its report
 
     def alive(self) -> bool:
         import harnesses
 
-        return harnesses.get(self.harness).alive(self)
+        return harnesses.of(self).alive(self)
 
 
 PERSISTED = ("id", "name", "named_by", "cwd", "pid", "transcript", "inbox_socket", "inbox_token", "channel_url",
@@ -363,7 +363,7 @@ def _aliases(s: Session) -> list[tuple[str, int]]:
     if s.harness != "claude-code":  # "the opencode one": another harness's name picks its sessions out. Never "claude",
         import harnesses             # which every "ask Claude Code to ..." would match
 
-        out.append((harnesses.get(s.harness).label, 0))
+        out.append((harnesses.of(s).label, 0))
     return out
 
 
@@ -503,7 +503,7 @@ def current_transcript(session: Session) -> str:
     """Where this session writes now: its harness knows (Claude Code moves a session to a new file on /clear)."""
     import harnesses
 
-    return harnesses.get(session.harness).transcript_path(session)
+    return harnesses.of(session).transcript_path(session)
 
 
 async def follow_transcript(session: Session, feed: Feed, on_turn_end: Callable[[], None]) -> None:
@@ -517,7 +517,7 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
     import harnesses
     from harnesses.base import finished_tag
 
-    harness = harnesses.get(session.harness)
+    harness = harnesses.of(session)
     who = harness.label  # "claude-code", "opencode": how the feed names the agent, read back by the daemon
     session.transcript = current_transcript(session)
     path = Path(session.transcript)
@@ -760,31 +760,6 @@ def _history_line(raw: bytes, cap: int = 1500) -> str:
     if not text:
         return ""
     return f"[{'user' if entry['type'] == 'user' else 'claude-code'}] {excerpt(text, cap)}"
-
-
-# ---------- the bus worker ----------
-
-class ClaudeSessionWorker(BaseWorker):
-    """One Claude Code session on the voice bus: follows its transcript and feeds its activity to the voice
-    model, tagged with the session name. Requests are delivered directly, so the sender knows if they arrived."""
-
-    def __init__(self, session: Session, feed: Feed):
-        super().__init__(name=f"session:{session.id}")
-        self.session = session
-        self._feed = feed
-        self._tasks: list[asyncio.Task] = []
-
-    async def start(self) -> None:
-        import harnesses
-
-        await super().start()
-        self._tasks = [asyncio.create_task(c) for c in harnesses.get(self.session.harness).watch(self.session, self._feed)]
-
-    async def stop(self) -> None:
-        """Stops this worker only. BaseWorker.end() would end the whole bus session."""
-        for task in self._tasks:
-            task.cancel()
-        await super().stop()
 
 
 _TITLE_KINDS = (("custom-title", "customTitle"), ("agent-name", "agentName"), ("ai-title", "aiTitle"))

@@ -1,7 +1,14 @@
 """Coding-agent harnesses the voice can drive. Each one implements the five things Pointe needs from a session:
 join, watch, send, approvals, and side questions. See docs/harnesses.md."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Callable
+
 from .base import FINISHED_MARK, HOST, Harness, UnknownHarness, finished_tag
+
+if TYPE_CHECKING:
+    from sessions import Session
 
 _HARNESSES: dict[str, Harness] = {}
 
@@ -18,6 +25,25 @@ def get(name: str | None) -> Harness:
         _load()
     name = name or "claude-code"
     return _HARNESSES.get(name) or UnknownHarness(name)
+
+
+# Set by the hub's node link (harnesses/remote.py): wraps the inner adapter of a session on another machine.
+_REMOTE: Callable[[Session, Harness], Harness] | None = None
+
+
+def set_remote(wrap: Callable[[Session, Harness], Harness] | None) -> None:
+    global _REMOTE
+    _REMOTE = wrap
+
+
+def of(session: Session) -> Harness:
+    """The adapter that drives this session. Every per-session adapter call goes through here, never get(): a session
+    on another machine (`machine` set) is driven over the node link, with its harness's adapter inside, or, with no
+    link wired, by a stand-in that drives nothing, so it is never typed into this machine's agent."""
+    inner = get(session.harness)
+    if not session.machine:
+        return inner
+    return _REMOTE(session, inner) if _REMOTE else UnknownHarness(inner.name)
 
 
 def labels() -> list[str]:
@@ -43,4 +69,4 @@ def _load() -> None:
     register(Codex())
 
 
-__all__ = ["FINISHED_MARK", "HOST", "Harness", "finished_tag", "get", "labels", "names", "register"]
+__all__ = ["FINISHED_MARK", "HOST", "Harness", "finished_tag", "get", "labels", "names", "of", "register", "set_remote"]

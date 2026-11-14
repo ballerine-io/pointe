@@ -207,3 +207,89 @@ def test_two_approval_requests_at_once_are_asked_in_turn_and_none_is_dropped(d, 
         assert await second == "deny"
 
     asyncio.run(scenario())
+
+
+# ---------- harnesses.of: one place picks a session's adapter (docs/design/multi-machine.md) ----------
+
+class FakeRemote(harnesses.Harness):
+    """Stands in for harnesses/remote.py's RemoteHarness until it lands."""
+
+    def __init__(self, session, inner):
+        self.inner, self.label, self.agent = inner, "remote-label", inner.agent
+        self.watched = []
+
+    def alive(self, session):
+        return True  # from node state, never a pid
+
+    def transcript_path(self, session):
+        return "/mirror/s1.0.jsonl"
+
+    def watch(self, session, feed):
+        self.watched.append(session.id)
+        return []
+
+
+@pytest.fixture
+def remote(monkeypatch):
+    made = []
+
+    def wrap(session, inner):
+        made.append(FakeRemote(session, inner))
+        return made[-1]
+
+    harnesses.set_remote(wrap)
+    yield made
+    harnesses.set_remote(None)
+
+
+def _on_devbox(harness="claude-code"):
+    return Session(id="n3f2a1-s1", name="shop", cwd="/srv/shop", pid=0, transcript="", harness=harness, machine="devbox")
+
+
+def test_a_local_session_gets_its_harness_adapter_unchanged(remote):
+    for name in ("claude-code", "opencode", "codex"):
+        assert harnesses.of(Session(id="x", name="x", cwd="/tmp", harness=name)) is harnesses.get(name)
+    assert not remote
+
+
+def test_a_session_on_another_machine_goes_through_the_remote_adapter(remote):
+    adapter = harnesses.of(_on_devbox("opencode"))
+    assert adapter is remote[-1] and adapter.inner is harnesses.get("opencode")
+
+
+def test_a_remote_session_with_no_remote_adapter_is_never_driven_locally():
+    """Before harnesses/remote.py is wired, a session with a machine must not be typed into this machine's agent."""
+    s = _on_devbox()
+    assert harnesses.of(s) is not harnesses.get("claude-code")
+    assert harnesses.of(s).alive(s) is False
+    assert asyncio.run(harnesses.of(s).send(s, "pull")) is False
+
+
+def test_the_sessions_module_sites_go_through_of(remote):
+    import sessions
+
+    s = _on_devbox("opencode")
+    assert s.alive()  # the local Claude Code check would be a pid check, and pid 0 is never alive
+    assert sessions.current_transcript(s) == "/mirror/s1.0.jsonl"
+    assert ("remote-label", 0) in sessions._aliases(s)
+
+
+def test_the_session_worker_watches_through_of(d, remote, monkeypatch):
+    async def started(self):
+        pass
+
+    monkeypatch.setattr(d.ClaudeSessionWorker.__mro__[1], "start", started)
+    s = _on_devbox()
+    asyncio.run(d.ClaudeSessionWorker(s, d.feed).start())
+    assert remote[-1].watched == [s.id]
+
+
+def test_no_session_picks_its_adapter_by_name_alone():
+    """Every adapter call for a session goes through harnesses.of, or a remote session would be driven as local."""
+    import re
+
+    root = Path(__file__).resolve().parents[1]
+    modules = [*root.glob("*.py"), *root.glob("harnesses/*.py")]
+    assert len(modules) > 20
+    for module in modules:
+        assert not re.search(r"harnesses\.get\([^)]*\.harness\)", module.read_text()), module.name
