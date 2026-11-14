@@ -21,7 +21,8 @@ MIN_PROTOCOL = 1  # the hub refuses a hello below this with CLOSE_TOO_OLD
 PATH = "/voice/node"
 PAIR_PATH = "/voice/node/pair"
 
-CLOSE_UNAUTHORIZED = 4401  # wrong HMAC, or a revoked key: the node deletes its key
+CLOSE_BAD_HELLO = 4400  # no hello in time, or not a hello: the node keeps its key and reconnects
+CLOSE_UNAUTHORIZED = 4401  # wrong HMAC, or a revoked key: the node deletes its key, and only for this code
 CLOSE_DEAD = 4408  # no pong for DEAD_AFTER_SECS
 CLOSE_ALREADY_CONNECTED = 4409  # a second connection with a key that is already connected; the first stays
 CLOSE_TOO_OLD = 4426

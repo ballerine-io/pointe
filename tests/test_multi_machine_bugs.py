@@ -29,7 +29,6 @@ from test_orchestrator import d  # noqa: E402,F401  (d is a fixture)
 
 # ---------- 1. a hello timeout is closed with the revocation code, and the node deletes its key ----------
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_silence_before_hello_is_not_closed_with_the_revocation_code(world, monkeypatch):
     """A node that connects and then stalls (laptop lid closed, slow VPN) must not be told it was revoked."""
     hub, *_ = world
@@ -44,7 +43,7 @@ def test_silence_before_hello_is_not_closed_with_the_revocation_code(world, monk
         return fake.pipe.closed
 
     code, reason = run(go())
-    assert code != nodelink.CLOSE_UNAUTHORIZED, f"a hello timeout is closed {code} {reason!r}: the node reads 4401 as revoked"
+    assert code == nodelink.CLOSE_BAD_HELLO, f"a hello timeout is closed {code} {reason!r}: the node reads 4401 as revoked"
 
 
 class _TimingOutHub(FakeHub):
@@ -55,11 +54,10 @@ class _TimingOutHub(FakeHub):
         await ws.prepare(request)
         self.connections += 1
         await ws.send_str(nodelink.encode("challenge", nonce=nodelink.new_nonce(), hub=self.HUB))
-        await ws.close(code=getattr(nodelink, "CLOSE_BAD_HELLO", nodelink.CLOSE_UNAUTHORIZED), message=b"no hello")
+        await ws.close(code=nodelink.CLOSE_BAD_HELLO, message=b"no hello")
         return ws
 
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_a_node_keeps_its_key_when_the_hub_only_timed_out_waiting_for_hello(tmp_path):
     async def go():
         hub = _TimingOutHub(tmp_path)

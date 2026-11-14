@@ -172,8 +172,10 @@ Hello carries `protocol: 1`. The hub refuses a node below its minimum with 4426 
 
 On connect the hub sends `challenge {nonce}` (32 random bytes, hex). The node answers `hello` with
 `auth: HMAC-SHA256(node_key, nonce || hub_id)`. The hub holds the node key (0600, `nodes.json`) and compares with
-`hmac.compare_digest`; a wrong answer closes with 4401. The key is never sent, so a hub that logged a request, or a
-listener that was not the hub, learns nothing reusable. **One live connection per key:** a second connection that
+`hmac.compare_digest`; a wrong answer, or a node id it does not know, closes with 4401, and only on 4401 does the
+node delete its key. No `hello` within 10 s, or a first frame that is not a valid `hello`, closes with 4400: the node
+keeps its key and reconnects, so a laptop that stalls mid-handshake does not unpair itself. The key is never sent, so
+a hub that logged a request, or a listener that was not the hub, learns nothing reusable. **One live connection per key:** a second connection that
 authenticates with a key already connected is closed with 4409 `already connected`, and the first stays; a cloned VM or
 a stale process cannot shadow the real node.
 

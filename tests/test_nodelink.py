@@ -145,8 +145,8 @@ def test_one_live_connection_per_key():
 
 
 def test_close_codes_match_the_contract():
-    assert (nodelink.CLOSE_UNAUTHORIZED, nodelink.CLOSE_DEAD, nodelink.CLOSE_ALREADY_CONNECTED,
-            nodelink.CLOSE_TOO_OLD) == (4401, 4408, 4409, 4426)
+    assert (nodelink.CLOSE_BAD_HELLO, nodelink.CLOSE_UNAUTHORIZED, nodelink.CLOSE_DEAD,
+            nodelink.CLOSE_ALREADY_CONNECTED, nodelink.CLOSE_TOO_OLD) == (4400, 4401, 4408, 4409, 4426)
 
 
 class Clock:

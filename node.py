@@ -495,6 +495,8 @@ class Node:
             forget(self.state)
             self._release_all("revoked")
             self.finished.set()
+        elif code == nodelink.CLOSE_BAD_HELLO:
+            self.link_error = "the hub did not get this machine's hello in time; it reconnects"
         elif code == nodelink.CLOSE_ALREADY_CONNECTED:
             self.link_error = "already connected: another process with this machine's key is linked to the hub"
         elif code == nodelink.CLOSE_TOO_OLD:

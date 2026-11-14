@@ -566,9 +566,9 @@ class Hub:
         try:
             hello = decode(await asyncio.wait_for(ws.receive_text(), HELLO_WAIT_SECS), NODE_FRAMES)
         except Exception:  # silence, or it went
-            return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "no hello")
+            return await _close(ws, nodelink.CLOSE_BAD_HELLO, "no hello")
         if hello is None or hello["t"] != "hello":
-            return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "hello first")
+            return await _close(ws, nodelink.CLOSE_BAD_HELLO, "hello first")
         if hello["protocol"] < nodelink.MIN_PROTOCOL:  # before the HMAC: an older node may answer it differently
             return await _close(ws, nodelink.CLOSE_TOO_OLD,
                                 f"this hub needs protocol {nodelink.MIN_PROTOCOL}: update Pointe on this machine")

@@ -219,7 +219,7 @@ def test_the_challenge_names_this_hub(world):
 
 
 @pytest.mark.parametrize("how", ["wrong key", "unknown node", "not a hello"])
-def test_a_bad_hello_is_closed_4401(world, how):
+def test_a_failed_hmac_is_closed_4401_and_a_malformed_hello_4400(world, how):
     hub, *_ = world
     node = paired(hub)
 
@@ -233,7 +233,8 @@ def test_a_bad_hello_is_closed_4401(world, how):
         else:
             kw = {"key": "cd" * 32} if how == "wrong key" else {"node_id": "f" * 16}
             assert await fake.connect(**kw) is None
-        assert fake.pipe.closed[0] == nodelink.CLOSE_UNAUTHORIZED
+        expected = nodelink.CLOSE_BAD_HELLO if how == "not a hello" else nodelink.CLOSE_UNAUTHORIZED
+        assert fake.pipe.closed[0] == expected
         assert not hub.live[node["id"]].online
 
     run(go())
