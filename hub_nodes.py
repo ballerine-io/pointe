@@ -553,7 +553,7 @@ class Hub:
         invites.paired = {"name": name, "address": address, "network": network(address),
                           "key_fp": nodelink.fingerprint(paired["key"])}
         logger.info(paired_line(invites.paired))
-        return 200, {"node_id": paired["id"], "node_key": paired["key"],
+        return 200, {"node_id": paired["id"], "node_key": paired["key"], "name": name,
                      "hub": {"id": self.nodes.hub_id, "name": _here(self.state_dir)}, "vendors": self._vendors()}
 
     # ---------- the link ----------

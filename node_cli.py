@@ -87,6 +87,7 @@ def join(invite: str, name: str | None, state: Path = STATE, port: int = PORT, s
     name = name or socket.gethostname().split(".")[0].lower()
     body = {"code": invited["code"], "name": name, "os": _os(), "arch": platform.machine(), "version": _version()}
     got = asyncio.run(_pair_request(invited, body))
+    name = str(got.get("name") or name)  # the hub's invite may have named this machine: that is the name it knows
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     hub = got["hub"]
     _write_private(state / "node_keys" / str(hub["id"]), got["node_key"])

@@ -126,6 +126,7 @@ class FakeHub:
     """What the hub does on /voice/node, and nothing more: challenge, HMAC check, welcome, then frames both ways."""
 
     HUB = {"id": "hub0123456789", "name": "studio"}
+    named: str | None = None  # the name the hub's invite gave the machine (pointe hub invite --name)
 
     def __init__(self, tmp: Path, resume: dict | None = None, call_up: bool = True, approvals_terminal: bool = False,
                  wrong_cert: bool = False):
@@ -163,8 +164,9 @@ class FakeHub:
         self.pairs.append(body)
         if body.get("code") != "K7PQ-2MXD":
             return web.Response(status=403, text="wrong code")
+        named = {"name": self.named} if self.named else {}
         return web.json_response({"node_id": self.node_id, "node_key": self.key, "hub": self.HUB,
-                                  "vendors": ["Anthropic", "Soniox"]})
+                                  "vendors": ["Anthropic", "Soniox"], **named})
 
     async def _ws(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
@@ -1044,6 +1046,17 @@ def test_join_pins_the_hub_pairs_and_writes_its_key_0600(tmp_path):
         assert hub.pairs[0]["name"] == "devbox" and hub.pairs[0]["os"] in ("linux", "macos")
         again = _join(tmp_path, hub, _invite(hub))
         assert again.returncode != 0 and "pointe node leave" in again.stderr
+
+    _with_hub(tmp_path, then)
+
+
+def test_join_takes_the_name_the_hub_gave_this_machine(tmp_path):
+    def then(hub):
+        hub.named = "buildbox"  # pointe hub invite --name buildbox wins over the --name typed here
+        out = _join(tmp_path, hub, _invite(hub))
+        assert out.returncode == 0, out.stderr
+        assert "Paired with studio as buildbox" in out.stdout
+        assert json.loads((tmp_path / "state" / "node.json").read_text())["name"] == "buildbox"
 
     _with_hub(tmp_path, then)
 

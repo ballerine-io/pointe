@@ -897,7 +897,7 @@ def test_pairing_with_the_code_returns_a_key_and_records_who_paired(world):
     status, body = hub.pair({"code": code, "name": "devbox", "os": "linux", "arch": "x86_64", "version": "1.0.1"},
                             "100.101.5.7")
     assert status == 200
-    assert set(body) == {"node_id", "node_key", "hub", "vendors"} and len(body["node_key"]) == 64
+    assert set(body) == {"node_id", "node_key", "name", "hub", "vendors"} and len(body["node_key"]) == 64
     assert body["hub"] == {"id": hub.nodes.hub_id, "name": "studio"} and body["vendors"] == ["Anthropic", "Soniox"]
     assert hub.nodes.get(body["node_id"])["key"] == body["node_key"]
     assert hub.invites.paired == {"name": "devbox", "address": "100.101.5.7", "network": "Tailscale",
@@ -910,6 +910,7 @@ def test_the_invite_name_wins_over_the_nodes(world):
     code = hub.invites.make(name="buildbox")
     status, body = hub.pair({"code": code, "name": "ubuntu-22", "os": "linux"}, "192.168.1.9")
     assert status == 200 and hub.nodes.get(body["node_id"])["name"] == "buildbox"
+    assert body["name"] == "buildbox"  # the node learns the name it is known by
     assert hub.invites.paired["network"] == "LAN"
 
 
