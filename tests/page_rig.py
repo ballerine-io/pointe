@@ -2,7 +2,7 @@
 
 The stub plays the daemon over real HTTP: it serves ui.html as daemon.py does and answers /voice/status from a fixture
 the test mutates. A POST changes the fixture the way the real route would (switch, mode, prefs.microphone, polish,
-listen), so the page sees its own request come back on the next poll. `delay` stalls every answer, as a Mac whose event
+listen, dump), so the page sees its own request come back on the next poll. `delay` stalls every answer, as a Mac whose event
 loop froze does. The browser is the one the e2e rig uses, driven over the DevTools protocol.
 
 Used by tests/test_ui_perf.py (regressions) and tests/e2e/page_perf.py (the numbers).
@@ -71,6 +71,7 @@ def fixture(sessions: int = 1, machines: int = 1, talk: int = 0, approval: bool 
                   "text": f"{names[1]} needs approval", "approvable": True}] if approval and sessions > 1 else []
     return {
         "active": names[0] if names else None, "connected": connected, "problem": None, "idle_hangup": False, "monologue": None,
+        "brain_dump": None,
         "speaking": None, "mode": "orchestrator",
         "ptt": {"mode": "always", "open": False, "sent_bytes": 0, "room_heard": False},
         "whisper": {"on": False, "held": None, "suggest_ptt": False, "lock_note": None},
@@ -184,6 +185,22 @@ class StubMac:
             s["polish"] = bool(body.get("on"))
         elif path == "/voice/listen":
             s["monologue"] = {"since": time.time(), "said": ""} if body.get("on") else None
+        elif path == "/voice/dump":  # as daemon.py's route would, with the model's part stubbed
+            d, action = s.get("brain_dump"), body.get("action")
+            if action == "start":
+                s["brain_dump"] = {"id": f"d{int(time.time() * 1000)}", "state": "dumping", "since": time.time(), "thoughts": [], "dropped": 0,
+                                   "prompt": None, "target": None, "problem": None, "resumed": False, "fallback": False}
+            elif action == "done" and d:
+                thoughts = [t["text"] for t in d["thoughts"]]
+                d["state"], d["prompt"] = "review", {"goal": thoughts[0] if thoughts else "", "context": thoughts[1:], "constraints": [],
+                                                      "open_questions": [], "text": "Goal: " + (thoughts[0] if thoughts else "(not stated)")
+                                                      + ("\nContext:\n" + "\n".join(f"- {t}" for t in thoughts[1:]) if thoughts[1:] else "")}
+            elif action == "more" and d:
+                d["state"] = "dumping"
+            elif action == "edit" and d and d.get("prompt"):
+                d["prompt"]["text"] = body.get("text", "")
+            elif action in ("send", "discard"):
+                s["brain_dump"] = None
         self.posts.append((path, body, time.time()))
         return web.json_response({"ok": True})
 

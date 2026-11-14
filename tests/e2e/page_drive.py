@@ -1,6 +1,7 @@
 """Drive & walk mode, live: a stand-in phone on a real call (synthetic speech), and the page in a real (headless) Chrome.
 
-The phone says "Drive mode."; the page shows the drive bar, the Drive button pressed and no typing box. A session asks to
+The phone says "Drive mode."; the page shows the drive bar and no typing box (the page has no Drive button: drive mode is
+the phone's to start; `POST /voice/drive` stands in for it here, and the bar's "I've stopped" ends it). A session asks to
 run `rm -rf build`: the voice says it waits until the user stops, the page's card has no buttons, a spoken yes approves
 nothing and a no denies it. `git status` is read out and a spoken yes approves it. A request carrying a credential is
 never said; a yes does nothing; "I've stopped" on the page leaves drive mode and its normal card approves it with a
@@ -102,23 +103,28 @@ async def main() -> None:
             page = Page(cdp)
             await page.js("window.__errors = []; addEventListener('error', e => __errors.push(e.message)); "
                           "addEventListener('unhandledrejection', e => __errors.push(String(e.reason)))")
-            await page.until("document.getElementById('drivebtn')", 10)
+            await page.until("document.getElementById('drivebar')", 10)
+            no_button = await page.js("!document.getElementById('drivebtn') && !window.toggleDrive && !DOCK_MORE.includes('drivebtn')")
+            check("the page has no Drive button: drive mode is the phone's to start", bool(no_button))
             phone = Phone(socket)
             listening = asyncio.create_task(phone.listen())
             await phone.silence(6)
             await quiet(phone, 30)  # the greeting
 
-            # ---- entering by voice ----
-            enabled = await page.until("!document.getElementById('drivebtn').disabled", 10)
+            # ---- entering by voice, and from the phone's button (POST /voice/drive) ----
+            call("/voice/drive", {"on": True})
+            by_post = await page.until("!document.getElementById('drivebar').hidden && document.body.classList.contains('driving')", 5)
+            call("/voice/drive", {"on": False})
+            off_again = await page.until("document.getElementById('drivebar').hidden", 5)
+            check("the phone's Drive switch (POST /voice/drive) shows the bar on the page, and off hides it", bool(by_post) and bool(off_again))
             await say(phone, "Drive mode.")
             on = await until(lambda: status()["drive"]["on"], 20)
             shown = await page.until("!document.getElementById('drivebar').hidden && document.body.classList.contains('driving')"
-                                     " && getComputedStyle(document.getElementById('compose')).display === 'none'"
-                                     " && document.getElementById('drivebtn').getAttribute('aria-pressed') === 'true'", 5)
+                                     " && getComputedStyle(document.getElementById('compose')).display === 'none'", 5)
             spoke = await until(lambda: log_lines(r"speak: [\"']Drive mode\. Short answers"), 10)
             await page.shot("drv-1-on")
             check("\"Drive mode.\" by voice turns it on: the daemon says so, the page shows the bar and hides typing",
-                  bool(enabled) and bool(on) and bool(shown) and bool(spoke) and status()["mode_state"]["mode"] == "drive",
+                  bool(on) and bool(shown) and bool(spoke) and status()["mode_state"]["mode"] == "drive",
                   drive=status()["drive"], mode=status()["mode_state"])
             await quiet(phone)
 

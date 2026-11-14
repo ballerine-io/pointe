@@ -458,12 +458,12 @@ def test_meeting_start_calls_the_silent_end(d):
     assert "_challenge_off_silently()" in inspect.getsource(d.start_meeting)
 
 
-def test_a_brainstorm_becomes_the_plan(d, c):
-    d._start_monologue("let me think out loud")
+def test_a_brain_dump_becomes_the_plan(d, c):
+    d._start_dump("let me think out loud")
     d._keep_thought("We move the ledger cutover to Sunday night and skip the failover drill.")
     ears = d.SonioxEars()
     asyncio.run(ears._take("challenge this"))
-    assert d.state.monologue is None and d.state.challenge is not None
+    assert d.state.dump is None and d.state.challenge is not None
     assert "skip the failover drill" in fed(c, "[challenge started]")[0]
 
 

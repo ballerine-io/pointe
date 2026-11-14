@@ -202,11 +202,11 @@ def test_saying_whisper_mode_turns_it_on_in_code_and_back_to_normal_turns_it_off
 
 def test_while_thinking_out_loud_the_phrase_is_a_thought(d, monkeypatch):
     ears, reached, said = _ears(d, monkeypatch)
-    d._start_monologue("let me think out loud")
+    d._start_dump("let me think out loud")
     try:
         asyncio.run(ears._take("whisper mode"))
     finally:
-        d.state.monologue = None
+        d.state.dump = None
     assert d.PREFS.get("whisper") is False
 
 

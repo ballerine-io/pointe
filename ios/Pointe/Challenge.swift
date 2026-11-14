@@ -29,7 +29,7 @@ extension API {
 /// Word for word the page's copy (ui.html): the two must not drift.
 enum ChallengeCopy {
     static let menuItem = "Challenge"
-    static let fromBrainstorm = "Challenge it"
+    static let fromDump = "Challenge it"
     static let state = "Challenging"
     static let lede = "I argue against your plan, one objection at a time. Nothing is sent while it's on."
     static let planHeading = "The plan"

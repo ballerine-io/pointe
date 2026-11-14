@@ -59,7 +59,7 @@ final class ChallengeTests: XCTestCase {
         XCTAssertEqual(ChallengeCopy.hint, "Or say “you've made your point”, “verdict” or “back to normal”.")
         XCTAssertEqual(ChallengeCopy.close, "Close")
         XCTAssertEqual(ChallengeCopy.menuItem, "Challenge")
-        XCTAssertEqual(ChallengeCopy.fromBrainstorm, "Challenge it")
+        XCTAssertEqual(ChallengeCopy.fromDump, "Challenge it")
         XCTAssertEqual(ChallengeCopy.state, "Challenging")
     }
 

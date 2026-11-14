@@ -1,6 +1,6 @@
 # Challenge me (devil's advocate)
 
-After you think out loud, say "challenge this": the voice argues against your plan, one objection at a time, grounded in
+After a [brain dump](brain-dump.md), say "challenge this": the voice argues against your plan, one objection at a time, grounded in
 what it knows about your sessions, until you end it. It can look things up; it can never send.
 
 The rules live in `challenge.py` (start and end phrases, the plan, the evidence, the opening, the per-step line, the
@@ -9,18 +9,19 @@ verdict); `daemon.py` starts, ends and records it.
 ## Use it
 
 - **Start:** "challenge this", "challenge me", "play devil's advocate", "poke holes in this", "תתקוף את זה", "תאתגר
-  אותי". During a brainstorm, "challenge this" ends the brainstorm and challenges what you said.
+  אותי". During a brain dump, "challenge this" ends the dump and challenges what you said; in its review, the structured
+  prompt is the plan.
 - **End:** "you've made your point", "verdict", "back to normal", "end challenge", "stop", "די", "חזרה לרגיל". The voice
   then gives a verdict: the weakest point and the fix.
 - Each phrase must be a whole utterance, spoken or typed. It is caught in code before the permission check, never
   reaches the voice model as a turn, and never approves.
-- **Page:** a Challenge button in the dock ("End challenge" while on), "Challenge it" in the Brainstorm panel, and a
+- **Page:** a Challenge button in the dock ("End challenge" while on), "Challenge it" in the brain dump's review, and a
   Challenge panel with the plan, then Objection / You / Verdict in order.
 - **iPhone app:** starts it, shows the exchange, and ends it.
 
 ## What grounds it
 
-The opening carries the plan (the brainstorm, else your last six sentences within 15 minutes) and numbered evidence
+The opening carries the plan (the brain dump, else your last six sentences within 15 minutes) and numbered evidence
 `[E1]…`: the active session's notes (decided, ruled out, where it stands, open questions, goal), its last 12 record
 lines, and diffs against `HEAD` of files it edited that were recently shown on screen, plus up to three sessions the
 plan names. Everything passes the credential mask. With no evidence, it says so and argues from the plan only, and it

@@ -29,7 +29,7 @@ def test_a_remote_prompt_that_times_out_during_held_news_is_reported_at_the_hand
     monkeypatch.setattr(d, "_ask_permission", quiet)
     remote = _join(d, "devbox", "s1", "api")  # before the call: register_remote starts no worker then
     d.state.conn = object()  # a call is up
-    d.state.monologue = []  # brainstorm: current_mode().holds_news
+    d.state.dump = d.braindump.Dump()  # brain dump: current_mode().holds_news
 
     local = add(d, "cc1", "shop", "/w/shop")
     preview = json.dumps({"command": "git status"})

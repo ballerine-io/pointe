@@ -14,7 +14,9 @@ struct CallView: View {
     @State private var typing = false
     @State private var atBottom = true
     @State private var unseen = false
-    @State private var brainstormWanted: Bool?  // shown at once on a tap, before the Mac confirms
+    @State private var dumpWanted: Bool?  // a brain dump: shown at once on a tap, before the Mac confirms
+    @State private var showDumpReview = false
+    @State private var dumpReviewClosed: String?  // the review closed here: Review in the bar opens it again
     @State private var feed = MeetingFeed()
     @State private var noteFilter = NotesFeed.Filter.all
     @State private var showMeetingStart = false
@@ -71,7 +73,8 @@ struct CallView: View {
     private var muted: Bool { demo == nil ? call.muted : false }
     private var speaking: Bool { demo == nil ? call.botSpeaking : false }
 
-    private var brainstorming: Bool { brainstormWanted ?? (status?.monologue != nil) }
+    private var dumping: Bool { dumpWanted ?? (status?.dumping ?? false) }
+    private var dump: API.BrainDump? { status?.brain_dump }
     private var driving: Bool { driveWanted ?? (status?.driving ?? false) }
     private var suggestingDrive: Bool {
         sensors.suggester.suggests(enabled: sensors.enabled, live: phase == .live, driving: driving,
@@ -104,9 +107,9 @@ struct CallView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     .safeAreaInset(edge: .top, spacing: 0) { top }
                     .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
-            } else if brainstorming {
-                BrainstormPanel(said: status?.monologue?.said ?? "", hearing: hearing, back: { setBrainstorm(false) },
-                                challenge: { Task { await challenge("start") } }, problem: problem)
+            } else if dumping {
+                BrainDumpPanel(dump: dump ?? API.BrainDump(id: "want", state: "dumping", since: nil, thoughts: []), hearing: hearing,
+                               done: { setDump(false) }, discard: { Task { await dumpAction("discard") } }, problem: problem)
                     .padding(.horizontal, 14).padding(.vertical, 8)
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     .safeAreaInset(edge: .top, spacing: 0) { top }
@@ -120,7 +123,7 @@ struct CallView: View {
                 chat
             }
         }
-        .animation(.smooth(duration: 0.3), value: brainstorming)
+        .animation(.smooth(duration: 0.3), value: dumping)
         .animation(.smooth(duration: 0.3), value: driving)
         .onChange(of: status?.drive) {
             call.driving = status?.driving ?? false
@@ -128,7 +131,25 @@ struct CallView: View {
             DriveNowPlaying.update(status: status, driving: status?.driving ?? false)
         }
         .animation(.smooth(duration: 0.3), value: challengeShown?.id)
+        .onChange(of: dump?.inReview, initial: true) {  // the prompt arrived (or was there at launch): the review opens once per dump; Close keeps it away until Review
+            if let dump, dump.inReview, dump.id != dumpReviewClosed { showDumpReview = true } else if dump?.inReview != true { showDumpReview = false }
+        }
         .background(Brand.background.ignoresSafeArea())
+        .sheet(isPresented: $showDumpReview) {
+            if let dump {
+                BrainDumpReview(dump: dump, sessions: (status?.sessions ?? []).filter { $0.online != false }.map(\.name), active: status?.active,
+                                problem: problem,
+                                edit: { text in await dumpAction("edit", text: text) },
+                                send: { to in await dumpAction("send", session: to) },
+                                more: { showDumpReview = false; await dumpAction("more") },
+                                read: { await dumpAction("read") },
+                                challenge: { showDumpReview = false; await challenge("start") },
+                                discard: { showDumpReview = false; await dumpAction("discard") },
+                                close: { dumpReviewClosed = dump.id; showDumpReview = false })
+                    .presentationDetents([.large])
+                    .presentationBackground(.regularMaterial)
+            }
+        }
         .sheet(isPresented: $showSessions) {
             SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode)
                 .presentationDetents([.medium, .large])
@@ -413,7 +434,7 @@ struct CallView: View {
             Button { Task { await challenge(challengeOn ? "end" : "start") } } label: {
                 Label(challengeOn ? ChallengeCopy.end : ChallengeCopy.menuItem, systemImage: "figure.fencing")
             }
-            .disabled(phase != .live || meeting?.isOn == true || brainstorming || driving)  // never both: driving wins
+            .disabled(phase != .live || meeting?.isOn == true || dumping || driving)  // never both: driving wins
             .accessibilityIdentifier("menu.challenge")
             Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
             Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
@@ -508,8 +529,8 @@ struct CallView: View {
                 TypeBar(send: say) { withAnimation(.snappy) { typing = false } }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            BottomBar(phase: phase, muted: muted, monologue: brainstorming, typing: typing,
-                      mic: micTapped, listen: { setBrainstorm(!brainstorming) }, type: { withAnimation(.snappy) { typing.toggle() } },
+            BottomBar(phase: phase, muted: muted, dump: dumping && dump == nil ? API.BrainDump(id: "want", state: "dumping", since: nil, thoughts: []) : dump,
+                      typing: typing, mic: micTapped, listen: dumpButton, type: { withAnimation(.snappy) { typing.toggle() } },
                       sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk,
                       trace: call.talkTrace, driving: driving)
         }
@@ -581,7 +602,7 @@ struct CallView: View {
         case .reconnecting: return "Reconnecting…"
         case .live:
             if challengeOn { return ChallengeCopy.state }
-            if brainstorming { return "Brainstorming" }
+            if dumping { return BrainDumpCopy.state }
             if status?.hold != nil { return TurnsCopy.holding }
             if call.talk.ptt {
                 if talking { return call.talkStyle.talkingLine }
@@ -806,9 +827,9 @@ struct CallView: View {
 
     private var challengeOn: Bool { status?.challenge?.on == true }
 
-    /// On, or ended and not closed here; an ended one gives way to a brainstorm, as on the page.
+    /// On, or ended and not closed here; an ended one gives way to a brain dump, as on the page.
     private var challengeShown: API.ChallengeStatus? {
-        guard let c = status?.challenge, ChallengeCopy.shown(c, dismissed: challengeClosed), c.on || !brainstorming else { return nil }
+        guard let c = status?.challenge, ChallengeCopy.shown(c, dismissed: challengeClosed), c.on || !dumping else { return nil }
         return c
     }
 
@@ -818,7 +839,8 @@ struct CallView: View {
         if demo != nil {
             if action == "start" {
                 status?.challenge = API.ChallengeStatus(id: "demo-\(Int(Date().timeIntervalSince1970))", on: true, since: nil, ended_at: nil,
-                                                        plan: status?.monologue?.said ?? "", sessions: [], objections: 0,
+                                                        plan: status?.brain_dump?.prompt?.text ?? status?.brain_dump?.thoughts.map(\.text).joined(separator: "\n") ?? "",
+                                                        sessions: [], objections: 0,
                                                         verdict: nil, evidence: 0, items: [])
             } else {
                 status?.challenge?.on = false
@@ -1042,11 +1064,42 @@ struct CallView: View {
         }
     }
 
-    private func setBrainstorm(_ on: Bool) {
-        brainstormWanted = on
+    // MARK: brain dump
+
+    /// The bar's button: start, done, or open the review.
+    private func dumpButton() {
+        if let dump, dump.inReview { dumpReviewClosed = nil; showDumpReview = true; return }
+        setDump(!dumping)
+    }
+
+    private func setDump(_ on: Bool) {
+        dumpWanted = on
         Task {
-            await act { try await call.api.listen(on) }
-            brainstormWanted = nil  // from here the Mac's word decides
+            if demo != nil { demoDump(on ? "start" : "done") } else { await act { try await call.api.dump(on ? "start" : "done") } }
+            dumpWanted = nil  // from here the Mac's word decides
+        }
+    }
+
+    /// edit, send, more, read, discard. The Mac's refusal is shown as it gives it. The demo plays along on its own status.
+    private func dumpAction(_ action: String, text: String? = nil, session: String? = nil) async -> Bool {
+        if demo != nil { demoDump(action, text: text, session: session); return true }
+        return await act { try await call.api.dump(action, text: text, session: session) }
+    }
+
+    private func demoDump(_ action: String, text: String? = nil, session: String? = nil) {
+        switch action {
+        case "start": status?.brain_dump = API.BrainDump(id: "demo-\(Int(Date().timeIntervalSince1970))", state: "dumping", since: nil, thoughts: [])
+        case "done":
+            guard var d = status?.brain_dump else { return }
+            d.state = "review"
+            let thoughts = d.thoughts.map(\.text)
+            d.prompt = API.DumpPrompt(goal: thoughts.first ?? "", context: Array(thoughts.dropFirst()), constraints: [], open_questions: [],
+                                      text: (["Goal: \(thoughts.first ?? "")"] + (thoughts.count > 1 ? ["Context:"] + thoughts.dropFirst().map { "- \($0)" } : [])).joined(separator: "\n"))
+            status?.brain_dump = d
+        case "more": status?.brain_dump?.state = "dumping"
+        case "edit": if let text { status?.brain_dump?.prompt?.text = text }
+        case "send", "discard": status?.brain_dump = nil
+        default: break
         }
     }
 

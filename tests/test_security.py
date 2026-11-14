@@ -457,7 +457,8 @@ def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
               "/voice/disconnect", "/voice/rename", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish",
               "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention",
               "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest",
-              "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive"}
+              "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive",
+              "/voice/dump"}
     assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"}
     assert before <= _PHONE_PATHS
 

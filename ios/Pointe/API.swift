@@ -10,7 +10,8 @@ struct API {
         let active: String?
         let connected: Bool
         let sessions: [Session]
-        let monologue: Monologue?
+        let monologue: Monologue?   // the old brainstorm field; brain_dump carries the dump now
+        var brain_dump: BrainDump?  // brain dump (BrainDump.swift); nil from a Mac without it, or when there is none
         let hold: Hold?        // "don't interrupt me" (Turns.swift): quiet until a release; nil when none, or from an older Mac
         let talk: [Turn]?       // the last turns of the conversation, oldest first
         let hearing: String?    // the user's words while they speak
@@ -493,9 +494,6 @@ struct API {
                                          "via": "notification"])
     }
 
-    /// "Just listen": the bot stays quiet until handed the turn; off hands it over.
-    func listen(_ on: Bool) async throws { try await post("voice/listen", ["on": on]) }
-
     /// Make this session the one the voice talks to. Switching sends nothing to it.
     func switchTo(_ name: String) async throws { try await post("voice/switch", ["name": name]) }
 
@@ -645,6 +643,19 @@ struct API {
     /// sessions' record first, so it may take a while.
     func challenge(_ action: String) async throws {
         var r = request("voice/challenge", method: "POST", body: ["action": action])
+        r.timeoutInterval = 30
+        _ = try await checked(r)
+    }
+
+    // MARK: brain dump (BrainDump.swift)
+
+    /// The dump's buttons, the same as the words: start, done, more, edit (with text), discard, send (to a session), read.
+    /// 409 carries the Mac's reason; done waits for the reading model.
+    func dump(_ action: String, text: String? = nil, session: String? = nil) async throws {
+        var body: [String: Any] = ["action": action]
+        if let text { body["text"] = text }
+        if let session { body["session"] = session }
+        var r = request("voice/dump", method: "POST", body: body)
         r.timeoutInterval = 30
         _ = try await checked(r)
     }

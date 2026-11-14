@@ -11,9 +11,10 @@ and when it picks the current mode.
 - **Voice:** "drive mode", "walk mode", "I'm driving", "מצב נהיגה" turn it on. "Back to normal", "I've stopped", "exit
   drive mode", "חזרה לרגיל", "עצרתי" turn it off. Each must be a whole short utterance; it never reaches the voice model.
   The daemon answers "Drive mode. Short answers, …" or "Back to normal." in your language.
-- **Page:** a Drive button in the dock. While on: one big line (who needs you, else Speaking / Listening / N working /
-  All quiet), "I've stopped", typing folded away, and the approval card without buttons.
-- **iPhone app:** the same button in the bottom bar, a drive screen with the same line and the live caption, Now Playing
+- **Page:** no Drive button (drive mode is for a phone in a car: the app or the voice starts it). While on, whoever turned
+  it on: one big line (who needs you, else Speaking / Listening / N working / All quiet), "I've stopped" to end it, typing
+  folded away, and the approval card without buttons.
+- **iPhone app:** a Drive button in the bottom bar, a drive screen with the same line and the live caption, Now Playing
   "Pointe · lantern needs you", and play/pause as mute. The app suggests "Switch to Drive mode?" when CarPlay's audio
   route carries the call, or after 60 s of motion detected as driving. It is never entered automatically. Menu →
   "Suggest Drive mode in the car" (per device, on by default) controls this. Motion is used only after you tap that
@@ -54,7 +55,7 @@ driving"), an active session's report is one line, and the model's "Sorry, I los
 - **Challenge:** never both, and driving wins. Entering drive mode ends a challenge with no verdict; a challenge is
   refused while driving.
 - **Whisper:** drive mode holds it: full volume while driving, and whisper mode applies again when you stop.
-- **Meeting** and brainstorm rank above it for the mode shown, but the road rules for approvals are keyed on drive mode
+- **Meeting** and brain dump rank above it for the mode shown, but the road rules for approvals are keyed on drive mode
   itself, so they hold whatever else is on.
 - "Back to normal" ends one mode per utterance: drive mode, then a challenge, then whisper mode.
 

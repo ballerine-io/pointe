@@ -29,9 +29,10 @@ vl-cancel vl-devices vl-needcall vl-actions vl-enrolbtn vl-deleteall vl-confirm 
 mach-invite mach-code mach-link mach-left mach-invitebtn mach-cancel mach-err phone ph-h ph-list ph-pick ph-routes ph-hostform ph-host
 ph-check ph-advice ph-cert ph-show ph-qr ph-svg ph-link ph-left ph-cancel ph-done ph-actions ph-connect ph-unpair ph-rule ph-err
 ph-copy ph-foot topconnect connectempty connectbtn connectbtn-label connect-title connect-why connect-hint connect-phone
-mic hangup listen listen-label meetbtn meet-label briefbtn drivebtn chlbtn chl-label whisperbtn whisper-label typebtn sessbtn keyhint
+mic hangup listen listen-label meetbtn meet-label briefbtn chlbtn chl-label whisperbtn whisper-label typebtn sessbtn keyhint
 state sub problem vlproblem vlignored polish talk newpill compose typed typed-send caption caption-text attention conflicts briefalert
-whispercard drivebar drive-line drive-stop brainstorm mono-text back bs-challenge challenge chl-h chl-plan chl-items chl-end chl-close
+whispercard drivebar drive-line drive-stop dump dump-h dump-list dump-hearing dump-note dump-done dump-discard dump-hint dumpsheet dumprev-h
+dump-fallback dump-text dump-session dump-send dump-ok dump-err dump-more dump-read dump-challenge dump-discard2 challenge chl-h chl-plan chl-items chl-end chl-close
 chl-hint chl-err meetbar meetwhat meetsub speakers mm-listening mm-participating meetredial meetend notes endbar closenotes hand handline
 handspeak notelist meetsay meetsheet meet-h meetstep1 meetstep2 meetbrief meetsessions meetlookups meeterr1 meetvendors meetconsent
 meeterr2 meetback meetstart endsheet end-h endbody endsession endsend endok enderr enddiscard briefsheet brf-h brf-since brf-length brf-why
@@ -55,7 +56,7 @@ def test_ids_are_unique():
 def test_hidden_attribute_always_hides():
     """`el.hidden = true` must beat an id rule with its own display (the enrol panel showed with `hidden` set)."""
     assert re.search(r"\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}", PAGE)
-    for i in ("vl-enrol", "vl-actions", "voicelock", "mach-invite", "ph-pick", "ph-qr", "pref-consent", "drivebar", "brainstorm", "challenge"):
+    for i in ("vl-enrol", "vl-actions", "voicelock", "mach-invite", "ph-pick", "ph-qr", "pref-consent", "drivebar", "dump", "challenge"):
         assert f'id="{i}"' in PAGE
 
 
@@ -68,7 +69,7 @@ def test_microphone_mode_is_in_the_main_page_and_in_settings():
 
 
 def test_user_text_elements_keep_their_direction():
-    for i in ("typed", "meetbrief", "caption-text", "chl-plan", "problem"):
+    for i in ("typed", "meetbrief", "caption-text", "chl-plan", "problem", "dump-hearing", "dump-text"):
         assert re.search(rf'id="{i}"[^>]*dir="auto"|dir="auto"[^>]*id="{i}"', PAGE), i
 
 
@@ -231,7 +232,7 @@ def test_dock_keeps_the_mic_centred_and_fits_at_every_width():
     assert got[1440]["inMore"] == [] and not got[1440]["more"] and got[1440]["labelsShown"]
     assert not got[1024]["labelsShown"]
     for w in (760, 390):
-        assert got[w]["more"] and got[w]["inMore"] == ["listen", "meetbtn", "briefbtn", "drivebtn", "chlbtn", "whisperbtn"], (w, got[w])
+        assert got[w]["more"] and got[w]["inMore"] == ["listen", "meetbtn", "briefbtn", "chlbtn", "whisperbtn"], (w, got[w])
         assert "sessbtn" in got[w]["inDock"] and "typebtn" in got[w]["inDock"] and "mic" in got[w]["inDock"]
     wide = [i for i in got[1440]["inDock"] if i]
     assert wide.index("listen") < wide.index("mic") < wide.index("chlbtn") < wide.index("sessbtn")

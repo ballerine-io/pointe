@@ -490,20 +490,26 @@ async def main() -> None:
             sent = await until(lambda: [line for line in log_lines(r" - -> ") if log_time(line) >= t], 30)
             mark("13 unnamed request routed", "cc", bool(sent) and "lighthouse" in sent[-1], (sent or [""])[-1][-120:])
 
-        # 11: brainstorm (harness-independent: once)
+        # 11: brain dump (harness-independent: once). "Done" structures the thoughts for review; nothing is sent, the bot
+        # says only that it is ready (docs/design/brain-dump.md). "Discard" clears it so later cases start clean.
         if not ONLY:
-            t = await say(browser, "Just listen.")
+            t = await say(browser, "Brain dump.")
             for thought in ("The orchard migration should go first,", "because the database port moved,",
                             "and the harbor on-call needs to know before Friday."):
                 await say(browser, thought)
                 await asyncio.sleep(5)
-            silent = not [s for s in said_since(t + 1) if "listen" not in s.lower()]
-            t2 = await say(browser, "Okay, what do you think?")
+            silent = not said_since(t + 1) and (status().get("brain_dump") or {}).get("state") == "dumping"
+            t2 = await say(browser, "Okay, done.")
+            review = await until(lambda: (status().get("brain_dump") or {}).get("state") == "review", 45)
             answer = await spoken_with(t2, "", 30)
-            hand = " ".join(said_since(t2)).lower()
-            ok = silent and any(w in hand for w in ("port", "migration", "friday", "on-call", "orchard"))
+            prompt = ((status().get("brain_dump") or {}).get("prompt") or {}).get("text", "").lower()
+            sent = [line for line in log_lines(r" - -> ") if log_time(line) >= t]
+            ok = silent and bool(review) and bool(answer) and not sent and \
+                any(w in prompt for w in ("port", "migration", "friday", "on-call", "orchard"))
             for h in WANT:
-                mark("11 brainstorm (once, all harnesses)", h, ok, hand[:120] or answer)
+                mark("11 brain dump (once, all harnesses)", h, ok, (answer or prompt)[:120])
+            await say(browser, "Discard.")
+            await until(lambda: status().get("brain_dump") is None, 15)
 
         # 15: two pending approvals from two harnesses: a stray yes answers only the focused one
         other = "cx" if "cx" in WANT else "oc" if "oc" in WANT else None

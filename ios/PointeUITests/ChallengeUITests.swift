@@ -1,7 +1,7 @@
 import XCTest
 
 /// Challenge me, on the -demo fixtures: no Mac needed. The panel with the plan and the exchange, ending it, closing an
-/// ended one, starting from the settings menu and from a brainstorm, and never during a meeting. Screenshots go to
+/// ended one, starting from the settings menu and from a brain dump's review, and never during a meeting. Screenshots go to
 /// CHALLENGE_SHOTS when it names a folder.
 @MainActor
 final class ChallengeUITests: XCTestCase {
@@ -106,16 +106,16 @@ final class ChallengeUITests: XCTestCase {
         XCTAssertEqual(again.label, "End challenge", "while on, the menu ends it")
     }
 
-    func testABrainstormCanBeChallenged() throws {
-        launch("brainstorm")
-        let button = app.buttons["brainstorm.challenge"]
+    func testABrainDumpInReviewCanBeChallenged() throws {
+        launch("brainDumpReview")
+        let button = app.buttons["dump.challenge"]
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         XCTAssertEqual(button.label, "Challenge it")
-        XCTAssertTrue(app.buttons["Back to conversation"].exists, "next to the back button")
-        shot("challenge-brainstorm")
+        XCTAssertTrue(app.buttons["dump.send"].exists, "in the review, next to Send")
+        shot("challenge-brain-dump")
         button.tap()
         XCTAssertTrue(panel.waitForExistence(timeout: 5))
-        XCTAssertTrue(text("So the checkout keeps timing out").exists, "what was said is the plan")
+        XCTAssertTrue(text("stop the checkout timing out").exists, "the structured prompt is the plan")
     }
 
     func testNotDuringAMeeting() throws {

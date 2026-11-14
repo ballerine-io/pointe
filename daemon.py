@@ -33,6 +33,7 @@ import aiohttp
 import alerts
 import artifacts
 import briefing
+import braindump
 import challenge
 import conflicts
 import drive as drives
@@ -81,9 +82,7 @@ from readout import mask
 from guards import (relays_approval, remote_readable, 
     LocalAuth,
     permission_answer,
-    listen_intent,
     quote_intent,
-    over_intent,
     disconnect_intent,
     unfinished,
     readable_request,
@@ -1141,7 +1140,7 @@ class SonioxEars(FrameProcessor):
                 if held:
                     heard = f"{self._held} {heard}"
                     self._held = ""
-                wait = turns.settle(heard, held, _patience()) if state.monologue is None and state.hold is None else 0.0
+                wait = turns.settle(heard, held, _patience()) if not _dumping() and state.hold is None else 0.0
                 if wait > 0:  # Soniox's endpoint is a candidate: the turn is the text once the user has been quiet this long
                     self._held = re.sub(r"[\s.—–…,-]+$", "", heard) if unfinished(heard) else heard
                     logger.info(f"settling {wait:.1f} s: {heard!r}")
@@ -1221,10 +1220,10 @@ class SonioxEars(FrameProcessor):
         if text:
             await on_user_utterance(text)
             await self.push_frame(InputTextRawFrame(text=text))
-        await _after_monologue()
+        await _after_quiet()
 
     async def _take(self, heard: str) -> None:
-        if state.hold is not None and state.monologue is None:
+        if state.hold is not None and not _dumping():
             if turns.release_intent(heard):
                 await self._release_hold(heard)
                 return
@@ -1232,15 +1231,15 @@ class SonioxEars(FrameProcessor):
             state.hold.last_at = state.last_user_speech_at = time.time()
             logger.info(f"hold: {heard!r}")
             return
-        if state.monologue is None and state.meeting is None and turns.hold_intent(heard):
+        if not _dumping() and state.meeting is None and turns.hold_intent(heard):
             await self._start_hold(heard)
             return
-        if state.briefing_play is not None and state.monologue is None and (steer := briefing.control_intent(heard)):
+        if state.briefing_play is not None and not _dumping() and (steer := briefing.control_intent(heard)):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
             await _no_also_denies(heard)
             await briefing_control(steer)
             return
-        if state.monologue is None and (asked := briefing.briefing_intent(heard)) is not None \
+        if not _dumping() and (asked := briefing.briefing_intent(heard)) is not None \
                 and ((refusal := _briefing_refusal()) is None or state.challenge is not None):
             # In code: asked to "brief me", the brain sometimes answers from memory instead of calling the tool.
             _remember("user", heard)
@@ -1252,7 +1251,7 @@ class SonioxEars(FrameProcessor):
             await say("[briefing asked] The user asked for a briefing; it is being read now. Say only that it is coming, "
                       "in a few words. Send nothing.")
             return
-        if state.monologue is None and state.meeting is None and (asked := drives.intent(heard)) \
+        if not _dumping() and state.meeting is None and (asked := drives.intent(heard)) \
                 and (asked == "on" or state.drive.on()):  # "back to normal" outside drive mode is someone else's
             if asked == "on" and state.meeting_starting:  # as the route: not into a meeting; the room hears no reply
                 logger.info("drive mode: refused, a meeting is starting")
@@ -1263,31 +1262,21 @@ class SonioxEars(FrameProcessor):
             return
         # "Back to normal" ends one mode, in one order: drive mode (above), then a challenge (_challenge_words), then
         # whisper mode. A "back to normal" with whisper mode off is someone else's words, as for drive mode.
-        if state.monologue is None and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")) \
+        if not _dumping() and (quiet := whisper.intent(heard)) is not None and (quiet or PREFS.get("whisper")) \
                 and not (state.challenge is not None and challenge.end_intent(heard)):
             await _whisper_by_voice(heard, quiet)
             return
         wanted = meeting_intent(heard)
-        if wanted and state.monologue is None:
+        if wanted and not _dumping():
             await _start_meeting_by_voice(heard, wanted)
             return
-        if state.challenge is not None and state.monologue is None and challenge.end_intent(heard):
+        if state.challenge is not None and not _dumping() and challenge.end_intent(heard):
             await _no_also_denies(heard)
         if await _challenge_words(heard):
             return
-        if state.monologue is not None:
-            if not over_intent(heard):
-                _keep_thought(heard)
-                return
-            final, heard = heard, _end_monologue(heard)
-            await on_user_utterance(final)  # holds, dismissals and answers read only the hand-off words
-            state.last_utterance = heard  # but a send is checked against everything the user said
-            await self.push_frame(InputTextRawFrame(text=heard))
-            await _after_monologue()
-            return
-        if listen_intent(heard):
+        if braindump.start_intent(heard) and not _dumping():
             await self.broadcast_interruption()
-            _start_monologue(heard)
+        if await _dump_words(heard):
             return
         await on_user_utterance(heard)
         await self.push_frame(InputTextRawFrame(text=heard))
@@ -1570,9 +1559,8 @@ class State:
     sidetracked: str | None = None  # a permission the user turned away from with another question
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
     last_line_id: str | None = None  # the request id the bot's latest line was spoken for (KEEP_WINDOW: the early-yes line)
-    monologue: list[str] | None = None  # thinking out loud: what was said so far; None when not in one
-    monologue_since: float = 0.0
-    monologue_held: list[tuple[str, bool]] = field(default_factory=list)  # session news that waits for its end
+    dump: object = None  # braindump.Dump while the user dumps thoughts or reviews the prompt; None otherwise
+    monologue_held: list[tuple[str, bool]] = field(default_factory=list)  # session news that waits for the dump's end
     hold: turns.Hold | None = None  # "don't interrupt me": quiet until a release phrase or 8 s of silence (turns.py)
     challenge: object = None  # challenge.Challenge while the voice plays devil's advocate
     last_challenge: object = None  # the one that just ended: its verdict and record, for the screen
@@ -1974,7 +1962,7 @@ def _briefing_refusal() -> str | None:
         return "no call is up"
     if state.meeting is not None:
         return "Not during a meeting: a briefing is never spoken into the room. It can wait until the meeting ends."
-    if state.monologue is not None:
+    if _dumping():
         return "Not while the user is thinking out loud."
     if state.challenge is not None:  # as the brain's briefing tool (modes.CHALLENGE): a challenge argues, it never reads out
         return "Not during a challenge. End it first, then ask again."
@@ -2074,7 +2062,7 @@ async def _play_briefing(play: BriefingPlay) -> None:
             left = ", ".join(s.session for s in play.briefing.sections[play.index:] if s.status != "quiet")
             await say(f"[the briefing is paused] {len(parts) - play.index} part(s) left ({left}). Ask the user in one "
                       f"short line whether to go on; nothing else.")
-        if play.paused or state.monologue is not None or _voice_busy():
+        if play.paused or _dumping() or _voice_busy():
             await asyncio.sleep(BRIEFING_POLL_SECS)
             continue
         i = play.index
@@ -2171,7 +2159,7 @@ async def _offer_briefing(conn) -> None:
     """A scheduled briefing not heard yet: offered when a call starts, never read unasked."""
     alert = _briefing_alert()
     if alert is None or not PREFS.get("briefings.speak_on_connect") or state.meeting is not None \
-            or state.monologue is not None or alert["id"] in state.attention_dismissed:
+            or _dumping() or alert["id"] in state.attention_dismissed:
         return
     await conn.injector.inject(f"[briefing ready] {alert['text']} Ask the user in one short line if they want to hear it "
                                f"now; say nothing of what is in it. If they say yes, call briefing with no arguments.", True)
@@ -2390,8 +2378,10 @@ async def start_challenge(words: str = "") -> str | None:
     if refusal := _challenge_refusal():
         return refusal
     brainstorm = ""
-    if state.monologue is not None:
-        brainstorm, state.monologue = "\n".join(state.monologue), None
+    if state.dump is not None:  # dumping: the thoughts; in review: the structured prompt
+        brainstorm = state.dump.text if state.dump.state == "review" else "\n".join(t.text for t in state.dump.thoughts)
+        state.dump = None
+        _save_dump()
         _chime(True)
     now = time.time()
     turns = [t for at, t in state.recent_said if now - at < challenge.PLAN_WINDOW_SECS and not challenge.start_intent(t)]
@@ -2429,8 +2419,8 @@ async def end_challenge(words: str = "", verdict: bool = True) -> bool:
     logger.info(f"challenge {ch.id} ended after {ch.objections} objection(s)")
     if verdict:
         await say(challenge.verdict_prompt(ch))
-    if state.conn is not None and state.monologue is None and state.meeting is None:
-        await _after_monologue()  # the reports it held, then a pending approval
+    if state.conn is not None and not _dumping() and state.meeting is None:
+        await _after_quiet()  # the reports it held, then a pending approval
     return True
 
 
@@ -2450,7 +2440,7 @@ async def _challenge_words(text: str) -> bool:
         if refusal := await start_challenge(text):
             await say(f"[challenge refused] {refusal} Tell the user in one short sentence.")
         return True
-    if state.challenge is not None and state.monologue is None and challenge.end_intent(text):
+    if state.challenge is not None and not _dumping() and challenge.end_intent(text):
         await end_challenge(text)
         return True
     return False
@@ -2482,46 +2472,208 @@ def _challenge_spoke(text: str) -> None:
         _challenge_note("verdict", text)
 
 
-# ---------- user speech: the only source of consent and targeting ----------
+# ---------- brain dump (the rules: braindump.py) ----------
 
-MONOLOGUE_CHARS = 60_000  # about an hour of talking; past it the oldest words go, and the hand-off says so
+DUMP_FILE = STATE_DIR / "brain_dump.json"  # the dump outlives the call and the daemon
+STRUCTURE_TIMEOUT_SECS = 20.0
 
 
-def _start_monologue(text: str) -> None:
-    """Thinking out loud: nothing the user says gets a reply, however long they pause, until they hand the turn over."""
-    state.monologue, state.monologue_since, state.monologue_held = [], time.time(), []
-    rest = re.sub(r"^\W*(?:(?:ok(?:ay)?|so|hey)\W+)?(?:just listen|listen mode|monologue(?: mode)?|let me (?:just )?"
-                  r"(?:think(?: (?:out )?loud| aloud)?|talk)|i(?:'m| am) (?:just )?thinking (?:out )?loud|רק תקשיב|תקשיב רגע|"
-                  r"תן לי לחשוב(?: בקול)?|אני חושב בקול)\W*", "", text, flags=re.I)
-    if len(rest.split()) >= 3:
-        state.monologue.append(rest)
+def _dumping() -> bool:
+    """The mode is on: the user is dumping thoughts (or they are being structured). In review the mode is conversation."""
+    return state.dump is not None and state.dump.state in ("dumping", "structuring")
+
+
+def _save_dump() -> None:
+    braindump.save(DUMP_FILE, state.dump)
+
+
+def _load_dump() -> None:
+    """At start: a dump the last run left (a restart mid-dump, or mid-review) comes back."""
+    state.dump = braindump.load(DUMP_FILE)
+    if state.dump is not None:
+        logger.info(f"brain dump loaded from the last run: {len(state.dump.thoughts)} thought(s), {state.dump.state}")
+
+
+def _start_dump(text: str = "") -> None:
+    """Brain dump: nothing the user says gets a reply or reaches a session until they say done, review, and send. From
+    review, "add more" reopens the same dump; the next done folds the new thoughts into the prompt."""
+    if state.dump is not None and state.dump.state == "review":
+        state.dump.state, state.dump.problem = "dumping", None
+        logger.info("brain dump: adding more")
+    else:
+        state.dump, state.monologue_held = braindump.Dump(), []
+        logger.info("brain dump started")
+    if rest := braindump.strip_start(text):
+        state.dump.add(rest)
     active = REGISTRY.active
     if active and active.permission_id:
-        active.permission_delivered_at = float("inf")  # a yes said while thinking out loud approves nothing
-    logger.info("monologue started")
+        active.permission_delivered_at = float("inf")  # a yes said while dumping approves nothing
+    _save_dump()
     _chime(False)
 
 
 def _keep_thought(text: str) -> None:
-    state.monologue.append(text)
+    state.dump.add(text)
     state.last_user_speech_at = time.time()
-    while sum(len(t) for t in state.monologue) > MONOLOGUE_CHARS and len(state.monologue) > 1:
-        state.monologue.pop(0)
-    logger.info(f"monologue: {text!r}")
+    _save_dump()
+    logger.info(f"brain dump: {text!r}")
 
 
-def _end_monologue(final: str) -> str:
-    """One message for the brain: everything said, in order, then what the user asked for."""
-    said, minutes = state.monologue or [], max(1, round((time.time() - state.monologue_since) / 60))
-    state.monologue = None
-    logger.info(f"monologue ended after {len(said)} utterances: {final!r}")
+def _dump_target(words: str) -> None:
+    """"Send it to billing": the session named is preselected for the review; an unknown name is said on the screen."""
+    named = braindump.send_target(words)
+    if not named:
+        return
+    found = named_sessions(named, list(REGISTRY.sessions.values()))
+    if found:
+        state.dump.target = found[0].name
+    else:
+        state.dump.problem = f"No session called {named}."
+
+
+async def _finish_dump(words: str = "") -> None:
+    """Done. Nothing said: back to the conversation, no model turn. Otherwise the thoughts are structured for review,
+    and what waited (session news, an approval) follows the review line."""
+    dump = state.dump
+    if dump is None or dump.state not in ("dumping", "structuring"):
+        return
+    if words:
+        _dump_target(words)
+    if not dump.thoughts:
+        logger.info("brain dump ended with nothing said")
+        state.dump = None
+        _save_dump()
+        _chime(True)
+        await _after_quiet()
+        return
+    dump.state = "structuring"
+    _save_dump()
+    await _structure_dump(dump)
+    if state.dump is not dump:  # discarded, or taken by a meeting or a challenge, while the model worked
+        return
+    dump.state = "review"
+    _save_dump()
+    logger.info(f"brain dump structured: {len(dump.thoughts)} thought(s){', fallback' if dump.fallback else ''}")
     _chime(True)
-    body = "\n".join(said) if said else "(nothing)"
-    return (f"[the user thought out loud for about {minutes} minute(s) while you stayed silent. Everything they said, "
-            f"in order:]\n{body}\n[then they handed you the turn with:] {final}")
+    await say(braindump.review_line(dump))
+    await _after_quiet()
 
 
-async def _after_monologue() -> None:
+async def _structure_dump(dump) -> None:
+    """The reading model groups the thoughts into goal, context, constraints and open questions, in the user's words;
+    braindump.parse drops anything it added. When it fails, the thoughts as said are the prompt."""
+    thoughts = [t.text for t in dump.thoughts]
+    existing = dump.prompt["text"] if dump.prompt else ""
+    new = thoughts[dump.structured:] if existing else thoughts
+    try:
+        reply = await asyncio.wait_for(vendors.text(setup().reader, braindump.structure_prompt(new, existing), braindump.SYSTEM,
+                                                    json_reply=True), STRUCTURE_TIMEOUT_SECS)
+        sections = braindump.parse(reply, " ".join(thoughts) + " " + existing)
+        dump.prompt, dump.fallback = braindump.structured(sections), False
+    except Exception as e:
+        logger.warning(f"brain dump: structuring failed ({type(e).__name__}); the prompt is the thoughts as said")
+        dump.prompt, dump.fallback = braindump.fallback(thoughts), True
+    dump.structured = len(dump.thoughts)
+
+
+async def _discard_dump() -> None:
+    was_on = _dumping()
+    logger.info(f"brain dump discarded ({len(state.dump.thoughts)} thought(s))")
+    state.dump = None
+    _save_dump()
+    if was_on:
+        _chime(True)
+        await _after_quiet()
+
+
+async def _send_dump(name: str) -> dict:
+    """The reviewed prompt to the named session (the active one when none is named), word for word, by the user's
+    explicit send. The rules that are not judgment still hold: no send during a meeting, never a relay of an approval
+    the session takes only typed, and production credentials are refused once with the risk stated."""
+    dump = state.dump
+    if dump is None or dump.state != "review":
+        raise HTTPException(status_code=409, detail="nothing to send: say done first")
+    target = next((s for s in REGISTRY.sessions.values() if s.name == name), None) if name else REGISTRY.active
+    if target is None:
+        raise HTTPException(status_code=409, detail=f"no session called {name}" if name else "no session to send to")
+    if not online(target):
+        raise HTTPException(status_code=409, detail=_offline_line(target))
+    if not current_mode().sends:
+        raise HTTPException(status_code=409, detail="a meeting is on: end it first")
+    text = dump.text
+    if refusal := typed_approval_refusal(text, target):
+        raise HTTPException(status_code=409, detail=refusal["error"].split(" Tell the user")[0])
+    if _needs_warning(text):
+        state.warned = time.time()
+        dump.problem = "This mentions production credentials. Send again if you still want it to go."
+        _save_dump()
+        raise HTTPException(status_code=409, detail=dump.problem)
+    logger.info(f"-> {target.name}: brain dump ({len(text)} chars, sent by the user)")
+    target.joining = False
+    if not await _dispatch(target, f"{braindump.sent_header(target.name)}\n{text}"):
+        raise HTTPException(status_code=409, detail=f"not delivered to {target.name}")
+    now = time.time()
+    state.last_sent, state.last_aimed, state.thread = (now, target.name), target.name, (target.id, now)
+    target.last_delegation_at = now
+    state.sent.append(f"{target.name}: {text}")
+    state.last_message = text
+    state.dispatches.append({"at": time.strftime("%H:%M:%S"), "said": "(brain dump)", "message": text, "to": [target.name],
+                             "how": "brain dump: sent by the user"})
+    del state.dispatches[:-20]
+    state.unconfirmed.setdefault(target.id, []).append(text)
+    asyncio.create_task(_refresh_brief_soon(target))
+    state.dump = None
+    _save_dump()
+    await say(braindump.sent_line(dump, target.name))
+    return {"sent_to": target.name}
+
+
+async def _dump_words(text: str) -> bool:
+    """Spoken or typed words, against the dump: a thought while dumping, done, a review command, or the start of one.
+    True when the words were taken; nothing taken here reaches the voice model."""
+    if _dumping():
+        if braindump.done_intent(text):
+            await _finish_dump(text)
+        elif braindump.discard_intent(text):
+            await _discard_dump()
+        else:
+            _keep_thought(text)
+        return True
+    if state.dump is not None and state.dump.state == "review" and (asked := braindump.review_intent(text)):
+        _remember("user", text)
+        state.last_utterance = text  # its language; never fresh speech for a send
+        if asked == "send":
+            named = braindump.send_target(text)
+            found = named_sessions(named, list(REGISTRY.sessions.values())) if named else []
+            if named and not found:
+                state.dump.problem = f"No session called {named}."
+                _save_dump()
+                await say(f"[brain dump] The user asked to send it to \"{named}\", and no session has that name. Say so in "
+                          "one short sentence and name the sessions there are. Do not call any tool.")
+                return True
+            try:
+                await _send_dump(found[0].name if found else (state.dump.target or ""))
+            except HTTPException as e:
+                state.dump.problem = e.detail
+                _save_dump()
+                await say(f"[brain dump not sent] {e.detail} Tell the user in one short sentence. Do not call any tool.")
+        elif asked == "more":
+            _start_dump()
+        elif asked == "discard":
+            await _discard_dump()
+        elif asked == "read":
+            await say(braindump.read_line(state.dump))
+        return True
+    if braindump.start_intent(text) and state.meeting is None:
+        _start_dump(text)
+        return True
+    return False
+
+
+_load_dump()
+
+
+async def _after_quiet() -> None:
     """News held while the user talked, then a pending approval, now that they are listening again."""
     held, state.monologue_held = state.monologue_held, []
     for text, respond in held:
@@ -2547,8 +2699,8 @@ def current_mode() -> modes.Mode:
     """What the voice may do now. A mode only narrows plain conversation (modes.narrows, tested)."""
     if state.meeting is not None:
         return modes.MEETING_PARTICIPATING if state.meeting.mode == "participating" else modes.MEETING_LISTENING
-    if state.monologue is not None:
-        return modes.BRAINSTORM
+    if _dumping():
+        return modes.BRAIN_DUMP
     if state.hold is not None:
         return modes.HOLD
     if state.challenge is not None:
@@ -2787,9 +2939,10 @@ async def start_meeting(mode: str, brief: str = "", sessions: list | None = None
                 "no local one does it yet.")
     if not vendors.has("soniox"):
         return "Meeting mode needs a Soniox key: it is the only speech vendor that tells speakers apart live."
-    if state.monologue is not None:  # a brainstorm in progress becomes the meeting's brief
-        brief = (" ".join(state.monologue) + "\n" + brief).strip()
-        state.monologue = None
+    if state.dump is not None:  # a brain dump in progress becomes the meeting's brief
+        brief = (state.dump.said + "\n" + brief).strip()
+        state.dump = None
+        _save_dump()
     linked = [n for n in (sessions or []) if any(s.name == n for s in REGISTRY.sessions.values())]
     m = meetings.Meeting(mode=mode, vendors=_meeting_vendors(), brief=brief[:4000], sessions=linked,
                          auto_lookups=PREFS.get("meeting.auto_lookups") if auto_lookups is None else bool(auto_lookups),
@@ -3129,7 +3282,7 @@ async def end_meeting() -> dict:
         await ears.close()
     logger.info(f"meeting ended after {round((time.time() - m.since) / 60)} min, {len(m.turns)} turns")
     if state.conn is not None:
-        await _after_monologue()  # session news and a pending approval held during the meeting
+        await _after_quiet()  # session news and a pending approval held during the meeting
     return {"ended": True, **result}  # with no call up, the held news waits for the next one (_deliver_held_news)
 
 
@@ -3145,7 +3298,7 @@ async def _end_meeting_without_call() -> None:
 
 async def _deliver_held_news() -> None:
     """News held by a meeting that ended while no call was up: told on the next call."""
-    if state.meeting is not None or state.monologue is not None or state.conn is None or not state.monologue_held:
+    if state.meeting is not None or _dumping() or state.conn is None or not state.monologue_held:
         return
     held, state.monologue_held = state.monologue_held, []
     for text, respond in held:
@@ -4534,7 +4687,7 @@ def remote_resolved(session: Session, request_id: str, how: str) -> None:
         return
     if how == "timeout" and current_mode().holds_news:  # as _hold_one says a local one's, at the hand-off
         what = mask((session.permission_full or "").split("\n")[0])[:120]  # said aloud later: the one credential rule
-        state.monologue_held.append((f"[{session.name}: its approval request waited while the user thought out loud, "
+        state.monologue_held.append((f"[{session.name}: its approval request waited during the user's brain dump, "
                                      f"then went back to its terminal] {what}", True))
     session.permission_id, session.permission_since = None, None
     state.remote_held.pop(session.id, None)
@@ -4646,7 +4799,7 @@ async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview:
         logger.info(f"permission {session.name}/{request_id} handed back to the terminal")
         if current_mode().holds_news and time.time() >= deadline:  # it waited out a long monologue or meeting: say so after
             what = mask(str(tool_input.get("description") or preview))[:120]  # said aloud later: the one credential rule
-            state.monologue_held.append((f"[{session.name}: its approval request waited while the user thought out loud, "
+            state.monologue_held.append((f"[{session.name}: its approval request waited during the user's brain dump, "
                                          f"then went back to its terminal] {tool_name}: {what}", True))
     return verdict
 
@@ -4714,8 +4867,8 @@ async def _early_yes(session: Session, heard_it: bool) -> None:
 
 async def _read_out(session: Session, unsure: bool = False, early: bool = False) -> None:
     if not current_mode().reads_out:
-        if current_mode() is modes.BRAINSTORM:
-            await _tone(False)  # the user is thinking out loud: the page shows it, and it is read out at the hand-off
+        if current_mode() is modes.BRAIN_DUMP:
+            await _tone(False)  # the user is dumping thoughts: the page shows it, and it is asked at the review
         return  # in a meeting the room must not hear it: the card on the page and the phone is the only way
     """In the daemon's own words, from what will run: a model may word it wrongly, or answer the yes instead of asking."""
     front = state.front
@@ -4758,7 +4911,7 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False)
 async def _ask_permission(session: Session) -> None:
     """Put a session's pending permission to the user; only then can a yes or no answer it. While the mode does not read
     out (a meeting, a brainstorm) the brain is not told either: it could say the exact command into the room. The card
-    shows it, and the hand-off asks again (_after_monologue). An offline session's prompt is in its terminal."""
+    shows it, and the hand-off asks again (_after_quiet). An offline session's prompt is in its terminal."""
     if not current_mode().reads_out or not online(session):
         return
     if FRONT == "brain" and state.front is not None:
@@ -4828,19 +4981,66 @@ async def drive_route(request: Request):
 
 @app.post("/voice/listen")
 async def listen(request: Request):
-    """The page's or phone's "Just listen" button: the same as saying it."""
+    """The old "Just listen" switch: on starts a brain dump, off is done (the prompt goes to review, not to a session)."""
     on = bool((await request.json()).get("on"))
     if state.conn is None or state.front is None:
         raise HTTPException(status_code=409, detail="no call is up")
-    if on and state.monologue is None:
-        _start_monologue("just listen")
-    elif not on and state.monologue is not None:
-        text = _end_monologue("over to you (tapped on the screen)")
-        await on_user_utterance("over to you")
-        state.last_utterance = text
-        await state.conn.injector.push_frame(InputTextRawFrame(text=text))  # into the brain: pushed from the front, it was spoken
-        await _after_monologue()
-    return {"monologue": state.monologue is not None}
+    if on and not _dumping():
+        _start_dump()
+    elif not on and _dumping():
+        await _finish_dump()
+    return {"monologue": _dumping()}
+
+
+@app.post("/voice/dump")
+async def dump_action(request: Request):
+    """The brain dump's buttons: {action: start | done | more | edit | discard | send | read, text?, session?}. The same
+    as the spoken words; send delivers the reviewed prompt word for word to the named session (the active one by default)."""
+    body = await _body(request)
+    action = body.get("action")
+    if action not in ("start", "done", "more", "edit", "discard", "send", "read"):
+        raise HTTPException(status_code=400, detail="action must be start, done, more, edit, discard, send or read")
+    extra: dict = {}
+    if action == "start":
+        if state.conn is None:
+            raise HTTPException(status_code=409, detail="no call is up")
+        if state.meeting is not None or state.meeting_starting:
+            raise HTTPException(status_code=409, detail="a meeting is on")
+        if state.dump is not None and state.dump.state == "review":
+            raise HTTPException(status_code=409, detail="a brain dump is waiting for review: add more, send it or discard it")
+        if not _dumping():
+            _start_dump()
+    elif action == "done":
+        if not _dumping():
+            raise HTTPException(status_code=409, detail="no brain dump is on")
+        await _finish_dump()
+    elif action == "more":
+        if state.dump is None or state.dump.state != "review":
+            raise HTTPException(status_code=409, detail="nothing to add to: no brain dump is in review")
+        if state.conn is None:
+            raise HTTPException(status_code=409, detail="no call is up")
+        _start_dump()
+    elif action == "edit":
+        text = str(body.get("text") or "").strip()
+        if state.dump is None or state.dump.state != "review":
+            raise HTTPException(status_code=409, detail="nothing to edit: no brain dump is in review")
+        if not text:
+            raise HTTPException(status_code=400, detail="text is required")
+        state.dump.prompt, state.dump.problem = braindump.edited(text), None
+        _save_dump()
+    elif action == "discard":
+        if state.dump is None:
+            raise HTTPException(status_code=409, detail="no brain dump to discard")
+        await _discard_dump()
+    elif action == "send":
+        extra = await _send_dump(str(body.get("session") or ""))
+    elif action == "read":
+        if state.dump is None or state.dump.prompt is None:
+            raise HTTPException(status_code=409, detail="nothing to read yet")
+        if state.conn is None:
+            raise HTTPException(status_code=409, detail="no call is up")
+        await say(braindump.read_line(state.dump))
+    return {"brain_dump": state.dump.status() if state.dump is not None else None, **extra}
 
 
 TALK_ACTIONS = {"on": True, "off": False, "toggle": None}
@@ -5024,6 +5224,8 @@ async def _user_text(text: str) -> None:
         await _meeting_command(text, typed=True)
         return
     if await _challenge_words(text):
+        return
+    if await _dump_words(text):
         return
     state.heard_own_words, state.last_speaker = True, None
     await on_user_utterance(text)
@@ -5221,8 +5423,8 @@ async def status(request: Request):
             "connected": state.conn is not None,
             "problem": current_problem(),
             "idle_hangup": state.idle_hangup,
-            "monologue": None if state.monologue is None else {"since": state.monologue_since,
-                                                               "said": " ".join(state.monologue)[-600:]},
+            "monologue": state.dump.compat() if _dumping() else None,  # an older app reads this
+            "brain_dump": state.dump.status() if state.dump is not None else None,
             "hold": None if state.hold is None else state.hold.status(),
             "speaking": "bot" if ECHO.speaking else "user" if time.time() - state.user_heard_at < 1.2 else None,
             "mode": REGISTRY.mode,
@@ -5779,6 +5981,10 @@ async def _on_connect(conn: Connection) -> None:
         await say(f"[waiting for a permission, not the active session] {', '.join(waiting)}. Tell the user in one "
                   f"line; they can switch to it by name.")
     await _deliver_held_news()
+    if state.dump is not None:  # left from a dropped call or the last run: on the screen, and said once
+        state.dump.resumed = True
+        _save_dump()
+        await say(braindump.resumed_line(state.dump))
     await _offer_briefing(conn)
 
 

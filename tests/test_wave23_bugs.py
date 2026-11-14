@@ -253,7 +253,7 @@ def test_an_approval_held_through_a_monologue_is_told_without_its_credential(d, 
     d.state.conn = fake_conn(bot_started_at=2.0)
     monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
     monkeypatch.setattr(__import__("harnesses.claude_code").claude_code.ClaudeCode, "permission_deadline", 0.5)
-    d._start_monologue("just listen")
+    d._start_dump()
     hook = {"session_id": "e", "tool_name": "Bash", "tool_input": tool_input}
     assert client.post("/voice/permission-hook", headers=auth, json=hook).json() == {}
     held = [text for text, _ in d.state.monologue_held if "went back to its terminal" in text]

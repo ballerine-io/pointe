@@ -277,7 +277,7 @@ def test_a_hold_on_the_call_stays_quiet_until_the_release_then_hands_over_everyt
 
         async def after():
             flushed.append(True)
-        monkeypatch.setattr(d, "_after_monologue", after)
+        monkeypatch.setattr(d, "_after_quiet", after)
 
         async def final(text):
             d.state.user_stopped_at = time.time()
@@ -320,7 +320,7 @@ def test_a_hold_releases_itself_after_the_long_silence(d, monkeypatch):
 
         async def after():
             pass
-        monkeypatch.setattr(d, "_after_monologue", after)
+        monkeypatch.setattr(d, "_after_quiet", after)
 
         async def final(text):
             d.state.user_stopped_at = time.time()

@@ -103,7 +103,7 @@ bracketed as data, with "send nothing, approve nothing"; a send still needs your
 words close the window for a spoken yes, so a yes after "lantern waits for your approval" brings the read-out again
 instead of approving. A permission is named in a briefing ("a permission approval"), never quoted. Credentials are
 masked with the same rule as the read-out and the alerts (`readout.mask`) before a session's record reaches the reading
-model, and again on what it writes. No briefing is spoken during a meeting or brainstorm; a meeting that starts stops it.
+model, and again on what it writes. No briefing is spoken during a meeting or brain dump; a meeting that starts stops it.
 
 A realtime front (`CLAUDE_VOICE_FRONT=gemini` or `openai`) speaks by itself, so there is no line to bind a yes to: it can deny
 by voice, but only the terminal approves.
@@ -277,7 +277,7 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   refuses a self-signed certificate before the app's own check runs, so it is off for this app. The pin is the stronger
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
 - **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
-  heard), approve, "just listen", switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
+  heard), approve, the brain dump (`/voice/dump`, `/voice/listen`), switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
   enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
   the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), the dictionary (`/voice/dictionary`: list, add, edit, delete), drive mode (`/voice/drive`: on, off), and the conflict alarm (`/voice/conflicts`: dismiss,
   or ask one side as typed words, which never approve). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.

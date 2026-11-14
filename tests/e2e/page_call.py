@@ -133,15 +133,15 @@ async def main() -> None:
             check("fixing a transcript in the page corrects the turn and shows it",
                   any(t["corrected"] and "Jerusalem" in t["text"] for t in fixed) and "Jerusalem" in shown,
                   corrected=bool(log_lines("user corrected")), shown=shown[-160:])
-            # Brainstorm: the voice stays quiet until you go back to the conversation.
+            # Brain dump: the voice stays quiet; Done with nothing said goes back to the conversation with no model turn.
             await evaluate(socket, "document.getElementById('listen').click()")
             await asyncio.sleep(1.5)
-            opened = await evaluate(socket, "!document.getElementById('brainstorm').hidden")
-            await evaluate(socket, "document.getElementById('back').click()")
+            opened = await evaluate(socket, "!document.getElementById('dump').hidden")
+            await evaluate(socket, "document.getElementById('dump-done').click()")
             await asyncio.sleep(1.5)
-            closed = await evaluate(socket, "document.getElementById('brainstorm').hidden")
-            check("Brainstorm opens and Back to conversation closes it", opened and closed and bool(log_lines("monologue started")),
-                  opened=opened, closed=closed)
+            closed = await evaluate(socket, "document.getElementById('dump').hidden")
+            check("Brain dump opens and Done with nothing said closes it", opened and closed and bool(log_lines("brain dump started"))
+                  and bool(log_lines("brain dump ended with nothing said")), opened=opened, closed=closed)
             await evaluate(socket, "endCall()")
             await asyncio.sleep(3)
             status = json.loads(urllib.request.urlopen(urllib.request.Request(

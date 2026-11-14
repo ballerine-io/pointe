@@ -13,6 +13,7 @@ from any voice denies a pending request, in every mode.
 | [Drive & walk mode](drive-mode.md) | Short answers, nothing to look at, and only safe requests approved by voice |
 | [Push to talk](push-to-talk.md) | Nothing leaves the Mac unless you hold the key or the button |
 | [Audio briefings](briefings.md) | "Brief me on the night": what each session did, failed and waits on |
+| [Brain dump](brain-dump.md) | Dump your thoughts; Pointe structures them into a prompt in your words, and sends it only when you say |
 | [Challenge me](challenge.md) | The voice argues against your plan, grounded in your sessions, and cannot send |
 | [Wrist approvals and desktop alerts](alerts.md) | A session needs you: the watch taps, the desktop notifies |
 | [Show while it says](show-while-it-says.md) | The file, diff or failing test appears on screen as the voice mentions it |

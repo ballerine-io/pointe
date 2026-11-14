@@ -77,15 +77,15 @@ final class QATour: XCTestCase {
         cleanup.tap()
         sleep(1)
 
-        // Brainstorm
-        app.buttons["Brainstorm"].tap()
-        XCTAssertTrue(app.buttons["Back to conversation"].waitForExistence(timeout: 10), "brainstorm panel")
+        // Brain dump: nothing said, so Done goes straight back to the conversation
+        app.buttons["Brain dump"].tap()
+        XCTAssertTrue(app.buttons["dump.done"].waitForExistence(timeout: 10), "brain dump panel")
         sleep(1)
-        shot("05-brainstorm")
-        app.buttons["Back to conversation"].tap()
-        XCTAssertTrue(app.buttons["Brainstorm"].waitForExistence(timeout: 10), "back in the conversation")
+        shot("05-brain-dump")
+        app.buttons["dump.done"].tap()
+        XCTAssertTrue(app.buttons["Brain dump"].waitForExistence(timeout: 10), "back in the conversation")
         sleep(4)
-        shot("06-back-from-brainstorm")
+        shot("06-back-from-brain-dump")
 
         // Focus on one session, then back to all
         let alpha = app.buttons.containing(NSPredicate(format: "label BEGINSWITH %@", "alpha")).firstMatch

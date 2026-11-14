@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// The call's controls, at your thumb: the mic in the exact middle in every state, two controls either side (brainstorm
+/// The call's controls, at your thumb: the mic in the exact middle in every state, two controls either side (brain dump
 /// and the keyboard; sessions and hang up). A control that comes and goes (the keyboard while driving) never moves the
 /// mic: each side is half of what the mic leaves. Drive mode is a mode, like a meeting: its switch is in the header.
 struct BottomBar: View {
     let phase: Call.State
     let muted: Bool
-    let monologue: Bool
+    let dump: API.BrainDump?  // dumping, in review, or none: the button reads Done, Review or Brain dump
     let typing: Bool
     let mic: () -> Void
     let listen: () -> Void
@@ -23,8 +23,8 @@ struct BottomBar: View {
         HStack(spacing: 0) {
             HStack(spacing: 0) {
                 Spacer(minLength: 0)
-                side(monologue ? "Back" : "Brainstorm", monologue ? "bubble.left.and.bubble.right.fill" : "brain.head.profile",
-                     on: monologue, action: listen)
+                side(BrainDumpCopy.buttonLabel(dump), dump == nil ? "brain.head.profile" : dump!.isDumping ? "checkmark.circle.fill" : "doc.text.magnifyingglass",
+                     on: dump != nil, action: listen)
                     .disabled(!live)
                 if !driving {
                     Spacer(minLength: 0)
@@ -51,7 +51,7 @@ struct BottomBar: View {
         .padding(.vertical, 10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 30))
         .sensoryFeedback(.impact(weight: .medium), trigger: muted)
-        .sensoryFeedback(.impact(weight: .light), trigger: monologue)
+        .sensoryFeedback(.impact(weight: .light), trigger: dump?.state)
     }
 
     private var hot: Bool { phase == .live && (talk?.talking ?? !muted) }

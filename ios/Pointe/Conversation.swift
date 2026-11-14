@@ -128,67 +128,6 @@ struct LiveBubble: View {
     }
 }
 
-/// Brainstorm: you talk, it stays quiet and keeps every word, until you hand the turn back.
-struct BrainstormPanel: View {
-    let said: String
-    let hearing: String
-    let back: () -> Void
-    var challenge: (() -> Void)? = nil  // devil's advocate on what was said (Challenge.swift)
-    var problem: String? = nil
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
-                Image(systemName: "brain.head.profile").font(.title2).foregroundStyle(Brand.orange)
-                    .symbolEffect(.pulse, options: .repeating)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Brainstorm").font(.title2.bold())
-                    Text("Talk freely, I'll stay quiet").foregroundStyle(.secondary)
-                }
-            }
-            ScrollViewReader { scroller in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if said.isEmpty && hearing.isEmpty {
-                            Text("Say whatever is on your mind. Pauses are fine.").foregroundStyle(.secondary)
-                        }
-                        if !said.isEmpty { Text(said).readingDirection(of: said).font(.title3) }
-                        if !hearing.isEmpty { Text(hearing).readingDirection(of: hearing).font(.title3).foregroundStyle(.white.opacity(0.6)) }
-                        Color.clear.frame(height: 1).id("end")
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .animation(.easeOut(duration: 0.15), value: said + hearing)
-                }
-                .defaultScrollAnchor(.bottom)
-                .onChange(of: said + hearing) { scroller.scrollTo("end", anchor: .bottom) }
-            }
-            Text("When you're done: tap below, or say “over to you”, “summarize that”, or “send that to …”.")
-                .font(.footnote).foregroundStyle(.secondary)
-            if let problem {
-                Label(problem, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
-            }
-            HStack(spacing: 10) {
-                if let challenge {
-                    Button(action: challenge) {
-                        Text(ChallengeCopy.fromBrainstorm).font(.headline).padding(.vertical, 6)
-                    }
-                    .buttonStyle(.bordered).tint(.gray).controlSize(.large)
-                    .accessibilityIdentifier("brainstorm.challenge")
-                }
-                Button(action: back) {
-                    Label("Back to conversation", systemImage: "bubble.left.and.bubble.right.fill")
-                        .font(.headline).lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity).padding(.vertical, 6)
-                }
-                .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Brand.orange.opacity(0.06), in: RoundedRectangle(cornerRadius: 24))
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Brand.orange.opacity(0.35)))
-    }
-}
-
 /// Fix what the voice heard. It is told what it heard and what you meant, and fixes anything it did on the wrong words.
 struct EditTurnSheet: View {
     let turn: API.Turn

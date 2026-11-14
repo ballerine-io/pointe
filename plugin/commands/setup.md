@@ -64,7 +64,7 @@ sessions' content go to Anthropic, and to Gemini if set. Fully local: nothing le
 **4. First call.** Run `${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach`. The first start takes up to a minute, then a
 Chrome tab opens. Tell them: put on headphones, allow the microphone, press Connect, and say "what are
 you working on?". Explain: every Claude Code session where they run /pointe:voice joins the same voice; say a session's
-name to talk to it; "just listen" makes it stay quiet while they think out loud; permission prompts are read out and a
+name to talk to it; "brain dump" (or "just listen") makes it stay quiet while they dump thoughts, then structures them for review; permission prompts are read out and a
 plain yes or no answers them, and anything complex waits for a tap on the page.
 
 **5. Phone (optional).** Ask if they want Pointe on their phone. The phone needs a private way to reach this Mac. Offer:

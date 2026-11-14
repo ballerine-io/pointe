@@ -97,7 +97,7 @@ A short utterance (≤ 10 words) that is a hold request starts a hold; nothing s
   speak. It is a mode (`modes.HOLD`: approvals by tap only, news held, no nudges, no read-outs, `speech="never"`),
   narrower than conversation like brainstorm, so a "yes" said mid-thought approves nothing. The hold phrase itself
   interrupts the bot if it was talking. On release the whole of what was said, then the release words, go to the brain
-  as one turn; held session news and a pending approval follow, as after a brainstorm (`_after_monologue`).
+  as one turn; held session news and a pending approval follow, as after a brain dump (`_after_quiet`).
 - Shown: the page's state pill reads "Holding · say “go ahead” when you're done"; the phone's title line reads
   "Holding" with the same hint under it. Status carries `hold: {since, said} | null`.
 - Not the brainstorm. Brainstorm ("just listen") is a mode the user enters for minutes, collects a transcript for a

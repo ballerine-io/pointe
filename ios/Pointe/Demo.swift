@@ -4,7 +4,7 @@ import SwiftUI
 /// `-demo [call|sessions|edit|typing|request]` at launch (Debug builds only, for tests and screenshots), and
 /// "Try a demo" on the pairing screen (every build: App Review has no Mac to pair with), which shows the Demo badge.
 struct Demo {
-    enum Screen: String { case call, sessions, edit, typing, request, brainstorm, meetingStart, meeting, meetingHand, meetingEnd, talking,
+    enum Screen: String { case call, sessions, edit, typing, request, brainDump, brainDumpReview, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive }
@@ -35,7 +35,8 @@ struct Demo {
         let json = switch screen {
         case .request: requestJSON
         case .drive: driveJSON
-        case .brainstorm: brainstormJSON
+        case .brainDump: brainDumpJSON(review: false)
+        case .brainDumpReview: brainDumpJSON(review: true)
         case .meeting: meetingJSON(hand: false)
         case .meetingHand: meetingJSON(hand: true)
         case .meetingEnd: meetingEndJSON
@@ -279,11 +280,28 @@ struct Demo {
         """
     }
 
-    private static let brainstormJSON = """
-    {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
-     "hearing": "and maybe the cache should live per merchant", "sessions": \(sessions), "talk": \(talk),
-     "monologue": {"said": "So the checkout keeps timing out for some customers. I think it's the retry loop, it retries five times with no backoff."}}
-    """
+    // MARK: brain dump (BrainDump.swift): dumping, with two thoughts landed and a third being heard; or the structured prompt in review.
+
+    private static func brainDumpJSON(review: Bool) -> String {
+        let thoughts = """
+        [{"text": "So the checkout keeps timing out for some customers.", "at": 1700000100},
+         {"text": "I think it's the retry loop, it retries five times with no backoff.", "at": 1700000130},
+         {"text": "We must not touch the tax service this sprint.", "at": 1700000160}]
+        """
+        let prompt = """
+        {"goal": "stop the checkout timing out for some customers",
+         "context": ["the retry loop retries five times with no backoff"],
+         "constraints": ["we must not touch the tax service this sprint"],
+         "open_questions": ["whether the timeout is on our side or the provider's"],
+         "text": "Brain dump from the user, in their own words, structured; nothing added:\\nGoal: stop the checkout timing out for some customers\\nContext:\\n- the retry loop retries five times with no backoff\\nConstraints:\\n- we must not touch the tax service this sprint\\nOpen questions:\\n- whether the timeout is on our side or the provider's"}
+        """
+        return """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+         "hearing": \(review ? "\"\"" : "\"and maybe the cache should live per merchant\""), "sessions": \(sessions), "talk": \(talk),
+         "brain_dump": {"id": "demo-dump", "state": \(review ? "\"review\"" : "\"dumping\""), "since": 1700000090, "thoughts": \(thoughts),
+                        "dropped": 0, "prompt": \(review ? prompt : "null"), "target": null, "problem": null, "resumed": false, "fallback": false}}
+        """
+    }
 
     private static let requestJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",

@@ -1,9 +1,9 @@
 """What the voice may do right now. One mode at a time; a mode can only narrow what plain conversation allows.
 
 Plain conversation is the widest: every tool, voice and tap approvals, session news spoken, nudges, permission read-outs,
-free speech. Brainstorm (the user thinks out loud) and meeting mode hold things back. The invariant, tested: no mode
-returns a wider approval, tool set, speech or delivery than conversation. Today's monologue machinery stays where it is
-(daemon.py: _start_monologue, _end_monologue); this module names its policy so meeting mode and later modes share it.
+free speech. Brain dump (the user dumps thoughts) and meeting mode hold things back. The invariant, tested: no mode
+returns a wider approval, tool set, speech or delivery than conversation. The dump itself lives in braindump.py and
+daemon.py (_start_dump, _finish_dump); this module names its policy so meeting mode and later modes share it.
 """
 
 from dataclasses import dataclass
@@ -32,7 +32,8 @@ class Mode:
 
 
 CONVERSATION = Mode("conversation")
-BRAINSTORM = Mode("brainstorm", approvals="tap", holds_news=True, nudges=False, reads_out=False, speech="never")
+BRAIN_DUMP = Mode("brain-dump", approvals="tap", holds_news=True, nudges=False, reads_out=False, speech="never")
+BRAINSTORM = BRAIN_DUMP  # the old name
 MEETING_LISTENING = Mode("meeting-listening", approvals="tap", tools=READ_ONLY_TOOLS, holds_news=True, nudges=False,
                          reads_out=False, speech="never", sends=False)
 MEETING_PARTICIPATING = Mode("meeting-participating", approvals="tap", tools=READ_ONLY_TOOLS, holds_news=True,
@@ -43,7 +44,7 @@ DRIVE = Mode("drive", approvals="drive")  # short answers, and a yes only for wh
 CHALLENGE = Mode("challenge", tools=READ_ONLY_TOOLS, nudges=False, sends=False)
 # "Don't interrupt me" (turns.py): quiet until the user hands the turn back or 8 s of silence; a yes mid-thought approves nothing.
 HOLD = Mode("hold", approvals="tap", holds_news=True, nudges=False, reads_out=False, speech="never")
-ALL = (CONVERSATION, BRAINSTORM, MEETING_LISTENING, MEETING_PARTICIPATING, CHALLENGE, DRIVE, HOLD)
+ALL = (CONVERSATION, BRAIN_DUMP, MEETING_LISTENING, MEETING_PARTICIPATING, CHALLENGE, DRIVE, HOLD)
 
 
 def narrows(mode: Mode, base: Mode = CONVERSATION) -> bool:

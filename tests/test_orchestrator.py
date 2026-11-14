@@ -3412,19 +3412,17 @@ def test_the_phone_listener_starts_with_the_daemon(d, monkeypatch):
     assert started
 
 
-# ---------- thinking out loud ----------
+# ---------- brain dump (the flow itself: tests/test_brain_dump.py) ----------
 
-def test_a_monologue_holds_every_word_until_the_hand_off(d, monkeypatch):
+def test_a_brain_dump_keeps_every_word_in_order_and_tells_the_brain_nothing(d, monkeypatch):
     monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
-    d._start_monologue("Just listen, so the checkout flow keeps timing out")
+    d.state.conn = fake_conn()
+    d._start_dump("Just listen, so the checkout flow keeps timing out")
     d._keep_thought("maybe it's the retry loop")
     d._keep_thought("and also we never cache the tax rates")
-    text = d._end_monologue("Okay, what do you think?")
-    assert d.state.monologue is None
-    for part in ("so the checkout flow keeps timing out", "maybe it's the retry loop", "never cache the tax rates",
-                 "Okay, what do you think?"):
-        assert part in text
-    assert text.index("retry loop") < text.index("tax rates") < text.index("what do you think")
+    said = d.state.dump.said
+    assert said.index("checkout flow keeps timing out") < said.index("retry loop") < said.index("tax rates")
+    assert d.state.conn.injector.fed == [] and d.current_mode() is d.modes.BRAIN_DUMP
 
 
 def test_session_news_waits_for_the_end_of_a_monologue(d, monkeypatch):
@@ -3433,32 +3431,33 @@ def test_session_news_waits_for_the_end_of_a_monologue(d, monkeypatch):
     injector = d.FeedInjector.__new__(d.FeedInjector)
     injector.push_frame, injector._respond = AsyncMock(), AsyncMock()
     injector._bot_speaking, injector._asked_at, injector._held = False, 0.0, []
-    d._start_monologue("just listen")
+    d._start_dump()
     asyncio.run(injector.inject("[billing finished its turn] done", True))
     assert injector._respond.await_count == 0 and d.state.monologue_held
     d.state.conn = SimpleNamespace(injector=injector)
-    d._end_monologue("over to you")
-    asyncio.run(d._after_monologue())
+    asyncio.run(d._discard_dump())  # the dump's end, whichever way: what waited is told
     assert injector._respond.await_count == 1 and not d.state.monologue_held
 
 
 def test_a_yes_while_thinking_out_loud_approves_nothing(d, monkeypatch):
     active, posts, said = _read_out_setup(d, monkeypatch)
     monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
-    d._start_monologue("just listen")
+    d._start_dump()
     assert active.permission_delivered_at == float("inf")
-    asyncio.run(d._read_out(active))  # a request that arrives mid-monologue is not spoken
+    asyncio.run(d._read_out(active))  # a request that arrives mid-dump is not spoken
     assert not said
     asyncio.run(d.on_user_utterance("yes"))
     assert verdicts(posts) == []
 
 
-def test_a_very_long_monologue_keeps_its_latest_words(d, monkeypatch):
+def test_a_very_long_dump_keeps_its_latest_words_and_counts_the_dropped(d, monkeypatch):
     monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
-    d._start_monologue("just listen")
+    d._start_dump()
     for i in range(3000):
         d._keep_thought(f"thought number {i} " + "x" * 40)
-    assert sum(len(t) for t in d.state.monologue) <= d.MONOLOGUE_CHARS and "thought number 2999" in d.state.monologue[-1]
+    thoughts = d.state.dump.thoughts
+    assert sum(len(t.text) for t in thoughts) <= d.braindump.MAX_CHARS and len(thoughts) <= d.braindump.MAX_THOUGHTS
+    assert "thought number 2999" in thoughts[-1].text and d.state.dump.dropped == 3000 - len(thoughts)
 
 
 
@@ -3620,7 +3619,7 @@ def test_an_approval_that_waits_out_a_long_monologue_is_told_at_the_hand_off(d, 
     d.state.conn = fake_conn(bot_started_at=2.0)
     monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
     monkeypatch.setattr(__import__("harnesses.claude_code").claude_code.ClaudeCode, "permission_deadline", 0.5)
-    d._start_monologue("just listen")
+    d._start_dump()
     hook = {"session_id": "e", "tool_name": "Bash", "tool_input": {"command": "rm -rf build", "description": "Clean the build"}}
     assert client.post("/voice/permission-hook", headers=auth, json=hook).json() == {}  # timed out: the terminal asks
     held = [text for text, _ in d.state.monologue_held]
@@ -3765,16 +3764,27 @@ def test_a_newer_report_from_a_session_replaces_the_one_still_waiting(d):
                          "[search-api: claude-code finished its turn] CI 5 of 7", "[search-api: permission request] Bash: deploy"]
 
 
-def test_tapping_over_to_you_hands_the_monologue_to_the_brain_not_the_speaker(d, monkeypatch):
-    """From a real call: the tap pushed the hand-off note downstream of the brain, and the voice read it aloud."""
+def test_tapping_done_structures_the_dump_for_review_and_hands_the_brain_nothing_to_read(d, monkeypatch):
+    """From a real call, before the redesign: the tap pushed the hand-off note downstream of the brain, and the voice read
+    it aloud. Now the tap structures the thoughts for review; the brain gets one bracket, never the thoughts."""
     monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
-    into_brain, spoken = [], []
-    d.state.conn = SimpleNamespace(injector=SimpleNamespace(push_frame=lambda f: _append(into_brain, f), inject=lambda *a: asyncio.sleep(0)))
+    into_brain, spoken, told = [], [], []
+
+    async def inject(text, respond):
+        told.append(text)
+
+    async def structured(*a, **k):
+        return json.dumps({"goal": "fix the retry loop", "context": [], "constraints": ["the retry loop has no backoff"], "open_questions": []})
+
+    monkeypatch.setattr(d.vendors, "text", structured)
+    d.state.conn = SimpleNamespace(injector=SimpleNamespace(push_frame=lambda f: _append(into_brain, f), inject=inject))
     d.state.front = SimpleNamespace(push_frame=lambda f: _append(spoken, f))
-    d._start_monologue("just listen")
+    d._start_dump()
     d._keep_thought("the retry loop has no backoff")
     assert client_for(d).post("/voice/listen", json={"on": False}).json() == {"monologue": False}
-    assert not spoken and "the retry loop has no backoff" in into_brain[0].text
+    assert not spoken and not into_brain
+    assert d.state.dump.state == "review" and "no backoff" in d.state.dump.prompt["text"]
+    assert len(told) == 1 and told[0].startswith("[brain dump ready]") and "no backoff" not in told[0]
 
 
 def test_a_slow_check_is_retried_on_another_vendor(d, monkeypatch):
