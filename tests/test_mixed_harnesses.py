@@ -14,6 +14,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harnesses  # noqa: E402
+import nodelink  # noqa: E402
 from harnesses.base import finished_tag  # noqa: E402
 from sessions import Session  # noqa: E402
 from test_opencode import FakeOpenCode, _serve  # noqa: E402
@@ -603,6 +604,8 @@ def test_a_machine_dropping_mid_approval_is_said_once(d, node):
     asyncio.run(d._watch_machines())
     said = spoken(d.state.conn)
     assert said.count("devbox dropped") == 1 and "api" in said and "terminal" in said
+    # the node still holds it for its grace window: not "went back to its terminal" yet (a re-offer is read out again)
+    assert "went back" not in said and f"{nodelink.HOLD_GRACE_SECS:.0f} seconds" in said
 
 
 def test_the_node_link_hears_when_the_call_or_the_approvals_setting_changes(d, node, tmp_path):

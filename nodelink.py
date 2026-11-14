@@ -35,6 +35,7 @@ BACKOFF_MAX_SECS = 30
 HOLDING_WAIT_SECS = 10.0  # the node hands a prompt back to its terminal if the hub has not said `holding` by then
 SEND_TIMEOUT_SECS = 5.0
 OFFLINE_GRACE_SECS = 600.0  # a node's sessions stay, offline, this long after its link drops
+HOLD_GRACE_SECS = 20.0  # a prompt a node holds outlives a dropped link this long, so a restarting hub can ask it again
 
 
 Check = Callable[[Any], bool]

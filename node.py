@@ -41,7 +41,7 @@ PORT = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
 POLL_SECS = 0.3  # as the daemon tails a local transcript (sessions.py)
 READ_MAX = 4 << 20  # bytes read from one transcript per poll: a long backlog ships over several polls
 LIVENESS_SECS = 5
-GRACE_SECS = 20.0  # a held prompt outlives a dropped link this long, so a restarting hub can ask it again
+GRACE_SECS = nodelink.HOLD_GRACE_SECS
 
 
 # ---------- masking: the high-precision rules only ----------

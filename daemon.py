@@ -36,6 +36,7 @@ import drive as drives
 import remote
 import harnesses
 import hub_nodes
+import nodelink
 from harnesses import FINISHED_MARK
 import local
 import meeting as meetings
@@ -892,8 +893,9 @@ async def _watch_machines() -> None:
     for name in sorted(down - state.machines_down):
         held = [s.name for s in REGISTRY.sessions.values() if s.machine == name and s.permission_id]
         if held:
-            await say(f"[machine offline] {name} dropped, so {', '.join(held)}'s approval went back to its terminal. Tell "
-                      f"the user in one line.")
+            await say(f"[machine offline] {name} dropped. {', '.join(held)}'s approval waits up to "
+                      f"{nodelink.HOLD_GRACE_SECS:.0f} seconds for {name} to come back, then goes to its terminal; it "
+                      f"cannot be answered from here meanwhile. Tell the user in one line.")
     state.machines_down = down
 
 
