@@ -68,10 +68,13 @@ def without_recent_repeats(said: str, recent: list[str], asked: str) -> str:
     them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath."""
     asked_words = _content(asked)
     kept = []
-    for sentence in re.split(r"(?<=[.!?…])\s+", said.strip()):
+    sentences = re.split(r"(?<=[.!?…])\s+", said.strip())
+    for i, sentence in enumerate(sentences):
         words = _content(sentence)
         repeated = len(words) >= 3 and any(len(words & _content(old)) / len(words) >= 0.7 for old in recent)
-        if not repeated or (asked_words and len(words & asked_words) >= 2):
+        # "Which one?" alone cannot be answered: the sentence before it holds the options it asks between
+        offers = i + 1 < len(sentences) and sentences[i + 1].endswith("?") and len(_content(sentences[i + 1])) < 3
+        if not repeated or offers or (asked_words and len(words & asked_words) >= 2):
             kept.append(sentence)
     return " ".join(kept)
 

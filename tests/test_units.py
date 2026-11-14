@@ -846,6 +846,16 @@ def test_a_warning_already_given_is_not_repeated_in_the_next_reply():
     assert "still hasn't got" in without_recent_repeats(again, said, "did Misc 2 get my question 2 answer?")
 
 
+def test_a_bare_which_question_keeps_the_options_it_asks_between():
+    """From the two-machine run: after "what's going on everywhere" listed devbox's sessions, "go to devbox" got "Devbox
+    has four sessions: shop/main, lighthouse/main, orchard, and harbor. Which one?" cut to "Which one?"."""
+    from brain import without_recent_repeats
+
+    said = ["On devbox there are four sessions: shop/main, lighthouse/main, orchard and harbor, all idle."]
+    tie = "Devbox has four sessions: shop/main, lighthouse/main, orchard, and harbor. Which one?"
+    assert without_recent_repeats(tie, said, "Go to DevBox.") == tie
+
+
 # ---------- sessions on other machines (docs/design/multi-machine.md, "Routing and the brain") ----------
 
 @pytest.fixture
