@@ -583,6 +583,7 @@ class Hub:
         node.socket, node.lock = ws, asyncio.Lock()
         sessions.MACHINES[node.name] = node.machine
         node.machine.online, node.machine.since = True, None
+        node.machine.link += 1
         node.machine.skew = self._clock() - hello["now"]
         heartbeat = nodelink.Heartbeat(self._mono)
         logger.info(f"node {node.name} connected (skew {node.machine.skew:+.1f} s)")

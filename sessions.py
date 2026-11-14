@@ -99,6 +99,7 @@ class Machine:
     rtt_ms: int | None = None
     key_fp: str = ""
     skew: float = 0.0  # the hub's clock minus the node's, measured at its hello: node stamps are shifted by it
+    link: int = 0  # links accepted since this hub started: a prompt a node re-offers on a new link is asked again
 
 
 MACHINES: dict[str, Machine] = {}

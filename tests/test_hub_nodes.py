@@ -1151,3 +1151,39 @@ def test_the_hub_tells_a_node_its_vendors_by_name_never_a_model_or_key(d, monkey
     assert d._vendor_names() == []
 
 
+
+def test_a_prompt_re_offered_on_a_new_link_is_asked_again_but_a_duplicate_on_one_link_is_not(real, monkeypatch):
+    from test_orchestrator import fake_conn
+
+    d, hub, mono = real
+    node = paired(hub)
+    put: list[str] = []
+    original = d._put_permission
+
+    async def recording(session, request_id, *a, **k):
+        put.append(request_id)
+        return await original(session, request_id, *a, **k)
+
+    monkeypatch.setattr(d, "_put_permission", recording)
+    d.state.conn = fake_conn()
+    pending = {k: v for k, v in _request().items() if k != "id"}
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(pending=pending))  # a snapshot listing it, and the frame: one link, one ask
+        await fake.send("permission.request", **_request())
+        await fake.recv("permission.holding")
+        await settle()
+        assert put == ["p1"]
+        await fake.drop()  # the link drops; the node keeps the prompt held for its grace window and comes back
+        again = FakeNode(hub, node)
+        await again.connect()
+        await again.send_sessions(entry(pending=pending))
+        await again.send("permission.request", **_request())
+        assert (await again.recv("permission.holding"))["request_id"] == "p1"
+        await settle()
+        assert put == ["p1", "p1"]  # the owner is asked again: the prompt the node re-offers is read out once more
+        await again.drop()
+
+    run(go())
