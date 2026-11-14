@@ -3936,3 +3936,18 @@ def test_an_answer_to_a_question_relayed_from_a_session_goes_back_to_it(d, monke
     monkeypatch.setattr(d, "_await_fresh_speech", stale)  # nothing new was said
     again = asyncio.run(d._send("Answer to Question 2: the owner disagrees; leave the incident out of this session."))
     assert "error" in again and len(sent) == 1  # one answer, one delivery
+
+
+def test_a_report_the_user_talked_over_is_given_again_whole_not_cut_as_a_repeat(monkeypatch):
+    """From scenarios.py on the integrated build: the user talked over a report, and the comeback "Coming back to the
+    pricing report. It misses rounding and range checks. ..." was cut by the repeat filter to "Nothing was changed.",
+    since the whole report counted as said though only its first seconds were heard."""
+    b, spoken = _brain([])
+    report = "Pricing is two functions. It misses rounding and range checks. Nothing was changed."
+    b._recent_spoken = [(time.time(), "cv repo: " + report)]
+    b.may_stay_silent = lambda: False  # the daemon's: a report to give is not an acknowledgement
+    comeback = "Coming back to the pricing report. " + report
+    _scripted(monkeypatch, [_say(comeback)])
+    asyncio.run(b.turn("[resume] You were cut off while reporting a session's result. They heard only this much: "
+                       "'cv repo: Pricing is two'. Say you are coming back to it, then give the rest."))
+    assert spoken == [comeback]

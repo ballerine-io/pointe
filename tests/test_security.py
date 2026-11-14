@@ -437,3 +437,34 @@ def test_mirrors_are_private(hub_app, tmp_path):
 def test_the_not_paired_page_points_at_pointe_pair_link(app):
     r = tls(app).get("/voice/status")
     assert r.status_code == 403 and "pointe pair link" in r.text and "voice-remote" not in r.text
+
+
+def test_the_phone_key_reaches_the_machines_routes_over_the_tls_listener_and_here(hub_app):
+    key = {"authorization": "Bearer phone-key"}
+    for client in (tls(hub_app), local(hub_app)):
+        made = client.post("/voice/hub/invite", json={}, headers=key)
+        assert made.status_code == 200 and made.json()["code"]  # the app shows the one-time code (behind Face ID)
+        assert client.get("/voice/hub/invite", headers=key).json()["code"] == made.json()["code"]
+        assert client.get("/voice/hub/nodes", headers=key).json() == {"nodes": []}
+        assert client.post("/voice/hub/revoke", headers=key, json={"name": "nobody"}).status_code == 404  # reached it
+        assert client.post("/voice/hub/invite", json={}).status_code == 403  # no key: no code
+
+
+def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
+    from guards import _PHONE_PATHS
+
+    before = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up",
+              "/voice/disconnect", "/voice/rename", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish",
+              "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention",
+              "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest",
+              "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive"}
+    assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"}
+    assert before <= _PHONE_PATHS
+
+
+def test_the_phone_key_still_cannot_pair_a_node_or_open_the_node_socket(hub_app):
+    key = {"authorization": "Bearer phone-key"}
+    hub = hub_app.state.hub
+    node = hub.nodes.add("devbox", "linux")
+    assert _node_close_code(tls(hub_app), "", node["id"], **key) == 4401  # the HMAC, never the phone key
+    assert _pair(tls(hub_app), "AAAA-AAAA").status_code == 403  # no invite: the phone key opens no pairing

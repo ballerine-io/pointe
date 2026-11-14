@@ -35,6 +35,8 @@ import conflicts
 import drive as drives
 import remote
 import harnesses
+import hub_nodes
+import nodelink
 from harnesses import FINISHED_MARK
 import local
 import meeting as meetings
@@ -140,6 +142,7 @@ from sessions import (
     current_transcript,
     how_it_began,
     excluded_sessions,
+    machine as paired_machine,
     machines as paired_machines,
     machines_named,
     online,
@@ -851,11 +854,30 @@ def _call_state() -> dict:
     return {"up": state.conn is not None, "approvals_terminal": vendors.config().get("approvals") == "terminal"}
 
 
+_VENDOR_LABELS = {"anthropic": "Anthropic", "gemini": "Gemini", "openai": "OpenAI", "soniox": "Soniox",
+                  "elevenlabs": "ElevenLabs"}
+
+
+def _vendor_names() -> list[str]:
+    """Who a node's transcripts reach through this hub, by company name only (never a model or a key): the roles in
+    use, minus what runs on this Mac. Shown by `pointe node join` and `pointe node status`."""
+    if vendors.local_only():
+        return []
+    s = setup()
+    named = [(getattr(s, role, "") or "").split(":")[0] for role in ("brain", "reader", "checker", "ears", "mouth")]
+    return list(dict.fromkeys(_VENDOR_LABELS[v] for v in named if v in _VENDOR_LABELS))
+
+
+SERVER = None  # the uvicorn server main() runs: its should_exit is set before a stop closes the call
+
+
 def _notify_call() -> None:
-    """The node link sends `call` to every node when this changes (a call starts or ends, the approvals setting)."""
+    """The node link sends `call` to every node when this changes (a call starts or ends, the approvals setting).
+    Not while this daemon is stopping: the call drops before the node links do, and a `call {up: false}` then would
+    have every node hand its held prompts to their terminals; the links dropping lets them wait for the restart."""
     call = _call_state()
     told = getattr(harnesses.HOST, "on_call", None)
-    if call == state.call_sent or told is None:
+    if call == state.call_sent or told is None or getattr(SERVER, "should_exit", False):
         return
     state.call_sent = call
     try:
@@ -871,8 +893,9 @@ async def _watch_machines() -> None:
     for name in sorted(down - state.machines_down):
         held = [s.name for s in REGISTRY.sessions.values() if s.machine == name and s.permission_id]
         if held:
-            await say(f"[machine offline] {name} dropped, so {', '.join(held)}'s approval went back to its terminal. Tell "
-                      f"the user in one line.")
+            await say(f"[machine offline] {name} dropped. {', '.join(held)}'s approval waits up to "
+                      f"{nodelink.HOLD_GRACE_SECS:.0f} seconds for {name} to come back, then goes to its terminal; it "
+                      f"cannot be answered from here meanwhile. Tell the user in one line.")
     state.machines_down = down
 
 
@@ -1426,7 +1449,7 @@ class State:
     last_nudge_at: float = 0.0
     call_sent: dict | None = None  # the last `call` state the node link was given (_notify_call)
     machines_down: set[str] = field(default_factory=set)  # nodes already known offline (_watch_machines)
-    remote_held: dict[str, str] = field(default_factory=dict)  # session id -> the node prompt put to the user, this run
+    remote_held: dict[str, tuple[str, int]] = field(default_factory=dict)  # session id -> (node prompt put to the user, on which link)
     sending: asyncio.Lock = field(default_factory=asyncio.Lock)  # concurrent tool calls see one utterance in turn
     clauses_at: float = 0.0  # the utterance (by speech time) whose clauses clauses_used counts
     clauses_used: set[int] = field(default_factory=set)
@@ -4196,6 +4219,8 @@ async def _with_housekeeping(_app):
 
 
 app.router.lifespan_context = _with_housekeeping
+HUB = hub_nodes.Hub(STATE_DIR, REGISTRY)  # the machines paired with this Mac: their links, invites and mirrors
+hub_nodes.install(app, HUB)  # wraps the lifespan just set
 
 
 @app.post("/voice/register")
@@ -4339,15 +4364,17 @@ async def remote_permission(session: Session, request_id: str, tool_name: str, d
     """A node's `permission.request`, put to the user as a channel request is put. `readable` is the node's own read-out,
     from the unmasked input: used after the cheap checks (guards.remote_readable), never rebuilt from the masked
     preview. False when it is not held here (no call, or the user approves in terminals): the node then hands it back to
-    its terminal. The same request again (a snapshot and a frame) is put once."""
+    its terminal. The same request again on one link (a snapshot and a frame) is put once; re-offered on a new link
+    (the node held it through a drop or a hub restart) it is asked again, so the owner hears it."""
     if session.id not in REGISTRY.sessions or state.conn is None:
         return False
     if vendors.config().get("approvals") == "terminal":
         await say(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in one line.")
         return False
-    if state.remote_held.get(session.id) == request_id and session.permission_id == request_id:
+    held = (request_id, getattr(paired_machine(session.machine), "link", 0))
+    if state.remote_held.get(session.id) == held and session.permission_id == request_id:
         return True
-    state.remote_held[session.id] = request_id
+    state.remote_held[session.id] = held
     await _put_permission(session, request_id, tool_name, description, preview, node_readable=remote_readable(readable))
     return True
 
@@ -5724,6 +5751,7 @@ harnesses.HOST.register_remote = register_remote
 harnesses.HOST.remote_permission = remote_permission
 harnesses.HOST.remote_resolved = remote_resolved
 harnesses.HOST.call_state = _call_state
+harnesses.HOST.vendors = _vendor_names
 
 
 def main() -> None:
@@ -5734,7 +5762,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Pointe voice daemon")
     parser.add_argument("--port", type=int, default=7860)
     port = parser.parse_args().port
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")  # loopback only: the phone comes in through remote.py
+    global SERVER
+    SERVER = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info"))  # loopback only: the phone comes in through remote.py
+    SERVER.run()
 
 
 # ---------- whisper mode (whisper.py holds the rules) ----------

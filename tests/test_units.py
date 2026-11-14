@@ -846,6 +846,16 @@ def test_a_warning_already_given_is_not_repeated_in_the_next_reply():
     assert "still hasn't got" in without_recent_repeats(again, said, "did Misc 2 get my question 2 answer?")
 
 
+def test_a_bare_which_question_keeps_the_options_it_asks_between():
+    """From the two-machine run: after "what's going on everywhere" listed devbox's sessions, "go to devbox" got "Devbox
+    has four sessions: shop/main, lighthouse/main, orchard, and harbor. Which one?" cut to "Which one?"."""
+    from brain import without_recent_repeats
+
+    said = ["On devbox there are four sessions: shop/main, lighthouse/main, orchard and harbor, all idle."]
+    tie = "Devbox has four sessions: shop/main, lighthouse/main, orchard, and harbor. Which one?"
+    assert without_recent_repeats(tie, said, "Go to DevBox.") == tie
+
+
 # ---------- sessions on other machines (docs/design/multi-machine.md, "Routing and the brain") ----------
 
 @pytest.fixture
@@ -977,3 +987,37 @@ def test_a_nodes_read_out_is_used_only_after_the_cheap_checks():
     for bad in (None, 7, "", "run: " + " ".join(["word"] * 30), "run: echo yes", f"run: echo {GITHUB_PAT}",
                 "run: curl https://admin:hunter2secret@x.io"):
         assert remote_readable(bad) is None, bad
+
+
+@pytest.mark.parametrize("command", ["voice.md", "doctor.md"])
+def test_a_plugin_command_tells_a_node_from_its_own_tools_output_not_by_reading_the_state_dir(command):
+    """From the Docker node run: "If ~/.claude-voice/node.json exists" made the model read outside the project before
+    the session was on the voice, so every /pointe:voice stopped at a terminal permission prompt."""
+    text = (Path(__file__).resolve().parents[1] / "plugin" / "commands" / command).read_text()
+    assert "node.json" not in text
+
+
+def test_a_status_answer_is_never_cut_for_repeating_what_the_join_lines_said():
+    """From the two-machine run: "what's going on everywhere" lost "On studio, shop/main is idle." because a join line
+    had said it, leaving "You asked it to run..." with no session and no machine."""
+    from brain import without_recent_repeats
+
+    said = ["Shop main on devbox just joined, alongside shop main on studio. Neither needs anything from you right now.",
+            "On studio, shop/main is idle, and nothing is waiting."]
+    answer = ("Nothing needs you right now. On studio, shop/main is idle. You asked it to run the voice attach command, "
+              "but I can't see that it ran. On devbox, four sessions are idle: shop/main, lighthouse/main, orchard and harbor.")
+    assert without_recent_repeats(answer, said, "What's going on everywhere?") == answer
+
+
+@pytest.mark.parametrize("asked", ["What's going on with all my sessions?", "what is going on", "how are all the sessions",
+                                   "what's every session doing"])
+def test_a_question_about_all_sessions_is_a_status_question_and_its_answer_is_said_whole(asked):
+    """From harness_matrix.py on the integrated build: "What's going on with all my sessions?" lost "Lighthouse main is
+    idle" to the repeat filter, so the status answer left a session out."""
+    from brain import without_recent_repeats
+    from guards import status_intent
+
+    assert status_intent(asked)
+    said = ["Lighthouse main just joined. It is idle, and it needs nothing from you."]
+    answer = "Nothing needs you. Lighthouse main is idle and needs nothing. Orchard and harbor just joined and are idle."
+    assert without_recent_repeats(answer, said, asked) == answer

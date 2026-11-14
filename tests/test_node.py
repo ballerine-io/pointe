@@ -126,6 +126,7 @@ class FakeHub:
     """What the hub does on /voice/node, and nothing more: challenge, HMAC check, welcome, then frames both ways."""
 
     HUB = {"id": "hub0123456789", "name": "studio"}
+    named: str | None = None  # the name the hub's invite gave the machine (pointe hub invite --name)
 
     def __init__(self, tmp: Path, resume: dict | None = None, call_up: bool = True, approvals_terminal: bool = False,
                  wrong_cert: bool = False):
@@ -163,8 +164,9 @@ class FakeHub:
         self.pairs.append(body)
         if body.get("code") != "K7PQ-2MXD":
             return web.Response(status=403, text="wrong code")
+        named = {"name": self.named} if self.named else {}
         return web.json_response({"node_id": self.node_id, "node_key": self.key, "hub": self.HUB,
-                                  "vendors": ["Anthropic", "Soniox"]})
+                                  "vendors": ["Anthropic", "Soniox"], **named})
 
     async def _ws(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
@@ -732,14 +734,48 @@ def test_a_hub_back_within_the_grace_window_is_offered_the_same_prompt_again(tmp
     run(scenario, tmp_path)
 
 
-def test_a_hub_back_without_a_call_gets_the_prompt_handed_back(tmp_path):
+def test_a_restarted_hub_whose_call_is_not_back_yet_gets_the_prompt_when_the_call_returns(tmp_path):
+    """After a hub restart the page reconnects its call a moment after the node relinks: the prompt waits out the
+    grace window for it, and is re-offered once the call is up."""
     async def scenario(hub, n):
         n.grace = 10
         n.backoff = lambda attempt: 0.1
         task, frame = await _prompt(hub, n, tmp_path)
         hub.call_up = False
         await hub.ws.close(code=WSCloseCode.GOING_AWAY)
+        await hub.next("sessions")  # relinked
+        await asyncio.sleep(0.5)
+        assert not task.done()  # not handed back yet: the call may be on its way
+        assert await hub.quiet("permission.request")  # nobody to ask yet
+        await hub.send("call", up=True, approvals_terminal=False)
+        again = await hub.next("permission.request", request_id=frame["request_id"])
+        await hub.send("permission.holding", request_id=again["request_id"])
+        assert (await _answer(hub, frame, how="tap"))["ok"] is True
+        assert await task == "allow"
+
+    run(scenario, tmp_path)
+
+
+def test_a_hub_back_without_a_call_hands_the_prompt_back_after_the_grace_window(tmp_path):
+    async def scenario(hub, n):
+        n.grace = 0.8
+        n.backoff = lambda attempt: 0.1
+        task, frame = await _prompt(hub, n, tmp_path)
+        hub.call_up = False
+        await hub.ws.close(code=WSCloseCode.GOING_AWAY)
         assert await asyncio.wait_for(task, 5) is None
+
+    run(scenario, tmp_path)
+
+
+def test_a_hub_back_with_approvals_in_terminals_hands_the_prompt_back_at_once(tmp_path):
+    async def scenario(hub, n):
+        n.grace = 10
+        n.backoff = lambda attempt: 0.1
+        task, frame = await _prompt(hub, n, tmp_path)
+        hub.approvals_terminal = True
+        await hub.ws.close(code=WSCloseCode.GOING_AWAY)
+        assert await asyncio.wait_for(task, 3) is None
 
     run(scenario, tmp_path)
 
@@ -988,12 +1024,13 @@ def _invite(hub: FakeHub, code: str = "K7PQ-2MXD", fp: str | None = None) -> str
     return f"pointe://hub?v=1&host=127.0.0.1&port={hub.port}&fp={fp or hub.fp}&code={code}"
 
 
-def test_parse_invite():
-    got = node_cli.parse_invite("pointe://hub?v=1&host=studio.ts.net&port=7443&fp=" + "ab" * 32 + "&code=K7PQ-2MXD")
-    assert got == {"host": "studio.ts.net", "port": 7443, "fp": "ab" * 32, "code": "K7PQ-2MXD"}
+def test_join_reads_the_invite_with_the_one_parser_the_hub_writes_for():
+    assert not hasattr(node_cli, "parse_invite")  # one parser: nodelink's, beside the line's format
+    got = nodelink.parse_invite("pointe://hub?v=1&host=studio.ts.net&port=7443&fp=" + "AB" * 32 + "&code=K7PQ-2MXD")
+    assert got == {"host": "studio.ts.net", "port": 7443, "fp": "ab" * 32, "code": "K7PQ-2MXD"}  # a pasted fp in caps pins
     for bad in ("https://x", "pointe://pair?v=1&host=a&port=1&fp=ab&code=x", "pointe://hub?v=1&host=a&port=x&fp=ab&code=c"):
         with pytest.raises(ValueError):
-            node_cli.parse_invite(bad)
+            nodelink.parse_invite(bad)
 
 
 def _join(tmp: Path, hub: FakeHub, invite: str, *extra) -> subprocess.CompletedProcess:
@@ -1043,6 +1080,17 @@ def test_join_pins_the_hub_pairs_and_writes_its_key_0600(tmp_path):
         assert hub.pairs[0]["name"] == "devbox" and hub.pairs[0]["os"] in ("linux", "macos")
         again = _join(tmp_path, hub, _invite(hub))
         assert again.returncode != 0 and "pointe node leave" in again.stderr
+
+    _with_hub(tmp_path, then)
+
+
+def test_join_takes_the_name_the_hub_gave_this_machine(tmp_path):
+    def then(hub):
+        hub.named = "buildbox"  # pointe hub invite --name buildbox wins over the --name typed here
+        out = _join(tmp_path, hub, _invite(hub))
+        assert out.returncode == 0, out.stderr
+        assert "Paired with studio as buildbox" in out.stdout
+        assert json.loads((tmp_path / "state" / "node.json").read_text())["name"] == "buildbox"
 
     _with_hub(tmp_path, then)
 
@@ -1098,3 +1146,44 @@ def test_join_refuses_where_a_daemon_runs(tmp_path):
         _with_hub(tmp_path, then)
     finally:
         daemon.close()
+
+
+@pytest.mark.skipif(not shutil.which("uv"), reason="bin/pointe runs the node's commands with uv")
+def test_pointe_node_runs_join_status_and_leave(tmp_path):
+    """The command a person types: bin/pointe node <command>, in the node's own environment."""
+    env = {**os.environ, "CLAUDE_VOICE_STATE": str(tmp_path / "state"), "CLAUDE_VOICE_DAEMON_PORT": str(_free_port())}
+    status = subprocess.run([str(ROOT / "bin" / "pointe"), "node", "status"], env=env, capture_output=True, text=True,
+                            timeout=300)
+    assert status.returncode == 0 and "not paired with a hub" in status.stdout, status.stderr[-400:]
+    joined = subprocess.run([str(ROOT / "bin" / "pointe"), "node", "join", "pointe://pair?v=1"], env=env,
+                            capture_output=True, text=True, timeout=120)
+    assert joined.returncode != 0 and "not a Pointe hub invite" in joined.stderr, joined.stderr[-400:]
+
+
+def test_leave_says_whether_the_hub_was_told(tmp_path):
+    async def scenario(hub, n):
+        assert await n.leave() is True  # linked: `bye` went out, so the hub forgets this machine too
+        assert (await hub.next("bye"))["t"] == "bye"
+
+    run(scenario, tmp_path)
+
+
+def test_leave_with_the_link_down_says_the_hub_was_not_told(tmp_path):
+    async def go():
+        n = node.Node(tmp_path / "state", port=0)
+        return await n.leave()
+
+    (tmp_path / "state").mkdir()
+    assert asyncio.run(go()) is False
+
+
+def test_leave_tells_the_owner_to_revoke_on_the_hub_when_the_hub_was_not_told(tmp_path, monkeypatch, capsys):
+    """After pointe pair rotate the node cannot reach the hub: leave must not read as if the hub forgot it."""
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "node.json").write_text(json.dumps({"name": "devbox", "hub": {"id": "h1", "name": "studio"}}))
+    monkeypatch.setattr(node_cli, "_local", lambda *a, **k: {"left": True, "told_hub": False})
+    monkeypatch.setattr(node_cli.subprocess, "run", lambda *a, **k: None)
+    node_cli.leave(state, 0)
+    out = capsys.readouterr().out
+    assert "Left studio" in out and "pointe hub revoke devbox" in out

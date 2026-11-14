@@ -897,7 +897,7 @@ def test_pairing_with_the_code_returns_a_key_and_records_who_paired(world):
     status, body = hub.pair({"code": code, "name": "devbox", "os": "linux", "arch": "x86_64", "version": "1.0.1"},
                             "100.101.5.7")
     assert status == 200
-    assert set(body) == {"node_id", "node_key", "hub", "vendors"} and len(body["node_key"]) == 64
+    assert set(body) == {"node_id", "node_key", "name", "hub", "vendors"} and len(body["node_key"]) == 64
     assert body["hub"] == {"id": hub.nodes.hub_id, "name": "studio"} and body["vendors"] == ["Anthropic", "Soniox"]
     assert hub.nodes.get(body["node_id"])["key"] == body["node_key"]
     assert hub.invites.paired == {"name": "devbox", "address": "100.101.5.7", "network": "Tailscale",
@@ -910,6 +910,7 @@ def test_the_invite_name_wins_over_the_nodes(world):
     code = hub.invites.make(name="buildbox")
     status, body = hub.pair({"code": code, "name": "ubuntu-22", "os": "linux"}, "192.168.1.9")
     assert status == 200 and hub.nodes.get(body["node_id"])["name"] == "buildbox"
+    assert body["name"] == "buildbox"  # the node learns the name it is known by
     assert hub.invites.paired["network"] == "LAN"
 
 
@@ -953,6 +954,24 @@ def test_a_node_name_the_voice_could_not_tell_apart_is_refused(world, name, why)
     status, message = hub.pair({"code": code, "name": name, "os": "linux"}, "10.0.0.2")
     assert status == 409 and why in message
     assert hub.invites.outstanding  # a refused name does not use the code up
+
+
+def test_a_revoked_machine_can_pair_again_under_its_name_while_its_old_sessions_are_still_listed(world):
+    """From the two-machine run: revoke devbox, invite devbox again (a rotated certificate). Its own leftover session,
+    named "shop/main devbox" by the machine suffix, is not a session the new name could be confused with."""
+    hub, host, registry, *_ = world
+    node = paired(hub)
+    run(hub.revoke("devbox"))
+    registry.add(Session(id=nodelink.hub_session_id(node["id"], "s1"), name="shop/main devbox", cwd="/x", machine="devbox",
+                         harness_data={"node_id": node["id"], "remote_id": "s1"}))  # not reaped yet
+    status, body = hub.pair({"code": hub.invites.make(name="devbox"), "name": "devbox", "os": "linux"}, "10.0.0.1")
+    assert status == 200, body
+
+
+def test_a_name_shared_with_a_session_on_another_machine_is_still_refused(world):
+    hub, host, registry, *_ = world
+    registry.add(Session(id="local9", name="orion notes", cwd="/y"))
+    assert "shares a word" in (hub.name_problem("orion") or "")
 
 
 def test_rate_limit_is_five_a_minute_per_address_and_ten_in_all(world):
@@ -1127,5 +1146,63 @@ def test_with_no_call_up_the_daemon_does_not_hold_a_remote_prompt_so_no_holding(
         with pytest.raises(asyncio.TimeoutError):
             await fake.recv("permission.holding", timeout=0.2)
         await fake.drop()
+
+    run(go())
+
+
+# ---------- the daemon wires the link (integration) ----------
+
+def test_the_daemon_installs_the_node_link(d):
+    paths = {getattr(r, "path", None) for r in d.app.routes}
+    assert {nodelink.PATH, nodelink.PAIR_PATH, "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"} <= paths
+    assert isinstance(d.HUB, hub_nodes.Hub) and d.HUB.registry is d.REGISTRY
+    assert harnesses.HOST.invite == d.HUB.invites.status and harnesses.HOST.on_call == d.HUB.on_call
+
+
+def test_the_hub_tells_a_node_its_vendors_by_name_never_a_model_or_key(d, monkeypatch):
+    assert harnesses.HOST.vendors is d._vendor_names
+    assert d._vendor_names() == ["Gemini", "Soniox", "ElevenLabs"]  # the fixture's brain/reader/checker are gemini:...
+    monkeypatch.setattr(d, "_setup", d.vendors.Setup(brain="anthropic:claude-sonnet-5-5", reader="gemini:gemini-3.8-flash",
+                                                     checker="anthropic:claude-haiku-5-5", ears="soniox",
+                                                     mouth="local:kokoro-mlx:af_heart"))
+    assert d._vendor_names() == ["Anthropic", "Gemini", "Soniox"]  # a local mouth sends nothing anywhere
+    monkeypatch.setattr(d.vendors, "local_only", lambda: True)
+    assert d._vendor_names() == []
+
+
+
+def test_a_prompt_re_offered_on_a_new_link_is_asked_again_but_a_duplicate_on_one_link_is_not(real, monkeypatch):
+    from test_orchestrator import fake_conn
+
+    d, hub, mono = real
+    node = paired(hub)
+    put: list[str] = []
+    original = d._put_permission
+
+    async def recording(session, request_id, *a, **k):
+        put.append(request_id)
+        return await original(session, request_id, *a, **k)
+
+    monkeypatch.setattr(d, "_put_permission", recording)
+    d.state.conn = fake_conn()
+    pending = {k: v for k, v in _request().items() if k != "id"}
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(pending=pending))  # a snapshot listing it, and the frame: one link, one ask
+        await fake.send("permission.request", **_request())
+        await fake.recv("permission.holding")
+        await settle()
+        assert put == ["p1"]
+        await fake.drop()  # the link drops; the node keeps the prompt held for its grace window and comes back
+        again = FakeNode(hub, node)
+        await again.connect()
+        await again.send_sessions(entry(pending=pending))
+        await again.send("permission.request", **_request())
+        assert (await again.recv("permission.holding"))["request_id"] == "p1"
+        await settle()
+        assert put == ["p1", "p1"]  # the owner is asked again: the prompt the node re-offers is read out once more
+        await again.drop()
 
     run(go())

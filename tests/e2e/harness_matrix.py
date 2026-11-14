@@ -560,4 +560,5 @@ async def main() -> None:
         print("CREATED", json.dumps(created))
 
 
-asyncio.run(main())
+if __name__ == "__main__":  # two_machines.py borrows its Codex and OpenCode helpers
+    asyncio.run(main())

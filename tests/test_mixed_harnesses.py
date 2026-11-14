@@ -14,6 +14,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harnesses  # noqa: E402
+import nodelink  # noqa: E402
 from harnesses.base import finished_tag  # noqa: E402
 from sessions import Session  # noqa: E402
 from test_opencode import FakeOpenCode, _serve  # noqa: E402
@@ -603,6 +604,8 @@ def test_a_machine_dropping_mid_approval_is_said_once(d, node):
     asyncio.run(d._watch_machines())
     said = spoken(d.state.conn)
     assert said.count("devbox dropped") == 1 and "api" in said and "terminal" in said
+    # the node still holds it for its grace window: not "went back to its terminal" yet (a re-offer is read out again)
+    assert "went back" not in said and f"{nodelink.HOLD_GRACE_SECS:.0f} seconds" in said
 
 
 def test_the_node_link_hears_when_the_call_or_the_approvals_setting_changes(d, node, tmp_path):
@@ -731,3 +734,19 @@ def test_an_approval_alert_names_the_machine_only_when_sessions_span_machines(d,
     twin.permission_id, api.permission_id = "p2", "p3"
     assert titles() == {"shop": "shop (studio) needs approval", "shop devbox": "shop (devbox) needs approval",
                         "api": "api (devbox) needs approval"}
+
+
+def test_a_hub_shutting_down_does_not_tell_its_nodes_the_call_ended(d, node, monkeypatch):
+    """From the two-machine run: on `voice-daemon stop` the call socket closed first and the nodes were sent
+    `call {up: false}`, so each handed its held prompt back to the terminal 2 s before the link dropped, and the
+    restarted hub could never ask it again. Going down, the hub says nothing: the link drops with it."""
+    d.state.conn = fake_conn()
+    d._notify_call()
+    assert node.calls[-1]["up"] is True
+    monkeypatch.setattr(d, "SERVER", SimpleNamespace(should_exit=True))
+    d.state.conn = None
+    d._call_ended()
+    assert node.calls[-1]["up"] is True  # nothing sent
+    monkeypatch.setattr(d, "SERVER", SimpleNamespace(should_exit=False))
+    d._notify_call()
+    assert node.calls[-1]["up"] is False  # a real hang-up still tells them

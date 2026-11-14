@@ -35,6 +35,7 @@ BACKOFF_MAX_SECS = 30
 HOLDING_WAIT_SECS = 10.0  # the node hands a prompt back to its terminal if the hub has not said `holding` by then
 SEND_TIMEOUT_SECS = 5.0
 OFFLINE_GRACE_SECS = 600.0  # a node's sessions stay, offline, this long after its link drops
+HOLD_GRACE_SECS = 20.0  # a prompt a node holds outlives a dropped link this long, so a restarting hub can ask it again
 
 
 Check = Callable[[Any], bool]
@@ -207,7 +208,7 @@ def parse_invite(line: str) -> dict:
     query = {k: v[0] for k, v in parse_qs(url.query).items()}
     if url.scheme != "pointe" or url.netloc != "hub" or query.get("v") != str(INVITE_VERSION):
         raise ValueError("not a Pointe hub invite (pointe://hub?v=1&...)")
-    fp, port = query.get("fp", ""), query.get("port", "")
+    fp, port = query.get("fp", "").lower(), query.get("port", "")
     if not (query.get("host") and query.get("code") and port.isdigit() and 0 < int(port) < 65536
             and len(fp) == 64 and all(c in "0123456789abcdef" for c in fp)):
         raise ValueError("the invite is incomplete: copy the whole line `pointe hub invite` printed")

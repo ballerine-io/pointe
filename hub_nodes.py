@@ -438,8 +438,10 @@ class Hub:
                  "key_fp": n.machine.key_fp} for n in self.live.values()]
 
     def name_problem(self, name: str) -> str | None:
-        return name_problem(name, [n["name"] for n in self.nodes.nodes.values()], list(self.registry.sessions.values()),
-                            _here(self.state_dir))
+        """A machine's own sessions do not count: one revoked and paired again (a rotated certificate) still has its
+        old sessions listed, named "shop devbox" by the machine suffix, until the next liveness check reaps them."""
+        others = [s for s in self.registry.sessions.values() if (s.machine or "").lower() != name.lower()]
+        return name_problem(name, [n["name"] for n in self.nodes.nodes.values()], others, _here(self.state_dir))
 
     # ---------- hub to node ----------
 
@@ -553,7 +555,7 @@ class Hub:
         invites.paired = {"name": name, "address": address, "network": network(address),
                           "key_fp": nodelink.fingerprint(paired["key"])}
         logger.info(paired_line(invites.paired))
-        return 200, {"node_id": paired["id"], "node_key": paired["key"],
+        return 200, {"node_id": paired["id"], "node_key": paired["key"], "name": name,
                      "hub": {"id": self.nodes.hub_id, "name": _here(self.state_dir)}, "vendors": self._vendors()}
 
     # ---------- the link ----------
@@ -583,6 +585,7 @@ class Hub:
         node.socket, node.lock = ws, asyncio.Lock()
         sessions.MACHINES[node.name] = node.machine
         node.machine.online, node.machine.since = True, None
+        node.machine.link += 1
         node.machine.skew = self._clock() - hello["now"]
         heartbeat = nodelink.Heartbeat(self._mono)
         logger.info(f"node {node.name} connected (skew {node.machine.skew:+.1f} s)")
