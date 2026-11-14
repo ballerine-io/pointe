@@ -638,6 +638,47 @@ After that, no two tracks edit the same file.
 | **C. Brain, routing, status** | `sessions.py` (`machine`, `PERSISTED`, address-slot machine alias, machine-name refusals, `harnesses.of` at its four sites, `since` skew hook; day one: the worker move), `harnesses/__init__.py` (`of()`, day one), `daemon.py` (`ClaudeSessionWorker` lands here; `register_remote`, `status` fields including `machines` and `invite`, `list_sessions`, `_brain_context`, `_needs_now`, `_classify_target`, `_spoken_names`, `_tracked_files`, `_deliver_verdict` and `_drop` for remote, offline handling, `call {approvals_terminal}`), `guards.py` intent functions (after A's day-one lines), `brain.py` if a prompt line is needed, `tests/test_orchestrator.py`, `tests/test_units.py`, `tests/test_mixed_harnesses.py`, `bench/` cases for the new intents | a daemon that treats a `Session` with `machine` set correctly everywhere, against a fake `RemoteHarness` until A lands |
 | **D. UI and docs** | `ui.html` (groups, filter chips, tags, offline, Settings → Machines with invite and revoke), `ios/Pointe/{API,Sessions,CallView,Alerts,Settings}.swift` (parity list above, Face ID gates), `ios/PointeUITests/ParityUITests.swift`, `tests/e2e/page_parity.py`, `docs/multi-machine.md` (user doc), `README.md` (one feature row, Architecture block), `SECURITY.md` (a "Machines" section with the honest tap sentence), `docs/harnesses.md` (one paragraph: adapters run on the session's machine; remote sessions have no forked side questions), `plugin/commands/` (`/pointe:voice` and `/pointe:doctor` output on a node) | both clients rendering `machines`, `machine` and `invite` from a recorded status fixture, then live |
 
+### Track A as built: what Track C wires in `daemon.py`
+
+`hub_nodes.py` is the hub side; `harnesses/remote.py` is `RemoteHarness`. The daemon lends the hub what only it can do
+through `hub_nodes.Host` (each hook optional; see its docstring for exact signatures). The call sites:
+
+```python
+HUB = hub_nodes.Hub(STATE_DIR, REGISTRY, hub_nodes.Host(
+    register=register_remote,      # async (session, entry) -> Session | None; called for every snapshot entry: idempotent
+    drop=...,                      # async (session, why); why: exited | disconnected | revoked | left
+    permission=...,                # async (session, *, request_id, tool, description, preview, readable, deadline_ms)
+    permission_gone=...,           # async (session, request_id, how): clear the card
+    offline=...,                   # async (node_name, sessions): mark offline, "answer it in its terminal"
+    call_state=lambda: (state.conn is not None, vendors.config().get("approvals") == "terminal"),
+    vendors=..., machine=...))     # role list for welcome/pair; this Mac's name
+hub_nodes.install(app, HUB)        # AFTER `app.router.lifespan_context = _with_housekeeping`: it wraps the lifespan
+await HUB.call_changed()           # when a call connects or ends, and when `approvals` changes
+ok, why = await HUB.answer(session, request_id, verdict, how, spoken=...)  # _deliver_verdict for session.machine;
+                                   # how: voice | tap | notification; spoken = session.permission_spoken for voice
+HUB.machines()                     # status `machines` (add this Mac's entry and `need`); HUB.invites.status() is `invite`
+HUB.online(session)                # refuse a send / hide Approve when false
+HUB.files(session)                 # _tracked_files for a remote session
+HUB.node_time(session, since)      # shift a `since` before comparing it with a remote mirror's timestamps
+```
+
+`HUB.new_session(node, entry)` builds the `Session` (`id` prefixed, `machine`, `harness_data {remote_id,
+node_id}`, `transcript` = the mirror, no inbox secrets); `register_remote` adds naming, collisions and the worker.
+`guards._PHONE_PATHS` needs `/voice/hub/invite`, `/voice/hub/nodes`, `/voice/hub/revoke` for the app (Track C owns
+`guards.py`); the page and the daemon token reach them already, a browser over the TLS listener never does.
+
+Deviations from the text above, decided while building:
+
+- `welcome.resume` and `resume` are keyed by the **node's** session id (the `id` every frame carries), not the hub's.
+- The invite code is compared by its SHA-256, but the plain code is also kept in memory (never on disk) while valid,
+  because status `invite.code` must show it.
+- The hub sends no `permission.holding` when it has no call up or `approvals` is `terminal` (a race with `call`): the
+  node hands the prompt to its terminal after 10 s.
+- `pointe hub invite --name X` wins over the name the node offers.
+- A departed session's mirrors go 7 days after the hub first sees it off the voice (a `<id>.left` mark), so no hook is
+  needed in `_reap_dead`.
+- `pointe pair link|off|rotate` exist; `pointe hub invite|nodes|revoke` talk to the daemon with its token.
+
 Integration, after the tracks: `tests/e2e/two_machines.py`, the Docker run, the hardware checklist. Then the separate
 small PR that deletes `bin/voice-remote` (needs Track A's `pointe pair link|off`).
 
