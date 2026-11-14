@@ -20,8 +20,9 @@ import sys
 from pathlib import Path
 from urllib.parse import urlencode
 
-from phone import phone_key
-from remote import TLS_PORT
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
+from phone import phone_key  # noqa: E402
+from remote import TLS_PORT  # noqa: E402
 
 STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
 
