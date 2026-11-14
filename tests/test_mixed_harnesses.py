@@ -415,6 +415,20 @@ def test_the_invite_goes_only_to_the_page_on_this_mac_and_the_phone_key(d, node,
     assert d._shows_invite(tls_page) is False and d._shows_invite(phone_app) is True
 
 
+def test_the_page_over_tls_is_told_it_cannot_invite_and_hides_the_button(d, node, monkeypatch):
+    import remote
+
+    monkeypatch.setattr(harnesses.HOST, "invite", lambda: None, raising=False)
+    assert client_for(d).get("/voice/status").json()["can_invite"] is True
+    tls_page = SimpleNamespace(scope={"server": ("studio", remote.TLS_PORT), "state": {}})
+    phone_app = SimpleNamespace(scope={"server": ("studio", remote.TLS_PORT), "state": {"pointe_phone": True}})
+    assert d._can_invite(tls_page) is False and d._can_invite(phone_app) is True
+    monkeypatch.delattr(harnesses.HOST, "invite")
+    assert d._can_invite(phone_app) is False  # no node link: nothing to invite to
+    page = (Path(__file__).resolve().parents[1] / "ui.html").read_text()
+    assert "$('mach-invitebtn').hidden = live || !canInvite;" in page and "s.can_invite !== false" in page
+
+
 def test_list_sessions_tells_the_brain_each_sessions_machine_and_whether_it_is_online(d, node):
     add(d, "cc1", "shop", "/repos/shop")
     _join(d, "devbox", "abc", "api")

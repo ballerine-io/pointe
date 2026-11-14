@@ -2158,9 +2158,11 @@
   }
   // Settings → Machines: the paired machines, a one-time code to pair another, and Revoke in two clicks.
   let machinesShown = '', revoking = null, invite = null;  // invite: {code, link, until}, counted down here between polls
+  let canInvite = true;  // false over the TLS listener: the Mac would make a code this page is never shown
   function showMachines(s, mv) {
     $('machines').hidden = !Array.isArray(s.machines);
     if (!Array.isArray(s.machines)) return;
+    canInvite = s.can_invite !== false;  // a Mac without the field: as before
     const st = s.invite;
     if (st && st.code) {  // the status has no link: the one the make answered stays while the code does
       const link = st.link || (invite && invite.code === st.code ? invite.link : '');
@@ -2196,7 +2198,7 @@
     const live = !!(invite && invite.code && left > 0);
     $('mach-invite').hidden = !live;
     $('mach-cancel').hidden = !live;
-    $('mach-invitebtn').hidden = live;
+    $('mach-invitebtn').hidden = live || !canInvite;
     if (!live) return;
     $('mach-code').textContent = invite.code;
     $('mach-link').textContent = invite.link ? `pointe node join '${invite.link}'` : '';

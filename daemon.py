@@ -851,6 +851,11 @@ def _shows_invite(request) -> bool:
     return bool(request.scope.get("state", {}).get("pointe_phone")) or not remote.Remote.on_tls_listener(request.scope)
 
 
+def _can_invite(request) -> bool:
+    """The client may make an invite: the node link is running and the invite would be shown to it (not over TLS)."""
+    return getattr(harnesses.HOST, "invite", None) is not None and _shows_invite(request)
+
+
 def _invite(request) -> dict | None:
     made = getattr(harnesses.HOST, "invite", None)  # the node link's (hub_nodes.py): the outstanding code, or None
     return made() if made and _shows_invite(request) else None
@@ -5038,6 +5043,7 @@ async def status(request: Request):
             "hearing": state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
             "machines": _status_machines(),
             "invite": _invite(request),
+            "can_invite": _can_invite(request),
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
