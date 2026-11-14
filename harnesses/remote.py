@@ -42,5 +42,14 @@ class RemoteHarness(Harness):
     def noise(self, text: str) -> str:
         return self.inner.noise(text)
 
+    async def answer(self, session: Session, request_id: str, verdict: str, how: str, spoken: str | None) -> bool:
+        """`permission.answer` to the node; whether its re-check took it (how: voice | tap | notification)."""
+        from loguru import logger
+
+        ok, why = await self.hub.answer(session, request_id, verdict, how, spoken)
+        if not ok:
+            logger.info(f"{session.name} on {session.machine}: {verdict} by {how} not taken ({why})")
+        return ok
+
     async def leave(self, session: Session) -> None:
         await self.hub.leave(session)

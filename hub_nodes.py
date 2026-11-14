@@ -22,18 +22,18 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Awaitable, Callable
+from typing import Callable
 
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
 import harnesses  # noqa: E402
 import nodelink  # noqa: E402
-import readout  # noqa: E402
-from guards import _WEAK_YES, _YES, _YES_PHRASES, _lower, _words, valid_name  # noqa: E402
+import sessions  # noqa: E402
+from guards import valid_name  # noqa: E402
 from harnesses.remote import RemoteHarness  # noqa: E402
 from nodelink import NODE_FRAMES, decode, encode, hub_session_id  # noqa: E402
-from sessions import Registry, Session, _distinctive, _name_words, speakable  # noqa: E402
+from sessions import Machine, Registry, Session, _distinctive, _name_words, speakable  # noqa: E402
 
 INVITE_SECS = 600
 CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # Crockford's 32: no I, L, O or U to misread
@@ -44,48 +44,23 @@ PAIR_PER_WINDOW = 10
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
+HISTORY_QUIET_SECS = 1.5  # a newly joined session's backlog: no frame for this long and it is all here
 _ID = re.compile(r"[\w-]{1,128}")  # a node's session id: it names a mirror file, so nothing that walks a path
 
 
-def _short_host() -> str:
-    return socket.gethostname().split(".")[0]
+def _here(state_dir: Path) -> str:
+    """This Mac's name among the machines, the rule daemon._here() uses: config.json "machine", else the short host name."""
+    path = state_dir / "config.json"
+    try:
+        configured = json.loads(path.read_text()).get("machine")
+    except (OSError, ValueError, AttributeError):
+        configured = None
+    return str(configured or socket.gethostname().split(".")[0] or "this Mac")
 
 
-@dataclass
-class Host:
-    """What daemon.py lends the hub. Each hook is optional; one left None does nothing.
-
-    register(session, entry) -> Session | None: put a node's session on the voice (daemon.register_remote). Called for
-      every entry of every `sessions` snapshot, so for an id it already has it only updates and returns that session.
-    drop(session, why): take it off; why is "exited" | "disconnected" (the node said so), "revoked" or "left" (the node
-      itself was revoked, or left this hub).
-    permission(session, *, request_id, tool, description, preview, readable, deadline_ms): put a prompt to the user as
-      _put_permission does, with `readable` (already through checked_readable) instead of a recomputed read-out.
-    permission_gone(session, request_id, how): the node's prompt was answered in its terminal, timed out, or left.
-    offline(node_name, sessions): the node's link dropped; it handed its held prompts back to their terminals.
-    """
-
-    register: Callable[[Session, dict], Awaitable[Session | None]] | None = None
-    drop: Callable[[Session, str], Awaitable[None]] | None = None
-    permission: Callable[..., Awaitable[None]] | None = None
-    permission_gone: Callable[[Session, str, str], Awaitable[None]] | None = None
-    offline: Callable[[str, list[Session]], Awaitable[None]] | None = None
-    call_state: Callable[[], tuple[bool, bool]] = lambda: (False, False)  # (a call is up, approvals: terminal)
-    vendors: Callable[[], list[str]] = list
-    machine: Callable[[], str] = _short_host  # this Mac's name: config.json "machine", else its short host name
-
-
-def checked_readable(readable) -> str | None:
-    """The node's read-out form, after the checks readable_request ends with. The hub never recomputes it from the
-    masked preview (a masked command would read differently); anything that fails here is unreadable: a tap only."""
-    if not isinstance(readable, str) or not readable.strip() or len(readable.split()) > readout.WORDS:
-        return None
-    if readout.redact(readable) is None:
-        return None
-    lowered = _lower(readable)
-    if _words(lowered) & (_YES | _WEAK_YES) or any(p in lowered for p in _YES_PHRASES):
-        return None
-    return readable
+async def _maybe(result):
+    """A HOST hook may be a plain function or a coroutine function."""
+    return await result if asyncio.iscoroutine(result) else result
 
 
 def name_problem(name: str, taken: list[str], sessions, hub_name: str) -> str | None:
@@ -237,7 +212,11 @@ class Invites:
 class Mirrors:
     """$STATE/harness/remote/<node id>/<id>.<gen>.jsonl, 0600 in 0700 folders, each beside <id>.<gen>.offset: the node's
     next_offset after the last frame appended. Resume comes from those, never from a mirror's size: masking on the node
-    changes line lengths, so a mirror's size says nothing about the node's file."""
+    changes line lengths, so a mirror's size says nothing about the node's file.
+
+    A session the hub has no mirror of gets its whole file from offset 0: that backlog is written to
+    <id>.<gen>.jsonl.part, which the follower cannot see, and becomes the mirror (promote) once it is all here. The
+    follower opens the mirror at its end, so what came before the join is in the record but never fed as news."""
 
     def __init__(self, root: Path):
         self.root = root
@@ -245,12 +224,29 @@ class Mirrors:
     def path(self, node_id: str, sid: str, gen: int) -> Path:
         return self.root / node_id / f"{sid}.{gen}.jsonl"
 
+    @staticmethod
+    def _part(path: Path) -> Path:
+        return path.with_name(path.name + ".part")
+
+    @staticmethod
+    def _offset(path: Path) -> Path:
+        return path.with_suffix(".offset")
+
+    def _file(self, node_id: str, sid: str, gen: int) -> Path:
+        """Where frames for this gen go now: the backlog while it arrives, else the mirror."""
+        path = self.path(node_id, sid, gen)
+        return self._part(path) if self._part(path).exists() else path
+
     def _gens(self, node_id: str, sid: str) -> list[int]:
         folder = self.root / node_id
         if not folder.is_dir():
             return []
-        return sorted(int(gen) for p in folder.glob(f"{sid}.*.jsonl")
-                      if (gen := p.name[len(sid) + 1:-len(".jsonl")]).isdigit())
+        gens = set()
+        for p in folder.glob(f"{sid}.*.jsonl*"):
+            gen, _, kind = p.name[len(sid) + 1:].partition(".")
+            if gen.isdigit() and kind in ("jsonl", "jsonl.part"):
+                gens.add(int(gen))
+        return sorted(gens)
 
     def latest(self, node_id: str, sid: str) -> int | None:
         gens = self._gens(node_id, sid)
@@ -258,27 +254,40 @@ class Mirrors:
 
     def stored(self, node_id: str, sid: str, gen: int) -> int:
         try:
-            return int(self.path(node_id, sid, gen).with_suffix(".offset").read_text())
+            return int(self._offset(self.path(node_id, sid, gen)).read_text())
         except (OSError, ValueError):
             return 0
 
-    def _open(self, node_id: str, sid: str, gen: int) -> None:
+    def _create(self, path: Path) -> None:
         _private_dir(self.root.parent)
         _private_dir(self.root)
-        _private_dir(self.root / node_id)
-        os.close(os.open(self.path(node_id, sid, gen), os.O_WRONLY | os.O_CREAT, 0o600))
+        _private_dir(path.parent)
+        os.close(os.open(path, os.O_WRONLY | os.O_CREAT, 0o600))
 
-    def repoint(self, node_id: str, sid: str, gen: int) -> None:
-        """The session moved to a new file (/clear, /resume): a new mirror from offset 0; older ones go."""
+    def repoint(self, node_id: str, sid: str, gen: int) -> bool:
+        """The session moved to a new file (/clear, /resume), or this hub sees it for the first time: a new mirror from
+        offset 0; older ones go. True when it is a backlog (no mirror of this session before)."""
         latest = self.latest(node_id, sid)
         if latest is not None and gen <= latest:
-            return
-        self._open(node_id, sid, gen)
-        _write_private(self.path(node_id, sid, gen).with_suffix(".offset"), "0\n")
+            return False
+        path = self.path(node_id, sid, gen)
+        self._create(self._part(path) if latest is None else path)
+        _write_private(self._offset(path), "0\n")
         for old in self._gens(node_id, sid):
             if old < gen:
-                self.path(node_id, sid, old).unlink(missing_ok=True)
-                self.path(node_id, sid, old).with_suffix(".offset").unlink(missing_ok=True)
+                old_path = self.path(node_id, sid, old)
+                for p in (old_path, self._part(old_path), self._offset(old_path)):
+                    p.unlink(missing_ok=True)
+        return latest is None
+
+    def promote(self, node_id: str, sid: str) -> None:
+        gen = self.latest(node_id, sid)
+        if gen is not None and self._part(self.path(node_id, sid, gen)).exists():
+            os.replace(self._part(self.path(node_id, sid, gen)), self.path(node_id, sid, gen))
+
+    def in_backlog(self, node_id: str, sid: str) -> bool:
+        gen = self.latest(node_id, sid)
+        return gen is not None and self._part(self.path(node_id, sid, gen)).exists()
 
     def append(self, node_id: str, frame: dict) -> bool:
         """Append a `transcript` frame's entries if it starts where the last one ended; False for a gap or a stale gen,
@@ -291,28 +300,30 @@ class Mirrors:
             self.repoint(node_id, sid, gen)
         if frame["offset"] != self.stored(node_id, sid, gen):
             return False
-        path = self.path(node_id, sid, gen)
-        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        target = self._file(node_id, sid, gen)
+        fd = os.open(target, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
         with os.fdopen(fd, "a") as f:
             f.write("".join(frame["entries"]))
-        _write_private(path.with_suffix(".offset"), f"{frame['next_offset']}\n")
+        _write_private(self._offset(self.path(node_id, sid, gen)), f"{frame['next_offset']}\n")
         return True
 
     def resume_point(self, node_id: str, sid: str) -> dict:
         gen = self.latest(node_id, sid) or 0
         return {"gen": gen, "offset": self.stored(node_id, sid, gen)}
 
-    def resume(self, node_id: str) -> dict:
+    def sids(self, node_id: str) -> set[str]:
         folder = self.root / node_id
-        sids = {p.name.split(".")[0] for p in folder.glob("*.jsonl")} if folder.is_dir() else set()
-        return {sid: self.resume_point(node_id, sid) for sid in sorted(sids)}
+        return {p.name.split(".")[0] for p in folder.glob("*.jsonl*")} if folder.is_dir() else set()
+
+    def resume(self, node_id: str) -> dict:
+        return {sid: self.resume_point(node_id, sid) for sid in sorted(self.sids(node_id))}
 
     def prune(self, now: float, live: set[tuple[str, str]]) -> None:
         """A session's mirrors go PRUNE_AFTER_SECS after it is first seen off the voice (a `.left` mark holds when)."""
         if not self.root.is_dir():
             return
         for folder in [p for p in self.root.iterdir() if p.is_dir()]:
-            for sid in {p.name.split(".")[0] for p in folder.iterdir() if p.suffix in (".jsonl", ".left")}:
+            for sid in {p.name.split(".")[0] for p in folder.iterdir()}:
                 mark = folder / f"{sid}.left"
                 if (folder.name, sid) in live:
                     mark.unlink(missing_ok=True)
@@ -331,21 +342,21 @@ class Mirrors:
 
 @dataclass
 class Node:
-    """A paired node as the hub sees it now."""
+    """A paired node as the hub sees it now. `machine` is its entry in sessions.MACHINES, which routing, the brain's
+    context and the status read."""
 
     id: str
-    name: str
-    os: str
-    key_fp: str
-    since: float | None  # offline since (wall clock); None while online. A hub that just started: since then
-    offline_at: float  # the same moment on the monotonic clock, for the grace
+    machine: Machine
+    offline_at: float  # monotonic: when its link dropped, or this hub started
     socket: object = None
-    rtt_ms: int | None = None
-    skew: float = 0.0  # hub clock minus node clock, from its last hello
     sessions: dict[str, dict] | None = None  # its last `sessions` snapshot by its own ids; None: none since this start
-    files: dict[str, list[str]] = field(default_factory=dict)
     waiting: dict[str, asyncio.Future] = field(default_factory=dict)
     lock: asyncio.Lock | None = None
+    backlog: dict[str, asyncio.TimerHandle] = field(default_factory=dict)
+
+    @property
+    def name(self) -> str:
+        return self.machine.name
 
     @property
     def online(self) -> bool:
@@ -353,24 +364,45 @@ class Node:
 
 
 class Hub:
-    def __init__(self, state_dir: Path, registry: Registry, host: Host,
+    """The daemon's side of every node link. `host` is what the daemon lends (harnesses.HOST: register_remote,
+    remote_permission, remote_resolved, call_state, and optionally vendors); see harnesses/__init__.py for the seam."""
+
+    def __init__(self, state_dir: Path, registry: Registry, host=None,
                  clock: Callable[[], float] = time.time, monotonic: Callable[[], float] = time.monotonic):
-        self.registry, self.host = registry, host
+        self.state_dir, self.registry, self.host = state_dir, registry, host if host is not None else harnesses.HOST
         self._clock, self._mono = clock, monotonic
         self.nodes = NodesRegistry(state_dir / "nodes.json")
         self.invites = Invites(monotonic)
         self.mirrors = Mirrors(state_dir / "harness" / "remote")
         self.links = nodelink.Links()
-        self.live: dict[str, Node] = {n["id"]: self._node(n) for n in self.nodes.nodes.values()}
+        self.live: dict[str, Node] = {}
+        for paired in self.nodes.nodes.values():
+            self._track(paired)
         self._tasks: set[asyncio.Task] = set()
 
-    def _node(self, paired: dict) -> Node:
-        return Node(id=paired["id"], name=paired["name"], os=paired.get("os", ""),
-                    key_fp=nodelink.fingerprint(paired["key"]), since=self._clock(), offline_at=self._mono())
+    def _track(self, paired: dict) -> Node:
+        """A node's live record, and its entry in sessions.MACHINES: offline since now until its link is up."""
+        machine = Machine(name=paired["name"], id=paired["id"], os=paired.get("os", ""), online=False,
+                          since=self._clock(), key_fp=nodelink.fingerprint(paired["key"]))
+        sessions.MACHINES[machine.name] = machine
+        node = self.live[paired["id"]] = Node(id=paired["id"], machine=machine, offline_at=self._mono())
+        return node
 
     def wrap(self, session: Session, inner: harnesses.Harness) -> harnesses.Harness:
         """For harnesses.set_remote: the adapter of a session on another machine."""
         return RemoteHarness(self, inner)
+
+    def _hook(self, name: str):
+        return getattr(self.host, name, None)
+
+    def _call_state(self) -> dict:
+        state = self._hook("call_state")
+        call = state() if state else None
+        return {"up": bool(call and call.get("up")), "approvals_terminal": bool(call and call.get("approvals_terminal"))}
+
+    def _vendors(self) -> list[str]:
+        vendors = self._hook("vendors")
+        return list(vendors()) if vendors else []
 
     # ---------- what RemoteHarness and the daemon ask ----------
 
@@ -385,7 +417,8 @@ class Hub:
 
     def alive(self, session: Session) -> bool:
         """From the node's state, never a pid: listed in its last snapshot while online, and kept for
-        OFFLINE_GRACE_SECS after its link drops (or after this hub started, until the node reconnects)."""
+        OFFLINE_GRACE_SECS after its link drops (or after this hub started, until the node reconnects). False makes
+        the daemon's _reap_dead take it off: so a session that left, or a revoked node's, goes within one check."""
         node = self._node_of(session)
         if node is None:
             return False
@@ -393,34 +426,20 @@ class Hub:
             return node.sessions is None or session.harness_data.get("remote_id") in node.sessions
         return self._mono() - node.offline_at < nodelink.OFFLINE_GRACE_SECS
 
-    def online(self, session: Session) -> bool:
-        node = self._node_of(session)
-        return bool(node and node.online)
-
     def transcript_path(self, session: Session) -> str:
         """The mirror of the session's newest file, so a /clear on the node moves the follower here too."""
         node_id, sid = session.harness_data.get("node_id", ""), session.harness_data.get("remote_id", "")
         return str(self.mirrors.path(node_id, sid, self.mirrors.latest(node_id, sid) or 0))
 
-    def node_time(self, session: Session, hub_time: float) -> float:
-        """A time on this Mac's clock as the session's machine stamps it: shift a `since` by this before comparing it
-        with a remote transcript's timestamps."""
-        node = self._node_of(session)
-        return hub_time - node.skew if node else hub_time
-
-    def files(self, session: Session) -> list[str]:
-        node = self._node_of(session)
-        return node.files.get(session.harness_data.get("remote_id"), []) if node else []
-
     def machines(self) -> list[dict]:
-        """The nodes, for /voice/status `machines` (the daemon adds this Mac's entry and each `need`)."""
-        return [{"id": n.id, "name": n.name, "here": False, "os": n.os, "online": n.online, "since": n.since,
-                 "sessions": len(self._sessions_of(n)), "rtt_ms": n.rtt_ms, "key_fp": n.key_fp}
-                for n in self.live.values()]
+        """The nodes, for `pointe hub nodes` (the status's `machines` is the daemon's, from sessions.MACHINES)."""
+        return [{"id": n.id, "name": n.name, "here": False, "os": n.machine.os, "online": n.online,
+                 "since": n.machine.since, "sessions": len(self._sessions_of(n)), "rtt_ms": n.machine.rtt_ms,
+                 "key_fp": n.machine.key_fp} for n in self.live.values()]
 
     def name_problem(self, name: str) -> str | None:
         return name_problem(name, [n["name"] for n in self.nodes.nodes.values()], list(self.registry.sessions.values()),
-                            self.host.machine())
+                            _here(self.state_dir))
 
     # ---------- hub to node ----------
 
@@ -476,33 +495,37 @@ class Hub:
         if node is not None:
             await self._send(node, encode("leave", id=session.harness_data["remote_id"]))
 
-    async def call_changed(self) -> None:
-        """Tell every node whether to forward prompts: a call is up and the hub's approvals are not `terminal`."""
-        up, terminal = self.host.call_state()
-        for node in list(self.live.values()):
-            if node.online:
-                await self._send(node, encode("call", up=up, approvals_terminal=terminal))
+    def on_call(self, call: dict) -> None:
+        """HOST.on_call: the daemon's call state changed. Sent as `call` to every node, from the event loop."""
+        frame = encode("call", up=bool(call.get("up")), approvals_terminal=bool(call.get("approvals_terminal")))
+        for node in [n for n in self.live.values() if n.online]:
+            self._spawn(self._send(node, frame))
+
+    def _spawn(self, coro) -> None:
+        task = asyncio.get_running_loop().create_task(coro)
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
 
     async def revoke(self, name: str) -> bool:
         paired = self.nodes.by_name(name)
         if paired is None:
             return False
-        await self._forget(self.live.get(paired["id"]) or self._node(paired), "revoked")
+        await self._forget(self.live.get(paired["id"]) or self._track(paired), "revoked")
         return True
 
     async def _forget(self, node: Node, why: str) -> None:
-        """Revoked here, or it left: its key goes, its sessions leave the voice, and a live link is closed."""
+        """Revoked here, or it left: its key goes, and a live link is closed. Its sessions are no longer alive, so the
+        daemon's next liveness check takes them off the voice."""
         self.nodes.remove(node.id)
         self.live.pop(node.id, None)
+        if sessions.MACHINES.get(node.name) is node.machine:
+            del sessions.MACHINES[node.name]
         ws = node.socket
         if ws is not None:
             if why == "revoked":
                 await self._send(node, encode("unpaired"))
-            node.socket = None  # gone, not offline: the reader's exit must not announce it
+            node.socket = None  # gone, not offline
             await _close(ws, 1000, why)
-        for session in self._sessions_of(node):
-            if self.host.drop:
-                await self.host.drop(session, why)
         logger.info(f"node {node.name} {why}: forgotten")
 
     # ---------- pairing ----------
@@ -526,12 +549,12 @@ class Hub:
             return 409, problem
         invites.cancel()
         paired = self.nodes.add(name, str(body.get("os") or ""))
-        self.live[paired["id"]] = self._node(paired)
+        self._track(paired)
         invites.paired = {"name": name, "address": address, "network": network(address),
                           "key_fp": nodelink.fingerprint(paired["key"])}
         logger.info(paired_line(invites.paired))
         return 200, {"node_id": paired["id"], "node_key": paired["key"],
-                     "hub": {"id": self.nodes.hub_id, "name": self.host.machine()}, "vendors": self.host.vendors()}
+                     "hub": {"id": self.nodes.hub_id, "name": _here(self.state_dir)}, "vendors": self._vendors()}
 
     # ---------- the link ----------
 
@@ -539,7 +562,7 @@ class Hub:
         """The /voice/node WebSocket: a nonce, the node's HMAC over it, then frames until the link drops."""
         await ws.accept()
         nonce = nodelink.new_nonce()
-        await ws.send_text(encode("challenge", nonce=nonce, hub={"id": self.nodes.hub_id, "name": self.host.machine()}))
+        await ws.send_text(encode("challenge", nonce=nonce, hub={"id": self.nodes.hub_id, "name": _here(self.state_dir)}))
         try:
             hello = decode(await asyncio.wait_for(ws.receive_text(), HELLO_WAIT_SECS), NODE_FRAMES)
         except Exception:  # silence, or it went
@@ -556,15 +579,18 @@ class Hub:
         if not self.links.claim(paired["id"], ws):
             logger.warning(f"node {paired['name']}: a second connection with its key refused")
             return await _close(ws, nodelink.CLOSE_ALREADY_CONNECTED, "already connected")
-        node = self.live.setdefault(paired["id"], self._node(paired))
-        node.socket, node.lock, node.since = ws, asyncio.Lock(), None
-        node.skew = self._clock() - hello["now"]
+        node = self.live.get(paired["id"]) or self._track(paired)
+        node.socket, node.lock = ws, asyncio.Lock()
+        sessions.MACHINES[node.name] = node.machine
+        node.machine.online, node.machine.since = True, None
+        node.machine.skew = self._clock() - hello["now"]
         heartbeat = nodelink.Heartbeat(self._mono)
-        logger.info(f"node {node.name} connected (skew {node.skew:+.1f} s)")
+        logger.info(f"node {node.name} connected (skew {node.machine.skew:+.1f} s)")
         try:
-            up, terminal = self.host.call_state()
-            await self._send(node, encode("welcome", protocol=nodelink.PROTOCOL, call_up=up, approvals_terminal=terminal,
-                                          vendors=self.host.vendors(), resume=self.mirrors.resume(node.id)))
+            call = self._call_state()
+            await self._send(node, encode("welcome", protocol=nodelink.PROTOCOL, call_up=call["up"],
+                                          approvals_terminal=call["approvals_terminal"], vendors=self._vendors(),
+                                          resume=self.mirrors.resume(node.id)))
             tasks = {asyncio.create_task(self._read(node, ws, heartbeat)),
                      asyncio.create_task(self._keep_alive(node, ws, heartbeat))}
             try:
@@ -575,7 +601,7 @@ class Hub:
         finally:
             self.links.release(paired["id"], ws)
             if node.socket is ws:
-                await self._went_offline(node)
+                self._went_offline(node)
 
     async def _keep_alive(self, node: Node, ws, heartbeat: nodelink.Heartbeat) -> None:
         while True:
@@ -597,7 +623,7 @@ class Hub:
                 continue
             if frame["t"] == "pong":
                 heartbeat.pong(frame["id"])
-                node.rtt_ms = heartbeat.rtt_ms
+                node.machine.rtt_ms = heartbeat.rtt_ms
             elif frame["t"] == "bye":
                 return await self._forget(node, "left")
             else:
@@ -606,96 +632,85 @@ class Hub:
                 except Exception:
                     logger.exception(f"node {node.name}: handling a {frame['t']!r} frame failed")
 
-    async def _went_offline(self, node: Node) -> None:
-        node.socket, node.since, node.offline_at = None, self._clock(), self._mono()
+    def _went_offline(self, node: Node) -> None:
+        """The node released whatever it held to its terminals. Its sessions stay, offline (the daemon's
+        _watch_machines says so), until OFFLINE_GRACE_SECS."""
+        node.socket, node.offline_at = None, self._mono()
+        node.machine.online, node.machine.since = False, self._clock()
         for future in node.waiting.values():
             if not future.done():
                 future.set_result(None)
         logger.info(f"node {node.name} offline")
-        if self.host.offline:
-            await self.host.offline(node.name, self._sessions_of(node))
 
     async def _on_frame(self, node: Node, frame: dict) -> None:
         t = frame["t"]
         if t == "sessions":
             await self._snapshot(node, frame["sessions"])
         elif t == "session.left":
-            (node.sessions or {}).pop(frame["id"], None)
-            session = self._session(node, frame["id"])
-            if session and self.host.drop:
-                await self.host.drop(session, frame["why"])
+            (node.sessions or {}).pop(frame["id"], None)  # no longer alive: the next liveness check takes it off
         elif t == "transcript":
             sid = frame["id"]
             if _ID.fullmatch(sid) and (sid in (node.sessions or {}) or self.mirrors.latest(node.id, sid) is not None):
                 if not self.mirrors.append(node.id, frame):
                     await self._send(node, encode("resume", resume={sid: self.mirrors.resume_point(node.id, sid)}))
+                elif self.mirrors.in_backlog(node.id, sid):
+                    self._backlog_wait(node, sid)
         elif t == "transcript.repointed":
             if _ID.fullmatch(frame["id"]) and frame["id"] in (node.sessions or {}):
-                self.mirrors.repoint(node.id, frame["id"], frame["gen"])
+                if self.mirrors.repoint(node.id, frame["id"], frame["gen"]):
+                    self._backlog_wait(node, frame["id"])
         elif t == "files":
-            node.files[frame["id"]] = frame["names"]
+            session = self._session(node, frame["id"])
+            if session is not None:
+                session.harness_data["files"] = frame["names"]
         elif t == "permission.request":
             await self._permission(node, frame)
         elif t == "permission.resolved":
             session = self._session(node, frame["id"])
-            if session and self.host.permission_gone:
-                await self.host.permission_gone(session, frame["request_id"], frame["how"])
+            resolved = self._hook("remote_resolved")
+            if session and resolved:
+                await _maybe(resolved(session, frame["request_id"], frame["how"]))
         elif t in ("permission.answered", "send.result"):
             key = f"answer:{frame['request_id']}" if t == "permission.answered" else f"send:{frame['req']}"
             future = node.waiting.get(key)
             if future is not None and not future.done():
                 future.set_result((frame["ok"], frame.get("why")) if t == "permission.answered" else frame["ok"])
 
-    async def _snapshot(self, node: Node, entries: list[dict]) -> None:
-        """A node's full list: new ones join, ones no longer in it have exited, and a prompt it still holds (after a
-        restart on either side) is put to the user again, once."""
-        kept = []
-        for entry in entries:
-            if not _ID.fullmatch(entry["id"]) or entry["harness"] not in harnesses.names():
-                logger.warning(f"node {node.name}: session {entry['id'][:40]!r} ({entry['harness'][:20]}) not taken")
-                continue
-            kept.append(entry)
-        node.sessions = {e["id"]: e for e in kept}
-        for e in kept:
-            files = e.get("files")
-            if isinstance(files, list) and all(isinstance(f, str) for f in files):
-                node.files[e["id"]] = files[:nodelink.MAX_FILES]
-        for session in self._sessions_of(node):
-            if session.harness_data.get("remote_id") not in node.sessions and self.host.drop:
-                await self.host.drop(session, "exited")
-        for e in kept:
-            session = await self.host.register(self.new_session(node, e), e) if self.host.register else None
-            pending = e.get("pending")
-            if session is not None and isinstance(pending, dict):
-                request = {"t": "permission.request", **pending, "id": e["id"]}
-                if nodelink._valid(request, NODE_FRAMES["permission.request"]) and \
-                        session.permission_id != pending["request_id"]:
-                    await self._permission(node, request)
+    def _backlog_wait(self, node: Node, sid: str) -> None:
+        """The backlog is all here once frames stop for HISTORY_QUIET_SECS: then it becomes the mirror."""
+        if sid in node.backlog:
+            node.backlog[sid].cancel()
 
-    def new_session(self, node: Node, entry: dict) -> Session:
-        """The hub's Session for a node's snapshot entry. Never the inbox socket or token: those stay on the node."""
-        sid = entry["id"]
-        pid, home = entry.get("pid"), entry.get("home")
-        return Session(id=hub_session_id(node.id, sid), name=entry["name"], cwd=entry["cwd"],
-                       pid=pid if isinstance(pid, int) and not isinstance(pid, bool) else 0,
-                       home=home if isinstance(home, str) else "", harness=entry["harness"], machine=node.name,
-                       named_by="user" if entry.get("name_given") is True else "folder",
-                       transcript=str(self.mirrors.path(node.id, sid, self.mirrors.latest(node.id, sid) or 0)),
-                       harness_data={"remote_id": sid, "node_id": node.id})
+        def promote():
+            node.backlog.pop(sid, None)
+            self.mirrors.promote(node.id, sid)
+
+        node.backlog[sid] = asyncio.get_running_loop().call_later(HISTORY_QUIET_SECS, promote)
+
+    async def _snapshot(self, node: Node, entries: list[dict]) -> None:
+        """A node's full list. New ones join through the daemon's register_remote (it also refreshes known ones and
+        puts a prompt the node still holds, `pending`); ones no longer listed are no longer alive."""
+        node.sessions = {e["id"]: e for e in entries if _ID.fullmatch(e["id"])}
+        register = self._hook("register_remote")
+        for entry in node.sessions.values():
+            session = await register(node.id, node.name, entry) if register else None
+            pending = entry.get("pending")
+            if session is not None and isinstance(pending, dict):
+                request = {"t": "permission.request", **pending, "id": entry["id"]}
+                if nodelink._valid(request, NODE_FRAMES["permission.request"]):
+                    await self._permission(node, request)  # put once by the daemon; `holding` so the node keeps it
 
     async def _permission(self, node: Node, frame: dict) -> None:
-        """`holding` goes back at once, before the read-out is scheduled: the node hands the prompt to its terminal if
-        it has not heard it in HOLDING_WAIT_SECS, and the read-out can wait longer than that for the brain."""
+        """Put to the user by the daemon (remote_permission, which returns before the read-out is spoken); `holding`
+        only if it holds it, else the node hands it to its terminal after HOLDING_WAIT_SECS."""
         session = self._session(node, frame["id"])
-        up, terminal = self.host.call_state()
-        if session is None or not up or terminal or self.host.permission is None:
-            return  # no `holding`: the node hands it to the terminal, as the daemon does with no call
-        await self._send(node, encode("permission.holding", request_id=frame["request_id"]))
-        task = asyncio.create_task(self.host.permission(
-            session, request_id=frame["request_id"], tool=frame["tool"], description=frame["description"],
-            preview=frame["preview"], readable=checked_readable(frame["readable"]), deadline_ms=frame["deadline_ms"]))
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
+        put = self._hook("remote_permission")
+        if session is None or put is None:
+            return
+        held = await put(session, frame["request_id"], frame["tool"], frame["description"], frame["preview"],
+                         frame["readable"])
+        if held:
+            await self._send(node, encode("permission.holding", request_id=frame["request_id"]))
 
     def prune(self) -> None:
         live = {(s.harness_data.get("node_id"), s.harness_data.get("remote_id"))
@@ -711,7 +726,9 @@ async def _close(ws, code: int, reason: str) -> None:
 
 
 def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
-    """The node routes, the owner's /voice/hub/* routes, the remote adapter, and hourly mirror pruning.
+    """The node routes, the owner's /voice/hub/* routes, the remote adapter and what the link sets on its host
+    (on_call, invite), and hourly mirror pruning. In daemon.py, after the lifespan is set:
+        hub_nodes.install(app, hub_nodes.Hub(STATE_DIR, REGISTRY))
     `link(code)` builds the invite line (pair.invite_link; SystemExit with the fix when no address is paired)."""
     from contextlib import asynccontextmanager
 
@@ -723,6 +740,8 @@ def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
     if link is None:
         from pair import invite_link as link
     harnesses.set_remote(hub.wrap)
+    hub.host.on_call = hub.on_call
+    hub.host.invite = hub.invites.status
 
     @app.websocket(nodelink.PATH)
     async def node_socket(websocket: WebSocket):

@@ -18,6 +18,7 @@ import hub_nodes  # noqa: E402
 import nodelink  # noqa: E402
 from harnesses.remote import RemoteHarness  # noqa: E402
 from nodelink import HUB_FRAMES, decode, encode  # noqa: E402
+import sessions  # noqa: E402
 from sessions import Registry, Session  # noqa: E402
 
 
@@ -29,44 +30,34 @@ class Clock:
         return self.now
 
 
-class Host(hub_nodes.Host):
-    """What daemon.py lends the hub (Track C), recorded."""
+class Host:
+    """What daemon.py lends the hub on harnesses.HOST (Track C's register_remote and friends), recorded. The real
+    daemon path is tested at the end of this file."""
 
     def __init__(self, registry: Registry):
-        super().__init__()
         self.registry = registry
         self.calls: list[tuple] = []
-        self.permission_wait: asyncio.Event | None = None
+        self.held = True
         self.call_up, self.approvals_terminal = True, False
-        self.vendor_list = ["Anthropic", "Soniox"]
-        self.register, self.drop, self.permission = self._register, self._drop, self._permission
-        self.permission_gone, self.offline = self._gone, self._offline
-        self.call_state = lambda: (self.call_up, self.approvals_terminal)
-        self.vendors = lambda: self.vendor_list
-        self.machine = lambda: "studio"
+        self.vendors = lambda: ["Anthropic", "Soniox"]
+        self.call_state = lambda: {"up": self.call_up, "approvals_terminal": self.approvals_terminal}
 
-    async def _register(self, session, entry):
-        self.calls.append(("register", session.id))
-        existing = self.registry.sessions.get(session.id)
-        if existing:
-            return existing
-        self.registry.add(session)
-        return session
+    async def register_remote(self, node_id, machine, entry):
+        self.calls.append(("register", node_id, machine, entry["id"]))
+        sid = nodelink.hub_session_id(node_id, entry["id"])
+        if sid not in self.registry.sessions:
+            s = Session(id=sid, name=entry["name"], cwd=entry["cwd"], machine=machine, harness=entry["harness"],
+                        harness_data={"remote_id": entry["id"], "node_id": node_id, "files": entry.get("files", [])})
+            s.transcript = harnesses.of(s).transcript_path(s)
+            self.registry.add(s)
+        return self.registry.sessions[sid]
 
-    async def _drop(self, session, why):
-        self.calls.append(("drop", session.id, why))
-        self.registry.remove(session.id)
+    async def remote_permission(self, session, request_id, tool, description, preview, readable):
+        self.calls.append(("permission", session.id, request_id, tool, description, preview, readable))
+        return self.held
 
-    async def _permission(self, session, **request):
-        self.calls.append(("permission", session.id, request))
-        if self.permission_wait:
-            await self.permission_wait.wait()
-
-    async def _gone(self, session, request_id, how):
-        self.calls.append(("gone", session.id, request_id, how))
-
-    async def _offline(self, node_name, sessions):
-        self.calls.append(("offline", node_name, sorted(s.id for s in sessions)))
+    def remote_resolved(self, session, request_id, how):
+        self.calls.append(("resolved", session.id, request_id, how))
 
 
 class Pipe:
@@ -154,6 +145,9 @@ def entry(sid="s1", name="shop", **over):
 @pytest.fixture
 def world(tmp_path, monkeypatch):
     monkeypatch.setattr(nodelink, "PING_SECS", 3600.0)  # no pings unless a test asks for them
+    monkeypatch.setattr(hub_nodes, "HISTORY_QUIET_SECS", 0.0)  # a backlog becomes the mirror at the next tick
+    monkeypatch.setattr(sessions, "MACHINES", {})
+    (tmp_path / "config.json").write_text(json.dumps({"machine": "studio"}))
     registry = Registry()
     host = Host(registry)
     clock, mono = Clock(), Clock(5000.0)
@@ -287,60 +281,40 @@ def test_a_revoked_node_cannot_connect(world):
     run(go())
 
 
-def test_skew_is_measured_from_hello_and_shifts_time_filters(world):
+def test_skew_is_measured_from_hello_into_the_machine_table(world):
     hub, host, registry, clock, *_ = world
     node = paired(hub)
 
     async def go():
         fake = FakeNode(hub, node, now=clock.now + 90)  # the node's clock is 90 s ahead
         await fake.connect()
-        await fake.send_sessions(entry())
-        session = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
-        assert hub.live[node["id"]].skew == pytest.approx(-90)
-        assert hub.node_time(session, clock.now - 60) == pytest.approx(clock.now + 30)  # "the last minute", node clock
-        assert hub.node_time(Session(id="here", name="here", cwd="/"), 123.0) == 123.0  # a local session: unchanged
+        assert sessions.MACHINES["devbox"].skew == pytest.approx(-90)  # sessions.recent_history shifts `since` by it
         await fake.drop()
 
     run(go())
 
 
-# ---------- sessions ----------
-
-def test_a_snapshot_registers_its_sessions_with_the_machine_set_and_no_inbox_secrets(world):
+def test_a_snapshot_goes_to_register_remote_with_the_node_and_machine(world):
     hub, host, registry, *_ = world
     node = paired(hub)
 
     async def go():
         fake = FakeNode(hub, node)
         await fake.connect()
-        await fake.send_sessions(entry(inbox_socket="/tmp/x.sock", inbox_token="t0k"))
-        sid = nodelink.hub_session_id(node["id"], "s1")
-        s = registry.sessions[sid]
-        assert s.machine == "devbox" and s.name == "shop" and s.cwd == "/home/u/shop" and s.harness == "claude-code"
-        assert s.harness_data == {"remote_id": "s1", "node_id": node["id"]}
-        assert s.inbox_socket is None and s.inbox_token is None
+        await fake.send_sessions(entry(), entry("s2", "api"))
+        assert [c for c in host.calls if c[0] == "register"] == [("register", node["id"], "devbox", "s1"),
+                                                                 ("register", node["id"], "devbox", "s2")]
+        s = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
         assert isinstance(harnesses.of(s), RemoteHarness) and s.alive()
-        assert hub.files(s) == ["a.py"]
+        await fake.send("files", id="s1", names=["b.py", "c.py"])
+        await settle()
+        assert s.harness_data["files"] == ["b.py", "c.py"]
         await fake.drop()
 
     run(go())
 
 
-def test_a_name_given_on_the_node_is_the_users(world):
-    hub, host, registry, *_ = world
-    node = paired(hub)
-
-    async def go():
-        fake = FakeNode(hub, node)
-        await fake.connect()
-        await fake.send_sessions(entry(name="billing", name_given=True))
-        assert registry.sessions[nodelink.hub_session_id(node["id"], "s1")].named_by == "user"
-        await fake.drop()
-
-    run(go())
-
-
-def test_a_session_missing_from_a_new_snapshot_has_exited(world):
+def test_a_session_missing_from_a_new_snapshot_or_said_to_have_left_is_no_longer_alive(world):
     hub, host, registry, *_ = world
     node = paired(hub)
 
@@ -348,26 +322,26 @@ def test_a_session_missing_from_a_new_snapshot_has_exited(world):
         fake = FakeNode(hub, node)
         await fake.connect()
         await fake.send_sessions(entry("s1"), entry("s2", "api"))
+        s1, s2 = (registry.sessions[nodelink.hub_session_id(node["id"], i)] for i in ("s1", "s2"))
         await fake.send_sessions(entry("s2", "api"))
-        assert ("drop", nodelink.hub_session_id(node["id"], "s1"), "exited") in host.calls
-        assert list(registry.sessions) == [nodelink.hub_session_id(node["id"], "s2")]
+        assert not s1.alive() and s2.alive()  # the daemon's _reap_dead takes it off at its next check
         await fake.send("session.left", id="s2", why="exited")
         await settle()
-        assert not registry.sessions
+        assert not s2.alive()
         await fake.drop()
 
     run(go())
 
 
-def test_a_session_of_an_unknown_harness_or_with_a_bad_id_is_not_registered(world):
+def test_a_session_with_an_id_that_could_walk_a_path_is_not_registered_or_mirrored(world):
     hub, host, registry, *_, state = world
     node = paired(hub)
 
     async def go():
         fake = FakeNode(hub, node)
         await fake.connect()
-        await fake.send_sessions(entry("../../evil"), entry("s2", harness="from-the-future"))
-        assert not registry.sessions
+        await fake.send_sessions(entry("../../evil"))
+        assert not registry.sessions and not [c for c in host.calls if c[0] == "register"]
         await fake.send("transcript", id="../../evil", gen=0, offset=0, next_offset=3, entries=["{}\n"])
         await settle()
         assert not list(state.parent.glob("evil*")) and not list(state.rglob("*evil*"))
@@ -420,6 +394,7 @@ def test_a_gap_is_refused_with_resume_from_the_stored_offset(world):
         await fake.send("transcript", id="s1", gen=0, offset=0, next_offset=50, entries=[_line("one")])
         await fake.send("transcript", id="s1", gen=0, offset=80, next_offset=99, entries=[_line("gap")])
         assert (await fake.recv("resume"))["resume"] == {"s1": {"gen": 0, "offset": 50}}
+        await settle()
         s = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
         assert "gap" not in Path(harnesses.of(s).transcript_path(s)).read_text()
         await fake.drop()
@@ -556,6 +531,7 @@ def test_mirrors_of_a_departed_session_are_pruned_seven_days_after_it_left(world
         await fake.drop()
 
     run(go())
+    registry.remove(nodelink.hub_session_id(node["id"], "s1"))  # what the daemon's _reap_dead does
     folder = state / "harness" / "remote" / node["id"]
     hub.prune()
     assert (folder / "s1.0.jsonl").exists()  # just left
@@ -581,7 +557,7 @@ def test_alive_comes_from_node_state_with_ten_minutes_of_grace_offline(world):
         s1 = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
         assert s1.alive()
         await fake.drop()
-        assert ("offline", "devbox", sorted(registry.sessions)) in host.calls
+        assert not sessions.MACHINES["devbox"].online and sessions.MACHINES["devbox"].since == clock.now
         assert not hub.live[node["id"]].online and s1.alive()  # offline, kept
         mono.now += nodelink.OFFLINE_GRACE_SECS - 1
         assert s1.alive()
@@ -613,7 +589,7 @@ def test_after_a_hub_restart_a_remote_session_is_offline_since_load_until_its_no
     harnesses.set_remote(reborn.wrap)
     s = Session(id=nodelink.hub_session_id(node["id"], "s1"), name="shop", cwd="/x", machine="devbox",
                 harness_data={"remote_id": "s1", "node_id": node["id"]})
-    assert s.alive() and not reborn.live[node["id"]].online and reborn.live[node["id"]].since == clock.now
+    assert s.alive() and not reborn.live[node["id"]].online and sessions.MACHINES["devbox"].since == clock.now
     mono.now += nodelink.OFFLINE_GRACE_SECS + 1
     assert not s.alive()
     unknown = Session(id="x-s1", name="x", cwd="/", machine="gone", harness_data={"remote_id": "s1", "node_id": "zz"})
@@ -713,43 +689,7 @@ def _request(**over):
             "readable": "run: ls", "deadline_ms": 280000, **over}
 
 
-def test_holding_is_sent_on_receipt_before_the_read_out(world):
-    hub, host, registry, *_ = world
-    node = paired(hub)
-
-    async def go():
-        host.permission_wait = asyncio.Event()  # the read-out waits on the brain: it never finishes here
-        fake = FakeNode(hub, node)
-        await fake.connect()
-        await fake.send_sessions(entry())
-        await fake.send("permission.request", **_request())
-        assert (await fake.recv("permission.holding", timeout=0.5))["request_id"] == "p1"
-        await settle()
-        [(_, sid, request)] = [c for c in host.calls if c[0] == "permission"]
-        assert sid == nodelink.hub_session_id(node["id"], "s1")
-        assert request == {"request_id": "p1", "tool": "Bash", "description": "List files", "preview": '{"command": "ls"}',
-                           "readable": "run: ls", "deadline_ms": 280000}
-        host.permission_wait.set()
-        await fake.drop()
-
-    run(go())
-
-
-@pytest.mark.parametrize("readable,kept", [
-    ("run: ls", True),
-    ("run: git status in shop", True),
-    ("run: echo yes", False),  # a consent word in what is read out: a yes could be heard as the request itself
-    ("run: do it now", False),
-    ("run: export TOKEN=sk-ant-api03-" + "x" * 40, False),  # a credential is never said aloud
-    ("run: " + " ".join(["word"] * 30), False),  # too long to read out
-    ("", False),
-    (None, False),
-])
-def test_the_nodes_readable_is_used_only_after_the_cheap_checks(readable, kept):
-    assert hub_nodes.checked_readable(readable) == (readable if kept else None)
-
-
-def test_a_permission_request_with_an_unreadable_form_reaches_the_daemon_as_unreadable(world):
+def test_a_request_goes_to_remote_permission_with_the_nodes_readable_and_holding_follows_once_held(world):
     hub, host, registry, *_ = world
     node = paired(hub)
 
@@ -758,10 +698,28 @@ def test_a_permission_request_with_an_unreadable_form_reaches_the_daemon_as_unre
         await fake.connect()
         await fake.send_sessions(entry())
         await fake.send("permission.request", **_request(readable="run: echo okay"))
-        await fake.recv("permission.holding")
-        await settle()
-        [request] = [c[2] for c in host.calls if c[0] == "permission"]
-        assert request["readable"] is None
+        assert (await fake.recv("permission.holding", timeout=0.5))["request_id"] == "p1"
+        [call] = [c for c in host.calls if c[0] == "permission"]
+        # the node's own read-out, unchanged: the daemon's guards.remote_readable makes the cheap checks
+        assert call == ("permission", nodelink.hub_session_id(node["id"], "s1"), "p1", "Bash", "List files",
+                        '{"command": "ls"}', "run: echo okay")
+        await fake.drop()
+
+    run(go())
+
+
+def test_no_holding_when_the_daemon_does_not_hold_it(world):
+    hub, host, registry, *_ = world
+    host.held = False  # no call up, or approvals in the terminal: the node hands it back after 10 s
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        await fake.send("permission.request", **_request())
+        with pytest.raises(asyncio.TimeoutError):
+            await fake.recv("permission.holding", timeout=0.2)
         await fake.drop()
 
     run(go())
@@ -778,10 +736,7 @@ def test_a_pending_prompt_in_a_snapshot_is_put_to_the_user_again_once(world):
         await fake.send_sessions(entry(pending=pending))
         assert (await fake.recv("permission.holding"))["request_id"] == "p1"
         await settle()
-        s = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
-        s.permission_id = "p1"  # what the daemon's put did
-        await fake.send_sessions(entry(pending=pending, title="a new title"))
-        assert len([c for c in host.calls if c[0] == "permission"]) == 1
+        assert [c[2] for c in host.calls if c[0] == "permission"] == ["p1"]  # the daemon puts it once (its own rule)
         await fake.drop()
 
     run(go())
@@ -797,7 +752,7 @@ def test_a_resolved_prompt_clears_the_card(world):
         await fake.send_sessions(entry())
         await fake.send("permission.resolved", id="s1", request_id="p1", how="terminal")
         await settle()
-        assert ("gone", nodelink.hub_session_id(node["id"], "s1"), "p1", "terminal") in host.calls
+        assert ("resolved", nodelink.hub_session_id(node["id"], "s1"), "p1", "terminal") in host.calls
         await fake.drop()
 
     run(go())
@@ -836,8 +791,7 @@ def test_the_call_state_reaches_every_node(world):
     async def go():
         fake = FakeNode(hub, node)
         await fake.connect()
-        host.call_up, host.approvals_terminal = True, True
-        await hub.call_changed()
+        hub.on_call({"up": True, "approvals_terminal": True})  # HOST.on_call: plain, from the event loop
         assert await fake.recv("call") == {"t": "call", "up": True, "approvals_terminal": True}
         await fake.drop()
 
@@ -858,8 +812,9 @@ def test_a_silent_node_is_closed_4408_and_its_sessions_go_offline_not_away(world
         mono.now += nodelink.DEAD_AFTER_SECS + 1  # no pong in time
         await asyncio.wait_for(fake.task, 2)
         assert fake.pipe.closed[0] == nodelink.CLOSE_DEAD
-        assert not hub.live[node["id"]].online and hub.live[node["id"]].since == clock.now
+        assert not hub.live[node["id"]].online and sessions.MACHINES["devbox"].since == clock.now
         assert list(registry.sessions) == [nodelink.hub_session_id(node["id"], "s1")]
+        assert registry.sessions[nodelink.hub_session_id(node["id"], "s1")].alive()
 
     run(go())
 
@@ -877,7 +832,7 @@ def test_pings_carry_the_round_trip(world, monkeypatch):
             ping = decode(await asyncio.wait_for(fake.pipe.to_node.get(), 1), HUB_FRAMES)
             rtts.append(ping["rtt_ms"])
             await fake.send("pong", id=ping["id"])
-        assert rtts[0] is None and 0 in rtts and hub.live[node["id"]].rtt_ms == 0  # the clock stood still
+        assert rtts[0] is None and 0 in rtts and sessions.MACHINES["devbox"].rtt_ms == 0  # the clock stood still
         await fake.drop()
 
     run(go())
@@ -894,8 +849,8 @@ def test_revoke_sends_unpaired_closes_the_link_and_takes_its_sessions_off(world)
         assert await hub.revoke("devbox")
         assert (await fake.recv("unpaired"))["t"] == "unpaired"
         assert await fake.recv() is None
-        assert ("drop", nodelink.hub_session_id(node["id"], "s1"), "revoked") in host.calls
-        assert hub.nodes.get(node["id"]) is None and node["id"] not in hub.live
+        assert not registry.sessions[nodelink.hub_session_id(node["id"], "s1")].alive()
+        assert hub.nodes.get(node["id"]) is None and node["id"] not in hub.live and "devbox" not in sessions.MACHINES
         assert not await hub.revoke("devbox")
 
     run(go())
@@ -911,7 +866,7 @@ def test_bye_forgets_the_node(world):
         await fake.send_sessions(entry())
         await fake.send("bye")
         await asyncio.wait_for(fake.task, 2)
-        assert hub.nodes.get(node["id"]) is None and not registry.sessions
+        assert hub.nodes.get(node["id"]) is None and not registry.sessions[nodelink.hub_session_id(node["id"], "s1")].alive()
 
     run(go())
 
@@ -1015,3 +970,162 @@ def test_a_used_code_cannot_pair_twice(world):
     code = hub.invites.make()
     assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "10.0.0.2")[0] == 200
     assert hub.pair({"code": code, "name": "other", "os": "linux"}, "10.0.0.3") == (403, "no invite outstanding")
+
+
+def test_a_newly_joined_sessions_backlog_goes_into_the_record_but_is_never_fed_as_news(world, monkeypatch):
+    """The node ships a session the hub has no offset for from byte 0: what came before the join."""
+    hub, host, registry, *_ = world
+    monkeypatch.setattr(hub_nodes, "HISTORY_QUIET_SECS", 0.3)
+    node = paired(hub)
+    fed = []
+
+    async def feed(session, text, respond):
+        fed.append(text)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        s = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
+        [watcher] = harnesses.of(s).watch(s, feed)
+        task = asyncio.create_task(watcher)  # the worker starts at register, before any transcript arrives
+        await fake.send("transcript.repointed", id="s1", gen=0)
+        for i in range(3):
+            await fake.send("transcript", id="s1", gen=0, offset=i, next_offset=i + 1, entries=[_line(f"old {i}")])
+            await asyncio.sleep(0.05)
+        mirror = Path(harnesses.of(s).transcript_path(s))
+        assert not mirror.exists()  # still arriving: the follower waits for the file
+        await asyncio.sleep(1.6)  # quiet: it becomes the mirror, and the follower opens it at its end
+        assert "old 2" in mirror.read_text()
+        await fake.send("transcript", id="s1", gen=0, offset=3, next_offset=4, entries=[_line("live now")])
+        for _ in range(60):
+            if fed:
+                break
+            await asyncio.sleep(0.05)
+        assert any("live now" in t for t in fed) and not any("old" in t for t in fed), fed
+        task.cancel()
+        await fake.drop()
+
+    run(go())
+
+
+def test_after_a_clear_the_new_files_lines_are_live(world):
+    hub, host, registry, *_ = world
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        await fake.send("transcript", id="s1", gen=0, offset=0, next_offset=1, entries=[_line("one")])
+        await settle()
+        await fake.send("transcript.repointed", id="s1", gen=1)
+        await settle()
+        assert not hub.mirrors.in_backlog(node["id"], "s1")  # a mirror existed: gen 1 is the session's new file
+        await fake.drop()
+
+    run(go())
+
+
+# ---------- through the real daemon (Track C's register_remote, _reap_dead, status) ----------
+
+from test_orchestrator import d  # noqa: E402,F401  (a fixture)
+
+
+@pytest.fixture
+def real(d, tmp_path, monkeypatch):
+    monkeypatch.setattr(nodelink, "PING_SECS", 3600.0)
+    monkeypatch.setattr(hub_nodes, "HISTORY_QUIET_SECS", 0.0)
+    monkeypatch.setattr(sessions, "MACHINES", {})
+    (tmp_path / "config.json").write_text(json.dumps({"machine": "studio"}))
+    clock, mono = Clock(), Clock(5000.0)
+    hub = hub_nodes.Hub(tmp_path, d.REGISTRY, clock=clock, monotonic=mono)  # host: harnesses.HOST, as the daemon set it
+    harnesses.set_remote(hub.wrap)
+    yield d, hub, mono
+    harnesses.set_remote(None)
+
+
+def test_the_daemon_keeps_an_offline_nodes_session_for_the_grace_then_reaps_it(real):
+    d, hub, mono = real
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        sid = nodelink.hub_session_id(node["id"], "s1")
+        assert d.REGISTRY.sessions[sid].machine == "devbox"
+        await d._reap_dead()
+        assert sid in d.REGISTRY.sessions  # online, listed
+        await fake.drop()
+        mono.now += nodelink.OFFLINE_GRACE_SECS - 1
+        await d._reap_dead()
+        assert sid in d.REGISTRY.sessions and not sessions.online(d.REGISTRY.sessions[sid])
+        mono.now += 2
+        await d._reap_dead()
+        assert sid not in d.REGISTRY.sessions
+
+    run(go())
+
+
+def test_the_daemon_reaps_a_session_its_node_says_left(real):
+    d, hub, mono = real
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(), entry("s2", "api"))
+        await fake.send("session.left", id="s1", why="exited")
+        await settle()
+        await d._reap_dead()
+        assert [s.name for s in d.REGISTRY.sessions.values()] == ["api"]
+        await fake.drop()
+
+    run(go())
+
+
+def test_the_status_shows_the_node_and_its_sessions(real):
+    from test_orchestrator import client_for
+
+    d, hub, mono = real
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        return fake
+
+    fake = None
+
+    async def both():
+        nonlocal fake
+        fake = await go()
+        status = await asyncio.to_thread(lambda: client_for(d).get("/voice/status").json())
+        await fake.drop()
+        return status
+
+    status = run(both())
+    names = [m["name"] for m in status["machines"]]
+    assert names[0] == "studio" and "devbox" in names
+    devbox = next(m for m in status["machines"] if m["name"] == "devbox")
+    assert devbox["online"] and devbox["key_fp"] == nodelink.fingerprint(node["key"])
+    [shop] = [s for s in status["sessions"] if s["name"].startswith("shop")]
+    assert shop["machine"] == "devbox" and shop["online"]
+
+
+def test_with_no_call_up_the_daemon_does_not_hold_a_remote_prompt_so_no_holding(real):
+    d, hub, mono = real
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        await fake.send("permission.request", **_request())
+        with pytest.raises(asyncio.TimeoutError):
+            await fake.recv("permission.holding", timeout=0.2)
+        await fake.drop()
+
+    run(go())

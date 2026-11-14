@@ -2,6 +2,7 @@
 
 import json
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
@@ -334,7 +335,7 @@ def hub_app(tmp_path, monkeypatch):
     app = FastAPI()
     app.middleware("http")(remote.guard)
     app.get("/voice/status")(lambda: {"ok": True})
-    hub = hub_nodes.Hub(tmp_path, Registry(), hub_nodes.Host())
+    hub = hub_nodes.Hub(tmp_path, Registry(), SimpleNamespace())
     hub_nodes.install(app, hub, link=lambda code: f"pointe://hub?code={code}")
     app.add_middleware(LocalAuth, token="daemon-token", page_key="page-key", remote=remote,
                        phone=lambda authorization: authorization == "Bearer phone-key")
@@ -427,6 +428,8 @@ def test_mirrors_are_private(hub_app, tmp_path):
     node = hub.nodes.add("devbox", "linux")
     hub.mirrors.append(node["id"], {"id": "s1", "gen": 0, "offset": 0, "next_offset": 3, "entries": ["{}\n"]})
     mirror = tmp_path / "harness" / "remote" / node["id"] / "s1.0.jsonl"
+    assert mirror.with_name("s1.0.jsonl.part").stat().st_mode & 0o077 == 0  # a new session's backlog, first
+    hub.mirrors.promote(node["id"], "s1")
     assert mirror.stat().st_mode & 0o077 == 0 and mirror.parent.stat().st_mode & 0o077 == 0
     assert (tmp_path / "nodes.json").stat().st_mode & 0o077 == 0
 

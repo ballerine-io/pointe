@@ -3,6 +3,7 @@ import os
 import ssl
 import stat
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -161,7 +162,7 @@ def test_the_pairing_result_carries_the_fingerprint_and_source_address(tmp_path)
     import nodelink
     from sessions import Registry
 
-    hub = hub_nodes.Hub(tmp_path, Registry(), hub_nodes.Host())
+    hub = hub_nodes.Hub(tmp_path, Registry(), SimpleNamespace())
     status, body = hub.pair({"code": hub.invites.make(), "name": "devbox", "os": "linux"}, "100.101.5.7")
     assert status == 200
     assert hub.invites.paired["key_fp"] == nodelink.fingerprint(body["node_key"])
