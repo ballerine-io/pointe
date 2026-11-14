@@ -4422,6 +4422,10 @@ def remote_resolved(session: Session, request_id: str, how: str) -> None:
     or the session left). Its card goes."""
     if session.permission_id != request_id:
         return
+    if how == "timeout" and current_mode().holds_news:  # as _hold_one says a local one's, at the hand-off
+        what = mask((session.permission_full or "").split("\n")[0])[:120]  # said aloud later: the one credential rule
+        state.monologue_held.append((f"[{session.name}: its approval request waited while the user thought out loud, "
+                                     f"then went back to its terminal] {what}", True))
     session.permission_id, session.permission_since = None, None
     state.remote_held.pop(session.id, None)
     REGISTRY.save()
