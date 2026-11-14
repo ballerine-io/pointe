@@ -867,11 +867,16 @@ def _vendor_names() -> list[str]:
     return list(dict.fromkeys(_VENDOR_LABELS[v] for v in named if v in _VENDOR_LABELS))
 
 
+SERVER = None  # the uvicorn server main() runs: its should_exit is set before a stop closes the call
+
+
 def _notify_call() -> None:
-    """The node link sends `call` to every node when this changes (a call starts or ends, the approvals setting)."""
+    """The node link sends `call` to every node when this changes (a call starts or ends, the approvals setting).
+    Not while this daemon is stopping: the call drops before the node links do, and a `call {up: false}` then would
+    have every node hand its held prompts to their terminals; the links dropping lets them wait for the restart."""
     call = _call_state()
     told = getattr(harnesses.HOST, "on_call", None)
-    if call == state.call_sent or told is None:
+    if call == state.call_sent or told is None or getattr(SERVER, "should_exit", False):
         return
     state.call_sent = call
     try:
@@ -5755,7 +5760,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Pointe voice daemon")
     parser.add_argument("--port", type=int, default=7860)
     port = parser.parse_args().port
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")  # loopback only: the phone comes in through remote.py
+    global SERVER
+    SERVER = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info"))  # loopback only: the phone comes in through remote.py
+    SERVER.run()
 
 
 # ---------- whisper mode (whisper.py holds the rules) ----------
