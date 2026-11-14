@@ -284,7 +284,6 @@ def test_a_hello_with_a_non_finite_clock_is_refused(world, now):
 
 # ---------- 7. an unreadable nodes.json is replaced at once by an empty one with a new hub id ----------
 
-@pytest.mark.xfail(strict=True, reason="fixed in a later commit")
 def test_a_corrupt_nodes_file_is_moved_aside_and_the_hub_id_kept(tmp_path):
     """A new hub id means every node says 'another hub answers' forever and never re-pairs on its own."""
     path = tmp_path / "nodes.json"

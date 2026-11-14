@@ -115,22 +115,62 @@ def _private_dir(path: Path) -> Path:
     return path
 
 
+def _legible_hub_id(raw: str) -> str | None:
+    found = re.search(r'"hub_id"\s*:\s*"([\w-]{1,64})"', raw)
+    return found.group(1) if found else None
+
+
 class NodesRegistry:
     """$STATE/nodes.json, 0600: this hub's id and each paired node's {id, name, os, key, paired_at}. It holds the keys."""
 
     def __init__(self, path: Path):
         self.path = path
         data: dict = {}
+        broken = False
         if path.exists():
             try:
                 data = json.loads(path.read_text())
             except (ValueError, OSError) as e:
-                logger.error(f"{path} unreadable ({type(e).__name__}): no machines paired until they pair again")
+                broken = True
+                data = {"hub_id": self._set_aside(e)}
+        else:
+            data = {"hub_id": self._hub_id_set_aside()}
         data = data if isinstance(data, dict) else {}
         self.nodes: dict[str, dict] = {n["id"]: n for n in data.get("nodes", [])
                                        if isinstance(n, dict) and isinstance(n.get("id"), str) and n.get("key")}
         self.hub_id = data.get("hub_id") if isinstance(data.get("hub_id"), str) else secrets.token_hex(8)
-        self.save()
+        if not broken:  # a broken file is not saved over: the next pairing or revoke writes a new one
+            self.save()
+
+    def _set_aside(self, error: Exception) -> str | None:
+        """Move an unreadable nodes.json to nodes.json.broken-<time> for repair by hand; its hub id if one is legible
+        (a new one would make every node say "another hub answers" and never come back on its own)."""
+        try:
+            raw = self.path.read_bytes().decode(errors="replace")
+        except OSError:
+            raw = ""
+        aside = self.path.with_name(f"{self.path.name}.broken-{int(time.time())}")
+        try:
+            os.replace(self.path, aside)
+        except OSError as e:
+            aside = self.path
+            logger.error(f"{self.path} could not be moved aside ({type(e).__name__})")
+        hub_id = _legible_hub_id(raw)
+        logger.error(f"{self.path} is unreadable ({type(error).__name__}); kept as {aside}. No machine is paired until "
+                     f"it is repaired and the daemon restarted, or each machine pairs again. Hub id "
+                     f"{'kept' if hub_id else 'lost: paired machines must pair again'}")
+        return hub_id
+
+    def _hub_id_set_aside(self) -> str | None:
+        """With no nodes.json, the hub id of the newest one set aside, if any: a restart before the next save keeps it."""
+        for aside in sorted(self.path.parent.glob(f"{self.path.name}.broken-*"), reverse=True):
+            try:
+                hub_id = _legible_hub_id(aside.read_bytes().decode(errors="replace"))
+            except OSError:
+                continue
+            if hub_id:
+                return hub_id
+        return None
 
     def save(self) -> None:
         _write_private(self.path, json.dumps({"hub_id": self.hub_id, "nodes": list(self.nodes.values())}) + "\n")

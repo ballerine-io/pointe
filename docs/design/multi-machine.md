@@ -285,7 +285,9 @@ pointe node join 'pointe://hub?…'   [--name devbox]
    Claude Code, pointe join opencode|codex in a folder. Their transcripts (credentials masked) go to studio and its
    vendors: Anthropic, Soniox, ElevenLabs, Gemini."
 
-On the hub, `$STATE/nodes.json` (0600) gets `{id, name, os, key, paired_at}`.
+On the hub, `$STATE/nodes.json` (0600) gets `{id, name, os, key, paired_at}`. A `nodes.json` that does not parse is never saved over:
+it is moved to `nodes.json.broken-<time>` (still 0600, it holds the keys) for repair by hand, and the hub keeps its
+`hub_id` if that is legible in it, so the paired nodes are not told "another hub answers" once the file is restored.
 
 ### Everyday commands
 
