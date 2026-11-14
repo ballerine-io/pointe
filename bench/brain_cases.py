@@ -30,6 +30,8 @@ class S:
     typed: str = ""
     notes: dict | None = None
     state: str = ""  # where_it_stands, for list_sessions on a session whose notes are not shown
+    machine: str = ""  # the node it runs on; "" is the hub ("studio" in the bench)
+    online: bool = True  # its machine's link is up
 
 
 @dataclass
@@ -793,6 +795,39 @@ def _buried(final: str, length: int, seed: int) -> str:
         extra += 1
         head += "\n\n" + _table(seed + extra, f"Additional results, part {extra}", 8)
     return head + tail
+
+
+# ---------- sessions on several machines (docs/design/multi-machine.md): code routes; the brain says where ----------
+OFFLINE_SEND = {"error": f"Not sent: laptop is offline, so {LG} cannot be reached until it reconnects. Tell the user in one line."}
+BRAIN_CASES += [
+    BrainCase("mm_everywhere", "machines", "What's going on everywhere?",
+              [S(OB, notes=OUTBOX), S(LG, notes=LEDGER, machine="devbox"),
+               S(CK, notes=CHECKOUT, busy=True, machine="laptop", online=False)],
+              Rubric(banned=(SEND,), groups=((r"devbox",), (r"laptop",), (r"offline|unreachable|not connected|disconnected",)),
+                     max_words=90)),
+    BrainCase("mm_go_to_machine_tie", "machines", "Go to devbox.",
+              [S(OB, notes=OUTBOX), S(LG, notes=LEDGER, machine="devbox"), S(CK, notes=CHECKOUT, machine="devbox")],
+              Rubric(banned=(SEND,), question=True, groups=((r"ledger|thistlewick",), (r"checkout|corvane",)), max_words=30),
+              tools={"switch_session": {"error": f"Not switched. The user did not clearly name one session. Ask which on "
+                                                 f"devbox: {LG} or {CK}."}}),
+    BrainCase("mm_offline_send", "machines", "Tell the ledger one to pause the backfill.",
+              [S(OB, notes=OUTBOX), S(LG, notes=LEDGER, machine="laptop", online=False)],
+              Rubric(groups=((r"offline|reconnect|unreachable|can'?t (be )?reach|cannot (be )?reach",), (NOT_SENT + r"|\bcan'?t\b|\bcannot\b",)),
+                     forbid=(r"\b(?:i'?ve|i have) (?:asked|told|sent)\b", r"\basked (?:it|the ledger)\b"), max_words=40),
+              tools={SEND: OFFLINE_SEND}),
+    BrainCase("mm_machine_only_when_ambiguous", "machines", "Where are we on checkout?",
+              [S(OB, notes=OUTBOX), S(CK, notes=CHECKOUT, machine="devbox")],
+              Rubric(banned=(SEND,), groups=((r"1\.8|20 percent|twenty|tax|rounding",),), forbid=(r"devbox",), max_words=55),
+              active=1),
+    BrainCase("mm_where_runs", "machines", "Which machine is the ledger migration on?",
+              [S(OB, notes=OUTBOX), S(LG, notes=LEDGER, machine="devbox"), S(CK, notes=CHECKOUT, machine="laptop")],
+              Rubric(banned=(SEND,), groups=((r"devbox",),), max_words=30)),
+    BrainCase("mm_switch_across_machines", "machines", "Switch to the ledger one.",
+              [S(OB, notes=OUTBOX), S(LG, notes=LEDGER, machine="devbox")],
+              Rubric(tool=("switch_session",), banned=(SEND,), groups=((r"devbox",),), max_words=30),
+              tools={"switch_session": {"active": LG, "machine": "devbox",
+                                        "say": "Say you are now on ledger migration, on devbox."}}),
+]
 
 
 for _i, _case in enumerate(READER_CASES):
