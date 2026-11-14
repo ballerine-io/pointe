@@ -23,7 +23,7 @@ from loguru import logger
 from artifacts import Turn
 from brief import FINAL_MARK, agent_finding, excerpt, human_text
 from echo import NUMBERS
-from guards import strip_tasks
+from guards import _NO, _WEAK_YES, _YES, strip_tasks
 
 Feed = Callable[["Session", str, bool], Awaitable[None]]
 
@@ -211,6 +211,8 @@ class Registry:
             return f"{new_name} is the name of a machine"
         if not speakable(new_name):
             return f"{new_name} cannot be picked by voice"
+        if answers_a_prompt(new_name):
+            return f"{new_name} has a yes or no word in it"
         mine = {w for w in _name_words(new_name) if _distinctive(w)}
         inside = next((o for o in others if mine <= set(_name_words(o.name))), None)
         return f"{new_name} is part of {inside.name}" if inside else None
@@ -226,6 +228,9 @@ class Registry:
         if not speakable(new_name):
             return (f"{new_name} cannot be picked by voice: words like dev, main or session never select a "
                     f"session on their own. Use a name with a distinctive word")
+        if answers_a_prompt(new_name):
+            return (f"{new_name} has a yes or no word in it, so a yes or no to an approval could be taken as aimed "
+                    f"at the session")
         mine = {w for w in _name_words(new_name) if _distinctive(w)}
         inside = next((o for o in others if mine <= set(_name_words(o.name))), None)
         if inside:
@@ -272,6 +277,12 @@ def _name_words(name: str) -> list[str]:
 
 def _distinctive(w: str) -> bool:
     return w not in GENERIC_WORDS and not w.isdigit()
+
+
+def answers_a_prompt(name: str) -> bool:
+    """A word of the name is a yes or a no: a session called "yes" would take the user's yes to a prompt as aimed at
+    it, and nothing would answer."""
+    return bool(set(_words(name.replace("'", "").replace("\u2019", ""))) & (_YES | _WEAK_YES | _NO))
 
 
 def speakable(name: str) -> bool:
@@ -401,10 +412,11 @@ def _address(tokens: list[str], vocab: set[str]) -> set[int]:
 
 
 def _aliases(s: Session) -> list[tuple[str, int]]:
-    """(label, said-by-name) pairs: its name, and its folder when a rename left the folder out of the name."""
+    """(label, said-by-name) pairs: its name, and its folder when a rename left the folder out of the name and the
+    folder has no yes or no word in it (answers_a_prompt)."""
     folder = Path(s.cwd).name
     out = [(s.name, 1)]
-    if folder and not set(_name_words(folder)) <= set(_name_words(s.name)):
+    if folder and not set(_name_words(folder)) <= set(_name_words(s.name)) and not answers_a_prompt(folder):
         out.append((folder, 0))
     if s.harness != "claude-code":  # "the opencode one": another harness's name picks its sessions out. Never "claude",
         import harnesses             # which every "ask Claude Code to ..." would match

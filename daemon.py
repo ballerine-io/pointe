@@ -136,6 +136,7 @@ from pipecat.workers.runner import WorkerRunner
 from sessions import (
     NUDGE_REPEAT_SECS,
     REGISTRY,
+    answers_a_prompt,
     GENERIC_WORDS,
     Feed,
     Session,
@@ -4277,10 +4278,12 @@ def _clean_name(raw: str) -> str:
 
 def _session_name(body: dict) -> str:
     """Always a valid name: the one given or the folder's, cleaned and cut to length, else from the id. Never a
-    machine's name: "go to devbox" must mean the machine."""
+    machine's name: "go to devbox" must mean the machine. Never a yes or no word (sessions.answers_a_prompt)."""
     name = _clean_name(str(body.get("name") or Path(body["cwd"]).name))
     taken = {m.name.lower() for m in paired_machines()}
-    return name if valid_name(name) and name.lower() not in taken else f"session {str(body['id'])[:6]}"
+    if valid_name(name) and name.lower() not in taken and not answers_a_prompt(name):
+        return name
+    return f"session {str(body['id'])[:6]}"
 
 
 def _clash(a: str, b: str) -> bool:
