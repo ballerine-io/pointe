@@ -124,3 +124,15 @@ def test_a_nodes_file_names_are_bounded_before_the_routing_prompt(d, node):
     s = _join(d, "devbox", "r1", "api", files=["x" * 4095 + str(i) for i in range(40)])
     files = d._tracked_files(s)
     assert len(files) <= 4_000, f"{len(files)} chars of file names go into the routing prompt for one session"
+
+
+# ---------- Q4: cwd as a string ----------
+
+def test_a_remote_session_does_not_inherit_a_departed_local_sessions_briefing_group_by_folder_string(d, node):
+    """_briefing_groups joins a departed session to a live one on cwd equality, without the machine: a node's "/repos/shop"
+    adopts the notes of the local shop that just closed."""
+    gone = add(d, "cc1", "shop", "/repos/shop")
+    d.REGISTRY.remove("cc1")
+    remote = _join(d, "devbox", "r1", "api", cwd="/repos/shop")
+    groups = d._briefing_groups("all")
+    assert [gone, remote] not in groups, [[s.name for s in g] for g in groups]

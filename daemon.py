@@ -1819,12 +1819,13 @@ def _user_language() -> str:
 
 
 def _briefing_groups(scope: str) -> list[list[Session]]:
-    """Who a briefing covers: each live session, with a departed one from the same folder joined to it (a restart), and
-    the departed sessions left alone. At most MAX_SESSIONS: the ones waiting on the user first, then the most recent."""
+    """Who a briefing covers: each live session, with a departed one from the same folder on the same machine joined to
+    it (a restart), and the departed sessions left alone. At most MAX_SESSIONS: the ones waiting on the user first, then
+    the most recent."""
     live = list(REGISTRY.sessions.values())
     groups = [[s] for s in live]
     for gone in REGISTRY.departed.values():
-        home = next((g for g in groups if g[-1].cwd and g[-1].cwd == gone.cwd), None)
+        home = next((g for g in groups if g[-1].cwd and (g[-1].machine, g[-1].cwd) == (gone.machine, gone.cwd)), None)
         if home is not None:
             home.insert(0, gone)
         else:
