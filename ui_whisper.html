@@ -2,11 +2,10 @@
      ui.html at {{WHISPER}}; the iPhone app has the same button, card and copy. The daemon's status is the truth. While
      drive mode is on, whisper mode is held (status `held`): the button stays pressed, the card and its effects wait. -->
 <style>
-  body.whisper #caption { font-size: 30px; padding: 18px 22px; border-color: var(--orange-line); }
-  #whispercard { padding: 0 28px; } #whispercard:empty { display: none; }
+  body.whisper #caption:not([hidden]) { font-size: 30px; padding: 18px 22px; border-color: var(--orange-line); }  /* not while hidden: its padding left a gap */
+  #whispercard { padding: 0 var(--gutter); } #whispercard:empty { display: none; }
   #whispercard .ask .what { font-weight: 600; }
   #whispercard .ask .need { margin-top: 6px; }
-  @media (max-width: 760px) { #whispercard { padding-left: 16px; padding-right: 16px; } }
 </style>
 <script>
   // One card while whisper mode is on: what it does, the push-to-talk suggestion, and the voice-lock note.
@@ -40,7 +39,7 @@
     card.setAttribute('role', 'status');
     card.append(el('div', 'what', 'Whisper mode: short, quiet replies.'), el('div', 'need', WSP_LIMIT));
     if (w.lock_note) card.append(el('div', 'need', w.lock_note));
-    const row = el('div', 'answer');
+    let row = el('div', 'answer');
     if (w.suggest_ptt && !wsp.pttNotNow) {
       card.append(el('div', 'need', 'Whisper works best with Push to talk. Turn it on?'));
       const later = el('button', 'deny', 'Not now'); later.onclick = () => { wsp.pttNotNow = true; wsp.key = ''; whisperFollow(status); };
@@ -50,6 +49,7 @@
         refresh();
       };
       row.append(later, ptton);
+      card.append(row); row = el('div', 'answer');  // the question's two answers together; Back to normal on its own row
     }
     const back = el('button', 'deny', 'Back to normal'); back.id = 'whisper-off'; back.onclick = () => whisperSet(false);
     row.append(back);

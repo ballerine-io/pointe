@@ -1,6 +1,6 @@
 {
   "name": "pointe",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "description": "Talk to your Claude Code sessions by voice. Run /pointe:voice in a session to join it to the shared voice.",
   "author": {
     "name": "Ballerine"

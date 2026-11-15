@@ -19,7 +19,8 @@
                               background: var(--primary); color: var(--on-primary); }
   #dictsheet .note, #dictsheet .empty { color: var(--muted); font-size: 13px; } #dictsheet .note:empty { display: none; }
   #dictsheet .warn { color: var(--accent); font-size: 13px; } #dictsheet .warn:empty { display: none; }
-  #dicttoast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 60; display: none; align-items: center; gap: 12px;
+  /* under the top bar, over the conversation: at the bottom it covered the dock and the microphone */
+  #dicttoast { position: fixed; left: 50%; top: 82px; transform: translateX(-50%); z-index: 60; max-width: calc(100vw - 32px); display: none; align-items: center; gap: 12px;
                background: var(--surface); border: 1px solid var(--orange-line); border-radius: 12px; padding: 10px 14px; font-size: 14px;
                box-shadow: 0 28px 56px -24px var(--scrim); }
   #dicttoast.on { display: flex; }
@@ -135,6 +136,8 @@
     if (!fresh.length) return;
     dict.toast = fresh.map(x => x.term);
     $('dicttoast-text').textContent = 'Learned: ' + dict.toast.join(', ');
+    const m = document.querySelector('main').getBoundingClientRect();
+    $('dicttoast').style.left = Math.round(m.left + m.width / 2) + 'px';  // the middle of the call, not of the window
     $('dicttoast').classList.add('on');
     clearTimeout(dict.toastTimer);
     dict.toastTimer = setTimeout(() => $('dicttoast').classList.remove('on'), 8000);
