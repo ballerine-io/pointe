@@ -109,7 +109,7 @@ tests.
 | 3 | The Mac's idle time in the status, so the phone stays quiet while the user is at the Mac | Done in 1.12.0 | S to M (daemon and iOS) | Low | Stops the desk and the wrist alerting together. The daemon decides (`quiet` per item), so the app and the page follow one rule. |
 | 4 | Live Activity and Dynamic Island during a call: the active session, how many need you, the pending request's read-out form | INTEGRATE | M (a widget extension target) | Medium (signing, entitlements) | The phone's lock screen during a call is blank today. |
 | 5 | A push channel, so the phone hears of a request with the app suspended | Owner decision | L | High (it is a server, or a user-run relay) | The largest phone gap, and it conflicts with "no server, no account". |
-| 6 | Keep the Mac awake while a call from the phone is up | ADOPT | S | Low; costs battery | Needs the owner's yes and a check on real hardware. |
+| 6 | Keep the Mac awake while a call from the phone is up | Done in 1.12.0 | S | Low; on AC power only, so no battery cost | Checked on real hardware: the idle-sleep assertion appears with the call and goes with it. |
 | 7 | One `state` field per session in the status, so the page and the app stop deriving the label separately | ADOPT | S | Low | Parity by construction; nothing a user sees. |
 | 8 | herdr-core adapter for agents with no API of their own | INTEGRATE | M | Medium (0.x API, no socket auth) | After the launch, on demand. |
 | 9 | ACP to start agents by voice | INTEGRATE | L | Medium | After `start(cwd)`, when v2 is final. |

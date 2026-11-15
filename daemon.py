@@ -212,6 +212,7 @@ EARS_CLOCK = AudioClock()  # when the user's ears heard each word: a final trans
 NOTES = Notes()  # what the voice writes instead of saying: meeting notes, held news
 JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meeting secretary, lookups
 IDLE = mac.IdleClock()  # how long since the user touched this Mac: a phone stays quiet while they are at it
+KEEP_AWAKE = mac.KeepAwake()  # no idle sleep under a call from another device, on AC power only
 ALARM = conflicts.Alarm()  # two sessions that disagree: their latest reports and the open conflicts
 PREFS = Prefs(STATE_DIR / "prefs.json")
 VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
@@ -1665,6 +1666,7 @@ class State:
     phone_socket: object = None  # the phone app's call while it is up: Unpair on the page ends it
     phone_socket_id: str | None = None  # which phone holds it (phone_pairing.Phones)
     call_socket: object = None  # the call's link, page or phone: /voice/talk tells the client to send its audio
+    call_from_elsewhere: bool = False  # that call is the phone's, or a page's over the private network: keep the Mac awake
     connected_at: float = 0.0
     last_nudge_at: float = 0.0
     call_sent: dict | None = None  # the last `call` state the node link was given (_notify_call)
@@ -5710,6 +5712,7 @@ async def status(request: Request):
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},
             "attention": _attention(quiet=_quiet_here(request)),
             "mac_idle_secs": None if (idle := IDLE.secs()) is None else round(idle, 1),
+            "keep_awake": KEEP_AWAKE.status(),  # {on, why}: idle sleep held off for a call from another device
             "conflicts": ALARM.open(),
             "briefing": _briefing_status(),
             "challenge": (state.challenge or state.last_challenge).status() if (state.challenge or state.last_challenge) else None,
@@ -6169,6 +6172,7 @@ async def _liveness() -> None:
         _follow_titles()
         await _watch_machines()
         _notify_call()  # also catches a change of the approvals setting in config.json
+        await KEEP_AWAKE.update(state.call_from_elsewhere)  # unplugged mid-call: released within one round
 
 
 def _follow_titles() -> None:
@@ -6400,16 +6404,19 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
 
     pinger = asyncio.create_task(keep_alive())
     state.call_socket = websocket
+    state.call_from_elsewhere = who == "phone" or remote.Remote.on_tls_listener(websocket.scope)
     if who == "phone":
         state.phone_socket = websocket
         state.phone_socket_id = websocket.scope.get("state", {}).get("pointe_phone_id")
     try:
+        await KEEP_AWAKE.update(state.call_from_elsewhere)
         await run_call(transport)
     finally:
         pinger.cancel()
         state.heartbeat_info = None
         if state.call_socket is websocket:
-            state.call_socket = None
+            state.call_socket, state.call_from_elsewhere = None, False
+            await KEEP_AWAKE.update(False)  # the call ended: the Mac may sleep again
         if state.phone_socket is websocket:
             state.phone_socket = None
 

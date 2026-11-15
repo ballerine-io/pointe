@@ -24,6 +24,14 @@ With Twingate: a Connector on this Mac (Docker or Colima), a resource for the Ma
 "Mac not reachable" while Safari on the phone reaches `https://<name>:7443/voice/status` (a warning, then "Forbidden"),
 pair again. If Safari can't reach it either, restart the Twingate client: new aliases sometimes don't resolve until then.
 
+## The Mac stays awake during a call
+
+While a call from the phone (or from the page on another device) is up and the Mac is on AC power, the daemon runs
+`caffeinate -i -w <its pid>`, so the Mac does not idle-sleep and drop the call. It stops when the call ends or the Mac
+goes to battery (checked every 5 seconds), and never runs on battery or when the power source cannot be read. Only idle
+sleep is held off: the display may still sleep, and closing a laptop's lid still sleeps it. `/voice/status` says which,
+in `keep_awake: {on, why}`.
+
 ## What stays on the Mac
 
 The app does what the page does, with one deliberate exception: the voice model's full context is shown only on the

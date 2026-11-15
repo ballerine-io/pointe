@@ -1,4 +1,4 @@
-"""This Mac's own state that the phone depends on: whether the user is at it.
+"""This Mac's own state that the phone depends on: whether the user is at it, and staying awake for a call from it.
 
 The idle time is IOKit's HIDIdleTime (`ioreg`): nanoseconds since the last keyboard, mouse or trackpad input, for
 anyone logged in at this Mac's screen. Read in a subprocess, never on the event loop's thread, at most every
@@ -6,6 +6,7 @@ IDLE_READ_SECS and only while something asks (a status poll).
 """
 
 import asyncio
+import os
 import re
 import time
 
@@ -76,3 +77,83 @@ class IdleClock:
         if idle is None and self.idle is not None:
             logger.info("the Mac's idle time could not be read")
         self.idle, self.at = idle, self._clock()
+
+
+POWER = ("pmset", "-g", "ps")
+POWER_TIMEOUT_SECS = 2.0
+_SOURCE = re.compile(r"Now drawing from '([^']+)'")
+
+
+def on_ac(out: str) -> bool | None:
+    """True on AC power, False on battery, from `pmset -g ps`; None when it says neither."""
+    found = _SOURCE.search(out)
+    return None if found is None else found.group(1) == "AC Power"
+
+
+async def read_power() -> bool | None:
+    if not SYSTEM:
+        return None
+    proc = None
+    try:
+        proc = await asyncio.create_subprocess_exec(*POWER, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.DEVNULL)
+        out, _ = await asyncio.wait_for(proc.communicate(), POWER_TIMEOUT_SECS)
+    except (OSError, asyncio.TimeoutError):
+        if proc is not None and proc.returncode is None:
+            proc.kill()
+            await proc.wait()
+        return None
+    return on_ac(out.decode(errors="replace"))
+
+
+async def start_caffeinate():
+    """`caffeinate -i -w <this daemon>`: holds off idle sleep (the display may still sleep, a closed lid still sleeps),
+    and ends by itself when the daemon does, however it ends."""
+    if not SYSTEM:
+        return None
+    try:
+        return await asyncio.create_subprocess_exec("caffeinate", "-i", "-w", str(os.getpid()), stdin=asyncio.subprocess.DEVNULL,
+                                                    stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+    except OSError as e:
+        logger.warning(f"could not keep the Mac awake: {e}")
+        return None
+
+
+class KeepAwake:
+    """While a call from another device is up and the Mac is on AC power, the Mac does not idle-sleep under it: the
+    phone's call would drop with the Mac. Never on battery; a power source that cannot be read counts as battery."""
+
+    def __init__(self, power=read_power, start=start_caffeinate):
+        self._power, self._start = power, start
+        self.proc = None
+        self.why = "no call from another device"
+        self._lock = asyncio.Lock()
+
+    @property
+    def on(self) -> bool:
+        return self.proc is not None and self.proc.returncode is None
+
+    async def update(self, call_from_elsewhere: bool) -> None:
+        """Called when such a call starts or ends, and every few seconds (the power source can change under a call)."""
+        async with self._lock:
+            ac = await self._power() if call_from_elsewhere else None
+            want = call_from_elsewhere and ac is True
+            self.why = ("a call from another device is up and the Mac is on power" if want else
+                        "the Mac is on battery" if call_from_elsewhere and ac is False else
+                        "the power source is unknown" if call_from_elsewhere else "no call from another device")
+            if want and not self.on:
+                self.proc = await self._start()
+                if self.on:
+                    logger.info("keeping the Mac awake: a call from another device is up, on AC power")
+            elif not want and self.proc is not None:
+                self.stop()
+                logger.info(f"no longer keeping the Mac awake: {self.why}")
+
+    def stop(self) -> None:
+        proc, self.proc = self.proc, None
+        if proc is not None and proc.returncode is None:
+            proc.terminate()
+            asyncio.get_running_loop().create_task(proc.wait())  # reaped: no zombie
+
+    def status(self) -> dict:
+        return {"on": self.on, "why": self.why}
