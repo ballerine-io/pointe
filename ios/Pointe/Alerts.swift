@@ -97,7 +97,8 @@ enum AlertPlan {
         var kept = posted.filter { ids.contains(id(ofKey: $0)) }
         var post: [AlertNote] = []
         if !appActive {
-            for a in items {
+            // A quiet item is not recorded as posted: it is posted on the first poll after the user leaves the Mac.
+            for a in items where a.quiet != true {
                 guard let n = note(a, watchApprove: watchApprove, machines: machines) else { continue }
                 // Once per id; again only when one posted with no actions (its machine offline) now has them.
                 if let before = kept.first(where: { id(ofKey: $0) == n.id }),

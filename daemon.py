@@ -40,6 +40,7 @@ import conflicts
 import drive as drives
 import remote
 import harnesses
+import mac
 import hub_nodes
 import phone_pairing
 import nodelink
@@ -210,6 +211,7 @@ ECHO = EchoGuard()
 EARS_CLOCK = AudioClock()  # when the user's ears heard each word: a final transcript comes seconds after them
 NOTES = Notes()  # what the voice writes instead of saying: meeting notes, held news
 JOBS = JobRunner(concurrency=2)  # the reading model's background work: the meeting secretary, lookups
+IDLE = mac.IdleClock()  # how long since the user touched this Mac: a phone stays quiet while they are at it
 ALARM = conflicts.Alarm()  # two sessions that disagree: their latest reports and the open conflicts
 PREFS = Prefs(STATE_DIR / "prefs.json")
 VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
@@ -5706,7 +5708,8 @@ async def status(request: Request):
             "meeting": state.meeting.status() if state.meeting is not None else (
                 {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},
-            "attention": _attention(),
+            "attention": _attention(quiet=_quiet_here(request)),
+            "mac_idle_secs": None if (idle := IDLE.secs()) is None else round(idle, 1),
             "conflicts": ALARM.open(),
             "briefing": _briefing_status(),
             "challenge": (state.challenge or state.last_challenge).status() if (state.challenge or state.last_challenge) else None,
@@ -5757,12 +5760,20 @@ def _alert_name(s: Session) -> str:
     return f"{base} · {machine}"
 
 
-def _attention() -> list[dict]:
-    """What may need the user right now, for alerts on the phone, the watch and the desktop: one entry each."""
+def _quiet_here(request: Request) -> bool:
+    """A client that is not on this Mac (the phone app, the page over the private network) holds its alerts while the
+    user is at the Mac. The page on the Mac never does: its desktop alerts are for the person sitting there."""
+    return _off_the_mac(request) and IDLE.in_use()
+
+
+def _attention(quiet: bool = False) -> list[dict]:
+    """What may need the user right now, for alerts on the phone, the watch and the desktop: one entry each. `quiet` on
+    an item: the client posts nothing for it yet (an approval about to go back to its terminal never is)."""
     items = []
     for s in REGISTRY.sessions.values():
         if s.permission_id:
             item = alerts.permission_alert(s.name, s.id, s.permission_id, s.permission_since or time.time(), _alert_name(s))
+            item["quiet"] = quiet and not _permission_urgent(s)
             items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
         elif since := terminal_wait_since(s, time.time()):
             items.append(alerts.terminal_alert(s.name, terminal_wait(s), since, _alert_name(s)))
@@ -5776,7 +5787,7 @@ def _attention() -> list[dict]:
         items.append(alerts.hand_alert(m.id, m.hand.n, m.hand.line, m.hand.at))
     if alert := _briefing_alert():
         items.append(alert)
-    return [i for i in items if i["id"] not in state.attention_dismissed]
+    return [{"quiet": quiet, **i} for i in items if i["id"] not in state.attention_dismissed]
 
 
 @app.get("/voice/artifact")
@@ -5795,7 +5806,7 @@ async def artifact(request: Request, id: str = ""):
 @app.post("/voice/attention")
 async def attention_seen(request: Request):
     state.attention_dismissed.add(str((await request.json()).get("id") or ""))
-    return {"attention": _attention()}
+    return {"attention": _attention(quiet=_quiet_here(request))}
 
 
 async def _body(request: Request) -> dict:

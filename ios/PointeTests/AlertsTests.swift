@@ -58,6 +58,26 @@ final class AlertsTests: XCTestCase {
         XCTAssertEqual(plan(attention(readable), posted: r.posted).post.count, 1, "posted once the app leaves the screen")
     }
 
+    func testWhileTheUserIsAtTheMacNothingIsPostedAndItIsPostedOnceTheyLeave() {
+        let quiet = attention(readable.replacingOccurrences(of: #""approvable": true"#, with: #""approvable": true, "quiet": true"#))
+        XCTAssertEqual(quiet[0].quiet, true)
+        let r = plan(quiet)
+        XCTAssertEqual(r.post, [])
+        XCTAssertEqual(r.posted, [], "not recorded as posted: it is still to come")
+        XCTAssertEqual(r.withdraw, [])
+        let later = plan(attention(readable), posted: r.posted)  // the Mac idle for a minute, or the approval near its timeout
+        XCTAssertEqual(later.post.map(\.id), ["permission:a1b2c3d4"])
+        XCTAssertNil(attention(readable)[0].quiet, "an older Mac sends none: posted as before")
+    }
+
+    func testAnAlreadyPostedItemIsNotWithdrawnWhenTheUserSitsDown() {
+        let r = plan(attention(readable))
+        let quiet = attention(readable.replacingOccurrences(of: #""approvable": true"#, with: #""approvable": true, "quiet": true"#))
+        let then = plan(quiet, posted: r.posted, delivered: ["permission:a1b2c3d4"])
+        XCTAssertEqual(then.withdraw, [])
+        XCTAssertEqual(then.posted, r.posted)
+    }
+
     func testAnsweredElsewhereIsWithdrawn() {
         let r = plan([], posted: ["permission:a1b2c3d4"], delivered: ["permission:a1b2c3d4", "hand:m1:2"])
         XCTAssertEqual(r.withdraw, ["hand:m1:2", "permission:a1b2c3d4"])

@@ -298,6 +298,8 @@ struct API {
         var title: String? = nil
         var body: String? = nil
         var approvable: Bool? = nil
+        // The user is at the Mac: post nothing for it yet (the Mac decides; an older Mac sends none).
+        var quiet: Bool? = nil
     }
 
     struct Note: Decodable, Equatable, Identifiable {

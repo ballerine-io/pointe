@@ -106,7 +106,7 @@ tests.
 |---|---|---|---|---|---|
 | 1 | The same state for sessions on other machines: the node ships `blocked_on` | Done in 1.12.0 | S | Low to medium (link protocol) | Finishes 1.10.0; a remote session is the one the user cannot glance at. Optional snapshot fields, so either side can be older. |
 | 2 | A send held by the terminal: Claude Code holds an inbox message to a session that bypasses permission prompts, and Pointe reports it sent | Done in 1.12.0 | S | Low | Checked live against 2.1.325: the roster says `permission prompt`, not `dialog open`, so the signal is Claude Code's own receipt to a reply address (`docs/harnesses.md`). |
-| 3 | The Mac's idle time in the status, so the phone stays quiet while the user is at the Mac | ADOPT | S to M (daemon and iOS) | Low | Stops the desk and the wrist alerting together. |
+| 3 | The Mac's idle time in the status, so the phone stays quiet while the user is at the Mac | Done in 1.12.0 | S to M (daemon and iOS) | Low | Stops the desk and the wrist alerting together. The daemon decides (`quiet` per item), so the app and the page follow one rule. |
 | 4 | Live Activity and Dynamic Island during a call: the active session, how many need you, the pending request's read-out form | INTEGRATE | M (a widget extension target) | Medium (signing, entitlements) | The phone's lock screen during a call is blank today. |
 | 5 | A push channel, so the phone hears of a request with the app suspended | Owner decision | L | High (it is a server, or a user-run relay) | The largest phone gap, and it conflicts with "no server, no account". |
 | 6 | Keep the Mac awake while a call from the phone is up | ADOPT | S | Low; costs battery | Needs the owner's yes and a check on real hardware. |

@@ -3461,6 +3461,7 @@
     const away = document.visibilityState === 'hidden';
     for (const a of items) {
       if (desk.seen.has(a.id)) continue;
+      if (a.quiet) continue;  // opened from elsewhere while the user is at the Mac: alerted once they leave it (daemon)
       desk.seen.add(a.id);  // shown on the page or alerted once: never alerted again
       if (!away || !deskWanted() || !deskAllowed()) continue;
       const n = new Notification(a.title || 'Pointe wants to speak', {body: a.body || a.text || '', tag: a.id,

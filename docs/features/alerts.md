@@ -36,6 +36,13 @@ up), a session that ended its turn waiting on you, a raised hand in a
   there."): Pointe does not hold that prompt, so nothing here could answer it. One you answer at the keyboard within 15
   seconds never alerts, and a dialog you may have opened yourself never does. On a call, in orchestrator mode, the voice
   says it once the room is quiet, like any session stuck on you.
+- **Quiet while you are at the Mac.** The phone, and the page opened on another device, post nothing while this Mac had
+  keyboard, mouse or trackpad input in the last 60 seconds (IOKit's HIDIdleTime, read with `ioreg` at most every 5
+  seconds while a client asks). The item is held, not dropped: it is posted on the first check after you leave the Mac.
+  An approval within 60 seconds of going back to its terminal is never held. A minute covers reading between
+  keystrokes and lets the next alert through soon after you walk away; a missed approval costs more than one extra buzz.
+  The page on this Mac is never held: its desktop alerts are for the person at the Mac. An idle time that could not be
+  read, or is over 15 seconds old, counts as away.
 - A stale request answers "Already answered"; a refused Approve answers "Approve it in the app"; anything else answers
   "Mac not reachable", and the notification is posted again on the next check.
 
@@ -51,7 +58,8 @@ up), a session that ended its turn waiting on you, a raised hand in a
 ## API
 
 - Status `attention: [{id, kind: permission|terminal|question|hand|conflict|briefing, session?, request_id?, title, body,
-  text, approvable, at}]`. A `terminal` item is a prompt in the session's own terminal, id `terminal:<session>:<since>`. `title` and `body` are what a notification may show. `approvable`: a notification may offer
+  text, approvable, quiet, at}]`. `quiet`: the user is at this Mac and the client asking is not on it, so it posts
+  nothing for the item yet. Status `mac_idle_secs`: seconds since the Mac's last input, or null when unknown. A `terminal` item is a prompt in the session's own terminal, id `terminal:<session>:<since>`. `title` and `body` are what a notification may show. `approvable`: a notification may offer
   Approve. A `question` is a session that ended its turn waiting on you, id `question:<session>:<since>`.
 - `POST /voice/approve` takes `via: "notification"`: an Allow is refused (403) unless the setting is on and the request
   is `approvable`; a stale `request_id` is 409. Deny needs neither.

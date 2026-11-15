@@ -19,3 +19,7 @@ harnesses.claude_code.ROSTER = False  # a probe never runs the machine's real `c
 # Nor does a send read this machine's Claude Code settings: an empty account and no managed settings, unless a test says.
 harnesses.claude_code.DEFAULT_HOME = _STATE / "claude-home"
 harnesses.claude_code.MANAGED_SETTINGS = _STATE / "managed-settings.json"
+
+import mac  # noqa: E402
+
+mac.SYSTEM = False  # nor this Mac's idle time, power or sleep
