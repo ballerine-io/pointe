@@ -142,6 +142,7 @@ from pipecat.workers.runner import WorkerRunner
 import sessions as sessions_module
 from sessions import (
     NUDGE_REPEAT_SECS,
+    apply_wait_state,
     REGISTRY,
     answers_a_prompt,
     GENERIC_WORDS,
@@ -4848,7 +4849,9 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
     files = [str(f) for f in entry.get("files") or [] if isinstance(f, str)][:40] if isinstance(entry.get("files"), list) else None
     title = _clean_name(str(entry.get("title") or ""))
     session = REGISTRY.sessions.get(sid)
+    skew = m.skew if (m := paired_machine(machine)) else 0.0
     if session is not None:
+        apply_wait_state(session, entry, skew)  # a prompt in its terminal there, as for a session here
         session.cwd = str(entry.get("cwd") or session.cwd)
         if files is not None:
             session.harness_data["files"] = files
@@ -4862,6 +4865,7 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
                       cwd=str(entry.get("cwd") or ""), pid=int(entry.get("pid") or 0), harness=harness,
                       home=str(entry.get("home") or ""), machine=machine,
                       harness_data={"remote_id": remote_id, "node_id": node_id, "files": files or []})
+    apply_wait_state(session, entry, skew)
     if entry.get("name_given"):
         session.named_by = "user"
     elif title and not REGISTRY.rename_check(session.id, title, machine):

@@ -7,6 +7,7 @@ the registry into Pipecat bus workers, one per session (daemon.ClaudeSessionWork
 
 import asyncio
 import json
+import math
 import os
 import re
 import secrets
@@ -762,6 +763,37 @@ def terminal_wait_since(session: Session, now: float) -> float | None:
     if not terminal_wait(session) or since is None:
         return None
     return since if now - since >= TERMINAL_NEWS_AFTER_SECS else None
+
+
+def wait_state(session: Session) -> dict:
+    """What a node ships in its `sessions` snapshot about a wait in the session's own terminal, in the node's clock: the
+    harness's word for the prompt (`blocked_on`, which the hub maps to fixed words like this machine does), and a message
+    from the voice Claude Code holds there."""
+    return {"blocked_on": session.blocked_on, "blocked_since": session.blocked_since if session.blocked_on else None,
+            "held_at": session.held_at if message_held(session) else None}
+
+
+def _node_time(value, skew: float) -> float | None:
+    ok = isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    return value + skew if ok else None
+
+
+def apply_wait_state(session: Session, entry: dict, skew: float) -> None:
+    """A node's `wait_state` on the hub's copy of the session, its times shifted by the clock skew measured at the
+    node's hello. An unchanged wait keeps the time the hub gave it, so an alert keeps its id. An entry from a node older
+    than 1.12.0 carries none of it and changes nothing."""
+    if "blocked_on" not in entry:
+        return
+    blocked = entry.get("blocked_on")
+    blocked = blocked[:64] if isinstance(blocked, str) else ""
+    if blocked != session.blocked_on:
+        session.blocked_on = blocked
+        session.blocked_since = (_node_time(entry.get("blocked_since"), skew) or time.time()) if blocked else None
+    held = _node_time(entry.get("held_at"), skew)
+    if held is None:
+        session.held_at = None
+    elif session.held_at is None:
+        session.held_at = min(held, time.time())
 
 
 def _moved(session: Session) -> None:

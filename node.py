@@ -34,7 +34,9 @@ import harnesses  # noqa: E402
 import nodelink  # noqa: E402
 import readout  # noqa: E402
 from harnesses.base import HOST  # noqa: E402
-from sessions import Registry, Session  # noqa: E402
+from sessions import Registry, Session, wait_state  # noqa: E402
+
+NO_WAIT = {"blocked_on": "", "blocked_since": None, "held_at": None}
 
 STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
 PORT = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
@@ -780,12 +782,14 @@ class Node:
                 "harness": s.harness, "home": s.home, "title": adapter.title(s),
                 "capabilities": {**adapter.capabilities(), "side_questions": False},
                 "files": self.tails[s.id].files if s.id in self.tails else [],
-                "pending": {k: v for k, v in held.frame.items() if k != "t"} if held else None})
+                "pending": {k: v for k, v in held.frame.items() if k != "t"} if held else None,
+                **wait_state(s)})  # a prompt in its terminal, shown on the hub as for its own sessions
         await self._send("sessions", sessions=sessions)
 
     async def _liveness(self) -> None:
         """As the daemon's loop: probe, drop exited sessions, follow titles."""
         titles: dict[str, str | None] = {}
+        waits: dict[str, dict] = {}
         while True:
             await asyncio.sleep(LIVENESS_SECS)
             sessions = list(self.registry.sessions.values())
@@ -809,6 +813,10 @@ class Node:
                 if titles.get(session.id) != title:
                     changed = changed or session.id in titles
                     titles[session.id] = title
+                wait = wait_state(session)
+                if waits.get(session.id, NO_WAIT) != wait:  # a session first seen waiting is news too
+                    changed = True
+                waits[session.id] = wait
             if changed and self.linked.is_set():
                 await self._snapshot()
 
