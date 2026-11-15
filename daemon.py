@@ -163,6 +163,7 @@ from sessions import (
     session_title,
     speakable,
     voice_message,
+    terminal_wait,
     waiting_since,
 )
 
@@ -3622,6 +3623,11 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
     return True
 
 
+def _working(s: Session) -> bool:
+    """In a turn and not stopped at a prompt in its terminal: a tool that waits for an answer there is not work."""
+    return s.busy and not terminal_wait(s)
+
+
 def _waiting_items(s: Session) -> list[str]:
     """What a session waits on the user for, from the daemon's records."""
     waits = list(s.open_questions)
@@ -3633,6 +3639,8 @@ def _waiting_items(s: Session) -> list[str]:
     if s.permission_id:
         waits.insert(0, "a permission approval" if online(s) else
                      "a permission approval, now only in its terminal: its machine is offline")
+    elif wait := terminal_wait(s):
+        waits.insert(0, f"{wait}: the user answers it there, a yes by voice does not reach it")
     if s.typed_approval:
         waits.append(f"the user must type this approval in its terminal: {s.typed_approval}")
     return waits
@@ -3657,7 +3665,8 @@ def _needs_now() -> str:
         notes = _brief_of(s) or {}
         promised = "; ".join(str(p) for p in notes.get("owner_promised") or [])
         machine = f" on {_machine_of(s)}" if several else ""
-        lines.append(f"- {s.name} ({harnesses.of(s).agent}{machine}, {'working' if s.busy else 'not working'}). "
+        doing = "stopped at a prompt in its terminal" if terminal_wait(s) else "working" if s.busy else "not working"
+        lines.append(f"- {s.name} ({harnesses.of(s).agent}{machine}, {doing}). "
                      + ("" if online(s) else "OFFLINE: cannot be sent to. ")
                      + f"{notes.get('state') or 'No notes on it yet.'}"
                      f"{' URGENT.' if s.urgency == 'high' and items(s) else ''} "
@@ -4288,7 +4297,7 @@ async def _is_current_request(message: str, utterance: str, earlier: list[str],
 
 async def list_sessions(params: FunctionCallParams):
     sessions = [{"name": s.name, "agent": harnesses.of(s).agent, "machine": _machine_of(s), "online": online(s),
-                 "active": s is REGISTRY.active, "working": s.busy,
+                 "active": s is REGISTRY.active, "working": _working(s),
                  "waiting_for_permission": bool(s.permission_id),
                  "needs_from_user": _waiting_items(s),
                  "clocks": s.deadlines, "urgent": s.urgency == "high",
@@ -5331,7 +5340,7 @@ def _focus_line(s: Session) -> str:
         parts.append("It's waiting for your approval.")  # the read-out that follows says what, and opens the yes
     elif waits:
         parts.append(f"It's waiting on you: {_sentence(waits[0])}")
-    elif s.busy:
+    elif _working(s):
         parts.append("It's working, not waiting on you.")
     else:
         parts.append("It's not waiting on anything.")
@@ -5685,12 +5694,14 @@ async def status(request: Request):
             "invite_ended": _invite_ended(request),
             "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "phone_listener": REMOTE.enabled,  # false: no phone can reach this Mac yet; the page's Connect panel says so
-            "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": s.busy, "waiting": bool(s.permission_id),
+            "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": _working(s), "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
                           "request_id": s.permission_id,
                           "voice_can_approve": bool(s.permission_id and not s.permission_cut and online(s)),
-                          "needs": s.needs["need"] if s.needs else None,
+                          # A prompt in its terminal is a need too: both screens show "needs you" and these words.
+                          "needs": s.needs["need"] if s.needs else _sentence(terminal_wait(s)).capitalize() if terminal_wait(s) else None,
+                          "blocked_on": s.blocked_on if terminal_wait(s) else None,
                           "mode": "channel" if s.channel_url else "inbox"} for s in REGISTRY.sessions.values()]}
 
 

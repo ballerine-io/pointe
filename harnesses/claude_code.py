@@ -1,6 +1,7 @@
 """Claude Code: the transcript under its config dir's projects/ (several accounts each have their own), the session's
 inbox socket (or its voice channel in launch mode), its PermissionRequest hook (bin/voice-permission-hook ->
-/voice/permission-hook -> hold_permission), and `claude -p --resume --fork-session` for side questions."""
+/voice/permission-hook -> hold_permission), `claude -p --resume --fork-session` for side questions, and
+`claude agents --json` for a prompt the session waits at in its own terminal."""
 
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from loguru import logger
@@ -17,6 +19,14 @@ from loguru import logger
 from .base import HOST, Harness
 
 DEFAULT_HOME = Path.home() / ".claude"
+
+
+# `claude agents --json`: the interface Claude Code supports for reading session state from outside. The transcript
+# cannot tell a tool that runs from a tool that waits for an answer in the terminal; this can.
+ROSTER = True  # tests turn it off: they never run the real `claude`
+ROSTER_SECS = 15.0  # at most one read per account in this time, and only while a session could be at a prompt
+ROSTER_QUIET_SECS = 5.0  # a session whose record moved this recently is working, not waiting
+ROSTER_TIMEOUT_SECS = 3.0
 
 
 def home_of(session) -> Path:
@@ -35,6 +45,9 @@ class ClaudeCode(Harness):
 
     def __init__(self) -> None:
         self._gone: dict[int, bool] = {}  # pid -> the last probe found it a zombie (or unknown to ps)
+        self._roster: dict[str, tuple[float, dict[int, str]]] = {}  # config dir -> when it was read, and pid -> its wait
+        self._roster_asked: dict[str, float] = {}  # config dir -> when a read last began
+        self._roster_seen: dict[str, float] = {}  # session id -> the read it last took its state from
 
     @property
     def side_questions(self) -> bool:  # type: ignore[override]
@@ -59,6 +72,36 @@ class ClaudeCode(Harness):
         except (OSError, subprocess.SubprocessError):
             return  # no verdict this round: alive() keeps the last one
         self._gone[session.pid] = not stat.strip() or "Z" in stat
+        await self._see_prompt(session)
+
+    def _may_be_at_a_prompt(self, session, now: float) -> bool:
+        """Worth a read: never looked at yet, known to wait, or in a tool call with a quiet record (the voice holding
+        its request is the one wait already known)."""
+        if session.id not in self._roster_seen or session.blocked_on:
+            return True
+        return bool(session.busy and not session.permission_id and now - session.active_at >= ROSTER_QUIET_SECS)
+
+    async def _see_prompt(self, session) -> None:
+        """Sets `blocked_on` when Claude Code says the session waits at a prompt in its terminal, and clears it when it
+        says otherwise. One read serves every session of the account; a read that failed concludes nothing."""
+        if not ROSTER:
+            return
+        home, now = getattr(session, "home", "") or "", time.time()
+        if self._may_be_at_a_prompt(session, now) and now - self._roster_asked.get(home, 0.0) >= ROSTER_SECS:
+            self._roster_asked[home] = now  # before the wait: the other sessions probed in this round do not read too
+            self._roster[home] = (now, await _roster(home) or {})
+        at, roster = self._roster.get(home, (0.0, {}))
+        if at <= self._roster_seen.get(session.id, 0.0):
+            return
+        self._roster_seen[session.id] = at
+        waits = roster.get(session.pid)
+        if waits is None or session.active_at > at:
+            return  # not listed, or its record moved after the read: that prompt was answered
+        if not waits or session.permission_id:
+            session.blocked_on, session.blocked_since = "", None
+        elif session.blocked_on != waits:
+            session.blocked_on, session.blocked_since = waits, now
+            logger.info(f"{session.name} waits in its terminal: {waits}")
 
     def watch(self, session, feed):
         from sessions import follow_transcript
@@ -104,10 +147,7 @@ class ClaudeCode(Harness):
         model = _model_of(session)
         if model:
             args += ["--model", model]
-        env = {k: v for k, v in os.environ.items()
-               if not k.startswith("CLAUDE_CODE_") and k not in ("CLAUDECODE", "CLAUDE_PID", "CLAUDE_CONFIG_DIR")}
-        if getattr(session, "home", ""):
-            env["CLAUDE_CONFIG_DIR"] = session.home  # its own account: the fork reads that account's transcripts
+        env = _env(getattr(session, "home", ""))  # its own account: the fork reads that account's transcripts
         proc = None
         try:
             proc = await asyncio.create_subprocess_exec(*args, question, cwd=session.cwd, env=env,
@@ -124,6 +164,51 @@ class ClaudeCode(Harness):
                 proc.kill()
             raise
         return None
+
+
+def _env(home: str) -> dict:
+    """The environment for a `claude` this daemon starts: not the session's that started the daemon, and the account
+    (config dir) asked for."""
+    env = {k: v for k, v in os.environ.items()
+           if not k.startswith("CLAUDE_CODE_") and k not in ("CLAUDECODE", "CLAUDE_PID", "CLAUDE_CONFIG_DIR")}
+    if home:
+        env["CLAUDE_CONFIG_DIR"] = home
+    return env
+
+
+def parse_roster(out: bytes | str) -> dict[int, str] | None:
+    """`claude agents --json` as pid -> what that session waits for at a prompt ("" when it does not wait). Its
+    `waitingFor` names the prompt ("permission prompt", "input needed", ...); None when the output is not the list."""
+    try:
+        entries = json.loads(out)
+    except ValueError:
+        return None
+    if not isinstance(entries, list):
+        return None
+    roster = {}
+    for e in entries:
+        if isinstance(e, dict) and isinstance(e.get("pid"), int):
+            roster[e["pid"]] = str(e.get("waitingFor") or "prompt") if e.get("status") == "waiting" else ""
+    return roster
+
+
+async def _roster(home: str) -> dict[int, str] | None:
+    """None when it could not be read: no `claude` on the path, one too old to know the command, or no answer in time."""
+    claude = shutil.which("claude")
+    if not claude:
+        return None
+    proc = None
+    try:
+        proc = await asyncio.create_subprocess_exec(claude, "agents", "--json", env=_env(home), stdin=asyncio.subprocess.DEVNULL,
+                                                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+        out, _ = await asyncio.wait_for(proc.communicate(), ROSTER_TIMEOUT_SECS)
+    except (OSError, asyncio.TimeoutError, asyncio.CancelledError) as e:
+        if proc is not None and proc.returncode is None:
+            proc.kill()
+        if isinstance(e, asyncio.CancelledError):  # the liveness loop's own limit
+            raise
+        return None
+    return parse_roster(out) if proc.returncode == 0 else None
 
 
 def _stat_of(pid: int) -> str:

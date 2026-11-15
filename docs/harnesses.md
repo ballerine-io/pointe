@@ -52,6 +52,14 @@ session are answered by the transcript reader, as for a harness that cannot fork
 | Send | the session's inbox socket (Claude Code 2.1.224+), or its voice channel in launch mode |
 | Approvals | the plugin's `PermissionRequest` hook posts to `/voice/permission-hook`, which goes through the same `hold_permission` as any harness (280 s, under the hook's own timeout) |
 | Side questions | `claude -p --resume <id> --fork-session`, locked down, in the session's own account |
+| A prompt in its terminal | `claude agents --json` (Claude Code's supported way to read session state), read when a session's tool call has gone quiet: `status: waiting` with its `waitingFor` (`permission prompt`, `input needed`, `sandbox request`, `dialog open`) |
+
+A prompt the voice does not hold (no call was up, the hold ran out, approvals are left to the terminal, a question, a
+dialog) can only be answered in the terminal. The transcript cannot tell it from a tool that runs, so the session used
+to count as working. Now `/voice/status` gives it `working: false`, `needs` ("A permission prompt in its terminal.") and
+`blocked_on`; the voice is told it stopped there and that a yes does not reach it. The words are fixed ones, never the
+string Claude Code sent. At most one read per account every 15 seconds, and none while every session is idle or its
+record is moving. Sessions on another machine are not covered yet: the node does not ship this state.
 
 ## OpenCode v2 (`harnesses/opencode.py`)
 

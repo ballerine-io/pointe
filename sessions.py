@@ -56,6 +56,11 @@ class Session:
     permission_since: float | None = None  # when it arrived: a background session can wait on it for long
     last_delegation_at: float = 0.0
     busy: bool = False
+    # The prompt it waits at in its own terminal, in its harness's word ("permission prompt"), read from the harness
+    # (Claude Code: `claude agents --json`). The voice does not hold that prompt and cannot answer it. "" when none.
+    blocked_on: str = ""
+    blocked_since: float | None = None
+    active_at: float = 0.0  # when its record last moved: a prompt read before that is stale
     # Idle tracking for orchestrator nudges: set at turn end, cleared when it works again.
     idle_since: float | None = None
     needs: dict | None = None  # {"need": what it waits for, "unblock": what the user could say}
@@ -605,6 +610,26 @@ def _text(content) -> str:
     return ""
 
 
+# What a harness says a session waits for at a prompt in its terminal, in the words the voice and the screens use. Fixed
+# words: the harness's own string is never said or shown as it came.
+TERMINAL_WAITS = {"permission prompt": "a permission prompt", "input needed": "a question", "sandbox request": "a sandbox request",
+                  "worker request": "a request from one of its workers", "dialog open": "an open dialog"}
+
+
+def terminal_wait(session: Session) -> str:
+    """What the session waits for at a prompt in its own terminal, or "". A request the voice holds is not one: that
+    wait is the permission itself."""
+    if not session.blocked_on or session.permission_id:
+        return ""
+    return f"{TERMINAL_WAITS.get(session.blocked_on, 'a prompt')} in its terminal"
+
+
+def _moved(session: Session) -> None:
+    """Its record moved, so the prompt it stood at was answered: a tool ran, the turn went on or ended."""
+    session.active_at = time.time()
+    session.blocked_on, session.blocked_since = "", None
+
+
 def _turn_ended(session: Session) -> None:
     """A pending permission cannot outlive the turn: it was answered in the terminal."""
     session.busy = False
@@ -666,6 +691,7 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
                 continue
             message = entry.get("message") or {}
             content = message.get("content")
+            _moved(session)
             if entry["type"] == "user":
                 for block in content if isinstance(content, list) else []:
                     if isinstance(block, dict) and block.get("type") == "tool_result":
