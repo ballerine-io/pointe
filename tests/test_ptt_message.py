@@ -45,7 +45,7 @@ def test_a_press_keeps_its_words_and_gives_them_once_as_one_message():
     g.live = "and see"
     assert g.collecting and g.draft() == "Let's look at the parser. and see" and not g.sendable()
     g.hear("And see why it fails.")
-    assert _closed_and_finalized(g, T0 + 5) == ["finalize"] and g.sendable()
+    assert _closed_and_finalized(g, T0 + 5) == ["finalize", "send"] and g.sendable()  # no draft left: it goes
     assert g.take() == "Let's look at the parser. And see why it fails."
     assert not g.collecting and g.take() == "" and g.draft() == ""
 
@@ -57,16 +57,42 @@ def test_a_press_with_nothing_heard_gives_nothing():
     assert g.sendable() and g.take() == ""
 
 
-def test_the_send_waits_for_the_finalize_and_then_no_longer_than_the_final_wait():
+def test_with_no_draft_left_the_press_goes_as_soon_as_the_grace_period_is_over():
+    """Gemini made the words final inside the grace period: from a live call, it then waited two seconds for nothing."""
     g = ptt.Ptt()
     g.press(T0)
     g.hear("Run the tests.")
     g.release(T0 + 2)
-    assert g.tick("ptt", T0 + 2.1) == [] and not g.sendable()  # the tail: the last word may still be on its way
+    assert g.tick("ptt", T0 + 2.1) == [] and not g.sendable()  # the grace period: the last word may still be on its way
+    after = T0 + 2 + ptt.TAIL_SECS + ptt.LINK_SLACK_SECS + 0.01
+    assert g.tick("ptt", after) == ["finalize", "send"]
+    assert g.tick("ptt", after + ptt.FINAL_WAIT_SECS + 0.5) == []  # once
+
+
+def test_a_draft_holds_the_send_until_it_is_final():
+    g = ptt.Ptt()
+    g.press(T0)
+    g.hear("Run the tests.")
+    g.live = "and tell"
+    g.release(T0 + 2)
     after = T0 + 2 + ptt.TAIL_SECS + ptt.LINK_SLACK_SECS + 0.01
     assert g.tick("ptt", after) == ["finalize"]
-    assert g.tick("ptt", after + ptt.FINAL_WAIT_SECS - 0.1) == []  # waiting for the ears' last words
-    assert g.tick("ptt", after + ptt.FINAL_WAIT_SECS + 0.01) == ["send"]
+    assert g.tick("ptt", after + 0.3) == []  # the draft is still being finalized
+    g.hear("And tell me what failed.")
+    assert g.tick("ptt", after + 0.4) == ["send"]
+    assert g.take() == "Run the tests. And tell me what failed."
+
+
+def test_a_draft_that_never_becomes_final_goes_at_the_cap():
+    g = ptt.Ptt()
+    g.press(T0)
+    g.hear("Run the tests.")
+    g.live = "and tell"
+    g.release(T0 + 2)
+    after = T0 + 2 + ptt.TAIL_SECS + ptt.LINK_SLACK_SECS + 0.01
+    assert g.tick("ptt", after) == ["finalize"]
+    assert g.tick("ptt", after + ptt.FINAL_WAIT_SECS - 0.1) == []
+    assert g.tick("ptt", after + ptt.FINAL_WAIT_SECS + 0.01) == ["timeout"]
     assert g.tick("ptt", after + ptt.FINAL_WAIT_SECS + 0.5) == []  # once
 
 
@@ -188,8 +214,9 @@ def test_nothing_said_while_the_button_is_open_is_a_turn_and_the_release_sends_i
         await _final(d, ears, "the retry has no backoff.")  # inside the tail: still this press
         assert turns == []
         await _tail(gate)
-        assert ws.sent == ['{"type": "finalize"}'] and turns == []  # the last words are being finalized
-        await _finalized(d, ears)
+        assert ws.sent == ['{"type": "finalize"}']  # "that's the end", and no draft is left: it goes now
+        await asyncio.sleep(0.05)
+        await _finalized(d, ears)  # Soniox's <fin> after it sends nothing twice
         await asyncio.sleep(0.05)
 
     asyncio.run(run())
@@ -233,12 +260,13 @@ def test_a_finalized_word_before_the_tail_ends_sends_nothing_early(d, monkeypatc
     assert turns == ["Run the tests."]
 
 
-def test_when_the_ears_never_say_the_words_are_in_the_message_goes_after_the_final_wait(d, monkeypatch):
+def test_a_draft_that_never_becomes_final_goes_after_the_final_wait(d, monkeypatch):
     gate, ears, ws, turns, _ = _call(d, monkeypatch)
 
     async def run():
         await _press(d, gate, True)
         await _final(d, ears, "Switch to billing.")
+        await _interim(d, ears, "and then")  # a draft the ears never finish
         await _press(d, gate, False)
         now = time.time() + ptt.TAIL_SECS + ptt.LINK_SLACK_SECS + 0.05
         await gate.tick(now)
@@ -414,6 +442,36 @@ def test_other_ears_are_left_alone(d):
     ears = OtherEars()
     d._tell_finalized(ears)
     assert ears._get_websocket() == "socket"
+
+
+def test_gemini_is_told_the_audio_is_over_when_the_grace_period_ends(d, monkeypatch):
+    told = []
+
+    class GeminiLike:
+        async def _send_finalization_signal(self):
+            told.append("end")
+
+    d.PREFS.update({"microphone": "ptt"})
+    gate = d.PttGate(GeminiLike())
+
+    async def push(frame, direction=None):
+        pass
+    gate.push_frame = push
+
+    async def run():
+        await _press(d, gate, True)
+        await _press(d, gate, False)
+        assert told == []  # not inside the grace period
+        await _tail(gate)
+
+    asyncio.run(run())
+    assert told == ["end"]
+
+
+def test_pipecat_s_gemini_still_ends_its_audio_stream_where_the_finalize_calls_it():
+    from pipecat.services.google.gemini_live.stt import GeminiSTTService
+
+    assert "audio_stream_end=True" in inspect.getsource(GeminiSTTService._send_finalization_signal)
 
 
 def test_the_press_end_survives_an_interruption(d):

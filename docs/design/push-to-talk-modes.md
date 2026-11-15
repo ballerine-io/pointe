@@ -61,12 +61,24 @@ the bot answered mid-press. A hold's 8 s silence release could also fire inside 
 - `_user_talking()` is true, so no news or nudge starts over the press or the gap after it;
 - a hold's silence release waits (a pause in a press is no silence).
 
-On release the existing tail runs (0.4 s, plus 0.2 s link slack), then the gate sends Soniox `finalize`. Soniox answers
-with the last words and `<fin>`; `_tell_finalized` wraps the Soniox service's socket reader and pushes a `PressEnd` frame
-behind those words, so it reaches `SonioxEars` after them, in order (a `ControlFrame`, not interruptible). `SonioxEars`
-then sends the whole press as one turn through `_take`, the same path every turn takes, but without the settle time:
-release is the end of the turn. `Ptt.take` empties it; an empty press sends nothing. If no `<fin>` comes within
-`FINAL_WAIT_SECS` (2 s; other ears never send one) the gate pushes `PressEnd(why="timeout")` and what was heard goes.
+A press is sent the way push to talk works everywhere:
+
+1. The button is pressed: the audio streams to the speech-to-text.
+2. It is released.
+3. The tail runs (0.4 s, plus 0.2 s link slack), as if it had been released that much later.
+4. The speech-to-text is told the audio is over (`PttGate._finalize`): Soniox gets `finalize`, Gemini its
+   `audio_stream_end`. The others are not told yet.
+5. The press waits until no draft is left: every word it heard is final (`Ptt.live` is empty, `Ptt.tick` says "send").
+   With none left at the end of the tail it goes at once.
+6. It is sent: the gate pushes a `PressEnd` frame, and `SonioxEars` sends the whole press as one turn through `_take`,
+   the same path every turn takes, but without the settle time: release is the end of the turn.
+
+Soniox also answers its `finalize` with the last words and `<fin>`; `_tell_finalized` wraps the Soniox service's socket
+reader and pushes a `PressEnd` frame behind those words, so it reaches `SonioxEars` after them, in order (a
+`ControlFrame`, not interruptible). Whichever comes first sends the press, once: `Ptt.take` empties it, and an empty
+press sends nothing. A draft that never becomes final is the only wait left: after `FINAL_WAIT_SECS` (2 s) the gate
+pushes `PressEnd(why="timeout")` and what was heard goes. Until this rule, every speech-to-text but Soniox waited the full
+2 s on every press, as nothing else said the words were in.
 
 The message's voice-lock verdict is the weakest of its parts', and if any part repeated the bot's suggestion it answers
 no permission (`state.heard_own_words`): joining parts never makes a stranger's "yes" the owner's. A press made before
@@ -138,7 +150,8 @@ app's literals.
 - Python offline: `tests/test_ptt_modes.py` (parity; the page's tap logic in a headless Chrome on the stub Mac, as
   `tests/test_ui_perf.py` does, skipped without Chrome). `tests/test_ptt_message.py`: scripted finals and pauses inside a
   press give no turn, the release gives exactly one with all of it, the last words finalized after the release are in
-  it, the 2 s fallback, an empty press, the draft in the status and on the page, the voice-lock verdict, Soniox's
+  it, a press with no draft left sent as the tail ends, a draft holding the send until it is final, the 2 s fallback
+  for a draft that never is, Gemini told the audio is over, an empty press, the draft in the status and on the page, the voice-lock verdict, Soniox's
   `<fin>` marker in order, and always on unchanged.
 - Page e2e: `tests/e2e/page_ptt_tap.py`, state `/tmp/cv-state-ptt-tap`, daemon port 7923, TLS 7523, Chrome 9339.
 - App: `ios/PointeTests/PushToTalkTests.swift` (`TalkGate.shows`, `TalkStyle` persistence and labels, `TalkDraft`),

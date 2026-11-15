@@ -3073,12 +3073,18 @@ class PttGate(FrameProcessor):
                 self._release(now, state.ptt.closed_why)
             elif event == "finalize":
                 await self._finalize()
-            elif event == "send":
-                logger.info("ptt: the ears never gave the last words: sending what was heard")
+            elif event == "send":  # the grace period is over and no draft is left: the press is complete
+                await self.push_frame(PressEnd(why="finalized"))
+            elif event == "timeout":
+                logger.info("ptt: a draft never became final: sending what was heard")
                 await self.push_frame(PressEnd(why="timeout"))
 
     async def _finalize(self) -> None:
-        ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears end their segment on silence
+        """"That's the end" to the speech-to-text, so it makes its draft final now."""
+        if hasattr(self._stt, "_send_finalization_signal"):  # Gemini
+            await self._stt._send_finalization_signal()
+            return
+        ws = getattr(self._stt, "_websocket", None)  # Soniox; other ears are not told (yet): the draft rule covers them
         if ws is not None:
             try:
                 await ws.send('{"type": "finalize"}')
@@ -6355,8 +6361,8 @@ SONIOX_FIN = "<fin>"  # Soniox's answer to a finalize request, after the last wo
 def _tell_finalized(stt) -> None:
     """Soniox answers a finalize with the last words and then <fin>: told in the frame stream, behind those words, so a
     push-to-talk press is sent once all of it is in (PressEnd). The receive loop reads its socket through
-    _get_websocket (tests/test_ptt_message.py checks pipecat still does). Other ears give no sign: the gate's
-    FINAL_WAIT_SECS covers them."""
+    _get_websocket (tests/test_ptt_message.py checks pipecat still does). Other ears give no sign: the gate sends a
+    press once no draft is left (Ptt.tick)."""
     from pipecat.services.soniox.stt import SonioxSTTService
 
     if not isinstance(stt, SonioxSTTService):  # elsewhere _get_websocket may also be what sends

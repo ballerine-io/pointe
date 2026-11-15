@@ -5,14 +5,15 @@ indicator); the conversation still hears only a press. The clients stop sending 
 this gate is the rule: the daemon is what talks to vendors. Pure state, driven by the call's PttGate with the clock.
 
 A press is one message, as a voice message is (docs/design/push-to-talk-modes.md): what the ears hear while it is on is
-kept here, shown as a draft, and sent as one turn once the press has closed and the ears have given its last words."""
+kept here, shown as a draft, and sent as one turn: on release, after the tail, the ears are told the audio is over, and
+the press goes as soon as no draft is left (every word final), or at FINAL_WAIT_SECS if one never becomes final."""
 
 TAIL_SECS = 0.4  # kept after a release, so the last word is not cut; the clients send the same tail
 LINK_SLACK_SECS = 0.2  # the tail's audio arrives after the release message, by up to the link's jitter
 MAX_OPEN_SECS = 90.0  # a thumb on the phone in a pocket: the press ends itself
 QUIET_LINK_SECS = 2.0  # open but no audio arriving: the release was lost with the link
-FINAL_WAIT_SECS = 2.0  # after the finalize, the longest a send waits for the last words: Soniox says when (its <fin>),
-# well inside this; other ears never say, and their words after it are their own turn
+FINAL_WAIT_SECS = 2.0  # after the finalize, the longest a draft may take to become final: only a safety net. With no
+# draft left the press goes at once; Soniox's <fin> also sends it
 
 
 class Ptt:
@@ -110,7 +111,7 @@ class Ptt:
 
     def tick(self, mode: str, now: float) -> list[str]:
         """Run often. "closed" when the gate closed by itself (closed_why says why); "finalize" once the tail is over;
-        "send" when the last words of a press did not come within FINAL_WAIT_SECS of the finalize."""
+        then "send" as soon as no draft is left, or "timeout" when one is still there FINAL_WAIT_SECS after the finalize."""
         events = ["closed"] if self._follow(mode, now) else []
         if mode == "ptt" and self.open:
             if now - self.opened_at > MAX_OPEN_SECS:
@@ -124,9 +125,9 @@ class Ptt:
             events.append("finalize")
             if self.collecting and not self.open:
                 self.finalized, self.final_due = True, now + FINAL_WAIT_SECS
-        if self.final_due and now >= self.final_due and self.sendable():
+        if self.final_due and self.sendable() and (not self.live or now >= self.final_due):
             self.final_due = 0.0
-            events.append("send")  # the ears never said the last words were in: what was heard goes now
+            events.append("send" if not self.live else "timeout")  # no draft left; or the cap: what was heard goes
         return events
 
     def speech_began(self, now: float, mode: str) -> float:

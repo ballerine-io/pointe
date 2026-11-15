@@ -54,7 +54,7 @@ def test_the_tail_ends_with_a_finalize_once():
     p.press(T0)
     p.release(T0 + 1)
     assert p.tick("ptt", T0 + 1.1) == []
-    assert p.tick("ptt", T0 + 2) == ["finalize"]
+    assert p.tick("ptt", T0 + 2) == ["finalize", "send"]  # no draft to wait for: the press is complete
     assert p.tick("ptt", T0 + 3) == []
 
 
