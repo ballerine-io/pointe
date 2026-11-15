@@ -22,6 +22,15 @@
 	<!-- Export compliance: only Apple's standard TLS (URLSession) and a SHA-256 of the Mac's certificate for the pin. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Brand.swift: the two brand families, bundled from ios/Pointe/Fonts (SIL OFL 1.1; the licence texts sit beside them). -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>BricolageGrotesque-Light.ttf</string>
+		<string>BricolageGrotesque-Regular.ttf</string>
+		<string>InstrumentSans-Regular.ttf</string>
+		<string>InstrumentSans-Medium.ttf</string>
+		<string>InstrumentSans-SemiBold.ttf</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array><string>audio</string><string>fetch</string></array>
 	<!-- Alerts.swift: Background App Refresh checks for a waiting request while the app is suspended, when iOS allows. -->

@@ -129,9 +129,59 @@ final class ParityUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name + ",")).firstMatch
     }
 
+    /// docs/design/brand-v6.md, section 9: the Sessions sheet groups by named machine, and each row says its agent.
+    func testTheSessionsSheetGroupsByMachineAndMarksEachSessionsAgent() throws {
+        launch("machinesSessions")
+        XCTAssertTrue(any("machineSection.studio").waitForExistence(timeout: 15))
+        XCTAssertTrue(any("machineChip.devbox").exists, "the machine filter is in the sheet")
+        XCTAssertTrue(label("runs on Claude").exists && label("runs on Codex").exists, "a harness mark on each row")
+        shot("machines-sessions")
+        app.swipeUp()  // a list draws its rows as they come on screen
+        XCTAssertTrue(any("machineSection.devbox").waitForExistence(timeout: 5))
+        XCTAssertTrue(any("machineSection.devbox").label.contains("devbox · Linux · 23 ms"))
+        XCTAssertTrue(label("runs on OpenCode").waitForExistence(timeout: 5))
+        XCTAssertTrue(any("machineSection.laptop").waitForExistence(timeout: 5))
+    }
+
+    func testOneMachineHasOneSectionAndNoMachineHeader() throws {
+        launch("sessions")
+        XCTAssertTrue(app.staticTexts["On the voice"].waitForExistence(timeout: 15))
+        XCTAssertFalse(any("machineSection.studio").exists)
+        XCTAssertTrue(label("runs on Codex").exists, "the mark shows with one machine too")
+    }
+
+    /// Appearance is in Settings with the page's three choices; System is the one in force until another is picked.
+    func testSettingsOfferSystemLightAndDark() throws {
+        launch("call")
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 15))
+        app.buttons["Settings"].tap()
+        let item = any("appearanceSetting")
+        if !item.waitForExistence(timeout: 3) { app.swipeUp() }
+        XCTAssertTrue(item.waitForExistence(timeout: 5), "Appearance is in Settings")
+        XCTAssertTrue(item.label.contains("Appearance"), item.label)
+        item.tap()
+        for choice in ["System", "Light", "Dark"] {
+            XCTAssertTrue(app.buttons[choice].waitForExistence(timeout: 5), choice)
+        }
+        shot("settings-appearance")
+        app.buttons["System"].tap()
+    }
+
+    /// The machine filter lives in the Sessions sheet (one row of chips on the call screen): open it, pick, close it.
+    private func filterMachine(_ id: String) {
+        app.buttons["Sessions"].firstMatch.tap()
+        XCTAssertTrue(any("machineChip.\(id)").waitForExistence(timeout: 10), "the filter is in the Sessions sheet")
+        any("machineChip.\(id)").tap()
+        app.buttons["Done"].firstMatch.tap()
+        XCTAssertTrue(any("machineChip.\(id)").waitForNonExistence(timeout: 5))
+    }
+
     func testOneMachineShowsNoMachineChipsOrBadges() throws {
         launch("machinesOne")
         XCTAssertTrue(chip("billing/main").waitForExistence(timeout: 15))
+        XCTAssertFalse(any("machineDivider.studio").exists, "no machine divider with one machine")
+        app.buttons["Sessions"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["On the voice"].waitForExistence(timeout: 10))
         XCTAssertFalse(any("machineChip.all").exists, "no filter with one machine")
         XCTAssertFalse(label("on studio").exists, "no machine badge with one machine")
         shot("machines-one")
@@ -139,20 +189,24 @@ final class ParityUITests: XCTestCase {
 
     func testMachineChipsFilterTheSessionsAndSendNothing() throws {
         launch("machines")
+        XCTAssertTrue(chip("billing/main").waitForExistence(timeout: 15))
+        XCTAssertFalse(any("machineChip.all").exists, "one row of chips on the call screen: no machine filter there")
+        for name in ["studio", "devbox", "laptop"] { XCTAssertTrue(any("machineDivider.\(name)").exists, "the strip is grouped by \(name)") }
+        app.buttons["Sessions"].firstMatch.tap()
         for id in ["all", "studio", "devbox", "laptop"] {
-            XCTAssertTrue(any("machineChip.\(id)").waitForExistence(timeout: 15), id)
+            XCTAssertTrue(any("machineChip.\(id)").waitForExistence(timeout: 10), id)
         }
-        XCTAssertTrue(chip("billing/main").exists)
+        app.buttons["Done"].firstMatch.tap()
         XCTAssertTrue(chip("shop devbox, on devbox").exists, "a machine badge on each chip while machines mix")
         XCTAssertTrue(label("Orchestrating 6 sessions · 2 need you").exists)
         shot("machines-all")
-        any("machineChip.devbox").tap()
+        filterMachine("devbox")
         XCTAssertTrue(chip("billing/main").waitForNonExistence(timeout: 5), "devbox only")
         XCTAssertTrue(chip("api").exists)
         XCTAssertTrue(label("Orchestrating 3 sessions on devbox · 2 need you").waitForExistence(timeout: 5), "the line is filtered too")
         XCTAssertTrue(app.buttons["All sessions, orchestrator mode, on"].exists, "a chip changes no mode")
         shot("machines-filter-devbox")
-        any("machineChip.all").tap()
+        filterMachine("all")
         XCTAssertTrue(chip("billing/main").waitForExistence(timeout: 5))
     }
 
@@ -161,7 +215,7 @@ final class ParityUITests: XCTestCase {
         let notes = chip("notes")
         XCTAssertTrue(notes.waitForExistence(timeout: 15))
         XCTAssertTrue(notes.label.contains("on laptop") && notes.label.contains("offline"), notes.label)
-        XCTAssertTrue(any("machineChip.laptop").label.contains("offline"))
+        XCTAssertTrue(any("machineDivider.laptop").label.contains("offline"))
     }
 
     func testTheApprovalCardSaysShopDotDevbox() throws {
@@ -190,12 +244,14 @@ final class ParityUITests: XCTestCase {
 
     func testAChipOpensTheSessionsSheetOnItsMachine() throws {
         launch("machines")
-        XCTAssertTrue(any("machineChip.laptop").waitForExistence(timeout: 15))
-        any("machineChip.laptop").tap()  // the strip scrolls: on its own machine, the chip is on screen
+        XCTAssertTrue(chip("billing/main").waitForExistence(timeout: 15))
+        filterMachine("laptop")  // the strip scrolls: on its own machine, the chip is on screen
         let notes = chip("notes")
         XCTAssertTrue(notes.waitForExistence(timeout: 5))
         notes.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1.2)
         app.buttons["Sessions on laptop"].firstMatch.tap()
+        XCTAssertTrue(any("machineChip.all").waitForExistence(timeout: 5))
+        any("machineChip.all").tap()  // every machine again: the one asked for still comes first
         let section = any("machineSection.laptop")
         XCTAssertTrue(section.waitForExistence(timeout: 5))
         let studio = any("machineSection.studio")
@@ -208,8 +264,8 @@ final class ParityUITests: XCTestCase {
 
     func testAHebrewSessionNameOnAMachine() throws {
         launch("machines")
-        XCTAssertTrue(any("machineChip.devbox").waitForExistence(timeout: 15))
-        any("machineChip.devbox").tap()
+        XCTAssertTrue(chip("billing/main").waitForExistence(timeout: 15))
+        filterMachine("devbox")
         let hebrew = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "חנות")).firstMatch
         XCTAssertTrue(hebrew.waitForExistence(timeout: 5), app.buttons.allElementsBoundByIndex.map(\.label).joined(separator: " | "))
         shot("machines-rtl")

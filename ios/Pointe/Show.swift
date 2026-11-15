@@ -67,15 +67,15 @@ struct ShowCard: View {
     var body: some View {
         Button(action: open) {
             HStack(spacing: 10) {
-                Image(systemName: "doc.text.magnifyingglass").foregroundStyle(Brand.orange)
+                Image(systemName: "doc.text.magnifyingglass").foregroundStyle(Brand.accent)
                 Text(ShowCopy.card(showing.summary ?? showing.artifacts.first?.name ?? ""))
-                    .font(.subheadline.weight(.semibold)).lineLimit(2).multilineTextAlignment(.leading)
+                    .font(.brand(.subheadline, .semibold)).lineLimit(2).multilineTextAlignment(.leading)
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.up").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                Image(systemName: "chevron.up").font(.brand(.caption, .bold)).foregroundStyle(Brand.muted)
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.orange.opacity(0.45)))
+            .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.orangeLine))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("showCard")
@@ -102,7 +102,7 @@ struct ShowSheet: View {
                     pane(a)
                 } else {
                     Spacer()
-                    Text(ShowCopy.gone).foregroundStyle(.secondary).padding()
+                    Text(ShowCopy.gone).foregroundStyle(Brand.muted).padding()
                     Spacer()
                 }
                 if !earlier.isEmpty { earlierList }
@@ -121,13 +121,13 @@ struct ShowSheet: View {
                     let on = a.id == follow.selected(showing)
                     Button { follow.picked = a.id } label: {
                         HStack(spacing: 4) {
-                            if follow.pinned?.artifact.id == a.id { Image(systemName: "pin.fill").font(.caption2) }
+                            if follow.pinned?.artifact.id == a.id { Image(systemName: "pin.fill").font(.brand(.caption2)) }
                             if a.kind == "test" { Image(systemName: a.failed == true ? "xmark.octagon.fill" : "checkmark.circle") }
                             Text(a.kind == "test" ? ShowCopy.test : a.name ?? "")
                         }
-                        .font(.subheadline.weight(on ? .semibold : .regular))
+                        .font(.brand(.subheadline, on ? .semibold : .regular))
                         .padding(.horizontal, 12).padding(.vertical, 7)
-                        .background(on ? Brand.orange.opacity(0.22) : Color.secondary.opacity(0.12), in: Capsule())
+                        .background(on ? Brand.tint : Brand.raised, in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("showTab-\(a.kind)-\(a.name ?? a.id)")
@@ -144,7 +144,7 @@ struct ShowSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(a.path?.isEmpty == false ? a.path! : (a.name ?? "")).font(.footnote.monospaced()).lineLimit(1)
                         .truncationMode(.head)
-                    if let r = ShowCopy.range(a.range) { Text(r).font(.caption).foregroundStyle(.secondary) }
+                    if let r = ShowCopy.range(a.range) { Text(r).font(.brand(.caption)).foregroundStyle(Brand.muted) }
                 }
                 Spacer()
                 if a.kind == "edit" {
@@ -158,9 +158,9 @@ struct ShowSheet: View {
                 let isPinned = follow.pinned?.artifact.id == a.id
                 Button { follow.togglePin(a, session: showing?.session) } label: {
                     Label(isPinned ? ShowCopy.pinned : ShowCopy.pin, systemImage: isPinned ? "pin.fill" : "pin")
-                        .font(.caption.weight(.semibold))
+                        .font(.brand(.caption, .semibold))
                 }
-                .buttonStyle(.bordered).tint(isPinned ? Brand.orange : .secondary)
+                .buttonStyle(.brandQuiet)
                 .accessibilityIdentifier("showPin")
             }
             .padding(.horizontal, 14)
@@ -182,12 +182,12 @@ struct ShowSheet: View {
                     message(problem)
                 } else {
                     if v.changed_since == true {
-                        Text(ShowCopy.changed).font(.caption).foregroundStyle(Brand.orange).padding(.horizontal, 14)
+                        Text(ShowCopy.changed).font(.brand(.caption)).foregroundStyle(Brand.accent).padding(.horizontal, 14)
                             .accessibilityIdentifier("showChanged")
                     }
                     if a.kind == "test" {
                         if let command = v.command, !command.isEmpty {
-                            Text(command).font(.caption.monospaced()).foregroundStyle(.secondary).padding(.horizontal, 14)
+                            Text(command).font(.caption.monospaced()).foregroundStyle(Brand.muted).padding(.horizontal, 14)
                         }
                         CodeLines(rows: (v.output ?? "").components(separatedBy: "\n").enumerated().map {
                             CodeRow(id: $0.offset, number: nil, text: $0.element, tone: $0.offset == v.focus ? .focus : .plain)
@@ -213,13 +213,13 @@ struct ShowSheet: View {
     }
 
     private func message(_ text: String) -> some View {
-        Text(text).foregroundStyle(.secondary).padding(14).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        Text(text).foregroundStyle(Brand.muted).padding(14).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .accessibilityIdentifier("showProblem")
     }
 
     private var earlierList: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(ShowCopy.earlier).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text(ShowCopy.earlier).font(.brand(.caption, .semibold)).foregroundStyle(Brand.muted)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(earlier.filter { $0.id != showing?.id }) { set in
@@ -230,16 +230,16 @@ struct ShowSheet: View {
                                 }
                             }
                         } label: {
-                            Text(set.summary ?? set.session ?? "").font(.caption).lineLimit(1)
+                            Text(set.summary ?? set.session ?? "").font(.brand(.caption)).lineLimit(1)
                                 .padding(.horizontal, 10).padding(.vertical, 6)
-                                .background(Color.secondary.opacity(0.12), in: Capsule())
+                                .background(Brand.raised, in: Capsule())
                         }
                     }
                 }
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(.bar)
+        .background(Brand.bg)
         .accessibilityIdentifier("showEarlier")
     }
 }
@@ -280,7 +280,7 @@ struct CodeLines: View {
                     ForEach(rows) { row in
                         HStack(alignment: .top, spacing: 10) {
                             if let n = row.number {
-                                Text(String(n)).foregroundStyle(.secondary).frame(minWidth: size * 2.4, alignment: .trailing)
+                                Text(String(n)).foregroundStyle(Brand.muted).frame(minWidth: size * 2.4, alignment: .trailing)
                             }
                             Text(row.text.isEmpty ? " " : row.text).foregroundStyle(color(row.tone)).fixedSize()
                         }
@@ -302,17 +302,17 @@ struct CodeLines: View {
 
     private func color(_ tone: CodeRow.Tone) -> Color {
         switch tone {
-        case .added: .green
-        case .removed: Color(red: 1, green: 0.45, blue: 0.45)
+        case .added: Brand.successText
+        case .removed: Brand.dangerText
         default: .primary
         }
     }
 
     private func background(_ tone: CodeRow.Tone) -> Color {
         switch tone {
-        case .highlight, .focus: Brand.orange.opacity(0.18)
-        case .added: .green.opacity(0.10)
-        case .removed: .red.opacity(0.10)
+        case .highlight, .focus: Brand.tint
+        case .added: Brand.success.opacity(0.12)
+        case .removed: Brand.danger.opacity(0.12)
         case .plain: .clear
         }
     }
@@ -330,14 +330,14 @@ struct ShowSettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 Section {
                     Toggle(ShowCopy.setting, isOn: Binding(get: { wanted ?? on }, set: { change($0) }))
                         .tint(Brand.orange)
                         .accessibilityIdentifier("showSetting")
                 } footer: { Text(ShowCopy.help) }
                 if let refused {
-                    Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                    Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 }
             }
             .scrollContentBackground(.hidden)

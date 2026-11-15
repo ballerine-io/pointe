@@ -71,30 +71,29 @@ struct ConnectPanel: View {
     var body: some View {
         VStack(spacing: 14) {
             ZStack {
-                Circle().fill(Brand.card).frame(width: 72, height: 72)
-                    .overlay(Circle().stroke(.white.opacity(0.08)))
-                Image(systemName: "phone.fill").font(.system(size: 26, weight: .semibold)).foregroundStyle(.secondary)
+                Circle().fill(Brand.raised).frame(width: 72, height: 72)
+                    .overlay(Circle().stroke(Brand.line))
+                Image(systemName: "phone.fill").font(.system(size: 26, weight: .semibold)).foregroundStyle(Brand.muted)
             }
-            Text(title).font(.title3.weight(.semibold)).multilineTextAlignment(.center)
+            Text(title).font(.brand(.title2)).multilineTextAlignment(.center)
                 .accessibilityIdentifier("connectTitle")
-            Text(face.why).font(.subheadline).foregroundStyle(face.bad ? Brand.orange : .secondary)
+            Text(face.why).font(.brand(.subheadline)).foregroundStyle(face.bad ? Brand.accent : Brand.muted)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("connectWhy")
             Button(action: tap) {
                 HStack(spacing: 8) {
-                    if face.dialling { ProgressView().tint(.white) } else { Image(systemName: "phone.fill") }
-                    Text(face.button).font(.headline)
+                    if face.dialling { ProgressView().tint(Brand.muted) } else { Image(systemName: "phone.fill") }
+                    Text(face.button).font(.brand(.headline))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(face.dialling ? Brand.text : Brand.onOrange)
                 .padding(.horizontal, 24).frame(height: 48)
-                .background(face.dialling ? AnyShapeStyle(Brand.card) : AnyShapeStyle(Brand.orange.gradient), in: Capsule())
-                .overlay(Capsule().stroke(.white.opacity(face.dialling ? 0.12 : 0)))
-                .shadow(color: face.dialling ? .clear : Brand.orange.opacity(0.45), radius: 14, y: 4)
+                .background(face.dialling ? Brand.raised : Brand.orange, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(face.dialling ? Brand.lineStrong : Color.clear))
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("connectButton")
             .padding(.top, 4)
-            Text(ConnectCopy.typeToo).font(.caption).foregroundStyle(.tertiary)
+            Text(ConnectCopy.typeToo).font(.brand(.caption)).foregroundStyle(Brand.dim)
         }
         .padding(.horizontal, 28)
         .frame(maxWidth: 360)
@@ -116,11 +115,11 @@ struct ConnectPill: View {
                 if face.dialling { ProgressView().controlSize(.mini) } else { Image(systemName: live ? "phone.down.fill" : "phone.fill") }
                 Text(face.pill)
             }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(live ? Color.red : face.dialling ? Color.secondary : .white)
+            .font(.brand(.subheadline, .semibold))
+            .foregroundStyle(live ? Brand.dangerText : face.dialling ? Brand.muted : Brand.text)
             .padding(.horizontal, 12).frame(height: 32)
-            .background(live ? AnyShapeStyle(Color.red.opacity(0.18)) : face.dialling ? AnyShapeStyle(.thinMaterial)
-                        : AnyShapeStyle(Brand.orange.gradient), in: Capsule())
+            .background(face.dialling ? Brand.raised : Color.clear, in: Capsule())
+            .overlay(Capsule().stroke(live ? Brand.danger.opacity(0.5) : Brand.lineStrong))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("topConnect")

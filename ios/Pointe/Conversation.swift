@@ -59,7 +59,7 @@ struct Bubble: View {
             if turn.mine { Spacer(minLength: 56) }
             VStack(alignment: turn.mine ? .trailing : .leading, spacing: 4) {
                 if turn.mine, polish, let understood = turn.understood, understood != turn.text {
-                    Text(turn.text).readingDirection(of: turn.text).font(.footnote).foregroundStyle(.white.opacity(0.5))
+                    Text(turn.text).readingDirection(of: turn.text).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                     Text(understood).readingDirection(of: understood)
                 } else {
                     Text(turn.text).readingDirection(of: turn.text)
@@ -68,12 +68,13 @@ struct Bubble: View {
                     badges
                 }
             }
-            .font(.body)
+            .font(.brand(.body))
             .lineSpacing(2)
             .multilineTextAlignment(turn.mine ? .trailing : .leading)
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
-            .background(turn.mine ? AnyShapeStyle(Brand.orange.opacity(0.18)) : AnyShapeStyle(Brand.card), in: shape)
+            .background(turn.mine ? Brand.raised : Brand.card, in: shape)
+            .overlay(shape.stroke(Brand.line))
             .frame(maxWidth: 520, alignment: turn.mine ? .trailing : .leading)
             if !turn.mine { Spacer(minLength: 56) }
         }
@@ -96,8 +97,8 @@ struct Bubble: View {
             if pending && turn.understood == nil && turn.corrected != true { Label("cleaning up", systemImage: "wand.and.sparkles") }
         }
         .labelStyle(.titleAndIcon)
-        .font(.caption2)
-        .foregroundStyle(.white.opacity(0.55))
+        .font(.brand(.caption2))
+        .foregroundStyle(Brand.muted)
     }
 }
 
@@ -111,18 +112,18 @@ struct LiveBubble: View {
         HStack(alignment: .bottom, spacing: 0) {
             Spacer(minLength: 56)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Image(systemName: "waveform").font(.callout).foregroundStyle(Brand.orange)
+                Image(systemName: "waveform").font(.brand(.callout)).foregroundStyle(Brand.accent)
                     .symbolEffect(.variableColor.iterative, options: .repeating)
                 VStack(alignment: .trailing, spacing: 2) {
                     if let draft {
-                        Text(draft).font(.caption.weight(.semibold)).foregroundStyle(Brand.orange)
+                        Text(draft).font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
                             .accessibilityIdentifier("talkDraft")
                     }
                     Text(text)
                         .readingDirection(of: text)
                         .font(large ? .title2.weight(.semibold) : .body.weight(.medium))
                         .italic(draft != nil)
-                        .foregroundStyle(draft != nil ? AnyShapeStyle(.white.opacity(0.7)) : AnyShapeStyle(.primary))
+                        .foregroundStyle(draft != nil ? AnyShapeStyle(Brand.muted) : AnyShapeStyle(.primary))
                         .multilineTextAlignment(.trailing)
                         .contentTransition(.interpolate)
                         .animation(.easeOut(duration: 0.12), value: text)
@@ -130,8 +131,8 @@ struct LiveBubble: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
-            .background(Brand.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Brand.orange.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+            .background(Brand.tint, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
             .frame(maxWidth: 520, alignment: .trailing)
         }
         .accessibilityLabel(draft.map { "\($0): \(text)" } ?? "Hearing: \(text)")
@@ -157,9 +158,9 @@ struct EditTurnSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Heard").font(.caption.bold()).foregroundStyle(.secondary)
-                Text(turn.text).readingDirection(of: turn.text).font(.callout).foregroundStyle(.secondary)
-                Text("You meant").font(.caption.bold()).foregroundStyle(.secondary)
+                Text("Heard").font(.brand(.caption, .semibold)).foregroundStyle(Brand.muted)
+                Text(turn.text).readingDirection(of: turn.text).font(.brand(.callout)).foregroundStyle(Brand.muted)
+                Text("You meant").font(.brand(.caption, .semibold)).foregroundStyle(Brand.muted)
                 TextField("What you said", text: $text, axis: .vertical)
                     .lineLimit(2...6)
                     .accessibilityIdentifier("fixField")
@@ -167,7 +168,7 @@ struct EditTurnSheet: View {
                     .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
                     .focused($focused)
                 Text("If it already acted on the misheard words, it says what it did and fixes it.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.brand(.footnote)).foregroundStyle(Brand.muted)
                 Spacer()
             }
             .padding(20)

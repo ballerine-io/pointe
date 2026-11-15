@@ -9,6 +9,7 @@ in code: who a request goes to, which session is active, and every permission ve
 
 import asyncio
 from collections import deque
+import hashlib
 import hmac
 from contextlib import asynccontextmanager
 import json
@@ -61,7 +62,7 @@ from prefs import Prefs
 from urllib.parse import unquote, urlparse
 import numpy as np
 from fastapi import FastAPI, Header, HTTPException, Request, WebSocket
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from loguru import logger
 
 from brain import Brain
@@ -6139,6 +6140,25 @@ def context_breakdown(messages: list) -> list[dict]:
         row[0] += 1
         row[1] += len(json.dumps(m, ensure_ascii=False))
     return [{"kind": k, "count": n, "chars": c, "est_tokens": c // 4} for k, (n, c) in rows.items()]
+
+
+def _fonts() -> dict[str, str]:
+    """The brand's font files this Mac serves to its own page, by name -> SHA-256 (assets/theme.json)."""
+    return json.loads((Path(__file__).parent / "assets" / "theme.json").read_text())["files"]
+
+
+@app.get("/voice/font/{name}")
+async def font(name: str):
+    """A font file for the page, from assets/fonts: only a name in the pinned list, and only bytes with its SHA-256.
+    The page loads its two families from here, so it asks no font CDN (docs/design/brand-v6.md)."""
+    want = _fonts().get(name)
+    path = Path(__file__).parent / "assets" / "fonts" / name
+    if want is None or not path.is_file():
+        raise HTTPException(404, "no such font")
+    body = path.read_bytes()
+    if hashlib.sha256(body).hexdigest() != want:
+        raise HTTPException(404, "that font file is not the pinned one")
+    return Response(body, media_type="font/ttf", headers={"Cache-Control": "private, max-age=86400"})
 
 
 @app.get("/voice", response_class=HTMLResponse)

@@ -169,16 +169,16 @@ struct BriefingReadyCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(alert.text ?? "", systemImage: "sun.horizon.fill").font(.subheadline.weight(.semibold))
+            Label(alert.text ?? "", systemImage: "sun.horizon.fill").font(.brand(.subheadline, .semibold))
             HStack(spacing: 10) {
                 Button { Task { await dismiss() } } label: { Text("Dismiss").frame(maxWidth: .infinity) }
-                    .buttonStyle(.bordered).tint(.gray)
+                    .buttonStyle(.brandQuiet)
                 Button { Task { await hear() } } label: { Text("Hear it").frame(maxWidth: .infinity) }
-                    .buttonStyle(.borderedProminent).tint(Brand.orange)
+                    .buttonStyle(.brandPrimary)
             }
         }
         .padding(14)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 18))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityIdentifier("briefingReady")
     }
 }
@@ -200,10 +200,10 @@ struct BriefingSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 Section { controls } header: { Text(BriefingCopy.lede).textCase(nil) }
                 if let refused {
-                    Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                    Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 }
                 Section(BriefingCopy.history) { history }
             }
@@ -218,7 +218,7 @@ struct BriefingSheet: View {
 
     @ViewBuilder private var controls: some View {
         if let line = status.flatMap(BriefingCopy.progress) {
-            Text(line).font(.headline).accessibilityIdentifier("briefingProgress")
+            Text(line).font(.brand(.headline)).accessibilityIdentifier("briefingProgress")
         }
         if let s = status, s.isOn {
             HStack(spacing: 10) {
@@ -241,40 +241,39 @@ struct BriefingSheet: View {
             Button {
                 Task { await run(["action": "start", "since": since, "length": length ?? page?.schedule?.length ?? "normal"]) }
             } label: { Text(BriefingCopy.start).frame(maxWidth: .infinity) }
-                .buttonStyle(.borderedProminent).tint(Brand.orange)
+                .buttonStyle(.brandPrimary)
                 .disabled(why != nil || busy || status?.building == true)
-            if let why { Text(why).font(.footnote).foregroundStyle(.secondary) }
+            if let why { Text(why).font(.brand(.footnote)).foregroundStyle(Brand.muted) }
         }
     }
 
     private func button(_ title: String, _ action: String, prominent: Bool) -> some View {
         Button { Task { await run(["action": action]) } } label: { Text(title).frame(maxWidth: .infinity) }
-            .buttonStyle(prominent ? AnyPrimitiveButtonStyle(.borderedProminent) : AnyPrimitiveButtonStyle(.bordered))
-            .tint(prominent ? Brand.orange : .gray)
+            .buttonStyle(BrandButtonStyle(prominent: prominent))
             .disabled(busy)
     }
 
     @ViewBuilder private var history: some View {
         let items = page?.briefings ?? []
         if items.isEmpty {
-            Text(loaded ? "No briefing yet." : "Loading…").foregroundStyle(.secondary)
+            Text(loaded ? "No briefing yet." : "Loading…").foregroundStyle(Brand.muted)
         }
         ForEach(items) { b in
             VStack(alignment: .leading, spacing: 8) {
                 Text(BriefingCopy.heading(at: b.at, since: b.since_label ?? "", scheduled: b.scheduled == true))
-                    .font(.caption).foregroundStyle(.secondary)
-                if let opener = b.opener { Text(opener).font(.subheadline.weight(.semibold)) }
+                    .font(.brand(.caption)).foregroundStyle(Brand.muted)
+                if let opener = b.opener { Text(opener).font(.brand(.subheadline, .semibold)) }
                 if b.empty != true {
                     ForEach(b.sections ?? [], id: \.self) { s in
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 6) {
-                                Text(s.session).font(.footnote.weight(.semibold))
-                                Text(BriefingCopy.chip(s.status)).font(.caption2.weight(.semibold))
+                                Text(s.session).font(.brand(.footnote, .semibold))
+                                Text(BriefingCopy.chip(s.status)).font(.brand(.caption2, .semibold))
                                     .padding(.horizontal, 7).padding(.vertical, 2)
-                                    .background(s.status == "waiting" || s.status == "failed" ? Brand.orange.opacity(0.3) : Color.secondary.opacity(0.2),
+                                    .background(s.status == "waiting" || s.status == "failed" ? Brand.tint : Brand.raised,
                                                 in: Capsule())
                             }
-                            Text(s.text).readingDirection(of: s.text).font(.footnote).foregroundStyle(.secondary)
+                            Text(s.text).readingDirection(of: s.text).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                         }
                     }
                 }
@@ -316,7 +315,7 @@ struct BriefingSettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 if let s = schedule {
                     Section {
                         Toggle(BriefingCopy.scheduled, isOn: Binding(get: { !s.time.isEmpty },
@@ -329,9 +328,10 @@ struct BriefingSettingsSheet: View {
                                 ForEach(Array(BriefingCopy.days.enumerated()), id: \.offset) { i, day in
                                     let on = s.days.contains(i)
                                     Button { update(["days": on ? s.days.filter { $0 != i } : (s.days + [i]).sorted()]) } label: {
-                                        Text(day).font(.caption.weight(on ? .semibold : .regular))
+                                        Text(day).font(.brand(.caption, on ? .semibold : .regular))
                                             .frame(maxWidth: .infinity).padding(.vertical, 6)
-                                            .background(on ? Brand.orange.opacity(0.85) : .clear, in: RoundedRectangle(cornerRadius: 7))
+                                            .foregroundStyle(on ? Brand.onPrimary : Brand.text)
+                                            .background(on ? Brand.primary : .clear, in: RoundedRectangle(cornerRadius: 8))
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityIdentifier("day-\(day)")
@@ -349,12 +349,12 @@ struct BriefingSettingsSheet: View {
                     } footer: {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(BriefingCopy.note)
-                            if let saved { Text(saved).foregroundStyle(Brand.orange) }
+                            if let saved { Text(saved).foregroundStyle(Brand.accent) }
                         }
                     }
                 } else if loaded {
                     Label("The Mac did not send its briefing schedule. Is Pointe on the Mac up to date and reachable?",
-                          systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                          systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 } else {
                     ProgressView()
                 }
@@ -404,18 +404,18 @@ struct BriefingNowBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "sun.horizon.fill").foregroundStyle(Brand.orange)
-            Text(BriefingCopy.progress(status) ?? "").font(.subheadline.weight(.semibold))
+            Image(systemName: "sun.horizon.fill").foregroundStyle(Brand.accent)
+            Text(BriefingCopy.progress(status) ?? "").font(.brand(.subheadline, .semibold))
             Spacer(minLength: 4)
             if status.isOn {
                 Button(status.isPaused ? "Go on" : "Skip") { Task { _ = await act(["action": status.isPaused ? "continue" : "skip"]) } }
-                    .buttonStyle(.bordered).tint(Brand.orange)
-                Button("Stop") { Task { _ = await act(["action": "stop"]) } }.buttonStyle(.bordered).tint(.gray)
+                    .buttonStyle(.brandQuiet)
+                Button("Stop") { Task { _ = await act(["action": "stop"]) } }.buttonStyle(.brandQuiet)
             }
         }
         .controlSize(.small)
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 18))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityIdentifier("briefingNow")
     }
 }

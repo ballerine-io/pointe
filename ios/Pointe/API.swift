@@ -5,6 +5,18 @@ struct API {
     let pairing: Pairing
     let session: URLSession
 
+    /// The Mac keeps itself awake while a call from another device is up, on AC power only.
+    struct KeepAwake: Decodable, Equatable {
+        let on: Bool?
+        let why: String?
+
+        static let line = "Keeping your Mac awake"
+        /// The one quiet line under the call's state: only on a live call, only while the Mac says it is on.
+        static func shown(_ status: Status?, live: Bool) -> String? {
+            live && status?.keep_awake?.on == true ? line : nil
+        }
+    }
+
     struct Status: Decodable, Equatable {
         let version: String?   // the Mac's Pointe; the brand line shows it when it differs from this app
         let active: String?
@@ -36,6 +48,7 @@ struct API {
         var tokens: Tokens?         // the voice model's own count of its context, after its last reply
         var local: LocalMode?       // local mode, read-only (local.summary); nil from a Mac without it
         var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
+        var keep_awake: KeepAwake?  // the Mac holds off idle sleep under this call (mac.py); nil from an older Mac
         var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
         var invite: Invite?         // the one-time code to pair another machine, while one is outstanding
         var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
@@ -420,15 +433,7 @@ struct API {
         var id: String { name }
         var isOffline: Bool { online == false }
 
-        var agent: String {
-            switch harness ?? "claude-code" {
-            case "claude-code": "Claude"
-            case "opencode": "OpenCode"
-            case "codex": "Codex"
-            case "pi": "Pi"
-            case let other: other
-            }
-        }
+        var agent: String { Harness.mark(harness).name }
         /// An agent without approvals (Pi, for one) never gets Approve or Deny.
         var canApprove: Bool { capabilities?.approvals != false }
     }

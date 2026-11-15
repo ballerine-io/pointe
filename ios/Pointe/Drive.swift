@@ -102,27 +102,27 @@ struct DriveScreen: View {
         VStack(spacing: 18) {
             Spacer(minLength: 0)
             Label(DriveCopy.title, systemImage: "car.fill")
-                .font(.headline).foregroundStyle(Brand.orange).textCase(.uppercase)
+                .font(.brand(.caption, .semibold)).kerning(1.4).foregroundStyle(Brand.muted).textCase(.uppercase)
             Text(DriveCopy.line(status: status, speaking: speaking, hearing: !(status?.hearing ?? "").isEmpty))
-                .font(.system(size: 34, weight: .bold)).multilineTextAlignment(.center)
+                .font(.display(36)).multilineTextAlignment(.center)
                 .minimumScaleFactor(0.6).lineLimit(2)
                 .contentTransition(.opacity)
                 .accessibilityIdentifier("driveLine")
             if !caption.isEmpty {
-                Text(caption).font(.title3).foregroundStyle(.secondary).multilineTextAlignment(.center).lineLimit(3)
+                Text(caption).font(.brand(.title3)).foregroundStyle(Brand.muted).multilineTextAlignment(.center).lineLimit(3)
                     .accessibilityIdentifier("driveCaption")
             }
-            Text(DriveCopy.hint).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            Text(DriveCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted).multilineTextAlignment(.center)
             Button(action: stop) {
-                Text(DriveCopy.stop).font(.title3.weight(.semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)
+                Text(DriveCopy.stop).font(.brand(.title3, .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)
             }
-            .buttonStyle(.bordered).controlSize(.large)
+            .buttonStyle(.brandQuiet).controlSize(.large)
             .accessibilityIdentifier("driveStop")
             Spacer(minLength: 0)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay(RoundedRectangle(cornerRadius: 26).stroke(Brand.orange, lineWidth: 2).padding(10))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, lineWidth: 1).padding(10))
     }
 }
 
@@ -135,16 +135,16 @@ struct DriveRequestCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label { Text("\(MachineView(status).label(session)) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.orange) }
-                .font(.headline)
-            Text(session.isOffline ? MachinesCopy.offlineCard : DriveCopy.hint(for: session, status: status)).font(.title3.weight(.semibold))
+            Label { Text("\(MachineView(status).label(session)) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent) }
+                .font(.brand(.headline))
+            Text(session.isOffline ? MachinesCopy.offlineCard : DriveCopy.hint(for: session, status: status)).font(.brand(.title3, .semibold))
                 .accessibilityIdentifier("driveHint")
-            if more > 0 { Text("\(more) more waiting").font(.caption).foregroundStyle(.secondary) }
+            if more > 0 { Text("\(more) more waiting").font(.brand(.caption)).foregroundStyle(Brand.muted) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Brand.orange.opacity(0.55)))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: session.request_id)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("driveRequest")
@@ -158,11 +158,11 @@ struct DriveSuggestion: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "car.fill").foregroundStyle(Brand.orange)
-            Text(DriveCopy.suggest).font(.subheadline.weight(.semibold))
+            Image(systemName: "car.fill").foregroundStyle(Brand.accent)
+            Text(DriveCopy.suggest).font(.brand(.subheadline, .semibold))
             Spacer()
-            Button(DriveCopy.suggestNo, action: dismiss).buttonStyle(.bordered).controlSize(.small)
-            Button(DriveCopy.suggestYes, action: accept).buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.small)
+            Button(DriveCopy.suggestNo, action: dismiss).buttonStyle(.brandQuiet).controlSize(.small)
+            Button(DriveCopy.suggestYes, action: accept).buttonStyle(.brandPrimary).controlSize(.small)
                 .accessibilityIdentifier("driveSuggestYes")
         }
         .padding(12)

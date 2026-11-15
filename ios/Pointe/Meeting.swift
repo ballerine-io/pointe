@@ -131,10 +131,10 @@ struct MeetingStartSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 if step == 1 { setup } else { consent }
                 if let problem {
-                    Label(problem, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                    Label(problem, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 }
             }
             .scrollContentBackground(.hidden)
@@ -188,19 +188,19 @@ struct MeetingStartSheet: View {
 
     private func modeRow(_ value: String, _ title: String, _ what: String, _ symbol: String) -> some View {
         let check = Image(systemName: mode == value ? "checkmark.circle.fill" : "circle")
-            .foregroundStyle(mode == value ? Brand.orange : .secondary).font(.title3)
+            .foregroundStyle(mode == value ? Brand.accent : Brand.muted).font(.brand(.title3))
         return Button { mode = value } label: {
             if typeSize.isAccessibilitySize {  // one column: the explanation gets the whole width
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 10) { check; Text(title).font(.headline).foregroundStyle(.primary) }
-                    Text(what).font(.subheadline).foregroundStyle(.secondary)
+                    HStack(spacing: 10) { check; Text(title).font(.brand(.headline)).foregroundStyle(.primary) }
+                    Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                 }
             } else {
                 HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: symbol).font(.title3).foregroundStyle(Brand.orange).frame(width: 28)
+                    Image(systemName: symbol).font(.brand(.title3)).foregroundStyle(Brand.accent).frame(width: 28)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(title).font(.headline).foregroundStyle(.primary)
-                        Text(what).font(.subheadline).foregroundStyle(.secondary)
+                        Text(title).font(.brand(.headline)).foregroundStyle(.primary)
+                        Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                     }
                     Spacer()
                     check
@@ -223,10 +223,10 @@ struct MeetingStartSheet: View {
         }
         if reply?.soniox == false {
             Label("Meeting mode needs a Soniox key on the Mac: it tells the speakers apart.", systemImage: "key")
-                .foregroundStyle(Brand.orange)
+                .foregroundStyle(Brand.accent)
         }
         Section {
-            Toggle(isOn: $agreed) { Text(MeetingCopy.consent).font(.subheadline) }
+            Toggle(isOn: $agreed) { Text(MeetingCopy.consent).font(.brand(.subheadline)) }
                 .tint(Brand.orange)
                 .accessibilityIdentifier("meetingConsent")
         }
@@ -234,13 +234,13 @@ struct MeetingStartSheet: View {
 
     private func vendorRow(_ symbol: String, _ what: String, _ vendor: String?, _ detail: String) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: symbol).foregroundStyle(Brand.orange).frame(width: 24)
+            Image(systemName: symbol).foregroundStyle(Brand.accent).frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
-                Text(what).font(.subheadline.weight(.semibold))
-                Text(detail).font(.caption).foregroundStyle(.secondary)
+                Text(what).font(.brand(.subheadline, .semibold))
+                Text(detail).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
             Spacer()
-            Text(reply == nil ? "…" : MeetingCopy.vendor(vendor)).font(.subheadline).foregroundStyle(.secondary)
+            Text(reply == nil ? "…" : MeetingCopy.vendor(vendor)).font(.brand(.subheadline)).foregroundStyle(Brand.muted)
         }
         .accessibilityElement(children: .combine)
     }
@@ -275,26 +275,25 @@ struct MeetingBanner: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             HStack(spacing: 10) {
-                Circle().fill(.red).frame(width: 10, height: 10)
-                    .shadow(color: .red.opacity(0.8), radius: 5)
+                Circle().fill(Brand.danger).frame(width: 8, height: 8)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     // Large text wraps instead of cutting off where the audio goes.
                     if typeSize.isAccessibilitySize {
-                        Text(line(context.date, full: true)).font(.subheadline.weight(.semibold))
+                        Text(line(context.date, full: true)).font(.brand(.subheadline, .semibold))
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text(detail).font(.brand(.caption)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
                     } else {  // a narrow phone drops the speaker count before the timer, and the state before the vendor
                         ViewThatFits(in: .horizontal) {
                             Text(line(context.date, full: true))
                             Text(line(context.date, full: false))
                         }
-                        .font(.subheadline.weight(.semibold)).lineLimit(1)
+                        .font(.brand(.subheadline, .semibold)).lineLimit(1)
                         ViewThatFits(in: .horizontal) {
                             Text(detail)
                             Text(vendorLine)
                         }
-                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        .font(.brand(.caption)).foregroundStyle(Brand.muted).lineLimit(1)
                     }
                 }
                 Spacer(minLength: 6)
@@ -308,15 +307,15 @@ struct MeetingBanner: View {
                         .disabled(meeting.isEnding)
                     Button { settings() } label: { Label("Meeting settings", systemImage: "gearshape") }
                 } label: {
-                    Image(systemName: "slider.horizontal.3").font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34).background(.thinMaterial, in: Circle())
+                    Image(systemName: "slider.horizontal.3").font(.brand(.body, .semibold))
+                        .frame(width: 34, height: 34).background(Brand.raised, in: Circle())
                 }
                 .accessibilityLabel("Meeting options")
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
             .dynamicTypeSize(...DynamicTypeSize.accessibility2)  // pinned above the notes: past this it would push them away
-            .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.45)))
+            .background(Brand.danger.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.danger.opacity(0.45)))
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("meetingBanner")
@@ -358,21 +357,21 @@ struct HandCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label { Text("Wants to say: ") + Text(TextDirection.isolated(hand.line)).bold() } icon: {
-                Image(systemName: "hand.raised.fill").foregroundStyle(Brand.orange)
+                Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent)
             }
-            .font(.subheadline)
+            .font(.brand(.subheadline))
             ViewThatFits(in: .horizontal) {  // side by side when they fit; stacked at large text sizes
                 HStack(spacing: 8) { buttons }.lineLimit(1)
                 VStack(spacing: 8) { buttons }
             }
-            .font(.subheadline.weight(.semibold))
+            .font(.brand(.subheadline, .semibold))
             .controlSize(.regular)
             .disabled(busy)
         }
         .padding(14)
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)  // it sits over the notes: past this it would hide them all
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Brand.orange.opacity(0.6)))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("handCard")
     }
@@ -380,12 +379,12 @@ struct HandCard: View {
     @ViewBuilder private var buttons: some View {
         if participating {
             Button { act("speak") } label: { Text("Let it speak").frame(maxWidth: .infinity) }
-                .buttonStyle(.borderedProminent).tint(Brand.orange).accessibilityIdentifier("handSpeak")
+                .buttonStyle(.brandPrimary).accessibilityIdentifier("handSpeak")
         }
         Button { act("later") } label: { Text("Not now").frame(maxWidth: .infinity) }
-            .buttonStyle(.bordered).tint(.gray).accessibilityIdentifier("handLater")
+            .buttonStyle(.brandQuiet).accessibilityIdentifier("handLater")
         Button { act("type") } label: { Text("Type it instead").frame(maxWidth: .infinity) }
-            .buttonStyle(.bordered).tint(.gray).accessibilityIdentifier("handType")
+            .buttonStyle(.brandQuiet).accessibilityIdentifier("handType")
     }
 
     private func act(_ decision: String) {
@@ -441,11 +440,11 @@ struct NotesFeed: View {
                             filter = f
                             if f == .transcript { showTranscript() }
                         } label: {
-                            Text(f.rawValue).font(.subheadline.weight(.medium))
+                            Text(f.rawValue).font(.brand(.subheadline, .medium))
                                 .padding(.horizontal, 12).padding(.vertical, 7)
-                                .background(filter == f ? AnyShapeStyle(Brand.orange.opacity(0.28)) : AnyShapeStyle(.thinMaterial),
+                                .background(filter == f ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised),
                                             in: Capsule())
-                                .overlay(Capsule().stroke(filter == f ? Brand.orange : .clear))
+                                .overlay(Capsule().stroke(filter == f ? Brand.orangeLine : .clear))
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("notesFilter-\(f.rawValue)")
@@ -479,13 +478,13 @@ struct NotesFeed: View {
     @ViewBuilder private var transcriptView: some View {
         if transcript.isEmpty {
             Text("Nothing heard yet. The transcript stays in memory on the Mac and is never stored unless you export it.")
-                .font(.footnote).foregroundStyle(.secondary).padding(.top, 20)
+                .font(.brand(.footnote)).foregroundStyle(Brand.muted).padding(.top, 20)
         } else {
             LazyVStack(alignment: .leading, spacing: 8) {
                 ForEach(transcript) { turn in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(who(turn)).font(.caption.weight(.semibold)).foregroundStyle(Brand.orange)
-                        Text(turn.text).readingDirection(of: turn.text).font(.callout)
+                        Text(who(turn)).font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
+                        Text(turn.text).readingDirection(of: turn.text).font(.brand(.callout))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
@@ -517,21 +516,21 @@ struct NoteRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: symbol).foregroundStyle(tint).frame(minWidth: 18)
-                Text(kindLabel).font(.caption.weight(.semibold)).foregroundStyle(tint)
+                Text(kindLabel).font(.brand(.caption, .semibold)).foregroundStyle(tint)
                 Spacer()
                 if let at = note.at {
-                    Text(Date(timeIntervalSince1970: at), style: .time).font(.caption2).foregroundStyle(.secondary)
+                    Text(Date(timeIntervalSince1970: at), style: .time).font(.brand(.caption2)).foregroundStyle(Brand.muted)
                 }
             }
-            Text(note.text).readingDirection(of: note.text).font(.callout).strikethrough(done).foregroundStyle(done ? .secondary : .primary)
+            Text(note.text).readingDirection(of: note.text).font(.brand(.callout)).strikethrough(done).foregroundStyle(done ? Brand.muted : .primary)
                 .lineLimit(note.kind == "session_news" ? 2 : nil)
-            if let extra { Text(extra).font(.caption).foregroundStyle(.secondary) }
+            if let extra { Text(extra).font(.brand(.caption)).foregroundStyle(Brand.muted) }
             actions
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(note.kind == "question" && note.state != "done" ? tint.opacity(0.5) : .clear))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(note.kind == "question" && note.state != "done" ? tint.opacity(0.5) : .clear))
         .contextMenu {
             if !done { Button { setState(note, "done") } label: { Label("Done", systemImage: "checkmark") } }
             Button(role: .destructive) { setState(note, "dismissed") } label: { Label("Dismiss", systemImage: "xmark") }
@@ -543,15 +542,15 @@ struct NoteRow: View {
     @ViewBuilder private var actions: some View {
         if note.kind == "speaker", note.state != "done" {
             HStack(spacing: 8) {
-                Button("Use this name") { accept(note) }.buttonStyle(.borderedProminent).tint(Brand.orange)
-                Button("Ignore") { setState(note, "dismissed") }.buttonStyle(.bordered).tint(.gray)
+                Button("Use this name") { accept(note) }.buttonStyle(.brandPrimary)
+                Button("Ignore") { setState(note, "dismissed") }.buttonStyle(.brandQuiet)
             }
             .controlSize(.small)
         } else if note.meta?.lookup != nil, note.state == "open" {
             Button { lookUp(note) } label: {
                 Label("Look up in \(note.meta?.lookup?.session ?? "the session")", systemImage: "magnifyingglass")
             }
-            .buttonStyle(.bordered).tint(Brand.orange).controlSize(.small)
+            .buttonStyle(.brandQuiet).controlSize(.small)
             .accessibilityIdentifier("lookUp")
         }
     }
@@ -601,11 +600,11 @@ struct NoteRow: View {
 
     private var tint: Color {
         switch note.kind {
-        case "question": Brand.orange
-        case "answer": .green
-        case "action", "decision": .blue
-        case "hand": Brand.orange
-        default: .secondary
+        case "question": Brand.accent
+        case "answer": Brand.successText
+        case "action", "decision": Brand.text
+        case "hand": Brand.accent
+        default: Brand.muted
         }
     }
 }
@@ -633,12 +632,12 @@ struct MeetingBar: View {
             Spacer()
             Button(action: mic) {
                 ZStack {
-                    Circle().fill(hot ? AnyShapeStyle(Color.red.gradient) : AnyShapeStyle(Brand.card))
+                    Circle().fill(hot ? Brand.danger : Brand.raised)
                     Image(systemName: hot ? "mic.fill" : phase == .live ? "mic.slash.fill" : "mic")
                         .font(.system(size: 26, weight: .semibold))
-                        .foregroundStyle(phase == .live ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(hot ? Color.white : Brand.dim)
                         .contentTransition(.symbolEffect(.replace))
-                    if phase == .connecting || phase == .reconnecting { ProgressView().tint(.white).offset(y: 30) }
+                    if phase == .connecting || phase == .reconnecting { ProgressView().tint(Brand.muted).offset(y: 30) }
                 }
                 .frame(width: 70, height: 70)
             }
@@ -651,12 +650,12 @@ struct MeetingBar: View {
             Spacer()
             side("Speakers", "person.2", action: speakers)
             Spacer()
-            side(meeting.isEnding ? "Ending\u{2026}" : "End", "stop.circle.fill", tint: .red, action: end)
+            side(meeting.isEnding ? "Ending\u{2026}" : "End", "stop.circle.fill", tint: Brand.dangerText, action: end)
                 .disabled(meeting.isEnding)
                 .accessibilityIdentifier("endMeeting")
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 30))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .sensoryFeedback(.impact(weight: .light), trigger: meeting.mode)
     }
 
@@ -668,8 +667,8 @@ struct MeetingBar: View {
             VStack(spacing: 4) {
                 Image(systemName: symbol).font(.system(size: 19, weight: .medium))
                     .frame(width: 46, height: 46)
-                    .background(on ? AnyShapeStyle(Brand.orange.opacity(0.25)) : AnyShapeStyle(.thinMaterial), in: Circle())
-                Text(label).font(.caption2).lineLimit(1).fixedSize()
+                    .background(on ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Circle())
+                Text(label).font(.brand(.caption2)).lineLimit(1).fixedSize()
             }
             .foregroundStyle(tint)
             .dynamicTypeSize(...DynamicTypeSize.xxLarge)  // five controls in one row: the labels cannot grow without bound
@@ -688,16 +687,16 @@ struct SpeakersSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 Section {
-                    if speakers.isEmpty { Text("Nobody heard yet.").foregroundStyle(.secondary) }
+                    if speakers.isEmpty { Text("Nobody heard yet.").foregroundStyle(Brand.muted) }
                     ForEach(speakers) { s in
                         HStack {
                             Text(s.is_owner == true ? "You" : "Speaker \(s.label)").frame(width: 92, alignment: .leading)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Brand.muted)
                             TextField("Name", text: Binding(get: { names[s.label] ?? (s.name ?? "") }, set: { names[s.label] = $0 }))
                                 .disabled(s.is_owner == true)
-                            Text("\(s.turns ?? 0)").font(.caption).foregroundStyle(.secondary)
+                            Text("\(s.turns ?? 0)").font(.brand(.caption)).foregroundStyle(Brand.muted)
                         }
                     }
                 } footer: {
@@ -746,12 +745,12 @@ struct MeetingEndSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 Section("Summary") {  // a long summary is folded, so the export is not pages away
-                    Text(result.summary ?? "No summary.").readingDirection(of: result.summary ?? "").font(.callout).lineLimit(wholeSummary ? nil : 6)
+                    Text(result.summary ?? "No summary.").readingDirection(of: result.summary ?? "").font(.brand(.callout)).lineLimit(wholeSummary ? nil : 6)
                     if (result.summary ?? "").count > 320 {
                         Button(wholeSummary ? "Show less" : "Show all") { withAnimation { wholeSummary.toggle() } }
-                            .font(.callout)
+                            .font(.brand(.callout))
                     }
                 }
                 if let decisions = result.decisions, !decisions.isEmpty {
@@ -765,7 +764,7 @@ struct MeetingEndSheet: View {
                             Label {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(a.what).readingDirection(of: a.what)
-                                    if !who.isEmpty { Text(who).font(.caption).foregroundStyle(.secondary) }
+                                    if !who.isEmpty { Text(who).font(.brand(.caption)).foregroundStyle(Brand.muted) }
                                 }
                             } icon: { Image(systemName: "checklist") }
                         }
@@ -791,7 +790,7 @@ struct MeetingEndSheet: View {
                         Label("Save on the Mac", systemImage: "desktopcomputer")
                     }
                     .accessibilityIdentifier("meetingSave")
-                    if let saved { Text(saved.isEmpty ? "Could not save." : "Saved: \(saved)").font(.caption).foregroundStyle(.secondary) }
+                    if let saved { Text(saved.isEmpty ? "Could not save." : "Saved: \(saved)").font(.brand(.caption)).foregroundStyle(Brand.muted) }
                 } header: { Text("Export") } footer: {
                     Text(withTranscript ? "With the transcript: everything that was said." : "Notes only: the transcript stays out.")
                 }
@@ -801,7 +800,7 @@ struct MeetingEndSheet: View {
                             ForEach(sessions) { s in Button(s.name) { sendTo = s.name } }
                         } label: { Label("Send action items to…", systemImage: "paperplane") }
                         .accessibilityIdentifier("meetingSend")
-                        if let sent { Text(sent).font(.caption).foregroundStyle(.secondary) }
+                        if let sent { Text(sent).font(.brand(.caption)).foregroundStyle(Brand.muted) }
                     } footer: { Text("They go as your own request, through the normal checks.") }
                 }
                 Section {
@@ -852,7 +851,7 @@ struct MeetingSettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 if var p = prefs {
                     Section {
                         Picker("Starts in", selection: Binding(get: { p.defaultMode }, set: { p.defaultMode = $0; update(p, ["meeting.default_mode": $0]) })) {
@@ -877,7 +876,7 @@ struct MeetingSettingsSheet: View {
                     } footer: { Text("A voice start (\u{201C}meeting mode, listening\u{201D}) needs the consent step accepted once.") }
                 } else if loaded {
                     Label("The Mac did not send its meeting settings. Is Pointe on the Mac up to date and reachable?",
-                          systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                          systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 } else {
                     ProgressView()
                 }

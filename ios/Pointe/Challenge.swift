@@ -83,23 +83,23 @@ struct ChallengePanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
-                Image(systemName: "figure.fencing").font(.title2).foregroundStyle(Brand.orange)
+                Image(systemName: "figure.fencing").font(.brand(.title2)).foregroundStyle(Brand.accent)
                     .symbolEffect(.pulse, options: .repeating, isActive: challenge.on)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(ChallengeCopy.title(on: challenge.on)).font(.title2.bold())
+                    Text(ChallengeCopy.title(on: challenge.on)).font(.brand(.title2, .semibold))
                         .accessibilityIdentifier("challenge.title")
-                    Text(ChallengeCopy.lede).font(.subheadline).foregroundStyle(.secondary)
+                    Text(ChallengeCopy.lede).font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                 }
             }
             ScrollViewReader { scroller in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(ChallengeCopy.planHeading).font(.caption.bold()).foregroundStyle(.secondary)
+                            Text(ChallengeCopy.planHeading).font(.brand(.caption, .semibold)).foregroundStyle(Brand.muted)
                             NaturalText(text: ChallengeCopy.plan(challenge.plan))
-                                .font(.body)
+                                .font(.brand(.body))
                                 .foregroundStyle((challenge.plan ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                                 ? .secondary : .primary)
+                                                 ? Brand.muted : .primary)
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("challenge.plan")
@@ -114,31 +114,31 @@ struct ChallengePanel: View {
                 .onChange(of: challenge.items?.count) { withAnimation(.smooth) { scroller.scrollTo("end", anchor: .bottom) } }
             }
             if let problem {
-                Label(problem, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
+                Label(problem, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
             }
             if challenge.on {
-                Text(ChallengeCopy.hint).font(.footnote).foregroundStyle(.secondary)
+                Text(ChallengeCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                 Button {
                     busy = true
                     Task { await end(); busy = false }
                 } label: {
-                    Text(ChallengeCopy.end).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                    Text(ChallengeCopy.end).font(.brand(.headline)).frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+                .buttonStyle(.brandPrimary).controlSize(.large)
                 .disabled(busy)
                 .accessibilityIdentifier("challenge.end")
             } else {
                 Button(action: close) {
-                    Text(ChallengeCopy.close).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                    Text(ChallengeCopy.close).font(.brand(.headline)).frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
-                .buttonStyle(.bordered).tint(.gray).controlSize(.large)
+                .buttonStyle(.brandQuiet).controlSize(.large)
                 .accessibilityIdentifier("challenge.close")
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Brand.orange.opacity(0.06), in: RoundedRectangle(cornerRadius: 24))
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Brand.orange.opacity(0.35)))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("challenge.panel")
     }
@@ -146,12 +146,13 @@ struct ChallengePanel: View {
     private func row(_ item: API.ChallengeItem) -> some View {
         let mine = item.kind == "rebuttal"
         return VStack(alignment: .leading, spacing: 4) {
-            Text(ChallengeCopy.label(item.kind)).font(.caption.bold())
-                .foregroundStyle(item.kind == "verdict" ? Brand.orange : .secondary)
-            NaturalText(text: item.text).font(.body)
+            Text(ChallengeCopy.label(item.kind)).font(.brand(.caption, .semibold))
+                .foregroundStyle(item.kind == "verdict" ? Brand.accent : Brand.muted)
+            NaturalText(text: item.text).font(.brand(.body))
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
-        .background(mine ? AnyShapeStyle(Brand.orange.opacity(0.18)) : AnyShapeStyle(Brand.card), in: RoundedRectangle(cornerRadius: 14))
+        .background(mine ? Brand.raised : Brand.card, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.line))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(ChallengeCopy.label(item.kind)): \(item.text)")
         .accessibilityIdentifier("challenge.item.\(item.kind)")

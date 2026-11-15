@@ -5,12 +5,14 @@ struct PointeApp: App {
     @State private var pairing: Pairing?
     @State private var note: PairingNote?
     @State private var tried: Demo?  // "Try a demo" on the pairing screen; nothing is paired or saved
+    @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue  // the menu's Appearance: System, Light or Dark
 
     init() {
         if ProcessInfo.processInfo.environment["POINTE_FORGET"] == "1" { PairingStore.forget() }  // UI tests start unpaired
         _pairing = State(initialValue: PairingStore.load())
         API.deviceHeader = API.header(for: UIDevice.current.name)
         AlertCenter.shared.start()  // before an action that launched the app is handed over
+        Brand.install()
     }
 
     var body: some Scene {
@@ -33,8 +35,10 @@ struct PointeApp: App {
                 try? await Task.sleep(for: .seconds(note.state == .done ? 6 : 15))
                 if self.note == note { self.note = nil }
             }
-            .preferredColorScheme(.dark)
-            .tint(Brand.orange)
+            .preferredColorScheme(Theme.stored(theme).scheme)
+            .tint(Brand.accent)
+            .font(.brand(.body))
+            .foregroundStyle(Brand.text)
             .onOpenURL { url in accept(url.absoluteString) }  // scanned with the Camera app: pointe://pair?...
             .task {  // tests and the simulator: a link given at launch replaces any earlier pairing
                 if let link = ProcessInfo.processInfo.environment["POINTE_PAIR"], let p = Pairing(link: link), p != pairing {
@@ -87,24 +91,18 @@ struct PairingBanner: View {
         HStack(alignment: .top, spacing: 10) {
             switch note.state {
             case .working: ProgressView()
-            case .done: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-            case .failed: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+            case .done: Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.successText)
+            case .failed: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
             }
-            Text(note.text).font(.callout.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+            Text(note.text).font(.brand(.callout, .semibold)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("pairing-note")
             Spacer(minLength: 0)
         }
         .padding(14)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(note.state == .failed ? Brand.orange : .white.opacity(0.12)))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(note.state == .failed ? Brand.orangeLine : Brand.lineStrong))
         .padding(.horizontal, 16).padding(.top, 8)
         .onTapGesture(perform: dismiss)
         .accessibilityAddTraits(.updatesFrequently)
     }
-}
-
-enum Brand {
-    static let orange = Color(red: 1, green: 0.31, blue: 0.12)
-    static let card = Color(red: 0.075, green: 0.11, blue: 0.165)
-    static let background = Color(red: 0.043, green: 0.063, blue: 0.094)
 }

@@ -117,9 +117,9 @@ def test_done_opens_the_review_and_send_takes_two_clicks_and_names_the_session()
             await page.eval("document.getElementById('dump-done').click()")
             opened = await _until(page, "document.getElementById('dumpsheet').classList.contains('open')", 6)
             assert opened and _posts(stub)[-1] == {"action": "done"}
-            got = await page.eval("""({text: $('dump-text').value, h: $('dumprev-h').textContent, send: $('dump-send').textContent,
+            got = await page.eval("""(setTheme('light'), {text: $('dump-text').value, h: $('dumprev-h').textContent, send: $('dump-send').textContent,
                                       sendLabel: $('dump-send').getAttribute('aria-label'), to: $('dump-to').querySelector('span').textContent,
-                                      primaries: [...document.querySelectorAll('#dumpsheet button')].filter(b => getComputedStyle(b).backgroundColor === 'rgb(255, 79, 31)').map(b => b.id),
+                                      primaries: [...document.querySelectorAll('#dumpsheet button')].filter(b => getComputedStyle(b).backgroundColor === 'rgb(10, 4, 0)').map(b => b.id),
                                       discardRed: getComputedStyle($('dump-discard2')).color, discardInRow: !!$('dump-discard2').closest('.row'),
                                       options: [...$('dump-session').options].map(o => o.value), picked: $('dump-session').value,
                                       label: $('listen-label').textContent, panel: $('dump').hidden, fallback: $('dump-fallback').hidden})""")
@@ -128,7 +128,7 @@ def test_done_opens_the_review_and_send_takes_two_clicks_and_names_the_session()
             assert got["h"].startswith("Your brain dump, structured") and got["label"] == "Review" and got["panel"] and got["fallback"]
             assert got["options"] == ["", "s0-shop", "s1-api", "s2-mobile"] and got["picked"] == ""  # orchestrator mode: the orchestrator
             assert got["to"] == "To:" and got["send"] == "Send" and got["sendLabel"] == "Send to Orchestrator"  # the picker says where, Send says what
-            assert got["primaries"] == ["dump-send"] and got["discardRed"] == "rgb(255, 69, 58)" and not got["discardInRow"]  # Discard apart, destructive
+            assert got["primaries"] == ["dump-send"] and got["discardRed"] == "rgb(200, 58, 55)" and not got["discardInRow"]  # one primary (ink); Discard apart, destructive
             # pick another session, then send: the first click asks, the second posts
             await page.eval("$('dump-session').value = 's1-api'; $('dump-session').dispatchEvent(new Event('change'))")
             await page.eval("document.getElementById('dump-send').click()")

@@ -39,7 +39,7 @@ struct BottomBar: View {
                 side("Sessions", "rectangle.stack", action: sessions)
                 Spacer(minLength: 0)
                 if live {
-                    side("Hang up", "phone.down.fill", tint: .red, action: hangUp).accessibilityIdentifier("hangUp")
+                    side("Hang up", "phone.down.fill", tint: Brand.dangerText, action: hangUp).accessibilityIdentifier("hangUp")
                 } else {
                     side("Hang up", "phone.down.fill", action: {}).hidden().accessibilityHidden(true)
                 }
@@ -49,7 +49,7 @@ struct BottomBar: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 30))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .sensoryFeedback(.impact(weight: .medium), trigger: muted)
         .sensoryFeedback(.impact(weight: .light), trigger: dump?.state)
     }
@@ -60,16 +60,15 @@ struct BottomBar: View {
     private var micButton: some View {
         Button(action: mic) {
             ZStack {
-                Circle().fill(hot ? AnyShapeStyle(Brand.orange.gradient) : AnyShapeStyle(Brand.card))
-                    .overlay(Circle().stroke(.white.opacity(phase == .live ? 0 : 0.1)))
+                Circle().fill(hot ? Brand.orange : Brand.raised)
+                    .overlay(Circle().stroke(hot ? Color.clear : phase == .live ? Brand.orange : Brand.line, lineWidth: phase == .live ? 2 : 1))
                 Image(systemName: hot ? "mic.fill" : phase == .live ? "mic.slash.fill" : "mic")
                     .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(phase == .live ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(hot ? Brand.onOrange : phase == .live ? Brand.accent : Brand.dim)
                     .contentTransition(.symbolEffect(.replace))
-                if phase == .connecting || phase == .reconnecting { ProgressView().tint(.white).offset(y: 30) }
+                if phase == .connecting || phase == .reconnecting { ProgressView().tint(Brand.muted).offset(y: 30) }
             }
             .frame(width: 70, height: 70)
-            .shadow(color: hot ? Brand.orange.opacity(0.5) : .clear, radius: 12)
         }
         .buttonStyle(.plain)
         .disabled(phase != .live)
@@ -86,9 +85,9 @@ struct BottomBar: View {
             VStack(spacing: 4) {
                 Image(systemName: symbol).font(.system(size: 19, weight: .medium))
                     .frame(width: 46, height: 46)
-                    .background(on ? AnyShapeStyle(Brand.orange.opacity(0.25)) : AnyShapeStyle(.thinMaterial), in: Circle())
+                    .background(on ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Circle())
                     .contentTransition(.symbolEffect(.replace))
-                Text(label).font(.caption2).lineLimit(1).fixedSize()
+                Text(label).font(.brand(.caption2)).lineLimit(1).fixedSize()
             }
             .foregroundStyle(tint)
         }
@@ -118,11 +117,11 @@ struct TypeBar: View {
                     if text.hasSuffix("\n") { text.removeLast(); submit() }
                 }
                 .padding(.horizontal, 14).padding(.vertical, 10)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                .background(Brand.raised, in: RoundedRectangle(cornerRadius: 16))
             Button(action: submit) {
-                Image(systemName: "arrow.up").font(.body.bold()).foregroundStyle(.white)
+                Image(systemName: "arrow.up").font(.brand(.body, .semibold)).foregroundStyle(empty ? Brand.dim : Brand.onPrimary)
                     .frame(width: 38, height: 38)
-                    .background(empty ? AnyShapeStyle(Color.gray.opacity(0.4)) : AnyShapeStyle(Brand.orange.gradient), in: Circle())
+                    .background(empty ? Brand.raised2 : Brand.primary, in: Circle())
             }
             .disabled(empty || sending)
             .accessibilityLabel("Send")

@@ -134,31 +134,31 @@ struct BrainDumpPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
-                Image(systemName: "brain.head.profile").font(.title2).foregroundStyle(Brand.orange)
+                Image(systemName: "brain.head.profile").font(.brand(.title2)).foregroundStyle(Brand.accent)
                     .symbolEffect(.pulse, options: .repeating)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(BrainDumpCopy.title).font(.title2.bold()).accessibilityIdentifier("dump.title")
-                    Text(BrainDumpCopy.lede).foregroundStyle(.secondary)
+                    Text(BrainDumpCopy.title).font(.brand(.title2, .semibold)).accessibilityIdentifier("dump.title")
+                    Text(BrainDumpCopy.lede).foregroundStyle(Brand.muted)
                 }
             }
             ScrollViewReader { scroller in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         if dump.thoughts.isEmpty && hearing.isEmpty {
-                            Text(BrainDumpCopy.empty).foregroundStyle(.secondary)
+                            Text(BrainDumpCopy.empty).foregroundStyle(Brand.muted)
                         }
                         ForEach(Array(dump.thoughts.enumerated()), id: \.offset) { _, thought in
-                            Text(thought.text).readingDirection(of: thought.text).font(.body)
+                            Text(thought.text).readingDirection(of: thought.text).font(.brand(.body))
                                 .padding(.horizontal, 12).padding(.vertical, 8)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
+                                .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
                                 .accessibilityIdentifier("dump.thought")
                         }
                         if dump.state == "structuring" {
-                            Label(BrainDumpCopy.structuring, systemImage: "sparkles").foregroundStyle(.secondary)
+                            Label(BrainDumpCopy.structuring, systemImage: "sparkles").foregroundStyle(Brand.muted)
                                 .accessibilityIdentifier("dump.structuring")
                         } else if !hearing.isEmpty {
-                            Text(hearing).readingDirection(of: hearing).font(.body).italic().foregroundStyle(.white.opacity(0.6))
+                            Text(hearing).readingDirection(of: hearing).font(.brand(.body)).foregroundStyle(Brand.muted)
                         }
                         Color.clear.frame(height: 1).id("end")
                     }
@@ -168,9 +168,9 @@ struct BrainDumpPanel: View {
                 .defaultScrollAnchor(.bottom)
                 .onChange(of: dump.thoughts.count) { scroller.scrollTo("end", anchor: .bottom) }
             }
-            Text(BrainDumpCopy.hint).font(.footnote).foregroundStyle(.secondary)
+            Text(BrainDumpCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted)
             if let note = problem ?? dump.problem ?? (dump.resumed == true ? BrainDumpCopy.resumed : nil) {
-                Label(note, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
+                Label(note, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                     .accessibilityIdentifier("dump.note")
             }
             HStack(spacing: 10) {
@@ -180,23 +180,23 @@ struct BrainDumpPanel: View {
                         Task { try? await Task.sleep(for: .seconds(4)); discardSure = false }
                     }
                 } label: {
-                    Text(discardSure ? BrainDumpCopy.discardSure : BrainDumpCopy.discard).font(.headline).padding(.vertical, 6)
+                    Text(discardSure ? BrainDumpCopy.discardSure : BrainDumpCopy.discard).font(.brand(.headline)).padding(.vertical, 6)
                 }
-                .buttonStyle(.bordered).tint(.gray).controlSize(.large)
+                .buttonStyle(.brandQuiet).controlSize(.large)
                 .accessibilityIdentifier("dump.discard")
                 Button(action: done) {
                     Label(dump.state == "structuring" ? BrainDumpCopy.structuring : BrainDumpCopy.done, systemImage: "checkmark")
-                        .font(.headline).lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity).padding(.vertical, 6)
+                        .font(.brand(.headline)).lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+                .buttonStyle(.brandPrimary).controlSize(.large)
                 .disabled(dump.state == "structuring")
                 .accessibilityIdentifier("dump.done")
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Brand.orange.opacity(0.06), in: RoundedRectangle(cornerRadius: 24))
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Brand.orange.opacity(0.35)))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dump.panel")
     }
@@ -228,17 +228,17 @@ struct BrainDumpReview: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(BrainDumpCopy.reviewLede).font(.subheadline).foregroundStyle(.secondary)
+                    Text(BrainDumpCopy.reviewLede).font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                     if dump.fallback == true {
-                        Label(BrainDumpCopy.fallback, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
+                        Label(BrainDumpCopy.fallback, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                             .accessibilityIdentifier("dump.fallback")
                     }
                     TextEditor(text: $text)
-                        .font(.body)
+                        .font(.brand(.body))
                         .frame(minHeight: 220)
                         .scrollContentBackground(.hidden)
                         .padding(10)
-                        .background(Brand.card, in: RoundedRectangle(cornerRadius: 14))
+                        .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
                         .focused($editing)
                         .onChange(of: editing) { if !editing { Task { await saveEdit() } } }
                         .accessibilityIdentifier("dump.text")
@@ -249,24 +249,24 @@ struct BrainDumpReview: View {
                         }
                     } label: {
                         HStack(spacing: 8) {
-                            Text(BrainDumpCopy.to).foregroundStyle(.secondary)
+                            Text(BrainDumpCopy.to).foregroundStyle(Brand.muted)
                             Text(target?.label ?? "").fontWeight(.semibold).foregroundStyle(.primary).lineLimit(1)
                             Spacer(minLength: 0)
-                            Image(systemName: "chevron.up.chevron.down").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                            Image(systemName: "chevron.up.chevron.down").font(.brand(.footnote, .semibold)).foregroundStyle(Brand.muted)
                         }
                         .padding(.horizontal, 14).frame(minHeight: 46)
                         .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.1)))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.line))
                     }
                     .tint(.primary)  // a field, not an accent: the orange is Send's
                     .accessibilityLabel("\(BrainDumpCopy.to) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.session")
                     if let note = BrainDumpCopy.goneNote(dump, target: target) {
-                        Label(note, systemImage: "arrow.uturn.left").font(.footnote).foregroundStyle(Brand.orange)
+                        Label(note, systemImage: "arrow.uturn.left").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                             .accessibilityIdentifier("dump.gone")
                     }
                     if let note = problem ?? dump.problem {
-                        Label(note, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
+                        Label(note, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                             .accessibilityIdentifier("dump.problem")
                     }
                     Button {
@@ -280,10 +280,10 @@ struct BrainDumpReview: View {
                         }
                     } label: {
                         Text(sure ? BrainDumpCopy.sendSure : BrainDumpCopy.send)
-                            .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                            .font(.brand(.headline)).frame(maxWidth: .infinity).padding(.vertical, 6)
                     }
-                    .buttonStyle(.borderedProminent).tint(sure ? Brand.orange.mix(with: .black, by: 0.35) : Brand.orange).controlSize(.large)
-                    .overlay(Capsule().stroke(Brand.orange, lineWidth: 2).padding(-4).opacity(sure ? 1 : 0))
+                    .buttonStyle(.brandPrimary).controlSize(.large)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orange, lineWidth: 2).padding(-4).opacity(sure ? 1 : 0))
                     .animation(.easeOut(duration: 0.15), value: sure)
                     .disabled(target == nil || busy)
                     .accessibilityLabel(sure ? BrainDumpCopy.sendSure : "\(BrainDumpCopy.sendTo) \(target?.label ?? "")")
@@ -299,13 +299,13 @@ struct BrainDumpReview: View {
                             Task { try? await Task.sleep(for: .seconds(4)); discardSure = false }
                         }
                     } label: {
-                        Text(discardSure ? BrainDumpCopy.discardSure : BrainDumpCopy.discard).font(.subheadline.weight(.semibold))
+                        Text(discardSure ? BrainDumpCopy.discardSure : BrainDumpCopy.discard).font(.brand(.subheadline, .semibold))
                             .padding(.horizontal, 16).padding(.vertical, 8)
                     }
-                    .buttonStyle(.plain).foregroundStyle(.red)
+                    .buttonStyle(.plain).foregroundStyle(Brand.dangerText)
                     .frame(maxWidth: .infinity).padding(.top, 6)
                     .accessibilityIdentifier("dump.discard")
-                    Text(BrainDumpCopy.reviewHint).font(.footnote).foregroundStyle(.secondary)
+                    Text(BrainDumpCopy.reviewHint).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                         .multilineTextAlignment(.center).frame(maxWidth: .infinity)
                 }
                 .padding(20)
@@ -323,8 +323,8 @@ struct BrainDumpReview: View {
     /// A secondary action: quiet, outlined, never competing with Send.
     private func quiet(_ title: String, id: String, _ action: @escaping () async -> Void) -> some View {
         Button { Task { await action() } } label: {
-            Text(title).font(.subheadline).lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity).frame(minHeight: 40)
-                .overlay(Capsule().stroke(.white.opacity(0.18)))
+            Text(title).font(.brand(.subheadline)).lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity).frame(minHeight: 40)
+                .overlay(Capsule().stroke(Brand.line))
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain).foregroundStyle(.primary)

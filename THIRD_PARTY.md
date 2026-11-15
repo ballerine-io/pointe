@@ -18,6 +18,16 @@ check the package itself for the authoritative text.
 
 Silero VAD (MIT) ships inside the `pipecat-ai` package; it is not downloaded.
 
+## Fonts in the repository
+
+Bundled, never downloaded by the software: the page loads them from the daemon (`/voice/font/…`), the iPhone app from
+its bundle. Each file's SHA-256 is pinned in `assets/theme.json` and checked by `tests/test_theme.py`.
+
+| Font | Files | License | Taken from |
+|---|---|---|---|
+| Bricolage Grotesque (display, 300 and 400) | `assets/fonts/BricolageGrotesque-{Light,Regular}.ttf`, the same files in `ios/Pointe/Fonts/` | OFL-1.1, no reserved font name (`assets/fonts/OFL-BricolageGrotesque.txt`; identical to the copy in google/fonts `ofl/bricolagegrotesque`) | [ateliertriay/bricolage](https://github.com/ateliertriay/bricolage) at commit `84745e5b96261ae5f8c6c856e262fe78d1d6efdd`, `fonts/ttf/` |
+| Instrument Sans (text, 400, 500 and 600) | `assets/fonts/InstrumentSans-{Regular,Medium,SemiBold}.ttf`, the same files in `ios/Pointe/Fonts/` | OFL-1.1, no reserved font name (`assets/fonts/OFL-InstrumentSans.txt`; identical to the copy in google/fonts `ofl/instrumentsans`) | [Instrument/instrument-sans](https://github.com/Instrument/instrument-sans) at commit `7fa22308a3d0c94ee2b3cd537a1196b65db34a3e`, `fonts/ttf/` |
+
 ## Python runtime dependencies
 
 Direct dependencies, from `pyproject.toml`:

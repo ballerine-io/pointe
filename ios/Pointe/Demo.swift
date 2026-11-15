@@ -7,7 +7,7 @@ struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainDump, brainDumpReview, brainDumpPinned, brainDumpGone, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
-                       whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive }
+                       whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -57,7 +57,7 @@ struct Demo {
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         case .whisper, .whisperOff: whisperJSON(on: screen == .whisper)
         case .rtl: rtlJSON
-        case .machines, .machinesOne, .machinesOffline, .machinesDrive: machinesJSON(screen)  // Settings.swift
+        case .machines, .machinesOne, .machinesOffline, .machinesDrive, .machinesSessions: machinesJSON(screen)  // Settings.swift
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -379,13 +379,13 @@ struct DemoBadge: View {
     var body: some View {
         Button(action: tap) {
             HStack(spacing: 4) {
-                Text(Self.label).font(.caption.weight(.bold))
-                Image(systemName: "xmark").font(.caption2.weight(.bold))
+                Text(Self.label).font(.brand(.caption, .bold))
+                Image(systemName: "xmark").font(.brand(.caption2, .bold))
             }
-            .foregroundStyle(Brand.orange)
+            .foregroundStyle(Brand.accent)
             .padding(.horizontal, 10).frame(height: 26)
-            .background(Brand.orange.opacity(0.18), in: Capsule())
-            .overlay(Capsule().stroke(Brand.orange.opacity(0.6)))
+            .background(Brand.tint, in: Capsule())
+            .overlay(Capsule().stroke(Brand.orangeLine))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Self.exit)

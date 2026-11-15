@@ -80,10 +80,10 @@ struct VoiceLockSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 if let problem = lock.problem, lock.lockLevel != .off {
                     Label(VoiceLockCopy.problem(problem), systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Brand.orange)
+                        .foregroundStyle(Brand.accent)
                         .accessibilityIdentifier("voiceLockProblem")
                 }
                 Section { voiceprint }
@@ -91,7 +91,7 @@ struct VoiceLockSheet: View {
                     Text(lock.lockLevel.help).accessibilityIdentifier("voiceLockHelp")
                 }
                 if let refused {
-                    Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                    Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 }
             }
             .scrollContentBackground(.hidden)
@@ -108,19 +108,19 @@ struct VoiceLockSheet: View {
     @ViewBuilder private var voiceprint: some View {
         if let e = lock.enrolling {
             VStack(alignment: .leading, spacing: 10) {
-                Text(VoiceLockCopy.readAloud).font(.subheadline).foregroundStyle(.secondary)
-                Text(e.text ?? "").font(.title2.weight(.semibold)).accessibilityIdentifier("enrolLine")
+                Text(VoiceLockCopy.readAloud).font(.brand(.subheadline)).foregroundStyle(Brand.muted)
+                Text(e.text ?? "").font(.brand(.title2, .semibold)).accessibilityIdentifier("enrolLine")
                 HStack {
                     ProgressView(value: max(0, min(1, e.progress ?? 0))).tint(Brand.orange)
-                    Text(VoiceLockCopy.percent(e.progress ?? 0)).font(.footnote.monospacedDigit())
+                    Text(VoiceLockCopy.percent(e.progress ?? 0)).font(.brand(.footnote).monospacedDigit())
                 }
                 if let reason = e.last_reason, !reason.isEmpty {
-                    Text(VoiceLockCopy.didntCount(reason)).font(.footnote).foregroundStyle(Brand.orange)
+                    Text(VoiceLockCopy.didntCount(reason)).font(.brand(.footnote)).foregroundStyle(Brand.accent)
                 }
                 if lock.model == "missing" || lock.model == "downloading" {
-                    Text(VoiceLockCopy.downloading).font(.footnote).foregroundStyle(.secondary)
+                    Text(VoiceLockCopy.downloading).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                 } else if pushToTalk, lock.model == "ready" {
-                    Text(VoiceLockCopy.pushToTalk).font(.footnote).foregroundStyle(.secondary)
+                    Text(VoiceLockCopy.pushToTalk).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                 }
             }
             .padding(.vertical, 4)
@@ -147,7 +147,7 @@ struct VoiceLockSheet: View {
         Button(title) { Task { await run(["action": "enrol", "device": VoiceLockCopy.thisDevice]) } }
             .disabled(!callUp)
         if !callUp {
-            Text(VoiceLockCopy.connectFirst).font(.footnote).foregroundStyle(.secondary)
+            Text(VoiceLockCopy.connectFirst).font(.brand(.footnote)).foregroundStyle(Brand.muted)
         }
     }
 
@@ -157,10 +157,11 @@ struct VoiceLockSheet: View {
             ForEach(VoiceLockLevel.allCases) { level in
                 let on = level == lock.lockLevel
                 Button { Task { await setLevel(level) } } label: {
-                    Text(level.label).font(.subheadline.weight(on ? .semibold : .regular))
+                    Text(level.label).font(.brand(.subheadline, on ? .semibold : .regular))
                         .lineLimit(1).minimumScaleFactor(0.7)
                         .frame(maxWidth: .infinity).padding(.vertical, 7)
-                        .background(on ? Brand.orange.opacity(0.85) : .clear, in: RoundedRectangle(cornerRadius: 8))
+                        .foregroundStyle(on ? Brand.onPrimary : Brand.text)
+                        .background(on ? Brand.primary : .clear, in: RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(.plain)
                 .disabled(level != .off && !lock.isEnrolled)
@@ -169,7 +170,7 @@ struct VoiceLockSheet: View {
             }
         }
         .padding(3)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func setLevel(_ level: VoiceLockLevel) async {
@@ -201,14 +202,14 @@ struct IgnoredSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 ForEach((ignored.recent ?? []).reversed(), id: \.self) { item in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(Date(timeIntervalSince1970: item.at).formatted(date: .omitted, time: .shortened)
                              + " · " + VoiceLockCopy.seconds(item.secs ?? 0))
-                            .font(.subheadline.monospacedDigit())
+                            .font(.brand(.subheadline).monospacedDigit())
                         if let text = item.text, !text.isEmpty {
-                            Text(text).readingDirection(of: text).font(.footnote).foregroundStyle(.secondary)
+                            Text(text).readingDirection(of: text).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                         }
                     }
                 }

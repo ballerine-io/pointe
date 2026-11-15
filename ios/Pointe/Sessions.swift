@@ -1,6 +1,6 @@
 import SwiftUI
 
-private func dot(_ s: API.Session) -> Color { s.isOffline ? .gray : s.waiting || s.needs != nil ? Brand.orange : s.working ? .green : .gray }
+private func dot(_ s: API.Session) -> Color { s.isOffline ? Brand.raised2 : s.waiting || s.needs != nil ? Brand.orange : s.working ? Brand.success : Brand.raised2 }
 private func state(_ s: API.Session) -> String {
     s.isOffline ? "offline" : s.waiting ? "approve" : s.needs != nil ? "needs you" : s.working ? "working" : "idle"
 }
@@ -12,7 +12,9 @@ func byAttention(_ sessions: [API.Session]) -> [API.Session] {
 }
 
 /// "All" is orchestrator mode: the voice speaks for every session and none is singled out. A session chip focuses on that
-/// one (session mode): everything you say goes there. Hold a chip to take it off the voice.
+/// one (session mode): everything you say goes there. Hold a chip to take it off the voice. One row: with more than one
+/// machine the chips are grouped by machine, each group behind a small divider that names it; the machine filter itself
+/// is in the Sessions sheet.
 struct SessionChips: View {
     let sessions: [API.Session]
     let active: String?
@@ -33,10 +35,29 @@ struct SessionChips: View {
     private var orchestrating: Bool { mode != "session" }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if machines.multi { MachineFilter(machines: machines, filter: filter) }
-            strip
+        strip
+    }
+
+    /// The strip's groups: one per machine that has sessions to show (the filter narrows it to one), or one unnamed group.
+    private var groups: [(machine: String?, sessions: [API.Session])] {
+        guard machines.multi else { return [(nil, byAttention(sessions))] }
+        let shown = machines.valid(filter.wrappedValue).map { [$0] } ?? machines.names
+        return shown.map { ($0, byAttention(machines.onMachine($0))) }.filter { !$0.sessions.isEmpty }
+    }
+
+    /// "devbox" before its chips: a dot (filled while online) and the name, quiet, not a button.
+    private func divider(_ name: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(machines.isOffline(name) ? Color.clear : Brand.success)
+                .overlay(Circle().stroke(machines.isOffline(name) ? Brand.dim : Color.clear))
+                .frame(width: 5, height: 5)
+            Text(name).font(.brand(.caption2, .semibold)).kerning(0.6).textCase(.uppercase).foregroundStyle(Brand.dim)
         }
+        .padding(.leading, 6)
+        .environment(\.layoutDirection, .leftToRight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sessions on \(name)\(machines.isOffline(name) ? ", offline" : "")")
+        .accessibilityIdentifier("machineDivider.\(name)")
     }
 
     private var strip: some View {
@@ -44,10 +65,10 @@ struct SessionChips: View {
             HStack(spacing: 8) {
                 Button { if !orchestrating { orchestrate() } } label: {
                     Label("All", systemImage: "square.grid.2x2")
-                        .font(.subheadline.weight(orchestrating ? .semibold : .regular))
+                        .font(.brand(.subheadline, orchestrating ? .semibold : .regular))
                         .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(orchestrating ? AnyShapeStyle(Brand.orange.opacity(0.22)) : AnyShapeStyle(.thinMaterial), in: Capsule())
-                        .overlay(Capsule().stroke(orchestrating ? Brand.orange : .clear, lineWidth: 1))
+                        .background(orchestrating ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Capsule())
+                        .overlay(Capsule().stroke(orchestrating ? Brand.orangeLine : Brand.line, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
@@ -55,28 +76,29 @@ struct SessionChips: View {
                 }
                 .accessibilityLabel("All sessions, orchestrator mode\(orchestrating ? ", on" : "")")
                 if sessions.isEmpty {
-                    Text("No sessions · /pointe:voice or pointe join").font(.subheadline).foregroundStyle(.secondary)
+                    Text("No sessions · /pointe:voice or pointe join").font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                 }
-                ForEach(byAttention(machines.multi ? machines.shown(filter.wrappedValue) : sessions)) { s in
+                ForEach(groups, id: \.machine) { group in
+                  if let name = group.machine { divider(name) }
+                  ForEach(group.sessions) { s in
                     let on = !orchestrating && s.name == active
                     let machine = machines.of(s)
                     Button { if !on { focus(s.name) } } label: {
                         HStack(spacing: 7) {
                             Circle().fill(dot(s)).frame(width: 7, height: 7)
                             Text(s.name).lineLimit(1)
-                            if sessions.mixesAgents { AgentBadge(session: s) }
-                            if machines.mixed && machines.valid(filter.wrappedValue) == nil { MachineBadge(name: machine) }
+                            HarnessMark(harness: s.harness)
                             if s.isOffline {
-                                Text("offline").font(.caption2).foregroundStyle(.secondary)
+                                Text("offline").font(.brand(.caption2)).foregroundStyle(Brand.muted)
                             } else if s.waiting || s.needs != nil {
-                                Text(s.waiting ? "approve" : "needs you").font(.caption2.bold()).foregroundStyle(Brand.orange)
+                                Text(s.waiting ? "approve" : "needs you").font(.brand(.caption2, .semibold)).foregroundStyle(Brand.accent)
                             }
                         }
                         .opacity(s.isOffline ? 0.45 : 1)
-                        .font(.subheadline.weight(on ? .semibold : .regular))
+                        .font(.brand(.subheadline, on ? .semibold : .regular))
                         .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(on ? AnyShapeStyle(Brand.orange.opacity(0.22)) : AnyShapeStyle(.thinMaterial), in: Capsule())
-                        .overlay(Capsule().stroke(on ? Brand.orange : .clear, lineWidth: 1))
+                        .background(on ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Capsule())
+                        .overlay(Capsule().stroke(on ? Brand.orangeLine : Brand.line, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
@@ -91,6 +113,7 @@ struct SessionChips: View {
                     }
                     .accessibilityLabel("\(s.name)\(machines.mixed ? ", on \(machine)" : ""), \(state(s))\(on ? ", focused" : "")")
                     .accessibilityHint(on ? "" : "Focus on this session")
+                  }
                 }
             }
             .sensoryFeedback(.selection, trigger: (mode ?? "") + (active ?? ""))
@@ -117,6 +140,8 @@ struct SessionsSheet: View {
     let setMode: (String) -> Void
     /// The machine to open on (a chip's "Sessions on devbox"): its section comes first.
     var section: String? = nil
+    /// All · studio · devbox: which machine's sessions show, here and in the strip behind. A view only: nothing is sent.
+    var filter: Binding<String?> = .constant(nil)
     @Environment(\.dismiss) private var dismiss
     @State private var leaving: String?
 
@@ -124,7 +149,7 @@ struct SessionsSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 Section {
                     Picker("Mode", selection: Binding(get: { status?.mode ?? "orchestrator" }, set: setMode)) {
                         Text("Orchestrator").tag("orchestrator")
@@ -138,20 +163,29 @@ struct SessionsSheet: View {
                          : "Orchestrator: the voice keeps track of every session, gives you each one's status, and sends each request to the session it is about.")
                 }
                 if machines.multi {
-                    ForEach(machines.names.sorted { $0 == section && $1 != section }, id: \.self) { name in
+                    Section {
+                        MachineFilter(machines: machines, filter: filter)
+                            .listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+                    }
+                    ForEach((machines.valid(filter.wrappedValue).map { [$0] } ?? machines.names).sorted { $0 == section && $1 != section }, id: \.self) { name in
                         Section {
                             rows(machines.onMachine(name))
                         } header: {
-                            Text(machines.header(name))
-                                .foregroundStyle(machines.isOffline(name) ? Brand.orange : .secondary)
-                                .accessibilityIdentifier("machineSection.\(name)")
+                            HStack(spacing: 6) {  // a small dot: filled while the machine is online, a ring while it is not
+                                Circle().fill(machines.isOffline(name) ? Color.clear : Brand.success)
+                                    .overlay(Circle().stroke(machines.isOffline(name) ? Brand.dim : Color.clear))
+                                    .frame(width: 6, height: 6).accessibilityHidden(true)
+                                Text(machines.header(name))
+                                    .foregroundStyle(machines.isOffline(name) ? Brand.accent : Brand.muted)
+                                    .accessibilityIdentifier("machineSection.\(name)")
+                            }
                         }
                         .opacity(machines.isOffline(name) ? 0.6 : 1)
                     }
                 } else {
                     Section("On the voice") {
                         if (status?.sessions ?? []).isEmpty {
-                            Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.").foregroundStyle(.secondary)
+                            Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.").foregroundStyle(Brand.muted)
                         }
                         rows(status?.sessions ?? [])
                     }
@@ -173,15 +207,15 @@ struct SessionsSheet: View {
                 HStack {
                     Circle().fill(dot(s)).frame(width: 9, height: 9)
                     Text(s.name).foregroundStyle(.primary)
-                    if (status?.sessions ?? []).mixesAgents { AgentBadge(session: s) }
+                    HarnessMark(harness: s.harness, named: (status?.sessions ?? []).mixesAgents)
                     Spacer()
                     if s.isOffline {
                         Text("offline since \(MachinesCopy.since(machines.info(machines.of(s))?.since))")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.brand(.caption)).foregroundStyle(Brand.muted)
                     } else if status?.mode == "session" && s.name == status?.active {
-                        Text("focused").font(.caption.bold()).foregroundStyle(Brand.orange)
+                        Text("focused").font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
                     } else {
-                        Text(state(s)).font(.caption).foregroundStyle(.secondary)
+                        Text(state(s)).font(.brand(.caption)).foregroundStyle(Brand.muted)
                     }
                 }
                 .contentShape(Rectangle())
@@ -198,18 +232,18 @@ struct SessionsSheet: View {
     private var recentAndContext: some View {
         Section("Recent requests") {
             let recent = Array((status?.recent ?? []).reversed())
-            if recent.isEmpty { Text("Each request shows here with where it went.").foregroundStyle(.secondary) }
+            if recent.isEmpty { Text("Each request shows here with where it went.").foregroundStyle(Brand.muted) }
             ForEach(Array(recent.enumerated()), id: \.offset) { _, r in
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\u{201C}\(TextDirection.isolated(r.said ?? ""))\u{201D}").lineLimit(2)
-                    Text(SessionsCopy.routed(r)).font(.caption).foregroundStyle((r.to ?? []).isEmpty ? Brand.orange : .secondary)
+                    Text(SessionsCopy.routed(r)).font(.brand(.caption)).foregroundStyle((r.to ?? []).isEmpty ? Brand.accent : Brand.muted)
                 }
                 .accessibilityElement(children: .combine)
             }
         }
         if let line = SessionsCopy.context(status?.tokens) {
             Section {
-                Text(line).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("contextTokens")
+                Text(line).font(.brand(.footnote)).foregroundStyle(Brand.muted).accessibilityIdentifier("contextTokens")
             } header: { Text("What the voice holds") } footer: {
                 Text("The voice model's own count, after its last reply. The messages themselves stay on your Mac: the page there shows them.")
             }
@@ -264,9 +298,9 @@ struct AgentBadge: View {
     let session: API.Session
     var body: some View {
         Text(session.agent)
-            .font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+            .font(.brand(.caption2, .semibold)).foregroundStyle(Brand.muted)
             .padding(.horizontal, 5).padding(.vertical, 1)
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(.white.opacity(0.18)))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Brand.line))
             .accessibilityLabel("runs on \(session.agent)")
     }
 }
@@ -377,20 +411,8 @@ enum MachinesCopy {
     }
 }
 
-/// The machine a session runs on, shown only when more than one machine has sessions.
-struct MachineBadge: View {
-    let name: String
-    var body: some View {
-        Text(name)
-            .font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-            .padding(.horizontal, 5).padding(.vertical, 1)
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(.white.opacity(0.18)))
-            .environment(\.layoutDirection, .leftToRight)
-            .accessibilityLabel("on \(name)")
-    }
-}
-
-/// All · studio · devbox: which machine's sessions the strip and the sheet show. One tap, nothing sent.
+/// All · studio · devbox, at the top of the Sessions sheet: which machine's sessions the sheet and the strip show. One
+/// tap, nothing sent.
 struct MachineFilter: View {
     let machines: MachineView
     @Binding var filter: String?
@@ -410,10 +432,10 @@ struct MachineFilter: View {
         let on = machines.valid(filter) == name
         let away = name.map(machines.isOffline) == true
         return Button { filter = name } label: {
-            Text(label).font(.caption.weight(on ? .semibold : .regular))
+            Text(label).font(.brand(.caption, on ? .semibold : .regular))
                 .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(on ? AnyShapeStyle(Brand.orange.opacity(0.22)) : AnyShapeStyle(.thinMaterial), in: Capsule())
-                .overlay(Capsule().stroke(on ? Brand.orange : .clear, lineWidth: 1))
+                .background(on ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Capsule())
+                .overlay(Capsule().stroke(on ? Brand.orangeLine : Brand.line, lineWidth: 1))
                 .opacity(away ? 0.5 : 1)
         }
         .buttonStyle(.plain)

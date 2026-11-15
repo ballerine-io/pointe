@@ -24,17 +24,17 @@ struct MachinesSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 Section {
                     ForEach(machines) { m in row(m) }
                     if let problem {
-                        Text(problem).foregroundStyle(Brand.orange).accessibilityIdentifier("machinesProblem")
+                        Text(problem).foregroundStyle(Brand.accent).accessibilityIdentifier("machinesProblem")
                     }
                     if let done {
-                        Text(done).foregroundStyle(.secondary).accessibilityIdentifier("machinesDone")
+                        Text(done).foregroundStyle(Brand.muted).accessibilityIdentifier("machinesDone")
                     }
                     if let ended = MachinesCopy.ended(status) {
-                        Text(ended).foregroundStyle(Brand.orange).accessibilityIdentifier("inviteEnded")
+                        Text(ended).foregroundStyle(Brand.accent).accessibilityIdentifier("inviteEnded")
                     }
                 } footer: { Text(MachinesCopy.help) }
                 Section { inviteSection }
@@ -62,17 +62,17 @@ struct MachinesSheet: View {
     private func row(_ m: API.Machine) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(m.isHere ? "\(m.name) (this Mac)" : m.name).font(.body.weight(.semibold))
-                Text(facts(m)).font(.caption).foregroundStyle(m.isOffline ? Brand.orange : .secondary)
+                Text(m.isHere ? "\(m.name) (this Mac)" : m.name).font(.brand(.body, .semibold))
+                Text(facts(m)).font(.brand(.caption)).foregroundStyle(m.isOffline ? Brand.accent : Brand.muted)
                 if let notice = m.notice, !notice.isEmpty {
-                    Text(notice).font(.caption).foregroundStyle(Brand.orange)
+                    Text(notice).font(.brand(.caption)).foregroundStyle(Brand.accent)
                         .accessibilityIdentifier("machineNotice.\(m.name)")
                 }
             }
             Spacer()
             if !m.isHere {
                 Button("Revoke", role: .destructive) { revoking = m.name }
-                    .buttonStyle(.bordered).controlSize(.small)
+                    .buttonStyle(.brandQuiet).controlSize(.small)
                     .accessibilityIdentifier("revoke.\(m.name)")
                     .accessibilityLabel("Revoke \(m.name)")
             }
@@ -94,16 +94,16 @@ struct MachinesSheet: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 if let left = MachinesCopy.countdown(until.timeIntervalSince(context.date)) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(MachinesCopy.codeHelp).font(.footnote).foregroundStyle(.secondary)
+                        Text(MachinesCopy.codeHelp).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                         Text(shown.code)
-                            .font(.system(.largeTitle, design: .monospaced).weight(.bold)).kerning(3)
+                            .font(.system(.largeTitle, design: .monospaced).weight(.medium)).kerning(3)
                             .textSelection(.enabled)
                             .accessibilityIdentifier("inviteCode")
                         Text(MachinesCopy.joinLine(shown, pairing: pairing))
-                            .font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
+                            .font(.system(.caption, design: .monospaced)).foregroundStyle(Brand.muted)
                             .textSelection(.enabled)
                             .accessibilityIdentifier("inviteLine")
-                        Text("Expires in \(left)").font(.subheadline.monospacedDigit())
+                        Text("Expires in \(left)").font(.brand(.subheadline).monospacedDigit())
                             .accessibilityIdentifier("inviteCountdown")
                         HStack {
                             Button("Copy the line", systemImage: "doc.on.doc") {
@@ -117,7 +117,7 @@ struct MachinesSheet: View {
                     }
                     .environment(\.layoutDirection, .leftToRight)  // a code and a command line read left to right
                 } else {
-                    Text("The code expired.").foregroundStyle(.secondary).accessibilityIdentifier("inviteExpired")
+                    Text("The code expired.").foregroundStyle(Brand.muted).accessibilityIdentifier("inviteExpired")
                 }
             }
         } else {
@@ -181,16 +181,18 @@ extension Demo {
         let request = #"Bash: Run the tests\n{\"command\": \"uv run pytest -q\"}"#
         let caps = #"{"approvals": true, "side_questions": false}"#
         let one = screen == .machinesOne
+        // the Sessions sheet over three machines and three coding agents: each row carries its harness mark
+        func agent(_ id: String) -> String { screen == .machinesSessions ? ", \"harness\": \"\(id)\"" : "" }
         let sessions = one ? """
         [{"name": "billing/main", "working": true, "waiting": false, "needs": null, "machine": "studio", "online": true},
          {"name": "shop", "working": false, "waiting": false, "needs": null, "machine": "studio", "online": true}]
         """ : """
         [{"name": "billing/main", "working": true, "waiting": false, "needs": null, "machine": "studio", "online": true},
-         {"name": "shop", "working": false, "waiting": false, "needs": null, "machine": "studio", "online": true},
+         {"name": "shop", "working": false, "waiting": false, "needs": null, "machine": "studio", "online": true\(agent("codex"))},
          {"name": "shop devbox", "working": true, "waiting": \(!offline), "needs": null, "machine": "devbox", "online": true,
           "capabilities": \(caps), "request": \(offline ? "null" : "\"\(request)\""), "request_id": \(offline ? "null" : "\"r-dev-1\""), "voice_can_approve": true},
-         {"name": "api", "working": false, "waiting": false, "needs": "which retry budget to use", "machine": "devbox", "online": true, "capabilities": \(caps)},
-         {"name": "חנות", "working": false, "waiting": false, "needs": null, "machine": "devbox", "online": true, "capabilities": \(caps)},
+         {"name": "api", "working": false, "waiting": false, "needs": "which retry budget to use", "machine": "devbox", "online": true, "capabilities": \(caps)\(agent("opencode"))},
+         {"name": "חנות", "working": false, "waiting": false, "needs": null, "machine": "devbox", "online": true, "capabilities": \(caps)\(agent("codex"))},
          {"name": "notes", "working": false, "waiting": \(offline), "needs": null, "machine": "laptop", "online": false,
           "capabilities": \(caps), "request": \(offline ? "\"\(request)\"" : "null"), "request_id": \(offline ? "\"r-lap-1\"" : "null"), "voice_can_approve": false}]
         """
@@ -208,6 +210,7 @@ extension Demo {
         return """
         {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
          "sessions": \(sessions), "machines": \(machines), "invite": null,\(screen == .machinesDrive ? drive : "")
+         "keep_awake": {"on": true, "why": "a call from the phone, on AC power"},
          "talk": [{"id": 1, "who": "user", "text": "what's going on everywhere", "typed": false, "corrected": false},
                   {"id": 2, "who": "assistant", "text": "On studio, billing is running its tests. On devbox, shop wants to run the tests and api needs a retry budget. The laptop is offline."}]}
         """

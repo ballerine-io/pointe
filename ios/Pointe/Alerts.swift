@@ -293,7 +293,7 @@ struct AlertsSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 Section {
                     Toggle(AlertCopy.phone, isOn: Binding(get: { phone }, set: { on in
                         phone = on
@@ -308,10 +308,10 @@ struct AlertsSheet: View {
                     Text(AlertCopy.help).accessibilityIdentifier("alertsHelp")
                 }
                 Section {
-                    Text(AlertCopy.suspended).font(.footnote).foregroundStyle(.secondary)
+                    Text(AlertCopy.suspended).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                 }
                 if let note {
-                    Text(note).foregroundStyle(Brand.orange).accessibilityIdentifier("alertsNote")
+                    Text(note).foregroundStyle(Brand.accent).accessibilityIdentifier("alertsNote")
                 }
             }
             .navigationTitle(AlertCopy.section)

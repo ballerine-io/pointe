@@ -12,7 +12,7 @@ struct PairView: View {
         VStack(alignment: .leading, spacing: 18) {
             BrandHeader()
             Text("On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone. Scan the code it shows here, or with the Camera app.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Brand.muted)
             if scanning {
                 Scanner { code in
                     if PairingLink(code) != nil { submit(code) } else { problem = "That code is not a Pointe pairing code." }
@@ -23,18 +23,18 @@ struct PairView: View {
             TextField("or paste the pointe:// link", text: $link)
                 .textFieldStyle(.roundedBorder).autocorrectionDisabled().textInputAutocapitalization(.never)
                 .onSubmit(use)
-            Button("Pair", action: use).buttonStyle(.borderedProminent).tint(Brand.orange).disabled(link.isEmpty)
-            if let problem { Text(problem).foregroundStyle(Brand.orange) }
+            Button("Pair", action: use).buttonStyle(.brandPrimary).disabled(link.isEmpty)
+            if let problem { Text(problem).foregroundStyle(Brand.accent) }
             Spacer()
             Button(action: tryDemo) {
                 Label("No Mac yet? Try a demo", systemImage: "play.circle")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                    .font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.muted)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("tryDemo")
             Text("The code holds a secret that opens a call into your coding sessions. Scan only your own.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.brand(.footnote)).foregroundStyle(Brand.muted)
         }
         .padding(24)
         .background(Brand.background)

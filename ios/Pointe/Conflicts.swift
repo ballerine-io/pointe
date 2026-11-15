@@ -96,21 +96,21 @@ struct ConflictCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label { Text(ConflictCopy.title) } icon: {
-                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
             }
-            .font(.headline)
+            .font(.brand(.headline))
             if let branches = conflict.branches {
-                Text(ConflictCopy.branches(branches)).font(.caption).foregroundStyle(.secondary)
+                Text(ConflictCopy.branches(branches)).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
             claim(conflict.a, conflict.agent_a, conflict.claim_a, conflict.at_a, id: "conflictClaimA")
             claim(conflict.b, conflict.agent_b, conflict.claim_b, conflict.at_b, id: "conflictClaimB")
             if let why = conflict.why, !why.isEmpty {
-                Text(why).font(.caption).foregroundStyle(.secondary)
+                Text(why).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
             if inMeeting {
-                Text(ConflictCopy.inMeeting).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("conflictMeetingNote")
+                Text(ConflictCopy.inMeeting).font(.brand(.caption)).foregroundStyle(Brand.muted).accessibilityIdentifier("conflictMeetingNote")
             } else if !live {
-                Text(ConflictCopy.connect).font(.caption).foregroundStyle(.secondary)
+                Text(ConflictCopy.connect).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
             HStack(spacing: 8) {
                 ForEach(["a", "b"], id: \.self) { side in
@@ -119,23 +119,23 @@ struct ConflictCard: View {
                         Text(conflict.wasAsked(side) ? ConflictCopy.asked(name) : ConflictCopy.ask(name))
                             .lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered).tint(.gray)
+                    .buttonStyle(.brandQuiet)
                     .disabled(busy || conflict.wasAsked(side) || inMeeting || !live)
                     .accessibilityIdentifier("conflictAsk-\(side)")
                 }
                 Button { run("dismiss", nil) } label: { Text(ConflictCopy.dismiss).frame(maxWidth: .infinity) }
-                    .buttonStyle(.bordered).tint(.gray)
+                    .buttonStyle(.brandQuiet)
                     .disabled(busy)
                     .accessibilityIdentifier("conflictDismiss")
             }
             .controlSize(.regular)
             if let error {
-                Text(error).font(.caption).foregroundStyle(Brand.orange).accessibilityIdentifier("conflictError")
+                Text(error).font(.brand(.caption)).foregroundStyle(Brand.accent).accessibilityIdentifier("conflictError")
             }
         }
         .padding(16)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Brand.orange.opacity(0.55)))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: conflict.id)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("conflictCard")
@@ -144,11 +144,11 @@ struct ConflictCard: View {
     private func claim(_ name: String, _ agent: String?, _ text: String, _ at: Double?, id: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Text(name).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.orange)
-                if showAgents, let agent { Text(agent).font(.caption2).foregroundStyle(.secondary) }
-                Text(ConflictCopy.time(at)).font(.caption).foregroundStyle(.secondary)
+                Text(name).font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.accent)
+                if showAgents, let agent { Text(agent).font(.brand(.caption2)).foregroundStyle(Brand.muted) }
+                Text(ConflictCopy.time(at)).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
-            Text(text).readingDirection(of: text).font(.subheadline)
+            Text(text).readingDirection(of: text).font(.brand(.subheadline))
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(id)
@@ -174,7 +174,7 @@ struct ConflictSettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 if var p = prefs {
                     Section {
                         Toggle(ConflictCopy.check, isOn: Binding(get: { p.conflictsOn }, set: { p.conflictsOn = $0; update(p, ["conflicts.on": $0]) }))
@@ -189,11 +189,11 @@ struct ConflictSettingsSheet: View {
                     } footer: { Text(ConflictCopy.footer) }
                     if failed {
                         Label("The Mac did not take that setting. Is Pointe on the Mac up to date?", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(Brand.orange)
+                            .foregroundStyle(Brand.accent)
                     }
                 } else if loaded {
                     Label("The Mac did not send its settings. Is Pointe on the Mac up to date and reachable?",
-                          systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.orange)
+                          systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 } else {
                     ProgressView()
                 }

@@ -6,6 +6,7 @@ struct CallView: View {
     let pairing: Pairing
     let unpair: () -> Void
     @State private var call: Call
+    @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue
     @State private var status: API.Status?
     @State private var reach = Reach.ok
     @State private var problem: String?
@@ -57,7 +58,7 @@ struct CallView: View {
         self.demo = demo
         _call = State(initialValue: Call(pairing: pairing))
         _status = State(initialValue: demo?.status)
-        _showSessions = State(initialValue: demo?.screen == .sessions)
+        _showSessions = State(initialValue: demo?.screen == .sessions || demo?.screen == .machinesSessions)
         _editing = State(initialValue: demo?.screen == .edit ? demo?.status.talk?.last(where: \.mine) : nil)
         _typing = State(initialValue: demo?.screen == .typing)
         _showMeetingStart = State(initialValue: demo?.screen == .meetingStart)
@@ -134,7 +135,7 @@ struct CallView: View {
         .onChange(of: dump?.inReview, initial: true) {  // the prompt arrived (or was there at launch): the review opens once per dump; Close keeps it away until Review
             if let dump, dump.inReview, dump.id != dumpReviewClosed { showDumpReview = true } else if dump?.inReview != true { showDumpReview = false }
         }
-        .background(Brand.background.ignoresSafeArea())
+        .brandStage()
         .sheet(isPresented: $showDumpReview) {
             if let dump {
                 BrainDumpReview(dump: dump, sessions: (status?.sessions ?? []).filter { $0.online != false }.map(\.name), active: status?.active,
@@ -152,81 +153,81 @@ struct CallView: View {
                                 discard: { showDumpReview = false; await dumpAction("discard") },
                                 close: { dumpReviewClosed = dump.id; showDumpReview = false })
                     .presentationDetents([.large])
-                    .presentationBackground(.regularMaterial)
+                    .presentationBackground(Brand.group)
             }
         }
         .sheet(isPresented: $showSessions) {
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(item: $sessionsOn) { on in
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter)
                 .presentationDetents([.large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showMachines) {
             MachinesSheet(status: status, pairing: pairing, ownerCheck: ownerCheck, invite: makeInvite,
                           cancelInvite: cancelInvite, revoke: revokeMachine)
                 .presentationDetents([.large])  // the code and its countdown must be on screen, on an SE too
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(item: $editing) { turn in
             EditTurnSheet(turn: turn) { text in await correct(turn, text) }
                 .presentationDetents([.medium])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showMeetingStart) {
             MeetingStartSheet(sessions: status?.sessions ?? [], defaults: prefs, vendors: meetingVendors, start: startMeeting)
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showMeetingSettings) {
             MeetingSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showVoiceLock) {
             if let lock = status?.voice_lock {
                 VoiceLockSheet(lock: lock, callUp: phase == .live, pushToTalk: status?.ptt?.mode == "ptt", send: voiceprint, ownerCheck: ownerCheck)
                     .presentationDetents([.medium, .large])
-                    .presentationBackground(.regularMaterial)
+                    .presentationBackground(Brand.group)
             }
         }
         .sheet(isPresented: $showConflictSettings) {
             ConflictSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showBriefing) {
             BriefingSheet(status: status?.briefing, callUp: phase == .live, meetingOn: meeting?.isOn == true,
                           load: loadBriefings, act: briefing)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showBriefingSettings) {
             BriefingSettingsSheet(load: { await loadBriefings()?.schedule }, save: saveBriefingSchedule)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showAlerts) {
             AlertsSheet(phone: AlertCenter.shared.enabled, watch: prefs?.watchApprove ?? false,
                         setPhone: { await AlertCenter.shared.setEnabled($0) }, setWatch: setWatchApprove)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showSheet) {
             ShowSheet(showing: showing, earlier: status?.show_on_phone == true ? status?.shown_earlier ?? [] : [],
                       follow: $showFollow, load: loadArtifact)
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .sheet(isPresented: $showSettings) {
             ShowSettingsSheet(on: status?.show_on_phone == true, set: setShowOnPhone, ownerCheck: ownerCheck)
                 .presentationDetents([.medium])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .onChange(of: showing?.id) { showFollow.follow(showing) }
         .sheet(isPresented: $showDictionary) {
             VocabularySheet(load: loadDictionary, change: changeDictionary, delete: deleteFromDictionary, setLearn: setLearn)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(.regularMaterial)
+                .presentationBackground(Brand.group)
         }
         .onChange(of: status?.dictionary) { showLearned(learnedToasts.fresh(status?.dictionary)) }
         .onChange(of: status?.whisper, initial: true) { if whisperFollow.follow(status?.whisper) { withAnimation(.snappy) { typing = true } } }
@@ -240,7 +241,7 @@ struct CallView: View {
         .animation(.snappy, value: toast)
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
-                IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).presentationBackground(.regularMaterial)
+                IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).presentationBackground(Brand.group)
             }
         }
         .sheet(isPresented: $showSpeakers) {
@@ -248,7 +249,7 @@ struct CallView: View {
                 await act { try await call.api.nameSpeaker(label, name) }
             }
             .presentationDetents([.medium])
-            .presentationBackground(.regularMaterial)
+            .presentationBackground(Brand.group)
         }
         .sheet(isPresented: endSheetShown) {
             if let result = meeting?.result {
@@ -257,7 +258,7 @@ struct CallView: View {
                                 save: { with in demo != nil ? "~/.claude-voice/meetings/demo.md" : (try? await call.api.exportMeeting(transcript: with)) ?? "" },
                                 send: { to in await act { try await call.api.sendActions(to: to) } ? nil : problem ?? "" },
                                 discard: { await act { try await call.api.discardMeeting() } })
-                    .presentationBackground(.regularMaterial)
+                    .presentationBackground(Brand.group)
             }
         }
         .confirmationDialog("End the meeting? Pointe stops listening and writes the summary.", isPresented: $confirmEnd,
@@ -307,7 +308,7 @@ struct CallView: View {
                                      placeholder: !panelShown) { editing = $0 }
                     if !panelShown, let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
-                            .font(.footnote).foregroundStyle(Brand.orange).padding(.bottom, 8)
+                            .font(.brand(.footnote)).foregroundStyle(Brand.accent).padding(.bottom, 8)
                     }
                     Color.clear.frame(height: 1).id("end")
                 }
@@ -342,10 +343,10 @@ struct CallView: View {
                     Button {
                         withAnimation(.smooth) { scroller.scrollTo("end", anchor: .bottom) }
                     } label: {
-                        Label("New", systemImage: "arrow.down").font(.subheadline.weight(.semibold))
+                        Label("New", systemImage: "arrow.down").font(.brand(.subheadline, .semibold))
                             .padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(.thinMaterial, in: Capsule())
-                            .overlay(Capsule().stroke(Brand.orange.opacity(0.6)))
+                            .background(Brand.raised, in: Capsule())
+                            .overlay(Capsule().stroke(Brand.orangeLine))
                     }
                     .buttonStyle(.plain)
                     .padding(.bottom, 8)
@@ -366,10 +367,10 @@ struct CallView: View {
                 if demo?.tried == true { DemoBadge { call.hangUp(); unpair() } }
                 if status?.drive != nil {  // a mode, like a meeting: switched here, so the mic below never moves
                     Button { setDrive(!driving) } label: {
-                        Image(systemName: driving ? "car.fill" : "car").font(.subheadline.weight(.semibold))
-                            .foregroundStyle(driving ? Brand.orange : .primary)
+                        Image(systemName: driving ? "car.fill" : "car").font(.brand(.subheadline, .semibold))
+                            .foregroundStyle(driving ? Brand.accent : .primary)
                             .frame(width: 36, height: 36)
-                            .background(driving ? AnyShapeStyle(Brand.orange.opacity(0.25)) : AnyShapeStyle(.thinMaterial), in: Circle())
+                            .background(driving ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Circle())
                     }
                     .buttonStyle(.plain)
                     .disabled(phase != .live && !driving)
@@ -378,8 +379,8 @@ struct CallView: View {
                     .accessibilityValue(driving ? "On" : "Off")
                 }
                 Button { openMeetingStart() } label: {
-                    Image(systemName: "person.3.fill").font(.subheadline.weight(.semibold))
-                        .frame(width: 36, height: 36).background(.thinMaterial, in: Circle())
+                    Image(systemName: "person.3.fill").font(.brand(.subheadline, .semibold))
+                        .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Start a meeting")
@@ -395,11 +396,18 @@ struct CallView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
             HStack(alignment: .top) {
-                StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking)
+                VStack(alignment: .leading, spacing: 3) {
+                    StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking)
+                    if let awake = API.KeepAwake.shown(status, live: phase == .live) {
+                        Text(awake).font(.brand(.caption)).foregroundStyle(Brand.dim).lineLimit(1)
+                            .padding(.leading, 18)  // under the title, past the state dot
+                            .accessibilityIdentifier("keepAwake")
+                    }
+                }
                 Spacer(minLength: 8)
                 if let n = status?.voice_lock?.ignored?.count, n > 0 {
                     Button(VoiceLockCopy.ignored(n)) { showIgnored = true }
-                        .font(.caption).foregroundStyle(.secondary).buttonStyle(.plain)
+                        .font(.brand(.caption)).foregroundStyle(Brand.muted).buttonStyle(.plain)
                         .accessibilityIdentifier("voiceIgnored")
                 }
                 if !panelShown { ConnectPill(phase: phase, face: face, tap: connectTap) }
@@ -408,7 +416,7 @@ struct CallView: View {
         .padding(.horizontal, 18)
         .padding(.top, 8)
         .padding(.bottom, 10)
-        .background(.bar)
+        .background(Brand.bg)
         .animation(.snappy, value: showing?.id)
     }
 
@@ -482,6 +490,11 @@ struct CallView: View {
             } label: { Label(TurnsCopy.setting, systemImage: "hourglass") }
                 .pickerStyle(.menu)
                 .accessibilityIdentifier("patienceSetting")
+            Picker(selection: $theme) {
+                ForEach(Theme.allCases) { Text($0.label).tag($0.rawValue) }
+            } label: { Label(Theme.setting, systemImage: "circle.lefthalf.filled") }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("appearanceSetting")
             if let line = status?.local?.short {
                 Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
             }
@@ -492,8 +505,8 @@ struct CallView: View {
                 Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { call.hangUp(); unpair() }
             }
         } label: {
-            Image(systemName: "ellipsis").font(.body.weight(.semibold))
-                .frame(width: 36, height: 36).background(.thinMaterial, in: Circle())
+            Image(systemName: "ellipsis").font(.brand(.body, .semibold))
+                .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
         }
         .accessibilityLabel("Settings")
     }
@@ -522,7 +535,7 @@ struct CallView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 if voiceUnsure { unsureNote }
                 if waiting.count > 1 {
-                    Text("\(waiting.count - 1) more waiting").font(.caption).foregroundStyle(.secondary)
+                    Text("\(waiting.count - 1) more waiting").font(.brand(.caption)).foregroundStyle(Brand.muted)
                 }
             }
             if let w = status?.whisper, w.on, w.held == nil, !driving {
@@ -555,7 +568,7 @@ struct CallView: View {
                          live: phase == .live, act: { action, side in await conflictAct(newest.id, action, side) })
                 .id(newest.id)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-            if open.count > 1 { Text(ConflictCopy.more(open.count - 1)).font(.caption).foregroundStyle(.secondary) }
+            if open.count > 1 { Text(ConflictCopy.more(open.count - 1)).font(.brand(.caption)).foregroundStyle(Brand.muted) }
         }
     }
 
@@ -580,7 +593,7 @@ struct CallView: View {
     /// Three yeses in a row the lock could not place: the tap still works, and re-enrolling may help.
     private var voiceUnsure: Bool { (status?.voice_lock?.unsure_streak ?? 0) >= 3 }
     private var unsureNote: some View {
-        Text(VoiceLockCopy.unsure).font(.caption).foregroundStyle(Brand.orange).accessibilityIdentifier("voiceUnsure")
+        Text(VoiceLockCopy.unsure).font(.brand(.caption)).foregroundStyle(Brand.accent).accessibilityIdentifier("voiceUnsure")
     }
 
     /// An answerable request first: one whose machine is offline is back in its terminal.
@@ -689,7 +702,7 @@ struct CallView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 if let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
-                    Label(problem, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Brand.orange)
+                    Label(problem, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                 }
                 NotesFeed(notes: feed.notes, transcript: feed.transcript, speakers: meeting.speakers ?? [], filter: $noteFilter,
                           lookUp: { note in Task { await act { try await call.api.lookUp(note) } } },
@@ -721,12 +734,12 @@ struct CallView: View {
                 if !reachable {  // the banner is the Mac's last word: say it may be stale
                     Label("Mac not reachable. The meeting goes on there; the notes catch up when it answers.",
                           systemImage: "wifi.exclamationmark")
-                        .font(.footnote).foregroundStyle(Brand.orange)
+                        .font(.brand(.footnote)).foregroundStyle(Brand.accent)
                         .accessibilityIdentifier("meetingUnreachable")
                 }
             }
             .padding(.horizontal, 18).padding(.top, 8).padding(.bottom, 10)
-            .background(.bar)
+            .background(Brand.bg)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 10) {
@@ -1254,20 +1267,19 @@ struct StatusLine: View {
 
     private var tint: Color {
         switch phase {
-        case .live: return muted ? .secondary : speaking ? Brand.orange : .green
-        case .connecting, .reconnecting: return .yellow
-        case .off: return .secondary
+        case .live: return muted ? Brand.dim : speaking ? Brand.orange : Brand.success
+        case .connecting, .reconnecting: return Brand.orange
+        case .off: return Brand.dim
         }
     }
 
     var body: some View {
         HStack(spacing: 10) {
-            Circle().fill(tint).frame(width: 9, height: 9)
-                .shadow(color: tint.opacity(0.7), radius: phase == .live && !muted ? 5 : 0)
+            Circle().fill(tint).frame(width: 8, height: 8)
                 .symbolEffect(.pulse, isActive: speaking)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.headline).contentTransition(.opacity)
-                Text(subtitle).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                Text(title).font(.brand(.title3)).contentTransition(.opacity)
+                Text(subtitle).font(.brand(.subheadline)).foregroundStyle(Brand.muted).lineLimit(2)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: title)
@@ -1288,34 +1300,34 @@ struct RequestCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
-                Label { Text("\(who ?? session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.orange) }
-                    .font(.headline)
+                Label { Text("\(who ?? session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent) }
+                    .font(.brand(.headline))
                 if showAgent { AgentBadge(session: session) }
             }
-            if let what = parsed.what { Text(what).font(.subheadline).foregroundStyle(.secondary) }
+            if let what = parsed.what { Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted) }
             Text(parsed.exact)  // word for word: this is what Approve runs
                 .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12).background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+                .padding(12).background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
             if session.isOffline {  // its machine dropped: the prompt is back in its terminal, and an answer would be stale
                 Label(MachinesCopy.offlineCard, systemImage: "bolt.horizontal.circle")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                     .accessibilityIdentifier("requestOffline")
             } else {
                 Text(session.voice_can_approve == true ? "Say yes or no, or tap." : "Too complex to read out: check it, then tap.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.brand(.caption)).foregroundStyle(Brand.muted)
                 HStack(spacing: 10) {
                     Button { act(false) } label: { Text("Deny").frame(maxWidth: .infinity) }
-                        .buttonStyle(.bordered).tint(.gray).controlSize(.large)
+                        .buttonStyle(.brandQuiet).controlSize(.large)
                     Button { act(true) } label: { Label("Approve", systemImage: "faceid").frame(maxWidth: .infinity) }
-                        .buttonStyle(.borderedProminent).tint(Brand.orange).controlSize(.large)
+                        .buttonStyle(.brandPrimary).controlSize(.large)
                 }
                 .disabled(busy)
             }
         }
         .padding(16)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Brand.orange.opacity(0.55)))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: session.request_id)
         .sensoryFeedback(.success, trigger: answered)
     }

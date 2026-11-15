@@ -135,14 +135,14 @@ struct LearnedToast: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "text.book.closed").foregroundStyle(Brand.orange)
-            Text(VocabularyCopy.learned(terms)).font(.subheadline.weight(.semibold)).lineLimit(2)
-            Button(VocabularyCopy.undo, action: undo).font(.subheadline.weight(.semibold)).tint(Brand.orange)
+            Image(systemName: "text.book.closed").foregroundStyle(Brand.accent)
+            Text(VocabularyCopy.learned(terms)).font(.brand(.subheadline, .semibold)).lineLimit(2)
+            Button(VocabularyCopy.undo, action: undo).font(.brand(.subheadline, .semibold)).tint(Brand.orange)
                 .accessibilityIdentifier("dictionaryUndo")
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().stroke(Brand.orange.opacity(0.5)))
+        .background(Brand.card, in: Capsule())
+        .overlay(Capsule().stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dictionaryToast")
     }
@@ -163,7 +163,7 @@ struct VocabularySheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            BrandForm {
                 Section {
                     HStack {
                         TextField(VocabularyCopy.addPlaceholder, text: $newTerm)
@@ -174,10 +174,10 @@ struct VocabularySheet: View {
                             .accessibilityIdentifier("dictionaryAdd")
                     }
                     if let error {
-                        Text(error).font(.footnote).foregroundStyle(Brand.orange).accessibilityIdentifier("dictionaryError")
+                        Text(error).font(.brand(.footnote)).foregroundStyle(Brand.accent).accessibilityIdentifier("dictionaryError")
                     }
                     if let problem = page?.problem {
-                        Text(problem).font(.footnote).foregroundStyle(Brand.orange)
+                        Text(problem).font(.brand(.footnote)).foregroundStyle(Brand.accent)
                     }
                 } header: {
                     Text(VocabularyCopy.lede).textCase(nil)
@@ -185,7 +185,7 @@ struct VocabularySheet: View {
                 if let page {
                     Section {
                         if page.entries.isEmpty {
-                            Text(VocabularyCopy.empty).foregroundStyle(.secondary).accessibilityIdentifier("dictionaryEmpty")
+                            Text(VocabularyCopy.empty).foregroundStyle(Brand.muted).accessibilityIdentifier("dictionaryEmpty")
                         }
                         ForEach(page.entries) { entry in row(entry) }
                     } footer: {
@@ -197,14 +197,14 @@ struct VocabularySheet: View {
                                 HStack {
                                     VStack(alignment: .leading) {
                                         Text(s.term).fontWeight(.semibold)
-                                        Text(s.session).font(.caption).foregroundStyle(.secondary)
+                                        Text(s.session).font(.brand(.caption)).foregroundStyle(Brand.muted)
                                     }
                                     Spacer()
                                     Button(VocabularyCopy.add) { run { await change(["action": "add", "term": s.term, "session": s.session]) } }
-                                        .buttonStyle(.bordered).tint(Brand.orange)
+                                        .buttonStyle(.brandQuiet)
                                         .accessibilityIdentifier("suggestAdd-\(s.term)")
                                     Button(VocabularyCopy.ignore) { run { await change(["action": "ignore", "term": s.term]) } }
-                                        .buttonStyle(.bordered).tint(.gray)
+                                        .buttonStyle(.brandQuiet)
                                         .accessibilityIdentifier("suggestIgnore-\(s.term)")
                                 }
                             }
@@ -255,7 +255,7 @@ struct VocabularySheet: View {
             Button { editText = entry.term; editOriginal = entry.term; editing = entry } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.term).fontWeight(.semibold).foregroundStyle(.primary)
-                    Text(VocabularyCopy.source(entry.source)).font(.caption).foregroundStyle(.secondary)
+                    Text(VocabularyCopy.source(entry.source)).font(.brand(.caption)).foregroundStyle(Brand.muted)
                 }
             }
             .buttonStyle(.plain)
@@ -267,7 +267,7 @@ struct VocabularySheet: View {
                     Button(label) { run { await change(["action": "edit", "term": entry.term, "lang": code]) } }
                 }
             } label: {
-                Text(VocabularyCopy.lang(entry.lang)).font(.caption.weight(.semibold))
+                Text(VocabularyCopy.lang(entry.lang)).font(.brand(.caption, .semibold))
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Brand.card, in: Capsule())
             }

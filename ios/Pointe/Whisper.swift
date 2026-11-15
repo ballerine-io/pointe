@@ -60,28 +60,28 @@ struct WhisperCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label(WhisperCopy.title, systemImage: "waveform.badge.minus").font(.subheadline.weight(.semibold))
-            Text(WhisperCopy.limit).font(.footnote).foregroundStyle(.secondary)
+            Label(WhisperCopy.title, systemImage: "waveform.badge.minus").font(.brand(.subheadline, .semibold))
+            Text(WhisperCopy.limit).font(.brand(.footnote)).foregroundStyle(Brand.muted)
             if let note = status.lock_note {
-                Text(note).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("whisperLockNote")
+                Text(note).font(.brand(.footnote)).foregroundStyle(Brand.muted).accessibilityIdentifier("whisperLockNote")
             }
             if suggestPushToTalk {
-                Text(WhisperCopy.suggest).font(.footnote).foregroundStyle(.secondary)
+                Text(WhisperCopy.suggest).font(.brand(.footnote)).foregroundStyle(Brand.muted)
             }
             HStack(spacing: 8) {
                 if suggestPushToTalk {
-                    Button(WhisperCopy.notNow, action: notNow).buttonStyle(.bordered).accessibilityIdentifier("whisperNotNow")
-                    Button(WhisperCopy.turnOn, action: pushToTalk).buttonStyle(.borderedProminent).tint(Brand.orange)
+                    Button(WhisperCopy.notNow, action: notNow).buttonStyle(.brandQuiet).accessibilityIdentifier("whisperNotNow")
+                    Button(WhisperCopy.turnOn, action: pushToTalk).buttonStyle(.brandPrimary)
                         .accessibilityIdentifier("whisperPushToTalk")
                 }
-                Button(WhisperCopy.back, action: back).buttonStyle(.bordered).accessibilityIdentifier("whisperOff")
+                Button(WhisperCopy.back, action: back).buttonStyle(.brandQuiet).accessibilityIdentifier("whisperOff")
             }
-            .font(.subheadline)
+            .font(.brand(.subheadline))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Brand.orange.opacity(0.45)))
+        .background(Brand.raised, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("whisperCard")
     }
