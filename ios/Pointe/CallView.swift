@@ -49,6 +49,9 @@ struct CallView: View {
     @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
+    @State private var fingerScrolling = false
+    @State private var stageHeight: CGFloat = 0
+    @State private var topHeight: CGFloat = 0
     @State private var demoAnswered: Set<String> = []  // the demo's requests answered here: their card goes, as a Mac's would
     private let demo: Demo?
 
@@ -62,6 +65,25 @@ struct CallView: View {
         _editing = State(initialValue: demo?.screen == .edit ? demo?.status.talk?.last(where: \.mine) : nil)
         _typing = State(initialValue: demo?.screen == .typing)
         _showMeetingStart = State(initialValue: demo?.screen == .meetingStart)
+        #if DEBUG
+        // `-demo call -sheet voiceLock`: a sheet open at launch, for screenshots and UI tests.
+        switch demo == nil ? nil : UserDefaults.standard.string(forKey: "sheet") {
+        case "voiceLock": _showVoiceLock = State(initialValue: true)
+        case "briefing": _showBriefing = State(initialValue: true)
+        case "briefingSettings": _showBriefingSettings = State(initialValue: true)
+        case "meetingSettings": _showMeetingSettings = State(initialValue: true)
+        case "alerts": _showAlerts = State(initialValue: true)
+        case "dictionary": _showDictionary = State(initialValue: true)
+        case "machines": _showMachines = State(initialValue: true)
+        case "conflictSettings": _showConflictSettings = State(initialValue: true)
+        case "showSettings": _showSettings = State(initialValue: true)
+        case "show": _showSheet = State(initialValue: true)
+        case "ignored": _showIgnored = State(initialValue: true)
+        case "speakers": _showSpeakers = State(initialValue: true)
+        case "sessions": _showSessions = State(initialValue: true)
+        default: break
+        }
+        #endif
     }
 
     /// Show while it says: the Mac sends it only once this phone turned it on; the setting is checked here too, so
@@ -71,8 +93,8 @@ struct CallView: View {
     /// What the screen shows: the demo fixture is always live.
     private var phase: Call.State { demo == nil ? call.state : .live }
     private var live: Bool { phase == .live || phase == .reconnecting }
-    private var muted: Bool { demo == nil ? call.muted : false }
-    private var speaking: Bool { demo == nil ? call.botSpeaking : false }
+    private var muted: Bool { demo == nil ? call.muted : demo?.screen == .muted }
+    private var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking }
 
     private var dumping: Bool { dumpWanted ?? (status?.dumping ?? false) }
     private var dump: API.BrainDump? { status?.brain_dump }
@@ -124,6 +146,7 @@ struct CallView: View {
                 chat
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { stageHeight = $0 }  // less the keyboard, when it is up
         .animation(.smooth(duration: 0.3), value: dumping)
         .animation(.smooth(duration: 0.3), value: driving)
         .onChange(of: status?.drive) {
@@ -325,12 +348,23 @@ struct CallView: View {
                         release: { call.talkRelease(.caption) }, toggle: { call.talkToggle() })
             .defaultScrollAnchor(.bottom, for: .initialOffset)  // only where it starts: growing content must not pull you down
             .defaultScrollAnchor(.top, for: .sizeChanges)
-            .onScrollGeometryChange(for: Bool.self) { geo in
-                geo.visibleRect.maxY >= geo.contentSize.height - 48  // the visible part, insets included
-            } action: { _, bottom in
-                atBottom = bottom
-                if bottom { unseen = false }
+            .onScrollGeometryChange(for: ScrollPin.self) { geo in
+                // What shows above the controls: the bounds reach under the dock, so its inset comes off first.
+                ScrollPin(bottom: geo.bounds.maxY - geo.contentInsets.bottom >= geo.contentSize.height - 48,
+                          room: geo.bounds.height - geo.contentInsets.bottom - geo.contentInsets.top)
+            } action: { _, new in
+                // Only your own finger takes the view off the newest line. When the keyboard, the type bar or a card takes
+                // room (or gives it back), the view goes back to the end, so nothing new hides behind the controls.
+                if new.bottom {
+                    atBottom = true
+                    unseen = false
+                } else if fingerScrolling {
+                    atBottom = false
+                } else if atBottom {
+                    Task { @MainActor in scroller.scrollTo("end", anchor: .bottom) }
+                }
             }
+            .onScrollPhaseChange { _, phase in fingerScrolling = phase == .tracking || phase == .interacting || phase == .decelerating }
             .onChange(of: "\(status?.talk?.last?.id ?? -1)|\(hearing)") {
                 if atBottom {
                     withAnimation(.smooth(duration: 0.3)) { scroller.scrollTo("end", anchor: .bottom) }
@@ -371,6 +405,7 @@ struct CallView: View {
                             .foregroundStyle(driving ? Brand.accent : .primary)
                             .frame(width: 36, height: 36)
                             .background(driving ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Circle())
+                            .touchTarget(width: 36, height: 36)
                     }
                     .buttonStyle(.plain)
                     .disabled(phase != .live && !driving)
@@ -381,43 +416,62 @@ struct CallView: View {
                 Button { openMeetingStart() } label: {
                     Image(systemName: "person.3.fill").font(.brand(.subheadline, .semibold))
                         .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
+                        .touchTarget(width: 36, height: 36)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Start a meeting")
                 .accessibilityIdentifier("startMeeting")
                 menu
             }
-            SessionChips(sessions: status?.sessions ?? [], active: status?.active, mode: status?.mode,
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // chrome, like a navigation bar: the words below it take the room
+            SessionChips(sessions: status?.sessions ?? [], known: status != nil, active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
                          showAll: { showSessions = true }, rename: rename, machines: machines, filter: $machineFilter,
                          showMachine: { sessionsOn = MachineName(id: $0) })
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             if let showing {
                 ShowCard(showing: showing) { showSheet = true }
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking)
+                    // The empty stage says the same title and why in the middle of the screen: once is enough.
+                    if !panelShown { StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking) }
                     if let awake = API.KeepAwake.shown(status, live: phase == .live) {
                         Text(awake).font(.brand(.caption)).foregroundStyle(Brand.dim).lineLimit(1)
                             .padding(.leading, 18)  // under the title, past the state dot
                             .accessibilityIdentifier("keepAwake")
                     }
+                    if let n = status?.voice_lock?.ignored?.count, n > 0 {  // its own line: beside the state it wrapped the line above
+                        Button { showIgnored = true } label: {
+                            Text(VoiceLockCopy.ignored(n)).font(.brand(.caption)).foregroundStyle(Brand.muted).underline(color: Brand.lineStrong)
+                                .touchTarget(height: 16)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 18)
+                        .accessibilityIdentifier("voiceIgnored")
+                    }
                 }
                 Spacer(minLength: 8)
-                if let n = status?.voice_lock?.ignored?.count, n > 0 {
-                    Button(VoiceLockCopy.ignored(n)) { showIgnored = true }
-                        .font(.brand(.caption)).foregroundStyle(Brand.muted).buttonStyle(.plain)
-                        .accessibilityIdentifier("voiceIgnored")
-                }
-                if !panelShown { ConnectPill(phase: phase, face: face, tap: connectTap) }
+                // Hang up is in the bar below while the call is up: one of each control on a screen.
+                if !panelShown, !live { ConnectPill(phase: phase, face: face, tap: connectTap) }
             }
         }
         .padding(.horizontal, 18)
         .padding(.top, 8)
         .padding(.bottom, 10)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)  // the state line grows further than the chrome above it
         .background(Brand.bg)
+        .overlay(alignment: .bottom) { Rectangle().fill(Brand.line).frame(height: 1) }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topHeight = $0 }
         .animation(.snappy, value: showing?.id)
+    }
+
+    /// What the controls under the call may take: the screen (less the keyboard) less the header, and a strip of the
+    /// conversation. Past that the cards scroll inside the dock, so the header is never pushed off the top.
+    private var dockLimit: CGFloat {
+        let above: CGFloat = driving || dumping || challengeShown != nil ? 280 : 56  // a panel (drive, brain dump, challenge) needs more than a strip
+        return stageHeight > 0 ? max(180, stageHeight - topHeight - above) : .infinity
     }
 
     private var menu: some View {
@@ -507,12 +561,14 @@ struct CallView: View {
         } label: {
             Image(systemName: "ellipsis").font(.brand(.body, .semibold))
                 .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
+                .frame(width: 44, height: 44).contentShape(Rectangle())
         }
+        .padding(-4)  // a menu takes touches in its own frame only: 44 points laid out, 36 drawn and counted
         .accessibilityLabel("Settings")
     }
 
     private var bottom: some View {
-        VStack(spacing: 10) {
+        Dock(limit: dockLimit) {
             // What needs you sits by your thumb, never scrolled away under the conversation.
             conflictCard(inMeeting: false)
             if let b = status?.briefing, b.isOn || b.building == true, !showBriefing {  // the sheet has the same controls
@@ -544,6 +600,7 @@ struct CallView: View {
                             back: { Task { await setWhisper(false) } })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        } bar: {
             if typing && !driving {
                 TypeBar(send: say) { withAnimation(.snappy) { typing = false } }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -554,8 +611,8 @@ struct CallView: View {
                       trace: call.talkTrace, driving: driving)
         }
         .padding(.horizontal, 14)
-        .padding(.top, 8)
         .padding(.bottom, 4)
+        .brandDock()
         .animation(.snappy, value: waiting.first?.request_id)
     }
 
@@ -726,9 +783,10 @@ struct CallView: View {
                 HStack {
                     BrandHeader(mac: status?.version)
                     Spacer()
-                    ConnectPill(phase: phase, face: face, tap: connectTap)
+                    if phase == .live { hangUpIcon } else { ConnectPill(phase: phase, face: face, tap: connectTap) }
                     menu
                 }
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 MeetingBanner(meeting: meeting, setMode: setMeetingMode, speakers: { showSpeakers = true },
                               settings: { showMeetingSettings = true }, reconnect: reconnectAudio)
                 if !reachable {  // the banner is the Mac's last word: say it may be stale
@@ -740,9 +798,11 @@ struct CallView: View {
             }
             .padding(.horizontal, 18).padding(.top, 8).padding(.bottom, 10)
             .background(Brand.bg)
+            .overlay(alignment: .bottom) { Rectangle().fill(Brand.line).frame(height: 1) }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topHeight = $0 }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 10) {
+            Dock(limit: dockLimit) {
                 if let hand = meeting.hand {
                     HandCard(hand: hand, participating: meeting.participating) { decision in
                         await act { try await call.api.hand(decision) }
@@ -755,6 +815,7 @@ struct CallView: View {
                     RequestCard(session: request, who: machines.label(request), showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
                     if voiceUnsure { unsureNote }
                 }
+            } bar: {
                 if typing {
                     TypeBar(prompt: "Ask Pointe, only you see it", send: { text in await act { try await call.api.ask(text) } }) { withAnimation(.snappy) { typing = false } }
                 }
@@ -763,16 +824,23 @@ struct CallView: View {
                            ask: { withAnimation(.snappy) { typing.toggle() } }, speakers: { showSpeakers = true },
                            end: { confirmEnd = true }, talk: ringTalk)
             }
-            .padding(.horizontal, 14).padding(.top, 8).padding(.bottom, 4)
-            .background(alignment: .bottom) {  // notes scroll under the controls: fade them out instead of overlapping
-                LinearGradient(stops: [.init(color: Brand.background.opacity(0), location: 0),
-                                       .init(color: Brand.background.opacity(0.92), location: 0.25)],
-                               startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea(edges: .bottom)
-                    .allowsHitTesting(false)
-            }
+            .padding(.horizontal, 14).padding(.bottom, 4)
+            .brandDock()
             .animation(.snappy, value: handId)
         }
+    }
+
+    /// The meeting's bar ends the meeting, not the call, so Hang up stays in the header: as an icon, like the menu beside
+    /// it, so the name and the version keep their room.
+    private var hangUpIcon: some View {
+        Button(action: connectTap) {
+            Image(systemName: "phone.down.fill").font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.dangerText)
+                .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
+                .touchTarget(width: 36, height: 36)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(ConnectCopy.hangUp)
+        .accessibilityIdentifier("topConnect")
     }
 
     /// The end sheet, once per ended meeting, until you close it or discard the meeting.
@@ -1257,6 +1325,12 @@ struct CallView: View {
     }
 }
 
+/// Where the conversation is scrolled to, and how much room it has.
+struct ScrollPin: Equatable {
+    let bottom: Bool
+    let room: CGFloat
+}
+
 /// What the call is doing, in one glance.
 struct StatusLine: View {
     let title: String
@@ -1274,13 +1348,15 @@ struct StatusLine: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Circle().fill(tint).frame(width: 8, height: 8)
-                .symbolEffect(.pulse, isActive: speaking)
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {  // the dot belongs to the state: on its first line, however long
+                Circle().fill(tint).frame(width: 8, height: 8)
+                    .symbolEffect(.pulse, isActive: speaking)
+                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
                 Text(title).font(.brand(.title3)).contentTransition(.opacity)
-                Text(subtitle).font(.brand(.subheadline)).foregroundStyle(Brand.muted).lineLimit(2)
             }
+            Text(subtitle).font(.brand(.subheadline)).foregroundStyle(Brand.muted).lineLimit(2)
+                .padding(.leading, 18)
         }
         .animation(.easeInOut(duration: 0.2), value: title)
         .accessibilityElement(children: .combine)
@@ -1305,10 +1381,14 @@ struct RequestCard: View {
                 if showAgent { AgentBadge(session: session) }
             }
             if let what = parsed.what { Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted) }
-            Text(parsed.exact)  // word for word: this is what Approve runs
-                .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12).background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
+            FitScroll(limit: 150) {  // a long command scrolls in its box: Deny and Approve never leave the screen
+                Text(parsed.exact)  // word for word: this is what Approve runs
+                    .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+            }
+            .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityIdentifier("requestCommand")
             if session.isOffline {  // its machine dropped: the prompt is back in its terminal, and an answer would be stale
                 Label(MachinesCopy.offlineCard, systemImage: "bolt.horizontal.circle")
                     .font(.brand(.subheadline)).foregroundStyle(Brand.muted)

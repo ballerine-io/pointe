@@ -86,9 +86,11 @@ struct VoiceLockSheet: View {
                         .foregroundStyle(Brand.accent)
                         .accessibilityIdentifier("voiceLockProblem")
                 }
-                Section { voiceprint }
+                Section { voiceprint }.buttonStyle(BrandRowButtonStyle())
                 Section { levels } footer: {
-                    Text(lock.lockLevel.help).accessibilityIdentifier("voiceLockHelp")
+                    Group {
+                        Text(lock.lockLevel.help).accessibilityIdentifier("voiceLockHelp")
+                    }.brandFootnote()
                 }
                 if let refused {
                     Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
@@ -134,7 +136,7 @@ struct VoiceLockSheet: View {
                     Text(VoiceLockCopy.enrolledOn(d.device))
                     Spacer()
                     Button("Delete", role: .destructive) { Task { await delete(d.device) } }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.borderless).foregroundStyle(Brand.dangerText)
                         .accessibilityIdentifier("deleteVoiceprint-\(d.device)")
                 }
             }
@@ -157,11 +159,14 @@ struct VoiceLockSheet: View {
             ForEach(VoiceLockLevel.allCases) { level in
                 let on = level == lock.lockLevel
                 Button { Task { await setLevel(level) } } label: {
-                    Text(level.label).font(.brand(.subheadline, on ? .semibold : .regular))
-                        .lineLimit(1).minimumScaleFactor(0.7)
-                        .frame(maxWidth: .infinity).padding(.vertical, 7)
-                        .foregroundStyle(on ? Brand.onPrimary : Brand.text)
-                        .background(on ? Brand.primary : .clear, in: RoundedRectangle(cornerRadius: 8))
+                    // the look of the app's segmented controls (Brand.install): the chosen one is a card on the raised track
+                    Text(level.label).font(.brand(.footnote, on ? .semibold : .medium))
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity).padding(.vertical, 8)
+                        .foregroundStyle(Brand.text)
+                        .background(on ? Brand.card : .clear, in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(on ? Brand.lineStrong : .clear))
+                        .touchTarget(height: 32)
                 }
                 .buttonStyle(.plain)
                 .disabled(level != .off && !lock.isEnrolled)
@@ -170,7 +175,7 @@ struct VoiceLockSheet: View {
             }
         }
         .padding(3)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func setLevel(_ level: VoiceLockLevel) async {

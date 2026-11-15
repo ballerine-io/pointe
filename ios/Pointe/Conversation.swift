@@ -14,12 +14,9 @@ struct ConversationView: View {
     var body: some View {
         if turns.isEmpty && hearing.isEmpty {
             if placeholder {
-                ContentUnavailableView {
-                    Label("Nothing said yet", systemImage: "waveform")
-                } description: {
-                    Text("Talk, or tap the keyboard to type. Tap anything you said to fix it.")
-                }
-                .padding(.top, 40)
+                EmptyNote(title: "Nothing said yet", symbol: "waveform",
+                          text: "Talk, or tap the keyboard to type. Tap anything you said to fix it.")
+                    .padding(.top, 40)
             }
         } else {
             LazyVStack(spacing: 0) {
@@ -85,9 +82,9 @@ struct Bubble: View {
     }
 
     private var shape: UnevenRoundedRectangle {
-        let small: CGFloat = tail ? 6 : 18
-        return UnevenRoundedRectangle(topLeadingRadius: 18, bottomLeadingRadius: turn.mine ? 18 : small,
-                                      bottomTrailingRadius: turn.mine ? small : 18, topTrailingRadius: 18)
+        let small: CGFloat = tail ? 3 : 16  // the brand's radius scale: 16 for a bubble, 3 where it points at its speaker
+        return UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: turn.mine ? 16 : small,
+                                      bottomTrailingRadius: turn.mine ? small : 16, topTrailingRadius: 16)
     }
 
     private var badges: some View {
@@ -121,8 +118,7 @@ struct LiveBubble: View {
                     }
                     Text(text)
                         .readingDirection(of: text)
-                        .font(large ? .title2.weight(.semibold) : .body.weight(.medium))
-                        .italic(draft != nil)
+                        .font(large ? .brand(.title2) : .brand(.body, .medium))  // the brand has no italic: a draft is muted
                         .foregroundStyle(draft != nil ? AnyShapeStyle(Brand.muted) : AnyShapeStyle(.primary))
                         .multilineTextAlignment(.trailing)
                         .contentTransition(.interpolate)
@@ -157,15 +153,17 @@ struct EditTurnSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Heard").font(.brand(.caption, .semibold)).foregroundStyle(Brand.muted)
+            VStack(alignment: .leading, spacing: 8) {  // a label sits on what it names; the two groups stand apart
+                Text("Heard").brandKicker()
                 Text(turn.text).readingDirection(of: turn.text).font(.brand(.callout)).foregroundStyle(Brand.muted)
-                Text("You meant").font(.brand(.caption, .semibold)).foregroundStyle(Brand.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, 12)
+                Text("You meant").brandKicker()
                 TextField("What you said", text: $text, axis: .vertical)
                     .lineLimit(2...6)
                     .accessibilityIdentifier("fixField")
                     .padding(12)
                     .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.line))
                     .focused($focused)
                 Text("If it already acted on the misheard words, it says what it did and fixes it.")
                     .font(.brand(.footnote)).foregroundStyle(Brand.muted)

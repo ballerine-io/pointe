@@ -49,7 +49,8 @@ struct BottomBar: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .brandCard()
+        .dynamicTypeSize(...DynamicTypeSize.large)  // five controls share one row: past this the labels push each other off; hold one for the large view
         .sensoryFeedback(.impact(weight: .medium), trigger: muted)
         .sensoryFeedback(.impact(weight: .light), trigger: dump?.state)
     }
@@ -93,6 +94,27 @@ struct BottomBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .accessibilityShowsLargeContentViewer { Label(label, systemImage: symbol) }
+    }
+}
+
+/// What sits under a call: the cards that need you over the bar. The cards take what they need; when the keyboard, a
+/// small screen or large type leaves less than that, they scroll inside the dock and the bar stays whole.
+struct Dock<Cards: View, Bar: View>: View {
+    var limit: CGFloat = .infinity
+    @ViewBuilder var cards: Cards
+    @ViewBuilder var bar: Bar
+    @State private var barHeight: CGFloat = 0
+
+    var body: some View {
+        VStack(spacing: 10) {
+            FitScroll(limit: limit - barHeight - 10) {
+                VStack(spacing: 10) { cards }.padding(1)  // a card's hairline is on its edge: keep it inside what is clipped
+            }
+            .padding(-1)
+            VStack(spacing: 10) { bar }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
+        }
     }
 }
 
@@ -117,11 +139,12 @@ struct TypeBar: View {
                     if text.hasSuffix("\n") { text.removeLast(); submit() }
                 }
                 .padding(.horizontal, 14).padding(.vertical, 10)
-                .background(Brand.raised, in: RoundedRectangle(cornerRadius: 16))
+                .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
             Button(action: submit) {
                 Image(systemName: "arrow.up").font(.brand(.body, .semibold)).foregroundStyle(empty ? Brand.dim : Brand.onPrimary)
                     .frame(width: 38, height: 38)
                     .background(empty ? Brand.raised2 : Brand.primary, in: Circle())
+                    .touchTarget(width: 38, height: 38)
             }
             .disabled(empty || sending)
             .accessibilityLabel("Send")

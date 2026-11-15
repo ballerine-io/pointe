@@ -203,12 +203,79 @@ extension ButtonStyle where Self == BrandButtonStyle {
     static var brandQuiet: BrandButtonStyle { BrandButtonStyle(prominent: false) }
 }
 
+/// An empty screen: a quiet symbol, a display line and one muted sentence. The system's version takes the app's body font
+/// and ink for its description, which reads louder than the conversation it stands in for.
+struct EmptyNote: View {
+    let title: String
+    let symbol: String
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: symbol).font(.system(size: 30, weight: .regular)).foregroundStyle(Brand.dim).padding(.bottom, 6)
+                .accessibilityHidden(true)
+            Text(title).font(.brand(.title3))
+            Text(text).font(.brand(.subheadline)).foregroundStyle(Brand.muted)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: 300)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// A plain button in a settings row: the accent, or red when it deletes. The app's ink foreground would otherwise make
+/// "Enrol my voice" and "Delete my voiceprint" look like two more lines of text. Set on the section that needs it, not on
+/// the whole list: a swipe action is a button too, and takes the style around it.
+struct BrandRowButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(!enabled ? Brand.dim : configuration.role == .destructive ? Brand.dangerText : Brand.accent)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle().scale(x: 1, y: 2))
+            .opacity(configuration.isPressed ? 0.5 : 1)
+    }
+}
+
+/// What a card holds when it may be long (a command, the cards over the bar): its own height up to a limit, and past that
+/// it scrolls in place, so what is under it (Approve, the mic) stays on screen.
+struct FitScroll<Content: View>: View {
+    let limit: CGFloat
+    @ViewBuilder var content: Content
+    @State private var height: CGFloat = 0
+
+    var body: some View {
+        ScrollView {
+            content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(height: min(height, max(0, limit)))
+    }
+}
+
+/// A section under a kicker.
+struct KickerSection<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View { Section { content } header: { Text(title).brandKicker() } }
+}
+
 /// A Form on the brand's surfaces: warm cells on a warm ground with hairline separators, in place of the system greys.
 struct BrandForm<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
         Form { Group { content }.listRowBackground(Brand.cell).listRowSeparatorTint(Brand.line) }
+            .toggleStyle(SwitchToggleStyle(tint: Brand.orange))  // a switch that is on is the brand's orange, in every sheet
+            .contentMargins(.top, 12, for: .scrollContent)       // under an inline title the system's 35 points read as a hole
             .scrollContentBackground(.hidden)
             .background(Brand.group)
     }
@@ -220,6 +287,8 @@ struct BrandList<Content: View>: View {
 
     var body: some View {
         List { Group { content }.listRowBackground(Brand.cell).listRowSeparatorTint(Brand.line) }
+            .toggleStyle(SwitchToggleStyle(tint: Brand.orange))  // a switch that is on is the brand's orange, in every sheet
+            .contentMargins(.top, 12, for: .scrollContent)       // under an inline title the system's 35 points read as a hole
             .scrollContentBackground(.hidden)
             .background(Brand.group)
     }
@@ -238,6 +307,44 @@ extension View {
     }
 }
 
+extension View {
+    /// The controls under a call. Opaque, with a short fade above: what scrolls behind (the conversation, the notes) goes
+    /// away under it instead of showing through between a card, the bar and the keyboard.
+    func brandDock() -> some View {
+        background(alignment: .top) {
+            VStack(spacing: 0) {
+                LinearGradient(colors: [Brand.bg.opacity(0), Brand.bg], startPoint: .top, endPoint: .bottom).frame(height: 16)
+                Brand.bg
+            }
+            .padding(.top, -16)
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
+        }
+    }
+
+    /// A control drawn smaller than 44 points still takes a 44-point touch (HIG): give what it draws, in points.
+    /// The view is laid out at the touch's size and then reports what it draws, so its neighbours do not move.
+    func touchTarget(width: CGFloat? = nil, height: CGFloat? = nil) -> some View {
+        let dx = width.map { max(0, (44 - $0) / 2) } ?? 0, dy = height.map { max(0, (44 - $0) / 2) } ?? 0
+        return padding(.horizontal, dx).padding(.vertical, dy).contentShape(Rectangle())
+            .padding(.horizontal, -dx).padding(.vertical, -dy)
+    }
+
+    /// A list's section footer, or a sentence above a section. Headers and footers take the font around the list, and the
+    /// app's is body: unstyled, a footnote is as loud as the rows it explains.
+    func brandFootnote() -> some View { font(.brand(.footnote)).foregroundStyle(Brand.muted).textCase(nil) }
+
+    /// A section label: 11 points, upper case, tracked, in the dim colour.
+    func brandKicker() -> some View {
+        font(.brand(.caption2, .medium)).kerning(1.3).textCase(.uppercase).foregroundStyle(Brand.dim)
+    }
+
+    /// The hairline that makes a card a card on a ground of nearly its own colour.
+    func brandCard(_ radius: CGFloat = 16) -> some View {
+        background(Brand.card, in: RoundedRectangle(cornerRadius: radius)).overlay(RoundedRectangle(cornerRadius: radius).stroke(Brand.line))
+    }
+}
+
 /// Ballerine | Pointe, Command center: the same lockup as the page.
 struct BrandHeader: View {
     var mac: String? = nil  // the Mac's version from /voice/status, when a call knows it
@@ -249,15 +356,25 @@ struct BrandHeader: View {
             Rectangle().fill(Brand.lineStrong).frame(width: 1, height: 28)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Pointe").font(.brand(.title3)).lineLimit(1)
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("Command center").font(.brand(.caption)).foregroundStyle(Brand.muted).lineLimit(1).layoutPriority(1)
-                    Text(AppVersion.line(app: AppVersion.app, mac: mac)).font(.brand(.caption2, .medium)).foregroundStyle(Brand.dim).lineLimit(1)
-                        .accessibilityIdentifier("versionLine")
+                // Never a cut word: with less room the build number goes first, then the tagline. The version stays.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) { tagline; version(AppVersion.line(app: AppVersion.app, mac: mac)) }
+                    HStack(alignment: .firstTextBaseline, spacing: 6) { tagline; version(AppVersion.line(app: AppVersion.short, mac: mac)) }
+                    version(AppVersion.line(app: AppVersion.short, mac: mac))
                 }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    private var tagline: some View {
+        Text("Command center").font(.brand(.caption)).foregroundStyle(Brand.muted).lineLimit(1)
+    }
+
+    private func version(_ line: String) -> some View {
+        Text(line).font(.brand(.caption2, .medium)).foregroundStyle(Brand.dim).lineLimit(1)
+            .accessibilityIdentifier("versionLine")
     }
 }
 
@@ -269,6 +386,9 @@ enum AppVersion {
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
         return build.map { "\(short) (\($0))" } ?? short
     }
+
+    /// "1.2.0", without the build number, for a header with little room.
+    static var short: String { app.split(separator: " ").first.map(String.init) ?? app }
 
     static func line(app: String, mac: String?) -> String {
         guard let mac, !mac.isEmpty, mac != app.split(separator: " ").first.map(String.init) else { return app }

@@ -283,6 +283,7 @@ struct AlertsSheet: View {
     @State private var note: String?
     private let setPhone: (Bool) async -> Bool
     private let setWatch: (Bool) async -> Bool
+    @Environment(\.dismiss) private var dismiss
 
     init(phone: Bool, watch: Bool, setPhone: @escaping (Bool) async -> Bool, setWatch: @escaping (Bool) async -> Bool) {
         _phone = State(initialValue: phone)
@@ -305,7 +306,9 @@ struct AlertsSheet: View {
                     }))
                     .accessibilityIdentifier("alertsWatchApprove")
                 } footer: {
-                    Text(AlertCopy.help).accessibilityIdentifier("alertsHelp")
+                    Group {
+                        Text(AlertCopy.help).accessibilityIdentifier("alertsHelp")
+                    }.brandFootnote()
                 }
                 Section {
                     Text(AlertCopy.suspended).font(.brand(.footnote)).foregroundStyle(Brand.muted)
@@ -316,6 +319,7 @@ struct AlertsSheet: View {
             }
             .navigationTitle(AlertCopy.section)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
 }

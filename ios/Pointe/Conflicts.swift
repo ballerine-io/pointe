@@ -112,21 +112,11 @@ struct ConflictCard: View {
             } else if !live {
                 Text(ConflictCopy.connect).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
-            HStack(spacing: 8) {
-                ForEach(["a", "b"], id: \.self) { side in
-                    let name = conflict.name(side)
-                    Button { run("ask", side) } label: {
-                        Text(conflict.wasAsked(side) ? ConflictCopy.asked(name) : ConflictCopy.ask(name))
-                            .lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.brandQuiet)
-                    .disabled(busy || conflict.wasAsked(side) || inMeeting || !live)
-                    .accessibilityIdentifier("conflictAsk-\(side)")
-                }
-                Button { run("dismiss", nil) } label: { Text(ConflictCopy.dismiss).frame(maxWidth: .infinity) }
-                    .buttonStyle(.brandQuiet)
-                    .disabled(busy)
-                    .accessibilityIdentifier("conflictDismiss")
+            // A session's name is never cut: one row when all three fit, else the two questions over Dismiss, else a column.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { ask("a"); ask("b"); dismissButton }
+                VStack(spacing: 8) { HStack(spacing: 8) { ask("a"); ask("b") }; dismissButton }
+                VStack(spacing: 8) { ask("a", wraps: true); ask("b", wraps: true); dismissButton }
             }
             .controlSize(.regular)
             if let error {
@@ -139,6 +129,24 @@ struct ConflictCard: View {
         .sensoryFeedback(.warning, trigger: conflict.id)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("conflictCard")
+    }
+
+    private func ask(_ side: String, wraps: Bool = false) -> some View {
+        let name = conflict.name(side)
+        return Button { run("ask", side) } label: {
+            Text(conflict.wasAsked(side) ? ConflictCopy.asked(name) : ConflictCopy.ask(name))
+                .lineLimit(wraps ? 3 : 1).multilineTextAlignment(.center).padding(.vertical, wraps ? 6 : 0).frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.brandQuiet)
+        .disabled(busy || conflict.wasAsked(side) || inMeeting || !live)
+        .accessibilityIdentifier("conflictAsk-\(side)")
+    }
+
+    private var dismissButton: some View {
+        Button { run("dismiss", nil) } label: { Text(ConflictCopy.dismiss).frame(maxWidth: .infinity) }
+            .buttonStyle(.brandQuiet)
+            .disabled(busy)
+            .accessibilityIdentifier("conflictDismiss")
     }
 
     private func claim(_ name: String, _ agent: String?, _ text: String, _ at: Double?, id: String) -> some View {
@@ -186,7 +194,7 @@ struct ConflictSettingsSheet: View {
                         }
                         .disabled(!p.conflictsOn)
                         .accessibilityIdentifier("conflictsSpoken")
-                    } footer: { Text(ConflictCopy.footer) }
+                    } footer: { Group { Text(ConflictCopy.footer) }.brandFootnote() }
                     if failed {
                         Label("The Mac did not take that setting. Is Pointe on the Mac up to date?", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(Brand.accent)

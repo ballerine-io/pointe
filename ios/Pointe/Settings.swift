@@ -36,7 +36,7 @@ struct MachinesSheet: View {
                     if let ended = MachinesCopy.ended(status) {
                         Text(ended).foregroundStyle(Brand.accent).accessibilityIdentifier("inviteEnded")
                     }
-                } footer: { Text(MachinesCopy.help) }
+                } footer: { Group { Text(MachinesCopy.help) }.brandFootnote() }
                 Section { inviteSection }
             }
             .scrollContentBackground(.hidden)

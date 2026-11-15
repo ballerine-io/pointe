@@ -117,9 +117,10 @@ struct ConnectPill: View {
             }
             .font(.brand(.subheadline, .semibold))
             .foregroundStyle(live ? Brand.dangerText : face.dialling ? Brand.muted : Brand.text)
-            .padding(.horizontal, 12).frame(height: 32)
+            .padding(.horizontal, 12).frame(height: 36)
             .background(face.dialling ? Brand.raised : Color.clear, in: Capsule())
             .overlay(Capsule().stroke(live ? Brand.danger.opacity(0.5) : Brand.lineStrong))
+            .touchTarget(height: 36)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("topConnect")

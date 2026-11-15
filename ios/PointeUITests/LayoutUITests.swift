@@ -1,0 +1,129 @@
+import XCTest
+
+/// Where things sit on the call screen (docs/design/ux-review-ios.md), on the demo call: nothing under the keyboard,
+/// nothing off the screen at the largest type, one Hang up, and the labels VoiceOver reads.
+@MainActor
+final class LayoutUITests: XCTestCase {
+    override func setUp() { continueAfterFailure = false }
+
+    private func launch(_ screen: String, _ more: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-demo", screen] + more
+        app.launch()
+        XCTAssertTrue(app.buttons["micRing"].waitForExistence(timeout: 20), "the call screen is up")
+        return app
+    }
+
+    private func text(_ app: XCUIApplication, _ fragment: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
+    }
+
+    private func onScreen(_ app: XCUIApplication, _ element: XCUIElement, _ name: String, file: StaticString = #filePath, line: UInt = #line) {
+        let window = app.windows.firstMatch.frame
+        XCTAssertTrue(element.exists, "\(name) exists", file: file, line: line)
+        XCTAssertGreaterThanOrEqual(element.frame.minX, window.minX - 0.5, "\(name) starts on the screen", file: file, line: line)
+        XCTAssertLessThanOrEqual(element.frame.maxX, window.maxX + 0.5, "\(name) ends on the screen", file: file, line: line)
+        XCTAssertGreaterThanOrEqual(element.frame.minY, 20, "\(name) is under the status bar, not behind it", file: file, line: line)
+        XCTAssertLessThanOrEqual(element.frame.maxY, window.maxY + 0.5, "\(name) is not below the screen", file: file, line: line)
+    }
+
+    /// The bug this file started with: with the keyboard up, the type bar sat on the newest bubble.
+    func testTheTypeBarAndTheKeyboardNeverCoverTheNewestLine() {
+        let app = launch("typing")
+        let field = app.descendants(matching: .any)["typeField"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "the type bar is open")
+        _ = app.keyboards.firstMatch.waitForExistence(timeout: 5)  // absent with a hardware keyboard: the bar alone must clear the line
+        let newest = text(app, "whether the retry")
+        XCTAssertTrue(newest.waitForExistence(timeout: 5), "what is being heard is the newest line")
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))  // the keyboard's animation and the scroll that follows it
+
+        XCTAssertLessThanOrEqual(newest.frame.maxY, field.frame.minY + 1, "the newest line ends above the type bar")
+        XCTAssertGreaterThan(newest.frame.minY, app.descendants(matching: .any)["statusLine"].firstMatch.frame.maxY - 1,
+                             "and starts under the header: all of it shows")
+        let ring = app.buttons["micRing"]
+        XCTAssertLessThanOrEqual(field.frame.maxY, ring.frame.minY + 1, "the type bar is above the mic")
+        if app.keyboards.firstMatch.exists {
+            XCTAssertLessThanOrEqual(ring.frame.maxY, app.keyboards.firstMatch.frame.minY + 1, "the mic is above the keyboard")
+        }
+        onScreen(app, app.buttons["Settings"], "the header")
+    }
+
+    /// The same, when a line arrives while the keyboard is already up: closing and reopening the bar keeps the end in view.
+    func testOpeningTheTypeBarKeepsTheNewestLineInView() {
+        let app = launch("call")
+        let newest = text(app, "whether the retry")
+        XCTAssertTrue(newest.waitForExistence(timeout: 5))
+        app.buttons["Type"].tap()
+        let field = app.descendants(matching: .any)["typeField"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+        XCTAssertLessThanOrEqual(newest.frame.maxY, field.frame.minY + 1, "the newest line moved up with the bar")
+        XCTAssertTrue(newest.isHittable, "and is still on screen")
+    }
+
+    /// Accessibility XXXL: the chrome stops growing, so the header stays on the screen and the bar's five controls stay in it.
+    func testTheCallScreenFitsAtTheLargestType() {
+        let app = launch("request", ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        onScreen(app, app.buttons["Settings"], "the menu")
+        onScreen(app, app.buttons["Start a meeting"], "the meeting button")
+        onScreen(app, app.descendants(matching: .any)["statusLine"].firstMatch, "the state line")
+        for name in ["Brain dump", "Type", "Sessions", "hangUp", "micRing"] {
+            onScreen(app, app.buttons[name], name)
+            XCTAssertTrue(app.buttons[name].isHittable, "\(name) can be tapped")
+        }
+        let controls = ["Brain dump", "Type", "micRing", "Sessions", "hangUp"].map { app.buttons[$0].frame }
+        for (a, b) in zip(controls, controls.dropFirst()) {
+            XCTAssertLessThanOrEqual(a.maxX, b.minX + 0.5, "the bar's controls do not run into each other")
+        }
+        // The card is taller than the room left: it scrolls above the bar instead of pushing the header off the screen.
+        XCTAssertTrue(app.buttons["Approve"].exists && app.buttons["Deny"].exists, "the request is there")
+        text(app, "needs approval").swipeUp()
+        XCTAssertTrue(app.buttons["Approve"].isHittable, "and one swipe on the card brings Approve up")
+        XCTAssertLessThanOrEqual(app.buttons["Approve"].frame.maxY, app.buttons["micRing"].frame.minY, "above the bar")
+        onScreen(app, app.buttons["Settings"], "the menu, after the swipe")
+    }
+
+    /// A command of nine lines scrolls in its own box: Deny and Approve stay where the thumb is.
+    func testAVeryLongCommandLeavesTheAnswerOnScreen() {
+        let app = launch("longRequest")
+        for name in ["Deny", "Approve"] {
+            XCTAssertTrue(app.buttons[name].waitForExistence(timeout: 5))
+            onScreen(app, app.buttons[name], name)
+            XCTAssertTrue(app.buttons[name].isHittable, "\(name) can be tapped without scrolling")
+            XCTAssertLessThanOrEqual(app.buttons[name].frame.maxY, app.buttons["micRing"].frame.minY, "\(name) is above the bar")
+        }
+        XCTAssertTrue(text(app, "test_refunds_1.py").exists, "the command is there, word for word")
+        onScreen(app, app.buttons["Settings"], "the header")
+    }
+
+    /// One Hang up on a live call, and the names VoiceOver reads for the controls, the state and the bubbles.
+    func testOneHangUpAndTheLabelsVoiceOverReads() {
+        let app = launch("call")
+        XCTAssertEqual(app.buttons["hangUp"].label, "Hang up")
+        XCTAssertFalse(app.buttons["topConnect"].exists, "no second Hang up in the header while the bar has one")
+        XCTAssertEqual(app.buttons["micRing"].label, "Mute")
+        for name in ["Settings", "Start a meeting", "Brain dump", "Type", "Sessions"] {
+            XCTAssertTrue(app.buttons[name].exists, "\(name) is a named button")
+        }
+        let line = app.descendants(matching: .any)["statusLine"].firstMatch
+        XCTAssertTrue(line.label.contains("Listening") && line.label.contains("Orchestrating 3 sessions"), line.label)
+        XCTAssertTrue(app.buttons["All sessions, orchestrator mode, on"].exists, "the All chip says its mode")
+        XCTAssertTrue(text(app, "river-lantern, needs you").exists, "a session chip says its name and state")
+        XCTAssertTrue(text(app, "Pointe: Docs is on it.").exists, "a reply is read as Pointe's")
+        XCTAssertTrue(text(app, "You: ").exists, "a turn of yours is read as yours")
+    }
+
+    /// The header's round buttons are drawn at 36 points and take a 44-point touch: a tap just off the circle still lands.
+    func testASmallHeaderButtonTakesATouchBesideIt() {
+        let app = launch("call")
+        func tapUnder(_ button: XCUIElement) {  // the circle's radius is 18: two points under what is drawn
+            button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).withOffset(CGVector(dx: 0, dy: 20)).tap()
+        }
+        tapUnder(app.buttons["Start a meeting"])
+        XCTAssertTrue(app.navigationBars["Start a meeting"].waitForExistence(timeout: 5), "the meeting sheet opened")
+        app.navigationBars["Start a meeting"].buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Start a meeting"].waitForNonExistence(timeout: 5))
+        tapUnder(app.buttons["Settings"])
+        XCTAssertTrue(app.buttons["Unpair this phone"].waitForExistence(timeout: 5), "the menu opened")
+    }
+}

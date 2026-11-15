@@ -180,7 +180,9 @@ struct VocabularySheet: View {
                         Text(problem).font(.brand(.footnote)).foregroundStyle(Brand.accent)
                     }
                 } header: {
-                    Text(VocabularyCopy.lede).textCase(nil)
+                    Group {
+                        Text(VocabularyCopy.lede).textCase(nil)
+                    }.brandFootnote()
                 }
                 if let page {
                     Section {
@@ -189,10 +191,12 @@ struct VocabularySheet: View {
                         }
                         ForEach(page.entries) { entry in row(entry) }
                     } footer: {
-                        if page.full == true { Text(VocabularyCopy.full(page.cap ?? 400)) }
+                        Group {
+                            if page.full == true { Text(VocabularyCopy.full(page.cap ?? 400)) }
+                        }.brandFootnote()
                     }
                     if let suggestions = page.suggestions, !suggestions.isEmpty {
-                        Section(VocabularyCopy.suggestions) {
+                        KickerSection(VocabularyCopy.suggestions) {
                             ForEach(suggestions) { s in
                                 HStack {
                                     VStack(alignment: .leading) {
@@ -219,11 +223,13 @@ struct VocabularySheet: View {
                         .tint(Brand.orange)
                         .accessibilityIdentifier("dictionaryLearn")
                     } footer: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(VocabularyCopy.learnHelp)
-                            Text(VocabularyCopy.appliesNext)
-                                .accessibilityIdentifier("dictionaryApplies")
-                        }
+                        Group {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(VocabularyCopy.learnHelp)
+                                Text(VocabularyCopy.appliesNext)
+                                    .accessibilityIdentifier("dictionaryApplies")
+                            }
+                        }.brandFootnote()
                     }
                 } else {
                     ProgressView()

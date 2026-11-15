@@ -335,7 +335,7 @@ struct ShowSettingsSheet: View {
                     Toggle(ShowCopy.setting, isOn: Binding(get: { wanted ?? on }, set: { change($0) }))
                         .tint(Brand.orange)
                         .accessibilityIdentifier("showSetting")
-                } footer: { Text(ShowCopy.help) }
+                } footer: { Group { Text(ShowCopy.help) }.brandFootnote() }
                 if let refused {
                     Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 }

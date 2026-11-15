@@ -122,7 +122,8 @@ struct DriveScreen: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, lineWidth: 1).padding(10))
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // already the largest type in the app, set to be read at a glance
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, lineWidth: 1).padding(.horizontal, 14).padding(.vertical, 8))
     }
 }
 
@@ -166,7 +167,7 @@ struct DriveSuggestion: View {
                 .accessibilityIdentifier("driveSuggestYes")
         }
         .padding(12)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .brandCard()
         .accessibilityIdentifier("driveSuggestion")
     }
 }

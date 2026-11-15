@@ -17,6 +17,7 @@ func byAttention(_ sessions: [API.Session]) -> [API.Session] {
 /// is in the Sessions sheet.
 struct SessionChips: View {
     let sessions: [API.Session]
+    var known = true  // false until the Mac has answered once: "No sessions" would be a guess
     let active: String?
     let mode: String?
     let focus: (String) -> Void
@@ -69,13 +70,14 @@ struct SessionChips: View {
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .background(orchestrating ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Capsule())
                         .overlay(Capsule().stroke(orchestrating ? Brand.orangeLine : Brand.line, lineWidth: 1))
+                        .touchTarget(height: 34)
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
                     Button("Sessions and mode", systemImage: "rectangle.stack", action: showAll)
                 }
                 .accessibilityLabel("All sessions, orchestrator mode\(orchestrating ? ", on" : "")")
-                if sessions.isEmpty {
+                if sessions.isEmpty && known {
                     Text("No sessions · /pointe:voice or pointe join").font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                 }
                 ForEach(groups, id: \.machine) { group in
@@ -86,7 +88,7 @@ struct SessionChips: View {
                     Button { if !on { focus(s.name) } } label: {
                         HStack(spacing: 7) {
                             Circle().fill(dot(s)).frame(width: 7, height: 7)
-                            Text(s.name).lineLimit(1)
+                            Text(s.name).lineLimit(1).truncationMode(.middle).frame(maxWidth: 220)  // a branch-long name keeps both ends, and the next chip stays in reach
                             HarnessMark(harness: s.harness)
                             if s.isOffline {
                                 Text("offline").font(.brand(.caption2)).foregroundStyle(Brand.muted)
@@ -99,6 +101,7 @@ struct SessionChips: View {
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .background(on ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Capsule())
                         .overlay(Capsule().stroke(on ? Brand.orangeLine : Brand.line, lineWidth: 1))
+                        .touchTarget(height: 34)
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
@@ -156,11 +159,13 @@ struct SessionsSheet: View {
                         Text("Session").tag("session")
                     }
                     .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
+                    .listRowBackground(Color.clear).listRowInsets(EdgeInsets())  // edge to edge with the cards below
                 } footer: {
-                    Text(status?.mode == "session"
-                         ? "Session: focused on \(status?.active ?? "one session"). Everything you say goes there."
-                         : "Orchestrator: the voice keeps track of every session, gives you each one's status, and sends each request to the session it is about.")
+                    Group {
+                        Text(status?.mode == "session"
+                             ? "Session: focused on \(status?.active ?? "one session"). Everything you say goes there."
+                             : "Orchestrator: the voice keeps track of every session, gives you each one's status, and sends each request to the session it is about.")
+                    }.brandFootnote()
                 }
                 if machines.multi {
                     Section {
@@ -171,19 +176,21 @@ struct SessionsSheet: View {
                         Section {
                             rows(machines.onMachine(name))
                         } header: {
-                            HStack(spacing: 6) {  // a small dot: filled while the machine is online, a ring while it is not
-                                Circle().fill(machines.isOffline(name) ? Color.clear : Brand.success)
-                                    .overlay(Circle().stroke(machines.isOffline(name) ? Brand.dim : Color.clear))
-                                    .frame(width: 6, height: 6).accessibilityHidden(true)
-                                Text(machines.header(name))
-                                    .foregroundStyle(machines.isOffline(name) ? Brand.accent : Brand.muted)
-                                    .accessibilityIdentifier("machineSection.\(name)")
-                            }
+                            Group {
+                                HStack(spacing: 6) {  // a small dot: filled while the machine is online, a ring while it is not
+                                    Circle().fill(machines.isOffline(name) ? Color.clear : Brand.success)
+                                        .overlay(Circle().stroke(machines.isOffline(name) ? Brand.dim : Color.clear))
+                                        .frame(width: 6, height: 6).accessibilityHidden(true)
+                                    Text(machines.header(name))
+                                        .foregroundStyle(machines.isOffline(name) ? Brand.accent : Brand.muted)
+                                        .accessibilityIdentifier("machineSection.\(name)")
+                                }
+                            }.brandFootnote()
                         }
                         .opacity(machines.isOffline(name) ? 0.6 : 1)
                     }
                 } else {
-                    Section("On the voice") {
+                    KickerSection("On the voice") {
                         if (status?.sessions ?? []).isEmpty {
                             Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.").foregroundStyle(Brand.muted)
                         }
@@ -230,7 +237,7 @@ struct SessionsSheet: View {
 
     @ViewBuilder
     private var recentAndContext: some View {
-        Section("Recent requests") {
+        KickerSection("Recent requests") {
             let recent = Array((status?.recent ?? []).reversed())
             if recent.isEmpty { Text("Each request shows here with where it went.").foregroundStyle(Brand.muted) }
             ForEach(Array(recent.enumerated()), id: \.offset) { _, r in
@@ -244,13 +251,17 @@ struct SessionsSheet: View {
         if let line = SessionsCopy.context(status?.tokens) {
             Section {
                 Text(line).font(.brand(.footnote)).foregroundStyle(Brand.muted).accessibilityIdentifier("contextTokens")
-            } header: { Text("What the voice holds") } footer: {
-                Text("The voice model's own count, after its last reply. The messages themselves stay on your Mac: the page there shows them.")
+            } header: { Group { Text("What the voice holds") }.brandKicker() } footer: {
+                Group {
+                    Text("The voice model's own count, after its last reply. The messages themselves stay on your Mac: the page there shows them.")
+                }.brandFootnote()
             }
         }
         Section {
         } footer: {
-            Text("Swipe a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.")
+            Group {
+                Text("Swipe a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.")
+            }.brandFootnote()
         }
     }
 }
@@ -433,10 +444,11 @@ struct MachineFilter: View {
         let away = name.map(machines.isOffline) == true
         return Button { filter = name } label: {
             Text(label).font(.brand(.caption, on ? .semibold : .regular))
-                .padding(.horizontal, 10).padding(.vertical, 5)
+                .padding(.horizontal, 12).padding(.vertical, 7)
                 .background(on ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Capsule())
                 .overlay(Capsule().stroke(on ? Brand.orangeLine : Brand.line, lineWidth: 1))
                 .opacity(away ? 0.5 : 1)
+                .touchTarget(height: 30)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("machineChip.\(name ?? "all")")

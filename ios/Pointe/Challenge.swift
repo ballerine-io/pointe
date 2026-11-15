@@ -137,6 +137,7 @@ struct ChallengePanel: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)

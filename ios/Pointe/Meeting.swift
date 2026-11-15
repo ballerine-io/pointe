@@ -163,12 +163,12 @@ struct MeetingStartSheet: View {
         Section {
             modeRow("listening", MeetingCopy.listening, MeetingCopy.listeningWhat, "ear")
             modeRow("participating", MeetingCopy.participating, MeetingCopy.participatingWhat, "hand.raised")
-        } header: { Text("Mode") }
+        } header: { Group { Text("Mode") }.brandKicker() }
         Section {
             TextField("Agenda, goals, names, anything it should know", text: $brief, axis: .vertical)
                 .lineLimit(3...8)
                 .accessibilityIdentifier("meetingBrief")
-        } header: { Text("Context") }
+        } header: { Group { Text("Context") }.brandKicker() }
         if !sessions.isEmpty {
             Section {
                 ForEach(sessions) { s in
@@ -179,9 +179,11 @@ struct MeetingStartSheet: View {
                     .tint(Brand.orange)
                 }
                 Toggle("Auto lookups", isOn: $autoLookups).tint(Brand.orange)
-            } header: { Text("Linked sessions") } footer: {
-                Text(autoLookups ? "A question a linked session can answer is looked up at once, in a read-only copy."
-                     : "A question a linked session can answer waits for your Look up tap.")
+            } header: { Group { Text("Linked sessions") }.brandKicker() } footer: {
+                Group {
+                    Text(autoLookups ? "A question a linked session can answer is looked up at once, in a read-only copy."
+                         : "A question a linked session can answer waits for your Look up tap.")
+                }.brandFootnote()
             }
         }
     }
@@ -218,8 +220,10 @@ struct MeetingStartSheet: View {
             vendorRow("note.text", "Notes", reply?.vendors?.notes, "the transcript, to write the notes")
             vendorRow("speaker.wave.2", "Spoken replies", reply?.vendors?.speech, "what Pointe says, when it speaks")
             vendorRow("command", "Your commands", reply?.vendors?.commands, "what you ask it")
-        } header: { Text("Who receives what") } footer: {
-            Text("Nothing is stored on the Mac unless you export it at the end.")
+        } header: { Group { Text("Who receives what") }.brandKicker() } footer: {
+            Group {
+                Text("Nothing is stored on the Mac unless you export it at the end.")
+            }.brandFootnote()
         }
         if reply?.soniox == false {
             Label("Meeting mode needs a Soniox key on the Mac: it tells the speakers apart.", systemImage: "key")
@@ -361,7 +365,7 @@ struct HandCard: View {
             }
             .font(.brand(.subheadline))
             ViewThatFits(in: .horizontal) {  // side by side when they fit; stacked at large text sizes
-                HStack(spacing: 8) { buttons }.lineLimit(1)
+                HStack(spacing: 8) { buttons }.lineLimit(1).minimumScaleFactor(0.85)  // a hair short of fitting: smaller, not cut
                 VStack(spacing: 8) { buttons }
             }
             .font(.brand(.subheadline, .semibold))
@@ -455,12 +459,9 @@ struct NotesFeed: View {
             if filter == .transcript {
                 transcriptView
             } else if shown.isEmpty {
-                ContentUnavailableView {
-                    Label("Nothing noted yet", systemImage: "note.text")
-                } description: {
-                    Text("Questions nobody answered, decisions and action items show up here as the meeting goes.")
-                }
-                .padding(.top, 30)
+                EmptyNote(title: "Nothing noted yet", symbol: "note.text",
+                          text: "Questions nobody answered, decisions and action items show up here as the meeting goes.")
+                    .padding(.top, 30)
             } else {
                 LazyVStack(spacing: 10) {
                     ForEach(shown) { note in
@@ -655,7 +656,8 @@ struct MeetingBar: View {
                 .accessibilityIdentifier("endMeeting")
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .brandCard()
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .sensoryFeedback(.impact(weight: .light), trigger: meeting.mode)
     }
 
@@ -700,7 +702,9 @@ struct SpeakersSheet: View {
                         }
                     }
                 } footer: {
-                    Text("Not you? Long-press a line in the Transcript and choose \u{201C}That was me\u{201D}.")
+                    Group {
+                        Text("Not you? Long-press a line in the Transcript and choose \u{201C}That was me\u{201D}.")
+                    }.brandFootnote()
                 }
             }
             .scrollContentBackground(.hidden)
@@ -746,7 +750,7 @@ struct MeetingEndSheet: View {
     var body: some View {
         NavigationStack {
             BrandList {
-                Section("Summary") {  // a long summary is folded, so the export is not pages away
+                KickerSection("Summary") {  // a long summary is folded, so the export is not pages away
                     Text(result.summary ?? "No summary.").readingDirection(of: result.summary ?? "").font(.brand(.callout)).lineLimit(wholeSummary ? nil : 6)
                     if (result.summary ?? "").count > 320 {
                         Button(wholeSummary ? "Show less" : "Show all") { withAnimation { wholeSummary.toggle() } }
@@ -754,10 +758,10 @@ struct MeetingEndSheet: View {
                     }
                 }
                 if let decisions = result.decisions, !decisions.isEmpty {
-                    Section("Decisions") { ForEach(decisions, id: \.self) { d in Label { Text(d).readingDirection(of: d) } icon: { Image(systemName: "flag") } } }
+                    KickerSection("Decisions") { ForEach(decisions, id: \.self) { d in Label { Text(d).readingDirection(of: d) } icon: { Image(systemName: "flag") } } }
                 }
                 if !actionItems.isEmpty {
-                    Section("Action items") {
+                    KickerSection("Action items") {
                         ForEach(actionItems, id: \.self) { a in
                             let who = [a.owner.flatMap { $0.isEmpty ? nil : $0 }, a.due.flatMap { $0.isEmpty ? nil : "due \($0)" }]
                                 .compactMap { $0 }.joined(separator: " · ")
@@ -771,7 +775,7 @@ struct MeetingEndSheet: View {
                     }
                 }
                 if let open = result.open_questions, !open.isEmpty {
-                    Section("Open questions") { ForEach(open, id: \.self) { q in Label { Text(q).readingDirection(of: q) } icon: { Image(systemName: "questionmark.circle") } } }
+                    KickerSection("Open questions") { ForEach(open, id: \.self) { q in Label { Text(q).readingDirection(of: q) } icon: { Image(systemName: "questionmark.circle") } } }
                 }
                 Section {
                     Toggle("Include the transcript", isOn: $withTranscript).tint(Brand.orange)
@@ -791,8 +795,10 @@ struct MeetingEndSheet: View {
                     }
                     .accessibilityIdentifier("meetingSave")
                     if let saved { Text(saved.isEmpty ? "Could not save." : "Saved: \(saved)").font(.brand(.caption)).foregroundStyle(Brand.muted) }
-                } header: { Text("Export") } footer: {
-                    Text(withTranscript ? "With the transcript: everything that was said." : "Notes only: the transcript stays out.")
+                } header: { Group { Text("Export") }.brandKicker() } footer: {
+                    Group {
+                        Text(withTranscript ? "With the transcript: everything that was said." : "Notes only: the transcript stays out.")
+                    }.brandFootnote()
                 }
                 if !actionItems.isEmpty && !sessions.isEmpty {
                     Section {
@@ -801,12 +807,12 @@ struct MeetingEndSheet: View {
                         } label: { Label("Send action items to…", systemImage: "paperplane") }
                         .accessibilityIdentifier("meetingSend")
                         if let sent { Text(sent).font(.brand(.caption)).foregroundStyle(Brand.muted) }
-                    } footer: { Text("They go as your own request, through the normal checks.") }
+                    } footer: { Group { Text("They go as your own request, through the normal checks.") }.brandFootnote() }
                 }
                 Section {
                     Button("Discard the meeting", role: .destructive) { confirmDiscard = true }
                         .accessibilityIdentifier("meetingDiscard")
-                } footer: { Text("Forgets the notes and the transcript on the Mac.") }
+                } footer: { Group { Text("Forgets the notes and the transcript on the Mac.") }.brandFootnote() }
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("Meeting ended")
@@ -866,14 +872,16 @@ struct MeetingSettingsSheet: View {
                             Text("Hebrew").tag("he")
                         }
                     } footer: {
-                        Text("Auto lookups: a question a linked session can answer is looked up at once, in a read-only copy. Off: it waits for your tap.")
+                        Group {
+                            Text("Auto lookups: a question a linked session can answer is looked up at once, in a read-only copy. Off: it waits for your tap.")
+                        }.brandFootnote()
                     }
                     Section {
                         LabeledContent("Consent step", value: p.consented ? "Accepted on this Mac" : "Not yet")
                         if p.consented {
                             Button("Ask again before the next meeting") { p.consented = false; update(p, ["meeting.consented": false]) }
                         }
-                    } footer: { Text("A voice start (\u{201C}meeting mode, listening\u{201D}) needs the consent step accepted once.") }
+                    } footer: { Group { Text("A voice start (\u{201C}meeting mode, listening\u{201D}) needs the consent step accepted once.") }.brandFootnote() }
                 } else if loaded {
                     Label("The Mac did not send its meeting settings. Is Pointe on the Mac up to date and reachable?",
                           systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)

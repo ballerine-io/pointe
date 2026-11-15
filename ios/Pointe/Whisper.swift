@@ -61,13 +61,12 @@ struct WhisperCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(WhisperCopy.title, systemImage: "waveform.badge.minus").font(.brand(.subheadline, .semibold))
-            Text(WhisperCopy.limit).font(.brand(.footnote)).foregroundStyle(Brand.muted)
-            if let note = status.lock_note {
-                Text(note).font(.brand(.footnote)).foregroundStyle(Brand.muted).accessibilityIdentifier("whisperLockNote")
+            Group {  // read whole, never cut: with the keyboard up the card scrolls in the dock instead
+                Text(WhisperCopy.limit)
+                if let note = status.lock_note { Text(note).accessibilityIdentifier("whisperLockNote") }
+                if suggestPushToTalk { Text(WhisperCopy.suggest) }
             }
-            if suggestPushToTalk {
-                Text(WhisperCopy.suggest).font(.brand(.footnote)).foregroundStyle(Brand.muted)
-            }
+            .font(.brand(.footnote)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
                 if suggestPushToTalk {
                     Button(WhisperCopy.notNow, action: notNow).buttonStyle(.brandQuiet).accessibilityIdentifier("whisperNotNow")

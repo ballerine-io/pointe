@@ -195,6 +195,7 @@ struct BrainDumpPanel: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)  // past this the hint and the two buttons are cut to fit
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)

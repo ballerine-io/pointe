@@ -9,34 +9,46 @@ struct PairView: View {
     @State private var scanning = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             BrandHeader()
             Text("On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone. Scan the code it shows here, or with the Camera app.")
-                .foregroundStyle(Brand.muted)
+                .font(.brand(.callout)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
             if scanning {
-                Scanner { code in
-                    if PairingLink(code) != nil { submit(code) } else { problem = "That code is not a Pointe pairing code." }
+                ZStack {  // under the camera: what shows before it starts, without one, or when it was not allowed
+                    VStack(spacing: 8) {
+                        Image(systemName: "qrcode.viewfinder").font(.system(size: 36, weight: .light)).foregroundStyle(Brand.dim)
+                        Text("Point the camera at the code").font(.brand(.footnote)).foregroundStyle(Brand.dim)
+                    }
+                    .accessibilityHidden(true)
+                    Scanner { code in
+                        if PairingLink(code) != nil { submit(code) } else { problem = "That code is not a Pointe pairing code." }
+                    }
                 }
-                .frame(maxWidth: .infinity, minHeight: 280)
+                .frame(maxWidth: .infinity, minHeight: 240, maxHeight: .infinity)
+                .background(Brand.raised, in: RoundedRectangle(cornerRadius: 16))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.line))
             }
             TextField("or paste the pointe:// link", text: $link)
-                .textFieldStyle(.roundedBorder).autocorrectionDisabled().textInputAutocapitalization(.never)
+                .autocorrectionDisabled().textInputAutocapitalization(.never).keyboardType(.URL).submitLabel(.go)
+                .padding(.horizontal, 14).frame(minHeight: 48)
+                .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
                 .onSubmit(use)
-            Button("Pair", action: use).buttonStyle(.brandPrimary).disabled(link.isEmpty)
-            if let problem { Text(problem).foregroundStyle(Brand.accent) }
-            Spacer()
+            Button(action: use) { Text("Pair").frame(maxWidth: .infinity) }
+                .buttonStyle(.brandPrimary).controlSize(.large).disabled(link.isEmpty)
+            if let problem { Text(problem).font(.brand(.footnote)).foregroundStyle(Brand.accent) }
+            if !scanning { Spacer() }
             Button(action: tryDemo) {
                 Label("No Mac yet? Try a demo", systemImage: "play.circle")
                     .font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.muted)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("tryDemo")
             Text("The code holds a secret that opens a call into your coding sessions. Scan only your own.")
                 .font(.brand(.footnote)).foregroundStyle(Brand.muted)
         }
-        .padding(24)
+        .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 16)
         .background(Brand.background)
     }
 

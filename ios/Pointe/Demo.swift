@@ -7,7 +7,8 @@ struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainDump, brainDumpReview, brainDumpPinned, brainDumpGone, meetingStart, meeting, meetingHand, meetingEnd, talking,
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
-                       whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions }
+                       whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
+                       empty, noSessions, many, longNames, longRequest, hold, speaking, muted }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -57,6 +58,7 @@ struct Demo {
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         case .whisper, .whisperOff: whisperJSON(on: screen == .whisper)
         case .rtl: rtlJSON
+        case .empty, .noSessions, .many, .longNames, .longRequest, .hold: stressJSON(screen)
         case .machines, .machinesOne, .machinesOffline, .machinesDrive, .machinesSessions: machinesJSON(screen)  // Settings.swift
         default: callJSON
         }
@@ -119,6 +121,38 @@ struct Demo {
               {"id": 4, "who": "assistant", "text": "פתחתי PR חדש ל-billing. הוא מעלה את ה-timeout לשלושים שניות ומוסיף בדיקה לכפל חיובים בזמן failover."},
               {"id": 5, "who": "user", "text": "And tell docs to update the changelog.", "typed": false, "corrected": false}]}
     """
+
+    /// The edges of the layout: nothing said, no session, twenty sessions, long and Hebrew names, a very long command, a hold.
+    private static func stressJSON(_ screen: Screen) -> String {
+        let long = "payments-gateway/feature/idempotency-keys-for-refunds"
+        let command = (1...9).map { "uv run pytest -q tests/test_refunds_\($0).py --maxfail=1 --timeout=120" }.joined(separator: " && ")
+        let many = (1...20).map { n in
+            #"{"name": "\#(["billing", "docs", "shop", "api", "river"][n % 5])-\#(n)", "working": \#(n % 3 == 0), "waiting": false, "needs": \#(n == 4 ? "\"a decision\"" : "null"), "harness": "\#(["claude-code", "codex", "opencode", "pi"][n % 4])"}"#
+        }.joined(separator: ",")
+        let named = """
+        [{"name": "\(long)", "working": true, "waiting": true, "needs": null, "harness": "codex",
+          "request": "Bash: Push the branch\\n{\\"command\\": \\"git push --force-with-lease origin \(long)\\"}", "request_id": "long-1", "voice_can_approve": true},
+         {"name": "חנות-מקוונת/ענף-תשלומים", "working": false, "waiting": false, "needs": "לאשר את תקציב הניסיונות החוזרים", "harness": "claude-code"},
+         {"name": "docs", "working": false, "waiting": false, "needs": null, "harness": "opencode"}]
+        """
+        let asking = """
+        [{"name": "billing/main", "working": true, "waiting": true, "needs": null, "request": "Bash: Run every refund test\\n{\\"command\\": \\"\(command)\\"}",
+          "request_id": "long-2", "voice_can_approve": false},
+         {"name": "docs", "working": false, "waiting": false, "needs": null}]
+        """
+        let list = switch screen {
+        case .noSessions: "[]"
+        case .many: "[\(many)]"
+        case .longNames: named
+        case .longRequest: asking
+        default: sessions
+        }
+        let hold = screen == .hold ? #", "hold": {"since": 1700000000, "said": "so the thing about the retry loop is"}"# : ""
+        return """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
+         "sessions": \(list), "talk": \(screen == .empty || screen == .noSessions ? "[]" : talk)\(hold)}
+        """
+    }
 
     private static let callJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": true,
@@ -386,6 +420,7 @@ struct DemoBadge: View {
             .padding(.horizontal, 10).frame(height: 26)
             .background(Brand.tint, in: Capsule())
             .overlay(Capsule().stroke(Brand.orangeLine))
+            .touchTarget(height: 26)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Self.exit)

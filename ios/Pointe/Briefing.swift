@@ -178,7 +178,7 @@ struct BriefingReadyCard: View {
             }
         }
         .padding(14)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .brandCard()
         .accessibilityIdentifier("briefingReady")
     }
 }
@@ -201,11 +201,11 @@ struct BriefingSheet: View {
     var body: some View {
         NavigationStack {
             BrandForm {
-                Section { controls } header: { Text(BriefingCopy.lede).textCase(nil) }
+                Section { controls } header: { Group { Text(BriefingCopy.lede).textCase(nil) }.brandFootnote() }
                 if let refused {
                     Label(refused, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
                 }
-                Section(BriefingCopy.history) { history }
+                KickerSection(BriefingCopy.history) { history }
             }
             .scrollContentBackground(.hidden)
             .navigationTitle(BriefingCopy.title)
@@ -328,10 +328,13 @@ struct BriefingSettingsSheet: View {
                                 ForEach(Array(BriefingCopy.days.enumerated()), id: \.offset) { i, day in
                                     let on = s.days.contains(i)
                                     Button { update(["days": on ? s.days.filter { $0 != i } : (s.days + [i]).sorted()]) } label: {
-                                        Text(day).font(.brand(.caption, on ? .semibold : .regular))
-                                            .frame(maxWidth: .infinity).padding(.vertical, 6)
-                                            .foregroundStyle(on ? Brand.onPrimary : Brand.text)
-                                            .background(on ? Brand.primary : .clear, in: RoundedRectangle(cornerRadius: 8))
+                                        Text(day).font(.brand(.caption, on ? .semibold : .regular)).lineLimit(1).minimumScaleFactor(0.7)
+                                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)  // seven in a row
+                                            .frame(maxWidth: .infinity).padding(.vertical, 7)
+                                            .foregroundStyle(on ? Brand.text : Brand.muted)  // chosen like every other chip: the tint, not a block of ink
+                                            .background(on ? Brand.tint : .clear, in: RoundedRectangle(cornerRadius: 8))
+                                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(on ? Brand.orangeLine : Brand.line))
+                                            .touchTarget(height: 30)
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityIdentifier("day-\(day)")
@@ -347,10 +350,12 @@ struct BriefingSettingsSheet: View {
                         Toggle(BriefingCopy.skipEmpty, isOn: Binding(get: { s.skip_empty }, set: { update(["skip_empty": $0]) }))
                             .tint(Brand.orange)
                     } footer: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(BriefingCopy.note)
-                            if let saved { Text(saved).foregroundStyle(Brand.accent) }
-                        }
+                        Group {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(BriefingCopy.note)
+                                if let saved { Text(saved).foregroundStyle(Brand.accent) }
+                            }
+                        }.brandFootnote()
                     }
                 } else if loaded {
                     Label("The Mac did not send its briefing schedule. Is Pointe on the Mac up to date and reachable?",
@@ -415,7 +420,7 @@ struct BriefingNowBar: View {
         }
         .controlSize(.small)
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
+        .brandCard()
         .accessibilityIdentifier("briefingNow")
     }
 }
