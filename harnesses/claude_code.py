@@ -207,6 +207,8 @@ async def _roster(home: str) -> dict[int, str] | None:
             proc.kill()
         if isinstance(e, asyncio.CancelledError):  # the liveness loop's own limit
             raise
+        if proc is not None:
+            await proc.wait()  # reaped: a stuck `claude` leaves no zombie behind
         return None
     return parse_roster(out) if proc.returncode == 0 else None
 

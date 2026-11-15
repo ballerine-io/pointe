@@ -18,7 +18,9 @@ an Approve that comes from a notification.
 - **"Approve from notifications"** (one setting for both clients, off by default; the app asks for Face ID to turn it
   on) adds Approve to a notification.
 
-What raises an alert: a permission request, a session that ended its turn waiting on you, a raised hand in a
+What raises an alert: a permission request, a Claude Code session stopped for 15 seconds at a prompt of its own in its
+terminal (a permission prompt, a question, a sandbox request: the ones the voice does not hold, for example with no call
+up), a session that ended its turn waiting on you, a raised hand in a
 [meeting](meeting-mode.md), a [conflict](conflict-alarm.md), and a scheduled [briefing](briefings.md) that is ready.
 
 ## Rules
@@ -30,6 +32,10 @@ What raises an alert: a permission request, a session that ended its turn waitin
   exactly what a spoken yes could approve. It needs an unlocked iPhone, or a watch on the wrist, instead of Face ID. The
   daemon accepts it (`via: "notification"`) only for that request's id. Anything else needs the app (Face ID) or the page.
 - **Deny** is always offered for a permission, and is the first action.
+- **A prompt in a session's terminal** has no actions and fixed words ("A permission prompt in its terminal. Answer it
+  there."): Pointe does not hold that prompt, so nothing here could answer it. One you answer at the keyboard within 15
+  seconds never alerts, and a dialog you may have opened yourself never does. On a call, in orchestrator mode, the voice
+  says it once the room is quiet, like any session stuck on you.
 - A stale request answers "Already answered"; a refused Approve answers "Approve it in the app"; anything else answers
   "Mac not reachable", and the notification is posted again on the next check.
 
@@ -44,8 +50,8 @@ What raises an alert: a permission request, a session that ended its turn waitin
 
 ## API
 
-- Status `attention: [{id, kind: permission|question|hand|conflict|briefing, session?, request_id?, title, body, text,
-  approvable, at}]`. `title` and `body` are what a notification may show. `approvable`: a notification may offer
+- Status `attention: [{id, kind: permission|terminal|question|hand|conflict|briefing, session?, request_id?, title, body,
+  text, approvable, at}]`. A `terminal` item is a prompt in the session's own terminal, id `terminal:<session>:<since>`. `title` and `body` are what a notification may show. `approvable`: a notification may offer
   Approve. A `question` is a session that ended its turn waiting on you, id `question:<session>:<since>`.
 - `POST /voice/approve` takes `via: "notification"`: an Allow is refused (403) unless the setting is on and the request
   is `approvable`; a stale `request_id` is 409. Deny needs neither.

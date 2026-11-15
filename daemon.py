@@ -164,6 +164,7 @@ from sessions import (
     speakable,
     voice_message,
     terminal_wait,
+    terminal_wait_since,
     waiting_since,
 )
 
@@ -1985,6 +1986,12 @@ async def _nudger() -> None:
             continue
         if session.permission_id:
             need, unblock = "a permission approval", f"switch to {session.name}, then yes or no"
+        elif wait := terminal_wait(session):  # no words unblock it: saying "say yes" would invite a yes that reaches nothing
+            minutes = max(1, round((now - (waiting_since(session) or now)) / 60))
+            logger.info(f"nudging about {session.name}: {wait}")
+            await say(f"[idle session] {session.name} has been stopped about {minutes} minute(s) at {wait}. The voice cannot "
+                      f"answer it. In one short sentence, tell the user to answer it in that session's terminal.")
+            continue
         else:
             need, unblock = session.needs["need"], session.needs["unblock"]
         minutes = max(1, round((now - (waiting_since(session) or now)) / 60))
@@ -5723,6 +5730,8 @@ def _attention() -> list[dict]:
         if s.permission_id:
             item = alerts.permission_alert(s.name, s.id, s.permission_id, s.permission_since or time.time(), _alert_name(s))
             items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
+        elif since := terminal_wait_since(s, time.time()):
+            items.append(alerts.terminal_alert(s.name, terminal_wait(s), since, _alert_name(s)))
         elif s.idle_since and s.needs and s.needs.get("need"):
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
     for c in ALARM.conflicts:

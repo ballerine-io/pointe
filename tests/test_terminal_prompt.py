@@ -287,3 +287,90 @@ def test_with_the_roster_off_nothing_is_read(d, roster, monkeypatch):
     monkeypatch.setattr(cc_module, "ROSTER", False)
     probe(cc, in_a_tool_call(add(d, "a", "bluebell")))
     assert reads == []
+
+
+# ---------- telling the user who is not at that terminal ----------
+
+from sessions import TERMINAL_NEWS_AFTER_SECS, pick_nudge, waiting_since  # noqa: E402
+from test_orchestrator import _nudges, _run_nudger  # noqa: E402
+
+
+def stopped(d, sid: str, name: str, at: str = "permission prompt", for_secs: float = 60.0):
+    s = in_a_tool_call(add(d, sid, name))
+    s.blocked_on, s.blocked_since = at, time.time() - for_secs
+    return s
+
+
+def attention(d) -> list[dict]:
+    return client_for(d).get("/voice/status").json()["attention"]
+
+
+def test_a_session_stopped_in_its_terminal_is_an_alert_with_fixed_words_and_no_actions(d):
+    s = stopped(d, "a", "bluebell")
+    (a,) = attention(d)
+    assert a["kind"] == "terminal" and a["session"] == "bluebell" and a["id"] == f"terminal:bluebell:{int(s.blocked_since)}"
+    assert a["title"] == "bluebell waits in its terminal"
+    assert a["body"] == a["text"] == "A permission prompt in its terminal. Answer it there."
+    assert a["approvable"] is False and "request_id" not in a, "nothing on a lock screen can answer it"
+
+
+def test_an_alert_from_a_notification_cannot_approve_a_terminal_prompt(d):
+    stopped(d, "a", "bluebell")
+    r = client_for(d).post("/voice/approve", json={"session": "bluebell", "request_id": "", "decision": "allow",
+                                                   "via": "notification"})
+    assert r.status_code == 409
+
+
+def test_a_prompt_answered_at_the_keyboard_never_alerts(d):
+    s = stopped(d, "a", "bluebell", for_secs=TERMINAL_NEWS_AFTER_SECS - 5)
+    assert attention(d) == [] and waiting_since(s) is None
+    assert client_for(d).get("/voice/status").json()["sessions"][0]["needs"], "the screens still show where it stands"
+    s.blocked_since = time.time() - TERMINAL_NEWS_AFTER_SECS - 1
+    assert [a["kind"] for a in attention(d)] == ["terminal"]
+
+
+def test_a_dialog_is_shown_as_state_and_is_never_news(d):
+    s = stopped(d, "a", "bluebell", at="dialog open", for_secs=600)
+    assert attention(d) == [] and waiting_since(s) is None
+    assert client_for(d).get("/voice/status").json()["sessions"][0]["needs"] == "An open dialog in its terminal."
+
+
+def test_the_alert_goes_when_the_prompt_is_answered_and_a_held_permission_takes_its_place(d):
+    from sessions import _moved
+
+    s = stopped(d, "a", "bluebell")
+    assert [a["kind"] for a in attention(d)] == ["terminal"]
+    s.permission_id, s.permission_since = "r1", time.time()
+    assert [a["kind"] for a in attention(d)] == ["permission"]
+    s.permission_id = None
+    _moved(s)
+    assert attention(d) == []
+
+
+def test_the_alert_names_the_machine_like_an_approval_card_and_can_be_dismissed(d, monkeypatch):
+    stopped(d, "a", "bluebell")
+    monkeypatch.setattr(d, "_alert_name", lambda s: "bluebell · studio")
+    (a,) = attention(d)
+    assert a["title"] == "bluebell · studio waits in its terminal"
+    assert client_for(d).post("/voice/attention", json={"id": a["id"]}).status_code == 200
+    assert attention(d) == []
+
+
+def test_a_session_stopped_in_its_terminal_is_nudged_like_any_session_stuck_on_the_user(d):
+    s = stopped(d, "a", "bluebell", for_secs=20)
+    now = time.time()
+    assert pick_nudge([s], now, now - 100, now - 100) is None, "under the nudge time"
+    s.blocked_since = now - 120
+    assert pick_nudge([s], now, now - 100, now - 100) is s
+
+
+def test_the_nudge_sends_the_user_to_the_terminal_and_offers_no_words_to_say(d, monkeypatch):
+    add(d, "e", "lantern")
+    s = stopped(d, "a", "bluebell", at="input needed", for_secs=180)
+    assert s.needs is None
+    conn = fake_conn()
+    d.state.conn = conn
+    asyncio.run(_run_nudger(d, monkeypatch, 0.5))
+    nudges = _nudges(conn)
+    assert len(nudges) == 1 and "bluebell has been stopped about 3 minute(s) at a question in its terminal" in nudges[0]
+    assert "The voice cannot answer it" in nudges[0] and "for example" not in nudges[0] and "yes" not in nudges[0].lower()

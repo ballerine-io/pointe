@@ -6,7 +6,8 @@ A notification sits on a lock screen and a wrist, so it shows less than the page
   request that cannot be read out shows only its tool's name, and the exact text stays in the app and the page;
 - anything that looks like a credential is not shown at all (readout.redact, the same rule the voice follows);
 - an Approve on a notification can reach only a request that a spoken yes could approve (readable, nothing withheld),
-  bound to its request id. The daemon checks that again when the answer arrives (`approvable`).
+  bound to its request id. The daemon checks that again when the answer arrives (`approvable`);
+- a prompt the voice does not hold (a session stopped in its own terminal) shows fixed words and has no actions.
 """
 
 import re
@@ -59,6 +60,14 @@ def question_alert(session: str, need: str, since: float) -> dict:
     body = need if need and readout.redact(need) and not _hidden(need) else "open Pointe to see what it needs"
     return {"id": f"question:{session}:{int(since)}", "kind": "question", "session": session,
             "title": f"{session} needs you", "body": body, "text": body, "approvable": False, "at": since}
+
+
+def terminal_alert(session: str, wait: str, since: float, title: str = "") -> dict:
+    """A session stopped at a prompt in its own terminal, which the voice does not hold. No actions: only the terminal
+    answers it. `wait` is the daemon's fixed wording (sessions.terminal_wait), never text from the session."""
+    body = f"{wait[:1].upper()}{wait[1:]}. Answer it there."
+    return {"id": f"terminal:{session}:{int(since)}", "kind": "terminal", "session": session,
+            "title": f"{title or session} waits in its terminal", "body": body, "text": body, "approvable": False, "at": since}
 
 
 def hand_alert(meeting: str, n: int, line: str, at: float) -> dict:

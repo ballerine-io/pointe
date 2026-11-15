@@ -616,12 +616,26 @@ TERMINAL_WAITS = {"permission prompt": "a permission prompt", "input needed": "a
                   "worker request": "a request from one of its workers", "dialog open": "an open dialog"}
 
 
+# The prompts the agent itself put up. An open dialog may be one the user opened, at the keyboard: it is state, not news.
+ASKED_WAITS = ("permission prompt", "input needed", "sandbox request")
+TERMINAL_NEWS_AFTER_SECS = 15.0  # a prompt answered at the keyboard within this never alerts
+
+
 def terminal_wait(session: Session) -> str:
     """What the session waits for at a prompt in its own terminal, or "". A request the voice holds is not one: that
     wait is the permission itself."""
     if not session.blocked_on or session.permission_id:
         return ""
     return f"{TERMINAL_WAITS.get(session.blocked_on, 'a prompt')} in its terminal"
+
+
+def terminal_wait_since(session: Session, now: float) -> float | None:
+    """Since when it has stood at a prompt of its own in its terminal, once that is worth telling the user who is not
+    there: an alert and, later, a nudge. None before that, and for a dialog."""
+    since = session.blocked_since
+    if not terminal_wait(session) or session.blocked_on not in ASKED_WAITS or since is None:
+        return None
+    return since if now - since >= TERMINAL_NEWS_AFTER_SECS else None
 
 
 def _moved(session: Session) -> None:
@@ -743,9 +757,10 @@ QUIET_BOT_SECS = 10
 
 
 def waiting_since(s: Session) -> float | None:
-    """Since when the session has been stuck on the user: a question at turn end, or a permission."""
-    times = [t for t in (s.idle_since if s.needs else None, s.permission_since if s.permission_id else None)
-             if t is not None]
+    """Since when the session has been stuck on the user: a question at turn end, a permission, or a prompt of its own
+    in its terminal."""
+    times = [t for t in (s.idle_since if s.needs else None, s.permission_since if s.permission_id else None,
+                         terminal_wait_since(s, time.time())) if t is not None]
     return min(times) if times else None
 
 
