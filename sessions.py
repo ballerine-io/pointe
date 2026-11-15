@@ -12,6 +12,7 @@ import re
 import secrets
 import subprocess
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -61,6 +62,10 @@ class Session:
     blocked_on: str = ""
     blocked_since: float | None = None
     active_at: float = 0.0  # when its record last moved: a prompt read before that is stale
+    # Claude Code set the voice's last message aside instead of giving it to Claude (post_inbox reads its receipt):
+    # held for approval in its terminal, or refused by its settings. None when not, or no longer.
+    held_at: float | None = None
+    refused_at: float | None = None
     # Idle tracking for orchestrator nudges: set at turn end, cleared when it works again.
     idle_since: float | None = None
     needs: dict | None = None  # {"need": what it waits for, "unblock": what the user could say}
@@ -576,23 +581,114 @@ def voice_message(text: str) -> str:
     return f"{VOICE_PREFIX} #{secrets.token_hex(2)}] {text}"
 
 
-async def post_inbox(session: Session, text: str) -> bool:
+RECEIPT_SECS = 1.5  # Claude Code answers a held or refused message in about 0.2 s; an accepted one gets no answer
+HELD_WATCH_SECS = 600.0  # how long a held message's reply address stays open for the user's answer in the terminal
+
+
+async def post_inbox(session: Session, text: str, receipt: bool = False) -> bool:
+    """True when Claude Code took the message for Claude. With `receipt`, the message carries a reply address so Claude
+    Code can say it held or refused it (`peer_message_status`); nothing is ever written back on the inbox connection
+    itself. The address is offered only when asked: a session that has one tries to answer through it."""
     if not session.inbox_socket:  # registered without one (an older plugin, a test): not delivered, never a crash
         logger.error(f"inbox post to {session.name} failed: it has no inbox socket")
         return False
+    reply = await _Receipts.open(session.inbox_socket) if receipt else None
     try:
         _, writer = await asyncio.open_unix_connection(session.inbox_socket)
         lines = []
         if session.inbox_token:
             lines.append({"type": "auth", "token": session.inbox_token})
-        lines.append({"type": "user", "message": {"role": "user", "content": voice_message(text)}})
+        line = {"type": "user", "message": {"role": "user", "content": voice_message(text)}}
+        if reply is not None:
+            line.update({"from": f"uds:{reply.path}", "msg_id": reply.msg_id})
+        lines.append(line)
         writer.write("".join(json.dumps(line) + "\n" for line in lines).encode())
         await writer.drain()
         writer.close()
-        return True
     except OSError as e:
         logger.error(f"inbox post to {session.name} failed: {e}")
+        if reply is not None:
+            reply.close()
         return False
+    if reply is None:
+        return True
+    status = await reply.next(RECEIPT_SECS)
+    if status == "held":
+        session.held_at = held = time.time()
+        logger.warning(f"{session.name}: Claude Code held the voice's message for approval in its terminal")
+        asyncio.create_task(_watch_held(session, reply, held))
+        return False
+    reply.close()
+    if status in ("refused", "denied", "expired", "dropped"):
+        session.refused_at = time.time() if status == "refused" else None
+        logger.warning(f"{session.name}: Claude Code did not deliver the voice's message ({status})")
+        return False
+    session.held_at = session.refused_at = None
+    return True  # no answer (accepted) or "delivered"
+
+
+async def _watch_held(session: Session, reply: "_Receipts", held: float) -> None:
+    """The user answers a held message in the terminal; Claude Code says how, and then it is not held any more."""
+    try:
+        status = await reply.next(HELD_WATCH_SECS)
+    finally:
+        reply.close()
+    logger.info(f"{session.name}: the held message was {status or 'not answered in time'}")
+    if session.held_at == held:
+        session.held_at = None
+
+
+class _Receipts:
+    """A reply address for one message: a socket beside the session's own (Claude Code answers only an address in its
+    socket's directory), and the statuses Claude Code sends to it, oldest first."""
+
+    def __init__(self, path: str, msg_id: str):
+        self.path, self.msg_id = path, msg_id
+        self.statuses: asyncio.Queue[str] = asyncio.Queue()
+        self.server: asyncio.AbstractServer | None = None
+
+    @classmethod
+    async def open(cls, inbox_socket: str) -> "_Receipts | None":
+        path = os.path.join(os.path.dirname(inbox_socket), f"pointe-{os.getpid()}-{secrets.token_hex(4)}.sock")
+        receipts = cls(path, str(uuid.uuid4()))
+        try:
+            receipts.server = await asyncio.start_unix_server(receipts._read, path)
+        except OSError as e:  # a path too long for a socket, a directory it may not write: send without one
+            logger.warning(f"no reply address beside {inbox_socket}: {e}")
+            return None
+        return receipts
+
+    async def _read(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        try:
+            while line := await asyncio.wait_for(reader.readline(), 5):
+                try:
+                    frame = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(frame, dict) or frame.get("orig_msg_id") != self.msg_id:
+                    continue  # not about this message: a reply the session tried to send here is not a receipt
+                if frame.get("type") == "control" and frame.get("action") == "peer_message_status":
+                    status = frame.get("status")
+                    self.statuses.put_nowait("refused" if frame.get("status_detail") == "refused" else str(status))
+        except (OSError, asyncio.TimeoutError, ValueError):
+            pass
+        finally:
+            writer.close()
+
+    async def next(self, secs: float) -> str | None:
+        try:
+            return await asyncio.wait_for(self.statuses.get(), secs)
+        except asyncio.TimeoutError:
+            return None
+
+    def close(self) -> None:
+        if self.server is not None:
+            self.server.close()
+            self.server = None
+        try:
+            os.unlink(self.path)
+        except OSError:
+            pass
 
 
 # ---------- following a transcript ----------
@@ -614,6 +710,12 @@ def _text(content) -> str:
 # words: the harness's own string is never said or shown as it came.
 TERMINAL_WAITS = {"permission prompt": "a permission prompt", "input needed": "a question", "sandbox request": "a sandbox request",
                   "worker request": "a request from one of its workers", "dialog open": "an open dialog"}
+HELD_WAIT = "a message from the voice, held for approval"
+# The one setting that lets the voice's messages through (Claude Code's cross-session messaging docs).
+INBOX_FIX = "Set crossSessionInbound to accept in that session's Claude Code settings to let the voice through."
+HELD_NEED = f"A message from the voice, held for approval in its terminal. Approve it there. {INBOX_FIX}"
+REFUSED_NEED = f"Its Claude Code refuses messages from other sessions, so the voice's message did not reach it. {INBOX_FIX}"
+REFUSED_SHOW_SECS = 300.0  # how long the screens say so: as long as Claude Code keeps a held message by default
 
 
 # The prompts the agent itself put up. An open dialog may be one the user opened, at the keyboard: it is state, not news.
@@ -624,16 +726,40 @@ TERMINAL_NEWS_AFTER_SECS = 15.0  # a prompt answered at the keyboard within this
 def terminal_wait(session: Session) -> str:
     """What the session waits for at a prompt in its own terminal, or "". A request the voice holds is not one: that
     wait is the permission itself."""
-    if not session.blocked_on or session.permission_id:
+    if session.permission_id:
+        return ""
+    if message_held(session):
+        return f"{HELD_WAIT} in its terminal"
+    if not session.blocked_on:
         return ""
     return f"{TERMINAL_WAITS.get(session.blocked_on, 'a prompt')} in its terminal"
+
+
+def message_held(session: Session, now: float | None = None) -> bool:
+    """Claude Code holds the voice's last message for approval in the session's terminal. Its own receipt ends that
+    (post_inbox); past HELD_WATCH_SECS nothing here knows, so it is not claimed."""
+    return session.held_at is not None and (time.time() if now is None else now) - session.held_at < HELD_WATCH_SECS
+
+
+def inbox_need(session: Session, now: float) -> str:
+    """What the screens say when Claude Code set the voice's message aside, with the setting that fixes it; or ""."""
+    if message_held(session, now) and not session.permission_id:
+        return HELD_NEED
+    if session.refused_at is not None and now - session.refused_at < REFUSED_SHOW_SECS:
+        return REFUSED_NEED
+    return ""
 
 
 def terminal_wait_since(session: Session, now: float) -> float | None:
     """Since when it has stood at a prompt of its own in its terminal, once that is worth telling the user who is not
     there: an alert and, later, a nudge. None before that, and for a dialog."""
-    since = session.blocked_since
-    if not terminal_wait(session) or session.blocked_on not in ASKED_WAITS or since is None:
+    if message_held(session, now) and not session.permission_id:
+        since = session.held_at
+    elif session.blocked_on not in ASKED_WAITS:
+        return None
+    else:
+        since = session.blocked_since
+    if not terminal_wait(session) or since is None:
         return None
     return since if now - since >= TERMINAL_NEWS_AFTER_SECS else None
 

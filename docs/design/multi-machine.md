@@ -196,7 +196,7 @@ key while the real node is connected.
 | `permission.request` | `id, request_id, tool, description, preview, readable, deadline_ms` | `preview` is `tool_input` JSON after the transcript masking rules; `readable` is the node's own `guards.readable_request(tool, tool_input, cwd)` on the **unmasked** input, or null. `deadline_ms` is relative |
 | `permission.resolved` | `id, request_id, how: terminal \| timeout \| left` | the prompt is no longer the hub's to answer |
 | `permission.answered` | `request_id, ok, why?` | the node's reply to a verdict: `ok` false with `why` when the re-check refused it |
-| `send.result` | `req, ok` | |
+| `send.result` | `req, ok, held?` | `held`: `held` or `refused` when the node's Claude Code kept the message from Claude (1.12.0); an older hub ignores it |
 | `artifact.result` | `req, view?` | phase 2 |
 | `pong` | `id` | |
 

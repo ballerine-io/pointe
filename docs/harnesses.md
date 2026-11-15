@@ -49,7 +49,7 @@ session are answered by the transcript reader, as for a harness that cannot fork
 |---|---|
 | Join | `/pointe:voice` in the session registers it: its id, folder, process id, transcript path, config dir, inbox socket. `/pointe:leave` takes it off. |
 | Watch | the transcript under the session's config dir (`projects/`), followed live; a `/clear` or `/resume` re-points it (`transcript_path`) |
-| Send | the session's inbox socket (Claude Code 2.1.224+), or its voice channel in launch mode |
+| Send | the session's inbox socket (Claude Code 2.1.224+), or its voice channel in launch mode; with a reply address where Claude Code could hold or refuse it (below) |
 | Approvals | the plugin's `PermissionRequest` hook posts to `/voice/permission-hook`, which goes through the same `hold_permission` as any harness (280 s, under the hook's own timeout) |
 | Side questions | `claude -p --resume <id> --fork-session`, locked down, in the session's own account |
 | A prompt in its terminal | `claude agents --json` (Claude Code's supported way to read session state), read when a session's tool call has gone quiet: `status: waiting` with its `waitingFor` (`permission prompt`, `input needed`, `sandbox request`, `dialog open`) |
@@ -60,6 +60,19 @@ to count as working. Now `/voice/status` gives it `working: false`, `needs` ("A 
 `blocked_on`; the voice is told it stopped there and that a yes does not reach it. The words are fixed ones, never the
 string Claude Code sent. At most one read per account every 15 seconds, and none while every session is idle or its
 record is moving. Sessions on another machine are not covered yet: the node does not ship this state.
+
+A send can be held. Claude Code holds an inbox message to a session that bypasses permission prompts (plan mode can
+count) for approval in its terminal, unless that session sets `crossSessionInbound` to `accept`; `hold` holds every
+message and `refuse` drops it. Nothing comes back on the inbox connection. Claude Code reports a held, refused or
+dropped message in a `peer_message_status` line to the reply address in the message's `from`, within a fraction of a
+second, and the user's answer in the terminal later (`delivered`, `denied`, `expired`); an accepted message gets no
+answer. A session given a reply address also tries to answer through it, which costs tool calls and adds words to its
+reply, so `may_hold` offers one only where Claude Code could hold or refuse the message: a `crossSessionInbound` of
+`hold` or `refuse` in the settings Pointe can read (managed, the account's, the repository's), or none and a bypassing
+permission mode in the transcript. A `--settings` flag cannot be seen from outside. The address is a socket beside the
+session's own (Claude Code answers no other) that lives for one message, or until a held one is answered (at most 10
+minutes). A held or refused send is not delivered: the voice says so and names the setting, and `/voice/status` gives
+the session `needs` with the same words; a held one is also a wait in its terminal, so it alerts like one.
 
 ## OpenCode v2 (`harnesses/opencode.py`)
 

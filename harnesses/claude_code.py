@@ -113,7 +113,7 @@ class ClaudeCode(Harness):
 
         if session.channel_url:
             return await HOST.post_channel(session, "/utterance", {"text": voice_message(text)})
-        return await post_inbox(session, text)
+        return await post_inbox(session, text, receipt=await asyncio.to_thread(may_hold, session))
 
     def transcript_path(self, session) -> str:
         """Claude Code's record of the process wins: the id a hook reported can name a file that never appears (launch
@@ -174,6 +174,62 @@ def _env(home: str) -> dict:
     if home:
         env["CLAUDE_CONFIG_DIR"] = home
     return env
+
+
+# Where Claude Code reads `crossSessionInbound` (its settings reference). The --settings flag sits between managed and
+# user settings and cannot be seen from here.
+MANAGED_SETTINGS = Path("/Library/Application Support/ClaudeCode/managed-settings.json")
+INBOUND_ORDER = {"accept": 0, "hold": 1, "refuse": 2}
+BYPASS_MODES = ("bypassPermissions", "plan")  # plan counts as bypassing when bypass is available: assume it can be
+MODE_TAIL_BYTES = 256 << 10
+
+
+def may_hold(session) -> bool:
+    """Whether Claude Code could hold or refuse a message from the voice, so the send should ask for its receipt.
+    Claude Code's rule: a `crossSessionInbound` value decides (managed, else user settings; the repository's own
+    settings may only tighten it); with none, a session that bypasses permission prompts holds a message from a sender
+    that asserts no mode, which the voice never does. Unknown counts as no: a reply address costs every answer."""
+    value = None
+    for path in (MANAGED_SETTINGS, home_of(session) / "settings.json"):
+        value = _inbound(path)
+        if value is not None:
+            break
+    cwd = Path(session.cwd or ".")
+    for path in (cwd / ".claude" / "settings.json", cwd / ".claude" / "settings.local.json"):
+        repo = _inbound(path)
+        if repo is not None and INBOUND_ORDER[repo] > INBOUND_ORDER.get(value or "accept", 0):
+            value = repo
+    if value is not None:
+        return value != "accept"
+    return permission_mode(session.transcript) in BYPASS_MODES
+
+
+def _inbound(path: Path) -> str | None:
+    try:
+        value = json.loads(path.read_text()).get("crossSessionInbound")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return value if value in INBOUND_ORDER else None
+
+
+def permission_mode(transcript: str) -> str:
+    """The session's permission mode as its transcript last recorded it (Claude Code writes it at every turn), or ""."""
+    try:
+        with open(transcript, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - MODE_TAIL_BYTES))
+            tail = f.read().decode(errors="replace")
+    except (OSError, TypeError):
+        return ""
+    for line in reversed(tail.splitlines()):
+        if '"permissionMode"' in line:
+            try:
+                mode = json.loads(line).get("permissionMode")
+            except (ValueError, AttributeError):
+                continue
+            if isinstance(mode, str):
+                return mode
+    return ""
 
 
 def parse_roster(out: bytes | str) -> dict[int, str] | None:

@@ -103,7 +103,8 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
                            "readable": _or_none(_str), "deadline_ms": _count},
     "permission.resolved": {"id": _str, "request_id": _str, "how": _one_of("terminal", "timeout", "left")},
     "permission.answered": {"request_id": _str, "ok": _bool, "why?": _str},
-    "send.result": {"req": _str, "ok": _bool},
+    # `held`: Claude Code kept the message from Claude, held for approval in the terminal or refused (1.12.0).
+    "send.result": {"req": _str, "ok": _bool, "held?": _one_of("held", "refused")},
     "artifact.result": {"req": _str, "view?": _dict},
     "pong": {"id": _int},
     "bye": {},

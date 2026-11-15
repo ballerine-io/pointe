@@ -601,7 +601,15 @@ class Hub:
             return False
         req = nodelink.new_id()
         sent = encode("send", req=req, id=session.harness_data["remote_id"], text=text)
-        return await self._request(node, f"send:{req}", sent) is True
+        reply = await self._request(node, f"send:{req}", sent)
+        if not isinstance(reply, tuple):
+            return False
+        ok, held = reply
+        if held == "held":  # the node's Claude Code kept it for approval in that terminal: said as on this machine
+            session.held_at = time.time()
+        elif held == "refused":
+            session.refused_at = time.time()
+        return ok is True
 
     async def answer(self, session: Session, request_id: str, verdict: str, how: str,
                      spoken: str | None = None) -> tuple[bool, str | None]:
@@ -854,7 +862,7 @@ class Hub:
             key = f"answer:{frame['request_id']}" if t == "permission.answered" else f"send:{frame['req']}"
             future = node.waiting.get(key)
             if future is not None and not future.done():
-                future.set_result((frame["ok"], frame.get("why")) if t == "permission.answered" else frame["ok"])
+                future.set_result((frame["ok"], frame.get("why") if t == "permission.answered" else frame.get("held")))
 
     def _backlog_wait(self, node: Node, sid: str) -> None:
         """The backlog is all here once frames stop for HISTORY_QUIET_SECS: then it becomes the mirror."""

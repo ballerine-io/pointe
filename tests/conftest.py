@@ -15,3 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import harnesses.claude_code  # noqa: E402
 
 harnesses.claude_code.ROSTER = False  # a probe never runs the machine's real `claude agents --json`; tests that read it fake it
+
+# Nor does a send read this machine's Claude Code settings: an empty account and no managed settings, unless a test says.
+harnesses.claude_code.DEFAULT_HOME = _STATE / "claude-home"
+harnesses.claude_code.MANAGED_SETTINGS = _STATE / "managed-settings.json"

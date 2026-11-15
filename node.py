@@ -642,15 +642,20 @@ class Node:
 
     async def _deliver(self, frame: dict) -> None:
         local = self._local(frame["id"])
-        ok = False
+        ok, held = False, {}
         if local:
             session = self.registry.sessions[local]
+            began = time.time()
             try:
                 ok = bool(await asyncio.wait_for(harnesses.of(session).send(session, frame["text"]),
                                                  nodelink.SEND_TIMEOUT_SECS))
             except asyncio.TimeoutError:
                 logger.info(f"send to {session.name} timed out")
-        await self._send("send.result", req=frame["req"], ok=ok)
+            if not ok and (session.held_at or 0) >= began:
+                held = {"held": "held"}
+            elif not ok and (session.refused_at or 0) >= began:
+                held = {"held": "refused"}
+        await self._send("send.result", req=frame["req"], ok=ok, **held)
 
     # ---- transcripts ----
 

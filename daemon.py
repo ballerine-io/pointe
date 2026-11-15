@@ -163,6 +163,8 @@ from sessions import (
     session_title,
     speakable,
     voice_message,
+    inbox_need,
+    message_held,
     terminal_wait,
     terminal_wait_since,
     waiting_since,
@@ -2774,8 +2776,12 @@ async def _send_dump(name: str = "", orchestrator: bool = False) -> dict:
         raise HTTPException(status_code=409, detail=dump.problem)
     logger.info(f"-> {target.name}: brain dump ({len(text)} chars, sent by the user)")
     target.joining = False
+    began = time.time()
     if not await _dispatch(target, f"{braindump.sent_header(target.name)}\n{text}"):
-        raise HTTPException(status_code=409, detail=f"not delivered to {target.name}")
+        held = target.held_at is not None and target.held_at >= began
+        refused = target.refused_at is not None and target.refused_at >= began
+        raise HTTPException(status_code=409, detail=f"Not delivered to {target.name}. {inbox_need(target, time.time())}"
+                            if held or refused else f"not delivered to {target.name}")
     now = time.time()
     state.last_sent, state.last_aimed, state.thread = (now, target.name), target.name, (target.id, now)
     target.last_delegation_at = now
@@ -4096,13 +4102,18 @@ async def _send_now(message: str) -> dict:
         _record(message, [], "blocked: its machine is offline")
         return {"error": f"Not sent: {'; '.join(_offline_line(t) for t in offline)}. Tell the user in one line."}
     targets = [t for t in targets if online(t)]
-    sent_to, failed = [], []
+    sent_to, failed, set_aside = [], [], []
     for target in targets:
         logger.info(f"-> {target.name}: {message!r} (routing: {how})")
         target.joining = False  # its next finished turn answers this, even if its join turn was never seen ending
+        began = time.time()
         (sent_to if await _dispatch(target, message) else failed).append(target.name)
+        if why := _set_aside(target, began):
+            set_aside.append(why)
     if not sent_to:
-        _record(message, [], "failed: delivery error")
+        _record(message, [], "failed: " + ("held or refused by Claude Code" if set_aside else "delivery error"))
+        if set_aside:
+            return {"error": f"Not delivered. {' '.join(set_aside)}"}
         return {"error": f"Not delivered to {', '.join(failed)}. Tell the user it did not reach the session."}
     now = time.time()
     state.pending_route, state.blocked = None, []
@@ -4130,8 +4141,10 @@ async def _send_now(message: str) -> dict:
     result["note"] = "Sent is not done: say you asked Claude, not that it happened."
     if failed:
         result["failed"] = failed
+    if set_aside:
+        result["say"] = " ".join(set_aside)
     if how in ("auto", "thread") and targets[0] is not REGISTRY.active:
-        result["say"] = f"Tell the user it went to {targets[0].name}."
+        result["say"] = (f"Tell the user it went to {targets[0].name}. " + result.get("say", "")).strip()
     if offline:
         result["offline"] = [t.name for t in offline]
         result["say"] = (result.get("say", "") + f" Tell the user it did not reach "
@@ -4225,6 +4238,20 @@ async def _settle_questions(session: Session, message: str) -> None:
         return
     settled = {str(q) for q in parse_reply(reply).get("settled") or []}
     session.open_questions = [q for q in session.open_questions if q not in settled]
+
+
+def _set_aside(target: Session, since: float) -> str:
+    """Why Claude Code kept a send since `since` from Claude, for the brain to say in these terms; "" when it did not.
+    Fixed words: the voice must not call a held message delivered, and the user needs the one setting that fixes it."""
+    if target.held_at is not None and target.held_at >= since:
+        return (f"{target.name}'s Claude Code held the message for approval in its terminal, so Claude has not seen it. "
+                f"Tell the user in one or two short sentences: approve it in that terminal, or set crossSessionInbound to "
+                f"accept in that session's Claude Code settings to let the voice through.")
+    if target.refused_at is not None and target.refused_at >= since:
+        return (f"{target.name}'s Claude Code refuses messages from other sessions, so it did not get the message. Tell "
+                f"the user in one or two short sentences, and that setting crossSessionInbound to accept in that "
+                f"session's Claude Code settings lets the voice through.")
+    return ""
 
 
 async def _dispatch(target: Session, message: str) -> bool:
@@ -5707,8 +5734,11 @@ async def status(request: Request):
                           "request_id": s.permission_id,
                           "voice_can_approve": bool(s.permission_id and not s.permission_cut and online(s)),
                           # A prompt in its terminal is a need too: both screens show "needs you" and these words.
-                          "needs": s.needs["need"] if s.needs else _sentence(terminal_wait(s)).capitalize() if terminal_wait(s) else None,
-                          "blocked_on": s.blocked_on if terminal_wait(s) else None,
+                          # Claude Code kept the voice's message from Claude: that first, with the setting that fixes it.
+                          "needs": inbox_need(s, time.time()) or (s.needs["need"] if s.needs else
+                                   _sentence(terminal_wait(s)).capitalize() if terminal_wait(s) else None),
+                          "blocked_on": "held message" if message_held(s) and terminal_wait(s) else
+                                        s.blocked_on if terminal_wait(s) else None,
                           "mode": "channel" if s.channel_url else "inbox"} for s in REGISTRY.sessions.values()]}
 
 

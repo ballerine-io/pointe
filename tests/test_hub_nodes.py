@@ -656,6 +656,26 @@ def test_a_send_goes_over_the_link_and_its_result_is_honoured(world):
     run(go())
 
 
+def test_a_send_the_nodes_claude_code_held_or_refused_is_marked_on_the_hub(world):
+    hub, host, registry, *_ = world
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        s = registry.sessions[nodelink.hub_session_id(node["id"], "s1")]
+        for why in ("held", "refused"):
+            sending = asyncio.create_task(harnesses.of(s).send(s, "pull the branch"))
+            frame = await fake.recv("send")
+            await fake.send("send.result", req=frame["req"], ok=False, held=why)
+            assert await sending is False
+        assert s.held_at is not None and s.refused_at is not None
+        await fake.drop()
+
+    run(go())
+
+
 def test_a_send_with_no_result_in_time_or_to_an_offline_node_is_false(world, monkeypatch):
     hub, host, registry, *_ = world
     monkeypatch.setattr(nodelink, "SEND_TIMEOUT_SECS", 0.05)
