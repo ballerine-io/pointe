@@ -13,8 +13,7 @@ struct CallView: View {
     @State private var showSessions = false
     @State private var editing: API.Turn?
     @State private var typing = false
-    @State private var atBottom = true
-    @State private var unseen = false
+    @State private var follow = ScrollFollow()  // following the newest line, or left where you read, with New
     @State private var dumpWanted: Bool?  // a brain dump: shown at once on a tap, before the Mac confirms
     @State private var showDumpReview = false
     @State private var dumpReviewClosed: String?  // the review closed here: Review in the bar opens it again
@@ -49,7 +48,6 @@ struct CallView: View {
     @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
-    @State private var fingerScrolling = false
     @State private var stageHeight: CGFloat = 0
     @State private var topHeight: CGFloat = 0
     @State private var demoAnswered: Set<String> = []  // the demo's requests answered here: their card goes, as a Mac's would
@@ -353,27 +351,16 @@ struct CallView: View {
                 ScrollPin(bottom: geo.bounds.maxY - geo.contentInsets.bottom >= geo.contentSize.height - 48,
                           room: geo.bounds.height - geo.contentInsets.bottom - geo.contentInsets.top)
             } action: { _, new in
-                // Only your own finger takes the view off the newest line. When the keyboard, the type bar or a card takes
-                // room (or gives it back), the view goes back to the end, so nothing new hides behind the controls.
-                if new.bottom {
-                    atBottom = true
-                    unseen = false
-                } else if fingerScrolling {
-                    atBottom = false
-                } else if atBottom {
-                    Task { @MainActor in scroller.scrollTo("end", anchor: .bottom) }
+                if follow.moved(bottom: new.bottom) {
+                    Task { @MainActor in if follow.stillFollowing { scroller.scrollTo("end", anchor: .bottom) } }
                 }
             }
-            .onScrollPhaseChange { _, phase in fingerScrolling = phase == .tracking || phase == .interacting || phase == .decelerating }
+            .onScrollPhaseChange { _, phase in follow.phase(scrolling: phase == .tracking || phase == .interacting || phase == .decelerating) }
             .onChange(of: "\(status?.talk?.last?.id ?? -1)|\(hearing)") {
-                if atBottom {
-                    withAnimation(.smooth(duration: 0.3)) { scroller.scrollTo("end", anchor: .bottom) }
-                } else {
-                    unseen = true
-                }
+                if follow.newLine() { withAnimation(.smooth(duration: 0.3)) { scroller.scrollTo("end", anchor: .bottom) } }
             }
             .overlay(alignment: .bottom) {
-                if unseen && !atBottom {
+                if follow.pillShown {
                     Button {
                         withAnimation(.smooth) { scroller.scrollTo("end", anchor: .bottom) }
                     } label: {
@@ -387,7 +374,7 @@ struct CallView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .animation(.snappy, value: unseen && !atBottom)
+            .animation(.snappy, value: follow.pillShown)
             .safeAreaInset(edge: .top, spacing: 0) { top }
             .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
         }
@@ -1352,6 +1339,45 @@ struct CallView: View {
 struct ScrollPin: Equatable {
     let bottom: Bool
     let room: CGFloat
+}
+
+/// Only your own finger takes the conversation off the newest line. When the keyboard, the type bar or a card takes room
+/// (or gives it back), the view goes back to the end, so nothing new hides behind the controls.
+struct ScrollFollow: Equatable {
+    private(set) var atBottom = true
+    private(set) var unseen = false
+    private var scrolling = false
+    private var pinned = true  // the last position seen was the end
+
+    /// The position moved. True when the view should go back to the end: no finger moved it.
+    mutating func moved(bottom: Bool) -> Bool {
+        pinned = bottom
+        if bottom {
+            atBottom = true
+            unseen = false
+            return false
+        }
+        if scrolling { atBottom = false }
+        return atBottom
+    }
+
+    /// A finger on the conversation, or let go. The phase can arrive after the drag's first move, and the position does
+    /// not change again to say so: that move counts now.
+    mutating func phase(scrolling: Bool) {
+        self.scrolling = scrolling
+        if scrolling && !pinned { atBottom = false }
+    }
+
+    /// A new line, or new words heard. True when the view follows them to the end; otherwise the New pill shows.
+    mutating func newLine() -> Bool {
+        if atBottom { return true }
+        unseen = true
+        return false
+    }
+
+    /// A scroll back to the end, deferred a turn, still applies: no finger came down meanwhile.
+    var stillFollowing: Bool { atBottom && !scrolling }
+    var pillShown: Bool { unseen && !atBottom }
 }
 
 /// What the call is doing, in one glance.
