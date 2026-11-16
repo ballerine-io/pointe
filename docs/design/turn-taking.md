@@ -58,6 +58,14 @@ sentence and 0.5 s to an unfinished one. Short answers never wait: a yes, a no o
 approval or a barge-in. While the user is voicing again (`user_started_at > user_stopped_at`) the held text waits for
 the next final and the two are joined, up to the cap, as today.
 
+Since 1.14.0 the silence is counted from when the sound ended, with ears that time their own words (Soniox): the later
+of the last word's end and the voice detector's stop less its 0.2 s (`VAD_STOP_SECS`, the delay it is built with). It
+was counted from the detector's stamp as it came and from the arrival of the last live word, which is the network's
+lag, and the held words were checked every 0.1 s: measured on a live call, Normal took the turn 1.3 s after the last
+word. A live word restarts the count only when it came after the final transcript. Ears without word times keep the
+old count. While a complete sentence settles, the model already reads it (`conversation-flow.md` §7); nothing is said
+or done with its answer unless the turn is taken with exactly those words.
+
 Soniox's parameters stay (`-0.5`, 2500 ms): the settle sits after them, and making Soniox slower would also delay the
 live caption. `HOLD_UNFINISHED_SECS` / `HOLD_MAX_SECS` move into the levels.
 

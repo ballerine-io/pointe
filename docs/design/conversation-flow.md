@@ -322,3 +322,62 @@ length, 39 of them over only on sentences and within the words. Such a reply is 
 (`conversation.retry_problem`; `trim` keeps the closing question); the retry stays for a reply over on words and for a
 list of more than three. `tests/e2e/turn_taking.py` judges when the turn is taken, and prints the time to the first
 sound.
+
+## 7. A faster first word (1.14.0)
+
+The goal: from the user's last word to the first sound, 2.0 s at the median and 3.0 s at p90 for a plain answer, with
+every rule above kept. Each turn's path is now stamped stage by stage (`latency.py`) and written as one
+`turn timing: {...}` line at the first sound, with milliseconds and token counts only, never words.
+`tests/e2e/latency.py` asks twelve plain questions on a real call, adds what the client hears, and prints each stage
+with the machine's load average. Real vendors (Claude Sonnet 5.5, Soniox, ElevenLabs), an 18-core Mac that other work
+kept busy: read the numbers with the load.
+
+| Stage (median, p90 in seconds) | Before (12 turns, load 6 to 9) | After (24 turns, load 7.5 falling to 5.4) |
+|---|---|---|
+| Ears: last word to final transcript | 0.39, 0.47 | 0.41, 0.47 |
+| The turn is taken, after the last word | 1.30, 1.47 | 1.07, 1.12 |
+| Model request sent, relative to the turn | at it | 0.65 before it, 0.59 |
+| Model: request to first token | not seen (whole reply 1.29, 1.58) | 0.77, 0.94 |
+| Model: first token to first sentence | | 0.30, 0.33 |
+| A reply sent back before any sound | 3 of 12 turns, 1.2 to 1.5 s each | 2 of 24 |
+| Mouth: request to first audio | 0.28, 0.43 | 0.19, 0.30 |
+| Client: playing to audible | 0.08, 0.11 | 0.07, 0.09 |
+| **Last word to first sound** | **3.17, 4.27** (max 4.28) | **1.82, 2.23** (max 3.33) |
+
+A third run after the last change (12 turns, load 30 at the start): 1.84, 2.04, max 3.50. The prompt was 98 to 99%
+read from the cache in every run, so caching had nothing left to give.
+
+What changed, largest first:
+
+- **The model reads a finished sentence while it settles** (`Brain.foresee`, `daemon._foreseeable`). The settle (1.0 s
+  at Normal) and the model's first token (0.8 s) ran one after the other. When the final transcript of a complete
+  sentence arrives, the request that would answer it is made at once. It is only a request: no history, no tool, no
+  speech, and the floor stays the user's. When the turn is taken, the step is used if what it was sent is exactly what
+  the turn would send now; if the user said more, news arrived or the state changed, it is cancelled and the turn asks
+  as before. Not read ahead: an unfinished sentence, words in a hold, a brain dump, a meeting or a challenge, words
+  that an approval, a briefing or a dump's review may take as its answer, and the phrases the daemon answers itself.
+  A dropped request costs about 200 fresh input tokens.
+- **The first sentence is said while the model writes the rest** (`Brain._say_first`, `vendors._anthropic_stream`).
+  The sentence passes every check a reply passes, as if it were the whole reply, so nothing is heard that would have
+  been sent back. The whole reply is then checked as ever. Sent back (§3.1's retry for length, or any other reason),
+  the model is told which sentence was heard and how much room is left, and asked for what follows only: the retry
+  stays, and costs the user no wait, because the sentence is playing. Anthropic only: the other vendors answer whole.
+  One `speak:` line per reply stays in the journal; `speak first:` marks the early part.
+- **The settle counts the user's silence** (`SonioxEars._quiet_since`; `turn-taking.md` §3.1). It counted from stamps
+  that arrive late by design, so a 1.0 s settle took the turn 1.3 s after the last word.
+
+Measured and left alone:
+
+- **The mouth.** ElevenLabs' first audio takes 0.24 to 0.33 s on a new connection and 0.24 to 0.27 s on a warm one:
+  keeping the connection warm buys nothing. `optimize_streaming_latency` is refused for `eleven_v4_turbo`, as the
+  WebSocket endpoint is.
+- **A smaller model.** `bench/results/brain_substance.md` already has Claude Haiku 5.5 at a reply p50 of 2.4 s against
+  Sonnet's 2.6 s with a lower pass rate with length (88.9% against 92.9%): 0.2 s is not worth it.
+- **Soniox's endpoint** (0.4 s after the last word). A quicker one would start the model sooner and would also end
+  more sentences in their middle; it needs the audio corpus of `bench/` to judge, not a latency run.
+
+Still costing a second: a reply sent back before any sound when its first sentence could not be said ahead, 2 of 24
+turns. Both times the check for facts nobody gave the model (`brief.unsupported_in`) refused general knowledge ("1,024
+bytes", "late March to late October"). The check is there for session facts; whether a plain-knowledge answer should
+pass it is a decision about that rule, not about latency, and it is not changed here.
+
