@@ -34,9 +34,11 @@ MAX_RESULT_CHARS = 8_000  # one tool result
 STUB_CHARS = 240  # what an old feed item keeps: its first line says what arrived; the notes carry the rest
 OLD_RESULT = "[an earlier result, dropped from the history]"
 OLD_NEWS = " […cut: older news; the notes and ask_about_session have the rest]"
-# A first sentence shorter than this is not said ahead of the rest: "On it." is over in half a second, and the rest then
-# starts after a silence in which the call looks finished (the voice has stopped, the floor's breath starts).
+# What is said ahead of the rest holds at least this many words: "On it." alone is over in half a second, and the rest
+# then starts after a silence in which the call looks finished (the voice has stopped, the floor's breath starts). A
+# shorter first sentence goes with the one after it.
 EARLY_MIN_WORDS = 4
+ROOM_MIN_WORDS = 5  # with fewer words left after what was said ahead, a reply over its limit is cut, not sent back
 FORESEEN_SECS = 10.0  # a step started ahead of its turn (Brain.foresee) is dropped when the turn has not come by then
 FILLER_AFTER_SECS = 4.5  # silence past this says "one sec"; the model's p95 is under it, so it is rare
 STEP_TIMEOUT_SECS = 8.0  # past this the fast model answers: p95 is 2.3 s, and stalls of 20 s were seen
@@ -45,7 +47,7 @@ LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
 # Put before the user's own words, in what the model is sent, when they come right after a session's text or another
 # line from the daemon: two user turns in a row reach a model as one, and the words then read as that text's last line.
 # Added to a refusal when the reply's first sentence was said while the rest was still being written (Brain._say_first).
-HEARD_FIRST = (" The user has already heard your first sentence: {!r}. Say only what comes after it, and do not say it "
+HEARD_FIRST = (" The user has already heard the start of it: {!r}. Say only what comes after that, and do not say it "
                "again.")
 HEARD_ROOM = " It counts in the length: you have at most {} more words, in {}, to finish the answer."
 OWN_WORDS = "[the text above ends here. The user now speaks. These are their own words:]\n"
@@ -562,6 +564,8 @@ class Brain:
                     # Over on words, sent back once: the model shortens better than a cut does. A second long one, and one
                     # over only on sentences, is cut in code below: that costs no model step before the first sound.
                     problem, shortened = conversation.retry_problem(without_closer(said), limit), True
+                    if problem and early and not self._room_after(early, limit):
+                        problem = None  # what was said ahead fills the limit: nothing to shorten the rest into, so it is cut
                 if problem:
                     retries += 1
                     logger.info(f"speech refused: {said!r}: {problem[:160]}")
@@ -636,9 +640,16 @@ class Brain:
             return ""
         if limit is None:
             return HEARD_FIRST.format(early)
-        sentences = max(limit.sentences - 1, 1)
+        sentences = max(limit.sentences - len(conversation.split_sentences(early)), 1)
         return HEARD_FIRST.format(early) + HEARD_ROOM.format(
-            max(limit.words - conversation.count_words(early), 5), "one sentence" if sentences == 1 else f"{sentences} sentences")
+            max(limit.words - conversation.count_words(early), ROOM_MIN_WORDS),
+            "one sentence" if sentences == 1 else f"{sentences} sentences")
+
+    @staticmethod
+    def _room_after(early: str, limit: conversation.Limit | None) -> bool:
+        """The limit leaves the model something to say after what was said ahead."""
+        return limit is None or (limit.words - conversation.count_words(early) >= ROOM_MIN_WORDS
+                                 and len(conversation.split_sentences(early)) < limit.sentences)
 
     def _spoke(self, said: str) -> None:
         self._last_spoken = said
@@ -658,11 +669,12 @@ class Brain:
         return early or carried
 
     async def _say_first(self, live: Reply, generation: int, sent: bool, refused: bool, trigger: str | None) -> str:
-        """Says the first sentence of a reply while the model still writes the rest, and returns it; "" when it waits for
-        the whole reply. Every check a reply passes is put to the sentence as if it were the whole reply (a claim, a
-        path, a made-up fact, news that is queued, the user's language, a repeat, the length), so nothing is heard that
-        would have been sent back. The rest follows once the whole reply passed the same checks (_run)."""
-        while not (first := conversation.first_sentence(plain(live.text))) and not live.over:
+        """Says the first sentence of a reply while the model still writes the rest (the first two, when the first is a
+        word or two), and returns what it said; "" when it waits for the whole reply. Every check a reply passes is put
+        to it as if it were the whole reply (a claim, a path, a made-up fact, news that is queued, the user's language,
+        a repeat, the length), so nothing is heard that would have been sent back. The rest follows once the whole reply
+        passed the same checks (_run)."""
+        while not (first := conversation.opening(plain(live.text), EARLY_MIN_WORDS)) and not live.over:
             live.grew.clear()
             await live.grew.wait()
         if not first or live.over or generation != self._generation:
@@ -670,7 +682,7 @@ class Brain:
         read = time.time()
         asked = self._asked()
         limit = self.limit(trigger, asked)
-        if limit is None or self.may_stay_silent() or conversation.count_words(first) < EARLY_MIN_WORDS:
+        if limit is None or self.may_stay_silent():
             return ""
         now = time.time()
         recent = [x for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]

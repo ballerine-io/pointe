@@ -57,10 +57,14 @@ def split_sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?…])[\"'”’)]*\s+", text.strip()) if s]
 
 
-def first_sentence(text: str) -> str | None:
-    """The first sentence of a reply still being written, once the next one has begun; None until then."""
-    sentences = split_sentences(text)
-    return sentences[0] if len(sentences) > 1 else None
+def opening(text: str, min_words: int = 1) -> str | None:
+    """The first whole sentences of a reply still being written, enough of them to hold `min_words`; None until then.
+    The last sentence of `text` may be half written, so it never counts."""
+    whole = split_sentences(text)[:-1]
+    for n in range(1, len(whole) + 1):
+        if count_words(" ".join(whole[:n])) >= min_words:
+            return " ".join(whole[:n])
+    return None
 
 
 def asks(text: str) -> bool:

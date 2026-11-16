@@ -168,7 +168,7 @@ def test_a_reply_over_its_words_is_sent_back_for_what_follows_the_sentence_alrea
     asyncio.run(b.turn("Why do people use a message queue?"))
     assert steps == [True, False] and events[0] == ("first", "Use a queue when work can wait.")
     refusal = [m for m in b.messages if m["role"] == "tool"][0]["results"][0]["result"]["error"]
-    assert "Too long for speech" in refusal and "already heard your first sentence: 'Use a queue when work can wait.'" in refusal
+    assert "Too long for speech" in refusal and "already heard the start of it: 'Use a queue when work can wait.'" in refusal
     assert "at most 23 more words, in one sentence" in refusal  # the room that is left, not the limit it already used up
     kind, rest, whole = events[-1]
     assert kind == "rest" and rest == "It lets a request return at once and smooths bursts."
@@ -237,12 +237,36 @@ def test_nothing_is_said_ahead_to_an_acknowledgment_a_report_or_in_a_mode_with_i
     assert not [e for e in events if e[0] == "first"]
 
 
-def test_a_first_sentence_of_a_word_or_two_waits_for_the_rest(monkeypatch):
+def test_a_first_sentence_of_a_word_or_two_is_said_with_the_one_after_it(monkeypatch):
     """From a live call: "On it." was over in half a second, the rest came 0.6 s later, and in the silence between them
     the stand-in user took the reply for finished and spoke over the rest."""
-    b, events, _ = _streaming_brain(monkeypatch, ["Yes. Rebase your own branch, then merge it."])
+    b, events, _ = _streaming_brain(monkeypatch, ["Yes. Rebase your own branch, then merge it. Never rebase a shared one."])
+    b.limit = lambda trigger, asked: cv.STATUS
+    asyncio.run(b.turn("Should I rebase before I merge?"))
+    assert events[0] == ("first", "Yes. Rebase your own branch, then merge it.") and events[1] == "model done"
+    assert events[2] == ("rest", "Never rebase a shared one.", "Yes. Rebase your own branch, then merge it. Never rebase a shared one.")
+    b, events, _ = _streaming_brain(monkeypatch, ["Yes. Rebase your own branch, then merge it."])  # two sentences: said whole
     asyncio.run(b.turn("Should I rebase before I merge?"))
     assert events == ["model done", ("speak", "Yes. Rebase your own branch, then merge it.")]
+
+
+def test_when_what_was_said_ahead_fills_the_limit_a_long_reply_is_cut_and_not_sent_back(monkeypatch):
+    """From a live call: "My take: Postgres." and a long second sentence, then a third. Sent back, the model has no room
+    to say anything in; the step would only delay the end of the reply."""
+    reply = ("My take: Postgres. It has stricter correctness, richer features like JSON and extensions, and a strong "
+             "ecosystem, so a small team rarely outgrows it. MySQL is fine if you already know it well.")
+    said_ahead = reply.rsplit(" MySQL", 1)[0]
+    assert cv.retry_problem(reply, cv.REPLY) and cv.length_problem(said_ahead, cv.REPLY) is None
+    b, events, steps = _streaming_brain(monkeypatch, [reply])
+    asyncio.run(b.turn("Postgres or MySQL for a small team?"))
+    assert steps == [True] and events == [("first", said_ahead), "model done", ("rest", cv.MORE_EN, f"{said_ahead} {cv.MORE_EN}")]
+
+
+def test_the_opening_of_a_reply_being_written_is_whole_sentences_with_enough_words():
+    assert cv.opening("Postgres, in my read. It is") == "Postgres, in my read."
+    assert cv.opening("Postgres, in my read.") is None  and cv.opening("Postgres, in my") is None  # the last may be half written
+    assert cv.opening("Yes. Rebase your own branch. Then", 4) == "Yes. Rebase your own branch."
+    assert cv.opening("Yes. Rebase your", 4) is None and cv.opening("", 4) is None
 
 
 def test_cut_off_after_the_first_sentence_the_history_keeps_what_was_heard(monkeypatch):
