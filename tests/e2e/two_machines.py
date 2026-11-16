@@ -445,7 +445,7 @@ async def phase_approve(b: Browser) -> None:
     await asyncio.sleep(3)
     t = await say(b, "Ask lighthouse to run exactly one command, touch created.txt, with nothing chained to it.")
     first = await pending("lighthouse")
-    read = await spoken_with(t, r"should it|touch", 60) if first else ""
+    read = await spoken_with(t, r"should it\?", 60) if first else ""
     if first and first.get("voice_can_approve"):
         for _ in range(3):
             await say(b, "Yes.")
@@ -474,8 +474,8 @@ async def phase_approve(b: Browser) -> None:
     await asyncio.sleep(3)
     t = await say(b, f"Ask shop {NODE} to run exactly one command, touch cherry.txt, with nothing chained to it.")
     asked = await pending("shop", NODE)
-    if asked:
-        await spoken_with(t, r"should it|touch", 60)
+    if asked:  # the read-out itself: "On it, I asked shop to run touch cherry.txt" is no question, and a no before it counts not
+        await spoken_with(t, r"should it\?", 60)
         await say(b, "No.")
     gone = await until(lambda: not (session("shop", NODE) or {}).get("request_id"), 60)
     await asyncio.sleep(8)
@@ -546,7 +546,7 @@ async def hub_restart_with_prompt(b: Browser) -> Browser:
     again = await until(lambda: (lambda s: s if s and s.get("request_id") == p["request_id"] else None)(session("lighthouse")),
                         30, 0.5)
     t_again = time.time() - t0
-    read = await spoken_with(t0, r"should it|touch", 30)
+    read = await spoken_with(t0, r"should it\?", 30)
     scenario("hub restart: the held remote prompt is put again within 20 s", started and bool(again) and t_again < 20,
              f"call back at {t_call:.1f} s, prompt back at {t_again:.1f} s; read {read[:80]!r}")
     if again and again.get("voice_can_approve"):
