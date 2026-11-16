@@ -57,6 +57,7 @@ final class VoiceLockUITests: XCTestCase {
             XCTAssertFalse(app.buttons["voiceLevel-\(level)"].isEnabled, "\(level) needs a voiceprint")
         }
         XCTAssertEqual(help(), "Any voice works, as before.")
+        XCTAssertEqual(any("voiceLockNeedsVoice").label, "Enrol your voice to use the other levels.", "why the others are off")
         XCTAssertFalse(any("voiceIgnored").exists, "nothing ignored, no counter")
         shot("voice-lock-new")
     }
@@ -95,6 +96,7 @@ final class VoiceLockUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Add this device"].exists)
         XCTAssertTrue(app.buttons["Delete my voiceprint"].exists)
         XCTAssertEqual(help(), "A spoken yes counts only in your voice. A no counts from anyone.")
+        XCTAssertFalse(any("voiceLockNeedsVoice").exists, "every level is open: no reason to give")
         shot("voice-lock-enrolled")
 
         // Raising needs nothing.

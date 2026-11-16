@@ -424,8 +424,9 @@ def test_the_app_offers_the_same_setting_with_the_same_words():
     assert '"turns.patience"' in view and "TurnsCopy.setting" in view and f'static let setting = "{SETTING_TITLE}"' in copy
     for value, label in LEVEL_LABELS.items():
         assert f'("{value}", "{label}")' in copy, value
-    page_pill = re.search(r"'(Holding · .*?)'\];", (ROOT / "ui.html").read_text().replace("\\'", "'")).group(1)
-    assert "let hold: Hold?" in api and "TurnsCopy.holding" in view and f'static let holding = "{page_pill}"' in copy
+    page = re.search(r"const TURNS_COPY = \{holding: '(.*?)', holdingHow: '(.*?)'\};", (ROOT / "ui.html").read_text().replace("\\'", "'"))
+    assert "let hold: Hold?" in api and "TurnsCopy.holding" in view and "TurnsCopy.holdingHow" in view
+    assert f'static let holding = "{page.group(1)}"' in copy and f'static let holdingHow = "{page.group(2)}"' in copy
 
 
 def test_the_levels_in_code_are_the_three_the_clients_offer():
@@ -494,7 +495,7 @@ def test_the_page_says_holding_on_its_own_call_while_a_hold_is_on():
             page = await browser.open(stub.url)
             await asyncio.sleep(1.0)
             await page.eval("(() => { call.state = 'live'; showState(); return true; })()")
-            holding = await page.eval("document.getElementById('state').textContent")
+            holding = await page.eval("[document.getElementById('state').textContent, document.getElementById('sub').textContent]")
             stub.status = {**status, "hold": None}
             await asyncio.sleep(1.2)
             await page.eval("(() => { call.state = 'live'; showState(); return true; })()")
@@ -503,4 +504,4 @@ def test_the_page_says_holding_on_its_own_call_while_a_hold_is_on():
         return holding, after
 
     holding, after = asyncio.run(run())
-    assert holding == "Holding · say “go ahead” when you're done" and "Holding" not in after
+    assert holding == ["Holding", "Say “go ahead” when you're done"] and "Holding" not in after  # a short title; how to go on under it

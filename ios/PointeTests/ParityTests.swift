@@ -149,3 +149,40 @@ final class RenameTests: XCTestCase {
         XCTAssertEqual(SessionsCopy.renameRefused("HTTP 500"), "Not renamed: the Mac did not answer.")
     }
 }
+
+/// Words the page says too: each in the page's dictionary (ui.html) and the app's, word for word
+/// (tests/test_copy_parity.py checks the same from the other side).
+final class SharedWordsTests: XCTestCase {
+    private func page() throws -> String {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        return try String(contentsOf: root.appendingPathComponent("ui.html"), encoding: .utf8)
+    }
+
+    func testTheMeetingSheetSaysWhatPointeDoesInPlainWords() throws {
+        XCTAssertEqual(MeetingCopy.lede, "Pointe sits in and takes notes for you. It stays quiet unless you let it speak.")
+        XCTAssertTrue(try page().contains("lede: '\(MeetingCopy.lede)'"))
+    }
+
+    func testUnderConnectTheTypeLineSaysHowToReachTheTypeBar() throws {
+        XCTAssertEqual(ConnectCopy.typeLaterTap, "Once connected, tap the keyboard to type")
+        XCTAssertTrue(try page().contains("typeLaterTap: '\(ConnectCopy.typeLaterTap)'"))
+    }
+
+    func testADisabledLockLevelSaysWhy() throws {
+        XCTAssertEqual(VoiceLockCopy.needsVoice, "Enrol your voice to use the other levels.")
+        XCTAssertTrue(try page().contains("needsVoice: '\(VoiceLockCopy.needsVoice)'"))
+    }
+
+    func testAHoldIsAShortTitleAndALineUnderIt() throws {
+        let page = try page().replacingOccurrences(of: "\\'", with: "'")
+        XCTAssertTrue(page.contains("holding: '\(TurnsCopy.holding)', holdingHow: '\(TurnsCopy.holdingHow)'"))
+    }
+}
+
+final class SpeakerTurnsTests: XCTestCase {
+    func testACountSaysWhatItCounts() {
+        XCTAssertEqual(MeetingCopy.turns(9), "9 turns")
+        XCTAssertEqual(MeetingCopy.turns(1), "1 turn")
+        XCTAssertEqual(MeetingCopy.turns(0), "0 turns")
+    }
+}

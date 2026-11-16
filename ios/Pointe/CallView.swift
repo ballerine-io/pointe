@@ -707,6 +707,7 @@ struct CallView: View {
         if reach == .unreachable { return "Is Twingate, Tailscale or the same Wi-Fi on for this phone?" }
         guard let status else { return "Reaching your Mac…" }
         if phase == .off { return ConnectCopy.tapConnect }
+        if title == TurnsCopy.holding { return TurnsCopy.holdingHow }
         if status.sessions.isEmpty { return "No session yet: /pointe:voice or pointe join on the Mac" }
         if status.mode == "session", let active = status.active { return "Focused on \(active)" + health }
         let shown = machines.shown(machineFilter)  // the machine filter narrows this line too

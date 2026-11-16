@@ -25,7 +25,8 @@ final class TurnsTests: XCTestCase {
         XCTAssertEqual(TurnsCopy.setting, "Wait before answering")
         XCTAssertEqual(TurnsCopy.levels.map(\.value), ["quick", "normal", "patient"])
         XCTAssertEqual(TurnsCopy.levels.map(\.label), ["Quick", "Normal", "Patient"])
-        XCTAssertEqual(TurnsCopy.holding, "Holding · say “go ahead” when you're done")
+        XCTAssertEqual(TurnsCopy.holding, "Holding")  // one line in the state; how to go on is the line under it
+        XCTAssertEqual(TurnsCopy.holdingHow, "Say “go ahead” when you're done")
         XCTAssertEqual(TurnsCopy.defaultLevel, "normal")
     }
 }

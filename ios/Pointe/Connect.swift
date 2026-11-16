@@ -20,7 +20,8 @@ enum ConnectCopy {
     static let notPaired = "This phone is no longer paired. Pair again from the page: Settings → Phone → Connect your phone."
     static let idleHangup = "The Mac hung up after 30 minutes of quiet. Tap Connect to talk again."
     static let micDenied = "Pointe needs the microphone: allow it in Settings, then tap Connect."
-    static let typeToo = "Or type below"
+    /// Under Connect: the type bar opens from the keyboard button, and typing needs the call (the page's typeLaterTap).
+    static let typeLaterTap = "Once connected, tap the keyboard to type"
     static func connecting(_ place: String) -> String { "Connecting to \(place)…" }
     static func micFailed(_ why: String) -> String { "The microphone could not start: \(why)" }
     static func failed(_ why: String) -> String { "The call did not connect\(why.isEmpty ? "" : ": " + why)." }
@@ -93,7 +94,8 @@ struct ConnectPanel: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("connectButton")
             .padding(.top, 4)
-            Text(ConnectCopy.typeToo).font(.brand(.caption)).foregroundStyle(Brand.dim)
+            Text(ConnectCopy.typeLaterTap).font(.brand(.caption)).foregroundStyle(Brand.dim)
+                .accessibilityIdentifier("connectHint")
         }
         .padding(.horizontal, 28)
         .frame(maxWidth: 360)

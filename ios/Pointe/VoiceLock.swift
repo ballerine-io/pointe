@@ -45,6 +45,7 @@ enum VoiceLockCopy {
     static let deleteAllConfirm = "Delete your voiceprint from this Mac? The lock turns off."
     static let unsure = "Tap to approve, or re-enrol."
     static let ignoredTitle = "Ignored"
+    static let needsVoice = "Enrol your voice to use the other levels."  // beside the levels a voiceprint unlocks
 
     static func enrolledOn(_ device: String) -> String { "Enrolled on: \(device)" }
     static func didntCount(_ reason: String) -> String { "Didn't count: \(reason)" }
@@ -89,7 +90,10 @@ struct VoiceLockSheet: View {
                 Section { voiceprint }.buttonStyle(BrandRowButtonStyle())
                 Section { levels } footer: {
                     Group {
-                        Text(lock.lockLevel.help).accessibilityIdentifier("voiceLockHelp")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(lock.lockLevel.help).accessibilityIdentifier("voiceLockHelp")
+                            if !lock.isEnrolled { Text(VoiceLockCopy.needsVoice).accessibilityIdentifier("voiceLockNeedsVoice") }
+                        }
                     }.brandFootnote()
                 }
                 if let refused {

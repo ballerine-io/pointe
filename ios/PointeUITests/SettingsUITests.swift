@@ -90,10 +90,19 @@ final class SettingsUITests: XCTestCase {
         XCTAssertFalse(plain.staticTexts["keepAwake"].exists, "the Mac did not say it is keeping awake")
     }
 
+    /// A short title that keeps to one line, and how to go on in the line under it.
     func testAHoldSaysHowToGoOn() {
         let app = launch("hold")
         let line = app.descendants(matching: .any)["statusLine"].firstMatch
-        XCTAssertTrue(line.label.contains("Holding · say “go ahead” when you're done"), line.label)
+        XCTAssertTrue(line.label.hasPrefix("Holding"), line.label)
+        XCTAssertTrue(line.label.contains("Say “go ahead” when you're done"), line.label)
+        XCTAssertFalse(line.label.contains("Orchestrating"), "the line under the state says how to go on: \(line.label)")
+        app.terminate()
+        let plain = launch("call")  // the same line with its usual two lines of text, for the height
+        let usual = plain.descendants(matching: .any)["statusLine"].firstMatch.frame.height
+        plain.terminate()
+        let held = launch("hold").descendants(matching: .any)["statusLine"].firstMatch.frame.height
+        XCTAssertEqual(held, usual, accuracy: 1, "the title did not wrap")
     }
 
     /// Approve runs nothing until the owner passes Face ID: another face approves nothing, a matching one answers.

@@ -6,7 +6,8 @@ import Foundation
 enum TurnsCopy {
     static let setting = "Wait before answering"
     static let levels: [(value: String, label: String)] = [("quick", "Quick"), ("normal", "Normal"), ("patient", "Patient")]
-    static let holding = "Holding · say “go ahead” when you're done"
+    static let holding = "Holding"
+    static let holdingHow = "Say “go ahead” when you're done"  // the line under the state
     static let failed = "The Mac did not take the setting. Is Pointe on the Mac up to date?"
     static let defaultLevel = "normal"
 }

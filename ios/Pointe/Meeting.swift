@@ -10,6 +10,10 @@ enum MeetingCopy {
     static let listeningWhat = "Never speaks. Writes what matters into the notes: unanswered questions, decisions, action items."
     static let participatingWhat = "Speaks only when you ask. Otherwise it raises a hand, and you let it speak."
     static let consent = "Everyone in the room knows this is being transcribed and sent to the speech vendor"
+    static let lede = "Pointe sits in and takes notes for you. It stays quiet unless you let it speak."  // the page's MEETING_COPY.lede
+
+    /// A speaker's count in the Speakers sheet.
+    static func turns(_ n: Int) -> String { n == 1 ? "1 turn" : "\(n) turns" }
 
     static func vendor(_ id: String?) -> String {
         switch id ?? "" {
@@ -163,7 +167,9 @@ struct MeetingStartSheet: View {
         Section {
             modeRow("listening", MeetingCopy.listening, MeetingCopy.listeningWhat, "ear")
             modeRow("participating", MeetingCopy.participating, MeetingCopy.participatingWhat, "hand.raised")
-        } header: { Group { Text("Mode") }.brandKicker() }
+        } header: { Group { Text("Mode") }.brandKicker() } footer: {
+            Group { Text(MeetingCopy.lede).accessibilityIdentifier("meetingLede") }.brandFootnote()
+        }
         Section {
             TextField("Agenda, goals, names, anything it should know", text: $brief, axis: .vertical)
                 .lineLimit(3...8)
@@ -698,7 +704,8 @@ struct SpeakersSheet: View {
                                 .foregroundStyle(Brand.muted)
                             TextField("Name", text: Binding(get: { names[s.label] ?? (s.name ?? "") }, set: { names[s.label] = $0 }))
                                 .disabled(s.is_owner == true)
-                            Text("\(s.turns ?? 0)").font(.brand(.caption)).foregroundStyle(Brand.muted)
+                            Text(MeetingCopy.turns(s.turns ?? 0)).font(.brand(.caption)).foregroundStyle(Brand.muted)
+                                .lineLimit(1).fixedSize()
                         }
                     }
                 } footer: {
