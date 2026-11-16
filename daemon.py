@@ -3879,6 +3879,11 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
         return [], "closed"
     if len(sessions) <= 1:
         return [REGISTRY.active] if REGISTRY.active else [], "active"
+    # "Claude Code" is no session's name ("ask Claude Code to ..." is how many address any session), but beside sessions
+    # of other harnesses it says which agent: the only Claude Code session, never a Codex thread, with no "which one?".
+    claude = [s for s in sessions if s.harness == "claude-code"]
+    if len(claude) == 1 and len(claude) < len(sessions) and re.search(r"\bclaude code\b", said, re.I):
+        return claude, "harness"
     picked = await _classify_target(message, sessions)
     if picked is UNROUTABLE:
         return [], "ambiguous"  # ask which session rather than guess

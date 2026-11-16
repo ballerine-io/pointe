@@ -26,7 +26,9 @@ Sessions of different harnesses, and Claude Code sessions of different accounts,
 reports and approvals work per session. In practice:
 
 - **Names:** the same folder in two harnesses registers as "shop" and "shop opencode". "The opencode one" picks a
-  session by its harness (Claude Code is never matched by "Claude": every "ask Claude Code to …" would).
+  session by its harness (Claude Code is never matched by "Claude": every "ask Claude Code to …" would). An unnamed
+  "ask Claude Code to …" still never goes to another harness's session the conversation was with: with one Claude
+  Code session, it goes there.
 - **Approvals:** each session holds its own prompt; one answer never answers another session's (tested with a Claude
   Code and an OpenCode prompt at once).
 - **The voice names each agent:** reports and notes about an OpenCode session call it OpenCode, not Claude

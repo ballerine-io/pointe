@@ -55,6 +55,32 @@ def test_an_unnamed_request_is_auto_routed_to_the_opencode_session_it_is_about(d
     assert sorted(seen["sessions"]) == ["claude-code", "claude-code", "opencode"]
 
 
+def test_ask_claude_code_never_goes_to_another_harness_in_the_thread(d, monkeypatch):
+    """From the harness matrix on 1.13.2: with lighthouse the only Claude Code session and the conversation last with
+    harbor (Codex), "Ask Claude Code to check the release codename in the FACT file again" went to harbor: the router's
+    classifier found it unclear and the thread decided. "Claude Code" is no session's name, but it does say which agent."""
+    lighthouse = add(d, "cc1", "lighthouse/main")
+    harbor = Session(id="cx1", name="harbor", cwd="/repos/harbor", transcript="/tmp/harbor.jsonl", harness="codex")
+    orchard = Session(id="ses_o", name="orchard", cwd="/repos/orchard", transcript="/tmp/orchard.jsonl", harness="opencode")
+    d.REGISTRY.add(harbor), d.REGISTRY.add(orchard)
+    d.REGISTRY.active_id, d.state.thread = harbor.id, (harbor.id, time.time())
+
+    async def unclear(message, sessions):
+        return None
+
+    monkeypatch.setattr(d, "_classify_target", unclear)
+    said = "Ask Claude Code to check the release codename in the FACT file again."
+    assert asyncio.run(d._route("Check the release codename again.", said)) == ([lighthouse], "harness")
+
+    async def lighthouse_it_is(message, sessions):  # the next run: the classifier saw it, and the thread made it "which?"
+        return lighthouse
+
+    monkeypatch.setattr(d, "_classify_target", lighthouse_it_is)
+    assert asyncio.run(d._route("Check the release codename again.", said)) == ([lighthouse], "harness")
+    monkeypatch.setattr(d, "_classify_target", unclear)
+    assert asyncio.run(d._route("Check it again.", "ask it to check again"))[0] == [harbor]  # no agent named: the thread
+
+
 def test_what_each_session_needs_covers_every_harness_and_names_the_mode(d):
     _three(d)
     needs = d._needs_now()
