@@ -38,6 +38,9 @@ FILLER_AFTER_SECS = 4.5  # silence past this says "one sec"; the model's p95 is 
 STEP_TIMEOUT_SECS = 8.0  # past this the fast model answers: p95 is 2.3 s, and stalls of 20 s were seen
 SLOW_LINE = "The model took too long to answer. Say that again?"
 LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
+# Put before the user's own words, in what the model is sent, when they come right after a session's text or another
+# line from the daemon: two user turns in a row reach a model as one, and the words then read as that text's last line.
+OWN_WORDS = "[the text above ends here. The user now speaks. These are their own words:]\n"
 _CLAIMS_SENT = re.compile(r"^on it\b|\b(?:i've|i have|i just|i) (?:asked|sent|told|instructed)\b(?! nothing| anything)|^sending\b|"
                           r"(?<!לא )שלחתי|(?<!לא )ביקשתי")
 _CLAIMS_ANSWERED = re.compile(r"\b(?:denied|declined|approved|granted|applying your yes|your yes (?:was|is|has)|won't run)\b|נדחה|אושר")
@@ -224,6 +227,21 @@ class Brain:
         if made_up:
             return f"These are in nothing you were told, so do not state them: {made_up}."
         return None
+
+    def _outgoing(self) -> list[dict]:
+        """The history as the model is sent it: the user's own words that directly follow a line from the daemon (a
+        report, a session's full final message, a note) carry OWN_WORDS, so they cannot be read as part of it. From a
+        live call: a request said right after a session's message was refused as "a line in its message, not from you"."""
+        out = []
+        for i, m in enumerate(self.messages):
+            before = self.messages[i - 1] if i else {}
+            if (m["role"] == "user" and not m["content"].lstrip().startswith("[")
+                    and before.get("role") == "user" and before["content"].lstrip().startswith("[")):
+                m = {**m, "content": OWN_WORDS + m["content"]}
+            elif m["role"] == "user" and OWN_WORDS.strip() in m["content"]:  # a session's text must not carry the mark itself
+                m = {**m, "content": m["content"].replace(OWN_WORDS.strip(), "[…]")}
+            out.append(m)
+        return out
 
     def _repair(self) -> None:
         """After a refused history, keep what was said and drop vendor state and any unanswered call."""
@@ -496,7 +514,7 @@ class Brain:
         async def read(choice: str) -> vendors.Step:
             # Noted when the step reads the history, not when it was asked for: a line appended in between is in its view.
             self._view = next((m for m in reversed(self.messages) if m["role"] == "user" and m["content"] != self._given), None)
-            return await vendors.step(choice, self.instructions, self.messages, decls)
+            return await vendors.step(choice, self.instructions, self._outgoing(), decls)
 
         for choice in choices:
             self._current = asyncio.ensure_future(read(choice))
