@@ -491,6 +491,10 @@ def _score(s: Session, tokens: list[str], idx: list[int], address=()) -> tuple[t
     """
     best = None
     machine = set(_name_words(s.machine)) if s.machine else set()
+    # This Mac's name, said where the words say who it is for, tells its own session from a remote twin ("shop on
+    # studio"); it is no alias, so it adds to a name heard and never selects a session alone.
+    here = set() if s.machine else {w for w in _name_words(this_machine()) if _distinctive(w)}
+    here = {w for w in here if any(_hears(w, tokens[i]) for i in address)}
     for label, by_name in _aliases(s):
         words = _name_words(label)
         repo = _name_words(label.split("/")[0])
@@ -503,6 +507,7 @@ def _score(s: Session, tokens: list[str], idx: list[int], address=()) -> tuple[t
                     where |= hits
         if not where:
             continue
+        heard |= here
         score = (len(heard), bool(repo) and all(w in heard for w in repo), all(w in heard for w in words), by_name)
         if best is None or score > best[0]:
             best = (score, where)

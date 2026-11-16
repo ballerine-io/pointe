@@ -452,7 +452,8 @@ WireGuard across sites 20 to 60 ms; Twingate 30 to 100 ms.
   **The machine alias is scored only against address slots**: the positions `_address` marks (`sessions.py:312-355`,
   used at `sessions.py:407`), where the words say who something is for ("tell X", "on X", "the X one"). A machine word
   inside a request ("fix the devbox config") names nothing. The hub's own machine name is not an alias (every "on this
-  Mac" would match), as `claude` is excluded today.
+  Mac" would match), as `claude` is excluded today. In an address slot it still counts for this Mac's sessions beside a
+  name heard, so "shop on studio" picks the hub's shop out of a tie with "shop devbox"; "go to studio" alone names none.
 - `_spoken_names` (`daemon.py:733-740`) says the machine only when the name was suffixed with it. The machine is said
   on a switch across machines ("Now on shop, on devbox"), in "everywhere" answers, and when asked where something runs.
   Not in every report (owner decision).

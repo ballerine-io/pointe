@@ -904,6 +904,22 @@ def test_go_to_a_machine_with_two_sessions_is_a_tie(machines):
     assert name_groups("tell shop on devbox to pull", [shop, api, shop_dev]) == [[shop_dev]]
 
 
+def test_this_macs_name_tells_its_own_session_from_a_remote_twin(machines, monkeypatch):
+    """From the two-machine run on 1.13.2: "go back to shop on studio" with shop on this Mac and "shop devbox" on the node
+    tied the two, and the voice asked "Studio's or devbox's?", a question no answer could settle. This Mac's name picks
+    its own session out of a tie; alone it still names nothing (it is not an alias)."""
+    import sessions
+    from sessions import name_groups
+
+    monkeypatch.setattr(sessions, "this_machine", lambda: "studio")
+    shop, shop_dev, api = session("shop/main"), on("shop/main devbox", "devbox"), on("api", "devbox")
+    for said in ("go back to shop on studio", "switch to shop on studio", "tell shop on studio to pull"):
+        assert name_groups(said, [shop, shop_dev, api]) == [[shop]], said
+    assert name_groups("tell shop on devbox to pull", [shop, shop_dev, api]) == [[shop_dev]]
+    assert name_groups("go to studio", [shop, api]) == []
+    assert name_groups("fix the studio config", [shop, api]) == []
+
+
 def test_a_machine_word_inside_a_request_names_nothing(machines):
     """The machine alias counts only where the words say who it is for: "fix the devbox config" is a task."""
     from sessions import name_groups
