@@ -16,6 +16,7 @@ from websockets.asyncio.client import connect
 
 sys.path.insert(0, str(Path(__file__).parent))
 from rig import DAEMON, RATE, ROOT, STATE, fresh_state, phone_key, stop_daemon, synth, transcribe  # noqa: E402
+from scenarios import daemon_status  # noqa: E402
 
 URL = DAEMON.replace("http", "ws", 1) + "/voice/phone"
 IN_RATE, OUT_RATE, CHUNK = 16000, 24000, 320  # 20 ms at 16 kHz
@@ -84,7 +85,11 @@ async def main() -> None:
         async with connect(URL, additional_headers={"Authorization": f"Bearer {key}"}, max_size=None) as socket:
             phone = Phone(socket)
             listening = asyncio.create_task(phone.listen())
-            await phone.silence(8)
+            for _ in range(60):  # a cold daemon on a busy Mac greets late: wait for the greeting to end, not a fixed time
+                await phone.silence(0.5)
+                if len(phone.heard_since(0)[1]) > OUT_RATE // 2 and daemon_status()["speaking"] != "bot":
+                    break
+            await phone.silence(1.5)
             first, greeting = phone.heard_since(0)
             check("the bot greets the phone", len(greeting) > OUT_RATE // 2, seconds=round(len(greeting) / OUT_RATE, 1))
             check("a second phone is turned away while one is on a call",
@@ -101,7 +106,11 @@ async def main() -> None:
                   latency_s=round(started - ended, 2) if started else None, said=said)
 
             await phone.send(resample(await synth("Explain in detail how TCP congestion control works, slow start, everything."), RATE, IN_RATE))
-            await phone.silence(4)
+            for _ in range(40):  # talk over it once it is talking
+                await phone.silence(0.5)
+                if daemon_status()["speaking"] == "bot":
+                    break
+            await phone.silence(1.5)
             before = phone.interrupts
             await phone.send(resample(await synth("Stop. What is two plus two?"), RATE, IN_RATE))
             await phone.silence(8)
