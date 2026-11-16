@@ -525,7 +525,7 @@ class Brain:
                 if saying and not saying.done():
                     saying.cancel()
             if generation != self._generation:
-                self._heard_only(saying, early)
+                self._heard_only(saying, early if carried else "")  # `early` may be this step's own, not in the history yet
                 return
             ms = int((time.time() - started) * 1000)
             if own_words:

@@ -289,6 +289,23 @@ def test_cut_off_after_the_first_sentence_the_history_keeps_what_was_heard(monke
     assert b._last_spoken == "Postgres, in my read."
 
 
+def test_cut_off_once_the_model_had_finished_the_history_still_keeps_what_was_heard(monkeypatch):
+    """The user speaks while the first sentence goes to the mouth and the model's step is already in: the interruption
+    cancels nothing, and the reply ends on the generation check instead."""
+    b, events, _ = _streaming_brain(monkeypatch, [TWO])
+
+    async def speak_first(text):
+        events.append(("first", text))
+        while "model done" not in events:
+            await asyncio.sleep(0)
+        b.interrupt()
+    b.speak_first = speak_first
+    asyncio.run(b.turn("Postgres or MySQL for a small team?"))
+    assert ("first", "Postgres, in my read.") in events and not [e for e in events if e[0] in ("rest", "speak")]
+    assert b.messages[-1] == {"role": "assistant", "calls": [], "said": "Postgres, in my read."}
+    assert b._last_spoken == "Postgres, in my read."
+
+
 def test_a_first_sentence_that_repeats_what_was_just_said_is_not_said_ahead(monkeypatch):
     ready = "The staging migration for the billing tables is ready."
     b, events, _ = _streaming_brain(monkeypatch, [f"{ready} It ran clean twice.", f"{ready} Lint is green too."])
