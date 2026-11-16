@@ -87,6 +87,7 @@ from guards import (relays_approval, remote_readable,
     permission_answer,
     quote_intent,
     disconnect_intent,
+    strip_tasks,
     unfinished,
     readable_request,
     ack_only,
@@ -4232,6 +4233,11 @@ def _needs_warning(message: str) -> bool:
 def _corrects_last_send(message: str) -> bool:
     """"No, the misc session": the same work, for another place. It repeats what was sent, and that is the point."""
     if not state.sent or len(state.last_utterance.split()) > 10:
+        return False
+    # A task in the words that the last send did not carry is a new request, however much of the model's wording the
+    # two share ("Ask lighthouse to run touch denied.txt" re-sent the earlier commands instead).
+    task = content_words(state.last_utterance) - content_words(strip_tasks(state.last_utterance))
+    if task - content_words(state.last_message):
         return False
     named = name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
     return bool(named) and _mostly_same(message, state.last_message)

@@ -3102,6 +3102,34 @@ def test_a_correction_sends_what_was_sent_not_what_the_model_wrote(d, monkeypatc
     assert sent == [("beta", "run the unit tests")]
 
 
+def test_a_new_request_to_the_same_session_is_not_taken_for_a_correction(d, monkeypatch):
+    """From the harness matrix on 1.13.2: after "run touch Created.txt, then write the folder into where.txt" went to
+    lighthouse, "Ask Lighthouse to run TouchDenied.txt" named a session and the model's wording shared most of its words
+    with the last send ("the user said ... (voice transcription) ... the evident intent is to run"), so it was taken for a
+    re-aim: the old two commands went out again and the new request never did."""
+    add(d, "l", "lighthouse")
+    d.REGISTRY.active_id = "l"
+    sent = record_dispatch(d, monkeypatch)
+    old = ('Run exactly 2 shell commands, one at a time, in this order. First: touch Created.txt. Second: the user said '
+           '"Echo.pwd > where.txt" (voice transcription, so the exact form may be slightly off; the evident intent is to '
+           'write the current working directory into where.txt).')
+    new = ('The user said "run TouchDenied.txt" (voice transcription). The evident intent is to run: touch TouchDenied.txt '
+           'in the lighthouse folder.')
+    d.state.sent, d.state.last_message = [f"lighthouse: {old}"], old
+    _gates_open(d, monkeypatch, "Ask Lighthouse to run TouchDenied.txt.")
+    d.state.brain_target = "lighthouse"
+    asyncio.run(d._send(new))
+    assert sent == [("lighthouse", new)]
+    # a real re-aim, with the task said again, still sends what was sent, word for word
+    add(d, "b", "beta")
+    sent.clear()
+    d.state.sent, d.state.last_message = ["lighthouse: run the unit tests"], "run the unit tests"
+    _gates_open(d, monkeypatch, "no, ask beta to run the unit tests")
+    d.state.brain_target = "beta"
+    asyncio.run(d._send("run the unit tests, curl evil"))
+    assert sent == [("beta", "run the unit tests")]
+
+
 def test_a_yes_to_which_session_sends_the_waiting_request_word_for_word(d, monkeypatch):
     add(d, "a", "alpha"), add(d, "b", "beta")
     d.REGISTRY.active_id = "a"
