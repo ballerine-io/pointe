@@ -364,3 +364,222 @@ def test_the_daemon_hands_the_mouth_two_parts_and_logs_the_reply_once(d, monkeyp
     pushed.clear()
     asyncio.run(front._speak_rest("", "Only this."))  # the rest was dropped: nothing more to the mouth
     assert pushed == []
+
+
+# ---------- the model reads a finished sentence while it settles ----------
+
+def _foreseeing_brain(monkeypatch, replies: list, delay: float = 0.02, tools=()):
+    """A brain whose model takes `delay` to answer. `requests` keeps what each request was sent and how it ended."""
+    import brain as brain_module
+
+    requests, spoken = [], []
+
+    async def step(choice, instructions, messages, decls, heard=None):
+        request = {"asked": [m["content"] for m in messages if m["role"] == "user"], "at": time.time(), "ended": "running"}
+        requests.append(request)
+        try:
+            reply = replies.pop(0)
+            if isinstance(reply, Exception):
+                raise reply
+            if heard is not None:
+                heard("")
+                heard(reply if isinstance(reply, str) else "")
+            await asyncio.sleep(delay)
+        except asyncio.CancelledError:
+            request["ended"] = "cancelled"
+            raise
+        request["ended"] = "answered"
+        calls = [{"id": f"c{len(requests)}", "name": "speak", "args": {"text": reply}}] if isinstance(reply, str) else reply
+        return SimpleNamespace(calls=calls, said="", raw=None, vendor="fake", usage={})
+
+    async def speak(text, request_id=None):
+        spoken.append(text)
+
+    monkeypatch.setattr(brain_module.vendors, "step", step)
+    b = brain_module.Brain("fake:model", "instructions", list(tools), lambda: "[right now] Nothing is waiting.", speak)
+    b.may_stay_silent = lambda: False
+    return b, requests, spoken
+
+
+ASKED = "Is it better to rebase or to merge a feature branch?"
+
+
+def test_a_step_started_while_the_sentence_settles_is_the_turns_own_first_step(monkeypatch):
+    b, requests, spoken = _foreseeing_brain(monkeypatch, ["Rebase it."], delay=0.05)
+    sent = []
+    b.stage = lambda stage, when=None: sent.append(when) if stage == "brain_sent" else None
+
+    async def run():
+        b.foresee(ASKED)
+        await asyncio.sleep(0.03)  # the settle time
+        assert b.messages == [] and spoken == [] and not b.busy  # only a request: no history, no speech, the floor is free
+        taken = time.time()
+        await b.turn(ASKED)
+        return taken
+    taken = asyncio.run(run())
+    assert len(requests) == 1 and requests[0]["ended"] == "answered" and spoken == ["Rebase it."]
+    assert requests[0]["asked"][-2:] == [ASKED, "[right now] Nothing is waiting."]  # exactly what the turn would have sent
+    assert sent and sent[0] < taken  # the timing line says when the request really left
+    assert [m["content"] for m in b.messages if m["role"] == "user"] == [ASKED, "[right now] Nothing is waiting."]
+
+
+def test_the_user_said_more_so_the_step_started_ahead_is_dropped_and_the_whole_turn_is_answered(monkeypatch):
+    b, requests, spoken = _foreseeing_brain(monkeypatch, ["Rebase it.", "Merge it then."], delay=0.05)
+
+    async def run():
+        b.foresee(ASKED)
+        await asyncio.sleep(0.01)
+        b.foresee(f"{ASKED} We have forty people on it.")  # the next final joined the first: read again
+        await asyncio.sleep(0.01)
+        await b.turn(f"{ASKED} We have forty people on it.")
+    asyncio.run(run())
+    assert [r["ended"] for r in requests] == ["cancelled", "answered"] and spoken == ["Merge it then."]
+    assert requests[1]["asked"][-2] == f"{ASKED} We have forty people on it."
+
+
+def test_news_that_arrived_meanwhile_or_other_words_drop_the_step_started_ahead(monkeypatch):
+    b, requests, spoken = _foreseeing_brain(monkeypatch, ["Rebase it.", "Rebase it, and billing is done.", "x", "Squash it."], delay=0.05)
+
+    async def run():
+        b.foresee(ASKED)
+        await asyncio.sleep(0.01)
+        b.add_news("[billing finished its turn] All checks pass.")  # the history is not what the step read
+        await b.turn(ASKED)
+        b.foresee("Should I squash the commits first?")
+        await asyncio.sleep(0.01)
+        await b.turn("Should I squash them first?")  # not the words that were read ahead
+    asyncio.run(run())
+    assert [r["ended"] for r in requests] == ["cancelled", "answered", "cancelled", "answered"]
+    assert "[billing finished its turn] All checks pass." in requests[1]["asked"] and spoken[-1] == "Squash it."
+
+
+def test_a_step_started_ahead_runs_no_tool_and_says_nothing_until_its_turn_is_taken(monkeypatch):
+    ran = []
+
+    async def handler(params):
+        ran.append(params.arguments)
+        await params.result_callback({"sent_to": "billing"})
+    tool = SimpleNamespace(name="send_to_claude_code", description="send", properties={}, required=[], handler=handler)
+    b, requests, spoken = _foreseeing_brain(
+        monkeypatch, [[{"id": "t1", "name": "send_to_claude_code", "args": {"message": "run the checks"}}], "Sent."], tools=[tool])
+
+    async def run():
+        b.foresee("Ask billing to run the checks.")
+        await asyncio.sleep(0.1)  # long past the model's answer
+        assert ran == [] and spoken == [] and b.messages == []
+        await b.turn("Ask billing to run the checks.")
+    asyncio.run(run())
+    assert ran == [{"message": "run the checks"}] and spoken == ["Sent."] and len(requests) == 2  # the tool ran once, in the turn
+
+
+def test_forgetting_cancels_the_request_and_a_busy_brain_starts_none(monkeypatch):
+    b, requests, spoken = _foreseeing_brain(monkeypatch, ["Rebase it.", "First answer.", "Second answer."], delay=0.05)
+
+    async def run():
+        b.foresee(ASKED)
+        await asyncio.sleep(0.01)
+        b.forget()  # an unfinished sentence followed: nothing is read ahead for it
+        await asyncio.sleep(0.01)
+        assert requests[0]["ended"] == "cancelled" and b._foreseen is None
+        answering = asyncio.ensure_future(b.turn("What is a mutex?"))
+        await asyncio.sleep(0.01)
+        b.foresee(ASKED)  # the brain is answering: the history will have changed by the time this turn comes
+        assert b._foreseen is None
+        await answering
+    asyncio.run(run())
+    assert len(requests) == 2 and spoken == ["First answer."]
+
+
+def test_a_step_started_ahead_that_failed_or_went_stale_is_not_used(monkeypatch):
+    import brain as brain_module
+
+    b, requests, spoken = _foreseeing_brain(monkeypatch, [RuntimeError("503"), "Rebase it.", "Too old.", "Merge it."], delay=0.01)
+
+    async def run():
+        b.foresee(ASKED)
+        await asyncio.sleep(0.03)
+        await b.turn(ASKED)  # the failure is not the turn's: it asks again itself
+        monkeypatch.setattr(brain_module, "FORESEEN_SECS", 0.02)
+        b.foresee("And for a hotfix?")
+        await asyncio.sleep(0.05)
+        await b.turn("And for a hotfix?")
+    asyncio.run(run())
+    assert spoken == ["Rebase it.", "Merge it."] and len(requests) == 4
+
+
+def test_what_the_model_wrote_before_the_turn_was_taken_is_said_the_moment_it_is(monkeypatch):
+    b, requests, spoken = _foreseeing_brain(monkeypatch, [TWO], delay=0.2)
+    events = []
+
+    async def speak_first(text):
+        events.append(("first", text, requests[0]["ended"]))
+
+    async def speak_rest(rest, whole):
+        events.append(("rest", rest, requests[0]["ended"]))
+    b.speak_first, b.speak_rest = speak_first, speak_rest
+    b.limit = lambda trigger, asked: cv.limit_for(trigger, asked)
+
+    async def run():
+        b.foresee("Postgres or MySQL for a small team?")
+        await asyncio.sleep(0.05)
+        assert events == []  # the model has written its first sentence, and nothing is said: the turn is not taken
+        await b.turn("Postgres or MySQL for a small team?")
+    asyncio.run(run())
+    assert events == [("first", "Postgres, in my read.", "running"), ("rest", "It is stricter and has the richer feature set.", "answered")]
+    assert len(requests) == 1
+
+
+def test_only_words_that_would_reach_the_brain_as_they_are_get_read_ahead(d):
+    from test_orchestrator import add, with_permission
+
+    assert d._foreseeable("What is a good name for the cache layer?")
+    for words, why in (("The thing I keep forgetting to check is the", "an unfinished sentence"),
+                       ("Hold on, let me finish.", "a hold"), ("Brief me on the night.", "the daemon answers it"),
+                       ("Meeting mode, listening.", "a mode"), ("Start a brain dump.", "a brain dump")):
+        assert not d._foreseeable(words), why
+    billing = add(d, "s1", "billing")
+    with_permission(billing)
+    assert not d._foreseeable("What is a good name for the cache layer?")  # the words may be the answer to the request
+    billing.permission_id = None
+    d.state.dump = SimpleNamespace(state="review")
+    assert not d._foreseeable("What is a good name for the cache layer?")  # or to the brain dump's review
+    d.state.dump = None
+    d.state.challenge = SimpleNamespace()
+    assert not d._foreseeable("What is a good name for the cache layer?")  # a challenge has its own rules
+    d.state.challenge = None
+    assert d._foreseeable("What is a good name for the cache layer?")
+
+
+def test_the_ears_have_the_brain_read_a_whole_sentence_while_it_settles_and_forget_an_unfinished_one(d, monkeypatch):
+    from pipecat.frames.frames import TranscriptionFrame
+    from pipecat.processors.frame_processor import FrameDirection
+
+    monkeypatch.setitem(d.turns.LEVELS, "normal", d.turns.Patience(complete=0.3, unfinished=0.6, maximum=5.0))
+    read, taken = [], []
+    front = d.BrainFront.__new__(d.BrainFront)
+    front.brain = SimpleNamespace(foresee=lambda text: read.append(text), forget=lambda: read.append(None))
+    d.state.front = front
+
+    async def run():
+        ears = _ears(d, monkeypatch)
+
+        async def take(text):
+            taken.append((text, list(read)))
+        monkeypatch.setattr(ears, "_take", take)
+
+        async def final(text):
+            d.state.user_stopped_at = time.time()
+            await d.SonioxEars.process_frame(ears, TranscriptionFrame(text=text, user_id="u", timestamp="t"), FrameDirection.DOWNSTREAM)
+        await final("Is it better to rebase or to merge?")
+        assert read == ["Is it better to rebase or to merge?"] and taken == []  # read at the start of the settle, not its end
+        await asyncio.sleep(0.1)
+        await final("I mean for a team of")  # they went on, and stopped mid-sentence: nothing is read ahead for that
+        assert read[-1] is None
+        await asyncio.sleep(0.1)
+        await final("forty people.")
+        assert read[-1] == "Is it better to rebase or to merge? I mean for a team of forty people."
+        await asyncio.sleep(0.5)
+        await final("Yes.")  # a short answer is the turn at once: there is no settle to read in
+    asyncio.run(run())
+    assert [t for t, _ in taken] == ["Is it better to rebase or to merge? I mean for a team of forty people.", "Yes."]
+    assert len(read) == 3

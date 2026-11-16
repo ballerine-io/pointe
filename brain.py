@@ -34,6 +34,7 @@ MAX_RESULT_CHARS = 8_000  # one tool result
 STUB_CHARS = 240  # what an old feed item keeps: its first line says what arrived; the notes carry the rest
 OLD_RESULT = "[an earlier result, dropped from the history]"
 OLD_NEWS = " […cut: older news; the notes and ask_about_session have the rest]"
+FORESEEN_SECS = 10.0  # a step started ahead of its turn (Brain.foresee) is dropped when the turn has not come by then
 FILLER_AFTER_SECS = 4.5  # silence past this says "one sec"; the model's p95 is under it, so it is rare
 STEP_TIMEOUT_SECS = 8.0  # past this the fast model answers: p95 is 2.3 s, and stalls of 20 s were seen
 SLOW_LINE = "The model took too long to answer. Say that again?"
@@ -125,6 +126,7 @@ class Reply:
         self.text, self.began, self.over = "", 0.0, False
         self.grew = asyncio.Event()
         self.on_first = on_first  # told once, when the first piece of anything arrives
+        self.to: Reply | None = None
 
     def __call__(self, text: str, began: float = 0.0) -> None:
         if not self.began:
@@ -133,10 +135,19 @@ class Reply:
                 self.on_first(self.began)
         self.text = text
         self.grew.set()
+        if self.to is not None:
+            self.to(text, self.began)
 
+    def follow(self, other: "Reply") -> None:
+        """`other` is told what this one has heard so far, and all that comes: a step started before its turn."""
+        self.to = other
+        if self.began:
+            other(self.text, self.began)
 
 
 class Brain:
+    _foreseen: SimpleNamespace | None = None  # a first model step started before its turn (foresee)
+
     def __init__(self, choice: str, instructions: str, tools: list, context: Callable[[], str],
                  speak: Callable[[str], Awaitable[None]], filler: Callable[[], Awaitable[None]] | None = None,
                  has_open: Callable[[], str | None] | None = None, sent_lately: Callable[[], bool] | None = None,
@@ -195,6 +206,33 @@ class Brain:
     def _decls(self) -> list[dict]:
         return [SPEAK] + [{"name": t.name, "description": t.description, "properties": t.properties,
                            "required": t.required} for t in self.tools]
+
+    def foresee(self, text: str) -> None:
+        """The user's sentence reads finished and its settle time is running (turns.py): the model step that would
+        answer it starts now, so the wait and the model's time overlap. Only the request is made. Nothing is added to
+        the history, no tool runs and nothing is said until the turn is really taken; then the step is used if what it
+        was sent is exactly what the turn would send now (_step), and dropped otherwise: the user said more, news
+        arrived, the state changed. A dropped step costs one small request."""
+        self.forget()
+        if not text.strip() or self.busy or self._tools_running or self._user_turns or self._waiting:
+            return
+        ahead = [*self.messages, {"role": "user", "content": self._clipped(text)}]
+        now = self.context()
+        if now != self._given:
+            ahead.append({"role": "user", "content": now})
+        outgoing, decls = self._outgoing(ahead), self._decls()
+        relay = Reply() if self.speak_first else None
+        task = asyncio.ensure_future(vendors.step(self.choice, self.instructions, outgoing, decls,
+                                                  **({"heard": relay} if relay else {})))
+        task.add_done_callback(lambda t: t.cancelled() or t.exception())  # a failure is met again by the turn's own step
+        self._foreseen = SimpleNamespace(choice=self.choice, outgoing=outgoing, decls=decls, task=task, relay=relay,
+                                         at=time.time())
+
+    def forget(self) -> None:
+        """What was started ahead is not wanted: the user went on talking."""
+        seen, self._foreseen = self._foreseen, None
+        if seen is not None and not seen.task.done():
+            seen.task.cancel()
 
     def append(self, text: str) -> None:
         if not (text and text.strip()):
@@ -633,15 +671,29 @@ class Brain:
     async def _step(self, decls: list[dict], filled: bool, live: Reply | None = None,
                     on_sent: Callable[[float], None] | None = None) -> tuple[vendors.Step, bool]:
         """One model step that cannot stall the call: a filler past a few seconds, the fast model past the timeout.
-        `live` is told the reply as it is written, by a vendor that streams. `on_sent`: when the request left."""
+        `live` is told the reply as it is written, by a vendor that streams. `on_sent`: when the request left, which is
+        before now for a step started ahead of its turn (foresee)."""
         choices = [c for c in (self.choice, self.fallback) if c]
 
         async def read(choice: str) -> vendors.Step:
             # Noted when the step reads the history, not when it was asked for: a line appended in between is in its view.
             self._view = next((m for m in reversed(self.messages) if m["role"] == "user" and m["content"] != self._given), None)
+            outgoing = self._outgoing()
+            seen, self._foreseen = self._foreseen, None
+            if seen is not None:
+                failed = seen.task.done() and (seen.task.cancelled() or seen.task.exception() is not None)
+                if (not failed and seen.choice == choice and time.time() - seen.at < FORESEEN_SECS and seen.decls == decls
+                        and seen.outgoing == outgoing):
+                    logger.info(f"brain step was started {time.time() - seen.at:.2f} s ahead of its turn")
+                    if on_sent:
+                        on_sent(seen.at)
+                    if live is not None and seen.relay is not None:
+                        seen.relay.follow(live)
+                    return await seen.task
+                seen.task.cancel()
             if on_sent:
                 on_sent(time.time())
-            return await vendors.step(choice, self.instructions, self._outgoing(), decls, **({"heard": live} if live else {}))
+            return await vendors.step(choice, self.instructions, outgoing, decls, **({"heard": live} if live else {}))
 
         for choice in choices:
             self._current = asyncio.ensure_future(read(choice))

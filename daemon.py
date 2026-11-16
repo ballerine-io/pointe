@@ -1270,6 +1270,18 @@ class BrainFront(FrameProcessor):
         await self.push_frame(frame, direction)
 
 
+def _foreseeable(heard: str) -> bool:
+    """The model step for these words may start while they settle (Brain.foresee): said no further, they go to the brain
+    as they are. So not an unfinished sentence, not in a mode other than plain conversation or drive, not while an
+    approval, a briefing or a brain dump's review may take the words as its answer, and not a phrase the daemon answers
+    itself (SonioxEars._take): none of those words reach the model today, and none do ahead of time."""
+    return (current_mode() in (modes.CONVERSATION, modes.DRIVE) and state.dump is None and state.briefing_play is None
+            and not any(s.permission_id for s in REGISTRY.sessions.values()) and not unfinished(heard)
+            and not (turns.hold_intent(heard) or briefing.briefing_intent(heard) is not None or drives.intent(heard)
+                     or whisper.intent(heard) is not None or meeting_intent(heard) or challenge.start_intent(heard)
+                     or braindump.start_intent(heard)))
+
+
 class SonioxEars(FrameProcessor):
     """Hands the model Soniox's text instead of the raw audio, minus the bot's own echo.
 
@@ -1381,6 +1393,9 @@ class SonioxEars(FrameProcessor):
                 wait = turns.settle(heard, held, _patience()) if not _dumping() and state.hold is None else 0.0
                 if wait > 0:  # Soniox's endpoint is a candidate: the turn is the text once the user has been quiet this long
                     self._held = re.sub(r"[\s.—–…,-]+$", "", heard) if unfinished(heard) else heard
+                    if isinstance(state.front, BrainFront):
+                        # A whole sentence: the model reads it while it settles. More words, and it reads again.
+                        state.front.brain.foresee(heard) if _foreseeable(heard) else state.front.brain.forget()
                     logger.info(f"settling {wait:.1f} s: {heard!r}")
                     self.create_task(self._release_held(self._held, time.time(), wait), f"held-{time.time()}")
                     return
