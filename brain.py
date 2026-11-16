@@ -38,6 +38,11 @@ OLD_NEWS = " […cut: older news; the notes and ask_about_session have the rest]
 # then starts after a silence in which the call looks finished (the voice has stopped, the floor's breath starts). A
 # shorter first sentence goes with the one after it.
 EARLY_MIN_WORDS = 4
+# Nor is an opening said ahead that takes more than this share of the reply's words. From a live run: asked the difference
+# between a mutex and a semaphore, a 22-word first sentence about the mutex was said ahead; the reply was over its 30
+# words, nothing about the semaphore fitted in the 8 that were left, and the user heard half an answer and "There's more
+# if you want it." Held back, such a reply is sent back whole, and the model shortens both halves.
+EARLY_MAX_SHARE = 2 / 3
 ROOM_MIN_WORDS = 5  # with fewer words left after what was said ahead, a reply over its limit is cut, not sent back
 FORESEEN_SECS = 10.0  # a step started ahead of its turn (Brain.foresee) is dropped when the turn has not come by then
 FILLER_AFTER_SECS = 4.5  # silence past this says "one sec"; the model's p95 is under it, so it is rare
@@ -682,7 +687,7 @@ class Brain:
         read = time.time()
         asked = self._asked()
         limit = self.limit(trigger, asked)
-        if limit is None or self.may_stay_silent():
+        if limit is None or self.may_stay_silent() or conversation.count_words(first) > limit.words * EARLY_MAX_SHARE:
             return ""
         now = time.time()
         recent = [x for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]

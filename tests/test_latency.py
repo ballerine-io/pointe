@@ -251,15 +251,27 @@ def test_a_first_sentence_of_a_word_or_two_is_said_with_the_one_after_it(monkeyp
 
 
 def test_when_what_was_said_ahead_fills_the_limit_a_long_reply_is_cut_and_not_sent_back(monkeypatch):
-    """From a live call: "My take: Postgres." and a long second sentence, then a third. Sent back, the model has no room
-    to say anything in; the step would only delay the end of the reply."""
-    reply = ("My take: Postgres. It has stricter correctness, richer features like JSON and extensions, and a strong "
-             "ecosystem, so a small team rarely outgrows it. MySQL is fine if you already know it well.")
-    said_ahead = reply.rsplit(" MySQL", 1)[0]
+    """Two sentences were said ahead and the limit is two: sent back, the model would have nothing to say the rest in, and
+    the step would only delay the end of the reply."""
+    said_ahead = "My take: Postgres. It is stricter and has the richer feature set."
+    reply = (f"{said_ahead} MySQL is fine if your team already knows it well and runs it today. SQLite also works for a "
+             "tiny project with one writer at a time.")
     assert cv.retry_problem(reply, cv.REPLY) and cv.length_problem(said_ahead, cv.REPLY) is None
     b, events, steps = _streaming_brain(monkeypatch, [reply])
     asyncio.run(b.turn("Postgres or MySQL for a small team?"))
     assert steps == [True] and events == [("first", said_ahead), "model done", ("rest", cv.MORE_EN, f"{said_ahead} {cv.MORE_EN}")]
+
+
+def test_a_first_sentence_that_takes_most_of_the_limit_waits_and_the_whole_reply_is_sent_back_as_ever(monkeypatch):
+    """Said ahead, it would leave no room for the other half of the answer, and no retry could bring it back."""
+    mutex = "A mutex is a lock with an owner: only the thread that locked it can unlock it, so one thread at a time."
+    long = f"{mutex} A semaphore is a counter allowing up to N holders, and any thread can signal it."
+    short = "A mutex has one owner who must unlock it. A semaphore is a counter any thread can signal."
+    assert cv.count_words(mutex) > cv.REPLY.words * 2 / 3 and cv.retry_problem(long, cv.REPLY) and not cv.length_problem(short, cv.REPLY)
+    b, events, steps = _streaming_brain(monkeypatch, [long, short])
+    asyncio.run(b.turn("What is the difference between a mutex and a semaphore?"))
+    assert ("first", mutex) not in events and len(steps) == 2
+    assert events[-1][0] == "rest" and events[-1][-1] == short  # both halves, inside the limit
 
 
 def test_the_opening_of_a_reply_being_written_is_whole_sentences_with_enough_words():
