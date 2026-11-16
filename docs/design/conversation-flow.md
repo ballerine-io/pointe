@@ -332,20 +332,21 @@ every rule above kept. Each turn's path is now stamped stage by stage (`latency.
 with the machine's load average. Real vendors (Claude Sonnet 5.5, Soniox, ElevenLabs), an 18-core Mac that other work
 kept busy: read the numbers with the load.
 
-| Stage (median, p90 in seconds) | Before (12 turns, load 6 to 9) | After (24 turns, load 7.5 falling to 5.4) |
+| Stage (median, p90 in seconds) | Before (12 turns, load 6 to 9) | After (24 turns, load 4.2 rising to 7.6) |
 |---|---|---|
-| Ears: last word to final transcript | 0.39, 0.47 | 0.41, 0.47 |
-| The turn is taken, after the last word | 1.30, 1.47 | 1.07, 1.12 |
-| Model request sent, relative to the turn | at it | 0.65 before it, 0.59 |
-| Model: request to first token | not seen (whole reply 1.29, 1.58) | 0.77, 0.94 |
-| Model: first token to first sentence | | 0.30, 0.33 |
+| Ears: last word to final transcript | 0.39, 0.47 | 0.46, 0.52 |
+| The turn is taken, after the last word | 1.30, 1.47 | 1.08, 1.11 |
+| Model request sent, relative to the turn | at it | 0.62 before it, 0.53 |
+| Model: request to first token | not seen (whole reply 1.29, 1.58) | 0.74, 0.82 |
+| Model: first token to the sentence said ahead | | 0.27, 0.37 (14 of 24 replies) |
 | A reply sent back before any sound | 3 of 12 turns, 1.2 to 1.5 s each | 2 of 24 |
-| Mouth: request to first audio | 0.28, 0.43 | 0.19, 0.30 |
-| Client: playing to audible | 0.08, 0.11 | 0.07, 0.09 |
-| **Last word to first sound** | **3.17, 4.27** (max 4.28) | **1.82, 2.23** (max 3.33) |
+| Mouth: request to first audio | 0.28, 0.43 | 0.22, 0.33 |
+| Client: playing to audible | 0.08, 0.11 | 0.07, 0.11 |
+| **Last word to first sound** | **3.17, 4.27** (max 4.28) | **1.86, 2.21** (max 4.19) |
 
-A third run after the last change (12 turns, load 30 at the start): 1.84, 2.04, max 3.50. The prompt was 98 to 99%
-read from the cache in every run, so caching had nothing left to give.
+Three earlier runs of the same 12 questions while the rules below were being settled gave 1.82, 2.23 (24 turns, load
+7.5), 1.84, 2.04 (12 turns, load 30 at the start) and 1.81, 2.02 (24 turns, load 4.8). The prompt was 98 to 99% read
+from the cache in every run, so caching had nothing left to give.
 
 What changed, largest first:
 
@@ -362,7 +363,12 @@ What changed, largest first:
   been sent back. The whole reply is then checked as ever. Sent back (§3.1's retry for length, or any other reason),
   the model is told which sentence was heard and how much room is left, and asked for what follows only: the retry
   stays, and costs the user no wait, because the sentence is playing. Anthropic only: the other vendors answer whole.
-  One `speak:` line per reply stays in the journal; `speak first:` marks the early part.
+  One `speak:` line per reply stays in the journal; `speak first:` marks the early part. Three limits, each from a
+  live run: what is said ahead holds at least four words (the first two sentences when the first is "Yes." or "On
+  it.": alone it ends in half a second and the call looks finished before the rest starts); it takes at most two
+  thirds of the reply's words (a 22-word first half of an answer left no room for the second half); and when it
+  already fills the limit, a reply that is too long is cut and not sent back. The pause between the two parts is the
+  voice's own sentence pause: 0.4 to 0.9 s inside one request, 0.5 s at the join (six replies measured).
 - **The settle counts the user's silence** (`SonioxEars._quiet_since`; `turn-taking.md` §3.1). It counted from stamps
   that arrive late by design, so a 1.0 s settle took the turn 1.3 s after the last word.
 
@@ -376,8 +382,9 @@ Measured and left alone:
 - **Soniox's endpoint** (0.4 s after the last word). A quicker one would start the model sooner and would also end
   more sentences in their middle; it needs the audio corpus of `bench/` to judge, not a latency run.
 
-Still costing a second: a reply sent back before any sound when its first sentence could not be said ahead, 2 of 24
-turns. Both times the check for facts nobody gave the model (`brief.unsupported_in`) refused general knowledge ("1,024
-bytes", "late March to late October"). The check is there for session facts; whether a plain-knowledge answer should
-pass it is a decision about that rule, not about latency, and it is not changed here.
+Still costing a second or two: a reply sent back before any sound, 2 of 24 turns in each run. One kind is the check
+for facts nobody gave the model (`brief.unsupported_in`) refusing general knowledge ("1,024 bytes", "late March to
+late October"). The check is there for session facts; whether a plain-knowledge answer should pass it is a decision
+about that rule, not about latency, and it is not changed here. The other is a reply the model starts with plain text
+before its speak call: it cannot be read as it is written, so a long one waits for its retry as before.
 
