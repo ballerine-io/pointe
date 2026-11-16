@@ -525,8 +525,9 @@ async def main() -> None:
         if "cc" in WANT and other:
             TAPPER["on"] = False
             await clear("cc"), await clear(other)
-            await say(browser, "Switch to lighthouse.")
-            await asyncio.sleep(4)
+            t = await say(browser, "Switch to lighthouse.")
+            await spoken_with(t, "", 30)  # heard and answered before the typed request: else it lands after it, and
+            await asyncio.sleep(2)        # the check that a send was asked reads "Switch to lighthouse"
             t = typed(f"Tell lighthouse to run touch both-a.txt, and tell {NAME[other]} to run touch both-b.txt.")
             a, c = await pending("cc", 150), await pending(other, 150)
             for _ in range(3):  # the stray yes, after lighthouse's read-out: before it, no yes counts at all
