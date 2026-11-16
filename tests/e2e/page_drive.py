@@ -117,6 +117,9 @@ async def main() -> None:
             call("/voice/drive", {"on": False})
             off_again = await page.until("document.getElementById('drivebar').hidden", 5)
             check("the phone's Drive switch (POST /voice/drive) shows the bar on the page, and off hides it", bool(by_post) and bool(off_again))
+            await phone.silence(1.5)  # the daemon is about to say "Back to normal.", after "Drive mode. …": the same words
+            await quiet(phone, 30)    # said over it are its own echo, by the echo rule, and are dropped
+            await phone.silence(2)
             await say(phone, "Drive mode.")
             on = await until(lambda: status()["drive"]["on"], 20)
             shown = await page.until("!document.getElementById('drivebar').hidden && document.body.classList.contains('driving')"
