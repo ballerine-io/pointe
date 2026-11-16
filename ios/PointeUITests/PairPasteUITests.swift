@@ -41,19 +41,18 @@ final class PairPasteUITests: XCTestCase {
         XCTAssertTrue(note.waitForExistence(timeout: 10), "the app says how the pairing went")
         XCTAssertEqual(note.label, "Paired with your Mac. Tap Connect to call.")
 
-        // The stage's own identifiers are covered by the conversation's: it is read by its words.
-        let title = app.staticTexts["Mac not reachable"]
-        XCTAssertTrue(title.waitForExistence(timeout: 20), "the status poll finds no Mac, and the stage says so")
-        let why = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Can't reach your Mac at 127.0.0.1")).firstMatch
-        XCTAssertTrue(why.exists, "with where it looked")
-        let again = app.buttons["Try again"]
-        XCTAssertTrue(again.exists, "one button, Try again")
+        let title = app.staticTexts["connectTitle"]
+        XCTAssertTrue(NSPredicate(format: "label == %@", "Mac not reachable").wait(for: title, timeout: 20),
+                      "the status poll finds no Mac, and the stage says so")
+        XCTAssertTrue(app.staticTexts["connectWhy"].label.hasPrefix("Can't reach your Mac at 127.0.0.1"), "with where it looked")
+        let again = app.buttons["connectButton"]
+        XCTAssertEqual(again.label, "Try again", "one button, Try again")
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Mac not reachable")).count, 1,
                        "said once, on the stage (M8)")
 
         again.tap()  // a call to a Mac that is not there fails and says so again
         sleep(5)  // the attempt ends: a menu opened while the stage changes closes with it
-        XCTAssertTrue(again.waitForExistence(timeout: 30), "back to Try again")
+        XCTAssertTrue(NSPredicate(format: "label == %@", "Try again").wait(for: again, timeout: 30), "back to Try again")
         XCTAssertFalse(app.buttons["hangUp"].exists, "no call came up")
 
         app.buttons["Settings"].tap()

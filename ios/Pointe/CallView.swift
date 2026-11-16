@@ -321,6 +321,10 @@ struct CallView: View {
     /// Pinned to the newest line while you are at the bottom; left alone, with a "New" pill, once you scroll up to read.
     private var chat: some View {
         ScrollViewReader { scroller in
+          // The header above the conversation, not over it: laid over it (a top inset), the conversation's frame covered
+          // the header and took VoiceOver's touches and hit tests there.
+          VStack(spacing: 0) {
+            top
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ConversationView(turns: status?.talk ?? [], polish: status?.polish ?? false, hearing: hearing,
@@ -336,12 +340,12 @@ struct CallView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
             }
+            .accessibilityIdentifier("conversation")  // before the overlay: after it, it covered the stage's own identifiers
             .overlay {  // the empty stage: Connect in the middle, where the conversation will be
                 if panelShown { ConnectPanel(title: title, face: face, tap: connectTap).transition(.opacity) }
             }
             .animation(.easeInOut(duration: 0.2), value: panelShown)
             .scrollDismissesKeyboard(.interactively)
-            .accessibilityIdentifier("conversation")
             .holdToTalk(call.talk.ptt && phase == .live, style: call.talkStyle, press: { call.talkPress(.caption) },
                         release: { call.talkRelease(.caption) }, toggle: { call.talkToggle() })
             .defaultScrollAnchor(.bottom, for: .initialOffset)  // only where it starts: growing content must not pull you down
@@ -375,8 +379,8 @@ struct CallView: View {
                 }
             }
             .animation(.snappy, value: follow.pillShown)
-            .safeAreaInset(edge: .top, spacing: 0) { top }
             .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
+          }
         }
     }
 
@@ -452,6 +456,7 @@ struct CallView: View {
         .overlay(alignment: .bottom) { Rectangle().fill(Brand.line).frame(height: 1) }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topHeight = $0 }
         .animation(.snappy, value: showing?.id)
+        .accessibilityElement(children: .contain)  // one container: the menu's platform button took the strip as its children
     }
 
     /// What the controls under the call may take: the screen (less the keyboard) less the header, and a strip of the

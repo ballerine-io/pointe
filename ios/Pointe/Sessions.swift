@@ -120,7 +120,9 @@ struct SessionChips: View {
                 }
             }
             .sensoryFeedback(.selection, trigger: (mode ?? "") + (active ?? ""))
+            .padding(.vertical, 5)  // the chips' 44-point touch inside the scroll view's bounds: a touch outside them is lost
         }
+        .padding(.vertical, -5)  // and the strip laid out at what the chips draw, as before
         .scrollClipDisabled()
         .confirmDisconnect($leaving, disconnect)
         .alert("Rename \(renaming ?? "")", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {

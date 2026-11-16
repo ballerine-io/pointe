@@ -42,10 +42,9 @@ final class DemoUITests: XCTestCase {
 
         let docs = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "docs,")).firstMatch
         XCTAssertTrue(docs.waitForExistence(timeout: 5))
-        docs.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()  // on screen; the strip's scroll view fails XCUITest's hittable check
+        docs.tap()
         XCTAssertTrue(NSPredicate(format: "label CONTAINS %@", "Focused on docs").wait(for: line, timeout: 5), "a chip focuses: \(line.label)")
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "All sessions")).firstMatch
-            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "All sessions")).firstMatch.tap()
         XCTAssertTrue(NSPredicate(format: "NOT (label CONTAINS %@)", "Focused on").wait(for: line, timeout: 5), "All goes back: \(line.label)")
         XCTAssertTrue(app.buttons["All sessions, orchestrator mode, on"].exists)
 

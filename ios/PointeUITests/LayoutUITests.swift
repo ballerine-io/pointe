@@ -113,6 +113,35 @@ final class LayoutUITests: XCTestCase {
         XCTAssertTrue(text(app, "You: ").exists, "a turn of yours is read as yours")
     }
 
+    /// VoiceOver walks the header, then the strip chip by chip, left to right: each chip its own element in the strip's
+    /// own container, beside Settings and never inside it, and a plain tap on one lands.
+    func testTheSessionChipsAreTheirOwnElementsInStripOrder() {
+        let app = launch("call")
+        let chips = ["All sessions, orchestrator mode, on", "river-lantern, needs you", "billing/main, working", "docs, idle"]
+        let strip = app.scrollViews.containing(.button, identifier: "harnessMark.codex").firstMatch
+        XCTAssertTrue(strip.exists && strip.identifier != "conversation", "the chips sit in a strip of their own")
+        XCTAssertEqual(strip.buttons.allElementsBoundByIndex.map(\.label), chips, "in strip order")
+        let inside = app.buttons["Settings"].descendants(matching: .any).allElementsBoundByIndex.map(\.label).filter { !$0.isEmpty }
+        XCTAssertTrue(Set(inside).isDisjoint(with: chips + ["All"]), "no chip is read as part of Settings: \(inside)")
+        for chip in chips.prefix(2) { XCTAssertTrue(app.buttons[chip].isHittable, "\(chip) takes a tap") }
+        app.buttons["river-lantern, needs you"].tap()
+        let line = app.descendants(matching: .any)["statusLine"].firstMatch
+        XCTAssertTrue(NSPredicate(format: "label CONTAINS %@", "Focused on river-lantern").wait(for: line, timeout: 5), line.label)
+    }
+
+    /// The empty stage keeps its own identifiers: the conversation's must not cover them.
+    func testTheEmptyStageKeepsItsIdentifiers() {
+        let app = XCUIApplication()
+        app.launchEnvironment["POINTE_PAIR"] = "pointe://pair?v=1&host=127.0.0.1&port=1&fp=\(String(repeating: "ab", count: 32))&key=\(String(repeating: "k", count: 40))"
+        app.launch()
+        let title = app.staticTexts["connectTitle"]
+        XCTAssertTrue(NSPredicate(format: "label == %@", "Mac not reachable").wait(for: title, timeout: 20),
+                      "the title by its identifier: \(title.exists ? title.label : "missing")")
+        XCTAssertTrue(app.staticTexts["connectWhy"].label.hasPrefix("Can't reach your Mac at 127.0.0.1"))
+        XCTAssertEqual(app.buttons["connectButton"].label, "Try again")
+        XCTAssertTrue(app.scrollViews["conversation"].exists, "the conversation keeps its own")
+    }
+
     /// The header's round buttons are drawn at 36 points and take a 44-point touch: a tap just off the circle still lands.
     func testASmallHeaderButtonTakesATouchBesideIt() {
         let app = launch("call")
