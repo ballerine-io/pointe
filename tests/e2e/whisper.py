@@ -114,7 +114,12 @@ def ask(request_id: str, command: str) -> None:
 async def answer_by_whisper(browser: Browser, request_id: str, command: str, word: str, seed: int) -> list[dict]:
     t = time.time()
     ask(request_id, command)
-    await reply_after(browser, t, timeout=40, quiet=2.5)  # the read-out, to its end
+    # The read-out itself, to its end: the first thing said after the request can be "Approved." for the one before it,
+    # and the read-out then waits for the gap after that, as any update does.
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t))
+    await until(lambda: [line for line in log_lines(r"speak: ") if line[:19] >= stamp and command in line], 45)
+    await asyncio.sleep(1.0)  # its sound starts
+    await settle(browser, quiet=2.5)
     await say(browser, await whispered(word, seed))
     await until(lambda: any(v.get("request_id") == request_id for v in VERDICTS), 20)
     await settle(browser)
