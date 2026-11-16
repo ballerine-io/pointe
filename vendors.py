@@ -12,6 +12,7 @@ Keychain item named here, and reach this process only when a role in use needs t
 import no_telemetry  # noqa: F401  (first: before anything loads onnxruntime)
 import json
 import os
+import re
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -379,7 +380,57 @@ async def _gemini_step(model: str, system: str, messages: list[dict], tools: lis
                                        "reply": getattr(u, "candidates_token_count", 0) or 0})
 
 
-async def _anthropic_step(model: str, system: str, messages: list[dict], tools: list[dict]) -> Step:
+_TEXT_VALUE = re.compile(r'"text"\s*:\s*"')
+
+
+def partial_text(fragment: str) -> str:
+    """The words of a speak call whose JSON is still being written ('{"text": "Use the first o'): the value of "text"
+    as far as it has come. An escape cut in half at the end waits for its other half."""
+    opened = _TEXT_VALUE.search(fragment)
+    if not opened:
+        return ""
+    body, i, end = fragment[opened.end():], 0, 0
+    while i < len(body) and body[i] != '"':
+        step = 1 if body[i] != "\\" else 6 if body[i + 1:i + 2] == "u" else 2
+        if i + step > len(body):
+            break
+        i += step
+        end = i
+    try:
+        said = json.loads(f'"{body[:end]}"', strict=False)
+    except ValueError:
+        return ""
+    return said[:-1] if said and "\ud800" <= said[-1] <= "\udbff" else said  # half of a pair (an emoji as two escapes)
+
+
+async def _anthropic_stream(request: dict, heard) -> object:
+    """The same request, read as it is written. `heard` is told the words of the reply so far each time they grow, when
+    the reply is a speak call and the first thing the model writes: text before a speak call is not spoken, and a tool
+    called first may change what is true by the time the words are said. It is also told once, with nothing, when the
+    first piece of anything arrives. The speak tool's input streams as it is written (eager_input_streaming), so the
+    API does not check it: the caller reads `text` as a string or as nothing."""
+    request = {**request, "tools": [{**t, "eager_input_streaming": True} if t["name"] == "speak" else t
+                                    for t in request["tools"]]}
+    reply, written, said = None, "", ""  # the index of the block that is the reply; None until the first block that says
+    async with _anthropic().messages.stream(**request) as stream:
+        async for event in stream:
+            if event.type == "content_block_start":
+                block = event.content_block
+                if reply is None and block.type not in ("thinking", "redacted_thinking"):
+                    reply = event.index if block.type == "tool_use" and block.name == "speak" else -1
+                    if reply < 0:
+                        logger.info(f"reply not read as it is written: {getattr(block, 'name', None) or block.type} came first")
+                heard(said)
+            elif event.type == "content_block_delta" and event.index == reply and event.delta.type == "input_json_delta":
+                written += event.delta.partial_json
+                now = partial_text(written)
+                if now != said:
+                    said = now
+                    heard(said)
+        return await stream.get_final_message()
+
+
+async def _anthropic_step(model: str, system: str, messages: list[dict], tools: list[dict], heard=None) -> Step:
     converted = []
     for m in messages:
         if m["role"] == "user":
@@ -394,12 +445,14 @@ async def _anthropic_step(model: str, system: str, messages: list[dict], tools: 
     # Forced tool choice is refused on the newest models: `speak` is required by the prompt, and text counts as speech.
     # Two cache points: the marker on the system block keeps tools and prompt cached whatever the history does; the
     # top-level marker is the automatic one, placed by the API on the last block, so each step reads the steps before it.
-    resp = await _anthropic().messages.create(
+    request = dict(
         model=model, max_tokens=4000, system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         tools=[{"name": t["name"], "description": t["description"], "input_schema": _schema(t)} for t in tools],
         messages=converted, output_config={"effort": os.environ.get("CLAUDE_VOICE_BRAIN_THINKING", "low")},
         cache_control={"type": "ephemeral"})
-    calls = [{"id": b.id, "name": b.name, "args": dict(b.input or {})} for b in resp.content if b.type == "tool_use"]
+    resp = await (_anthropic().messages.create(**request) if heard is None else _anthropic_stream(request, heard))
+    calls = [{"id": b.id, "name": b.name, "args": dict(b.input) if isinstance(b.input, dict) else {}}
+             for b in resp.content if b.type == "tool_use"]
     said = "".join(b.text for b in resp.content if b.type == "text").strip()
     u = resp.usage
     read, written = u.cache_read_input_tokens or 0, u.cache_creation_input_tokens or 0
@@ -462,6 +515,7 @@ async def _local_step(model: str, system: str, messages: list[dict], tools: list
 
 
 _STEP = {"gemini": _gemini_step, "anthropic": _anthropic_step, "openai": _openai_step, LOCAL: _local_step}
+STREAMS = {"anthropic"}  # vendors whose step can be read as it is written (`heard`); the others answer whole
 
 
 def _as_text_where_foreign(messages: list[dict], vendor: str) -> list[dict]:
@@ -482,12 +536,15 @@ def _as_text_where_foreign(messages: list[dict], vendor: str) -> list[dict]:
     return out
 
 
-async def step(choice: str, system: str, messages: list[dict], tools: list[dict]) -> Step:
+async def step(choice: str, system: str, messages: list[dict], tools: list[dict], heard=None) -> Step:
+    """One model step. `heard(text)`, when given and the vendor streams, is called as the reply's speak call is written
+    (see _anthropic_stream); the step returned is the same either way."""
     vendor, model = choice.split(":", 1)
     # After a handover (quota), earlier turns came from another vendor: their raw form means nothing here, so they go
     # in the neutral form, as calls and text.
     try:
-        result = await _STEP[vendor](model, system, _as_text_where_foreign(messages, vendor), tools)
+        more = {"heard": heard} if heard is not None and vendor in STREAMS else {}
+        result = await _STEP[vendor](model, system, _as_text_where_foreign(messages, vendor), tools, **more)
     except Exception as error:
         _say_if_refused(vendor, error)
         raise

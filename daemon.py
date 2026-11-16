@@ -1108,13 +1108,21 @@ def _key_refused_line(vendor: str) -> str | None:
     return vendors.refused_spoken(vendor, bool(re.search(r"[\u0590-\u05ff]", state.last_utterance)))
 
 
-def _stage(stage: str) -> None:
+def _stage(stage: str, when: float | None = None) -> None:
     """A stamp on the timing of the reply to the user's latest turn (latency.py). The line is written at the first sound."""
     turn = state.timing
     if turn is None or turn.logged:
         return
-    turn.mark(stage, time.time())
-    if stage == "first_sound":
+    turn.mark(stage, when or time.time())
+    if stage == "first_sentence":
+        turn.info["early"] = True
+    _log_timing(turn)
+
+
+def _log_timing(turn: latency.Turn) -> None:
+    """Once the first sound is out and the model step behind it has reported its tokens: with the first sentence said
+    ahead, the sound starts while the step still runs."""
+    if not turn.logged and "first_sound" in turn.at and (turn.steps or "brain_sent" not in turn.at):
         logger.info(turn.line())
 
 
@@ -1123,6 +1131,7 @@ def make_brain(speak, filler=None) -> Brain:
         if state.timing is not None and not state.timing.logged:
             state.timing.steps += 1
             state.timing.info.update(context=u.get("context", 0), cached=u.get("cached", 0))
+            _log_timing(state.timing)
         state.tokens = {"context": u.get("context", 0), "reply": u.get("reply", 0), "audio_in": 0,
                         "at": time.strftime("%H:%M:%S"), "ms": u.get("ms")}
         logger.info(f"brain step: {u.get('ms')} ms, {u.get('context')} tokens in"
@@ -1150,6 +1159,17 @@ def _reply_limit(trigger: str | None, asked: str) -> flow.Limit | None:
                                   drive_words=drives.MAX_WORDS if current_mode() is modes.DRIVE else None)
 
 
+def _bot_says(text: str, request_id: str | None = None) -> None:
+    """Words on their way to the mouth, told to everything that follows the bot's speech."""
+    # The whole text, up front: the echo guard can match all of it, and memory keeps real words (TTS sends word by word).
+    ECHO.bot_said(text)
+    state.floor.said(text, time.time())
+    _note_bot_speech(text, request_id)
+    _remember("assistant", text + " ")
+    if request_id is None:
+        _challenge_spoke(text)
+
+
 class BrainFront(FrameProcessor):
     """The brain in the pipeline: words in, TTSSpeakFrames out. Only the first thing the user hears is the wait."""
 
@@ -1157,6 +1177,10 @@ class BrainFront(FrameProcessor):
         super().__init__()
         state.front = self
         self.brain = make_brain(self._speak, self._filler)
+        self.brain.speak_first, self.brain.speak_rest = self._speak_first, self._speak_rest
+        # Not where a mode has its own rules for what is said, and when: a meeting lets one reply through per ask.
+        self.brain.may_speak_early = lambda: (current_mode().speech != "never" and state.meeting is None
+                                              and state.challenge is None)
         for m in opening[:-1]:
             self.brain.append(m["content"])
         self._opening = opening[-1]["content"]
@@ -1176,14 +1200,25 @@ class BrainFront(FrameProcessor):
             text = _spoken_names(text)
         # in a meeting the bot's words can quote the room, which the log never keeps
         logger.info(f"speak: ({len(text)} chars, meeting)" if state.meeting else f"speak: {text!r}")
-        # The whole text, up front: the echo guard can match all of it, and memory keeps real words (TTS sends word by word).
-        ECHO.bot_said(text)
-        state.floor.said(text, time.time())
-        _note_bot_speech(text, request_id)
-        _remember("assistant", text + " ")
-        if request_id is None:
-            _challenge_spoke(text)
+        _bot_says(text, request_id)
         await self.push_frame(TTSSpeakFrame(text))
+
+    async def _speak_first(self, first: str) -> None:
+        """The first sentence of a reply the brain is still reading from the model: to the mouth now. The log's `speak:`
+        line stays one per reply, written with the whole of it (_speak_rest)."""
+        state.bot_spoke.append((time.time(), first))
+        first = _spoken_names(first)
+        logger.info(f"speak first: {first!r}")
+        _bot_says(first)
+        await self.push_frame(TTSSpeakFrame(first))
+
+    async def _speak_rest(self, rest: str, whole: str) -> None:
+        logger.info(f"speak: {_spoken_names(whole)!r}")
+        if rest:
+            state.bot_spoke.append((time.time(), rest))
+            rest = _spoken_names(rest)
+            _bot_says(rest)
+            await self.push_frame(TTSSpeakFrame(rest))
 
     async def _filler(self) -> None:
         if current_mode().speech == "never" or state.meeting is not None:  # never a "one sec" into the room

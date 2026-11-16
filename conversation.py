@@ -57,6 +57,12 @@ def split_sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?…])[\"'”’)]*\s+", text.strip()) if s]
 
 
+def first_sentence(text: str) -> str | None:
+    """The first sentence of a reply still being written, once the next one has begun; None until then."""
+    sentences = split_sentences(text)
+    return sentences[0] if len(sentences) > 1 else None
+
+
 def asks(text: str) -> bool:
     """The turn ends on a question: the floor is the user's."""
     return bool(re.search(r"[?？][\"'”’)\s]*$", text or ""))

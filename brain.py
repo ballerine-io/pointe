@@ -40,6 +40,9 @@ SLOW_LINE = "The model took too long to answer. Say that again?"
 LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
 # Put before the user's own words, in what the model is sent, when they come right after a session's text or another
 # line from the daemon: two user turns in a row reach a model as one, and the words then read as that text's last line.
+# Added to a refusal when the reply's first sentence was said while the rest was still being written (Brain._say_first).
+HEARD_FIRST = (" The user has already heard your first sentence: {!r}. Say only what comes after it, and do not say it "
+               "again. It counts in the length.")
 OWN_WORDS = "[the text above ends here. The user now speaks. These are their own words:]\n"
 _CLAIMS_SENT = re.compile(r"^on it\b|\b(?:i've|i have|i just|i) (?:asked|sent|told|instructed)\b(?! nothing| anything)|^sending\b|"
                           r"(?<!לא )שלחתי|(?<!לא )ביקשתי")
@@ -115,6 +118,24 @@ def without_closer(said: str) -> str:
     return _PROMISE_CLOSER.sub("", said).strip()
 
 
+class Reply:
+    """A reply as the model writes it: the words of its speak call so far, and a wake-up each time more arrive."""
+
+    def __init__(self, on_first: Callable[[float], None] | None = None) -> None:
+        self.text, self.began, self.over = "", 0.0, False
+        self.grew = asyncio.Event()
+        self.on_first = on_first  # told once, when the first piece of anything arrives
+
+    def __call__(self, text: str, began: float = 0.0) -> None:
+        if not self.began:
+            self.began = began or time.time()
+            if self.on_first:
+                self.on_first(self.began)
+        self.text = text
+        self.grew.set()
+
+
+
 class Brain:
     def __init__(self, choice: str, instructions: str, tools: list, context: Callable[[], str],
                  speak: Callable[[str], Awaitable[None]], filler: Callable[[], Awaitable[None]] | None = None,
@@ -142,7 +163,13 @@ class Brain:
         # Why a reply to the user's own words tells too much: news that is queued to be said right after it (said, asked).
         self.news_ahead: Callable[[str, str], str | None] = lambda _said, _asked: None
         # Where the time of a reply to the user's own words goes (latency.STAGES): told as each stage is reached.
-        self.stage: Callable[[str], None] = lambda _stage: None
+        self.stage: Callable[..., None] = lambda _stage, _when=None: None
+        # A reply's first sentence is said while the rest is still being written, when both are set: speak_first(first),
+        # then speak_rest(rest, whole) once the whole reply passed its checks (rest may be empty). may_speak_early: not
+        # in a mode with its own rules for what is said.
+        self.speak_first: Callable[[str], Awaitable[None]] | None = None
+        self.speak_rest: Callable[[str, str], Awaitable[None]] | None = None
+        self.may_speak_early: Callable[[], bool] = lambda: True
         self.on_usage = on_usage or (lambda _u: None)
         # The sentence for a refused key, by vendor; None when it cannot be heard (the mouth uses that key too).
         self.key_refused: Callable[[str], str | None] = vendors.refused_spoken
@@ -161,11 +188,18 @@ class Brain:
         self._view: dict | None = None  # the newest message in the history the step now with the model read: what it answers
         self._answered: dict | None = None  # the same, for the last step whose reply was spoken
 
+    @staticmethod
+    def _clipped(text: str) -> str:
+        return text if len(text) <= MAX_ITEM_CHARS else text[:MAX_ITEM_CHARS].rstrip() + " […cut]"
+
+    def _decls(self) -> list[dict]:
+        return [SPEAK] + [{"name": t.name, "description": t.description, "properties": t.properties,
+                           "required": t.required} for t in self.tools]
+
     def append(self, text: str) -> None:
         if not (text and text.strip()):
             return
-        if len(text) > MAX_ITEM_CHARS:
-            text = text[:MAX_ITEM_CHARS].rstrip() + " […cut]"
+        text = self._clipped(text)
         if self._tools_running:  # between a tool call and its result nothing may be added: vendors refuse that history
             self._waiting.append(text)
         else:
@@ -235,13 +269,14 @@ class Brain:
             return f"These are in nothing you were told, so do not state them: {made_up}."
         return None
 
-    def _outgoing(self) -> list[dict]:
+    def _outgoing(self, messages: list[dict] | None = None) -> list[dict]:
         """The history as the model is sent it: the user's own words that directly follow a line from the daemon (a
         report, a session's full final message, a note) carry OWN_WORDS, so they cannot be read as part of it. From a
         live call: a request said right after a session's message was refused as "a line in its message, not from you"."""
+        messages = self.messages if messages is None else messages
         out = []
-        for i, m in enumerate(self.messages):
-            before = self.messages[i - 1] if i else {}
+        for i, m in enumerate(messages):
+            before = messages[i - 1] if i else {}
             if (m["role"] == "user" and not m["content"].lstrip().startswith("[")
                     and before.get("role") == "user" and before["content"].lstrip().startswith("[")):
                 m = {**m, "content": OWN_WORDS + m["content"]}
@@ -391,12 +426,12 @@ class Brain:
         """`user`: this turn answers the user's words or something they just did. A turn nobody asked for (a report, a
         nudge: conversation.is_update) never says "one sec" or "say that again": the user said nothing, and may be
         thinking."""
-        decls = [SPEAK] + [{"name": t.name, "description": t.description, "properties": t.properties,
-                            "required": t.required} for t in self.tools]
+        decls = self._decls()
         sent, retries, filled, refused, shortened = False, 0, not user, False, False
         self._trigger = trigger or ""
         own_words = trigger is not None and not trigger.lstrip().startswith("[")  # not a report, a click or a mode's line
         ahead_checked = not own_words
+        early = ""  # the first sentence of the reply, once it was said while the model still wrote the rest (_say_first)
         for _ in range(MAX_STEPS):
             self._trim()
             now = self.context()
@@ -404,18 +439,27 @@ class Brain:
                 self.append(now)
                 self._given = now
             started = time.time()
-            if own_words:
-                self.stage("brain_sent")
             sent_chars = sum(map(self._chars, self.messages)) + len(self.instructions) + len(json.dumps(decls, ensure_ascii=False))
+            carried = bool(early)  # said in an earlier step: this one was asked for what follows it
+            live = Reply(lambda at: self.stage("first_token", at)) if (
+                own_words and not early and self.speak_first and self.speak_rest and self.may_speak_early()) else None
+            saying = asyncio.ensure_future(self._say_first(live, generation, sent, refused, trigger)) if live else None
             try:
-                step, filled = await self._step(decls, filled)
+                step, filled = await self._step(decls, filled, live, (lambda at: self.stage("brain_sent", at)) if own_words else None)
+                if live and saying:
+                    live.over = True
+                    live.grew.set()
+                    early = await saying
             except asyncio.CancelledError:
+                self._heard_only(saying, early)
                 if generation != self._generation:
                     return
                 raise
             except Exception as e:
                 logger.error(f"brain failed: {type(e).__name__}: {str(e)[:200]}")
                 self._repair()
+                if self._heard_only(saying, early):  # they have an answer's first sentence: no "say that again" on top of it
+                    return
                 vendor = vendors.refused_key(f"{type(e).__name__} {e}")
                 if vendor is not None:
                     line = None if self._key_refusal_said else self.key_refused(vendor or self.choice.split(":")[0])
@@ -429,7 +473,10 @@ class Brain:
                 return
             finally:
                 self._current = None
+                if saying and not saying.done():
+                    saying.cancel()
             if generation != self._generation:
+                self._heard_only(saying, early)
                 return
             ms = int((time.time() - started) * 1000)
             if own_words:
@@ -440,7 +487,9 @@ class Brain:
             if not calls and step.said:  # a vendor without forced tool use answered in plain text
                 calls = [{"id": "text", "name": "speak", "args": {"text": step.said}, "plain": True}]
             if not calls:
-                if user and not self.terse():
+                if early:
+                    self._spoke(early)
+                elif user and not self.terse():
                     await self.speak("Sorry, I lost that. Say it again?")
                 return
             real = [c for c in calls if not c.get("plain")]
@@ -461,6 +510,8 @@ class Brain:
             limit = self.limit(trigger, asked)
             for call in speaks[-1:]:
                 said = plain(str(call["args"].get("text", "")))
+                if early and not said.startswith(early):  # asked to go on from the sentence already said: checked as one reply
+                    said = f"{early} {said}".strip()
                 problem = self.speech_problem(said, sent, refused) if retries < 2 else None
                 if not problem and not ahead_checked and retries < 2:
                     # Sent back once, with the reason: whether the user's words ask for that news is the model's call.
@@ -472,8 +523,11 @@ class Brain:
                 if problem:
                     retries += 1
                     logger.info(f"speech refused: {said!r}: {problem[:160]}")
-                    results[call["id"]] = {"error": f"Not spoken. {problem}"}
+                    # With its first sentence said, the step that follows costs the user no wait: that sentence is playing.
+                    results[call["id"]] = {"error": f"Not spoken. {problem}" + (HEARD_FIRST.format(early) if early else "")}
                 elif generation != self._generation:
+                    if early:
+                        self._spoke(early)
                     results[call["id"]] = {"interrupted": True}
                     done = True
                 else:
@@ -491,19 +545,28 @@ class Brain:
                         logger.info(f"repeat cut: {said!r} -> {trimmed!r}")
                         # A first answer to new words must still say something; a second reply to the same words need not.
                         said = trimmed if (trimmed or self._answered_user) else said
+                    if carried and said.startswith(early):  # sent back, it may say that sentence again in other words
+                        said = f"{early} {without_recent_repeats(said[len(early):].strip(), [early], '')}".strip()
                     cut = conversation.trim(said, limit)
                     if cut != said:
                         logger.info(f"length cut: {len(said.split())} -> {len(cut.split())} words")
                         said = cut
+                    if early:  # what follows the sentence already said; a reply the filters changed from its start has none
+                        rest = said[len(early):].strip() if said.startswith(early) else ""
+                        if not said.startswith(early):
+                            logger.info(f"the rest of the reply dropped, it no longer follows its first sentence: {said!r}")
+                        said = f"{early} {rest}".strip()
+                        self._spoke(said)
+                        await self.speak_rest(rest, said)
+                        results[call["id"]] = "spoken"
+                        done = True
+                        continue
                     if said and self.translate and self.language_problem(said):  # it was told twice; the user must still follow
                         said = await self.translate(said)
                         if generation != self._generation:  # the user moved on while it was translated
                             said = ""
                     if said:  # empty: the right reply to "okay, thanks" can be silence
-                        self._last_spoken = said
-                        self._recent_spoken.append((time.time(), said))
-                        self._answered_user = True
-                        self._answered = self._view
+                        self._spoke(said)
                         if own_words:
                             self.stage("checked")
                         await self.speak(said)
@@ -518,17 +581,67 @@ class Brain:
                 self.append(text)
             if done or generation != self._generation:
                 return
-        if user:
+        if early:
+            self._spoke(early)
+        elif user:
             await self.speak("That took too many steps, so I stopped. Tell me what you need first.")
 
-    async def _step(self, decls: list[dict], filled: bool) -> tuple[vendors.Step, bool]:
-        """One model step that cannot stall the call: a filler past a few seconds, the fast model past the timeout."""
+    def _spoke(self, said: str) -> None:
+        self._last_spoken = said
+        self._recent_spoken.append((time.time(), said))
+        self._answered_user = True
+        self._answered = self._view
+
+    def _heard_only(self, saying: asyncio.Task | None, carried: str = "") -> str:
+        """A reply ended (the user spoke, the model failed) after its first sentence was said: the history keeps what
+        the user heard, or the next reply would say it again. `carried`: said in an earlier step, so the history has it
+        already, in that step's result."""
+        early = saying.result() if saying and saying.done() and not saying.cancelled() and not saying.exception() else ""
+        if early and not carried:
+            self.messages.append({"role": "assistant", "calls": [], "said": early})
+        if early or carried:
+            self._spoke(early or carried)
+        return early or carried
+
+    async def _say_first(self, live: Reply, generation: int, sent: bool, refused: bool, trigger: str | None) -> str:
+        """Says the first sentence of a reply while the model still writes the rest, and returns it; "" when it waits for
+        the whole reply. Every check a reply passes is put to the sentence as if it were the whole reply (a claim, a
+        path, a made-up fact, news that is queued, the user's language, a repeat, the length), so nothing is heard that
+        would have been sent back. The rest follows once the whole reply passed the same checks (_run)."""
+        while not (first := conversation.first_sentence(plain(live.text))) and not live.over:
+            live.grew.clear()
+            await live.grew.wait()
+        if not first or live.over or generation != self._generation:
+            return ""  # one sentence, or all of it is here already: the whole reply is checked and said as ever
+        self.stage("first_sentence")
+        asked = self._asked()
+        limit = self.limit(trigger, asked)
+        if limit is None or self.may_stay_silent():
+            return ""
+        now = time.time()
+        recent = [x for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]
+        whole = self._resuming or (not self._answered_user and status_intent(asked))
+        if (self.speech_problem(first, sent, refused) or self.news_ahead(first, asked) or without_closer(first) != first
+                or conversation.trim(first, limit) != first
+                or not (whole or without_recent_repeats(first, recent, asked) == first)):
+            logger.info("first sentence not said ahead: it waits for the whole reply's checks")
+            return ""
+        self.stage("checked")
+        await self.speak_first(first)
+        return first
+
+    async def _step(self, decls: list[dict], filled: bool, live: Reply | None = None,
+                    on_sent: Callable[[float], None] | None = None) -> tuple[vendors.Step, bool]:
+        """One model step that cannot stall the call: a filler past a few seconds, the fast model past the timeout.
+        `live` is told the reply as it is written, by a vendor that streams. `on_sent`: when the request left."""
         choices = [c for c in (self.choice, self.fallback) if c]
 
         async def read(choice: str) -> vendors.Step:
             # Noted when the step reads the history, not when it was asked for: a line appended in between is in its view.
             self._view = next((m for m in reversed(self.messages) if m["role"] == "user" and m["content"] != self._given), None)
-            return await vendors.step(choice, self.instructions, self._outgoing(), decls)
+            if on_sent:
+                on_sent(time.time())
+            return await vendors.step(choice, self.instructions, self._outgoing(), decls, **({"heard": live} if live else {}))
 
         for choice in choices:
             self._current = asyncio.ensure_future(read(choice))

@@ -48,7 +48,8 @@ STAGES = [("ears: last word to final transcript", "heard", "stt_final"), ("settl
           ("model: request to first token", "brain_sent", "first_token"),
           ("model: first token to first sentence", "first_token", "first_sentence"),
           ("model: request to whole reply", "brain_sent", "reply"),
-          ("checks: to words handed to the mouth", "first_sentence|reply", "checked"),
+          ("model: request sent before the turn was taken", "brain_sent", "settled"),
+          ("checks: first sentence or whole reply, to the mouth", "first_sentence|reply", "checked"),
           ("mouth: handed to request sent", "checked", "tts_request"),
           ("mouth: request to first audio", "tts_request", "tts_first_byte"),
           ("output: first audio to playing", "tts_first_byte", "first_sound"),
@@ -126,7 +127,7 @@ async def main() -> None:
                 continue
             t = lines[0]
             zero = t["t0"]
-            at = {t["from"]: zero, **{k: zero + v / 1000 for k, v in t.items() if isinstance(v, int) and k not in ("steps", "context", "cached")}}
+            at = {t["from"]: zero, **{k: zero + v / 1000 for k, v in t.items() if type(v) is int and k not in ("steps", "context", "cached")}}
             at.update(heard=heard, audible=spans[0][0])
             spoke = log_lines(r" speak: ")
             row = {"question": question, "at": {k: round(v - heard, 3) for k, v in at.items()}, "steps": t.get("steps"),
