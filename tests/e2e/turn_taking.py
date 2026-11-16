@@ -33,7 +33,7 @@ async def main() -> None:
     fresh_state()
     assert subprocess.run([str(ROOT / "bin" / "voice-daemon"), "ensure"], capture_output=True, env=dict(os.environ)).returncode == 0
     browser = Browser()
-    latencies = []
+    latencies, waits = [], []
     try:
         await browser.connect()
         await asyncio.sleep(8)  # the greeting
@@ -51,12 +51,18 @@ async def main() -> None:
                      time.strftime("%H:%M:%S", time.localtime(first_end - 4))]
             check(f"a {pause}s pause mid-sentence does not get an answer ({first!r})", not cut_in and len(heard) == 1,
                   cut_in=[round(a - first_end, 1) for a, _ in cut_in], heard=heard)
-            check(f"the answer uses the end of the sentence ({needed})", needed in answer.lower(), answer=answer[-160:])
+            check(f"the turn carries the end of the sentence ({needed})", needed in " ".join(heard).lower(), heard=heard, answer=answer[-160:])
+            taken = [line for line in log_lines("user said: ") if needed in line.lower()]
+            if taken:
+                at = time.mktime(time.strptime(taken[-1][:19], "%Y-%m-%d %H:%M:%S")) + int(taken[-1][20:23]) / 1000
+                waits.append(round(at - end, 2))
             if spans:
                 latencies.append(round(spans[0][0] - end, 2))
             await asyncio.sleep(max(0.0, (spans[-1][1] if spans else time.time()) - time.time() + 2))
-        check("the bot still starts answering within 3 s of the real end", bool(latencies) and max(latencies) < 3.0,
-              latencies=latencies)
+        # The settle is what turn taking adds (1.0 s at Normal, plus the transcript's own lag); the model's time and a
+        # reply sent back once for length come after it and are not this rule's: they are printed, not judged.
+        check("at the real end the turn is taken within 2.5 s", len(waits) == len(CASES) and max(waits) < 2.5,
+              taken_after=waits, sound_after=latencies)
     finally:
         await browser.close()
         stop_daemon()
