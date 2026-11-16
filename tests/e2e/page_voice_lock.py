@@ -246,8 +246,8 @@ async def main() -> None:
             await page.js("closeSheet('ignoredsheet')")
             check("at Commands another voice's request reaches no session; the page shows it ignored, with its words",
                   len(st["recent"]) == sent_before and st["voice_lock"]["ignored"]["count"] >= 1
-                  and chip.endswith("ignored (not your voice)") and "release branch" in listed
-                  and not any("release branch" in l for l in log_lines("user said|ignored")),
+                  and chip.endswith("ignored (not your voice)") and "branch right now" in listed
+                  and not any("branch right now" in l for l in log_lines("user said|ignored")),
                   help=help_, recent=st["recent"][-2:], chip=chip, listed=listed[:120])
             await say(page, "What is orchard working on right now?")
             took = await until(lambda: any("orchard working on" in t.get("text", "") for t in call("/voice/status")["talk"]), 10)
