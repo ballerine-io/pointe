@@ -3654,6 +3654,28 @@ def test_a_sessions_first_answer_is_not_taken_for_its_join_turn(d, monkeypatch):
     assert not a.joining  # its next finished turn answers the user, so it is read out
 
 
+def test_the_notes_are_read_again_when_the_join_turn_ends(d, monkeypatch):
+    """From the harness matrix and the two-machine run on 1.13.2: the notes were read at register, in the middle of the
+    turn that ran /pointe:voice, and said it was unknown whether the attach command ran. The end of that turn is not read
+    out, and the notes were never read again, so every status answer said "lighthouse was asked to run the attach
+    command, but I don't know if it finished" until the session's next turn."""
+    a = add(d, "a", "lighthouse")
+    a.joining = True
+    read: list[str] = []
+
+    async def refresh(session):
+        read.append(session.name)
+
+    monkeypatch.setattr(d, "_refresh_brief", refresh)
+
+    async def run():
+        await d.feed(a, f"[lighthouse: claude-code {d.FINISHED_MARK}] Voice is on for this session.", True)
+        await asyncio.sleep(0)
+
+    asyncio.run(run())
+    assert not a.joining and read == ["lighthouse"]
+
+
 def test_status_carries_the_conversation_and_the_words_being_heard(d):
     d.state.conversation[:] = [("user", "What is billing doing?"), ("assistant", "It finished the retry fix. ")]
     d.state.hearing = (time.time(), "and tell docs to")

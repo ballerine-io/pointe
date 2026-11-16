@@ -1829,6 +1829,8 @@ async def feed(session: Session, text: str, respond: bool) -> None:
     if FINISHED_MARK in text and session.joining:
         session.joining = False  # the turn that ran /pointe:voice: the user knows, they are on the call
         logger.info(f"report for {session.name}: the join itself, not read out")
+        # The notes were read at register, mid-turn, and say the join may not have run: read them again now it has.
+        asyncio.create_task(_refresh_brief(session))
         return
     if FINISHED_MARK in text:
         state.digesting += 1
