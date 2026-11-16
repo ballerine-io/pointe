@@ -237,6 +237,14 @@ def test_nothing_is_said_ahead_to_an_acknowledgment_a_report_or_in_a_mode_with_i
     assert not [e for e in events if e[0] == "first"]
 
 
+def test_a_first_sentence_of_a_word_or_two_waits_for_the_rest(monkeypatch):
+    """From a live call: "On it." was over in half a second, the rest came 0.6 s later, and in the silence between them
+    the stand-in user took the reply for finished and spoke over the rest."""
+    b, events, _ = _streaming_brain(monkeypatch, ["Yes. Rebase your own branch, then merge it."])
+    asyncio.run(b.turn("Should I rebase before I merge?"))
+    assert events == ["model done", ("speak", "Yes. Rebase your own branch, then merge it.")]
+
+
 def test_cut_off_after_the_first_sentence_the_history_keeps_what_was_heard(monkeypatch):
     b, events, _ = _streaming_brain(monkeypatch, [TWO], interrupt_after_first=True)
     asyncio.run(b.turn("Postgres or MySQL for a small team?"))

@@ -34,6 +34,9 @@ MAX_RESULT_CHARS = 8_000  # one tool result
 STUB_CHARS = 240  # what an old feed item keeps: its first line says what arrived; the notes carry the rest
 OLD_RESULT = "[an earlier result, dropped from the history]"
 OLD_NEWS = " […cut: older news; the notes and ask_about_session have the rest]"
+# A first sentence shorter than this is not said ahead of the rest: "On it." is over in half a second, and the rest then
+# starts after a silence in which the call looks finished (the voice has stopped, the floor's breath starts).
+EARLY_MIN_WORDS = 4
 FORESEEN_SECS = 10.0  # a step started ahead of its turn (Brain.foresee) is dropped when the turn has not come by then
 FILLER_AFTER_SECS = 4.5  # silence past this says "one sec"; the model's p95 is under it, so it is rare
 STEP_TIMEOUT_SECS = 8.0  # past this the fast model answers: p95 is 2.3 s, and stalls of 20 s were seen
@@ -667,7 +670,7 @@ class Brain:
         self.stage("first_sentence")
         asked = self._asked()
         limit = self.limit(trigger, asked)
-        if limit is None or self.may_stay_silent():
+        if limit is None or self.may_stay_silent() or conversation.count_words(first) < EARLY_MIN_WORDS:
             return ""
         now = time.time()
         recent = [x for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]
