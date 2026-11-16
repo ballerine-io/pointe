@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from rig import ROOT, Browser, fresh_state, log_lines, stop_daemon  # noqa: E402
+from rig import ROOT, Browser, fresh_state, log_lines, stop_daemon, synth  # noqa: E402
 from scenarios import check, results  # noqa: E402
 
 # (first half, pause in seconds, second half, a word the answer needs from the second half)
@@ -38,6 +38,7 @@ async def main() -> None:
         await browser.connect()
         await asyncio.sleep(8)  # the greeting
         for first, pause, second, needed in CASES:
+            await synth(first), await synth(second)  # made before the pause is timed: a synthesis inside it lengthens it
             await asyncio.sleep(1)
             _, first_end = await browser.say(first)
             await asyncio.sleep(max(0.0, first_end + pause - time.time()))

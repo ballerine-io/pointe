@@ -7,6 +7,7 @@ channel is mocked.
 
 import asyncio
 import fcntl
+import hashlib
 import io
 import json
 import os
@@ -50,7 +51,7 @@ async def synth(text: str, voice: str = USER_VOICE) -> np.ndarray:
     """ElevenLabs speech for the fake user (or a meeting guest), 48 kHz int16, cached by text and voice."""
     CACHE.mkdir(parents=True, exist_ok=True)
     key = text if voice == USER_VOICE else f"{voice}:{text}"
-    path = CACHE / f"{abs(hash(key)) % 10**12}.pcm"
+    path = CACHE / f"{hashlib.sha256(key.encode()).hexdigest()[:24]}.pcm"  # not hash(): that differs in every process
     for attempt in range(4):
         if path.exists():
             break
