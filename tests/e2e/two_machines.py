@@ -595,7 +595,7 @@ async def phase_restart(b: Browser) -> Browser:
     scenario("node restart: it reconnects and every session is still on the voice", ensured.returncode == 0 and bool(up)
              and before <= after, f"{time.time() - t0:.1f} s; before={sorted(before)} after={sorted(after)}")
     t = await say(b, "Ask orchard to read its README and say its first line.")
-    got = await spoken_with(t, r"first line (is|reads)|heading", 150)  # its first line is "# orchard"; not the "on it"
+    got = await spoken_with(t, r"first line\b[^.?]*\b(is|reads)\b|heading", 150)  # "# orchard"; not the "on it"
     scenario("node restart: a send and its report still work", bool(got), got[:120])
     dupes = mirror_dupes()
     scenario("node restart: nothing appended twice to any mirror", not any(dupes.values()), json.dumps(dupes))
