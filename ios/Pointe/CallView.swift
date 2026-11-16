@@ -1427,10 +1427,13 @@ struct RequestCard: View {
     let answer: (API.Session, Bool) async -> Void
     @State private var busy = false
     @State private var answered = 0
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
+            // At the accessibility sizes the agent's badge goes under the name: beside it, a long name broke inside its words.
+            let head = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 6))
+            head {
                 Label { Text("\(who ?? session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent) }
                     .font(.brand(.headline))
                 if showAgent { AgentBadge(session: session) }

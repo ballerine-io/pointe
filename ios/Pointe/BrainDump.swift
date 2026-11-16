@@ -133,13 +133,11 @@ struct BrainDumpPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
+            HStack(spacing: 10) {  // the state line above already says "Brain dump": the title is the heading VoiceOver reads
                 Image(systemName: "brain.head.profile").font(.brand(.title2)).foregroundStyle(Brand.accent)
                     .symbolEffect(.pulse, options: .repeating)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(BrainDumpCopy.title).font(.brand(.title2, .semibold)).accessibilityIdentifier("dump.title")
-                    Text(BrainDumpCopy.lede).foregroundStyle(Brand.muted)
-                }
+                    .accessibilityLabel(BrainDumpCopy.title).accessibilityAddTraits(.isHeader).accessibilityIdentifier("dump.title")
+                Text(BrainDumpCopy.lede).foregroundStyle(Brand.muted)
             }
             ScrollViewReader { scroller in
                 ScrollView {

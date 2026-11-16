@@ -50,11 +50,12 @@ struct Bubble: View {
     let polish: Bool
     var pending = false
     var tail = true
+    @Environment(\.layoutDirection) private var direction
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
             if turn.mine { Spacer(minLength: 56) }
-            VStack(alignment: turn.mine ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: turn.mine ? Bubble.textStart(turn.text, in: direction) : .leading, spacing: 4) {
                 if turn.mine, polish, let understood = turn.understood, understood != turn.text {
                     Text(turn.text).readingDirection(of: turn.text).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                     Text(understood).readingDirection(of: understood)
@@ -67,7 +68,7 @@ struct Bubble: View {
             }
             .font(.brand(.body))
             .lineSpacing(2)
-            .multilineTextAlignment(turn.mine ? .trailing : .leading)
+            .multilineTextAlignment(.leading)  // your bubble sits at the right; its lines start where the text reads from
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .background(turn.mine ? Brand.raised : Brand.card, in: shape)
@@ -79,6 +80,12 @@ struct Bubble: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel((turn.mine ? "You: " : "Pointe: ") + (turn.understood ?? turn.text))
         .accessibilityHint(turn.mine ? "Double-tap to fix what was heard" : "")
+    }
+
+    /// Where a text's lines start inside a bubble, on a screen laid out in `direction`: English on the left, Hebrew on the
+    /// right, whichever side the bubble is on.
+    static func textStart(_ text: String, in direction: LayoutDirection) -> HorizontalAlignment {
+        TextDirection.of(text) == direction ? .leading : .trailing
     }
 
     private var shape: UnevenRoundedRectangle {
@@ -104,6 +111,7 @@ struct LiveBubble: View {
     let text: String
     var large = false
     var draft: String? = nil
+    @Environment(\.layoutDirection) private var direction
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
@@ -111,7 +119,7 @@ struct LiveBubble: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: "waveform").font(.brand(.callout)).foregroundStyle(Brand.accent)
                     .symbolEffect(.variableColor.iterative, options: .repeating)
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: Bubble.textStart(text, in: direction), spacing: 2) {
                     if let draft {
                         Text(draft).font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
                             .accessibilityIdentifier("talkDraft")
@@ -120,7 +128,7 @@ struct LiveBubble: View {
                         .readingDirection(of: text)
                         .font(large ? .brand(.title2) : .brand(.body, .medium))  // the brand has no italic: a draft is muted
                         .foregroundStyle(draft != nil ? AnyShapeStyle(Brand.muted) : AnyShapeStyle(.primary))
-                        .multilineTextAlignment(.trailing)
+                        .multilineTextAlignment(.leading)
                         .contentTransition(.interpolate)
                         .animation(.easeOut(duration: 0.12), value: text)
                 }

@@ -100,6 +100,11 @@ struct BottomBar: View {
 
 /// What sits under a call: the cards that need you over the bar. The cards take what they need; when the keyboard, a
 /// small screen or large type leaves less than that, they scroll inside the dock and the bar stays whole.
+extension EnvironmentValues {
+    /// The height the dock leaves its cards above the bar: a card that would not fit can fold itself.
+    @Entry var dockRoom: CGFloat = .infinity
+}
+
 struct Dock<Cards: View, Bar: View>: View {
     var limit: CGFloat = .infinity
     @ViewBuilder var cards: Cards
@@ -110,6 +115,7 @@ struct Dock<Cards: View, Bar: View>: View {
         VStack(spacing: 10) {
             FitScroll(limit: limit - barHeight - 10) {
                 VStack(spacing: 10) { cards }.padding(1)  // a card's hairline is on its edge: keep it inside what is clipped
+                    .environment(\.dockRoom, limit - barHeight - 10)
             }
             .padding(-1)
             VStack(spacing: 10) { bar }

@@ -59,6 +59,15 @@ final class WhisperTests: XCTestCase {
         XCTAssertTrue(follow.follow(try status(#"{"on": true}"#)), "drive mode ended: whisper mode applies again")
     }
 
+    /// Folded to its title when the dock leaves less than the whole card; whole again when asked, or when the room is back.
+    func testTheCardFoldsOnlyWhenItWouldNotFit() {
+        XCTAssertTrue(WhisperCopy.folds(room: 40, whole: 150, asked: false), "an iPhone SE with the keyboard up")
+        XCTAssertFalse(WhisperCopy.folds(room: 40, whole: 150, asked: true), "Show notes was tapped")
+        XCTAssertFalse(WhisperCopy.folds(room: 400, whole: 150, asked: false), "room for all of it")
+        XCTAssertFalse(WhisperCopy.folds(room: .infinity, whole: 150, asked: false), "no dock limit")
+        XCTAssertFalse(WhisperCopy.folds(room: 40, whole: 0, asked: false), "not measured yet: whole")
+    }
+
     /// The page and the app say the same thing (docs/design/2026-11-feature-plan.md: parity).
     func testTheCopyIsThePagesWordForWord() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

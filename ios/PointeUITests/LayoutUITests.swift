@@ -139,7 +139,18 @@ final class LayoutUITests: XCTestCase {
                       "the title by its identifier: \(title.exists ? title.label : "missing")")
         XCTAssertTrue(app.staticTexts["connectWhy"].label.hasPrefix("Can't reach your Mac at 127.0.0.1"))
         XCTAssertEqual(app.buttons["connectButton"].label, "Try again")
+        XCTAssertEqual(app.staticTexts["connectHint"].label, "Once connected, tap the keyboard to type", "the type bar is behind the keyboard button")
         XCTAssertTrue(app.scrollViews["conversation"].exists, "the conversation keeps its own")
+    }
+
+    /// At the accessibility sizes the request card's agent badge sits under the session's name, which gets the whole
+    /// width: beside it, a long name broke inside its words (docs/design/ux-review-ios.md, C7).
+    func testALongNameOnTheRequestCardHasTheCardsWidthAtTheLargestType() {
+        let app = launch("longNames", ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
+        let name = text(app, "idempotency-keys-for-refunds needs approval")
+        let badge = app.descendants(matching: .any)["runs on Codex"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 10) && badge.exists, "the card and its badge")
+        XCTAssertGreaterThanOrEqual(badge.frame.minY, name.frame.maxY - 1, "the badge is under the name, not beside it")
     }
 
     /// The header's round buttons are drawn at 36 points and take a 44-point touch: a tap just off the circle still lands.
