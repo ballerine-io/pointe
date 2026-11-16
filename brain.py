@@ -148,8 +148,8 @@ class Brain:
         self._user_turns = 0  # turns on the user's own words, started and not finished
         self._after_user: list[tuple[str, bool]] = []  # session news that arrived meanwhile: (text, needs a reply)
         self._trigger = ""  # what started the turn now running: the user's words, or a bracketed line from the daemon
-        self._view = 0  # where the history ended, for the step now with the model: the newest message is what it answers
-        self._answered = 0  # the same, for the last step whose reply was spoken
+        self._view: dict | None = None  # the newest message in the history the step now with the model read: what it answers
+        self._answered: dict | None = None  # the same, for the last step whose reply was spoken
 
     def append(self, text: str) -> None:
         if not (text and text.strip()):
@@ -332,13 +332,14 @@ class Brain:
         if user:
             self._user_turns += 1
         try:
+            before = len(self.messages)
             if text is not None:
                 self.append(text)
-            mark = len(self.messages)
+            mine = self.messages[-1] if len(self.messages) > before else None  # None: it waits behind a running tool
             async with self._lock:
                 if generation != self._generation:
                     return  # the words stay in the history; the turn that follows answers them
-                if text is not None and not user and mark == self._answered:
+                if mine is not None and not user and mine is self._answered:
                     # Two lines from the daemon back to back (the opening, then "your brain dump is still here"): the
                     # first turn's step read the history with this line as its newest message, and its reply was spoken.
                     logger.info(f"turn skipped, the reply before it already answered this: {text[:80]!r}")
@@ -494,8 +495,7 @@ class Brain:
 
         async def read(choice: str) -> vendors.Step:
             # Noted when the step reads the history, not when it was asked for: a line appended in between is in its view.
-            self._view = next((i + 1 for i in range(len(self.messages) - 1, -1, -1) if self.messages[i]["role"] == "user"
-                               and self.messages[i]["content"] != self._given), 0)
+            self._view = next((m for m in reversed(self.messages) if m["role"] == "user" and m["content"] != self._given), None)
             return await vendors.step(choice, self.instructions, self.messages, decls)
 
         for choice in choices:
