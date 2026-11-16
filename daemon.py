@@ -4132,13 +4132,15 @@ async def _send_now(message: str) -> dict:
         relevant = None if None in checks else bool(fits)
         clause = next((i for i in fits if i in _used_clauses()), fits[0] if fits else None)
     else:
-        relevant = await _is_current_request(message, state.last_utterance, earlier, talk)
+        relevant = await _is_current_request(message, state.last_utterance, earlier, talk,
+                                             parts[clause] if clause is not None else None)
+    asked_part = parts[clause] if parts and clause is not None else state.last_utterance
     if relevant is False:
         # The fast model refuses some plain requests at random (about 2 runs in 6 for "ask Claude Code what the launch date in
         # the notes is"), and it misreads translations: a refusal gets a second, slower reading before the user hears it.
         try:
             second = await asyncio.wait_for(vendors.text(
-                setup().reader, f"The user said: {state.last_utterance!r}\nProposed instruction to a coding agent: "
+                setup().reader, f"The user said: {asked_part!r}\nProposed instruction to a coding agent: "
                 f"{message!r}\nDoes it carry what they asked? Rewording, translating, dropping who it is for ('ask Claude Code "
                 f"to ...'), and spelling out how to report the same result ('with a short summary of why') count as carrying "
                 f"it. A different action, target, condition or decision does not. Answer yes or no."), REPORT_TIMEOUT_SECS)
@@ -4344,7 +4346,7 @@ async def _dispatch(target: Session, message: str) -> bool:
 
 
 async def _is_current_request(message: str, utterance: str, earlier: list[str],
-                              conversation: list[tuple[str, str]] = ()) -> bool | None:
+                              conversation: list[tuple[str, str]] = (), part: str | None = None) -> bool | None:
     """A fast model checks the instruction carries the user's latest words, not an earlier request.
 
     It sees the conversation before those words: "both" or "so do it" only means something next to
@@ -4356,7 +4358,9 @@ async def _is_current_request(message: str, utterance: str, earlier: list[str],
     whole_utterance = utterance
     parts = clauses(utterance)
     overlap = [len(content_words(message) & content_words(p)) for p in parts]
-    if len(parts) > 1 and max(overlap) and overlap.count(max(overlap)) == 1:  # a tie is no evidence: keep it all
+    if part:  # the caller settled which clause this carries (a tie broken by the session it goes to)
+        utterance = part
+    elif len(parts) > 1 and max(overlap) and overlap.count(max(overlap)) == 1:  # a tie is no evidence: keep it all
         utterance = parts[overlap.index(max(overlap))]
     talk = "\n".join(f"{who}: {text.strip()[-400:]}" for who, text in conversation[-20:]) or "(none)"
     whole = f"The whole of what they just said, for context: {whole_utterance!r}\n" if whole_utterance != utterance else ""

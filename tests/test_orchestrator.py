@@ -3989,6 +3989,33 @@ def test_two_sessions_in_one_breath_with_near_identical_orders_both_go_out(d, mo
     assert [name for name, _ in sent] == ["lighthouse", "harbor"]
 
 
+def test_the_relevance_check_reads_the_clause_a_tied_message_was_matched_to(d, monkeypatch):
+    """From the harness matrix on 1.13.2: the same two orders, and "Run: touch both-a.txt" to lighthouse was refused as
+    not asked. The clause was settled (the one naming lighthouse), but the checker, and the slower second reading after
+    it, were shown both orders, and judged that half of them was not what the user asked."""
+    import re as _re
+
+    a, b = add(d, "a", "lighthouse"), add(d, "b", "harbor")
+    d.REGISTRY.active_id = a.id
+    sent = record_dispatch(d, monkeypatch)
+    check = d._is_current_request
+    _gates_open(d, monkeypatch, "Tell lighthouse to run touch both-a.txt, and tell harbor to run touch both-b.txt.")
+    monkeypatch.setattr(d, "_is_current_request", check)
+    shown = []
+
+    async def text(choice, prompt, **_k):
+        said = (_re.search(r"(?:User's latest words|The user said): '([^']*)'", prompt) or [None, ""])[1].lower()
+        shown.append(said)
+        return "no" if "lighthouse" in said and "harbor" in said else "yes"  # half of two orders is "not asked"
+
+    monkeypatch.setattr(d.vendors, "text", text)
+    d.state.brain_target = "lighthouse"
+    assert asyncio.run(d._send("Run: touch both-a.txt"))["sent_to"] == ["lighthouse"], shown
+    d.state.brain_target = "harbor"
+    assert asyncio.run(d._send("Run: touch both-b.txt"))["sent_to"] == ["harbor"], shown
+    assert [name for name, _ in sent] == ["lighthouse", "harbor"]
+
+
 def test_a_switch_followed_at_once_by_another_sentence_still_switches(d, monkeypatch):
     """From the harness matrix: "Switch to Lighthouse." then a second sentence a second later; the switch was refused."""
     a, b = add(d, "a", "alpha"), add(d, "b", "lighthouse")
