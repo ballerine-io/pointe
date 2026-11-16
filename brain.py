@@ -147,6 +147,7 @@ class Brain:
         self._generation = 0  # moves on when the user talks: a turn from an older one must not speak
         self._user_turns = 0  # turns on the user's own words, started and not finished
         self._after_user: list[tuple[str, bool]] = []  # session news that arrived meanwhile: (text, needs a reply)
+        self._trigger = ""  # what started the turn now running: the user's words, or a bracketed line from the daemon
         self._view = 0  # where the history ended, for the step now with the model: the newest message is what it answers
         self._answered = 0  # the same, for the last step whose reply was spoken
 
@@ -209,7 +210,10 @@ class Brain:
         wrong_language = self.language_problem(said)
         if wrong_language:
             return wrong_language
-        if self.permission_pending() and _CLAIMS_ANSWERED.search(lowered):
+        # Not on the turn that confirms an answer ("[permission answered]"): the session may have asked for the next thing
+        # already, and "approved" is then true of the one just answered.
+        confirming = self._trigger.lstrip().startswith("[permission answered]")
+        if self.permission_pending() and not confirming and _CLAIMS_ANSWERED.search(lowered):
             return "That has not happened. Only a [permission answered] message says it was answered. Put the question again."
         needs = self.has_open()
         if needs and _CLAIMS_CLEAR.search(lowered):
@@ -364,6 +368,7 @@ class Brain:
         decls = [SPEAK] + [{"name": t.name, "description": t.description, "properties": t.properties,
                             "required": t.required} for t in self.tools]
         sent, retries, filled, refused, shortened = False, 0, not user, False, False
+        self._trigger = trigger or ""
         own_words = trigger is not None and not trigger.lstrip().startswith("[")  # not a report, a click or a mode's line
         ahead_checked = not own_words
         for _ in range(MAX_STEPS):

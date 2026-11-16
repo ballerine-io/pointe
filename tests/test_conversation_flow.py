@@ -764,6 +764,30 @@ def test_a_request_is_read_out_once_and_not_by_a_mode_that_does_not_read_out(cal
     asyncio.run(run())
 
 
+# ---------- "approved" about the request just answered, with the next one already waiting ----------
+# From a live call (tests/e2e/whisper.py): the user approved one request and the session asked for the next a second
+# later. The reply to "[permission answered]" ("Approved, it's running.") was refused as a false claim, because a
+# request was pending again, and the refusal told the model to "put the question again". It did, in its own words,
+# before the daemon had read that request out: the user's "no" to it counted for nothing, and the model's question
+# held the floor, so the real read-out waited twenty seconds more.
+
+ANSWERED = "[permission answered] The user approved it. Acknowledge in two or three words."
+
+
+def test_the_reply_to_permission_answered_may_say_so_though_the_next_request_is_already_pending(monkeypatch):
+    b, spoken, steps = _brain(monkeypatch, ["Approved, it's running."])
+    b.permission_pending = lambda: True  # the session asked again in the meantime
+    asyncio.run(b.turn(ANSWERED))
+    assert spoken == ["Approved, it's running."] and len(steps) == 1
+
+
+def test_a_claim_that_a_pending_request_was_answered_is_still_refused_on_any_other_turn(monkeypatch):
+    b, spoken, steps = _brain(monkeypatch, ["Approved, it's running.", "It still waits for your yes or no."])
+    b.permission_pending = lambda: True
+    asyncio.run(b.turn("Go on then."))
+    assert spoken == ["It still waits for your yes or no."] and len(steps) == 2
+
+
 # ---------- one line, one reply ----------
 # From a live call (tests/e2e/page_conversation.py): a call that connects with a brain dump waiting said "Your brain dump
 # is still here: you can send it, add more, or discard it. Your brain dump is still here." The opening turn and the
