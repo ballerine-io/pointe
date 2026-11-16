@@ -335,7 +335,7 @@ kept busy: read the numbers with the load.
 | Stage (median, p90 in seconds) | Before (12 turns, load 6 to 9) | After (24 turns, load 4.2 rising to 7.6) |
 |---|---|---|
 | Ears: last word to final transcript | 0.39, 0.47 | 0.46, 0.52 |
-| The turn is taken, after the last word | 1.30, 1.47 | 1.08, 1.11 |
+| The turn is taken, after the last word | 1.32, 1.38 | 1.08, 1.10 |
 | Model request sent, relative to the turn | at it | 0.62 before it, 0.53 |
 | Model: request to first token | not seen (whole reply 1.29, 1.58) | 0.74, 0.82 |
 | Model: first token to the sentence said ahead | | 0.27, 0.37 (14 of 24 replies) |
@@ -367,8 +367,9 @@ What changed, largest first:
   live run: what is said ahead holds at least four words (the first two sentences when the first is "Yes." or "On
   it.": alone it ends in half a second and the call looks finished before the rest starts); it takes at most two
   thirds of the reply's words (a 22-word first half of an answer left no room for the second half); and when it
-  already fills the limit, a reply that is too long is cut and not sent back. The pause between the two parts is the
-  voice's own sentence pause: 0.4 to 0.9 s inside one request, 0.5 s at the join (six replies measured).
+  already fills the limit, a reply that is too long is cut and not sent back. The pause between the two parts is like the
+  voice's own sentence pauses: in six replies measured, five of them in two parts, no pause was over 0.9 s, and the
+  reply in one part had pauses up to 0.56 s.
 - **The settle counts the user's silence** (`SonioxEars._quiet_since`; `turn-taking.md` §3.1). It counted from stamps
   that arrive late by design, so a 1.0 s settle took the turn 1.3 s after the last word.
 
