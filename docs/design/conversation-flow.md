@@ -267,3 +267,32 @@ How often a reply needs the retry or the cut on real calls is not measured yet: 
 - Not run: the paid end-to-end calls in `tests/e2e/` (they need every vendor's key and real sessions).
 - Not measured yet: the live rate of length retries after the new prompt, and whether 5 s and 20 s feel right in use.
   The simulator and the log scripts' counts are the baseline to compare the next calls against.
+
+## 6. After a live pass (1.13.3)
+
+`tests/e2e/page_conversation.py` now runs these rules on a real call (a stand-in user's synthetic speech, two synthetic
+sessions, the page in a headless Chrome). Its first runs found four ways the rules above were still broken, each fixed
+with a test in `tests/test_conversation_flow.py` or `tests/test_orchestrator.py`:
+
+- **News told early, then again.** The brain is told each session's state before every reply, so a reply to "what is a
+  good name for that tag?" opened with two results that were still queued (§3.3), and the queue said them again five
+  seconds later. A reply to the user's own words that names a session whose report is queued is sent back once, with
+  the reason (`daemon._news_ahead`, `Brain.news_ahead`). Not when the user's words name that session or ask where
+  things stand. Whether the words ask about that work is the model's call on the retry, as with length.
+- **One line, two replies.** Two lines from the daemon back to back (the opening, then "your brain dump is still here")
+  were answered twice: the first turn's step read the history with the second line as its newest message. A daemon
+  line that was the newest message of a step whose reply was spoken gets no turn of its own (`Brain._view`,
+  `Brain._answered`).
+- **A read-back cut at thirty words.** "[read the brain dump back]" was not in the list of turns said at length.
+- **"Approved" refused as a false claim.** The reply to `[permission answered]` was refused when the session had
+  already asked for the next thing, and the refusal's "put the question again" made the model ask it before the daemon
+  had read it out: the answer counted for nothing and the question held the floor for twenty seconds. The turn that
+  confirms an answer may say so.
+
+Also from that pass: a yes is timed by its own words (Soniox times each word; `state.words_began_at`), not by the voice
+detector's last start, which also fires on the bot's echo and does not fire on a whisper; and a call start lists the
+sessions' repositories off the loop.
+
+Seen and left as designed: a reply over its limit costs one more model step (about a second) before the first word; in
+this pass's logs, 21 of 200 spoken lines. `tests/e2e/turn_taking.py` judges when the turn is taken, and prints the
+time to the first sound.
