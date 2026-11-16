@@ -782,6 +782,58 @@ def test_a_request_is_read_out_once_and_not_by_a_mode_that_does_not_read_out(cal
     asyncio.run(run())
 
 
+# ---------- two sessions disagree: said alone, never folded into "N updates" ----------
+# From a live call (tests/e2e/page_conflict.py): the two reports that disagreed and the alarm about them were queued
+# behind the greeting and came out as one batched line under the batch's limit, "Lantern says the migration passed on
+# staging. Ask lantern to check?": billing's claim, the other half of the alarm, was never said.
+
+CLASH = ("[two sessions disagree] billing said: \"the migration passed on staging\". Moments later, docs said: \"the test on "
+         "the new column failed\". In English, in at most three short sentences: say both claims with their sessions.")
+
+
+def test_a_conflict_alarm_gets_room_for_both_claims():
+    assert cv.limit_for(CLASH, "") is cv.URGENT_REPORT and cv.said_alone(CLASH) and not cv.said_alone(REPORT_DOCS)
+
+
+def test_on_the_call_a_conflict_is_said_alone_and_first_and_the_reports_it_is_about_are_not_said_again(call):
+    d = call.d  # noqa: F811
+
+    async def run():
+        injector = call.start()
+        noted = []
+
+        async def push(frame, direction=None):
+            from pipecat.frames.frames import InputTextRawFrame, LLMMessagesAppendFrame
+
+            if isinstance(frame, InputTextRawFrame):
+                call.asked.append((time.time(), frame.text))
+            elif isinstance(frame, LLMMessagesAppendFrame):
+                noted.append(frame.messages[0]["content"])
+
+        injector.push_frame = push
+        d.state.floor.user_started(time.time())  # the user is talking: everything waits
+        for text in (REPORT_BILLING, REPORT_DOCS, REPORT_SEARCH, CLASH):
+            await injector.inject(text, True)
+        assert call.asked == [] and injector.queued == 4
+        d.state.floor.user_stopped(time.time())
+        d.state.floor.user_turn(time.time())
+        await call.bot("Noted.")
+        for _ in range(100):
+            if call.asked:
+                break
+            await asyncio.sleep(0.02)
+        assert [text for _, text in call.asked] == [CLASH]  # alone: its own turn, its own three sentences
+        assert injector.queued == 1 and injector.queued_reports() == ["search"]  # the one it is not about still waits
+        kept = [n for n in noted if "billing" in n or "docs" in n]
+        assert len(kept) == 2 and all("say nothing" in n for n in kept)  # known for a follow-up, not said twice
+        assert any("all checks pass" in n for n in kept) and any("changelog" in n for n in kept)
+        await call.bot("Billing says the migration passed; docs says the test failed.")  # no question: the gap comes
+        await asyncio.sleep(1.0)
+        assert [text for _, text in call.asked][1:] == [REPORT_SEARCH] and not injector.queued
+
+    asyncio.run(run())
+
+
 # ---------- "approved" about the request just answered, with the next one already waiting ----------
 # From a live call (tests/e2e/whisper.py): the user approved one request and the session asked for the next a second
 # later. The reply to "[permission answered]" ("Approved, it's running.") was refused as a false claim, because a

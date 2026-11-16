@@ -695,6 +695,21 @@ class FeedInjector(FrameProcessor):
         items = [text for text in self._updates.take() if not self._parked(text)]
         if not items:
             return True
+        alone = next((text for text in items if flow.said_alone(text)), None)
+        if alone is not None and len(items) > 1:
+            # Two sessions disagree: said by itself, first. The reports it is about are in it already, so they are kept
+            # for the brain and not said again; anything else goes back in the queue for the next gap.
+            for text in items:
+                name = _report_of(text)
+                if text is alone:
+                    continue
+                if name and f"{name} said:" in alone:
+                    await self.push_frame(LLMMessagesAppendFrame([{"role": "user", "content": (
+                        f"[{name}'s report, told to the user in the conflict that follows: keep this in mind, say nothing]\n"
+                        f"{text.split(chr(10), 1)[-1]}")}], run_llm=False))
+                else:
+                    self._updates.add(text, key=name)
+            items = [alone]
         self._offered, self._offered_at = items, time.time()
         if len(items) == 1:
             await self._respond(items[0])

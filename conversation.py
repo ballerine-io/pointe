@@ -76,7 +76,7 @@ def limit_for(trigger: str | None, asked: str, status: bool = False, drive_words
         if is_update(trigger):
             if "answered the user's question" in trigger and wants_detail(asked):
                 return DETAIL
-            return URGENT_REPORT if "and this is urgent]" in trigger else REPORT
+            return URGENT_REPORT if "and this is urgent]" in trigger or said_alone(trigger) else REPORT
         return STATUS if trigger.startswith("[voice connected]") else REPLY
     if wants_detail(asked):
         return DETAIL
@@ -213,6 +213,12 @@ def is_update(text: str) -> bool:
     something the user just did (a briefing they asked for, their answer to a permission, a click) is not one."""
     text = text.lstrip()
     return bool(_UPDATE.match(text)) and "keep this in mind, say nothing" not in text[:200]
+
+
+def said_alone(text: str) -> bool:
+    """An update that is never folded into "N updates": two sessions that disagree. Its whole point is both claims, side
+    by side, and a batch's one line has no room for them."""
+    return text.lstrip().startswith("[two sessions disagree")
 
 
 def priority(text: str) -> int:
