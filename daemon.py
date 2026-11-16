@@ -3250,8 +3250,13 @@ async def _on_meeting_reconnect() -> None:
     m = state.meeting
     if m is None:
         return
-    for turn in m.stream_restarted():
+    labelled = m.owner is not None or m.bot is not None
+    closed = m.stream_restarted()
+    heard = bool(closed or m.turns or labelled)
+    for turn in closed:
         await _on_meeting_turn(m, turn)
+    if not heard:
+        return  # nobody had spoken on the old stream: no label is lost, and a note would open the meeting with a riddle
     NOTES.add("thought", "The meeting's audio stream reconnected, so speakers are labelled afresh. Say “Pointe, that's me” "
                          "to be the owner again.", dedup=False)
 

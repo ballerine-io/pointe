@@ -274,3 +274,26 @@ def test_participants_words_never_reach_the_log(d, monkeypatch, capfd):
     finally:
         logger.remove(sink)
     assert not any("Quillfox" in line or "send this to everyone" in line for line in lines)
+
+
+# ---------- the stream reconnects before anyone was heard ----------
+
+def test_a_stream_that_reconnects_before_anyone_spoke_leaves_no_note(d):
+    """From a live run (tests/e2e/page_meeting_qa.py): a meeting started right after another was discarded; its stream
+    dropped and came back inside two seconds, and the new meeting opened with "The meeting's audio stream reconnected, so
+    speakers are labelled afresh. Say “Pointe, that's me” to be the owner again." Nobody had been labelled yet."""
+    import meeting as meetings
+
+    d.NOTES.clear()
+    d.state.meeting = m = meetings.Meeting(mode="listening", vendors={})
+    try:
+        asyncio.run(d._on_meeting_reconnect())
+        assert not d.NOTES.items  # nothing was labelled: nothing to say
+        m.hear([{"text": " hello everyone", "speaker": "1", "is_final": True, "start_ms": 5000, "end_ms": 5800}], now=10)
+        m.tick(now=20)
+        m.owner = "1"
+        asyncio.run(d._on_meeting_reconnect())
+        assert m.owner is None and any("labelled afresh" in n.text for n in d.NOTES.items)  # now it matters: said
+    finally:
+        d.state.meeting = None
+        d.NOTES.clear()
