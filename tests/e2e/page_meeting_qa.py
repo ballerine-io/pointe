@@ -127,7 +127,10 @@ async def main() -> None:
             # ---- keyboard only: Settings, then the start sheet ----
             await page.js("document.getElementById('settingsbtn').focus()")
             await key(page, "Enter")
-            first = await page.until("document.getElementById('settingssheet').classList.contains('open') && document.activeElement.id", 4)
+            # Focus lands on the sheet's first control, whichever that is (the sheet has changed since "pref-mode" was first).
+            first = await page.until("document.getElementById('settingssheet').classList.contains('open') && "
+                                     "document.getElementById('settingssheet').contains(document.activeElement) && "
+                                     "(document.activeElement.id || document.activeElement.textContent.trim().slice(0, 30) || document.activeElement.tagName)", 4)
             stays = True
             for _ in range(8):
                 await key(page, "Tab")
@@ -138,7 +141,7 @@ async def main() -> None:
             back = await focused(page)
             closed = not await page.js("document.getElementById('settingssheet').classList.contains('open')")
             check("keyboard: Settings opens on Enter with focus inside, Tab stays inside, Escape closes and focus returns",
-                  first == "pref-mode" and stays and closed and back == "settingsbtn", first=first, stays=stays, back=back)
+                  bool(first) and stays and closed and back == "settingsbtn", first=first, stays=stays, back=back)
 
             await page.js("document.getElementById('meetbtn').focus()")
             await key(page, "Enter")
