@@ -389,6 +389,24 @@ def test_these_get_the_short_limit(asked):
     assert not cv.wants_detail(asked) and cv.limit_for(asked, asked) is cv.REPLY
 
 
+@pytest.mark.parametrize("asked", [
+    "Tell me a story about a lighthouse keeper, about 8 sentences long.", "Tell me another long story, about a sailor, ten sentences.",
+    "Give me the long version.", "Answer at length this time.", "Explain it in three paragraphs", "a longer answer please",
+    "ספר לי סיפור ארוך על שומר מגדלור", "תענה בשמונה משפטים", "תסביר באריכות",
+])
+def test_a_length_the_user_asked_for_is_asking_for_more(asked):
+    """From a live run (tests/e2e/echo.py): "a story … about 8 sentences long" got two sentences and "Want the rest?"."""
+    assert cv.wants_detail(asked) and cv.limit_for(asked, asked) is cv.DETAIL
+
+
+@pytest.mark.parametrize("asked", [
+    "how long will the migration take", "it took a long time", "is the sentence finished", "that was two sentences ago",
+    "כמה זמן זה ייקח", "זה לקח הרבה זמן",
+])
+def test_talk_about_length_is_not_asking_for_it(asked):
+    assert not cv.wants_detail(asked)
+
+
 def test_the_limit_follows_what_started_the_turn():
     assert cv.limit_for(REPORT_BILLING, "tell me more") is cv.REPORT  # a report is not the answer to "tell me more"
     assert cv.limit_for("[search finished its turn, not the active session, and this is urgent] Say this", "") is cv.URGENT_REPORT

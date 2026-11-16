@@ -28,9 +28,13 @@ _DETAIL = re.compile(
     r"\b(?:tell me more|say more|more (?:detail|details|about|on)|in (?:detail|depth|full)|details?|elaborate|expand(?: on)?|"
     r"explain|walk me through|go deeper|break it down|step by step|what exactly|"
     r"the (?:full|whole|entire|complete) (?:thing|story|report|list|message|answer|picture)|read (?:it|that|them|me)\b|"
-    r"everything|all of (?:it|them)|list (?:them|all|every)|the rest|go on|keep going|continue|longer)\b|^\W*more\W*$|"
+    r"everything|all of (?:it|them)|list (?:them|all|every)|the rest|go on|keep going|continue|longer|at length|"
+    # a length they asked for: "about 8 sentences long", "ten sentences", "three paragraphs", "the long version", "a long story"
+    r"(?:in |about |around )?(?:\d+|two|three|four|five|six|seven|eight|nine|ten|twelve|a few|several) (?:sentences|paragraphs)(?! ago)|"
+    r"(?:a|an|the|another) long(?:er)? (?:story|version|answer|explanation|one))\b|^\W*more\W*$|"
     r"(?<![֐-׿])(?:תפרטי?|פרטי?|בפירוט|תרחיבי?|הרחב|בהרחבה|תסבירי?|הסבר|ספרי? לי עוד|עוד פרטים|תקריאי?|"
-    r"מה בדיוק|צעד[- ]צעד|את הכל|הכל|את כולם|את השאר|תמשיך|תמשיכי|המשך|עוד)(?![֐-׿])", re.I)
+    r"מה בדיוק|צעד[- ]צעד|את הכל|הכל|את כולם|את השאר|תמשיך|תמשיכי|המשך|עוד|באריכות|סיפור ארוך|תשובה ארוכה|"
+    r"הסבר ארוך|גרסה ארוכה|ב?\S+ משפטים|ב?\S+ פסקאות)(?![֐-׿])", re.I)
 # Speech the user asked for at length, or that the daemon wrote word for word: never shortened.
 _AT_LENGTH = ("[briefing", "[the user thought out loud", "[brain dump", "[read the brain dump back", "[challenge", "[meeting", "[switched by click]")
 MORE_EN, MORE_HE = "There's more if you want it.", "יש עוד, אם תרצה."
