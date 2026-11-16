@@ -16,6 +16,7 @@ LATE_ECHO_SECS = 8.0  # a final transcript can trail by this much; only a run of
 BOT_MEMORY_SECS = 30.0
 MIRROR_RECENT_SECS = 12.0  # the mirror trails the audio by a few seconds at most
 AUDIO_TAIL_SECS = 1.0  # words said up to this long after the bot stopped can hold its voice: playback buffers, the room
+BOT_SENTENCE_WORDS = 4  # whole sentences of the bot's at the start of the user's transcript are taken off from this many words
 PLAYBACK_LAG_SECS = 0.3  # the speakers play the bot's last word up to this long after it stopped sending audio
 REPLY_GAP_SECS = 1.0  # the voice stopping for less than this is one reply going on, not a new one
 CHARS_PER_SEC = 15.5  # the bot's pace over whole turns (rig, 2026-11): where in its text it was at a given moment
@@ -299,10 +300,29 @@ class EchoGuard:
         if not any(mask):
             return text
         if (not was_live and rest) or (not self.speaking and len(rest) >= 2):
-            return text  # the bot has stopped: words of the user's mean it is all theirs, common word pairs included
+            # the bot has stopped: words of the user's mean it is all theirs, common word pairs included; except whole
+            # sentences of the bot's that came back off the speakers before them, in the same transcript
+            return self._after_bot_sentences(text, heard, mask)
         if not rest or (len(rest) == 1 and rest[0] not in INTERRUPT_WORDS):
             return ""  # one stray word inside an echo is a mishearing, not the user
         return " ".join(rest)
+
+    @staticmethod
+    def _after_bot_sentences(text: str, heard: list[str], mask: list[bool]) -> str:
+        """The transcript without the whole sentences at its start that are the bot's, word for word by the mask
+        (BOT_SENTENCE_WORDS or more in all): its voice off the speakers, with the user's words right behind in one
+        final. Whole sentences only, and only at the start: the mask is fuzzy, and a cut inside a sentence could take the
+        user's own words. Anything that does not line up leaves the text as it is."""
+        parts = re.findall(r"\S.*?(?:[.!?…]+(?=\s|$)|$)", text, re.S)
+        counts = [len(words(part)) for part in parts]
+        if sum(counts) != len(heard) or len(parts) < 2:
+            return text
+        at = taken = 0
+        for n in counts[:-1]:  # never the last: something of the user's is in there
+            if not n or not all(mask[at:at + n]):
+                break
+            at, taken = at + n, taken + 1
+        return " ".join(parts[taken:]).strip() if at >= BOT_SENTENCE_WORDS else text
 
     def _said_then(self, heard: list[str], spoken: tuple[float, float] | None, over_words: bool) -> tuple[list[str], ...] | None:
         """For one or two words said over the bot: only what the mirror heard it say from then on. Against two whole turns,

@@ -52,3 +52,41 @@ def test_text_queued_behind_another_sentence_is_the_bots(clock):
     clock[0] = 1045.1  # Soniox's final, 3 s after the bot stopped
     said = "Echo wants to write scratch.txt, should it? Claude wants to write the empty scratch file, should it?"
     assert g.user_part(said, spoken=(1031.6, 1041.9)) == ""
+
+
+# From a live call at rig echo 0.3 (tests/e2e/page_conversation.py): the bot announced a session, the user started a brain
+# dump as it ended, and Soniox gave one final holding the whole announcement and then the user's thought. The bot had
+# stopped and the thought was the user's, so all of it was taken as theirs: the reviewed prompt read "Context: I'm now in
+# Session Lantern. It's not waiting on anything. …", and the voice asked whether to send it.
+
+ANNOUNCED = ("I'm now in session lantern. It's not waiting on anything. Last state: No work is recorded for this session "
+             "yet. There is nothing done, in progress, failed, or blocked.")
+HEARD_BACK = ("I'm now in Session Lantern. It's not waiting on anything. Last state: no work is recorded for this session "
+              "yet. There is nothing done, in progress, failed, or blocked.")
+THOUGHT = "Ask billing to re-run the invoice check for April."
+
+
+def _announced(clock) -> EchoGuard:
+    g = EchoGuard()
+    clock[0] = 1012.0
+    g.bot_said(ANNOUNCED)
+    g.bot_started()
+    clock[0] = 1023.0
+    g.mirror_heard(HEARD_BACK, "")
+    g.bot_stopped()
+    return g
+
+
+def test_the_bots_whole_sentences_before_the_users_words_are_not_the_users(clock):
+    g = _announced(clock)
+    clock[0] = 1028.0  # the final: the announcement off the speakers, then the user's thought, as one transcript
+    assert g.user_part(f"{HEARD_BACK} {THOUGHT}", spoken=(1012.5, 1027.5)) == THOUGHT
+
+
+def test_a_sentence_the_user_adds_to_stays_whole_and_so_does_a_short_overlap(clock):
+    g = _announced(clock)
+    clock[0] = 1028.0
+    # not one whole sentence of the bot's before their words: nothing is taken off (the mask is fuzzy; a cut could eat theirs)
+    assert g.user_part("It's not waiting on anything, but ask billing anyway.", spoken=(1024.0, 1027.5)) \
+        == "It's not waiting on anything, but ask billing anyway."
+    assert g.user_part(f"Or blocked. {THOUGHT}", spoken=(1022.5, 1027.5)) == f"Or blocked. {THOUGHT}"  # two words: too few
