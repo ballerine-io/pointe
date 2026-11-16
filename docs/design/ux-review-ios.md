@@ -76,14 +76,20 @@ against the guidelines or the brand and visible in normal use; **low** is an inc
 
 | # | Where | What | Why it stays |
 |---|---|---|---|
-| C1 | Your bubbles | Text of several lines is set to the right edge. | A choice made with the right-to-left work; changing it touches `readingDirection`. For the owner to decide. |
 | C2 | Typing | The type bar is over the control bar, not against the keyboard. | The mic's place is fixed by design ("the mic never moves"). Swapping them moves it. For the owner to decide. |
-| C3 | Hold | "Holding · say “go ahead” when you're done" is a two-line title. | The words are shared with the page and held by a parity test. |
-| C4 | Speakers sheet | Bare turn counts (9, 14, 6). | Needs a word from the owner ("9 turns"?). |
-| C5 | Brain dump | "Brain dump" is the state line and the panel's title. | The panel's title is its heading for VoiceOver. |
 | C6 | Sheets | The space under a sheet's title is partly the system's bar (iOS 27). | Not the app's to change. |
-| C8 | Whisper mode on an iPhone SE with the keyboard up | The whisper card shows its first line and scrolls for the rest. | The screen has about 40 points left between the header, the type bar, the control bar and the keyboard. The card is whole again when the keyboard goes. |
-| C7 | Request card at accessibility XXL | A fifty-character session name breaks inside words. | Only at the largest sizes with such a name; the name is whole. |
+
+### Closed after the review (1.13.8)
+
+| # | Where | What was wrong | Fix |
+|---|---|---|---|
+| C1 | Your bubbles | Text of several lines was set to the right edge. | The bubble stays at the right; its lines start where the text reads from: English on the left, Hebrew on the right (`Bubble.textStart`). The live bubble too. |
+| C3 | Hold | "Holding · say “go ahead” when you're done" was a two-line title. | The state is "Holding"; the line under it says "Say “go ahead” when you're done". The page says the same (`TurnsCopy`, `TURNS_COPY`). |
+| C4 | Speakers sheet | Bare turn counts (9, 14, 6). | "9 turns" (`MeetingCopy.turns`). |
+| C5 | Brain dump | "Brain dump" was the state line and the panel's title. | The panel shows its icon and its one line; the icon is the heading VoiceOver reads ("Brain dump"). |
+| C7 | Request card at accessibility XXL | A long session name broke inside words beside the agent's badge. | At the accessibility sizes the badge goes under the name, which gets the card's width and breaks at its hyphens and slashes. |
+| C8 | Whisper card, keyboard up | The card showed its first line and scrolled for the rest. | When the dock leaves it less than its whole height, it folds to its title and Show notes, on one line (an iPhone SE with the keyboard up has about 30 points). A tap opens the notes; with the room back it is whole. |
+| — | Copy shared with the page | "Or type below" under Connect, with no type bar below; the meeting sheet did not say what Pointe does there; a disabled lock level gave no reason. | "Once connected, tap the keyboard to type"; "Pointe sits in and takes notes for you. It stays quiet unless you let it speak."; "Enrol your voice to use the other levels." |
 
 ### Not captured
 
@@ -103,3 +109,8 @@ against the guidelines or the brand and visible in normal use; **low** is an inc
 - a very long command leaves Deny and Approve on screen;
 - one Hang up on a live call, and the labels VoiceOver reads for the controls, the state, the chips and the bubbles;
 - a 36-point header button and the menu take a touch two points outside what is drawn.
+- the whisper card folds above the type bar with the keyboard up, and Show notes opens it (`WhisperUITests`); at
+  accessibility XXL the request card's badge sits under the name.
+
+`BubbleAlignmentTests` draws a bubble and reads back where each line starts; `SharedWordsTests` holds the shared words
+to the page's dictionaries.

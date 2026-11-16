@@ -88,26 +88,34 @@ sheet on a phone; the seven day chips on one row at 44 px.
 
 ## Left as it is
 
-- **The dock under 1100 px shows icons without labels** (the labels are tooltips and screen-reader names). At 1024 px
-  the seven labels fit only with 4 px to spare, and a fallback font would wrap them. A layout change (fewer controls in
-  the dock, the rest in More, as on a phone) would fix it properly; that is a design decision, not a safe edit.
-- **Rename and Disconnect on a session row need a pointer** (they show on hover or keyboard focus). On a phone a row
-  only focuses the session. The app has both; the page on a phone does not.
 - **Long notes under Settings sections** (Microphone is five lines). The words are right; the amount is a copy decision
   shared with the app.
-- **Copy** was not changed. Several strings are shared with the iPhone app and checked by its parity tests
-  (`ios/PointeTests/ParityTests.swift`), which this review did not touch. Candidates: "never answers every remark" (the
-  meeting sheet), "Or type below once connected" on a phone where the box is folded, no reason given beside a disabled
-  lock level.
 - **An approval card's buttons span the column** (1000 px on a desktop). A cap would be taste.
 - **An unusable phone route** (Settings → Phone) is at 55% opacity. It is an inactive control, which WCAG exempts, and
   its reason line is the one thing a person needs to read there; a quieter colour instead of opacity would be better.
 - **Hover and active states** were read from the stylesheet, not rendered: a headless page has no pointer.
 
+## Closed after the review (1.13.8)
+
+- **Rename and Disconnect on touch.** On a touch screen, or where the sessions column is a sheet (900 px and under), a
+  row has a ⋯ button, 44 px square, that opens a sheet with Rename and Disconnect. Disconnect takes two taps there, as on
+  the row. A mouse on a wide screen keeps the hover marks and no ⋯.
+- **The dock's labels under 1100 px.** Measured, not guessed: at 1024 px beside the sessions column the labels leave
+  55 px a side, and the longest ones ("End challenge", "Whispering") 22 px. They show from 1000 px with the column and
+  from 761 px without it, where the longest leave 10 px. Between 901 and 999 px, and on a phone, they stay tooltips.
+  No control moved to More.
+- **Copy**, in dictionaries both surfaces share (`MEETING_COPY`, `CONNECT_COPY`, `LOCK_COPY`, `TURNS_COPY` here;
+  `MeetingCopy`, `ConnectCopy`, `VoiceLockCopy`, `TurnsCopy` in the app; `tests/test_copy_parity.py`):
+  - the meeting sheet: "Pointe sits in and takes notes for you. It stays quiet unless you let it speak.";
+  - where the type box is folded (a phone): "Once connected, tap the keyboard to type", and once live "Or tap the
+    keyboard to type"; on a desktop the box is below, and the words are as before;
+  - beside the lock levels while there is no voiceprint: "Enrol your voice to use the other levels.";
+  - a hold: the state is "Holding", and the line under it "Say “go ahead” when you're done".
+
 ## What changed outside the page
 
 - No theme token changed: `assets/theme.json` and the parity tests are as they were.
-- No shared copy string changed.
+- No shared copy string changed in the review; the copy pass after it is listed above.
 - `tests/test_ui_page.py`: on a narrow screen More now also holds "Clean up my words" (`polishrow`).
 
 ## Tests
@@ -125,3 +133,7 @@ sheet on a phone; the seven day chips on one row at 44 px.
   call it leaves 540 px, a one-row dock and a one-line status;
 - the conversation stays on its newest turn when an approval card arrives;
 - the talking ring clears the mic's label, and a hidden caption takes no room in whisper mode.
+- on touch or a narrow screen a row's ⋯ is 44 px and opens Rename and Disconnect (two taps), never the row's switch;
+- the dock's labels are whole and on one row at 1024, 1000 and 761 px, the longest ones too, and tooltips under that.
+
+`tests/test_copy_parity.py`: the shared words are the app's, and the type hint follows the folded box.
