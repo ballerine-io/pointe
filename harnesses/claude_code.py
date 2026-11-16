@@ -48,6 +48,7 @@ class ClaudeCode(Harness):
         self._roster: dict[str, tuple[float, dict[int, str]]] = {}  # config dir -> when it was read, and pid -> its wait
         self._roster_asked: dict[str, float] = {}  # config dir -> when a read last began
         self._roster_seen: dict[str, float] = {}  # session id -> the read it last took its state from
+        self._record_seen: dict[str, tuple] = {}  # session id -> (path, size, mtime) of its record when last read here
 
     @property
     def side_questions(self) -> bool:  # type: ignore[override]
@@ -72,7 +73,27 @@ class ClaudeCode(Harness):
         except (OSError, subprocess.SubprocessError):
             return  # no verdict this round: alive() keeps the last one
         self._gone[session.pid] = not stat.strip() or "Z" in stat
+        if ROSTER and not session.followed:
+            self._from_record(session)
         await self._see_prompt(session)
+
+    def _from_record(self, session) -> None:
+        """With nothing following its transcript (no call up on the hub), the end of the record says whether a turn is
+        open, so a prompt it stops at is still read; only when the file changed."""
+        path = self.transcript_path(session)
+        try:
+            st = os.stat(path)
+        except (OSError, TypeError, ValueError):
+            return
+        seen = (path, st.st_size, st.st_mtime)
+        if self._record_seen.get(session.id) == seen:
+            return
+        self._record_seen[session.id] = seen
+        if st.st_mtime > session.active_at:  # it moved, as follow_transcript's _moved: a prompt read before is stale
+            session.active_at = st.st_mtime
+            session.blocked_on, session.blocked_since = "", None
+        if (open_turn := turn_open(path)) is not None:
+            session.busy = open_turn
 
     def _may_be_at_a_prompt(self, session, now: float) -> bool:
         """Worth a read: never looked at yet, known to wait, or in a tool call with a quiet record (the voice holding
@@ -230,6 +251,34 @@ def permission_mode(transcript: str) -> str:
             if isinstance(mode, str):
                 return mode
     return ""
+
+
+def turn_open(transcript: str) -> bool | None:
+    """The record's last turn has not ended: its last message is not a final answer, nor the user stopping it. None
+    when the record holds no message to tell by."""
+    try:
+        with open(transcript, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - MODE_TAIL_BYTES))
+            tail = f.read().decode(errors="replace")
+    except (OSError, TypeError):
+        return None
+    for line in reversed(tail.splitlines()):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(entry, dict) or entry.get("isSidechain") or entry.get("isMeta") \
+                or entry.get("type") not in ("user", "assistant"):
+            continue
+        message = entry.get("message") or {}
+        if entry["type"] == "assistant":
+            return message.get("stop_reason") != "end_turn"
+        content = message.get("content")
+        blocks = content if isinstance(content, list) else [{"type": "text", "text": content or ""}]
+        text = " ".join(str(b.get("text") or "") for b in blocks if isinstance(b, dict) and b.get("type") == "text")
+        return not text.lstrip().startswith("[Request interrupted")
+    return None
 
 
 def parse_roster(out: bytes | str) -> dict[int, str] | None:

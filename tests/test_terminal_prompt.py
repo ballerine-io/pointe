@@ -282,6 +282,53 @@ def test_idle_sessions_and_sessions_whose_record_moves_cost_no_read(d, roster, m
     assert len(reads) == 2
 
 
+def record(tmp_path, *entries: dict, quiet_for: float = 60.0) -> str:
+    path = tmp_path / "s1.jsonl"
+    path.write_text("".join(json.dumps(e) + "\n" for e in entries))
+    os.utime(path, (time.time() - quiet_for,) * 2)
+    return str(path)
+
+
+ASKED = {"type": "user", "message": {"role": "user", "content": "Run touch made.txt"}}
+TOOL = {"type": "assistant", "message": {"role": "assistant", "content": [
+    {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "touch made.txt"}}]}}
+DONE = {"type": "assistant", "message": {"role": "assistant", "stop_reason": "end_turn",
+                                         "content": [{"type": "text", "text": "Made it."}]}}
+
+
+def test_with_no_call_the_record_itself_says_whether_it_may_wait(d, roster, monkeypatch, tmp_path):
+    """From a live check on 1.13.2: with no call up nothing follows a session's transcript, so `busy` stayed False, the
+    roster was read only once, at register, and a session at a permission prompt in its terminal for minutes showed no
+    wait and raised no alert (alerts.md: "for example with no call up"). The adapter now reads the end of the record
+    itself when nothing follows it."""
+    cc, reads, says = roster
+    s = add(d, "a", "bluebell", transcript=record(tmp_path, ASKED, TOOL))
+    says["entries"] = [entry(ME, "waiting", "permission prompt")]
+    probe(cc, s)
+    assert s.busy and s.blocked_on == "permission prompt"
+    assert client_for(d).get("/voice/status").json()["sessions"][0]["needs"] == "A permission prompt in its terminal."
+    # answered there: the record moves on and ends the turn; the wait goes, and an idle session costs no more reads
+    s.transcript = record(tmp_path, ASKED, TOOL, DONE, quiet_for=0.0)
+    says["entries"] = [entry(ME, "idle")]
+    later(cc, monkeypatch)
+    probe(cc, s)
+    assert not s.busy and not s.blocked_on
+    n = len(reads)
+    for _ in range(3):
+        later(cc, monkeypatch)
+        probe(cc, s)
+    assert len(reads) == n
+
+
+def test_a_followed_record_is_left_to_its_follower(d, roster, tmp_path):
+    cc, _, says = roster
+    s = add(d, "a", "bluebell", transcript=record(tmp_path, ASKED, TOOL))
+    s.followed = True  # a call is up: follow_transcript keeps busy and active_at
+    says["entries"] = [entry(ME, "idle")]
+    probe(cc, s)
+    assert not s.busy
+
+
 def test_with_the_roster_off_nothing_is_read(d, roster, monkeypatch):
     cc, reads, _ = roster
     monkeypatch.setattr(cc_module, "ROSTER", False)

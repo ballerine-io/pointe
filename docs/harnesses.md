@@ -59,8 +59,9 @@ dialog) can only be answered in the terminal. The transcript cannot tell it from
 to count as working. Now `/voice/status` gives it `working: false`, `needs` ("A permission prompt in its terminal.") and
 `blocked_on`; the voice is told it stopped there and that a yes does not reach it. The words are fixed ones, never the
 string Claude Code sent. At most one read per account every 15 seconds, and none while every session is idle or its
-record is moving. A node reads it for its own sessions and ships it in its `sessions` snapshot (1.12.0), so a session
-on another machine shows the same way.
+record is moving. With no call up the hub follows no transcript, so the adapter reads the end of it when the file
+changes to tell whether a turn is open. A node reads it for its own sessions and ships it in its `sessions`
+snapshot (1.12.0), so a session on another machine shows the same way.
 
 A send can be held. Claude Code holds an inbox message to a session that bypasses permission prompts (plan mode can
 count) for approval in its terminal, unless that session sets `crossSessionInbound` to `accept`; `hold` holds every

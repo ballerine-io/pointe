@@ -63,6 +63,7 @@ class Session:
     blocked_on: str = ""
     blocked_since: float | None = None
     active_at: float = 0.0  # when its record last moved: a prompt read before that is stale
+    followed: bool = False  # follow_transcript runs for it (on the hub while a call is up) and keeps busy and active_at
     # Claude Code set the voice's last message aside instead of giving it to Claude (post_inbox reads its receipt):
     # held for approval in its terminal, or refused by its settings. None when not, or no longer.
     held_at: float | None = None
@@ -830,8 +831,12 @@ def current_transcript(session: Session) -> str:
 
 async def follow_transcript(session: Session, feed: Feed, on_turn_end: Callable[[], None]) -> None:
     """Claude Code's activity, read from the session transcript (works for any session, no hooks)."""
-    while True:
-        await _follow_one(session, feed, on_turn_end)
+    session.followed = True
+    try:
+        while True:
+            await _follow_one(session, feed, on_turn_end)
+    finally:
+        session.followed = False
 
 
 async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], None]) -> None:
