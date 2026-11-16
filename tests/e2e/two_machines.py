@@ -426,21 +426,31 @@ async def phase_brain(b: Browser) -> None:
     await say(b, "Go back to shop on studio.")
     await asyncio.sleep(6)
 
-    for key, needle, ask in (("orchard", "6543", "Ask orchard what the database port is in its FACT file."),
-                             ("harbor", "512", "Ask harbor what the cache size is in its FACT file."),
-                             ("lighthouse", "marisol", "Ask lighthouse who the on-call engineer is, from its FACT file.")):
-        t = await say(b, ask)
+    # Typed, so the file keeps its name: spoken, "its FACT file" became "fact file" and "FACT dot md" became "fact.md",
+    # and the agents answered from memory, or searched case-sensitively, and found none. Routing by name is the same.
+    def typed(text: str) -> float:
+        t = time.time()
+        _daemon("/voice/say", {"text": text})
+        return t
+
+    for key, needle, ask in (("orchard", "6543", "Ask orchard to read FACT.md in its folder and say what the database port is."),
+                             ("harbor", "512", "Ask harbor to read FACT.md in its folder and say what the cache size is."),
+                             ("lighthouse", "marisol", "Ask lighthouse to read FACT.md in its folder and say who the on-call engineer is.")):
+        await quiet(b)
+        t = typed(ask)
         got = await spoken_with(t, needle, 180)
         sent = [line for line in log_lines(rf" - -> {key}") if log_time(line) >= t - 2]
         scenario(f"send to a remote session by name ({key}) and hear its report", bool(got) and bool(sent),
                  (sent or ["no send"])[-1][-100:] + " | " + got[:120])
 
-    t = await say(b, f"Ask shop {NODE} what the deploy region is in its FACT file.")
+    await quiet(b)
+    t = typed(f"Ask shop {NODE} to read FACT.md in its folder and say what the deploy region is.")
     got = await spoken_with(t, "frankfurt", 180)
     sent = [line for line in log_lines(r" - -> shop") if log_time(line) >= t - 2]
     scenario("the colliding remote session is reached by its suffixed name", bool(got) and any(NODE in s for s in sent),
              (sent or ["no send"])[-1][-100:] + " | " + got[:120])
-    t = await say(b, "Ask shop on studio what the release codename is in its FACT file.")
+    await quiet(b)
+    t = typed("Ask shop on studio to read FACT.md in its folder and say what the release codename is.")
     got = await spoken_with(t, "juniper", 180)
     scenario("the hub's own shop is still reached as itself", bool(got), got[:120])
 
