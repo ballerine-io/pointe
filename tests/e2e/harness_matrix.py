@@ -393,7 +393,8 @@ async def approvals(b: Browser, h: str, caps: dict) -> None:
         _daemon("/voice/switch", {"name": session(h)["name"]})
         await asyncio.sleep(3)
         n = finished(h)
-        t = await say(b, f"Ask {name} to run touch denied.txt")
+        # not "run touch denied.txt": heard as "run TouchDenied.txt", the voice asked what was meant and sent nothing
+        t = await say(b, f"Ask {name} to create a file called denied.txt with the touch command.")
         asked = await pending(h)
         if asked:
             await spoken_with(t, "should it", 60)
