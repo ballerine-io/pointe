@@ -362,8 +362,10 @@ async def approvals(b: Browser, h: str, caps: dict) -> None:
         _daemon("/voice/switch", {"name": session(h)["name"]})
         await asyncio.sleep(3)
         n = finished(h)
+        # The second must stay past a read-out whatever the transcriber and the model make of it: "echo $PWD" came
+        # through as "echo pwd", the model ran "pwd > where.txt", and that is read out (two_machines.py asks the same).
         t = await say(b, f"Ask {name} to run exactly two shell commands, one at a time: first touch created.txt, then "
-                         f"echo \"$PWD\" > where.txt")
+                         f"uname dash a, redirected into where.txt.")
         first = await pending(h)
         read = await spoken_with(t, "should it", 60) if first else ""
         if first and first.get("voice_can_approve"):
