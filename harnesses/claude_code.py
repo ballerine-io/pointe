@@ -72,7 +72,8 @@ class ClaudeCode(Harness):
             stat = await asyncio.to_thread(_stat_of, session.pid)
         except (OSError, subprocess.SubprocessError):
             return  # no verdict this round: alive() keeps the last one
-        self._gone[session.pid] = not stat.strip() or "Z" in stat
+        state = stat.strip()  # the first letter is the state (Z zombie, X dead on Linux); the E flag (macOS): exiting
+        self._gone[session.pid] = not state or state[0] in "ZX" or "E" in state
         if ROSTER and not session.followed:
             self._from_record(session)
         await self._see_prompt(session)

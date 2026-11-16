@@ -262,3 +262,19 @@ def test_alive_never_runs_ps_on_the_loop_and_probe_runs_it_in_a_thread(monkeypat
     monkeypatch.setattr(claude_code, "_stat_of", lambda pid: "S+\n")
     asyncio.run(cc.probe(me))
     assert cc.alive(me)
+
+
+def test_a_process_stuck_exiting_is_gone(monkeypatch):
+    """From a live check on 1.13.2: a killed Claude Code stayed in macOS's "trying to exit" state (`ps` STAT "?Es") for
+    a minute, answered kill(0), and was never reaped. Exiting (E), dead (X) and zombie (Z) are all gone."""
+    from harnesses import claude_code
+
+    cc = claude_code.ClaudeCode()
+    me = SimpleNamespace(pid=os.getpid())
+    for stat in ("?Es\n", "X\n", "Z+\n"):
+        monkeypatch.setattr(claude_code, "_stat_of", lambda pid, stat=stat: stat)
+        asyncio.run(cc.probe(me))
+        assert not cc.alive(me), stat
+    monkeypatch.setattr(claude_code, "_stat_of", lambda pid: "Ss+\n")
+    asyncio.run(cc.probe(me))
+    assert cc.alive(me)
