@@ -82,6 +82,11 @@ def _content(text: str) -> set[str]:
     return {w for w in re.findall(r"\w+", text.lower()) if w not in _STOP and len(w) > 1}
 
 
+# A question that asks the user to choose ("Which one: shop or harbor?", "Studio's or devbox's?"): its options may repeat a
+# status answer, but cut, the user is left with nothing to answer.
+_CHOICE = re.compile(r"^(?=.*\?\s*$).*\b(?:which|or|איזה|איזו|או)\b", re.I | re.S)
+
+
 def without_recent_repeats(said: str, recent: list[str], asked: str) -> str:
     """Sentences the voice already said in the last minute and a half are cut, unless the user's latest words ask about
     them: on a real call it warned three times that an answer had not arrived, and apologised twice in one breath."""
@@ -93,7 +98,7 @@ def without_recent_repeats(said: str, recent: list[str], asked: str) -> str:
         repeated = len(words) >= 3 and any(len(words & _content(old)) / len(words) >= 0.7 for old in recent)
         # "Which one?" alone cannot be answered: the sentence before it holds the options it asks between
         offers = i + 1 < len(sentences) and sentences[i + 1].endswith("?") and len(_content(sentences[i + 1])) < 3
-        if not repeated or offers or (asked_words and len(words & asked_words) >= 2):
+        if not repeated or offers or _CHOICE.search(sentence) or (asked_words and len(words & asked_words) >= 2):
             kept.append(sentence)
     return " ".join(kept)
 

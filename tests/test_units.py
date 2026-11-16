@@ -857,6 +857,19 @@ def test_a_bare_which_question_keeps_the_options_it_asks_between():
     assert without_recent_repeats(tie, said, "Go to DevBox.") == tie
 
 
+def test_a_which_question_that_lists_its_options_is_never_cut():
+    """From the two-machine run on 1.13.2: "Devbox has four sessions. Which one: shop/main, lighthouse/main, orchard, or
+    harbor?" was cut to "Devbox has four sessions.": the options repeated the status answer, and the user was left with
+    no question to answer. A question that asks the user to choose is the reply itself."""
+    from brain import without_recent_repeats
+
+    said = ["Nothing needs you anywhere. On devbox, shop, lighthouse, orchard, and harbor are all idle with no work reported yet."]
+    tie = "Devbox has four sessions. Which one: shop/main, lighthouse/main, orchard, or harbor?"
+    assert without_recent_repeats(tie, said, "Go to DevBox.") == tie
+    choice = "Shop on studio or shop on devbox?"
+    assert without_recent_repeats(choice, ["Shop on studio and shop on devbox are idle."], "go to shop") == choice
+
+
 # ---------- sessions on other machines (docs/design/multi-machine.md, "Routing and the brain") ----------
 
 @pytest.fixture
