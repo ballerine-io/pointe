@@ -141,6 +141,8 @@ class Brain:
         self.limit: Callable[[str | None, str], conversation.Limit | None] = lambda _trigger, _asked: None
         # Why a reply to the user's own words tells too much: news that is queued to be said right after it (said, asked).
         self.news_ahead: Callable[[str, str], str | None] = lambda _said, _asked: None
+        # Where the time of a reply to the user's own words goes (latency.STAGES): told as each stage is reached.
+        self.stage: Callable[[str], None] = lambda _stage: None
         self.on_usage = on_usage or (lambda _u: None)
         # The sentence for a refused key, by vendor; None when it cannot be heard (the mouth uses that key too).
         self.key_refused: Callable[[str], str | None] = vendors.refused_spoken
@@ -402,6 +404,8 @@ class Brain:
                 self.append(now)
                 self._given = now
             started = time.time()
+            if own_words:
+                self.stage("brain_sent")
             sent_chars = sum(map(self._chars, self.messages)) + len(self.instructions) + len(json.dumps(decls, ensure_ascii=False))
             try:
                 step, filled = await self._step(decls, filled)
@@ -428,6 +432,8 @@ class Brain:
             if generation != self._generation:
                 return
             ms = int((time.time() - started) * 1000)
+            if own_words:
+                self.stage("reply")
             self._calibrate(sent_chars, step.usage.get("context") or 0)
             self.on_usage({**step.usage, "ms": ms})
             calls = step.calls
@@ -498,6 +504,8 @@ class Brain:
                         self._recent_spoken.append((time.time(), said))
                         self._answered_user = True
                         self._answered = self._view
+                        if own_words:
+                            self.stage("checked")
                         await self.speak(said)
                     results[call["id"]] = "spoken"
                     done = True

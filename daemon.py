@@ -41,6 +41,7 @@ import conflicts
 import drive as drives
 import remote
 import harnesses
+import latency
 import mac
 import hub_nodes
 import phone_pairing
@@ -1105,8 +1106,21 @@ def _key_refused_line(vendor: str) -> str | None:
     return vendors.refused_spoken(vendor, bool(re.search(r"[\u0590-\u05ff]", state.last_utterance)))
 
 
+def _stage(stage: str) -> None:
+    """A stamp on the timing of the reply to the user's latest turn (latency.py). The line is written at the first sound."""
+    turn = state.timing
+    if turn is None or turn.logged:
+        return
+    turn.mark(stage, time.time())
+    if stage == "first_sound":
+        logger.info(turn.line())
+
+
 def make_brain(speak, filler=None) -> Brain:
     def usage(u: dict) -> None:
+        if state.timing is not None and not state.timing.logged:
+            state.timing.steps += 1
+            state.timing.info.update(context=u.get("context", 0), cached=u.get("cached", 0))
         state.tokens = {"context": u.get("context", 0), "reply": u.get("reply", 0), "audio_in": 0,
                         "at": time.strftime("%H:%M:%S"), "ms": u.get("ms")}
         logger.info(f"brain step: {u.get('ms')} ms, {u.get('context')} tokens in"
@@ -1122,6 +1136,7 @@ def make_brain(speak, filler=None) -> Brain:
     brain.style_problem = lambda said: (drives.length_problem(said) if current_mode() is modes.DRIVE else None) or _dump_reply_problem(said)
     brain.limit = _reply_limit
     brain.news_ahead = _news_ahead
+    brain.stage = _stage
     return brain
 
 
@@ -1324,6 +1339,8 @@ class SonioxEars(FrameProcessor):
                     self._held = ""
                 else:
                     self._began = spoken[0] if spoken else 0.0
+                self._ended = spoken[1] if spoken else max(state.user_stopped_at, state.user_heard_at)
+                self._final_at = time.time()
                 wait = turns.settle(heard, held, _patience()) if not _dumping() and state.hold is None else 0.0
                 if wait > 0:  # Soniox's endpoint is a candidate: the turn is the text once the user has been quiet this long
                     self._held = re.sub(r"[\s.—–…,-]+$", "", heard) if unfinished(heard) else heard
@@ -1337,6 +1354,8 @@ class SonioxEars(FrameProcessor):
     _held_words = ""
     _judging = 0  # finals waiting out the echo's settle time
     _began = 0.0  # when the first word of the turn being put together was said, if the ears tell (state.words_began_at)
+    _ended = 0.0  # when its last word ended, and when the final transcript with it arrived (state.timing)
+    _final_at = 0.0
     _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
 
     @property
@@ -1404,11 +1423,11 @@ class SonioxEars(FrameProcessor):
 
     async def _take_timed(self, heard: str) -> None:
         """A turn from the voice, with the time its words began for the consent rules; a press and typed words have none."""
-        state.words_began_at = self._began
+        state.words_began_at, state.words_ended_at, state.final_at = self._began, self._ended, self._final_at
         try:
             await self._take(heard)
         finally:
-            state.words_began_at = 0.0
+            state.words_began_at = state.words_ended_at = state.final_at = 0.0
 
     async def _start_hold(self, heard: str) -> None:
         """"Don't interrupt me": the bot stops talking and answers nothing until a release phrase or a long silence."""
@@ -1653,7 +1672,11 @@ class BotSpeechTap(FrameProcessor):
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
-        if isinstance(frame, TTSTextFrame) and direction == FrameDirection.DOWNSTREAM:
+        if isinstance(frame, TTSAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
+            _stage("tts_first_byte")
+        elif isinstance(frame, BotStartedSpeakingFrame):
+            _stage("first_sound")
+        elif isinstance(frame, TTSTextFrame) and direction == FrameDirection.DOWNSTREAM:
             if FRONT != "brain":
                 ECHO.bot_said(frame.text)
                 state.floor.said(frame.text, time.time())
@@ -1762,6 +1785,9 @@ class State:
     # When the words of the turn being taken began, by the ears' own clock (Soniox times each word); 0 when they do not
     # tell. The voice detector also starts on the bot's voice through the speakers, and does not start on a whisper.
     words_began_at: float = 0.0
+    words_ended_at: float = 0.0  # when the last word of the turn being taken ended, and when its final transcript came:
+    final_at: float = 0.0  # the first two stamps of the turn's timing (latency.py); 0 for typed words and a press
+    timing: latency.Turn | None = None  # where the time of the reply to the user's latest turn goes
     user_stopped_at: float = 0.0  # the voice detector heard the user stop
     conversation_base: int = 0  # turns dropped from the front of `conversation`: a turn's id is base + its index
     understood: dict[int, str] = field(default_factory=dict)  # user turn id -> the cleaned-up wording ("clean up my words")
@@ -3626,6 +3652,11 @@ async def _tone(up: bool) -> None:
 async def on_user_utterance(text: str) -> None:
     _journal_bot_turn()  # what the bot said comes before the reply to it
     logger.info(f"user said: {text!r}")
+    state.timing = latency.Turn()
+    if state.words_ended_at and state.final_at:
+        state.timing.mark("last_word", min(state.words_ended_at, state.final_at))
+        state.timing.mark("stt_final", state.final_at)
+    state.timing.mark("settled", time.time())
     state.floor.user_turn(time.time())  # an answer, or a new topic: a question of Pointe's is no longer open
     _briefing_heard(text)
     state.last_utterance, state.last_user_speech_at = text, time.time()
@@ -6662,7 +6693,13 @@ async def run_call(transport) -> None:
     if FRONT == "brain":
         front = BrainFront(opening)
         state.context = front.brain
-        pipeline = Pipeline([transport.input(), *gate, *ears, injector, front, vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http),
+        mouth = vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http)
+
+        @mouth.event_handler("on_tts_request")
+        async def on_tts_request(_mouth, _context_id, _text):
+            _stage("tts_request")
+
+        pipeline = Pipeline([transport.input(), *gate, *ears, injector, front, mouth,
                              BotSpeechTap(), *mirror, WhisperOut(), transport.output()])
     else:
         context = LLMContext(opening, tools=TOOLS)
