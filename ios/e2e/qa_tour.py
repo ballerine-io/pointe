@@ -111,7 +111,7 @@ def main() -> None:
         check("gamma, swiped off in the Sessions sheet, is off the voice on the Mac", gone)
         out, _ = xcode.communicate(timeout=400)
         tail = [line for line in out.splitlines() if "error" in line.lower() or "TEST " in line or "XCTAssert" in line]
-        check("the UI test passes (the whole tour)", "** TEST SUCCEEDED **" in out and "skipped" not in out.lower(), tail=tail[-8:])
+        check("the UI test passes (the whole tour)", "** TEST SUCCEEDED **" in out and "QATour testTour]' passed" in out, tail=tail[-8:])
     finally:
         if xcode.poll() is None:
             xcode.kill()
