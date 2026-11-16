@@ -414,7 +414,10 @@ async def by_the_way_and_switch(b: Browser, h: str, ids: dict) -> None:
     mark("9 by the way, session untouched", h, bool(got) and before == after, f"turns {before}->{after}; {got[:60]}")
 
     # 10: switch, focus, back
-    await say(b, f"Switch to {name}.")
+    t = await say(b, f"Switch to {name}.")
+    # its answer before the next row speaks: unanswered, the words merged with the next request ("Switch to harbor. Ask
+    # Claude Code to ...") and that request went to harbor
+    await spoken_with(t, "", 30)
     switched = await until(lambda: (status().get("active") or "").startswith(name), 20)
     _daemon("/voice/mode", {"mode": "session"})
     focused = status().get("mode") == "session" and (status().get("active") or "").startswith(name)
