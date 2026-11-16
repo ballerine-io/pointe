@@ -434,6 +434,52 @@ def test_the_levels_in_code_are_the_three_the_clients_offer():
     assert tuple(turns.LEVELS) == prefs_mod.SCHEMA["turns.patience"][1] == tuple(LEVEL_LABELS)
 
 
+
+def test_words_heard_live_but_not_yet_final_keep_the_sentence_before_them_from_being_taken_alone(d, monkeypatch):
+    """From live runs on a busy Mac (tests/e2e/harness_matrix.py): "Ask lighthouse to run exactly one command." was taken
+    as the turn and sent while "uname dash a, redirected into where.txt" was still on its way: the words had been heard
+    live, but Soniox's final for them came more than the settle time after the last of them (it may take 2.5 s), and the
+    settle counted only the silence. They arrived as a second turn, after the first had been acted on."""
+    from pipecat.frames.frames import TranscriptionFrame
+    from pipecat.processors.frame_processor import FrameDirection
+
+    monkeypatch.setitem(d.turns.LEVELS, "normal", d.turns.Patience(complete=0.3, unfinished=0.6, maximum=5.0))
+    monkeypatch.setattr(d, "HEARING_SECS", 1.2)
+    taken = []
+
+    async def run():
+        ears = _ears(d, monkeypatch)
+
+        async def take(text):
+            taken.append(text)
+        monkeypatch.setattr(ears, "_take", take)
+
+        async def final(text):
+            d.state.hearing = (0.0, "")
+            await d.SonioxEars.process_frame(ears, TranscriptionFrame(text=text, user_id="u", timestamp="t"), FrameDirection.DOWNSTREAM)
+
+        def live(words):  # what an interim transcript does
+            d.state.user_heard_at = d.state.user_stopped_at = time.time()
+            d.state.hearing = (d.state.user_heard_at, words)
+
+        d.state.user_stopped_at = time.time()
+        await final("Ask lighthouse to run exactly one command.")
+        live("uname dash a, redirected into")
+        await asyncio.sleep(0.7)  # past the settle: the final for those words is late
+        assert taken == []
+        await final("Uname dash a, redirected into where.txt.")
+        await asyncio.sleep(0.5)
+        assert taken == ["Ask lighthouse to run exactly one command. Uname dash a, redirected into where.txt."]
+
+        d.state.user_stopped_at = time.time()
+        await final("Then tell me what it printed.")
+        live("and")  # a live word whose final never comes does not hold the turn for ever
+        await asyncio.sleep(1.6)
+        assert taken[-1] == "Then tell me what it printed."
+
+    asyncio.run(run())
+
+
 # ---------- the page ----------
 
 @pytest.mark.skipif(not os.path.exists(page_rig.CHROME), reason="headless Chrome is not installed here")

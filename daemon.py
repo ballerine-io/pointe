@@ -1285,13 +1285,22 @@ class SonioxEars(FrameProcessor):
                     # answers anything, still waits: judged as said over the bot, though the cut has stopped it.
                     logger.info(f"barge-in: {heard!r}")
                     await self.broadcast_interruption()
-                await asyncio.sleep(ECHO_SETTLE_SECS)
+                self._judging += 1  # the words before these are not taken as the turn meanwhile (_release_held)
+                try:
+                    await asyncio.sleep(ECHO_SETTLE_SECS)
+                finally:
+                    self._judging -= 1
                 heard = ECHO.user_part(text, spoken, while_talking=said_over)
             if text and not heard:
                 logger.info(f"echo dropped: {text!r}")
                 VOICE.collector.take()  # the bot's voice through the speakers is nobody's voiceprint
             elif heard:
-                if not await self._owner_gate(heard):
+                self._judging += 1  # scoring the voice takes a moment too
+                try:
+                    theirs = await self._owner_gate(heard)
+                finally:
+                    self._judging -= 1
+                if not theirs:
                     return
                 if ECHO.speaking:  # the user's words surfaced only when Soniox finalized them
                     logger.info(f"barge-in: {heard!r}")
@@ -1317,6 +1326,7 @@ class SonioxEars(FrameProcessor):
         await self.push_frame(frame, direction)
 
     _held_words = ""
+    _judging = 0  # finals waiting out the echo's settle time
     _began = 0.0  # when the first word of the turn being put together was said, if the ears tell (state.words_began_at)
     _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
 
@@ -1372,9 +1382,12 @@ class SonioxEars(FrameProcessor):
     async def _release_held(self, held: str, at: float, wait: float) -> None:
         """No more words came: the text is the turn. While the user is talking again, the next final takes it."""
         # Counted from when the voice stopped, not from the transcript, which comes later; and never while they talk.
+        # Nor while words heard live still wait for their final, or one is being judged against the echo: Soniox may take
+        # 2.5 s to end a stretch, and the settle would hand over the sentence before it without them.
         while self._held == held and time.time() - at < turns.maximum(_patience()) and (
                 state.user_started_at > state.user_stopped_at
-                or time.time() - max(state.user_stopped_at, state.user_heard_at) < wait):
+                or time.time() - max(state.user_stopped_at, state.user_heard_at) < wait
+                or self._judging or (state.hearing[1] and time.time() - state.hearing[0] < HEARING_SECS)):
             await asyncio.sleep(0.1)
         if self._held == held:
             self._held = ""
