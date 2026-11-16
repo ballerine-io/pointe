@@ -162,8 +162,12 @@ _HOLDING_LINE = re.compile(r"\b(waiting (?:on|for)|still (?:running|waiting|work
 
 
 def holding_line(final: str) -> bool:
-    """A short final with no question and no result in it: speaking it only interrupts."""
-    return len(final.split()) <= 20 and "?" not in final and bool(_HOLDING_LINE.search(final))
+    """A short final with no question and no result in it: speaking it only interrupts. Every sentence must be a holding
+    one: "The deploy region is Frankfurt. Next: nothing pending." holds the answer."""
+    if len(final.split()) > 20 or "?" in final:
+        return False
+    sentences = [x for x in re.split(r"(?<=[.!…])\s+|\n+", final.strip()) if re.search(r"\w", x)]
+    return bool(sentences) and all(_HOLDING_LINE.search(x) for x in sentences)
 
 
 def unsupported_in(said: str, known: str) -> list[str]:

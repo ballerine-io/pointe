@@ -2772,6 +2772,27 @@ def test_o110_a_holding_line_is_silent_whatever_the_reader_says(d, monkeypatch):
     assert spoken(conn) == ""
 
 
+def test_a_short_answer_ending_in_nothing_pending_is_said(d, monkeypatch):
+    """From the two-machine run on 1.13.2: "The deploy region is Frankfurt, according to FACT.md. Next: nothing pending
+    from this request." is under 20 words and says "nothing pending", so it was taken for a holding line and never said:
+    the user asked and heard nothing. A holding line is one with nothing else in it."""
+    from brief import holding_line
+
+    assert not holding_line("The deploy region is Frankfurt, according to `/srv/shop/FACT.md`.\n\nNext: nothing pending "
+                            "from this request.")
+    assert not holding_line("Tests pass, 41 of 41. Nothing new otherwise.")
+    for line in ("Waiting for the agents.", "Waiting on the three review agents.", "Still running.",
+                 "Nothing new. Will report when the build is done."):
+        assert holding_line(line), line
+    no_reading_model(d, monkeypatch, {"say": "The deploy region is Frankfurt.", "speak": True})
+    a = add(d, "a", "alpha")
+    d.REGISTRY.active_id = a.id
+    d.state.conn = conn = fake_conn()
+    asyncio.run(d.feed(a, f"{CC_FINISHED} Its final message:\nThe deploy region is Frankfurt, according to FACT.md.\n\n"
+                          "Next: nothing pending from this request.", True))
+    assert "Frankfurt" in spoken(conn)
+
+
 def test_o111_a_push_is_no_typed_approval(d, monkeypatch):
     no_reading_model(d, monkeypatch, {"say": "Ready to push.", "typed_approval_needed": "pushing the branch to the remote"})
     a = add(d, "a", "alpha")
