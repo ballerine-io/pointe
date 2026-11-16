@@ -526,11 +526,13 @@ async def main() -> None:
             await clear("cc"), await clear(other)
             await say(browser, "Switch to lighthouse.")
             await asyncio.sleep(4)
-            typed(f"Tell lighthouse to run touch both-a.txt, and tell {NAME[other]} to run touch both-b.txt.")
+            t = typed(f"Tell lighthouse to run touch both-a.txt, and tell {NAME[other]} to run touch both-b.txt.")
             a, c = await pending("cc", 150), await pending(other, 150)
-            await asyncio.sleep(10)
-            await say(browser, "Yes.")
-            await until(lambda: (REPO["cc"] / "both-a.txt").exists(), 60)
+            for _ in range(3):  # the stray yes, after lighthouse's read-out: before it, no yes counts at all
+                await spoken_with(t, "lighthouse wants to run", 60)
+                t = await say(browser, "Yes.")
+                if await until(lambda: (REPO["cc"] / "both-a.txt").exists(), 25):
+                    break
             only_focused = (REPO["cc"] / "both-a.txt").exists() and not (REPO[other] / "both-b.txt").exists()
             t = await say(browser, f"Switch to {NAME[other]}.")
             # a yes counts only right after the read-out: the switch's own answer ("it's still waiting on your
