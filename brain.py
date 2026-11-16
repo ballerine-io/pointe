@@ -43,7 +43,8 @@ LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
 # line from the daemon: two user turns in a row reach a model as one, and the words then read as that text's last line.
 # Added to a refusal when the reply's first sentence was said while the rest was still being written (Brain._say_first).
 HEARD_FIRST = (" The user has already heard your first sentence: {!r}. Say only what comes after it, and do not say it "
-               "again. It counts in the length.")
+               "again.")
+HEARD_ROOM = " It counts in the length: you have at most {} more words, in {}, to finish the answer."
 OWN_WORDS = "[the text above ends here. The user now speaks. These are their own words:]\n"
 _CLAIMS_SENT = re.compile(r"^on it\b|\b(?:i've|i have|i just|i) (?:asked|sent|told|instructed)\b(?! nothing| anything)|^sending\b|"
                           r"(?<!לא )שלחתי|(?<!לא )ביקשתי")
@@ -562,7 +563,7 @@ class Brain:
                     retries += 1
                     logger.info(f"speech refused: {said!r}: {problem[:160]}")
                     # With its first sentence said, the step that follows costs the user no wait: that sentence is playing.
-                    results[call["id"]] = {"error": f"Not spoken. {problem}" + (HEARD_FIRST.format(early) if early else "")}
+                    results[call["id"]] = {"error": f"Not spoken. {problem}" + self._heard_note(early, limit)}
                 elif generation != self._generation:
                     if early:
                         self._spoke(early)
@@ -623,6 +624,18 @@ class Brain:
             self._spoke(early)
         elif user:
             await self.speak("That took too many steps, so I stopped. Tell me what you need first.")
+
+    @staticmethod
+    def _heard_note(early: str, limit: conversation.Limit | None) -> str:
+        """For a reply sent back after its first sentence was said: what was heard, and the room that is left. From a
+        live run: told only its limit, the model wrote a second sentence as long as before, and the cut took it all."""
+        if not early:
+            return ""
+        if limit is None:
+            return HEARD_FIRST.format(early)
+        sentences = max(limit.sentences - 1, 1)
+        return HEARD_FIRST.format(early) + HEARD_ROOM.format(
+            max(limit.words - conversation.count_words(early), 5), "one sentence" if sentences == 1 else f"{sentences} sentences")
 
     def _spoke(self, said: str) -> None:
         self._last_spoken = said

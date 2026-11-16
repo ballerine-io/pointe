@@ -169,6 +169,7 @@ def test_a_reply_over_its_words_is_sent_back_for_what_follows_the_sentence_alrea
     assert steps == [True, False] and events[0] == ("first", "Use a queue when work can wait.")
     refusal = [m for m in b.messages if m["role"] == "tool"][0]["results"][0]["result"]["error"]
     assert "Too long for speech" in refusal and "already heard your first sentence: 'Use a queue when work can wait.'" in refusal
+    assert "at most 23 more words, in one sentence" in refusal  # the room that is left, not the limit it already used up
     kind, rest, whole = events[-1]
     assert kind == "rest" and rest == "It lets a request return at once and smooths bursts."
     assert whole == f"Use a queue when work can wait. {rest}" == b._last_spoken
