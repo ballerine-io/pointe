@@ -29,7 +29,9 @@ def status() -> dict:
 
 
 def make_repo_b() -> None:
-    if not (REPO_B / ".git").exists():
+    if subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"], cwd=REPO_B if REPO_B.exists() else "/",
+                      capture_output=True).returncode != 0 or not (REPO_B / ".git").exists():
+        subprocess.run(["rm", "-rf", str(REPO_B)], check=True)  # macOS clears /tmp files left for days, not folders: a .git with no HEAD
         REPO_B.mkdir(parents=True, exist_ok=True)
         (REPO_B / "notes.md").write_text("# Notes\nThe launch date is March 3rd.\n")
         subprocess.run("git init -q -b main && git add -A && git -c user.email=t@t -c user.name=t commit -qm init",
