@@ -532,10 +532,15 @@ async def main() -> None:
             await say(browser, "Yes.")
             await until(lambda: (REPO["cc"] / "both-a.txt").exists(), 60)
             only_focused = (REPO["cc"] / "both-a.txt").exists() and not (REPO[other] / "both-b.txt").exists()
-            await say(browser, f"Switch to {NAME[other]}.")
-            await asyncio.sleep(10)
-            await say(browser, "Yes.")
-            done = await until(lambda: (REPO[other] / "both-b.txt").exists(), 90)
+            t = await say(browser, f"Switch to {NAME[other]}.")
+            # a yes counts only right after the read-out: the switch's own answer ("it's still waiting on your
+            # approval") is not one, and a yes after it only gets the request read out again
+            done = False
+            for _ in range(3):
+                await spoken_with(t, "should it", 60)
+                t = await say(browser, "Yes.")
+                if done := await until(lambda: (REPO[other] / "both-b.txt").exists(), 25):
+                    break
             mark("15 two approvals, one stray yes", "cc", bool(a) and bool(c) and only_focused,
                  f"cc pending={bool(a)} {other} pending={bool(c)}")
             mark("15 two approvals, one stray yes", other, bool(c) and bool(done), "answered after switching")
