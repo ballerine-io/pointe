@@ -349,15 +349,16 @@ async def phase_pair() -> None:
 
 async def start_sessions() -> dict:
     """Claude Code on the hub (shop) and on the node (shop: the collision, and lighthouse); OpenCode (orchard) and Codex
-    (harbor) on the node."""
+    (harbor) on the node. Each blocking start runs in a thread: a loop blocked for half a minute stops answering the
+    call's WebSocket pings, and the hub drops the call."""
     out: dict = {}
     cc_hub = JoinedSession(REPOS["hub-shop"][0], "--model", TEST_MODEL, "--permission-mode", "default", front="brain")
-    cc_hub.start()
+    await asyncio.to_thread(cc_hub.start)
     out["cc_hub"] = cc_hub
     await asyncio.sleep(4)
     for key in ("node-shop", "lighthouse"):
         s = NodeSession(REPOS[key][0], "--model", TEST_MODEL, "--permission-mode", "default", front="brain")
-        s.start()
+        await asyncio.to_thread(s.start)
         out[key] = s
         await asyncio.sleep(4)
     from harnesses.opencode import Service
@@ -369,10 +370,10 @@ async def start_sessions() -> dict:
         made["oc"] = (made_oc.get("data") or made_oc)["id"]
     finally:
         await service.close()
-    oc = run([str(ROOT / "bin" / "pointe"), "join", "opencode", "--name", "orchard", "--session", made["oc"]], NODE_ENV, 60,
-             cwd=REPOS["orchard"][0])
+    oc = await asyncio.to_thread(run, [str(ROOT / "bin" / "pointe"), "join", "opencode", "--name", "orchard", "--session",
+                                       made["oc"]], NODE_ENV, 60, cwd=REPOS["orchard"][0])
     print("opencode join", oc.returncode, (oc.stdout + oc.stderr)[-200:], flush=True)
-    run(["codex", "app-server", "daemon", "start"], NODE_ENV, 60)
+    await asyncio.to_thread(run, ["codex", "app-server", "daemon", "start"], NODE_ENV, 60)
     tui = NodeCodex(REPOS["harbor"][0])
     tui.start()
     out["codex"] = tui
@@ -380,7 +381,8 @@ async def start_sessions() -> dict:
     tui.type("Reply with the single word ok.")
     await until(lambda: "ok" in tui.screen.split("Reply with the single word ok.")[-1].lower(), 90, 2)
     await asyncio.sleep(5)
-    cx = run([str(ROOT / "bin" / "pointe"), "join", "codex", "--name", "harbor"], NODE_ENV, 60, cwd=REPOS["harbor"][0])
+    cx = await asyncio.to_thread(run, [str(ROOT / "bin" / "pointe"), "join", "codex", "--name", "harbor"], NODE_ENV, 60,
+                                 cwd=REPOS["harbor"][0])
     print("codex join", cx.returncode, (cx.stdout + cx.stderr)[-200:], flush=True)
     for s in node_status().get("sessions", []):
         if s["harness"] == "codex":
@@ -568,8 +570,8 @@ async def phase_restart(b: Browser) -> Browser:
     # node restart
     before = {s["name"] for s in status()["sessions"] if s.get("machine") == NODE}
     t0 = time.time()
-    run([str(ROOT / "bin" / "voice-node"), "stop"], NODE_ENV)
-    ensured = run([str(ROOT / "bin" / "voice-node"), "ensure"], NODE_ENV)
+    await asyncio.to_thread(run, [str(ROOT / "bin" / "voice-node"), "stop"], NODE_ENV)
+    ensured = await asyncio.to_thread(run, [str(ROOT / "bin" / "voice-node"), "ensure"], NODE_ENV)
     up = await until(lambda: node_status().get("link") == "up", 40)
     await asyncio.sleep(6)
     after = {s["name"] for s in status()["sessions"] if s.get("machine") == NODE and s.get("online")}

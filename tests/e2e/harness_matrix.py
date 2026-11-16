@@ -29,6 +29,9 @@ from rig import ROOT, STATE, Browser, fresh_state, log_lines, stop_daemon  # noq
 from hook_session import JoinedSession  # noqa: E402
 from scenarios import TEST_MODEL, _daemon, check, daemon_status, log_time, results  # noqa: E402
 
+# Every blocking step (a Claude Code start, `pointe join`, a Codex daemon start) runs in a thread: a test loop blocked for
+# half a minute stops answering the call's WebSocket pings, and the daemon drops the call mid-run.
+
 BASE = Path("/tmp/mx")
 WANT = (sys.argv[1] if len(sys.argv) > 1 else "cc,oc,cx").split(",")
 ONLY = os.environ.get("MATRIX_ONLY", "")  # "approvals": rows 1, 5-8 and 15 only (a cheaper rerun)
@@ -452,12 +455,12 @@ async def main() -> None:
         await asyncio.sleep(6)
         if "cc" in WANT:
             cc = JoinedSession(REPO["cc"], "--model", TEST_MODEL, "--permission-mode", "default", front="brain")
-            cc.start()
+            await asyncio.to_thread(cc.start)
         if "oc" in WANT:
             ids["oc"] = created["oc_session"] = await opencode_session()
-            print("opencode join", join("oc", "--session", ids["oc"]), flush=True)
+            print("opencode join", await asyncio.to_thread(join, "oc", "--session", ids["oc"]), flush=True)
         if "cx" in WANT:
-            subprocess.run(["codex", "app-server", "daemon", "start"], capture_output=True, timeout=60)
+            await asyncio.to_thread(subprocess.run, ["codex", "app-server", "daemon", "start"], capture_output=True, timeout=60)
             created["cx_daemon"] = True
             tui = CodexTui(REPO["cx"])
             tui.start()
@@ -465,7 +468,7 @@ async def main() -> None:
             tui.type("Reply with the single word ok.")
             await until(lambda: "ok" in tui.screen.split("Reply with the single word ok.")[-1].lower(), 90, 2)
             await asyncio.sleep(5)
-            joined = join("cx")
+            joined = await asyncio.to_thread(join, "cx")
             print("codex join", joined, flush=True)
             entry = registered("cx")
             if entry:
@@ -536,12 +539,12 @@ async def main() -> None:
         # 12: leave, and reaping for one
         for h in WANT:
             if h == "cc" and cc:
-                cc.stop()
+                await asyncio.to_thread(cc.stop)
                 gone = await until(lambda: session("cc") is None, 40)
                 mark("12 leave / reaped", h, bool(gone), "Claude Code killed: reaped")
             elif h in ("oc", "cx"):
                 extra = ("--session", ids["oc"]) if h == "oc" else (("--thread", ids["cx"]) if ids.get("cx") else ())
-                out = leave(h, *extra)
+                out = await asyncio.to_thread(leave, h, *extra)
                 gone = await until(lambda: session(h) is None, 20)
                 mark("12 leave / reaped", h, bool(gone), str(out)[:120])
     finally:
