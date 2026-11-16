@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from hook_session import PluginSession  # noqa: E402
 from rig import DAEMON, STATE, Browser, fresh_state, log_lines, stop_daemon  # noqa: E402
-from scenarios import TEST_MODEL, ask, check, reset_repo, results  # noqa: E402
+from scenarios import TEST_MODEL, ask, check, log_time, reset_repo, results  # noqa: E402
 
 REPO = Path("/tmp/cv-repo-hook")
 
@@ -37,17 +37,21 @@ async def until(condition, timeout: float) -> bool:
     return False
 
 
-ASKED = r"speak:.*Should it\?"
+ASKED = r"speak:.*(?:Should it\?|[Ss]ay it again)"
 
 
-async def answer_until(browser, words: str, done, timeout: float = 90) -> int:
-    """As a person would: answer each time the bot asks, once it has finished asking. Returns how many answers it took."""
-    deadline, heard, answers = time.time() + timeout, len(log_lines(ASKED)) - 1, 0
+async def answer_until(browser, words: str, done, since: float, timeout: float = 90) -> int:
+    """As a person would: answer each time the bot asks (since the request), once it has finished asking. Returns how
+    many answers it took. Not before the read-out (no answer counts there), and not over it: the log line comes before
+    the audio, so the bot is heard out first."""
+    deadline, heard, answers = time.time() + timeout, 0, 0
     while time.time() < deadline and not done():
-        spans = browser.speaker.speech_spans(since=time.time() - 10)
-        quiet = not spans or time.time() - spans[-1][1] > 2
-        if len(log_lines(ASKED)) > heard and quiet:
-            heard = len(log_lines(ASKED))
+        asked = [line for line in log_lines(ASKED) if log_time(line) >= since]
+        if len(asked) > heard:
+            heard = len(asked)
+            await asyncio.sleep(1.5)  # its audio starts
+            while browser.speaker.speech_spans(since=time.time() - 2):
+                await asyncio.sleep(0.3)
             await browser.say(words)
             answers += 1
             await asyncio.sleep(5)
@@ -72,8 +76,9 @@ async def main():
         await browser.connect()
         await asyncio.sleep(8)
 
+        t = time.time()
         await ask(browser, "Ask Claude Code to create an empty file called voice-hook.txt.")
-        answers = await answer_until(browser, "Yes.", (REPO / "voice-hook.txt").exists)
+        answers = await answer_until(browser, "Yes.", (REPO / "voice-hook.txt").exists, t)
         check("a spoken yes approves it, with no channel", (REPO / "voice-hook.txt").exists(), answers=answers,
               permissions=[l[-90:] for l in log_lines(r"permission .* -> ")][-2:])
         await asyncio.sleep(25)
@@ -97,8 +102,9 @@ async def main():
               dialog_up=dialog_up, handed_back=handed, ran_before_answer=ran_before_answer, ran=ran)
         await asyncio.sleep(15)
 
+        t = time.time()
         await ask(browser, "Ask Claude Code to create an empty file called denied.txt.")
-        answers = await answer_until(browser, "No.", lambda: bool(log_lines(r"permission .* -> deny")))
+        answers = await answer_until(browser, "No.", lambda: bool(log_lines(r"permission .* -> deny")), t)
         await asyncio.sleep(10)
         check("a spoken no denies it", bool(log_lines(r"permission .* -> deny")) and not (REPO / "denied.txt").exists(), answers=answers)
         await asyncio.sleep(15)
