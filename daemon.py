@@ -3187,7 +3187,7 @@ async def start_meeting(mode: str, brief: str = "", sessions: list | None = None
     m = meetings.Meeting(mode=mode, vendors=_meeting_vendors(), brief=brief[:4000], sessions=linked,
                          auto_lookups=PREFS.get("meeting.auto_lookups") if auto_lookups is None else bool(auto_lookups),
                          entry_words=entry_words)
-    ears = meetings.MeetingEars(vendors.key("soniox"), phone.IN_RATE, _recognition_terms() + linked,
+    ears = meetings.MeetingEars(vendors.key("soniox"), phone.IN_RATE, _recognition_terms(await _listed_repos()) + linked,
                                 _on_meeting_tokens, _on_meeting_interim)
     ears.on_reconnect = _on_meeting_reconnect
     state.meeting_starting = True  # from here the room's audio stays out of the call, while the stream connects
@@ -6366,15 +6366,35 @@ def build_front():
     return GeminiLiveLLMService(api_key=os.environ["GOOGLE_API_KEY"], settings=settings, tools=TOOLS)
 
 
-def _recognition_terms() -> list[str]:
+async def _listed_repos() -> dict[str, list[str]]:
+    """The tracked files of each local session's folder, read off the loop and all together. A call start must not wait on
+    git with the loop held: one `git ls-files` per session took over a second with many sessions, and seconds each on a
+    busy Mac, with the call's socket unanswered meanwhile."""
+    def listing(cwd: str) -> list[str] | None:
+        try:
+            return _git_files(cwd, 5).split("\0")
+        except Exception:
+            return None
+
+    folders = sorted({s.cwd for s in REGISTRY.sessions.values() if not s.machine})
+    listed = await asyncio.gather(*(asyncio.to_thread(listing, cwd) for cwd in folders))
+    return {cwd: files for cwd, files in zip(folders, listed) if files is not None}
+
+
+def _recognition_terms(listed: dict[str, list[str]] | None = None) -> list[str]:
     """The user's dictionary, session names, names from the sessions' notes and repo directory names bias recognition
-    toward real identifiers (vocabulary.terms_for: in that order, capped, no consent word from any source)."""
+    toward real identifiers (vocabulary.terms_for: in that order, capped, no consent word from any source). `listed`:
+    the folders' files when the caller already has them (_listed_repos); a folder not in it is skipped, never asked."""
     names: list[str] = []
     folders: set[str] = set()
     for s in REGISTRY.sessions.values():
         names += s.name.replace("/", " ").split()
         if s.machine:  # its folder is on its node: the names it sent, never git at that path on this Mac
             files = [str(f) for f in s.harness_data.get("files") or []]
+        elif listed is not None:
+            if s.cwd not in listed:
+                continue
+            files = listed[s.cwd]
         else:
             try:
                 files = _git_files(s.cwd, 5).split("\0")
@@ -6534,7 +6554,7 @@ def _spoken(frame) -> tuple[float, float] | None:
     return span if span and span[1] <= time.time() + 0.5 else None  # a clock out of step says nothing
 
 
-def _call_ears() -> tuple[list, list, object]:
+def _call_ears(terms: list[str] | None = None) -> tuple[list, list, object]:
     """The call's ears, the echo guard's mirror (Soniox on the bot's own voice, when there is a key and the voice may leave
     this Mac), and the speech-to-text service among the ears."""
     if EARS == "native":
@@ -6544,8 +6564,9 @@ def _call_ears() -> tuple[list, list, object]:
     from pipecat.audio.vad.silero import SileroVADAnalyzer
     from pipecat.processors.audio.vad_processor import VADProcessor
 
-    mirror = [MirrorEars(_recognition_terms())] if vendors.has("soniox") and not vendors.voice_local() else []
-    stt = vendors.build_ears(setup().ears, _recognition_terms())
+    terms = _recognition_terms() if terms is None else terms  # once: the ears and the mirror hear the same names
+    mirror = [MirrorEars(terms)] if vendors.has("soniox") and not vendors.voice_local() else []
+    stt = vendors.build_ears(setup().ears, terms)
     _clock_ears(stt)
     _tell_finalized(stt)
     return [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()], mirror, stt
@@ -6562,7 +6583,7 @@ async def run_call(transport) -> None:
     opening = _opening_context()
     state.tokens = None
     injector = FeedInjector()
-    ears, mirror, stt = _call_ears()
+    ears, mirror, stt = _call_ears(_recognition_terms(await _listed_repos()))
     gate = [PttGate(stt), WhisperIn()]
     if FRONT == "brain":
         front = BrainFront(opening)

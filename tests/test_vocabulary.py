@@ -425,6 +425,47 @@ def test_the_recogniser_gets_the_dictionary_first_and_no_consent_words(voc, monk
     assert out[0] == "Quillfeather" and "okay" not in out and "main" in out
 
 
+def test_a_call_starts_without_git_holding_the_loop(voc, monkeypatch):
+    """From live runs on a busy Mac: each call start stalled the daemon's loop for up to 5.6 s in _git_files, once per
+    session and twice over (the ears and the echo mirror each asked for the terms), with the call's socket waiting."""
+    import time
+
+    d, _ = voc
+    for i in range(4):
+        add(d, f"s{i}", f"repo{i}/main", cwd=f"/tmp/repo{i}")
+    asked = []
+
+    def slow_git(cwd, timeout):
+        asked.append(cwd)
+        time.sleep(0.2)
+        return "pricing/rules.py\0docs/guide.md\0"
+
+    monkeypatch.setattr(d, "_git_files", slow_git)
+
+    async def start():
+        ticks = []
+
+        async def tick():
+            while True:
+                ticks.append(time.monotonic())
+                await asyncio.sleep(0.01)
+
+        ticker = asyncio.create_task(tick())
+        began = time.monotonic()
+        listed = await d._listed_repos()
+        took = time.monotonic() - began
+        ticker.cancel()
+        return listed, took, max(b - a for a, b in zip(ticks, ticks[1:]))
+
+    listed, took, longest = asyncio.run(start())
+    assert sorted(listed) == [f"/tmp/repo{i}" for i in range(4)] and len(asked) == 4
+    assert longest < 0.1, "the loop kept turning while git ran"
+    assert took < 0.6, "the repositories are listed together, not one after another"
+    asked.clear()
+    terms = d._recognition_terms(listed)
+    assert "pricing" in terms and "docs" in terms and not asked  # the terms come from what was listed: no git again
+
+
 def test_the_brain_is_told_how_to_spell_the_names(voc):
     d, client = voc
     client.post("/voice/dictionary", json={"action": "add", "term": "Quillfeather"})
