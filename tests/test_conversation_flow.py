@@ -521,6 +521,28 @@ def test_a_long_reply_is_refused_once_then_the_shorter_one_is_spoken(monkeypatch
     assert "Too long for speech" in refusal["error"]
 
 
+# Over on sentences but within the words: cut in code at once, no second model step. A retry cost about a second before
+# the first sound; on live calls 39 of the 61 replies sent back for length were over only on sentences.
+
+THREE_SHORT = "Postgres, in my read. It is stricter and has richer features. MySQL is fine if your team knows it. Want the details?"
+
+
+def test_a_reply_over_on_sentences_but_within_the_words_is_cut_in_code_without_a_second_step(monkeypatch):
+    assert cv.count_words(THREE_SHORT) <= cv.REPLY.words and len(cv.split_sentences(THREE_SHORT)) > cv.REPLY.sentences
+    assert cv.length_problem(THREE_SHORT, cv.REPLY) and cv.retry_problem(THREE_SHORT, cv.REPLY) is None
+    b, spoken, steps = _brain(monkeypatch, [THREE_SHORT], limit=lambda trigger, asked: cv.limit_for(trigger, asked))
+    asyncio.run(b.turn("Postgres or MySQL for a small team?"))
+    assert len(steps) == 1 and spoken == [cv.trim(THREE_SHORT, cv.REPLY)]
+    assert cv.length_problem(spoken[0].replace(cv.MORE_EN, "").strip(), cv.REPLY) is None
+    assert spoken[0].startswith("Postgres, in my read.") and "Want the details?" in spoken[0]  # the closing question is kept
+
+
+def test_a_reply_over_on_words_is_still_sent_back_once_and_a_list_of_four_too():
+    assert "Too long for speech" in cv.retry_problem(LONG_EN, cv.REPLY)
+    assert "more than 3 things" in cv.retry_problem("Open right now: billing, docs, lantern and search.", cv.REPLY)
+    assert cv.retry_problem("Use rc1.", cv.REPLY) is None and cv.retry_problem(THREE_SHORT, None) is None
+
+
 @pytest.mark.parametrize("asked,long", [("How did billing do?", LONG_EN), ("איך הלך ל-billing?", LONG_HE)])
 def test_a_reply_still_too_long_after_one_retry_is_cut_in_code_not_retried_again(monkeypatch, asked, long):
     b, spoken, steps = _brain(monkeypatch, [long, long], limit=lambda trigger, asked: cv.limit_for(trigger, asked))

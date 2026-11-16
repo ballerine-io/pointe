@@ -460,8 +460,9 @@ class Brain:
                     # Sent back once, with the reason: whether the user's words ask for that news is the model's call.
                     problem, ahead_checked = self.news_ahead(said, asked), True
                 if not problem and not shortened and retries < 2:
-                    # Sent back once: the model shortens better than a cut does. A second long one is cut in code below.
-                    problem, shortened = conversation.length_problem(without_closer(said), limit), True
+                    # Over on words, sent back once: the model shortens better than a cut does. A second long one, and one
+                    # over only on sentences, is cut in code below: that costs no model step before the first sound.
+                    problem, shortened = conversation.retry_problem(without_closer(said), limit), True
                 if problem:
                     retries += 1
                     logger.info(f"speech refused: {said!r}: {problem[:160]}")

@@ -158,6 +158,15 @@ def length_problem(said: str, limit: Limit | None) -> str | None:
     return None
 
 
+def retry_problem(said: str, limit: Limit | None) -> str | None:
+    """`length_problem`, when it is worth a second model step: over on words, or a list too long. A reply over only on
+    sentences is cut in code (`trim`) at once: the step cost about a second before the first sound, on one reply in ten."""
+    problem = length_problem(said, limit)
+    if problem is None or limit is None or count_words(said) > limit.words:
+        return problem
+    return problem if limit.items is not None and list_items(said) > limit.items else None
+
+
 def _cut_sentence(sentence: str, words: int) -> str:
     """One sentence that is too long on its own: cut at the last clause that fits, or at the word limit."""
     kept = ""

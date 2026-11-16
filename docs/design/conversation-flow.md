@@ -124,7 +124,8 @@ that cannot wait, after you finish your sentence.
   (`trim`): the first sentences that fit, the closing question kept (it is the decision asked of the user), one
   sentence too long on its own cut at a clause, then "There's more if you want it." / "יש עוד, אם תרצה." That line is
   a statement, not a question, so it does not take the floor (§3.2). One retry, not two: a second costs another model
-  step (about 2 s) with the user waiting.
+  step (about 2 s) with the user waiting. Since 1.13.5 a reply over only on sentences, within the words, skips the
+  retry and is cut at once (§6).
 - **Lists.** Three items, then how many more ("billing, docs, lantern, and 2 more"). The model is sent back for a list
   of four or more. The code cut applies from five: "and 1 more" is no shorter than the fourth name. Never cut: the
   options of a choice put to the user (a question, or an "or" list): they are the question. A part longer than three
@@ -307,6 +308,9 @@ Also from that pass: a yes is timed by its own words (Soniox times each word; `s
 detector's last start, which also fires on the bot's echo and does not fire on a whisper; and a call start lists the
 sessions' repositories off the loop.
 
-Seen and left as designed: a reply over its limit costs one more model step (about a second) before the first word; in
-this pass's logs, 21 of 200 spoken lines. `tests/e2e/turn_taking.py` judges when the turn is taken, and prints the
-time to the first sound.
+Then changed, on the owner's decision that latency matters more than the retry (1.13.5): a reply over its limit cost
+one more model step, about a second before the first word. In the logs of this pass 61 replies were sent back for
+length, 39 of them over only on sentences and within the words. Such a reply is now cut in code at once
+(`conversation.retry_problem`; `trim` keeps the closing question); the retry stays for a reply over on words and for a
+list of more than three. `tests/e2e/turn_taking.py` judges when the turn is taken, and prints the time to the first
+sound.
