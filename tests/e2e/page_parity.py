@@ -219,14 +219,22 @@ async def machines(page: Page) -> None:
     check("a group per machine, this Mac first, with its OS, round trip, offline time and what needs you",
           len(heads) == 3 and heads[0].startswith("studiothis Mac") and heads[1] == "devboxLinux23 ms2 need you"
           and heads[2].startswith("laptopmacOSoffline since "), heads=heads)
-    tags = await page.js("[...document.querySelectorAll('#list .s')].map(r => (r.querySelector('.machine') || {}).textContent)")
-    check("a machine tag on every row while more than one machine has sessions", tags == ["studio", "studio", "devbox", "devbox", "devbox", "laptop"], tags=tags)
+    # Since Brand V6 a row carries no machine tag of its own: it sits under its machine's header (docs/design/brand-v6.md §9).
+    under = await page.js("(() => { let at = null; return [...document.querySelectorAll('#list .mh, #list .s')].flatMap(e => "
+                          "e.classList.contains('mh') ? (at = e.querySelector('.mn').textContent, []) : [at]); })()")
+    check("every row sits under its own machine's header while more than one machine has sessions, with no tag of its own",
+          under == ["studio", "studio", "devbox", "devbox", "devbox", "laptop"] and await page.js("!document.querySelector('#list .s .machine')"),
+          under=under)
     sub = await page.js("$('sub').textContent")
     check("All: the line counts every machine", "Orchestrating 6 sessions · 2 need you" in sub, sub=sub)
     off = await page.js("(() => { const r = [...document.querySelectorAll('#list .s')].find(r => r.querySelector('.nm').firstChild.textContent === 'notes');"
-                        " return {away: r.classList.contains('away'), opacity: +getComputedStyle(r).opacity, tag: r.querySelector('.tag').textContent, title: r.title}; })()")
-    check("an offline session is dimmed and says offline since when, and that sends are refused",
-          off["away"] and off["opacity"] < 0.6 and off["tag"] == "offline" and "offline since" in off["title"] and "sends are refused" in off["title"], **off)
+                        " const on = [...document.querySelectorAll('#list .s:not(.away) .nm')][0];"
+                        " return {away: r.classList.contains('away'), opacity: +getComputedStyle(r).opacity, tag: r.querySelector('.tag').textContent, title: r.title,"
+                        " quieter: getComputedStyle(r.querySelector('.nm')).color !== getComputedStyle(on).color}; })()")
+    # Quieter by colour, at full opacity: 45% opacity failed contrast (docs/design/ux-review-web.md, M1).
+    check("an offline session is quieter (by colour, not opacity) and says offline since when, and that sends are refused",
+          off["away"] and off["quieter"] and off["opacity"] == 1 and off["tag"] == "offline" and "offline since" in off["title"]
+          and "sends are refused" in off["title"], **off)
     await page.js("[...document.querySelectorAll('#list .s')].find(r => r.title.startsWith('notes')).click()")
     check("a click on an offline session still focuses it (its notes can be asked about)",
           await page.until("window.__posts.some(p => p.url === '/voice/switch' && p.body.name === 'notes')", 3))
@@ -274,9 +282,10 @@ async def machines(page: Page) -> None:
     await use(page, machines_fixture(recorded, now))
 
     got = await page.js("(() => { const nm = [...document.querySelectorAll('#list .s .nm')].find(e => e.firstChild.textContent === 'חנות');"
-                        " return {dir: getComputedStyle(nm).direction, tag: getComputedStyle(nm.querySelector('.machine')).direction}; })()")
-    check("a Hebrew session name on a machine reads from the right, its English machine tag from the left",
-          got == {"dir": "rtl", "tag": "ltr"}, **got)
+                        " const head = [...document.querySelectorAll('#list .mh .mn')].find(e => e.textContent === 'devbox');"
+                        " return {dir: getComputedStyle(nm).direction, head: getComputedStyle(head).direction}; })()")
+    check("a Hebrew session name on a machine reads from the right, its machine's English name from the left",
+          got == {"dir": "rtl", "head": "ltr"}, **got)
 
     await page.js("openSettings()")
     await page.until("!$('machines').hidden", 5)
