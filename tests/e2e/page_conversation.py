@@ -101,8 +101,14 @@ async def until(test, timeout: float, every: float = 0.3):
 
 
 def unsaid() -> bool:
-    """Words handed to the mouth whose sound has not ended: the log says "speak:" at the hand-off and "bot said:" at the end."""
+    """Words handed to the mouth whose sound has not ended: the log says "speak:" at the hand-off and "bot said:" at the end.
+    A reply's first sentence can go to the mouth while the rest is still being written ("speak first:"): until the whole
+    reply's "speak:" line follows, or the user's next words cut it, there is more to come."""
     spoke, said = log_lines(r" speak: "), log_lines(r"bot said: ")
+    first = log_lines(r" speak first: ")
+    if first and (not spoke or log_time(first[-1]) > log_time(spoke[-1])) \
+            and not [line for line in log_lines(r"user said: ") if log_time(line) > log_time(first[-1])]:
+        return True
     return bool(spoke) and bool(spoke[-1].split("speak: ", 1)[1].strip().strip("'\"")) and (not said or log_time(spoke[-1]) > log_time(said[-1]))
 
 
@@ -110,8 +116,13 @@ async def quiet(timeout: float = 45) -> None:
     """The voice has said all it was handed and stopped; then a breath, as a person leaves. A yes begun over the voice
     never counts, by design."""
     await asyncio.sleep(0.5)
-    await until(lambda: not unsaid() and status()["speaking"] is None, timeout)
-    await asyncio.sleep(1.5)
+    deadline = time.time() + timeout
+    while True:
+        await until(lambda: not unsaid() and status()["speaking"] is None, max(0.5, deadline - time.time()))
+        await asyncio.sleep(1.5)
+        # Still quiet after the breath: a reply now comes in two parts, and a pause between them is not its end.
+        if time.time() >= deadline or (not unsaid() and status()["speaking"] is None):
+            return
 
 
 async def say(browser: Browser, text: str, settle: float = 1.5) -> float:
@@ -314,7 +325,9 @@ async def patience(browser: Browser, page: Page) -> None:
     check("Settings offers Quick, Normal and Patient, and Done saves the choice",
           shown == ["Quick", "Normal", "Patient"] and saved_quick and saved_patient, shown=shown, prefs=call("/voice/prefs").get("turns.patience"))
     check("Quick takes a whole sentence after 0.4 s of quiet and Patient only after 1.8 s",
-          quick.get("settle") == 0.4 and quick["after_transcript"] < 0.8 and patient.get("settle") == 1.8 and patient["after_stop"] >= 1.7,
+          # The silence counts from the end of the sound; the voice detector's stop stamp comes 0.2 s after it.
+          quick.get("settle") == 0.4 and quick["after_transcript"] < 0.8 and patient.get("settle") == 1.8
+          and patient["after_stop"] + 0.2 >= 1.7,
           quick=quick, patient=patient)
     await quiet()
 
