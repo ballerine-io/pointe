@@ -30,7 +30,11 @@ async def main() -> None:
     browser = Browser()
     try:
         await browser.connect()
-        await asyncio.sleep(8)  # the greeting
+        for _ in range(60):  # the greeting, to its end: a short command begun in the tail of the bot's voice is taken for its echo
+            await asyncio.sleep(0.5)
+            if log_lines("bot said: ") and daemon_status().get("speaking") is None:
+                break
+        await asyncio.sleep(2)
         start = time.time()
         await browser.say("Brain dump.")
         await asyncio.sleep(4)

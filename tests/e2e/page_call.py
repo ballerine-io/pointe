@@ -134,6 +134,9 @@ async def main() -> None:
                   any(t["corrected"] and "Jerusalem" in t["text"] for t in fixed) and "Jerusalem" in shown,
                   corrected=bool(log_lines("user corrected")), shown=shown[-160:])
             # Brain dump: the voice stays quiet; Done with nothing said goes back to the conversation with no model turn.
+            # The looped question must not land in the dump as a thought: the microphone goes quiet first.
+            await evaluate(socket, "window.__mic.ctx.suspend(); true")
+            await asyncio.sleep(8)  # words cut off by that are still finalized (2.5 s), settled and answered: all before the dump
             await evaluate(socket, "document.getElementById('listen').click()")
             await asyncio.sleep(1.5)
             opened = await evaluate(socket, "!document.getElementById('dump').hidden")
