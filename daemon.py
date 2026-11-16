@@ -648,6 +648,10 @@ class FeedInjector(FrameProcessor):
         """Updates waiting for a gap in the conversation."""
         return len(self._updates)
 
+    def queued_reports(self) -> list[str]:
+        """The sessions whose finished-turn report waits in the queue."""
+        return [key for key, _ in self._updates.items if key]
+
     def forget_report(self) -> None:
         """The owner moved to another session by a click: a report being read, or one they cut off, is not offered again."""
         self._report, self._report_speaking, self._cut = None, False, None
@@ -787,6 +791,20 @@ and a next step; offer more only if there is more. "Summarize that": the gist in
 "Turn that into tasks": a short numbered list, spoken. "Send that to <session>": send a clean, complete, structured \
 version of what they said, keeping every decision, number and name, and adding nothing of your own. Never say you \
 were silent or recount the mode itself."""
+
+
+def _news_ahead(said: str, asked: str) -> str | None:
+    """A reply to the user's words that tells a session's news while that news is queued for the gap after the reply: the
+    user would hear it twice, and the answer they asked for is squeezed into what is left of the limit. Not when their
+    words name the session, or ask where things stand: then the news is the answer."""
+    if state.conn is None or status_intent(asked):
+        return None
+    named = lambda name, text: re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.I)  # noqa: E731
+    early = [name for name in state.conn.injector.queued_reports() if named(name, said) and not named(name, asked)]
+    if not early:
+        return None
+    return (f"{', '.join(early)}: that news is queued and you will say it right after this reply. Answer only what the "
+            f"user asked, without it. Keep it only if their words ask about that work.")
 
 
 def _brain_context() -> str:
@@ -1066,6 +1084,7 @@ def make_brain(speak, filler=None) -> Brain:
     brain.terse = lambda: current_mode() is modes.DRIVE
     brain.style_problem = lambda said: drives.length_problem(said) if current_mode() is modes.DRIVE else None
     brain.limit = _reply_limit
+    brain.news_ahead = _news_ahead
     return brain
 
 

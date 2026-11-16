@@ -131,6 +131,8 @@ class Brain:
         self.style_problem: Callable[[str], str | None] = lambda _s: None  # a mode's own limit (drive: length)
         # How long this turn's reply may be, from what started it and the user's latest words (conversation.limit_for).
         self.limit: Callable[[str | None, str], conversation.Limit | None] = lambda _trigger, _asked: None
+        # Why a reply to the user's own words tells too much: news that is queued to be said right after it (said, asked).
+        self.news_ahead: Callable[[str, str], str | None] = lambda _said, _asked: None
         self.on_usage = on_usage or (lambda _u: None)
         # The sentence for a refused key, by vendor; None when it cannot be heard (the mouth uses that key too).
         self.key_refused: Callable[[str], str | None] = vendors.refused_spoken
@@ -354,6 +356,8 @@ class Brain:
         decls = [SPEAK] + [{"name": t.name, "description": t.description, "properties": t.properties,
                             "required": t.required} for t in self.tools]
         sent, retries, filled, refused, shortened = False, 0, not user, False, False
+        own_words = trigger is not None and not trigger.lstrip().startswith("[")  # not a report, a click or a mode's line
+        ahead_checked = not own_words
         for _ in range(MAX_STEPS):
             self._trim()
             now = self.context()
@@ -415,6 +419,9 @@ class Brain:
             for call in speaks[-1:]:
                 said = plain(str(call["args"].get("text", "")))
                 problem = self.speech_problem(said, sent, refused) if retries < 2 else None
+                if not problem and not ahead_checked and retries < 2:
+                    # Sent back once, with the reason: whether the user's words ask for that news is the model's call.
+                    problem, ahead_checked = self.news_ahead(said, asked), True
                 if not problem and not shortened and retries < 2:
                     # Sent back once: the model shortens better than a cut does. A second long one is cut in code below.
                     problem, shortened = conversation.length_problem(without_closer(said), limit), True

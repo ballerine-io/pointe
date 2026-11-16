@@ -764,6 +764,61 @@ def test_a_request_is_read_out_once_and_not_by_a_mode_that_does_not_read_out(cal
     asyncio.run(run())
 
 
+# ---------- news that waits its turn is not told early ----------
+# From a live call (tests/e2e/page_conversation.py): two sessions finished while the user was asking for a tag name. The
+# reply opened with both results, squeezing the answer, and five seconds later "Two updates: …" said them again.
+
+TAG = "What is a good name for that tag?"
+
+
+def test_a_reply_that_tells_queued_news_is_sent_back_once_and_the_answer_alone_is_spoken(monkeypatch):
+    b, spoken, steps = _brain(monkeypatch, ["Billing's retry fix is in. For the tag, use the version plus rc1.",
+                                            "Use the version plus rc1."])
+    b.news_ahead = lambda said, asked: "billing: that news waits" if "billing" in said.lower() else None
+    asyncio.run(b.turn(TAG))
+    assert spoken == ["Use the version plus rc1."] and len(steps) == 2
+    assert "billing: that news waits" in [m for m in b.messages if m["role"] == "tool"][0]["results"][0]["result"]["error"]
+
+
+def test_the_model_keeps_the_news_when_it_judges_the_user_asked_for_it_and_is_not_sent_back_twice(monkeypatch):
+    told = "Yes, billing's retry fix is in and all checks pass."
+    b, spoken, steps = _brain(monkeypatch, [told, told])
+    b.news_ahead = lambda said, asked: "billing: that news waits"
+    asyncio.run(b.turn("Did the retry fix land?"))
+    assert spoken == [told] and len(steps) == 2
+
+
+def test_the_update_itself_is_never_held_back_as_news_ahead(monkeypatch):
+    b, spoken, steps = _brain(monkeypatch, ["Billing: the retry fix is in and all checks pass."])
+    b.news_ahead = lambda said, asked: "billing: that news waits"
+    asyncio.run(b.turn(REPORT_BILLING))
+    assert spoken == ["Billing: the retry fix is in and all checks pass."] and len(steps) == 1
+
+
+def test_on_the_call_only_news_still_queued_that_the_user_did_not_ask_about_counts_as_ahead(call):
+    d = call.d  # noqa: F811
+
+    async def run():
+        injector = call.start()
+        early = "Billing's retry fix is in, and docs wrote the changelog. For the tag, use the version plus rc1."
+        assert d._news_ahead(early, TAG) is None  # nothing is queued
+        d.state.floor.user_started(time.time())  # the user is talking: both reports wait
+        await injector.inject(REPORT_BILLING, True)
+        await injector.inject(REPORT_DOCS, True)
+        assert injector.queued == 2
+        problem = d._news_ahead(early, TAG)
+        assert problem and "billing" in problem and "docs" in problem
+        assert "billing" in d._news_ahead("Billing is done. Use rc1.", TAG) and "docs" not in d._news_ahead("Billing is done. Use rc1.", TAG)
+        assert d._news_ahead("Use the version plus rc1.", TAG) is None  # the answer alone
+        assert d._news_ahead("Billing's retry fix is in.", "How did billing do?") is None  # they named it
+        assert d._news_ahead("Docs wrote it, and billing's fix is in.", "How did billing do?")  # docs was not asked about
+        assert d._news_ahead(early, "What's going on everywhere?") is None  # a status question asks for all of it
+        d.state.conn = None
+        assert d._news_ahead(early, TAG) is None  # no call
+
+    asyncio.run(run())
+
+
 def test_updates_queued_when_the_call_ends_are_dropped_with_it(call):
     d = call.d  # noqa: F811
 
