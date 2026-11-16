@@ -505,3 +505,55 @@ def test_the_page_says_holding_on_its_own_call_while_a_hold_is_on():
 
     holding, after = asyncio.run(run())
     assert holding == ["Holding", "Say “go ahead” when you're done"] and "Holding" not in after  # a short title; how to go on under it
+
+
+# ---------- the settle counts the user's silence, not the transcript's lag ----------
+
+def _settle_run(d, monkeypatch, clocked: bool, live_after: float | None = None) -> float:
+    """Seconds from a final transcript to the turn, for a sentence whose sound ended 0.3 s before the final arrived."""
+    from pipecat.frames.frames import TranscriptionFrame
+    from pipecat.processors.frame_processor import FrameDirection
+
+    monkeypatch.setitem(d.turns.LEVELS, "normal", d.turns.Patience(complete=0.6, unfinished=1.2, maximum=5.0))
+    taken = []
+
+    async def run():
+        ears = _ears(d, monkeypatch)
+
+        async def take(text):
+            taken.append(time.time())
+        monkeypatch.setattr(ears, "_take", take)
+        now = time.time()
+        ended = now - 0.3
+        monkeypatch.setattr(d, "_spoken", lambda frame: (ended - 2.0, ended) if clocked else None)
+        d.state.user_stopped_at = ended + d.VAD_STOP_SECS  # the voice detector's stamp comes after the sound ended
+        d.state.user_heard_at = now - 0.05  # the last live word reached us just before its final did
+        await d.SonioxEars.process_frame(ears, TranscriptionFrame(text="The retry loop has no backoff at all.", user_id="u",
+                                                                  timestamp="t"), FrameDirection.DOWNSTREAM)
+        if live_after is not None:
+            await asyncio.sleep(live_after)
+            d.state.user_heard_at = time.time()  # a new word, after the final: the user went on
+        await asyncio.sleep(1.2)
+        return taken[0] - now
+    return asyncio.run(run())
+
+
+def test_with_timed_words_the_settle_counts_from_the_end_of_the_sound(d, monkeypatch):
+    """Measured on a live call: a 1.0 s settle took the turn 1.3 s after the last word, because it counted from the voice
+    detector's stamp (0.2 s late by design) and from the arrival of the last live word (the network's lag)."""
+    waited = _settle_run(d, monkeypatch, clocked=True)
+    assert 0.25 <= waited < 0.45, waited  # 0.6 s of silence, 0.3 s of it already past when the final came
+
+
+def test_a_word_heard_after_the_final_restarts_the_settle(d, monkeypatch):
+    waited = _settle_run(d, monkeypatch, clocked=True, live_after=0.15)
+    assert 0.7 <= waited < 0.95, waited  # 0.15 s to the new word, then the whole 0.6 s
+
+
+def test_ears_without_word_times_keep_counting_from_the_stamps_as_they_came(d, monkeypatch):
+    waited = _settle_run(d, monkeypatch, clocked=False)
+    assert 0.5 <= waited < 0.75, waited  # from the live word's arrival, 0.05 s before the final
+
+
+def test_the_voice_detector_is_built_with_the_stop_time_the_settle_takes_off():
+    assert "VADParams(stop_secs=VAD_STOP_SECS)" in (ROOT / "daemon.py").read_text()

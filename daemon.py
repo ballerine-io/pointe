@@ -315,6 +315,8 @@ SPOKEN_CHARS_PER_SEC = 14  # the bot's speech, measured on ElevenLabs: how far a
 SWITCH_WORDS_SECS = 10.0  # a switch asked this recently still counts when another sentence came right after it
 # How long a final transcript waits for silence before it is the turn: turns.LEVELS, by the "turns.patience" setting.
 HEARING_SECS = 3.0  # live words older than this are stale: the user stopped
+VAD_STOP_SECS = 0.2  # the voice detector says "stopped" this long after the sound ended (pipecat's default, set in _call_ears)
+SETTLE_POLL_SECS = 0.03  # how often held words are checked for their settle time: what it adds to every turn
 ECHO_SETTLE_SECS = 0.8  # how far the mirror's transcript can trail the user's ears
 LEVEL = LevelGate()
 # soniox: Soniox transcribes, the model gets text. native: the model hears the audio itself.
@@ -1340,7 +1342,7 @@ class SonioxEars(FrameProcessor):
                 else:
                     self._began = spoken[0] if spoken else 0.0
                 self._ended = spoken[1] if spoken else max(state.user_stopped_at, state.user_heard_at)
-                self._final_at = time.time()
+                self._final_at, self._clocked = time.time(), spoken is not None
                 wait = turns.settle(heard, held, _patience()) if not _dumping() and state.hold is None else 0.0
                 if wait > 0:  # Soniox's endpoint is a candidate: the turn is the text once the user has been quiet this long
                     self._held = re.sub(r"[\s.—–…,-]+$", "", heard) if unfinished(heard) else heard
@@ -1356,6 +1358,7 @@ class SonioxEars(FrameProcessor):
     _began = 0.0  # when the first word of the turn being put together was said, if the ears tell (state.words_began_at)
     _ended = 0.0  # when its last word ended, and when the final transcript with it arrived (state.timing)
     _final_at = 0.0
+    _clocked = False  # the ears timed those words themselves (Soniox does)
     _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
 
     @property
@@ -1414,12 +1417,23 @@ class SonioxEars(FrameProcessor):
         # 2.5 s to end a stretch, and the settle would hand over the sentence before it without them.
         while self._held == held and time.time() - at < turns.maximum(_patience()) and (
                 state.user_started_at > state.user_stopped_at
-                or time.time() - max(state.user_stopped_at, state.user_heard_at) < wait
+                or time.time() - self._quiet_since() < wait
                 or self._judging or (state.hearing[1] and time.time() - state.hearing[0] < HEARING_SECS)):
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(SETTLE_POLL_SECS)
         if self._held == held:
             self._held = ""
             await self._take_timed(held)
+
+    def _quiet_since(self) -> float:
+        """When the user's sound last ended: what the settle time counts from. Ears that time their words say when the
+        last one ended; the voice detector's stop comes VAD_STOP_SECS after the sound did. A live word counts only when
+        it came after the final transcript: one from before it is in that transcript, and its arrival time is the
+        network's lag, not the user's voice (measured: with it, a 1.0 s settle took the turn 1.3 s after the last word).
+        Ears without word times keep the stamps as they came."""
+        if not self._clocked:
+            return max(state.user_stopped_at, state.user_heard_at)
+        later = state.user_heard_at if state.user_heard_at > self._final_at else 0.0
+        return max(self._ended, state.user_stopped_at - VAD_STOP_SECS, later)
 
     async def _take_timed(self, heard: str) -> None:
         """A turn from the voice, with the time its words began for the consent rules; a press and typed words have none."""
@@ -6674,7 +6688,10 @@ def _call_ears(terms: list[str] | None = None) -> tuple[list, list, object]:
     stt = vendors.build_ears(setup().ears, terms)
     _clock_ears(stt)
     _tell_finalized(stt)
-    return [VADProcessor(vad_analyzer=SileroVADAnalyzer()), MicGate(), stt, SonioxEars()], mirror, stt
+    from pipecat.audio.vad.vad_analyzer import VADParams
+
+    return [VADProcessor(vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=VAD_STOP_SECS))), MicGate(), stt,
+            SonioxEars()], mirror, stt
 
 
 async def run_call(transport) -> None:
