@@ -649,9 +649,9 @@ class FeedInjector(FrameProcessor):
         """Updates waiting for a gap in the conversation."""
         return len(self._updates)
 
-    def queued_reports(self) -> list[str]:
-        """The sessions whose finished-turn report waits in the queue."""
-        return [key for key, _ in self._updates.items if key]
+    def queued_reports(self) -> dict[str, str]:
+        """The finished-turn reports that wait in the queue, by session."""
+        return {key: text for key, text in self._updates.items if key}
 
     def forget_report(self) -> None:
         """The owner moved to another session by a click: a report being read, or one they cut off, is not offered again."""
@@ -824,15 +824,24 @@ def _dump_reply_problem(said: str) -> str | None:
 def _news_ahead(said: str, asked: str) -> str | None:
     """A reply to the user's words that tells a session's news while that news is queued for the gap after the reply: the
     user would hear it twice, and the answer they asked for is squeezed into what is left of the limit. Not when their
-    words name the session, or ask where things stand: then the news is the answer."""
+    words ask where things stand, or name the session: then the news may be the answer. Unless they named it to ask
+    something else and the reply is that report all the same ("what did lighthouse say the codename is?", answered with
+    its queued "denied.txt was not created"): then it is sent back with their question."""
     if state.conn is None or status_intent(asked):
         return None
     named = lambda name, text: re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.I)  # noqa: E731
-    early = [name for name in state.conn.injector.queued_reports() if named(name, said) and not named(name, asked)]
-    if not early:
-        return None
-    return (f"{', '.join(early)}: that news is queued and you will say it right after this reply. Answer only what the "
-            f"user asked, without it. Keep it only if their words ask about that work.")
+    queued = state.conn.injector.queued_reports()
+    early = [name for name in queued if named(name, said) and not named(name, asked)]
+    if early:
+        return (f"{', '.join(early)}: that news is queued and you will say it right after this reply. Answer only what the "
+                f"user asked, without it. Keep it only if their words ask about that work.")
+    for name, report in queued.items():
+        own = content_words(name)
+        told, about, wanted = content_words(said) - own, content_words(report.split("\n", 1)[-1]), content_words(asked) - own
+        if named(name, asked) and len(wanted & about) < 2 and len(told) >= 4 and len(told & about) >= len(told) / 2:
+            return (f"That is {name}'s report, which is queued: you will say it right after this reply. They asked something "
+                    f"else: {asked!r}. Answer that, from what you know or with ask_about_session, or say you do not know.")
+    return None
 
 
 def _brain_context() -> str:

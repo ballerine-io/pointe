@@ -153,8 +153,9 @@ def length_problem(said: str, limit: Limit | None) -> str | None:
                 f"there are, and stop: they will ask for the rest.")
     words, sentences = count_words(said), len(split_sentences(said))
     if words > limit.words or sentences > limit.sentences:
-        return (f"Too long for speech: {sentences} sentences, {words} words. Answer only what was asked, in at most "
-                f"{limit.sentences} short sentences and {limit.words} words. Details wait until they ask for them.")
+        return (f"Too long for speech: {sentences} sentences, {words} words. Answer what was asked first, and only that, "
+                f"in at most {limit.sentences} short sentences and {limit.words} words: leave out session news they did not "
+                f"ask about, and details until they ask for them.")
     return None
 
 

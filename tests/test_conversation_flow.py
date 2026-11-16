@@ -845,7 +845,7 @@ def test_on_the_call_a_conflict_is_said_alone_and_first_and_the_reports_it_is_ab
                 break
             await asyncio.sleep(0.02)
         assert [text for _, text in call.asked] == [CLASH]  # alone: its own turn, its own three sentences
-        assert injector.queued == 1 and injector.queued_reports() == ["search"]  # the one it is not about still waits
+        assert injector.queued == 1 and list(injector.queued_reports()) == ["search"]  # the one it is not about still waits
         kept = [n for n in noted if "billing" in n or "docs" in n]
         assert len(kept) == 2 and all("say nothing" in n for n in kept)  # known for a follow-up, not said twice
         assert any("all checks pass" in n for n in kept) and any("changelog" in n for n in kept)
@@ -950,6 +950,42 @@ def test_the_update_itself_is_never_held_back_as_news_ahead(monkeypatch):
     b.news_ahead = lambda said, asked: "billing: that news waits"
     asyncio.run(b.turn(REPORT_BILLING))
     assert spoken == ["Billing: the retry fix is in and all checks pass."] and len(steps) == 1
+
+
+# From a live call (tests/e2e/harness_matrix.py, the by-the-way row): lighthouse's report was queued when the user asked
+# "By the way, what did Lighthouse say the release codename is?" They named the session, so nothing held the news back:
+# the reply was the report ("Lighthouse didn't create denied.txt because you denied it, and it won't retry. It asks
+# whether you still want the file."), the cut for length took what came after, and the codename was never said.
+
+REPORT_DENIED = ("[lighthouse: claude-code finished its turn] Tell the user this in English, no longer than it is:\nThe request "
+                 "to create denied.txt was not done. The touch command was denied, and Claude won't retry or work around it. Do "
+                 "you want the file created? If yes, say so directly to lighthouse.")
+CODENAME = "By the way, what did Lighthouse say the release codename is?"
+
+
+def test_on_the_call_a_reply_that_is_the_queued_report_is_not_the_answer_to_another_question_about_that_session(call):
+    d = call.d  # noqa: F811
+
+    async def run():
+        injector = call.start()
+        d.state.floor.user_started(time.time())
+        await injector.inject(REPORT_DENIED, True)
+        assert injector.queued == 1
+        told = ("Lighthouse didn't create denied.txt because you denied it, and it won't retry. It asks whether you still "
+                "want the file.")
+        problem = d._news_ahead(told, CODENAME)
+        assert problem and "lighthouse" in problem and CODENAME in problem  # sent back with the question it must answer
+        assert d._news_ahead("Lighthouse said the codename is Juniper.", CODENAME) is None  # the answer
+        assert d._news_ahead("I don't know: lighthouse has not said a codename.", CODENAME) is None
+        # they asked for that very news: it is the answer
+        assert d._news_ahead(told, "Did lighthouse create denied.txt?") is None
+
+    asyncio.run(run())
+
+
+def test_a_reply_sent_back_for_length_is_told_to_answer_the_question_first():
+    problem = cv.retry_problem(LONG_EN, cv.REPLY)
+    assert "Too long for speech" in problem and "first" in problem and "did not ask" in problem
 
 
 def test_on_the_call_only_news_still_queued_that_the_user_did_not_ask_about_counts_as_ahead(call):

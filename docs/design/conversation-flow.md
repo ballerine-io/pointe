@@ -124,7 +124,7 @@ that cannot wait, after you finish your sentence.
   (`trim`): the first sentences that fit, the closing question kept (it is the decision asked of the user), one
   sentence too long on its own cut at a clause, then "There's more if you want it." / "יש עוד, אם תרצה." That line is
   a statement, not a question, so it does not take the floor (§3.2). One retry, not two: a second costs another model
-  step (about 2 s) with the user waiting. Since 1.13.5 a reply over only on sentences, within the words, skips the
+  step (about 2 s) with the user waiting. Since 1.13.6 a reply over only on sentences, within the words, skips the
   retry and is cut at once (§6).
 - **Lists.** Three items, then how many more ("billing, docs, lantern, and 2 more"). The model is sent back for a list
   of four or more. The code cut applies from five: "and 1 more" is no shorter than the fourth name. Never cut: the
@@ -272,7 +272,7 @@ How often a reply needs the retry or the cut on real calls is not measured yet: 
 ## 6. After a live pass (1.13.3)
 
 `tests/e2e/page_conversation.py` now runs these rules on a real call (a stand-in user's synthetic speech, two synthetic
-sessions, the page in a headless Chrome). Its first runs, and the other live suites run beside it, found eight ways the
+sessions, the page in a headless Chrome). Its first runs, and the other live suites run beside it, found ten ways the
 rules above were still broken, each fixed with a test in `tests/test_conversation_flow.py` or
 `tests/test_orchestrator.py`:
 
@@ -302,13 +302,21 @@ rules above were still broken, each fixed with a test in `tests/test_conversatio
 - **The bot's sentences in the user's turn.** One transcript held the bot's whole announcement and then the user's
   words; with the bot stopped, all of it was taken as theirs (a brain dump's Context read "I'm now in session lantern
   …"). Whole sentences of the bot's at the start of such a transcript are taken off (`EchoGuard._after_bot_sentences`).
+- **The queued report instead of the answer.** "By the way, what did Lighthouse say the release codename is?" named the
+  session, so its queued report was not held back; the reply was that report, and the cut for length took the rest. A
+  reply that is mostly a queued report, to words that named the session but share nothing with the report, is sent back
+  with the question (`daemon._news_ahead`); and the length refusal now says to answer the question first and leave out
+  news they did not ask about.
+- **A sentence taken before the words after it were final.** The settle counted silence since the last live word;
+  Soniox's final can come 2.5 s after it. The held words now wait while live words are unfinalized
+  (`SonioxEars._release_held`).
 - **A length asked for outright** ("about 8 sentences long", "the long version", "באריכות") was not an ask for more.
 
 Also from that pass: a yes is timed by its own words (Soniox times each word; `state.words_began_at`), not by the voice
 detector's last start, which also fires on the bot's echo and does not fire on a whisper; and a call start lists the
 sessions' repositories off the loop.
 
-Then changed, on the owner's decision that latency matters more than the retry (1.13.5): a reply over its limit cost
+Then changed, on the owner's decision that latency matters more than the retry (1.13.6): a reply over its limit cost
 one more model step, about a second before the first word. In the logs of this pass 61 replies were sent back for
 length, 39 of them over only on sentences and within the words. Such a reply is now cut in code at once
 (`conversation.retry_problem`; `trim` keeps the closing question); the retry stays for a reply over on words and for a
