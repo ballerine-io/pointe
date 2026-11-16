@@ -63,6 +63,11 @@ async def main():
         cut = log_lines("barge-in")[n_barge:]
         stopped = [b for a, b in browser.speaker.speech_spans(since=start - 2) if b > start]
         check("the user's own words still interrupt the bot", bool(cut), barge_in=cut[:1])
+        for _ in range(40):  # "Stop." is taken at once and the question after it: wait for the answer, then for its sound
+            await asyncio.sleep(0.5)
+            answered = [line for line in log_lines(r"speak: ") if re.search(r"four|\b4\b", line.split("speak: ", 1)[1], re.I)]
+            if answered and time.mktime(time.strptime(answered[-1][:19], "%Y-%m-%d %H:%M:%S")) >= int(start):
+                break
         await asyncio.sleep(4)  # the reply can already be over: judge everything said since the question ended
         spans = browser.speaker.speech_spans(since=start)
         said = await transcribe(browser.speaker.audio(spans[0][0], spans[-1][1])) if spans else ""
