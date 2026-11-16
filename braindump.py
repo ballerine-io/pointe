@@ -82,9 +82,17 @@ def _lower(text: str) -> str:
     return (text or "").strip().lower()
 
 
+# The phrase, a break, and the first thought ("Brain dump. The checkout is slow."): said in one breath, the two reach the
+# daemon as one utterance. The break keeps "brain dump the logs into the bucket" a request.
+_START_RUN_ON = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|hey|pointe)\W+)*(?:brain ?dump(?: mode)?|dump mode)\s*[.,:;!\u2014\u2013-]",
+                           re.I)  # not "my brain dump, structured: ...", the sent dump's own first words
+
+
 def start_intent(text: str) -> bool:
-    """"Brain dump", "just listen", "let me think out loud": a whole short utterance."""
-    return listen_intent(text) or bool(_START.match(_lower(text)))
+    """"Brain dump", "just listen", "let me think out loud": a whole short utterance, or "brain dump" run straight into
+    the first thought, which strip_start keeps."""
+    return listen_intent(text) or bool(_START.match(_lower(text))) or bool(
+        _START_RUN_ON.match(_lower(text)) and strip_start(text))
 
 
 def done_intent(text: str) -> bool:

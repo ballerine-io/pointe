@@ -11,7 +11,8 @@ the file); `daemon.py` runs it. Design and the bugs it fixed: [docs/design/brain
 ## Use it
 
 - **Start:** "brain dump", "let me dump my thoughts", "just listen", "let me think out loud", "רק תקשיב"; or the
-  **Brain dump** button (the page's dock, the app's bottom bar). A falling chime; the panel opens.
+  **Brain dump** button (the page's dock, the app's bottom bar). A falling chime; the panel opens. "Brain dump." run
+  straight into the first thought starts it too, with that thought kept.
 - **Dump:** talk. Every thought lands on the panel as it is heard, with the live line under it. Pauses of any length are
   fine. Pointe says nothing, session news waits, a permission request is not read out (a soft tone; its card shows).
 - **Done:** "done", "over to you", "what do you think", "structure it", "סיימתי"; or **Done**. Nothing said: back to

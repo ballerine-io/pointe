@@ -44,8 +44,19 @@ def test_start_phrases_old_and_new(said):
     assert braindump.start_intent(said), said
 
 
+@pytest.mark.parametrize("said", ["Brain dump. The orchard migration should go first.", "okay, brain dump, the checkout keeps timing out"])
+def test_a_start_run_straight_into_the_first_thought_starts_it(said):
+    """From the harness matrix on 1.13.2: "Brain dump." and the first thought, said in one breath, reached the daemon as
+    one utterance; it was no start phrase alone, so no dump started and the voice answered the thought. strip_start
+    already keeps such a thought; now the start counts too."""
+    assert braindump.start_intent(said), said
+    assert braindump.strip_start(said)
+
+
 @pytest.mark.parametrize("said", ["the brain dump feature should also work on the phone", "dump the cache and retry",
-                                  "I'll just listen to what the customer says", "let me dump this table into a CSV file"])
+                                  "I'll just listen to what the customer says", "let me dump this table into a CSV file",
+                                  "brain dump the logs into the bucket", "Brain dump, okay",
+                                  "My brain dump, structured: Goal stop the checkout timing out"])
 def test_not_a_start(said):
     assert not braindump.start_intent(said), said
 
