@@ -32,9 +32,17 @@ def test_unrelated_speech_never_approves(said):
     assert permission_answer(said) is None
 
 
-@pytest.mark.parametrize("said", ["no", "don't do that", "לא"])
+@pytest.mark.parametrize("said", ["no", "don't do that", "לא", "no, ask it to wait", "no, and tell it to stop"])
 def test_a_no_denies(said):
     assert permission_answer(said) == "deny"
+
+
+@pytest.mark.parametrize("said", ['Ask Claude Code to create an empty file called "denied.txt".',
+                                  "ask hooked to stop the dev server", "tell it to cancel the old build"])
+def test_a_no_word_inside_a_new_request_answers_nothing(said):
+    """From the hook-mode run on 1.13.2: with a prompt pending, "Ask Claude Code to create an empty file called
+    denied.txt" denied it: "denied" was a file name in a new request, not the user's answer."""
+    assert permission_answer(said) is None
 
 
 @pytest.fixture

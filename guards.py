@@ -146,6 +146,8 @@ def permission_answer(text: str) -> str | None:
     verdict = consent(text)
     if verdict == "deny" and not (_words(_lower(text)) & (_NO - _WAIT)):
         return None  # "wait, what is this?" asks first: the prompt stays open, it is not a no
+    if verdict == "deny" and not (_words(_lower(strip_tasks(text))) & _NO):
+        return None  # only inside a request for a session ("ask it to create denied.txt"): a new request, not a no
     if verdict != "allow":
         return verdict
     lowered = _lower(text)
