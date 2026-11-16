@@ -205,6 +205,13 @@ async def tapper() -> None:
                     tap(s, "allow")
 
 
+def point_at(s: dict) -> None:
+    """Make it the active session, so its prompts are read out, as a click does; then back to orchestrator mode, which a
+    click leaves (it pins session mode), so the next phase's sends to other sessions are not refused."""
+    _daemon("/voice/switch", {"name": s["name"]})
+    _daemon("/voice/mode", {"mode": "orchestrator"})
+
+
 def tap(s: dict, decision: str) -> dict:
     return _daemon("/voice/approve", {"session": s["name"], "request_id": s["request_id"], "decision": decision})
 
@@ -441,7 +448,7 @@ async def phase_brain(b: Browser) -> None:
 async def phase_approve(b: Browser) -> None:
     repo = REPOS["lighthouse"][0]
     await clear("lighthouse")
-    _daemon("/voice/switch", {"name": session("lighthouse")["name"]})
+    point_at(session("lighthouse"))
     await asyncio.sleep(3)
     t = await say(b, "Ask lighthouse to run exactly one command, touch created.txt, with nothing chained to it.")
     first = await pending("lighthouse")
@@ -470,7 +477,7 @@ async def phase_approve(b: Browser) -> None:
     scenario("a tap through /voice/approve approves it on the node", bool(ok), str(ok))
     twin = session("shop", NODE)  # a session that has never been told no: Claude Code avoids a command once denied
     await clear("shop", NODE)
-    _daemon("/voice/switch", {"name": twin["name"]})
+    point_at(twin)
     await asyncio.sleep(3)
     t = await say(b, f"Ask shop {NODE} to run exactly one command, touch cherry.txt, with nothing chained to it.")
     asked = await pending("shop", NODE)
@@ -496,7 +503,7 @@ async def phase_approve(b: Browser) -> None:
 
 async def phase_offline(b: Browser, proxy: Proxy, sessions: dict) -> None:
     await clear("lighthouse")
-    _daemon("/voice/switch", {"name": session("lighthouse")["name"]})
+    point_at(session("lighthouse"))
     await asyncio.sleep(3)
     await say(b, "Ask lighthouse to create a file called offline.txt with the touch command.")
     p = await pending("lighthouse")
@@ -528,7 +535,7 @@ async def phase_offline(b: Browser, proxy: Proxy, sessions: dict) -> None:
 async def hub_restart_with_prompt(b: Browser) -> Browser:
     TAPPER["on"] = False
     await clear("lighthouse")
-    _daemon("/voice/switch", {"name": session("lighthouse")["name"]})
+    point_at(session("lighthouse"))
     await asyncio.sleep(3)
     finished_before = len(log_lines(r"lighthouse[^\]]*finished its turn"))
     await say(b, "Ask lighthouse to create a file called restart.txt with the touch command.")
