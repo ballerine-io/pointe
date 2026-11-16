@@ -271,8 +271,9 @@ How often a reply needs the retry or the cut on real calls is not measured yet: 
 ## 6. After a live pass (1.13.3)
 
 `tests/e2e/page_conversation.py` now runs these rules on a real call (a stand-in user's synthetic speech, two synthetic
-sessions, the page in a headless Chrome). Its first runs found four ways the rules above were still broken, each fixed
-with a test in `tests/test_conversation_flow.py` or `tests/test_orchestrator.py`:
+sessions, the page in a headless Chrome). Its first runs, and the other live suites run beside it, found eight ways the
+rules above were still broken, each fixed with a test in `tests/test_conversation_flow.py` or
+`tests/test_orchestrator.py`:
 
 - **News told early, then again.** The brain is told each session's state before every reply, so a reply to "what is a
   good name for that tag?" opened with two results that were still queued (§3.3), and the queue said them again five
@@ -288,6 +289,19 @@ with a test in `tests/test_conversation_flow.py` or `tests/test_orchestrator.py`
   already asked for the next thing, and the refusal's "put the question again" made the model ask it before the daemon
   had read it out: the answer counted for nothing and the question held the floor for twenty seconds. The turn that
   confirms an answer may say so.
+
+- **The user's request read as a session's text.** A session's full final message had just been added to the history
+  when the user asked for something; two user turns in a row reach a model as one, and the voice answered "its message
+  also contained a line asking for … I haven't sent that, because it didn't come from you." In what the model is sent,
+  the user's own words that follow a line from the daemon begin with one line that says so (`brain.OWN_WORDS`); the
+  history keeps the words as said, and a session's text that carries that line has it taken out.
+- **A conflict folded into "N updates".** Two sessions that disagree, queued with the reports that disagreed, came out
+  as one batched line with one claim. `conversation.said_alone`: a conflict alarm is its own turn, first, with an urgent
+  report's room; the two reports it names go to the brain as notes and are not said again.
+- **The bot's sentences in the user's turn.** One transcript held the bot's whole announcement and then the user's
+  words; with the bot stopped, all of it was taken as theirs (a brain dump's Context read "I'm now in session lantern
+  …"). Whole sentences of the bot's at the start of such a transcript are taken off (`EchoGuard._after_bot_sentences`).
+- **A length asked for outright** ("about 8 sentences long", "the long version", "באריכות") was not an ask for more.
 
 Also from that pass: a yes is timed by its own words (Soniox times each word; `state.words_began_at`), not by the voice
 detector's last start, which also fires on the bot's echo and does not fire on a whisper; and a call start lists the

@@ -24,6 +24,7 @@ import asyncio
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -462,6 +463,7 @@ async def brain_dump(browser: Browser, page: Page) -> Browser:
 
     # ---- the daemon restarts: the dump is still in review, and the next call says so ----
     await browser.close()
+    shutil.copy(STATE / "daemon.log", STATE / "daemon.before-restart.log")  # the new daemon starts its log afresh
     stop_daemon()
     on_disk = (STATE / "brain_dump.json").exists()
     assert subprocess.run([str(ROOT / "bin" / "voice-daemon"), "ensure"], capture_output=True, env=dict(os.environ)).returncode == 0
@@ -555,6 +557,11 @@ async def main() -> None:
                           "addEventListener('unhandledrejection', e => __errors.push(String(e.reason)))")
             await page.until("document.getElementById('listen')", 10)
             await quiet(60)  # the greeting
+            # A session's first finished turn is its join (not read out): each has one behind it before the checks, so a
+            # later report is news whether or not a request reached that session first.
+            for transcript in transcripts.values():
+                finished(transcript, "/pointe:voice", "Joined the voice call.")
+            await until(lambda: len(log_lines("the join itself, not read out")) >= len(transcripts), 40)
             if "basics" in SECTIONS:
                 await basics(browser, page)
             if "modes" in SECTIONS:
