@@ -334,9 +334,11 @@ async def per_harness(b: Browser, h: str, ids: dict) -> None:
     mark("4a typed request", h, bool(sent) and bool(done), (sent or [""])[-1][-120:])
     if h != "cc":
         mark("14 'the <harness> one'", h, bool(sent), (sent or [""])[-1][-120:])
+    before = max((x["id"] for x in _daemon("/voice/status").get("talk", [])), default=-1)
     t = await say(b, f"Ask {WRONG[h]} what {what} is.")
-    await asyncio.sleep(6)
-    turn = next((x for x in reversed(_daemon("/voice/status").get("talk", [])) if x["who"] == "user"), None)
+    # the turn that holds the misheard words, not merely the last one: under load it is finalised after the typed one
+    turn = await until(lambda: next((x for x in reversed(_daemon("/voice/status").get("talk", [])) if x["who"] == "user"
+                                     and x["id"] > before and what.split()[-1] in x["text"].lower()), None), 30)
     t2 = time.time()
     if turn:
         _daemon("/voice/correct", {"id": turn["id"], "text": f"Ask {name} what {what} is."})
