@@ -187,11 +187,14 @@ async def main():
         await asyncio.sleep(max(0, end - time.time()))
         started, _ = await reply_after(b, end, timeout=10, quiet=0.0)
         await asyncio.sleep(2.5)
+        cuts = b.interrupts
         cut_start, cut = await b.say("Stop. Different question: what time zone is Tel Aviv in?")
         await asyncio.sleep(max(0, cut - time.time()))
         spans_during = [s for s in b.speaker.speech_spans(since=started or end) if s[0] < cut_start]
         stopped_at = spans_during[-1][1] if spans_during else None
-        was_talking = stopped_at is not None and stopped_at > cut_start
+        # Mid-reply, not mid-word: this voice pauses 0.4 to 0.9 s between sentences (measured), and the words can start
+        # in such a pause. The reply was still going if its sound was there within that pause and the daemon cut it.
+        was_talking = stopped_at is not None and stopped_at > cut_start - 0.9 and b.interrupts > cuts
         first, said = await reply_after(b, cut, timeout=15)
         check("barge-in stops playback and follows the new topic",
               was_talking and stopped_at - cut_start < 1.5
