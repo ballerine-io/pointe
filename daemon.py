@@ -6344,6 +6344,11 @@ async def _on_connect(conn: Connection) -> None:
     """A new voice connection: nothing said before it counts, and pending permissions are asked again."""
     now = time.time()
     state.conn, state.idle_hangup = conn, False
+    # Before _notify_call: a node re-offers its held prompt as soon as it hears the call is up, and that lands while this
+    # runs. Marked held on this link first, it is asked once, below; marked after, it was read out twice back to back.
+    for s in REGISTRY.sessions.values():
+        if s.machine and s.permission_id and online(s):
+            state.remote_held[s.id] = (s.permission_id, getattr(paired_machine(s.machine), "link", 0))
     _notify_call()
     state.connected_at = now
     state.last_delegation_at = state.last_switch_at = now
@@ -6364,9 +6369,6 @@ async def _on_connect(conn: Connection) -> None:
         await _add_worker(session)
     _start_briefs()
     await conn.voice.queue_frames([LLMRunFrame()])
-    for s in REGISTRY.sessions.values():  # put here, so the node's re-offer on this link (call up) is not asked again
-        if s.machine and s.permission_id and online(s):
-            state.remote_held[s.id] = (s.permission_id, getattr(paired_machine(s.machine), "link", 0))
     active = REGISTRY.active
     if active and active.permission_id:
         await _ask_permission(active)

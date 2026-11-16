@@ -97,6 +97,49 @@ def test_after_a_hub_restart_the_held_prompt_is_asked_once_when_the_page_connect
     assert asked == ["p1"], f"the one held prompt was asked {len(asked)} times: {asked}"
 
 
+def test_a_reoffer_that_lands_while_the_page_connects_is_asked_once(real, monkeypatch):
+    """From the two-machine run on 1.13.2: after a hub restart the node's re-offer (sent on `call {up: true}`, which
+    _on_connect sends first) arrived before _on_connect marked the prompt as held on this link, so it was put and read
+    out, and then _on_connect asked it again: the read-out twice back to back, and the yes after it fell inside the
+    second one's playback and did not count."""
+    d, hub, mono = real
+    node = paired(hub)
+    session = _restored_remote(d, hub, node)
+    asked: list[str] = []
+    original = d._ask_permission
+    reoffered = asyncio.Event()
+
+    async def counting(s):
+        asked.append(s.permission_id)
+        return await original(s)
+
+    async def slow_worker(_s):  # _on_connect is mid-way when the node's re-offer lands
+        await reoffered.wait()
+
+    monkeypatch.setattr(d, "_ask_permission", counting)
+    monkeypatch.setattr(d, "_add_worker", slow_worker)
+    monkeypatch.setattr(harnesses.HOST, "on_call", hub.on_call, raising=False)
+    d.state.conn, d.state.call_sent = None, None
+    pending = {k: v for k, v in _request().items() if k != "id"}
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry(pending=pending))
+        connecting = asyncio.create_task(d._on_connect(fake_conn()))
+        call = await fake.recv("call")
+        assert call["up"] is True
+        await fake.send("permission.request", **_request())
+        await fake.recv("permission.holding")
+        reoffered.set()
+        await connecting
+        await settle()
+        await fake.drop()
+
+    run(go())
+    assert asked == ["p1"], f"the one held prompt was asked {len(asked)} times: {asked}"
+
+
 # ---------- 2. a snapshot that lands while the answer is in flight resurrects the prompt ----------
 
 def test_a_snapshot_during_delivery_of_an_answer_does_not_bring_the_prompt_back(real, monkeypatch):
