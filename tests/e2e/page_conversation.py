@@ -163,9 +163,8 @@ async def answered(task: asyncio.Task, timeout: float) -> str | None:
 
 async def set_patience(page: Page, value: str) -> list[str]:
     """Settings → Turn taking → the choice → Done, as a person does it; returns the choices offered."""
-    await page.js("document.getElementById('settingsbtn').click()")
+    await page.js("openSettings().then(() => true)")  # what the Settings button calls; resolved once the sheet holds the Mac's prefs
     await page.until("document.getElementById('settingssheet').classList.contains('open') && document.getElementById('pref-patience')", 10)
-    await asyncio.sleep(0.5)  # the sheet fills from the Mac's prefs
     shown = await page.js("[...document.getElementById('pref-patience').options].map(o => o.textContent.trim())")
     await page.js(f"document.getElementById('pref-patience').value = '{value}'; document.querySelector('#settingssheet .done').click()")
     await until(lambda: call("/voice/prefs").get("turns.patience") == value, 5)
