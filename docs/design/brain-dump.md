@@ -79,14 +79,17 @@ that is gone falls back to the orchestrator, and `gone` carries its name for the
 `route` existed follows the routing at review time. Status carries the result as `brain_dump.send_to`; the page and the
 app preselect it, list **Orchestrator** first, and keep the user's own pick.
 
-Sending to the orchestrator does not deliver anything itself: `_dump_to_orchestrator` clears the dump and hands the text
-to `_user_text`, the path words typed in the app take, as the user's turn ("My brain dump, structured:" above it,
-`braindump.orchestrator_turn`). The voice model answers it or calls `send_to_claude_code`, and every check there applies
-(fresh speech, relevance, production credentials). It needs a call and no meeting (409). In session mode, that one
-turn is routed as in orchestrator mode: `state.orchestrated_turn` holds the turn's text, and `_routing_mode()` answers
-"orchestrator" while it is still `last_utterance`, for `_route`, `_brain_named` and the pinned-session refusals; the
-voice model is told so first, without a reply (`braindump.orchestrated_line`). `REGISTRY.mode` never changes, and the
-user's next words replace `last_utterance`, so the turn after is pinned again.
+Sending to the orchestrator does not deliver anything itself: `_dump_to_orchestrator` clears the dump and hands the
+text to `_user_text`, the path words typed in the app take, as the user's turn ("My brain dump, structured:" above it,
+`braindump.orchestrator_turn`). The voice model answers it or calls `send_to_claude_code`, and every check there
+applies (fresh speech, relevance, production credentials). It needs a call and no meeting (409). The voice model is
+told first, without a reply, that the user read the text and pressed Send (`braindump.reviewed_line`), and a reply to
+that turn that asks "send it?" is sent back to it (`daemon._dump_reply_problem`): on live calls about one reviewed dump
+in three was answered with "Send it?". In session mode, that one turn is routed as in orchestrator mode:
+`state.orchestrated_turn` holds the turn's text, and `_routing_mode()` answers "orchestrator" while it is still
+`last_utterance`, for `_route`, `_brain_named` and the pinned-session refusals; the voice model is told so first,
+without a reply (`braindump.orchestrated_line`). `REGISTRY.mode` never changes, and the user's next words replace
+`last_utterance`, so the turn after is pinned again.
 
 ### Interruptions
 

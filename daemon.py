@@ -808,6 +808,18 @@ version of what they said, keeping every decision, number and name, and adding n
 were silent or recount the mode itself."""
 
 
+_ASKS_TO_SEND = re.compile(r"\bsend (?:it|that|this)\b(?![^.?!]*\bor\b)[^.?!]*\?|לשלוח(?![^.?!]*\bאו\b)[^.?!]*\?", re.I)
+
+
+def _dump_reply_problem(said: str) -> str | None:
+    """A brain dump the user reviewed and sent to the orchestrator, answered with "send it?": they pressed Send, twice.
+    Asking which session it is for is still a question worth asking."""
+    if not state.orchestrated_turn or state.last_utterance != state.orchestrated_turn or not _ASKS_TO_SEND.search(said):
+        return None
+    return ("They already pressed Send on their screen for this brain dump: that was the go. Send it now with "
+            "send_to_claude_code and say that you did. Do not ask whether to send it.")
+
+
 def _news_ahead(said: str, asked: str) -> str | None:
     """A reply to the user's words that tells a session's news while that news is queued for the gap after the reply: the
     user would hear it twice, and the answer they asked for is squeezed into what is left of the limit. Not when their
@@ -1097,7 +1109,7 @@ def make_brain(speak, filler=None) -> Brain:
     brain.key_refused = _key_refused_line
     brain.permission_pending = lambda: bool(REGISTRY.active and REGISTRY.active.permission_id)
     brain.terse = lambda: current_mode() is modes.DRIVE
-    brain.style_problem = lambda said: drives.length_problem(said) if current_mode() is modes.DRIVE else None
+    brain.style_problem = lambda said: (drives.length_problem(said) if current_mode() is modes.DRIVE else None) or _dump_reply_problem(said)
     brain.limit = _reply_limit
     brain.news_ahead = _news_ahead
     return brain
@@ -2865,6 +2877,7 @@ async def _dump_to_orchestrator(dump) -> dict:
     _save_dump()
     turn = braindump.orchestrator_turn(dump.text)
     state.orchestrated_turn = turn
+    await state.conn.injector.inject(braindump.reviewed_line(), False)
     if REGISTRY.mode == "session" and REGISTRY.active:
         await state.conn.injector.inject(braindump.orchestrated_line(REGISTRY.active.name), False)
     await _user_text(turn)

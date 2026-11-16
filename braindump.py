@@ -379,6 +379,15 @@ def orchestrator_turn(text: str) -> str:
     return f"My brain dump, structured:\n\n{text}"
 
 
+def reviewed_line() -> str:
+    """Told to the voice model, without a reply, before a dump sent to the orchestrator: Send was the go. Its prompt asks
+    "send it?" when words add constraints or a question, and a structured dump has both as headings."""
+    return ("[brain dump, reviewed and sent to you] The user's next words are a brain dump they read on their screen and "
+            "then sent to you with the Send button. Send was their go: the decision is final. Its headings (Goal, Context, "
+            "Constraints, Open questions) are parts of that one request, not a reason to ask. Act on it in this turn: if it "
+            "asks a session for something, send it now. Do not ask whether to send it.")
+
+
 def orchestrated_line(pinned: str) -> str:
     """Told to the voice model, without a reply, before a dump sent to the orchestrator in session mode."""
     return (f"[brain dump to the orchestrator] The user sent their next words to you, the orchestrator. For that turn only, "

@@ -602,6 +602,10 @@ def test_in_orchestrator_mode_send_it_hands_the_dump_to_the_orchestrator_as_the_
     assert brain.turns == [turn] and delivered == [] and d.state.dump is None and not d.DUMP_FILE.exists()
     assert d.state.last_utterance == turn and d.state.conversation[-1] == ("user", turn)  # the user's turn, as typed words are
     assert not any(t.startswith("[brain dump sent]") for t, _ in brain.told)  # the orchestrator answers the turn itself
+    # From a live call: the voice answered a dump the user had reviewed and sent with "Got it: ask billing to re-run the
+    # April invoice check. Send it?" It is told, before the turn and without a reply, that Send was the confirmation.
+    told = [t for t, reply in brain.told if t.startswith("[brain dump, reviewed and sent to you]")]
+    assert len(told) == 1 and "do not ask" in told[0].lower() and (told[0], False) in brain.told
 
 
 def test_in_session_mode_send_it_goes_to_the_pinned_session_even_after_the_routing_moved(d, monkeypatch):
@@ -751,3 +755,19 @@ def test_the_page_the_app_and_the_daemon_use_the_same_words():
     expected = {k: v.replace("’", "'") for k, v in braindump.COPY.items()}
     assert {k: v.replace("\\'", "'").replace("’", "'") for k, v in page.items()} == expected
     assert {k: v.replace('\\"', '"').replace("’", "'") for k, v in swift.items()} == expected
+
+
+def test_a_dump_the_user_sent_to_the_orchestrator_is_not_answered_with_send_it(d):
+    """From live calls: about one time in three the voice answered a reviewed dump with "Got it: ask billing to re-run the
+    April invoice check. Send it?", whatever the line before the turn said. The user had pressed Send, twice. The reply is
+    sent back, as other replies that must not be spoken are."""
+    turn = braindump.orchestrator_turn("Goal\nAsk billing to re-run the invoice check for April.")
+    d.state.orchestrated_turn = d.state.last_utterance = turn
+    for said in ("Got it: ask billing to re-run the April invoice check. Send it?", "Rerun the April invoice check, for billing. Send it?",
+                 "Goal: ask billing to rerun the April invoice check. Send it to billing?", "לבקש מ-billing להריץ שוב. לשלוח?"):
+        assert "pressed Send" in d._dump_reply_problem(said), said
+    for said in ("On it. I asked billing to rerun the April invoice check.", "Which one should get it, lantern or billing?",
+                 "Send it to lantern or to billing?", "A per-merchant cache is the simpler design."):
+        assert d._dump_reply_problem(said) is None, said
+    d.state.last_utterance = "what did billing say?"  # the next turn is an ordinary one
+    assert d._dump_reply_problem("Billing has nothing yet. Send it again?") is None
