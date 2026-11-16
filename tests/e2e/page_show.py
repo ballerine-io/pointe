@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from page_meeting import CHROME, SHOTS, Page, call  # noqa: E402
 from fake_secrets import fake  # noqa: E402
-from rig import DAEMON, ROOT, STATE, fresh_state, log_lines, stop_daemon  # noqa: E402
+from rig import DAEMON, ROOT, STATE, fresh_state, log_lines, phone_key, stop_daemon  # noqa: E402
 from scenarios import check, results  # noqa: E402
 
 DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "9350"))  # a run on assigned ports moves it
@@ -46,7 +46,7 @@ SECRET = fake("sk-synthetic-e2e-", "0123456789abcdef")
 
 def phone(path: str, body: dict | None = None) -> tuple[int, dict]:
     """The phone app's key, from this machine (LocalAuth accepts it on localhost as on the TLS listener)."""
-    key = (STATE / "phone_key").read_text().strip()
+    key = phone_key()
     request = urllib.request.Request(f"{DAEMON}{path}", data=json.dumps(body).encode() if body is not None else None,
                                      method="POST" if body is not None else "GET",
                                      headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})

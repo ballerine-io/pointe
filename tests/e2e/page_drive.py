@@ -28,7 +28,7 @@ from websockets.asyncio.client import connect
 sys.path.insert(0, str(Path(__file__).parent))
 from page_meeting import CHROME, Page, call  # noqa: E402
 from phone_socket import IN_RATE, Phone, resample  # noqa: E402
-from rig import DAEMON, RATE, ROOT, STATE, fresh_state, log_lines, stop_daemon, synth  # noqa: E402
+from rig import DAEMON, RATE, ROOT, STATE, fresh_state, log_lines, phone_key, stop_daemon, synth  # noqa: E402
 from scenarios import check, results  # noqa: E402
 
 DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "7989"))
@@ -89,7 +89,7 @@ async def main() -> None:
                                "--window-size=1400,900", "--no-first-run",
                                f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    key = (STATE / "phone_key").read_text().strip()
+    key = phone_key()
     try:
         for _ in range(40):
             try:

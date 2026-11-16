@@ -13,6 +13,7 @@ import json
 import os
 import pty
 import re
+import secrets
 import select
 import struct
 import subprocess
@@ -338,6 +339,16 @@ class ClaudeSession:
         except (ProcessLookupError, ChildProcessError):
             pass
         # Only this session's processes: a shared daemon (and the user's own voice) keeps running.
+
+
+def phone_key() -> str:
+    """The key of a phone paired before each phone had its own (`pointe pair show` still writes it). The daemon does not
+    make it at start any more, so a stand-in phone makes it here, as that command does."""
+    path = STATE / "phone_key"
+    if not path.exists() or not path.read_text().strip():
+        path.touch(mode=0o600)
+        path.write_text(secrets.token_urlsafe(32))
+    return path.read_text().strip()
 
 
 def stop_daemon() -> None:

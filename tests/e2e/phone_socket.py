@@ -15,7 +15,7 @@ import numpy as np
 from websockets.asyncio.client import connect
 
 sys.path.insert(0, str(Path(__file__).parent))
-from rig import DAEMON, RATE, ROOT, STATE, fresh_state, stop_daemon, synth, transcribe  # noqa: E402
+from rig import DAEMON, RATE, ROOT, STATE, fresh_state, phone_key, stop_daemon, synth, transcribe  # noqa: E402
 
 URL = DAEMON.replace("http", "ws", 1) + "/voice/phone"
 IN_RATE, OUT_RATE, CHUNK = 16000, 24000, 320  # 20 ms at 16 kHz
@@ -77,7 +77,7 @@ async def main() -> None:
     fresh_state()
     up = subprocess.run([str(ROOT / "bin" / "voice-daemon"), "ensure"], capture_output=True, text=True, env=dict(os.environ))
     assert up.returncode == 0, up.stderr[-500:]
-    key = (STATE / "phone_key").read_text().strip()
+    key = phone_key()
     try:
         check("a wrong key is refused", await refused({"Authorization": "Bearer wrong"}))
         check("the daemon's own token is refused", await refused({"Authorization": f"Bearer {(STATE / 'token').read_text().strip()}"}))
