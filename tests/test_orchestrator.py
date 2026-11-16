@@ -3292,6 +3292,27 @@ def test_a_yes_begun_before_the_read_out_ended_does_not_count(d, monkeypatch):
     assert verdicts(posts) == [] and said == ["I need the yes after I finish. Say it again."]
 
 
+def test_a_yes_whose_own_words_came_after_the_read_out_counts_though_the_voice_detector_started_on_the_echo(d, monkeypatch):
+    """From a live run (tests/e2e/whisper.py, speakers leaking into the microphone): the voice detector started on the
+    read-out's own echo and never on the whispered yes, so six seconds after the read-out the yes was refused as "begun
+    over the bot". Soniox times each word: the yes's own start is what says when it began."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    d.ECHO.stopped_at = time.time() - 6
+    d.state.user_started_at = d.ECHO.stopped_at - 0.4  # the echo of the read-out's last words
+    d.state.words_began_at = time.time() - 1.5  # the yes, by the ears' clock
+    asyncio.run(d.on_user_utterance("yes"))
+    assert [v["behavior"] for v in verdicts(posts)] == ["allow"] and said == []
+
+
+def test_a_yes_whose_own_words_began_over_the_read_out_does_not_count_whatever_the_voice_detector_saw(d, monkeypatch):
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    d.ECHO.stopped_at = time.time() - 3
+    d.state.user_started_at = time.time() - 2  # a later start (a breath) does not make the yes a later one
+    d.state.words_began_at = d.ECHO.stopped_at - 0.5
+    asyncio.run(d.on_user_utterance("yes"))
+    assert verdicts(posts) == [] and said == ["I need the yes after I finish. Say it again."]
+
+
 def test_a_request_that_cannot_be_read_out_is_never_approved_by_voice(d, monkeypatch):
     active, posts, said = _read_out_setup(d, monkeypatch)
     active.permission_spoken, active.permission_cut = "", True

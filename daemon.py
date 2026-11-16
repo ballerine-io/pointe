@@ -1276,17 +1276,20 @@ class SonioxEars(FrameProcessor):
                 if held:
                     heard = f"{self._held} {heard}"
                     self._held = ""
+                else:
+                    self._began = spoken[0] if spoken else 0.0
                 wait = turns.settle(heard, held, _patience()) if not _dumping() and state.hold is None else 0.0
                 if wait > 0:  # Soniox's endpoint is a candidate: the turn is the text once the user has been quiet this long
                     self._held = re.sub(r"[\s.—–…,-]+$", "", heard) if unfinished(heard) else heard
                     logger.info(f"settling {wait:.1f} s: {heard!r}")
                     self.create_task(self._release_held(self._held, time.time(), wait), f"held-{time.time()}")
                     return
-                await self._take(heard)
+                await self._take_timed(heard)
             return
         await self.push_frame(frame, direction)
 
     _held_words = ""
+    _began = 0.0  # when the first word of the turn being put together was said, if the ears tell (state.words_began_at)
     _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
 
     @property
@@ -1347,7 +1350,15 @@ class SonioxEars(FrameProcessor):
             await asyncio.sleep(0.1)
         if self._held == held:
             self._held = ""
-            await self._take(held)
+            await self._take_timed(held)
+
+    async def _take_timed(self, heard: str) -> None:
+        """A turn from the voice, with the time its words began for the consent rules; a press and typed words have none."""
+        state.words_began_at = self._began
+        try:
+            await self._take(heard)
+        finally:
+            state.words_began_at = 0.0
 
     async def _start_hold(self, heard: str) -> None:
         """"Don't interrupt me": the bot stops talking and answers nothing until a release phrase or a long silence."""
@@ -1698,6 +1709,9 @@ class State:
     front: object = None  # the brain in the pipeline, when there is one
     idle_hangup: bool = False  # the idle timer ended the last call: the page must not call back by itself
     user_started_at: float = 0.0  # a yes begun before the read-out ended answered something else
+    # When the words of the turn being taken began, by the ears' own clock (Soniox times each word); 0 when they do not
+    # tell. The voice detector also starts on the bot's voice through the speakers, and does not start on a whisper.
+    words_began_at: float = 0.0
     user_stopped_at: float = 0.0  # the voice detector heard the user stop
     conversation_base: int = 0  # turns dropped from the front of `conversation`: a turn's id is base + its index
     understood: dict[int, str] = field(default_factory=dict)  # user turn id -> the cleaned-up wording ("clean up my words")
@@ -3608,7 +3622,8 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         await say(f"[permission not readable] {session.name}'s request cannot be read out exactly. Tell the user in one line that it "
                   f"waits for a tap on the page or phone, or in the terminal. A no by voice still works.")
         return
-    begun_over_the_bot = state.user_started_at and state.user_started_at < ECHO.stopped_at
+    began = state.words_began_at or state.user_started_at
+    begun_over_the_bot = began and began < ECHO.stopped_at
     if verdict == "allow" and (ECHO.speaking or time.time() - ECHO.stopped_at < YES_AFTER_BOT_SECS or begun_over_the_bot):
         # It may be an answer to something earlier, or the bot coming back through the speakers: it never approves.
         state.utterance_spent = True
