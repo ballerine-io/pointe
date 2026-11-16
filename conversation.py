@@ -32,7 +32,7 @@ _DETAIL = re.compile(
     r"(?<![֐-׿])(?:תפרטי?|פרטי?|בפירוט|תרחיבי?|הרחב|בהרחבה|תסבירי?|הסבר|ספרי? לי עוד|עוד פרטים|תקריאי?|"
     r"מה בדיוק|צעד[- ]צעד|את הכל|הכל|את כולם|את השאר|תמשיך|תמשיכי|המשך|עוד)(?![֐-׿])", re.I)
 # Speech the user asked for at length, or that the daemon wrote word for word: never shortened.
-_AT_LENGTH = ("[briefing", "[the user thought out loud", "[brain dump", "[challenge", "[meeting", "[switched by click]")
+_AT_LENGTH = ("[briefing", "[the user thought out loud", "[brain dump", "[read the brain dump back", "[challenge", "[meeting", "[switched by click]")
 MORE_EN, MORE_HE = "There's more if you want it.", "יש עוד, אם תרצה."
 
 

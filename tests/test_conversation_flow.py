@@ -402,6 +402,22 @@ def test_the_limit_follows_what_started_the_turn():
     assert cv.REPLY.words <= 30 and cv.REPLY.sentences == 2 and cv.REPLY.items == 3
 
 
+def test_a_brain_dump_read_back_is_read_whole(monkeypatch):
+    """From a live call: "Read it back" stopped after the Context lines with "There's more if you want it."; the
+    Constraints were never read. The read-back is the user's own prompt: it has no limit."""
+    import braindump
+
+    prompt = ("Context\n- The checkout keeps timing out for some customers.\n- I think the retry loop around the payment "
+              "provider has no backoff.\n\nConstraints\n- We must not touch the tax service this sprint.")
+    line = braindump.read_line(braindump.Dump(state="review", prompt={"text": prompt}))
+    assert cv.limit_for(line, "") is None
+    read = ("Context: the checkout keeps timing out for some customers. I think the retry loop around the payment provider "
+            "has no backoff. Constraints: we must not touch the tax service this sprint.")
+    b, spoken, steps = _brain(monkeypatch, [read], limit=lambda trigger, asked: cv.limit_for(trigger, asked))
+    asyncio.run(b.turn(line))
+    assert spoken == [read] and len(steps) == 1
+
+
 @pytest.mark.parametrize("said,kept,rest", [
     ("Open right now: billing, docs, lantern, search and parser.", "billing, docs, lantern", "and 2 more"),
     ("Four sessions are waiting on you right now, billing, docs, lantern, search, and parser.", "billing, docs, lantern", "and 2 more"),
