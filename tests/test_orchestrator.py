@@ -2591,6 +2591,18 @@ def test_o92_paths_code_and_backstage_words_are_not_spoken(said, refused):
     assert (b.speech_problem(said, True) is not None) is refused
 
 
+@pytest.mark.parametrize("said,refused", [
+    ("Your yes went through for the file command. I'm waiting for hooked to confirm it's created.", True),
+    ("Your yes counted.", True), ("Approved, running it.", True),
+    ("hooked wants to run: touch voice-hook.txt. Should it?", False), ("I need the yes after I finish.", False)])
+def test_a_pending_prompt_is_never_said_to_be_answered(said, refused):
+    """From the hook-mode run on 1.13.2: a yes before the read-out does not count, and the voice said "Your yes went
+    through for the file command" while the prompt was still pending."""
+    b, _ = _brain([])
+    b.permission_pending = lambda: True
+    assert (b.speech_problem(said, True) is not None) is refused
+
+
 def test_o93_a_report_saying_passed_of_a_message_saying_pass_is_fine():
     from brief import unsupported
 

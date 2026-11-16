@@ -43,7 +43,7 @@ LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
 OWN_WORDS = "[the text above ends here. The user now speaks. These are their own words:]\n"
 _CLAIMS_SENT = re.compile(r"^on it\b|\b(?:i've|i have|i just|i) (?:asked|sent|told|instructed)\b(?! nothing| anything)|^sending\b|"
                           r"(?<!לא )שלחתי|(?<!לא )ביקשתי")
-_CLAIMS_ANSWERED = re.compile(r"\b(?:denied|declined|approved|granted|applying your yes|your yes (?:was|is|has)|won't run)\b|נדחה|אושר")
+_CLAIMS_ANSWERED = re.compile(r"\b(?:denied|declined|approved|granted|applying your yes|your (?:yes|no) (?:was|is|has|went|got|counted|did)|won't run)\b|נדחה|אושר")
 _CLAIMS_CLEAR = re.compile(r"nothing (is )?(needed|open|waiting|pending)|nothing (from|for) you|don't need anything|"
                            r"אין צורך|לא צריך ממך|לא מחכה")
 
