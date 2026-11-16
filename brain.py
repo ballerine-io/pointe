@@ -147,6 +147,8 @@ class Brain:
         self._generation = 0  # moves on when the user talks: a turn from an older one must not speak
         self._user_turns = 0  # turns on the user's own words, started and not finished
         self._after_user: list[tuple[str, bool]] = []  # session news that arrived meanwhile: (text, needs a reply)
+        self._view = 0  # where the history ended, for the step now with the model: the newest message is what it answers
+        self._answered = 0  # the same, for the last step whose reply was spoken
 
     def append(self, text: str) -> None:
         if not (text and text.strip()):
@@ -328,9 +330,15 @@ class Brain:
         try:
             if text is not None:
                 self.append(text)
+            mark = len(self.messages)
             async with self._lock:
                 if generation != self._generation:
                     return  # the words stay in the history; the turn that follows answers them
+                if text is not None and not user and mark == self._answered:
+                    # Two lines from the daemon back to back (the opening, then "your brain dump is still here"): the
+                    # first turn's step read the history with this line as its newest message, and its reply was spoken.
+                    logger.info(f"turn skipped, the reply before it already answered this: {text[:80]!r}")
+                    return
                 unasked = text is not None and (conversation.is_update(text) or bool(conversation.BATCH_HEAD.match(text)))
                 await self._run(generation, not unasked, text)
         finally:
@@ -459,6 +467,7 @@ class Brain:
                         self._last_spoken = said
                         self._recent_spoken.append((time.time(), said))
                         self._answered_user = True
+                        self._answered = self._view
                         await self.speak(said)
                     results[call["id"]] = "spoken"
                     done = True
@@ -477,8 +486,15 @@ class Brain:
     async def _step(self, decls: list[dict], filled: bool) -> tuple[vendors.Step, bool]:
         """One model step that cannot stall the call: a filler past a few seconds, the fast model past the timeout."""
         choices = [c for c in (self.choice, self.fallback) if c]
+
+        async def read(choice: str) -> vendors.Step:
+            # Noted when the step reads the history, not when it was asked for: a line appended in between is in its view.
+            self._view = next((i + 1 for i in range(len(self.messages) - 1, -1, -1) if self.messages[i]["role"] == "user"
+                               and self.messages[i]["content"] != self._given), 0)
+            return await vendors.step(choice, self.instructions, self.messages, decls)
+
         for choice in choices:
-            self._current = asyncio.ensure_future(vendors.step(choice, self.instructions, self.messages, decls))
+            self._current = asyncio.ensure_future(read(choice))
             try:
                 done, _ = await asyncio.wait({self._current}, timeout=FILLER_AFTER_SECS if not filled else 0.001)
                 if not done and self.filler and not filled:

@@ -764,6 +764,47 @@ def test_a_request_is_read_out_once_and_not_by_a_mode_that_does_not_read_out(cal
     asyncio.run(run())
 
 
+# ---------- one line, one reply ----------
+# From a live call (tests/e2e/page_conversation.py): a call that connects with a brain dump waiting said "Your brain dump
+# is still here: you can send it, add more, or discard it. Your brain dump is still here." The opening turn and the
+# dump's line reached the brain back to back; the opening turn's step read the history with the dump's line as its
+# newest message and answered that, and then the line's own turn answered it again.
+
+OPENING = "[voice connected] Active session: none."
+DUMP_HERE = "[brain dump still here] A brain dump from earlier is waiting for review. Say in one short sentence: it is still here."
+STILL_HERE = "Your brain dump is still here: send it, add more, or discard it."
+
+
+def test_a_line_that_was_the_newest_thing_a_spoken_reply_read_is_not_answered_again(monkeypatch):
+    b, spoken, steps = _brain(monkeypatch, [STILL_HERE, "Your brain dump is still here."])
+
+    async def run():
+        await asyncio.gather(b.turn(OPENING), b.turn(DUMP_HERE))  # as BrainFront starts them: one right behind the other
+    asyncio.run(run())
+    assert spoken == [STILL_HERE] and len(steps) == 1
+
+
+def test_a_line_that_arrives_after_the_step_read_the_history_still_gets_its_reply(monkeypatch):
+    b, spoken, steps = _brain(monkeypatch, [0.05, "Connected. Nothing is waiting.", STILL_HERE])
+
+    async def run():
+        opening = asyncio.create_task(b.turn(OPENING))
+        await asyncio.sleep(0.02)  # the opening turn's step is with the model
+        await asyncio.gather(opening, b.turn(DUMP_HERE))
+    asyncio.run(run())
+    assert spoken == ["Connected. Nothing is waiting.", STILL_HERE] and len(steps) == 2
+
+
+def test_the_next_line_after_a_spoken_reply_gets_its_own(monkeypatch):
+    b, spoken, steps = _brain(monkeypatch, [STILL_HERE, "Docs: the changelog is written."])
+
+    async def run():
+        await b.turn(DUMP_HERE)
+        await b.turn(REPORT_DOCS)
+    asyncio.run(run())
+    assert spoken == [STILL_HERE, "Docs: the changelog is written."] and len(steps) == 2
+
+
 # ---------- news that waits its turn is not told early ----------
 # From a live call (tests/e2e/page_conversation.py): two sessions finished while the user was asking for a tag name. The
 # reply opened with both results, squeezing the answer, and five seconds later "Two updates: …" said them again.
