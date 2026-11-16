@@ -270,6 +270,22 @@
   .s .tools:has(.sure) .tag { display: none; }
   .s:hover .tag, .s:focus-within .tag { display: none; }
   .s .edit.sure { opacity: 1; color: var(--accent); font-weight: 600; font-size: 11.5px; padding: 0 4px; }
+  /* Touch has no hover: a row's Rename and Disconnect sit behind a ⋯ button (#rowsheet), 44 px to the finger. */
+  .s .more { display: none; }
+  @media (hover: none), (max-width: 900px) {
+    .s .more { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -8px -10px -8px 0; padding: 0; border: 0; border-radius: 12px;
+               background: none; color: var(--muted); font: 600 17px/1 var(--font); letter-spacing: .04em; cursor: pointer;
+               position: relative; z-index: 1; }  /* over the reason line under it, which its 44 px reach into */
+    .s .more:hover { background: var(--raised2); color: var(--text); }
+    .s .edit:not(.sure) { display: none; }
+    .s:hover .tag, .s:focus-within .tag { display: inline; }
+  }
+  #row-acts { display: flex; flex-direction: column; gap: 8px; }
+  #row-acts button { min-height: 48px; border: 0; border-radius: 12px; padding: 0 16px; font: 600 15px var(--font); text-align: left; cursor: pointer;
+                     background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  #row-acts button:hover { background: var(--raised); }
+  #row-acts #row-cut { color: var(--danger-text); }
+  #row-acts #row-cut.sure { background: var(--danger); color: #fff; box-shadow: none; }
   .s input { grid-column: 2 / -1; min-width: 0; background: var(--surface); color: var(--text); border: 1px solid var(--orange);
              border-radius: 8px; padding: 3px 6px; font: inherit; }
   .empty { color: var(--dim); line-height: 1.5; }
@@ -830,12 +846,17 @@
   body.showfold #show .head { flex-direction: column; padding: 14px 6px; }
   body.showfold #show .head > :not(#show-fold) { display: none; }
 
-  @media (max-width: 1100px) {  /* the dock keeps its icons; the labels become tooltips */
+  @media (max-width: 1100px) {  /* a tighter dock: each button as wide as its label */
     .dock { padding-left: 12px; padding-right: 12px; gap: 0 10px; }
     .dock-side { gap: 2px; }
     .dock .btn { min-width: 46px; }
-    .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     .micmode button { min-width: 80px; padding-left: 9px; padding-right: 9px; }
+  }
+  /* Where the labels do not fit on one row, they become tooltips: beside the sessions column under 1000 px, and on a
+     phone or a small tablet (the rest is in More). Measured: at 1024 px the labels leave 55 px a side, the longest ones
+     ("End challenge", "Whispering") 22 px; at 1000 and 761 px, 10 px (tests/test_ui_layout.py). */
+  @media (max-width: 760px), (min-width: 901px) and (max-width: 999px) {
+    .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   }
   @media (min-width: 901px) and (max-width: 1339px) {  /* a small laptop with the Showing pane open: the sessions column steps aside, as on a narrow screen */
     body.showing:not(.showfold), body.showing.nosessions:not(.showfold) { grid-template-columns: minmax(0, 1fr) minmax(340px, 34vw); }
@@ -1292,6 +1313,13 @@
     <ul id="ignoredlist"></ul>
   </div>
 </div>
+<div class="sheetbg" id="rowsheet" onclick="if (event.target === this) closeSheet('rowsheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="row-h">
+    <h2 id="row-h"><span id="row-name" dir="auto"></span><button class="x" onclick="closeSheet('rowsheet')" aria-label="Close">×</button></h2>
+    <div class="lede" id="row-lede"></div>
+    <div id="row-acts"><button id="row-rename" onclick="rowRename()">Rename</button><button id="row-cut" onclick="rowDisconnect()"></button></div>
+  </div>
+</div>
 <div class="sheetbg" id="moresheet" onclick="if (event.target === this) closeSheet('moresheet')">
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="more-h">
     <h2 id="more-h">More<button class="x" onclick="closeSheet('moresheet')" aria-label="Close">×</button></h2>
@@ -1597,7 +1625,11 @@
       const cut = el('span', 'edit' + (sure ? ' sure' : ''), sure ? 'disconnect?' : '×');
       cut.title = 'Disconnect from the voice (it keeps running in its terminal)';
       cut.onclick = ev => { ev.stopPropagation(); disconnect(x.name); };
-      tools.append(pen, cut);
+      const more = el('button', 'more', '⋯'); more.type = 'button';
+      more.setAttribute('aria-label', `Rename or disconnect ${x.name}`); more.setAttribute('aria-haspopup', 'dialog');
+      more.onclick = ev => { ev.stopPropagation(); openRowSheet(x.name); };
+      more.onkeydown = ev => ev.stopPropagation();  // Enter on ⋯ opens the sheet, not the row's switch
+      tools.append(pen, cut, more);
       const nm = el('span', 'nm', short(x.name));
       b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
       if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n')[0] : x.needs));
@@ -2415,6 +2447,33 @@
     await fetch('/voice/disconnect', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({name})});
     refresh();
   }
+  // A session's Rename and Disconnect on touch (⋯ on its row): the same actions as the row's hover marks, Disconnect
+  // with the same two taps.
+  const ROW_COPY = {
+    cut: 'Disconnect', sure: 'Tap again to disconnect',
+    lede: 'Disconnect takes it off the voice. It keeps running in its terminal.',
+  };
+  let rowSheetName = '';
+  function drawRowSheet() {
+    const sure = !!confirming && confirming.name === rowSheetName && Date.now() < confirming.until;
+    text('row-cut', sure ? ROW_COPY.sure : ROW_COPY.cut);
+    $('row-cut').classList.toggle('sure', sure);
+  }
+  function openRowSheet(name) {
+    rowSheetName = name; text('row-name', short(name)); text('row-lede', ROW_COPY.lede); drawRowSheet();
+    openSheet('rowsheet', 'row-rename');
+  }
+  function rowRename() {
+    const name = rowSheetName, shown = listShown.get(name);
+    closeSheet('rowsheet');
+    if (shown && shown.el.isConnected) startRename(shown.el, name);
+  }
+  async function rowDisconnect() {
+    const sure = !!confirming && confirming.name === rowSheetName && Date.now() < confirming.until;
+    await disconnect(rowSheetName);
+    if (sure) closeSheet('rowsheet');
+    else { drawRowSheet(); setTimeout(drawRowSheet, 3100); }
+  }
   // Your words as you speak, in the caption above the bar. When the turn is final the caption fades and the bubble
   // slides into the conversation: the same words never show twice. In push to talk the words of a press are a draft:
   // nothing in it is a turn until the press closes and the whole of it is sent (docs/design/push-to-talk-modes.md).
@@ -2603,7 +2662,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;
