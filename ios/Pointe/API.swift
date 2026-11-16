@@ -19,16 +19,16 @@ struct API {
 
     struct Status: Decodable, Equatable {
         let version: String?   // the Mac's Pointe; the brand line shows it when it differs from this app
-        let active: String?
+        var active: String?
         let connected: Bool
-        let sessions: [Session]
+        var sessions: [Session]
         let monologue: Monologue?   // the old brainstorm field; brain_dump carries the dump now
         var brain_dump: BrainDump?  // brain dump (BrainDump.swift); nil from a Mac without it, or when there is none
         let hold: Hold?        // "don't interrupt me" (Turns.swift): quiet until a release; nil when none, or from an older Mac
-        let talk: [Turn]?       // the last turns of the conversation, oldest first
+        var talk: [Turn]?       // the last turns of the conversation, oldest first
         let hearing: String?    // the user's words while they speak
-        let mode: String?       // "orchestrator" or "session"
-        let polish: Bool?       // "clean up my words" is on
+        var mode: String?       // "orchestrator" or "session"
+        var polish: Bool?       // "clean up my words" is on
         let meeting: Meeting?   // on, or ended and not yet discarded; nil otherwise
         let notes: NotesVersion?
         let attention: [Attention]?

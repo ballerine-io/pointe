@@ -1113,7 +1113,14 @@ struct CallView: View {
     // MARK: actions
 
     private func setPatience(_ level: String) {
-        Task { if !(await savePrefs(["turns.patience": level])) { problem = TurnsCopy.failed } }
+        Task {
+            if demo != nil {
+                if prefs == nil { prefs = await loadPrefs() }
+                prefs?.patience = level
+                return
+            }
+            if !(await savePrefs(["turns.patience": level])) { problem = TurnsCopy.failed }
+        }
     }
 
     private func setMicrophone(_ mode: String) {
@@ -1192,6 +1199,7 @@ struct CallView: View {
 
     /// Talk to one session only: it becomes the active one, in session mode.
     private func focus(_ name: String) {
+        if demo != nil { status?.active = name; status?.mode = "session"; return }
         Task {
             await act {
                 try await call.api.switchTo(name)
@@ -1200,7 +1208,10 @@ struct CallView: View {
         }
     }
 
-    private func disconnect(_ name: String) { Task { await act { try await call.api.disconnect(name) } } }
+    private func disconnect(_ name: String) {
+        if demo != nil { status?.sessions.removeAll { $0.name == name }; return }
+        Task { await act { try await call.api.disconnect(name) } }
+    }
 
     // MARK: machines
 
@@ -1240,8 +1251,15 @@ struct CallView: View {
             }
         }
     }
-    private func setMode(_ mode: String) { Task { await act { try await call.api.mode(mode) } } }
-    private func setPolish(_ on: Bool) async { await act { try await call.api.polish(on) } }
+    private func setMode(_ mode: String) {
+        if demo != nil { status?.mode = mode; return }
+        Task { await act { try await call.api.mode(mode) } }
+    }
+
+    private func setPolish(_ on: Bool) async {
+        if demo != nil { status?.polish = on; return }
+        await act { try await call.api.polish(on) }
+    }
 
     /// Whisper mode is the Mac's setting, shared with the page; the demo flips its own copy.
     private func setWhisper(_ on: Bool) async {
@@ -1255,7 +1273,12 @@ struct CallView: View {
     }
 
     private func say(_ text: String) async -> Bool {
-        await act { try await call.api.say(text) }
+        if demo != nil {  // the demo shows the line; no Mac answers it
+            let id = (status?.talk?.map(\.id).max() ?? 0) + 1
+            status?.talk = (status?.talk ?? []) + [API.Turn(id: id, who: "user", text: text, understood: nil, typed: true, corrected: false)]
+            return true
+        }
+        return await act { try await call.api.say(text) }
     }
 
     private func correct(_ turn: API.Turn, _ text: String) async -> Bool {
