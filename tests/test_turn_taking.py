@@ -5,8 +5,11 @@ replays transcripts as Soniox delivers them, with the pauses a speaker left; no 
 uv run --locked pytest -q tests/test_turn_taking.py -s   (prints the premature-cutoff table)
 """
 
+import asyncio
+import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -14,6 +17,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).parent))
 
+import page_rig  # noqa: E402
 import turns  # noqa: E402
 from guards import unfinished  # noqa: E402
 from test_orchestrator import client_for, d  # noqa: E402,F401  (d is the daemon fixture)
@@ -428,3 +432,29 @@ def test_the_levels_in_code_are_the_three_the_clients_offer():
     import prefs as prefs_mod
 
     assert tuple(turns.LEVELS) == prefs_mod.SCHEMA["turns.patience"][1] == tuple(LEVEL_LABELS)
+
+
+# ---------- the page ----------
+
+@pytest.mark.skipif(not os.path.exists(page_rig.CHROME), reason="headless Chrome is not installed here")
+def test_the_page_says_holding_on_its_own_call_while_a_hold_is_on():
+    """The pill is the page's own call's: checked here on the stub Mac, since the live e2e's call is the test's."""
+    async def run():
+        status = page_rig.fixture(connected=True)
+        status["hold"] = {"since": time.time() - 3, "said": ["the cache should live per merchant"]}
+        stub = await page_rig.StubMac(page_rig.free_port()).start()
+        stub.status = status
+        async with page_rig.Browser() as browser:
+            page = await browser.open(stub.url)
+            await asyncio.sleep(1.0)
+            await page.eval("(() => { call.state = 'live'; showState(); return true; })()")
+            holding = await page.eval("document.getElementById('state').textContent")
+            stub.status = {**status, "hold": None}
+            await asyncio.sleep(1.2)
+            await page.eval("(() => { call.state = 'live'; showState(); return true; })()")
+            after = await page.eval("document.getElementById('state').textContent")
+        await stub.stop()
+        return holding, after
+
+    holding, after = asyncio.run(run())
+    assert holding == "Holding · say “go ahead” when you're done" and "Holding" not in after
