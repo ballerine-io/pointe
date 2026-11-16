@@ -52,7 +52,7 @@ def main() -> None:
     subprocess.run(["xcrun", "simctl", "privacy", SIMULATOR, "grant", "microphone", "io.ballerine.pointe"], capture_output=True)
     xcode = subprocess.Popen(
         ["xcodebuild", "-project", str(ROOT / "ios" / "Pointe.xcodeproj"), "-scheme", "Pointe", "-destination", f"id={SIMULATOR}",
-         "-derivedDataPath", os.environ.get("POINTE_DERIVED_DATA", "/tmp/pointe-dd"), "-only-testing:PointeUITests",
+         "-derivedDataPath", os.environ.get("POINTE_DERIVED_DATA", "/tmp/pointe-dd"), "-only-testing:PointeUITests/PointeUITests",
          *([f"DEVELOPMENT_TEAM={os.environ['DEVELOPMENT_TEAM']}"] if os.environ.get("DEVELOPMENT_TEAM") else []), "test"],
         env={**os.environ, "TEST_RUNNER_POINTE_PAIR": link}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 

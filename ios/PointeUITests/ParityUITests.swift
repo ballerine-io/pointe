@@ -273,31 +273,6 @@ final class ParityUITests: XCTestCase {
 
     // Face ID in the simulator: enrol, then match or not, through the simulator's own notifications.
     // notify(3) is not in Swift's Darwin module: looked up by name.
-    private enum Biometry {
-        private static func symbol<T>(_ name: String, _: T.Type) -> T { unsafeBitCast(dlsym(dlopen(nil, RTLD_NOW), name), to: T.self) }
-        private static let post = symbol("notify_post", (@convention(c) (UnsafePointer<CChar>) -> UInt32).self)
-        private static let register = symbol("notify_register_check",
-                                             (@convention(c) (UnsafePointer<CChar>, UnsafeMutablePointer<Int32>) -> UInt32).self)
-        private static let setState = symbol("notify_set_state", (@convention(c) (Int32, UInt64) -> UInt32).self)
-
-        static func enrol() {
-            var token: Int32 = 0
-            _ = register("com.apple.BiometricKit.enrollmentChanged", &token)
-            _ = setState(token, 1)
-            _ = post("com.apple.BiometricKit.enrollmentChanged")
-        }
-        static func match(_ yes: Bool) {
-            _ = post(yes ? "com.apple.BiometricKit_Sim.pearl.match" : "com.apple.BiometricKit_Sim.pearl.nomatch")
-            _ = post(yes ? "com.apple.BiometricKit_Sim.fingerTouch.match" : "com.apple.BiometricKit_Sim.fingerTouch.nomatch")
-        }
-    }
-
-    /// The first Face ID use asks the system's permission once.
-    private func allowFaceID() {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        for name in ["OK", "Allow"] where springboard.buttons[name].waitForExistence(timeout: 2) { springboard.buttons[name].tap() }
-    }
-
     private func openMachines() {
         XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 15))
         app.buttons["Settings"].tap()
@@ -324,7 +299,7 @@ final class ParityUITests: XCTestCase {
         launch("machines")
         openMachines()
         any("inviteMachine").tap()
-        allowFaceID()
+        Biometry.allowFaceID()
         sleep(1)
         XCTAssertFalse(any("inviteCode").exists, "no code before Face ID")
         Biometry.match(false)
@@ -340,7 +315,8 @@ final class ParityUITests: XCTestCase {
         XCTAssertEqual(code.label, "K7PQ-2MXD")
         XCTAssertTrue(label("pointe node join 'pointe://hub?v=1&host=demo.invalid&port=7443").exists, "the whole line to paste")
         let first = any("inviteCountdown").label
-        XCTAssertTrue(["Expires in 10:00", "Expires in 9:59", "Expires in 9:58"].contains(first), first)
+        XCTAssertTrue(first.range(of: #"^Expires in (10:00|9:[3-5][0-9])$"#, options: .regularExpression) != nil,
+                      "about ten minutes (a slow simulator takes a few seconds to read it): \(first)")
         sleep(2)
         let later = any("inviteCountdown").label
         XCTAssertNotEqual(first, later, "it counts down")
@@ -357,7 +333,7 @@ final class ParityUITests: XCTestCase {
         XCTAssertTrue(label("Revoke devbox? Its sessions leave the voice").waitForExistence(timeout: 5), "it asks first")
         shot("settings-machines-revoke")
         any("confirmRevoke").tap()
-        allowFaceID()
+        Biometry.allowFaceID()
         sleep(1)
         XCTAssertTrue(any("machine.devbox").exists, "nothing revoked before Face ID")
         Biometry.match(true)

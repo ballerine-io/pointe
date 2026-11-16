@@ -108,6 +108,8 @@ final class QATour: XCTestCase {
             gamma.swipeLeft()
             shot("09b-swiped")
             if app.buttons["Disconnect"].waitForExistence(timeout: 3) { app.buttons["Disconnect"].tap() }
+            let confirm = app.buttons["confirmDisconnect"].firstMatch  // a swipe asks first
+            if confirm.waitForExistence(timeout: 3) { confirm.tap() }
         }
         sleep(2)
         shot("09c-after-disconnect")
