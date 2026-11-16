@@ -667,7 +667,7 @@ class Brain:
             await live.grew.wait()
         if not first or live.over or generation != self._generation:
             return ""  # one sentence, or all of it is here already: the whole reply is checked and said as ever
-        self.stage("first_sentence")
+        read = time.time()
         asked = self._asked()
         limit = self.limit(trigger, asked)
         if limit is None or self.may_stay_silent() or conversation.count_words(first) < EARLY_MIN_WORDS:
@@ -680,6 +680,7 @@ class Brain:
                 or not (whole or without_recent_repeats(first, recent, asked) == first)):
             logger.info("first sentence not said ahead: it waits for the whole reply's checks")
             return ""
+        self.stage("first_sentence", read)
         self.stage("checked")
         await self.speak_first(first)
         return first
