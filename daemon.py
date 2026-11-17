@@ -4260,9 +4260,11 @@ async def _send_now(message: str) -> dict:
     if relevant is False:
         # The fast model refuses some plain requests at random (about 2 runs in 6 for "ask Claude Code what the launch date in
         # the notes is"), and it misreads translations: a refusal gets a second, slower reading before the user hears it.
+        # Told where it goes: otherwise "ask billing to ..." reads as a different target (5 of 6 replays said no).
+        to = f"a coding agent, the {state.brain_target} session" if state.brain_target else "a coding agent"
         try:
             second = await asyncio.wait_for(vendors.text(
-                setup().reader, f"The user said: {asked_part!r}\nProposed instruction to a coding agent: "
+                setup().reader, f"The user said: {asked_part!r}\nProposed instruction to {to}: "
                 f"{message!r}\nDoes it carry what they asked? Rewording, translating, dropping who it is for ('ask Claude Code "
                 f"to ...'), and spelling out how to report the same result ('with a short summary of why') count as carrying "
                 f"it. A different action, target, condition or decision does not. Answer yes or no."), REPORT_TIMEOUT_SECS)

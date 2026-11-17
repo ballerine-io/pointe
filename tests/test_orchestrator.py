@@ -4051,6 +4051,31 @@ def test_the_relevance_check_reads_the_clause_a_tied_message_was_matched_to(d, m
     assert [name for name, _ in sent] == ["lighthouse", "harbor"]
 
 
+def test_the_second_reading_knows_which_session_the_instruction_goes_to(d, monkeypatch):
+    """From page_conversation on 1.14.0: "Ask billing to check the invoice totals for March." became "Check the invoice
+    totals for March and report what you find." for billing. The fast checker said no, as it did in 6 of 6 replays, and
+    the second reading said no in 5 of 6, because "billing" looked like a different target: it was never told the
+    instruction goes to billing. Told, it said yes in 8 of 8, and still no to a different action."""
+    import re as _re
+
+    add(d, "a", "lantern"), add(d, "b", "billing")
+    sent = record_dispatch(d, monkeypatch)
+    check = d._is_current_request
+    _gates_open(d, monkeypatch, "Ask billing to check the invoice totals for March.")
+    monkeypatch.setattr(d, "_is_current_request", check)
+
+    async def text(choice, prompt, **_k):
+        if "User's latest words" in prompt:
+            return "no"  # the fast checker's misreading
+        to = _re.search(r"Proposed instruction to ([^:]*):", prompt)
+        return "yes" if to and "billing" in to[1] else "no. The user asked for it to go to billing, a different target."
+
+    monkeypatch.setattr(d.vendors, "text", text)
+    d.state.brain_target = "billing"
+    assert asyncio.run(d._send("Check the invoice totals for March and report what you find."))["sent_to"] == ["billing"]
+    assert [name for name, _ in sent] == ["billing"]
+
+
 def test_a_switch_followed_at_once_by_another_sentence_still_switches(d, monkeypatch):
     """From the harness matrix: "Switch to Lighthouse." then a second sentence a second later; the switch was refused."""
     a, b = add(d, "a", "alpha"), add(d, "b", "lighthouse")
