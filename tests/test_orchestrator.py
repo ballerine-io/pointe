@@ -119,6 +119,8 @@ def d(tmp_path, monkeypatch):
         reg.departed.clear()
     monkeypatch.setattr(reg, "path", tmp_path / "sessions.json")
     monkeypatch.setattr(daemon, "state", daemon.State())
+    # The module's echo guard outlives a test: an earlier test's stopped_at would keep the nudger quiet in the next one.
+    monkeypatch.setattr(daemon, "ECHO", daemon.EchoGuard())
     monkeypatch.setattr(daemon, "DELEGATION_GRACE_SECS", 0.1)
     monkeypatch.setattr(daemon, "COPY_SESSIONS", False)  # never start Claude Code from a test
     return daemon
