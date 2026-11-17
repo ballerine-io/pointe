@@ -2,6 +2,23 @@
 
 ## The iPhone app
 
+### Getting the app
+
+The app is not in the App Store, and not on TestFlight yet. Until it is, build it from source on a Mac with a current
+Xcode (CI builds it with the newest Xcode on macOS 26; the app needs iOS 18 or newer):
+
+1. Open `ios/Pointe.xcodeproj` in Xcode.
+2. Select the Pointe target, then Signing & Capabilities. Choose your team (a free Personal Team is enough) and change
+   the Bundle Identifier to one of your own, such as `com.example.pointe`. `io.ballerine.pointe` belongs to Ballerine's
+   team, so Xcode cannot sign it for yours. Keep this change local; do not commit it.
+3. Connect the iPhone, turn on Developer Mode on it (Settings → Privacy & Security), choose it as the run destination,
+   and press Run.
+
+With a free Personal Team, Apple lets the app open for 7 days; then build it again. Without the app, the page works in
+the phone's browser ([below](#the-browser-page-older-way)).
+
+### Pairing
+
 On the Mac, open Pointe's page: Settings → Phone → **Connect your phone**. The page lists the ways your phone can
 reach this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), recommends one, and shows a QR
 code. Point the iPhone's Camera at it and tap "Open in Pointe" (or scan it in the app). The page turns to "Connected:

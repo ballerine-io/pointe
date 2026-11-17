@@ -67,7 +67,13 @@ listed in the allowlist as `link` and are never contacted by the software.
 - **gitleaks 8.30.1**, tree and all 306 commits: 7 and 30 hits, all of them synthetic tokens in tests that exercise
   `readout.mask` (the redaction) and a 16-hex key fingerprint shown in the app's UI. No real secret. `.gitleaks.toml`
   allowlists those test paths and that fingerprint so `gitleaks dir .` runs clean.
-- **Actions**: both pinned SHAs resolve to the tags their comments name (`actions/checkout` v4.4.0, `astral-sh/setup-uv` v6).
+- **gitleaks 8.30.1**, 2026-11-17, before the repository is made public: a mirror clone of every branch and pull
+  request ref (420 commits) with `gitleaks git --log-opts=--all`, and every one of its 2048 blobs with `gitleaks dir`,
+  which also covers merge commits: the same synthetic tokens and fingerprint, nothing else. `gitleaks dir .` with
+  `.gitleaks.toml`: no leaks.
+- **Actions**, 2026-11-17: each pin is a commit, the one its comment's tag points to (`actions/checkout` v4.4.0,
+  `astral-sh/setup-uv` v6.8.0, `actions/upload-artifact` v7.0.2). setup-uv was pinned before to the annotated tag object
+  of the moving `v6` tag, which peels to the same commit but is lost when `v6` moves.
 
 ## CI
 

@@ -1,7 +1,7 @@
 # Third-party components
 
 Pointe is MIT-licensed. It depends on the components below, each under its own license. Versions are the ones pinned
-in `uv.lock` and `channel/package-lock.json` at release 1.0.0. Licenses are as declared in each package's metadata;
+in `uv.lock` and `channel/package-lock.json`. Licenses are as declared in each package's metadata;
 check the package itself for the authoritative text.
 
 ## Models downloaded at runtime
@@ -62,6 +62,10 @@ Installed with them (transitive), by license:
 | LGPL-2.1-or-later | soxr |
 | LGPL (version not declared in metadata) | num2words |
 
+Locked for another platform and never installed on macOS or Linux with Python 3.12: audioop-lts (PSF-2.0; pipecat-ai on
+Python 3.13 and newer), colorama and win32-setctime (BSD and MIT; loguru, pytest and tqdm on Windows), httpx2-jsfetch
+(BSD-3-Clause; httpx2 on Emscripten).
+
 ## Optional: local models (`local` extra)
 
 Installed only when ears or mouth are set to `local`:
@@ -87,6 +91,13 @@ markdown-it-py, mdurl, miniaudio, murmurhash, preshed, pyparsing, referencing, r
 spacy-curated-transformers, spacy-legacy, spacy-loggers, srsly, termcolor, thinc, typer, wasabi, weasel. Apache-2.0:
 csvw, rfc3986, safetensors, segments, sentencepiece, transformers, tzdata. BSD-3-Clause: babel, python-dateutil, rdflib.
 BSD (variant not declared): blis, isodate. BSD-2-Clause: wrapt. BSD-3-Clause OR Apache-2.0: uritemplate. ISC: shellingham.
+
+Also in the `local` extra, by license: MIT: dlinfo (phonemizer, phonemizer-fork), more-itertools and tiktoken
+(mlx-whisper), setuptools (spaCy, thinc, torch), sounddevice (mlx-audio). BSD-3-Clause: av (faster-whisper; its wheels
+carry FFmpeg's libraries under FFmpeg's own license), joblib (phonemizer, phonemizer-fork), cloudpickle (joblib),
+networkx (torch). BSD (variant not declared): scipy (mlx-audio, mlx-whisper), sympy (torch), mpmath (sympy).
+Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND ISC AND MIT AND Zlib (with the LLVM exception): torch
+(curated-transformers, mlx-whisper, spacy-curated-transformers).
 
 The `local` extra therefore brings in GPL-3.0 components (eSpeak NG, through phonemizer and phonemizer-fork). They run
 as separate libraries in your own environment; they are not part of Pointe's source, and nothing outside the `local`
@@ -117,6 +128,11 @@ packages are the versions and hashes in `uv.lock`, by license:
 | PSF-2.0 | typing-extensions |
 
 None is GPL.
+
+## Development only (`dev` group)
+
+For the tests and the bench, never installed by setup: pytest, iniconfig and pluggy (MIT; the test runner), httpx (BSD),
+sounddevice (MIT; bench recording and playback).
 
 ## Claude Code channel (`channel/`, Node.js)
 

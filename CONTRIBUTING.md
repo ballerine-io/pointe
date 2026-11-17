@@ -6,7 +6,7 @@ bin/voice-doctor                                 # what runs here, and what is m
 uv run --locked pytest -q tests/ --ignore=tests/e2e
 ```
 
-These run in about a minute and a half, with no keys and no cost; tests that call vendors (RUN_LIVE=1) or need Apple
+These run in a few minutes, with no keys and no cost; tests that call vendors (RUN_LIVE=1) or need Apple
 silicon or the local extra skip themselves. CI runs the same command on Ubuntu.
 
 ## Before you change behavior

@@ -254,8 +254,9 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 ## Limits
 
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
-- **The iPhone app is built from source** in Xcode for now; it is not in the App Store. It was tested on a real iPhone
-  over Twingate, and in the simulator. Without it, the page works in a phone browser.
+- **The iPhone app is built from source** in Xcode for now ([how](docs/phone.md#getting-the-app)); it is not in the App
+  Store, and not on TestFlight yet. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
+  page works in a phone browser.
 - **Synthetic evidence.** The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No
   bench on recorded people has been run, so use the voice lock at Approvals, and treat whisper recognition as limited.
 - **Real hardware.** Drive mode has not been measured on car hands-free audio. Phone alerts depend on the app being alive
@@ -266,7 +267,7 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md): the offline tests (no keys, about a minute and a half), the rules for changing behavior, and
+[CONTRIBUTING.md](CONTRIBUTING.md): the offline tests (no keys, a few minutes), the rules for changing behavior, and
 the DCO sign-off. Report a vulnerability privately: [SECURITY.md](SECURITY.md). Please follow the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 

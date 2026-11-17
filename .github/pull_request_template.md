@@ -4,7 +4,7 @@
 
 ## Tests run
 
-- [ ] Offline suite: `uv run pytest -q tests/ --ignore=tests/e2e`
+- [ ] Offline suite: `uv run --locked pytest -q tests/ --ignore=tests/e2e`
 - [ ] A failing test first, for a bug fix
 - [ ] `bench/brain_bench.py`, for a prompt or model change (paste the before/after)
 - [ ] `tests/e2e/run_all.sh`, for an audio path change (calls paid APIs)

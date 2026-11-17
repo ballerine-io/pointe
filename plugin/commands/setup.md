@@ -73,8 +73,8 @@ plain yes or no answers them, and anything complex waits for a tap on the page.
 - Their company VPN, such as Twingate, if it routes to this Mac: run `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair host <name>`.
 - Same Wi-Fi only: `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair wifi`.
 Pairing shows a QR code. If it does not show here, save it: `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair show`, and open what
-it prints. The iPhone app is not in the App Store yet; whoever shared Pointe can install it for them. Until then, the
-same page works in the phone's browser.
+it prints. The iPhone app is not in the App Store or on TestFlight yet; someone with Xcode can build it from source
+(docs/phone.md, "Getting the app"). Until then, the same page works in the phone's browser.
 
 **6. Done.** Run `mkdir -p ~/.claude-voice && touch ~/.claude-voice/setup-done` so new sessions stop suggesting setup. Summarize in three lines: what setup they have, how to start (/pointe:voice), how to stop (/pointe:stop),
-and that /pointe:doctor shows what runs and what to improve. Ask them to tell whoever shared Pointe what was confusing.
+and that /pointe:doctor shows what runs and what to improve. Ask them to report anything confusing as an issue at github.com/ballerine-io/pointe.
