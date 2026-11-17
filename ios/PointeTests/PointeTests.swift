@@ -50,16 +50,16 @@ final class PairingInviteTests: XCTestCase {
 
     func testTheTradeSendsTheCodeAndTheDeviceAndNoSecret() throws {
         let i = PairingInvite(host: "mac.example", port: 7443, fingerprint: fp, code: "ABCD-EFGH")
-        let r = i.request(device: "Alon's iPhone", id: "dev-1")
+        let r = i.request(device: "Mira's iPhone", id: "dev-1")
         XCTAssertEqual(r.httpMethod, "POST")
         XCTAssertNil(r.value(forHTTPHeaderField: "Authorization"))
         let body = try JSONSerialization.jsonObject(with: r.httpBody ?? Data()) as? [String: String]
-        XCTAssertEqual(body, ["code": "ABCD-EFGH", "device": "Alon's iPhone", "id": "dev-1"])
+        XCTAssertEqual(body, ["code": "ABCD-EFGH", "device": "Mira's iPhone", "id": "dev-1"])
     }
 
     func testTheDeviceNameTravelsAsASCII() {
-        XCTAssertEqual(API.header(for: "Alon’s iPhone"), "Alon%E2%80%99s%20iPhone")
-        XCTAssertTrue(API.header(for: "Alon’s iPhone").allSatisfy(\.isASCII))
+        XCTAssertEqual(API.header(for: "Mira’s iPhone"), "Mira%E2%80%99s%20iPhone")
+        XCTAssertTrue(API.header(for: "Mira’s iPhone").allSatisfy(\.isASCII))
     }
 
     func testARefusalSaysWhatToDoNext() {

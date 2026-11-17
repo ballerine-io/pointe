@@ -447,7 +447,7 @@ struct API {
 
     enum Failure: Error { case status(Int, String) }
 
-    /// This phone's name for the Mac's list, percent-encoded: a header is ASCII, and a name is often "Alon’s iPhone".
+    /// This phone's name for the Mac's list, percent-encoded: a header is ASCII, and a name is often "Mira’s iPhone".
     static func header(for name: String) -> String {
         name.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "iPhone"
     }

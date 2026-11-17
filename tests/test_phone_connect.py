@@ -175,7 +175,7 @@ def make(w, **body) -> dict:
 
 
 def redeem(client, code, **extra):
-    return client.post("/voice/phone/pair", json={"code": code, "device": "Alon's iPhone", "id": "dev-1", **extra})
+    return client.post("/voice/phone/pair", json={"code": code, "device": "Mira's iPhone", "id": "dev-1", **extra})
 
 
 def test_the_page_gets_a_qr_with_a_one_time_code_and_the_app_trades_it_for_the_key(world):
@@ -190,7 +190,7 @@ def test_the_page_gets_a_qr_with_a_one_time_code_and_the_app_trades_it_for_the_k
     assert not (world.state / "phone_key").exists()  # its own key, minted here: no shared key is made or handed out
     assert redeem(tls(world), made["code"]).status_code == 403  # single use
     state = page(world).get("/voice/phone/invite").json()
-    assert state["paired"]["name"] == "Alon's iPhone" and state["expires_in"] == 0 and "code" not in state
+    assert state["paired"]["name"] == "Mira's iPhone" and state["expires_in"] == 0 and "code" not in state
 
 
 def test_the_code_expires(world):
@@ -286,7 +286,7 @@ def test_a_listener_that_cannot_start_makes_no_code(world):
 
 # ---------- paired phones: one key each, last seen, unpair ----------
 
-def phone(w, device="Alon's iPhone", device_id="dev-1") -> tuple[str, str]:
+def phone(w, device="Mira's iPhone", device_id="dev-1") -> tuple[str, str]:
     """Pair a phone: (its key, its id on the Mac)."""
     key = redeem(tls(w), make(w)["code"], device=device, id=device_id).json()["key"]
     entry = next(p for p in w.phones.status()["paired"] if p["name"] == device)
@@ -302,7 +302,7 @@ def test_a_paired_phone_is_listed_online_then_last_seen(world):
     key, _ = phone(world)
     status_with(world, key)
     [entry] = world.phones.status()["paired"]
-    assert entry["name"] == "Alon's iPhone" and entry["online"] and entry["last_seen"] == world.clock.now
+    assert entry["name"] == "Mira's iPhone" and entry["online"] and entry["last_seen"] == world.clock.now
     assert not entry["legacy"] and key not in json.dumps(entry)
     world.clock.now += 60
     assert not world.phones.status()["paired"][0]["online"]
@@ -313,14 +313,14 @@ def test_each_phone_gets_its_own_key_and_both_work(world):
     second, b = phone(world, "iPad", "dev-2")
     assert first != second and a != b
     assert status_with(world, first) == status_with(world, second) == 200
-    assert [p["name"] for p in world.phones.status()["paired"]] == ["Alon's iPhone", "iPad"]
+    assert [p["name"] for p in world.phones.status()["paired"]] == ["Mira's iPhone", "iPad"]
 
 
 def test_pairing_the_same_phone_again_replaces_its_entry_and_retires_its_old_key(world):
     old, _ = phone(world)
     new, _ = phone(world)
     assert status_with(world, old) == 403 and status_with(world, new) == 200
-    assert [p["name"] for p in world.phones.status()["paired"]] == ["Alon's iPhone"]
+    assert [p["name"] for p in world.phones.status()["paired"]] == ["Mira's iPhone"]
 
 
 def test_unpair_one_signs_out_only_that_phone_and_ends_only_its_call(world):
@@ -348,16 +348,16 @@ def test_the_shared_key_from_before_is_one_legacy_phone_until_it_reports_its_nam
     [entry] = world.phones.status()["paired"]
     assert entry == {**entry, "id": "legacy", "name": "Paired phone", "legacy": True, "last_seen": None}
     assert status_with(world, legacy) == 200  # not signed out by the upgrade
-    world.phones.report("legacy", "Alon’s iPhone")
+    world.phones.report("legacy", "Mira’s iPhone")
     world.phones.report("legacy", "someone else")  # named once: a later report does not rename it
-    assert world.phones.status()["paired"][0]["name"] == "Alon’s iPhone"
+    assert world.phones.status()["paired"][0]["name"] == "Mira’s iPhone"
     assert world.phones.status()["paired"][0]["online"]
 
 
 def test_a_minted_phone_is_never_renamed_by_a_report(world):
     _, a = phone(world)
     world.phones.report(a, "renamed")
-    assert world.phones.status()["paired"][0]["name"] == "Alon's iPhone"
+    assert world.phones.status()["paired"][0]["name"] == "Mira's iPhone"
 
 
 def test_unpair_the_legacy_phone_deletes_the_shared_key_and_pointe_pair_show_mints_a_new_one(world):
@@ -430,7 +430,7 @@ def test_no_code_link_or_key_reaches_the_log(world, caplog):
     finally:
         logger.remove(handler)
     text = caplog.text
-    assert "phone paired" in text and "Alon's iPhone" in text  # control: the log does see the pairing
+    assert "phone paired" in text and "Mira's iPhone" in text  # control: the log does see the pairing
     for secret in (made["code"], made["code"].replace("-", ""), made["link"], key):
         assert secret not in text
 
@@ -519,10 +519,10 @@ def test_the_daemon_installs_the_phone_routes_and_reports_phones_in_status(d):
     assert {"/voice/phone/pair", "/voice/phone/routes", "/voice/phone/invite", "/voice/phone/unpair"} <= paths
     key = d.phone.phone_key(d.STATE_DIR)  # the shared key from before: one legacy phone
     client = TestClient(d.app, base_url="http://127.0.0.1:7860")
-    headers = {"authorization": f"Bearer {key}", "x-pointe-device": "Alon%E2%80%99s%20iPhone"}
+    headers = {"authorization": f"Bearer {key}", "x-pointe-device": "Mira%E2%80%99s%20iPhone"}
     status = client.get("/voice/status", headers=headers).json()
     [entry] = [p for p in status["phones"]["paired"] if p["id"] == "legacy"]
-    assert entry["online"] is True and entry["name"] == "Alon’s iPhone"  # seen, and named by the app's report
+    assert entry["online"] is True and entry["name"] == "Mira’s iPhone"  # seen, and named by the app's report
     assert key not in json.dumps(status)
 
 
