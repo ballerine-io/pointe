@@ -16,8 +16,6 @@ You:     By the way, why did payments drop the queue idea?
 Pointe:  Duplicate charges during failover. It decided that an hour ago.
 ```
 
-@@DEMO@@
-
 - **Hands-free across sessions.** One conversation over every session you joined, with a live transcript on the page and
   in the iPhone app.
 - **Strict approvals.** A spoken yes approves only a request the daemon read out itself from what will run, and only
