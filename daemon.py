@@ -1148,7 +1148,16 @@ def make_brain(speak, filler=None) -> Brain:
     brain.limit = _reply_limit
     brain.news_ahead = _news_ahead
     brain.stage = _stage
+    brain.work_words = _work_words
     return brain
+
+
+def _work_words() -> set[str]:
+    """The sessions' names and the names their notes keep, word by word: a sentence with one is about the work."""
+    names = [s.name for s in REGISTRY.sessions.values()]
+    names += [str(n) for s in REGISTRY.sessions.values() for n in ((_brief_of(s) or {}).get("people_and_names") or ())]
+    return {w for n in names for w in re.findall(r"[^\W_]+", n.lower()) if len(w) > 2 and not w.isdigit()
+            and w not in GENERIC_WORDS}
 
 
 def _reply_limit(trigger: str | None, asked: str) -> flow.Limit | None:

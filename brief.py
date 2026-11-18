@@ -170,12 +170,57 @@ def holding_line(final: str) -> bool:
     return bool(sentences) and all(_HOLDING_LINE.search(x) for x in sentences)
 
 
-def unsupported_in(said: str, known: str) -> list[str]:
-    """Numbers and months spoken that nothing the assistant was told contains: an invented date or figure does harm."""
+# What makes words about the user's work or the people on the call, not the world: a word of the work, someone's doing,
+# a person. Kept wide on purpose: a sentence it takes wrongly for work is only checked as before.
+_WORK = re.compile(
+    r"\b(?:sessions?|claude|agents?|tests?|suites?|files?|folders?|paths?|commits?|branch(?:es)?|prs?|pull requests?|"
+    r"merge[sd]?|deploy(?:s|ed|ment)?|builds?|bugs?|errors?|warnings?|fail(?:s|ed|ing|ures?)?|pass(?:es|ed|ing)?|"
+    r"tickets?|issues?|lines?|repo(?:sitory)?|migrations?|reports?|results?|versions?|release[sd]?|shipped|logs?|"
+    r"tasks?|jobs?|rows?|tables?|records?|endpoints?|scripts?|commands?|ran|checks?|benchmarks?|fix(?:es|ed)?|"
+    r"changes?|changed|workers?|services?|servers?|tokens?|deadlines?|"
+    r"i|i'm|i've|me|my|mine|you|you're|you've|your|yours|we|we're|we've|us|our|ours|they|they're|them|their)\b"
+    r"|\b(?:it|claude)(?:'s| has| had| just| also)*\s+(?:found|decided|ran|wrote|changed|fixed|added|removed|deleted|"
+    r"created|counted|measured|reported|says|said|shows|showed|took|got|made|tried|saw|finished|stopped|pushed|tested|"
+    r"built|edited|updated|opened|closed)\b")
+# A question that points back into the call ("how long will it take?", "and that one?") is about what was said before.
+_POINTING = re.compile(r"\b(?:it|its|it's|this|that|these|those|one|ones|other)\b")
+_PLAIN = set("what what's whats which who how when where why is are was were do does did can could would should will "
+             "the and for about many much long big old far there from with into than then also only just set not but "
+             "around".split())
+
+
+def _about_work(text: str, work: set[str], asking: bool = False) -> bool:
+    """A sentence names the work, a session or a person, or has too little of its own to be about the world. A question
+    also when it points back into the call ("how long will it take?") or has too little of its own ("how many?")."""
+    lowered = text.lower().replace("’", "'")
+    words = set(re.findall(r"[^\W_]+", lowered))
+    if not lowered.isascii() or _WORK.search(lowered) or words & work:  # the words of the work are English ones
+        return True
+    own = {w for w in words if len(w) > 2 and not w.isdigit()} - _PLAIN - set(_CLAIMS[9:])
+    if asking:
+        return bool(_POINTING.search(lowered)) or len(own) < 2
+    return len(own) < 3  # "On March 3rd." answers something said before; a fact about the world names what it is about
+
+
+def unsupported_in(said: str, known: str, world: str | None = None, work: set[str] = frozenset()) -> list[str]:
+    """Numbers and months spoken that nothing the assistant was told contains: an invented date or figure does harm.
+
+    The harm is a made-up fact about the user's work, so general knowledge passes ("a kilobyte is 1,024 bytes" in binary
+    units, "daylight time runs from late March"): `world` is the user's own question when the reply answers only it, no
+    session news and no tool in between. Then a sentence that names no work, no session and no person (`work`: the
+    sessions' names and the names their notes keep) is about the world. A question that is about the work keeps every
+    sentence of its answer checked, and so does `world` None, as for every turn on session news."""
     source = known.lower()
-    words = re.findall(r"\d[\d,.]*\d|\d|[a-z]+", said.lower())
     months = set(_CLAIMS[9:])
-    return sorted({w for w in words if (w in months and w != "may" or (w[0].isdigit() and len(w) > 1)) and w not in source})
+
+    def made_up(text: str) -> set[str]:
+        words = re.findall(r"\d[\d,.]*\d|\d|[a-z]+", text.lower())
+        return {w for w in words if (w in months and w != "may" or (w[0].isdigit() and len(w) > 1)) and w not in source}
+
+    if world is None or _about_work(world, work, asking=True):
+        return sorted(made_up(said))
+    sentences = re.split(r"(?<=[.!?;])\s+", said)
+    return sorted(set().union(*(made_up(s) for s in sentences if _about_work(s, work))))
 
 
 def render_brief(name: str, brief: dict) -> str:

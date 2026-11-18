@@ -383,9 +383,27 @@ Measured and left alone:
 - **Soniox's endpoint** (0.4 s after the last word). A quicker one would start the model sooner and would also end
   more sentences in their middle; it needs the audio corpus of `bench/` to judge, not a latency run.
 
-Still costing a second or two: a reply sent back before any sound, 2 of 24 turns in each run. One kind is the check
+Still costing a second or two: a reply sent back before any sound, 2 of 24 turns in each run. One kind was the check
 for facts nobody gave the model (`brief.unsupported_in`) refusing general knowledge ("1,024 bytes", "late March to
-late October"). The check is there for session facts; whether a plain-knowledge answer should pass it is a decision
-about that rule, not about latency, and it is not changed here. The other is a reply the model starts with plain text
-before its speak call: it cannot be read as it is written, so a long one waits for its retry as before.
+late October"); 1.14.2 changes that rule (below). The other is a reply the model starts with plain text before its
+speak call: it cannot be read as it is written, so a long one waits for its retry as before.
 
+**General knowledge passes the check for made-up facts (1.14.2).** The check exists for invented facts about the user's
+work: what a session did, its files, numbers, results and decisions. It now lets a number or a month through when two
+things hold, and checks it exactly as before otherwise:
+
+- The reply answers only the user's own question (`Brain._world_question`): no session news after it, no tool called
+  this turn, and the question is about the world. A question is about the work when it names a session or a name the
+  sessions' notes keep (`daemon._work_words`), uses a word of the work ("tests", "file", "deploy", "ran"), says "I",
+  "you" or "we", points back into the call ("how long will it take?", "and that one?"), has fewer than two words of its
+  own ("how many?"), or shares a word of five letters or more with session news, a tool result or the notes ("when is
+  the pricing launch?" after news of a launch).
+- The sentence holding the number or month names none of those either, and has at least three words of its own: a fact
+  about the world names what it is about, while "On March 3rd." answers something said before. "A kilobyte is 1,024
+  bytes in binary units. The retry worker writes 2,048 rows." is refused for 2,048 only.
+
+The words that mark the work are English, so a question or a sentence in another script (Hebrew) is checked as
+before. The rule is code, not another model call, so it adds no time. It errs toward the work: a sentence it takes wrongly
+for work is checked as before. What it cannot see is a question about the work in words no session used, asked with no
+person and no pointing in it, answered by a whole sentence ("When is the pricing launch?", "The pricing launch is set
+for March 3rd.", when no session ever said "pricing" or "launch"): that one is now spoken unchecked. Tests: `tests/test_general_knowledge.py`.

@@ -180,6 +180,8 @@ class Brain:
         self.permission_pending = lambda: False
         self.terse = lambda: False  # drive mode: the user cannot look, so no "Sorry, I lost that" chatter either
         self.style_problem: Callable[[str], str | None] = lambda _s: None  # a mode's own limit (drive: length)
+        # Words that make a sentence about the user's work (brief.unsupported_in): the sessions' names, the names in their notes.
+        self.work_words: Callable[[], set[str]] = lambda: set()
         # How long this turn's reply may be, from what started it and the user's latest words (conversation.limit_for).
         self.limit: Callable[[str | None, str], conversation.Limit | None] = lambda _trigger, _asked: None
         # Why a reply to the user's own words tells too much: news that is queued to be said right after it (said, asked).
@@ -280,6 +282,28 @@ class Brain:
                      if m["role"] == "user" and isinstance(m.get("content"), str) and not m["content"].startswith("[")), "")
         return bool(re.search(rf"\b{re.escape(word)}\b", last.lower()))
 
+    def _world_question(self) -> str | None:
+        """The user's own words this turn answers, when they ask about the world and it answers only them: no session
+        news came after them, no tool ran, and they share no word with what the sessions said ("when is the pricing
+        launch?" after news of a launch). brief.unsupported_in lets general knowledge through then. None otherwise."""
+        trigger = self._trigger.strip()
+        if not trigger or trigger.startswith("["):
+            return None
+        i = next((i for i in range(len(self.messages) - 1, -1, -1) if self.messages[i]["role"] == "user"
+                  and isinstance(self.messages[i].get("content"), str) and not self.messages[i]["content"].startswith("[")), None)
+        if i is None or self.messages[i]["content"].strip() != self._clipped(trigger).strip():
+            return None
+        for m in self.messages[i + 1:]:
+            if m["role"] == "user" and not m["content"].startswith("[right now]"):
+                return None
+            if m["role"] == "assistant" and any(c.get("name") != "speak" for c in m.get("calls") or ()):
+                return None
+        told = " ".join(m["content"] if m["role"] == "user" else json.dumps(m["results"], ensure_ascii=False, default=str)
+                        for m in self.messages if m["role"] == "tool" or (m["role"] == "user" and m["content"].startswith("[")))
+        if {w for w in _content(trigger) if len(w) >= 5} & _content(told):
+            return None
+        return trigger
+
     def speech_problem(self, said: str, sent: bool, refused: bool = False) -> str | None:
         """Why this reply must not be spoken as it is. Each one is a harm the user could act on."""
         lowered = said.lower()
@@ -313,7 +337,7 @@ class Brain:
             return f"That is false; these are open, so say them, most urgent first:\n{needs}"
         known = " ".join(json.dumps({k: v for k, v in m.items() if k != "raw"}, ensure_ascii=False, default=str)
                          for m in self.messages if m["role"] != "assistant")  # its own words prove nothing
-        made_up = unsupported_in(said, known)
+        made_up = unsupported_in(said, known, self._world_question(), self.work_words())
         if made_up:
             return f"These are in nothing you were told, so do not state them: {made_up}."
         return None
