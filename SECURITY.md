@@ -1,6 +1,7 @@
 # Security
 
-Report a vulnerability through GitHub's private vulnerability reporting on this repository. Do not open a public issue.
+Report a vulnerability through GitHub's private vulnerability reporting on this repository, or by email to
+security@ballerine.com. Do not open a public issue.
 
 ## What Pointe is
 
@@ -177,7 +178,7 @@ leaves it. The inventory, with each source's pin and its verification, is
   against the tree. CI runs the same on every push, plus pip-audit over every locked version, and Dependabot opens
   grouped weekly bumps that a person reviews (`.github/`).
 - **How to report.** A suspicious dependency, download or install step is a vulnerability: use GitHub's private
-  vulnerability reporting on this repository, as at the top of this page.
+  vulnerability reporting on this repository or security@ballerine.com, as at the top of this page.
 - **Known limits.** You get `main` at install time (release tags are not signed yet); `bin/voice-connector` pulls
   `twingate/connector:1`, a moving tag, by design; a model you name by hand (`pointe local --model`) is not pinned.
 

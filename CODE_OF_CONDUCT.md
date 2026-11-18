@@ -6,7 +6,7 @@ Everyone who takes part in this project (issues, pull requests, discussions) is 
 ## Reporting
 
 - **Privately:** use GitHub's [private vulnerability and conduct reporting](https://github.com/ballerine-io/pointe/security/advisories/new)
-  on this repository, or contact the maintainers listed in the repository's GitHub organization.
+  on this repository, or email security@ballerine.com.
 - **Publicly:** open an issue if you are comfortable doing so.
 
 The maintainers review every report, keep the reporter's identity private, and act as the Covenant's enforcement
