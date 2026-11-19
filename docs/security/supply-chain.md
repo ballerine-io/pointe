@@ -19,7 +19,7 @@ and what is still open. `tests/test_supply_chain.py` fails when the tree drifts 
 | **Kokoro v1.0 ONNX** (`kokoro-v1.0.onnx` 311 MB, `voices-v1.0.bin` 28 MB; `mouth: local`) | from `github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/` | URL and SHA-256 in `assets.ASSETS` | downloaded to `.part`, hashed, refused and deleted on a mismatch (`assets.fetch`); the files are then handed to Pipecat by path, so its own unverified downloader never runs | Low. Was Pipecat's `_ensure_model_files`: no hash; GitHub release assets can be replaced in place. |
 | **3D-Speaker ERes2Net** (voice lock, 40 MB) | from `github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/` | URL and SHA-256 in `assets.ASSETS` (moved from `speaker.py`) | `assets.fetch`, as above | Low. |
 | **Silero VAD**, **smart-turn** | `.onnx` files inside the `pipecat-ai` wheel | the wheel's `sha256` | by uv | Low. |
-| **GitHub Actions** (`.github/workflows/*.yml`) | `actions/checkout`, `astral-sh/setup-uv`, `actions/upload-artifact` (SBOM only) | commit SHA with a `# vX` comment; `setup-uv` is told `version: 0.12.21` | the test refuses a `uses:` without a 40-hex SHA; `permissions: contents: read` on every workflow; Dependabot bumps them weekly | Low. `ubuntu-latest`, `macos-26` and `setup-uv`'s Python download are GitHub's and Astral's to secure. |
+| **GitHub Actions** (`.github/workflows/*.yml`) | `actions/checkout`, `astral-sh/setup-uv`, `actions/upload-artifact` (SBOM only) | commit SHA with a `# vX` comment; `setup-uv` is told `version: 0.12.21` | the test refuses a `uses:` without a 40-hex SHA, and one whose SHA is not the commit its version tag points to (an annotated tag's own SHA is refused: `tests/fixtures/action_pins.json`, recorded and re-checked in CI by `tools/check_action_pins.py`); `permissions: contents: read` on every workflow; Dependabot bumps them weekly | Low. `ubuntu-latest`, `macos-26` and `setup-uv`'s Python download are GitHub's and Astral's to secure. |
 | **Node channel** (`channel/`, launch mode only) | `@modelcontextprotocol/sdk` 1.32.2, `zod` 3.25.76 and 93 transitive packages | `channel/package-lock.json` (v3) | `npm ci --ignore-scripts`; every entry carries `integrity` (SHA-512) and resolves to `registry.npmjs.org` | Low. Attach mode (`/pointe:voice`) never runs Node. |
 | **iPhone app** (`ios/`) | Swift sources, Apple frameworks only | no Swift packages, no CocoaPods | `project.pbxproj` has no `XCRemoteSwiftPackageReference`; the test checks | Low. Built and installed by the person, not downloaded. |
 | **Linux node** (`pointe node join`, `bin/voice-node`) | the `node` dependency group (~35 MB) into `~/.claude-voice/node-env` | `uv sync --locked --only-group node` | `sha256` in `uv.lock` | Low. |
@@ -92,7 +92,7 @@ build artifact. Dependabot
   update `THIRD_PARTY.md`, and say in the pull request what the lockfile diff adds and why.
 - A download at run time: an entry in `assets.py` with its SHA-256 (or Hugging Face commit), fetched through
   `assets.fetch` / `assets.snapshot`, the host in `docs/security/egress-allowlist.txt`, a row in `THIRD_PARTY.md`.
-- A GitHub Action: pinned to a 40-hex commit with a `# vX.Y.Z` comment, `permissions` unchanged, and a reason here.
+- A GitHub Action: pinned to a 40-hex commit with a `# vX.Y.Z` comment, `permissions` unchanged, `python3 tools/check_action_pins.py --write` run and its file committed, and a reason here.
 - Never: `pip install`, `uvx <tool>` without `@version`, `curl … | sh`, a `uv run` or `uv sync` without `--locked`.
 
 ## Releases

@@ -44,7 +44,8 @@ file adds what an agent editing the repository must do.
 - **No new outbound host** without a line and a reason in `docs/security/egress-allowlist.txt`; a host only shown to a
   person is a `link` line. The test greps every URL literal in the source.
 - **GitHub Actions by 40-hex commit**, with a `# vX.Y.Z` comment, `permissions: contents: read`, and only the actions
-  already in use unless the owner agrees. uv's version is pinned in `bin/install-uv`, CI and the e2e images together;
+  already in use unless the owner agrees. The SHA is the commit that tag points to, never the tag object's own: after
+  changing a `uses:` line run `python3 tools/check_action_pins.py --write` and commit `tests/fixtures/action_pins.json`. uv's version is pinned in `bin/install-uv`, CI and the e2e images together;
   move all three at once.
 - **Never pipe a download into a shell** (`curl … | sh`, `wget … | sh`), `eval` fetched text, or run a script by URL.
   The one installer, `bin/install-uv`, fetches to a file and checks its SHA-256 first.

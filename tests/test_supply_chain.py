@@ -21,7 +21,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+sys.path.insert(0, str(ROOT / "tools"))
+
 import assets  # noqa: E402
+import check_action_pins  # noqa: E402
 import local  # noqa: E402
 import vendors  # noqa: E402
 
@@ -69,6 +72,27 @@ def test_every_action_is_pinned_to_a_commit_with_its_version_in_a_comment():
     assert seen >= 3
 
 
+def test_every_action_pin_is_the_commit_its_version_tag_points_to_not_the_tag_object():
+    """An annotated tag's own SHA is 40 hex too. tests/fixtures/action_pins.json is what github.com answered
+    (tools/check_action_pins.py --write records it; CI asks again); this reads it offline."""
+    recorded = json.loads((ROOT / "tests" / "fixtures" / "action_pins.json").read_text())
+    pins = check_action_pins.pins()
+    assert len(pins) >= 3
+    for repo, pin, version in pins:
+        why = check_action_pins.problem(pin, recorded.get(f"{repo}@{version}"))
+        assert why is None, f"{repo}@{pin} ({version}) {why}"
+    assert set(recorded) == {f"{repo}@{version}" for repo, _, version in pins}, "tests/fixtures/action_pins.json records a tag no workflow uses"
+
+
+def test_a_pin_to_an_annotated_tag_object_is_refused():
+    tag = {"ref": "a" * 40, "commit": "c" * 40}  # annotated: the ref holds the tag object, which leads to the commit
+    assert check_action_pins.problem("c" * 40, tag) is None
+    assert "tag object" in check_action_pins.problem("a" * 40, tag)
+    assert "not the commit" in check_action_pins.problem("b" * 40, tag)
+    assert "not recorded" in check_action_pins.problem("c" * 40, None)
+    assert check_action_pins.problem("d" * 40, {"ref": "d" * 40, "commit": "d" * 40}) is None  # a lightweight tag
+
+
 def test_every_workflow_grants_the_token_read_only():
     for wf in WORKFLOWS:
         doc = yaml.safe_load(wf.read_text())
@@ -96,6 +120,7 @@ def test_ci_runs_the_supply_chain_gate_with_pinned_tools():
     runs = "\n".join(step.get("run", "") for step in job["steps"])
     assert "uv lock --check" in runs
     assert "tests/test_supply_chain.py" in runs
+    assert "tools/check_action_pins.py" in runs
     assert re.search(r"pip-audit@\d+\.\d+\.\d+", runs) and "tools/locked_requirements.py" in runs
     assert re.search(r"cyclonedx-bom@\d+\.\d+\.\d+", runs) and "uv export --locked" in runs
     for tool in re.findall(r"\buvx\s+(?:--from\s+)?(\S+)", runs):
@@ -139,6 +164,13 @@ def test_the_locked_packages_are_exactly_the_allowlist_each_with_a_reason():
     assert not allowed.keys() - locked, f"allowlisted but gone from uv.lock; remove: {sorted(allowed.keys() - locked)}"
     short = [n for n, reason in allowed.items() if len(reason) < 10]
     assert not short, f"a reason, not a word: {short}"
+
+
+def test_third_party_md_names_every_locked_package():
+    """The license inventory a user reads covers what the lockfile installs: a new package needs its line there too."""
+    named = {word.strip(".,;:") for word in re.findall(r"[a-z0-9][a-z0-9._-]*", (ROOT / "THIRD_PARTY.md").read_text().lower())}
+    missing = sorted(p["name"] for p in PACKAGES if p["name"] not in named)
+    assert not missing, f"in uv.lock but not named in THIRD_PARTY.md, add each under its license: {missing}"
 
 
 def test_the_text_model_server_is_installed_from_the_lockfile():

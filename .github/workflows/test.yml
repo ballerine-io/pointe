@@ -42,6 +42,8 @@ jobs:
         run: uv lock --check
       - name: Pins, allowlists, egress, install paths
         run: uv run --locked pytest -q tests/test_supply_chain.py
+      - name: Each action's pin is the commit its tag points to, as recorded
+        run: python3 tools/check_action_pins.py
       - name: Known vulnerabilities, in every locked version (not only this platform's)
         run: |
           uv run --locked python tools/locked_requirements.py > "$RUNNER_TEMP/locked.txt"
