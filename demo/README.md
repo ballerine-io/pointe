@@ -21,6 +21,7 @@ What is real and what is not:
   the daemon log and labeled "on the phone".
 - Hidden: the recording machine's home path and status line.
 
-For the site: copy `pointe-demo.mp4` to `site/assets/`, convert the `.srt` to `.vtt`
-(`ffmpeg -i pointe-demo.srt site/assets/pointe-demo.vtt`), and save a poster frame
-(`ffmpeg -ss 20 -i pointe-demo.mp4 -frames:v 1 site/assets/poster.jpg`).
+For the site: copy `pointe-demo.mp4` to `site/demo.mp4`, convert the `.srt` to `.vtt`
+(`ffmpeg -i pointe-demo.srt site/demo.vtt`), and save a poster frame
+(`ffmpeg -ss 20 -i pointe-demo.mp4 -frames:v 1 site/poster.jpg`). The page shows the poster with no play control
+until `demo.mp4` loads.
