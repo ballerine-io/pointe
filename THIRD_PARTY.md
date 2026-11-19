@@ -137,7 +137,7 @@ sounddevice (MIT; bench recording and playback).
 ## Claude Code channel (`channel/`, Node.js)
 
 Used only by channel mode (`bin/pointe start`): [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)
-1.32.2 (MIT) and [zod](https://github.com/colinhacks/zod) 3.25.76 (MIT). Their dependencies are MIT (85 packages), ISC
+1.32.2 (MIT) and [zod](https://github.com/colinhacks/zod) 4.6.7 (MIT). Their dependencies are MIT (85 packages), ISC
 (7), BSD-3-Clause (2) and BSD-2-Clause (1); the full list is in `channel/package-lock.json`.
 
 ## iPhone app
