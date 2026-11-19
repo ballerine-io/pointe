@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.14
 
+- **1.14.4** (2026-11-20): The voice channel uses zod 4.6.7, which fixes a memory exhaustion on oversized input.
 - **1.14.3** (2026-11-20): The doctor and setup price the Gemini and OpenAI ears, and setup says what a free-tier key means.
 - **1.14.2** (2026-11-18): General knowledge passes the check for made-up facts.
 - **1.14.1** (2026-11-17): A request that names its session is no longer refused for naming it.
