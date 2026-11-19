@@ -15,8 +15,9 @@ for each key so it goes straight to your Keychain, starts your first voice call,
 If macOS asks to install the command line developer tools, press Install, wait for it to finish, and run the command
 again: Claude Code needs `git` to fetch the plugin.
 
-If GitHub refuses (the repository is private for now; git says "unable to get password from user"), ask whoever shared Pointe to give your GitHub account access, or
-for a zip, and use the prompt below.
+If git cannot fetch the repository (a proxy or a firewall in the way), download it as a zip from
+[its GitHub page](https://github.com/ballerine-io/pointe) (Code, then Download ZIP) and use the prompt below, which
+also installs from a folder.
 
 ## Or let Claude do the install too
 
@@ -28,10 +29,9 @@ Install Pointe, Ballerine's voice command center for Claude Code, on this Mac. I
 one plain sentence, do the work yourself, and never ask me to paste a key into this chat.
 
 1. Check that this is macOS and that Google Chrome is installed. If Chrome is missing, tell me to install it and stop.
-2. Get Pointe. If I received it as a zip file, unzip it to ~/Pointe and use that folder as the marketplace. Otherwise use
-   GitHub, https://github.com/ballerine-io/pointe (private for now): if git cannot read it, install the GitHub CLI if
-   needed, run `gh auth login --web` so I sign in in my browser, then `gh auth setup-git`, and try again. If GitHub still
-   refuses, tell me to ask the person who shared Pointe to give my GitHub account access, and stop.
+2. Get Pointe. If I have it as a zip file, unzip it to ~/Pointe and use that folder as the marketplace. Otherwise use
+   GitHub, https://github.com/ballerine-io/pointe. If git cannot fetch it, show me what git said, tell me to download
+   the zip from that page (Code, then Download ZIP), and stop.
    Then add the marketplace (the folder, or https://github.com/ballerine-io/pointe.git) and install the plugin
    "pointe@pointe" for my user: with `claude plugin marketplace add <it>` and `claude plugin install pointe@pointe` if the
    `claude` command exists; if not, add the marketplace and enable the plugin in ~/.claude/settings.json
