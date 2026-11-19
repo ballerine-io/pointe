@@ -322,6 +322,7 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 [CONTRIBUTING.md](CONTRIBUTING.md): the offline tests (no keys, a few minutes), the rules for changing behavior, and
 the DCO sign-off. Report a vulnerability privately: [SECURITY.md](SECURITY.md). Please follow the
 [Code of Conduct](CODE_OF_CONDUCT.md).
+What changed in each version: [CHANGELOG.md](CHANGELOG.md); how a version is cut: [RELEASING.md](RELEASING.md).
 
 Built on [Pipecat](https://github.com/pipecat-ai/pipecat). Third-party components and their licenses:
 [THIRD_PARTY.md](THIRD_PARTY.md).

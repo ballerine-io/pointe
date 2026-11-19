@@ -18,6 +18,11 @@ def test_manifest_pyproject_and_lock_agree():
     assert manifest == pyproject == lock
 
 
+def test_the_changelog_has_a_line_for_the_manifest_version():
+    manifest = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text())["version"]
+    assert f"- **{manifest}** (" in (ROOT / "CHANGELOG.md").read_text(), f"CHANGELOG.md: add a line for {manifest} (RELEASING.md)"
+
+
 def test_status_carries_the_manifest_version(d):
     manifest = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text())["version"]
     assert d.VERSION == manifest
