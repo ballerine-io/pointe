@@ -25,8 +25,8 @@ Python packages, about 180 MB: say so first ("this downloads what Pointe needs, 
 |---|---|---|---|
 | Best | Anthropic, Soniox, ElevenLabs, Gemini | 34 of 35, works on laptop speakers | about $1 |
 | Two keys | Anthropic, Soniox | 30 of 35 | about $1.20 |
-| Easiest start | Gemini only (free tier available) | 28 of 35, needs headphones, replies take ~4 s | about $0.40 |
-| One key, OpenAI | OpenAI only | 24 of 35, needs headphones, weak on Hebrew | about $0.60 |
+| Easiest start | Gemini only (free tier available) | 28 of 35, needs headphones, replies take ~4 s | about $0.70 to $0.95; $0 while a free-tier quota lasts |
+| One key, OpenAI | OpenAI only | 24 of 35, needs headphones, weak on Hebrew | about $0.95 |
 | Voice stays on your Mac | Anthropic (Gemini optional): no audio leaves your Mac | 30 of 35, needs headphones, English speech only | about $0.40 |
 | Fully local | none: nothing leaves your Mac | 10 of 19 one-session checks, needs headphones, replies take 6 to 12 s, English only | $0 |
 
@@ -48,6 +48,10 @@ have one, runs the check on each request). It cannot speak Hebrew, and on laptop
 3 to 4 seconds, so recommend headphones. If they choose it, store the Anthropic key first (below), then run
 `${CLAUDE_PLUGIN_ROOT}/bin/pointe local voice` with a 10-minute timeout and tell them briefly what it prints: the local
 libraries and two models (about 2.3 GB, once; about a minute and a half on a fast link), then that the setup is on.
+
+A Gemini key without billing is on Google's free tier. If they choose "Easiest start" with one, say two things in plain
+words: on that tier Google may use and review what is sent, so it is for trying Pointe on work that is not confidential;
+and the free quota is small, so when replies start to fail they turn billing on for the same key and nothing else changes.
 
 Recommend: "Easiest start" if they want to try it in two minutes; "Best" if they will use it daily; "Voice stays on your
 Mac" if their voice must not leave it but the rest may; "Fully local" if nothing may leave their Mac. Ask which, then for

@@ -64,11 +64,24 @@ Prices read 2026-11-06; check them. This is arithmetic, not a metered bill.
 
 Other setups, the same hour, from the measured cost per reply in `bench/results/brain_substance.md` and the mouth table above:
 
-| Keys | Brain (60) | Reader (10) | Mouth (11,000 chars) | Ears | About |
+| Keys | Brain (60) | Reader (10) | Mouth (11,000 chars) | Ears (the call open for the hour) | About |
 |---|---|---|---|---|---|
 | Anthropic, Soniox | $0.27 | $0.10 | $0.55 (Soniox) | $0.24 | $1.20 |
-| Gemini only | $0.25 | $0.03 | $0.13 | not priced here | $0.40 plus ears |
-| OpenAI only | $0.16 | $0.04 | $0.39 | not priced here | $0.60 plus ears |
+| Gemini only, billing on | $0.25 | $0.03 | $0.13 | $0.30 to $0.54 | $0.70 to $0.95 |
+| Gemini only, free tier | $0 | $0 | $0 | $0 | $0 until the quota ends |
+| OpenAI only | $0.16 | $0.04 | $0.39 | $0.36 | $0.95 |
 | Anthropic, Gemini, voice on the Mac | $0.27 | $0.10 | $0 (Kokoro, local) | $0 (Whisper, local) | $0.40 |
+| Gemini only, voice on the Mac (not run through the audio suite) | $0.25 | $0.03 | $0 | $0 | $0.30 |
+| Fully local | $0 | $0 | $0 | $0 | $0 |
 
 The gate adds a small amount on every setup.
+
+Where the ears prices come from, read on the vendors' pages on 2026-11-19: Soniox real-time transcription $0.12 an hour
+per stream ([soniox.com/pricing](https://soniox.com/pricing)); `gemini-3.5-transcribe-live` $0.005 a minute of audio in
+and $0.004 a minute of text out, so $0.30 to $0.54 an hour ([Google's pricing page](https://aistudio.google.com/docs/pricing));
+`gpt-4o-transcribe` about $0.006 a minute ([OpenAI's pricing page](https://developers.openai.com/api/docs/pricing)). The
+brain and reader prices behind the per-reply costs (read 2026-11-06) were the same on those pages on 2026-11-19: Claude
+Sonnet 5.5 $2 and $10 per million tokens in and out ([Anthropic](https://platform.claude.com/docs/en/about-claude/pricing)),
+`gemini-3.8-flash` $0.75 and $3.75, `gpt-6-sol` $2 and $10. Google's page says `gemini-3.8-flash` and
+`gemini-3.8-flash-lite-tts` double on 2027-01-01: the two paid Gemini-only rows then rise by about $0.40 and $0.30. The
+free tier and its limits: [docs/install.md](install.md#try-it-for-free-or-cheap).

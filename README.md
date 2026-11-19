@@ -28,7 +28,8 @@ Pointe:  Duplicate charges during failover. It decided that an hour ago.
 ## Install
 
 You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome, headphones, and one model key, or an
-Apple-silicon Mac with 32 GB of memory for the fully local mode.
+Apple-silicon Mac with 32 GB of memory for the fully local mode. The cheapest start is one Google AI Studio key, which
+has a free tier: [Try it for free or cheap](#try-it-for-free-or-cheap).
 
 ```
 claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
@@ -61,6 +62,19 @@ The first run downloads about 180 MB. A tab opens: allow the microphone, press C
 
 OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
 [docs/harnesses.md](docs/harnesses.md).
+
+### Try it for free or cheap
+
+- **Free:** one [Google AI Studio](https://aistudio.google.com/apikey) key, no card. Google lists every model Pointe
+  uses with it as free of charge on its free tier (read 2026-11-19). The quota is small and unpublished: a free key ran
+  out during one of our test runs. Google may use and review what you send on that tier, so try it on a project you
+  could publish.
+- **One paid key:** the same key with billing on, about $0.70 to $0.95 for a busy hour of talk.
+- **No audio leaves the Mac, on any Apple-silicon Mac:** `pointe local voice` with one text key, about $0.30 to
+  $0.40 a busy hour. It runs no text model, so it has no memory floor; it was not measured on a 16 GB Mac. Fully
+  local mode needs 32 GB: a model small enough for 16 GB was measured and is not offered.
+
+The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-for-free-or-cheap).
 
 ## What it does
 
@@ -179,8 +193,8 @@ wins). A role you do not set takes the first vendor with a key.
 |---|---|---|
 | Anthropic, Soniox, ElevenLabs, Gemini | 34 of 35; echo 4 of 4 | about $1 |
 | Anthropic, Soniox | 30 of 35 (31 with the two-session suite rerun); echo 3 of 4 | about $1.20 |
-| Gemini only (no echo guard: use headphones; replies take about 4 s) | 28 of 35; echo 0 of 4 | about $0.40, plus Gemini ears |
-| OpenAI only (no echo guard: use headphones; weak on Hebrew) | 24 of 35; echo 0 of 4 | about $0.60, plus OpenAI ears |
+| Gemini only (no echo guard: use headphones; replies take about 4 s) | 28 of 35; echo 0 of 4 | about $0.70 to $0.95 (free while a free-tier quota lasts) |
+| OpenAI only (no echo guard: use headphones; weak on Hebrew) | 24 of 35; echo 0 of 4 | about $0.95 |
 | Anthropic, Gemini, voice on the Mac (`pointe local voice`; headphones; English speech only) | 30 of 35; echo 3 of 4, then 1 of 4 on four reruns | about $0.40 |
 
 The audio test is the three suites in `tests/e2e/run_all.sh` with only those keys visible, one run each on 2026-11-13. `bin/voice-doctor` tells you which row you are on.
