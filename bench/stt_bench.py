@@ -24,8 +24,9 @@ import aiohttp
 import numpy as np
 import websockets
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path[:0] = [str(Path(__file__).parent), str(Path(__file__).parent.parent)]
 from corpus import CORPUS  # noqa: E402
+import vendors  # noqa: E402
 
 HERE = Path(__file__).parent
 CACHE = HERE / ".audio"
@@ -128,7 +129,7 @@ async def stream(chunks_sink, audio: np.ndarray) -> float:
 async def run_soniox(audio: np.ndarray) -> dict:
     async with websockets.connect("wss://stt-rt.soniox.com/transcribe-websocket") as ws:
         await ws.send(json.dumps({
-            "api_key": keychain("soniox-api-key"), "model": "stt-rt-v5", "audio_format": "pcm_s16le",
+            "api_key": keychain("soniox-api-key"), "model": vendors.SONIOX_RT_MODEL, "audio_format": "pcm_s16le",
             "sample_rate": RATE, "num_channels": 1, "language_hints": ["en", "he"],
             "enable_endpoint_detection": True,
         }))

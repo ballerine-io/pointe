@@ -31,14 +31,15 @@ import aiohttp
 import numpy as np
 import websockets
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path[:0] = [str(Path(__file__).parent), str(Path(__file__).parent.parent)]
 from tts_corpus import SAMPLE_IDS, TTS_CORPUS  # noqa: E402
+import vendors  # noqa: E402
 
 HERE = Path(__file__).parent
 OUT = HERE / "results"
 RAW = OUT / "tts-raw.jsonl"
 SAMPLES = OUT / "tts-samples"
-STT_MODEL = "stt-rt-v6"
+STT_MODEL = vendors.SONIOX_RT_MODEL
 EL_VOICE = "EXAVITQu4vr4xnSDxMaL"  # a stock ElevenLabs voice, same for every language
 GEMINI_VOICE = "Charon"
 SONIOX_VOICE = "Adrian"

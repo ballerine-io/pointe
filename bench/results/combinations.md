@@ -2,6 +2,9 @@
 
 Each role is benchmarked on its own; a whole setup is then checked by the real audio suite (`tests/e2e/run_all.sh`), with each role set by `CLAUDE_VOICE_*`.
 
+The Soniox ears in these runs were `stt-rt-v5`; from 1.14.5 they are `stt-rt-v6`, because Soniox removes v5 on 2026-12-15
+(the difference: `docs/benchmarks.md`).
+
 ## Whole setups, real audio
 
 2026-11-13, the current code (WebSocket call, 19 single-session checks, 12 multi-session, 4 echo at speaker gain 0.5). One run each;

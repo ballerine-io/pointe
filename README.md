@@ -253,9 +253,10 @@ On macOS, keep keys in the Keychain: `pointe key <vendor>` opens a window for it
 The defaults come from benchmarks in `bench/`, all on synthetic data; re-run them with your own keys. Summary from
 [docs/benchmarks.md](docs/benchmarks.md):
 
-- **Ears:** 560 clips (English, Hebrew, mixed, short yes/no; 4 voices; clean and noisy). Soniox stt-rt-v5 got intent
-  right 95.4% of the time, word error 0.062, latency p50 0.36 s.
-  [`bench/results/report.txt`](bench/results/report.txt)
+- **Ears:** 560 clips (English, Hebrew, mixed, short yes/no; 4 voices; clean and noisy). Soniox stt-rt-v6, what runs
+  since Soniox removes v5 on 2026-12-15, got intent right 95.9% of the time, word error 0.063, latency p50 0.38 s; v5 had
+  95.4% and 0.36 s, with a shorter tail (p90 1.29 s against 2.18 s).
+  [`bench/results/report.txt`](bench/results/report.txt), [`bench/results/soniox-v6.md`](bench/results/soniox-v6.md)
 - **Brain:** 78 cases on the real tool and speech path. `claude-sonnet-5-5` passes 91.9% with a 1.8 s median reply;
   `gemini-3.8-flash` 94.9% at 2.7 s; the confidence intervals overlap. [`bench/results/brain.md`](bench/results/brain.md)
 - **Gate:** 24 cases, two runs per model; `gemini-3.5-flash-lite` failed none. [`bench/results/gate.md`](bench/results/gate.md)

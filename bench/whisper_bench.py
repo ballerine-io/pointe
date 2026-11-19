@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "bench"))
 import no_telemetry  # noqa: E402,F401  (before pipecat's Silero loads onnxruntime)
+import vendors  # noqa: E402
 import whisper  # noqa: E402
 import echo as echo_mod  # noqa: E402
 from echo import LevelGate  # noqa: E402
@@ -247,7 +248,7 @@ def items():
 
 async def soniox_once(audio: np.ndarray, config: dict, lead: float) -> dict:
     async with websockets.connect("wss://stt-rt.soniox.com/transcribe-websocket") as ws:
-        await ws.send(json.dumps({"api_key": keychain("soniox-api-key"), "model": "stt-rt-v5",
+        await ws.send(json.dumps({"api_key": keychain("soniox-api-key"), "model": vendors.SONIOX_RT_MODEL,
                                   "audio_format": "pcm_s16le", "sample_rate": RATE, "num_channels": 1,
                                   "language_hints": ["en", "he"], "enable_endpoint_detection": True, **config}))
         final, got = [], {}
@@ -462,7 +463,7 @@ def report() -> None:
         rows = [json.loads(l) for l in path.read_text().splitlines()]
         rows = list({(r["voice"], r["cid"], r["variant"], r["gain"], r["config"]): r
                      for r in rows if not r.get("error")}.values())  # a retried stream counts once
-        lines += ["## Soniox (stt-rt-v5, real-time streaming, the daemon's settings)", "",
+        lines += [f"## Soniox ({vendors.SONIOX_RT_MODEL}, real-time streaming, the daemon's settings)", "",
                   "| Variant | Input gain | Config | Clips | WER | Exact | Yes/no right | Endpoint p50 / p90 (s) |",
                   "|---|---|---|---|---|---|---|---|"]
         keyset = sorted({(r["variant"], r["gain"], r["config"]) for r in rows if r["variant"] != "noise"},

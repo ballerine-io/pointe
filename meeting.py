@@ -591,7 +591,7 @@ class MeetingEars:
         vendors.refuse_cloud_audio("meeting ears (Soniox)")
         ws = await connect(self.URL, additional_headers={"Authorization": f"Bearer {self._key}"})
         await ws.send(json.dumps({
-            "model": "stt-rt-v5", "audio_format": "pcm_s16le", "num_channels": 1, "sample_rate": self._rate,
+            "model": vendors.SONIOX_RT_MODEL, "audio_format": "pcm_s16le", "num_channels": 1, "sample_rate": self._rate,
             "language_hints": ["en", "he"], "enable_speaker_diarization": True, "enable_language_identification": True,
             "context": {"terms": self._terms[:300]}}))
         self._ws = ws

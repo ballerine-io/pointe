@@ -382,6 +382,10 @@ Measured and left alone:
   Sonnet's 2.6 s with a lower pass rate with length (88.9% against 92.9%): 0.2 s is not worth it.
 - **Soniox's endpoint** (0.4 s after the last word). A quicker one would start the model sooner and would also end
   more sentences in their middle; it needs the audio corpus of `bench/` to judge, not a latency run.
+- **Soniox stt-rt-v6 (1.14.5)**, which replaced v5 when Soniox removed it. The same 12 questions twice on 2026-11-20:
+  ears 0.47 s median, 0.60 s p90 (v5 that day: 0.40, 0.49), last word to first sound 2.11, 2.50 (v5: 2.02, 2.66).
+  The benchmark finds a tail the run did not meet: on 35 of 560 clips v6 ends the turn about 3.2 s after the speech
+  ([bench/results/soniox-v6.md](../../bench/results/soniox-v6.md)).
 
 Still costing a second or two: a reply sent back before any sound, 2 of 24 turns in each run. One kind was the check
 for facts nobody gave the model (`brief.unsupported_in`) refusing general knowledge ("1,024 bytes", "late March to

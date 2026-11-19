@@ -28,8 +28,8 @@ is synthetic.
 
 | ears | intent correct | word error | latency p50 / p90 |
 |---|---|---|---|
-| **Soniox stt-rt-v5** | **95.4%** | **0.062** | **0.36 / 1.29 s** |
-| Soniox stt-rt-v6 | 95.9% | 0.063 | 0.38 / 2.18 s |
+| Soniox stt-rt-v5 | 95.4% | 0.062 | 0.36 / 1.29 s |
+| **Soniox stt-rt-v6** | **95.9%** | **0.063** | **0.38 / 2.18 s** |
 | gemini-3.5-transcribe-live | 92.0% | 0.094 | 0.72 / 1.62 s |
 | OpenAI gpt-4o-transcribe | 90.9% | 0.209 | 1.16 / 1.96 s |
 | OpenAI gpt-4o-mini-transcribe | 85.5% | 0.203 | 1.09 / 1.97 s |
@@ -42,7 +42,13 @@ The local row is from a run on 2026-11-13 on the same 560 clips and the same jud
 0.2 s wait plus the time to transcribe the clip on the Mac, not a network path, so it compares with the others only roughly.
 Details: [docs/features/local.md](features/local.md#measured).
 
-The v5 and v6 accuracy gap is inside the confidence intervals. v5 stays the default because v6 never finalised 3 clips of 560 and waited over 1 s more often (17.6% of clips against 13.9%).
+The ears run Soniox `stt-rt-v6` from 1.14.5 because Soniox removes `stt-rt-v5` on 2026-12-15, not because v6 measured
+better. Until then v5 was the default: in the table, with Soniox's default endpoint settings, v6 never finalised 3 clips
+of 560 and waited over 1 s more often (17.6% of clips against 13.9%). A second run on 2026-11-20 with the daemon's own
+settings ([bench/results/soniox-v6.md](../bench/results/soniox-v6.md)) found v6 as accurate (intent 95.9% against 94.6%,
+Hebrew 98.3% for both) with the same median endpoint (0.38 s against 0.36 s) and a much longer tail: p90 2.67 s against
+0.82 s, Hebrew p90 3.04 s against 0.85 s, because on 35 of 560 clips v6 waits about 3.2 s before it ends the turn. On a
+real call with 24 English questions it did not happen, and the ears took 0.47 s at the median (0.40 s for v5 that day).
 
 | mouth | first audio p50 / p95 | word error EN / HE | Speaks Hebrew | $ per 1k chars |
 |---|---|---|---|---|

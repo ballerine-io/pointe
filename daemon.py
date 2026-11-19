@@ -1651,7 +1651,7 @@ class MirrorEars(FrameProcessor):
             "Authorization": f"Bearer {os.environ['SONIOX_API_KEY']}"})
         self._rate = rate
         await self._ws.send(json.dumps({
-            "model": "stt-rt-v5", "audio_format": "pcm_s16le", "num_channels": 1, "sample_rate": rate,
+            "model": vendors.SONIOX_RT_MODEL, "audio_format": "pcm_s16le", "num_channels": 1, "sample_rate": rate,
             "language_hints": ["en", "he"], "context": {"terms": self._terms}}))
         self._tasks = [asyncio.create_task(self._receive(self._ws)), asyncio.create_task(self._keepalive(self._ws))]
 

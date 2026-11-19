@@ -5,8 +5,9 @@
 
 Reuses stt_bench's corpus, voices, noise, real-time pacing, result file and scorer. Rows already in
 results/results.jsonl for a system are not re-run. Systems measured earlier keep their rows:
-soniox (stt-rt-v5), scribe (scribe_v2_realtime, the only ElevenLabs realtime model its API accepts),
-gemini (gemini-3.8-live echo).
+soniox (stt-rt-v5 then; the arm now runs vendors.SONIOX_RT_MODEL), scribe (scribe_v2_realtime, the only ElevenLabs
+realtime model its API accepts), gemini (gemini-3.8-live echo). soniox-daemon-v5 and -v6 add the daemon's endpoint
+settings (vendors.build_ears), run side by side on 2026-11-20 when v5 was about to be removed.
 """
 
 import os
@@ -29,14 +30,15 @@ import vendors  # noqa: E402
 OUT = sb.OUT
 UNMEASURED = OUT / "stt-unmeasured.json"
 VAD_STOP_DELAY = 0.4  # s after speech end, when a pipeline's VAD would tell Gemini the stream ended
+DAEMON_ENDPOINT = {"endpoint_sensitivity": -0.5, "max_endpoint_delay_ms": 2500}  # as vendors.build_ears sets them
 
 
-async def run_soniox_v6(audio: np.ndarray) -> dict:
+async def run_soniox_rt(audio: np.ndarray, model: str, endpoint: dict | None = None) -> dict:
     async with websockets.connect("wss://stt-rt.soniox.com/transcribe-websocket") as ws:
         await ws.send(json.dumps({
-            "api_key": sb.keychain("soniox-api-key"), "model": "stt-rt-v6", "audio_format": "pcm_s16le",
+            "api_key": sb.keychain("soniox-api-key"), "model": model, "audio_format": "pcm_s16le",
             "sample_rate": sb.RATE, "num_channels": 1, "language_hints": ["en", "he"],
-            "enable_endpoint_detection": True,
+            "enable_endpoint_detection": True, **(endpoint or {}),
         }))
         final: list[str] = []
         times: dict = {"end": None}
@@ -180,7 +182,10 @@ async def run_local_whisper(audio: np.ndarray, repo: str) -> dict:
 EXTRA = {"local-whisper-turbo": lambda audio: run_local_whisper(audio, "mlx-community/whisper-large-v3-turbo"),
          "local-whisper-large-v3": lambda audio: run_local_whisper(audio, "mlx-community/whisper-large-v3-mlx"),
          "local-ivrit-turbo": lambda audio: run_local_whisper(audio, "mlx-community/ivrit-ai-whisper-large-v3-turbo-mlx"),
-         "soniox-v6": run_soniox_v6, "gemini-transcribe-live": run_gemini_transcribe_live, "openai": run_openai,
+         "soniox-v6": lambda audio: run_soniox_rt(audio, "stt-rt-v6"),
+         "soniox-daemon-v5": lambda audio: run_soniox_rt(audio, "stt-rt-v5", DAEMON_ENDPOINT),
+         "soniox-daemon-v6": lambda audio: run_soniox_rt(audio, "stt-rt-v6", DAEMON_ENDPOINT),
+         "gemini-transcribe-live": run_gemini_transcribe_live, "openai": run_openai,
          "openai-mini": lambda audio: run_openai(audio, "gpt-4o-mini-transcribe"),
          "openai-live": lambda audio: run_openai(audio, "gpt-live-transcribe")}
 sb.RUNNERS.update(EXTRA)
@@ -203,8 +208,11 @@ for every system, so the tail reflects the network more than the systems), one r
 differences under ~100 ms as noise.
 
 Systems (model as driven by the benchmark):
-  soniox                  stt-rt-v5
+  soniox                  stt-rt-v5, Soniox's default endpoint settings
   soniox-v6               stt-rt-v6, same settings as soniox
+  soniox-daemon-v5 / -v6  stt-rt-v5 and stt-rt-v6 with the daemon's endpoint settings (endpoint_sensitivity -0.5,
+                          max_endpoint_delay_ms 2500), run together on 2026-11-20, a day apart from the rest; the
+                          daemon runs v6 from 1.14.5 because Soniox removes v5 on 2026-12-15
   scribe                  ElevenLabs scribe_v2_realtime. Its realtime endpoint accepts no other model id (probed:
                           scribe_v3_realtime and others are rejected)
   gemini-heard / -understood

@@ -1,6 +1,6 @@
 """Does the dictionary help? Soniox with and without the learned terms, on synthetic clips of invented names.
 
-Every clip runs twice through the same Soniox real-time model the daemon uses (stt-rt-v5, en+he hints), streamed at
+Every clip runs twice through the same Soniox real-time model the daemon uses (vendors.SONIOX_RT_MODEL, en+he hints), streamed at
 real-time pace: once with no context, once with `context.terms` built the way the daemon builds it
 (vocabulary.terms_for with these names in the dictionary). Scored:
 
@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from stt_bench import NOISE_SNR_DB, RATE, frame, keychain, normalize, stream, synth, wer, with_noise  # noqa: E402
 
+import vendors  # noqa: E402
 import vocabulary  # noqa: E402
 
 HERE = Path(__file__).parent
@@ -77,7 +78,7 @@ def context_terms() -> list[str]:
 
 async def run_soniox(audio, terms: list[str] | None) -> dict:
     async with websockets.connect("wss://stt-rt.soniox.com/transcribe-websocket") as ws:
-        config = {"api_key": keychain("soniox-api-key"), "model": "stt-rt-v5", "audio_format": "pcm_s16le",
+        config = {"api_key": keychain("soniox-api-key"), "model": vendors.SONIOX_RT_MODEL, "audio_format": "pcm_s16le",
                   "sample_rate": RATE, "num_channels": 1, "language_hints": ["en", "he"], "enable_endpoint_detection": True}
         if terms:
             config["context"] = {"terms": terms}
@@ -164,7 +165,7 @@ def report() -> str:
     by = {(r["clip"], r["arm"]): r for r in rows}
     clips = sorted({r["clip"] for r in rows})
     paired = [c for c in clips if (c, "none") in by and (c, "dictionary") in by]
-    lines = ["# Dictionary terms on Soniox (stt-rt-v5), synthetic clips", ""]
+    lines = [f"# Dictionary terms on Soniox ({vendors.SONIOX_RT_MODEL}), synthetic clips", ""]
     names = [c for c in paired if by[(c, "none")]["term"]]
     controls = [c for c in paired if not by[(c, "none")]["term"]]
 

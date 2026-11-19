@@ -32,6 +32,9 @@ KEYS = {
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names
 LOCAL = "local"  # needs no key: Whisper and Kokoro on this machine, and an OpenAI-compatible server for text models
 LOCAL_URL = "http://localhost:11434/v1"  # Ollama; CLAUDE_VOICE_LOCAL_URL or "local_url" points it at mlx-lm, LM Studio, vLLM...
+# Every Soniox real-time stream: the ears, the echo guard's mirror, meeting ears and the benches. v6 because Soniox
+# removes stt-rt-v5 on 2026-12-15 (its models page); v5 against v6: docs/benchmarks.md.
+SONIOX_RT_MODEL = "stt-rt-v6"
 LOCAL_EARS_MODEL = "mlx-community/whisper-large-v3-turbo"  # why: bench/results/local.md; its commit: assets.HF_MODELS
 LOCAL_EARS_MODEL_CT2 = "deepdml/faster-whisper-large-v3-turbo-ct2"  # the same model for faster-whisper, off Apple silicon
 KEY_ENVS = {env for env, _ in KEYS.values()} | set(ENV_ALIASES.values()) | {"CLAUDE_VOICE_LOCAL_KEY"}
@@ -572,7 +575,8 @@ def build_ears(vendor: str, terms: list[str]):
             api_key=key("soniox"),
             should_interrupt=False,  # SonioxEars decides barge-in, by words
             vad_force_turn_endpoint=False,  # Soniox endpointing: 0.31 s p50 in the benchmark
-            settings=SonioxSTTService.Settings(language_hints=[Language.EN, Language.HE],
+            settings=SonioxSTTService.Settings(model=SONIOX_RT_MODEL,  # pipecat's own default is stt-rt-v5
+                                               language_hints=[Language.EN, Language.HE],
                                                endpoint_sensitivity=float(os.environ.get("CLAUDE_VOICE_ENDPOINT", "-0.5")),
                                                max_endpoint_delay_ms=2500,  # patient: a pause to think ends no turn
                                                context=SonioxContextObject(terms=terms)))
