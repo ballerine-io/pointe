@@ -44,6 +44,9 @@ one plain sentence, do the work yourself, and never ask me to paste a key into t
 After setup: run `/pointe:voice` in any session you want to talk to, allow the microphone in the tab that opens, and
 press Connect.
 
+The last time this path was followed word for word on a clean environment, with timings and what it did not cover:
+[install-verification.md](install-verification.md).
+
 ## Try it for free or cheap
 
 Prices and free allowances here were read on each vendor's own page on 2026-11-19. They change: check the page. A "busy
