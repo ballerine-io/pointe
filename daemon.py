@@ -1335,6 +1335,7 @@ class SonioxEars(FrameProcessor):
                 and _room_heard():
             return  # MicGate sends the room to the meeting stream: these are words cut off when it took the microphone
         elif isinstance(frame, InterimTranscriptionFrame) and direction == FrameDirection.DOWNSTREAM:
+            state.unfinalized = bool(frame.text.strip())
             if lock_level() == "everything":
                 pass  # not shown until the final is checked: another voice's words never reach the screen
             elif part := ECHO.user_part(frame.text):
@@ -1348,7 +1349,7 @@ class SonioxEars(FrameProcessor):
                 await self.broadcast_interruption()
             return
         elif isinstance(frame, TranscriptionFrame) and direction == FrameDirection.DOWNSTREAM:
-            state.hearing = (0.0, "")  # final now: it shows in the conversation instead
+            state.hearing, state.unfinalized = (0.0, ""), False  # final now: it shows in the conversation instead
             text = frame.text.strip()
             if not re.search(r"\w", text):  # a dash or a dot alone is no one talking
                 return
@@ -1882,6 +1883,7 @@ class State:
     bot_spoke: deque = field(default_factory=lambda: deque(maxlen=8))
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
+    unfinalized: bool = False  # the ears gave words with no final transcript yet (PttGate asks for them, turns.finalize_due)
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
@@ -3224,6 +3226,8 @@ class PttGate(FrameProcessor):
     def __init__(self, stt=None):
         super().__init__()
         self._stt = stt  # finalized on a release, so the last words come out at once
+        self._soniox = _is_soniox(stt)  # and after a silence, when Soniox holds words (turns.finalize_due)
+        self._asked = 0.0
         self._ticker = None
         state.ptt.reset()  # a reconnect starts closed
 
@@ -3272,6 +3276,12 @@ class PttGate(FrameProcessor):
         self._room = room
         if room and not was:
             await self._finalize()  # the words the meeting cut off finish now, inside it, where they are dropped
+        if self._soniox and not room and not state.ptt.collecting and turns.finalize_due(
+                state.unfinalized, state.user_started_at > state.user_stopped_at,
+                state.user_stopped_at - VAD_STOP_SECS, self._asked, now, _patience()):
+            self._asked = now
+            logger.info("ears: silence, asking Soniox for the words it holds")
+            await self._finalize()
         for event in state.ptt.tick(PREFS.get("microphone"), now):
             if event == "closed":
                 logger.info(f"ptt: closed ({state.ptt.closed_why})")
@@ -6683,9 +6693,7 @@ def _tell_finalized(stt) -> None:
     push-to-talk press is sent once all of it is in (PressEnd). The receive loop reads its socket through
     _get_websocket (tests/test_ptt_message.py checks pipecat still does). Other ears give no sign: the gate's
     FINAL_WAIT_SECS covers them."""
-    from pipecat.services.soniox.stt import SonioxSTTService
-
-    if not isinstance(stt, SonioxSTTService):  # elsewhere _get_websocket may also be what sends
+    if not _is_soniox(stt):  # elsewhere _get_websocket may also be what sends
         return
     get = stt._get_websocket
 
@@ -6700,6 +6708,12 @@ def _tell_finalized(stt) -> None:
         return messages()
 
     stt._get_websocket = websocket
+
+
+def _is_soniox(stt) -> bool:
+    from pipecat.services.soniox.stt import SonioxSTTService
+
+    return isinstance(stt, SonioxSTTService)
 
 
 def _has_fin(message) -> bool:

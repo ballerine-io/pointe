@@ -67,7 +67,7 @@ old count. While a complete sentence settles, the model already reads it (`conve
 or done with its answer unless the turn is taken with exactly those words.
 
 Soniox's parameters stay (`-0.5`, 2500 ms): the settle sits after them, and making Soniox slower would also delay the
-live caption. `HOLD_UNFINISHED_SECS` / `HOLD_MAX_SECS` move into the levels.
+live caption. From 1.14.6 the call also asks Soniox for words it holds (§3.5). `HOLD_UNFINISHED_SECS` / `HOLD_MAX_SECS` move into the levels.
 
 ### 3.2 A wider "unfinished" check (`guards.unfinished`)
 
@@ -119,6 +119,29 @@ Page: Settings → new group "Turn taking", `<select id="pref-patience">` Quick 
 long a pause ends your sentence. Patient waits longer before answering; a hold ('don't interrupt me') waits for 'go
 ahead' or 8 s of quiet." Phone: the menu's Picker "Wait before answering", same three labels, `turns.patience` via
 `savePrefs`. An older Mac without the key decodes as Normal.
+
+### 3.5 Asking Soniox for the words it holds (1.14.6)
+
+Soniox's `stt-rt-v6` (1.14.5) keeps some whole sentences open until about 3 s after the speech, past its own
+`max_endpoint_delay_ms`, and no turn can settle before its words are final: on the 560-clip bench the speech end to
+final transcript p90 went from 0.83 s (v5) to 2.67 s, in Hebrew past 2.5 s. Soniox's own settings could not close it:
+the delay cap is overshot by about 0.8 s at every value, and its lower-latency start (`endpoint_latency_adjustment_level`
+2, `endpoint_sensitivity` 0.3, 1500 ms) split 38 of 560 sentences and still had a p90 of 2.13 s
+(`bench/results/soniox-v6.md`).
+
+So `PttGate.tick` sends Soniox a `finalize` when it holds words (`state.unfinalized`: an interim transcript with no final
+after it), the voice detector says the user stopped, and `turns.finalize_after(level)` has passed since the sound ended:
+a whole sentence's settle less the 0.3 s Soniox takes to answer, so the words are final when the settle ends and no
+sooner (0.7 s at Normal, 1.5 s at Patient, never under Soniox's 0.2 s). Once per silence, at most every 2 s. Not while a
+push-to-talk press collects (its release finalizes) or a meeting has the microphone, and only with Soniox ears. The
+silence is the voice detector's, never word times: those lag the audio, and a finalize sent on them split words in the
+middle ("apply. Underscore discount.").
+
+The settle still decides the turn: a half sentence finalized in a pause waits its 3.0 s like any other unfinished final.
+What changes is that Soniox's own hold no longer adds patience on top of the level. In `bench/pause_bench.py` (20
+sentences, EN and HE, said in two parts with 1.2 or 2.0 s between): a first part that reads unfinished is never taken
+(0 of 20, as with v5); one that reads whole is taken at Normal 60 of 60 times, against 52 of 60 with v5, whose endpoint
+sometimes waited through the pause. At Patient a 1.2 s pause after a whole clause is not taken (0 of 30, v5 0 of 30).
 
 ## 4. Measuring: the offline harness (`tests/test_turn_taking.py`)
 

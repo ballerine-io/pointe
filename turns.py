@@ -46,6 +46,29 @@ def maximum(level: str) -> float:
     return LEVELS.get(level, LEVELS[DEFAULT_LEVEL]).maximum
 
 
+# ---------- asking Soniox for words it holds ----------
+
+FINALIZE_REPLY_SECS = 0.3  # Soniox's <fin> comes this long after a finalize (measured 0.25 to 0.34 s)
+FINALIZE_MIN_SECS = 0.2  # Soniox asks for about this much silence before a finalize
+FINALIZE_GAP_SECS = 2.0  # between two asks: Soniox may drop a stream asked too often
+
+
+def finalize_after(level: str) -> float:
+    """Seconds of silence before the held words are asked for: so they are final when a whole sentence's settle ends,
+    and no sooner. 0.7 s at Normal: on the bench it finalized 22% of clips early (0.5 s: 56%), with p90 0.76 s."""
+    return max(FINALIZE_MIN_SECS, LEVELS.get(level, LEVELS[DEFAULT_LEVEL]).complete - FINALIZE_REPLY_SECS)
+
+
+def finalize_due(pending: bool, voiced: bool, sound_ended: float, last_asked: float, now: float, level: str) -> bool:
+    """Whether to ask Soniox for the words it has not ended yet (`finalize`). Its v6 model keeps some whole sentences open
+    until about 3 s after the speech, past its own max_endpoint_delay_ms, and no turn can settle before its words are
+    final (bench/results/soniox-v6.md). Asked once per silence, finalize_after(level) after the sound ended, by the voice
+    detector, never by word times: those lag the audio, and a finalize while the user talks splits their words. The
+    settle still decides the turn: a half sentence finalized in a pause waits like any other final."""
+    return (pending and not voiced and sound_ended > last_asked and now - sound_ended >= finalize_after(level)
+            and now - last_asked >= FINALIZE_GAP_SECS)
+
+
 # ---------- hold: "don't interrupt me" ----------
 
 HOLD_RELEASE_SILENCE_SECS = 8.0  # longer than a thinking pause, shorter than "is it still there?"; the phrase comes first

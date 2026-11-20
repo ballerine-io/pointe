@@ -24,6 +24,7 @@ import numpy as np
 import websockets
 
 sys.path[:0] = [str(Path(__file__).parent), str(Path(__file__).parent.parent)]
+import no_telemetry  # noqa: E402,F401  (before pipecat's Silero loads onnxruntime)
 import stt_bench as sb  # noqa: E402
 import vendors  # noqa: E402
 
@@ -33,7 +34,12 @@ VAD_STOP_DELAY = 0.4  # s after speech end, when a pipeline's VAD would tell Gem
 DAEMON_ENDPOINT = {"endpoint_sensitivity": -0.5, "max_endpoint_delay_ms": 2500}  # as vendors.build_ears sets them
 
 
-async def run_soniox_rt(audio: np.ndarray, model: str, endpoint: dict | None = None) -> dict:
+async def run_soniox_rt(audio: np.ndarray, model: str, endpoint: dict | None = None,
+                        finalize_after_ms: int | None = None) -> dict:
+    """finalize_after_ms: with words not yet ended by an <end>, ask for them (`finalize`) once the daemon's voice detector
+    (Silero, stop_secs 0.2) has said the voice stopped and that much silence has passed since the sound ended, as the
+    daemon does (PttGate.tick, turns.finalize_due); <fin> then ends the segment like <end>. Word times cannot tell this:
+    they lag the audio."""
     async with websockets.connect("wss://stt-rt.soniox.com/transcribe-websocket") as ws:
         await ws.send(json.dumps({
             "api_key": sb.keychain("soniox-api-key"), "model": model, "audio_format": "pcm_s16le",
@@ -42,27 +48,59 @@ async def run_soniox_rt(audio: np.ndarray, model: str, endpoint: dict | None = N
         }))
         final: list[str] = []
         times: dict = {"end": None}
+        ends: list = []  # [wall time, the segment's text] per <end> or <fin> that closed words
+        st = {"open": False, "asked": None, "sent_ms": 0.0, "finalized": 0, "segments": 0, "stopped_ms": None, "seg_from": 0}
+        vad = None
+        if finalize_after_ms:
+            from pipecat.audio.vad.silero import SileroVADAnalyzer
+            from pipecat.audio.vad.vad_analyzer import VADParams, VADState
+
+            vad = SileroVADAnalyzer(sample_rate=sb.RATE, params=VADParams(stop_secs=VAD_STOP_SECS))
+            vad.set_sample_rate(sb.RATE)
 
         async def reader():
             async for raw in ws:
                 msg = json.loads(raw)
                 for tok in msg.get("tokens", []):
+                    if tok["text"] in ("<end>", "<fin>"):
+                        times["end"] = times["end"] or time.time()
+                        if st["open"]:
+                            ends.append([time.time(), "".join(final[st["seg_from"]:]).strip()])
+                            st["seg_from"] = len(final)
+                        st["segments"] += st["open"]
+                        st["open"] = False
+                        continue
+                    st["open"] = True
                     if tok.get("is_final"):
-                        if tok["text"] == "<end>":
-                            times["end"] = times["end"] or time.time()
-                        elif tok["text"] != "<fin>":
-                            final.append(tok["text"])
+                        final.append(tok["text"])
                 if msg.get("finished") or msg.get("error_code"):
                     if msg.get("error_code"):
                         times["error"] = msg.get("error_message")
                     return
 
+        async def send(chunk: bytes):
+            await ws.send(chunk)
+            st["sent_ms"] += len(chunk) / 2 / sb.RATE * 1000
+            if vad is None:
+                return
+            before, now = vad._vad_state, vad._run_analyzer(chunk)
+            if now == VADState.QUIET and before != VADState.QUIET:
+                st["stopped_ms"] = st["sent_ms"]
+            elif now in (VADState.STARTING, VADState.SPEAKING):
+                st["stopped_ms"] = None
+            stopped = st["stopped_ms"]
+            if st["open"] and stopped is not None and st["asked"] != stopped \
+                    and st["sent_ms"] - (stopped - VAD_STOP_SECS * 1000) >= finalize_after_ms:
+                st["asked"] = stopped
+                st["finalized"] += 1
+                await ws.send('{"type": "finalize"}')
+
         task = asyncio.create_task(reader())
-        speech_end = await sb.stream(ws.send, audio)
+        speech_end = await sb.stream(send, audio)
         await ws.send("")
         await asyncio.wait_for(task, 15)
     return {"text": "".join(final).strip(), "final_at": times["end"], "speech_end": speech_end,
-            "error": times.get("error")}
+            "error": times.get("error"), "finalized": st["finalized"], "segments": st["segments"], "ends": ends}
 
 
 async def run_gemini_transcribe_live(audio: np.ndarray) -> dict:
@@ -155,7 +193,7 @@ async def run_openai(audio: np.ndarray, model: str = "gpt-4o-transcribe") -> dic
             "error": times.get("error")}
 
 
-VAD_STOP_SECS = 0.2  # pipecat's Silero default: a segment closes this long after speech ends
+VAD_STOP_SECS = 0.2  # pipecat's Silero default and the daemon's (daemon.VAD_STOP_SECS): a segment closes this long after speech ends
 _WARM: set[str] = set()
 
 
@@ -185,6 +223,11 @@ EXTRA = {"local-whisper-turbo": lambda audio: run_local_whisper(audio, "mlx-comm
          "soniox-v6": lambda audio: run_soniox_rt(audio, "stt-rt-v6"),
          "soniox-daemon-v5": lambda audio: run_soniox_rt(audio, "stt-rt-v5", DAEMON_ENDPOINT),
          "soniox-daemon-v6": lambda audio: run_soniox_rt(audio, "stt-rt-v6", DAEMON_ENDPOINT),
+         "soniox-v6-recommended": lambda audio: run_soniox_rt(audio, "stt-rt-v6", {
+             "endpoint_latency_adjustment_level": 2, "endpoint_sensitivity": 0.3, "max_endpoint_delay_ms": 1500}),
+         "soniox-v6-fin500": lambda audio: run_soniox_rt(audio, "stt-rt-v6", DAEMON_ENDPOINT, finalize_after_ms=500),
+         "soniox-v6-fin700": lambda audio: run_soniox_rt(audio, "stt-rt-v6", DAEMON_ENDPOINT, finalize_after_ms=700),
+         "soniox-v6-fin1500": lambda audio: run_soniox_rt(audio, "stt-rt-v6", DAEMON_ENDPOINT, finalize_after_ms=1500),
          "gemini-transcribe-live": run_gemini_transcribe_live, "openai": run_openai,
          "openai-mini": lambda audio: run_openai(audio, "gpt-4o-mini-transcribe"),
          "openai-live": lambda audio: run_openai(audio, "gpt-live-transcribe")}
@@ -213,6 +256,11 @@ Systems (model as driven by the benchmark):
   soniox-daemon-v5 / -v6  stt-rt-v5 and stt-rt-v6 with the daemon's endpoint settings (endpoint_sensitivity -0.5,
                           max_endpoint_delay_ms 2500), run together on 2026-11-20, a day apart from the rest; the
                           daemon runs v6 from 1.14.5 because Soniox removes v5 on 2026-12-15
+  soniox-v6-fin500 / -fin700
+                          soniox-daemon-v6, plus a finalize 0.5 or 0.7 s after the voice detector's stop while words
+                          wait for an end, as the daemon does from 1.14.6 (0.7 s at Normal; -fin1500 is Patient)
+  soniox-v6-recommended   stt-rt-v6 with Soniox's own lower-latency start (endpoint_latency_adjustment_level 2,
+                          endpoint_sensitivity 0.3, max_endpoint_delay_ms 1500)
   scribe                  ElevenLabs scribe_v2_realtime. Its realtime endpoint accepts no other model id (probed:
                           scribe_v3_realtime and others are rejected)
   gemini-heard / -understood

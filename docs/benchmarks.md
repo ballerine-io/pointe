@@ -47,8 +47,10 @@ better. Until then v5 was the default: in the table, with Soniox's default endpo
 of 560 and waited over 1 s more often (17.6% of clips against 13.9%). A second run on 2026-11-20 with the daemon's own
 settings ([bench/results/soniox-v6.md](../bench/results/soniox-v6.md)) found v6 as accurate (intent 95.9% against 94.6%,
 Hebrew 98.3% for both) with the same median endpoint (0.38 s against 0.36 s) and a much longer tail: p90 2.67 s against
-0.82 s, Hebrew p90 3.04 s against 0.85 s, because on 35 of 560 clips v6 waits about 3.2 s before it ends the turn. On a
-real call with 24 English questions it did not happen, and the ears took 0.47 s at the median (0.40 s for v5 that day).
+0.82 s, Hebrew p90 3.04 s against 0.85 s, because on 35 of 560 clips v6 waits about 3.2 s before it ends the turn.
+From 1.14.6 the call asks Soniox for held words after 0.7 s of silence (`turns.finalize_due`): p90 0.76 s, Hebrew 0.80 s,
+no clip over 2.5 s, intent 96.1%; the cost is that a pause after a clause that reads whole no longer gets Soniox's
+occasional extra patience at Normal (60 of 60 such pauses taken, against 52 with v5).
 
 | mouth | first audio p50 / p95 | word error EN / HE | Speaks Hebrew | $ per 1k chars |
 |---|---|---|---|---|

@@ -385,7 +385,8 @@ Measured and left alone:
 - **Soniox stt-rt-v6 (1.14.5)**, which replaced v5 when Soniox removed it. The same 12 questions twice on 2026-11-20:
   ears 0.47 s median, 0.60 s p90 (v5 that day: 0.40, 0.49), last word to first sound 2.11, 2.50 (v5: 2.02, 2.66).
   The benchmark finds a tail the run did not meet: on 35 of 560 clips v6 ends the turn about 3.2 s after the speech
-  ([bench/results/soniox-v6.md](../../bench/results/soniox-v6.md)).
+  ([bench/results/soniox-v6.md](../../bench/results/soniox-v6.md)). 1.14.6 asks Soniox for held words after a silence
+  (`turn-taking.md` §3.5): bench p90 0.76 s.
 
 Still costing a second or two: a reply sent back before any sound, 2 of 24 turns in each run. One kind was the check
 for facts nobody gave the model (`brief.unsupported_in`) refusing general knowledge ("1,024 bytes", "late March to
