@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.14
 
+- **1.14.6** (2026-11-20): Turns end as quickly on Soniox stt-rt-v6 as on v5: Pointe asks it for words it holds after a silence.
 - **1.14.5** (2026-11-20): The ears run Soniox stt-rt-v6, because Soniox removes stt-rt-v5 on 2026-12-15.
 - **1.14.4** (2026-11-20): The voice channel uses zod 4.6.7, which fixes a memory exhaustion on oversized input.
 - **1.14.3** (2026-11-20): The doctor and setup price the Gemini and OpenAI ears, and setup says what a free-tier key means.
