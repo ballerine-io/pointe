@@ -93,25 +93,12 @@ def test_a_pin_to_an_annotated_tag_object_is_refused():
     assert check_action_pins.problem("d" * 40, {"ref": "d" * 40, "commit": "d" * 40}) is None  # a lightweight tag
 
 
-# The one job that may write: publishing site/ to GitHub Pages needs a Pages deployment and an OIDC token for it. It runs
-# only on a push to main or by hand, never for a pull request, so a stranger's change cannot reach those permissions.
-PAGES_DEPLOY = ("pages.yml", "deploy", {"contents": "read", "pages": "write", "id-token": "write"})
-
-
 def test_every_workflow_grants_the_token_read_only():
     for wf in WORKFLOWS:
         doc = yaml.safe_load(wf.read_text())
         assert doc.get("permissions") == {"contents": "read"}, f"{wf.name}: top-level permissions must be contents: read"
         for name, job in doc["jobs"].items():
-            allowed = PAGES_DEPLOY[2] if (wf.name, name) == PAGES_DEPLOY[:2] else {"contents": "read"}
-            assert job.get("permissions", {"contents": "read"}) == allowed, f"{wf.name}: job {name} widens permissions"
-
-
-def test_the_pages_deploy_never_runs_for_a_pull_request():
-    doc = yaml.safe_load((ROOT / ".github" / "workflows" / PAGES_DEPLOY[0]).read_text())
-    triggers = doc.get("on", doc.get(True))  # YAML 1.1 reads a bare `on:` key as True
-    assert set(triggers) == {"push", "workflow_dispatch"}, triggers
-    assert triggers["push"]["branches"] == ["main"]
+            assert job.get("permissions", {"contents": "read"}) == {"contents": "read"}, f"{wf.name}: job {name} widens permissions"
 
 
 def test_ci_and_the_e2e_images_install_the_uv_version_setup_installs():

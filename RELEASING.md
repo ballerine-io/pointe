@@ -65,3 +65,7 @@ attached files: the plugin installs from the repository.
 - The repository page: the description and topics are set through `gh repo edit`. The social preview image cannot be
   set through the API: upload `docs/social-preview.png` by hand in Settings, General, Social preview, after any change
   to it.
+
+## The site
+
+If `site/` changed, publish it to pointe.ballerine.com with `site/deploy.sh` (Cloudflare Pages, Ballerine account).

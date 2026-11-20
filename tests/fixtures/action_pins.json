@@ -3,21 +3,9 @@
     "commit": "11d5960a326750d5838078e36cf38b85af677262",
     "ref": "11d5960a326750d5838078e36cf38b85af677262"
   },
-  "actions/configure-pages@v6.0.0": {
-    "commit": "45bfe0192ca1faeb007ade9deae92b16b8254a0d",
-    "ref": "45bfe0192ca1faeb007ade9deae92b16b8254a0d"
-  },
-  "actions/deploy-pages@v5.0.1": {
-    "commit": "368f82528645a54fb793d4d04e342629a3f51346",
-    "ref": "368f82528645a54fb793d4d04e342629a3f51346"
-  },
   "actions/upload-artifact@v7.0.2": {
     "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     "ref": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
-  },
-  "actions/upload-pages-artifact@v5.0.0": {
-    "commit": "fc324d3547104276b827a68afc52ff2a11cc49c9",
-    "ref": "fc324d3547104276b827a68afc52ff2a11cc49c9"
   },
   "astral-sh/setup-uv@v6.8.0": {
     "commit": "d0cc045d04ccac9d8b7881df0226f9e82c39688e",
