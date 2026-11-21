@@ -1241,8 +1241,8 @@ class BrainFront(FrameProcessor):
         ECHO.bot_said(text)  # or its echo comes back as the user talking
         await self.push_frame(TTSSpeakFrame(text))
 
-    def _start(self, text: str | None) -> None:
-        self.create_task(self.brain.turn(text), f"brain-{time.time()}")
+    def _start(self, text: str | None, speech_only: bool = False) -> None:
+        self.create_task(self.brain.turn(text, speech_only=speech_only), f"brain-{time.time()}")
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -1264,7 +1264,10 @@ class BrainFront(FrameProcessor):
                 self.brain.append(f"{self._opening}\n[you already greeted them: {greeting!r}. Do not greet again.]")
                 await self._speak(greeting)
             else:
-                self._start(self._opening)
+                # Speech only: the opening carries the sessions' history, and from it the model re-sent the user's last
+                # ask ("continue") at every call start; the send guard refused it, and the greeting became "I did not send
+                # your continue", on each reconnect.
+                self._start(self._opening, speech_only=True)
             return
         elif isinstance(frame, LLMMessagesAppendFrame):
             for m in frame.messages:

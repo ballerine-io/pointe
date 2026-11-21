@@ -450,8 +450,9 @@ class Brain:
         logger.info(f"brain history trimmed: ~{int(before / self._chars_per_token)} -> ~{self.history_tokens()} tokens, "
                     f"{len(sizes)} -> {len(self.messages)} messages")
 
-    async def turn(self, text: str | None = None) -> None:
+    async def turn(self, text: str | None = None, speech_only: bool = False) -> None:
         """One reply: tools as needed, then speech. A turn that is interrupted leaves a valid history behind.
+        `speech_only`: the model is offered speech and nothing else, so it cannot act (the greeting when a call opens).
         The user's own words are answered first: session news (bracketed) that arrives while a turn on their words is
         waiting or running is added after that turn, then answered. From a live run: a typed request followed at once by
         a queued report was never sent, because the model answered the report, the newest message."""
@@ -478,7 +479,7 @@ class Brain:
                     logger.info(f"turn skipped, the reply before it already answered this: {text[:80]!r}")
                     return
                 unasked = text is not None and (conversation.is_update(text) or bool(conversation.BATCH_HEAD.match(text)))
-                await self._run(generation, not unasked, text)
+                await self._run(generation, not unasked, text, speech_only)
         finally:
             if user:
                 self._user_turns -= 1
@@ -495,11 +496,11 @@ class Brain:
         return next((m["content"] for m in reversed(self.messages) if m["role"] == "user"
                      and isinstance(m.get("content"), str) and not m["content"].startswith("[")), "")
 
-    async def _run(self, generation: int, user: bool = True, trigger: str | None = None) -> None:
+    async def _run(self, generation: int, user: bool = True, trigger: str | None = None, speech_only: bool = False) -> None:
         """`user`: this turn answers the user's words or something they just did. A turn nobody asked for (a report, a
         nudge: conversation.is_update) never says "one sec" or "say that again": the user said nothing, and may be
         thinking."""
-        decls = self._decls()
+        decls = [SPEAK] if speech_only else self._decls()
         sent, retries, filled, refused, shortened = False, 0, not user, False, False
         self._trigger = trigger or ""
         own_words = trigger is not None and not trigger.lstrip().startswith("[")  # not a report, a click or a mode's line
