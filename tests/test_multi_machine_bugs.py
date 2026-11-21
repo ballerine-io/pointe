@@ -91,7 +91,7 @@ HOST = "phone.example.internal"
 
 
 def test_the_phone_key_reaches_the_hub_routes_over_the_tls_listener(tmp_path, monkeypatch):
-    """ios/Pointe/API.swift posts voice/hub/invite and voice/hub/revoke with the phone key; guards must let it through."""
+    """apple/PointeKit/Sources/PointeUI/API.swift posts voice/hub/invite and voice/hub/revoke with the phone key; guards must let it through."""
     monkeypatch.setattr(sessions, "MACHINES", {})
     (tmp_path / "remote.json").write_text(json.dumps({"host": HOST}))
     (tmp_path / "remote_token").write_text("s3cret-token")

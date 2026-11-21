@@ -7,7 +7,7 @@ useDefault = true
 
 [[allowlists]]
 description = "synthetic fixtures in the tests and the bench"
-paths = ['''^tests/''', '''^ios/PointeTests/''', '''^ios/PointeUITests/''', '''^bench/''']
+paths = ['''^tests/''', '''^apple/PointeKit/Tests/''', '''^ios/PointeTests/''', '''^macos/PointeMacTests/''', '''^ios/PointeUITests/''', '''^bench/''']
 
 [[allowlists]]
 description = "a 16-hex key fingerprint shown in the app's Machines screen; a fingerprint, not a key"

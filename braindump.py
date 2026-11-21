@@ -29,7 +29,7 @@ PROMPT_CHARS = 12_000
 SECTIONS = (("goal", "Goal"), ("context", "Context"), ("constraints", "Constraints"), ("open_questions", "Open questions"))
 STATES = ("dumping", "structuring", "review")
 
-# The page's and the app's words (ui.html DUMP_COPY, ios/Pointe/BrainDump.swift BrainDumpCopy): the three must not drift.
+# The page's and the app's words (ui.html DUMP_COPY, apple/PointeKit/Sources/PointeUI/BrainDump.swift BrainDumpCopy): the three must not drift.
 COPY = {
     "button": "Brain dump",
     "done": "Done",

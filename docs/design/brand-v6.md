@@ -100,7 +100,7 @@ the families through UIKit's appearance at launch.
 
 **Fonts are bundled, not fetched.** Both are SIL OFL 1.1 with no reserved font name (the licence texts are beside the
 files and are byte-identical to the ones in Google Fonts' repository). The five static TrueType files come from the
-upstream repositories at fixed commits (`THIRD_PARTY.md`), are committed under `assets/fonts/` and `ios/Pointe/Fonts/`,
+upstream repositories at fixed commits (`THIRD_PARTY.md`), are committed under `assets/fonts/` and `apple/PointeKit/Sources/PointeUI/Resources/Fonts/`,
 and are pinned by SHA-256 in `assets/theme.json`. The page loads them from the daemon (`GET /voice/font/<name>`, which
 serves only a pinned name and only bytes with its hash); the app registers them in `Info.plist` (`UIAppFonts`). No
 font CDN is contacted, so `docs/security/egress-allowlist.txt` is unchanged. JetBrains Mono, which the guideline names
@@ -185,5 +185,5 @@ letter in one place per surface.
   surfaces with the licence; the daemon serves a pinned font and nothing else; the page loads fonts from this Mac only;
   the same harness marks on both; in a headless Chrome, the page follows the system until a choice is made, groups by
   machine, drops the header for one machine, and marks an offline machine.
-- `ios/PointeTests/ThemeTests.swift`: the theme choices and their colour scheme, the bundled fonts load by name, the
+- `apple/PointeKit/Tests/PointeUIUnitTests/ThemeTests.swift`: the theme choices and their colour scheme, the bundled fonts load by name, the
   harness marks, and the machine grouping with mixed agents.

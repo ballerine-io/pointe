@@ -1,5 +1,5 @@
 {
-  "_": "Ballerine Brand Guidelines V6 as Pointe uses it: the one source for the page (ui.html) and the iPhone app (ios/Pointe/Brand.swift). tests/test_theme.py fails when either drifts. Design: docs/design/brand-v6.md.",
+  "_": "Ballerine Brand Guidelines V6 as Pointe uses it: the one source for the page (ui.html) and the iPhone app (apple/PointeKit/Sources/PointeUI/Brand.swift). tests/test_theme.py fails when either drifts. Design: docs/design/brand-v6.md.",
   "choices": ["system", "light", "dark"],
   "default": "system",
   "labels": {"system": "System", "light": "Light", "dark": "Dark"},

@@ -177,7 +177,7 @@ stop" choice, and still catches the dangling-word cases today misses.
   `API.Status.hold`, `API.Prefs.patience`, the "Holding" title.
 - Tests: `tests/test_turn_taking.py` (the harness, `unfinished` in EN and HE, hold and release intents in both,
   the hold on the call with a phrase and with the silence release, the settle on the call, the setting's round trip,
-  page/app parity of words and values), `ios/PointeTests/TurnsTests.swift`. The existing half-sentence test in
+  page/app parity of words and values), `apple/PointeKit/Tests/PointeUIUnitTests/TurnsTests.swift`. The existing half-sentence test in
   `tests/test_orchestrator.py` now sets a fast level instead of the removed constant.
 - Not shipped: the smart-turn model (§3.2), a page e2e (the offline parity test covers the setting; the live
   `tests/e2e/turn_taking.py` still runs against a real call when asked and its "answers within 3 s of the real end"

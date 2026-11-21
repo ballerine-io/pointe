@@ -1980,7 +1980,7 @@
     }
     registerProcessor('capture', Capture); registerProcessor('player', Player);`;
   // Connect is the one control that starts the call; the mic is a mic. The words here are the app's too (ConnectCopy in
-  // ios/Pointe/Connect.swift, checked by tests/e2e/page_parity.py and ios/PointeTests/ParityTests.swift): the same keys,
+  // apple/PointeKit/Sources/PointeUI/Connect.swift, checked by tests/e2e/page_parity.py and apple/PointeKit/Tests/PointeUIUnitTests/ParityTests.swift): the same keys,
   // the same sentences where the surface allows, so a reason reads the same on the page and on the phone.
   const CONNECT_COPY = {
     connect: 'Connect', tryAgain: 'Try again', hangUp: 'Hang up', cancel: 'Cancel', connectFirst: 'Connect first',

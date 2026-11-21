@@ -1,7 +1,7 @@
 """Ballerine Brand Guidelines V6 on both surfaces: one source, no drift (docs/design/brand-v6.md).
 
 assets/theme.json holds the theme choices, every colour token for light and dark, the pinned font files and the
-harness marks. The page (ui.html) and the iPhone app (ios/Pointe/Brand.swift) each carry their own copy, because the
+harness marks. The page (ui.html) and the iPhone app (apple/PointeKit/Sources/PointeUI/Brand.swift) each carry their own copy, because the
 page must render with no build step and the app must compile with no resource lookup; these tests read both and fail
 when either differs from the source. They also hold the things a restyle can quietly break: the fonts come from this
 Mac and nowhere else, at their pinned hashes; text meets WCAG AA on every surface it sits on, in both themes; and the

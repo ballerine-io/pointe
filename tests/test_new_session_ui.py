@@ -1,6 +1,6 @@
 """The New session sheet on the page, its words on every surface, and the row and card a start shows
 (docs/design/new-session.md). The page runs in a headless Chrome against the stub Mac; the apps' words are read from
-their sources (ios/Pointe/NewSession.swift, apple/PointeKit NewSessionCopy.swift) and must be the page's.
+their sources (apple/PointeKit/Sources/PointeUI/NewSession.swift, apple/PointeKit NewSessionCopy.swift) and must be the page's.
 
 uv run --locked pytest -q tests/test_new_session_ui.py
 """

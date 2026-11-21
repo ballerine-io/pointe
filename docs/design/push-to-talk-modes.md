@@ -129,8 +129,8 @@ saved with the hold key; the key's field reads "Talk key". App: Settings menu ga
 
 ## Parity
 
-`tests/test_ptt_modes.py` reads `ui.html` and `ios/Pointe/PushToTalk.swift` and checks both offer the same two styles
-with the same labels, the same idle lines and the same 90 s wording; `ios/PointeTests/ParityTests.swift` holds the
+`tests/test_ptt_modes.py` reads `ui.html` and `apple/PointeKit/Sources/PointeUI/PushToTalk.swift` and checks both offer the same two styles
+with the same labels, the same idle lines and the same 90 s wording; `apple/PointeKit/Tests/PointeUIUnitTests/ParityTests.swift` holds the
 app's literals.
 
 ## Tests
@@ -141,6 +141,6 @@ app's literals.
   it, the 2 s fallback, an empty press, the draft in the status and on the page, the voice-lock verdict, Soniox's
   `<fin>` marker in order, and always on unchanged.
 - Page e2e: `tests/e2e/page_ptt_tap.py`, state `/tmp/cv-state-ptt-tap`, daemon port 7923, TLS 7523, Chrome 9339.
-- App: `ios/PointeTests/PushToTalkTests.swift` (`TalkGate.shows`, `TalkStyle` persistence and labels, `TalkDraft`),
+- App: `apple/PointeKit/Tests/PointeUIUnitTests/PushToTalkTests.swift` (`TalkGate.shows`, `TalkStyle` persistence and labels, `TalkDraft`),
   `ios/PointeUITests/PushToTalkUITests.swift` (touch down opens at once; a hold while the status still says open is
   taken; tap to talk opens on one tap and sends on the next).

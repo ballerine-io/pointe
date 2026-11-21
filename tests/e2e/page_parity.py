@@ -38,7 +38,7 @@ DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "7963"))
 SHOTS = Path(os.environ["POINTE_SHOTS"])
 
 
-# The Connect control's words, as ios/PointeTests/ParityTests.swift (ConnectCopyTests) holds them for the app: the same
+# The Connect control's words, as apple/PointeKit/Tests/PointeUIUnitTests/ParityTests.swift (ConnectCopyTests) holds them for the app: the same
 # label on both surfaces, the same sentence for each reason where the surface allows.
 CONNECT_WORDS = {"connect": "Connect", "tryAgain": "Try again", "hangUp": "Hang up", "cancel": "Cancel", "connectFirst": "Connect first",
                  "notConnected": "Not connected", "notPairedTitle": "Not paired", "elsewhere": "On a call elsewhere",

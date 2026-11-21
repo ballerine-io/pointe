@@ -129,7 +129,7 @@ without a reply (`braindump.orchestrated_line`). `REGISTRY.mode` never changes, 
   status field, the reconnect line. `modes.BRAIN_DUMP` holds news, no nudges, no read-outs, no speech.
 - `ui.html`: the `#dump` panel (thoughts, hearing, Done / Discard), the `#dump-review` sheet (sections as editable text,
   session picker, Send / Add more / Discard), `DUMP_COPY`. The dock button `#listen` reads "Brain dump" / "Done".
-- `ios/Pointe/BrainDump.swift`: `API.BrainDump`, `BrainDumpCopy` (word for word the page's), `BrainDumpPanel`,
+- `apple/PointeKit/Sources/PointeUI/BrainDump.swift`: `API.BrainDump`, `BrainDumpCopy` (word for word the page's), `BrainDumpPanel`,
   `BrainDumpReview`. `CallView` shows them; `BottomBar` labels the button.
 - Docs: `docs/features/brain-dump.md`; README table.
 

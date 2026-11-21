@@ -58,7 +58,7 @@ You need git and a Mac or a Linux machine. No keys and no cost, until step 4.
 | `sessions.py` | The registry of joined sessions, their transcripts, and sends |
 | `vendors.py` | Each vendor, its key, and the order roles pick them in |
 | `ui.html` | The call page: one file, no build step |
-| `ios/` | The iPhone app (SwiftUI), with unit tests in `ios/PointeTests` and UI tests in `ios/PointeUITests` |
+| `ios/` | The iPhone app: its entry point, intent and icon. Its screens are `apple/PointeKit` (PointeUI), shared with the Mac app; unit tests in `apple/PointeKit/Tests/PointeUIUnitTests`, UI tests in `ios/PointeUITests` |
 | `apps.py` | `bin/pointe apps doctor`, `mac`, `ios`: builds, signs and installs the two apps from source. Standard library only, so it runs on Xcode's Python; tested against recorded tool output in `tests/test_apps.py` |
 | `node.py`, `nodelink.py`, `hub_nodes.py` | Other machines: the node, the link, and the hub's side of it ([docs/multi-machine.md](docs/multi-machine.md)) |
 | `bin/`, `plugin/`, `hooks/` | The launchers, the Claude Code commands (`/pointe:*`), and the permission hook |
@@ -97,7 +97,7 @@ The `area/` labels say which part of the code an issue touches, and `platform/` 
 - **The page:** `tests/test_ui_page.py` and `tests/test_ui_layout.py` drive `ui.html` in a headless Chrome against a stub
   Mac (`tests/page_rig.py`). Words the page and the app both show live in shared dictionaries that
   `tests/test_copy_parity.py` checks; colours come from `assets/theme.json` (`tests/test_theme.py`).
-- **The iPhone app:** add to `ios/PointeTests`; CI builds the app and runs them on a simulator.
+- **The iPhone app:** add to `apple/PointeKit/Tests/PointeUIUnitTests`; CI builds the app and runs them on a simulator.
 - **Prompt or model change: run the benchmark.** `bench/brain_bench.py` compares against saved results. Scores move, and
   a change that reads better can score worse.
 - **Audio paths: run `tests/e2e/run_all.sh`.** It calls paid APIs and starts real Claude Code sessions on isolated ports.

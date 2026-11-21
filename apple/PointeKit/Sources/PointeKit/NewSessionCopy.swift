@@ -1,7 +1,7 @@
 import Foundation
 
 /// Starting a new session from Pointe (docs/design/new-session.md): the sheet, the rows and the read-back card say the
-/// same words on the page (`NEW_SESSION_COPY` in ui.html), the iPhone app (ios/Pointe/NewSession.swift) and the Mac app.
+/// same words on the page (`NEW_SESSION_COPY` in ui.html), the iPhone app (apple/PointeKit/Sources/PointeUI/NewSession.swift) and the Mac app.
 /// The parity tests read this file: keep each string on one line.
 public enum NewSessionCopy {
     public static let title = "New session"

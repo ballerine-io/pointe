@@ -6,7 +6,7 @@ consistent radii and hairlines, keyboard avoidance, VoiceOver labels, contrast, 
 
 ## How it was looked at
 
-Every state is a demo fixture (`ios/Pointe/Demo.swift`, `-demo <screen>` in a Debug build), so no Mac and no real
+Every state is a demo fixture (`apple/PointeKit/Sources/PointeUI/Demo.swift`, `-demo <screen>` in a Debug build), so no Mac and no real
 session is involved. The review added the fixtures the layout's edges needed (`empty`, `noSessions`, `many` with twenty
 sessions, `longNames` with a branch-long name and a Hebrew one, `longRequest`, `hold`, `speaking`, `muted`) and a
 `-sheet <name>` argument that opens a settings sheet at launch.

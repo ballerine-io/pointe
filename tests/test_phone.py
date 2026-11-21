@@ -94,7 +94,7 @@ def test_a_pong_from_the_client_reaches_the_heartbeat():
 def test_a_phone_whose_pings_wait_behind_the_bots_voice_is_behind_not_gone(monkeypatch):
     """A path slower than the bot's voice (ios/e2e/talking_mac_ui.py with POINTE_DOWN_KBPS): the pings queue behind
     seconds of audio and no pong comes back, but the app's own keep-alive (protocol 4, the exact text Call.alive sends,
-    ios/PointeTests) still arrives. The call stays up, no round trip is made up from a keep-alive, and the lag shows."""
+    apple/PointeKit/Tests/PointeUIUnitTests) still arrives. The call stays up, no round trip is made up from a keep-alive, and the lag shows."""
     import asyncio as _asyncio
     import json as _json
 

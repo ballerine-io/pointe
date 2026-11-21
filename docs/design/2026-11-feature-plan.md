@@ -48,10 +48,10 @@ A new invariant this plan adds, used by 1, 3, 4 and 11: **a mode can only narrow
 | Feed and priorities: `FeedInjector`, `_feed_priority` (`and this is urgent]` jumps the queue), `say()` | `daemon.py` | 5, 10, 11 |
 | Side questions: `ask_about_session` → `_ask_copy` (read-only fork) / `_from_record` | `daemon.py`, harness adapters | 5, 6, 11 |
 | Recognition terms: `_recognition_terms()` → Soniox `context.terms` (ears and mirror) | `daemon.py`, `vendors.build_ears` | 2, 11 |
-| Client protocol: `phone.py` v2 (PCM both ways, `interrupt`, ping/pong); client text other than `pong` is ignored | `phone.py`, `ui.html`, `ios/Pointe/Call.swift` | 4, 9, 11 (F6 adds client→daemon control) |
+| Client protocol: `phone.py` v2 (PCM both ways, `interrupt`, ping/pong); client text other than `pong` is ignored | `phone.py`, `ui.html`, `apple/PointeKit/Sources/PointeUI/Call.swift` | 4, 9, 11 (F6 adds client→daemon control) |
 | Status polling: `/voice/status` every 0.7 s (page), 0.4–1 s (app) | `ui.html:poll`, `CallView.swift:poll` | all |
 | Typed and corrected text: `/voice/say`, `/voice/correct`, `_user_text` | `daemon.py` | 2, 10, 11 |
-| Face ID approve: `CallView.answer` with `LAContext`; page approve: click on the exact request card | `ios/Pointe/CallView.swift`, `ui.html:approvalCard` | 7, 11 |
+| Face ID approve: `CallView.answer` with `LAContext`; page approve: click on the exact request card | `apple/PointeKit/Sources/PointeUI/CallView.swift`, `ui.html:approvalCard` | 7, 11 |
 | Phone key scope: `_PHONE_PATHS` in `guards.py` lists exactly what the phone key opens | `guards.py` | every new route the app needs |
 | Tests: offline `tests/test_orchestrator.py` (FakeInjector, fake conn), `tests/test_units.py`, `tests/test_http.py`, `tests/test_security.py`; live `tests/e2e/rig.py` (synthetic ElevenLabs user voice, Gemini transcription of the bot, `check()` assertions), `evals/sim.py` | `tests/` | all |
 
@@ -1948,7 +1948,7 @@ During a brainstorm, "challenge this" ends it and challenges what was said.
 - Page: a Challenge button in the dock (it reads "End challenge" while on), "Challenge it" in the Brainstorm panel, the
   title "Challenging", and a Challenge panel over the conversation: the plan, Objection / You / Verdict in order, "End
   challenge", and after the end "Challenge ended" with Close (remembered per tab).
-- App: see the iPhone notes in the commit that adds `ios/Pointe/Challenge.swift`.
+- App: see the iPhone notes in the commit that adds `apple/PointeKit/Sources/PointeUI/Challenge.swift`.
 
 ### Benchmark
 
