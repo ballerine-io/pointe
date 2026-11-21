@@ -330,15 +330,18 @@ a developer-tools company and does not sell Pointe. It is shared because it is u
 
 ## Support
 
-Pointe is community-supported, on a best-effort basis, with no SLA. Ask questions and report bugs in
+Pointe is community-supported, on a best-effort basis, with no SLA. Ask questions in
+[Discussions → Q&A](https://github.com/ballerine-io/pointe/discussions/categories/q-a), propose features in
+[Discussions → Ideas](https://github.com/ballerine-io/pointe/discussions/categories/ideas), and report bugs in
 [GitHub issues](https://github.com/ballerine-io/pointe/issues). Report a vulnerability privately, never in an issue:
 [GitHub private vulnerability reporting](https://github.com/ballerine-io/pointe/security/advisories/new) or
 security@ballerine.com ([SECURITY.md](SECURITY.md)).
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md): the offline tests (no keys, a few minutes), the rules for changing behavior, and
-the DCO sign-off. Report a vulnerability privately: [SECURITY.md](SECURITY.md). Please follow the
+[CONTRIBUTING.md](CONTRIBUTING.md): your first pull request in 15 minutes, the offline tests (no keys, a few
+minutes), the rules for changing behavior, and the DCO sign-off. What may come next, and how to vote on it:
+[ROADMAP.md](ROADMAP.md). Report a vulnerability privately: [SECURITY.md](SECURITY.md). Please follow the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 What changed in each version: [CHANGELOG.md](CHANGELOG.md); how a version is cut: [RELEASING.md](RELEASING.md).
 

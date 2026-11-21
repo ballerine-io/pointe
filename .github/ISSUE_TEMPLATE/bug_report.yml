@@ -30,7 +30,9 @@ body:
     id: doctor
     attributes:
       label: "`pointe doctor` output"
-      description: Run `/pointe:doctor` in a session, or `bin/pointe doctor`, and paste the output. Remove anything you do not want public.
+      description: |
+        Run `/pointe:doctor` in a session, or `bin/pointe doctor`, and paste the output. It says whether each key was
+        found, never its value. It does name your agents and machine: remove anything you do not want public.
       render: text
     validations:
       required: true
@@ -43,6 +45,7 @@ body:
         - Claude Code
         - OpenCode
         - Codex CLI
+        - A session on another machine (node)
     validations:
       required: true
   - type: input
@@ -59,11 +62,12 @@ body:
         - Page in Chrome on the Mac
         - iPhone app
         - Page in a phone browser
+        - Page in another desktop browser
   - type: input
     id: macos
     attributes:
-      label: macOS version
-      placeholder: e.g. output of `sw_vers -productVersion`
+      label: Operating system and version
+      placeholder: e.g. macOS 27.0 (`sw_vers -productVersion`), or the Linux distribution
     validations:
       required: true
   - type: textarea

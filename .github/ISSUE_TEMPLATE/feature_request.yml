@@ -1,7 +1,16 @@
 name: Feature request
-description: Something Pointe should do.
+description: Something Pointe should do, once it has support in Discussions or is a small, clear change.
 labels: [enhancement]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        **Is it on the roadmap already?** Check [ROADMAP.md](https://github.com/ballerine-io/pointe/blob/main/ROADMAP.md)
+        and vote with a 👍 on its issue instead of opening a new one.
+
+        **A new idea starts in [Discussions → Ideas](https://github.com/ballerine-io/pointe/discussions/categories/ideas)**,
+        where others can upvote it. Ideas that gather support become roadmap issues. Use this form for a small, clear
+        change, or for an idea a maintainer asked you to file.
   - type: textarea
     id: problem
     attributes:
@@ -27,3 +36,11 @@ body:
     id: alternatives
     attributes:
       label: Alternatives you considered
+  - type: dropdown
+    id: help
+    attributes:
+      label: Would you build it?
+      options:
+        - "Yes, with some guidance"
+        - "I could test it"
+        - "No"

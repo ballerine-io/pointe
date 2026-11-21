@@ -1,0 +1,49 @@
+name: Harness request
+description: Ask for Pointe to join sessions of another coding agent.
+labels: [area/harness, enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pointe joins an agent's running sessions through an adapter in `harnesses/`. The adapter needs to join a
+        session, watch its activity, send it a message, and (if the agent has them) hold its permission prompts:
+        [docs/harnesses.md](https://github.com/ballerine-io/pointe/blob/main/docs/harnesses.md). What you know about
+        the points below decides whether an adapter can be built today. Check the
+        [roadmap](https://github.com/ballerine-io/pointe/blob/main/ROADMAP.md) first: some agents already have an issue.
+  - type: input
+    id: agent
+    attributes:
+      label: Agent
+      placeholder: Name, and a link to its docs or repository
+    validations:
+      required: true
+  - type: textarea
+    id: session
+    attributes:
+      label: How a running session can be reached
+      description: A server or API, a socket, a transcript file on disk, or nothing (it can only be started). Link the docs.
+    validations:
+      required: true
+  - type: textarea
+    id: send
+    attributes:
+      label: How a message is sent to a running session
+      description: Without typing keystrokes into its terminal, which Pointe does not do.
+  - type: textarea
+    id: approvals
+    attributes:
+      label: Permission prompts
+      description: Does it ask before running a command or editing a file? Can another program see the request and answer it?
+  - type: textarea
+    id: fork
+    attributes:
+      label: Side questions
+      description: Can a session be copied (forked) to answer a question without touching the live one?
+  - type: dropdown
+    id: help
+    attributes:
+      label: Would you build the adapter?
+      options:
+        - "Yes, with some guidance"
+        - "I could test it"
+        - "No"
