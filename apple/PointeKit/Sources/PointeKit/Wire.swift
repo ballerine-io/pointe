@@ -5,7 +5,7 @@ public enum Wire {
     public static let upRate = 16000.0
     public static let downRate = 24000.0
     public static let chunk = 320  // 20 ms up
-    public static let protocolVersion = 3
+    public static let protocolVersion = 4
 
     public static func pcm16(_ samples: [Float]) -> Data {
         var out = Data(capacity: samples.count * 2)
@@ -34,12 +34,17 @@ public enum Wire {
         }
     }
 
-    /// The client's hello (protocol 3): who it is and what it can do.
+    /// The client's hello: who it is and what it can do.
     public static func hello(device: String, capabilities: [String] = ["ptt"]) -> String {
         json(["type": "hello", "protocol": protocolVersion, "device": device, "capabilities": capabilities])
     }
 
     public static func pong(_ id: Int) -> String { json(["type": "pong", "id": id]) }
+
+    /// The client is here, sent every 2 s whatever arrives (protocol 4). The daemon's pings come in order behind its
+    /// audio, so on a path slower than the bot's voice they wait behind seconds of it; this goes the other way. Shaped
+    /// as a pong for the newest ping already answered (0 before the first), so an older daemon counts it as one.
+    public static func alive(answered id: Int) -> String { json(["type": "pong", "id": id, "alive": true]) }
 
     static func json(_ body: [String: Any]) -> String {
         let data = (try? JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])) ?? Data()

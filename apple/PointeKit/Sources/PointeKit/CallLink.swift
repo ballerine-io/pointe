@@ -54,7 +54,7 @@ public protocol CallAudio: AnyObject {
     var onSpeaking: ((Bool) -> Void)? { get set }
 }
 
-/// One call to the daemon: the microphone in, the bot's voice out, over one WebSocket (phone.py, protocol 3). It
+/// One call to the daemon: the microphone in, the bot's voice out, over one WebSocket (phone.py, protocol 4). It
 /// redials by itself unless the user hung up, and knows why a link that will not come back was refused.
 @MainActor @Observable
 public final class CallLink {
@@ -118,13 +118,17 @@ public final class CallLink {
     private var generation = 0
     private var talkOpenedAt: Date?
     private var talkNotes = 0
+    /// The newest ping answered on this link, repeated by the keep-alive.
+    private var answered = 0
+    private var keepAlive: Task<Void, Never>?
+    private let aliveEvery: Duration
 
     /// - Parameters:
     ///   - idleHangup: asks the daemon whether its idle timer ended the last call (status `idle_hangup`): such a call is
     ///     not redialled. nil: the daemon did not say.
     ///   - hungUp: tells the daemon the user hung up, so a held prompt goes back to its terminal.
     public init(dialer: any CallDialer, audio: any CallAudio, device: String, place: String, words: Words,
-                talkStyle: TalkStyle = .hold,
+                talkStyle: TalkStyle = .hold, aliveEvery: Duration = .seconds(2),
                 idleHangup: @escaping @Sendable () async -> Bool? = { nil },
                 hungUp: @escaping @Sendable () async -> Void = {},
                 sleep: @escaping @Sendable (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
@@ -135,6 +139,7 @@ public final class CallLink {
         self.place = place
         self.words = words
         self.talkStyle = talkStyle
+        self.aliveEvery = aliveEvery
         self.idleHangup = idleHangup
         self.hungUp = hungUp
         self.sleep = sleep
@@ -176,6 +181,13 @@ public final class CallLink {
             talk.reset()
             socket.send(text: Wire.hello(device: device))
             read(socket, generation: mine)
+            keepAlive = Task { [weak self, aliveEvery] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: aliveEvery)
+                    guard let self, self.generation == mine, self.state == .live, !Task.isCancelled else { return }
+                    socket.send(text: Wire.alive(answered: self.answered))
+                }
+            }
         } catch {
             guard mine == generation else { return }
             dropped(error as? CallClose ?? CallClose(code: 0))
@@ -299,6 +311,7 @@ public final class CallLink {
         case .ping(let id, let rtt):
             rttMs = rtt
             socket.send(text: Wire.pong(id))
+            answered = max(answered, id)
         case nil: break
         }
     }
@@ -352,6 +365,9 @@ public final class CallLink {
     private func stop(state: State) {
         reader?.cancel()
         reader = nil
+        keepAlive?.cancel()
+        keepAlive = nil
+        answered = 0
         socket?.close()
         socket = nil
         audio.flush()

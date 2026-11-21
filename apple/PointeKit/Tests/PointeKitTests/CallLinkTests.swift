@@ -96,6 +96,23 @@ let words = CallLink.Words(notPaired: "not paired", busy: "busy", idleHangup: "i
         #expect(socket.sentTexts.contains(Wire.pong(4)))
     }
 
+    /// Protocol 4: the client says it is there every 2 s on its own, as a pong for the newest ping it answered.
+    @Test func theClientSaysItIsThereOnItsOwn() async {
+        let socket = FakeSocket()
+        dialer.next(.success(socket))
+        let call = CallLink(dialer: dialer, audio: audio, device: "Mac", place: "p", words: words, aliveEvery: .milliseconds(15), sleep: { _ in })
+        await call.start()
+        await settle { socket.sentTexts.contains(Wire.alive(answered: 0)) }
+        #expect(socket.sentTexts.contains(Wire.alive(answered: 0)))
+        socket.push(.text(#"{"type":"ping","id":9,"rtt_ms":null}"#))
+        await settle { socket.sentTexts.contains(Wire.alive(answered: 9)) }
+        #expect(socket.sentTexts.contains(Wire.alive(answered: 9)))
+        call.hangUp()
+        let sent = socket.sentTexts.count
+        await settle()
+        #expect(socket.sentTexts.count == sent)
+    }
+
     @Test func theBotsVoiceIsPlayedAndAnInterruptDropsIt() async {
         let socket = FakeSocket()
         dialer.next(.success(socket))

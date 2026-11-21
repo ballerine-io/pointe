@@ -206,3 +206,54 @@ struct Sandbox {
     }
 }
 #endif
+
+#if os(macOS)
+@Suite struct ShortcutTests {
+    @Test func theDefaultIsControlOptionSpace() {
+        #expect(Shortcut.standard.display == "⌃⌥Space" && Shortcut.standard.spoken == "Control Option Space")
+        #expect(Shortcut.standard.problem == nil)
+    }
+
+    @Test func aKeyAloneWouldSwallowTypingButAFunctionKeyMay() {
+        #expect(Shortcut(keyCode: 0, modifiers: 0).problem == .needsModifier)
+        #expect(Shortcut(keyCode: 0, modifiers: Shortcut.shift).problem == .needsModifier)
+        #expect(Shortcut(keyCode: 96, modifiers: 0).problem == nil)  // F5
+    }
+
+    @Test func whatMacOSAnswersItselfIsRefused() {
+        #expect(Shortcut(keyCode: 49, modifiers: Shortcut.command).problem == .system("Spotlight"))
+    }
+
+    @Test func theChoiceIsKeptAndNoneStaysNone() throws {
+        let defaults = try #require(UserDefaults(suiteName: "pointe-shortcut-\(UUID().uuidString)"))
+        #expect(Shortcut.stored(in: defaults) == .standard)
+        let chosen = Shortcut(keyCode: 40, modifiers: Shortcut.control | Shortcut.shift)
+        Shortcut.store(chosen, in: defaults)
+        #expect(Shortcut.stored(in: defaults) == chosen && chosen.display == "⌃⇧K")
+        Shortcut.store(nil, in: defaults)
+        #expect(Shortcut.stored(in: defaults) == nil)
+    }
+}
+@Suite struct ReleaseWatchTests {
+    /// Feeds the samples in order and says after which one (from 1) the watch called the press released; nil: never.
+    func released(after samples: [Bool]) -> Int? {
+        var watch = ReleaseWatch()
+        for (i, down) in samples.enumerated() where watch.sample(down: down) { return i + 1 }
+        return nil
+    }
+
+    @Test func aKeySeenDownThenUpThreeTimesIsReleased() {
+        #expect(released(after: [true, false, false, false]) == 4)
+        #expect(released(after: [true, false, false]) == nil)
+    }
+
+    @Test func aBounceStartsTheCountAgain() {
+        #expect(released(after: [true, false, false, true, false, false]) == nil)
+        #expect(released(after: [true, false, false, true, false, false, false]) == 7)
+    }
+
+    @Test func aKeyNeverSeenDownNeverCutsAHold() {
+        #expect(released(after: [Bool](repeating: false, count: 100)) == nil)
+    }
+}
+#endif

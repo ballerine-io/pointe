@@ -125,7 +125,7 @@ public actor StubDaemon: DaemonAPI {
     // MARK: made-up statuses
 
     /// Five sessions on two machines, one waiting on an approval, one with a question, and a short conversation.
-    public static func busy(connected: Bool = true) -> API.Status {
+    public static func busy(connected: Bool = true, version: String = "1.15.0") -> API.Status {
         let caps = API.Capabilities(approvals: true)
         let sessions = [
             API.Session(name: "payments", working: true, waiting: false, harness: "claude-code", capabilities: caps),
@@ -147,15 +147,48 @@ public actor StubDaemon: DaemonAPI {
         ]
         let attention = [API.Attention(id: "perm-1", kind: "permission", text: "docs needs approval", session: "docs", request_id: "perm-1",
                                        title: "docs needs approval", body: "git push to origin, branch retry-fix", approvable: true)]
-        return API.Status(version: "1.15.0", active: "payments", connected: connected, sessions: sessions, talk: talk, hearing: "",
+        return API.Status(version: version, active: "payments", connected: connected, sessions: sessions, talk: talk, hearing: "",
                           mode: "orchestrator", attention: attention, ptt: API.PTTStatus(mode: "always", open: false),
                           voice_lock: API.VoiceLock(level: "off", enrolled: false),
                           tokens: API.Tokens(context: 48210, at: "15:04"),
                           local: API.LocalMode(line: "Cloud voice: Soniox + ElevenLabs"), machines: machines)
     }
 
-    public static func empty() -> API.Status {
-        API.Status(version: "1.15.0", connected: false, sessions: [], talk: [], hearing: "", mode: "orchestrator",
+    public static func empty(version: String = "1.15.0") -> API.Status {
+        API.Status(version: version, connected: false, sessions: [], talk: [], hearing: "", mode: "orchestrator",
                    ptt: API.PTTStatus(mode: "always", open: false))
     }
+}
+
+/// A call that opens at once and carries nothing: for the UI tests and screenshots, where no daemon is listening.
+public struct StubDialer: CallDialer {
+    public init() {}
+    public func dial() async throws -> any CallSocket { StubSocket() }
+}
+
+final class StubSocket: CallSocket, @unchecked Sendable {
+    private let frames: AsyncThrowingStream<CallFrame, Error>
+    private let feed: AsyncThrowingStream<CallFrame, Error>.Continuation
+
+    init() { (frames, feed) = AsyncThrowingStream.makeStream() }
+
+    func send(text: String) {}
+    func send(audio: Data) {}
+    func close() { feed.finish(throwing: CallClose(code: 1000)) }
+
+    func receive() async throws -> CallFrame {
+        for try await frame in frames { return frame }
+        throw CallClose(code: 1000)
+    }
+}
+
+/// No microphone and no speaker: the stub call's audio.
+@MainActor
+public final class SilentAudio: CallAudio {
+    public var onSpeaking: ((Bool) -> Void)?
+    public init() {}
+    public func start(deliver: @escaping @Sendable ([Float]) -> Void) async throws {}
+    public func stop() {}
+    public func play(_ samples: [Float]) {}
+    public func flush() {}
 }

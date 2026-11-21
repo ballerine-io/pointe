@@ -271,10 +271,19 @@ def test_the_channel_installs_from_its_lockfile_with_integrity_and_no_scripts():
     assert "npm ci --prefix \"$ROOT/channel\" --ignore-scripts" in (ROOT / "bin" / "claude-voice").read_text()
 
 
-def test_the_iphone_app_pulls_no_packages():
-    project = (ROOT / "ios" / "Pointe.xcodeproj" / "project.pbxproj").read_text()
-    assert "XCRemoteSwiftPackageReference" not in project and "XCSwiftPackageProductDependency" not in project
-    assert not files("ios/**/Package.swift", "ios/**/Package.resolved", "ios/**/Podfile*")
+def test_the_apple_apps_pull_no_packages():
+    """The iPhone app and the Mac app depend on Apple frameworks and on one package in this repository
+    (apple/PointeKit, what the two share), which itself depends on nothing: no package is fetched from anywhere."""
+    for project in ("ios/Pointe.xcodeproj", "macos/PointeMac.xcodeproj"):
+        text = (ROOT / project / "project.pbxproj").read_text()
+        assert "XCRemoteSwiftPackageReference" not in text, project
+        local = re.findall(r"relativePath = ([^;]+);", text)
+        assert set(local) <= {"../apple/PointeKit"}, f"{project}: the only package is the one in this repository"
+        assert ("XCSwiftPackageProductDependency" in text) == bool(local), project
+    manifest = (ROOT / "apple" / "PointeKit" / "Package.swift").read_text()
+    assert ".package(" not in manifest and "dependencies: [\n" not in manifest and "url:" not in manifest
+    assert set(re.findall(r'dependencies: \[([^\]]*)\]', manifest)) <= {'"PointeKit"', '"PointeMacKit"'}, "targets depend on each other only"
+    assert not files("ios/**/Package.swift", "**/Package.resolved", "ios/**/Podfile*", "macos/**/Podfile*", "macos/**/Package.swift")
 
 
 # ---------- downloads ----------
@@ -339,7 +348,9 @@ def test_fetch_keeps_only_a_file_whose_hash_is_the_pinned_one(tmp_path, monkeypa
 
 URL_HOST = re.compile(r"(?:https?|wss?)://([A-Za-z0-9][A-Za-z0-9.-]*)")
 EGRESS_SOURCES = ("*.py", "harnesses/*.py", "bench/*.py", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
-                  "channel/*.mjs", "channel/package.json", "ui*.html", "site/**/*", "ios/Pointe/**/*.swift", ".github/**/*.yml")
+                  "channel/*.mjs", "channel/package.json", "ui*.html", "site/**/*", "ios/Pointe/**/*.swift", "apple/PointeKit/Package.swift",
+                  "apple/PointeKit/Sources/**/*.swift", "macos/PointeMac/**/*.swift", "macos/*.sh",
+                  "macos/tools/*", ".github/**/*.yml")
 
 
 def egress() -> tuple[set[str], set[str]]:

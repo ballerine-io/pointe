@@ -79,10 +79,11 @@ func fixture(_ name: String) throws -> Data {
         #expect(Wire.Control("not json") == nil && Wire.Control(#"{"type":"new"}"#) == nil)
     }
 
-    @Test func helloSaysProtocolThreeAndPushToTalk() throws {
+    @Test func helloSaysTheProtocolAndPushToTalk() throws {
         let hello = try #require(try JSONSerialization.jsonObject(with: Data(Wire.hello(device: "Mac").utf8)) as? [String: Any])
-        #expect(hello["protocol"] as? Int == 3 && hello["device"] as? String == "Mac")
+        #expect(hello["protocol"] as? Int == 4 && hello["device"] as? String == "Mac")
         #expect(hello["capabilities"] as? [String] == ["ptt"])
+        #expect(Wire.alive(answered: 7) == #"{"alive":true,"id":7,"type":"pong"}"#)
     }
 }
 
