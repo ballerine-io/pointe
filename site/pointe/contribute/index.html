@@ -18,14 +18,16 @@
   // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
   if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/contribute/' + location.hash);
 </script>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23FF5A01'/%3E%3C/svg%3E">
+<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../brand/apple-touch-icon.png">
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="../pages.css">
 </head>
 <body class="pg">
 <a class="pg-skip" href="#main">Skip to content</a>
 <header class="pg-wrap pg-header">
-  <a class="pg-wordmark" href="../">Pointe</a>
+  <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
     <a href="../roadmap/">Roadmap</a>
     <a href="./" aria-current="page">Contribute</a>

@@ -100,11 +100,11 @@ ABOUT_SHOWN = """(() => ({body: document.getElementById('about-body').textConten
   maker: document.getElementById('about-maker').href, ver: document.getElementById('about-ver').textContent,
   shown: document.getElementById('about-body').offsetHeight > 0, name: document.querySelector('#side .brand .name').textContent,
   ballerine: /Ballerine|Command center/.test(document.querySelector('#side .brand').textContent),
-  logo: !!document.querySelector('#side .brand svg')}))()"""
+  logo: [...document.querySelectorAll('#side .brand svg')].map(m => m.getAttribute('class') + ' ' + m.getAttribute('aria-hidden'))}))()"""
 
 
 @pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
-def test_the_page_header_is_pointe_alone_and_about_shows_the_credit():
+def test_the_page_header_is_the_mark_and_pointe_and_about_shows_the_credit():
     async def run():
         stub = await StubMac(free_port()).start()
         stub.status = {**fixture(sessions=1, talk=0, connected=False), "version": "9.8.7"}
@@ -119,7 +119,8 @@ def test_the_page_header_is_pointe_alone_and_about_shows_the_credit():
         finally:
             await stub.stop()
     got = asyncio.run(run())
-    assert got["name"] == "Pointe" and not got["ballerine"] and not got["logo"], got
+    assert got["name"] == "Pointe" and not got["ballerine"], got
+    assert got["logo"] == ["logo true"], "one mark, the Chorus mark beside the name, hidden from a screen reader"
     assert got["body"] == ABOUT and got["shown"], got
     assert got["repo"] == "https://github.com/ballerine-io/pointe" and got["maker"] == "https://ballerine.com/", got
     assert got["ver"] == "9.8.7", got

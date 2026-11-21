@@ -137,9 +137,10 @@ answers.
 ## 8. Logo and icon
 
 Pointe is an open-source project built and open-sourced by Ballerine Engineering, not a Ballerine product, so the
-header on both surfaces is the name "Pointe" alone with the version under it: no Ballerine lockup. Settings → About
-carries the credit and the links (`AboutCopy` in the app, `ABOUT_COPY` in the page). The guidelines define no app icon for
-products, so the app icon is kept as it is.
+header on both surfaces is Pointe's own mark, Chorus, beside the name "Pointe" with the version under it: no Ballerine
+lockup. Settings → About carries the credit and the links (`AboutCopy` in the app, `ABOUT_COPY` in the page). The
+guidelines define no app icon for products; Pointe's icon, favicons and lockups are the Chorus mark in V6's colours,
+and `docs/brand/logo.md` holds the files and the rules for using them.
 
 ## 9. Sessions: by machine, with the agent beside the name
 

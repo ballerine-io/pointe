@@ -25,9 +25,9 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 
 def page_html() -> str:
-    """ui.html with its includes, as daemon.py serves it (the logos are not needed to render)."""
+    """ui.html with its includes, as daemon.py serves it."""
     return (
-        (ROOT / "ui.html").read_text().replace("{{LOGO}}", "")
+        (ROOT / "ui.html").read_text().replace("{{LOGO}}", (ROOT / "assets" / "logo.svg").read_text())
         .replace("{{DICTIONARY}}", (ROOT / "ui_dictionary.html").read_text())
         .replace("{{WHISPER}}", (ROOT / "ui_whisper.html").read_text())
     )

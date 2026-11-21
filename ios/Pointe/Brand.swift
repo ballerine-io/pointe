@@ -345,17 +345,21 @@ extension View {
     }
 }
 
-/// Pointe and the version under it: the same header as the page.
+/// The Chorus mark, Pointe and the version under it: the same header as the page. Below 48 points the mark is its
+/// small drawing (docs/brand/logo.md).
 struct BrandHeader: View {
     var mac: String? = nil  // the Mac's version from /voice/status, when a call knows it
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text("Pointe").font(.brand(.title3)).lineLimit(1)
-            // Never a cut word: with less room the build number goes first. The version stays.
-            ViewThatFits(in: .horizontal) {
-                version(AppVersion.line(app: AppVersion.app, mac: mac))
-                version(AppVersion.line(app: AppVersion.short, mac: mac))
+        HStack(spacing: 10) {
+            Image("ChorusMark").resizable().frame(width: 24, height: 24).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Pointe").font(.brand(.title3)).lineLimit(1)
+                // Never a cut word: with less room the build number goes first. The version stays.
+                ViewThatFits(in: .horizontal) {
+                    version(AppVersion.line(app: AppVersion.app, mac: mac))
+                    version(AppVersion.line(app: AppVersion.short, mac: mac))
+                }
             }
         }
         .accessibilityElement(children: .combine)

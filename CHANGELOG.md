@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.14
 
+- **1.14.9** (2026-11-21): Pointe has its own logo, Chorus: on the iPhone app icon, the page's header and tab, the site, the link previews and the README.
 - **1.14.8** (2026-11-21): The voice closes sessions when asked: one at once, or several and "all except these" after reading the list back for a yes.
 - **1.14.7** (2026-11-21): The header shows Pointe alone, and Settings has an About entry: open source, built and open-sourced by Ballerine Engineering.
 - **1.14.6** (2026-11-20): Turns end as quickly on Soniox stt-rt-v6 as on v5: Pointe asks it for words it holds after a silence.

@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-on-dark.svg">
+    <img src="docs/brand/logo.svg" width="112" height="112" alt="The Pointe mark: one orange point and rings of dots around it">
+  </picture>
+</p>
+
 # Pointe
 
 Built and open-sourced by Ballerine Engineering.
