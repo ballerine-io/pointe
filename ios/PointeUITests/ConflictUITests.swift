@@ -56,11 +56,8 @@ final class ConflictUITests: XCTestCase {
 
     func testSettingsHasTheConflictAlarm() {
         launch("conflict")
-        let settings = app.buttons["Settings"]
-        XCTAssertTrue(settings.waitForExistence(timeout: 15))
-        settings.tap()
-        let item = app.buttons["Conflict alarm"].firstMatch
-        XCTAssertTrue(item.waitForExistence(timeout: 5), "Conflict alarm is in the settings menu")
+        let item = app.settingsItem("Conflict alarm", .button)
+        XCTAssertTrue(item.waitForExistence(timeout: 5), "Conflict alarm is in Settings")
         item.tap()
         XCTAssertTrue(app.navigationBars["Conflict alarm"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.switches["conflictsOn"].waitForExistence(timeout: 5))

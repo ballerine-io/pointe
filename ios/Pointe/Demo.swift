@@ -9,7 +9,7 @@ struct Demo {
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
                        empty, noSessions, many, longNames, longRequest, hold, speaking, muted,
-                       newSession, startPending }
+                       newSession, startPending, longTalk }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -45,6 +45,7 @@ struct Demo {
         case .meetingHand: meetingJSON(hand: true)
         case .meetingEnd: meetingEndJSON
         case .talking: talkingJSON
+        case .longTalk: longTalkJSON
         case .voiceLock: voiceLockJSON(lockNew)
         case .voiceLockEnrolling: voiceLockJSON(lockEnrolling)
         case .voiceLockEnrolled: voiceLockJSON(lockEnrolled, request: true)
@@ -164,6 +165,26 @@ struct Demo {
      "recent": [{"at": "10:41:50", "said": "tell docs to update the change log", "to": ["docs"], "how": "(named)"},
                 {"at": "10:42:01", "said": "push it", "to": [], "how": "blocked: ambiguous between billing/main and docs"}]}
     """
+
+    /// A conversation long enough to scroll; in this demo a new line arrives every second and a half (CallView), so a
+    /// test can read above and see the New pill come and go.
+    private static var longTalkJSON: String {
+        let turns = (1...30).map { Demo.line($0) }.joined(separator: ",")
+        // Every feature a current Mac reports, so the ••• menu is as long as on a real call.
+        let features = #""machines": [{"id": "hub", "name": "studio", "here": true, "os": "macos", "online": true, "sessions": 3, "need": 0}], "invite": null, "whisper": {"on": false, "output_gain": 1.0, "max_words": null, "suggest_ptt": false, "lock_note": null}, "dictionary": {"count": 2, "cap": 400, "full": false, "learn": true, "problem": null, "learned_this_call": []}, "voice_lock": \#(lockNew), "conflicts": [], "show_on_phone": false, "drive": {"on": false, "since": null, "how": null, "pending": []}, "local": {"mode": "voice", "models": "ready", "line": "Voice stays on your Mac: on · models on this Mac"}"#
+        return #"{"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false, "sessions": \#(sessions), "talk": [\#(turns)], \#(features)}"#
+    }
+
+    private static func line(_ n: Int) -> String {
+        n % 2 == 1 ? #"{"id": \#(n), "who": "user", "text": "what is billing doing now, line \#(n)", "typed": false, "corrected": false}"#
+                   : #"{"id": \#(n), "who": "assistant", "text": "Billing is still on the retry fix, line \#(n). The tests for refunds pass and it is writing the summary."}"#
+    }
+
+    /// The next line of the long conversation.
+    static func nextLine(after talk: [API.Turn]) -> API.Turn {
+        let n = (talk.map(\.id).max() ?? 0) + 1
+        return (try? JSONDecoder().decode(API.Turn.self, from: Data(line(n).utf8))) ?? API.Turn(id: n, who: "assistant", text: "line \(n)", understood: nil, typed: nil, corrected: nil)
+    }
 
     /// Push to talk, held open on the Mac: the ring and the state line show the Mac's gate.
     private static let talkingJSON = """

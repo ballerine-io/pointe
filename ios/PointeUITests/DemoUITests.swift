@@ -57,23 +57,17 @@ final class DemoUITests: XCTestCase {
             .waitForExistence(timeout: 5), "the typed line shows in the conversation")
         app.buttons["Type"].tap()
 
-        // A Toggle in a menu reads as a switch or as a button with a check, by iOS release.
-        func cleanup() -> XCUIElement {
-            app.descendants(matching: .any).matching(NSPredicate(format: "label == %@ AND (elementType == %d OR elementType == %d)",
-                "Clean up my words", XCUIElement.ElementType.switch.rawValue, XCUIElement.ElementType.button.rawValue)).firstMatch
-        }
-        func isOn(_ e: XCUIElement) -> Bool { (e.value as? String) == "1" || e.isSelected }
+        func cleanup() -> XCUIElement { app.settingsItem("Clean up my words", .switch) }
+        func isOn(_ e: XCUIElement) -> Bool { (e.value as? String) == "1" }
         sleep(1)  // the keyboard goes
-        app.buttons["Settings"].tap()
         XCTAssertTrue(cleanup().waitForExistence(timeout: 5), "Settings has Clean up my words")
         XCTAssertFalse(isOn(cleanup()))
-        cleanup().tap()
+        app.flipSetting("Clean up my words")
+        app.closeSettings()
         sleep(1)
-        app.buttons["Settings"].tap()
         XCTAssertTrue(cleanup().waitForExistence(timeout: 5))
         XCTAssertTrue(isOn(cleanup()), "clean up stays on: \(cleanup().debugDescription)")
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.21)).tap()
-        sleep(1)
+        app.closeSettings()
 
         app.buttons["Sessions"].tap()
         let row = app.cells.containing(.staticText, identifier: "docs").firstMatch

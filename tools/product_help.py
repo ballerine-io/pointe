@@ -3,8 +3,8 @@
     python3 tools/product_help.py           write product_help.json from the UI code and the topics below
     python3 tools/product_help.py --check   exit 1 if product_help.json is not what this would write
 
-Two parts. The UI's labels are read from the code: the iPhone app's ••• menu (each item, each picker's options), its
-bottom bar, header, session menu and pairing screen (ios/Pointe/*.swift, copy constants resolved), and the page's
+Two parts. The UI's labels are read from the code: the iPhone app's Settings (the ••• button: each item, each picker's
+options), the switch above its mic, its bottom bar, header, session menu and pairing screen (ios/Pointe/*.swift, copy constants resolved), and the page's
 Settings sections, dock, Sessions panel and session row (ui.html). The topics below are written by hand: the words a
 person asks with (English and Hebrew), one or two sentences of explanation, the path on each surface, and the phrases
 that do the same by voice today. Every path segment must be a label the code shows, so a renamed label fails here
@@ -94,10 +94,9 @@ class Swift:
         return list(dict.fromkeys(out))
 
     def menu(self) -> dict[str, list[str]]:
-        """The ••• menu in CallView: each item's label, with a picker's options under it."""
-        view = self.file("CallView.swift")
-        block = _braced(view, view.index("private var menu: some View"))
-        block = block[:block.rindex("} label: {")]  # the menu's own button (the ellipsis) is not an item
+        """Settings, the sheet behind the ••• button (CallSettings.swift): each item's label, with a picker's options."""
+        view = self.file("CallSettings.swift")
+        block = _braced(view, view.index("var body: some View"))
         items: dict[str, list[str]] = {}
         pickers = []
         for m in re.finditer(r"Picker\(selection:", block):
@@ -105,11 +104,21 @@ class Swift:
             pickers.append((m.start(), m.start() + label.end()))
             for name in self.resolve(label.group(1)):
                 items[name] = self.options(block[m.start():m.start() + label.start()])
-        for m in re.finditer(r"Label\((.+?), systemImage:|Button\(((?:\w+\.\w+)|\"[^\"]+\"), systemImage:", block):
+        for m in re.finditer(r"Label\((.+?), systemImage:|Button\(((?:\w+\.\w+)|\"[^\"]+\"), systemImage:|\brow\((.+?), \"", block):
             if not any(a <= m.start() < b for a, b in pickers):
-                for name in self.resolve(m.group(1) or m.group(2)):
+                for name in self.resolve(m.group(1) or m.group(2) or m.group(3)):
                     items.setdefault(name, [])
         return items
+
+    def mic_switch(self) -> list[str]:
+        """The switch above the mic (MicModeSwitch): Always on, and push to talk named by the talk style."""
+        bar = self.file("BottomBar.swift")
+        block = _braced(bar, bar.index("struct MicModeSwitch"))
+        out = [_unescape(s) for s in re.findall(r'Text\("((?:[^"\\]|\\.)*)"\)\.tag', block)]
+        if "Text(style.label)" in block:
+            body = self.bodies.get("TalkStyle", "")
+            out += [_unescape(s) for s in _LIT.findall(_braced(body, re.search(r"var label: String", body).start()))]
+        return list(dict.fromkeys(out))
 
     def bar(self) -> list[str]:
         bar = self.file("BottomBar.swift")
@@ -226,7 +235,8 @@ class Page:
 def inventory(root: Path = ROOT) -> dict:
     s, p = Swift(root), Page(root)
     return {
-        "iphone": {"menu": s.menu(), "bar": s.bar(), "mic": s.mic(), "header": s.header(), "session": s.session_menu(),
+        "iphone": {"menu": s.menu(), "switch": s.mic_switch(), "bar": s.bar(), "mic": s.mic(), "header": s.header(),
+                   "session": s.session_menu(),
                    "sessions": s.sessions_sheet(), "card": s.card(), "pair": s.pairing()},
         "page": {"settings": p.settings(), "dock": p.dock(), "mic": p.mic(), "switch": p.mic_switch(), "side": p.side(),
                  "top": p.top(), "row": p.row(),
@@ -238,7 +248,8 @@ def inventory(root: Path = ROOT) -> dict:
 
 # How each kind of place is said. The first segment of a path names the place; the rest are labels inside it.
 PLACES = {
-    "iphone": {"menu": "••• menu", "bar": "{} button at the bottom", "mic": "the mic button in the middle at the bottom ({})",
+    "iphone": {"menu": "Settings (••• at the top)", "switch": "the {} switch above the mic", "bar": "{} button at the bottom",
+               "mic": "the mic button in the middle at the bottom ({})",
                "header": "{} button at the top",
                "session": "long-press a session at the top", "sessions": "Sessions button at the bottom",
                "card": "the request's card", "pair": "the pairing screen"},
@@ -309,7 +320,7 @@ TOPICS = (
            "מיקרופון פתוח", "מצב מיקרופון"),
           "Always on hears you whenever you are not muted; Push to talk hears you only while you press the mic. It is "
           "one setting, so the page and the app agree.",
-          iphone=(("menu", "Microphone", "Always on|Push to talk"),),
+          iphone=(("switch", "Always on|Hold to talk"), ("menu", "Microphone", "Always on|Push to talk")),
           page=(("settings", "Microphone", "Microphone", "Always on|Push to talk"), ("switch", "Always on|Hold to talk")),
           doc="push-to-talk.md"),
     Topic("talk-button", "Talk button: hold or tap",
@@ -319,7 +330,7 @@ TOPICS = (
           "next. Each device keeps its own choice.",
           iphone=(("menu", "Talk button", "Hold to talk|Tap to talk"),),
           page=(("settings", "Microphone", "Talk button", "Hold to talk|Tap to talk"),),
-          iphone_note="Talk button shows in the menu once Microphone is Push to talk.", doc="push-to-talk.md"),
+          iphone_note="Talk button shows in Settings once Microphone is Push to talk.", doc="push-to-talk.md"),
     Topic("talk-key", "Talk key and talking from any app",
           ("talk key", "keyboard shortcut", "space bar", "caps lock", "shortcut", "from any app", "action button",
            "back tap", "siri", "airpods", "another app", "other app", "קיצור מקשים", "מקש", "כפתור אקשן"),

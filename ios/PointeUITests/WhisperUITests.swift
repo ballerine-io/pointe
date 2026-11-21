@@ -95,15 +95,12 @@ final class WhisperUITests: XCTestCase {
         XCTAssertEqual(toggle.label, WhisperCopyWords.hideNotes)
     }
 
-    func testTheSettingsMenuTurnsWhisperModeOn() throws {
+    func testSettingsTurnsWhisperModeOn() throws {
         launch("whisperOff")
-        let settings = app.buttons["Settings"]
-        XCTAssertTrue(settings.waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["whisperOff"].exists)
-        settings.tap()
-        let item = app.switches["whisperItem"].exists ? app.switches["whisperItem"] : app.buttons["whisperItem"]
-        XCTAssertTrue(item.waitForExistence(timeout: 5), "Whisper is in the settings menu")
-        item.tap()
+        XCTAssertTrue(app.settingsItem("whisperItem", .switch).waitForExistence(timeout: 5), "Whisper is in Settings")
+        app.flipSetting("whisperItem")
+        app.closeSettings()
         XCTAssertTrue(app.otherElements["whisperCard"].waitForExistence(timeout: 5), "the card shows")
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "typing comes forward")
         shot("whisper-menu")

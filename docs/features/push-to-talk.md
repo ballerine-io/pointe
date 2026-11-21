@@ -8,8 +8,9 @@ The state lives in `ptt.py`; the gate (`PttGate`) is in `daemon.py`. The two way
 
 ## Use it
 
-Settings → Microphone: "Always on" or "Push to talk", on the page or in the app. It is one daemon setting, so both
-clients agree. Then **Talk button**, each device's own choice: **Hold to talk** (the default: press and hold, let go to
+The switch above the mic ("Always on" or "Hold to talk", which reads "Tap to talk" when that is the talk button), on
+the page and in the iPhone app; or Settings → Microphone ("Always on" or "Push to talk"). In the iPhone app, Settings is
+the ••• button at the top. It is one daemon setting, so every client agrees. Then **Talk button**, each device's own choice: **Hold to talk** (the default: press and hold, let go to
 send) or **Tap to talk** (tap to start, the microphone stays open, tap again to send).
 
 | | Page | iPhone app |
@@ -95,6 +96,14 @@ says so (`ptt.room_heard: true`).
 
 In a voice-chat audio session, iOS delivers an AirPods stem press as an input mute, not as play/pause. In push to talk,
 the app takes that mute as the toggle and unmutes the input again. It also handles play/pause in case iOS sends it.
+
+The microphone runs for the whole call, in push to talk too; the app sends nothing while the gate is closed and keeps
+only the last 1.5 s in memory. A press sends at once, right after its press message, the audio from 0.1 s before its
+touch-down, then the live audio: the first word is not lost to the time the touch took to reach the gate, or to the wait
+for the microphone's next buffer (`TalkSender.swift`). Nothing older than that 0.1 s ever leaves the phone. Measured on
+the simulator with `ios/e2e/ptt_latency.py` (the real app and microphone, a stand-in Mac running `ptt.Ptt`): the first
+chunk left 83 to 94 ms after the touch (it was 108 to 191 ms), and a press's audio now starts 100 ms before the touch
+(it started 0 to 84 ms after it, so that much of the first word was lost).
 
 ## API
 

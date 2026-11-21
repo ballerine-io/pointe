@@ -158,9 +158,19 @@ enum TalkStyle: String, CaseIterable {
 struct RingTalk {
     let talking: Bool
     let style: TalkStyle
-    let press: () -> Void
+    let press: (TimeInterval) -> Void   // when the finger came down, on the audio clock (systemUptime)
     let release: () -> Void
-    let toggle: () -> Void
+    let toggle: (TimeInterval) -> Void
+
+    /// A touch's time on the audio clock: the press sends the audio from then on. SwiftUI gives it as a date that is the
+    /// event's uptime counted from 2001 (measured on the simulator: read as a wall-clock date, the touch was 25 years
+    /// back); a wall-clock date is taken too, should that change. Anything else is now.
+    static func uptime(of date: Date, now: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) -> TimeInterval {
+        let ago = now.timeIntervalSince(date)
+        if ago >= 0 && ago < 60 { return uptime - ago }
+        let raw = date.timeIntervalSinceReferenceDate
+        return raw <= uptime && uptime - raw < 60 ? raw : uptime
+    }
 }
 
 /// Hold to talk: open on touch down, closed on lift (a tap is a short press). Tap to talk: touch down toggles, the lift
@@ -172,10 +182,11 @@ private struct RingTalkModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .simultaneousGesture(DragGesture(minimumDistance: 0)
-                .onChanged { _ in
+                .onChanged { value in
                     guard !down else { return }
                     down = true
-                    talk.style == .tap ? talk.toggle() : talk.press()  // press is idempotent: a second finger is not a new press
+                    let touched = RingTalk.uptime(of: value.time)
+                    talk.style == .tap ? talk.toggle(touched) : talk.press(touched)  // a second finger is not a new press
                 }
                 .onEnded { _ in
                     down = false
@@ -183,7 +194,7 @@ private struct RingTalkModifier: ViewModifier {
                 })
             .accessibilityLabel(talk.talking ? "Talking" : talk.style.label)
             .accessibilityHint(talk.style.hint)
-            .accessibilityAction { talk.toggle() }
+            .accessibilityAction { talk.toggle(ProcessInfo.processInfo.systemUptime) }
             .sensoryFeedback(.impact(weight: .medium), trigger: talk.talking)
     }
 }

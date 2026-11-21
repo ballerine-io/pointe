@@ -71,10 +71,8 @@ final class QATour: XCTestCase {
         shot("04-corrected")
 
         // Clean up my words
-        app.buttons["Settings"].tap()
-        let cleanup = app.switches["Clean up my words"].exists ? app.switches["Clean up my words"] : app.buttons["Clean up my words"]
-        XCTAssertTrue(cleanup.waitForExistence(timeout: 5))
-        cleanup.tap()
+        app.flipSetting("Clean up my words")
+        app.closeSettings()
         sleep(1)
 
         // Brain dump: nothing said, so Done goes straight back to the conversation
@@ -125,12 +123,12 @@ final class QATour: XCTestCase {
         let topText = app.staticTexts.element(boundBy: 6).label
         shot("10a-scrolled-up")
         cue("even-more-talk")  // the driver types more while the user reads above
-        XCTAssertTrue(app.buttons["New"].waitForExistence(timeout: 40), "the New pill shows while scrolled up")
+        XCTAssertTrue(app.buttons["newLines"].waitForExistence(timeout: 40), "the New pill shows while scrolled up")
         sleep(10)
         XCTAssertTrue(app.staticTexts[topText].isHittable, "scrolled up, the view did not move with the new lines")
         shot("10-new-pill")
-        app.buttons["New"].tap()
-        sleep(1)
+        app.buttons["newLines"].tap()
+        XCTAssertTrue(app.buttons["newLines"].waitForNonExistence(timeout: 5), "the pill goes at the newest line")
         shot("11-back-at-bottom")
 
         // A held request

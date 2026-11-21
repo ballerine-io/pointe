@@ -55,9 +55,7 @@ final class PairPasteUITests: XCTestCase {
         XCTAssertTrue(NSPredicate(format: "label == %@", "Try again").wait(for: again, timeout: 30), "back to Try again")
         XCTAssertFalse(app.buttons["hangUp"].exists, "no call came up")
 
-        app.buttons["Settings"].tap()
-        let unpair = app.buttons["Unpair this phone"]
-        if !unpair.waitForExistence(timeout: 3) { app.swipeUp() }  // the last item of a long menu
+        let unpair = app.settingsItem("Unpair this phone", .button)
         XCTAssertTrue(unpair.waitForExistence(timeout: 5))
         unpair.tap()
         XCTAssertTrue(app.buttons["tryDemo"].waitForExistence(timeout: 10), "unpaired: back to the pairing screen")

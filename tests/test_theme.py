@@ -165,8 +165,8 @@ def test_both_surfaces_offer_the_same_theme_choices_with_the_same_default_and_wo
     assert dict(re.findall(r'case \.(\w+): "(\w+)"', theme)) == labels
     assert re.search(r'static let key = "pointe\.theme"', theme)
     assert re.search(r'static let setting = "Appearance"', theme) and ">Appearance</button>" in PAGE
-    call_view = (ROOT / "ios" / "Pointe" / "CallView.swift").read_text()
-    assert 'accessibilityIdentifier("appearanceSetting")' in call_view  # reachable from the app's Settings menu
+    settings = (ROOT / "ios" / "Pointe" / "CallSettings.swift").read_text()
+    assert 'accessibilityIdentifier("appearanceSetting")' in settings  # reachable from the app's Settings (the ••• button)
     assert "preferredColorScheme(Theme.stored(theme).scheme)" in (ROOT / "ios" / "Pointe" / "PointeApp.swift").read_text()
 
 

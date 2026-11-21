@@ -419,6 +419,7 @@ def test_the_page_offers_the_setting_and_saves_it():
 def test_the_app_offers_the_same_setting_with_the_same_words():
     api = (ROOT / "ios" / "Pointe" / "API.swift").read_text()
     view = (ROOT / "ios" / "Pointe" / "CallView.swift").read_text()
+    view += (ROOT / "ios" / "Pointe" / "CallSettings.swift").read_text()  # the picker is in Settings (the ••• button)
     copy = (ROOT / "ios" / "Pointe" / "Turns.swift").read_text()
     assert '"turns.patience"' in api and "var patience: String" in api
     assert '"turns.patience"' in view and "TurnsCopy.setting" in view and f'static let setting = "{SETTING_TITLE}"' in copy

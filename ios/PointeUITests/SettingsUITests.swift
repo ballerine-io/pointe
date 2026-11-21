@@ -1,6 +1,6 @@
 import XCTest
 
-/// The menu's settings and the quiet lines of the header, on the demo call (no Mac): Wait before answering, the Talk
+/// The call's Settings and the quiet lines of the header, on the demo call (no Mac): Wait before answering, the Talk
 /// button only under push to talk, the version line, Keeping your Mac awake, a hold, and Approve behind Face ID.
 @MainActor
 final class SettingsUITests: XCTestCase {
@@ -15,38 +15,33 @@ final class SettingsUITests: XCTestCase {
     }
 
     private func openSettings(_ app: XCUIApplication) {
-        app.buttons["Settings"].tap()
-        XCTAssertTrue(app.buttons["patienceSetting"].firstMatch.waitForExistence(timeout: 5), "the menu is open")
+        app.openSettings()
+        XCTAssertTrue(app.buttons["patienceSetting"].firstMatch.waitForExistence(timeout: 5), "Settings is open")
     }
 
-    /// A tap on the state line, outside the menu: a submenu takes one tap to close, the menu another.
-    private func closeSettings(_ app: XCUIApplication) {
-        for _ in 0..<3 where app.buttons["patienceSetting"].firstMatch.exists || item(app, "Normal").exists {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.21)).tap()
-            sleep(1)
-        }
-        XCTAssertFalse(app.buttons["patienceSetting"].firstMatch.exists, "the menu closed")
-    }
+    private func closeSettings(_ app: XCUIApplication) { app.closeSettings() }
 
-    /// A menu item by its words; the ring can carry the same words ("Hold to talk").
+    /// A choice by its words; the ring can carry the same words ("Hold to talk"), and so can the switch over the mic.
     private func item(_ app: XCUIApplication, _ option: String) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label == %@ AND identifier != %@", option, "micRing")).firstMatch
+        app.buttons.matching(NSPredicate(format: "label == %@ AND identifier != %@ AND NOT (identifier BEGINSWITH %@)", option,
+                                         "micRing", "micModeSwitch")).firstMatch
     }
 
     private func pick(_ app: XCUIApplication, _ setting: String, _ option: String) {
-        openSettings(app)
-        app.buttons[setting].firstMatch.tap()
+        app.settingsItem(setting, .button).tap()
         let choice = item(app, option)
         XCTAssertTrue(choice.waitForExistence(timeout: 5), "\(setting) offers \(option)")
         choice.tap()
+        app.closeSettings()
     }
 
-    /// The picker's submenu marks the choice it holds.
+    /// The picker's choices mark the one it holds.
     private func holds(_ app: XCUIApplication, _ setting: String, _ option: String) -> Bool {
-        openSettings(app)
-        app.buttons[setting].firstMatch.tap()
+        app.settingsItem(setting, .button).tap()
         let choice = item(app, option)
         let chosen = choice.waitForExistence(timeout: 5) && choice.isSelected
+        app.navigationBars["Settings"].staticTexts["Settings"].tap()  // a tap outside the choices closes them, choosing nothing
+        _ = choice.waitForNonExistence(timeout: 3)
         closeSettings(app)
         return chosen
     }
@@ -87,8 +82,7 @@ final class SettingsUITests: XCTestCase {
         XCTAssertTrue(header.waitForExistence(timeout: 5))
         XCTAssertTrue(header.label.hasPrefix("Pointe, "), "nothing before the name: \(header.label)")
         XCTAssertFalse(header.label.contains("Ballerine"), header.label)
-        openSettings(app)
-        app.buttons["aboutSetting"].firstMatch.tap()
+        app.settingsItem("aboutSetting", .button).tap()
         let body = app.staticTexts["aboutBody"].firstMatch
         XCTAssertTrue(body.waitForExistence(timeout: 5))
         XCTAssertEqual(body.label, "Pointe is open source (MIT). Built and open-sourced by Ballerine Engineering.")

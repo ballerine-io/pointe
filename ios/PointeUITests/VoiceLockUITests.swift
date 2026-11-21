@@ -26,11 +26,8 @@ final class VoiceLockUITests: XCTestCase {
     }
 
     private func openSheet() {
-        let settings = app.buttons["Settings"]
-        XCTAssertTrue(settings.waitForExistence(timeout: 15))
-        settings.tap()
-        let item = app.buttons["Voice lock"].firstMatch
-        XCTAssertTrue(item.waitForExistence(timeout: 5), "Voice lock is in the settings menu")
+        let item = app.settingsItem("Voice lock", .button)
+        XCTAssertTrue(item.waitForExistence(timeout: 5), "Voice lock is in Settings")
         item.tap()
         XCTAssertTrue(app.navigationBars["Voice lock"].waitForExistence(timeout: 5), "the sheet opens")
     }

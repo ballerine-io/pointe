@@ -24,11 +24,9 @@ final class ParityUITests: XCTestCase {
 
     func testSettingsShowTheMacsLocalModeReadOnly() throws {
         launch("call")
-        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 15))
-        app.buttons["Settings"].tap()
+        _ = app.settingsItem("localMode")  // the list scrolls to it
         let line = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", "Voice stays on your Mac · models here")).firstMatch
-        if !line.waitForExistence(timeout: 3) { app.swipeUp() }  // a long menu scrolls
         shot("settings-local")
         XCTAssertTrue(line.waitForExistence(timeout: 5), "the local mode line is in Settings")
     }
@@ -153,10 +151,7 @@ final class ParityUITests: XCTestCase {
     /// Appearance is in Settings with the page's three choices; System is the one in force until another is picked.
     func testSettingsOfferSystemLightAndDark() throws {
         launch("call")
-        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 15))
-        app.buttons["Settings"].tap()
-        let item = any("appearanceSetting")
-        if !item.waitForExistence(timeout: 3) { app.swipeUp() }
+        let item = app.settingsItem("appearanceSetting", .button)
         XCTAssertTrue(item.waitForExistence(timeout: 5), "Appearance is in Settings")
         XCTAssertTrue(item.label.contains("Appearance"), item.label)
         item.tap()
@@ -274,11 +269,7 @@ final class ParityUITests: XCTestCase {
     // Face ID in the simulator: enrol, then match or not, through the simulator's own notifications.
     // notify(3) is not in Swift's Darwin module: looked up by name.
     private func openMachines() {
-        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 15))
-        app.buttons["Settings"].tap()
-        let item = any("machinesItem")
-        if !item.waitForExistence(timeout: 3) { app.swipeUp() }
-        item.tap()
+        app.settingsItem("machinesItem", .button).tap()
         XCTAssertTrue(any("machine.devbox").waitForExistence(timeout: 5))
         if !any("inviteMachine").exists { app.swipeUp() }  // a small screen: the invite sits under the list
     }

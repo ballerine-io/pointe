@@ -31,15 +31,9 @@ final class AlertsUITests: XCTestCase {
     }
 
     private func openAlerts() {
-        let settings = app.buttons["Settings"]
-        XCTAssertTrue(settings.waitForExistence(timeout: 20))
-        settings.tap()
-        let item = app.buttons["Alerts"].firstMatch
-        XCTAssertTrue(item.waitForExistence(timeout: 5), "Alerts is in the settings menu")
-        for _ in 0..<3 {  // a tap while the menu is still opening is dropped, and the menu stays up (as in MeetingUITests)
-            item.tap()
-            if item.waitForNonExistence(timeout: 3) { break }
-        }
+        let item = app.settingsItem("Alerts", .button)
+        XCTAssertTrue(item.waitForExistence(timeout: 5), "Alerts is in Settings")
+        item.tap()
         XCTAssertTrue(app.navigationBars["Alerts"].waitForExistence(timeout: 20), "the sheet opens")
     }
 

@@ -71,7 +71,8 @@ def test_the_answer_gives_the_path_on_the_users_own_screen():
     phone = howto.answer("How do I turn off push to talk?", "iphone")
     page = howto.answer("How do I turn off push to talk?", "page")
     assert phone["screen"] == "the iPhone app" and page["screen"] == "the page"
-    assert phone["answers"][0]["where"] == "••• menu → Microphone → Always on / Push to talk"
+    assert phone["answers"][0]["where"] == ("the Always on / Hold to talk switch above the mic; "
+                                            "or Settings (••• at the top) → Microphone → Always on / Push to talk")
     assert page["answers"][0]["where"].startswith("Settings → Microphone → Always on / Push to talk")
     assert "Sessions panel" in page["settings_are"] and "settings_are" not in phone
     assert "Settings" in gen.inventory()["page"]["side"], "settings_are names a button the page shows"
@@ -79,7 +80,7 @@ def test_the_answer_gives_the_path_on_the_users_own_screen():
 
 def test_hold_and_tap_on_each_surface():
     phone = howto.answer("hold vs tap", "iphone")["answers"][0]
-    assert phone["where"] == "••• menu → Talk button → Hold to talk / Tap to talk"
+    assert phone["where"] == "Settings (••• at the top) → Talk button → Hold to talk / Tap to talk"
     assert "Push to talk" in phone["note"], "the item is shown only in push to talk"
     assert howto.answer("hold vs tap", "page")["answers"][0]["where"] == \
         "Settings → Microphone → Talk button → Hold to talk / Tap to talk"
@@ -102,7 +103,7 @@ def test_voice_and_tool_are_offered_where_they_exist():
 
 def test_nothing_found_points_to_the_settings_and_is_short():
     out = howto.answer("How do I bake bread?", "iphone")
-    assert out["found"] == "nothing" and "••• menu" in out["say"]
+    assert out["found"] == "nothing" and "••• button" in out["say"]
 
 
 # ---------- the voice phrases it offers are the ones the code takes ----------
@@ -161,11 +162,11 @@ def _copy(tmp_path: Path) -> Path:
 
 
 def test_a_changed_label_makes_the_file_stale(tmp_path):
-    """The check goes red: a label no topic names, renamed in the app's menu, changes what the generator writes."""
+    """The check goes red: a label no topic names, renamed in the app's Settings, changes what the generator writes."""
     root = _copy(tmp_path)
     assert gen.dumps(gen.build(root)) == (ROOT / gen.OUT).read_text()
-    view = root / "ios" / "Pointe" / "CallView.swift"
-    view.write_text(view.read_text().replace('Label("The meeting that ended"', 'Label("Last meeting"'))
+    view = root / "ios" / "Pointe" / "CallSettings.swift"
+    view.write_text(view.read_text().replace('row("The meeting that ended"', 'row("Last meeting"'))
     assert gen.dumps(gen.build(root)) != (ROOT / gen.OUT).read_text()
     page = root / "ui.html"
     page.write_text(page.read_text().replace(">More</span>", ">Extras</span>"))
@@ -175,7 +176,8 @@ def test_a_changed_label_makes_the_file_stale(tmp_path):
 @pytest.mark.parametrize("file,old,new", [
     ("ios/Pointe/Turns.swift", 'static let setting = "Wait before answering"', 'static let setting = "Pause"'),
     ("ui.html", '>Connect your phone</button>', '>Pair a phone</button>'),
-    ("ios/Pointe/CallView.swift", 'Text("Push to talk").tag("ptt")', 'Text("Press to talk").tag("ptt")'),
+    ("ios/Pointe/CallSettings.swift", 'Text("Push to talk").tag("ptt")', 'Text("Press to talk").tag("ptt")'),
+    ("ios/Pointe/BottomBar.swift", 'Text("Always on").tag("always")', 'Text("Open mic").tag("always")'),
 ])
 def test_a_renamed_label_a_topic_names_fails_the_generator(tmp_path, file, old, new):
     root = _copy(tmp_path)
@@ -231,13 +233,13 @@ def test_a_how_to_question_is_answered_from_the_tool_with_the_iphone_path(d, mon
     d.state.phone_socket = object()  # the call is the iPhone app's
     b, spoken = _scripted_brain(d, monkeypatch, [
         lambda m: [{"id": "h1", "name": "how_to_use_pointe", "args": {"question": asked}}],
-        lambda m: [{"id": "s1", "name": "speak", "args": {"text": "Open the ••• menu, then Microphone, and pick Always on."}}],
+        lambda m: [{"id": "s1", "name": "speak", "args": {"text": "Use the switch above the mic: Always on."}}],
     ])
     asyncio.run(b.turn(asked))
     result = _result(b.messages)
     assert result["screen"] == "the iPhone app"
-    assert result["answers"][0]["where"] == "••• menu → Microphone → Always on / Push to talk"
-    assert spoken == ["Open the ••• menu, then Microphone, and pick Always on."]
+    assert result["answers"][0]["where"].startswith("the Always on / Hold to talk switch above the mic")
+    assert spoken == ["Use the switch above the mic: Always on."]
     assert sent == []
 
 

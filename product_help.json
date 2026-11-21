@@ -28,7 +28,8 @@
    "how": "Always on hears you whenever you are not muted; Push to talk hears you only while you press the mic. It is one setting, so the page and the app agree.",
    "about": "Nothing leaves the Mac unless you hold the key or the button",
    "iphone": [
-    "••• menu → Microphone → Always on / Push to talk"
+    "the Always on / Hold to talk switch above the mic",
+    "Settings (••• at the top) → Microphone → Always on / Push to talk"
    ],
    "page": [
     "Settings → Microphone → Always on / Push to talk",
@@ -60,9 +61,9 @@
    "how": "In push to talk, Hold to talk sends when you let go; Tap to talk starts with one tap and sends with the next. Each device keeps its own choice.",
    "about": "Nothing leaves the Mac unless you hold the key or the button",
    "iphone": [
-    "••• menu → Talk button → Hold to talk / Tap to talk"
+    "Settings (••• at the top) → Talk button → Hold to talk / Tap to talk"
    ],
-   "iphone_note": "Talk button shows in the menu once Microphone is Push to talk.",
+   "iphone_note": "Talk button shows in Settings once Microphone is Push to talk.",
    "page": [
     "Settings → Microphone → Talk button → Hold to talk / Tap to talk"
    ]
@@ -201,7 +202,7 @@
    ],
    "how": "On the iPhone, Unpair this phone forgets the pairing there; the page's Settings → Phone lists the paired phones and removes them from the Mac. To pair again, show a new code there.",
    "iphone": [
-    "••• menu → Unpair this phone"
+    "Settings (••• at the top) → Unpair this phone"
    ],
    "page": [
     "Settings → Phone → Unpair all"
@@ -228,7 +229,7 @@
    "how": "Voice lock learns your voice so other voices cannot approve or command. Enrol during a call, then pick a level: Off, Approvals, Commands or Everything.",
    "about": "Only your voice counts, for approvals or for everything; checked on this Mac",
    "iphone": [
-    "••• menu → Voice lock"
+    "Settings (••• at the top) → Voice lock"
    ],
    "page": [
     "Settings → Voice lock → Enrol my voice"
@@ -256,7 +257,7 @@
    ],
    "how": "How long a pause ends your sentence: Quick answers as soon as you stop, Normal waits about a second, Patient waits longer.",
    "iphone": [
-    "••• menu → Wait before answering → Quick / Normal / Patient"
+    "Settings (••• at the top) → Wait before answering → Quick / Normal / Patient"
    ],
    "page": [
     "Settings → Turn taking → Wait before answering → Quick / Normal / Patient"
@@ -305,7 +306,7 @@
    ],
    "how": "Pick System, Light or Dark; System follows the device.",
    "iphone": [
-    "••• menu → Appearance → System / Light / Dark"
+    "Settings (••• at the top) → Appearance → System / Light / Dark"
    ],
    "page": [
     "Settings → Appearance → System / Light / Dark"
@@ -327,7 +328,7 @@
    ],
    "how": "About shows the version and that Pointe is open source (MIT).",
    "iphone": [
-    "••• menu → About"
+    "Settings (••• at the top) → About"
    ],
    "page": [
     "Settings → About"
@@ -378,7 +379,7 @@
    "about": "Notes, lookups and a raised hand in a meeting, with consent and no sends",
    "iphone": [
     "Start a meeting button at the top",
-    "••• menu → Meeting settings"
+    "Settings (••• at the top) → Meeting settings"
    ],
    "page": [
     "Meeting button at the bottom",
@@ -404,7 +405,7 @@
    "how": "Challenge argues against your plan one objection at a time and sends nothing; \"verdict\" ends it.",
    "about": "The voice argues against your plan, grounded in your sessions, and cannot send",
    "iphone": [
-    "••• menu → Challenge / End challenge"
+    "Settings (••• at the top) → Challenge / End challenge"
    ],
    "page": [
     "Challenge button at the bottom"
@@ -431,7 +432,7 @@
    "about": "Short answers, nothing to look at, and only safe requests approved by voice",
    "iphone": [
     "Drive button at the top",
-    "••• menu → Suggest Drive mode in the car"
+    "Settings (••• at the top) → Suggest Drive mode in the car"
    ],
    "page_note": "The page has no Drive button: start it by voice or in the iPhone app.",
    "voice": [
@@ -455,7 +456,7 @@
    "how": "Whisper mode gives short, quiet replies for an open office; \"back to normal\" ends it.",
    "about": "Quiet replies, a raised microphone, the same approval rules",
    "iphone": [
-    "••• menu → Whisper"
+    "Settings (••• at the top) → Whisper"
    ],
    "page": [
     "Whisper button at the bottom"
@@ -481,7 +482,7 @@
    "how": "A briefing says what each session did, failed and waits on, most urgent first.",
    "about": "\"Brief me on the night\": what each session did, failed and waits on",
    "iphone": [
-    "••• menu → Briefing"
+    "Settings (••• at the top) → Briefing"
    ],
    "page": [
     "Briefing button at the bottom"
@@ -505,7 +506,7 @@
    ],
    "how": "A scheduled briefing is read on the Mac at the time and days you pick.",
    "iphone": [
-    "••• menu → Briefing settings"
+    "Settings (••• at the top) → Briefing settings"
    ],
    "page": [
     "Settings → Briefings → Scheduled briefing"
@@ -529,7 +530,7 @@
    "how": "Correct a misheard word in the conversation and Pointe learns it; the Dictionary lists, adds and edits terms. A new term applies from the next call.",
    "about": "Fix a misheard name once, and the next call hears it right",
    "iphone": [
-    "••• menu → Dictionary"
+    "Settings (••• at the top) → Dictionary"
    ],
    "page": [
     "Settings → Dictionary → Dictionary…"
@@ -553,7 +554,7 @@
    "how": "Alerts tell you when a session needs you; Approve from notifications adds Approve on the iPhone and Apple Watch.",
    "about": "A session needs you: the watch taps, the desktop notifies",
    "iphone": [
-    "••• menu → Alerts"
+    "Settings (••• at the top) → Alerts"
    ],
    "page": [
     "Settings → Alerts → Desktop alerts while this tab is in the background / Approve from notifications (iPhone and Apple Watch)"
@@ -574,7 +575,7 @@
    "how": "The conflict alarm says when two sessions claim opposite things about the same work; it can be spoken or a card only.",
    "about": "Two sessions claim opposite things about the same work: you hear it at once",
    "iphone": [
-    "••• menu → Conflict alarm"
+    "Settings (••• at the top) → Conflict alarm"
    ],
    "page": [
     "Settings → Conflict alarm → Check sessions against each other"
@@ -595,7 +596,7 @@
    "how": "Show while it says puts the file, diff or failing test on screen as the voice mentions it. On the Mac it is always on; on the phone you turn it on.",
    "about": "The file, diff or failing test appears on screen as the voice mentions it",
    "iphone": [
-    "••• menu → Show while it says"
+    "Settings (••• at the top) → Show while it says"
    ],
    "page": [
     "Settings → Show while it says → Also show on the phone"
@@ -613,7 +614,7 @@
    ],
    "how": "Clean up my words shows, under each thing you say, a clean version of what the voice understood.",
    "iphone": [
-    "••• menu → Clean up my words"
+    "Settings (••• at the top) → Clean up my words"
    ],
    "page": [
     "Clean up my words at the top"
@@ -636,7 +637,7 @@
    "how": "Orchestrator mode sends each request to the session it is about; session mode sends everything to the active session.",
    "iphone": [
     "Sessions button at the bottom → Orchestrator / Session",
-    "••• menu → Sessions and mode"
+    "Settings (••• at the top) → Sessions and mode"
    ],
    "page": [
     "Orchestrator / Session in the Sessions panel on the left"
@@ -797,7 +798,7 @@
    ],
    "how": "Sessions on your other Macs and Linux machines join through a small Pointe there: invite the machine and run pointe node join with the code.",
    "iphone": [
-    "••• menu → Machines"
+    "Settings (••• at the top) → Machines"
    ],
    "page": [
     "Settings → Machines → Invite a machine"
@@ -862,7 +863,7 @@
    ],
    "how": "All settings are in one place on each surface.",
    "iphone": [
-    "••• menu"
+    "Settings (••• at the top)"
    ],
    "iphone_note": "The ••• button at the top right.",
    "page": [
@@ -891,7 +892,7 @@
    ],
    "how": "",
    "iphone": [
-    "••• menu → The meeting that ended"
+    "Settings (••• at the top) → The meeting that ended"
    ]
   },
   {
@@ -902,7 +903,7 @@
    ],
    "how": "",
    "iphone": [
-    "••• menu → Exit demo"
+    "Settings (••• at the top) → Exit demo"
    ]
   },
   {
@@ -962,25 +963,30 @@
     ],
     "Clean up my words": [],
     "Whisper": [],
+    "Dictionary": [],
     "Sessions and mode": [],
     "Machines": [],
     "Start a meeting": [],
     "The meeting that ended": [],
     "Briefing": [],
-    "Briefing settings": [],
     "End challenge": [],
     "Challenge": [],
+    "Briefing settings": [],
     "Meeting settings": [],
     "Alerts": [],
-    "Suggest Drive mode in the car": [],
-    "Dictionary": [],
     "Voice lock": [],
     "Conflict alarm": [],
     "Show while it says": [],
+    "Suggest Drive mode in the car": [],
     "About": [],
     "Exit demo": [],
     "Unpair this phone": []
    },
+   "switch": [
+    "Always on",
+    "Tap to talk",
+    "Hold to talk"
+   ],
    "bar": [
     "Brain dump",
     "Done",

@@ -8,20 +8,20 @@ itself, in one or two sentences, with the exact path on the screen the user is o
 `product_help.json` is written by `tools/product_help.py` (standard library, no network) and checked in. It has two
 parts:
 
-- **`ui`: the labels the code shows**, read from the code. The iPhone app: the ••• menu in `CallView.swift` (each item,
-  each picker's options, with `Copy.member` constants, `ForEach(Copy.levels)` and `Type.allCases` labels resolved), the
-  bottom bar and its mic, the header, a session's long-press menu and the Sessions sheet (`Sessions.swift`), a request's
+- **`ui`: the labels the code shows**, read from the code. The iPhone app: Settings, the sheet behind the ••• button
+  (`CallSettings.swift`: each item, each picker's options, with `Copy.member` constants, `ForEach(Copy.levels)` and
+  `Type.allCases` labels resolved), the switch above the mic (`MicModeSwitch`), the bottom bar and its mic, the header, a session's long-press menu and the Sessions sheet (`Sessions.swift`), a request's
   card and the pairing screen. The page (`ui.html`): each Settings section by its nav name with its fields, ticks,
   options and buttons; the dock, the mic and the switch above it; the Sessions panel; the top bar; a session row's
   actions; the brain dump's review; a request's card.
 - **`entries`: what a person asks.** 35 hand-written topics in the generator (`TOPICS`): the words people ask with in
   English and Hebrew, one or two sentences of explanation, a path per surface, a note where a path is not enough, the
   phrases that do the same by voice today, and the brain's own tool that does it. A topic that names a feature page in
-  `docs/features/` gets that page's one line from the features table as `about`. Then one generated entry for every ••• menu
-  item, Settings section and dock button no topic covers, so a new item is findable the day it ships. 40 entries now.
+  `docs/features/` gets that page's one line from the features table as `about`. Then one generated entry for every iPhone
+  Settings item, page Settings section and dock button no topic covers, so a new item is findable the day it ships. 40 entries now.
 
 A path is written as its place and the labels inside it, `("menu", "Microphone", "Always on|Push to talk")`, and
-rendered for speech: `••• menu → Microphone → Always on / Push to talk` (iPhone), `Settings → Microphone → Always on /
+rendered for speech: `Settings (••• at the top) → Microphone → Always on / Push to talk` (iPhone), `Settings → Microphone → Always on /
 Push to talk` (page; a field named like its section is said once). Every label in a path must be one the code shows in
 that place, or the generator stops with what it found there. So:
 

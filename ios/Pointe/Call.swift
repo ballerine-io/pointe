@@ -28,9 +28,15 @@ final class Call {
     var talkStyle = TalkStyle.stored() { didSet { UserDefaults.standard.set(talkStyle.rawValue, forKey: TalkStyle.key) } }
     /// A word on the state line right after a press closed ("Sent"; or, after a tap in Hold mode, where Tap to talk is).
     private(set) var talkNote: String?
-    /// Debug builds: what the last press did and for how long ("open", "held 2480 ms"), read by the UI tests.
+    /// Debug builds: what the last press did, read by the UI tests and ios/e2e/ptt_latency.py: "open" or "held 2480 ms",
+    /// then, from the touch, when the gate opened, when the first chunk left and from when its audio was captured.
     private(set) var talkTrace = ""
     private var talkOpenedAt: Date?
+    #if DEBUG
+    private var pressTouched: TimeInterval = 0  // the touch that opened the gate, on the audio clock
+    private var pressTrace = ""                 // "gate +8 ms · first frame +9 ms · audio from -100 ms", from that touch
+    private var awaitingFirstFrame = false
+    #endif
     private var talkNotes = 0
     /// Drive mode is on (the Mac's word): an AirPods or lock-screen play/pause mutes, when iOS sends it as one.
     var driving = false { didSet { if driving != oldValue { remoteCommands(on: talk.ptt) } } }
@@ -43,7 +49,7 @@ final class Call {
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
     private let playFormat = AVAudioFormat(standardFormatWithSampleRate: Wire.downRate, channels: 1)!
-    private var pending: [Float] = []
+    private var sender = TalkSender()  // what of the microphone goes; while push to talk is closed, the last moments held
     private var wanted = false
     private var retries = 0
     private var queued = 0
@@ -117,9 +123,10 @@ final class Call {
         remoteCommands(on: talk.ptt)
     }
 
-    func talkPress(_ input: TalkGate.Input) { changeTalk { $0.press(input) } }
+    /// `touched`: when the finger came down, on the audio clock (`systemUptime`); nil when it is now.
+    func talkPress(_ input: TalkGate.Input, touched: TimeInterval? = nil) { changeTalk(touched: touched) { $0.press(input) } }
     func talkRelease(_ input: TalkGate.Input) { changeTalk { $0.release(input) } }
-    func talkToggle() { changeTalk { $0.toggle() } }
+    func talkToggle(touched: TimeInterval? = nil) { changeTalk(touched: touched) { $0.toggle() } }
 
     /// The Mac's status: a press it closed by itself closes here too, with a chime.
     func follow(_ status: API.PTTStatus?) {
@@ -130,7 +137,7 @@ final class Call {
         }
     }
 
-    private func changeTalk(_ change: (inout TalkGate) -> Void) {
+    private func changeTalk(touched: TimeInterval? = nil, _ change: (inout TalkGate) -> Void) {
         let was = talk.isOpen
         change(&talk)
         guard talk.isOpen != was else { return }
@@ -139,17 +146,32 @@ final class Call {
             talkNote = nil
             talkOpenedAt = Date()
             #if DEBUG
-            talkTrace = "open"
+            let now = ProcessInfo.processInfo.systemUptime
+            pressTouched = touched ?? now
+            pressTrace = "gate +\(Call.ms(now - pressTouched)) ms"
+            awaitingFirstFrame = true
+            talkTrace = "open · \(pressTrace)"
             #endif
         } else {
             let held = talkOpenedAt.map { Date().timeIntervalSince($0) } ?? 0
             #if DEBUG
-            talkTrace = "held \(Int(held * 1000)) ms"
+            talkTrace = "held \(Int(held * 1000)) ms · \(pressTrace)"
             #endif
             let short = talkStyle == .hold && held < TalkStyle.shortPress
             note(short ? TalkStyle.shortPressLine : TalkStyle.sentLine, for: short ? TalkStyle.shortPressFor : TalkStyle.sentFor)
         }
         sendTalk(talk.isOpen)
+        if talk.isOpen { sendHeld(touched: touched ?? ProcessInfo.processInfo.systemUptime) }
+    }
+
+    /// Right after the press message, on the same socket: the audio from the touch on, held while the gate was closed.
+    private func sendHeld(touched: TimeInterval) {
+        let held = sender.opened(touched: touched)
+        guard state == .live, let socket else { return }
+        for chunk in held.chunks { socket.send(.data(Wire.pcm16(chunk))) { _ in } }
+        #if DEBUG
+        if let from = held.from, !held.chunks.isEmpty { traceFirstFrame(from: from) }
+        #endif
     }
 
     private func note(_ line: String, for secs: TimeInterval) {
@@ -232,7 +254,7 @@ final class Call {
         }
         let format = input.outputFormat(forBus: 0)
         input.installTap(onBus: 0, bufferSize: 1024, format: format,
-                         block: Call.tap(rate: format.sampleRate) { [weak self] down in Task { @MainActor in self?.send(down) } })
+                         block: Call.tap(rate: format.sampleRate) { [weak self] down, end in Task { @MainActor in self?.send(down, end: end) } })
         engine.prepare()
         try engine.start()
         player.play()
@@ -247,18 +269,30 @@ final class Call {
         }
     }
 
-    private func send(_ samples: [Float]) {
-        guard state == .live, !muted, talk.sends(), let socket else {
-            if !talk.sends() { pending.removeAll() }
+    private func send(_ samples: [Float], end: TimeInterval) {
+        guard state == .live, !muted, let socket else {  // muted or no call: nothing is sent, and nothing is held
+            sender.reset()
             return
         }
-        pending += samples
-        while pending.count >= Wire.chunk {
-            let chunk = Array(pending.prefix(Wire.chunk))
-            pending.removeFirst(Wire.chunk)
-            socket.send(.data(Wire.pcm16(chunk))) { _ in }
-        }
+        let chunks = sender.capture(samples, end: end, sending: talk.sends())
+        for chunk in chunks { socket.send(.data(Wire.pcm16(chunk))) { _ in } }
+        #if DEBUG
+        if !chunks.isEmpty { traceFirstFrame(from: end - Double(samples.count) / Wire.upRate) }
+        #endif
     }
+
+    #if DEBUG
+    /// The first chunk of a press left: when, and from when its audio was captured, both from the touch.
+    private func traceFirstFrame(from: TimeInterval) {
+        guard awaitingFirstFrame, talk.isOpen else { return }
+        awaitingFirstFrame = false
+        let now = ProcessInfo.processInfo.systemUptime
+        pressTrace += " · first frame +\(Call.ms(now - pressTouched)) ms · audio from \(Call.ms(from - pressTouched)) ms"
+        talkTrace = "open · \(pressTrace)"
+    }
+
+    nonisolated static func ms(_ seconds: TimeInterval) -> Int { Int((seconds * 1000).rounded()) }
+    #endif
 
     private func play(_ data: Data) {
         let samples = Wire.floats(data)
@@ -273,11 +307,14 @@ final class Call {
 
     /// Built outside the main actor: AVFoundation calls these on its audio thread, and a closure written inside a
     /// @MainActor method would assert that it runs on the main thread, and crash.
-    nonisolated private static func tap(rate: Double, _ deliver: @escaping @Sendable ([Float]) -> Void) -> AVAudioNodeTapBlock {
-        { buffer, _ in
+    /// `end`: when the buffer's last sample was captured, on the audio clock (`systemUptime`).
+    nonisolated private static func tap(rate: Double, _ deliver: @escaping @Sendable ([Float], TimeInterval) -> Void) -> AVAudioNodeTapBlock {
+        { buffer, when in
             guard let data = buffer.floatChannelData?[0] else { return }
             let samples = Array(UnsafeBufferPointer(start: data, count: Int(buffer.frameLength)))
-            deliver(Wire.resample(samples, from: rate, to: Wire.upRate))
+            let end = when.isHostTimeValid ? AVAudioTime.seconds(forHostTime: when.hostTime) + Double(buffer.frameLength) / rate
+                                           : ProcessInfo.processInfo.systemUptime
+            deliver(Wire.resample(samples, from: rate, to: Wire.upRate), end)
         }
     }
 
@@ -408,7 +445,7 @@ final class Call {
         socket?.cancel(with: .normalClosure, reason: nil)
         socket = nil
         flush()
-        pending.removeAll()
+        sender.reset()
         talk.reset()
         if state == .off {
             engine.inputNode.removeTap(onBus: 0)

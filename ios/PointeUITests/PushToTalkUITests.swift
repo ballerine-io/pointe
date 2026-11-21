@@ -17,13 +17,13 @@ final class PushToTalkUITests: XCTestCase {
     }
 
     private func pick(_ app: XCUIApplication, _ setting: String, _ option: String) {
-        app.buttons["Settings"].tap()
-        let picker = app.buttons[setting].firstMatch
+        let picker = app.settingsItem(setting, .button)
         XCTAssertTrue(picker.waitForExistence(timeout: 5), "Settings has \(setting)")
         picker.tap()
         let choice = app.buttons[option].firstMatch
         XCTAssertTrue(choice.waitForExistence(timeout: 5))
         choice.tap()
+        app.closeSettings()
     }
 
     /// "held 2415 ms" -> 2415; nil when no press was taken.
@@ -59,6 +59,9 @@ final class PushToTalkUITests: XCTestCase {
         let held = heldMs(ring)
         XCTAssertNotNil(held, "the hold was not taken: \(ring.value ?? "")")
         XCTAssertGreaterThan(held ?? 0, 2000, "opened late: \(held ?? 0) ms of a 2500 ms hold")
+        let value = (ring.value as? String) ?? ""
+        let gate = value.range(of: #"gate \+(\d+) ms"#, options: .regularExpression).map { Int(value[$0].dropFirst(6).dropLast(3)) ?? 9999 }
+        XCTAssertLessThan(gate ?? 9999, 150, "the touch reached the gate late: \(value)")
         XCTAssertTrue(waitFor(line, "Sent") || waitFor(line, "Hold to talk"), line.label)
         ring.tap()
         XCTAssertTrue(waitFor(line, "or choose Tap to talk in Settings", timeout: 2), "a tap said nothing: \(line.label)")
@@ -98,6 +101,24 @@ final class PushToTalkUITests: XCTestCase {
         XCTAssertTrue(waitFor(line, "Talking · tap to send"), line.label)
         app.descendants(matching: .any)["conversation"].firstMatch.press(forDuration: 1.0)
         XCTAssertTrue(waitFor(line, "Tap to talk", timeout: 3), line.label)
+    }
+
+    /// The owner could not find push to talk: it was only in the ••• menu. The switch over the mic, as on the page, is the
+    /// same setting as in Settings, and the ring follows it at once.
+    func testTheSwitchOverTheMicSetsTheMicrophone() {
+        let (app, line) = launch("call")
+        let control = app.segmentedControls["micModeSwitch"]
+        XCTAssertTrue(control.waitForExistence(timeout: 5), "the switch is on the call screen")
+        XCTAssertTrue(control.isHittable, "and in reach")
+        XCTAssertTrue(control.buttons["Always on"].isSelected, "Always on, as the Mac says")
+        control.buttons["Hold to talk"].tap()
+        XCTAssertTrue(waitFor(line, "Hold to talk"), line.label)
+        XCTAssertTrue(app.buttons["micRing"].label == "Hold to talk", "the ring holds to talk now")
+        let setting = app.settingsItem("microphoneSetting", .button)
+        XCTAssertTrue("\(setting.label) \(setting.value ?? "")".contains("Push to talk"), "Settings agrees: \(setting.label)")
+        app.closeSettings()
+        control.buttons["Always on"].tap()
+        XCTAssertTrue(waitFor(line, "Listening"), line.label)
     }
 
     func testTheRingAndTheLineShowTheMacsOpenGate() {

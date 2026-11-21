@@ -66,9 +66,8 @@ final class MeetingUITests: XCTestCase {
     }
 
     private func menu(_ item: String) {
-        app.buttons["Settings"].tap()
-        let button = app.buttons[item].firstMatch
-        XCTAssertTrue(button.waitForExistence(timeout: 5), "menu item \(item)")
+        let button = app.settingsItem(item, .button)
+        XCTAssertTrue(button.waitForExistence(timeout: 5), "Settings item \(item)")
         pick(button)
     }
 

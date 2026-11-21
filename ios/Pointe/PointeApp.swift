@@ -5,7 +5,7 @@ struct PointeApp: App {
     @State private var pairing: Pairing?
     @State private var note: PairingNote?
     @State private var tried: Demo?  // "Try a demo" on the pairing screen; nothing is paired or saved
-    @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue  // the menu's Appearance: System, Light or Dark
+    @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue  // Settings' Appearance: System, Light or Dark
 
     init() {
         if ProcessInfo.processInfo.environment["POINTE_FORGET"] == "1" { PairingStore.forget() }  // UI tests start unpaired

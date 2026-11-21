@@ -25,11 +25,8 @@ final class VocabularyUITests: XCTestCase {
     }
 
     private func openDictionary() {
-        let settings = app.buttons["Settings"]
-        XCTAssertTrue(settings.waitForExistence(timeout: 15))
-        settings.tap()
-        let entry = app.buttons["dictionaryItem"].firstMatch
-        XCTAssertTrue(entry.waitForExistence(timeout: 5), "Dictionary is in the settings menu")
+        let entry = app.settingsItem("dictionaryItem", .button)
+        XCTAssertTrue(entry.waitForExistence(timeout: 5), "Dictionary is in Settings")
         entry.tap()
         XCTAssertTrue(app.navigationBars["Dictionary"].waitForExistence(timeout: 5), "the Dictionary sheet opens")
     }

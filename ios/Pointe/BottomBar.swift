@@ -98,6 +98,25 @@ struct BottomBar: View {
     }
 }
 
+/// The Microphone setting at hand, above the mic, as on the page: Always on, or push to talk in this phone's talk style.
+/// The same setting as in Settings; the Mac keeps it, so the page and the app agree.
+struct MicModeSwitch: View {
+    let mode: String
+    let style: TalkStyle
+    let set: (String) -> Void
+
+    var body: some View {
+        Picker("Microphone", selection: Binding(get: { mode }, set: set)) {
+            Text("Always on").tag("always")
+            Text(style.label).tag("ptt")
+        }
+        .pickerStyle(.segmented)
+        .fixedSize()
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)  // chrome over the bar: past this it crowds the cards above it
+        .accessibilityIdentifier("micModeSwitch")
+    }
+}
+
 /// What sits under a call: the cards that need you over the bar. The cards take what they need; when the keyboard, a
 /// small screen or large type leaves less than that, they scroll inside the dock and the bar stays whole.
 extension EnvironmentValues {

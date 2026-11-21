@@ -131,7 +131,7 @@ def answer(question: str, surface: str) -> dict:
     if not found:
         return {"screen": names[surface], "found": "nothing",
                 "say": "Say you are not sure, and that the settings are in " + (
-                    "the ••• menu at the top right." if surface == "iphone" else "Settings, in the Sessions panel.")}
+                    "Settings, the ••• button at the top right." if surface == "iphone" else "Settings, in the Sessions panel.")}
     items = []
     for i, e in enumerate(found):
         item = {"topic": e["title"]}

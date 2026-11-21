@@ -84,8 +84,7 @@ final class ShowUITests: XCTestCase {
     func testTurningItOffHidesTheCardAndTurningItOnNeedsTheOwner() throws {
         launch("showing")
         XCTAssertTrue(any("showCard").waitForExistence(timeout: 15))
-        app.buttons["Settings"].tap()
-        app.buttons["showSettingItem"].firstMatch.tap()
+        app.settingsItem("showSettingItem", .button).tap()
         XCTAssertTrue(text("Code stays on your Mac unless you turn this on.").waitForExistence(timeout: 5), "the help")
         let toggle = app.switches["showSetting"].firstMatch
         XCTAssertEqual(toggle.value as? String, "1")
@@ -95,8 +94,7 @@ final class ShowUITests: XCTestCase {
         app.buttons["Done"].firstMatch.tap()
         XCTAssertTrue(any("showCard").waitForNonExistence(timeout: 5), "off: no card")
         // On again needs Face ID or the passcode; the simulator has neither enrolled, so it stays off.
-        app.buttons["Settings"].tap()
-        app.buttons["showSettingItem"].firstMatch.tap()
+        app.settingsItem("showSettingItem", .button).tap()
         let again = app.switches["showSetting"].firstMatch
         XCTAssertTrue(again.waitForExistence(timeout: 5))
         again.switches.firstMatch.tap()

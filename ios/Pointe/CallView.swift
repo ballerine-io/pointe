@@ -6,7 +6,6 @@ struct CallView: View {
     let pairing: Pairing
     let unpair: () -> Void
     @State private var call: Call
-    @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue
     @State private var status: API.Status?
     @State private var reach = Reach.ok
     @State private var problem: String?
@@ -49,6 +48,8 @@ struct CallView: View {
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
     @State private var showAbout = false
+    @State private var showCallSettings = false
+    @State private var settingsNext: CallSettingsLink?  // a row's own sheet, opened once Settings has closed
     @State private var stageHeight: CGFloat = 0
     @State private var topHeight: CGFloat = 0
     @State private var demoAnswered: Set<String> = []  // the demo's requests answered here: their card goes, as a Mac's would
@@ -81,6 +82,7 @@ struct CallView: View {
         case "speakers": _showSpeakers = State(initialValue: true)
         case "sessions": _showSessions = State(initialValue: true)
         case "about": _showAbout = State(initialValue: true)
+        case "settings": _showCallSettings = State(initialValue: true)
         default: break
         }
         #endif
@@ -116,8 +118,8 @@ struct CallView: View {
     private var talking: Bool { call.talk.ptt && call.talk.shows(macOpen: status?.ptt?.open == true) }
     private var ringTalk: RingTalk? {
         guard call.talk.ptt else { return nil }
-        return RingTalk(talking: talking, style: call.talkStyle, press: { call.talkPress(.ring) }, release: { call.talkRelease(.ring) },
-                        toggle: { call.talkToggle() })
+        return RingTalk(talking: talking, style: call.talkStyle, press: { call.talkPress(.ring, touched: $0) },
+                        release: { call.talkRelease(.ring) }, toggle: { call.talkToggle(touched: $0) })
     }
 
     var body: some View {
@@ -247,6 +249,11 @@ struct CallView: View {
                 .presentationBackground(Brand.group)
         }
         .onChange(of: showing?.id) { showFollow.follow(showing) }
+        .sheet(isPresented: $showCallSettings, onDismiss: openSettingsNext) {
+            CallSettingsSheet(model: settingsModel, act: settingsActions).equatable()
+                .presentationDetents([.large])
+                .presentationBackground(Brand.group)
+        }
         .sheet(isPresented: $showAbout) {
             AboutSheet(mac: status?.version).presentationDetents([.medium]).presentationBackground(Brand.group)
         }
@@ -312,6 +319,13 @@ struct CallView: View {
             if let prefs { call.setMicrophone(prefs.microphone) }
         }
         .task { if demo == nil { await poll() } }
+        .task {  // the long demo conversation grows, as a live one does
+            guard demo?.screen == .longTalk else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1.5))
+                status?.talk = (status?.talk ?? []) + [Demo.nextLine(after: status?.talk ?? [])]
+            }
+        }
         .task { if demo == nil { sensors.start() } }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, demo == nil { Task { await call.resume() } }  // back from the background: redial if it dropped
@@ -355,22 +369,21 @@ struct CallView: View {
                         release: { call.talkRelease(.caption) }, toggle: { call.talkToggle() })
             .defaultScrollAnchor(.bottom, for: .initialOffset)  // only where it starts: growing content must not pull you down
             .defaultScrollAnchor(.top, for: .sizeChanges)
-            .onScrollGeometryChange(for: ScrollPin.self) { geo in
-                // What shows above the controls: the bounds reach under the dock, so its inset comes off first.
-                ScrollPin(bottom: geo.bounds.maxY - geo.contentInsets.bottom >= geo.contentSize.height - 48,
-                          room: geo.bounds.height - geo.contentInsets.bottom - geo.contentInsets.top)
-            } action: { _, new in
-                if follow.moved(bottom: new.bottom) {
+            .onScrollGeometryChange(for: ScrollPin.self) { ScrollPin($0) } action: { _, new in
+                if follow.moved(bottom: new.bottom, offset: new.offset) {
                     Task { @MainActor in if follow.stillFollowing { scroller.scrollTo("end", anchor: .bottom) } }
                 }
             }
-            .onScrollPhaseChange { _, phase in follow.phase(scrolling: phase == .tracking || phase == .interacting || phase == .decelerating) }
+            .onScrollPhaseChange { _, phase in
+                follow.phase(scrolling: phase == .tracking || phase == .interacting || phase == .decelerating, animating: phase == .animating)
+            }
             .onChange(of: "\(status?.talk?.last?.id ?? -1)|\(hearing)") {
                 if follow.newLine() { withAnimation(.smooth(duration: 0.3)) { scroller.scrollTo("end", anchor: .bottom) } }
             }
             .overlay(alignment: .bottom) {
                 if follow.pillShown {
                     Button {
+                        follow.jumpToEnd()  // the pill goes at the tap, and lines arriving on the way are followed
                         withAnimation(.smooth) { scroller.scrollTo("end", anchor: .bottom) }
                     } label: {
                         Label("New", systemImage: "arrow.down").font(.brand(.subheadline, .semibold))
@@ -379,6 +392,7 @@ struct CallView: View {
                             .overlay(Capsule().stroke(Brand.orangeLine))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("newLines")
                     .padding(.bottom, 8)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -471,99 +485,50 @@ struct CallView: View {
         return stageHeight > 0 ? max(180, stageHeight - topHeight - above) : .infinity
     }
 
+    /// The ••• button: Settings, a sheet with every setting and screen of the call.
     private var menu: some View {
-        Menu {
-            Toggle(isOn: Binding(get: { status?.polish ?? false }, set: { on in Task { await setPolish(on) } })) {
-                Label("Clean up my words", systemImage: "wand.and.sparkles")
-            }
-            if status?.whisper != nil {
-                Toggle(isOn: Binding(get: { status?.whisper?.on == true }, set: { on in Task { await setWhisper(on) } })) {
-                    Label(WhisperCopy.button, systemImage: "waveform.badge.minus")
-                }
-                .accessibilityIdentifier("whisperItem")
-            }
-            Button { showSessions = true } label: { Label("Sessions and mode", systemImage: "rectangle.stack") }
-            if status?.machines != nil {
-                Button { showMachines = true } label: { Label(MachinesCopy.title, systemImage: "desktopcomputer") }
-                    .accessibilityIdentifier("machinesItem")
-            }
-            if meeting?.isOn != true {
-                Button { openMeetingStart() } label: { Label("Start a meeting", systemImage: "person.3") }
-            }
-            if meeting?.isEnded == true {
-                Button { closedEnd = nil } label: { Label("The meeting that ended", systemImage: "doc.text") }
-                    .accessibilityIdentifier("reopenMeetingEnd")
-            }
-            Button { showBriefing = true } label: { Label(BriefingCopy.title, systemImage: "sun.horizon") }
-            Button { showBriefingSettings = true } label: { Label(BriefingCopy.settingsItem, systemImage: "clock") }
-            Button { Task { await challenge(challengeOn ? "end" : "start") } } label: {
-                Label(challengeOn ? ChallengeCopy.end : ChallengeCopy.menuItem, systemImage: "figure.fencing")
-            }
-            .disabled(phase != .live || meeting?.isOn == true || dumping || driving)  // never both: driving wins
-            .accessibilityIdentifier("menu.challenge")
-            Button { showMeetingSettings = true } label: { Label("Meeting settings", systemImage: "gearshape") }
-            Button { showAlerts = true } label: { Label(AlertCopy.section, systemImage: "bell.badge") }
-            if status?.drive != nil {
-                Toggle(isOn: Binding(get: { sensors.enabled }, set: { sensors.setEnabled($0) })) {
-                    Label(DriveCopy.suggestSetting, systemImage: "car")
-                }
-                .accessibilityIdentifier("driveSuggestSetting")
-            }
-            if status?.dictionary != nil {
-                Button { showDictionary = true } label: { Label(VocabularyCopy.menuItem, systemImage: "text.book.closed") }
-                    .accessibilityIdentifier("dictionaryItem")
-            }
-            if status?.voice_lock != nil {
-                Button { showVoiceLock = true } label: { Label(VoiceLockCopy.title, systemImage: "lock.shield") }
-            }
-            if status?.conflicts != nil {
-                Button { showConflictSettings = true } label: { Label(ConflictCopy.settingsTitle, systemImage: "exclamationmark.triangle") }
-            }
-            if status?.show_on_phone != nil {
-                Button { showSettings = true } label: { Label(ShowCopy.setting, systemImage: "doc.text.magnifyingglass") }
-                    .accessibilityIdentifier("showSettingItem")
-            }
-            Picker(selection: Binding(get: { call.talk.mode }, set: { setMicrophone($0) })) {
-                Text("Always on").tag("always")
-                Text("Push to talk").tag("ptt")
-            } label: { Label("Microphone", systemImage: "mic") }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("microphoneSetting")
-            if call.talk.ptt {
-                Picker(selection: Binding(get: { call.talkStyle }, set: { call.talkStyle = $0 })) {
-                    ForEach(TalkStyle.allCases, id: \.self) { Text($0.label).tag($0) }
-                } label: { Label("Talk button", systemImage: "hand.tap") }
-                    .pickerStyle(.menu)
-                    .accessibilityIdentifier("talkStyleSetting")
-            }
-            Picker(selection: Binding(get: { prefs?.patience ?? TurnsCopy.defaultLevel }, set: { setPatience($0) })) {
-                ForEach(TurnsCopy.levels, id: \.value) { level in Text(level.label).tag(level.value) }
-            } label: { Label(TurnsCopy.setting, systemImage: "hourglass") }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("patienceSetting")
-            Picker(selection: $theme) {
-                ForEach(Theme.allCases) { Text($0.label).tag($0.rawValue) }
-            } label: { Label(Theme.setting, systemImage: "circle.lefthalf.filled") }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("appearanceSetting")
-            if let line = status?.local?.short {
-                Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
-            }
-            Button { showAbout = true } label: { Label(AboutCopy.title, systemImage: "info.circle") }
-                .accessibilityIdentifier("aboutSetting")
-            Divider()
-            if demo?.tried == true {
-                Button(DemoBadge.exit, systemImage: "xmark.circle") { call.hangUp(); unpair() }
-            } else {
-                Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { call.hangUp(); unpair() }
-            }
-        } label: {
+        Button { showCallSettings = true } label: {
             Image(systemName: "ellipsis").font(.brand(.body, .semibold))
                 .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
-                .frame(width: 44, height: 44).contentShape(Rectangle())
+                .touchTarget(width: 36, height: 36)
         }
-        .padding(-4)  // a menu takes touches in its own frame only: 44 points laid out, 36 drawn and counted
+        .buttonStyle(.plain)
         .accessibilityLabel("Settings")
+        .accessibilityIdentifier("settingsButton")
+    }
+
+    private var settingsModel: CallSettingsModel {
+        CallSettingsModel(status: status, prefs: prefs, microphone: call.talk.mode, talkStyle: call.talkStyle, live: phase == .live,
+                          dumping: dumping, driving: driving, driveSuggest: sensors.enabled, demo: demo?.tried == true)
+    }
+
+    private var settingsActions: CallSettingsActions {
+        CallSettingsActions(setMicrophone: setMicrophone, setTalkStyle: { call.talkStyle = $0 }, setPatience: setPatience,
+                            setPolish: { on in Task { await setPolish(on) } }, setWhisper: { on in Task { await setWhisper(on) } },
+                            setDriveSuggest: { sensors.setEnabled($0) },
+                            open: { settingsNext = $0; showCallSettings = false },
+                            challenge: { Task { await challenge(challengeOn ? "end" : "start") } },
+                            unpair: { call.hangUp(); unpair() })
+    }
+
+    private func openSettingsNext() {
+        guard let next = settingsNext else { return }
+        settingsNext = nil
+        switch next {
+        case .sessions: showSessions = true
+        case .machines: showMachines = true
+        case .meetingStart: openMeetingStart()
+        case .meetingEnd: closedEnd = nil
+        case .briefing: showBriefing = true
+        case .briefingSettings: showBriefingSettings = true
+        case .meetingSettings: showMeetingSettings = true
+        case .alerts: showAlerts = true
+        case .dictionary: showDictionary = true
+        case .voiceLock: showVoiceLock = true
+        case .conflicts: showConflictSettings = true
+        case .show: showSettings = true
+        case .about: showAbout = true
+        }
     }
 
     private var bottom: some View {
@@ -607,6 +572,9 @@ struct CallView: View {
             if typing && !driving {
                 TypeBar(send: say) { withAnimation(.snappy) { typing = false } }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if !typing && !driving {
+                MicModeSwitch(mode: call.talk.mode, style: call.talkStyle, set: setMicrophone)
             }
             BottomBar(phase: phase, muted: muted, dump: dumping && dump == nil ? API.BrainDump(id: "want", state: "dumping", since: nil, thoughts: []) : dump,
                       typing: typing, mic: micTapped, listen: dumpButton, type: { withAnimation(.snappy) { typing.toggle() } },
@@ -1400,6 +1368,27 @@ struct CallView: View {
 struct ScrollPin: Equatable {
     let bottom: Bool
     let room: CGFloat
+    var offset: CGFloat = 0
+
+    /// Within this of the newest line counts as at it.
+    static let slack: CGFloat = 48
+
+    init(bottom: Bool, room: CGFloat, offset: CGFloat = 0) {
+        self.bottom = bottom
+        self.room = room
+        self.offset = offset
+    }
+
+    init(_ geo: ScrollGeometry) {
+        self.init(offset: geo.contentOffset.y, container: geo.containerSize.height, content: geo.contentSize.height)
+    }
+
+    /// `container` is what shows between the insets (the dock's is already off it), and at the end the offset plus it is
+    /// the content's height. Taking the dock's inset off a second time put the end a dock's height past anything a finger
+    /// or a scroll can reach: the view never knew it was back at the end, and the New pill stayed.
+    init(offset: CGFloat, container: CGFloat, content: CGFloat) {
+        self.init(bottom: offset + container >= content - Self.slack, room: container, offset: offset)
+    }
 }
 
 /// Only your own finger takes the conversation off the newest line. When the keyboard, the type bar or a card takes room
@@ -1408,25 +1397,39 @@ struct ScrollFollow: Equatable {
     private(set) var atBottom = true
     private(set) var unseen = false
     private var scrolling = false
+    private var animating = false  // a scroll to the end is under way: it gets there by itself
     private var pinned = true  // the last position seen was the end
+    private var endOffset: CGFloat?  // the offset when the view was last at the end
 
-    /// The position moved. True when the view should go back to the end: no finger moved it.
-    mutating func moved(bottom: Bool) -> Bool {
-        pinned = bottom
+    /// The position moved. True when the view should go back to the end: no finger moved it. Off the end yet still
+    /// within the slack of where the end was, the content grew under the view (a new line while the list glides, and the
+    /// glide settling a point back): that is not a finger taking the view away, or the pill came back at the end.
+    mutating func moved(bottom: Bool, offset: CGFloat = 0) -> Bool {
         if bottom {
+            endOffset = offset
+            pinned = true
             atBottom = true
             unseen = false
             return false
         }
+        if let endOffset, pinned, offset >= endOffset - ScrollPin.slack { return atBottom }
+        pinned = false
         if scrolling { atBottom = false }
         return atBottom
     }
 
     /// A finger on the conversation, or let go. The phase can arrive after the drag's first move, and the position does
     /// not change again to say so: that move counts now.
-    mutating func phase(scrolling: Bool) {
+    mutating func phase(scrolling: Bool, animating: Bool = false) {
         self.scrolling = scrolling
+        self.animating = animating
         if scrolling && !pinned { atBottom = false }
+    }
+
+    /// The New pill was tapped: following again from now, before the scroll reaches the end.
+    mutating func jumpToEnd() {
+        atBottom = true
+        unseen = false
     }
 
     /// A new line, or new words heard. True when the view follows them to the end; otherwise the New pill shows.
@@ -1436,8 +1439,9 @@ struct ScrollFollow: Equatable {
         return false
     }
 
-    /// A scroll back to the end, deferred a turn, still applies: no finger came down meanwhile.
-    var stillFollowing: Bool { atBottom && !scrolling }
+    /// A scroll back to the end, deferred a turn, still applies: no finger came down meanwhile, and no animated scroll
+    /// is already on its way there (jumping would cut it short).
+    var stillFollowing: Bool { atBottom && !scrolling && !animating }
     var pillShown: Bool { unseen && !atBottom }
 }
 

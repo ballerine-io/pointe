@@ -99,8 +99,8 @@ Paste into App Review Information → Notes. Sign-in required: **No**.
 >
 > To review without a Mac: on the first screen, tap "No Mac yet? Try a demo" at the bottom. It opens a sample call
 > with made-up sessions, marked with a "Demo" badge in the header. In it you can scroll the conversation, open Sessions
-> (bottom bar), open the menu (… at the top right), and answer the waiting request: Deny with a tap, or Approve, which
-> asks for Face ID first. Tap the "Demo" badge, or "Exit demo" in the menu, to return to the pairing screen.
+> (bottom bar), open Settings (… at the top right), and answer the waiting request: Deny with a tap, or Approve, which
+> asks for Face ID first. Tap the "Demo" badge, or "Exit demo" at the end of Settings, to return to the pairing screen.
 >
 > Permissions: the camera only scans the pairing code; the microphone carries the voice to the paired Mac during a
 > call; local network reaches the Mac on the same Wi-Fi; Face ID confirms approvals; motion activity (asked for only

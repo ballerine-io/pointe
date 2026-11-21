@@ -25,11 +25,8 @@ final class BriefingUITests: XCTestCase {
     }
 
     private func openFromMenu(_ item: String, title: String) {
-        let settings = app.buttons["Settings"]
-        XCTAssertTrue(settings.waitForExistence(timeout: 15))
-        settings.tap()
-        let entry = app.buttons[item].firstMatch
-        XCTAssertTrue(entry.waitForExistence(timeout: 5), "\(item) is in the settings menu")
+        let entry = app.settingsItem(item, .button)
+        XCTAssertTrue(entry.waitForExistence(timeout: 5), "\(item) is in Settings")
         entry.tap()
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), "the \(title) sheet opens")
     }

@@ -27,11 +27,8 @@ final class ChallengeUITests: XCTestCase {
     private var panel: XCUIElement { app.descendants(matching: .any)["challenge.panel"] }
 
     private func openMenu() -> XCUIElement {
-        let settings = app.buttons["Settings"]
-        XCTAssertTrue(settings.waitForExistence(timeout: 15))
-        settings.tap()
-        let entry = app.buttons["menu.challenge"]
-        XCTAssertTrue(entry.waitForExistence(timeout: 5), "Challenge is in the settings menu")
+        let entry = app.settingsItem("menu.challenge", .button)
+        XCTAssertTrue(entry.waitForExistence(timeout: 5), "Challenge is in Settings")
         return entry
     }
 

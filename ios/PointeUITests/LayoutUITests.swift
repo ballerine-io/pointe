@@ -164,6 +164,6 @@ final class LayoutUITests: XCTestCase {
         app.navigationBars["Start a meeting"].buttons["Cancel"].tap()
         XCTAssertTrue(app.navigationBars["Start a meeting"].waitForNonExistence(timeout: 5))
         tapUnder(app.buttons["Settings"])
-        XCTAssertTrue(app.buttons["Unpair this phone"].waitForExistence(timeout: 5), "the menu opened")
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5), "Settings opened")
     }
 }
