@@ -1,0 +1,276 @@
+{
+ "active": "s0-shop",
+ "attention": [
+  {
+   "approvable": true,
+   "body": "Bash(rm -rf build && make test)",
+   "id": "perm-1",
+   "kind": "permission",
+   "text": "s1-api needs approval",
+   "title": "s1-api needs approval"
+  }
+ ],
+ "brain_dump": null,
+ "briefing": {
+  "building": false,
+  "latest_id": null,
+  "part": 0,
+  "parts": 0,
+  "paused": "",
+  "playing": false
+ },
+ "call": {},
+ "can_invite": true,
+ "challenge": null,
+ "conflicts": [],
+ "connected": true,
+ "dictionary": {
+  "learned_this_call": []
+ },
+ "drive": {
+  "on": false,
+  "pending": []
+ },
+ "hearing": "",
+ "idle_hangup": false,
+ "invite": null,
+ "invite_ended": null,
+ "jobs": {},
+ "local": {
+  "line": "Cloud voice: Soniox + ElevenLabs"
+ },
+ "machines": [
+  {
+   "here": true,
+   "id": "studio",
+   "key_fp": null,
+   "name": "studio",
+   "need": 0,
+   "online": true,
+   "os": "macos",
+   "rtt_ms": null,
+   "sessions": 3,
+   "since": 1700000000
+  },
+  {
+   "here": false,
+   "id": "devbox",
+   "key_fp": "ab11cd",
+   "name": "devbox",
+   "need": 0,
+   "online": true,
+   "os": "linux",
+   "rtt_ms": 33,
+   "sessions": 2,
+   "since": 1700000000
+  }
+ ],
+ "meeting": null,
+ "mode": "orchestrator",
+ "mode_state": {
+  "approvals": "voice",
+  "mode": "normal",
+  "speech": "full"
+ },
+ "monologue": null,
+ "notes": {
+  "last_id": 0,
+  "version": 0
+ },
+ "phones": {
+  "paired": []
+ },
+ "polish": false,
+ "problem": null,
+ "ptt": {
+  "mode": "always",
+  "open": false,
+  "room_heard": false,
+  "sent_bytes": 0
+ },
+ "recent": [
+  {
+   "at": "15:00:12",
+   "how": "named",
+   "said": "what is s0-shop doing",
+   "to": [
+    "s0-shop"
+   ]
+  },
+  {
+   "at": "15:01:12",
+   "how": "named",
+   "said": "what is s1-api doing",
+   "to": [
+    "s1-api"
+   ]
+  },
+  {
+   "at": "15:02:12",
+   "how": "named",
+   "said": "what is s2-mobile doing",
+   "to": [
+    "s2-mobile"
+   ]
+  },
+  {
+   "at": "15:03:12",
+   "how": "named",
+   "said": "what is s3-infra doing",
+   "to": [
+    "s3-infra"
+   ]
+  },
+  {
+   "at": "15:04:12",
+   "how": "named",
+   "said": "what is s4-docs doing",
+   "to": [
+    "s4-docs"
+   ]
+  }
+ ],
+ "router": "orchestrator: named session \u2192 auto (gate) \u2192 active session",
+ "sessions": [
+  {
+   "capabilities": {
+    "approvals": true
+   },
+   "harness": "claude-code",
+   "machine": "",
+   "mode": "channel",
+   "name": "s0-shop",
+   "needs": null,
+   "online": true,
+   "request": null,
+   "request_id": null,
+   "voice_can_approve": false,
+   "waiting": false,
+   "working": true
+  },
+  {
+   "capabilities": {
+    "approvals": true
+   },
+   "harness": "claude-code",
+   "machine": "devbox",
+   "mode": "channel",
+   "name": "s1-api",
+   "needs": null,
+   "online": true,
+   "request": "Bash(rm -rf build && make test)",
+   "request_id": "perm-1",
+   "voice_can_approve": true,
+   "waiting": true,
+   "working": false
+  },
+  {
+   "capabilities": {
+    "approvals": true
+   },
+   "harness": "claude-code",
+   "machine": "",
+   "mode": "channel",
+   "name": "s2-mobile",
+   "needs": null,
+   "online": true,
+   "request": null,
+   "request_id": null,
+   "voice_can_approve": false,
+   "waiting": false,
+   "working": false
+  },
+  {
+   "capabilities": {
+    "approvals": true
+   },
+   "harness": "opencode",
+   "machine": "devbox",
+   "mode": "channel",
+   "name": "s3-infra",
+   "needs": null,
+   "online": true,
+   "request": null,
+   "request_id": null,
+   "voice_can_approve": false,
+   "waiting": false,
+   "working": true
+  },
+  {
+   "capabilities": {
+    "approvals": true
+   },
+   "harness": "claude-code",
+   "machine": "",
+   "mode": "channel",
+   "name": "s4-docs",
+   "needs": "which branch should it target?",
+   "online": true,
+   "request": null,
+   "request_id": null,
+   "voice_can_approve": false,
+   "waiting": false,
+   "working": true
+  }
+ ],
+ "show_on_phone": false,
+ "showing": null,
+ "shown_earlier": [],
+ "speaking": null,
+ "talk": [
+  {
+   "corrected": false,
+   "id": 1,
+   "text": "Turn 1: what is the state of the build? ",
+   "typed": false,
+   "who": "user"
+  },
+  {
+   "corrected": false,
+   "id": 2,
+   "text": "Turn 2: the tests pass on the branch now; the flaky one needed a longer timeout on the socket read, and I left a note in the docstring about why it waits for the second heartbeat before asserting",
+   "typed": false,
+   "who": "bot"
+  },
+  {
+   "corrected": false,
+   "id": 3,
+   "text": "Turn 3: what is the state of the build? ",
+   "typed": false,
+   "who": "user"
+  },
+  {
+   "corrected": false,
+   "id": 4,
+   "text": "Turn 4: the tests pass on the branch now; the flaky one needed a longer timeout on the socket read, and I left a note in the docstring about why it waits for the second heartbeat before asserting",
+   "typed": false,
+   "who": "bot"
+  }
+ ],
+ "tokens": {
+  "at": "15:04",
+  "context": 48210
+ },
+ "voice_lock": {
+  "devices": [],
+  "enrolled": false,
+  "enrolling": null,
+  "ignored": {
+   "count": 0,
+   "last_at": null,
+   "recent": []
+  },
+  "level": "off",
+  "lines": [],
+  "model": "ready",
+  "problem": null,
+  "speaker": null,
+  "unsure_streak": 0
+ },
+ "whisper": {
+  "held": null,
+  "lock_note": null,
+  "on": false,
+  "suggest_ptt": false
+ }
+}

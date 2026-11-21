@@ -1,0 +1,139 @@
+{
+ "active": null,
+ "attention": [],
+ "brain_dump": null,
+ "briefing": {
+  "building": false,
+  "id": null,
+  "latest_id": null,
+  "part": 0,
+  "parts": 0,
+  "paused": "",
+  "playing": false,
+  "ready": null
+ },
+ "call": {
+  "up": false
+ },
+ "can_invite": true,
+ "challenge": null,
+ "conflicts": [],
+ "connected": false,
+ "dictionary": {
+  "cap": 400,
+  "count": 0,
+  "full": false,
+  "learn": true,
+  "learned_this_call": [],
+  "problem": null
+ },
+ "drive": {
+  "dropped_at": null,
+  "how": "",
+  "on": false,
+  "pending": [],
+  "since": null
+ },
+ "hearing": "",
+ "hold": null,
+ "idle_hangup": false,
+ "invite": null,
+ "invite_ended": null,
+ "jobs": {
+  "done": 0,
+  "failed": 0,
+  "running": 0
+ },
+ "keep_awake": {
+  "on": false,
+  "why": "no call from another device"
+ },
+ "local": {
+  "line": "Local mode: off",
+  "mode": "off",
+  "models": null
+ },
+ "mac_idle_secs": null,
+ "machines": [
+  {
+   "here": true,
+   "id": "hub",
+   "name": "studio",
+   "need": 0,
+   "online": true,
+   "os": "macos",
+   "sessions": 0
+  }
+ ],
+ "meeting": null,
+ "mode": "orchestrator",
+ "mode_state": {
+  "approvals": "voice+tap",
+  "mode": "conversation",
+  "speech": "free"
+ },
+ "monologue": null,
+ "notes": {
+  "last_id": 0,
+  "version": 0
+ },
+ "phone_listener": false,
+ "phones": {
+  "paired": []
+ },
+ "polish": false,
+ "problem": null,
+ "ptt": {
+  "closed_at": null,
+  "closed_why": "",
+  "draft": false,
+  "mode": "always",
+  "open": false,
+  "opened_at": null,
+  "room_bytes": 0,
+  "room_heard": false,
+  "sent_bytes": 0
+ },
+ "recent": [],
+ "router": "orchestrator: named session \u2192 auto (gemini:c) \u2192 active session",
+ "sessions": [],
+ "show_on_phone": false,
+ "showing": null,
+ "shown_earlier": [],
+ "speaking": null,
+ "talk": [],
+ "talk_command": "/opt/pointe/bin/pointe talk",
+ "tokens": null,
+ "version": "1.15.0",
+ "voice_lock": {
+  "devices": [],
+  "enrolled": false,
+  "enrolling": null,
+  "ignored": {
+   "count": 0,
+   "last_at": null,
+   "recent": []
+  },
+  "level": "off",
+  "lines": [
+   "The quick brown fox jumps over the lazy dog near the riverbank.",
+   "Please tell the build session to run the tests and report back.",
+   "Seven bright kites drifted above the harbour on a windy afternoon.",
+   "\u05d1\u05d5\u05e7\u05e8 \u05d8\u05d5\u05d1, \u05d0\u05e0\u05d9 \u05d1\u05d5\u05d3\u05e7 \u05e9\u05d4\u05de\u05e2\u05e8\u05db\u05ea \u05de\u05d6\u05d4\u05d4 \u05d0\u05ea \u05d4\u05e7\u05d5\u05dc \u05e9\u05dc\u05d9 \u05d1\u05e6\u05d5\u05e8\u05d4 \u05d1\u05e8\u05d5\u05e8\u05d4.",
+   "\u05ea\u05d2\u05d9\u05d3 \u05dc\u05e1\u05e9\u05df \u05e9\u05dc \u05d4\u05d1\u05d3\u05d9\u05e7\u05d5\u05ea \u05dc\u05d4\u05e8\u05d9\u05e5 \u05d0\u05ea \u05db\u05dc \u05d4\u05d1\u05d3\u05d9\u05e7\u05d5\u05ea \u05d5\u05dc\u05d3\u05d5\u05d5\u05d7 \u05dc\u05d9.",
+   "\u05e9\u05dc\u05d5\u05e9\u05d4 \u05e2\u05e4\u05d9\u05e4\u05d5\u05e0\u05d9\u05dd \u05e6\u05d1\u05e2\u05d5\u05e0\u05d9\u05d9\u05dd \u05e2\u05e4\u05d5 \u05de\u05e2\u05dc \u05d4\u05e0\u05de\u05dc \u05d1\u05d9\u05d5\u05dd \u05e1\u05d5\u05e2\u05e8."
+  ],
+  "model": "missing",
+  "problem": null,
+  "speaker": null,
+  "unsure_streak": 0
+ },
+ "whisper": {
+  "held": null,
+  "lock_note": null,
+  "max_words": null,
+  "on": false,
+  "output_gain": 1.0,
+  "suggest_ptt": false
+ }
+}

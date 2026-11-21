@@ -13,3 +13,5 @@ xcuserdata/
 *.xcuserstate
 ios/.team
 ios/build/
+.build/
+macos/build/
