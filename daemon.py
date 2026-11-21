@@ -6387,7 +6387,6 @@ async def font(name: str):
 async def page():
     here = Path(__file__).parent
     return ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
-            .replace("{{BALLERINE}}", (here / "assets" / "ballerine.svg").read_text())
             .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
             .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text()))
 

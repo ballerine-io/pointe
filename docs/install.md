@@ -25,7 +25,7 @@ Open Claude Code (the desktop app's Code tab, or the terminal) in any folder, pa
 Claude Code does the rest and asks before each step. You need a Mac, Chrome, and headphones.
 
 ```
-Install Pointe, Ballerine's voice command center for Claude Code, on this Mac. I am not a developer: explain each step in
+Install Pointe, an open-source voice tool for Claude Code, on this Mac. I am not a developer: explain each step in
 one plain sentence, do the work yourself, and never ask me to paste a key into this chat.
 
 1. Check that this is macOS and that Google Chrome is installed. If Chrome is missing, tell me to install it and stop.

@@ -100,7 +100,7 @@ async def _render(checks: str, sizes: tuple[int, ...] = ()):
     """Evaluate `checks` in the page; with `sizes`, evaluate it once per viewport width and return {width: value}."""
     from websockets.asyncio.client import connect
 
-    html = PAGE.replace("{{BALLERINE}}", "").replace("{{LOGO}}", "").replace("{{DICTIONARY}}", (ROOT / "ui_dictionary.html").read_text()) \
+    html = PAGE.replace("{{LOGO}}", "").replace("{{DICTIONARY}}", (ROOT / "ui_dictionary.html").read_text()) \
         .replace("{{WHISPER}}", (ROOT / "ui_whisper.html").read_text())
     work = Path(tempfile.mkdtemp(prefix="pointe-page-test-"))
     (work / "page.html").write_text(html)

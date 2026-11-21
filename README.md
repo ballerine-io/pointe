@@ -1,5 +1,7 @@
 # Pointe
 
+Built and open-sourced by Ballerine Engineering.
+
 Talk to all your coding-agent sessions by voice. Ask what each one did, switch by saying its name, and answer
 permission prompts out loud, from across the room, under rules enforced in code.
 
@@ -127,7 +129,9 @@ project's own docs or source on 2026-11-19; these products change, so follow the
 
 **Happy is the closest, and it is ahead in several ways.** It has apps in the App Store and on Google Play, it runs on
 Android, Windows and Linux, it supports more agents, and it is widely used (about 24,700 GitHub stars). Its voice is free for 20 minutes every
-30 days, then a subscription, or your own ElevenLabs agent. What Pointe does differently:
+30 days, then a subscription, or your own ElevenLabs agent.
+
+Where Pointe differs from Happy:
 
 - **Code decides what a spoken yes approves.** Pointe's daemon reads a request out itself, from the command that will
   run, only if every part of it is on an allowlist, and takes a plain yes only right after that read-out; anything else
@@ -318,6 +322,18 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 - **Echo.** On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones. Known echo cases
   that are not solved are listed in [docs/how-it-works.md](docs/how-it-works.md#echo).
 - **Code running as you is trusted.** It can read Pointe's token and act as you. See [SECURITY.md](SECURITY.md#known-limits).
+
+## Why Ballerine built this
+
+Ballerine's engineers run several coding-agent sessions at once, and built Pointe for their own work. Ballerine is not
+a developer-tools company and does not sell Pointe. It is shared because it is useful.
+
+## Support
+
+Pointe is community-supported, on a best-effort basis, with no SLA. Ask questions and report bugs in
+[GitHub issues](https://github.com/ballerine-io/pointe/issues). Report a vulnerability privately, never in an issue:
+[GitHub private vulnerability reporting](https://github.com/ballerine-io/pointe/security/advisories/new) or
+security@ballerine.com ([SECURITY.md](SECURITY.md)).
 
 ## Contributing
 

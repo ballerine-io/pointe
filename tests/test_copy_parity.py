@@ -1,7 +1,7 @@
 """Words the page and the iPhone app share, and where the page shows them (docs/design/ux-review-web.md, "Left as it is").
 
-Each string lives in a dictionary on each side: ui.html's MEETING_COPY, CONNECT_COPY and LOCK_COPY; the app's
-MeetingCopy, ConnectCopy and VoiceLockCopy. The hold's words (TURNS_COPY, TurnsCopy) are checked in test_turn_taking.py.
+Each string lives in a dictionary on each side: ui.html's MEETING_COPY, CONNECT_COPY, LOCK_COPY and ABOUT_COPY;
+the app's MeetingCopy, ConnectCopy, VoiceLockCopy and AboutCopy. The hold's words (TURNS_COPY, TurnsCopy) are checked in test_turn_taking.py.
 """
 
 import asyncio
@@ -83,3 +83,43 @@ def test_the_page_shows_them_where_they_apply():
     assert got[(1440, False)]["lede"] == "Pointe sits in and takes notes for you. It stays quiet unless you let it speak."
     assert got["none"]["why"] == "Enrol your voice to use the other levels." and got["none"]["whyShown"], got["none"]
     assert got["enrolled"]["why"] == "" and not got["enrolled"]["whyShown"], got["enrolled"]
+
+
+ABOUT = "Pointe is open source (MIT). Built and open-sourced by Ballerine Engineering."
+
+
+def test_about_says_the_same_on_the_page_and_the_app():
+    page, app = _page("ABOUT_COPY"), _app("About.swift", "AboutCopy")
+    assert page["body"] == app["body"] == ABOUT
+    assert page == {k: app[k] for k in page}, "every About string the page shows is the app's"
+    assert page["repoURL"] == "https://github.com/ballerine-io/pointe" and page["makerURL"] == "https://ballerine.com"
+    assert app["title"] == "About" and 'data-section="g-about"' in PAGE
+
+
+ABOUT_SHOWN = """(() => ({body: document.getElementById('about-body').textContent, repo: document.getElementById('about-repo').href,
+  maker: document.getElementById('about-maker').href, ver: document.getElementById('about-ver').textContent,
+  shown: document.getElementById('about-body').offsetHeight > 0, name: document.querySelector('#side .brand .name').textContent,
+  ballerine: /Ballerine|Command center/.test(document.querySelector('#side .brand').textContent),
+  logo: !!document.querySelector('#side .brand svg')}))()"""
+
+
+@pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
+def test_the_page_header_is_pointe_alone_and_about_shows_the_credit():
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = {**fixture(sessions=1, talk=0, connected=False), "version": "9.8.7"}
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.wait_for_page()
+                await asyncio.sleep(0.6)
+                await page.eval("(async () => { await openSettings(); settingsJump('g-about'); return true; })()")
+                await asyncio.sleep(0.6)
+                return await page.eval(ABOUT_SHOWN)
+        finally:
+            await stub.stop()
+    got = asyncio.run(run())
+    assert got["name"] == "Pointe" and not got["ballerine"] and not got["logo"], got
+    assert got["body"] == ABOUT and got["shown"], got
+    assert got["repo"] == "https://github.com/ballerine-io/pointe" and got["maker"] == "https://ballerine.com/", got
+    assert got["ver"] == "9.8.7", got

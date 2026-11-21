@@ -1,6 +1,6 @@
 {
   "name": "pointe",
-  "owner": { "name": "Ballerine" },
+  "owner": { "name": "Ballerine Engineering" },
   "plugins": [
     { "name": "pointe", "source": "./", "description": "Talk to your Claude Code sessions by voice." }
   ]

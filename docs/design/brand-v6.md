@@ -90,7 +90,7 @@ bubbles) are gone.
 | Text | Instrument Sans 400/500/600 | everything else: rows, bubbles, buttons, labels |
 | Mono | the system monospace | commands, code, timestamps, a pairing code |
 
-No weight above 600, no serif, no italic: "Command center" under the name is plain muted text, and a draft or a
+No weight above 600, no serif, no italic: the version under the name is plain muted text, and a draft or a
 half-heard line is muted rather than italic. Section labels are 11px kickers in `dim`, upper case, tracked 0.12em.
 Numerals are tabular.
 
@@ -136,8 +136,9 @@ answers.
 
 ## 8. Logo and icon
 
-The Ballerine lockup (knot and wordmark) is unchanged in V6 and already matches `reference/logo.svg`. It sits top
-left on both surfaces in `text` colour: warm black on light, bone on dark. The guidelines define no app icon for
+Pointe is an open-source project built and open-sourced by Ballerine Engineering, not a Ballerine product, so the
+header on both surfaces is the name "Pointe" alone with the version under it: no Ballerine lockup. Settings → About
+carries the credit and the links (`AboutCopy` in the app, `ABOUT_COPY` in the page). The guidelines define no app icon for
 products, so the app icon is kept as it is.
 
 ## 9. Sessions: by machine, with the agent beside the name

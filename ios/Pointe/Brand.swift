@@ -345,31 +345,21 @@ extension View {
     }
 }
 
-/// Ballerine | Pointe, Command center: the same lockup as the page.
+/// Pointe and the version under it: the same header as the page.
 struct BrandHeader: View {
     var mac: String? = nil  // the Mac's version from /voice/status, when a call knows it
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image("BallerineLogo").resizable().renderingMode(.template).scaledToFit()
-                .frame(height: 24).foregroundStyle(Brand.text).accessibilityLabel("Ballerine")
-            Rectangle().fill(Brand.lineStrong).frame(width: 1, height: 28)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Pointe").font(.brand(.title3)).lineLimit(1)
-                // Never a cut word: with less room the build number goes first, then the tagline. The version stays.
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) { tagline; version(AppVersion.line(app: AppVersion.app, mac: mac)) }
-                    HStack(alignment: .firstTextBaseline, spacing: 6) { tagline; version(AppVersion.line(app: AppVersion.short, mac: mac)) }
-                    version(AppVersion.line(app: AppVersion.short, mac: mac))
-                }
+        VStack(alignment: .leading, spacing: 1) {
+            Text("Pointe").font(.brand(.title3)).lineLimit(1)
+            // Never a cut word: with less room the build number goes first. The version stays.
+            ViewThatFits(in: .horizontal) {
+                version(AppVersion.line(app: AppVersion.app, mac: mac))
+                version(AppVersion.line(app: AppVersion.short, mac: mac))
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
-    }
-
-    private var tagline: some View {
-        Text("Command center").font(.brand(.caption)).foregroundStyle(Brand.muted).lineLimit(1)
     }
 
     private func version(_ line: String) -> some View {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ballerine Pointe</title>
+<title>Pointe</title>
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -163,11 +163,9 @@
                font: 400 20px/1 var(--font); cursor: pointer; place-items: center; flex: none; padding: 0; position: relative; }
   #sideclose:hover { background: var(--raised2); color: var(--text); }
   .logo { height: 18px; width: auto; color: var(--text); }
-  .brand .ballerine { height: 26px; width: auto; color: var(--text); }
-  .brand .bar { width: 1px; height: 30px; background: var(--line-strong); flex: none; }
   .brand .name { font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); }
   .brand .serif { font-size: 12.5px; color: var(--dim); white-space: nowrap; margin-top: 2px; }
-  .brand .ver { font: 500 10.5px var(--font); font-style: normal; color: var(--dim); margin-left: 7px; letter-spacing: .02em; }
+  .brand .ver { font: 500 10.5px var(--font); font-style: normal; color: var(--dim); letter-spacing: .02em; }
   .brand .ver:empty { display: none; }
   .label { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
            margin: 0 0 8px 4px; display: flex; align-items: center; gap: 8px; }
@@ -738,6 +736,8 @@
   .settings .card .note, .settings .card .help, .settings .card .err, .settings .card .ok { padding: 10px 14px; margin: 0; font-size: 13px; }
   .settings .note:empty, .settings .help:empty, .settings .card > div:empty { display: none; }
   .settings .card .help { color: var(--muted); line-height: 1.45; }
+  .settings a.r { text-decoration: none; }
+  .settings .aver { color: var(--muted); font-variant-numeric: tabular-nums; }
   .settings #pref-talk-cmd { font: 12.5px var(--mono); color: var(--text); user-select: all; word-break: break-all; }
   .settings .note.foot, .settings .group > .err { padding: 0 14px; margin: 0; }
   .settings .card .row { padding: 10px 14px; }
@@ -960,7 +960,7 @@
 </head>
 <body data-state="off">
 <aside id="side">
-  <div class="brand">{{BALLERINE}}<span class="bar"></span><div><div class="name">Pointe</div><div class="serif">Command center<span class="ver" id="ver"></span></div></div>
+  <div class="brand"><div><div class="name">Pointe</div><div class="serif"><span class="ver" id="ver"></span></div></div>
     <button type="button" id="sideclose" onclick="toggleSessions()" aria-label="Close sessions">×</button></div>
 
   <section>
@@ -1088,6 +1088,7 @@
         <button type="button" data-section="g-conflicts" onclick="settingsJump('g-conflicts')">Conflict alarm</button>
         <button type="button" data-section="g-alerts" onclick="settingsJump('g-alerts')">Alerts</button>
         <button type="button" data-section="g-appearance" onclick="settingsJump('g-appearance')">Appearance</button>
+        <button type="button" data-section="g-about" onclick="settingsJump('g-about')">About</button>
       </nav>
       <div class="spanel" id="set-panel">
         <section id="voicelock" class="group" aria-labelledby="vl-h" hidden>
@@ -1282,6 +1283,15 @@
             </div></div>
           </div>
           <div class="note foot">System follows this device's light or dark setting. The choice is kept in this browser.</div>
+        </section>
+        <section class="group" id="g-about">
+          <h3>About</h3>
+          <div class="card">
+            <div class="help" id="about-body"></div>
+            <a class="r nav" id="about-repo" target="_blank" rel="noopener noreferrer"></a>
+            <a class="r nav" id="about-maker" target="_blank" rel="noopener noreferrer"></a>
+            <div class="r"><span id="about-ver-label"></span><span class="aver" id="about-ver"></span></div>
+          </div>
         </section>
       </div>
     </div>
@@ -1533,7 +1543,7 @@
       const r = await fetch('/voice/status');
       // 401 or 403 is the Mac refusing this page's key: not the same as the Mac being away, and said differently
       denied = r.status === 401 || r.status === 403;
-      if (!denied) { status = await r.json(); text('ver', status.version || ''); }
+      if (!denied) { status = await r.json(); text('ver', status.version || ''); text('about-ver', status.version || ''); }
       fails = 0;
     } catch (e) {
       fails++;
@@ -1596,7 +1606,7 @@
       $('attention').replaceChildren(...(first ? [approvalCard(first, s, waiting.length - 1)] : []));
     }
     const blocked = s.sessions.filter(needsYou);
-    if (!meetOn) document.title = (blocked.length ? `(${blocked.length}) ` : '') + 'Ballerine Pointe';
+    if (!meetOn) document.title = (blocked.length ? `(${blocked.length}) ` : '') + 'Pointe';
 
     const focused = s.mode === 'session';
     const mv = machineView(s);
@@ -2951,7 +2961,7 @@
     if (!m) { $('hand').hidden = true; if (!$('endsheet').classList.contains('open') && notesById.size) { notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes(); } return; }
     if (s.notes) loadNotes(s.notes.version);
     if (!meetOn) { $('hand').hidden = true; return; }
-    document.title = '● Meeting · Ballerine Pointe';
+    document.title = '● Meeting · Pointe';
     const n = (m.speakers || []).length;
     $('meetwhat').textContent = `Meeting · ${m.mode === 'participating' ? 'Participating' : 'Listening'}`;
     $('meetend').disabled = !!m.ending; $('meetend').textContent = m.ending ? 'Ending…' : endLabel();
@@ -3212,6 +3222,11 @@
       li.append(b); return li;
     }));
   }
+  // Settings → About: the same words as the app's AboutCopy (tests/test_copy_parity.py).
+  const ABOUT_COPY = {body: 'Pointe is open source (MIT). Built and open-sourced by Ballerine Engineering.', repo: 'Source code on GitHub',
+    repoURL: 'https://github.com/ballerine-io/pointe', maker: 'ballerine.com', makerURL: 'https://ballerine.com', version: 'Version'};
+  text('about-body', ABOUT_COPY.body); text('about-repo', ABOUT_COPY.repo); text('about-maker', ABOUT_COPY.maker);
+  text('about-ver-label', ABOUT_COPY.version); $('about-repo').href = ABOUT_COPY.repoURL; $('about-maker').href = ABOUT_COPY.makerURL;
   async function openSettings() {
     // The sheet opens on the click, with the values it last had; the Mac's answers fill it in as they land.
     $('pref-local').textContent = (status && status.local && status.local.line) || 'Pointe on this Mac does not report it: update it.';

@@ -27,6 +27,9 @@ permission to create iOS App Store provisioning profiles".
 | Privacy Policy URL | https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md |
 | Copyright | Ballerine |
 
+The seller is the individual Apple developer account that publishes the app, not Ballerine. Ballerine is credited in the
+description ("Built and open-sourced by Ballerine Engineering"), never as the seller.
+
 **Promotional text** (170 max, can change without a new build):
 
 > Talk to Claude Code, OpenCode and Codex sessions running on your Mac. Hear what each one did, switch by name, and
@@ -55,6 +58,8 @@ permission to create iOS App Store provisioning profiles".
 > certificate. No account, no analytics, no tracking. Your Mac uses your own model keys, or models that run on the Mac.
 >
 > No Mac yet? Tap "Try a demo" on the pairing screen to look around with sample sessions.
+>
+> Pointe is open source (MIT). Built and open-sourced by Ballerine Engineering.
 
 **What's New in 1.4.0:**
 
@@ -73,10 +78,11 @@ screen `xcrun simctl launch booted io.ballerine.pointe -demo <screen>` and `xcru
 
 Answer **Data Not Collected**. "Collected" in Apple's sense means sent off the device where the developer, or a third
 party the app integrates, can read it. The app sends audio, text and the device name only to the user's own Mac, which
-the user runs and Ballerine cannot reach; it embeds no third-party SDK; it has no analytics or crash reporting. The
+the user runs and neither the developer nor Ballerine can reach; it embeds no third-party SDK; it has no analytics or crash reporting. The
 Mac daemon's calls to model vendors use the Mac owner's own keys under the owner's own accounts, outside the app.
 Checked against the Swift sources: every `URLSession` in `ios/Pointe/` is built on the paired Mac's address
 (`Pairing.base`, `Pairing.callURL`, `PairingInvite.pairURL`) with the certificate pin, and no other host appears.
+Settings → About links to the repository and ballerine.com; a tap opens them in Safari, and the app fetches nothing.
 
 Tracking: **No**. Export compliance: `ITSAppUsesNonExemptEncryption` is `false` in `Info.plist` (standard TLS through
 URLSession, and SHA-256 of a certificate for the pin), so App Store Connect asks nothing per build.

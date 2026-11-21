@@ -9,8 +9,8 @@ Xcode (CI builds it with the newest Xcode on macOS 26; the app needs iOS 18 or n
 
 1. Open `ios/Pointe.xcodeproj` in Xcode.
 2. Select the Pointe target, then Signing & Capabilities. Choose your team (a free Personal Team is enough) and change
-   the Bundle Identifier to one of your own, such as `com.example.pointe`. `io.ballerine.pointe` belongs to Ballerine's
-   team, so Xcode cannot sign it for yours. Keep this change local; do not commit it.
+   the Bundle Identifier to one of your own, such as `com.example.pointe`. `io.ballerine.pointe` is registered to the team that
+   publishes the app, so Xcode cannot sign it for yours. Keep this change local; do not commit it.
 3. Connect the iPhone, turn on Developer Mode on it (Settings → Privacy & Security), choose it as the run destination,
    and press Run.
 

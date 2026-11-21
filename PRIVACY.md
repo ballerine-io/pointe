@@ -1,13 +1,14 @@
 # Privacy
 
-Pointe is software you run yourself: a voice daemon on your own Mac, and an iPhone app that talks to that Mac. Ballerine,
-which makes Pointe, runs no server for it. Nothing in Pointe sends anything to Ballerine.
+Pointe is open-source software you run yourself: a voice daemon on your own Mac, and an iPhone app that talks to that
+Mac. It was built and open-sourced by Ballerine Engineering. Neither Ballerine nor the developer who publishes the iPhone
+app runs a server for it, and nothing in Pointe sends anything to either.
 
 ## The iPhone app
 
 **The app collects nothing.** It has no analytics, no crash reporting, no advertising, no tracking, no third-party SDKs
 and no accounts. It contacts exactly one machine: the Mac you paired it with, at the address in the pairing code, over
-TLS pinned to that Mac's own certificate. It contacts no other server, Ballerine's included.
+TLS pinned to that Mac's own certificate. It contacts no other server, Ballerine's and the app publisher's included.
 
 What the app sends to your Mac, and why:
 
@@ -34,8 +35,8 @@ Your Mac is where your voice and your sessions are processed. It reaches the spe
 (for example Anthropic, Google Gemini, OpenAI, Soniox or ElevenLabs) with **your own API keys**, kept in your Mac's
 Keychain, under your own agreements with those vendors. It can also run local models on the Mac instead, in which case
 the voice does not leave the Mac. The full list of hosts the daemon may contact, and why, is in
-[docs/security/egress-allowlist.txt](docs/security/egress-allowlist.txt). Ballerine receives none of this traffic and
-has no access to your Mac, your keys, your audio or your transcripts.
+[docs/security/egress-allowlist.txt](docs/security/egress-allowlist.txt). Neither Ballerine nor the app publisher
+receives any of this traffic or has access to your Mac, your keys, your audio or your transcripts.
 
 Transcripts, meeting notes and settings are stored on your Mac, under your user account, and stay there until you
 delete them.

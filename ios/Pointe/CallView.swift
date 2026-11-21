@@ -48,6 +48,7 @@ struct CallView: View {
     @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
+    @State private var showAbout = false
     @State private var stageHeight: CGFloat = 0
     @State private var topHeight: CGFloat = 0
     @State private var demoAnswered: Set<String> = []  // the demo's requests answered here: their card goes, as a Mac's would
@@ -79,6 +80,7 @@ struct CallView: View {
         case "ignored": _showIgnored = State(initialValue: true)
         case "speakers": _showSpeakers = State(initialValue: true)
         case "sessions": _showSessions = State(initialValue: true)
+        case "about": _showAbout = State(initialValue: true)
         default: break
         }
         #endif
@@ -245,6 +247,9 @@ struct CallView: View {
                 .presentationBackground(Brand.group)
         }
         .onChange(of: showing?.id) { showFollow.follow(showing) }
+        .sheet(isPresented: $showAbout) {
+            AboutSheet(mac: status?.version).presentationDetents([.medium]).presentationBackground(Brand.group)
+        }
         .sheet(isPresented: $showDictionary) {
             VocabularySheet(load: loadDictionary, change: changeDictionary, delete: deleteFromDictionary, setLearn: setLearn)
                 .presentationDetents([.medium, .large])
@@ -544,6 +549,8 @@ struct CallView: View {
             if let line = status?.local?.short {
                 Section { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
             }
+            Button { showAbout = true } label: { Label(AboutCopy.title, systemImage: "info.circle") }
+                .accessibilityIdentifier("aboutSetting")
             Divider()
             if demo?.tried == true {
                 Button(DemoBadge.exit, systemImage: "xmark.circle") { call.hangUp(); unpair() }

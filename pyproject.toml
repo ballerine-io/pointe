@@ -1,9 +1,9 @@
 [project]
 name = "pointe"
-version = "1.14.6"
+version = "1.14.7"
 description = "Talk to your Claude Code sessions by voice"
 authors = [
-    { name = "Ballerine" }
+    { name = "Ballerine Engineering" }
 ]
 license = "MIT"
 license-files = ["LICENSE"]

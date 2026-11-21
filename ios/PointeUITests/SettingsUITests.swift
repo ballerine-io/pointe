@@ -80,6 +80,23 @@ final class SettingsUITests: XCTestCase {
                         "the version ends the header: \(header.label)")
     }
 
+    /// The header is Pointe alone; Settings → About credits Ballerine Engineering, with the page's words.
+    func testAboutCreditsBallerineEngineeringAndTheHeaderIsPointeAlone() {
+        let app = launch("call")
+        let header = app.descendants(matching: .any)["versionLine"].firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: 5))
+        XCTAssertTrue(header.label.hasPrefix("Pointe, "), "nothing before the name: \(header.label)")
+        XCTAssertFalse(header.label.contains("Ballerine"), header.label)
+        openSettings(app)
+        app.buttons["aboutSetting"].firstMatch.tap()
+        let body = app.staticTexts["aboutBody"].firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        XCTAssertEqual(body.label, "Pointe is open source (MIT). Built and open-sourced by Ballerine Engineering.")
+        XCTAssertTrue(app.buttons["Source code on GitHub"].exists || app.links["Source code on GitHub"].exists)
+        XCTAssertTrue(app.buttons["ballerine.com"].exists || app.links["ballerine.com"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["aboutVersion"].firstMatch.exists)
+    }
+
     func testKeepingTheMacAwakeIsSaidOnlyWhenTheMacSaysSo() {
         let app = launch("machines")
         let line = app.staticTexts["keepAwake"].firstMatch
