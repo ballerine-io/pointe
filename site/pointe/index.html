@@ -68,20 +68,20 @@
       <figure class="stage" data-demo>
         <div class="stage-mac">
           <picture class="demo-still">
+            <source srcset="img/narrow-call-dark.jpg" media="(max-width: 640px) and (prefers-color-scheme: dark)" width="860" height="1560">
+            <source srcset="img/narrow-call-light.jpg" media="(max-width: 640px)" width="860" height="1560">
             <source srcset="img/mac-call-dark.jpg" media="(prefers-color-scheme: dark)">
-            <img src="img/mac-call-light.jpg" width="2080" height="1300"
-                 alt="Pointe's call page on a Mac: three sessions (billing/main waiting for approval, docs working, river-lantern idle), the conversation, and a card that reads: billing/main needs approval, git push --force-with-lease origin retry-fix, with Deny and Approve.">
+            <img src="img/mac-call-light.jpg" width="2080" height="1170"
+                 alt="Pointe's call page on a Mac: three sessions (billing/main waiting for approval, docs working, river-lantern idle), the conversation, and a card that reads: billing/main needs approval, pytest -q tests/test_retry.py, say yes or no, or tap, with Deny and Approve.">
           </picture>
           <video class="demo-video" preload="metadata" playsinline width="1600" height="1000" hidden>
             <source src="demo.mp4" type="video/mp4">
             <track kind="captions" src="demo.vtt" srclang="en" label="English" default>
           </video>
         </div>
-        <img class="stage-phone" src="img/phone-request.jpg" width="720" height="1074"
-             alt="The iPhone app on the same call: the end of the conversation and the same request with Deny and Approve.">
-        <figcaption class="small stage-cap"><span class="wide">One call on two surfaces: the page Pointe serves on the
-          Mac, and the iPhone app (shown from below its title bar).</span> The session <code>billing/main</code> waits for a yes, a no or a tap on
-          the exact command. Screenshots of the product; the sessions and the words are invented.</figcaption>
+        <figcaption class="small stage-cap">The page Pointe serves, during a call. The session <code>billing/main</code>
+          asks to run one test file, and waits for a yes, a no or a tap on the exact command. A screenshot of the
+          product; the sessions and the words are invented.</figcaption>
       </figure>
     </section>
 
@@ -89,32 +89,173 @@
       <div><dt class="kicker">Cost</dt><dd>About $1 for a busy hour (60 replies) on your own keys, by arithmetic. Free on one Gemini key's free tier. $0 fully local.</dd></div>
       <div><dt class="kicker">Models</dt><dd>You set each role. Defaults: Claude Sonnet 5.5 thinks, Soniox hears, ElevenLabs speaks. Or Gemini or OpenAI alone, or Whisper, Kokoro and Gemma on the Mac.</dd></div>
       <div><dt class="kicker">Needs</dt><dd>macOS, Claude Code 2.1.224 or newer, Chrome, headphones, one model key. English and Hebrew are benchmarked.</dd></div>
-      <div><dt class="kicker">License</dt><dd>MIT. Version 1.14.6.</dd></div>
+      <div><dt class="kicker">License</dt><dd>MIT. Version 1.14.7.</dd></div>
       <div><dt class="kicker">Source</dt><dd><a class="link" href="https://github.com/ballerine-io/pointe">github.com/<wbr>ballerine-io/<wbr>pointe</a></dd></div>
     </dl>
   </div>
 
-  <section id="talk" class="section" aria-labelledby="h-talk">
-    <div class="page split">
-      <div class="stack">
-        <h2 id="h-talk" class="h1">The sessions do the work. Pointe listens, reports and routes.</h2>
-        <p class="lead">With text, you prompt one session at a time and read each reply. Here you hold one conversation
-          and the sessions report into it.</p>
-        <p class="body">Each session keeps its own context and keeps working. Pointe reads their records and reports. A
-          background session speaks up for two things only: it finished, or it needs approval. A "by the way" question
-          goes to a read-only copy, so the live session gets no new message.</p>
+  <section id="day" class="section story" aria-labelledby="h-day">
+    <div class="page">
+      <div class="head-row">
+        <p class="kicker">One day, one conversation</p>
+        <h2 id="h-day" class="h1">The sessions do the work. Pointe listens, reports and routes.</h2>
+        <p class="lead">From typing at your agents to talking with them: one call, followed from the morning to the
+          afternoon.</p>
       </div>
-      <dl class="talk" aria-label="An example call">
-        <div><dt class="kicker">You</dt><dd>What is the billing session doing?</dd></div>
-        <div class="bot"><dt class="kicker">Pointe</dt><dd>It finished the retry fix. Tests pass. It asks whether to open the PR.</dd></div>
-        <div><dt class="kicker">You</dt><dd>Tell it to open the PR.
-          <span class="aside">An answer relayed to the session. It approves no permission prompt: those follow <a href="#approvals">the rules below</a>.</span></dd></div>
-        <div class="bot"><dt class="kicker">Pointe</dt><dd>Sent to billing.</dd></div>
-        <div><dt class="kicker">You</dt><dd>And tell the docs session to update the changelog.</dd></div>
-        <div class="bot"><dt class="kicker">Pointe</dt><dd>Docs is on it.</dd></div>
-        <div><dt class="kicker">You</dt><dd>By the way, why did billing drop the queue idea?</dd></div>
-        <div class="bot"><dt class="kicker">Pointe</dt><dd>Duplicate charges during failover. It decided that an hour ago.</dd></div>
-      </dl>
+      <div class="story-grid" data-day>
+        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> The switch</a><a href="#beat-away"><span class="when">11:40</span> Away</a><a href="#beat-aside"><span class="when">12:30</span> Side question</a><a href="#beat-coffee"><span class="when">13:15</span> Coffee stop</a><a href="#beat-back"><span class="when">16:00</span> Back</a></nav>
+        <ol class="beats">
+        <li class="beat" id="beat-before">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">09:05</span> Before</p>
+            <h3 class="h2">Type a prompt. Switch tabs. Wait. Read. Repeat.</h3>
+            <p class="body">With text, you prompt one session at a time and read each reply. Every session you add is
+              one more chat to keep in your head.</p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/before.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: a developer hunched over her keyboard in the morning, frowning at two monitors.">
+              <video muted playsinline preload="none" poster="day/before.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/before.webm" type="video/webm"><source src="day/before.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-switch">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">09:20</span> The switch</p>
+            <h3 class="h2">Talk to all your sessions.</h3>
+            <p class="body">Say a session's name to talk to it or switch to it. Ask what is going on across all of
+              them. Each session keeps its own context and keeps working; Pointe reads their records and reports.</p>
+            <p class="small">"Tell it to open the PR" is an answer relayed to the session. It approves no permission
+              prompt: those follow <a href="#approvals">the rules below</a>.</p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/switch.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: she puts an earbud in, sits back from the keyboard and starts talking.">
+              <video muted playsinline preload="none" poster="day/switch.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/switch.webm" type="video/webm"><source src="day/switch.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--mac"><picture>
+              <source srcset="day/ui-switch-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-switch-light.jpg" width="880" height="708" loading="lazy" alt="The call page. You: What is the billing session doing? Pointe: It finished the retry fix. Tests pass. It asks whether to open the PR. You: Tell it to open the PR. Pointe: Sent to billing.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-away">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">11:40</span> Away from the desk</p>
+            <h3 class="h2">The call goes with you.</h3>
+            <p class="body">The same call and controls on your phone, in the iPhone app or in the page at phone width,
+              shown here. A background session speaks up for two things only: it finished, or it needs approval. A reader
+              model keeps notes per session and turns each final message into a short spoken report.</p>
+            <p class="small">The iPhone app is built from source in Xcode <a href="#limits">for now</a>.</p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/away.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late morning, she walks out past the desks with a backpack and earbuds, still talking.">
+              <video muted playsinline preload="none" poster="day/away.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/away.webm" type="video/webm"><source src="day/away.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--phone"><picture>
+              <source srcset="day/ui-away-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-away-light.jpg" width="680" height="466" loading="lazy" alt="The call page at phone width. You: And tell the docs session to update the changelog. Pointe: Docs is on it.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-aside">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">12:30</span> A side question</p>
+            <h3 class="h2">"By the way" interrupts nobody.</h3>
+            <p class="body">A "by the way" question goes to a read-only copy of the session. The live session gets no
+              new message and keeps working.</p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/aside.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: midday, she walks down a street lined with trees and asks a question out loud.">
+              <video muted playsinline preload="none" poster="day/aside.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/aside.webm" type="video/webm"><source src="day/aside.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--phone"><picture>
+              <source srcset="day/ui-aside-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-aside-light.jpg" width="680" height="556" loading="lazy" alt="The call page at phone width. You: By the way, why did billing drop the queue idea? Pointe: Duplicate charges during failover. It decided that an hour ago.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-coffee">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">13:15</span> Coffee stop</p>
+            <h3 class="h2">A request waits for your yes, or your tap.</h3>
+            <p class="body">Pointe reads a request out from the command that will run, and a plain yes approves it. In
+              a room you do not trust, tap Approve on the exact request instead. A command the daemon cannot read out
+              whole is approved only by a tap: that is most of them.</p>
+            <p class="small"><a href="#approvals">What a spoken yes can approve, and what it cannot</a>.</p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/coffee.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: early afternoon at a cafe window, she reads her phone, taps it once and picks up a paper cup.">
+              <video muted playsinline preload="none" poster="day/coffee.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/coffee.webm" type="video/webm"><source src="day/coffee.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--phone beat-ui--left"><picture>
+              <source srcset="day/ui-coffee-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-coffee-light.jpg" width="680" height="704" loading="lazy" alt="The call page at phone width. You: Tell billing to raise the timeout to 30 seconds. A card: billing/main needs approval, pytest -q tests/test_retry.py, say yes or no, or tap, with Deny and Approve.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-back">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">16:00</span> Back at the desk</p>
+            <h3 class="h2">The work moved on while you were out.</h3>
+            <p class="body">Ask what happened and get one answer: what each session did, what failed, what waits on
+              you. Claude Code, OpenCode and Codex sessions in one call, each with its own approvals, on this Mac or on
+              others.</p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/back.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late afternoon light, she sets a paper cup on her desk and listens, relieved.">
+              <video muted playsinline preload="none" poster="day/back.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/back.webm" type="video/webm"><source src="day/back.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--mac"><picture>
+              <source srcset="day/ui-done-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-done-light.jpg" width="880" height="600" loading="lazy" alt="The call page. You: What happened while I was out? Pointe: Billing opened the PR for the retry fix and its checks pass. Docs updated the changelog. River-lantern finished the timeout change. Nothing is waiting for you.">
+            </picture></div>
+          </figure>
+        </li>
+        </ol>
+      </div>
+      <p class="small note">The footage is AI-generated and shows an invented person. The panels on it are screenshots
+        of the page Pointe serves, with invented sessions; no screen in the footage is real.</p>
+
+      <div class="split split--wide story-more">
+        <div>
+          <p class="kicker">More in a call, each with its rules, what was measured, and its limits</p>
+          <ul class="more">
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/brain-dump.md">Brain dump</a>talk first, send a prompt after</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">Audio briefings</a>"brief me on the night"</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-lock.md">Voice lock</a>only your voice counts</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/push-to-talk.md">Push to talk</a>no audio unless you hold</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/vocabulary.md">Vocabulary</a>fix a misheard name once</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">Meeting mode</a>notes and lookups, no sends</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/conflict-alarm.md">Conflict alarm</a>two sessions disagree</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">Show while it says</a>the diff on screen</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/alerts.md">Watch and desktop alerts</a>a session needs you</li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/README.md">All features</a>14 pages</li>
+          </ul>
+        </div>
+        <figure>
+          <img class="shot-phone" src="img/phone-sessions.jpg" width="720" height="501" loading="lazy"
+               alt="Part of the iPhone app's Sessions sheet: river-lantern on Codex needs you, billing/main on Claude is working, docs on OpenCode is idle. Under Recent requests: push it, blocked as ambiguous between billing/main and docs.">
+          <figcaption class="small">From the Sessions sheet in the iPhone app. The last line is the gate at work: "push it"
+            was not sent, because it could mean either session.</figcaption>
+        </figure>
+      </div>
     </div>
   </section>
 
@@ -162,39 +303,6 @@
       <p class="small note">Each role (ears, brain, reader, gate, mouth) is set separately: a vendor you chose, under
         your key, or a model on your Mac. The gate's config name is <code>checker</code>.
         Detail: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md">how-it-works.md</a>.</p>
-    </div>
-  </section>
-
-  <section id="call" class="section" aria-labelledby="h-call">
-    <div class="page split split--wide">
-      <div>
-        <h2 id="h-call" class="h2">In a call.</h2>
-        <ul class="rows rows--two block">
-          <li><b>One voice over many sessions</b><span>Say a session's name to talk to it or switch to it. Ask what is going on across all of them.</span></li>
-          <li><b>Session notes</b><span>A reader model keeps notes per session: goal, state, decisions, what was ruled out, what is open. It turns each final message into a short spoken report.</span></li>
-          <li><b>Side questions</b><span>"By the way" goes to a read-only copy of the session. The live one keeps working.</span></li>
-          <li><b>Several harnesses and machines</b><span>Claude Code, OpenCode and Codex in one call, each session with its own approvals, on this Mac or on others.</span></li>
-        </ul>
-        <p class="kicker block">More, each with its rules, what was measured, and its limits</p>
-        <ul class="more">
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/brain-dump.md">Brain dump</a>talk first, send a prompt after</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">Audio briefings</a>"brief me on the night"</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-lock.md">Voice lock</a>only your voice counts</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/push-to-talk.md">Push to talk</a>no audio unless you hold</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/vocabulary.md">Vocabulary</a>fix a misheard name once</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">Meeting mode</a>notes and lookups, no sends</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/conflict-alarm.md">Conflict alarm</a>two sessions disagree</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">Show while it says</a>the diff on screen</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/alerts.md">Watch and desktop alerts</a>a session needs you</li>
-          <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/README.md">All features</a>14 pages</li>
-        </ul>
-      </div>
-      <figure>
-        <img class="shot-phone" src="img/phone-sessions.jpg" width="720" height="826" loading="lazy"
-             alt="The iPhone app's Sessions sheet: river-lantern on Codex needs you, billing/main on Claude is working, docs on OpenCode is idle. Under Recent requests: push it, blocked as ambiguous between billing/main and docs.">
-        <figcaption class="small">The Sessions sheet in the iPhone app, three agents in one call. The last line is the
-          gate at work: "push it" was not sent, because it could mean either session.</figcaption>
-      </figure>
     </div>
   </section>
 
@@ -288,25 +396,10 @@
   <section id="evidence" class="section" aria-labelledby="h-evidence">
     <div class="page">
       <div class="head-row">
-        <p class="kicker">Use and evidence</p>
-        <h2 id="h-evidence" class="h1">What it is for, and what we can show.</h2>
+        <p class="kicker">Evidence</p>
+        <h2 id="h-evidence" class="h1">What we can show, and what we cannot.</h2>
         <p class="body">Three kinds of numbers, kept apart: measured in Pointe, published research that is not about
           Pointe, and one engineer's own use. Where we have no number, we say so.</p>
-      </div>
-
-      <div class="scroll block">
-        <table class="table table--stack">
-          <thead><tr><th scope="col">When</th><th scope="col">What you do</th><th scope="col">Uses</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">Several long-running sessions</th><td>"What is everyone doing?" One answer, and you hear when one finishes or needs you.</td><td>Session notes, background announcements</td></tr>
-            <tr><th scope="row">Away from the desk</th><td>The call moves to the phone. A request is read out, or waits for your tap with Face ID.</td><td>iPhone app, approvals</td></tr>
-            <tr><th scope="row">Before a session starts work</th><td>Talk through the task for a few minutes. Pointe turns it into a prompt in your words and sends it when you say.</td><td><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/brain-dump.md">Brain dump</a></td></tr>
-            <tr><th scope="row">A question, mid-task</th><td>"By the way, why did billing drop the queue idea?" The session is not interrupted.</td><td>Side questions on a read-only copy</td></tr>
-            <tr><th scope="row">Start of the day</th><td>"Brief me on the night": what each session did, what failed, what waits on you.</td><td><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">Audio briefings</a></td></tr>
-            <tr><th scope="row">In a meeting</th><td>Notes, and a lookup in a session when a question comes up. Nothing is sent to a session.</td><td><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">Meeting mode</a></td></tr>
-            <tr><th scope="row">Hebrew and English in one sentence</th><td>Speak as you do. Session and library names are heard through your dictionary.</td><td><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/vocabulary.md">Vocabulary</a>, Soniox ears</td></tr>
-          </tbody>
-        </table>
       </div>
 
       <h3 class="h3 block">Measured in Pointe</h3>
@@ -431,73 +524,6 @@
     </div>
   </section>
 
-  <section id="day" class="section" aria-labelledby="h-day">
-    <div class="page">
-      <div class="head-row">
-        <p class="kicker">A day with Pointe</p>
-        <h2 id="h-day" class="h2">From typing at your agents to talking with them.</h2>
-        <p class="small">A sketch of one day. The four pictures are AI-generated illustrations of an invented person,
-          each marked. The last frame is the product.</p>
-      </div>
-      <ol class="beats" data-day>
-        <li class="beat">
-          <div class="beat-frame">
-            <img src="day/before.jpg" width="1280" height="720" loading="lazy" alt="AI-generated illustration: a developer hunched over his keyboard, frowning at his monitors.">
-            <video muted playsinline loop preload="none" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-              <source src="day/before.webm" type="video/webm"><source src="day/before.mp4" type="video/mp4"></video>
-            <span class="ai">AI-generated</span>
-          </div>
-          <p class="kicker">Before</p>
-          <p class="title">Type a prompt. Switch tabs. Wait. Read the diff. Repeat.</p>
-        </li>
-        <li class="beat">
-          <div class="beat-frame">
-            <img src="day/turn.jpg" width="1280" height="720" loading="lazy" alt="AI-generated illustration: the same developer puts an earbud in, sits back and starts talking.">
-            <video muted playsinline loop preload="none" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-              <source src="day/turn.webm" type="video/webm"><source src="day/turn.mp4" type="video/mp4"></video>
-            <span class="ai">AI-generated</span>
-          </div>
-          <p class="kicker">The switch</p>
-          <p class="title">Earbuds in. Ask the sessions out loud.</p>
-        </li>
-        <li class="beat">
-          <div class="beat-frame">
-            <img src="day/leaving.jpg" width="1280" height="720" loading="lazy" alt="AI-generated illustration: he walks out of the office with a backpack and earbuds, still talking.">
-            <video muted playsinline loop preload="none" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-              <source src="day/leaving.webm" type="video/webm"><source src="day/leaving.mp4" type="video/mp4"></video>
-            <span class="ai">AI-generated</span>
-          </div>
-          <p class="kicker">Away from the desk</p>
-          <p class="title">Pointe reads a request out. "Yes."</p>
-          <p class="small">Then, as its own sentence: "Tell docs to update the changelog."</p>
-        </li>
-        <li class="beat">
-          <div class="beat-frame">
-            <img src="day/coffee.jpg" width="1280" height="720" loading="lazy" alt="AI-generated illustration: at a coffee shop counter he looks at his phone and taps it once.">
-            <video muted playsinline loop preload="none" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-              <source src="day/coffee.webm" type="video/webm"><source src="day/coffee.mp4" type="video/mp4"></video>
-            <span class="ai">AI-generated</span>
-          </div>
-          <p class="kicker">Coffee stop</p>
-          <p class="title">A command that cannot be read out waits for a tap.</p>
-        </li>
-        <li class="beat beat--real">
-          <div class="beat-frame">
-            <picture>
-              <source srcset="img/mac-done-talk-dark.jpg" media="(max-width: 640px) and (prefers-color-scheme: dark)">
-              <source srcset="img/mac-done-talk-light.jpg" media="(max-width: 640px)">
-              <source srcset="img/mac-done-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="img/mac-done-light.jpg" width="1440" height="660" loading="lazy"
-                   alt="Pointe's page on the Mac: billing/main, docs and river-lantern are idle. You: What happened while I was out? Pointe: Billing opened the PR for the retry fix and its checks pass. Docs updated the changelog. River-lantern finished the timeout change. Nothing is waiting for you.">
-            </picture>
-          </div>
-          <p class="kicker">Back at the desk · the page, not an illustration</p>
-          <p class="title">Three sessions finished while you were out.</p>
-        </li>
-      </ol>
-    </div>
-  </section>
-
   <section id="alternatives" class="section" aria-labelledby="h-alternatives">
     <div class="page">
       <div class="head-stack">
@@ -588,23 +614,50 @@
     video.hidden = false;
     video.controls = true;
     demo.querySelector('.demo-still').remove();
-    demo.querySelector('.stage-phone').remove();
     demo.querySelector('figcaption').textContent = 'A recording of a call, with sound.';
   }, { once: true });
   video.load();
 
-  // A day with Pointe: a clip plays while the pointer or the focus is on its frame. With reduced motion or data saver
-  // the stills stay.
+  // The day story. On a wide screen the beats share one sticky stage and the beat at the middle of the window shows; on
+  // a narrow one they are stacked. A clip plays once when its beat shows, and holds its last frame. With reduced motion
+  // or data saver the stills stay. The page scrolls as any page does: nothing here moves it.
+  const day = document.querySelector('[data-day]');
+  const beats = [...day.querySelectorAll('.beat')];
+  const links = [...day.querySelectorAll('.rail a')];
+  const wide = matchMedia('(min-width: 1081px)');
   const still = matchMedia('(prefers-reduced-motion: reduce)');
   const saver = navigator.connection && navigator.connection.saveData;
-  for (const frame of document.querySelectorAll('[data-day] .beat-frame')) {
-    const clip = frame.querySelector('video');
-    if (!clip) continue;
-    const play = () => { if (still.matches || saver) return; clip.hidden = false; clip.play().catch(() => {}); };
-    const stop = () => { clip.pause(); };
-    frame.addEventListener('pointerenter', play);
-    frame.addEventListener('pointerleave', stop);
-  }
+  const clip = beat => beat.querySelector('video');
+  const play = beat => {
+    if (still.matches || saver) return;
+    const v = clip(beat);
+    v.hidden = false; v.currentTime = 0; v.play().catch(() => {});
+    const next = beats[beats.indexOf(beat) + 1];
+    if (next) clip(next).preload = 'auto';
+  };
+  let current = null;
+  const show = beat => {
+    if (beat === current) return;
+    current = beat;
+    beats.forEach((b, i) => {
+      const on = b === beat;
+      b.classList.toggle('is-active', on);
+      if (links[i]) on ? links[i].setAttribute('aria-current', 'step') : links[i].removeAttribute('aria-current');
+      on ? play(b) : clip(b).pause();
+    });
+  };
+  const stage = () => day.classList.toggle('is-stage', wide.matches);
+  wide.addEventListener('change', stage); stage();
+  beats[0].classList.add('is-active');
+  const middle = new IntersectionObserver(entries => {
+    if (!wide.matches) return;
+    for (const e of entries) if (e.isIntersecting) show(e.target.closest('.beat'));
+  }, { rootMargin: '-50% 0px -50% 0px' });
+  const seen = new IntersectionObserver(entries => {
+    if (wide.matches) return;
+    for (const e of entries) e.isIntersecting ? play(e.target.closest('.beat')) : clip(e.target.closest('.beat')).pause();
+  }, { threshold: 0.6 });
+  for (const b of beats) { middle.observe(b.querySelector('.beat-copy')); seen.observe(b.querySelector('.beat-frame')); }
 </script>
 </body>
 </html>
