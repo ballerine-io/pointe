@@ -1,0 +1,134 @@
+/* The orchestra figure on Pointe's page: one voice on the hub Mac, sessions of several agents on several machines.
+   tools/orchestra_viz.py draws the two SVGs (wide and narrow) into index.html; viz.js plays them. Colours are the page's
+   own tokens (style.css). Everything that moves is a transform or an opacity. With no script, or with reduced motion,
+   the drawing as written is a still. */
+
+.orch { --o-wire: #DCD6D2; --o-wire-hot: #FFAE80; --o-tint: #FFF1E9; --o-ok: #138A4B; --o-idle: #E9E2DE;
+        margin: 44px 0 0; container-type: inline-size; }
+@media (prefers-color-scheme: dark) {
+  .orch { --o-wire: #2F2823; --o-wire-hot: #9C3F0C; --o-tint: #2A1609; --o-idle: #26201B; }
+}
+.o-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.o-stage { position: relative; }
+.o-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.o-tall { display: none; }
+@container (max-width: 859px) {
+  .o-stage { max-width: 420px; margin-inline: auto; }
+  .o-wide { display: none; }
+  .o-tall { display: block; }
+}
+
+/* What is being said: over the hub, above the point */
+.o-say { position: absolute; left: var(--wl); width: var(--ww); top: var(--wt); padding: 0 6%; text-align: center;
+         transition: opacity .3s; }
+.o-say.is-out { opacity: 0; }
+.o-who { display: block; font-size: 11px; line-height: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em;
+         color: var(--dim); }
+.orch[data-voice="pointe"] .o-who, .o-say[data-by="pointe"] .o-who { color: var(--accent); }
+.o-line { display: block; font-family: var(--font-display); font-weight: 300; font-size: clamp(14px, 1.62cqw, 19px);
+          line-height: 1.28; letter-spacing: -.01em; color: var(--text); text-wrap: balance; }
+.o-line span { display: inline-block; opacity: 0; transform: translateY(4px); transition: opacity .3s, transform .45s var(--ease); }
+.o-line.is-in span { opacity: 1; transform: none; }
+@container (max-width: 859px) {
+  .o-say { left: var(--tl); width: var(--tw); top: var(--tt); }
+  .o-line { font-size: 15px; }
+}
+
+/* The drawing */
+.o-svg text { font-family: var(--font-sans); fill: var(--text); }
+.o-hub { fill: var(--surface); stroke: var(--line-strong); }
+.o-card { fill: var(--card); stroke: var(--line-strong); }
+.o-lit { fill: none; stroke: var(--orange); stroke-opacity: .55; opacity: 0; transition: opacity .45s; }
+.is-lit > .o-lit { opacity: 1; }
+.o-hair { fill: none; stroke: var(--line); }
+.o-live { fill: var(--o-ok); }
+.o-mn { font-size: 12.5px; font-weight: 600; fill: var(--muted) !important; }
+.o-os { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; fill: var(--dim) !important; }
+.o-num { font-variant-numeric: tabular-nums; }
+
+.o-row-hot { fill: var(--o-tint); opacity: 0; transition: opacity .35s; }
+.o-row-bar { fill: var(--orange); opacity: 0; transition: opacity .35s; }
+.o-row.is-hot .o-row-hot, .o-row.is-hot .o-row-bar { opacity: 1; }
+.o-st, .o-tag { opacity: 0; transition: opacity .15s; }
+.o-row[data-state="idle"] .o-is-idle, .o-row[data-state="working"] .o-is-working, .o-row[data-state="approve"] .o-is-approve { opacity: 1; transition: opacity .3s .15s; }
+.o-st.o-is-idle { fill: var(--o-idle); stroke: var(--line-strong); }
+.o-st.o-is-working { fill: var(--o-ok); }
+.o-st.o-is-approve { fill: var(--orange); }
+.o-tag { font-size: 11.5px; fill: var(--muted) !important; }
+.o-tag.o-is-approve { fill: var(--accent) !important; font-weight: 600; }
+.o-hg { fill: none; stroke: var(--line-strong); }
+.o-hgt { font-size: 9.5px; font-weight: 600; fill: var(--muted) !important; }
+.o-nm { font-size: 14px; font-weight: 500; }
+.o-ag { font-size: 12px; fill: var(--dim) !important; }
+
+.o-wire { fill: none; stroke: var(--o-wire); stroke-width: 1.25; }
+.o-wire-hot { fill: none; stroke: var(--o-wire-hot); stroke-width: 1.5; opacity: 0; transition: opacity .45s; }
+.o-wire-hot.is-hot { opacity: 1; }
+.o-route { fill: none; stroke: none; }
+.o-port { fill: var(--bg); stroke: var(--o-wire); stroke-width: 1.25; }
+.o-ring circle, .o-mdot { fill: var(--text); }
+.o-ring { opacity: var(--o); transform-origin: inherit; }
+.o-ring[data-ring="0"] { --o: .78; } .o-ring[data-ring="1"] { --o: .62; } .o-ring[data-ring="2"] { --o: .48; }
+.o-ring[data-ring="3"] { --o: .36; } .o-ring[data-ring="4"] { --o: .26; }
+.o-point, .o-mpoint, .o-dot { fill: var(--orange); }
+.o-halo { fill: none; stroke: var(--orange); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: 0; }
+.o-note { font-size: 11px; fill: var(--dim) !important; }
+.is-ready .o-still { display: none; }
+
+.o-phone-body { fill: var(--card); stroke: var(--line-strong); stroke-width: 1.5; }
+.o-island { fill: var(--o-idle); }
+.o-ph-t { font-size: 11.5px; font-weight: 600; }
+.o-ph-s { font-size: 9.5px; fill: var(--dim) !important; }
+.o-notif { opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .5s var(--ease); }
+.orch[data-phone="ask"] .o-notif { opacity: 1; transform: none; }
+.o-ncard { fill: var(--card); stroke: var(--orange); stroke-opacity: .5; }
+.o-nwho { font-size: 11px; font-weight: 600; }
+.o-nwhat { font-size: 10.5px; font-weight: 600; fill: var(--accent) !important; }
+.o-ncmd { font-family: var(--font-mono) !important; font-size: 10px; font-weight: 400; fill: var(--muted) !important; }
+.o-deny { fill: none; stroke: var(--line-strong); }
+.o-approve rect { fill: var(--primary); }
+.o-approve .o-btn-t { fill: var(--on-primary) !important; }
+.o-btn-t { font-size: 10px; font-weight: 600; }
+.o-approve { transition: transform .16s var(--ease); }
+.o-approve.is-pressed { transform: scale(.9); }
+
+/* Motion: only while it plays */
+.is-live .o-row[data-state="working"] .o-st.o-is-working { animation: o-breathe 1.6s ease-in-out infinite; }
+.is-live .o-ring { animation: o-idle 5.2s ease-in-out infinite; }
+.is-live .o-ring[data-ring="1"] { animation-delay: .22s; } .is-live .o-ring[data-ring="2"] { animation-delay: .44s; }
+.is-live .o-ring[data-ring="3"] { animation-delay: .66s; } .is-live .o-ring[data-ring="4"] { animation-delay: .88s; }
+.is-live[data-voice] .o-point { animation: o-speak .8s ease-in-out infinite; }
+.is-live[data-voice] .o-halo { animation: o-halo 1.6s ease-out infinite; }
+.is-paused *, .is-paused *::before { animation-play-state: paused !important; }
+@keyframes o-breathe { 50% { opacity: .35; } }
+@keyframes o-idle { 50% { opacity: calc(var(--o) + .16); } }
+@keyframes o-speak { 50% { transform: scale(1.16); } }
+@keyframes o-halo { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(3.4); } }
+@keyframes o-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Under it: the three things it shows, and the way to stop it */
+.o-tabs { counter-reset: o; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 36px; border-top: 1px solid var(--line); }
+.o-tabs li { counter-increment: o; position: relative; padding: 16px 24px 4px 0; color: var(--dim); font-size: 12.5px; line-height: 18px; }
+.o-tabs li + li { padding-left: 24px; border-left: 1px solid var(--line); }
+.o-tabs li::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: var(--orange);
+                     transform: scaleX(0); transform-origin: 0 50%; }
+.o-tabs li.is-on::before { transform: scaleX(1); }
+.is-live .o-tabs li.is-on::before { animation: o-progress var(--o-dur, 8s) linear both; }
+.o-tabs b { display: block; font-size: 15px; line-height: 24px; font-weight: 600; color: var(--muted); margin-bottom: 2px; transition: color .3s; }
+.o-tabs b::before { content: counter(o, decimal-leading-zero); margin-right: 10px; font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+.o-tabs li.is-on b, .orch:not(.is-ready) .o-tabs b { color: var(--text); }
+.o-tabs span { display: block; }
+.o-tabs button { all: unset; display: block; box-sizing: border-box; width: 100%; cursor: pointer; }
+.o-tabs button:hover b { color: var(--text); }
+.o-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
+.o-foot { display: flex; align-items: center; gap: 14px; margin-top: 18px; }
+.o-pause { flex: none; height: 28px; padding: 0 12px; font: 600 12.5px var(--font-sans); color: var(--text); background: none;
+           border: 1px solid var(--line-strong); border-radius: 999px; cursor: pointer; }
+.o-pause:hover { border-color: var(--text); }
+@media (max-width: 760px) {
+  .o-tabs { grid-template-columns: minmax(0, 1fr); border-top: 0; margin-top: 28px; }
+  .o-tabs li, .o-tabs li + li { padding: 12px 0; border-left: 0; border-top: 1px solid var(--line); }
+  .o-foot { align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { .orch *, .orch *::before { animation: none !important; transition: none !important; } }
+@media print { .o-pause { display: none; } }
