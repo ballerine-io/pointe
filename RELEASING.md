@@ -68,4 +68,15 @@ attached files: the plugin installs from the repository.
 
 ## The site
 
-If `site/` changed, publish it to pointe.ballerine.com with `site/deploy.sh` (Cloudflare Pages, Ballerine account).
+`site/` is one Cloudflare Pages project (`pointe-site`, Ballerine account) served at eng.ballerine.com: `site/index.html`
+is the Ballerine Engineering hub at `/`, and `site/pointe/` is Pointe's page at `/pointe/`. If `site/` changed:
+
+1. `site/deploy.sh v2` (any branch name) publishes a preview at `<branch>.pointe-site-9tz.pages.dev`. Look at it.
+2. `site/deploy.sh` publishes production (branch `main`), after the owner has seen the preview.
+
+The old address, pointe.ballerine.com, is still a custom domain of the same project. Pages cannot redirect by host, so
+each page carries a one-line script that sends a visitor on that host to `https://eng.ballerine.com/pointe/`. Link
+previews (`og:url`, `og:image`) name eng.ballerine.com. Both hosts are CNAMEs to `pointe-site-9tz.pages.dev` in Route 53.
+
+The product images on the page are screenshots: the Mac page comes from `ui.html` in the page rig (`tests/page_rig.py`)
+with invented sessions, the iPhone images are crops of `docs/ios/screenshots/`. Retake them when either surface changes.
