@@ -335,8 +335,9 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
 - **The Mac app is built from source** too (`bin/pointe apps mac`, [how](docs/mac-app.md#getting-it)), signed for your
   own Mac and not notarized. Its
-  call, typed words, a request and a brain dump were run against a real daemon on one MacBook Pro; AirPods, device
-  changes, the Touch ID sheet and a spoken turn through its microphone in this version were not.
+  call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon
+  on one MacBook Pro; AirPods, device changes, the Touch ID sheet and a spoken sentence heard through it in this
+  version were not.
 - **The iPhone app is built from source** for now (`bin/pointe apps ios`, [how](docs/phone.md#getting-the-app)); it is
   not in the App Store, and not on TestFlight yet. With a free Apple Account a build opens for 7 days. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
   page works in a phone browser.

@@ -18,10 +18,11 @@ the run ends.
 
     uv run --locked python -I macos/e2e/live.py --mic
 
-adds the one check that cannot be made without the microphone: for about ten seconds the setting is Always on while
-`say` speaks one sentence through the speaker, and the words must come back as a turn. Whatever else is said in the
-room in those seconds is heard and sent to your speech vendor too. The script prints how many characters were heard,
-never the words, and the state that holds them is deleted with the rest.
+adds the one check that cannot be made without the microphone: a three-second press (the one `pointe talk` makes), in
+which the app must send what its microphone hears: the daemon counts the bytes that passed its gate. Those three seconds
+of the room go to your speech vendor like any press. A sentence played through the speaker cannot stand in for a person
+here: macOS's echo cancellation takes the Mac's own output out of the microphone, as it should. The script prints the
+byte count, never words, and the state is deleted with the rest.
 """
 
 import json
@@ -172,18 +173,17 @@ def main() -> int:
         shot("live-02-call")
 
         if "--mic" in sys.argv:
-            spoken = lambda: [t for t in status().get("talk") or [] if t["who"] == "user" and not t.get("typed")]  # noqa: E731
-            time.sleep(6)  # the answer above has been said: the room is quiet again
-            api("/voice/prefs", {"microphone": "always"})
-            until("always on", lambda: (status().get("ptt") or {}).get("mode") == "always", 10)
-            time.sleep(1.5)
-            say("Hello Pointe. Is the docs session still working?")
-            heard = until("the spoken turn", lambda: bool(spoken()), 30)
-            api("/voice/prefs", {"microphone": "ptt"})
-            check("the Mac's microphone was heard through the app: spoken words came back as a turn", heard,
-                  f"{len(spoken()[0]['text']) if heard else 0} characters")
-            until("push to talk again", lambda: (status().get("ptt") or {}).get("mode") == "ptt", 10)
-            time.sleep(8)  # the reply to it is said before the cards below
+            time.sleep(6)  # the answer above has been said
+            sent = lambda: (status().get("ptt") or {}).get("sent_bytes") or 0  # noqa: E731
+            before = sent()
+            api("/voice/talk", {"action": "on"})  # the press `pointe talk` makes: the daemon tells the app to send
+            time.sleep(3)
+            gate, passed = status().get("ptt") or {}, sent() - before
+            api("/voice/talk", {"action": "off"})
+            # 16 kHz, 16-bit: 32,000 bytes a second. A press the app sent nothing for is closed by the daemon after 2 s ("no audio").
+            check("a press reaches the app, and the Mac's microphone goes up the call: about three seconds of audio passed the gate",
+                  bool(gate.get("open")) and gate.get("closed_why") != "no audio" and 60_000 < passed < 140_000, f"{passed} bytes")
+            time.sleep(6)  # whatever those seconds held is answered before the cards below
 
         first: dict = {}
         threading.Thread(target=hold_request, args=(first,), daemon=True).start()
