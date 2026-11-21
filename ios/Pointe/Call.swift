@@ -48,6 +48,11 @@ final class Call {
     private var retries = 0
     private var queued = 0
     private var muteObserver: NSObjectProtocol?
+    /// The newest ping answered on this link, repeated by the keep-alive.
+    private var answered = 0
+    private var keepAlive: Task<Void, Never>?
+    /// How often the phone tells the Mac it is there, on its own (protocol 4). Well inside the Mac's 12 s.
+    nonisolated static let aliveEvery: Duration = .seconds(2)
 
     init(pairing: Pairing) {
         self.pairing = pairing
@@ -164,10 +169,29 @@ final class Call {
     /// A new link: the press starts closed (the Mac's does too), and the Mac learns this phone knows push to talk.
     private func opened() {
         talk.reset()
-        let hello: [String: Any] = ["type": "hello", "protocol": 3, "device": "iPhone", "capabilities": ["ptt"]]
+        let hello: [String: Any] = ["type": "hello", "protocol": 4, "device": "iPhone", "capabilities": ["ptt"]]
         if let data = try? JSONSerialization.data(withJSONObject: hello), let text = String(data: data, encoding: .utf8) {
             socket?.send(.string(text)) { _ in }
         }
+        keepAlive?.cancel()
+        keepAlive = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: Call.aliveEvery)
+                guard let self, self.state == .live, let socket = self.socket else { return }
+                socket.send(.string(Call.alive(answered: self.answered))) { _ in }
+            }
+        }
+    }
+
+    /// The phone is here, sent every 2 s whatever arrives (protocol 4). The Mac's pings come in order behind its audio,
+    /// so on a path slower than the bot's voice they wait behind seconds of it, and the pong with them: the Mac took the
+    /// phone for gone after 12 s and closed a call that was only behind. This goes the other way, which the audio does
+    /// not fill. Shaped as a pong for the newest ping already answered, so a Mac before protocol 4 counts it as one and
+    /// measures no round trip from it.
+    nonisolated static func alive(answered id: Int) -> String {
+        let body: [String: Any] = ["type": "pong", "id": id, "alive": true]
+        guard let data = try? JSONSerialization.data(withJSONObject: body, options: .sortedKeys) else { return "" }
+        return String(decoding: data, as: UTF8.self)
     }
 
     /// An AirPods press as play/pause, when iOS sends it as a remote command: toggle to talk.
@@ -311,6 +335,7 @@ final class Call {
                let pong = try? JSONSerialization.data(withJSONObject: ["type": "pong", "id": id]),
                let reply = String(data: pong, encoding: .utf8) {
                 socket.send(.string(reply)) { _ in }
+                answered = max(answered, id)
             }
         default: break
         }
@@ -377,6 +402,9 @@ final class Call {
     nonisolated static func redials(idleHangup: Bool?) -> Bool { idleHangup != true }
 
     private func stop(state: State) {
+        keepAlive?.cancel()
+        keepAlive = nil
+        answered = 0
         socket?.cancel(with: .normalClosure, reason: nil)
         socket = nil
         flush()

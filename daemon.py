@@ -6726,13 +6726,22 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
 
     async def keep_alive() -> None:
         """Pings, and closes a call whose client stopped answering: a dead call held the line, and the reconnect was told
-        a call was already up."""
+        a call was already up. A link that falls behind is logged, once each way: it was the cause of calls closed
+        before the client's keep-alive (phone.py, version 4), and the only trace of it on the Mac."""
+        slow = False
         while True:
             await asyncio.sleep(phone.PING_SECS)
             if heartbeat.dead():
                 logger.warning(f"{who} stopped answering for {phone.DEAD_AFTER_SECS:.0f} s: closing the call")
                 await websocket.close(code=4408, reason="no answer to pings")
                 return
+            behind = heartbeat.behind()
+            if not slow and behind > phone.BEHIND_SECS:
+                logger.warning(f"{who}'s link is {behind:.0f} s behind: pings wait behind the bot's voice on a path slower "
+                               f"than it (round trip before: {heartbeat.rtt_ms} ms)")
+            elif slow and behind < phone.PING_SECS:
+                logger.info(f"{who}'s link caught up (round trip {heartbeat.rtt_ms} ms)")
+            slow = behind > phone.BEHIND_SECS or (slow and behind >= phone.PING_SECS)
             try:
                 await websocket.send_text(heartbeat.ping())
             except Exception:

@@ -16,8 +16,14 @@ Version 3 adds a client hello, text, once after connecting: {"type": "hello", "p
 microphone (ptt.py; the daemon's gate is the rule, whatever the client sends). The same message goes daemon to client,
 with "by": "shortcut", when a system-wide shortcut on the Mac (POST /voice/talk) opened or closed the gate: the client
 then sends its audio as if its own press held it. Unknown text is ignored both ways, so version 2 clients keep working.
+Version 4 adds the client's own keep-alive, text, every 2 s whatever it receives: {"type": "pong", "id": n, "alive":
+true}, n the newest ping it has answered (0 before the first). Pings travel in order behind the bot's audio (24 kHz PCM,
+384 kbit/s), so on a path slower than that (a weak Twingate or cellular link) they wait behind seconds of it, and the
+daemon took a phone that was only behind for one that was gone. The keep-alive goes the other way, which the audio does
+not fill; shaped as a pong for a ping already answered, a version 2 or 3 daemon counts it and measures no round trip.
 A client that heard nothing for 6 s treats the call as dead and reconnects. The daemon closes a call (code 4408) that
-has answered pings before and then stops answering for 12 s, so the line is free for the reconnect.
+has answered pings before and then sends nothing (no pong of either kind, no audio) for 12 s, so the line is free for
+the reconnect.
 """
 
 import hmac
@@ -31,7 +37,7 @@ from pipecat.audio.utils import create_stream_resampler
 from pipecat.frames.frames import Frame, InputAudioRawFrame, InterruptionFrame, OutputAudioRawFrame, SystemFrame
 from pipecat.serializers.base_serializer import FrameSerializer
 
-PROTOCOL = 3
+PROTOCOL = 4
 IN_RATE = 16000
 OUT_RATE = 24000
 
@@ -44,6 +50,7 @@ class PttFrame(SystemFrame):
 
 PING_SECS = 2.0
 DEAD_AFTER_SECS = 12.0
+BEHIND_SECS = 4.0  # an unanswered ping this old: the link to the client is behind, and the log says so
 
 
 class Heartbeat:
@@ -66,8 +73,21 @@ class Heartbeat:
             self.rtt_ms = round((time.monotonic() - sent) * 1000)
         self.last_pong = time.monotonic()
 
+    def heard(self) -> None:
+        """Audio from the client: over a slow uplink its pongs wait behind it, and its arriving proves the client is
+        there (the hub's node links learned the same, tests/test_hunt2_link.py). Not for a client that never answered."""
+        if self.last_pong:
+            self.last_pong = time.monotonic()
+
     def dead(self) -> bool:
         return bool(self.last_pong) and time.monotonic() - self.last_pong > DEAD_AFTER_SECS
+
+    def behind(self) -> float:
+        """How long the oldest unanswered ping (of the last ten) has waited: how far the link to the client lags. 0 for
+        a client that never answered one, which never will."""
+        if not self.last_pong or not self.sent:
+            return 0.0
+        return time.monotonic() - min(self.sent.values())
 
 
 class PhoneSerializer(FrameSerializer):
@@ -88,6 +108,7 @@ class PhoneSerializer(FrameSerializer):
 
     async def deserialize(self, data: str | bytes) -> Frame | None:
         if isinstance(data, bytes) and data and len(data) % 2 == 0:
+            self.heartbeat.heard()
             return InputAudioRawFrame(audio=data, sample_rate=IN_RATE, num_channels=1)
         if isinstance(data, str):
             try:

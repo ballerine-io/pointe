@@ -83,6 +83,14 @@ final class WireTests: XCTestCase {
         XCTAssertEqual(Wire.resample(second, from: 48000, to: Wire.upRate).count, 16000)
         XCTAssertEqual(Wire.resample(second, from: 48000, to: 48000).count, 48000)
     }
+
+    /// The phone's own keep-alive, word for word as tests/test_phone.py feeds it to the Mac: a pong for a ping already
+    /// answered, so a Mac before protocol 4 counts it and measures no round trip from it.
+    func testTheKeepAliveIsAPongForTheNewestPingAlreadyAnswered() {
+        XCTAssertEqual(Call.alive(answered: 3), #"{"alive":true,"id":3,"type":"pong"}"#)
+        XCTAssertEqual(Call.alive(answered: 0), #"{"alive":true,"id":0,"type":"pong"}"#)  // before the first ping
+        XCTAssertLessThan(Call.aliveEvery, .seconds(6), "well inside the Mac's 12 s, with one lost on the way")
+    }
 }
 
 final class MeetingTests: XCTestCase {
