@@ -259,7 +259,7 @@ details.more-detail > div { padding: 8px 0 28px; }
       font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: .02em; }
 .beat-ui { position: absolute; bottom: 0; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
 .beat-ui img { width: 100%; }
-.beat-ui--mac { left: -20px; width: 52%; border-radius: 10px; }
+.beat-ui--mac { right: -20px; width: 46%; border-radius: 10px; }
 .beat-ui--phone { right: -20px; width: 41%; border-radius: 24px; border: 5px solid #0A0400; box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, .14); }
 .beat-ui--left { left: -20px; right: auto; }
 .story-more { margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--line); align-items: center; }
@@ -326,7 +326,8 @@ details.more-detail > div { padding: 8px 0 28px; }
   .beat { grid-template-columns: minmax(0, 1fr); }
   .beat-media { order: -1; padding-bottom: 0; display: flex; flex-direction: column; }
   .beat-ui { position: relative; margin-top: -14%; }
-  .beat-ui--mac, .beat-ui--left { left: 16px; right: auto; align-self: flex-start; }
+  .beat-ui--mac { right: 16px; align-self: flex-end; }
+  .beat-ui--left { left: 16px; right: auto; align-self: flex-start; }
   .beat-ui--phone { right: 16px; align-self: flex-end; }
   .beat-ui--phone.beat-ui--left { left: 16px; right: auto; align-self: flex-start; }
   .more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -339,7 +340,7 @@ details.more-detail > div { padding: 8px 0 28px; }
   .site-header { height: 60px; }
   .hero { padding: 40px 18px 0; margin: 0 -10px; border-radius: 12px 12px 0 0; }
   .stage { margin-top: 36px; }
-  .stage-mac { width: min(76%, 264px); margin: 0 auto; border-radius: 28px; border: 6px solid #0A0400; }
+  .stage-mac { width: min(70%, 232px); margin: 0 auto; border-radius: 28px; border: 6px solid #0A0400; }
   .stage-cap { padding-top: 16px; }
   .strip, .cols, .more, .rows--cols { grid-template-columns: minmax(0, 1fr); }
   .rows--cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 64px; border-top: 0; }
@@ -350,11 +351,14 @@ details.more-detail > div { padding: 8px 0 28px; }
   .talk dt { padding-top: 0; }
   [data-cmd] pre { padding: 13px 16px 50px; }
   .copy { top: auto; bottom: 8px; right: 8px; }
-  .beats { gap: 40px; }
+  .beats { gap: 26px; }
   .beat-frame { border-radius: 10px; }
-  .beat-ui { margin-top: -27%; }
-  .beat-ui--mac { left: 8px; width: 80%; }
-  .beat-ui--phone { right: 8px; width: 74%; border-radius: 18px; border-width: 4px; }
+  .beat-ui { margin-top: -19%; }
+  .story { padding: 44px 0; }
+  .story-more figure { display: none; }
+  .story-more .more { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+  .beat-ui--mac { right: 8px; width: 76%; }
+  .beat-ui--phone { right: 8px; width: 68%; border-radius: 18px; border-width: 4px; }
   .beat-ui--left, .beat-ui--phone.beat-ui--left { left: 8px; }
   .cells > div { padding-right: 12px; }
   .cells > div + div { padding-left: 12px; }

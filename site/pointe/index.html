@@ -105,18 +105,18 @@
           afternoon.</p>
       </div>
       <div class="story-grid" data-day>
-        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> The switch</a><a href="#beat-away"><span class="when">11:40</span> Away</a><a href="#beat-aside"><span class="when">12:30</span> Side question</a><a href="#beat-coffee"><span class="when">13:15</span> Coffee stop</a><a href="#beat-back"><span class="when">16:00</span> Back</a></nav>
+        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> The switch</a><a href="#beat-dump"><span class="when">11:30</span> Brain dump</a><a href="#beat-challenge"><span class="when">11:50</span> Challenge</a><a href="#beat-coffee"><span class="when">13:15</span> Approval</a><a href="#beat-review"><span class="when">16:20</span> Review</a></nav>
         <ol class="beats">
         <li class="beat" id="beat-before">
           <div class="beat-copy">
             <p class="kicker"><span class="when">09:05</span> Before</p>
-            <h3 class="h2">Type a prompt. Switch tabs. Wait. Read. Repeat.</h3>
+            <h3 class="h2">Type a prompt. Switch tabs. Wait. Repeat.</h3>
             <p class="body">With text, you prompt one session at a time and read each reply. Every session you add is
               one more chat to keep in your head.</p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/before.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: a developer hunched over her keyboard in the morning, frowning at two monitors.">
+              <img src="day/before.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: a developer types into one chat, then another, and waits, drumming her fingers.">
               <video muted playsinline preload="none" poster="day/before.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
                 <source src="day/before.webm" type="video/webm"><source src="day/before.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
@@ -134,7 +134,7 @@
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/switch.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: she puts an earbud in, sits back from the keyboard and starts talking.">
+              <img src="day/switch.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: she puts an earbud in, leans back from the keyboard and starts talking, with a grin.">
               <video muted playsinline preload="none" poster="day/switch.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
                 <source src="day/switch.webm" type="video/webm"><source src="day/switch.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
@@ -145,45 +145,48 @@
             </picture></div>
           </figure>
         </li>
-        <li class="beat" id="beat-away">
+        <li class="beat" id="beat-dump">
           <div class="beat-copy">
-            <p class="kicker"><span class="when">11:40</span> Away from the desk</p>
-            <h3 class="h2">The call goes with you.</h3>
-            <p class="body">The same call and controls on your phone, in the iPhone app or in the page at phone width,
-              shown here. A background session speaks up for two things only: it finished, or it needs approval. A reader
-              model keeps notes per session and turns each final message into a short spoken report.</p>
-            <p class="small">The iPhone app is built from source in Xcode <a href="#limits">for now</a>.</p>
+            <p class="kicker"><span class="when">11:30</span> Brain dump</p>
+            <h3 class="h2">Ramble an idea. Get a prompt in your own words.</h3>
+            <p class="body">Say "brain dump" and talk: Pointe stays quiet and keeps every word. Say "done", and it
+              structures them into a prompt for you to review: goal, context, constraints, open questions. An item whose
+              words are not mostly yours is dropped. Nothing goes anywhere until you say send.</p>
+            <p class="small">On a walk the call is on your phone: the iPhone app, or the page at phone width, shown
+              here. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/brain-dump.md">brain-dump.md</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/away.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late morning, she walks out past the desks with a backpack and earbuds, still talking.">
-              <video muted playsinline preload="none" poster="day/away.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-                <source src="day/away.webm" type="video/webm"><source src="day/away.mp4" type="video/mp4"></video>
+              <img src="day/dump.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late morning in a park, she walks and thinks out loud, counting points off on her fingers.">
+              <video muted playsinline preload="none" poster="day/dump.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/dump.webm" type="video/webm"><source src="day/dump.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
             </div>
             <div class="beat-ui beat-ui--phone"><picture>
-              <source srcset="day/ui-away-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-away-light.jpg" width="680" height="466" loading="lazy" alt="The call page at phone width. You: And tell the docs session to update the changelog. Pointe: Docs is on it.">
+              <source srcset="day/ui-dump-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-dump-light.jpg" width="680" height="888" loading="lazy" alt="The brain dump review at phone width. Your brain dump, structured. Goal: add backoff with jitter to the charge retry. Context: the retry loop retries five times with no backoff. Constraints: cap the wait at 30 seconds; do not touch the refunds flow this sprint. To: billing/main. Send, Add more, Read it back, Challenge it.">
             </picture></div>
           </figure>
         </li>
-        <li class="beat" id="beat-aside">
+        <li class="beat" id="beat-challenge">
           <div class="beat-copy">
-            <p class="kicker"><span class="when">12:30</span> A side question</p>
-            <h3 class="h2">"By the way" interrupts nobody.</h3>
-            <p class="body">A "by the way" question goes to a read-only copy of the session. The live session gets no
-              new message and keeps working.</p>
+            <p class="kicker"><span class="when">11:50</span> Challenge</p>
+            <h3 class="h2">Have it argue back before you send.</h3>
+            <p class="body">Say "challenge this": Pointe argues against the plan, one objection at a time, from what it
+              knows about your sessions. It can look things up; it cannot send. Say "verdict" for the weakest point and
+              the fix. Then "send it to billing", and the prompt goes to the session word for word.</p>
+            <p class="small"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/challenge.md">challenge.md</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/aside.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: midday, she walks down a street lined with trees and asks a question out loud.">
-              <video muted playsinline preload="none" poster="day/aside.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-                <source src="day/aside.webm" type="video/webm"><source src="day/aside.mp4" type="video/mp4"></video>
+              <img src="day/challenge.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: on a park bench she listens to an objection, laughs, concedes it, and answers with a raised finger.">
+              <video muted playsinline preload="none" poster="day/challenge.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/challenge.webm" type="video/webm"><source src="day/challenge.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
             </div>
             <div class="beat-ui beat-ui--phone"><picture>
-              <source srcset="day/ui-aside-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-aside-light.jpg" width="680" height="556" loading="lazy" alt="The call page at phone width. You: By the way, why did billing drop the queue idea? Pointe: Duplicate charges during failover. It decided that an hour ago.">
+              <source srcset="day/ui-challenge-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-challenge-light.jpg" width="680" height="873" loading="lazy" alt="The Challenge panel at phone width. Objection: A 30 second cap is longer than the checkout waits. Billing's notes say the page gives up after 20 seconds, so the last retries can never land. You: Fair. Cap it at ten seconds, then. End challenge.">
             </picture></div>
           </figure>
         </li>
@@ -205,28 +208,29 @@
             </div>
             <div class="beat-ui beat-ui--phone beat-ui--left"><picture>
               <source srcset="day/ui-coffee-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-coffee-light.jpg" width="680" height="704" loading="lazy" alt="The call page at phone width. You: Tell billing to raise the timeout to 30 seconds. A card: billing/main needs approval, pytest -q tests/test_retry.py, say yes or no, or tap, with Deny and Approve.">
+              <img src="day/ui-coffee-light.jpg" width="680" height="780" loading="lazy" alt="The call page at phone width. You: Send it to billing. Pointe: Sent to billing, in your words. A card: billing/main needs approval, pytest -q tests/test_retry.py, say yes or no, or tap, with Deny and Approve.">
             </picture></div>
           </figure>
         </li>
-        <li class="beat" id="beat-back">
+        <li class="beat" id="beat-review">
           <div class="beat-copy">
-            <p class="kicker"><span class="when">16:00</span> Back at the desk</p>
-            <h3 class="h2">The work moved on while you were out.</h3>
-            <p class="body">Ask what happened and get one answer: what each session did, what failed, what waits on
-              you. Claude Code, OpenCode and Codex sessions in one call, each with its own approvals, on this Mac or on
-              others.</p>
+            <p class="kicker"><span class="when">16:20</span> Back, on the sofa</p>
+            <h3 class="h2">The work moved on. Review it out loud.</h3>
+            <p class="body">A question to a session by name is relayed to it, and its answer comes back as a short
+              spoken report. A "by the way" question is answered from a read-only copy, so the live session gets no new
+              message. Code is never read aloud: the page shows the file and the diff while Pointe talks.</p>
+            <p class="small"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">show-while-it-says.md</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/back.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late afternoon light, she sets a paper cup on her desk and listens, relieved.">
-              <video muted playsinline preload="none" poster="day/back.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-                <source src="day/back.webm" type="video/webm"><source src="day/back.mp4" type="video/mp4"></video>
+              <img src="day/review.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late afternoon light, she sits on a sofa with a mug, asks a question out loud, listens and smiles.">
+              <video muted playsinline preload="none" poster="day/review.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/review.webm" type="video/webm"><source src="day/review.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
             </div>
             <div class="beat-ui beat-ui--mac"><picture>
-              <source srcset="day/ui-done-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-done-light.jpg" width="880" height="600" loading="lazy" alt="The call page. You: What happened while I was out? Pointe: Billing opened the PR for the retry fix and its checks pass. Docs updated the changelog. River-lantern finished the timeout change. Nothing is waiting for you.">
+              <source srcset="day/ui-review-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-review-light.jpg" width="880" height="932" loading="lazy" alt="The call page. You: Billing, walk me through what you changed. Pointe: Billing added backoff with jitter to the charge retry, capped at ten seconds. Three new tests cover it, and all pass. You: By the way, what about the timeout case? Pointe: A timeout counts as a failure and is retried with the same idempotency key, so no charge is made twice.">
             </picture></div>
           </figure>
         </li>
