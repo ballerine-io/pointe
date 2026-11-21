@@ -1,0 +1,197 @@
+"""The Mac app's main flows, driven through the Accessibility API on the demo fixtures: no daemon, no microphone, no
+network, nothing of the room. It is what `macos/test.sh ui` checks with XCUITest, for a Mac where nobody is there to
+unlock Automation Mode: the terminal needs only the Accessibility permission. Run by hand, or by `macos/test.sh smoke`:
+
+    python3 -I macos/e2e/smoke.py [--shots /tmp/parity-shots/mac]
+
+It builds the app (macos/build.sh), and for each flow starts the build-folder app fresh with `-demo <screen>` (the
+iPhone UI suite's fixtures: invented sessions), presses its controls by their identifiers, and checks what is on
+screen. The app's own settings are untouched: a demo keeps nothing. Never the installed app.
+"""
+
+import os
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+results: list[tuple[str, bool]] = []
+SHOTS = Path(sys.argv[sys.argv.index("--shots") + 1]) if "--shots" in sys.argv else None
+
+
+def check(name: str, ok: bool, detail: str = "") -> None:
+    results.append((name, ok))
+    print(f"{'PASS' if ok else 'FAIL'}  {name}  {detail}"[:240], flush=True)
+
+
+class App:
+    """One launch of the built app. `env` points it at a made-up state folder when the flow is about no daemon."""
+
+    def __init__(self, binary: Path, driver: Path, *args: str, look: str = "dark", env: dict | None = None):
+        self.driver = driver
+        self.proc = subprocess.Popen([str(binary), "-PointeOpenWindow", "YES", "-ApplePersistenceIgnoreState", "YES", "-pointe.theme", look,
+                                      "-pointe.bubble", "NO", *args],
+                                     env={**os.environ, **(env or {})}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.wait("pointe.main", 15)
+
+    def ax(self, *words: str) -> subprocess.CompletedProcess:
+        return subprocess.run([str(self.driver), str(self.proc.pid), *words], capture_output=True, text=True)
+
+    def has(self, ident: str) -> bool:
+        return self.ax("exists", ident).returncode == 0
+
+    def wait(self, ident: str, timeout: float = 8, gone: bool = False) -> bool:
+        end = time.time() + timeout
+        while time.time() < end:
+            if self.has(ident) != gone:
+                return True
+            time.sleep(0.25)
+        return False
+
+    def press(self, ident: str) -> bool:
+        return self.ax("press", ident).returncode == 0
+
+    def shot(self, name: str, look: str) -> None:
+        if SHOTS is None:
+            return
+        SHOTS.mkdir(parents=True, exist_ok=True)
+        window = self.ax("window").stdout.strip()
+        if window:
+            subprocess.run(["screencapture", "-x", "-o", "-l", window, str(SHOTS / f"{name}-{look}.png")], check=False)
+
+    def quit(self) -> None:
+        self.proc.terminate()
+        try:
+            self.proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self.proc.kill()
+
+
+SHEETS = {  # -sheet <name>: an identifier that is on that sheet
+    "settings": "microphoneSetting", "voiceLock": "voiceLockHelp", "alerts": "alertsPhone", "dictionary": "dictionaryLearn",
+    "machines": "inviteMachine", "conflictSettings": "conflictsOn", "showSettings": "showSetting", "about": "aboutBody",
+}
+SCREENS = {  # -demo <screen>: an identifier that screen shows
+    "call": "conversation", "request": "requestCommand", "meeting": "notesFeed", "whisper": "whisperCard", "conflict": "conflictCard",
+    "startPending": "startConfirm", "hold": "statusLine", "rtl": "conversation", "longRequest": "requestCommand", "many": "sessionsColumn",
+    "machinesSessions": "sessionsColumn", "empty": "statusLine", "noSessions": "statusLine",
+}
+
+
+def main() -> int:
+    built = subprocess.run([str(ROOT / "macos" / "build.sh")], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    work = Path(tempfile.mkdtemp(prefix="pointe-mac-smoke-"))
+    driver = work / "axdrive"
+    tool = subprocess.run(["swiftc", "-O", str(ROOT / "macos" / "e2e" / "axdrive.swift"), "-o", str(driver)], capture_output=True, text=True)
+    check("the app and the driver built", built.returncode == 0 and tool.returncode == 0, (built.stderr or tool.stderr)[-300:])
+    if built.returncode or tool.returncode:
+        return 1
+    bundle = Path(built.stdout.strip().splitlines()[-1])
+    assert "/build/" in str(bundle), "the app under test is the one in the build folder, never an installed one"
+    binary = bundle / "Contents" / "MacOS" / "Pointe"
+
+    def start(*args: str, look: str = "dark", env: dict | None = None) -> App:
+        return App(binary, driver, *args, look=look, env=env)
+
+    # the call screen, wide and narrow
+    for look in ("dark", "light"):
+        app = start("-demo", "call", look=look)
+        try:
+            ok = app.wait("statusLine")
+            if look == "dark":
+                check("the call screen is the shared one: state line, conversation, mic, hang up", ok and all(app.has(i) for i in ("conversation", "micRing", "hangUp", "dumpButton", "typeButton")))
+                check("a wide window lists the sessions in its left column, with New session and Settings at its foot",
+                      all(app.has(i) for i in ("sessionsColumn", "session.billing/main", "session.docs", "newSession", "sideSettings", "modePicker")))
+                check("starting drive mode is the phone's: no Drive button", not app.has("driveButton"))
+            app.shot("call", look)
+            if look == "dark":
+                app.ax("size", "520", "720")
+                check("a narrow window has the phone's layout: no column, the Sessions button", app.wait("sessionsColumn", 4, gone=True) and app.has("sessionsButton"))
+                app.shot("call-narrow", look)
+                app.ax("size", "900", "680")
+                check("wide again, the column is back", app.wait("sessionsColumn", 4))
+        finally:
+            app.quit()
+
+    # a request: Deny in the window
+    for look in ("dark", "light"):
+        app = start("-demo", "request", look=look)
+        try:
+            shown = app.wait("requestCommand")
+            app.shot("request", look)
+            if look == "dark":
+                check("a request's card has the exact command, Deny and Approve", shown and app.has("requestDeny") and app.has("requestApprove")
+                      and "git push" in app.ax("texts", "requestCommand").stdout)
+                app.press("requestDeny")
+                check("Deny answers at once (no Touch ID) and the card goes", app.wait("requestCommand", 6, gone=True))
+        finally:
+            app.quit()
+
+    # typing, the brain dump, the menus
+    app = start("-demo", "call")
+    try:
+        app.wait("statusLine")
+        check("Type opens the type bar", app.press("typeButton") and app.wait("typeField"))
+        check("Brain dump replaces the conversation with its panel", app.press("dumpButton") and app.wait("dump.panel"))
+        app.shot("brain-dump", "dark")
+        check("Done structures it and the review opens", app.press("dump.done") and app.wait("dump.send", 10))
+        app.shot("brain-dump-review", "dark")
+    finally:
+        app.quit()
+    app = start("-demo", "call")
+    try:
+        app.wait("statusLine")
+        check("the Settings… menu command opens Settings", app.ax("menu", "Settings…").returncode == 0 and app.wait("microphoneSetting"))
+        check("with this Mac's own sections after the shared ones", all(app.has(i) for i in ("settings.shortcut", "settings.bubble", "settings.login", "settings.daemon", "settings.folders.add")))
+        check("and no Unpair this phone", "Unpair this phone" not in app.ax("labelled", "Unpair").stdout)
+    finally:
+        app.quit()
+    for title, ident in (("New Session", "newSessionStart"), ("Type Instead of Talking", "typeField"), ("About Pointe", "aboutBody"),
+                         ("Machines", "inviteMachine"), ("Sessions and Mode", "sessionsColumn")):
+        app = start("-demo", "machines" if title == "Machines" else "call")
+        try:
+            app.wait("statusLine")
+            check(f"the menu command {title} does its thing", app.ax("menu", title).returncode == 0 and app.wait(ident), ident)
+        finally:
+            app.quit()
+
+    # every sheet and every demo screen opens
+    for sheet, ident in SHEETS.items():
+        for look in (("dark", "light") if sheet in ("settings", "voiceLock", "dictionary") else ("dark",)):
+            app = start("-demo", {"machines": "machines", "voiceLock": "voiceLock"}.get(sheet, "call"), "-sheet", sheet, look=look)
+            try:
+                ok = app.wait(ident)
+                if look == "dark":
+                    check(f"the {sheet} sheet opens", ok, ident)
+                app.shot(f"sheet-{sheet}", look)
+            finally:
+                app.quit()
+    for screen, ident in SCREENS.items():
+        app = start("-demo", screen)
+        try:
+            check(f"the {screen} screen draws", app.wait(ident), ident)
+            if screen in ("meeting", "whisper", "conflict", "rtl", "many"):
+                app.shot(screen, "dark")
+        finally:
+            app.quit()
+
+    # no Pointe on this Mac: the setup guide, and the demo from it
+    empty = work / "state"
+    empty.mkdir()
+    app = start(env={"CLAUDE_VOICE_STATE": str(empty), "CLAUDE_VOICE_DAEMON_PORT": "7999", "CLAUDE_CONFIG_DIR": str(work / "claude")})
+    try:
+        check("with no daemon the window is the setup guide", app.wait("setup", 10) and not app.has("conversation"))
+        app.shot("setup", "dark")
+        check("Try a demo shows the call screen with a request", app.press("tryDemo") and app.wait("requestCommand", 8) and app.has("demoBadge"))
+    finally:
+        app.quit()
+
+    failed = [name for name, ok in results if not ok]
+    print(f"\n{len(results) - len(failed)} of {len(results)} checks passed" + (f"; failed: {failed}" if failed else ""))
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

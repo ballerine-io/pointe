@@ -3,7 +3,8 @@
 #   macos/test.sh            everything
 #   macos/test.sh unit       the package and the app's unit tests: what CI runs, no window server needed
 #   macos/test.sh ui [name]  the UI tests (or one, by name); screenshots land in /tmp/macos-app-shots
-# The UI tests drive the real app against its stub daemon (-PointeStub): no daemon, no microphone, no network.
+#   macos/test.sh smoke      the same flows through the Accessibility API (macos/e2e/smoke.py): needs no Automation Mode
+# The UI tests and the smoke drive the real app on the demo fixtures (-demo): no daemon, no microphone, no network.
 # Signing: the team in ios/.team when it is there (gitignored), else ad hoc.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -27,4 +28,7 @@ if [ "$WHAT" = all ] || [ "$WHAT" = ui ]; then
   [ "${PIPESTATUS[0]}" = 0 ] || FAILED=1
   if [ -d "$SHOTS" ]; then mkdir -p /tmp/macos-app-shots && cp "$SHOTS"/*.png /tmp/macos-app-shots/ && echo "screenshots: /tmp/macos-app-shots"; fi
   [ -z "${FAILED:-}" ]
+fi
+if [ "$WHAT" = smoke ]; then
+  python3 -I e2e/smoke.py
 fi

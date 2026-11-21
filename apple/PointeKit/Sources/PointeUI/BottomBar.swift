@@ -26,9 +26,11 @@ struct BottomBar: View {
                 side(BrainDumpCopy.buttonLabel(dump), dump == nil ? "brain.head.profile" : dump!.isDumping ? "checkmark.circle.fill" : "doc.text.magnifyingglass",
                      on: dump != nil, action: listen)
                     .disabled(!live)
+                    .accessibilityIdentifier("dumpButton")
                 if !driving {
                     Spacer(minLength: 0)
                     side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
+                        .accessibilityIdentifier("typeButton")
                 }
                 Spacer(minLength: 0)
             }
@@ -36,7 +38,7 @@ struct BottomBar: View {
             micButton
             HStack(spacing: 0) {
                 Spacer(minLength: 0)
-                side("Sessions", "rectangle.stack", action: sessions)
+                side("Sessions", "rectangle.stack", action: sessions).accessibilityIdentifier("sessionsButton")
                 Spacer(minLength: 0)
                 if live {
                     side("Hang up", "phone.down.fill", tint: Brand.dangerText, action: hangUp).accessibilityIdentifier("hangUp")
@@ -177,6 +179,7 @@ struct TypeBar: View {
             }
             .disabled(empty || sending)
             .accessibilityLabel("Send")
+            .accessibilityIdentifier("typeSend")
         }
         .onAppear { focused = true }
     }

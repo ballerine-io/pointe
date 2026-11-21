@@ -54,6 +54,7 @@ extension View {
         frame(minWidth: 480, idealWidth: 520, maxWidth: 560, minHeight: 380, idealHeight: 560, maxHeight: 640)
             .background(Brand.group)
             .presentationBackground(Brand.group)
+            .tint(Brand.primary)  // a sheet's Done is the brand's primary button, never orange
             .modifier(EscCloses())
         #else
         presentationBackground(Brand.group)
@@ -93,9 +94,9 @@ struct Segments<Value: Hashable, Native: View>: View {
             ForEach(Array(options.enumerated()), id: \.offset) { _, option in
                 let on = option.value == selection
                 Button { selection = option.value } label: {
-                    Text(option.label).font(.brand(.footnote, .medium)).lineLimit(1)
+                    Text(option.label).font(.brand(.footnote, .medium)).lineLimit(1).fixedSize()
                         .foregroundStyle(on ? Brand.text : Brand.muted)
-                        .padding(.horizontal, 14).padding(.vertical, 6)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
                         .frame(maxWidth: .infinity)
                         .background(on ? AnyShapeStyle(Brand.card) : AnyShapeStyle(Color.clear), in: RoundedRectangle(cornerRadius: 8))
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(on ? Brand.lineStrong : Color.clear))

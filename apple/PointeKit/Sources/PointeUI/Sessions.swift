@@ -167,7 +167,7 @@ struct SessionsSheet: View {
     var body: some View {
         if let docked {
             VStack(spacing: 0) {
-                list.listStyle(.inset)
+                list.accessibilityElement(children: .contain).accessibilityIdentifier("sessionsColumn")
                 HStack(spacing: 8) {  // the page's foot of the column: New session and Settings
                     if starter != nil {
                         Button { showNewSession = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
@@ -192,7 +192,6 @@ struct SessionsSheet: View {
                 }
                 Button("Cancel", role: .cancel) { renaming = nil }
             } message: { Text(SessionsCopy.renameHelp) }
-            .accessibilityIdentifier("sessionsColumn")
         } else {
             sheet
         }
@@ -304,6 +303,7 @@ struct SessionsSheet: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("session.\(s.name)")
             .swipeActions(edge: .trailing) {
                 Button("Disconnect", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
             }

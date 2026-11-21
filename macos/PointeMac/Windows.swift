@@ -19,6 +19,9 @@ final class Windows: NSObject, NSWindowDelegate {
         }
     }
 
+    /// A demo's or a test's window is not the person's: where it stood is not kept.
+    private static var keepsFrames: Bool { !AppModel.shared.session.isDemo && !UserDefaults.standard.bool(forKey: "PointeOpenWindow") }
+
     var mainIsFront: Bool { NSApp.isActive && main?.isKeyWindow == true && main?.occlusionState.contains(.visible) == true }
 
     func activate() {
@@ -46,7 +49,7 @@ final class Windows: NSObject, NSWindowDelegate {
             window.contentView = content
             window.setContentSize(NSSize(width: 820, height: 640))
             window.center()
-            if !AppModel.shared.session.isDemo { window.setFrameAutosaveName("pointe.main") }  // a demo's window is not the person's
+            if Self.keepsFrames { window.setFrameAutosaveName("pointe.main") }
             window.delegate = self
             main = window
         }
@@ -88,7 +91,7 @@ final class Windows: NSObject, NSWindowDelegate {
                 let area = screen.visibleFrame
                 panel.setFrameOrigin(NSPoint(x: area.maxX - 284, y: area.maxY - 96))
             }
-            panel.setFrameAutosaveName("pointe.bubble")
+            if Self.keepsFrames { panel.setFrameAutosaveName("pointe.bubble") }
             bubble = panel
         }
         bubble?.orderFrontRegardless()

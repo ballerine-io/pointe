@@ -1587,9 +1587,9 @@ struct RequestCard: View {
                     .font(.brand(.caption)).foregroundStyle(Brand.muted)
                 HStack(spacing: 10) {
                     Button { act(false) } label: { Text("Deny").frame(maxWidth: .infinity) }
-                        .buttonStyle(.brandQuiet).controlSize(.large)
+                        .buttonStyle(.brandQuiet).controlSize(.large).accessibilityIdentifier("requestDeny")
                     Button { act(true) } label: { Label("Approve", systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
-                        .buttonStyle(.brandPrimary).controlSize(.large)
+                        .buttonStyle(.brandPrimary).controlSize(.large).accessibilityIdentifier("requestApprove")
                 }
                 .disabled(busy)
             }

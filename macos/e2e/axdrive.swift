@@ -8,15 +8,20 @@
 //   axdrive <pid> exists <id>           exit 0 when it is on screen
 //   axdrive <pid> labelled <prefix>     print every label that starts with the prefix
 //   axdrive <pid> count <id>            how many texts are inside it
+//   axdrive <pid> texts <id>            print the texts inside it, one per line
 //   axdrive <pid> window                print the id of the app's main window (for screencapture -l)
 //   axdrive <pid> panel                 print the id of its floating panel (the call bubble)
 //   axdrive <pid> button <title>        press the first button with this title (a system prompt's "Allow")
+//   axdrive <pid> type <id> <text>      put text in a field and confirm it (Return)
+//   axdrive <pid> ids                   print every identifier on screen, for finding one
+//   axdrive <pid> menu <title>          choose the menu bar item with this title (File ▸ New Session is "New Session")
+//   axdrive <pid> size <width> <height> resize the main window
 import ApplicationServices
 import Foundation
 
 let args = CommandLine.arguments
 guard args.count >= 3, let pid = pid_t(args[1]) else {
-    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|labelled|count|window|panel|button [what]\n".utf8))
+    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|labelled|count|window|panel|button|type|ids|menu|size [what]\n".utf8))
     exit(2)
 }
 guard AXIsProcessTrusted() else {
@@ -83,12 +88,48 @@ case "count":
         return false
     }
     print(n)
+case "texts":
+    guard let element = find(what) else { print("missing"); exit(1) }
+    _ = walk(element) { inner in
+        if attribute(inner, kAXRoleAttribute as String) as? String == kAXStaticTextRole as String { print(text(inner)) }
+        return false
+    }
 case "window", "panel":
     let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
     let floating = Int(CGWindowLevelForKey(.floatingWindow))
     let mine = windows.filter { ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && ($0[kCGWindowLayer as String] as? Int) == (args[2] == "panel" ? floating : 0) }
     guard let id = mine.first?[kCGWindowNumber as String] as? Int else { exit(1) }
     print(id)
+case "type":
+    let parts = what.split(separator: " ", maxSplits: 1).map(String.init)
+    guard parts.count == 2, let element = find(parts[0]) else { print("missing"); exit(1) }
+    AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+    guard AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, parts[1] as CFString) == .success else { exit(1) }
+    exit(AXUIElementPerformAction(element, kAXConfirmAction as CFString) == .success ? 0 : 1)
+case "ids":
+    var seen = Set<String>()
+    _ = walk(app) { element in
+        if let id = attribute(element, kAXIdentifierAttribute as String) as? String, !id.isEmpty, !id.hasPrefix("_"), seen.insert(id).inserted { print(id) }
+        return false
+    }
+case "menu":
+    var chosen = false
+    if let bar = attribute(app, kAXMenuBarAttribute as String) {
+        _ = walk(bar as! AXUIElement) { element in
+            guard attribute(element, kAXRoleAttribute as String) as? String == kAXMenuItemRole as String,
+                  attribute(element, kAXTitleAttribute as String) as? String == what else { return false }
+            chosen = AXUIElementPerformAction(element, kAXPressAction as CFString) == .success
+            return true
+        }
+    }
+    exit(chosen ? 0 : 1)
+case "size":
+    let parts = what.split(separator: " ").compactMap { Double($0) }
+    guard parts.count == 2, let windows = attribute(app, kAXWindowsAttribute as String) as? [AXUIElement],
+          let window = windows.first(where: { attribute($0, kAXSubroleAttribute as String) as? String == kAXStandardWindowSubrole as String }) else { exit(1) }
+    var size = CGSize(width: parts[0], height: parts[1])
+    guard let value = AXValueCreate(.cgSize, &size) else { exit(1) }
+    exit(AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value) == .success ? 0 : 1)
 case "button":
     var pressed = false
     _ = walk(app) { element in
