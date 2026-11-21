@@ -185,6 +185,70 @@ pre code { background: none; border: 0; padding: 0; }
 .phones img { border-radius: 28px; box-shadow: var(--panel-shadow); }
 .phones figcaption { margin-top: 14px; text-align: center; }
 
+/* A day with Pointe. Without script each scene is a still with its line under it. With script (.day--live) the scenes
+   share one sticky stage and the lines scroll past it. The overlay is the app's own dark card in both themes. */
+.day-track { margin-top: 48px; }
+.day-step + .day-step { margin-top: 48px; }
+.day-track:not(.day--live) .day-step { max-width: 760px; }
+.day-stage { position: relative; }
+.day-frame { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #0A0400; box-shadow: var(--panel-shadow); }
+.day-frame > img, .day-frame > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.day-frame > video[hidden] { display: none; }
+.day-badge { position: absolute; left: 12px; bottom: 12px; font-size: 11.5px; padding: 4px 10px; }
+.day-ui { margin-top: 10px; padding: 12px 14px 14px; border-radius: 16px; background: var(--dark-card); color: var(--bone);
+          border: 1px solid var(--dark-line); display: flex; flex-direction: column; gap: 8px; }
+.day-ui-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--dark-dim); }
+.day-said { max-width: 92%; padding: 8px 12px 9px; border-radius: 12px; border: 1px solid var(--dark-line); font-size: 14px; line-height: 1.45; }
+.day-said b { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--accent-dark); }
+.day-said--you { align-self: flex-end; background: #1A1410; }
+.day-said--you b { color: var(--dark-dim); }
+.day-ui--shot img { width: 100%; border-radius: 10px; }
+.day-copy { margin-top: 18px; }
+.day-num { color: var(--accent); margin-right: 10px; font-variant-numeric: tabular-nums; }
+.day-line { font-family: var(--font-display); font-size: clamp(21px, 2.3vw, 30px); line-height: 1.22; letter-spacing: -.015em;
+            color: var(--text); margin-top: 10px; max-width: 22ch; }
+
+.day--live { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); column-gap: 56px; margin-top: 0; }
+.day--live .day-step { display: contents; }
+.day--live .day-scene { grid-column: 2; grid-row: 1 / span 5; align-self: start; position: sticky; top: 0; height: 100vh;
+                        display: flex; flex-direction: column; justify-content: center; opacity: 0; visibility: hidden;
+                        transition: opacity .5s var(--ease), visibility 0s .5s; }
+.day--live .day-step.is-active .day-scene { opacity: 1; visibility: visible; transition: opacity .5s var(--ease); }
+.day--live .day-ui { position: absolute; right: 16px; bottom: 16px; width: min(46%, 350px); margin: 0;
+                     background: rgba(15, 11, 8, .9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+                     border-color: rgba(255, 255, 255, .12); box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .7); }
+.day--live .day-copy { grid-column: 1; min-height: 78vh; margin: 0; display: flex; flex-direction: column; justify-content: center;
+                       opacity: .28; transition: opacity .4s var(--ease); }
+.day--live .day-step.is-active .day-copy { opacity: 1; }
+.day--live .day-step:nth-child(1) .day-copy { grid-row: 1; }
+.day--live .day-step:nth-child(2) .day-copy { grid-row: 2; }
+.day--live .day-step:nth-child(3) .day-copy { grid-row: 3; }
+.day--live .day-step:nth-child(4) .day-copy { grid-row: 4; }
+.day--live .day-step:nth-child(5) .day-copy { grid-row: 5; }
+.day--live .day-step.is-active .day-ui > * { animation: day-in .5s var(--ease) both; }
+.day--live .day-step.is-active .day-ui > :nth-child(2) { animation-delay: .35s; }
+.day--live .day-step.is-active .day-ui > :nth-child(3) { animation-delay: 1.5s; }
+@keyframes day-in { from { opacity: 0; transform: translateY(8px); } }
+
+@media (max-width: 900px) {
+  /* The stage has a fixed height (the clip plus 204px for the overlay) so the first row can reserve it. */
+  .day--live { grid-template-columns: minmax(0, 1fr); }
+  .day--live::before { content: ""; grid-row: 1; padding-top: calc(56.25% + 228px); }
+  .day--live .day-scene { grid-column: 1; grid-row: 1 / span 6; height: auto; display: block; z-index: 1; margin: 0 -16px; padding: 12px 16px;
+                          background: var(--bg); border-bottom: 1px solid var(--line); }
+  .day--live .day-stage { height: calc((100vw - 32px) * .5625 + 204px); max-height: calc(56.25vw + 204px); }
+  .day--live .day-ui { position: static; width: auto; margin-top: 10px; background: var(--dark-card); -webkit-backdrop-filter: none;
+                       backdrop-filter: none; box-shadow: none; }
+  .day--live .day-ui--shot img { max-height: 150px; width: auto; align-self: flex-start; }
+  .day--live .day-copy { min-height: 58vh; }
+  .day--live .day-step:nth-child(1) .day-copy { grid-row: 2; }
+  .day--live .day-step:nth-child(2) .day-copy { grid-row: 3; }
+  .day--live .day-step:nth-child(3) .day-copy { grid-row: 4; }
+  .day--live .day-step:nth-child(4) .day-copy { grid-row: 5; }
+  .day--live .day-step:nth-child(5) .day-copy { grid-row: 6; }
+  .day-said { font-size: 13.5px; }
+}
+
 /* Dark band: the one per page. In the dark theme it keeps its glow and gains hairlines so it still reads as a band. */
 .band-dark { position: relative; overflow: hidden; background: var(--dark); color: var(--bone); padding: 96px 0; }
 .band-dark::after { content: ""; position: absolute; top: 30%; right: -80px; width: 560px; height: 560px; border-radius: 50%;
@@ -297,7 +361,10 @@ pre code { background: none; border: 0; padding: 0; }
   .copy { top: auto; bottom: 8px; }
   .steps [data-cmd] pre { padding-right: 18px; }
 }
-@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .day--live .day-scene, .day--live .day-step.is-active .day-scene, .day--live .day-copy { transition: none; }
+  .day--live .day-step.is-active .day-ui > * { animation: none; }
+}
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .site-header nav, .copy, .skip { display: none !important; }
