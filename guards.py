@@ -235,13 +235,125 @@ def switch_intent(text: str) -> bool:
     return any(p in lowered for p in _SWITCH)
 
 
-_DISCONNECT = re.compile(r"\b(disconnect|unplug|detach|drop|remove|kick)\b|\b(take|let) \S+(?: \S+)? off (?:the )?(?:voice|call)\b|"
-                         r"נתק|תנתק|תוריד|הורד|תסיר|הסר")
+_CLOSE_HE = r"(?<!\w)ו?(?:תנתקי?|נתק|תורידי?|הורד|תסירי?|הסר|תסגור|תסגרי|סגור|סגרי|תוציאי?|הוצא)(?!\w)"
+_CLOSE_VERB = re.compile(rf"\b(?:disconnect|unplug|detach|drop|remove|kick|close|shut|hang up on|get rid of)\b|{_CLOSE_HE}")
+_TAKE_OFF = re.compile(r"\b(?:take|get|let|put)\s+(?P<obj>(?:\S+\s+){0,8}?\S+)\s+off\b")
+_LEAVE = re.compile(r"\b(?:let|have|make)\s+(?P<obj>(?:\S+\s+){0,8}?\S+)\s+leave\b|"
+                    r"(?P<subj>[^.;!?]+?)\s+(?:can|should|may|must|could)\s+leave\b")
+# Where the words that say which sessions end: a new sentence, or another request ("..., and tell beta to ...").
+_OBJECT_END = re.compile(r"[.;!?]|\b(?:and\s+)?(?:then\s+)?(?:tell|ask|switch|go|move|keep|leave|stay)\b|"
+                         r"(?<!\w)ו?(?:תשאירי?|תשאירו|השאר את|השאירי|תגידי?|תבקשי?|תעבור)(?!\w)")
+_FROM_VOICE = re.compile(r"\s*\b(?:from|off)\s+(?:the\s+)?(?:voice|call|line)\b.*$|\s*(?:מהקול|מהשיחה|מהווייס).*$")
+_EXCEPT = re.compile(r"\b(?:except(?:\s+for)?|besides|but(?:\s+not)?|other\s+than|apart\s+from|aside\s+from|save\s+for|"
+                     r"excluding|minus)\b|(?<!\w)(?:חוץ\s*מ|מלבד|פרט\s*ל|למעט|בלי)")
+_ALL = re.compile(r"\b(?:all|every|everything|everyone|everybody|each)\b|(?<!\w)(?:כל|הכל|הכול|כולם|כולן)(?!\w)")
+_REST = re.compile(r"\b(?:the\s+)?(?:rest|others)\b|\b(?:everything|everyone|everybody)\s+else\b|"
+                   r"\bthe\s+other\s+(?:sessions|ones)\b|\ball\s+other\s+sessions\b|"
+                   r"(?<!\w)(?:השאר|האחרים|האחרות|שאר הסשנים)(?!\w)")
+_KEEP = re.compile(r"(?:\b(?:keep|leave)\b(?!\s+(?:the\s+)?(?:voice|call)\b)|(?<!\w)ו?(?:תשאירי?|תשאירו|השאר את|השאירי)(?!\w))"
+                   rf"(?P<tail>.*?)(?=$|[.;!?]|{_CLOSE_VERB.pattern})")
+_LIST = re.compile(r",|&|\b(?:and|or)\b|(?<!\w)ו-?(?=\s*\S)")
+_OBJECT_FILLER = {"the", "a", "my", "these", "those", "both", "of", "session", "sessions", "one", "ones", "voice",
+                  ",", "and", "or", "את", "ה", "ו", "הסשן", "הסשנים", "סשן", "סשנים"}
 
 
 def disconnect_intent(text: str) -> bool:
     """The user asked to take a session off the voice, not to have a session drop something ("tell billing to drop it")."""
-    return bool(_DISCONNECT.search(_lower(strip_tasks(text))))
+    lowered = _lower(strip_tasks(text))
+    return bool(_CLOSE_VERB.search(lowered) or _TAKE_OFF.search(lowered) or _LEAVE.search(lowered))
+
+
+class CloseAsk:
+    """The sessions the user's words take off the voice. `ties`: a name two or more sessions answer to (ask which);
+    `unclear`: words that ask to close but name nothing the daemon can pick (ask which); `inverse`: "all except ..."."""
+
+    def __init__(self, close=(), keep=(), ties=(), inverse=False, unclear=False):
+        self.close, self.keep, self.ties, self.inverse, self.unclear = list(close), list(keep), list(ties), inverse, unclear
+
+    def __repr__(self):
+        return (f"CloseAsk(close={[s.name for s in self.close]}, keep={[s.name for s in self.keep]}, "
+                f"ties={[[s.name for s in t] for t in self.ties]}, inverse={self.inverse}, unclear={self.unclear})")
+
+
+def _close_object(lowered: str) -> tuple[str, int, int] | None:
+    """The words saying which sessions to close, and where they sit in `lowered`."""
+    found = []
+    for m in _TAKE_OFF.finditer(lowered):
+        found.append((m.start(), m.group("obj"), m.start("obj"), m.end("obj")))
+    for m in _LEAVE.finditer(lowered):
+        group = "obj" if m.group("obj") is not None else "subj"
+        found.append((m.start(), m.group(group), m.start(group), m.end(group)))
+    for m in _CLOSE_VERB.finditer(lowered):
+        rest = lowered[m.end():]
+        end = _OBJECT_END.search(rest)
+        found.append((m.start(), rest[:end.start()] if end else rest, m.end(), m.end() + (end.start() if end else len(rest))))
+    if not found:
+        return None
+    _, obj, start, end = min(found)
+    return _FROM_VOICE.sub("", obj), start, end
+
+
+def _named(text: str, sessions: list) -> tuple[list, list]:
+    """(sessions clearly named, ties) in a list of names: "harbor, voice, and kestrel", "harbor ו-voice"."""
+    from sessions import name_groups
+
+    named, ties = [], []
+    for piece in _LIST.split(text):
+        for group in name_groups(piece, sessions):
+            if len(group) == 1:
+                named += [s for s in group if s not in named]
+            elif group not in ties:
+                ties.append(group)
+    return named, ties
+
+
+def close_request(text: str, sessions: list) -> CloseAsk | None:
+    """Which sessions the user asked to take off the voice, from their own words; None if they did not ask.
+
+    Names are matched as everywhere else (sessions.name_groups). "All except X, Y", "close the rest" (with what to keep
+    said in the same breath) and "everything" select the complement; a name two sessions answer to is a tie, never a
+    guess. Words that close something inside a session ("close the issue in billing") name no session.
+    """
+    from sessions import name_groups
+
+    lowered = _lower(strip_tasks(text))
+    spot = _close_object(lowered)
+    if spot is None:
+        return None
+    obj, start, end = spot
+    kept, kept_ties = [], []
+    for m in _KEEP.finditer(lowered):
+        if not (start <= m.start() < end):
+            named, ties = _named(m.group("tail"), sessions)
+            kept += [s for s in named if s not in kept]
+            kept_ties += ties
+    cut = _EXCEPT.search(obj)
+    head, tail = (obj[:cut.start()], obj[cut.end():]) if cut else (obj, "")
+    if (cut and _ALL.search(head)) or _REST.search(obj) or (_ALL.search(obj) and not name_groups(obj, sessions)):
+        named, ties = _named(tail, sessions)
+        kept += [s for s in named if s not in kept]
+        if _REST.search(obj) and not cut:  # "harbor and voice stay, close the rest": what is kept is said outside
+            named, ties_out = _named(lowered[:start] + " ; " + lowered[end:], sessions)
+            kept += [s for s in named if s not in kept]
+            ties += ties_out
+        ties += kept_ties
+        if ties:
+            return CloseAsk(keep=kept, ties=ties, inverse=True)
+        if _REST.search(obj) and not cut and not kept:
+            return CloseAsk(inverse=True, unclear=True)  # the rest of what? ask which to keep
+        return CloseAsk(close=[s for s in sessions if s not in kept], keep=kept, inverse=True)
+    from sessions import _tokens
+
+    first = next((t for t in _tokens(head) if t not in _OBJECT_FILLER), "")
+    if not first or not name_groups(first, sessions):
+        return CloseAsk(unclear=True)  # "close it", "close the issue in billing": no session named where the close is
+    named, ties = _named(head, sessions)
+    if tail:
+        spared, spared_ties = _named(tail, sessions)
+        kept += spared
+        ties += spared_ties
+    close = [s for s in named if s not in kept]
+    return CloseAsk(close=close, keep=kept, ties=ties, unclear=not close and not ties)
 
 
 def back_intent(text: str) -> bool:

@@ -87,6 +87,7 @@ from guards import (relays_approval, remote_readable,
     LocalAuth,
     permission_answer,
     quote_intent,
+    close_request,
     disconnect_intent,
     strip_tasks,
     unfinished,
@@ -338,6 +339,7 @@ BRIEF_UPDATE_CHARS = 30_000
 SEND_WORDS = re.compile(r"\b(?:send|tell|ask|go ahead|do it|go for it)\b|שלח|תגיד|תבקש|קדימה")
 STANDING_HOLD = re.compile(r"hold off|not yet|don't (?:send|apply|merge|run|touch|deploy|flip)|do not (?:send|apply|merge|run|touch|deploy|flip)|אל ת|עוד לא")
 PENDING_ROUTE_SECS = 120.0  # how long "which session is that for?" can still be answered with a name
+CLOSE_CONFIRM_SECS = 60.0  # how long a read-back of sessions to close can still be answered yes
 MAX_REFUSALS_PER_UTTERANCE = 2  # Gemini re-words and re-sends a refused call about once a second
 PERMISSION_ANSWER_SECS = 120.0
 YES_AFTER_BOT_SECS = 1.0
@@ -434,8 +436,10 @@ the session you last talked about. Session mode: only the pinned session.
 - A correction of what you heard ("no, I said building, not billing", "I meant the staging one") replaces their last \
 words: act on the corrected version, and if you already did something with the misheard words, say what and fix it. \
 [the user corrected the transcript] is the same thing, typed in the app.
-- "Disconnect / drop / remove <session>" takes it off the voice: disconnect_session. It keeps running in its terminal. \
-"Tell <session> to drop X" is a send, never a disconnect.
+- "Close / disconnect / drop / remove <session>", several sessions, or "close all except X and Y" takes them off the \
+voice: call disconnect_session once; the daemon picks the sessions from the user's words. They keep running in their \
+terminals. If the result has confirm_first, say that line once and wait; when the user answers, call disconnect_session \
+again. "Tell <session> to close X" is a send, never a disconnect.
 - Change mode with set_mode only when the user asks for it. "Tell all sessions / everyone to ..." is one \
 send_to_claude_code call, not a mode change.
 - Different instructions for different sessions in one breath: call send_to_claude_code once per instruction, \
@@ -1916,6 +1920,8 @@ class State:
     utterance_spent: bool = False  # the last words answered a permission: applied, and no reply is due to them
     last_mode_at: float = 0.0
     pending_route: tuple[float, str | None, str] | None = None  # (when, proposed session id, message): refused for want of a session
+    pending_close: tuple[float, list[str], str] | None = None  # (when, session ids, the read-back): closes on the next yes
+    last_close_at: float = 0.0
     notes_turns: dict[str, int] = field(default_factory=dict)  # per session: turns since the notes were last given
     brief_again: set[str] = field(default_factory=set)
     briefing: set[str] = field(default_factory=set)  # sessions whose notes are being written now
@@ -3764,6 +3770,9 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     session = REGISTRY.active
     if not session or not session.permission_id or state.conn is None:
         return
+    pending = _close_pending()
+    if pending and sum(at > pending[0] for at, _ in state.recent_said) == 1:
+        return  # the first words after "Closing A and B. Go ahead?" answer that, never a prompt
     if not online(session):  # its node handed the prompt back to its terminal when the link dropped
         if permission_answer(text) is not None:
             state.utterance_spent = True
@@ -4609,18 +4618,80 @@ async def switch_session(params: FunctionCallParams):
     await params.result_callback(await activate(spoken))
 
 
+def _close_pending() -> tuple[float, list[str], str] | None:
+    pending = state.pending_close
+    return pending if pending and time.time() - pending[0] < CLOSE_CONFIRM_SECS else None
+
+
+def _said_list(sessions: list[Session]) -> str:
+    names = [_spoken_names(s.name) for s in sessions]
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+async def _close_all(ids: list[str]) -> dict:
+    gone = [s for s in (REGISTRY.sessions.get(i) for i in ids) if s is not None]
+    pinned = REGISTRY.mode == "session" and REGISTRY.active in gone
+    for s in gone:
+        await disconnect(s, "by voice, confirmed")
+    return {"disconnected": [s.name for s in gone], "active": REGISTRY.active.name if REGISTRY.active else None,
+            "note": "They keep running in their terminals; /pointe:voice there joins one again."
+            + (" Session mode ended: back to orchestrator mode." if pinned else "")}
+
+
 async def disconnect_session(params: FunctionCallParams):
-    """Only a session the user just named, in words asking to take it off the voice."""
-    fresh = await _await_fresh_speech(state.last_switch_at)
-    groups = name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
-    if not fresh or not disconnect_intent(state.last_utterance):
+    """Takes sessions off the voice, chosen from the user's own words, never from the model's arguments. One clearly named
+    session goes at once; several, or "all except ...", are read back and go on the user's next plain yes."""
+    sessions = list(REGISTRY.sessions.values())
+    pending = _close_pending()
+    fresh = await _await_fresh_speech(pending[0] if pending else state.last_close_at)
+    said = state.last_utterance
+    if pending and not fresh:  # the model calls once per session it heard: one read-back covers them all
+        await params.result_callback({"error": f"Nothing closed yet: you asked \"{pending[2]}\". Wait for the answer; "
+                                      "do not ask again."})
+        return
+    if pending:
+        state.pending_close = None
+        echo = state.heard_own_words or ECHO.repeats_bot(said)
+        verdict = None if echo else consent(said)
+        if verdict == "allow" and not name_groups(said, sessions):
+            state.last_close_at = time.time()
+            await params.result_callback(await _close_all(pending[1]))
+            return
+        if verdict == "deny" or close_request(said, sessions) is None:
+            await params.result_callback({"error": "Not closed: the user did not say yes. Nothing was taken off the "
+                                          "voice; ask what they want closed if it is unclear."})
+            return
+    if not fresh:
         await params.result_callback({"error": "Not disconnected. The user did not ask to take a session off the voice."})
         return
-    if len(groups) != 1 or len(groups[0]) != 1:
-        options = ", ".join(s.name for g in groups for s in g) if groups else _names()
-        await params.result_callback({"error": f"Not disconnected. The user did not clearly name one session. Ask which: {options}."})
+    # "Close beta." then "And gamma too." a moment later: the newest sentence that asked, from the last few seconds.
+    asked = next((t for at, t in reversed(state.recent_said) if time.time() - at < SWITCH_WORDS_SECS
+                  and at > state.last_close_at and disconnect_intent(t)), said)
+    ask = close_request(asked, sessions)
+    if ask is None:
+        await params.result_callback({"error": "Not disconnected. The user did not ask to take a session off the voice."})
         return
-    await params.result_callback(await disconnect(groups[0][0], "by voice"))
+    if ask.ties:
+        options = "; ".join(" or ".join(s.name for s in tie) for tie in ask.ties)
+        await params.result_callback({"error": f"Not closed. Some words fit more than one session. Ask which they "
+                                      f"meant: {options}."})
+        return
+    if ask.unclear or not ask.close:
+        which = "Ask which to keep" if ask.inverse else "Ask which"
+        await params.result_callback({"error": f"Not closed. The user did not clearly name the sessions. {which}: "
+                                      f"{_names()}."})
+        return
+    state.last_close_at = time.time()
+    if len(ask.close) == 1 and not ask.inverse:
+        await params.result_callback(await disconnect(ask.close[0], "by voice"))
+        return
+    kept = [s for s in sessions if s not in ask.close]
+    readback = f"Closing {_said_list(ask.close)}." + (f" Keeping {_said_list(kept)}." if kept else "") + " Go ahead?"
+    state.pending_close = (time.time(), [s.id for s in ask.close], readback)
+    logger.info(f"close read back: {readback}")
+    await params.result_callback({"confirm_first": readback, "note": "Nothing is closed yet. Say this line once, as it "
+                                  "is, and wait. When the user answers, call disconnect_session again. Closing only "
+                                  "takes them off the voice: they keep running in their terminals."})
 
 
 async def activate(session: Session) -> dict:
@@ -4882,10 +4953,11 @@ TOOLS = ToolsSchema(standard_tools=[
         required=["name"], handler=_traced(switch_session)),
     FunctionSchema(
         name="disconnect_session",
-        description="Take a session off the voice (it keeps running in its terminal). Only when the user just asked to "
-        "disconnect, drop or remove that session by name.",
-        properties={"name": {"type": "string", "description": "The session name the user said."}},
-        required=["name"], handler=_traced(disconnect_session)),
+        description="Take sessions off the voice (they keep running in their terminals). Only when the user just asked "
+        "to close, disconnect, drop or remove one or more sessions, or all but some. Call it once: the daemon picks the "
+        "sessions from the user's own words. Again after the user answers a confirm_first read-back.",
+        properties={"name": {"type": "string", "description": "A session name the user said, if any."}},
+        required=[], handler=_traced(disconnect_session)),
     FunctionSchema(
         name="set_mode",
         description="Change routing mode, only when the user asked: orchestrator mode routes each request to the "
@@ -6491,6 +6563,7 @@ async def _on_connect(conn: Connection) -> None:
     state.last_delegation_at = state.last_switch_at = now
     state.last_utterance = ""
     state.unconfirmed, state.blocked, state.pending_route, state.notes_turns = {}, [], None, {}
+    state.pending_close, state.last_close_at = None, now
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
     state.last_speaker = None

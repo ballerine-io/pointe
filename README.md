@@ -55,7 +55,7 @@ The first run downloads about 180 MB. A tab opens: allow the microphone, press C
 | `/pointe:setup` | guided setup: keys, first call, phone |
 | `/pointe:voice` | join this session to the voice (starts the daemon if needed) |
 | `/pointe:open` | open the page again |
-| `/pointe:leave` | take this session off the voice (or say "disconnect billing", or use × on the page) |
+| `/pointe:leave` | take this session off the voice (or say "close billing" or "close all except billing", or use × on the page) |
 | `/pointe:stop` | stop all voice |
 | `/pointe:doctor` | what runs here, what is missing, and the one key that would help most |
 | `pointe local` | fully local: download and start the local models, no keys ([details](docs/features/local.md)) |
