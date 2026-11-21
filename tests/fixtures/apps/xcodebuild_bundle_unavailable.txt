@@ -1,0 +1,3 @@
+/work/pointe/ios/Pointe.xcodeproj: error: Failed to register bundle identifier: The app identifier "io.ballerine.pointe" cannot be registered to your development team because it is not available. Change your bundle identifier to a unique string to try again. (in target 'Pointe' from project 'Pointe')
+/work/pointe/ios/Pointe.xcodeproj: error: No profiles for 'io.ballerine.pointe' were found: Xcode couldn't find any iOS App Development provisioning profiles matching 'io.ballerine.pointe'. (in target 'Pointe' from project 'Pointe')
+** BUILD FAILED **

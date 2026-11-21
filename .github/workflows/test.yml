@@ -40,6 +40,14 @@ jobs:
         run: |
           sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
           xcodebuild -version
+      # bin/pointe apps (apps.py), on a Mac with no Apple Account and no iPhone: the doctor must still find the Mac app
+      # and the Simulator buildable, and each command must plan its build. Nothing is signed; the team is an invented one.
+      - name: pointe apps, the build-from-source command, without signing
+        run: |
+          bin/pointe apps doctor
+          bin/pointe apps mac --dry-run
+          bin/pointe apps ios --sim --dry-run
+          POINTE_TEAM_FILE="$RUNNER_TEMP/team" bin/pointe apps ios --dry-run --team ABCDE12345
       - name: PointeKit, the code the iPhone and Mac apps share
         working-directory: apple/PointeKit
         run: swift test

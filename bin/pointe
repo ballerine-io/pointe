@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|join|local|stop [args]
+# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|join|local|apps|stop [args]
 set -euo pipefail
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -29,6 +29,7 @@ case "$cmd" in
                 uv sync --locked --quiet --extra local --project "$BIN/.." ;;  # Whisper and Kokoro run inside the daemon
            esac
            exec uv run --locked --project "$BIN/.." python -I "$BIN/../local.py" "$@" ;;  # fully local: no keys
+  apps)    exec "$BIN/pointe-apps" "$@" ;;       # the iPhone and Mac apps, built from source: doctor, mac, ios
   join)    exec uv run --locked --project "$BIN/.." python -I "$BIN/../harnesses/join.py" "$@" ;;  # another harness: pointe join opencode
   leave)   exec uv run --locked --project "$BIN/.." python -I -c "import sys; sys.path.insert(0, \"$BIN/../harnesses\"); import join; join.main(sys.argv[1:], leave=True)" "$@" ;;
   *) sed -n 2p "${BASH_SOURCE[0]}" | cut -c3-; exit 2 ;;

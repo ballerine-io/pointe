@@ -8,7 +8,7 @@ plain sentence before you do it; keep each reply short. Two rules without except
 terminal, and never ask them to paste a key into this chat (a key typed here ends up in the transcript). Keys go only
 through the Mac window that `pointe key` opens.
 
-Go in this order and say which step you are on ("Step 2 of 6").
+Go in this order and say which step you are on ("Step 2 of 7").
 
 **1. This Mac.** `sw_vers` (macOS needed). Check Chrome: `ls /Applications ~/Applications 2>/dev/null | grep -i "google chrome"`. If Chrome is
 missing, ask them to install it from google.com/chrome and come back.
@@ -77,8 +77,26 @@ plain yes or no answers them, and anything complex waits for a tap on the page.
 - Their company VPN, such as Twingate, if it routes to this Mac: run `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair host <name>`.
 - Same Wi-Fi only: `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair wifi`.
 Pairing shows a QR code. If it does not show here, save it: `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair show`, and open what
-it prints. The iPhone app is not in the App Store or on TestFlight yet; someone with Xcode can build it from source
-(docs/phone.md, "Getting the app"). Until then, the same page works in the phone's browser.
+it prints. The iPhone app is not in the App Store or on TestFlight yet; step 6 builds it. Without it, the same page
+works in the phone's browser.
 
-**6. Done.** Run `mkdir -p ~/.claude-voice && touch ~/.claude-voice/setup-done` so new sessions stop suggesting setup. Summarize in three lines: what setup they have, how to start (/pointe:voice), how to stop (/pointe:stop),
+**6. The Mac app and the iPhone app (optional).** Pointe has a Mac app (the call in the menu bar, no browser tab) and an
+iPhone app. Neither has a download yet: each is built on this Mac with Xcode, by one command. Ask if they want either;
+if not, go to step 7. Check Xcode first: `ls /Applications | grep -i xcode`. If Xcode is missing, say it is a free,
+large (about 12 GB) install from the App Store, that it is only for these two apps, and that they can come back to this
+later; do not push it on someone who is not a developer. With Xcode there, run
+`${CLAUDE_PLUGIN_ROOT}/bin/pointe apps doctor` and read them what it found in plain words. It never prints a Team ID.
+- The Mac app needs no Apple Account: run `${CLAUDE_PLUGIN_ROOT}/bin/pointe apps mac --open` with a 15-minute timeout
+  (the first build takes a few minutes). It installs to ~/Applications and opens; its mark appears in the menu bar.
+- The iPhone app needs an Apple Account signed in to Xcode (a free one is enough) and the iPhone connected. When the
+  doctor says something is missing, walk them through its fix one step at a time; the steps are in Xcode's Settings and
+  on the iPhone, never in a terminal. Then run `${CLAUDE_PLUGIN_ROOT}/bin/pointe apps ios` with a 15-minute timeout.
+  Tell them: with a free account the app opens for 7 days, and the same command renews it. When the fix is a `sudo`
+  command (the Xcode license, `xcode-select`), do not ask them to type it: opening Xcode once accepts the license in a
+  window, and Xcode's Settings, Locations, Command Line Tools selects Xcode.
+- No iPhone or no Apple Account: `${CLAUDE_PLUGIN_ROOT}/bin/pointe apps ios --sim` shows the app in the Simulator.
+If a build fails, read them the cause and the fix the command printed; the same table is in docs/phone.md, "Getting the
+app". After the iPhone app is installed, pair it as in step 5.
+
+**7. Done.** Run `mkdir -p ~/.claude-voice && touch ~/.claude-voice/setup-done` so new sessions stop suggesting setup. Summarize in three lines: what setup they have, how to start (/pointe:voice), how to stop (/pointe:stop),
 and that /pointe:doctor shows what runs and what to improve. Ask them to report anything confusing as an issue at github.com/ballerine-io/pointe.

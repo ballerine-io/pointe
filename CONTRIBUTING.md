@@ -59,6 +59,7 @@ You need git and a Mac or a Linux machine. No keys and no cost, until step 4.
 | `vendors.py` | Each vendor, its key, and the order roles pick them in |
 | `ui.html` | The call page: one file, no build step |
 | `ios/` | The iPhone app (SwiftUI), with unit tests in `ios/PointeTests` and UI tests in `ios/PointeUITests` |
+| `apps.py` | `bin/pointe apps doctor`, `mac`, `ios`: builds, signs and installs the two apps from source. Standard library only, so it runs on Xcode's Python; tested against recorded tool output in `tests/test_apps.py` |
 | `node.py`, `nodelink.py`, `hub_nodes.py` | Other machines: the node, the link, and the hub's side of it ([docs/multi-machine.md](docs/multi-machine.md)) |
 | `bin/`, `plugin/`, `hooks/` | The launchers, the Claude Code commands (`/pointe:*`), and the permission hook |
 | `tests/` | The offline suite. `tests/e2e/` calls paid vendors and starts real sessions |

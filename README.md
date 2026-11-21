@@ -57,6 +57,11 @@ Then, in each session you want to reach:
 
 The first run downloads about 180 MB. A tab opens: allow the microphone, press Connect, and talk.
 
+**The Mac and iPhone apps** are optional, and built from source until there is a download. With Xcode installed, from a
+clone of this repository: `bin/pointe apps doctor` says what is missing, `bin/pointe apps mac` builds the Mac app and
+puts it in `~/Applications`, and `bin/pointe apps ios` builds the iPhone app, signs it with your (free) Apple Account
+and installs it on your iPhone. [The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/phone.md#getting-the-app).
+
 | Command | Does |
 |---|---|
 | `/pointe:setup` | guided setup: keys, first call, phone |
@@ -101,9 +106,10 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
 - **Live transcript.** The page shows the conversation as it happens, the exact text of every pending request with
   Approve and Deny, and lets you type or correct what was heard.
 - **Mac app.** The call in the menu bar and a native window, with a system-wide talk shortcut. Built from source for
-  now. [docs/mac-app.md](docs/mac-app.md).
+  now, with one command: `bin/pointe apps mac`. [docs/mac-app.md](docs/mac-app.md).
 - **iPhone app.** The same call and controls on your phone, paired once by QR code over Tailscale, a VPN such as
-  Twingate, or Wi-Fi. Approve needs Face ID. [docs/phone.md](docs/phone.md).
+  Twingate, or Wi-Fi. Approve needs Face ID. Built from source for now: `bin/pointe apps ios`, with a free Apple
+  Account. [docs/phone.md](docs/phone.md#getting-the-app).
 - **Several harnesses and accounts** in one call, each session with its own approvals. [docs/harnesses.md](docs/harnesses.md).
 
 **Features** (each page says how to use it, the rules, what was measured, and the limits)
@@ -326,11 +332,12 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 ## Limits
 
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
-- **The Mac app is built from source** too ([how](docs/mac-app.md)), signed for your own Mac and not notarized. Its
+- **The Mac app is built from source** too (`bin/pointe apps mac`, [how](docs/mac-app.md#getting-it)), signed for your
+  own Mac and not notarized. Its
   call, a request and a brain dump were run once against a real daemon on one MacBook Pro; AirPods, device changes and
   the Touch ID sheet were not.
-- **The iPhone app is built from source** in Xcode for now ([how](docs/phone.md#getting-the-app)); it is not in the App
-  Store, and not on TestFlight yet. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
+- **The iPhone app is built from source** for now (`bin/pointe apps ios`, [how](docs/phone.md#getting-the-app)); it is
+  not in the App Store, and not on TestFlight yet. With a free Apple Account a build opens for 7 days. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
   page works in a phone browser.
 - **Synthetic evidence.** The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No
   bench on recorded people has been run, so use the voice lock at Approvals, and treat whisper recognition as limited.

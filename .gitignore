@@ -15,3 +15,4 @@ ios/.team
 ios/build/
 .build/
 macos/build/
+ios/.bundle-id
