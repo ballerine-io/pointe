@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.16
 
+- **1.16.3** (2026-11-21): The iPhone app builds on the Xcode that CI uses again; the app is the same as in 1.16.2.
 - **1.16.2** (2026-11-21): The iPhone app's New pill goes when tapped or scrolled to the end, Settings no longer jumps back while you scroll it, push to talk has a switch above the mic, and a press keeps its first word.
 - **1.16.1** (2026-11-21): The iPhone and Mac apps build and install from source with one command each: `bin/pointe apps mac` and `bin/pointe apps ios` (a free Apple Account is enough), `ios --sim` for the Simulator, and `bin/pointe apps doctor` for what is missing and how to fix it.
 - **1.16.0** (2026-11-21): Pointe starts a new Claude Code, OpenCode or Codex session for you: by voice after a read-back and your yes, or from New session on the page, the iPhone app and the Mac app, only in folders you already work in and never with permission prompts skipped.
