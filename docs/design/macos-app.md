@@ -6,8 +6,9 @@ the app holds no model key, decides nothing about approvals, and opens no port.
 
 Status: built (`macos/`, `apple/PointeKit/`). Since 1.17.0 its window draws the iPhone app's screens and has every
 feature the page and the phone have: [parity.md](parity.md) is the audit, the architecture and the component spec, and
-supersedes "Code sharing", "Mac-native UX" (the window) and "Not in version 1" below, which are kept as the record of
-version 1. What is unchanged: the protocol, the authentication, the audio wiring, the shortcut, the daemon's
+supersedes "Code sharing", "Mac-native UX" (the window), "Parity", "Testing" and "Not in version 1" below, which are
+kept as the record of version 1 (the store, the stub daemon and `CallLink` they name are gone: the shared call and
+screens replaced them). What is unchanged: the protocol, the authentication, the audio wiring, the shortcut, the daemon's
 lifecycle, distribution and the security rules.
 
 ## What it is not
@@ -107,7 +108,7 @@ alerts on or off.
 
 ## Code sharing: a Swift package, not Mac Catalyst
 
-`apple/PointeKit` is a local Swift package (Swift 6 language mode, iOS 18 and macOS 14) with two libraries:
+`apple/PointeKit` is a local Swift package (Swift 6 language mode, iOS 18 and macOS 14; macOS 15 since 1.17.0) with two libraries:
 
 | Library | Holds | Used by |
 |---|---|---|

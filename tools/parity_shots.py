@@ -2,6 +2,7 @@
 in headless Chrome against the page rig's stub Mac, at a desktop width and a phone width, light and dark.
 
     uv run --locked python tools/parity_shots.py [out folder, default /tmp/parity-shots/web]
+    uv run --locked python tools/parity_shots.py --side-by-side [folder with web/ ios/ mac/, default /tmp/parity-shots]
 
 The iPhone's come from the simulator (`-demo <screen>`) and the Mac's from the built app with the same argument; see
 "Screenshots" in docs/design/parity.md. Invented names only; nothing is fetched from anywhere.
@@ -41,7 +42,7 @@ def scene(name: str) -> dict:
     status = page_rig.fixture(sessions=0, connected=True)
     status.update({"active": "billing/main", "connected": True, "mode": "orchestrator", "sessions": [dict(s) for s in SESSIONS], "talk": TALK,
                    "version": "1.17.0"})
-    if name == "call":
+    if name in ("call", "settings"):
         for s in status["sessions"]:
             s.update(waiting=False, request=None, request_id=None, working=s["name"] == "billing/main")
     return status
@@ -63,6 +64,8 @@ async def shoot(out: Path, scenes: list[str]) -> None:
                         await page.cdp("Page.reload")
                         await asyncio.sleep(0.5)
                         await page.wait_for_page()
+                        if name == "settings":
+                            await page.eval("document.getElementById('settingsbtn').click()")
                         await asyncio.sleep(1.2)
                         shot = await page.cdp("Page.captureScreenshot", {"format": "png"})
                         path = out / f"{name}-{size}-{look}.png"
@@ -72,6 +75,35 @@ async def shoot(out: Path, scenes: list[str]) -> None:
         await stub.stop()
 
 
+def side_by_side(root: Path) -> None:
+    """One image per screen and appearance: the page, the iPhone and the Mac beside each other, at one height.
+    `root` holds web/, ios/ and mac/ (the names this script and macos/e2e/smoke.py write, and `<screen>-<look>.png`
+    from the simulator)."""
+    from PIL import Image
+
+    pairs = {"call": ("call-desktop", "call", "call"), "request": ("request-desktop", "request", "request"),
+             "settings": ("settings-desktop", "settings", "sheet-settings")}
+    for screen, (web, ios, mac) in pairs.items():
+        for look in ("light", "dark"):
+            files = [root / "web" / f"{web}-{look}.png", root / "ios" / f"{ios}-{look}.png", root / "mac" / f"{mac}-{look}.png"]
+            if not all(f.exists() for f in files):
+                continue
+            images = [Image.open(f).convert("RGB") for f in files]
+            height = 1400
+            images = [im.resize((round(im.width * height / im.height), height)) for im in images]
+            sheet = Image.new("RGB", (sum(im.width for im in images) + 40 * (len(images) + 1), height + 80), "#FFFFFF" if look == "light" else "#0A0400")
+            x = 40
+            for im in images:
+                sheet.paste(im, (x, 40))
+                x += im.width + 40
+            out = root / f"side-by-side-{screen}-{look}.png"
+            sheet.save(out)
+            print(out)
+
+
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    asyncio.run(shoot(Path(args[0]) if args else Path("/tmp/parity-shots/web"), ["request", "call"]))
+    if "--side-by-side" in sys.argv:
+        side_by_side(Path(args[0]) if args else Path("/tmp/parity-shots"))
+    else:
+        asyncio.run(shoot(Path(args[0]) if args else Path("/tmp/parity-shots/web"), ["request", "call", "settings"]))

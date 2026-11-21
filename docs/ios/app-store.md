@@ -80,7 +80,7 @@ Answer **Data Not Collected**. "Collected" in Apple's sense means sent off the d
 party the app integrates, can read it. The app sends audio, text and the device name only to the user's own Mac, which
 the user runs and neither the developer nor Ballerine can reach; it embeds no third-party SDK; it has no analytics or crash reporting. The
 Mac daemon's calls to model vendors use the Mac owner's own keys under the owner's own accounts, outside the app.
-Checked against the Swift sources: every `URLSession` in `ios/Pointe/` is built on the paired Mac's address
+Checked against the Swift sources: every `URLSession` the iPhone app compiles (`apple/PointeKit/Sources/PointeUI`) is built on the paired Mac's address
 (`Pairing.base`, `Pairing.callURL`, `PairingInvite.pairURL`) with the certificate pin, and no other host appears.
 Settings → About links to the repository and ballerine.com; a tap opens them in Safari, and the app fetches nothing.
 
