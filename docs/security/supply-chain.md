@@ -21,7 +21,8 @@ and what is still open. `tests/test_supply_chain.py` fails when the tree drifts 
 | **Silero VAD**, **smart-turn** | `.onnx` files inside the `pipecat-ai` wheel | the wheel's `sha256` | by uv | Low. |
 | **GitHub Actions** (`.github/workflows/*.yml`) | `actions/checkout`, `astral-sh/setup-uv`, `actions/upload-artifact` (SBOM only) | commit SHA with a `# vX` comment; `setup-uv` is told `version: 0.12.21` | the test refuses a `uses:` without a 40-hex SHA, and one whose SHA is not the commit its version tag points to (an annotated tag's own SHA is refused: `tests/fixtures/action_pins.json`, recorded and re-checked in CI by `tools/check_action_pins.py`); `permissions: contents: read` on every workflow; Dependabot bumps them weekly | Low. `ubuntu-latest`, `macos-26` and `setup-uv`'s Python download are GitHub's and Astral's to secure. |
 | **Node channel** (`channel/`, launch mode only) | `@modelcontextprotocol/sdk` 1.32.2, `zod` 4.6.7 and 93 transitive packages | `channel/package-lock.json` (v3) | `npm ci --ignore-scripts`; every entry carries `integrity` (SHA-512) and resolves to `registry.npmjs.org` | Low. Attach mode (`/pointe:voice`) never runs Node. |
-| **iPhone app** (`ios/`) | Swift sources, Apple frameworks only | no Swift packages, no CocoaPods | `project.pbxproj` has no `XCRemoteSwiftPackageReference`; the test checks | Low. Built and installed by the person, not downloaded. |
+| **iPhone app** (`ios/`) | Swift sources, Apple frameworks, and the package in this repository (`apple/PointeKit`) | no remote Swift package, no CocoaPods | `project.pbxproj` has no `XCRemoteSwiftPackageReference` and one local package reference; the test checks | Low. Built and installed by the person, not downloaded. |
+| **Mac app** (`macos/`) and **PointeKit** (`apple/PointeKit`) | Swift sources, Apple frameworks only; the package has no dependency | no remote Swift package; the project file is written by `macos/tools/make_project.py` | the same test covers both projects and `Package.swift`, and `tests/test_macos_parity.py` fails when the project differs from its generator | Low. Built from source by the person who runs it; not notarized yet. The app makes no outbound connection: loopback only. |
 | **Linux node** (`pointe node join`, `bin/voice-node`) | the `node` dependency group (~35 MB) into `~/.claude-voice/node-env` | `uv sync --locked --only-group node` | `sha256` in `uv.lock` | Low. |
 | **Twingate connector** (`bin/voice-connector`, optional phone access) | Docker image `twingate/connector:1`, `--pull=always` | a moving tag, by design: the connector is Twingate's security product and should update | Docker Hub's TLS and image signature only | **Accepted.** Already in `SECURITY.md` as a known limit. Pinning a digest would freeze a VPN component; the person chose Twingate and trusts its images. |
 | **Vendor APIs** | Anthropic, Gemini, OpenAI, Soniox, ElevenLabs, with the user's own keys | SDK versions in `uv.lock`; hosts in the egress list below | TLS, by each SDK | Not a supply-chain source: data goes out, no code comes in. |
@@ -78,9 +79,10 @@ listed in the allowlist as `link` and are never contacted by the software.
 
 ## CI
 
-`.github/workflows/test.yml` has three jobs. `offline` runs the whole suite with no keys and no network beyond PyPI.
+`.github/workflows/test.yml` has four jobs. `offline` runs the whole suite with no keys and no network beyond PyPI.
 `ios` builds the iPhone app for the simulator, unsigned, on `macos-26` with the newest Xcode there, and runs its unit
-tests (`PointeTests`); it pulls no packages.
+tests (`PointeTests`); it pulls no packages from outside the repository.
+`macos` runs `swift test` for `apple/PointeKit` and builds the Mac app, signed ad hoc, with its unit tests.
 `supply-chain` runs `uv lock --check`, `tests/test_supply_chain.py`, pip-audit (pinned version) on every locked version,
 and writes a CycloneDX SBOM (`uvx --from cyclonedx-bom@8.0.1 cyclonedx-py requirements`) plus `uv export --locked` as a
 build artifact. Dependabot

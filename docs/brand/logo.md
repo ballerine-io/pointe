@@ -35,6 +35,8 @@ drawing below its row, and never use a mark with fewer dots: the six-dot drawing
 | The page's tab and home-screen icon | `favicon.svg`, `favicon-32.png` (the favicon drawing), `apple-touch-icon.png` (the full app icon at 180), inline in `ui.html` |
 | iPhone app header | `ChorusMark` in `ios/Pointe/Assets.xcassets`: `logo-small.svg`, with `logo-small-on-dark.svg` for dark |
 | iPhone app icon | `AppIcon`: `app-icon.svg` at 1024 (light and dark), `app-icon-tinted.svg` for the tinted home screen |
+| Mac app icon | `AppIcon` in `macos/PointeMac/Assets.xcassets`, drawn by `macos/tools/make_icon.swift` from this folder: the app icon's ground and glow on macOS's rounded tile (824 of 1024, with its shadow); the full drawing at 48 px and above, the favicon drawing at 16 and 32 px |
+| Mac menu bar | `MenuLive`, `MenuOff` (the same at 45%): the favicon drawing's dots in one ink, as template images, written by `macos/tools/make_menu_icons.py` |
 | Site header, hub card | `site/pointe/brand/lockup-small.svg`, `lockup-small-on-dark.svg` |
 | Site tab and home-screen icon | `site/pointe/brand/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`, the same three |
 | Link previews | `docs/social-preview.html`, rendered to `docs/social-preview.png` and `site/pointe/social.png`: the compact lockup top left, the full drawing on the right |

@@ -96,6 +96,8 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
   and turns each final message into what you need to hear. [How it works](docs/how-it-works.md).
 - **Live transcript.** The page shows the conversation as it happens, the exact text of every pending request with
   Approve and Deny, and lets you type or correct what was heard.
+- **Mac app.** The call in the menu bar and a native window, with a system-wide talk shortcut. Built from source for
+  now. [docs/mac-app.md](docs/mac-app.md).
 - **iPhone app.** The same call and controls on your phone, paired once by QR code over Tailscale, a VPN such as
   Twingate, or Wi-Fi. Approve needs Face ID. [docs/phone.md](docs/phone.md).
 - **Several harnesses and accounts** in one call, each session with its own approvals. [docs/harnesses.md](docs/harnesses.md).
@@ -292,7 +294,7 @@ Not measured for any setup: a real human voice on a real call.
 ## Architecture
 
 ```
- Chrome page (loopback)          iPhone app (paired TLS, pinned)
+ Chrome page, Mac app (loopback)  iPhone app (paired TLS, pinned)
           \                               /
            one WebSocket per call: audio both ways, plus status and taps
                               |
@@ -319,6 +321,9 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 ## Limits
 
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
+- **The Mac app is built from source** too ([how](docs/mac-app.md)), signed for your own Mac and not notarized. Its
+  call, a request and a brain dump were run once against a real daemon on one MacBook Pro; AirPods, device changes and
+  the Touch ID sheet were not.
 - **The iPhone app is built from source** in Xcode for now ([how](docs/phone.md#getting-the-app)); it is not in the App
   Store, and not on TestFlight yet. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
   page works in a phone browser.

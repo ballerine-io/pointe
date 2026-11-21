@@ -166,19 +166,25 @@ public struct StubDialer: CallDialer {
     public func dial() async throws -> any CallSocket { StubSocket() }
 }
 
+/// It pings every 2 s, as the daemon does: a link that says nothing for 6 s is taken for dead and redialled.
 final class StubSocket: CallSocket, @unchecked Sendable {
-    private let frames: AsyncThrowingStream<CallFrame, Error>
-    private let feed: AsyncThrowingStream<CallFrame, Error>.Continuation
-
-    init() { (frames, feed) = AsyncThrowingStream.makeStream() }
+    private let lock = NSLock()
+    private var closed = false
+    private var pings = 0
 
     func send(text: String) {}
     func send(audio: Data) {}
-    func close() { feed.finish(throwing: CallClose(code: 1000)) }
+    func close() { lock.withLock { closed = true } }
 
     func receive() async throws -> CallFrame {
-        for try await frame in frames { return frame }
-        throw CallClose(code: 1000)
+        try await Task.sleep(for: .seconds(2))
+        let id: Int? = lock.withLock {
+            guard !closed else { return nil }
+            pings += 1
+            return pings
+        }
+        guard let id else { throw CallClose(code: 1000) }
+        return .text(#"{"type":"ping","id":\#(id),"rtt_ms":1}"#)
     }
 }
 

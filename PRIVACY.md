@@ -29,6 +29,14 @@ If you turn on the voice lock, your Mac learns your voiceprint from the call's a
 Unpair this phone (in the app's menu) deletes the pairing from the phone. To revoke that phone's key on the Mac as well,
 unpair it from the Mac's page (Settings → Phone).
 
+## The Mac app
+
+**The Mac app collects nothing** either: no analytics, no crash reporting, no accounts, no update check. It connects to
+Pointe on the same Mac (`127.0.0.1`) and to nothing else. Your voice goes from its microphone to that daemon only while
+a call is up, and from there as the next section says. On the Mac it keeps your settings (appearance, shortcut, talk
+style); the page's key is read from the daemon's own file when it connects and is not stored by the app. Touch ID is
+checked by macOS; the app learns only whether it passed.
+
 ## The Mac daemon
 
 Your Mac is where your voice and your sessions are processed. It reaches the speech and language services you chose

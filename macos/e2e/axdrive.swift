@@ -9,13 +9,14 @@
 //   axdrive <pid> labelled <prefix>     print every label that starts with the prefix
 //   axdrive <pid> count <id>            how many texts are inside it
 //   axdrive <pid> window                print the id of the app's main window (for screencapture -l)
+//   axdrive <pid> panel                 print the id of its floating panel (the call bubble)
 //   axdrive <pid> button <title>        press the first button with this title (a system prompt's "Allow")
 import ApplicationServices
 import Foundation
 
 let args = CommandLine.arguments
 guard args.count >= 3, let pid = pid_t(args[1]) else {
-    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|labelled|count|window|button [what]\n".utf8))
+    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|labelled|count|window|panel|button [what]\n".utf8))
     exit(2)
 }
 guard AXIsProcessTrusted() else {
@@ -82,9 +83,10 @@ case "count":
         return false
     }
     print(n)
-case "window":
+case "window", "panel":
     let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
-    let mine = windows.filter { ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && ($0[kCGWindowLayer as String] as? Int) == 0 }
+    let floating = Int(CGWindowLevelForKey(.floatingWindow))
+    let mine = windows.filter { ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && ($0[kCGWindowLayer as String] as? Int) == (args[2] == "panel" ? floating : 0) }
     guard let id = mine.first?[kCGWindowNumber as String] as? Int else { exit(1) }
     print(id)
 case "button":

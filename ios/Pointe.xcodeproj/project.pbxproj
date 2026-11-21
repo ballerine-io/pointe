@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A1B2C3D4E5F6000000000092 /* PointeKit in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6000000000091 /* PointeKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A1B2C3D4E5F6000000000018 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F6000000000092 /* PointeKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +129,9 @@
 				A1B2C3D4E5F6000000000006 /* Pointe */,
 			);
 			name = Pointe;
+			packageProductDependencies = (
+				A1B2C3D4E5F6000000000091 /* PointeKit */,
+			);
 			productName = Pointe;
 			productReference = A1B2C3D4E5F600000000000A0 /* Pointe.app */;
 			productType = "com.apple.product-type.application";
@@ -190,6 +198,9 @@
 			mainGroup = A1B2C3D4E5F6000000000002;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			packageReferences = (
+				A1B2C3D4E5F6000000000090 /* XCLocalSwiftPackageReference "../apple/PointeKit" */,
+			);
 			productRefGroup = A1B2C3D4E5F6000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -452,6 +463,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A1B2C3D4E5F6000000000090 /* XCLocalSwiftPackageReference "../apple/PointeKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../apple/PointeKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1B2C3D4E5F6000000000091 /* PointeKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PointeKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1B2C3D4E5F6000000000001 /* Project object */;
 }

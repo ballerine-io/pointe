@@ -13,10 +13,12 @@ together:
 - `.claude-plugin/plugin.json`: `"version"`
 - `pyproject.toml`: `version`, then `uv lock --offline` (it changes only Pointe's own version in `uv.lock`)
 - `ios/Pointe.xcodeproj/project.pbxproj`: `MARKETING_VERSION` (both places), and `CURRENT_PROJECT_VERSION` one higher
+- `macos/tools/make_project.py`: `VERSION`, and `BUILD` one higher, then `python3 macos/tools/make_project.py` (it
+  writes `macos/PointeMac.xcodeproj`)
 - `CHANGELOG.md`: one line on top, the same words as the commit subject
 
 Commit as `Version X.Y.Z: <what changed, in the words a user would use>`, with `git commit -s`.
-`tests/test_version.py` fails when the manifest, `pyproject.toml`, `uv.lock` and the changelog disagree.
+`tests/test_version.py` fails when the manifest, `pyproject.toml`, `uv.lock`, the two apps and the changelog disagree.
 
 ## 2. Checks
 
@@ -62,6 +64,7 @@ attached files: the plugin installs from the repository.
 ## 5. After
 
 - The iPhone app follows its own path to TestFlight and the App Store: `docs/ios/app-store.md`.
+- The Mac app is built from source until there is a Developer ID: `docs/mac-app.md` has the notarization steps.
 - The repository page: the description and topics are set through `gh repo edit`. The social preview image cannot be
   set through the API: upload `docs/social-preview.png` by hand in Settings, General, Social preview, after any change
   to it.

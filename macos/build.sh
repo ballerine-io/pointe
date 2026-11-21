@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the Mac app for this Mac (Debug) and prints where it is. Signed with the team in ios/.team when that file is
 # there (gitignored: one line, the Team ID), else ad hoc: an ad hoc build runs, but macOS asks for the microphone again
-# after each rebuild. Not notarized: for your own Macs. The Developer ID build is macos/release.sh.
+# after each rebuild. Not notarized: for your own Macs (docs/mac-app.md).
 #   macos/build.sh           build
 #   macos/build.sh --open    build, then open the app
 set -euo pipefail
