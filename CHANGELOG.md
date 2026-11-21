@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.15
+
+- **1.15.0** (2026-11-21): A Mac app, built from source for now: Pointe in the menu bar with a native window for the call, approvals with Touch ID, a talk shortcut from any app, and the brain dump.
+
 ## 1.14
 
 - **1.14.12** (2026-11-21): The voice answers how to use Pointe itself, with the exact path on the iPhone app or the page, instead of asking a session.
