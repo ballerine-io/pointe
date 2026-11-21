@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.16
+
+- **1.16.0** (2026-11-21): Pointe starts a new Claude Code, OpenCode or Codex session for you: by voice after a read-back and your yes, or from New session on the page, the iPhone app and the Mac app, only in folders you already work in and never with permission prompts skipped.
+
 ## 1.15
 
 - **1.15.0** (2026-11-21): A Mac app, built from source for now: Pointe in the menu bar with a native window for the call, approvals with Touch ID, a talk shortcut from any app, and the brain dump.

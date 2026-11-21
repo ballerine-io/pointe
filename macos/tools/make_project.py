@@ -7,7 +7,7 @@ it; run this again only to change the structure. The ids are fixed, so a rerun c
 
 from pathlib import Path
 
-VERSION, BUILD = "1.15.0", "2"
+VERSION, BUILD = "1.16.0", "3"
 
 
 def i(n: int) -> str:
