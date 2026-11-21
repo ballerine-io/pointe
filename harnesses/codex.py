@@ -20,12 +20,13 @@ import itertools
 import json
 import os
 import re
+import shutil
 import time
 from pathlib import Path
 
 from loguru import logger
 
-from .base import HOST, Harness
+from .base import HOST, Harness, StartError, refuse_bypass
 
 CODEX_HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
 GONE_AFTER_SECS = 60.0  # the daemon unreachable this long, or the thread closed: it is off the voice
@@ -193,6 +194,7 @@ class Codex(Harness):
     approvals = True
     side_questions = True
     attach = True
+    starts = True
     permission_deadline = 600.0
 
     def __init__(self, connection: Connection | None = None):
@@ -247,6 +249,43 @@ class Codex(Harness):
         return {"id": found["id"], "name": args.name or Path(cwd).name, "name_given": bool(args.name), "cwd": cwd,
                 "transcript": str(self.mirror_path(found["id"])),
                 "harness_data": {"title": found.get("name") or found.get("preview") or ""}}
+
+    def can_start(self) -> str | None:
+        return None if shutil.which("codex") else "Codex is not installed on this Mac."
+
+    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
+        """A new thread at `cwd` on the shared daemon. No approval policy or sandbox is sent: it starts as the user's
+        Codex configuration says, and one that would run with no approvals and no sandbox is archived, never joined."""
+        params = {"cwd": cwd}
+        refuse_bypass(json.dumps(params))
+        try:
+            await self.link.ensure()
+            got = await self.link.request("thread/start", params)
+        except RpcError as e:
+            logger.info(f"Codex thread not started: {e}")
+            raise StartError("Codex did not start the thread.")
+        except (ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.info(f"Codex thread not started: {type(e).__name__}")
+            raise StartError("Codex's shared daemon is not running. Run `codex app-server daemon start` and try again.")
+        thread_id = (got.get("thread") or {}).get("id")
+        if not thread_id:
+            raise StartError("Codex did not start the thread.")
+        if bypasses(got):
+            try:
+                await self.link.request("thread/archive", {"threadId": thread_id}, timeout=10)
+            except Exception as e:
+                logger.warning(f"Codex thread {thread_id[:12]} that bypasses was not archived: {type(e).__name__}")
+            raise StartError("Not started: your Codex configuration runs threads with no approvals and no sandbox, and "
+                             "Pointe never starts a session that skips its prompts.")
+        try:
+            await self.link.request("thread/name/set", {"threadId": thread_id, "name": name}, timeout=10)
+        except Exception as e:  # the name is the voice's own anyway
+            logger.info(f"Codex thread {thread_id[:12]} not named: {type(e).__name__}")
+        return {"id": thread_id, "name": name, "name_given": True, "cwd": cwd,
+                "transcript": str(self.mirror_path(thread_id)), "harness_data": {"title": name}}
+
+    def open_hint(self, session) -> str:
+        return f"codex resume {session.id} --remote unix://"
 
     def watch(self, session, feed):
         from sessions import follow_transcript
@@ -421,6 +460,13 @@ class Codex(Harness):
             return texts[-1].strip() if texts and texts[-1].strip() else None
         finally:
             self.link.listeners.remove(finished)
+
+
+def bypasses(started: dict) -> bool:
+    """A `thread/start` answer for a thread that never asks and runs outside any sandbox: Codex's skip-everything."""
+    sandbox = started.get("sandbox") or {}
+    kind = sandbox.get("type") if isinstance(sandbox, dict) else sandbox
+    return started.get("approvalPolicy") == "never" and kind in ("dangerFullAccess", "danger-full-access")
 
 
 def thread_cwd(thread: dict) -> str | None:

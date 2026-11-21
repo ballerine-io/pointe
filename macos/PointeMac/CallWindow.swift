@@ -23,6 +23,7 @@ struct CallWindow: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        @Bindable var model = model
         NavigationSplitView {
             SessionSidebar()
                 .navigationSplitViewColumnWidth(min: 190, ideal: 230, max: 320)
@@ -33,6 +34,7 @@ struct CallWindow: View {
                     .contentShape(Rectangle())
                     // A click on the conversation takes the keyboard out of the type field, so Space talks again.
                     .simultaneousGesture(TapGesture().onEnded { NSApp.keyWindow?.makeFirstResponder(nil) })
+                if let pending = model.store.startPending { StartCard(pending: pending) }
                 Approvals()
                 Divider()
                 TalkBar()
@@ -40,6 +42,7 @@ struct CallWindow: View {
             .background(Brand.card)
         }
         .navigationTitle("Pointe")
+        .sheet(isPresented: $model.newSessionShown) { NewSessionSheet().environment(model) }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 if model.call.state == .live {
@@ -142,9 +145,20 @@ struct SessionSidebar: View {
                     Text(group.header).accessibilityIdentifier("machine.\(group.name)")
                 }
             }
+            if !store.starting.isEmpty {
+                Section { ForEach(store.starting) { StartingRow(row: $0).selectionDisabled() } }
+            }
         }
         .listStyle(.sidebar)
         .accessibilityIdentifier("sessions")
+        .safeAreaInset(edge: .bottom) {
+            Button { model.newSessionShown = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
+                .buttonStyle(.borderless)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .disabled(model.daemon != .running)
+                .accessibilityIdentifier("newSession")
+        }
     }
 }
 

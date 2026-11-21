@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
-from .base import FINISHED_MARK, HOST, Harness, UnknownHarness, finished_tag
+from .base import FINISHED_MARK, HOST, Harness, StartError, UnknownHarness, finished_tag
 
 if TYPE_CHECKING:
     from sessions import Session
@@ -83,4 +83,4 @@ def _load() -> None:
     register(Codex())
 
 
-__all__ = ["FINISHED_MARK", "HOST", "Harness", "finished_tag", "get", "labels", "names", "of", "register", "set_remote"]
+__all__ = ["FINISHED_MARK", "HOST", "Harness", "StartError", "finished_tag", "get", "labels", "names", "of", "register", "set_remote"]

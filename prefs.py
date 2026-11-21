@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from briefing import valid_days, valid_time
+from newsession import valid_folders
 
 # key -> (default, allowed values, a type, or a check)
 SCHEMA: dict[str, tuple] = {
@@ -26,6 +27,9 @@ SCHEMA: dict[str, tuple] = {
     "show.on_phone": (False, bool),
     "whisper": (False, bool),  # whisper mode (whisper.py): a quieter bot, a raised microphone, short replies  # show while it says on the phone: off until enabled (the page always shows it)
     "dictionary.learn": (True, bool),  # a correction teaches the names it fixed; suggestions from session notes
+    # Folders a new session may start in, beside those of current and recent sessions (docs/design/new-session.md).
+    # Changed only at the Mac: daemon.prefs_set refuses it from the phone and from a page over the network.
+    "sessions.folders": ([], valid_folders),
     "turns.patience": ("normal", ("quick", "normal", "patient")),  # wait before answering (turns.LEVELS): how long a pause ends a sentence
 }
 

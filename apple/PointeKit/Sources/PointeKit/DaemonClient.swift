@@ -2,7 +2,7 @@ import Foundation
 
 /// A JSON value a request body may carry. `[String: Any]` is not `Sendable`; this is.
 public enum JSONValue: Sendable, Equatable, ExpressibleByStringLiteral, ExpressibleByBooleanLiteral, ExpressibleByIntegerLiteral {
-    case string(String), bool(Bool), int(Int), double(Double), null
+    case string(String), bool(Bool), int(Int), double(Double), strings([String]), null
 
     public init(stringLiteral value: String) { self = .string(value) }
     public init(booleanLiteral value: Bool) { self = .bool(value) }
@@ -14,6 +14,7 @@ public enum JSONValue: Sendable, Equatable, ExpressibleByStringLiteral, Expressi
         case .bool(let v): v
         case .int(let v): v
         case .double(let v): v
+        case .strings(let v): v
         case .null: NSNull()
         }
     }
@@ -41,6 +42,11 @@ public protocol DaemonAPI: Sendable {
     /// on, off or toggle: the gate, pressed from outside the call's own socket.
     func talk(_ action: String) async throws
     func dismissAttention(_ id: String) async throws
+    /// What a new session may start as: the agents, the machines and the folders (docs/design/new-session.md).
+    func startOptions() async throws -> NewSession.Options
+    /// The sheet's Start (`NewSession.Draft.body`), or a tap on a read-back: `confirm` or `cancel` with its id. A refusal
+    /// carries the daemon's reason.
+    func newSession(_ body: [String: String]) async throws
 }
 
 /// How a request proves who it is on the loopback listener (guards.LocalAuth).
@@ -178,4 +184,10 @@ public struct DaemonClient: DaemonAPI {
     public func voiceLock(level: String) async throws { try await post("voice/voiceprint", ["action": "level", "level": .string(level)]) }
     public func talk(_ action: String) async throws { try await post("voice/talk", ["action": .string(action)]) }
     public func dismissAttention(_ id: String) async throws { try await post("voice/attention", ["id": .string(id)]) }
+
+    public func startOptions() async throws -> NewSession.Options {
+        try JSONDecoder().decode(NewSession.Options.self, from: try await checked(endpoint.request("voice/new-session")))
+    }
+
+    public func newSession(_ body: [String: String]) async throws { try await post("voice/new-session", body.mapValues(JSONValue.string)) }
 }

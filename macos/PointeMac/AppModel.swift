@@ -48,6 +48,8 @@ struct LiveDaemon: DaemonAPI {
     func voiceLock(level: String) async throws { try await run { try await $0.voiceLock(level: level) } }
     func talk(_ action: String) async throws { try await run { try await $0.talk(action) } }
     func dismissAttention(_ id: String) async throws { try await run { try await $0.dismissAttention(id) } }
+    func startOptions() async throws -> NewSession.Options { try await run { try await $0.startOptions() } }
+    func newSession(_ body: [String: String]) async throws { try await run { try await $0.newSession(body) } }
 }
 
 /// Dials the endpoint in the box; with none, the dial fails as "never answered" and is tried again.
@@ -87,6 +89,8 @@ final class AppModel {
     private(set) var shortcutSeen = false
     private(set) var shortcutNote: String?
     private(set) var micDenied = false
+    /// The New session sheet is open on the window.
+    var newSessionShown = false
     /// False while the call is up on audio that cannot cancel echo: the window says to use headphones.
     @ObservationIgnored private var echoCheck: @MainActor () -> Bool = { true }
 
@@ -125,6 +129,7 @@ final class AppModel {
             if let other = arguments.string(forKey: "PointeStubVersion") { status.version = other }
             let microphone = arguments.string(forKey: "PointeStubMic") == "ptt" ? "ptt" : "always"
             status.ptt = API.PTTStatus(mode: microphone, open: false)
+            if arguments.bool(forKey: "PointeStubReadBack") { status.start_pending = StubDaemon.readBack }
             let daemon = StubDaemon(status: status, prefs: ["microphone": .string(microphone), "turns.patience": "normal"])
             stub = daemon
             call = CallLink(dialer: StubDialer(), audio: SilentAudio(), device: "Mac", place: MacCopy.thisMac, words: words,
@@ -295,6 +300,12 @@ final class AppModel {
             call.hangUp()
         }
         await store.refresh()
+    }
+
+    /// From a menu: the sheet is the window's, so the window comes first.
+    func newSession() {
+        windows.showMain()
+        newSessionShown = true
     }
 
     func openMicrophoneSettings() {

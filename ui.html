@@ -193,6 +193,27 @@
   @keyframes breathe { 50% { opacity: .35; } }
   .s .tag { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
   .s .tag.hot { color: var(--accent); font-weight: 600; }
+  /* a session Pointe is starting (docs/design/new-session.md): a row with no actions until it joins */
+  .s.starting { cursor: default; grid-template-columns: 10px minmax(0, max-content) max-content 1fr; }
+  .s.starting:hover { background: transparent; }
+  .s.starting .nm { color: var(--muted); }
+  .s.starting .tag { justify-self: end; }
+  .s.starting.failed .tag { color: var(--accent); font-weight: 600; }
+  .s.starting .why { white-space: normal; }
+  #m-new { margin-top: 10px; align-self: flex-start; border: 0; border-radius: 12px; min-height: 36px; padding: 0 14px; background: transparent;
+           box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--text); font: 600 13px var(--font); cursor: pointer; flex: none; }
+  #m-new:hover { background: var(--raised); }
+  #newsheet select, #newsheet input { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; min-height: 44px;
+                                      padding: 0 12px; font: 14px var(--font); outline: none; }
+  #newsheet select:focus, #newsheet input:focus { border-color: var(--orange-line); }
+  #newsheet .path { font: 12px var(--mono); color: var(--dim); overflow-wrap: anywhere; }
+  #newsheet .note { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  #newsheet .note:empty, #newsheet .err:empty { display: none; }
+  #newsheet .err { color: var(--accent); font-size: 13px; }
+  #startask { padding: 0 var(--gutter); }
+  #startask:empty { display: none; }
+  #pref-folders { width: 100%; min-height: 96px; resize: vertical; background: var(--card); color: var(--text); border: 1px solid var(--line);
+                  border-radius: 12px; padding: 10px 12px; font: 12.5px/1.5 var(--mono); outline: none; }
   .agent { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted); border: 1px solid var(--line-strong);
            border-radius: 8px; padding: 0 5px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
   /* machines (docs/multi-machine.md): with one machine none of this shows */
@@ -731,6 +752,7 @@
   .settings .r, .settings .tick, .settings .field { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px;
                                                      padding: 8px 14px; font-size: 14.5px; color: var(--text); margin: 0; }
   .settings .field { flex-direction: row; }
+  .settings .field.wide { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 0; }
   .settings .r.col { flex-direction: column; align-items: stretch; gap: 10px; padding-top: 12px; padding-bottom: 12px; }
   .settings .r.col > .seg { width: 100%; }
   .settings .tick:hover, .settings .r.nav:hover { background: var(--raised); }
@@ -870,6 +892,7 @@
     body.showing #sessbtn { display: flex; } body.showing:not(.showfold) #sideclose { display: grid; }
   }
   @media (max-width: 900px) {  /* narrow: the sessions column becomes a sheet behind the Sessions button */
+    #m-new { min-height: 44px; }  /* to the finger */
     body { grid-template-columns: 1fr; }
     main { --gutter: 16px; }
     #side { position: fixed; inset: 0 auto 0 0; width: min(360px, 92vw); z-index: 20; transform: translateX(-102%); visibility: hidden;
@@ -980,6 +1003,7 @@
     <div id="mchips" role="group" aria-label="Show sessions on"></div>
     <div id="list"></div>
     <div id="renameproblem" role="alert"></div>
+    <button id="m-new" type="button" onclick="openNewSession()" title="Start a coding agent in a folder you already work in">New session</button>
   </section>
 
   <section class="routing">
@@ -1088,6 +1112,7 @@
         <button type="button" data-section="g-show" onclick="settingsJump('g-show')">Show while it says</button>
         <button type="button" data-section="g-mic" onclick="settingsJump('g-mic')">Microphone</button>
         <button type="button" data-section="g-turns" onclick="settingsJump('g-turns')">Turn taking</button>
+        <button type="button" data-section="g-newsessions" onclick="settingsJump('g-newsessions')">New sessions</button>
         <button type="button" data-section="g-conflicts" onclick="settingsJump('g-conflicts')">Conflict alarm</button>
         <button type="button" data-section="g-alerts" onclick="settingsJump('g-alerts')">Alerts</button>
         <button type="button" data-section="g-appearance" onclick="settingsJump('g-appearance')">Appearance</button>
@@ -1256,6 +1281,13 @@
             a half one; Patient waits longer; Quick answers as soon as you stop. Say “don't interrupt me” or “hold on” and it stays
             quiet until you say “go ahead” or “I'm done”, or until 8 seconds of quiet.</div>
         </section>
+        <section class="group" id="g-newsessions">
+          <h3>New sessions</h3>
+          <div class="card">
+            <div class="field wide">Folders<textarea id="pref-folders" spellcheck="false" placeholder="/Users/you/work/shop"></textarea></div>
+          </div>
+          <div class="note foot" id="pref-folders-help"></div>
+        </section>
         <section class="group" id="g-conflicts">
           <h3>Conflict alarm</h3>
           <div class="card">
@@ -1325,6 +1357,20 @@
     <h2 id="ign-h">Ignored<button class="x" onclick="closeSheet('ignoredsheet')" aria-label="Close">×</button></h2>
     <div class="lede">Speech the voice lock kept from Pointe because it was not your voice.</div>
     <ul id="ignoredlist"></ul>
+  </div>
+</div>
+<div class="sheetbg" id="newsheet" onclick="if (event.target === this) closeSheet('newsheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="new-h">
+    <h2 id="new-h"><span id="new-title"></span><button class="x" onclick="closeSheet('newsheet')" aria-label="Close">×</button></h2>
+    <div class="lede" id="new-lede"></div>
+    <label class="field"><span id="new-agent-l"></span><select id="new-agent" onchange="newSessionSync()"></select></label>
+    <label class="field" id="new-machine-f"><span id="new-machine-l"></span><select id="new-machine" onchange="newSessionSync()"></select></label>
+    <label class="field"><span id="new-folder-l"></span><select id="new-folder" onchange="newSessionSync()"></select><span class="path" id="new-path"></span></label>
+    <label class="field"><span id="new-name-l"></span><input id="new-name" maxlength="40" dir="auto" autocomplete="off"></label>
+    <label class="field"><span id="new-prompt-l"></span><textarea id="new-prompt" dir="auto" maxlength="4000"></textarea></label>
+    <div class="note" id="new-note"></div>
+    <div class="err" id="new-err" role="alert"></div>
+    <div class="row"><button type="button" id="new-cancel" onclick="closeSheet('newsheet')"></button><button type="button" class="go" id="new-start" onclick="startNewSession()"></button></div>
   </div>
 </div>
 <div class="sheetbg" id="rowsheet" onclick="if (event.target === this) closeSheet('rowsheet')">
@@ -1431,6 +1477,7 @@
     <button id="drive-stop" onclick="setDrive(false)">I've stopped</button>
   </div>
   <div id="attention"></div>
+  <div id="startask"></div>
   <div id="briefalert"></div>
   <div id="whispercard"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
@@ -1673,12 +1720,15 @@
                                         asking === x.name, x.online === false ? mv.info(mv.of(x)).since : 0]);
     const headerSig = g => JSON.stringify([g.m, foldedNames.includes(g.m.name), g.sessions.filter(x => needsYou(x) && x.online !== false).length]);
     const keyed = x => { let key = x.name; while (seen.has(key)) key += ' '; seen.add(key); return [key, rowSig(x), () => row(x)]; };
-    const wanted = !s.sessions.length
-      ? [['', '', () => el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.')]]
+    // Sessions Pointe is starting, or that just failed to start, sit under the sessions until they join.
+    const starts = (s.starting || []).map(x => ['+' + x.id, JSON.stringify(x), () => startingRow(x)]);
+    const wanted = (!s.sessions.length
+      ? (starts.length ? [] : [['', '', () => el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder. Or start one here: New session.')]])
       : !mv.multi ? byUrgency(s.sessions).map(keyed)
       : mv.groups.flatMap(g => [['@' + g.m.name, headerSig(g), () => header(g)],
-                                ...(foldedNames.includes(g.m.name) ? [] : byUrgency(g.sessions).map(keyed))]);
+                                ...(foldedNames.includes(g.m.name) ? [] : byUrgency(g.sessions).map(keyed))])).concat(starts);
     reconcile($('list'), listShown, wanted);
+    showStartAsk(s);
     showMachines(s, mv);
     showPhones(s);
     syncSettingsNav();
@@ -1776,6 +1826,100 @@
   function foldMachine(name, fold) {
     const now = machinesFolded().filter(n => n !== name);
     localStorage.setItem('pointe.machinesFolded', JSON.stringify(fold ? [...now, name] : now));
+  }
+
+  // Starting a new session (docs/design/new-session.md). Shared with the apps' NewSessionCopy (tests/test_new_session_ui.py).
+  const NEW_SESSION_COPY = {
+    title: 'New session',
+    lede: 'Starts a coding agent in a folder you already work in. It joins the voice by itself, and asks before it acts, as every session does.',
+    agent: 'Agent',
+    machine: 'Machine',
+    folder: 'Folder',
+    name: 'Name',
+    namePlaceholder: 'Same as the folder',
+    prompt: 'First prompt',
+    promptPlaceholder: 'Optional. Sent once the session has joined.',
+    start: 'Start',
+    cancel: 'Cancel',
+    noFolders: 'No folder yet. A session must join from a folder first, or add one in Settings on the Mac.',
+    claudeNote: 'Claude Code opens in a new terminal window on the Mac.',
+    starting: 'starting',
+    failed: 'did not start',
+    confirmTitle: 'Start this session?',
+    foldersTitle: 'New sessions',
+    foldersHelp: 'Folders a new session may start in, beside the folders of your current and recent sessions. Changed on the Mac only.',
+  };
+  function startingRow(x) {
+    const failed = x.state === 'failed', c = NEW_SESSION_COPY;
+    const b = el('div', 's starting' + (failed ? ' failed' : ''));
+    b.append(el('span', 'st' + (failed ? ' wait' : ' working')), el('span', 'nm', x.name), harnessMark(x), el('span', 'tag', failed ? c.failed : c.starting));
+    if (failed && x.detail) b.append(el('span', 'why', x.detail));
+    b.title = `${x.label} in ${x.folder}` + (failed ? `: ${x.detail}` : '');
+    return b;
+  }
+  // What the voice read back and waits on: a yes by voice, or a tap here. The line is the Mac's own, word for word.
+  let startAskShown = '';
+  function showStartAsk(s) {
+    const p = s.start_pending, key = p ? p.id : '';
+    if (key === startAskShown) return;
+    startAskShown = key;
+    if (!p) { $('startask').replaceChildren(); return; }
+    const c = NEW_SESSION_COPY, b = el('div', 'ask'), row = el('div', 'answer');
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
+    for (const [label, cls, body] of [[c.cancel, 'deny', {cancel: p.id}], [c.start, 'allow', {confirm: p.id}]]) {
+      const button = el('button', cls, label);
+      button.onclick = async () => {
+        button.disabled = true;
+        const r = await fetch('/voice/new-session', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+        if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Not started';
+        refresh();
+      };
+      row.append(button);
+    }
+    b.append(row);
+    $('startask').replaceChildren(b);
+  }
+  let newOptions = null;
+  async function openNewSession() {
+    const c = NEW_SESSION_COPY;
+    for (const [id, words] of [['new-title', c.title], ['new-lede', c.lede], ['new-agent-l', c.agent], ['new-machine-l', c.machine],
+                               ['new-folder-l', c.folder], ['new-name-l', c.name], ['new-prompt-l', c.prompt], ['new-cancel', c.cancel],
+                               ['new-start', c.start]]) text(id, words);
+    $('new-name').placeholder = c.namePlaceholder; $('new-prompt').placeholder = c.promptPlaceholder;
+    $('new-name').value = ''; $('new-prompt').value = ''; $('new-err').textContent = ''; $('new-note').textContent = '';
+    $('new-start').disabled = true;
+    openSheet('newsheet', 'new-agent');
+    newOptions = await fetch('/voice/new-session').then(r => r.ok ? r.json() : null).catch(() => null);
+    const o = newOptions || {harnesses: [], machines: [], folders: []};
+    const fill = (id, items, make) => $(id).replaceChildren(...items.map(make));
+    const option = (value, label, off, why) => { const e = el('option', '', label + (off ? ' (not available)' : '')); e.value = value; e.disabled = !!off; if (why) e.title = why; return e; };
+    fill('new-agent', o.harnesses, h => option(h.name, h.title, !h.available, h.why));
+    fill('new-machine', o.machines, m => option(m.name, m.name + (m.here ? ' (this Mac)' : ''), !m.available, m.why));
+    fill('new-folder', o.folders, f => option(f.path, f.name));
+    $('new-machine-f').hidden = o.machines.length < 2;
+    const firstOk = o.harnesses.find(h => h.available); if (firstOk) $('new-agent').value = firstOk.name;
+    if (!newOptions) $('new-err').textContent = 'Pointe on this Mac does not offer this yet: update it.';
+    newSessionSync();
+  }
+  function newSessionSync() {
+    const o = newOptions || {harnesses: [], machines: [], folders: []}, c = NEW_SESSION_COPY;
+    const folder = o.folders.find(f => f.path === $('new-folder').value);
+    const agent = o.harnesses.find(h => h.name === $('new-agent').value);
+    text('new-path', folder ? folder.path : '');
+    const notes = [...o.harnesses.filter(h => !h.available && h.why).map(h => h.why), ...(o.machines.some(m => !m.available) ? [o.machines.find(m => !m.available).why] : [])];
+    if (!o.folders.length && newOptions) notes.unshift(c.noFolders);
+    if (agent && agent.name === 'claude-code') notes.unshift(c.claudeNote);
+    text('new-note', notes.join(' '));
+    $('new-start').disabled = !(folder && agent && agent.available);
+  }
+  async function startNewSession() {
+    const body = {harness: $('new-agent').value, folder: $('new-folder').value, name: $('new-name').value.trim() || undefined,
+                  prompt: $('new-prompt').value.trim() || undefined, machine: $('new-machine-f').hidden ? undefined : $('new-machine').value};
+    $('new-start').disabled = true; $('new-err').textContent = '';
+    const r = await fetch('/voice/new-session', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)}).catch(() => null);
+    if (r && r.ok) closeSheet('newsheet');
+    else { $('new-err').textContent = (r && (await r.json().catch(() => ({}))).detail) || 'Not started: the Mac did not answer.'; newSessionSync(); }
+    refresh();
   }
 
   function approvalCard(x, s, more) {
@@ -2687,7 +2831,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;
@@ -3256,6 +3400,10 @@
     $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
     $('pref-watch').checked = !!prefs['alerts.watch_approve'];
     $('pref-showphone').checked = !!prefs['show.on_phone'];
+    // Where a new session may start is changed at the Mac only: elsewhere the list is shown and not editable.
+    foldersLoaded = (prefs['sessions.folders'] || []).join('\n');
+    $('pref-folders').value = foldersLoaded; $('pref-folders').readOnly = !(status && status.talk_command);
+    text('pref-folders-help', NEW_SESSION_COPY.foldersHelp + ' One path per line.');
     await loadSchedule();
   }
   // Settings' section list: a click scrolls the panel to the group; scrolling marks the group in view. A group the
@@ -3515,8 +3663,14 @@
     if (r.ok) $('pref-consent').hidden = true;
     else $('seterr').textContent = (await r.json().catch(() => ({}))).detail || 'Not saved';
   }
+  let foldersLoaded = '';
   async function saveSettings() {
     if (!await saveSchedule()) return;
+    if ($('pref-folders').value.trim() !== foldersLoaded.trim() && !$('pref-folders').readOnly) {
+      const folders = $('pref-folders').value.split('\n').map(x => x.trim()).filter(Boolean);
+      const saved = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({'sessions.folders': folders})});
+      if (!saved.ok) { $('seterr').textContent = 'The folders were not saved: each line must be a full path, like /Users/you/work/shop.'; settingsJump('g-newsessions'); return; }
+    }
     const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
       microphone: $('pref-mic').value, 'turns.patience': $('pref-patience').value, 'alerts.watch_approve': $('pref-watch').checked,

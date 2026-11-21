@@ -19,6 +19,7 @@ import asyncio
 import base64
 import json
 import os
+import shutil
 import subprocess
 import time
 import urllib.parse
@@ -28,7 +29,7 @@ from pathlib import Path
 import aiohttp
 from loguru import logger
 
-from .base import HOST, Harness
+from .base import HOST, Harness, StartError, refuse_bypass
 
 SERVICE_FILE = Path(os.environ.get("OPENCODE_SERVICE_FILE", Path.home() / ".config" / "opencode" / "service.json"))
 RESYNC_SECS = 5.0  # a slow poll under the event stream: the stream drops a slow reader and does not replay
@@ -151,6 +152,7 @@ class OpenCode(Harness):
     approvals = True
     side_questions = True
     attach = True
+    starts = True
     permission_deadline = 600.0  # OpenCode's own prompt waits as long as it takes: the voice still lets go eventually
 
     def __init__(self, service: Service | None = None):
@@ -206,6 +208,34 @@ class OpenCode(Harness):
         cwd = (found.get("location") or {}).get("directory") or os.getcwd()
         return {"id": found["id"], "name": args.name or Path(cwd).name, "name_given": bool(args.name), "cwd": cwd,
                 "transcript": str(self.mirror_path(found["id"])), "harness_data": {"title": found.get("title") or ""}}
+
+    def can_start(self) -> str | None:
+        return None if shutil.which("opencode") else "OpenCode is not installed on this Mac."
+
+    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
+        """A new session at `cwd` on the local service, with the title the voice calls it. No agent, model or
+        permission rules are sent: it starts as OpenCode's own configuration says."""
+        body = {"location": {"directory": cwd}, "title": name}
+        refuse_bypass(*body)  # its keys: a `permissions` ruleset is never sent
+        if set(body) - {"location", "title"}:
+            raise StartError("Not started: Pointe never starts a session that skips its permission prompts.")
+        try:
+            got = await self.service.call("POST", "/api/session", body)
+        except FileNotFoundError:
+            raise StartError(self.can_start() or "OpenCode is not installed on this Mac.")
+        except (aiohttp.ClientError, ConnectionError, LookupError, OSError, asyncio.TimeoutError, subprocess.SubprocessError) as e:
+            self.service.forget_url()
+            logger.info(f"OpenCode session not started: {type(e).__name__}")
+            raise StartError("OpenCode's service is not running. Open OpenCode, or run `opencode service start`, and try again.")
+        made = (got or {}).get("data") or {}
+        if not made.get("id"):
+            raise StartError("OpenCode did not create the session.")
+        self._last_ok[made["id"]] = time.time()
+        return {"id": made["id"], "name": name, "name_given": True, "cwd": cwd,
+                "transcript": str(self.mirror_path(made["id"])), "harness_data": {"title": made.get("title") or name}}
+
+    def open_hint(self, session) -> str:
+        return f"opencode --session {session.id}"
 
     def watch(self, session, feed):
         from sessions import follow_transcript

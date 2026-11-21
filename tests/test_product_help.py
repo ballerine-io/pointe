@@ -50,6 +50,10 @@ spec.loader.exec_module(gen)
     ("איך עוברים למצב כהה?", "appearance"),
     ("Where are the settings?", "settings"),
     ("How do I update Pointe?", "update"),
+    ("How do I start a new session?", "new-session"),
+    ("Can you start a new agent for me?", "new-session"),
+    ("איך פותחים סשן חדש?", "new-session"),
+    ("How do I join a session to the voice?", "join-session"),
 ])
 def test_a_question_finds_its_topic_first(question, topic):
     found = howto.lookup(question)
@@ -123,6 +127,7 @@ def _voice_checks(daemon):
         "switch-session": guards.switch_intent,
         "rename-session": guards.rename_intent,
         "close-session": guards.disconnect_intent,
+        "new-session": guards.start_intent,
     }
 
 

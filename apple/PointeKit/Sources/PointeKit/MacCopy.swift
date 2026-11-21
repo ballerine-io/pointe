@@ -54,6 +54,7 @@ public enum MacCopy {
     public static let installCommand = "claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe"
     public static let approveReason = "approve a session's request"
     public static let lowerLockReason = "lower the voice lock"
+    public static let startReason = "start a new session"
     public static let alreadyAnswered = "Already answered"
     public static let approveOnPage = "Approve this one in the window"
     public static let offlineCard = "offline: answer it in its terminal"

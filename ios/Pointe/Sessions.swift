@@ -147,8 +147,11 @@ struct SessionsSheet: View {
     var section: String? = nil
     /// All · studio · devbox: which machine's sessions show, here and in the strip behind. A view only: nothing is sent.
     var filter: Binding<String?> = .constant(nil)
+    /// Starting a new session from here; nil hides the button.
+    var starter: NewSessionActions? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var leaving: String?
+    @State private var showNewSession = false
 
     private var machines: MachineView { MachineView(status) }
 
@@ -177,6 +180,7 @@ struct SessionsSheet: View {
                     ForEach((machines.valid(filter.wrappedValue).map { [$0] } ?? machines.names).sorted { $0 == section && $1 != section }, id: \.self) { name in
                         Section {
                             rows(machines.onMachine(name))
+                            if name == machines.here { startingRows }  // a start always runs on this Mac
                         } header: {
                             Group {
                                 HStack(spacing: 6) {  // a small dot: filled while the machine is online, a ring while it is not
@@ -197,6 +201,7 @@ struct SessionsSheet: View {
                             Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.").foregroundStyle(Brand.muted)
                         }
                         rows(status?.sessions ?? [])
+                        startingRows
                     }
                 }
                 recentAndContext
@@ -205,8 +210,27 @@ struct SessionsSheet: View {
             .confirmDisconnect($leaving, disconnect)
             .navigationTitle("Sessions")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar {
+                if starter != nil {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(NewSessionCopy.title) { showNewSession = true }.accessibilityIdentifier("newSession")
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+            .sheet(isPresented: $showNewSession) {
+                if let starter {
+                    NewSessionSheet(actions: starter)
+                        .presentationDetents([.large])
+                        .presentationBackground(Brand.group)
+                }
+            }
         }
+    }
+
+    /// Sessions Pointe is starting, or that did not start: under the sessions, with no actions.
+    private var startingRows: some View {
+        ForEach(status?.starting ?? []) { StartingRow(row: $0) }
     }
 
     @ViewBuilder

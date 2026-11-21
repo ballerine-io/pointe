@@ -736,18 +736,51 @@
    "ask": [
     "add a session",
     "join a session",
-    "new session",
     "connect a session",
+    "join the voice",
     "add claude code",
-    "opencode",
-    "codex",
     "להוסיף סשן",
     "לחבר סשן"
    ],
-   "how": "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice.",
+   "how": "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice. Pointe can also start a new one for you: New session.",
    "iphone": [
     "Sessions button at the bottom"
    ]
+  },
+  {
+   "id": "new-session",
+   "title": "Start a new session",
+   "ask": [
+    "new session",
+    "start a session",
+    "start a new session",
+    "open a new session",
+    "start an agent",
+    "new agent",
+    "start claude code",
+    "start codex",
+    "start opencode",
+    "launch a session",
+    "which folders",
+    "add a folder",
+    "סשן חדש",
+    "לפתוח סשן",
+    "להתחיל סשן",
+    "סוכן חדש"
+   ],
+   "how": "Say \"start a new session in\" and the folder's name, with the agent if it is not Claude Code: Pointe reads back what it will start and starts it on your yes. Or use New session on screen. It starts only in folders you already work in, or added in Settings on the Mac.",
+   "about": "\"Start a Codex session in shop\": read back, started on your yes, only in folders you already work in",
+   "iphone": [
+    "Sessions button at the bottom → New session"
+   ],
+   "page": [
+    "New session in the Sessions panel on the left",
+    "Settings → New sessions → Folders"
+   ],
+   "voice": [
+    "start a new codex session in shop"
+   ],
+   "tool": "start_session"
   },
   {
    "id": "machines",
@@ -975,6 +1008,7 @@
     "Sessions",
     "Orchestrator",
     "Session",
+    "New session",
     "Disconnect"
    ],
    "card": [
@@ -1056,6 +1090,9 @@
      "Normal",
      "Patient"
     ],
+    "New sessions": [
+     "Folders"
+    ],
     "Conflict alarm": [
      "Alarm",
      "Check sessions against each other",
@@ -1097,6 +1134,7 @@
     "Recent requests",
     "Orchestrator",
     "Session",
+    "New session",
     "Settings"
    ],
    "top": [

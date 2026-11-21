@@ -141,7 +141,9 @@ class Swift:
         sheet = re.search(r"\.navigationTitle\(\"([^\"]+)\"\)", text).group(1)
         picks = re.findall(r'Text\("(\w+)"\)\.tag\("(?:orchestrator|session)"\)', text)
         swipe = _braced(text, text.index(".swipeActions"))
-        return list(dict.fromkeys([sheet, *picks, *re.findall(r'Button\("([^"]+)"', swipe)]))
+        bar = _braced(text, text.index(".toolbar", text.index(".navigationTitle")))  # its own buttons, named by a copy constant
+        named = [x for expr in re.findall(r"Button\(([A-Z]\w+\.\w+)\)", bar) for x in self.resolve(expr)]
+        return list(dict.fromkeys([sheet, *picks, *named, *re.findall(r'Button\("([^"]+)"', swipe)]))
 
     def card(self) -> list[str]:
         """The buttons on a request's card."""
@@ -468,10 +470,20 @@ TOPICS = (
           iphone=(("session", "Disconnect from the voice"), ("sessions", "Disconnect")),
           page=(("row", "Disconnect from the voice"),),
           iphone_note="In the Sessions sheet, swipe a session left.", voice=("close lantern",), tool="disconnect_session"),
-    Topic("join-session", "Add a session", ("add a session", "join a session", "new session", "connect a session",
-                                            "add claude code", "opencode", "codex", "להוסיף סשן", "לחבר סשן"),
-          "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice.",
+    Topic("join-session", "Add a session", ("add a session", "join a session", "connect a session", "join the voice",
+                                            "add claude code", "להוסיף סשן", "לחבר סשן"),
+          "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice. "
+          "Pointe can also start a new one for you: New session.",
           iphone=(("sessions",),)),
+    Topic("new-session", "Start a new session", ("new session", "start a session", "start a new session", "open a new session",
+                                                 "start an agent", "new agent", "start claude code", "start codex",
+                                                 "start opencode", "launch a session", "which folders", "add a folder",
+                                                 "סשן חדש", "לפתוח סשן", "להתחיל סשן", "סוכן חדש"),
+          "Say \"start a new session in\" and the folder's name, with the agent if it is not Claude Code: Pointe reads "
+          "back what it will start and starts it on your yes. Or use New session on screen. It starts only in folders "
+          "you already work in, or added in Settings on the Mac.",
+          iphone=(("sessions", "New session"),), page=(("side", "New session"), ("settings", "New sessions", "Folders")),
+          voice=("start a new codex session in shop",), tool="start_session", doc="new-session.md"),
     Topic("machines", "Other machines", ("machines", "another mac", "linux machine", "other computer", "invite a machine",
                                          "remote machine", "מחשב אחר", "מכונה אחרת"),
           "Sessions on your other Macs and Linux machines join through a small Pointe there: invite the machine and run "

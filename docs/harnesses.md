@@ -13,7 +13,8 @@ five things from the agent, and each harness adapter in `harnesses/` provides th
 
 Each adapter also declares what it can do, and `/voice/status` shows it per session (`capabilities`), so the brain and
 the screens never promise a missing feature: `approvals`, `side_questions`, `attach` (joins a session the user already
-runs), `spawn` (drives only sessions Pointe starts). Plus `label` (how the feed names it: `claude-code`, `opencode`, `codex`),
+runs), `spawn` (drives only sessions Pointe starts). An adapter with `starts` can also start a new session in a
+folder (`start(cwd, name, start_id)`, below, and [features/new-session.md](features/new-session.md)). Plus `label` (how the feed names it: `claude-code`, `opencode`, `codex`),
 `agent` (what the voice calls it: "Claude", "OpenCode"), `joins_mid_turn`, and `permission_deadline`.
 
 Everything else (the brain, consent rules, the read-out allowlist, Face ID taps, reports, notes, routing, the apps)
@@ -54,6 +55,7 @@ session are answered by the transcript reader, as for a harness that cannot fork
 | Send | the session's inbox socket (Claude Code 2.1.224+), or its voice channel in launch mode; with a reply address where Claude Code could hold or refuse it (below) |
 | Approvals | the plugin's `PermissionRequest` hook posts to `/voice/permission-hook`, which goes through the same `hold_permission` as any harness (280 s, under the hook's own timeout) |
 | Side questions | `claude -p --resume <id> --fork-session`, locked down, in the session's own account |
+| Start | a new terminal window (`open -a Terminal` on a `.command` script; iTerm when it is running) with `claude --permission-mode default --name <name> --settings <file>`; the settings file's `SessionStart` hook runs `bin/register-session --start <id>`, so it joins in attach mode. Mac only. |
 | A prompt in its terminal | `claude agents --json` (Claude Code's supported way to read session state), read when a session's tool call has gone quiet: `status: waiting` with its `waitingFor` (`permission prompt`, `input needed`, `sandbox request`, `dialog open`) |
 
 A prompt the voice does not hold (no call was up, the hold ran out, approvals are left to the terminal, a question, a
@@ -90,6 +92,7 @@ the same session the user is typing in.
 | Send | `POST /api/session/{id}/prompt` with `delivery: "steer"` |
 | Approvals | `permission.asked` (or a pending request listed by `/api/session/{id}/permission`) goes through `hold_permission`; the answer is `POST …/permission/{id}/reply` with `once` or `reject`. If the user answers in OpenCode first, the voice lets go. |
 | Side questions | `POST /api/session/{id}/fork`, a prompt to the fork, its answer, then the fork is deleted |
+| Start | `POST /api/session {location: {directory}, title}`; no agent, model or permission rules are sent |
 | Auth | the service URL from `opencode service status` (random localhost port) and HTTP Basic (`opencode` and the password in `~/.config/opencode/service.json`), read when needed and never logged |
 
 Verified against OpenCode v2.0.27's OpenAPI spec and live, read-only (sessions, mirror, event stream). An end-to-end
@@ -109,6 +112,7 @@ command above). Protocol: JSON-RPC over a WebSocket on the Unix socket `~/.codex
 | Send | `turn/start` when idle; `turn/steer {expectedTurnId}` during a turn (a steer to a turn that just ended falls back to `turn/start`) |
 | Approvals | the server's `item/commandExecution/requestApproval` and `item/fileChange/requestApproval` go through `hold_permission`, with the command unwrapped from Codex's `/bin/zsh -lc '…'` so the read-out applies. The answer is a decision Codex offered: `accept`; `decline` if offered, else `cancel`. `serverRequest/resolved` means the TUI answered first, and the voice lets go. Permission-grant requests (`item/permissions/requestApproval`) stay with the TUI. |
 | Side questions | `thread/fork {ephemeral, sandbox: read-only, approvalPolicy: never}`, a turn on the fork, its final answer; nothing is kept |
+| Start | `thread/start {cwd}` and `thread/name/set`; no approval policy or sandbox is sent, and an answer with approvals `never` and sandbox `dangerFullAccess` is archived and refused |
 | Liveness | `thread/closed`, or status `notLoaded` (the TUI closed it); the daemon unreachable for a minute. With no call up, the liveness loop reads `thread/read`. |
 
 The daemon updates itself and restarts when idle: the link reconnects and resumes every joined thread, and turns that
@@ -132,7 +136,13 @@ client in Codex's own records (its `source` and `originator`). Each Codex turn c
 5. Approvals: call `HOST.hold_permission(session, tool_name, tool_input, gone, deadline)` and send its answer back. If
    the harness has no approvals, leave `approvals = False`: do not make Pointe its permission policy.
 6. `side_question` if it can fork; otherwise the transcript reader answers.
-7. Register it in `harnesses/__init__._load`, and add a fake-service test like `tests/test_opencode.py` plus a case
+7. To let Pointe start its sessions: set `starts = True`; `can_start()` says why not in fixed words (not installed)
+   or returns None; `start(cwd, name, start_id)` starts one in the harness's default permission mode and returns its
+   register body, or None when the session registers itself with `start_id`; pass every command line or request
+   through `refuse_bypass`; raise `StartError` with words for the user. `open_hint(session)` says how to open it in a
+   terminal. The daemon picks the folder and the name and does the read-back: an adapter never takes a path from
+   anywhere else.
+8. Register it in `harnesses/__init__._load`, and add a fake-service test like `tests/test_opencode.py` plus a case
    in `tests/test_mixed_harnesses.py`.
 
 ## Next: Pi
@@ -141,8 +151,8 @@ client in Codex's own records (its `source` and `originator`). Each Codex turn c
 adapter mirrors them. Pi has no built-in approvals, and the adapter declares `approvals = False` rather than gating
 every tool call through the voice.
 
-**Spawn-only agents (Gemini CLI, Cursor CLI)** need a `start(cwd)` capability the interface does not have yet, and do
-not fit "it keeps running in its terminal; join it again there". Deferred.
+**Spawn-only agents (Gemini CLI, Cursor CLI)** can use `start(cwd, name, start_id)` (1.16.0), and still do not fit
+"it keeps running in its terminal; join it again there". Deferred.
 
 ## Cloud sessions hosted by the vendors
 

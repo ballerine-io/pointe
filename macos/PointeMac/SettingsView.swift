@@ -159,6 +159,29 @@ private struct DaemonSettings: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
 
+            Section(NewSessionCopy.foldersTitle) {
+                let folders = model.store.prefs?.sessionFolders ?? []
+                ForEach(folders, id: \.self) { path in
+                    LabeledContent {
+                        Button("Remove") { Task { await model.store.setSessionFolders(folders.filter { $0 != path }) } }
+                            .accessibilityLabel("Remove \(path)")
+                    } label: {
+                        Text(path).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                    }
+                }
+                Button("Add…") {
+                    let panel = NSOpenPanel()
+                    panel.canChooseDirectories = true
+                    panel.canChooseFiles = false
+                    guard panel.runModal() == .OK, let path = panel.url?.path, !folders.contains(path) else { return }
+                    Task { await model.store.setSessionFolders(folders + [path]) }
+                }
+                .disabled(model.store.prefs == nil)
+                .accessibilityIdentifier("settings.folders.add")
+                if let notice = model.store.notice { Text(notice).font(.footnote).foregroundStyle(Brand.accent) }
+                Text(NewSessionCopy.foldersHelp).font(.footnote).foregroundStyle(.secondary)
+            }
+
             Section("Model keys") {
                 ForEach(Vendor.allCases) { vendor in
                     LabeledContent(vendor.label) {
@@ -179,6 +202,7 @@ private struct DaemonSettings: View {
             }
         }
         .formStyle(.grouped)
+        .task { await model.store.loadPrefs() }
     }
 }
 

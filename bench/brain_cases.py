@@ -423,7 +423,7 @@ OUTBOX_RECORD = ("[user] Can we keep the webhook retries on the Redis queue?\n"
                  "and moved retries into the transactional outbox.")
 REDIS_PLAN = "Let's put the webhook retries back on a Redis queue so Velloria Freight ships on Thursday."
 CHL_REFUSED = {"error": challenge.SEND_REFUSAL + " Say that to the user."}
-CHL_BANNED = (SEND, "switch_session", "set_mode", "rename_session", "disconnect_session")
+CHL_BANNED = (SEND, "switch_session", "set_mode", "rename_session", "disconnect_session", "start_session")
 GROUNDED = r"restart|lost|lose|losing|41|forty[- ]one|in-flight|in flight|outbox|dropp?ed|removed"
 
 

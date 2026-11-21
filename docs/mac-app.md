@@ -27,6 +27,9 @@ asks again after each rebuild. The plugin must be installed too (`claude plugin 
   talks to. The conversation is on the right; click something you said to fix it. A request shows its exact text with
   Deny and Approve. Approve asks for Touch ID or your password; Deny does not. Type in the field to send words instead
   of speaking (typed words never approve).
+- **New session**, under the sessions: start a Claude Code, OpenCode or Codex session in a folder you already work
+  in. Start asks for Touch ID or your password. A start the voice read back shows as a card with Cancel and Start.
+  [features/new-session.md](features/new-session.md).
 - **Connect** (⌘↩): the first time, macOS asks for the microphone.
 - **Talking.** With the microphone set to Push to talk (Settings → Voice), hold the round button, or hold Space while
   the window is in front, or hold the shortcut from any app (⌃⌥Space unless you change it). Choose Tap to talk to press

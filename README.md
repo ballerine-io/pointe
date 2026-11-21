@@ -72,6 +72,10 @@ The first run downloads about 180 MB. A tab opens: allow the microphone, press C
 OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
 [docs/harnesses.md](docs/harnesses.md).
 
+Pointe can also start a session for you, in a folder you already work in: say "start a new Codex session in shop", or
+use New session on the page or in the apps. It reads back what it will start and waits for your yes:
+[docs/features/new-session.md](docs/features/new-session.md).
+
 ### Try it for free or cheap
 
 - **Free:** one [Google AI Studio](https://aistudio.google.com/apikey) key, no card. Google lists every model Pointe
@@ -106,6 +110,7 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
 
 | | |
 |---|---|
+| [Start a new session](docs/features/new-session.md) | "Start a Codex session in shop": read back, started on your yes, only in folders you already work in, never with prompts skipped. |
 | [Machines](docs/multi-machine.md) | Sessions on your other Macs and Linux machines join the same voice, each shown with its machine. |
 | [Voice lock](docs/features/voice-lock.md) | Only your voice counts, for approvals or for everything. Checked on this Mac. |
 | [Self-learning vocabulary](docs/features/vocabulary.md) | Fix a misheard name once, and the next call hears it right. |
@@ -153,7 +158,7 @@ Where Pointe differs from Happy:
   carries encrypted messages between your devices, and its voice sends audio, the session list, recent messages and
   permission requests to ElevenLabs.
 - **You choose each model, or run them on the Mac.** Three or four vendors for each role, two local modes, and no metered voice minutes.
-- **It joins sessions that are already running**, with `/pointe:voice`, and they keep their context.
+- **It joins sessions that are already running**, with `/pointe:voice`, and they keep their context. It can also start a new one, on your yes.
 
 **The built-in voices** need nothing installed and work on Linux and Windows too. Claude Code's `/voice` is for
 dictating a prompt and needs a Claude.ai sign-in. Codex voice is a full spoken conversation over Codex tasks; in the

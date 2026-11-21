@@ -44,6 +44,7 @@ import harnesses
 import howto
 import latency
 import mac
+import newsession
 import hub_nodes
 import phone_pairing
 import nodelink
@@ -90,6 +91,7 @@ from guards import (relays_approval, remote_readable,
     quote_intent,
     close_request,
     disconnect_intent,
+    start_request,
     strip_tasks,
     unfinished,
     readable_request,
@@ -341,6 +343,7 @@ SEND_WORDS = re.compile(r"\b(?:send|tell|ask|go ahead|do it|go for it)\b|שלח|
 STANDING_HOLD = re.compile(r"hold off|not yet|don't (?:send|apply|merge|run|touch|deploy|flip)|do not (?:send|apply|merge|run|touch|deploy|flip)|אל ת|עוד לא")
 PENDING_ROUTE_SECS = 120.0  # how long "which session is that for?" can still be answered with a name
 CLOSE_CONFIRM_SECS = 60.0  # how long a read-back of sessions to close can still be answered yes
+PORT = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT") or 7860)  # main() sets the one it listens on
 MAX_REFUSALS_PER_UTTERANCE = 2  # Gemini re-words and re-sends a refused call about once a second
 PERMISSION_ANSWER_SECS = 120.0
 YES_AFTER_BOT_SECS = 1.0
@@ -441,6 +444,10 @@ words: act on the corrected version, and if you already did something with the m
 voice: call disconnect_session once; the daemon picks the sessions from the user's words. They keep running in their \
 terminals. If the result has confirm_first, say that line once and wait; when the user answers, call disconnect_session \
 again. "Tell <session> to close X" is a send, never a disconnect.
+- "Start / open a new session (or a Claude Code, OpenCode or Codex session) in <folder>" starts a new coding agent: \
+call start_session once; the daemon takes the agent, the folder and the name from the user's words, and only folders \
+the user already works in. Nothing starts yet: the result has confirm_first; say that line once, exactly, and wait. \
+When the user answers, call start_session again. "Tell <session> to start X" is a send, never a new session.
 - Change mode with set_mode only when the user asks for it. "Tell all sessions / everyone to ..." is one \
 send_to_claude_code call, not a mode change.
 - Different instructions for different sessions in one breath: call send_to_claude_code once per instruction, \
@@ -1930,6 +1937,9 @@ class State:
     pending_route: tuple[float, str | None, str] | None = None  # (when, proposed session id, message): refused for want of a session
     pending_close: tuple[float, list[str], str] | None = None  # (when, session ids, the read-back): closes on the next yes
     last_close_at: float = 0.0
+    # A new session read back and not started yet: (when, {id, harness, folder, name, line}). Starts on the next yes.
+    pending_start: tuple[float, dict] | None = None
+    last_start_at: float = 0.0
     notes_turns: dict[str, int] = field(default_factory=dict)  # per session: turns since the notes were last given
     brief_again: set[str] = field(default_factory=set)
     briefing: set[str] = field(default_factory=set)  # sessions whose notes are being written now
@@ -3778,9 +3788,9 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     session = REGISTRY.active
     if not session or not session.permission_id or state.conn is None:
         return
-    pending = _close_pending()
+    pending = _close_pending() or _start_pending()
     if pending and sum(at > pending[0] for at, _ in state.recent_said) == 1:
-        return  # the first words after "Closing A and B. Go ahead?" answer that, never a prompt
+        return  # the first words after "Closing A and B. Go ahead?" (or "Start ...?") answer that, never a prompt
     if not online(session):  # its node handed the prompt back to its terminal when the link dropped
         if permission_answer(text) is not None:
             state.utterance_spent = True
@@ -4717,6 +4727,286 @@ async def disconnect_session(params: FunctionCallParams):
                                   "takes them off the voice: they keep running in their terminals."})
 
 
+# ---------- starting a new session (docs/design/new-session.md; the rules: newsession.py, guards.start_request) ----------
+
+RECENT_FOLDERS = newsession.Recent(STATE_DIR / "folders.json")
+STARTS: dict[str, newsession.Start] = {}
+HARNESS_TITLES = {"claude-code": "Claude Code", "opencode": "OpenCode", "codex": "Codex"}
+HUB_ONLY = "Pointe starts sessions only on this Mac for now. On another machine, start it there and join it."
+
+
+class StartRefused(Exception):
+    """A start that may not happen, with fixed words for the user and the HTTP status the routes answer with."""
+
+    def __init__(self, why: str, status: int = 400):
+        super().__init__(why)
+        self.status = status
+
+
+def _harness_title(name: str) -> str:
+    return HARNESS_TITLES.get(name, harnesses.get(name).label)
+
+
+def _start_folders() -> list[dict]:
+    return newsession.allowed(list(REGISTRY.sessions.values()), RECENT_FOLDERS, PREFS.get("sessions.folders"))
+
+
+def _start_harnesses() -> list[dict]:
+    out = []
+    for name in harnesses.names():
+        adapter = harnesses.get(name)
+        if adapter.starts:
+            why = adapter.can_start()
+            out.append({"name": name, "title": _harness_title(name), "available": why is None, "why": why})
+    return out
+
+
+def _start_machines() -> list[dict]:
+    return [{"name": _here(), "here": True, "available": True, "why": None}] + [
+        {"name": m.name, "here": False, "available": False, "why": HUB_ONLY} for m in paired_machines()]
+
+
+def _names_in_use() -> set[str]:
+    return {s.name for s in REGISTRY.sessions.values()} | {x.name for x in STARTS.values() if x.state in ("starting", "waiting")}
+
+
+def _start_name(given: str | None, folder: dict) -> str:
+    """The name the session will join with: the one given, checked as a rename is, else the folder's, or that with
+    "-2" when a session already has it."""
+    if given and given.strip():
+        name = _clean_name(given)
+        if not valid_name(name) or not speakable(name):
+            raise StartRefused("That name cannot be used: 1 to 40 letters, digits, spaces, dots, slashes or dashes, with "
+                               "a word other than dev, main or session so voice can pick it.")
+        why = REGISTRY.rename_check("", name)
+        if why is None and name.lower() in {n.lower() for n in _names_in_use()}:
+            why = f"another session is already called {name}"
+        if why:
+            raise StartRefused(f"That name cannot be used: {why}.", 409)
+        return name
+    base = _clean_name(folder["name"])
+    if not valid_name(base) or answers_a_prompt(base) or base.lower() in {m.name.lower() for m in paired_machines()} | {_here().lower()}:
+        base = "agent"
+    # A name that only differs by a branch ("shop" beside "shop/main") would be told apart with a suffix at the join
+    # (_tell_apart): it counts as taken here, so the name read back is the name it joins with.
+    name, n, used = base, 2, _names_in_use()
+    while any(_clash(name, other) for other in used):
+        name, n = f"{base[:36]}-{n}", n + 1
+    return name
+
+
+def _check_start(harness: str, folder: str, name: str | None, prompt: str = "", machine: str | None = None) -> dict:
+    """Everything a start must pass, whoever asked, or StartRefused. Returns what will start: harness, folder (its
+    entry in the list), name, prompt."""
+    if machine and machine != _here():
+        raise StartRefused(HUB_ONLY, 409)
+    if harness not in harnesses.names() or not harnesses.get(harness).starts:
+        raise StartRefused("Pointe cannot start that kind of session.")
+    why = harnesses.get(harness).can_start()
+    if why:
+        raise StartRefused(why, 409)
+    folders = _start_folders()
+    entry = newsession.find(folder, folders)
+    if entry is None:
+        raise StartRefused("Not started: that folder is not one you already work in. Sessions start only in folders of "
+                           "your current and recent sessions, and the ones added in Settings on the Mac.", 403)
+    if not isinstance(prompt, str) or len(prompt) > newsession.MAX_PROMPT:
+        raise StartRefused(f"The first prompt is too long: at most {newsession.MAX_PROMPT} characters.")
+    return {"harness": harness, "folder": entry, "name": _start_name(name, entry), "prompt": prompt.strip(),
+            "said_folder": newsession.said_folder(entry, folders)}
+
+
+def begin_start(what: dict, how: str) -> newsession.Start:
+    start = newsession.Start(id=secrets.token_hex(8), harness=what["harness"], folder=what["folder"]["path"],
+                             name=what["name"], prompt=what.get("prompt") or "", how=how)
+    STARTS[start.id] = start
+    logger.info(f"starting a {start.harness} session {start.name!r} in {start.folder} ({how}"
+                f"{', with a first prompt' if start.prompt else ''})")
+    asyncio.create_task(_run_start(start))
+    return start
+
+
+async def _run_start(start: newsession.Start) -> None:
+    kind = start.harness  # a start is not a session yet: there is nothing for harnesses.of to look up
+    adapter = harnesses.get(kind)
+    try:
+        if not os.path.isdir(start.folder):
+            raise harnesses.StartError("Not started: that folder is no longer there.")
+        body = await asyncio.wait_for(adapter.start(start.folder, start.name, start.id), 45)
+    except harnesses.StartError as e:
+        return await _start_failed(start, str(e))
+    except asyncio.TimeoutError:
+        return await _start_failed(start, f"{_harness_title(start.harness)} did not answer in time.")
+    except Exception as e:
+        logger.error(f"start of {start.name} failed: {type(e).__name__}: {e}")
+        return await _start_failed(start, f"{_harness_title(start.harness)} did not start.")
+    if body is None:  # it registers itself, from its own SessionStart hook (Claude Code)
+        start.state = "waiting"
+        deadline = start.since + newsession.JOIN_SECS
+        while start.state == "waiting" and time.time() < deadline:
+            await asyncio.sleep(0.25)
+        if start.state == "waiting":
+            await _start_failed(start, f"{_harness_title(start.harness)} opened in a new terminal window and has not "
+                                       "joined yet. Look at that window: it may be asking something."
+                                       + (" The first prompt was not sent." if start.prompt else ""))
+        return
+    try:
+        await _join({**body, "harness": start.harness, "start": start.id})
+    except Exception as e:
+        logger.error(f"{start.name} started and could not join: {type(e).__name__}: {e}")
+        await _start_failed(start, f"{_harness_title(start.harness)} started the session, and it could not join the voice.")
+
+
+async def _start_failed(start: newsession.Start, why: str) -> None:
+    start.fail(why)
+    logger.warning(f"start of {start.name} ({start.harness}) failed: {why}")
+    if state.conn is not None:
+        await say(f"[session not started] {start.name} did not start. Tell the user why in one line: {why}")
+
+
+async def _started(session: Session, start_id) -> None:
+    """The session a start was waiting for is on the voice. Its first prompt goes now, and only now."""
+    start = STARTS.get(str(start_id or ""))
+    if start is None or start.state == "joined":
+        return
+    if session.harness != start.harness or newsession.real(session.cwd) != newsession.real(start.folder):
+        logger.warning(f"{session.name} carried the id of a start it does not match; not treated as that start")
+        return
+    late = start.state == "failed"  # it joined after the wait ran out: the user was told the prompt was not sent
+    start.state, start.session_id, start.detail, start.ended = "joined", session.id, "", time.time()
+    logger.info(f"{session.name} joined: started by Pointe ({start.how})")
+    if start.prompt and not late:
+        asyncio.create_task(_first_prompt(session, start.prompt))
+
+
+async def _first_prompt(session: Session, prompt: str) -> None:
+    ok = await _dispatch(session, prompt)
+    _record(prompt, [session.name] if ok else [], "the first prompt of a session started here" if ok
+            else "the first prompt did not reach the session")
+    if not ok and state.conn is not None:
+        await say(f"[first prompt not delivered] {session.name} started, and its first prompt did not reach it. Tell "
+                  f"the user in one line.")
+
+
+def _start_pending() -> tuple[float, dict] | None:
+    pending = state.pending_start
+    return pending if pending and time.time() - pending[0] < newsession.CONFIRM_SECS else None
+
+
+def _start_line(what: dict) -> str:
+    """The read-back: exactly what a yes will start."""
+    return (f"Start {'an' if _harness_title(what['harness'])[0] in 'AEIOU' else 'a'} {_harness_title(what['harness'])} "
+            f"session in {_spoken_names(what['said_folder'])} on {_here()}, named {_spoken_names(what['name'])}? "
+            f"Say yes or tap.")
+
+
+def _start_owner_refusal() -> str | None:
+    """A spoken yes starts a session only in the owner's voice when the voice lock is on, and only as a strong match
+    on the road, as a yes to a permission prompt."""
+    if state.drive.on() and _has_voiceprint() and not speaker.strong(state.last_speaker):
+        return "Not started: that yes was not clearly the owner's voice. They can tap Start on the screen."
+    if lock_level() != "off" and not VOICE.confident(state.last_speaker):
+        return "Not started: that yes was not clearly the owner's voice. They can tap Start on the screen."
+    return None
+
+
+async def start_session(params: FunctionCallParams):
+    """Starts a new coding-agent session, chosen from the user's own words, never from the model's arguments. It is
+    always read back first, and starts on the user's next plain yes (or a tap on the card)."""
+    pending = _start_pending()
+    fresh = await _await_fresh_speech(pending[0] if pending else state.last_start_at)
+    said = state.last_utterance
+    if pending and not fresh:
+        await params.result_callback({"error": f"Nothing started yet: you asked \"{pending[1]['line']}\". Wait for the "
+                                      "answer; do not ask again."})
+        return
+    if pending:
+        state.pending_start = None
+        echo = state.heard_own_words or ECHO.repeats_bot(said)
+        verdict = None if echo else consent(said)
+        asks_again = start_request(said, []) is not None
+        if verdict == "allow" and not asks_again:
+            state.last_start_at = time.time()
+            refusal = _start_owner_refusal()
+            if refusal:
+                await params.result_callback({"error": refusal})
+                return
+            what = pending[1]
+            try:  # checked again: a session may have joined, or a folder gone, since the read-back
+                checked = _check_start(what["harness"], what["folder"], what["name"] if what["name_given"] else None)
+            except StartRefused as e:
+                await params.result_callback({"error": str(e)})
+                return
+            if checked["name"] != what["name"]:
+                await params.result_callback({"error": f"Not started: the name {what['name']} was taken meanwhile. Ask again."})
+                return
+            start = begin_start(checked, "voice")
+            await params.result_callback({"starting": start.name, "note": _started_note(start)})
+            return
+        if verdict == "deny" or not asks_again:
+            await params.result_callback({"error": "Not started: the user did not say yes. Nothing was started; ask "
+                                          "what they want if it is unclear."})
+            return
+    if not fresh:
+        await params.result_callback({"error": "Not started. The user did not ask to start a session."})
+        return
+    folders = _start_folders()
+    places = newsession.places(list(REGISTRY.sessions.values()), folders)
+    active = REGISTRY.active
+    here_folder = newsession.real(active.cwd) if active and not active.machine and newsession.find(active.cwd, folders) else None
+    asked = next((t for at, t in reversed(state.recent_said) if time.time() - at < SWITCH_WORDS_SECS
+                  and at > state.last_start_at and start_request(t, places) is not None), said)
+    ask = start_request(asked, places, [m.name for m in paired_machines()], _here(), here_folder)
+    if ask is None:
+        await params.result_callback({"error": "Not started. The user did not ask to start a session."})
+        return
+    state.last_start_at = time.time()
+    if ask.machine:
+        await params.result_callback({"error": f"Not started. {HUB_ONLY}"})
+        return
+    available = [h for h in _start_harnesses() if h["available"]]
+    if ask.harnesses:
+        await params.result_callback({"error": "Not started. One session at a time: ask which agent first, "
+                                      + " or ".join(_harness_title(h) for h in ask.harnesses) + "."})
+        return
+    harness = ask.harness or next((h["name"] for h in available if h["name"] == "claude-code"), None) \
+        or (available[0]["name"] if len(available) == 1 else None)
+    if harness is None:
+        await params.result_callback({"error": "Not started. Ask which agent: "
+                                      + (", ".join(h["title"] for h in available) or "none can be started on this Mac") + "."})
+        return
+    if ask.ties:
+        tied = [newsession.said_folder(f, folders) for f in folders if f["path"] in ask.ties]
+        await params.result_callback({"error": f"Not started. Those words fit more than one folder. Ask which: "
+                                      f"{', '.join(tied)}."})
+        return
+    if ask.folder is None:
+        names = ", ".join(newsession.said_folder(f, folders) for f in folders[:8])
+        await params.result_callback({"error": "Not started. The user did not name a folder they already work in; a "
+                                      "session starts only in one of those. " + (f"Ask which: {names}." if names else
+                                      "There is none yet: a session must join from a folder first, or the user adds "
+                                      "the folder in Settings on the Mac.")})
+        return
+    try:
+        what = _check_start(harness, ask.folder, ask.name)
+    except StartRefused as e:
+        await params.result_callback({"error": str(e)})
+        return
+    line = _start_line(what)
+    state.pending_start = (time.time(), {"id": secrets.token_hex(8), "harness": harness, "folder": what["folder"]["path"],
+                                         "name": what["name"], "name_given": bool(ask.name), "line": line,
+                                         "said_folder": what["said_folder"]})
+    logger.info(f"start read back: {line}")
+    await params.result_callback({"confirm_first": line, "note": "Nothing is started yet. Say this line once, as it is, "
+                                  "and wait. When the user answers, call start_session again."})
+
+
+def _started_note(start: newsession.Start) -> str:
+    opens = "Claude Code opens in a new terminal window on the Mac. " if start.harness == "claude-code" else ""
+    return (f"{opens}It joins the voice by itself in a moment and is announced when it does; then requests can be sent "
+            f"to it by its name. Say in one line that it is starting.")
+
+
 async def activate(session: Session) -> dict:
     """Make a session active and give the voice model its recent history."""
     before = REGISTRY.active
@@ -4996,6 +5286,14 @@ TOOLS = ToolsSchema(standard_tools=[
         properties={"name": {"type": "string", "description": "A session name the user said, if any."}},
         required=[], handler=_traced(disconnect_session)),
     FunctionSchema(
+        name="start_session",
+        description="Start a new coding-agent session (Claude Code, OpenCode or Codex) in a folder the user already "
+        "works in. Only when the user just asked to start or open a new session or agent. Call it once: the daemon "
+        "takes the agent, folder and name from the user's own words and returns confirm_first, a line to say exactly. "
+        "Again after the user answers it.",
+        properties={"folder": {"type": "string", "description": "The folder name the user said, if any."}},
+        required=[], handler=_traced(start_session)),
+    FunctionSchema(
         name="set_mode",
         description="Change routing mode, only when the user asked: orchestrator mode routes each request to the "
         "right session; session mode sends everything to the active session only.",
@@ -5091,7 +5389,11 @@ phone_pairing.install(app, phone_pairing.PhoneLink(STATE_DIR, PHONES), page_key=
 @app.post("/voice/register")
 async def register(request: Request, authorization: str | None = Header(None)):
     _auth(authorization)
-    body = await request.json()
+    return await _join(await request.json())
+
+
+async def _join(body: dict) -> dict:
+    """A session joins the voice: from /voice/register, or one Pointe started itself (_run_start)."""
     if not re.fullmatch(r"[\w-]{1,128}", str(body["id"])):
         raise HTTPException(status_code=400, detail="bad session id")
     if body.get("channel_url") and urlparse(body["channel_url"]).hostname not in ("127.0.0.1", "localhost"):
@@ -5121,13 +5423,20 @@ async def register(request: Request, authorization: str | None = Header(None)):
             setattr(existing, key, getattr(session, key) or getattr(existing, key))
         REGISTRY.save()
         return {"name": existing.name, "active": existing is REGISTRY.active}
-    session.joining = not session.channel_url and adapter.joins_mid_turn  # Claude Code's /pointe:voice runs inside a turn
+    started = str(body.get("start") or "") in STARTS
+    # Claude Code's /pointe:voice runs inside a turn; a session Pointe started joins from a hook, before any turn
+    session.joining = not session.channel_url and adapter.joins_mid_turn and not started
     REGISTRY.add(session)
+    RECENT_FOLDERS.note(session.cwd)
+    if started:
+        await _started(session, body["start"])
     asyncio.create_task(_refresh_brief(session))  # read it now, so the first question of a call finds notes ready
     # the "(pid N, how" order is read by tests and tools: the harness goes last
     logger.info(f"registered {session.name} (pid {session.pid}, {'channel' if session.channel_url else 'inbox'}, {harness})")
     await _add_worker(session)
-    if state.conn and len(REGISTRY.sessions) > 1:
+    if state.conn and started:
+        await say(f"[session joined] {session.name}, the session the user asked to start, is on the voice now. Say so in a few words.")
+    elif state.conn and len(REGISTRY.sessions) > 1:
         await say(f"[session joined] {session.name} is now available. Mention it in a few words.")
     return {"name": session.name, "active": session is REGISTRY.active}
 
@@ -5796,6 +6105,52 @@ async def disconnect_by_request(request: Request):
     return result
 
 
+def _start_how(request: Request) -> str:
+    return "phone" if request.scope.get("state", {}).get("pointe_phone") else "page"
+
+
+@app.get("/voice/new-session")
+async def new_session_options():
+    """What the New session sheet offers: the agents this Mac can start, the machines, and the folders a session may
+    start in. The folders come from here and nowhere else."""
+    return {"harnesses": _start_harnesses(), "machines": _start_machines(), "folders": _start_folders(),
+            "max_prompt": newsession.MAX_PROMPT}
+
+
+@app.post("/voice/new-session")
+async def new_session(request: Request):
+    """The sheet's Start button ({harness, folder, name?, prompt?, machine?}), or a tap on a read-back's card
+    ({confirm: id} starts it, {cancel: id} drops it). Same-origin, or the phone's key."""
+    body = await _body(request)
+    pending = _start_pending() if "confirm" in body or "cancel" in body else None
+    for key in ("confirm", "cancel"):
+        if key in body:
+            if not pending or not hmac.compare_digest(str(body[key]), pending[1]["id"]):
+                raise HTTPException(status_code=409, detail="That is no longer waiting for an answer.")
+            state.pending_start, state.last_start_at = None, time.time()
+            if key == "cancel":
+                if state.conn is not None:
+                    await state.conn.injector.inject("[start cancelled] The user tapped Cancel: nothing was started. Do "
+                                                     "not announce it.", False)
+                return {"cancelled": True}
+            body = {"harness": pending[1]["harness"], "folder": pending[1]["folder"],
+                    "name": pending[1]["name"] if pending[1]["name_given"] else None}
+            break
+    try:
+        what = _check_start(str(body.get("harness") or ""), body.get("folder") or "", body.get("name") or None,
+                            body.get("prompt") or "", body.get("machine") or None)
+    except StartRefused as e:
+        raise HTTPException(status_code=e.status, detail=str(e))
+    if pending and state.pending_start is None and what["name"] != pending[1]["name"]:  # a tap starts what was read back
+        raise HTTPException(status_code=409, detail=f"The name {pending[1]['name']} was taken meanwhile. Ask again.")
+    start = begin_start(what, _start_how(request))
+    if state.conn is not None:
+        await state.conn.injector.inject(f"[session starting] The user started a new {_harness_title(start.harness)} "
+                                         f"session, {start.name}, from the screen. It is announced when it joins. Do "
+                                         f"not announce it now.", False)
+    return {"id": start.id, "name": start.name}
+
+
 @app.post("/voice/page-event")
 async def page_event(request: Request):
     """What the page saw that only the device knows (media keys, the OS muting the mic), into the journal.
@@ -6072,6 +6427,10 @@ async def status(request: Request):
             "hearing": state.ptt.draft() if state.ptt.collecting  # a press's words, kept until it is sent
             else state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
             "machines": _status_machines(),
+            # New sessions (docs/design/new-session.md): the ones starting or just failed, and a read-back that waits.
+            "starting": [x.view(_harness_title(x.harness)) for x in newsession.shown(STARTS)],
+            "start_pending": (lambda p: None if p is None else {k: p[1][k] for k in ("id", "line", "harness", "name")}
+                              | {"folder": p[1]["said_folder"], "expires_in": round(newsession.CONFIRM_SECS - (time.time() - p[0]))})(_start_pending()),
             "invite": _invite(request),
             "can_invite": _can_invite(request),
             "invite_ended": _invite_ended(request),
@@ -6298,6 +6657,8 @@ async def prefs_set(request: Request):
     body = await _body(request)
     if "voice_lock" in body:  # one write path, where the voiceprint is checked
         raise HTTPException(status_code=400, detail="set the voice lock with POST /voice/voiceprint {action: level}")
+    if "sessions.folders" in body and _off_the_mac(request):  # where an agent may start is decided at the Mac only
+        raise HTTPException(status_code=403, detail="Change the folders new sessions may start in on the Mac itself.")
     try:
         return PREFS.update(body)
     except ValueError as e:
@@ -6608,6 +6969,7 @@ async def _on_connect(conn: Connection) -> None:
     state.last_utterance = ""
     state.unconfirmed, state.blocked, state.pending_route, state.notes_turns = {}, [], None, {}
     state.pending_close, state.last_close_at = None, now
+    state.pending_start, state.last_start_at = None, now
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
     state.last_speaker = None
@@ -6983,7 +7345,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Pointe voice daemon")
     parser.add_argument("--port", type=int, default=7860)
     port = parser.parse_args().port
-    global SERVER
+    global SERVER, PORT
+    PORT = harnesses.HOST.port = port  # a session Pointe starts registers with this daemon, not the default one
     SERVER = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info"))  # loopback only: the phone comes in through remote.py
     SERVER.run()
 

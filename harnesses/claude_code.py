@@ -9,14 +9,16 @@ import asyncio
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 from loguru import logger
 
-from .base import HOST, Harness
+from .base import HOST, Harness, StartError, refuse_bypass
 
 DEFAULT_HOME = Path.home() / ".claude"
 
@@ -40,6 +42,7 @@ class ClaudeCode(Harness):
     agent = "Claude"
     approvals = True
     attach = True
+    starts = True
     joins_mid_turn = True  # /pointe:voice runs inside one of its turns
     permission_deadline = 280.0  # under the hook's own timeout, in hooks/hooks.json
 
@@ -130,6 +133,25 @@ class ClaudeCode(Harness):
 
         return [follow_transcript(session, feed, lambda: None)]
 
+    def can_start(self) -> str | None:
+        if sys.platform != "darwin":
+            return "Starting Claude Code needs a terminal window, which Pointe opens only on a Mac for now."
+        return None if shutil.which("claude") else "Claude Code is not installed on this Mac."
+
+    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
+        """A new terminal window running `claude` in `cwd`: a real session the user can type into. Its SessionStart hook
+        registers it with the voice (attach mode: its inbox socket), carrying `start_id`, so this returns None."""
+        why = self.can_start()
+        if why:
+            raise StartError(why)
+        script = start_script(cwd, name, start_id)
+        try:
+            await asyncio.to_thread(open_terminal, script)
+        except (OSError, subprocess.SubprocessError) as e:
+            logger.warning(f"no terminal window for a new Claude Code session: {type(e).__name__}")
+            raise StartError("Pointe could not open a terminal window for Claude Code.")
+        return None
+
     async def send(self, session, text: str) -> bool:
         from sessions import post_inbox, voice_message
 
@@ -186,6 +208,61 @@ class ClaudeCode(Harness):
                 proc.kill()
             raise
         return None
+
+
+START_KEEP_SECS = 24 * 3600  # a start's script and settings: Claude Code reads the settings while it runs
+PORT_ENV = "CLAUDE_VOICE_DAEMON_PORT"
+
+
+def start_argv(name: str, settings: Path) -> list[str]:
+    """How Pointe starts Claude Code: its default permission mode, said outright (the flag wins over a `defaultMode` in
+    the user's settings), and never a flag that skips prompts."""
+    argv = [shutil.which("claude") or "claude", "--permission-mode", "default", "--name", name, "--settings", str(settings)]
+    refuse_bypass(*argv)
+    return argv
+
+
+def start_script(cwd: str, name: str, start_id: str, root: Path = Path(__file__).resolve().parents[1]) -> Path:
+    """The `.command` file a terminal runs for a new session, and the settings file with the hook that joins it. No
+    secret is in either: the hook reads the daemon's token from the state dir, as /pointe:voice does."""
+    state = Path(HOST.state_dir or os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
+    port = str(getattr(HOST, "port", None) or os.environ.get(PORT_ENV, "7860"))
+    folder = state / "starts"
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for old in folder.iterdir():  # yesterday's starts
+        try:
+            if time.time() - old.stat().st_mtime > START_KEEP_SECS:
+                old.unlink()
+        except OSError:
+            pass
+    settings, script = folder / f"{start_id}.json", folder / f"{start_id}.command"
+    hook = " ".join(shlex.quote(a) for a in [str(root / "bin" / "register-session"), "--quiet", "--name", name, "--start", start_id])
+    # "startup" only: a /clear or /resume later must not register the session a second time under a new id
+    settings.write_text(json.dumps({"hooks": {"SessionStart": [{"matcher": "startup", "hooks": [
+        {"type": "command", "timeout": 10, "command": hook}]}]}}))
+    command = " ".join(shlex.quote(a) for a in start_argv(name, settings))
+    script.write_text(f"#!/bin/sh\n# Written by Pointe: starts Claude Code here and joins it to the voice. Safe to delete.\n"
+                      f"cd {shlex.quote(cwd)} || exit 1\n"
+                      f"export CLAUDE_VOICE_STATE={shlex.quote(str(state))} {PORT_ENV}={shlex.quote(port)}\n"
+                      f"exec {command}\n")
+    settings.chmod(0o600)
+    script.chmod(0o700)
+    return script
+
+
+def terminal_app() -> str:
+    """The terminal that gets the window: iTerm when it is the one running, else Terminal, which every Mac has."""
+    try:
+        running = subprocess.run(["pgrep", "-x", "iTerm2"], capture_output=True, timeout=3).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        running = False
+    return "iTerm" if running else "Terminal"
+
+
+def open_terminal(script: Path) -> None:
+    """`open` hands the script to the terminal as a document: a new window runs it. No Automation permission is asked,
+    which an AppleScript `tell` would need. Tests replace this."""
+    subprocess.run(["open", "-a", terminal_app(), str(script)], check=True, capture_output=True, timeout=15)
 
 
 def _env(home: str) -> dict:

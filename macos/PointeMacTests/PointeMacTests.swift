@@ -14,6 +14,12 @@ final class PointeMacTests: XCTestCase {
             XCTAssertEqual((error as? URLError)?.code, .cannotConnectToHost)
         }
         do {
+            try await live.newSession(["confirm": "made-up"])
+            XCTFail("no endpoint: nothing is started")
+        } catch {
+            XCTAssertEqual((error as? URLError)?.code, .cannotConnectToHost)
+        }
+        do {
             _ = try await BoxDialer(box: EndpointBox()).dial()
             XCTFail("no endpoint: nothing to dial")
         } catch {

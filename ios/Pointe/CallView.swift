@@ -60,7 +60,7 @@ struct CallView: View {
         self.demo = demo
         _call = State(initialValue: Call(pairing: pairing))
         _status = State(initialValue: demo?.status)
-        _showSessions = State(initialValue: demo?.screen == .sessions || demo?.screen == .machinesSessions)
+        _showSessions = State(initialValue: demo?.screen == .sessions || demo?.screen == .machinesSessions || demo?.screen == .newSession)
         _editing = State(initialValue: demo?.screen == .edit ? demo?.status.talk?.last(where: \.mine) : nil)
         _typing = State(initialValue: demo?.screen == .typing)
         _showMeetingStart = State(initialValue: demo?.screen == .meetingStart)
@@ -180,12 +180,12 @@ struct CallView: View {
             }
         }
         .sheet(isPresented: $showSessions) {
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter)
                 .presentationDetents([.medium, .large])
                 .presentationBackground(Brand.group)
         }
         .sheet(item: $sessionsOn) { on in
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter, starter: starter)
                 .presentationDetents([.large])
                 .presentationBackground(Brand.group)
         }
@@ -580,6 +580,10 @@ struct CallView: View {
             }
             if suggestingDrive {
                 DriveSuggestion(accept: { setDrive(true) }, dismiss: { sensors.suggester.dismiss() })
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if let pending = status?.start_pending, !driving {  // on the road nothing is tapped: the spoken yes starts it
+                StartCard(pending: pending, answer: answerStart)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             if driving, let request = waiting.first {
@@ -1211,6 +1215,50 @@ struct CallView: View {
     private func disconnect(_ name: String) {
         if demo != nil { status?.sessions.removeAll { $0.name == name }; return }
         Task { await act { try await call.api.disconnect(name) } }
+    }
+
+    // MARK: new session (NewSession.swift)
+
+    private var starter: NewSessionActions { NewSessionActions(ownerCheck: ownerCheck, options: startOptions, start: startSession) }
+
+    private func startOptions() async throws -> NewSession.Options {
+        if demo != nil, let options = Demo.startOptions { return options }
+        return try await call.api.startOptions()
+    }
+
+    /// The sheet's Start, after its Face ID. The demo plays along on its own status.
+    private func startSession(_ draft: NewSession.Draft) async throws {
+        if demo != nil {
+            let folder = Demo.startOptions?.folders.first { $0.path == draft.folder }?.name ?? "shop"
+            demoStarted(draft.body["name"] ?? folder, harness: draft.harness)
+            return
+        }
+        try await call.api.newSession(draft.body)
+        await refreshStatus()
+    }
+
+    /// A tap on the read-back's card. Start needs Face ID (or the passcode), as Approve does; Cancel never does.
+    private func answerStart(_ pending: NewSession.Pending, _ start: Bool) async {
+        if start, !(await ownerCheck(NewSessionSheet.faceIDReason)) { return }
+        if demo != nil {
+            status?.start_pending = nil
+            if start { demoStarted("shop-2", harness: "claude-code") }
+            return
+        }
+        await act { try await call.api.newSession([start ? "confirm" : "cancel": pending.id]) }
+    }
+
+    /// The demo's start: a row under the sessions, then the session itself, as a Mac would show it.
+    private func demoStarted(_ name: String, harness: String?) {
+        let label = Demo.startOptions?.harnesses.first { $0.name == harness }?.title
+        let row = NewSession.Starting(id: "demo-\(name)", name: name, harness: harness, label: label, state: "starting")
+        status?.starting = (status?.starting ?? []) + [row]
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            status?.starting?.removeAll { $0.id == row.id }
+            status?.sessions.append(API.Session(name: name, working: false, waiting: false, request: nil, request_id: nil,
+                                                voice_can_approve: nil, needs: nil, harness: harness, capabilities: nil))
+        }
     }
 
     // MARK: machines

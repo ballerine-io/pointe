@@ -70,6 +70,8 @@ public final class PointeStore {
     public var dumpPicked: DumpTarget?
     public private(set) var dumpSendArmed = false
     public private(set) var busy = false
+    /// Why the New session sheet's last Start or its options failed, in the daemon's words: shown in the sheet.
+    public private(set) var startProblem: String?
 
     public var api: any DaemonAPI
     public var call: CallLink?
@@ -374,4 +376,55 @@ public final class PointeStore {
     }
 
     public func disarmDumpSend() { dumpSendArmed = false }
+
+    // MARK: new session (docs/design/new-session.md)
+
+    public var starting: [NewSession.Starting] { status?.starting ?? [] }
+    public var startPending: NewSession.Pending? { status?.start_pending }
+
+    /// What the sheet offers; nil, with the reason in `startProblem`, when the daemon did not say.
+    public func startOptions() async -> NewSession.Options? {
+        await starts { try await api.startOptions() }
+    }
+
+    /// The sheet's Start: who is there is asked first. False keeps the sheet open, with the daemon's reason in it.
+    public func start(_ draft: NewSession.Draft) async -> Bool {
+        guard await authenticator.confirm(reason: MacCopy.startReason) else { return false }
+        let started: Void? = await starts { try await api.newSession(draft.body) }
+        if started != nil { await refresh() }
+        return started != nil
+    }
+
+    private func starts<T>(_ work: () async throws -> T) async -> T? {
+        busy = true
+        defer { busy = false }
+        do {
+            let result = try await work()
+            startProblem = nil
+            return result
+        } catch API.Failure.status(_, let detail) {
+            startProblem = detail
+        } catch {
+            startProblem = MacCopy.unreachable(MacCopy.thisMac)
+        }
+        return nil
+    }
+
+    /// Start on a read-back's card: who is there is asked first, as for Approve.
+    @discardableResult
+    public func confirmStart(_ pending: NewSession.Pending) async -> Bool {
+        guard await authenticator.confirm(reason: MacCopy.startReason) else { return false }
+        return await act { try await api.newSession(["confirm": pending.id]) }
+    }
+
+    /// The folders added for new sessions, as a whole list: the daemon checks each one and may refuse.
+    public func setSessionFolders(_ paths: [String]) async {
+        if await act({ try await api.setPrefs(["sessions.folders": .strings(paths)]) }) { await loadPrefs() }
+    }
+
+    /// Cancel never asks who is there.
+    @discardableResult
+    public func cancelStart(_ pending: NewSession.Pending) async -> Bool {
+        await act { try await api.newSession(["cancel": pending.id]) }
+    }
 }

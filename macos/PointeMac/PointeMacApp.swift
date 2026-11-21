@@ -23,6 +23,8 @@ struct PointeMacApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
+                Button(NewSessionCopy.title) { model.newSession() }.keyboardShortcut("n")
+                    .disabled(model.daemon != .running)
             }
             CommandMenu("Call") {
                 Button(model.call.state == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
@@ -122,6 +124,7 @@ struct MenuContent: View {
         }
         Divider()
         Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
+        Button(NewSessionCopy.title) { model.newSession() }.disabled(model.daemon != .running)
         Toggle("Show call bubble", isOn: Binding(get: { model.bubbleOn }, set: { model.bubbleOn = $0 }))
         Button("Settings…") {
             model.windows.activate()

@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # Register the current Claude Code session with the voice daemon.
 # Reads the session from the environment (Bash tool) or from hook JSON on stdin (SessionStart).
-# Usage: register-session [--channel-url URL] [--name NAME] [--quiet]
+# Usage: register-session [--channel-url URL] [--name NAME] [--start ID] [--quiet]
+# --start: this session was started by Pointe (docs/design/new-session.md); the id tells the daemon which start it is.
 set -euo pipefail
 
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
-CHANNEL_URL="" NAME="" QUIET=""
+CHANNEL_URL="" NAME="" QUIET="" START=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --channel-url) CHANNEL_URL="$2"; shift 2 ;;
     --name) NAME="$2"; shift 2 ;;
+    --start) START="$2"; shift 2 ;;
     --quiet) QUIET=1; shift ;;
     *) echo "unknown arg $1" >&2; exit 2 ;;
   esac
@@ -37,7 +39,7 @@ if [ -z "$NAME" ]; then
   [ -n "$BRANCH" ] && [ "$BRANCH" != "$NAME" ] && NAME="$NAME/$BRANCH"  # worktrees named after their branch
 fi
 
-BODY="$(CONFIG_DIR="$CONFIG_DIR" SESSION_ID="$SESSION_ID" NAME="$NAME" NAME_GIVEN="$NAME_GIVEN" TRANSCRIPT="$TRANSCRIPT" CHANNEL_URL="$CHANNEL_URL" \
+BODY="$(CONFIG_DIR="$CONFIG_DIR" SESSION_ID="$SESSION_ID" NAME="$NAME" NAME_GIVEN="$NAME_GIVEN" TRANSCRIPT="$TRANSCRIPT" CHANNEL_URL="$CHANNEL_URL" START="$START" \
   PID_="${CLAUDE_PID:-$PPID}" python3 -c '
 import json, os
 print(json.dumps({
@@ -48,6 +50,7 @@ print(json.dumps({
     "channel_url": os.environ.get("CHANNEL_URL") or None,
     "name_given": bool(os.environ.get("NAME_GIVEN")),
     "config_dir": os.environ["CONFIG_DIR"],
+    **({"start": os.environ["START"]} if os.environ.get("START") else {}),
 }))')"
 
 # The token and the body (it holds the inbox token) go by file descriptor, never on a command line.

@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 #     prompt answers)
 #   post_channel(session, path, body) -> bool
 #   state_dir: Path
-HOST = SimpleNamespace(hold_permission=None, post_channel=None, state_dir=None)
+#   port: the port the daemon listens on (a session it starts registers there)
+HOST = SimpleNamespace(hold_permission=None, post_channel=None, state_dir=None, port=None)
 
 # The bracketed line that tells the voice a session ended its turn. Producers write it with finished_tag(); the daemon
 # reads it with FINISHED_MARK. One place, so a new label cannot silently stop reports.
@@ -22,6 +23,22 @@ FINISHED_MARK = "finished its turn]"
 
 def finished_tag(label: str) -> str:
     return f"[{label} {FINISHED_MARK}"
+
+
+class StartError(Exception):
+    """A new session could not be started. Its text is fixed words for the user: said, and shown on the screens."""
+
+
+_BYPASS = ("dangerously", "skip-permissions", "bypasspermissions", "danger-full-access", "dangerfullaccess")
+
+
+def refuse_bypass(*parts) -> None:
+    """Every command line and request a starter builds passes through here: nothing Pointe starts may skip its
+    harness's permission prompts, whoever wrote the starter."""
+    for part in parts:
+        text = str(part).lower()
+        if any(word in text for word in _BYPASS):
+            raise StartError("Not started: Pointe never starts a session that skips its permission prompts.")
 
 
 class Harness:
@@ -36,6 +53,7 @@ class Harness:
     side_questions = False  # "by the way" questions go to a copy of the session (else the transcript reader answers)
     attach = True  # it joins a session the user already runs in their own terminal or app
     spawn = False  # it can only drive sessions Pointe starts itself
+    starts = False  # Pointe can start a new session of it in a folder (docs/design/new-session.md)
     joins_mid_turn = False  # joining runs inside one of its own turns (Claude Code's /pointe:voice): that turn is not news
     permission_deadline = 280.0  # how long the voice may hold one of its prompts before the harness's own prompt answers
 
@@ -81,6 +99,21 @@ class Harness:
 
     async def leave(self, session: Session) -> None:
         """Called after the session is taken off the voice: undo anything the harness set up for it."""
+
+    def can_start(self) -> str | None:
+        """Why a new session of this harness cannot be started on this machine now (not installed), or None. Cheap: it
+        runs for every look at the New session sheet."""
+        return f"Pointe cannot start {self.agent} sessions"
+
+    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
+        """Start a new session in `cwd`, in the harness's default permission mode, never one that skips its prompts.
+        Returns its /voice/register body, or None when the session registers itself (carrying `start_id`). Raises
+        StartError with words for the user."""
+        raise StartError(self.can_start() or "not supported")
+
+    def open_hint(self, session: Session) -> str:
+        """How the user opens a session Pointe started in their own terminal, or "" when it already is one."""
+        return ""
 
 
 class UnknownHarness(Harness):

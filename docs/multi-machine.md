@@ -118,6 +118,8 @@ The hub treats a node's transcripts like its own: they go to the hub's reader an
 - **No call on a node.** The call, its page and the app are on the hub. `/pointe:open` on a node says where the call is.
 - **No launch mode on a node.** `pointe start` (a Claude Code channel) works only on the hub. On a node, use
   `/pointe:voice` or `pointe join`.
+- **No new session on a node from the hub.** Pointe starts sessions only on the hub's own Mac
+  ([features/new-session.md](features/new-session.md)). On a node, start the agent there and join it.
 - **"By the way" questions** about a session on a node are answered from its transcript, not from a forked copy.
 - **Show while it says** does not show files from a node yet, and **Challenge me** leaves a node's diffs out of its
   evidence and says so.

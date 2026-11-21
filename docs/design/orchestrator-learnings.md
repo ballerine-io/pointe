@@ -112,7 +112,7 @@ tests.
 | 6 | Keep the Mac awake while a call from the phone is up | Done in 1.12.0 | S | Low; on AC power only, so no battery cost | Checked on real hardware: the idle-sleep assertion appears with the call and goes with it. |
 | 7 | One `state` field per session in the status, so the page and the app stop deriving the label separately | ADOPT | S | Low | Parity by construction; nothing a user sees. |
 | 8 | herdr-core adapter for agents with no API of their own | INTEGRATE | M | Medium (0.x API, no socket auth) | After the launch, on demand. |
-| 9 | ACP to start agents by voice | INTEGRATE | L | Medium | After `start(cwd)`, when v2 is final. |
+| 9 | ACP to start agents by voice | INTEGRATE | L | Medium | `start(cwd)` exists since 1.16.0, for Claude Code, OpenCode and Codex through their own interfaces (`docs/design/new-session.md`). ACP itself still waits for v2 to be final. |
 
 ## Where the report was wrong or out of date
 

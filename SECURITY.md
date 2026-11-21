@@ -48,6 +48,26 @@ Code history, about 13% of shell commands can be read out; the rest need a tap o
 Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
 the exact request. If you want no voice approvals, set `approvals: terminal`.
 
+### Starting a session
+
+Pointe can start a new coding-agent session (`docs/features/new-session.md`). It is the one thing a spoken word can do
+that creates a process, so it is fenced on every side, in code with tests (`tests/test_new_session.py`):
+
+- **Where.** Only in a folder from a list the daemon builds: folders of the sessions on the voice, of sessions that
+  joined in the last 30 days, and folders added in Settings. A request's folder is looked up in that list; a path is
+  never trusted, from speech, the page or the phone. `sessions.folders` is refused from the phone's key and from a page
+  opened over the network, so the list grows only at the Mac.
+- **How.** Never with permission prompts skipped: Claude Code gets `--permission-mode default`, Codex and OpenCode no
+  override, and a Codex thread that would run with no approvals and no sandbox is archived and refused
+  (`harnesses.base.refuse_bypass`, `harnesses.codex.bypasses`).
+- **Who.** By voice, always a read-back of the agent, folder, machine and name, taken from the user's own words, then a
+  plain yes within 60 seconds: not the read-back heard back, not typed words, and with the voice lock on only the
+  owner's voice. That yes never approves a waiting request. On the iPhone and the Mac app, Start asks for Face ID or
+  Touch ID. Meeting mode and Challenge me cannot start anything.
+- **Left open.** Code running as you can register a session from any folder (it could before), which makes that folder
+  "recent". A paired phone can start a session with a first prompt in an allowed folder; it could already send requests
+  to the sessions there.
+
 ### Drive mode (optional)
 
 Drive & walk mode (`drive.py`) only narrows the rules above; it never widens them. You enter it yourself ("drive mode",

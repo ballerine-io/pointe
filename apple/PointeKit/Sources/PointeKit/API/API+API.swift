@@ -56,8 +56,10 @@ extension API {
         public var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
         public var invite: Invite?         // the one-time code to pair another machine, while one is outstanding
         public var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
+        public var starting: [NewSession.Starting]?   // sessions Pointe is starting, or that just failed to; nil from an older daemon
+        public var start_pending: NewSession.Pending? // a read-back that waits for a yes or a tap; nil when none
 
-        public init(version: String? = nil, active: String? = nil, connected: Bool, sessions: [Session], monologue: Monologue? = nil, brain_dump: BrainDump? = nil, hold: Hold? = nil, talk: [Turn]? = nil, hearing: String? = nil, mode: String? = nil, polish: Bool? = nil, meeting: Meeting? = nil, notes: NotesVersion? = nil, attention: [Attention]? = nil, ptt: PTTStatus? = nil, voice_lock: VoiceLock? = nil, conflicts: [Conflict]? = nil, briefing: BriefingStatus? = nil, showing: Showing? = nil, shown_earlier: [ShownSet]? = nil, show_on_phone: Bool? = nil, drive: DriveStatus? = nil, challenge: ChallengeStatus? = nil, dictionary: DictionaryStatus? = nil, whisper: WhisperStatus? = nil, idle_hangup: Bool? = nil, recent: [Dispatch]? = nil, tokens: Tokens? = nil, local: LocalMode? = nil, problem: String? = nil, keep_awake: KeepAwake? = nil, machines: [Machine]? = nil, invite: Invite? = nil, invite_ended: String? = nil) {
+        public init(version: String? = nil, active: String? = nil, connected: Bool, sessions: [Session], monologue: Monologue? = nil, brain_dump: BrainDump? = nil, hold: Hold? = nil, talk: [Turn]? = nil, hearing: String? = nil, mode: String? = nil, polish: Bool? = nil, meeting: Meeting? = nil, notes: NotesVersion? = nil, attention: [Attention]? = nil, ptt: PTTStatus? = nil, voice_lock: VoiceLock? = nil, conflicts: [Conflict]? = nil, briefing: BriefingStatus? = nil, showing: Showing? = nil, shown_earlier: [ShownSet]? = nil, show_on_phone: Bool? = nil, drive: DriveStatus? = nil, challenge: ChallengeStatus? = nil, dictionary: DictionaryStatus? = nil, whisper: WhisperStatus? = nil, idle_hangup: Bool? = nil, recent: [Dispatch]? = nil, tokens: Tokens? = nil, local: LocalMode? = nil, problem: String? = nil, keep_awake: KeepAwake? = nil, machines: [Machine]? = nil, invite: Invite? = nil, invite_ended: String? = nil, starting: [NewSession.Starting]? = nil, start_pending: NewSession.Pending? = nil) {
             self.version = version
             self.active = active
             self.connected = connected
@@ -92,6 +94,8 @@ extension API {
             self.machines = machines
             self.invite = invite
             self.invite_ended = invite_ended
+            self.starting = starting
+            self.start_pending = start_pending
         }
     }
 
@@ -679,6 +683,7 @@ extension API {
         public var watchApprove: Bool  // Approve on a notification, without Face ID
         public var showOnPhone: Bool   // show while it says on this phone: off until turned on
         public var patience: String    // "turns.patience": quick, normal or patient (Turns.swift)
+        public var sessionFolders: [String]  // "sessions.folders": folders added for new sessions; changed on the Mac only
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
@@ -687,6 +692,7 @@ extension API {
             case watchApprove = "alerts.watch_approve"
             case showOnPhone = "show.on_phone"
             case patience = "turns.patience"
+            case sessionFolders = "sessions.folders"
         }
 
         public init(from decoder: Decoder) throws {
@@ -701,6 +707,7 @@ extension API {
             watchApprove = (try? c.decode(Bool.self, forKey: .watchApprove)) ?? false
             showOnPhone = (try? c.decode(Bool.self, forKey: .showOnPhone)) ?? false
             patience = (try? c.decode(String.self, forKey: .patience)) ?? TurnsCopy.defaultLevel  // an older Mac: Normal
+            sessionFolders = (try? c.decode([String].self, forKey: .sessionFolders)) ?? []
         }
     }
 

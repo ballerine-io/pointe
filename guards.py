@@ -356,6 +356,103 @@ def close_request(text: str, sessions: list) -> CloseAsk | None:
     return CloseAsk(close=close, keep=kept, ties=ties, unclear=not close and not ties)
 
 
+# ---------- starting a new session (docs/design/new-session.md) ----------
+
+_HARNESS_SAID = (("codex", r"codex|קודקס"), ("opencode", r"open[\s-]*code|אופן[\s-]*קוד"), ("claude-code", r"claude(?:[\s-]*code)?|קלוד(?:[\s-]*קוד)?"))
+_ANY_HARNESS = "|".join(pattern for _, pattern in _HARNESS_SAID)
+_NEW_ONE = (rf"(?:(?:a|an|another|one\s+more|me|us|up)\s+)*(?:(?:new|fresh|another|second|additional)\s+)*"
+            rf"(?:(?:{_ANY_HARNESS})\s+)?(?:session|agent|thread)\b(?!\s+mode)")
+_START_VERB = r"(?:start|open|launch|create|begin|spin\s+up|fire\s+up|kick\s+off|bring\s+up)"
+_START_HE = r"(?<!\w)ו?(?:תפתחי?|פתחי?|תתחילי?|התחל|התחילי|תריצי?|תרימי?|צור|תיצור|תיצרי)(?!\w)"
+_START = re.compile(
+    rf"\b{_START_VERB}\s+{_NEW_ONE}"
+    rf"|\b(?:{_START_VERB}|run)\s+(?:(?:a|an|another|up)\s+)?(?:new\s+)?(?:{_ANY_HARNESS})\b(?=\s*(?:$|[.,;!?]|in\b|on\b|at\b|for\b|here\b|inside\b|called\b|named\b))"
+    rf"|\b(?:new|another)\s+(?:(?:{_ANY_HARNESS})\s+)?(?:session|agent)\s+(?:in|on|for|at|here|inside|named|called)\b"
+    rf"|{_START_HE}\s+(?:\S+\s+){{0,2}}?(?:סשן|סוכן|אייג'נט|{_ANY_HARNESS})")
+_NAME_SAID = re.compile(r"(?:\b(?:called|named|name\s+it|call\s+it|with\s+the\s+name)|(?<!\w)(?:בשם|ותקראי?\s+לו|שנקרא))\s+(?P<name>[^.;!?,]+)")
+_NAME_END = re.compile(r"\s+(?:in|on|at|for|inside|under|and)\s+|\s+(?:ב|על)(?:-|\s)")
+_PLACE_BEFORE = re.compile(r"(?:\b(?:in|inside|at|under|into)\s+(?:(?:the|my)\s+)?|\b(?:folder|repo|repository|project)\s+)$")
+_ON_MACHINE = re.compile(r"\bon\s+(?:(?:the|my)\s+)?(?:machine\s+)?(?P<name>[\w-]+(?:\s+[\w-]+)?)")
+_HERE_MACHINE = re.compile(r"\bon\s+this\s+(?:mac|machine|computer|laptop)\b|\blocally\b")
+_HERE_FOLDER = re.compile(r"\b(?:here|same\s+(?:folder|place|repo|project)|this\s+(?:folder|repo|project|one))\b|(?<!\w)(?:כאן|פה|באותה\s+תיקייה)(?!\w)")
+
+
+def start_intent(text: str) -> bool:
+    """The user asked for a new coding-agent session, not for a session to start something ("tell shop to start the
+    server") and not for a mode ("start session mode")."""
+    return bool(_START.search(_lower(strip_tasks(text))))
+
+
+class StartAsk:
+    """What the user's words ask to start. `harness`: the one they said, or None; `harnesses`: more than one was said
+    (ask which). `folder`: the one path their words pick, or None; `ties`: the paths of several their words fit (ask
+    which). `machine`: None when not said, "" for this Mac, else the machine's name. `name`: what they called it, raw."""
+
+    def __init__(self, harness=None, harnesses=(), folder=None, ties=(), machine=None, name=None):
+        self.harness, self.harnesses, self.folder, self.ties = harness, list(harnesses), folder, list(ties)
+        self.machine, self.name = machine, name
+
+    def __repr__(self):
+        return (f"StartAsk(harness={self.harness}, folder={self.folder}, ties={self.ties}, machine={self.machine!r}, "
+                f"name={self.name!r})")
+
+
+def start_request(text: str, places: list[tuple[str, str]], machines: list[str] = (), here: str = "",
+                  here_folder: str | None = None) -> StartAsk | None:
+    """What the user asked to start, from their own words; None if they did not ask.
+
+    `places` are the folders a session may start in, as (what it is called, its path): a folder's own name, and the
+    name of a session running there. The folder is matched as a session's name is (sessions.name_groups), so a word two
+    folders answer to is a tie and never a guess, and a path that is not in `places` cannot be said at all. `machines`
+    are the other machines' names, `here` this Mac's; `here_folder` is where "here" means (the active session's).
+    """
+    from sessions import Session, _hears, _name_words, name_groups
+
+    lowered = _lower(strip_tasks(text))
+    if not _START.search(lowered):
+        return None
+    name = None
+    said = _NAME_SAID.search(lowered)
+    if said:
+        raw = said.group("name")
+        cut = _NAME_END.search(raw)
+        name = (raw[:cut.start()] if cut else raw).strip(" \"'") or None
+        lowered = lowered[:said.start()] + " ; " + (raw[cut.start():] if cut else "") + lowered[said.end():]
+    machine = "" if _HERE_MACHINE.search(lowered) else None
+    for m in _ON_MACHINE.finditer(lowered):
+        heard = m.group("name").split()
+        for candidate in [here, *machines]:
+            words = _name_words(candidate)
+            if words and len(heard) >= len(words) and all(_hears(w, h) for w, h in zip(words, heard)):
+                machine = "" if candidate == here else candidate
+                spoken = " ".join(heard[:len(words)])
+                lowered = lowered[:m.start()] + " ; " + lowered[m.start("name") + len(spoken):]
+                break
+        if machine is not None:
+            break
+    found, spans = [], []
+    for harness, pattern in _HARNESS_SAID:
+        for m in re.finditer(rf"(?<![\w-])(?:{pattern})(?![\w-])", lowered):
+            if any(a <= m.start() < b for a, b in spans) or _PLACE_BEFORE.search(lowered[:m.start()]):
+                continue  # "in codex-tools": a folder's name, not the agent
+            spans.append((m.start(), m.end()))
+            if harness not in found:
+                found.append(harness)
+    for a, b in sorted(spans, reverse=True):
+        lowered = lowered[:a] + " ; " + lowered[b:]
+    stand_ins = [Session(id=str(i), name=label, cwd=path) for i, (label, path) in enumerate(places)]
+    paths = []
+    for group in name_groups(lowered, stand_ins):
+        for s in group:
+            if s.cwd not in paths:
+                paths.append(s.cwd)
+    if not paths and here_folder and _HERE_FOLDER.search(lowered):
+        paths = [here_folder]
+    ties = paths if len(paths) > 1 else []
+    return StartAsk(harness=found[0] if len(found) == 1 else None, harnesses=found if len(found) > 1 else (),
+                    folder=paths[0] if len(paths) == 1 else None, ties=ties, machine=machine, name=name)
+
+
 def back_intent(text: str) -> bool:
     """'go back', 'the previous session': the session that was active before."""
     return bool(re.search(r"\b(?:previous|last session|last one|switch back|go back|הקודם)\b", _lower(text)))
@@ -516,7 +613,7 @@ def is_local_request(request: Request) -> bool:
 
 LOCAL_COOKIE = "pointe_local"
 _OPEN_PATHS = {"/voice/health"}
-_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"}  # all the phone app needs; nothing else takes its key
+_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/new-session", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"}  # all the phone app needs; nothing else takes its key
 # A node's own routes, and the phone app's pairing: each authenticates in its handler (an HMAC over the hub's nonce; a
 # one-time code), so no page, phone or daemon secret is asked for. On loopback they still need local headers, and a page
 # never reaches them.

@@ -52,6 +52,8 @@ struct API {
         var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
         var invite: Invite?         // the one-time code to pair another machine, while one is outstanding
         var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
+        var starting: [NewSession.Starting]?    // sessions Pointe is starting, or that just failed to; nil from an older Mac
+        var start_pending: NewSession.Pending?  // a read-back that waits for a yes or a tap; nil when none
     }
 
     // MARK: machines (docs/multi-machine.md). With one machine, `machines` has only this Mac and nothing changes on screen.
@@ -524,6 +526,17 @@ struct API {
     func mode(_ mode: String) async throws { try await post("voice/mode", ["mode": mode]) }
 
     func hungUp() async throws { try await post("voice/hung-up") }
+
+    // MARK: new session (NewSession.swift)
+
+    /// What a new session may start as: the agents, the machines and the folders. The folders come from here only.
+    func startOptions() async throws -> NewSession.Options {
+        try JSONDecoder().decode(NewSession.Options.self, from: try await checked(request("voice/new-session")))
+    }
+
+    /// The sheet's Start (`NewSession.Draft.body`), or a tap on a read-back: `confirm` or `cancel` with its id. A refusal
+    /// carries the Mac's own words.
+    func newSession(_ body: [String: String]) async throws { try await post("voice/new-session", body) }
 
     // MARK: machines
 

@@ -5,3 +5,5 @@
 import PointeKit
 
 typealias Wire = PointeKit.Wire
+/// Step 2: starting a new session (docs/design/new-session.md): what the Mac offers, the sheet's draft, the rows.
+typealias NewSession = PointeKit.NewSession

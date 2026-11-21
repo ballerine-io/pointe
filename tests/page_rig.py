@@ -118,6 +118,7 @@ class StubMac:
         app.router.add_get("/voice/context", self._context)
         app.router.add_get("/voice/phone/invite", self._ok)
         app.router.add_get("/voice/artifact", self._gone)
+        app.router.add_get("/voice/new-session", self._new_session)
         app.router.add_route("POST", "/{tail:.*}", self._post)
         app.router.add_route("DELETE", "/{tail:.*}", self._ok)
         self._runner = web.AppRunner(app, access_log=None)
@@ -167,6 +168,19 @@ class StubMac:
         await self._stall()
         return web.json_response({"ok": True})
 
+    # What the New session sheet is offered (daemon.new_session_options); a test may replace it.
+    new_session = {"harnesses": [{"name": "claude-code", "title": "Claude Code", "available": True, "why": None},
+                                 {"name": "opencode", "title": "OpenCode", "available": True, "why": None},
+                                 {"name": "codex", "title": "Codex", "available": False, "why": "Codex is not installed on this Mac."}],
+                   "machines": [{"name": "studio", "here": True, "available": True, "why": None}],
+                   "folders": [{"path": "/Users/sam/work/shop", "name": "shop", "source": "session"},
+                               {"path": "/Users/sam/work/billing", "name": "billing", "source": "recent"}],
+                   "max_prompt": 4000}
+
+    async def _new_session(self, request):
+        await self._stall()
+        return web.json_response(self.new_session)
+
     async def _gone(self, request):
         return web.json_response({"detail": "gone"}, status=404)
 
@@ -183,6 +197,16 @@ class StubMac:
             s["ptt"]["mode"] = body["microphone"]
         elif path == "/voice/polish":
             s["polish"] = bool(body.get("on"))
+        elif path == "/voice/new-session":  # as daemon.new_session: a start shows as a row; a tap answers the read-back
+            pending = s.get("start_pending")
+            if "confirm" in body or "cancel" in body:
+                s["start_pending"] = None
+            started = pending if "confirm" in body and pending else body if "harness" in body else None
+            if started:
+                name = started.get("name") or started["folder"].rsplit("/", 1)[-1]
+                s.setdefault("starting", []).append({"id": f"st{len(self.posts)}", "name": name, "harness": started["harness"],
+                                                     "label": started["harness"], "folder": started["folder"].rsplit("/", 1)[-1],
+                                                     "state": "starting", "detail": "", "since": time.time()})
         elif path == "/voice/listen":
             s["monologue"] = {"since": time.time(), "said": ""} if body.get("on") else None
         elif path == "/voice/dump":  # as daemon.py's route would, with the model's part stubbed

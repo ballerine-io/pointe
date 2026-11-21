@@ -8,7 +8,8 @@ struct Demo {
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
-                       empty, noSessions, many, longNames, longRequest, hold, speaking, muted }
+                       empty, noSessions, many, longNames, longRequest, hold, speaking, muted,
+                       newSession, startPending }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -60,6 +61,7 @@ struct Demo {
         case .rtl: rtlJSON
         case .empty, .noSessions, .many, .longNames, .longRequest, .hold: stressJSON(screen)
         case .machines, .machinesOne, .machinesOffline, .machinesDrive, .machinesSessions: machinesJSON(screen)  // Settings.swift
+        case .newSession, .startPending: newSessionJSON(pending: screen == .startPending)  // NewSession.swift
         default: callJSON
         }
         guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
@@ -70,13 +72,13 @@ struct Demo {
     static let pairing = Pairing(host: "demo.invalid", port: 7443, fingerprint: String(repeating: "0", count: 64),
                                  key: String(repeating: "x", count: 32))
 
-    private static let sessions = """
+    static let sessions = """
     [{"name": "billing/main", "working": true, "waiting": false, "needs": null, "harness": "claude-code"},
      {"name": "docs", "working": false, "waiting": false, "needs": null, "harness": "opencode"},
      {"name": "river-lantern", "working": false, "waiting": false, "needs": "a decision on the retry budget", "harness": "codex"}]
     """
 
-    private static let talk = """
+    static let talk = """
     [{"id": 40, "who": "user", "text": "what's billing doing", "typed": false, "corrected": false,
       "understood": "What is the billing session doing?"},
      {"id": 41, "who": "assistant", "text": "It finished the retry fix. Tests pass. It wants to know if it should open the PR."},
