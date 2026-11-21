@@ -4,13 +4,18 @@ import base64
 import json
 import re
 import struct
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BRAND = ROOT / "docs" / "brand"
 SITE = ROOT / "site" / "pointe" / "brand"
 XCASSETS = ROOT / "ios" / "Pointe" / "Assets.xcassets"
-CIRCLE = re.compile(r'<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)" fill="([^"]+)"/>')
+CIRCLE = re.compile(r'<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)" fill="([^"]+)"(?: opacity="[\d.]+")?/>')
+SVG = re.compile(r"<svg\b.*?</svg>", re.S)
+ORANGE = "#FF5A01"
+# The rule (docs/brand/logo.md): many points on every surface, like the app icon. Dots around the orange point per drawing.
+FULL, COMPACT, FAVICON = 120, 12 + 18 + 24 + 30, 10 + 16 + 22
 
 
 def png_header(path: Path) -> tuple[int, int, int]:
@@ -32,12 +37,44 @@ def test_the_site_and_the_app_carry_the_brand_sources_byte_for_byte():
     assert [i.get("appearances", [{}])[0].get("value") for i in looks["images"]] == [None, "dark"]
 
 
-def test_the_page_header_mark_is_the_small_drawing_in_the_text_colour_with_the_orange_point():
+def test_the_page_header_mark_is_the_compact_drawing_in_the_text_colour_with_the_orange_point():
     page, source = CIRCLE.findall((ROOT / "assets" / "logo.svg").read_text()), CIRCLE.findall((BRAND / "logo-small.svg").read_text())
     assert [c[:3] for c in page] == [c[:3] for c in source], "the same geometry as docs/brand/logo-small.svg"
-    assert [c[3] for c in page] == ["currentColor"] * 6 + ["#FF5A01"]
+    assert [c[3] for c in page] == ["currentColor"] * COMPACT + [ORANGE]
     assert 'class="logo"' in (ROOT / "assets" / "logo.svg").read_text() and 'aria-hidden="true"' in (ROOT / "assets" / "logo.svg").read_text()
     assert '<div class="brand">{{LOGO}}<div><div class="name">Pointe</div>' in (ROOT / "ui.html").read_text()
+
+
+def marks_in(text: str) -> list[int]:
+    """For each colour mark (an <svg> with the orange point), how many dots sit around the point."""
+    return [len(CIRCLE.findall(svg)) - 1 for svg in SVG.findall(text) if f'fill="{ORANGE}"' in svg]
+
+
+def test_every_drawing_has_its_count_of_dots():
+    for name in ("logo.svg", "logo-on-dark.svg", "logo-mono.svg", "lockup.svg", "lockup-on-dark.svg", "lockup-mono.svg"):
+        assert len(CIRCLE.findall((BRAND / name).read_text())) - 1 == FULL, name
+    for name in ("logo-small.svg", "logo-small-on-dark.svg", "lockup-small.svg", "lockup-small-on-dark.svg"):
+        assert marks_in((BRAND / name).read_text()) == [COMPACT], name
+    assert marks_in((BRAND / "favicon.svg").read_text()) == [FAVICON]
+
+
+def test_no_surface_carries_a_mark_with_few_dots():
+    """The six-dot small drawing is gone: every colour mark in the repository, file or inline, has at least the
+    favicon's 48 dots. ui.html's inline icon is base64, so it is decoded first."""
+    files = [ROOT / f for f in subprocess.run(["git", "ls-files", "*.svg", "*.html", "*.swift"], cwd=ROOT,
+                                              capture_output=True, text=True, check=True).stdout.split()]
+    files += [ROOT / "assets" / "logo.svg"]
+    seen = 0
+    for path in files:
+        if not path.is_file():
+            continue
+        text = path.read_text(errors="ignore")
+        text += "".join(base64.b64decode(b).decode(errors="ignore")
+                        for b in re.findall(r"data:image/svg\+xml;base64,([A-Za-z0-9+/=]+)", text))
+        for dots in marks_in(text):
+            seen += 1
+            assert dots >= FAVICON, f"{path.relative_to(ROOT)}: a mark with {dots} dots"
+    assert seen >= 20, "the scan found the marks"
 
 
 def test_the_page_icons_are_inline_and_the_same_bytes_as_the_site_ones():

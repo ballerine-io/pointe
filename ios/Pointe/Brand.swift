@@ -346,7 +346,7 @@ extension View {
 }
 
 /// The Chorus mark, Pointe and the version under it: the same header as the page. Below 48 points the mark is its
-/// small drawing (docs/brand/logo.md).
+/// compact drawing (docs/brand/logo.md).
 struct BrandHeader: View {
     var mac: String? = nil  // the Mac's version from /voice/status, when a call knows it
 
