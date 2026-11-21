@@ -29,7 +29,7 @@ from pathlib import Path
 ROOT = Path(os.environ.get("POINTE_APPS_ROOT") or Path(__file__).resolve().parent)
 BASE_ID = "io.ballerine.pointe"  # registered to the team that publishes the app: no other team can sign it
 TEAM_RE = re.compile(r"[A-Z0-9]{10}")
-MIN_XCODE, MIN_IOS, MIN_MACOS = 16, 18, 14
+MIN_XCODE, MIN_IOS, MIN_MACOS = 16, 18, 15
 CMD = "pointe apps"
 
 
