@@ -38,17 +38,60 @@ final class MacAudio: CallAudio {
         }
     }
 
+    /// How the engine is wired, best first. macOS's voice-processing unit refuses to initialise (-10875) when the mixer
+    /// feeds it the output device's own stereo format: it takes one channel at the device's rate. Found on a MacBook
+    /// Pro's built-in devices (macOS 27); the others are kept so a device that differs still gets a call.
+    private enum Wiring: CaseIterable {
+        /// Echo cancellation on, the mixer feeding the output one channel.
+        case voiceMono
+        /// Echo cancellation on, the engine's own connection to the output.
+        case voiceDefault
+        /// No voice processing: the call works, and the bot can hear itself through loudspeakers.
+        case plain
+    }
+
+    /// False when no voice-processing wiring would start: the call is up without echo cancellation.
+    private(set) var cancelsEcho = true
+
     private func run() throws {
+        var last: Error = CallAudioError.failed("no audio wiring started")
+        for wiring in Wiring.allCases {
+            do {
+                try run(wiring)
+                cancelsEcho = wiring != .plain
+                if wiring != .voiceMono { log.notice("audio up with \(String(describing: wiring), privacy: .public)") }
+                return
+            } catch let error as CallAudioError {
+                throw error
+            } catch {
+                last = error
+                log.error("audio wiring \(String(describing: wiring), privacy: .public) did not start: \(error.localizedDescription, privacy: .public)")
+                engine.inputNode.removeTap(onBus: 0)
+                engine.stop()
+                engine.reset()
+            }
+        }
+        throw last
+    }
+
+    private func run(_ wiring: Wiring) throws {
         guard let playFormat else { throw CallAudioError.failed("no playback format") }
         let input = engine.inputNode
-        try input.setVoiceProcessingEnabled(true)
-        // Other apps' audio is ducked as little as the system allows while the call is up.
-        input.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
+        try input.setVoiceProcessingEnabled(wiring != .plain)
+        if wiring != .plain {
+            // Other apps' audio is ducked as little as the system allows while the call is up.
+            input.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
+        }
+        // The output's format is read before the mixer exists: asking for the mixer connects it to the output in stereo.
+        let out = engine.outputNode.inputFormat(forBus: 0)
         if !attached {
             engine.attach(player)
             attached = true
         }
         engine.connect(player, to: engine.mainMixerNode, format: playFormat)
+        let mono = wiring == .voiceMono ? AVAudioFormat(standardFormatWithSampleRate: out.sampleRate, channels: 1) : nil
+        engine.connect(engine.mainMixerNode, to: engine.outputNode, format: mono)
+        log.info("audio wiring \(String(describing: wiring), privacy: .public): out \(out.sampleRate, privacy: .public) Hz \(out.channelCount, privacy: .public) ch")
         let format = input.outputFormat(forBus: 0)  // voice processing decides the rate and the channel count
         guard format.sampleRate > 0, format.channelCount > 0 else { throw CallAudioError.noMicrophone }
         if let deliver {

@@ -87,6 +87,8 @@ final class AppModel {
     private(set) var shortcutSeen = false
     private(set) var shortcutNote: String?
     private(set) var micDenied = false
+    /// False while the call is up on audio that cannot cancel echo: the window says to use headphones.
+    @ObservationIgnored private var echoCheck: @MainActor () -> Bool = { true }
 
     var theme: Theme { didSet { defaults.set(theme.rawValue, forKey: Theme.key); applyTheme() } }
     var talkStyle: TalkStyle { didSet { defaults.set(talkStyle.rawValue, forKey: TalkStyle.key); call.talkStyle = talkStyle } }
@@ -142,6 +144,7 @@ final class AppModel {
                 call?.hangUp()
                 store?.notice = MacCopy.micFailed(why)
             }
+            echoCheck = { [weak audio] in audio?.cancelsEcho ?? true }
         }
         theme = Theme.stored(defaults.string(forKey: Theme.key))
         talkStyle = TalkStyle.stored(in: defaults)
@@ -287,6 +290,7 @@ final class AppModel {
             if daemon == .stopped { await startDaemon() }
             await call.start()
             micDenied = call.problem == MacCopy.micDenied
+            if call.state == .live, !echoCheck() { store.notice = MacCopy.noEchoCancelling }
         case .connecting, .live, .reconnecting:
             call.hangUp()
         }

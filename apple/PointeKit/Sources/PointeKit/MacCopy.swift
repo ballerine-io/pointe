@@ -45,6 +45,7 @@ public enum MacCopy {
     // the Mac app's own lines
     public static let appName = "Pointe"
     public static let micDenied = "Pointe needs the microphone: allow it in System Settings → Privacy & Security → Microphone, then press Connect."
+    public static let noEchoCancelling = "This audio device gave no echo cancellation, so the bot may hear itself: use headphones."
     public static let daemonDown = "Pointe on this Mac is not running. Start it here, or run /pointe:voice in a Claude Code session."
     public static let keyRefused = "Pointe on this Mac refused this app. Restart Pointe: Settings → Pointe on this Mac → Restart."
     public static let squatter = "Another program is answering on Pointe's port, so this app sent it nothing."
