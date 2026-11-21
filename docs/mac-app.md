@@ -1,8 +1,12 @@
 # The Mac app
 
-Pointe in the menu bar: the call, the transcript, approvals, sessions and the brain dump in a native window, without a
-browser tab. It talks to the same Pointe on this Mac that the page does, so the two can be used side by side (one call
-at a time). The design, and what was and was not checked: [docs/design/macos-app.md](design/macos-app.md).
+Pointe in the menu bar, with a native window that has everything the page and the iPhone app have: the call and its
+transcript, approvals, sessions by machine, the brain dump, challenge, meetings, briefings, whisper, the voice lock, the
+dictionary, the conflict alarm, show while it says, machines, pairing a phone, and Settings. The window draws the
+iPhone app's own screens, so the two apps look and behave the same; a wide window adds the page's sessions column. It
+talks to the same Pointe on this Mac that the page does, so the two can be used side by side (one call at a time).
+What each surface has, and why the few differences exist: [design/parity.md](design/parity.md). The Mac's own parts
+(the protocol, the audio, the shortcut, security): [design/macos-app.md](design/macos-app.md).
 
 ## Getting it
 
@@ -14,7 +18,7 @@ git clone https://github.com/ballerine-io/pointe.git && cd pointe
 bin/pointe apps mac
 ```
 
-You need Xcode 16 or newer (free in the App Store) and macOS 14 or newer. You do not need an Apple Account.
+You need Xcode 16 or newer (free in the App Store) and macOS 15 or newer. You do not need an Apple Account.
 `bin/pointe apps doctor` checks the Mac first and prints the fix for anything missing. The plugin must be installed
 too (`claude plugin install pointe@pointe`, see the [README](../README.md#install)): the app starts and talks to the
 plugin's daemon and has no engine of its own.
@@ -50,28 +54,39 @@ For work on the app itself, `macos/build.sh --open` makes a Debug build in `maco
 ## Using it
 
 - **The menu bar item** is the Chorus mark, dimmed with no call, with the number of sessions that wait beside it. Its
-  menu has Connect, who needs you, Brain dump, Open Pointe, the call bubble and Settings.
-- **The window** (Open Pointe, ⌘O): sessions on the left, grouped by machine; click one to make it the session the voice
-  talks to. The conversation is on the right; click something you said to fix it. A request shows its exact text with
-  Deny and Approve. Approve asks for Touch ID or your password; Deny does not. Type in the field to send words instead
-  of speaking (typed words never approve).
-- **New session**, under the sessions: start a Claude Code, OpenCode or Codex session in a folder you already work
-  in. Start asks for Touch ID or your password. A start the voice read back shows as a card with Cancel and Start.
-  [features/new-session.md](features/new-session.md).
+  menu has Connect, who needs you, Brain dump, Open Pointe, New Session, the call bubble and Settings.
+- **The window** (Open Pointe, ⌘O). Wide, it has the sessions on the left, grouped by machine, with Orchestrator or
+  Session over them and New session and Settings under them; click a session to make it the one the voice talks to,
+  right-click it to rename it or take it off the voice. Narrow, the sessions are a strip over the conversation, as on
+  the phone. The conversation is on the right; click something you said to fix it. A request shows its exact text with
+  Deny and Approve. Approve asks for Touch ID or your password; Deny does not.
 - **Connect** (⌘↩): the first time, macOS asks for the microphone.
-- **Talking.** With the microphone set to Push to talk (Settings → Voice), hold the round button, or hold Space while
-  the window is in front, or hold the shortcut from any app (⌃⌥Space unless you change it). Choose Tap to talk to press
-  once to start and again to send. With Always on, the button, Space and the shortcut mute.
+- **Talking.** The switch over the mic chooses Always on or push to talk. In push to talk, hold the mic, or hold Space
+  while the window is in front, or hold the shortcut from any app (Settings → This Mac → Talk shortcut). Choose Tap to
+  talk in Settings to press once to start and again to send. With Always on, the mic, Space and the shortcut mute.
+- **Type** (⌘T) to send words instead of speaking; typed words never approve.
 - **Brain dump** (⌘B on a call): talk freely, press Done, then edit the structured prompt, choose where it goes, and
   press Send twice.
+- **New Session** (⌘N): start a Claude Code, OpenCode or Codex session in a folder you already work in. Start asks for
+  Touch ID or your password. A start the voice read back shows as a card with Cancel and Start.
+  [features/new-session.md](features/new-session.md).
+- **Settings** (⌘, or the ••• button): the same list as the iPhone app's (the microphone, the talk button, how long to
+  wait before answering, Clean up my words, whisper, the dictionary, sessions and mode, machines, Phone, meetings,
+  briefings, challenge, alerts, the voice lock, the conflict alarm, show while it says, appearance, About), then this
+  Mac's own: the talk shortcut, the call bubble, open at login, Pointe on this Mac (running or not, its version, Start
+  and Restart), the folders a new session may start in, and each model key as "In the Keychain" or "Missing". Add…
+  opens Pointe's own key window; the app never sees a key.
+- **Phone** (Settings, or Call → Pair a Phone…): the paired phones, and Connect your phone, which shows the code the
+  iPhone scans, as the page's Settings → Phone does.
+- **The Call menu** has a key for each: Sessions and Mode (⇧⌘S), Start a Meeting (⇧⌘M), Briefing (⇧⌘B), Open the page
+  (⇧⌘P). Esc closes a sheet.
 - **The call bubble** (menu or Settings): a small panel over other apps with the state and a talk button.
-- **Alerts** (Settings → General): a notification when a session needs you and the window is not in front. Approve on
-  a notification appears only for a request Pointe can read out and only with "Approve from notifications" on.
-- **Settings → Pointe on this Mac**: whether Pointe is running and which version, Start and Restart, and each model
-  key as "In the Keychain" or "Missing". Add… opens Pointe's own key window; the app never sees a key.
+- **Alerts** (Settings → Alerts): a notification when a session needs you and the window is not in front. Approve on a
+  notification appears only for a request Pointe can read out and only with "Approve from notifications" on.
+- **No Pointe on this Mac yet?** The window is a setup guide then, with what is missing and the one thing to do about
+  each, and Try a demo: invented sessions to look around, with nothing sent anywhere.
 
-Everything else (meeting mode, voice-lock enrolment, the dictionary, briefings, machines, phone pairing) is on the
-page: Call → Open the page (⇧⌘P).
+Drive mode starts on the phone or by voice; the Mac shows it and can stop it, as the page does.
 
 ## Limits
 
@@ -80,15 +95,17 @@ page: Call → Open the page (⇧⌘P).
 - One call at a time: hang up on the page or the phone to talk here.
 - Echo cancellation is macOS's own. If the audio device gives none, the call still starts and the window says to use
   headphones.
-- The window uses the system font, and Hebrew turns are not laid out right to left yet.
+- The microphone is the system's default one: there is no picker yet.
+- While your words show, the caption's wave animates and takes about a tenth of a processor core.
 - The app looks for no updates. When it and the plugin are at different versions, it says which side to update.
 
 ## Tests
 
 ```
 macos/test.sh unit    # the shared package and the app's unit tests: what CI runs
-macos/test.sh ui      # the UI tests, on a stub daemon; macOS asks you to allow UI automation
-uv run --locked python -I macos/e2e/live.py   # the real app against its own real daemon: microphone, keys, sound
+macos/test.sh smoke   # every main flow on invented sessions, through the Accessibility API: no daemon, no microphone
+macos/test.sh ui      # the same flows with XCUITest; macOS asks you to allow UI automation first
+uv run --locked python -I macos/e2e/live.py   # the real app against its own real daemon: keys, sound, nothing of the room sent
 ```
 
 ## A notarized build (when there is a Developer ID)

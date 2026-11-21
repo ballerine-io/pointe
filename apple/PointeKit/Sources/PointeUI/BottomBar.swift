@@ -76,6 +76,7 @@ struct BottomBar: View {
             .frame(width: 70, height: 70)
         }
         .buttonStyle(.plain)
+        .hoverLift()
         .disabled(phase != .live)
         .accessibilityIdentifier("micRing")
         .accessibilityValue(trace)
@@ -97,6 +98,7 @@ struct BottomBar: View {
             .foregroundStyle(tint)
         }
         .buttonStyle(.plain)
+        .hoverLift()
         .accessibilityLabel(label)
         .largeContent { Label(label, systemImage: symbol) }
     }

@@ -129,6 +129,28 @@ struct EscCloses: ViewModifier {
     }
 }
 
+/// A control under the pointer answers it, as the page's do on `:hover`: a step lighter on dark, darker on light.
+/// A finger has no hover: on the phone this is nothing.
+struct HoverLift: ViewModifier {
+    @State private var over = false
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var enabled
+
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content.brightness(over && enabled ? (scheme == .dark ? 0.07 : -0.04) : 0)
+            .onHover { over = $0 }
+            .animation(.easeOut(duration: 0.12), value: over)
+        #else
+        content
+        #endif
+    }
+}
+
+extension View {
+    func hoverLift() -> some View { modifier(HoverLift()) }
+}
+
 extension ToolbarItemPlacement {
     /// The leading edge of a sheet's bar. On the Mac a sheet's buttons sit at the bottom: the cancel side.
     static var sheetLeading: ToolbarItemPlacement {

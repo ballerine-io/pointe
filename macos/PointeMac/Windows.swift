@@ -24,6 +24,29 @@ final class Windows: NSObject, NSWindowDelegate {
 
     var mainIsFront: Bool { NSApp.isActive && main?.isKeyWindow == true && main?.occlusionState.contains(.visible) == true }
 
+    /// Space in the call window is the talk key, as on the page: in push to talk it holds (or taps) the talk button, in
+    /// Always on it mutes. Never while typing, never with a sheet up, and only on a call; any other Space goes on to
+    /// whatever has the keyboard. The monitor is the app's own: it sees this app's keys only.
+    private var spaceMonitor: Any?
+    private func watchSpace() {
+        guard spaceMonitor == nil else { return }
+        spaceMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            guard event.keyCode == 49, event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty else { return event }
+            let (up, again, number) = (event.type == .keyUp, event.type == .keyDown && event.isARepeat, event.windowNumber)
+            let taken = MainActor.assumeIsolated { self?.space(up: up, again: again, window: number) ?? false }  // a local monitor runs on the main thread
+            return taken ? nil : event
+        }
+    }
+
+    /// True when the key was the talk key and goes no further.
+    private func space(up: Bool, again: Bool, window number: Int) -> Bool {
+        guard let window = main, window.windowNumber == number, window.attachedSheet == nil, !(window.firstResponder is NSText) else { return false }
+        let session = AppModel.shared.session
+        if up { session.talkUp(); return false }
+        if again { return session.live }
+        return session.talkDown()
+    }
+
     func activate() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
@@ -52,6 +75,7 @@ final class Windows: NSObject, NSWindowDelegate {
             if Self.keepsFrames { window.setFrameAutosaveName("pointe.main") }
             window.delegate = self
             main = window
+            watchSpace()
         }
         activate()
         main?.makeKeyAndOrderFront(nil)

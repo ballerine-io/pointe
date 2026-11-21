@@ -103,7 +103,9 @@ struct CallView: View {
 
     /// Show while it says: the Mac sends it only once this phone turned it on; the setting is checked here too, so
     /// turning it off hides the card at once.
-    private var showing: API.Showing? { status?.show_on_phone == true ? status?.showing : nil }
+    /// On the Mac it shows whatever the setting says, as the page there does: the code is already on that screen's Mac.
+    private var showsHere: Bool { Surface.isMac || status?.show_on_phone == true }
+    private var showing: API.Showing? { showsHere ? status?.showing : nil }
 
     /// What the screen shows: the demo fixture is always live.
     private var phase: Call.State { demo == nil ? call.state : .live }
@@ -305,7 +307,7 @@ struct CallView: View {
                 .sheetSurface()
         }
         .sheet(isPresented: $showSheet) {
-            ShowSheet(showing: showing, earlier: status?.show_on_phone == true ? status?.shown_earlier ?? [] : [],
+            ShowSheet(showing: showing, earlier: showsHere ? status?.shown_earlier ?? [] : [],
                       follow: $showFollow, load: loadArtifact)
                 .sheetSurface()
         }
@@ -404,7 +406,7 @@ struct CallView: View {
                                      draft: TalkDraft.line(draft: status?.ptt?.draft, open: call.talk.isOpen || status?.ptt?.open == true),
                                      large: status?.whisper?.on == true && status?.whisper?.held == nil,
                                      placeholder: !panelShown) { editing = $0 }
-                    if !panelShown, let problem = Self.shownProblem(screen: problem, call: call.problem, mac: status?.problem) {
+                    if !panelShown, let problem = Self.shownProblem(screen: problem, call: call.problem ?? echoNote, mac: status?.problem) {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.brand(.footnote)).foregroundStyle(Brand.accent).padding(.bottom, 8)
                     }
@@ -766,6 +768,9 @@ struct CallView: View {
     static func ownerReason(_ reason: String) -> String {
         Surface.isMac ? reason.prefix(1).lowercased() + reason.dropFirst() : reason
     }
+
+    /// A Mac audio device whose voice processing would not start: the call is up, and the bot may hear itself.
+    private var echoNote: String? { phase == .live && !call.cancelsEcho ? MacCopy.noEchoCancelling : nil }
 
     /// This screen's own problem first, then the call's, then the Mac's (a refused key, a vendor down), as the page does.
     static func shownProblem(screen: String?, call: String?, mac: String?) -> String? {

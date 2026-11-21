@@ -201,6 +201,7 @@ struct BrandButtonStyle: ButtonStyle {
             .overlay(shape.stroke(prominent ? Color.clear : Brand.lineStrong))
             .opacity(!enabled ? 0.4 : configuration.isPressed && prominent ? 0.8 : 1)
             .contentShape(shape)
+            .hoverLift()
     }
 }
 
@@ -431,6 +432,8 @@ struct BrandHeader: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("Pointe").font(.brand(.title3)).lineLimit(1)
                 // Never a cut word: with less room the build number goes first. The version stays.
+                // On the Mac a difference from Pointe on this Mac is a line of its own over the window, with what to do.
+                let mac = Surface.isMac ? nil : mac
                 ViewThatFits(in: .horizontal) {
                     version(AppVersion.line(app: AppVersion.app, mac: mac))
                     version(AppVersion.line(app: AppVersion.short, mac: mac))

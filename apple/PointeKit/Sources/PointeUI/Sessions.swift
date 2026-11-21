@@ -104,6 +104,7 @@ struct SessionChips: View {
                         .touchTarget(height: 34)
                     }
                     .buttonStyle(.plain)
+                    .hoverLift()
                     .contextMenu {
                         if !on { Button("Focus on this session", systemImage: "scope") { focus(s.name) } }
                         if rename != nil {
@@ -303,6 +304,7 @@ struct SessionsSheet: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .hoverLift()
             .accessibilityIdentifier("session.\(s.name)")
             .swipeActions(edge: .trailing) {
                 Button("Disconnect", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
