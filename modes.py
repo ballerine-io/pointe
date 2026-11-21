@@ -13,7 +13,7 @@ APPROVALS = {"voice+tap": 3, "drive": 2, "tap": 1, "none": 0}
 SPEECH = {"free": 2, "on_request": 1, "never": 0}  # when the bot may talk
 
 # What a meeting may do: read and answer, never act on a session or change routing.
-READ_ONLY_TOOLS = frozenset({"speak", "list_sessions", "ask_about_session"})
+READ_ONLY_TOOLS = frozenset({"speak", "list_sessions", "ask_about_session", "how_to_use_pointe"})
 
 
 @dataclass(frozen=True)

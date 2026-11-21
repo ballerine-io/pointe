@@ -5,7 +5,8 @@ Checked, in order: the page shows the plugin's version; a short question gets a 
 longer one within its limit; a click on a session is announced with the owner's fixed words and pins the voice to it,
 and a request then reaches that session only; back in orchestrator mode a request that names billing reaches billing
 only; "hold on" keeps the voice quiet through pauses and "go ahead" sends all of it as one turn; a Hebrew sentence
-paused after a conjunction is one turn; Settings saves Quick and Patient, and each waits its own time (0.4 s, 1.8 s of
+paused after a conjunction is one turn; a question about using Pointe is answered from its help with the page's path
+and reaches no session; Settings saves Quick and Patient, and each waits its own time (0.4 s, 1.8 s of
 quiet) before a turn is taken; two sessions that finish while the user talks are not spoken over them or told inside
 their answer, and then come as one turn; a readable request is read out and a spoken yes approves it; one that cannot
 be read out whole is not said, a spoken yes approves nothing and a tap approves it; a spoken no denies; a brain dump
@@ -16,7 +17,7 @@ tests/test_turn_taking.py (this call is the test's, not the page's). Every sessi
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-conv CLAUDE_VOICE_DAEMON_PORT=7941 CLAUDE_VOICE_TLS_PORT=7541 POINTE_CHROME_PORT=7944 \
      uv run python -u -I tests/e2e/page_conversation.py [section,...]
-Sections: basics, modes, hold, patience, updates, approvals, dump, page (default: all, in that order).
+Sections: basics, howto, modes, hold, patience, updates, approvals, dump, page (default: all, in that order).
 Takes about ten minutes. Calls paid APIs (the brain, the reader, Soniox, the mouth, ElevenLabs for the user's voice).
 """
 
@@ -41,7 +42,7 @@ from scenarios import check, results  # noqa: E402
 
 DEBUG_PORT = int(os.environ.get("POINTE_CHROME_PORT", "7944"))
 SHOTS = Path(os.environ.get("POINTE_SHOTS") or tempfile.mkdtemp(prefix="pointe-conv-shots-"))
-SECTIONS = sys.argv[1].split(",") if len(sys.argv) > 1 else ["basics", "modes", "hold", "patience", "updates", "approvals", "dump", "page"]
+SECTIONS = sys.argv[1].split(",") if len(sys.argv) > 1 else ["basics", "howto", "modes", "hold", "patience", "updates", "approvals", "dump", "page"]
 INBOX: dict[str, list[str]] = {}  # what reached each session's inbox socket
 HISTORY_TOKENS = 24_000  # brain.HISTORY_TOKENS: the budget a long call is trimmed to
 
@@ -223,6 +224,23 @@ async def basics(browser: Browser, page: Page) -> None:
     long = " ".join(spoke_since(t1))
     check("asked for detail, the answer is longer, and still within 120 words", words(short) < words(long) <= 120,
           words=words(long), said=long[:300])
+
+
+async def howto(browser: Browser, page: Page) -> None:
+    """A question about Pointe itself: answered by the voice from how_to_use_pointe, with the page's own labels, short,
+    and sent to no session (docs/design/product-help.md)."""
+    await quiet()
+    t0, before = time.time(), {name: len(lines) for name, lines in INBOX.items()}
+    await say(browser, "How do I switch between push to talk and always on?")
+    await until(lambda: spoke_since(t0), 30)
+    await quiet()
+    said = " ".join(spoke_since(t0))
+    looked = [line for line in log_lines(r"tool how_to_use_pointe\(") if line[:19] >= stamp(t0)]
+    check("a how-to question is answered from Pointe's help, with the page's path, in at most 30 words",
+          bool(looked) and "the page" in looked[-1] and "microphone" in said.lower() and 0 < words(said) <= 30,
+          said=said, looked=[line.split(" -> ", 1)[-1][:200] for line in looked])
+    check("and it reaches no session", all(len(INBOX[name]) == n for name, n in before.items()),
+          inbox={name: INBOX[name][before[name]:] for name in INBOX})
 
 
 async def modes(browser: Browser, page: Page) -> None:
@@ -576,6 +594,8 @@ async def main() -> None:
             await until(lambda: len(log_lines("the join itself, not read out")) >= len(transcripts), 40)
             if "basics" in SECTIONS:
                 await basics(browser, page)
+            if "howto" in SECTIONS:
+                await howto(browser, page)
             if "modes" in SECTIONS:
                 await modes(browser, page)
             if "hold" in SECTIONS:

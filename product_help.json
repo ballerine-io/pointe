@@ -1,0 +1,1123 @@
+{
+ "generated_by": "tools/product_help.py: do not edit by hand",
+ "surfaces": {
+  "iphone": "the iPhone app",
+  "page": "the page"
+ },
+ "entries": [
+  {
+   "id": "mic-mode",
+   "title": "Microphone: Always on or Push to talk",
+   "ask": [
+    "push to talk",
+    "always on",
+    "open mic",
+    "microphone mode",
+    "mic mode",
+    "ptt",
+    "hold to talk mode",
+    "turn off push to talk",
+    "turn on push to talk",
+    "לחץ ודבר",
+    "לחיצה לדיבור",
+    "פוש טו טוק",
+    "תמיד פתוח",
+    "מיקרופון פתוח",
+    "מצב מיקרופון"
+   ],
+   "how": "Always on hears you whenever you are not muted; Push to talk hears you only while you press the mic. It is one setting, so the page and the app agree.",
+   "about": "Nothing leaves the Mac unless you hold the key or the button",
+   "iphone": [
+    "••• menu → Microphone → Always on / Push to talk"
+   ],
+   "page": [
+    "Settings → Microphone → Always on / Push to talk",
+    "the Always on / Hold to talk switch above the mic"
+   ]
+  },
+  {
+   "id": "talk-button",
+   "title": "Talk button: hold or tap",
+   "ask": [
+    "hold to talk",
+    "tap to talk",
+    "hold or tap",
+    "hold vs tap",
+    "hold and tap",
+    "tap or hold",
+    "tap and hold",
+    "talk button",
+    "tap once",
+    "instead of holding",
+    "tap instead of hold",
+    "hold instead of tap",
+    "keep holding",
+    "לחיצה ארוכה",
+    "להחזיק",
+    "הקשה",
+    "ללחוץ פעם אחת"
+   ],
+   "how": "In push to talk, Hold to talk sends when you let go; Tap to talk starts with one tap and sends with the next. Each device keeps its own choice.",
+   "about": "Nothing leaves the Mac unless you hold the key or the button",
+   "iphone": [
+    "••• menu → Talk button → Hold to talk / Tap to talk"
+   ],
+   "iphone_note": "Talk button shows in the menu once Microphone is Push to talk.",
+   "page": [
+    "Settings → Microphone → Talk button → Hold to talk / Tap to talk"
+   ]
+  },
+  {
+   "id": "talk-key",
+   "title": "Talk key and talking from any app",
+   "ask": [
+    "talk key",
+    "keyboard shortcut",
+    "space bar",
+    "caps lock",
+    "shortcut",
+    "from any app",
+    "action button",
+    "back tap",
+    "siri",
+    "airpods",
+    "another app",
+    "other app",
+    "קיצור מקשים",
+    "מקש",
+    "כפתור אקשן"
+   ],
+   "how": "On the page Space is the talk key, Caps Lock toggles talking, and a system-wide shortcut can run it from any app. On the iPhone the Action button, Back Tap or Siri (\"Talk to Pointe\") press it, and an AirPods stem press toggles it.",
+   "about": "Nothing leaves the Mac unless you hold the key or the button",
+   "page": [
+    "Settings → Microphone → Talk key / System-wide shortcut"
+   ]
+  },
+  {
+   "id": "mute",
+   "title": "Mute and unmute",
+   "ask": [
+    "mute",
+    "unmute",
+    "mute myself",
+    "mute the mic",
+    "stop listening",
+    "השתק",
+    "להשתיק",
+    "משתיק",
+    "השתקה",
+    "מיוט",
+    "לבטל השתקה"
+   ],
+   "how": "In Always on, the mic button in the middle mutes and unmutes you.",
+   "iphone": [
+    "the mic button in the middle at the bottom (Mute / Unmute)"
+   ],
+   "page": [
+    "the mic button in the middle at the bottom (Microphone)"
+   ],
+   "page_note": "Space, or a headset's play/pause button, mutes too while the page has focus."
+  },
+  {
+   "id": "hang-up",
+   "title": "Hang up",
+   "ask": [
+    "hang up",
+    "end the call",
+    "end call",
+    "stop the call",
+    "disconnect the call",
+    "לנתק את השיחה",
+    "לסיים שיחה",
+    "לנתק שיחה",
+    "לנתק"
+   ],
+   "how": "Hang up ends the call; your sessions keep running.",
+   "iphone": [
+    "Hang up button at the bottom"
+   ],
+   "page": [
+    "Hang up button at the bottom"
+   ]
+  },
+  {
+   "id": "connect",
+   "title": "Start a call",
+   "ask": [
+    "start a call",
+    "connect",
+    "call pointe",
+    "start talking",
+    "להתקשר",
+    "להתחבר",
+    "להתחיל שיחה"
+   ],
+   "how": "Tap Connect to start the call on this device's microphone.",
+   "iphone": [
+    "Connect button at the top"
+   ],
+   "page": [
+    "Connect at the top"
+   ],
+   "page_note": "Or press the mic button."
+  },
+  {
+   "id": "pair-phone",
+   "title": "Pair the iPhone with this Mac",
+   "ask": [
+    "pair",
+    "pair the phone",
+    "pair my phone",
+    "connect the phone",
+    "connect my iphone",
+    "set up the iphone",
+    "qr code",
+    "scan the code",
+    "לצמד",
+    "מצמיד",
+    "צימוד",
+    "לחבר את הטלפון",
+    "לחבר את האייפון",
+    "קוד qr"
+   ],
+   "how": "On the Mac's page, Settings → Phone → Connect your phone shows a code; scan it with the iPhone's Camera or in the Pointe app. The code works once and expires in 5 minutes.",
+   "iphone": [
+    "the pairing screen → Pair"
+   ],
+   "iphone_note": "Pairing starts on the Mac's page: Settings → Phone → Connect your phone.",
+   "page": [
+    "Settings → Phone → Connect your phone"
+   ]
+  },
+  {
+   "id": "unpair",
+   "title": "Unpair a phone",
+   "ask": [
+    "unpair",
+    "remove the phone",
+    "forget this phone",
+    "לבטל צימוד",
+    "להסיר את הטלפון"
+   ],
+   "how": "On the iPhone, Unpair this phone forgets the pairing there; the page's Settings → Phone lists the paired phones and removes them from the Mac. To pair again, show a new code there.",
+   "iphone": [
+    "••• menu → Unpair this phone"
+   ],
+   "page": [
+    "Settings → Phone → Unpair all"
+   ]
+  },
+  {
+   "id": "voice-lock",
+   "title": "Voice lock",
+   "ask": [
+    "voice lock",
+    "only my voice",
+    "voiceprint",
+    "enrol my voice",
+    "enroll my voice",
+    "other voices",
+    "someone else approving",
+    "other people approve",
+    "someone else",
+    "נעילת קול",
+    "נעילה קולית",
+    "רק הקול שלי",
+    "טביעת קול"
+   ],
+   "how": "Voice lock learns your voice so other voices cannot approve or command. Enrol during a call, then pick a level: Off, Approvals, Commands or Everything.",
+   "about": "Only your voice counts, for approvals or for everything; checked on this Mac",
+   "iphone": [
+    "••• menu → Voice lock"
+   ],
+   "page": [
+    "Settings → Voice lock → Enrol my voice"
+   ]
+  },
+  {
+   "id": "patience",
+   "title": "Wait before answering",
+   "ask": [
+    "wait before answering",
+    "answers too fast",
+    "interrupts me",
+    "cuts me off",
+    "wait longer",
+    "patience",
+    "quick normal patient",
+    "turn taking",
+    "pause",
+    "לחכות לפני שעונה",
+    "עונה מהר מדי",
+    "קוטע אותי",
+    "מחכה",
+    "סבלנות",
+    "זמן המתנה"
+   ],
+   "how": "How long a pause ends your sentence: Quick answers as soon as you stop, Normal waits about a second, Patient waits longer.",
+   "iphone": [
+    "••• menu → Wait before answering → Quick / Normal / Patient"
+   ],
+   "page": [
+    "Settings → Turn taking → Wait before answering → Quick / Normal / Patient"
+   ]
+  },
+  {
+   "id": "hold",
+   "title": "Don't interrupt me",
+   "ask": [
+    "don't interrupt me",
+    "do not interrupt",
+    "hold on",
+    "let me finish",
+    "stay quiet",
+    "keep quiet while i think",
+    "interrupting me",
+    "stop interrupting",
+    "אל תפריע",
+    "אל תקטע",
+    "רגע",
+    "תן לי לסיים"
+   ],
+   "how": "Say \"don't interrupt me\" or \"hold on\" and Pointe stays quiet until you say \"go ahead\" or \"I'm done\", or until 8 seconds of quiet.",
+   "voice": [
+    "don't interrupt me",
+    "hold on",
+    "go ahead",
+    "I'm done"
+   ]
+  },
+  {
+   "id": "appearance",
+   "title": "Appearance: light or dark",
+   "ask": [
+    "appearance",
+    "dark mode",
+    "light mode",
+    "theme",
+    "dark theme",
+    "night mode",
+    "מצב כהה",
+    "מצב בהיר",
+    "ערכת נושא",
+    "מראה",
+    "תצוגה"
+   ],
+   "how": "Pick System, Light or Dark; System follows the device.",
+   "iphone": [
+    "••• menu → Appearance → System / Light / Dark"
+   ],
+   "page": [
+    "Settings → Appearance → System / Light / Dark"
+   ],
+   "page_note": "The page keeps the choice in this browser."
+  },
+  {
+   "id": "about",
+   "title": "About and version",
+   "ask": [
+    "about pointe",
+    "about screen",
+    "version",
+    "which version",
+    "open source",
+    "license",
+    "גרסה",
+    "אודות"
+   ],
+   "how": "About shows the version and that Pointe is open source (MIT).",
+   "iphone": [
+    "••• menu → About"
+   ],
+   "page": [
+    "Settings → About"
+   ]
+  },
+  {
+   "id": "brain-dump",
+   "title": "Brain dump",
+   "ask": [
+    "brain dump",
+    "dump my thoughts",
+    "think out loud",
+    "just listen",
+    "structure my thoughts",
+    "ברין דאמפ",
+    "לשפוך מחשבות",
+    "רק תקשיב",
+    "לחשוב בקול"
+   ],
+   "how": "Brain dump: talk freely while Pointe stays quiet; say \"done\" and it structures your words into a prompt you review and send.",
+   "about": "Dump your thoughts; Pointe structures them into a prompt in your words, and sends it only when you say",
+   "iphone": [
+    "Brain dump button at the bottom"
+   ],
+   "page": [
+    "Brain dump button at the bottom"
+   ],
+   "voice": [
+    "brain dump",
+    "just listen",
+    "done"
+   ]
+  },
+  {
+   "id": "meeting",
+   "title": "Meeting mode",
+   "ask": [
+    "meeting",
+    "meeting mode",
+    "take notes",
+    "start a meeting",
+    "notes of the meeting",
+    "פגישה",
+    "מצב פגישה",
+    "לרשום הערות"
+   ],
+   "how": "Meeting mode sits in and takes notes, and stays quiet unless you let it speak. Nothing is sent to a session during it.",
+   "about": "Notes, lookups and a raised hand in a meeting, with consent and no sends",
+   "iphone": [
+    "Start a meeting button at the top",
+    "••• menu → Meeting settings"
+   ],
+   "page": [
+    "Meeting button at the bottom",
+    "Settings → Meetings"
+   ],
+   "voice": [
+    "meeting mode, listening"
+   ]
+  },
+  {
+   "id": "challenge",
+   "title": "Challenge me",
+   "ask": [
+    "challenge",
+    "challenge me",
+    "devil's advocate",
+    "poke holes",
+    "argue against",
+    "לאתגר",
+    "תאתגר אותי",
+    "תתקוף את זה"
+   ],
+   "how": "Challenge argues against your plan one objection at a time and sends nothing; \"verdict\" ends it.",
+   "about": "The voice argues against your plan, grounded in your sessions, and cannot send",
+   "iphone": [
+    "••• menu → Challenge / End challenge"
+   ],
+   "page": [
+    "Challenge button at the bottom"
+   ],
+   "voice": [
+    "challenge me",
+    "verdict"
+   ]
+  },
+  {
+   "id": "drive",
+   "title": "Drive mode",
+   "ask": [
+    "drive mode",
+    "driving",
+    "walk mode",
+    "in the car",
+    "carplay",
+    "מצב נהיגה",
+    "נוהג",
+    "ברכב"
+   ],
+   "how": "Drive mode gives short answers and approves by voice only what is safe from the road.",
+   "about": "Short answers, nothing to look at, and only safe requests approved by voice",
+   "iphone": [
+    "Drive button at the top",
+    "••• menu → Suggest Drive mode in the car"
+   ],
+   "page_note": "The page has no Drive button: start it by voice or in the iPhone app.",
+   "voice": [
+    "drive mode",
+    "I've stopped"
+   ]
+  },
+  {
+   "id": "whisper",
+   "title": "Whisper mode",
+   "ask": [
+    "whisper",
+    "whisper mode",
+    "quiet replies",
+    "open office",
+    "speak quietly",
+    "לחישה",
+    "מצב לחישה",
+    "בשקט"
+   ],
+   "how": "Whisper mode gives short, quiet replies for an open office; \"back to normal\" ends it.",
+   "about": "Quiet replies, a raised microphone, the same approval rules",
+   "iphone": [
+    "••• menu → Whisper"
+   ],
+   "page": [
+    "Whisper button at the bottom"
+   ],
+   "voice": [
+    "whisper mode",
+    "back to normal"
+   ]
+  },
+  {
+   "id": "briefing",
+   "title": "Briefing",
+   "ask": [
+    "briefing",
+    "brief me",
+    "what happened overnight",
+    "catch me up",
+    "summary of the night",
+    "תדריך",
+    "תדרך אותי",
+    "מה קרה בלילה"
+   ],
+   "how": "A briefing says what each session did, failed and waits on, most urgent first.",
+   "about": "\"Brief me on the night\": what each session did, failed and waits on",
+   "iphone": [
+    "••• menu → Briefing"
+   ],
+   "page": [
+    "Briefing button at the bottom"
+   ],
+   "voice": [
+    "brief me on the night"
+   ],
+   "tool": "briefing"
+  },
+  {
+   "id": "briefing-schedule",
+   "title": "Scheduled briefing",
+   "ask": [
+    "schedule a briefing",
+    "scheduled briefing",
+    "morning briefing",
+    "briefing every day",
+    "briefing time",
+    "תדריך קבוע",
+    "תזמון תדריך"
+   ],
+   "how": "A scheduled briefing is read on the Mac at the time and days you pick.",
+   "iphone": [
+    "••• menu → Briefing settings"
+   ],
+   "page": [
+    "Settings → Briefings → Scheduled briefing"
+   ]
+  },
+  {
+   "id": "dictionary",
+   "title": "Dictionary",
+   "ask": [
+    "dictionary",
+    "vocabulary",
+    "misheard",
+    "mishears",
+    "names it gets wrong",
+    "teach it a word",
+    "spelling of a name",
+    "מילון",
+    "לא שומע נכון",
+    "שומע לא נכון"
+   ],
+   "how": "Correct a misheard word in the conversation and Pointe learns it; the Dictionary lists, adds and edits terms. A new term applies from the next call.",
+   "about": "Fix a misheard name once, and the next call hears it right",
+   "iphone": [
+    "••• menu → Dictionary"
+   ],
+   "page": [
+    "Settings → Dictionary → Dictionary…"
+   ]
+  },
+  {
+   "id": "alerts",
+   "title": "Alerts and the Apple Watch",
+   "ask": [
+    "alerts",
+    "notifications",
+    "notify me",
+    "apple watch",
+    "watch",
+    "desktop alerts",
+    "approve from the watch",
+    "התראות",
+    "שעון",
+    "נוטיפיקציות"
+   ],
+   "how": "Alerts tell you when a session needs you; Approve from notifications adds Approve on the iPhone and Apple Watch.",
+   "about": "A session needs you: the watch taps, the desktop notifies",
+   "iphone": [
+    "••• menu → Alerts"
+   ],
+   "page": [
+    "Settings → Alerts → Desktop alerts while this tab is in the background / Approve from notifications (iPhone and Apple Watch)"
+   ]
+  },
+  {
+   "id": "conflicts",
+   "title": "Conflict alarm",
+   "ask": [
+    "conflict alarm",
+    "conflict",
+    "sessions disagree",
+    "two sessions disagree",
+    "קונפליקט",
+    "סתירה",
+    "סשנים לא מסכימים"
+   ],
+   "how": "The conflict alarm says when two sessions claim opposite things about the same work; it can be spoken or a card only.",
+   "about": "Two sessions claim opposite things about the same work: you hear it at once",
+   "iphone": [
+    "••• menu → Conflict alarm"
+   ],
+   "page": [
+    "Settings → Conflict alarm → Check sessions against each other"
+   ]
+  },
+  {
+   "id": "show",
+   "title": "Show while it says",
+   "ask": [
+    "show while it says",
+    "show the file",
+    "show the diff",
+    "see the code",
+    "show on the phone",
+    "להראות קובץ",
+    "להציג את הקוד"
+   ],
+   "how": "Show while it says puts the file, diff or failing test on screen as the voice mentions it. On the Mac it is always on; on the phone you turn it on.",
+   "about": "The file, diff or failing test appears on screen as the voice mentions it",
+   "iphone": [
+    "••• menu → Show while it says"
+   ],
+   "page": [
+    "Settings → Show while it says → Also show on the phone"
+   ]
+  },
+  {
+   "id": "polish",
+   "title": "Clean up my words",
+   "ask": [
+    "clean up my words",
+    "clean version",
+    "what it understood",
+    "polish",
+    "לנקות את המילים"
+   ],
+   "how": "Clean up my words shows, under each thing you say, a clean version of what the voice understood.",
+   "iphone": [
+    "••• menu → Clean up my words"
+   ],
+   "page": [
+    "Clean up my words at the top"
+   ]
+  },
+  {
+   "id": "routing-mode",
+   "title": "Orchestrator or session mode",
+   "ask": [
+    "orchestrator mode",
+    "session mode",
+    "routing mode",
+    "orchestrator",
+    "pin a session",
+    "talk to one session",
+    "מצב תזמורת",
+    "מצב סשן",
+    "אורקסטרייטור"
+   ],
+   "how": "Orchestrator mode sends each request to the session it is about; session mode sends everything to the active session.",
+   "iphone": [
+    "Sessions button at the bottom → Orchestrator / Session",
+    "••• menu → Sessions and mode"
+   ],
+   "page": [
+    "Orchestrator / Session in the Sessions panel on the left"
+   ],
+   "voice": [
+    "orchestrator mode",
+    "session mode"
+   ],
+   "tool": "set_mode"
+  },
+  {
+   "id": "switch-session",
+   "title": "Switch session",
+   "ask": [
+    "switch session",
+    "change session",
+    "go to session",
+    "focus on a session",
+    "active session",
+    "לעבור לסשן",
+    "להחליף סשן"
+   ],
+   "how": "Say \"switch to\" and the session's name, or tap it.",
+   "iphone": [
+    "long-press a session at the top → Focus on this session"
+   ],
+   "iphone_note": "Or tap its chip at the top.",
+   "page_note": "Click the session in the Sessions panel on the left.",
+   "voice": [
+    "switch to lantern"
+   ],
+   "tool": "switch_session"
+  },
+  {
+   "id": "rename-session",
+   "title": "Rename a session",
+   "ask": [
+    "rename",
+    "rename a session",
+    "rename the session",
+    "change the name",
+    "call it",
+    "new name",
+    "לשנות שם",
+    "שינוי שם",
+    "שם לסשן",
+    "שם חדש",
+    "לקרוא לו"
+   ],
+   "how": "Say \"rename this to\" and the new name, or rename it on screen.",
+   "iphone": [
+    "long-press a session at the top → Rename"
+   ],
+   "page": [
+    "hover a session in the Sessions panel (on touch, its ⋯) → Rename"
+   ],
+   "voice": [
+    "rename this to pricing"
+   ],
+   "tool": "rename_session"
+  },
+  {
+   "id": "close-session",
+   "title": "Close a session",
+   "ask": [
+    "close a session",
+    "close the session",
+    "close session",
+    "disconnect a session",
+    "remove a session",
+    "take it off the voice",
+    "drop a session",
+    "close all except",
+    "לסגור סשן",
+    "סוגר סשן",
+    "לנתק סשן",
+    "מנתק סשן",
+    "להוריד סשן"
+   ],
+   "how": "Say \"close\" and the session's name (or \"close all except …\"): it leaves the voice and keeps running in its terminal.",
+   "iphone": [
+    "long-press a session at the top → Disconnect from the voice",
+    "Sessions button at the bottom → Disconnect"
+   ],
+   "iphone_note": "In the Sessions sheet, swipe a session left.",
+   "page": [
+    "hover a session in the Sessions panel (on touch, its ⋯) → Disconnect from the voice"
+   ],
+   "voice": [
+    "close lantern"
+   ],
+   "tool": "disconnect_session"
+  },
+  {
+   "id": "join-session",
+   "title": "Add a session",
+   "ask": [
+    "add a session",
+    "join a session",
+    "new session",
+    "connect a session",
+    "add claude code",
+    "opencode",
+    "codex",
+    "להוסיף סשן",
+    "לחבר סשן"
+   ],
+   "how": "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice.",
+   "iphone": [
+    "Sessions button at the bottom"
+   ]
+  },
+  {
+   "id": "machines",
+   "title": "Other machines",
+   "ask": [
+    "machines",
+    "another mac",
+    "linux machine",
+    "other computer",
+    "invite a machine",
+    "remote machine",
+    "מחשב אחר",
+    "מכונה אחרת"
+   ],
+   "how": "Sessions on your other Macs and Linux machines join through a small Pointe there: invite the machine and run pointe node join with the code.",
+   "iphone": [
+    "••• menu → Machines"
+   ],
+   "page": [
+    "Settings → Machines → Invite a machine"
+   ]
+  },
+  {
+   "id": "type",
+   "title": "Type instead of talking",
+   "ask": [
+    "type",
+    "typing",
+    "keyboard",
+    "type instead",
+    "write to it",
+    "להקליד",
+    "מקלדת",
+    "לכתוב"
+   ],
+   "how": "Type sends written words to the voice, for a noisy room or a quiet one.",
+   "iphone": [
+    "Type button at the bottom"
+   ],
+   "page": [
+    "Type button at the bottom"
+   ]
+  },
+  {
+   "id": "approve",
+   "title": "Approve or deny a request",
+   "ask": [
+    "approve",
+    "deny",
+    "permission",
+    "approve a request",
+    "say yes",
+    "allow it",
+    "לאשר",
+    "לסרב",
+    "בקשת הרשאה",
+    "אישור"
+   ],
+   "how": "When a session asks permission, Pointe reads it out: say yes or no, or tap on its card.",
+   "iphone": [
+    "the request's card → Approve / Deny"
+   ],
+   "page": [
+    "the request's card → Approve / Deny"
+   ]
+  },
+  {
+   "id": "settings",
+   "title": "Where the settings are",
+   "ask": [
+    "settings",
+    "where are the settings",
+    "preferences",
+    "options",
+    "menu",
+    "הגדרות",
+    "איפה ההגדרות",
+    "תפריט"
+   ],
+   "how": "All settings are in one place on each surface.",
+   "iphone": [
+    "••• menu"
+   ],
+   "iphone_note": "The ••• button at the top right.",
+   "page": [
+    "Settings in the Sessions panel on the left"
+   ],
+   "page_note": "On a narrow window, open the Sessions button first."
+  },
+  {
+   "id": "update",
+   "title": "Update Pointe",
+   "ask": [
+    "update pointe",
+    "update",
+    "new version",
+    "upgrade",
+    "לעדכן",
+    "עדכון"
+   ],
+   "how": "In a terminal: claude plugin marketplace update pointe, then claude plugin update pointe@pointe, then /pointe:stop and /pointe:voice so the voice restarts on the new version. The iPhone app is built from source: build and install it again from Xcode."
+  },
+  {
+   "id": "iphone-menu-the-meeting-that-ended",
+   "title": "The meeting that ended",
+   "ask": [
+    "the meeting that ended"
+   ],
+   "how": "",
+   "iphone": [
+    "••• menu → The meeting that ended"
+   ]
+  },
+  {
+   "id": "iphone-menu-exit-demo",
+   "title": "Exit demo",
+   "ask": [
+    "exit demo"
+   ],
+   "how": "",
+   "iphone": [
+    "••• menu → Exit demo"
+   ]
+  },
+  {
+   "id": "page-settings-local-mode",
+   "title": "Local mode",
+   "ask": [
+    "local mode"
+   ],
+   "how": "",
+   "page": [
+    "Settings → Local mode"
+   ]
+  },
+  {
+   "id": "page-dock-sessions",
+   "title": "Sessions",
+   "ask": [
+    "sessions"
+   ],
+   "how": "",
+   "page": [
+    "Sessions button at the bottom"
+   ]
+  },
+  {
+   "id": "page-dock-more",
+   "title": "More",
+   "ask": [
+    "more"
+   ],
+   "how": "",
+   "page": [
+    "More button at the bottom"
+   ]
+  }
+ ],
+ "ui": {
+  "iphone": {
+   "menu": {
+    "Microphone": [
+     "Always on",
+     "Push to talk"
+    ],
+    "Talk button": [
+     "Tap to talk",
+     "Hold to talk"
+    ],
+    "Wait before answering": [
+     "Quick",
+     "Normal",
+     "Patient"
+    ],
+    "Appearance": [
+     "System",
+     "Light",
+     "Dark"
+    ],
+    "Clean up my words": [],
+    "Whisper": [],
+    "Sessions and mode": [],
+    "Machines": [],
+    "Start a meeting": [],
+    "The meeting that ended": [],
+    "Briefing": [],
+    "Briefing settings": [],
+    "End challenge": [],
+    "Challenge": [],
+    "Meeting settings": [],
+    "Alerts": [],
+    "Suggest Drive mode in the car": [],
+    "Dictionary": [],
+    "Voice lock": [],
+    "Conflict alarm": [],
+    "Show while it says": [],
+    "About": [],
+    "Exit demo": [],
+    "Unpair this phone": []
+   },
+   "bar": [
+    "Brain dump",
+    "Done",
+    "Review",
+    "Type",
+    "Sessions",
+    "Hang up"
+   ],
+   "mic": [
+    "Unmute",
+    "Mute"
+   ],
+   "header": [
+    "Drive",
+    "Start a meeting",
+    "Connect"
+   ],
+   "session": [
+    "Sessions and mode",
+    "Focus on this session",
+    "Rename",
+    "Disconnect from the voice"
+   ],
+   "sessions": [
+    "Sessions",
+    "Orchestrator",
+    "Session",
+    "Disconnect"
+   ],
+   "card": [
+    "Deny",
+    "Approve"
+   ],
+   "pair": [
+    "Pair",
+    "No Mac yet? Try a demo"
+   ]
+  },
+  "page": {
+   "settings": {
+    "Voice lock": [
+     "Cancel",
+     "Enrol my voice",
+     "Delete my voiceprint",
+     "Off",
+     "Approvals",
+     "Commands",
+     "Everything",
+     "Lock level"
+    ],
+    "Machines": [
+     "Invite a machine",
+     "Cancel the code"
+    ],
+    "Phone": [
+     "Check",
+     "Show the code",
+     "Cancel",
+     "Can't scan? Copy the link",
+     "Connect your phone",
+     "Unpair all"
+    ],
+    "Dictionary": [
+     "Dictionary…"
+    ],
+    "Briefings": [
+     "Time",
+     "Days",
+     "Length",
+     "Scheduled briefing",
+     "Speak when I connect",
+     "Skip empty briefings",
+     "Short",
+     "Normal",
+     "Full"
+    ],
+    "Meetings": [
+     "Start in",
+     "Notes language",
+     "Auto lookups by default",
+     "Listening",
+     "Participating",
+     "Same as I speak",
+     "English",
+     "Hebrew",
+     "Ask again before the next meeting"
+    ],
+    "Local mode": [],
+    "Show while it says": [
+     "Also show on the phone"
+    ],
+    "Microphone": [
+     "Microphone",
+     "Talk button",
+     "Talk key",
+     "System-wide shortcut",
+     "Always on",
+     "Push to talk",
+     "Hold to talk",
+     "Tap to talk",
+     "Copy command"
+    ],
+    "Turn taking": [
+     "Wait before answering",
+     "Quick",
+     "Normal",
+     "Patient"
+    ],
+    "Conflict alarm": [
+     "Alarm",
+     "Check sessions against each other",
+     "Spoken",
+     "Card only"
+    ],
+    "Alerts": [
+     "Desktop alerts while this tab is in the background",
+     "Approve from notifications (iPhone and Apple Watch)"
+    ],
+    "Appearance": [
+     "System",
+     "Light",
+     "Dark"
+    ],
+    "About": []
+   },
+   "dock": [
+    "Brain dump",
+    "Meeting",
+    "Briefing",
+    "Hang up",
+    "Challenge",
+    "Whisper",
+    "Type",
+    "Sessions",
+    "More"
+   ],
+   "mic": [
+    "Microphone"
+   ],
+   "switch": [
+    "Always on",
+    "Hold to talk"
+   ],
+   "side": [
+    "Mode",
+    "Sessions",
+    "Recent requests",
+    "Orchestrator",
+    "Session",
+    "Settings"
+   ],
+   "top": [
+    "Clean up my words",
+    "Connect"
+   ],
+   "row": [
+    "Rename",
+    "Disconnect from the voice"
+   ],
+   "dump": [
+    "Send",
+    "Add more",
+    "Read it back",
+    "Challenge it",
+    "Discard"
+   ],
+   "card": [
+    "Deny",
+    "Approve"
+   ]
+  }
+ }
+}

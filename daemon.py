@@ -41,6 +41,7 @@ import conflicts
 import drive as drives
 import remote
 import harnesses
+import howto
 import latency
 import mac
 import hub_nodes
@@ -463,6 +464,9 @@ quote goes to a read-only copy of that session, which knows everything the sessi
 "[<session> answered the user's question ...]". Say it then, briefly, in the user's language, even if the talk moved on.
 - "Explain all of it", "read me the full thing", "what exactly did it say": call ask_about_session with that question \
 and speak its answer; after about eight sentences ask whether to go on. "Shorter": one sentence.
+- How to use Pointe itself ("how do I turn off push to talk", "where is voice lock"): call how_to_use_pointe and answer \
+from it yourself in one or two sentences, with the path it gives for the user's screen, labels in English as written. \
+Never send such a question to a session. If it lists words they can say, offer them; use your_tool only when asked to.
 - Delegate with send_to_claude_code: anything that needs reading, searching, running or changing a repo. \
 Do not guess about the code.
 - Write the delegated message as a brief a senior engineer could act on without hearing the call, not a \
@@ -1909,6 +1913,7 @@ class State:
     off_thread: tuple[str, str] | None = None  # (thread, picked) names behind the last "off-thread" refusal
     refusals: tuple[float, int] = (0.0, 0)  # (speech time of the utterance, relevance refusals for it)
     blocked: list[str] = field(default_factory=list)  # refused requests: a later replay of one is still a replay
+    howto_refused: float = 0.0  # the utterance whose send was refused as a question about using Pointe
     unconfirmed: dict[str, list[str]] = field(default_factory=dict)  # per session: sent, and no report since
     digesting: int = 0  # reports being written now
     warned: float = 0.0  # production credentials: the risk was said once, for this call
@@ -4215,10 +4220,25 @@ def typed_approval_refusal(message: str, target) -> dict | None:
     return None
 
 
+def _howto_refusal(message: str) -> dict | None:
+    """The user asked how to use Pointe: the voice answers that from its help (how_to_use_pointe), and a session never
+    gets it. Once per utterance: sent again, it goes, for when they did mean a session to work on Pointe's code."""
+    words = state.last_utterance
+    if state.howto_refused == state.last_user_speech_at or not howto.about_pointe(words) \
+            or named_sessions(words, list(REGISTRY.sessions.values())):
+        return None
+    state.howto_refused = state.last_user_speech_at
+    _record(message, [], "blocked: a question about using Pointe")
+    return {"error": "Not sent: they asked how to use Pointe itself. Do not mention this. Call how_to_use_pointe and "
+                     "answer from it. Only if they want a session to work on Pointe's code, send it again."}
+
+
 async def _send(message: str) -> dict:
     if state.challenge is not None:
         _record(message, [], "blocked: a challenge is on")
         return {"error": challenge.SEND_REFUSAL + " Say that to the user."}
+    if refusal := _howto_refusal(message):
+        return refusal
     named = (state.brain_target or "").strip().lower()
     target = next((x for x in REGISTRY.sessions.values() if x.name.lower() == named), None) if named else REGISTRY.active
     if refusal := typed_approval_refusal(message, target):
@@ -4910,6 +4930,20 @@ async def _from_record(target: Session, question: str) -> dict:
         return {"error": f"lookup failed: {type(e).__name__}"}
 
 
+def _surface() -> str:
+    """Where the user is: the iPhone app's call, else the page."""
+    return "iphone" if state.phone_socket is not None else "page"
+
+
+async def how_to_use_pointe(params: FunctionCallParams):
+    """Product help, from product_help.json: the question as the brain put it, else the user's own words."""
+    question = str(params.arguments.get("question") or "")
+    result = howto.answer(question, _surface())
+    if "answers" not in result and state.last_utterance and state.last_utterance != question:
+        result = howto.answer(state.last_utterance, _surface())
+    await params.result_callback(result)
+
+
 _SESSION_ARG = {"session": {"type": "string",
                             "description": "Only when the user named a session other than the active one."}}
 
@@ -4981,6 +5015,13 @@ TOOLS = ToolsSchema(standard_tools=[
         "history at once, anything else by a read-only copy of the session, whose answer arrives later in the feed.",
         properties={"question": {"type": "string"}, **_SESSION_ARG},
         required=["question"], handler=_traced(ask_about_session)),
+    FunctionSchema(
+        name="how_to_use_pointe",
+        description="How to use Pointe itself: where a setting or button is on the user's screen (the iPhone app or the "
+        "page), what a feature does, and what they can say instead. Instant and local. For \"how do I…\" and \"where "
+        "is…\" about Pointe, never about their code.",
+        properties={"question": {"type": "string", "description": "The user's question, in their words."}},
+        required=["question"], handler=_traced(how_to_use_pointe)),
     FunctionSchema(
         name="briefing",
         description="A spoken briefing on what the sessions did, failed and wait on, most urgent first: \"brief me on "
