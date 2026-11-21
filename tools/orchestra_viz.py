@@ -162,10 +162,12 @@ def notification(x, y, w, compact=False):
 
 
 def small_mark(cx, cy, s):
-    """The logo's small drawing: six dots and the point."""
-    dots = re.findall(r'cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)" fill="(#\w+)"', (ROOT / "docs" / "brand" / "logo-small.svg").read_text())
+    """The logo's compact drawing (docs/brand/logo-small.svg): four rings of dots, fading outward, and the point."""
+    dots = re.findall(r'cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)" fill="(#\w+)"(?: opacity="([\d.]+)")?',
+                      (ROOT / "docs" / "brand" / "logo-small.svg").read_text())
     return "".join(f'<circle class="{"o-mpoint" if f.upper() == "#FF5A01" else "o-mdot"}" cx="{n(cx + (float(x) - 50) * s)}" '
-                   f'cy="{n(cy + (float(y) - 50) * s)}" r="{n(float(r) * s)}"/>' for x, y, r, f in dots)
+                   f'cy="{n(cy + (float(y) - 50) * s)}" r="{n(float(r) * s)}"{f' opacity="{o}"' if o else ""}/>'
+                   for x, y, r, f, o in dots)
 
 
 def wide():

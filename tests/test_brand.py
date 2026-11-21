@@ -5,6 +5,7 @@ import json
 import re
 import struct
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -112,3 +113,11 @@ def test_the_link_preview_is_one_image_in_both_places():
     source = (ROOT / "docs" / "social-preview.html").read_text()
     assert "Stop typing to one agent." in source and "Built and open-sourced by Ballerine Engineering" in source
     assert "Ballerine" not in source.replace("Built and open-sourced by Ballerine Engineering", ""), "no Ballerine logo"
+
+
+def test_the_site_drawing_of_the_call_carries_the_compact_mark_and_matches_its_generator():
+    """site/pointe/index.html's orchestra figure draws the mark inside the phone from docs/brand/logo-small.svg, with
+    the dots coloured by class (so the scan above, which looks for the orange fill, does not see it)."""
+    html = (ROOT / "site" / "pointe" / "index.html").read_text()
+    assert html.count('class="o-mdot"') == COMPACT and html.count('class="o-mpoint"') == 1
+    subprocess.run([sys.executable, str(ROOT / "tools" / "orchestra_viz.py"), "--check"], cwd=ROOT, check=True)
