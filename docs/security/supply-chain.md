@@ -48,6 +48,7 @@ that is not there, so a dependency bump or a pull request cannot add an egress s
 | `stt-rt.soniox.com`, `tts-rt.soniox.com` | Soniox ears, meeting ears, mouth (WebSocket) | with a Soniox key |
 | `huggingface.co`, `cdn-lfs.huggingface.co`, `cdn-lfs-us-1.huggingface.co`, `cas-bridge.xethub.hf.co`, `transfer.xethub.hf.co` | model downloads at the pinned revisions (`huggingface_hub`, `hf-xet`) | `pointe local`, `pointe local voice`, first use of `ears: local` |
 | `github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com` | Kokoro v1.0 and ERes2Net release assets; the `en-core-web-sm` wheel; uv's binaries | first use of `mouth: local`, the voice lock; `uv sync --extra local`; `bin/install-uv` |
+| `api.github.com` | the roadmap issues and their 👍 counts, through `gh api` | `tools/roadmap.py` (`site/deploy.sh --roadmap`), run by a maintainer; never by the plugin |
 | `astral.sh`, `releases.astral.sh` | the pinned uv installer | `bin/install-uv`, when uv is missing |
 | `pypi.org`, `files.pythonhosted.org` | Python packages, by hash | `uv sync --locked` |
 | `registry.npmjs.org` | the channel's packages, by integrity | `npm ci` in launch mode |

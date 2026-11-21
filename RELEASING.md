@@ -74,6 +74,14 @@ is the Ballerine Engineering hub at `/`, and `site/pointe/` is Pointe's page at 
 1. `site/deploy.sh v2` (any branch name) publishes a preview at `<branch>.pointe-site-9tz.pages.dev`. Look at it.
 2. `site/deploy.sh` publishes production (branch `main`), after the owner has seen the preview.
 
+**The roadmap.** `ROADMAP.md` and `site/pointe/roadmap/` are written by `tools/roadmap.py` from the issues labelled
+`roadmap`: their `horizon/now`, `horizon/next` or `horizon/later` label, and their 👍 count at that moment. The page is a
+snapshot and fetches nothing. To publish fresh votes, `site/deploy.sh --roadmap` (then a branch name for a preview) runs
+the generator before the upload; it needs `gh` signed in. Commit the two regenerated files after a production deploy;
+`tests/test_roadmap.py` fails if they disagree or are out of shape. Do it at each release, and when an item moves.
+
+`site/pointe/contribute/` is written by hand: keep it in step with `CONTRIBUTING.md`.
+
 The old address, pointe.ballerine.com, is still a custom domain of the same project. Pages cannot redirect by host, so
 each page carries a one-line script that sends a visitor on that host to `https://eng.ballerine.com/pointe/`. Link
 previews (`og:url`, `og:image`) name eng.ballerine.com. Both hosts are CNAMEs to `pointe-site-9tz.pages.dev` in Route 53.

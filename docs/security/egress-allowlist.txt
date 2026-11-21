@@ -27,6 +27,9 @@ github.com                 release assets: Kokoro v1.0, the speaker model (asset
 objects.githubusercontent.com        where github.com release downloads redirect
 release-assets.githubusercontent.com where github.com release downloads redirect
 
+# maintainers' tools, never the plugin
+api.github.com             the roadmap issues and their 👍 counts, through `gh api` (tools/roadmap.py, site/deploy.sh --roadmap)
+
 # installers
 astral.sh                  the pinned uv installer (bin/install-uv)
 releases.astral.sh         where astral.sh redirects the installer and uv's binaries
