@@ -1,0 +1,465 @@
+{
+ "at": "1.16.0, a9ddfea",
+ "counts": {
+  "web": {
+   "yes": 73,
+   "partial": 0,
+   "no": 1,
+   "n/a": 14
+  },
+  "ios": {
+   "yes": 79,
+   "partial": 0,
+   "no": 1,
+   "n/a": 8
+  },
+  "mac": {
+   "yes": 43,
+   "partial": 0,
+   "no": 40,
+   "n/a": 5
+  }
+ },
+ "states": {
+  "call.connect": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.redial": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.state": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.mute": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.transcript": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.new-pill": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "call.hearing": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.type": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.correct": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.polish": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "call.problem": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "call.rtl": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "call.context": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "call.recent": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "call.keep-awake": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "n/a"
+  },
+  "talk.mode": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "talk.switch": {
+   "web": "yes",
+   "ios": "no",
+   "mac": "no"
+  },
+  "talk.style": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "talk.ring": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "talk.draft": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "talk.closed-why": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "talk.key": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "talk.patience": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "talk.hold": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "sessions.list": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "sessions.switch": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "sessions.mode": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "sessions.rename": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "sessions.disconnect": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "sessions.filter": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "sessions.new": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "sessions.new.readback": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "sessions.new.folders": {
+   "web": "yes",
+   "ios": "n/a",
+   "mac": "yes"
+  },
+  "machines.list": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "machines.invite": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "approve.card": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "approve.owner": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "approve.more": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "approve.offline": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "alerts.notify": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "alerts.approve": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "alerts.actions": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "alerts.background": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "dump.panel": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "dump.review": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "dump.more": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "dump.challenge": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "challenge.panel": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.start": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.mode": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.notes": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.hand": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.speakers": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.ask": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.end": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "meeting.settings": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "briefing.sheet": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "briefing.ready": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "briefing.schedule": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "whisper": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "drive.screen": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "drive.start": {
+   "web": "no",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "drive.suggest": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "n/a"
+  },
+  "lock.level": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "lock.enrol": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "lock.ignored": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "dictionary.sheet": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "dictionary.toast": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "conflicts.card": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "conflicts.settings": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "show.card": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "show.setting": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "pair.show": {
+   "web": "yes",
+   "ios": "n/a",
+   "mac": "no"
+  },
+  "pair.read": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "n/a"
+  },
+  "appearance": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "about": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "about.version": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "local-mode": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "yes"
+  },
+  "help": {
+   "web": "yes",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "demo": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "no"
+  },
+  "keys": {
+   "web": "yes",
+   "ios": "n/a",
+   "mac": "yes"
+  },
+  "mac.menubar": {
+   "web": "n/a",
+   "ios": "n/a",
+   "mac": "yes"
+  },
+  "mac.bubble": {
+   "web": "n/a",
+   "ios": "n/a",
+   "mac": "yes"
+  },
+  "mac.login": {
+   "web": "n/a",
+   "ios": "n/a",
+   "mac": "yes"
+  },
+  "mac.daemon": {
+   "web": "n/a",
+   "ios": "n/a",
+   "mac": "yes"
+  },
+  "mac.keys": {
+   "web": "n/a",
+   "ios": "n/a",
+   "mac": "yes"
+  },
+  "ios.airpods": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "n/a"
+  },
+  "ios.nowplaying": {
+   "web": "n/a",
+   "ios": "yes",
+   "mac": "n/a"
+  }
+ }
+}
