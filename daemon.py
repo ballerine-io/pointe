@@ -1892,7 +1892,7 @@ class State:
     mic_gate: object = None  # the MicGate in the call's pipeline
     heard_as: dict[int, str] = field(default_factory=dict)  # user turn id -> what the ears wrote, before any fix
     ptt: Ptt = field(default_factory=Ptt)  # push to talk: the press that holds the microphone open
-    client: dict = field(default_factory=dict)  # what the page or phone said about itself (protocol 3 hello)
+    call_client: object = None  # the call's serializer: `.client` is what the page or an app said about itself (its hello)
     attention_dismissed: set = field(default_factory=set)
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
@@ -5221,8 +5221,11 @@ async def _from_record(target: Session, question: str) -> dict:
 
 
 def _surface() -> str:
-    """Where the user is: the iPhone app's call, else the page."""
-    return "iphone" if state.phone_socket is not None else "page"
+    """Where the user is: the iPhone app's call, the Mac app's (its hello says so), else the page."""
+    if state.phone_socket is not None:
+        return "iphone"
+    hello = getattr(state.call_client, "client", None) or {}
+    return "mac" if state.call_socket is not None and hello.get("device") == "Mac" else "page"
 
 
 async def how_to_use_pointe(params: FunctionCallParams):
@@ -7124,9 +7127,11 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
     from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams, FastAPIWebsocketTransport
 
     heartbeat = phone.Heartbeat()
+    serializer = phone.PhoneSerializer(heartbeat)
+    state.call_client = serializer  # its hello, once it arrives: which app this call is from (product help's paths)
     transport = FastAPIWebsocketTransport(websocket, FastAPIWebsocketParams(
         audio_in_enabled=True, audio_out_enabled=True, audio_in_sample_rate=phone.IN_RATE,
-        audio_out_sample_rate=phone.OUT_RATE, serializer=phone.PhoneSerializer(heartbeat)))
+        audio_out_sample_rate=phone.OUT_RATE, serializer=serializer))
     logger.info(f"{who} connected")
     state.heartbeat_info = heartbeat
 

@@ -1,12 +1,14 @@
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 /// Settings → Machines (docs/multi-machine.md): the machines on this voice with their state and round trip, a one-time
 /// code to pair another, and Revoke. Whoever holds a code can offer sessions to this voice, so the code shows only after
 /// Face ID; Revoke asks first, then Face ID.
 struct MachinesSheet: View {
     let status: API.Status?
-    let pairing: Pairing
+    let pairing: Pairing?  // nil in the Mac app: the daemon sends the whole line to paste
     let ownerCheck: (String) async -> Bool
     let invite: () async -> Result<API.Invite, MachinesFailure>
     let cancelInvite: () async -> MachinesFailure?
@@ -40,8 +42,7 @@ struct MachinesSheet: View {
                 Section { inviteSection }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(MachinesCopy.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(MachinesCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .confirmationDialog(revoking.map(MachinesCopy.revokeAsk) ?? "", isPresented: Binding(
                 get: { revoking != nil }, set: { if !$0 { revoking = nil } }), titleVisibility: .visible, presenting: revoking) { name in
@@ -107,7 +108,7 @@ struct MachinesSheet: View {
                             .accessibilityIdentifier("inviteCountdown")
                         HStack {
                             Button("Copy the line", systemImage: "doc.on.doc") {
-                                UIPasteboard.general.string = MachinesCopy.joinLine(shown, pairing: pairing)
+                                Clipboard.copy(MachinesCopy.joinLine(shown, pairing: pairing))
                             }
                             Spacer()
                             Button("Cancel the code", role: .destructive) { Task { await cancel() } }

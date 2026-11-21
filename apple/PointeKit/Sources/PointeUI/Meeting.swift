@@ -142,8 +142,7 @@ struct MeetingStartSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(step == 1 ? "Start a meeting" : "Before it starts")
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(step == 1 ? "Start a meeting" : "Before it starts")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -715,8 +714,7 @@ struct SpeakersSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle("Speakers")
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle("Speakers")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -822,8 +820,7 @@ struct MeetingEndSheet: View {
                 } footer: { Group { Text("Forgets the notes and the transcript on the Mac.") }.brandFootnote() }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle("Meeting ended")
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle("Meeting ended")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Close") { dismiss() } } }
             .alert("Send \(actionItems.count) action item\(actionItems.count == 1 ? "" : "s") to \(sendTo ?? "")?",
                    isPresented: Binding(get: { sendTo != nil }, set: { if !$0 { sendTo = nil } })) {
@@ -897,8 +894,7 @@ struct MeetingSettingsSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle("Meeting settings")
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle("Meeting settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .task { prefs = await load(); loaded = true }
         }

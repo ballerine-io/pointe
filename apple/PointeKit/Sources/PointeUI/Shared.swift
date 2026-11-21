@@ -7,3 +7,7 @@ import PointeKit
 typealias Wire = PointeKit.Wire
 /// Step 2: starting a new session (docs/design/new-session.md): what the Mac offers, the sheet's draft, the rows.
 typealias NewSession = PointeKit.NewSession
+/// Its words, the page's (ui.html, NEW_COPY): one dictionary for both apps.
+typealias NewSessionCopy = PointeKit.NewSessionCopy
+/// Which coding agent runs a session, as a neutral letter tile (assets/theme.json): one table for both apps.
+typealias Harness = PointeKit.Harness

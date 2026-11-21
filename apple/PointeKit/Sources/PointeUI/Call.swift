@@ -1,11 +1,17 @@
 import AVFAudio
 import AudioToolbox
 import Foundation
-import MediaPlayer
 import Observation
+import PointeKit
+#if os(iOS)
+import MediaPlayer
+#else
+import AppKit
+#endif
 
-/// One call to the Mac: the iPhone's voice processing (hardware echo cancellation) in, the bot's voice out, over one
-/// WebSocket. Reconnects by itself unless the user hung up.
+/// One call to the Mac: the device's voice processing (echo cancellation) in, the bot's voice out, over one WebSocket.
+/// Reconnects by itself unless the user hung up. The same call on the iPhone (to the Mac it paired with) and in the Mac
+/// app (to the daemon on its own Mac): what differs is the link and how each system gives a microphone.
 @MainActor @Observable
 final class Call {
     enum State: Equatable { case off, connecting, live, reconnecting }
@@ -43,8 +49,8 @@ final class Call {
     /// The call on screen, for the "Pointe: Talk" intent.
     static weak var current: Call?
 
-    private let pairing: Pairing
-    private let session: URLSession
+    let link: DaemonLink
+    private var session: URLSession!  // made in init, once `self` can be captured for the socket's opening
     private var socket: URLSessionWebSocketTask?
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
@@ -54,25 +60,35 @@ final class Call {
     private var retries = 0
     private var queued = 0
     private var muteObserver: NSObjectProtocol?
+    #if os(macOS)
+    private var deviceObserver: NSObjectProtocol?
+    #endif
+    /// False while the call is up on audio that gave no echo cancellation (a Mac device whose voice processing would not
+    /// start): the screen says to use headphones.
+    private(set) var cancelsEcho = true
     /// The newest ping answered on this link, repeated by the keep-alive.
     private var answered = 0
     private var keepAlive: Task<Void, Never>?
     /// How often the phone tells the Mac it is there, on its own (protocol 4). Well inside the Mac's 12 s.
     nonisolated static let aliveEvery: Duration = .seconds(2)
 
-    init(pairing: Pairing) {
-        self.pairing = pairing
-        let delegate = PinnedDelegate(fingerprint: pairing.fingerprint)
-        session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
+    convenience init(pairing: Pairing) { self.init(link: DaemonLink(pairing)) }
+
+    init(link: DaemonLink) {
+        self.link = link
         engine.attach(player)
+        #if os(iOS)
         engine.connect(player, to: engine.mainMixerNode, format: playFormat)
-        delegate.onOpen = { [weak self] in Task { @MainActor in self?.state = .live; self?.retries = 0; self?.lastHeard = Date(); self?.opened() } }
+        #endif  // the Mac wires the player when the call starts: its output format must be read before the mixer exists
+        session = link.session { [weak self] in
+            Task { @MainActor in self?.state = .live; self?.retries = 0; self?.lastHeard = Date(); self?.opened() }
+        }
         Call.current = self
     }
 
-    var api: API { API(pairing: pairing, session: session) }
+    var api: API { API(link: link, session: session) }
     /// Where the Mac is dialled, for a reason that names it.
-    var place: String { "\(pairing.host):\(pairing.port)" }
+    var place: String { link.place }
 
     func start() async {
         guard state == .off || state == .reconnecting else { return }
@@ -80,7 +96,7 @@ final class Call {
         state = state == .off ? .connecting : state
         problem = nil
         guard await AVAudioApplication.requestRecordPermission() else {
-            problem = ConnectCopy.micDenied
+            problem = ConnectCopy.micDeniedHere
             state = .off; wanted = false
             return
         }
@@ -89,8 +105,10 @@ final class Call {
             state = .off; wanted = false
             return
         }
-        var request = URLRequest(url: pairing.callURL)
-        request.setValue("Bearer \(pairing.key)", forHTTPHeaderField: "Authorization")
+        guard let request = link.callRequest else {  // the Mac app, and no daemon is verified on this Mac
+            dropped(code: .invalid)
+            return
+        }
         let socket = session.webSocketTask(with: request)
         self.socket = socket
         socket.resume()
@@ -107,7 +125,9 @@ final class Call {
 
     private func setMuted(_ value: Bool) {
         muted = value
+        #if os(iOS)
         try? AVAudioApplication.shared.setInputMuted(value)
+        #endif  // on the Mac a muted call sends nothing (`send`): macOS has no input mute an app can set by itself
     }
 
     // MARK: push to talk
@@ -133,7 +153,11 @@ final class Call {
         if let mode = status?.mode { setMicrophone(mode) }
         if let why = talk.follow(status) {
             talkClosedWhy = why
+            #if os(iOS)
             AudioServicesPlaySystemSound(1113)
+            #else
+            NSSound(named: "Tink")?.play()
+            #endif
         }
     }
 
@@ -191,7 +215,7 @@ final class Call {
     /// A new link: the press starts closed (the Mac's does too), and the Mac learns this phone knows push to talk.
     private func opened() {
         talk.reset()
-        let hello: [String: Any] = ["type": "hello", "protocol": 4, "device": "iPhone", "capabilities": ["ptt"]]
+        let hello: [String: Any] = ["type": "hello", "protocol": 4, "device": link.device, "capabilities": ["ptt"]]
         if let data = try? JSONSerialization.data(withJSONObject: hello), let text = String(data: data, encoding: .utf8) {
             socket?.send(.string(text)) { _ in }
         }
@@ -216,8 +240,10 @@ final class Call {
         return String(decoding: data, as: UTF8.self)
     }
 
-    /// An AirPods press as play/pause, when iOS sends it as a remote command: toggle to talk.
+    /// An AirPods press as play/pause, when iOS sends it as a remote command: toggle to talk. Not on the Mac: taking
+    /// the remote commands there makes the app the Now Playing app and takes the media keys from the music.
     private func remoteCommands(on: Bool) {
+        #if os(iOS)
         let center = MPRemoteCommandCenter.shared()
         for command in [center.togglePlayPauseCommand, center.playCommand, center.pauseCommand] {
             command.removeTarget(nil)
@@ -233,10 +259,12 @@ final class Call {
                 }
             }
         }
+        #endif
     }
 
     // MARK: audio
 
+    #if os(iOS)
     private func startAudio() throws {
         guard !engine.isRunning else { return }
         let audio = AVAudioSession.sharedInstance()
@@ -259,6 +287,90 @@ final class Call {
         try engine.start()
         player.play()
     }
+    #endif
+
+    #if os(macOS)
+    /// How the engine is wired, best first. macOS's voice-processing unit refuses to initialise (-10875) when the mixer
+    /// feeds it the output device's own stereo format: it takes one channel at the device's rate. Found on a MacBook
+    /// Pro's built-in devices (macOS 27); the others are kept so a device that differs still gets a call
+    /// (docs/design/macos-app.md, "Audio").
+    private enum Wiring: CaseIterable {
+        /// Echo cancellation on, the mixer feeding the output one channel.
+        case voiceMono
+        /// Echo cancellation on, the engine's own connection to the output.
+        case voiceDefault
+        /// No voice processing: the call works, and the bot can hear itself through loudspeakers.
+        case plain
+    }
+
+    struct NoMicrophone: LocalizedError { var errorDescription: String? { MacCopy.noMic } }
+
+    private func startAudio() throws {
+        guard !engine.isRunning else { return }
+        var last: Error = NoMicrophone()
+        for wiring in Wiring.allCases {
+            do {
+                try startAudio(wiring)
+                cancelsEcho = wiring != .plain
+                watchDevices()
+                return
+            } catch let error as NoMicrophone {
+                throw error
+            } catch {
+                last = error
+                engine.inputNode.removeTap(onBus: 0)
+                engine.stop()
+                engine.reset()
+            }
+        }
+        throw last
+    }
+
+    private func startAudio(_ wiring: Wiring) throws {
+        let input = engine.inputNode
+        try input.setVoiceProcessingEnabled(wiring != .plain)
+        if wiring != .plain {
+            // Other apps' audio is ducked as little as the system allows while the call is up.
+            input.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
+        }
+        // The output's format is read before the mixer exists: asking for the mixer connects it to the output in stereo.
+        let out = engine.outputNode.inputFormat(forBus: 0)
+        engine.connect(player, to: engine.mainMixerNode, format: playFormat)
+        let mono = wiring == .voiceMono ? AVAudioFormat(standardFormatWithSampleRate: out.sampleRate, channels: 1) : nil
+        engine.connect(engine.mainMixerNode, to: engine.outputNode, format: mono)
+        let format = input.outputFormat(forBus: 0)  // voice processing decides the rate and the channel count; channel 0 is the voice
+        guard format.sampleRate > 0, format.channelCount > 0 else { throw NoMicrophone() }
+        input.installTap(onBus: 0, bufferSize: 1024, format: format,
+                         block: Call.tap(rate: format.sampleRate) { [weak self] down, end in Task { @MainActor in self?.send(down, end: end) } })
+        engine.prepare()
+        try engine.start()
+        player.play()
+    }
+
+    /// AirPods joined or left, the default device or its sample rate changed: the engine stopped itself. It is started
+    /// again with the new format while the socket stays up; a restart that fails ends the call with the reason.
+    private func watchDevices() {
+        guard deviceObserver == nil else { return }
+        deviceObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.devicesChanged() }
+        }
+    }
+
+    private func devicesChanged() {
+        guard state != .off else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        player.stop()
+        engine.stop()
+        queued = 0
+        botSpeaking = false
+        do { try startAudio() } catch {
+            wanted = false
+            Task { try? await api.hungUp() }
+            stop(state: .off)
+            problem = ConnectCopy.micFailed(error.localizedDescription)
+        }
+    }
+    #endif
 
     /// In push to talk an AirPods press (which mutes the input) toggles talking instead, and the input is unmuted again.
     private func inputMuteChanged(_ value: Bool) {
@@ -420,7 +532,7 @@ final class Call {
         }
     }
 
-    nonisolated static let idleHangupNote = ConnectCopy.idleHangup
+    nonisolated static let idleHangupNote = ConnectCopy.idleHangupHere
 
     /// Why a dropped link is not called back, in the words Connect shows; nil for a live call that dropped, which is
     /// redialled by itself. The Mac turning this phone away (its key unpaired: 401/403 at the upgrade, or a 4401 or 1008
@@ -428,10 +540,10 @@ final class Call {
     /// within 12 s), or a first dial that never opened: that one stays off and says why, instead of redialling for ever
     /// against a Mac that is away.
     nonisolated static func refusal(code: Int, http: Int?, reason: String, firstDial: Bool, retries: Int, place: String) -> String? {
-        if code == 4401 || code == 1008 || http == 401 || http == 403 { return ConnectCopy.notPaired }
+        if code == 4401 || code == 1008 || http == 401 || http == 403 { return ConnectCopy.notPairedHere }
         if code == 4409 && retries == 0 { return ConnectCopy.busy }
         guard firstDial else { return nil }
-        if http == nil && code <= 0 { return ConnectCopy.unreachable(place) }  // never answered: no upgrade, no close frame
+        if http == nil && code <= 0 { return ConnectCopy.unreachableHere(place) }  // never answered: no upgrade, no close frame
         return ConnectCopy.failed(reason.isEmpty ? (http.map { "HTTP \($0)" } ?? "code \(code)") : reason)
     }
 
@@ -450,7 +562,13 @@ final class Call {
         if state == .off {
             engine.inputNode.removeTap(onBus: 0)
             engine.stop()
+            #if os(iOS)
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            #else
+            if let deviceObserver { NotificationCenter.default.removeObserver(deviceObserver) }
+            deviceObserver = nil
+            try? engine.inputNode.setVoiceProcessingEnabled(false)  // gives the microphone back: the orange dot goes out
+            #endif
         }
         self.state = state
     }

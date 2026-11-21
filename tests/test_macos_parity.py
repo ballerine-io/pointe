@@ -1,9 +1,11 @@
-"""The Mac app follows the page and the iPhone app (docs/design/macos-app.md, "Parity").
+"""The Mac app is the same product as the page and the iPhone app (docs/design/parity.md, docs/design/macos-app.md).
 
-Its words are the page's where the page says the same thing; the dictionaries the apps share (apple/PointeKit) are the
-iPhone app's, word for word, while both copies exist; its colours are assets/theme.json's; the wire format, the vendors'
-Keychain items and the brand's drawings are the daemon's and docs/brand's. These tests read the Swift sources, so keep
-each string on one line in the form `static let name = "…"`.
+It draws the iPhone app's screens (apple/PointeKit, PointeUI), so the words, the colours and the rules those tests hold to
+the page (test_copy_parity, test_theme and the others) are the Mac's too. These hold what is the Mac's own: the lines it
+says differently (MacCopy: "press" for "tap", this Mac for your Mac) are the page's, its phone-pairing sheet says the
+page's words, there is one copy of each shared dictionary, the wire format, the vendors' Keychain items and the brand's
+drawings are the daemon's and docs/brand's, and the app asks for one entitlement and talks to loopback only. They read
+the Swift sources, so keep each string on one line in the form `static let name = "…"`.
 """
 
 import json
@@ -55,51 +57,81 @@ def test_connect_words_are_the_pages():
     assert '"The call did not connect\\(why.isEmpty ? "" : ": " + why)."' in MAC_SOURCE
 
 
-def test_the_state_line_and_the_session_tags_are_the_pages():
-    for key in ("notAnswering", "reconnecting", "cannotHear", "muted", "speaking", "hearingYou", "listening", "challenging"):
+UI = KIT / "PointeUI"
+
+
+def test_the_mac_says_the_pages_lines_where_the_phones_would_be_wrong():
+    """The shared screens ask ConnectCopy's `…Here` for a line; on the Mac that is MacCopy's, which the test above holds
+    to the page. No screen shows the phone's own wording of one of them directly."""
+    connect = (UI / "Connect.swift").read_text()
+    for here, mac in (("doesHere", "MacCopy.does"), ("tapConnectHere", "MacCopy.pressConnect"), ("notPairedHere", "MacCopy.keyRefused"),
+                      ("idleHangupHere", "MacCopy.idleHangup"), ("micDeniedHere", "MacCopy.micDenied"), ("elsewhereWhyHere", "MacCopy.elsewhereWhy"),
+                      ("typeLaterHere", "MacCopy.typeLater")):
+        assert re.search(rf"static var {here}: String \{{ Surface\.isMac \? {re.escape(mac)} : \w+ \}}", connect), here
+    assert "static func unreachableHere(_ host: String) -> String { Surface.isMac ? MacCopy.daemonDown : unreachable(host) }" in connect
+    assert MAC_COPY["pressConnect"] == "Press Connect to start talking" and "Press Connect" in PAGE
+    shown = re.compile(r"ConnectCopy\.(does|tapConnect|notPaired|idleHangup|micDenied|elsewhereWhy|typeLaterTap|unreachable\()(?!Here)\b")
+    for source in UI.glob("*.swift"):
+        body = source.read_text()
+        if source.name == "Connect.swift":
+            body = body[body.index("struct ConnectFace"):]  # past the dictionary and its Mac lines
+        assert not shown.search(body), f"{source.name} shows the phone's line on the Mac too: use the …Here form"
+    for key in ("notAnswering", "reconnecting", "muted", "speaking", "listening"):
         assert f"'{MAC_COPY[key]}'" in PAGE, f"{key}: the page's state line has no {MAC_COPY[key]!r}"
+
+
+def test_the_state_line_is_one_function_for_the_window_the_menu_bar_and_the_bubble():
+    title = (UI / "CallTitle.swift").read_text()
+    body = title[title.index("static func line("):title.index("/// What holds the call")]
+    order = [body.index(word) for word in ("ChallengeCopy.state", "BrainDumpCopy.state", "TurnsCopy.holding", "talkStyle.talkingLine",
+                                           '"Speaking"', "call.talkNote", "closedLine", '"Muted"', '"Listening"')]
+    assert order == sorted(order), "the first that holds is the line"
+    assert "CallTitle.line(" in (UI / "CallView.swift").read_text() and "CallTitle.line(" in (UI / "MacShell.swift").read_text()
     tags = "away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'"
     assert tags in PAGE
-    assert [MAC_COPY[k] for k in ("tagOffline", "tagApprove", "tagNeedsYou", "tagWorking", "tagIdle")] == ["offline", "approve", "needs you", "working", "idle"]
     assert "[['Deny', 'deny'], ['Approve', 'allow']]" in PAGE and (MAC_COPY["deny"], MAC_COPY["approve"]) == ("Deny", "Approve")
-    # the order of the cases is the page's too: the first of these that holds is the title
-    store = (KIT / "PointeKit" / "PointeStore.swift").read_text()
-    body = store[store.index("public var stateTitle: String"):store.index("public var menuBar: MenuBarState")]
-    order = [body.index(word) for word in ("talkingLine", "BrainDumpCopy.state", "TurnsCopy.holding", "MacCopy.muted", "MacCopy.speaking",
-                                           "MacCopy.hearingYou", "talkStyle.label", "MacCopy.listening")]
-    assert order == sorted(order)
 
 
-def shared(file: str, name: str, ios_file: str) -> tuple[dict, dict | None]:
-    kit = swift_enum(KIT / "PointeKit" / file, name)
-    ios = ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / ios_file
-    return kit, (swift_enum(ios, name) if ios.exists() and re.search(rf"\benum {name}\b", ios.read_text()) else None)
-
-
-def test_the_shared_dictionaries_are_the_pages_and_the_iphones():
-    """Until the iPhone app takes each dictionary from the package, there are two copies: they must not differ."""
-    for file, name, ios_file in (("Copy.swift", "ConnectCopy", "Connect.swift"), ("Copy.swift", "TurnsCopy", "Turns.swift"),
-                                 ("Copy.swift", "AboutCopy", "About.swift"), ("BrainDumpCopy.swift", "BrainDumpCopy", "BrainDump.swift"),
-                                 ("TalkGate.swift", "TalkDraft", "PushToTalk.swift"), ("TalkGate.swift", "TalkStyle", "PushToTalk.swift")):
-        kit, ios = shared(file, name, ios_file)
-        assert kit, name
-        if ios is not None:
-            assert kit == ios, f"{name}: apple/PointeKit and ios/Pointe differ"
-    dump = swift_enum(KIT / "PointeKit" / "BrainDumpCopy.swift", "BrainDumpCopy")
+def test_each_shared_dictionary_has_one_copy():
+    """The words, the models and the rules were once in the package and in the iPhone target both. Now a type is declared
+    once: in PointeUI (the screens both apps draw) or under it in PointeKit, never in an app target."""
+    declared: dict[str, list[str]] = {}
+    for source in [*KIT.rglob("*.swift"), *(ROOT / "ios" / "Pointe").glob("*.swift"), *(MAC / "PointeMac").glob("*.swift")]:
+        for name in re.findall(r"^(?:public )?(?:final )?(?:enum|struct|class) (\w+)", source.read_text(), re.M):
+            declared.setdefault(name, []).append(str(source.relative_to(ROOT)))
+    # one file may declare a type once per platform (`#if os(iOS)` … `#else`): that is one type, not a copy
+    twice = {name: where for name, where in declared.items() if len(set(where)) > 1}
+    assert not twice, twice
+    for name in ("ConnectCopy", "TurnsCopy", "AboutCopy", "BrainDumpCopy", "TalkDraft", "TalkStyle", "TalkGate", "API", "MachineView", "AlertPlan", "Theme"):
+        assert len(set(declared[name])) == 1 and "/PointeUI/" in declared[name][0], (name, declared.get(name))
+    for name in ("NewSessionCopy", "Harness", "Wire", "MacCopy", "NewSession"):
+        assert len(set(declared[name])) == 1 and "/Sources/PointeKit/" in declared[name][0], (name, declared.get(name))
+    dump = swift_enum(UI / "BrainDump.swift", "BrainDumpCopy")
     assert dump == page_dict("DUMP_COPY"), "the brain dump's words are the page's, all of them"
-    turns = swift_enum(KIT / "PointeKit" / "Copy.swift", "TurnsCopy")
-    assert turns["holding"] == "Holding" and "holding: 'Holding'" in PAGE
-    about = swift_enum(KIT / "PointeKit" / "Copy.swift", "AboutCopy")
-    assert about["body"] == page_dict("ABOUT_COPY")["body"]
+    assert swift_enum(UI / "About.swift", "AboutCopy")["body"] == page_dict("ABOUT_COPY")["body"]
+
+
+def test_the_phone_sheet_says_the_pages_words():
+    """Pair a phone from the Mac app: Settings → Phone, as on the page (ui.html)."""
+    copy = swift_enum(UI / "PhoneSheet.swift", "PhoneCopy")
+    for key in ("none", "connect", "connectAnother", "unpair", "unpairAll", "unpairAllSure", "how", "looking", "hostHint", "check", "show",
+                "cancel", "scan", "copyLink", "copied", "expired", "noAnswer", "newCertificate", "recommended", "setUpNow", "allUnpaired"):
+        assert copy[key].replace("'", "\\'") in PAGE or copy[key] in PAGE, f"{key}: the page does not say {copy[key]!r}"
+    rule = re.search(r"const PHONE_RULE = '([^']*)' \+\s*'([^']*)';", PAGE)
+    assert copy["rule"] == rule.group(1) + rule.group(2)
+    sheet = (UI / "PhoneSheet.swift").read_text()
+    for route in ("voice/phone/routes", "voice/phone/invite", "voice/phone/unpair"):
+        assert f'"{route}"' in sheet and f"'/{route}" in PAGE
+    assert sheet.lstrip().startswith("//") and "#if os(macOS)" in sheet.split("import SwiftUI")[0], "the Mac's alone: the phone reads the code"
 
 
 def test_the_theme_tokens_are_the_sources():
     theme = json.loads((ROOT / "assets" / "theme.json").read_text())["tokens"]
-    text = (KIT / "PointeKit" / "Theme.swift").read_text()
+    text = (UI / "Brand.swift").read_text()  # one set of tokens: the Mac draws with the iPhone app's
     block = text[text.index("// theme tokens"):text.index("// end of theme tokens")]
     found = {}
     for name, lhex, la, dhex, da in re.findall(
-            r"static let (\w+) = Token\(light: 0x([0-9A-F]{6})(?:, ([\d.]+))?, dark: 0x([0-9A-F]{6})(?:, ([\d.]+))?\)", block):
+            r"static let (\w+) = Color\(light: 0x([0-9A-F]{6})(?:, ([\d.]+))?, dark: 0x([0-9A-F]{6})(?:, ([\d.]+))?\)", block):
         found[re.sub(r"(?<=[a-z])(?=[A-Z])", "-", name).lower()] = ((lhex, float(la or 1)), (dhex, float(da or 1)))
 
     def parts(value: str) -> tuple[str, float]:
@@ -119,8 +151,11 @@ def test_the_wire_format_and_the_keys_are_the_daemons():
     assert f"protocolVersion = {phone.PROTOCOL}" in wire
     assert f"upRate = {phone.IN_RATE}.0" in wire and f"downRate = {phone.OUT_RATE}.0" in wire
     assert "chunk = 320" in wire and phone.IN_RATE * 20 // 1000 == 320, "20 ms up"
-    link = (KIT / "PointeKit" / "CallLink.swift").read_text()
+    link = (UI / "Call.swift").read_text()  # one call for both apps
     assert "deadAfter: TimeInterval = 6" in link and "aliveEvery: Duration = .seconds(2)" in link, "phone.py: dead after 6 s, alive every 2 s"
+    assert '"protocol": 4, "device": link.device' in link and phone.PROTOCOL == 4
+    daemon_link = (UI / "DaemonLink.swift").read_text()
+    assert 'isLocal ? "Mac" : "iPhone"' in daemon_link and "hello.get(\"device\") == \"Mac\"" in (ROOT / "daemon.py").read_text()
     locator = (KIT / "PointeMacKit" / "DaemonLocator.swift").read_text()
     cases = re.search(r"enum Vendor: [^{]*\{\s*case ([^\n]+)", locator).group(1).replace(" ", "").split(",")
     assert sorted(cases) == sorted(vendors.KEYS) and 'var service: String { "\\(rawValue)-api-key" }' in locator
@@ -137,13 +172,20 @@ def test_the_app_asks_for_one_entitlement_and_loopback_only():
     assert info["NSAppTransportSecurity"] == {"NSAllowsLocalNetworking": True} and info["LSUIElement"] is True
     assert "CFBundleURLTypes" not in info and info["NSMicrophoneUsageDescription"]
     # every URL the app builds is on loopback; the others are shown, never fetched
+    # what only the phone compiles (its pairing, its listener's address) is not the Mac's code
+    sys.path.insert(0, str(ROOT / "tools"))
+    import parity
     hosts = set()
-    for source in [*KIT.rglob("*.swift"), *(MAC / "PointeMac").rglob("*.swift")]:
-        hosts |= set(re.findall(r"(?:https?|wss?)://([A-Za-z0-9\\(][A-Za-z0-9.\\()-]*)", source.read_text()))
+    for path, text in parity.sources("mac").items():
+        if path.endswith(("Pairing.swift", "Demo.swift")):  # the phone's pairing with a Mac's TLS listener; the demo's invented one
+            continue
+        hosts |= set(re.findall(r"(?:https?|wss?)://([A-Za-z0-9\\(][A-Za-z0-9.\\()-]*)", text))
     assert hosts <= {"\\(Self.host)", "github.com", "ballerine.com"}, hosts
+    link = (UI / "DaemonLink.swift").read_text()
+    assert "case .local(let daemon): daemon.endpoint()?.base" in link and "daemon.endpoint()?.callRequest" in link, "the Mac's link is the verified loopback endpoint"
     assert 'public static let host = "127.0.0.1"' in (KIT / "PointeKit" / "DaemonClient.swift").read_text()
     # no secret ever goes to a logger: the sources that log never name a key, a cookie or a credential in a log call
-    for source in (MAC / "PointeMac").rglob("*.swift"):
+    for source in [*(MAC / "PointeMac").rglob("*.swift"), *UI.glob("*.swift")]:
         for line in source.read_text().splitlines():
             if re.search(r"\blog\.(debug|info|notice|error|fault)\(|NSLog\(|print\(", line):
                 assert not re.search(r"key\b(?!Code)|cookie|credential|token|secret", line, re.I) or "hot key" in line, f"{source.name}: {line.strip()}"

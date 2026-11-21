@@ -1,9 +1,12 @@
 import AppKit
 import PointeKit
+import PointeUI
 import SwiftUI
 
-/// Pointe for the Mac: a menu bar item, a window for the call, and Settings. It is a client of the daemon on this Mac
-/// (docs/design/macos-app.md); with no window open it has no Dock icon.
+/// Pointe for the Mac: a menu bar item and a window for the call. The window draws the screens the iPhone app draws
+/// (the shared module, docs/design/parity.md); this target is the Mac's shell around them: the menu bar item, the menus
+/// and their keys, the call bubble, the talk shortcut, start at login, and finding and starting Pointe on this Mac.
+/// With no window open it has no Dock icon.
 @main
 struct PointeMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
@@ -16,27 +19,56 @@ struct PointeMacApp: App {
             MenuBarLabel().environment(model)
         }
         .menuBarExtraStyle(.menu)
+        .commands { PointeCommands(model: model) }
+    }
+}
 
-        Settings {
-            SettingsView().environment(model)
+/// The menu bar's menus: every main action has a key (docs/design/parity.md, "Keys").
+struct PointeCommands: Commands {
+    let model: AppModel
+
+    var body: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button("About Pointe") { model.ask(.about) }
         }
-        .commands {
-            CommandGroup(replacing: .newItem) {
-                Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
-                Button(NewSessionCopy.title) { model.newSession() }.keyboardShortcut("n")
-                    .disabled(model.daemon != .running)
-            }
-            CommandMenu("Call") {
-                Button(model.call.state == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
-                    .keyboardShortcut(.return, modifiers: .command)
-                Button(BrainDumpCopy.buttonLabel(model.store.dump)) { Task { await model.store.dumpButton() } }
-                    .keyboardShortcut("b")
-                    .disabled(model.call.state != .live)
-                Divider()
-                Button(MacCopy.openPage) { model.openPage() }.keyboardShortcut("p", modifiers: [.command, .shift])
-            }
+        CommandGroup(replacing: .appSettings) {
+            Button("Settings…") { model.ask(.settings) }.keyboardShortcut(",")
+        }
+        CommandGroup(replacing: .newItem) {
+            Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
+            Button(MacMenu.newSession) { model.ask(.newSession) }.keyboardShortcut("n")
+                .disabled(!model.ready)
+        }
+        CommandMenu("Call") {
+            Button(model.session.phase == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(model.session.isDemo)
+            Button(model.session.dumpLabel) { model.ask(.brainDump) }
+                .keyboardShortcut("b")
+                .disabled(!model.session.live)
+            Button(MacMenu.type) { model.ask(.type) }.keyboardShortcut("t").disabled(!model.ready)
+            Divider()
+            Button(MacMenu.sessions) { model.ask(.sessions) }.keyboardShortcut("s", modifiers: [.command, .shift]).disabled(!model.ready)
+            Button(MacMenu.meeting) { model.ask(.meeting) }.keyboardShortcut("m", modifiers: [.command, .shift]).disabled(!model.ready)
+            Button(MacMenu.briefing) { model.ask(.briefing) }.keyboardShortcut("b", modifiers: [.command, .shift]).disabled(!model.ready)
+            Button(MacMenu.machines) { model.ask(.machines) }.disabled(!model.ready)
+            Button(MacMenu.phone) { model.ask(.phone) }.disabled(!model.ready || model.session.isDemo)
+            Divider()
+            Button(MacCopy.openPage) { model.openPage() }.keyboardShortcut("p", modifiers: [.command, .shift])
+                .disabled(model.daemon != .running)
         }
     }
+}
+
+/// The menus' own words: each names the sheet it opens by that sheet's title.
+enum MacMenu {
+    static let newSession = "New Session"
+    static let type = "Type Instead of Talking"
+    static let sessions = "Sessions and Mode"
+    static let meeting = "Start a Meeting"
+    static let briefing = "Briefing"
+    static let machines = "Machines"
+    static let phone = "Pair a Phone…"
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -60,15 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Quitting ends the call cleanly, so a held prompt goes back to its terminal at once.
     func applicationWillTerminate(_ notification: Notification) {
         guard !Self.hostsTests else { return }
-        AppModel.shared.call.hangUp()
-    }
-}
-
-extension PointeStore {
-    /// The one brain dump button: start, done, or back to the review.
-    func dumpButton() async {
-        guard let dump else { await dumpAction("start"); return }
-        if dump.isDumping { await dumpAction("done") }
+        AppModel.shared.session.hangUp()
     }
 }
 
@@ -78,19 +102,20 @@ struct MenuBarLabel: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        let state = model.store.menuBar
+        let session = model.session
+        let glyph = session.glyph
         HStack(spacing: 3) {
-            Image(Self.image(state.kind))
-            if state.kind == .talking { Image(systemName: "mic.fill") }
-            if state.count > 0 { Text("\(state.count)").monospacedDigit() }
+            Image(Self.image(glyph))
+            if glyph == .talking { Image(systemName: "mic.fill") }
+            if glyph == .needsYou { Text("\(session.needCount)").monospacedDigit() }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilityLabel)
-        .help(state.title)
+        .accessibilityLabel("\(MacCopy.appName): \(session.menuTitle)")
+        .help(session.menuTitle)
     }
 
-    static func image(_ kind: MenuBarState.Kind) -> String {
-        switch kind {
+    static func image(_ glyph: MacSession.Glyph) -> String {
+        switch glyph {
         case .down, .off: "MenuOff"
         case .live, .talking, .speaking, .needsYou: "MenuLive"
         }
@@ -100,37 +125,29 @@ struct MenuBarLabel: View {
 /// The menu: the state, the call, who needs you, and the ways in.
 struct MenuContent: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        let store = model.store
-        Text(store.menuBar.title)
-        if let note = store.versionNote { Text(note.line) }
+        let session = model.session
+        Text(session.menuTitle)
+        if let note = model.versionNote { Text(note.line) }
         Divider()
-        Button(model.call.state == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
-            .disabled(model.daemon == .node || model.daemon == .noPlugin || model.daemon == .squatter)
-        if model.call.state == .live {
-            Button(BrainDumpCopy.buttonLabel(store.dump)) {
-                Task { await store.dumpButton() }
-                model.windows.showMain()
-            }
+        Button(session.phase == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
+            .disabled(model.daemon == .node || model.daemon == .noPlugin || model.daemon == .squatter || session.isDemo)
+        if session.live {
+            Button(session.dumpLabel) { model.ask(.brainDump) }
         }
-        let pending = store.pending
-        if !pending.isEmpty {
+        let waiting = session.waiting
+        if !waiting.isEmpty {
             Divider()
-            ForEach(pending) { approval in
-                Button("\(approval.label): \(MacCopy.tagApprove)…") { model.windows.showMain() }
+            ForEach(waiting) { item in
+                Button("\(item.label): \(MacCopy.tagApprove)…") { model.windows.showMain() }
             }
         }
         Divider()
         Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
-        Button(NewSessionCopy.title) { model.newSession() }.disabled(model.daemon != .running)
+        Button(MacMenu.newSession) { model.ask(.newSession) }.disabled(!model.ready)
         Toggle("Show call bubble", isOn: Binding(get: { model.bubbleOn }, set: { model.bubbleOn = $0 }))
-        Button("Settings…") {
-            model.windows.activate()
-            openSettings()
-        }
-        .keyboardShortcut(",")
+        Button("Settings…") { model.ask(.settings) }.keyboardShortcut(",")
         Divider()
         Button("Quit Pointe") { NSApp.terminate(nil) }.keyboardShortcut("q")
     }

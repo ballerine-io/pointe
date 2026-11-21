@@ -1,6 +1,10 @@
 import CoreText
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 /// Ballerine Brand Guidelines V6 as the app uses it (docs/design/brand-v6.md). The colours, the theme choices, the font
 /// files and the harness marks are assets/theme.json, the same values the page (ui.html) carries: tests/test_theme.py
@@ -74,8 +78,10 @@ enum Brand {
         }
     }
 
-    /// Navigation titles and segmented controls are UIKit's: they take the families here, once, at launch.
+    /// Navigation titles and segmented controls are UIKit's: they take the families here, once, at launch. AppKit has
+    /// no appearance proxy: on the Mac a sheet's title is drawn by the sheet (`sheetChrome`), in the family.
     static func install() {
+        #if canImport(UIKit)
         let title = UIFont(name: displayRegular, size: 17) ?? .systemFont(ofSize: 17)
         let large = UIFont(name: displayLight, size: 34) ?? .systemFont(ofSize: 34, weight: .light)
         UINavigationBar.appearance().titleTextAttributes = [.font: title]
@@ -84,16 +90,24 @@ enum Brand {
         UISegmentedControl.appearance().setTitleTextAttributes([.font: segment, .foregroundColor: UIColor(text)], for: .normal)
         UISegmentedControl.appearance().backgroundColor = UIColor(raised)
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(card)
+        #endif
     }
 }
 
 extension Color {
     /// A colour that follows the appearance: 0xRRGGBB for each, with an optional opacity after it.
     init(light: UInt32, _ lightAlpha: Double = 1, dark: UInt32, _ darkAlpha: Double = 1) {
+        #if canImport(UIKit)
         func ui(_ hex: UInt32, _ alpha: Double) -> UIColor {
             UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
         }
         self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? ui(dark, darkAlpha) : ui(light, lightAlpha) })
+        #else
+        func ns(_ hex: UInt32, _ alpha: Double) -> NSColor {
+            NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
+        }
+        self.init(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? ns(dark, darkAlpha) : ns(light, lightAlpha) })
+        #endif
     }
 }
 
@@ -142,23 +156,6 @@ enum Theme: String, CaseIterable, Identifiable {
         }
     }
     static func stored(_ raw: String?) -> Theme { raw.flatMap(Theme.init(rawValue:)) ?? fallback }
-}
-
-/// Which coding agent runs a session. The vendors' own logos are not used: their terms do not let a third party show
-/// them recoloured without permission (docs/design/brand-v6.md), so the mark is a neutral letter tile with the agent's
-/// name as its label, and as text beside it once the voice mixes agents. The table is assets/theme.json's.
-enum Harness {
-    static let marks: [String: (name: String, glyph: String)] = [
-        "claude-code": (name: "Claude", glyph: "C"),
-        "codex": (name: "Codex", glyph: "X"),
-        "opencode": (name: "OpenCode", glyph: "O"),
-        "pi": (name: "Pi", glyph: "P"),
-    ]
-
-    static func mark(_ harness: String?) -> (name: String, glyph: String) {
-        let id = (harness ?? "").isEmpty ? "claude-code" : harness!
-        return marks[id] ?? (name: id, glyph: String(id.prefix(1)).uppercased())
-    }
 }
 
 struct HarnessMark: View {
@@ -282,11 +279,15 @@ struct BrandForm<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
+        #if os(macOS)
+        MacSections { content }
+        #else
         Form { Group { content }.listRowBackground(Brand.cell).listRowSeparatorTint(Brand.line) }
             .toggleStyle(SwitchToggleStyle(tint: Brand.orange))  // a switch that is on is the brand's orange, in every sheet
             .contentMargins(.top, 12, for: .scrollContent)       // under an inline title the system's 35 points read as a hole
             .scrollContentBackground(.hidden)
             .background(Brand.group)
+        #endif
     }
 }
 
@@ -295,13 +296,78 @@ struct BrandList<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
+        #if os(macOS)
+        MacSections { content }
+        #else
         List { Group { content }.listRowBackground(Brand.cell).listRowSeparatorTint(Brand.line) }
             .toggleStyle(SwitchToggleStyle(tint: Brand.orange))  // a switch that is on is the brand's orange, in every sheet
             .contentMargins(.top, 12, for: .scrollContent)       // under an inline title the system's 35 points read as a hole
             .scrollContentBackground(.hidden)
             .background(Brand.group)
+        #endif
     }
 }
+
+#if os(macOS)
+/// A settings list on the Mac, drawn as the phone's grouped list and the page's settings cards are: a kicker, a card of
+/// rows divided by hairlines, a muted footnote. AppKit's own Form is a two-column table of right-aligned labels in the
+/// system's greys, which is another product's look; the sections and rows are the same ones the phone's Form gets.
+struct MacSections<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                ForEach(sections: content) { section in
+                    VStack(alignment: .leading, spacing: 6) {
+                        section.header.brandKicker().padding(.horizontal, 12)
+                        Group(subviews: section.content) { rows in
+                            if !rows.isEmpty {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                                        row.frame(maxWidth: .infinity, alignment: .leading)
+                                            .padding(.horizontal, 12).padding(.vertical, 9)
+                                        if index < rows.count - 1 { Rectangle().fill(Brand.line).frame(height: 1).padding(.leading, 12) }
+                                    }
+                                }
+                                .background(Brand.cell, in: RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.line))
+                            }
+                        }
+                        section.footer.brandFootnote().fixedSize(horizontal: false, vertical: true).padding(.horizontal, 12)
+                    }
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .toggleStyle(SpreadToggle())
+        .labeledContentStyle(SpreadLabeled())
+        .background(Brand.group)
+    }
+}
+
+/// A row's label at the leading edge and its control at the trailing one, as a grouped list lays it out on the phone.
+private struct SpreadLabeled: LabeledContentStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            configuration.label
+            Spacer(minLength: 8)
+            configuration.content
+        }
+    }
+}
+
+private struct SpreadToggle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 12) {
+            configuration.label
+            Spacer(minLength: 8)
+            Toggle("", isOn: configuration.$isOn).labelsHidden().toggleStyle(SwitchToggleStyle(tint: Brand.orange))
+        }
+    }
+}
+#endif
 
 extension View {
     /// The screen behind a call: the page colour, and on dark the brand's one orange glow off the top right edge.

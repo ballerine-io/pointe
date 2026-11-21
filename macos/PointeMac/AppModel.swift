@@ -3,67 +3,25 @@ import Observation
 import OSLog
 import PointeKit
 import PointeMacKit
+import PointeUI
+
+enum Log {
+    static let subsystem = "io.ballerine.pointe.mac"
+}
 
 /// Where to reach the daemon, once the locator has checked that the listener is the daemon. Empty until then, and
 /// emptied the moment a request cannot connect: the page key is never sent to a port that was not just verified.
 final class EndpointBox: @unchecked Sendable {
     private let lock = NSLock()
     private var value: DaemonEndpoint?
-    let session = DaemonEndpoint.session()
 
     var endpoint: DaemonEndpoint? { lock.withLock { value } }
     func set(_ endpoint: DaemonEndpoint?) { lock.withLock { value = endpoint } }
 }
 
-/// The daemon behind the box: every call goes to the endpoint verified last, or fails as "not reachable".
-struct LiveDaemon: DaemonAPI {
-    let box: EndpointBox
-
-    private func run<T: Sendable>(_ work: (DaemonClient) async throws -> T) async throws -> T {
-        guard let endpoint = box.endpoint else { throw URLError(.cannotConnectToHost) }
-        do {
-            return try await work(DaemonClient(endpoint: endpoint, session: box.session))
-        } catch let failure as API.Failure {
-            throw failure  // the daemon answered: it is there
-        } catch {
-            box.set(nil)   // nothing answered: whoever listens next is checked before it gets the key
-            throw error
-        }
-    }
-
-    func status() async throws -> API.Status { try await run { try await $0.status() } }
-    func prefs() async throws -> API.Prefs { try await run { try await $0.prefs() } }
-    func setPrefs(_ changes: [String: JSONValue]) async throws { try await run { try await $0.setPrefs(changes) } }
-    func answer(session: String, requestId: String, allow: Bool, viaNotification: Bool) async throws {
-        try await run { try await $0.answer(session: session, requestId: requestId, allow: allow, viaNotification: viaNotification) }
-    }
-    func switchTo(_ name: String) async throws { try await run { try await $0.switchTo(name) } }
-    func disconnect(_ name: String) async throws { try await run { try await $0.disconnect(name) } }
-    func say(_ text: String) async throws { try await run { try await $0.say(text) } }
-    func correct(turn: Int, to text: String) async throws { try await run { try await $0.correct(turn: turn, to: text) } }
-    func hungUp() async throws { try await run { try await $0.hungUp() } }
-    func dump(_ action: String, text: String?, session: String?, to: String?) async throws {
-        try await run { try await $0.dump(action, text: text, session: session, to: to) }
-    }
-    func voiceLock(level: String) async throws { try await run { try await $0.voiceLock(level: level) } }
-    func talk(_ action: String) async throws { try await run { try await $0.talk(action) } }
-    func dismissAttention(_ id: String) async throws { try await run { try await $0.dismissAttention(id) } }
-    func startOptions() async throws -> NewSession.Options { try await run { try await $0.startOptions() } }
-    func newSession(_ body: [String: String]) async throws { try await run { try await $0.newSession(body) } }
-}
-
-/// Dials the endpoint in the box; with none, the dial fails as "never answered" and is tried again.
-struct BoxDialer: CallDialer {
-    let box: EndpointBox
-
-    func dial() async throws -> any CallSocket {
-        guard let endpoint = box.endpoint else { throw CallClose(code: 0) }
-        return try await URLSessionCallDialer(request: { endpoint.callRequest }).dial()
-    }
-}
-
-/// The app: the daemon on this Mac (found, checked, started), the call, the store the screens read, and what belongs
-/// to this Mac alone (appearance, talk style, the shortcut, the bubble, alerts, start at login).
+/// The Mac app's shell: the daemon on this Mac (found, checked, started), and what belongs to this Mac alone (the
+/// shortcut, the bubble, start at login, the keys' presence). The call and every screen are the shared module's
+/// (`MacSession`, `PointeMacRoot`): the same ones the iPhone app draws (docs/design/parity.md).
 @MainActor @Observable
 final class AppModel {
     enum DaemonPhase: Equatable {
@@ -73,11 +31,8 @@ final class AppModel {
 
     static let shared = AppModel()
 
-    let store: PointeStore
-    let call: CallLink
+    let session: MacSession
     let appVersion: String
-    /// A made-up daemon (launch argument `-PointeStub busy|empty`): for the UI tests and screenshots.
-    let stub: StubDaemon?
 
     private(set) var daemon: DaemonPhase = .checking
     private(set) var plugin: PluginInstall?
@@ -88,99 +43,60 @@ final class AppModel {
     /// The shortcut arrived since Settings asked for it: proof that nothing else owns it.
     private(set) var shortcutSeen = false
     private(set) var shortcutNote: String?
-    private(set) var micDenied = false
-    /// The New session sheet is open on the window.
-    var newSessionShown = false
-    /// False while the call is up on audio that cannot cancel echo: the window says to use headphones.
-    @ObservationIgnored private var echoCheck: @MainActor () -> Bool = { true }
+    /// The folders a new session may start in (the daemon's setting, changed at the Mac only); nil until it answered.
+    private(set) var folders: [String]?
+    private(set) var foldersNote: String?
 
-    var theme: Theme { didSet { defaults.set(theme.rawValue, forKey: Theme.key); applyTheme() } }
-    var talkStyle: TalkStyle { didSet { defaults.set(talkStyle.rawValue, forKey: TalkStyle.key); call.talkStyle = talkStyle } }
     var shortcut: Shortcut? { didSet { Shortcut.store(shortcut, in: defaults); registerShortcut() } }
     var bubbleOn: Bool { didSet { defaults.set(bubbleOn, forKey: Keys.bubble); windows.setBubble(bubbleOn) } }
-    var alertsOn: Bool { didSet { defaults.set(alertsOn, forKey: Keys.alerts); alertsChanged() } }
 
     enum Keys {
         static let bubble = "pointe.bubble"
-        static let alerts = "pointe.alerts"
-        static let stubSuite = "io.ballerine.pointe.mac.stub"
+        static let opened = "pointe.opened"
     }
 
     let windows = Windows()
-    private let defaults: UserDefaults
+    private let defaults = UserDefaults.standard
     private let locator = DaemonLocator()
     private let box = EndpointBox()
     private let hotKey = HotKey()
-    private let notifier = Notifier()
     private var watcher: Task<Void, Never>?
-    private let log = Logger(subsystem: Log.subsystem, category: "app")
+    private var themeObserver: NSObjectProtocol?
 
     private init() {
-        let arguments = UserDefaults.standard
         appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-        let words = CallLink.Words(notPaired: MacCopy.keyRefused, busy: MacCopy.busy, idleHangup: MacCopy.idleHangup,
-                                   micDenied: MacCopy.micDenied, noMic: MacCopy.noMic, micFailed: MacCopy.micFailed,
-                                   unreachable: { _ in MacCopy.daemonDown }, failed: MacCopy.failed)
-        if let scenario = arguments.string(forKey: "PointeStub") {
-            // The stub keeps its own settings, cleared at each launch, so a test never changes the real ones.
-            UserDefaults.standard.removePersistentDomain(forName: Keys.stubSuite)
-            defaults = UserDefaults(suiteName: Keys.stubSuite) ?? .standard
-            var status = scenario == "empty" ? StubDaemon.empty(version: appVersion) : StubDaemon.busy(connected: false, version: appVersion)
-            if let other = arguments.string(forKey: "PointeStubVersion") { status.version = other }
-            let microphone = arguments.string(forKey: "PointeStubMic") == "ptt" ? "ptt" : "always"
-            status.ptt = API.PTTStatus(mode: microphone, open: false)
-            if arguments.bool(forKey: "PointeStubReadBack") { status.start_pending = StubDaemon.readBack }
-            let daemon = StubDaemon(status: status, prefs: ["microphone": .string(microphone), "turns.patience": "normal"])
-            stub = daemon
-            call = CallLink(dialer: StubDialer(), audio: SilentAudio(), device: "Mac", place: MacCopy.thisMac, words: words,
-                            hungUp: { try? await daemon.hungUp() })
-            store = PointeStore(api: daemon, authenticator: FixedOwner(answer: arguments.string(forKey: "PointeStubOwner") != "no"),
-                                appVersion: appVersion, call: call)
-            self.daemon = .running
-        } else {
-            defaults = .standard
-            stub = nil
-            let live = LiveDaemon(box: box)
-            let audio = MacAudio()
-            call = CallLink(dialer: BoxDialer(box: box), audio: audio, device: "Mac", place: MacCopy.thisMac, words: words,
-                            idleHangup: { try? await live.status().idle_hangup }, hungUp: { try? await live.hungUp() })
-            store = PointeStore(api: live, authenticator: DeviceOwner(), appVersion: appVersion, call: call)
-            audio.onLost = { [weak call, weak store] why in
-                call?.hangUp()
-                store?.notice = MacCopy.micFailed(why)
-            }
-            echoCheck = { [weak audio] in audio?.cancelsEcho ?? true }
-        }
-        theme = Theme.stored(defaults.string(forKey: Theme.key))
-        talkStyle = TalkStyle.stored(in: defaults)
+        let box = box
+        session = MacSession(daemon: LocalDaemon(endpoint: { box.endpoint }, lost: { box.set(nil) }))
         shortcut = Shortcut.stored(in: defaults)
         bubbleOn = defaults.bool(forKey: Keys.bubble)
-        alertsOn = defaults.bool(forKey: Keys.alerts)
-        call.talkStyle = talkStyle
+        if session.isDemo { daemon = .running }  // a demo given at launch: nothing is looked for on this Mac
     }
+
+    /// The call screen shows: Pointe runs on this Mac, or a demo is on. Otherwise the window is the setup guide.
+    var ready: Bool { daemon == .running || session.isDemo || session.live }
 
     // MARK: launch
 
     func launch() {
+        PointeBoot.start()
         applyTheme()
-        loginItem = stub == nil && LoginItem.isOn
-        store.appIsFront = { [windows] in windows.mainIsFront }
-        hotKey.onDown = { [weak self] in self?.shortcutDown() }
-        hotKey.onUp = { [weak self] in self?.call.talkUp(.shortcut) }
-        registerShortcut()
-        if stub == nil {
-            notifier.install()
-            notifier.answer = { [store] in await store.answerFromNotification($0) }
-            notifier.open = { [weak self] in self?.windows.showMain() }
-            alertsChanged()
-            watcher = Task { [weak self] in await self?.watch() }
+        themeObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.applyTheme() }
         }
-        store.start()
+        let launchedForDemo = session.isDemo
+        loginItem = !launchedForDemo && LoginItem.isOn
+        session.alerts(isFront: { [windows] in windows.mainIsFront }, opened: { [windows] in windows.showMain() })
+        hotKey.onDown = { [weak self] in self?.shortcutDown() }
+        hotKey.onUp = { [weak self] in self?.session.talkUp() }
+        registerShortcut()
+        if !launchedForDemo {
+            watcher = Task { [weak self] in await self?.watch() }
+            session.start()
+        }
         windows.setBubble(bubbleOn)
-        if stub != nil, UserDefaults.standard.bool(forKey: "PointeStubConnect") { Task { await toggleCall() } }
-        // The window opens by itself the first time, when the daemon needs attention, and when a test asks.
-        if UserDefaults.standard.bool(forKey: "PointeOpenWindow") || !defaults.bool(forKey: "pointe.opened") {
-            defaults.set(true, forKey: "pointe.opened")
+        // The window opens by itself the first time, and when a test or a screenshot asks.
+        if UserDefaults.standard.bool(forKey: "PointeOpenWindow") || !defaults.bool(forKey: Keys.opened) {
+            if !launchedForDemo { defaults.set(true, forKey: Keys.opened) }
             windows.showMain()
         }
     }
@@ -190,7 +106,7 @@ final class AppModel {
     /// While the daemon is not verified or does not answer: find it, check who listens, read the key again.
     private func watch() async {
         while !Task.isCancelled {
-            if box.endpoint == nil || store.reach != .ok { await locate() }
+            if box.endpoint == nil || !session.reachable { await locate() }
             try? await Task.sleep(for: .seconds(box.endpoint == nil ? 2 : 1))
         }
     }
@@ -233,12 +149,12 @@ final class AppModel {
             return
         }
         await locate()
-        await store.refresh()
+        await session.refresh()
     }
 
     func restartDaemon() async {
         guard let plugin, daemon != .starting else { return }
-        call.hangUp()
+        session.hangUp()
         daemon = .starting
         box.set(nil)
         try? await locator.stop(plugin)
@@ -254,14 +170,17 @@ final class AppModel {
         case .stopped: MacCopy.daemonDown
         case .squatter: MacCopy.squatter
         case .starting: "Starting Pointe… the first start downloads about 180 MB."
-        case .running: store.status?.version.map { "Running, version \($0)" } ?? "Running"
+        case .running: session.daemonVersion.map { "Running, version \($0)" } ?? "Running"
         case .failed(let why): why
         }
     }
 
+    /// "Pointe on this Mac is 1.14.8; this app is 1.15.0", and how to bring the older side up; nil when they agree.
+    var versionNote: (line: String, fix: String)? { VersionCheck.note(app: appVersion, daemon: session.daemonVersion) }
+
     var pageURL: URL { DaemonEndpoint(port: locator.paths.port, credential: .token("")).pageURL }
 
-    /// The page, for what the app leaves to it. Opened the way `bin/voice-open` does, so the browser has its own key.
+    /// The page, opened the way `bin/voice-open` does, so the browser has its own key.
     func openPage() {
         guard let plugin else { NSWorkspace.shared.open(pageURL); return }
         Task.detached {
@@ -274,7 +193,7 @@ final class AppModel {
     // MARK: keys (never read: only whether one is there)
 
     func refreshKeys() {
-        guard stub == nil else { keys = [.gemini: true, .anthropic: true, .soniox: true, .elevenlabs: false, .openai: false]; return }
+        guard !session.isDemo else { keys = [.gemini: true, .anthropic: true, .soniox: true, .elevenlabs: false, .openai: false]; return }
         Task {
             let found = await Task.detached { Dictionary(uniqueKeysWithValues: Vendor.allCases.map { ($0, KeychainPresence.has($0)) }) }.value
             keys = found
@@ -287,25 +206,29 @@ final class AppModel {
         refreshKeys()
     }
 
+    // MARK: where a new session may start
+
+    func loadFolders() async {
+        guard !session.isDemo else { folders = ["/Users/dana/work/shop"]; return }
+        if let fresh = await session.sessionFolders() { folders = fresh }
+    }
+
+    func setFolders(_ paths: [String]) async {
+        foldersNote = await session.setSessionFolders(paths)
+        await loadFolders()
+    }
+
     // MARK: the call
 
     func toggleCall() async {
-        switch call.state {
-        case .off:
-            if daemon == .stopped { await startDaemon() }
-            await call.start()
-            micDenied = call.problem == MacCopy.micDenied
-            if call.state == .live, !echoCheck() { store.notice = MacCopy.noEchoCancelling }
-        case .connecting, .live, .reconnecting:
-            call.hangUp()
-        }
-        await store.refresh()
+        if !session.live, daemon == .stopped { await startDaemon() }
+        await session.toggleCall()
     }
 
-    /// From a menu: the sheet is the window's, so the window comes first.
-    func newSession() {
+    /// From a menu or a key: the sheet is the window's, so the window comes first.
+    func ask(_ command: MacSession.Command) {
         windows.showMain()
-        newSessionShown = true
+        session.ask(command)
     }
 
     func openMicrophoneSettings() {
@@ -333,8 +256,7 @@ final class AppModel {
     /// Pointe forward, so the key always does something you can see.
     private func shortcutDown() {
         shortcutSeen = true
-        guard call.state == .live else { windows.showMain(); return }
-        if call.talk.ptt { call.talkDown(.shortcut) } else { call.toggleMute() }
+        if !session.talkDown() { windows.showMain() }
     }
 
     // MARK: this Mac's settings
@@ -344,22 +266,13 @@ final class AppModel {
         loginItem = LoginItem.isOn
     }
 
-    private func alertsChanged() {
-        guard stub == nil else { return }
-        store.alerts = notifier
-        guard alertsOn else { store.alertsEnabled = false; return }
-        Task {
-            let allowed = await notifier.authorize()
-            store.alertsEnabled = allowed
-            if !allowed { alertsOn = false }
-        }
-    }
-
+    /// The window's chrome follows Appearance (System, Light, Dark), which the shared Settings keeps in the defaults.
     private func applyTheme() {
-        NSApp.appearance = switch theme {
-        case .system: nil
-        case .light: NSAppearance(named: .aqua)
-        case .dark: NSAppearance(named: .darkAqua)
+        let wanted: NSAppearance? = switch defaults.string(forKey: PointeLook.themeKey) {
+        case "light": NSAppearance(named: .aqua)
+        case "dark": NSAppearance(named: .darkAqua)
+        default: nil
         }
+        if NSApp.appearance?.name != wanted?.name { NSApp.appearance = wanted }
     }
 }

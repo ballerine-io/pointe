@@ -2,8 +2,15 @@ import Foundation
 
 /// The daemon's status and actions, over the same pinned HTTPS listener as the call.
 struct API {
-    let pairing: Pairing
+    let link: DaemonLink
     let session: URLSession
+
+    init(link: DaemonLink, session: URLSession) {
+        self.link = link
+        self.session = session
+    }
+
+    init(pairing: Pairing, session: URLSession) { self.init(link: DaemonLink(pairing), session: session) }
 
     /// The Mac keeps itself awake while a call from another device is up, on AC power only.
     struct KeepAwake: Decodable, Equatable {
@@ -54,6 +61,9 @@ struct API {
         var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
         var starting: [NewSession.Starting]?    // sessions Pointe is starting, or that just failed to; nil from an older Mac
         var start_pending: NewSession.Pending?  // a read-back that waits for a yes or a tap; nil when none
+        #if os(macOS)
+        var phones: Phones?         // Settings → Phone: the paired phones; the Mac sends them to its own page and app only
+        #endif
     }
 
     // MARK: machines (docs/multi-machine.md). With one machine, `machines` has only this Mac and nothing changes on screen.
@@ -455,27 +465,25 @@ struct API {
     }
     nonisolated(unsafe) static var deviceHeader = "iPhone"  // set once at launch, on the main actor (PointeApp)
 
-    private func request(_ path: String, method: String = "GET", body: [String: Any]? = nil,
-                         query: [URLQueryItem] = []) -> URLRequest {
-        var url = pairing.base.appendingPathComponent(path)
-        if !query.isEmpty, var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-            parts.queryItems = query
-            url = parts.url ?? url
+    func request(_ path: String, method: String = "GET", body: [String: Any]? = nil,
+                 query: [URLQueryItem] = []) -> URLRequest {
+        link.request(path, method: method, body: body, query: query)
+    }
+
+    /// The reply, whatever its status. On the Mac nothing is sent until the listener is verified, and a request nobody
+    /// answered has the listener checked again before the key goes out once more.
+    func send(_ r: URLRequest) async throws -> (Data, URLResponse) {
+        guard link.ready else { throw URLError(.cannotConnectToHost) }
+        do {
+            return try await session.data(for: r)
+        } catch {
+            link.unreachable()
+            throw error
         }
-        var r = URLRequest(url: url)
-        r.httpMethod = method
-        r.setValue("Bearer \(pairing.key)", forHTTPHeaderField: "Authorization")
-        r.setValue(API.deviceHeader, forHTTPHeaderField: "X-Pointe-Device")  // names a phone paired before per-phone keys
-        if let body {
-            r.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            r.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        }
-        r.timeoutInterval = 10
-        return r
     }
 
     private func checked(_ r: URLRequest) async throws -> Data {
-        let (data, response) = try await session.data(for: r)
+        let (data, response) = try await send(r)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String
@@ -542,7 +550,7 @@ struct API {
 
     /// The hub's routes (hub_nodes.py) answer a refusal as plain text ("no machine called x is paired"), not JSON.
     private func hub(_ path: String, _ body: [String: Any]) async throws -> Data {
-        let (data, response) = try await session.data(for: request(path, method: "POST", body: body))
+        let (data, response) = try await send(request(path, method: "POST", body: body))
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)

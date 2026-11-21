@@ -51,7 +51,7 @@ struct CallSettingsModel: Equatable, Sendable {
 /// A sheet of its own, opened from Settings once Settings has closed (one sheet at a time).
 enum CallSettingsLink: Equatable {
     case sessions, machines, meetingStart, meetingEnd, briefing, briefingSettings, meetingSettings, alerts, dictionary,
-         voiceLock, conflicts, show, about
+         voiceLock, conflicts, show, about, phone
 }
 
 /// What the rows do. Not compared: the closures are new on every render of the call and change nothing that shows.
@@ -75,6 +75,9 @@ struct CallSettingsSheet: View, Equatable {
     @Environment(\.dismiss) private var dismiss
     @State private var polishWanted: Bool?  // a switch moves at the tap; the Mac's word replaces it on the next status
     @State private var whisperWanted: Bool?
+    #if os(macOS)
+    @Environment(\.macSettings) private var macSections
+    #endif
 
     nonisolated static func == (a: Self, b: Self) -> Bool { a.model == b.model }
 
@@ -118,6 +121,9 @@ struct CallSettingsSheet: View, Equatable {
                 KickerSection("Call") {
                     row("Sessions and mode", "rectangle.stack", .sessions)
                     if model.machines { row(MachinesCopy.title, "desktopcomputer", .machines).accessibilityIdentifier("machinesItem") }
+                    #if os(macOS)  // the Mac is the side that shows the code a phone pairs with
+                    if !model.demo { row(PhoneCopy.title, "iphone", .phone).accessibilityIdentifier("phoneItem") }
+                    #endif
                     if !model.meetingOn { row("Start a meeting", "person.3", .meetingStart) }
                     if model.meetingEnded { row("The meeting that ended", "doc.text", .meetingEnd).accessibilityIdentifier("reopenMeetingEnd") }
                     row(BriefingCopy.title, "sun.horizon", .briefing)
@@ -134,12 +140,14 @@ struct CallSettingsSheet: View, Equatable {
                     if model.voiceLock { row(VoiceLockCopy.title, "lock.shield", .voiceLock) }
                     if model.conflicts { row(ConflictCopy.settingsTitle, "exclamationmark.triangle", .conflicts) }
                     if model.showOnPhone { row(ShowCopy.setting, "doc.text.magnifyingglass", .show).accessibilityIdentifier("showSettingItem") }
+                    #if os(iOS)  // a Mac has no motion sensor and no car's audio route: nothing to suggest from
                     if model.drive {
                         Toggle(isOn: Binding(get: { model.driveSuggest }, set: { act.setDriveSuggest($0) })) {
                             Label(DriveCopy.suggestSetting, systemImage: "car")
                         }
                         .accessibilityIdentifier("driveSuggestSetting")
                     }
+                    #endif
                     Picker(selection: $theme) {
                         ForEach(Theme.allCases) { Text($0.label).tag($0.rawValue) }
                     } label: { Label(Theme.setting, systemImage: "circle.lefthalf.filled") }
@@ -150,6 +158,12 @@ struct CallSettingsSheet: View, Equatable {
                     if let line = model.local { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
                     row(AboutCopy.title, "info.circle", .about).accessibilityIdentifier("aboutSetting")
                 }
+                #if os(macOS)
+                macSections  // what belongs to this Mac alone: the shortcut, the bubble, Pointe on this Mac, its keys
+                if model.demo {
+                    Section { Button(DemoBadge.exit, systemImage: "xmark.circle") { dismiss(); act.unpair() } }
+                }
+                #else
                 Section {
                     if model.demo {
                         Button(DemoBadge.exit, systemImage: "xmark.circle") { dismiss(); act.unpair() }
@@ -157,12 +171,12 @@ struct CallSettingsSheet: View, Equatable {
                         Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { dismiss(); act.unpair() }
                     }
                 }
+                #endif
             }
             .buttonStyle(BrandRowButtonStyle())
             .onChange(of: model.polish) { polishWanted = nil }
             .onChange(of: model.whisper) { whisperWanted = nil }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.automatic) } }
         }
     }

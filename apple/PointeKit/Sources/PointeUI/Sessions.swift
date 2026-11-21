@@ -149,21 +149,91 @@ struct SessionsSheet: View {
     var filter: Binding<String?> = .constant(nil)
     /// Starting a new session from here; nil hides the button.
     var starter: NewSessionActions? = nil
+    /// The Mac's wide window: this list is the window's left column (the page's), always there, not a sheet.
+    var docked: Docked? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var leaving: String?
     @State private var showNewSession = false
+    @State private var renaming: String?
+    @State private var newName = ""
+
+    struct Docked {
+        let settings: () -> Void
+        let rename: (String, String) -> Void
+    }
 
     private var machines: MachineView { MachineView(status) }
 
     var body: some View {
+        if let docked {
+            VStack(spacing: 0) {
+                list.listStyle(.inset)
+                HStack(spacing: 8) {  // the page's foot of the column: New session and Settings
+                    if starter != nil {
+                        Button { showNewSession = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
+                            .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("newSession")
+                    }
+                    Spacer(minLength: 0)
+                    Button(action: docked.settings) { Label("Settings", systemImage: "gearshape") }
+                        .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("sideSettings")
+                }
+                .padding(12)
+                .overlay(alignment: .top) { Rectangle().fill(Brand.line).frame(height: 1) }
+            }
+            .background(Brand.surface.ignoresSafeArea())
+            .confirmDisconnect($leaving, disconnect)
+            .sheet(isPresented: $showNewSession) { if let starter { NewSessionSheet(actions: starter).sheetSurface() } }
+            .alert("Rename \(renaming ?? "")", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+                TextField("Name", text: $newName)
+                Button("Rename") {
+                    let fresh = newName.trimmingCharacters(in: .whitespaces)
+                    if let old = renaming, !fresh.isEmpty, fresh != old { docked.rename(old, fresh) }
+                    renaming = nil
+                }
+                Button("Cancel", role: .cancel) { renaming = nil }
+            } message: { Text(SessionsCopy.renameHelp) }
+            .accessibilityIdentifier("sessionsColumn")
+        } else {
+            sheet
+        }
+    }
+
+    private var sheet: some View {
         NavigationStack {
+            list
+            .scrollContentBackground(.hidden)
+            .confirmDisconnect($leaving, disconnect)
+            .sheetTitle("Sessions")
+            .toolbar {
+                if starter != nil {
+                    ToolbarItem(placement: .sheetLeading) {
+                        Button(NewSessionCopy.title) { showNewSession = true }.accessibilityIdentifier("newSession")
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+            .sheet(isPresented: $showNewSession) {
+                if let starter {
+                    NewSessionSheet(actions: starter)
+                        .presentationDetents([.large])
+                        .sheetSurface()
+                }
+            }
+        }
+    }
+
+    private var list: some View {
             BrandList {
                 Section {
+                    Segments(selection: Binding(get: { status?.mode ?? "orchestrator" }, set: setMode),
+                             options: [("orchestrator", "Orchestrator"), ("session", "Session")]) {
                     Picker("Mode", selection: Binding(get: { status?.mode ?? "orchestrator" }, set: setMode)) {
                         Text("Orchestrator").tag("orchestrator")
                         Text("Session").tag("session")
                     }
                     .pickerStyle(.segmented)
+                    }
+                    .accessibilityIdentifier("modePicker")
                     .listRowBackground(Color.clear).listRowInsets(EdgeInsets())  // edge to edge with the cards below
                 } footer: {
                     Group {
@@ -206,26 +276,6 @@ struct SessionsSheet: View {
                 }
                 recentAndContext
             }
-            .scrollContentBackground(.hidden)
-            .confirmDisconnect($leaving, disconnect)
-            .navigationTitle("Sessions")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if starter != nil {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(NewSessionCopy.title) { showNewSession = true }.accessibilityIdentifier("newSession")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
-            .sheet(isPresented: $showNewSession) {
-                if let starter {
-                    NewSessionSheet(actions: starter)
-                        .presentationDetents([.large])
-                        .presentationBackground(Brand.group)
-                }
-            }
-        }
     }
 
     /// Sessions Pointe is starting, or that did not start: under the sessions, with no actions.
@@ -236,7 +286,7 @@ struct SessionsSheet: View {
     @ViewBuilder
     private func rows(_ sessions: [API.Session]) -> some View {
         ForEach(byAttention(sessions)) { s in
-            Button { switchTo(s.name); dismiss() } label: {
+            Button { switchTo(s.name); if docked == nil { dismiss() } } label: {
                 HStack {
                     Circle().fill(dot(s)).frame(width: 9, height: 9)
                     Text(s.name).foregroundStyle(.primary)
@@ -256,6 +306,11 @@ struct SessionsSheet: View {
             .buttonStyle(.plain)
             .swipeActions(edge: .trailing) {
                 Button("Disconnect", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
+            }
+            .contextMenu {  // a pointer has no swipe: the same actions as a session's chip
+                Button("Focus on this session", systemImage: "scope") { switchTo(s.name); if docked == nil { dismiss() } }
+                if docked != nil { Button("Rename", systemImage: "pencil") { newName = s.name; renaming = s.name } }
+                Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
             }
             .opacity(s.isOffline ? 0.5 : 1)
         }
@@ -286,7 +341,7 @@ struct SessionsSheet: View {
         Section {
         } footer: {
             Group {
-                Text("Swipe a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.")
+                Text("\(Surface.isMac ? "Right-click" : "Swipe") a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.")
             }.brandFootnote()
         }
     }
@@ -437,8 +492,9 @@ enum MachinesCopy {
     }
 
     /// The line the other machine pastes: the host, port and fingerprint this phone paired with, and the code.
-    static func joinLine(_ invite: API.Invite, pairing: Pairing) -> String {
+    static func joinLine(_ invite: API.Invite, pairing: Pairing?) -> String {
         if let link = invite.link, !link.isEmpty { return "pointe node join '\(link)'" }
+        guard let pairing else { return "pointe node join \(invite.code)" }  // the Mac app, and a daemon too old to send the line
         var c = URLComponents()
         c.scheme = "pointe"; c.host = "hub"
         c.queryItems = [.init(name: "v", value: "1"), .init(name: "host", value: pairing.host),

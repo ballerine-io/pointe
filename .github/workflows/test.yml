@@ -11,8 +11,9 @@ jobs:
         with:
           version: "0.12.21"  # the version bin/install-uv installs and the e2e images carry
       - run: uv run --locked pytest -q tests/ --ignore=tests/e2e
-  # The iPhone app: a simulator build, unsigned, and its unit tests (PointeTests). The UI tests need a test daemon or
-  # drive the simulator for minutes; they run locally (ios/e2e/, tests/e2e/ios_app.py).
+  # The iPhone app: a simulator build, unsigned, the tests that need the app around them (PointeTests), and the shared
+  # module's unit tests. The UI tests need a test daemon or drive the simulator for minutes; they run locally (ios/e2e/,
+  # tests/e2e/ios_app.py).
   ios:
     runs-on: macos-26
     timeout-minutes: 40
@@ -28,6 +29,13 @@ jobs:
           SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
           xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" -only-testing:PointeTests \
             CODE_SIGNING_ALLOWED=NO -quiet
+      # The screens, the call, the models and the rules are the shared module's (apple/PointeKit, PointeUI): the same tests
+      # the macos job runs with `swift test`, here on the iPhone.
+      - name: The shared module's unit tests, in the simulator
+        working-directory: apple/PointeKit
+        run: |
+          SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          xcodebuild test -scheme PointeKit-Package -destination "id=$SIM" -only-testing:PointeUIUnitTests -quiet
   # The Mac app (docs/design/macos-app.md): the package the two apps share, on its own (swift test, no simulator), then the
   # Mac app built ad hoc with its unit tests. Its UI tests need a person to unlock macOS's Automation Mode and its live
   # test needs a microphone and keys: both run locally (macos/test.sh ui, macos/e2e/live.py).
@@ -48,7 +56,7 @@ jobs:
           bin/pointe apps mac --dry-run
           bin/pointe apps ios --sim --dry-run
           POINTE_TEAM_FILE="$RUNNER_TEMP/team" bin/pointe apps ios --dry-run --team ABCDE12345
-      - name: PointeKit, the code the iPhone and Mac apps share
+      - name: The package the iPhone and Mac apps share (every screen, the call, the models), on the Mac
         working-directory: apple/PointeKit
         run: swift test
       - name: Build the Mac app and its UI tests, and run PointeMacTests

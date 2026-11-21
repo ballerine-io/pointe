@@ -1,6 +1,10 @@
+#if os(iOS)
 import BackgroundTasks
+#endif
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 import UserNotifications
 
 // Wrist approvals and alerts (docs/features/alerts.md). Pointe has no push server: these are local
@@ -12,6 +16,18 @@ import UserNotifications
 // Background App Refresh, at times iOS picks (often hours apart, never in Low Power Mode, never after the app was swiped
 // away). A request answered elsewhere while the app is suspended stays on the lock screen until the next check; an
 // action on it gets "Already answered".
+
+/// The Alerts sheet's lines as the Mac app says them: this Mac, Touch ID, System Settings.
+extension AlertCopy {
+    static var phoneHere: String { Surface.isMac ? "Alerts on this Mac" : phone }
+    static var helpHere: String {
+        Surface.isMac ? "A notification shows what Pointe would read out, never the hidden full text. Its Approve is offered only for a "
+            + "request Pointe can read out, and a locked Mac asks to unlock first; anything else opens the window, where Approve asks "
+            + "for Touch ID or your password. The second setting is shared with the page and the phone." : help
+    }
+    static var blockedHere: String { Surface.isMac ? "Notifications are off for Pointe. Turn them on in System Settings → Notifications." : blocked }
+    static var faceIDReasonHere: String { Surface.isMac ? "Approve from notifications without Touch ID" : faceIDReason }
+}
 
 enum AlertCopy {
     static let section = "Alerts"
@@ -141,10 +157,9 @@ enum AlertAnswer {
 }
 
 extension API {
-    /// Its own pinned session, for when no call (and no CallView) is around: an action or a background check.
-    static func standalone(_ pairing: Pairing) -> API {
-        API(pairing: pairing, session: URLSession(configuration: .ephemeral,
-                                                   delegate: PinnedDelegate(fingerprint: pairing.fingerprint), delegateQueue: nil))
+    /// Its own session, for when no call (and no CallView) is around: an action or a background check.
+    static func standalone(_ link: DaemonLink) -> API {
+        API(link: link, session: link.session(onOpen: {}))
     }
 }
 
@@ -158,6 +173,29 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
     private let defaults = UserDefaults.standard
 
     var enabled: Bool { defaults.bool(forKey: "pointe.alerts") }
+
+    /// The Mac app's link to its daemon, and whether its window is the one in front: set by the app. The iPhone has its
+    /// pairing in the Keychain and asks iOS whether it is on screen.
+    var local: DaemonLink?
+    var isFront: @MainActor () -> Bool = { true }
+    /// A notification was clicked (the Mac brings its window forward; iOS opens the app by itself).
+    var opened: @MainActor () -> Void = {}
+
+    private var link: DaemonLink? {
+        #if os(iOS)
+        PairingStore.load().map(DaemonLink.init)
+        #else
+        local
+        #endif
+    }
+
+    private var appActive: Bool {
+        #if os(iOS)
+        UIApplication.shared.applicationState == .active
+        #else
+        isFront()
+        #endif
+    }
 
     private var posted: Set<String> {
         get { Set(defaults.stringArray(forKey: "pointe.alerts.posted") ?? []) }
@@ -189,7 +227,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
     func sync(_ attention: [API.Attention]?, api: API?, machines: MachineView = MachineView(nil)) async {
         guard let attention else { return }
         let delivered = Set(await center.deliveredNotifications().map(\.request.identifier).filter { !$0.hasPrefix(Self.resultPrefix) })
-        let active = UIApplication.shared.applicationState == .active
+        let active = appActive
         var watchApprove = false
         let fresh = attention.contains { $0.kind == "permission" && !AlertPlan.postedWithActions($0.id, in: posted) }
         if enabled, !active, fresh, let api {  // read the Mac's setting as the notification is built; unknown is off
@@ -223,17 +261,20 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: Background App Refresh
 
+    /// The Mac app is never suspended: its menu bar item keeps the check running, and there is nothing to schedule.
     nonisolated static func schedule() {
+        #if os(iOS)
         let r = BGAppRefreshTaskRequest(identifier: refreshTask)
         r.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
         try? BGTaskScheduler.shared.submit(r)
+        #endif
     }
 
     /// iOS woke the app: one status check, and the next wake is asked for.
     func refresh() async {
         Self.schedule()
-        guard enabled, let pairing = PairingStore.load() else { return }
-        let api = API.standalone(pairing)
+        guard enabled, let link else { return }
+        let api = API.standalone(link)
         let status = try? await api.status()
         await sync(status?.attention, api: api, machines: MachineView(status))
     }
@@ -252,17 +293,19 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         let decision = AlertAnswer.decision(action: response.actionIdentifier, userInfo: content.userInfo)
         let id = response.notification.request.identifier, title = content.title
         nonisolated(unsafe) let done = completionHandler
+        let clicked = response.actionIdentifier == UNNotificationDefaultActionIdentifier
         Task { @MainActor in
             if let decision { await self.answer(decision, id: id, title: title) }
+            if clicked { self.opened() }
             done()
         }
     }
 
     private func answer(_ d: AlertAnswer.Decision, id: String, title: String) async {
-        guard let pairing = PairingStore.load() else { return }
+        guard let link else { return }
         var failure: Error?
         do {
-            try await API.standalone(pairing).answerFromNotification(session: d.session, requestId: d.requestId, allow: d.allow)
+            try await API.standalone(link).answerFromNotification(session: d.session, requestId: d.requestId, allow: d.allow)
         } catch {
             failure = error
         }
@@ -296,9 +339,9 @@ struct AlertsSheet: View {
         NavigationStack {
             BrandForm {
                 Section {
-                    Toggle(AlertCopy.phone, isOn: Binding(get: { phone }, set: { on in
+                    Toggle(AlertCopy.phoneHere, isOn: Binding(get: { phone }, set: { on in
                         phone = on
-                        Task { phone = await setPhone(on); note = on && !phone ? AlertCopy.blocked : nil }
+                        Task { phone = await setPhone(on); note = on && !phone ? AlertCopy.blockedHere : nil }
                     }))
                     .accessibilityIdentifier("alertsPhone")
                     Toggle(AlertCopy.watchApprove, isOn: Binding(get: { watch }, set: { on in
@@ -307,18 +350,19 @@ struct AlertsSheet: View {
                     .accessibilityIdentifier("alertsWatchApprove")
                 } footer: {
                     Group {
-                        Text(AlertCopy.help).accessibilityIdentifier("alertsHelp")
+                        Text(AlertCopy.helpHere).accessibilityIdentifier("alertsHelp")
                     }.brandFootnote()
                 }
+                #if os(iOS)  // the Mac app is never suspended: its menu bar item keeps checking
                 Section {
                     Text(AlertCopy.suspended).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                 }
+                #endif
                 if let note {
                     Text(note).foregroundStyle(Brand.accent).accessibilityIdentifier("alertsNote")
                 }
             }
-            .navigationTitle(AlertCopy.section)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(AlertCopy.section)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }

@@ -1,3 +1,5 @@
+// The pairing screen is the iPhone's alone: the Mac app talks to the daemon on its own Mac and has nothing to pair.
+#if os(iOS)
 import AVFoundation
 import SwiftUI
 
@@ -101,3 +103,4 @@ struct Scanner: UIViewRepresentable {
 
     func updateUIView(_ uiView: Preview, context: Context) {}
 }
+#endif

@@ -1,49 +1,17 @@
 import PointeKit
+import PointeUI
 import XCTest
 @testable import Pointe
 
-/// What is the Mac target's own: the rest is tested in the package (`swift test` in apple/PointeKit).
+/// What is the Mac target's own: the shell around the shared screens. The screens, the call, the models and the rules
+/// are tested in the package (`swift test` in apple/PointeKit), on the Mac and in the iPhone simulator.
+@MainActor
 final class PointeMacTests: XCTestCase {
-    /// The page key is sent only to an endpoint the locator verified: with none, nothing is dialled and nothing asked.
-    func testWithoutAVerifiedDaemonNothingIsSent() async {
-        let live = LiveDaemon(box: EndpointBox())
-        do {
-            _ = try await live.status()
-            XCTFail("no endpoint: nothing to ask")
-        } catch {
-            XCTAssertEqual((error as? URLError)?.code, .cannotConnectToHost)
-        }
-        do {
-            try await live.newSession(["confirm": "made-up"])
-            XCTFail("no endpoint: nothing is started")
-        } catch {
-            XCTAssertEqual((error as? URLError)?.code, .cannotConnectToHost)
-        }
-        do {
-            _ = try await BoxDialer(box: EndpointBox()).dial()
-            XCTFail("no endpoint: nothing to dial")
-        } catch {
-            XCTAssertEqual(error as? CallClose, CallClose(code: 0))
-        }
-    }
-
-    /// A daemon that stops answering is forgotten at once: whoever listens on the port next is checked first.
-    func testAnEndpointThatDoesNotAnswerIsForgotten() async {
-        let box = EndpointBox()
-        box.set(DaemonEndpoint(port: 9, credential: .pageKey("made-up")))  // the discard port: nothing answers HTTP there
-        do {
-            _ = try await LiveDaemon(box: box).status()
-            XCTFail("nothing listens there")
-        } catch {
-            XCTAssertNil(box.endpoint)
-        }
-    }
-
     /// The menu bar mark is the brand's small drawing in both states; only its strength changes.
     func testTheMenuBarImageFollowsTheState() {
         XCTAssertEqual(MenuBarLabel.image(.off), "MenuOff")
         XCTAssertEqual(MenuBarLabel.image(.down), "MenuOff")
-        for kind in [MenuBarState.Kind.live, .talking, .speaking, .needsYou] { XCTAssertEqual(MenuBarLabel.image(kind), "MenuLive") }
+        for glyph in [MacSession.Glyph.live, .talking, .speaking, .needsYou] { XCTAssertEqual(MenuBarLabel.image(glyph), "MenuLive") }
         for name in ["MenuOff", "MenuLive"] { XCTAssertNotNil(NSImage(named: name), name) }
     }
 
@@ -58,18 +26,53 @@ final class PointeMacTests: XCTestCase {
         XCTAssertNil(info["CFBundleURLTypes"], "no URL scheme: nothing outside can open the app with data")
     }
 
-    func testTheBrainDumpButtonStartsThenFinishes() async {
-        let daemon = StubDaemon()
-        let store = await PointeStore(api: daemon, authenticator: FixedOwner(answer: true), appVersion: "1.0.0")
-        await store.refresh()
-        await store.dumpButton()
-        let dumping = await store.dump?.isDumping
-        XCTAssertEqual(dumping, true)
-        await store.dumpButton()
-        let review = await store.dump?.inReview
-        XCTAssertEqual(review, true)
-        await store.dumpButton()  // in review the button changes nothing: the review is on screen
-        let calls = await daemon.calls
-        XCTAssertEqual(calls, ["dump start", "dump done"])
+    /// The box is what the shared screens ask for the daemon's address: empty until the locator verified a listener,
+    /// and emptied by `lost`, so the page key waits for the next check.
+    func testTheEndpointIsForgottenWhenNothingAnswers() {
+        let box = EndpointBox()
+        XCTAssertNil(box.endpoint)
+        let daemon = LocalDaemon(endpoint: { box.endpoint }, lost: { box.set(nil) })
+        box.set(DaemonEndpoint(port: 7999, credential: .pageKey("made-up")))
+        XCTAssertNotNil(box.endpoint)
+        XCTAssertEqual(daemon, daemon)
+        box.set(nil)
+        XCTAssertNil(box.endpoint)
+    }
+
+    /// With no call and no daemon the shell says so, and a press of the talk shortcut is not a talk press: the caller
+    /// brings the window forward instead.
+    func testWithNoCallTheShellIsOffAndTheShortcutOpensTheWindow() {
+        let session = MacSession(daemon: LocalDaemon(endpoint: { nil }))
+        XCTAssertEqual(session.phase, .off)
+        XCTAssertFalse(session.live)
+        XCTAssertEqual(session.glyph, .off)
+        XCTAssertEqual(session.needCount, 0)
+        XCTAssertTrue(session.waiting.isEmpty)
+        XCTAssertFalse(session.talkDown(), "no call: the shortcut opens the window")
+        session.talkUp()
+        XCTAssertEqual(session.dumpLabel, "Brain dump")
+    }
+
+    /// "Try a demo" shows invented sessions with a request waiting, live, and leaving it puts the shell back.
+    func testTheDemoShowsARequestAndLeavesNothingBehind() {
+        let session = MacSession(daemon: LocalDaemon(endpoint: { nil }))
+        session.tryDemo()
+        XCTAssertTrue(session.isDemo)
+        XCTAssertEqual(session.phase, .live)
+        XCTAssertEqual(session.needCount, 1)
+        XCTAssertEqual(session.glyph, .needsYou)
+        XCTAssertEqual(session.menuTitle, MacCopy.needYou(1))
+        XCTAssertEqual(session.waiting.count, 1)
+        session.exitDemo()
+        XCTAssertFalse(session.isDemo)
+        XCTAssertEqual(session.phase, .off)
+        XCTAssertEqual(session.needCount, 0)
+    }
+
+    /// Every menu command has a key, and no two share one (docs/design/parity.md, "Keys").
+    func testTheMenusWordsAreTheSheetsTitles() {
+        XCTAssertEqual(MacMenu.newSession, "New Session")
+        XCTAssertEqual(MacMenu.sessions, "Sessions and Mode")
+        XCTAssertEqual(MacMenu.meeting, "Start a Meeting")
     }
 }

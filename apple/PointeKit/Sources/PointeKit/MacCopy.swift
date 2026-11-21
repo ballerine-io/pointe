@@ -16,6 +16,7 @@ public enum MacCopy {
     public static let elsewhereWhy = "The call is on the phone or another page. Hang up there to talk here."
     public static let idleHangup = "The Mac hung up after 30 minutes of quiet. Press Connect to talk again."
     public static let typeLater = "Or type below once connected"
+    public static let pressConnect = "Press Connect to start talking"
     public static let typeToo = "Or type below · Press Space to mute"
     public static func connecting(_ place: String) -> String { "Connecting to \(place)…" }
     public static func micFailed(_ why: String) -> String { "The microphone could not start: \(why)" }

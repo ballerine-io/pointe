@@ -15,31 +15,3 @@ public enum Harness {
         return marks[id] ?? (name: id, glyph: String(id.prefix(1)).uppercased())
     }
 }
-
-/// The owner-voice lock's levels (docs/features/voice-lock.md), in rising order.
-public enum VoiceLockLevel: String, CaseIterable, Identifiable, Sendable {
-    case off, approvals, commands, everything
-    public var id: String { rawValue }
-
-    public var label: String {
-        switch self {
-        case .off: "Off"
-        case .approvals: "Approvals"
-        case .commands: "Commands"
-        case .everything: "Everything"
-        }
-    }
-
-    public var help: String {
-        switch self {
-        case .off: "Any voice works, as before."
-        case .approvals: "A spoken yes counts only in your voice. A no counts from anyone."
-        case .commands: "Only your voice reaches Pointe. Other voices are listed as ignored, with their words."
-        case .everything: "Only your voice reaches Pointe. Other voices are dropped unseen."
-        }
-    }
-
-    public var rank: Int { Self.allCases.firstIndex(of: self) ?? 0 }
-    /// Lowering the lock (or turning it off) takes away a guard: the clients ask who is there first.
-    public static func isLowering(from: VoiceLockLevel, to: VoiceLockLevel) -> Bool { to.rank < from.rank }
-}

@@ -17,8 +17,8 @@ let package = Package(
         .target(name: "PointeKit"),
         .target(name: "PointeUI", dependencies: ["PointeKit"], resources: [.process("Resources")]),
         .target(name: "PointeMacKit", dependencies: ["PointeKit"]),
-        .testTarget(name: "PointeKitTests", dependencies: ["PointeKit"], resources: [.copy("Fixtures")]),
-        .testTarget(name: "PointeUIUnitTests", dependencies: ["PointeUI"]),
+        .testTarget(name: "PointeKitTests", dependencies: ["PointeKit"]),
+        .testTarget(name: "PointeUIUnitTests", dependencies: ["PointeUI"], resources: [.copy("Fixtures")]),
         .testTarget(name: "PointeMacKitTests", dependencies: ["PointeMacKit"]),
     ],
     swiftLanguageModes: [.v6]

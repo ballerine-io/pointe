@@ -15,49 +15,7 @@ import parity  # noqa: E402
 
 # A gap that is known and being closed. Each entry is (feature id, surface). The test fails for a gap that is not
 # listed, and for a listed gap that is closed: delete the entry in the change that closes it. The aim is an empty set.
-KNOWN_GAPS: set[tuple[str, str]] = {
-    ("about", "mac"),
-    ("approve.more", "mac"),
-    ("briefing.ready", "mac"),
-    ("briefing.schedule", "mac"),
-    ("briefing.sheet", "mac"),
-    ("call.context", "mac"),
-    ("call.new-pill", "mac"),
-    ("call.polish", "mac"),
-    ("call.recent", "mac"),
-    ("call.rtl", "mac"),
-    ("challenge.panel", "mac"),
-    ("conflicts.card", "mac"),
-    ("conflicts.settings", "mac"),
-    ("demo", "mac"),
-    ("dictionary.sheet", "mac"),
-    ("dictionary.toast", "mac"),
-    ("drive.screen", "mac"),
-    ("drive.start", "mac"),
-    ("drive.start", "web"),
-    ("dump.challenge", "mac"),
-    ("help", "mac"),
-    ("lock.enrol", "mac"),
-    ("lock.ignored", "mac"),
-    ("machines.invite", "mac"),
-    ("machines.list", "mac"),
-    ("meeting.ask", "mac"),
-    ("meeting.end", "mac"),
-    ("meeting.hand", "mac"),
-    ("meeting.mode", "mac"),
-    ("meeting.notes", "mac"),
-    ("meeting.settings", "mac"),
-    ("meeting.speakers", "mac"),
-    ("meeting.start", "mac"),
-    ("pair.show", "mac"),
-    ("sessions.filter", "mac"),
-    ("sessions.mode", "mac"),
-    ("sessions.rename", "mac"),
-    ("show.card", "mac"),
-    ("show.setting", "mac"),
-    ("talk.switch", "mac"),
-    ("whisper", "mac"),
-}
+KNOWN_GAPS: set[tuple[str, str]] = set()
 
 MATRIX = parity.scan()
 

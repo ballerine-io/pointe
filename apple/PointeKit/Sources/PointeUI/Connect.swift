@@ -1,3 +1,4 @@
+import PointeKit
 import SwiftUI
 
 /// Connect: the one control that starts the call. Its words are the page's (`CONNECT_COPY` in ui.html); the parity
@@ -33,11 +34,25 @@ enum ConnectCopy {
 
     static func offTitle(reach: Reach, macOnACall: Bool) -> String {
         switch reach {
-        case .rejected: return notPairedTitle
-        case .unreachable: return unreachableTitle
+        case .rejected: return Surface.isMac ? MacCopy.notConnected : notPairedTitle
+        case .unreachable: return Surface.isMac ? MacCopy.notAnswering : unreachableTitle
         case .ok: return macOnACall ? elsewhere : notConnected
         }
     }
+}
+
+/// The lines above as each app says them. The Mac app is on the Mac: its words are the page's own (`MacCopy`, held to
+/// ui.html by tests/test_macos_parity.py), "press" where a phone says "tap", this Mac's microphone, and Pointe on this
+/// Mac where the phone speaks of the Mac it paired with.
+extension ConnectCopy {
+    static var doesHere: String { Surface.isMac ? MacCopy.does : does }
+    static var tapConnectHere: String { Surface.isMac ? MacCopy.pressConnect : tapConnect }
+    static var notPairedHere: String { Surface.isMac ? MacCopy.keyRefused : notPaired }
+    static var idleHangupHere: String { Surface.isMac ? MacCopy.idleHangup : idleHangup }
+    static var micDeniedHere: String { Surface.isMac ? MacCopy.micDenied : micDenied }
+    static var elsewhereWhyHere: String { Surface.isMac ? MacCopy.elsewhereWhy : elsewhereWhy }
+    static var typeLaterHere: String { Surface.isMac ? MacCopy.typeLater : typeLaterTap }
+    static func unreachableHere(_ host: String) -> String { Surface.isMac ? MacCopy.daemonDown : unreachable(host) }
 }
 
 /// Whether /voice/status answers: the Mac away, or the Mac refusing this phone's key, are two different problems.
@@ -52,11 +67,11 @@ struct ConnectFace: Equatable {
     let dialling: Bool
 
     static func make(phase: Call.State, reach: Reach, host: String, problem: String?, macOnACall: Bool) -> ConnectFace {
-        let issue: String? = reach == .rejected ? ConnectCopy.notPaired : reach == .unreachable ? ConnectCopy.unreachable(host)
+        let issue: String? = reach == .rejected ? ConnectCopy.notPairedHere : reach == .unreachable ? ConnectCopy.unreachableHere(host)
             : (problem?.isEmpty == false ? problem : nil)
         let dialling = phase == .connecting || phase == .reconnecting
         let why = issue ?? (phase == .reconnecting ? ConnectCopy.redialling
-                            : phase == .off && macOnACall ? ConnectCopy.elsewhereWhy : ConnectCopy.does)
+                            : phase == .off && macOnACall ? ConnectCopy.elsewhereWhyHere : ConnectCopy.doesHere)
         let button = dialling ? ConnectCopy.cancel : issue != nil ? ConnectCopy.tryAgain : ConnectCopy.connect
         return ConnectFace(why: why, bad: issue != nil, button: button, pill: phase == .live ? ConnectCopy.hangUp : button, dialling: dialling)
     }
@@ -94,7 +109,7 @@ struct ConnectPanel: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("connectButton")
             .padding(.top, 4)
-            Text(ConnectCopy.typeLaterTap).font(.brand(.caption)).foregroundStyle(Brand.dim)
+            Text(ConnectCopy.typeLaterHere).font(.brand(.caption)).foregroundStyle(Brand.dim)
                 .accessibilityIdentifier("connectHint")
         }
         .padding(.horizontal, 28)

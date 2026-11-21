@@ -19,7 +19,7 @@ APP, TESTS, UITESTS = i(4), i(5), i(6)
 APP_DIR, TESTS_DIR, UITESTS_DIR = i(7), i(8), i(9)
 APP_PRODUCT, TESTS_PRODUCT, UITESTS_PRODUCT = i(10), i(11), i(12)
 PHASES = {t: (i(20 + 3 * k), i(21 + 3 * k), i(22 + 3 * k)) for k, t in enumerate((APP, TESTS, UITESTS))}
-PACKAGE, KIT, MACKIT, KIT_FILE, MACKIT_FILE = i(40), i(41), i(42), i(43), i(44)
+PACKAGE, KIT, MACKIT, KIT_FILE, MACKIT_FILE, UI, UI_FILE = i(40), i(41), i(42), i(43), i(44), i(45), i(46)
 PROXY_T, PROXY_U, DEP_T, DEP_U = i(50), i(51), i(52), i(53)
 LISTS = {"project": i(60), APP: i(61), TESTS: i(62), UITESTS: i(63)}
 CONFIGS = {(o, c): i(70 + 2 * k + j) for k, o in enumerate(("project", APP, TESTS, UITESTS)) for j, c in enumerate(("Debug", "Release"))}
@@ -27,7 +27,7 @@ EXCEPTIONS = i(90)
 
 COMMON = {
     "ALWAYS_SEARCH_USER_PATHS": "NO", "CLANG_ENABLE_MODULES": "YES", "CLANG_ENABLE_OBJC_ARC": "YES",
-    "ENABLE_USER_SCRIPT_SANDBOXING": "YES", "GCC_NO_COMMON_BLOCKS": "YES", "MACOSX_DEPLOYMENT_TARGET": "14.0",
+    "ENABLE_USER_SCRIPT_SANDBOXING": "YES", "GCC_NO_COMMON_BLOCKS": "YES", "MACOSX_DEPLOYMENT_TARGET": "15.0",
     "SDKROOT": "macosx", "SWIFT_VERSION": "6.0", "SWIFT_STRICT_CONCURRENCY": "complete",
     "GCC_WARN_UNUSED_VARIABLE": "YES", "CLANG_WARN_SUSPICIOUS_MOVE": "YES", "LOCALIZATION_PREFERS_STRING_CATALOGS": "YES",
     "SWIFT_EMIT_LOC_STRINGS": "YES", "DEAD_CODE_STRIPPING": "YES",
@@ -93,6 +93,7 @@ def project() -> str:
     out = ["// !$*UTF8*$!\n{\n\tarchiveVersion = 1;\n\tclasses = {\n\t};\n\tobjectVersion = 77;\n\tobjects = {\n\n"]
     out.append(f"\t\t{KIT_FILE} /* PointeKit in Frameworks */ = {{isa = PBXBuildFile; productRef = {KIT} /* PointeKit */; }};\n")
     out.append(f"\t\t{MACKIT_FILE} /* PointeMacKit in Frameworks */ = {{isa = PBXBuildFile; productRef = {MACKIT} /* PointeMacKit */; }};\n")
+    out.append(f"\t\t{UI_FILE} /* PointeUI in Frameworks */ = {{isa = PBXBuildFile; productRef = {UI} /* PointeUI */; }};\n")
     for proxy in (PROXY_T, PROXY_U):
         out.append(f"\t\t{proxy} /* PBXContainerItemProxy */ = {{\n\t\t\tisa = PBXContainerItemProxy;\n\t\t\tcontainerPortal = {PROJECT} /* Project object */;\n"
                    f"\t\t\tproxyType = 1;\n\t\t\tremoteGlobalIDString = {APP};\n\t\t\tremoteInfo = PointeMac;\n\t\t}};\n")
@@ -104,7 +105,8 @@ def project() -> str:
     out.append(f"\t\t{APP_DIR} /* PointeMac */ = {{\n\t\t\tisa = PBXFileSystemSynchronizedRootGroup;\n\t\t\texceptions = (\n\t\t\t\t{EXCEPTIONS},\n\t\t\t);\n\t\t\tpath = PointeMac;\n\t\t\tsourceTree = \"<group>\";\n\t\t}};\n")
     for gid, name in ((TESTS_DIR, "PointeMacTests"), (UITESTS_DIR, "PointeMacUITests")):
         out.append(f"\t\t{gid} /* {name} */ = {{\n\t\t\tisa = PBXFileSystemSynchronizedRootGroup;\n\t\t\tpath = {name};\n\t\t\tsourceTree = \"<group>\";\n\t\t}};\n")
-    out.append(phase(PHASES[APP][1], "PBXFrameworksBuildPhase", f"\t\t\t\t{KIT_FILE} /* PointeKit in Frameworks */,\n\t\t\t\t{MACKIT_FILE} /* PointeMacKit in Frameworks */,\n"))
+    out.append(phase(PHASES[APP][1], "PBXFrameworksBuildPhase", f"\t\t\t\t{KIT_FILE} /* PointeKit in Frameworks */,\n\t\t\t\t{MACKIT_FILE} /* PointeMacKit in Frameworks */,\n"
+                     f"\t\t\t\t{UI_FILE} /* PointeUI in Frameworks */,\n"))
     out.append(phase(PHASES[TESTS][1], "PBXFrameworksBuildPhase"))
     out.append(phase(PHASES[UITESTS][1], "PBXFrameworksBuildPhase"))
     out.append(f"\t\t{MAIN_GROUP} = {{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t{APP_DIR} /* PointeMac */,\n\t\t\t\t{TESTS_DIR} /* PointeMacTests */,\n"
@@ -112,7 +114,7 @@ def project() -> str:
     out.append(f"\t\t{PRODUCTS} /* Products */ = {{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t{APP_PRODUCT} /* Pointe.app */,\n\t\t\t\t{TESTS_PRODUCT} /* PointeMacTests.xctest */,\n"
                f"\t\t\t\t{UITESTS_PRODUCT} /* PointeMacUITests.xctest */,\n\t\t\t);\n\t\t\tname = Products;\n\t\t\tsourceTree = \"<group>\";\n\t\t}};\n")
     out.append(target(APP, "PointeMac", APP_DIR, APP_PRODUCT, "Pointe.app", "com.apple.product-type.application",
-                      packages=f"\t\t\t\t{KIT} /* PointeKit */,\n\t\t\t\t{MACKIT} /* PointeMacKit */,\n"))
+                      packages=f"\t\t\t\t{KIT} /* PointeKit */,\n\t\t\t\t{MACKIT} /* PointeMacKit */,\n\t\t\t\t{UI} /* PointeUI */,\n"))
     out.append(target(TESTS, "PointeMacTests", TESTS_DIR, TESTS_PRODUCT, "PointeMacTests.xctest", "com.apple.product-type.bundle.unit-test",
                       deps=f"\t\t\t\t{DEP_T} /* PBXTargetDependency */,\n"))
     out.append(target(UITESTS, "PointeMacUITests", UITESTS_DIR, UITESTS_PRODUCT, "PointeMacUITests.xctest", "com.apple.product-type.bundle.ui-testing",
@@ -141,7 +143,7 @@ def project() -> str:
     for owner, label in ((APP, "PointeMac"), (TESTS, "PointeMacTests"), (UITESTS, "PointeMacUITests")):
         out.append(config_list(owner, f'PBXNativeTarget "{label}"'))
     out.append(f"\t\t{PACKAGE} /* XCLocalSwiftPackageReference \"../apple/PointeKit\" */ = {{\n\t\t\tisa = XCLocalSwiftPackageReference;\n\t\t\trelativePath = ../apple/PointeKit;\n\t\t}};\n")
-    for pid, name in ((KIT, "PointeKit"), (MACKIT, "PointeMacKit")):
+    for pid, name in ((KIT, "PointeKit"), (MACKIT, "PointeMacKit"), (UI, "PointeUI")):
         out.append(f"\t\t{pid} /* {name} */ = {{\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tproductName = {name};\n\t\t}};\n")
     out.append(f"\t}};\n\trootObject = {PROJECT} /* Project object */;\n}}\n")
     return "".join(out)

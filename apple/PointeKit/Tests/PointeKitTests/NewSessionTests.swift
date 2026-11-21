@@ -60,29 +60,6 @@ import Testing
         #expect(NewSession.Draft(noAgent).harness == nil && !NewSession.Draft(noAgent).canStart(noAgent))
     }
 
-    @Test func theStatusCarriesWhatIsStartingAndAReadBack() throws {
-        let json = """
-        {"connected": true, "sessions": [],
-         "starting": [{"id": "s1", "name": "shop-2", "harness": "claude-code", "label": "Claude Code", "folder": "shop", "state": "waiting", "detail": "", "since": 1700000000},
-                      {"id": "s2", "name": "lantern", "harness": "codex", "label": "Codex", "folder": "lantern", "state": "failed", "detail": "Codex's daemon is not running.", "since": 1700000001}],
-         "start_pending": {"id": "p1", "line": "Start a Claude Code session in shop on studio, named shop-2? Say yes or tap.",
-                           "harness": "claude-code", "name": "shop-2", "folder": "shop", "expires_in": 41.5}}
-        """
-        let status = try JSONDecoder().decode(API.Status.self, from: Data(json.utf8))
-        let rows = try #require(status.starting)
-        #expect(rows.map(\.tag) == [NewSessionCopy.starting, NewSessionCopy.failed] && rows.map(\.agent) == ["Claude Code", "Codex"])
-        #expect(rows[0].why == nil && rows[1].why == "Codex's daemon is not running.")
-        #expect(status.start_pending == NewSession.Pending(id: "p1", line: "Start a Claude Code session in shop on studio, named shop-2? Say yes or tap."))
-    }
-
-    @Test func anOlderDaemonSendsNeitherAndNullIsNoReadBack() throws {
-        let old = try JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": false, "sessions": []}"#.utf8))
-        #expect(old.starting == nil && old.start_pending == nil)
-        let none = try JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": false, "sessions": [], "starting": [], "start_pending": null}"#.utf8))
-        #expect(none.starting == [] && none.start_pending == nil)
-        #expect(NewSession.Starting(id: "s", name: "shop").agent == "Claude" && NewSession.Starting(id: "s", name: "shop").tag == "starting")
-    }
-
     /// The client's requests, as the daemon reads them: the options are a GET; a start, a confirm and a cancel are POSTs
     /// with exactly these bodies.
     @Test func theClientAsksAndPostsWhatTheDaemonReads() throws {
@@ -91,91 +68,5 @@ import Testing
         let post = endpoint.request("voice/new-session", method: "POST", body: ["confirm": "p1"].mapValues(JSONValue.string))
         #expect(post.httpMethod == "POST")
         #expect(try JSONSerialization.jsonObject(with: try #require(post.httpBody)) as? [String: String] == ["confirm": "p1"])
-        #expect(DaemonClient.reason(Data(#"{"detail": "A session is already called shop."}"#.utf8), code: 409) == "A session is already called shop.")
-    }
-}
-
-@MainActor @Suite struct NewSessionStoreTests {
-    func store(_ daemon: StubDaemon, auth: FakeAuth = FakeAuth(true)) -> PointeStore {
-        PointeStore(api: daemon, authenticator: auth, appVersion: "1.15.0")
-    }
-
-    @Test func startAsksWhoIsThereThenShowsARowThatBecomesASession() async throws {
-        let daemon = StubDaemon(), auth = FakeAuth(true)
-        let s = store(daemon, auth: auth)
-        await s.refresh()
-        var draft = NewSession.Draft(try #require(await s.startOptions()))
-        draft.folder = "/Users/mira/work/lantern"
-        draft.prompt = "Run the tests."
-        #expect(await s.start(draft))
-        #expect(auth.reasons == [MacCopy.startReason])
-        #expect(await daemon.calls == ["newSession folder=/Users/mira/work/lantern harness=claude-code machine=studio prompt=Run the tests."])
-        #expect(s.starting.map(\.name) == ["lantern"] && s.starting.first?.tag == "starting" && s.starting.first?.agent == "Claude Code")
-        #expect(!(s.status?.sessions ?? []).contains { $0.name == "lantern" })
-        for _ in 0..<3 { await s.refresh() }
-        #expect(s.starting.isEmpty && s.status?.sessions.last?.name == "lantern")
-    }
-
-    @Test func withoutTouchIDNothingStarts() async throws {
-        let daemon = StubDaemon()
-        let s = store(daemon, auth: FakeAuth(false))
-        let draft = NewSession.Draft(try #require(await s.startOptions()))
-        #expect(!(await s.start(draft)))
-        await daemon.set { $0.start_pending = StubDaemon.readBack }
-        await s.refresh()
-        #expect(!(await s.confirmStart(try #require(s.startPending))))
-        #expect(await daemon.calls.isEmpty && s.startPending != nil && s.starting.isEmpty)
-    }
-
-    @Test func aRefusedStartKeepsTheDaemonsReasonForTheSheet() async throws {
-        let daemon = StubDaemon()
-        let s = store(daemon)
-        await s.refresh()
-        var draft = NewSession.Draft(try #require(await s.startOptions()))
-        draft.name = "payments"
-        #expect(!(await s.start(draft)))
-        #expect(s.startProblem == "A session is already called payments." && s.starting.isEmpty)
-        draft.name = ""
-        #expect(await s.start(draft))
-        #expect(s.startProblem == nil)
-
-        await daemon.setDown(true)
-        #expect(await s.startOptions() == nil)
-        #expect(s.startProblem == MacCopy.unreachable(MacCopy.thisMac))
-    }
-
-    @Test func theFoldersAddedForNewSessionsAreSetAsAWholeList() async throws {
-        let daemon = StubDaemon()
-        let s = store(daemon)
-        await s.refresh()
-        #expect(s.prefs?.sessionFolders == [])
-        await s.setSessionFolders(["/Users/mira/work/lantern", "/Users/mira/work/shop"])
-        #expect(await daemon.calls == ["setPrefs sessions.folders"])
-        #expect(s.prefs?.sessionFolders == ["/Users/mira/work/lantern", "/Users/mira/work/shop"])
-        let sent = DaemonEndpoint(port: 7999, credential: .token("made-up")).request("voice/prefs", method: "POST", body: ["sessions.folders": .strings(["/Users/mira/work/shop"])])
-        #expect(try JSONSerialization.jsonObject(with: try #require(sent.httpBody)) as? [String: [String]] == ["sessions.folders": ["/Users/mira/work/shop"]])
-    }
-
-    @Test func aReadBackIsConfirmedAfterTouchIDAndCancelledWithout() async throws {
-        let daemon = StubDaemon(), auth = FakeAuth(true)
-        await daemon.set { $0.start_pending = StubDaemon.readBack }
-        let s = store(daemon, auth: auth)
-        await s.refresh()
-        let pending = try #require(s.startPending)
-        #expect(pending.line == "Start a Claude Code session in shop on studio, named shop-2? Say yes or tap.")
-        #expect(await s.confirmStart(pending))
-        #expect(auth.reasons == [MacCopy.startReason])
-        #expect(await daemon.calls == ["newSession confirm=read-1"])
-        #expect(s.startPending == nil && s.starting.map(\.name) == ["shop-2"])
-
-        #expect(!(await s.confirmStart(pending)))  // answered already: the daemon says so
-        #expect(s.notice == "That is no longer waiting for an answer.")
-
-        await daemon.set { $0.start_pending = StubDaemon.readBack }
-        await s.refresh()
-        #expect(await s.cancelStart(pending))
-        #expect(auth.reasons.count == 2)  // the two confirms; Cancel asked nothing
-        #expect(await daemon.calls.last == "newSession cancel=read-1")
-        #expect(s.startPending == nil && s.starting.map(\.name) == ["shop-2"])
     }
 }

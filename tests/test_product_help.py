@@ -92,6 +92,51 @@ def test_a_feature_missing_on_this_screen_says_where_it_is():
     assert drive["say_instead"] == ["drive mode", "I've stopped"]
 
 
+def test_the_mac_app_gets_its_own_paths_from_the_screens_it_shares_with_the_iphone():
+    """The Mac app draws the iPhone app's screens, so its paths are read from the same sources as the Mac compiles them:
+    the same Settings, a right-click where the phone has a long press, and no path for what a Mac does not have."""
+    mac = howto.answer("How do I turn off push to talk?", "mac")
+    assert mac["screen"] == "the Mac app"
+    assert mac["answers"][0]["where"] == ("the Always on / Hold to talk switch above the mic; "
+                                          "or Settings (••• at the top, or ⌘,) → Microphone → Always on / Push to talk")
+    rename = howto.answer("How do I rename a session?", "mac")["answers"][0]
+    assert rename["where"] == "right-click a session → Rename"
+    drive = howto.answer("How do I turn on drive mode?", "mac")["answers"][0]
+    assert drive["where"].startswith("not on the Mac app; on the iPhone app: Drive button at the top")
+    pair = howto.answer("How do I pair my phone?", "mac")["answers"][0]
+    assert pair["where"] == "Settings (••• at the top, or ⌘,) → Phone" and "shows the code" in pair["note"]
+    inv = gen.inventory()
+    assert "Phone" in inv["mac"]["menu"] and "Phone" not in inv["iphone"]["menu"], "the Mac shows the code; the phone reads it"
+    assert "Unpair this phone" in inv["iphone"]["menu"] and "Unpair this phone" not in inv["mac"]["menu"]
+    assert "Drive" in inv["iphone"]["header"] and "Drive" not in inv["mac"]["header"]
+    assert howto.answer("How do I bake bread?", "mac")["say"].endswith("the ••• button at the top right.")
+    assert howto.answer("where is voice lock", "a new surface")["screen"] == "the page", "an unknown surface is answered as the page"
+
+
+def test_the_surface_is_the_app_the_call_is_from():
+    """The iPhone app's call is the phone's socket; the Mac app says "Mac" in its hello on the page's socket; anything
+    else on that socket is the page."""
+    import types
+
+    import daemon
+    was = (daemon.state.phone_socket, daemon.state.call_socket, daemon.state.call_client)
+    try:
+        daemon.state.phone_socket = daemon.state.call_socket = daemon.state.call_client = None
+        assert daemon._surface() == "page"
+        daemon.state.call_socket = object()
+        daemon.state.call_client = types.SimpleNamespace(client={})
+        assert daemon._surface() == "page", "the page sends no device"
+        daemon.state.call_client = types.SimpleNamespace(client={"protocol": 4, "device": "Mac", "capabilities": ["ptt"]})
+        assert daemon._surface() == "mac"
+        daemon.state.call_socket = None
+        assert daemon._surface() == "page", "a hello left from a call that ended names nothing"
+        daemon.state.phone_socket = daemon.state.call_socket = object()
+        daemon.state.call_client = types.SimpleNamespace(client={"device": "iPhone"})
+        assert daemon._surface() == "iphone"
+    finally:
+        daemon.state.phone_socket, daemon.state.call_socket, daemon.state.call_client = was
+
+
 def test_voice_and_tool_are_offered_where_they_exist():
     close = howto.answer("How do I close a session by voice?", "iphone")["answers"][0]
     assert close["your_tool"] == "disconnect_session" and close["say_instead"] == ["close lantern"]
@@ -155,6 +200,7 @@ def test_the_committed_file_is_what_the_generator_writes():
 
 def _copy(tmp_path: Path) -> Path:
     shutil.copytree(ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI", tmp_path / "apple" / "PointeKit" / "Sources" / "PointeUI", ignore=shutil.ignore_patterns("Resources"))
+    shutil.copytree(ROOT / "apple" / "PointeKit" / "Sources" / "PointeKit", tmp_path / "apple" / "PointeKit" / "Sources" / "PointeKit")
     (tmp_path / "docs" / "features").mkdir(parents=True)
     shutil.copy(ROOT / "docs" / "features" / "README.md", tmp_path / "docs" / "features" / "README.md")
     shutil.copy(ROOT / "ui.html", tmp_path / "ui.html")

@@ -1,29 +1,5 @@
 import SwiftUI
 
-/// Starting a new session from Pointe (docs/design/new-session.md): the sheet, the rows and the read-back card say the
-/// same words as the page (`NEW_SESSION_COPY` in ui.html) and the Mac app (PointeKit's NewSessionCopy). The parity tests
-/// read this file: keep each string on one line.
-enum NewSessionCopy {
-    static let title = "New session"
-    static let lede = "Starts a coding agent in a folder you already work in. It joins the voice by itself, and asks before it acts, as every session does."
-    static let agent = "Agent"
-    static let machine = "Machine"
-    static let folder = "Folder"
-    static let name = "Name"
-    static let namePlaceholder = "Same as the folder"
-    static let prompt = "First prompt"
-    static let promptPlaceholder = "Optional. Sent once the session has joined."
-    static let start = "Start"
-    static let cancel = "Cancel"
-    static let noFolders = "No folder yet. A session must join from a folder first, or add one in Settings on the Mac."
-    static let claudeNote = "Claude Code opens in a new terminal window on the Mac."
-    static let starting = "starting"
-    static let failed = "did not start"
-    static let confirmTitle = "Start this session?"
-    static let foldersTitle = "New sessions"
-    static let foldersHelp = "Folders a new session may start in, beside the folders of your current and recent sessions. Changed on the Mac only."
-}
-
 /// What the New session sheet asks of the call: Face ID as for Approve, what the Mac offers, and the start itself.
 struct NewSessionActions {
     let ownerCheck: (String) async -> Bool
@@ -55,8 +31,7 @@ struct NewSessionSheet: View {
                     Section { Text(problem).foregroundStyle(Brand.accent).accessibilityIdentifier("newSessionProblem") }
                 }
             }
-            .navigationTitle(NewSessionCopy.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(NewSessionCopy.title)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(NewSessionCopy.cancel) { dismiss() }.accessibilityIdentifier("newSessionCancel")
@@ -106,7 +81,7 @@ struct NewSessionSheet: View {
         }
         KickerSection(NewSessionCopy.name) {
             TextField(NewSessionCopy.namePlaceholder, text: $draft.name)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .plainEntry()
                 .accessibilityIdentifier("newSessionName")
         }
         KickerSection(NewSessionCopy.prompt) {

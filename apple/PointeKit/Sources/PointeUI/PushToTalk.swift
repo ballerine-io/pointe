@@ -4,7 +4,7 @@ import SwiftUI
 /// closed, whatever the phone sends); this model decides what the phone sends and shows, and follows the Mac's word.
 struct TalkGate: Equatable {
     /// The on-screen holds, and the toggles (an AirPods press, the Action button).
-    enum Input: Hashable { case ring, caption }
+    enum Input: Hashable { case ring, caption, shortcut }  // the mic, the conversation, and on the Mac the talk shortcut or the bubble
 
     /// Audio still sent after a release, so the last word is not cut. The Mac keeps the same tail.
     static let tail: TimeInterval = 0.4

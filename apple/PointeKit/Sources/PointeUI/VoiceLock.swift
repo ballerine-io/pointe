@@ -61,8 +61,13 @@ enum VoiceLockCopy {
     }
 
     static var thisDevice: String {
+        #if os(iOS)
         let input = AVAudioSession.sharedInstance().currentRoute.inputs.first
         return deviceLabel(builtIn: input == nil || input?.portType == .builtInMic, route: input?.portName)
+        #else
+        // As the page tags an enrolment on this Mac: the microphone the call uses, by its name.
+        return AVCaptureDevice.default(for: .audio)?.localizedName ?? "This Mac"
+        #endif
     }
 }
 
@@ -102,8 +107,7 @@ struct VoiceLockSheet: View {
             }
             .scrollContentBackground(.hidden)
             .disabled(busy)
-            .navigationTitle(VoiceLockCopy.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(VoiceLockCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .confirmationDialog(VoiceLockCopy.deleteAllConfirm, isPresented: $confirmDeleteAll, titleVisibility: .visible) {
                 Button("Delete", role: .destructive) { Task { await delete(nil) } }
@@ -224,8 +228,7 @@ struct IgnoredSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(VoiceLockCopy.ignoredTitle)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(VoiceLockCopy.ignoredTitle)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }

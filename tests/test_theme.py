@@ -159,7 +159,7 @@ def test_both_surfaces_offer_the_same_theme_choices_with_the_same_default_and_wo
     assert dict(re.findall(r'id="theme-(\w+)" onclick="setTheme\(\'\w+\'\)">([^<]+)<', PAGE)) == labels
     assert "localStorage.getItem('pointe.theme')" in PAGE and 'data-section="g-appearance"' in PAGE
     # the app
-    theme = BRAND[BRAND.index("enum Theme"):BRAND.index("enum Harness")]
+    theme = BRAND[BRAND.index("enum Theme"):BRAND.index("struct HarnessMark")]
     assert re.search(r"case (\w+(?:, \w+)*)\n", theme).group(1).split(", ") == choices
     assert re.search(r"static let fallback = Theme\.(\w+)", theme).group(1) == default
     assert dict(re.findall(r'case \.(\w+): "(\w+)"', theme)) == labels
@@ -254,7 +254,9 @@ def test_both_surfaces_carry_the_same_harness_marks():
     want = {k: (v["name"], v["glyph"]) for k, v in THEME["harnesses"].items()}
     page = re.search(r"const HARNESSES = \{(.*?)\};", PAGE, re.S).group(1)
     assert {k: (n, g) for k, n, g in re.findall(r"'?([\w-]+)'?: \{name: '(\w+)', glyph: '(\w)'\}", page)} == want
-    assert dict((k, (n, g)) for k, n, g in re.findall(r'"([\w-]+)": \(name: "(\w+)", glyph: "(\w)"\)', BRAND)) == want
+    marks = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeKit" / "Harness.swift").read_text()  # one table, for both apps
+    assert dict((k, (n, g)) for k, n, g in re.findall(r'"([\w-]+)": \(name: "(\w+)", glyph: "(\w)"\)', marks)) == want
+    assert "typealias Harness = PointeKit.Harness" in (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "Shared.swift").read_text()
     # the same words for a screen reader, and no vendor logo on either: the marks are letters (docs/design/brand-v6.md)
     assert "'runs on ' + h.name" in PAGE and 'accessibilityLabel("runs on \\(mark.name)")' in BRAND
     sessions = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "Sessions.swift").read_text()

@@ -20,6 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = "product_help.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from parity import for_platform  # noqa: E402  (a Swift source as one platform compiles it)
 
 # ---------- the iPhone app ----------
 
@@ -32,11 +34,11 @@ def _unescape(s: str) -> str:
     return s.replace('\\"', '"').replace("\\u{2019}", "’").replace("\\u{201C}", "“").replace("\\u{201D}", "”")
 
 
-def _swift_consts(files: list[Path]) -> tuple[dict[str, str], dict[str, str]]:
+def _swift_consts(files: list[Path], platform: str = "ios") -> tuple[dict[str, str], dict[str, str]]:
     """Every `static let x = "..."` as "Type.x", and every type's body text (for `var label` and `static func`)."""
     consts, bodies = {}, {}
     for f in files:
-        text = f.read_text()
+        text = for_platform(f.read_text(), platform)
         types = [(m.start(), m.group(1)) for m in _TYPE.finditer(text)]
         for i, (at, name) in enumerate(types):
             end = types[i + 1][0] if i + 1 < len(types) else len(text)
@@ -58,12 +60,17 @@ def _braced(text: str, start: int) -> str:
 
 
 class Swift:
-    def __init__(self, root: Path):
+    """The screens the two apps share (apple/PointeKit, PointeUI), as one of them compiles them: `platform` is "ios" or
+    "mac", and a row inside the other's `#if os(...)` is not there (tools/parity.py reads the sources the same way)."""
+
+    def __init__(self, root: Path, platform: str = "ios"):
         self.dir = root / "apple" / "PointeKit" / "Sources" / "PointeUI"
-        self.consts, self.bodies = _swift_consts(sorted(self.dir.glob("*.swift")))
+        self.platform = platform
+        kit = root / "apple" / "PointeKit" / "Sources" / "PointeKit"  # the words both apps take from the package under the screens
+        self.consts, self.bodies = _swift_consts(sorted(self.dir.glob("*.swift")) + sorted(kit.glob("*.swift")), platform)
 
     def file(self, name: str) -> str:
-        return (self.dir / name).read_text()
+        return for_platform((self.dir / name).read_text(), self.platform)
 
     def resolve(self, expr: str) -> list[str]:
         """The labels an expression can show: literals, `Copy.member`, both sides of a ternary, and the constants a
@@ -147,10 +154,10 @@ class Swift:
 
     def sessions_sheet(self) -> list[str]:
         text = self.file("Sessions.swift")
-        sheet = re.search(r"\.navigationTitle\(\"([^\"]+)\"\)", text).group(1)
+        sheet = re.search(r"\.sheetTitle\(\"([^\"]+)\"\)", text).group(1)
         picks = re.findall(r'Text\("(\w+)"\)\.tag\("(?:orchestrator|session)"\)', text)
         swipe = _braced(text, text.index(".swipeActions"))
-        bar = _braced(text, text.index(".toolbar", text.index(".navigationTitle")))  # its own buttons, named by a copy constant
+        bar = _braced(text, text.index(".toolbar", text.index(".sheetTitle")))  # its own buttons, named by a copy constant
         named = [x for expr in re.findall(r"Button\(([A-Z]\w+\.\w+)\)", bar) for x in self.resolve(expr)]
         return list(dict.fromkeys([sheet, *picks, *named, *re.findall(r'Button\("([^"]+)"', swipe)]))
 
@@ -233,8 +240,11 @@ class Page:
 
 
 def inventory(root: Path = ROOT) -> dict:
-    s, p = Swift(root), Page(root)
+    s, p, m = Swift(root), Page(root), Swift(root, "mac")
     return {
+        # the Mac app draws the iPhone app's screens: its labels are read from the same sources, as the Mac compiles them
+        "mac": {"menu": m.menu(), "switch": m.mic_switch(), "bar": m.bar(), "mic": m.mic(), "header": m.header(),
+                "session": m.session_menu(), "sessions": m.sessions_sheet(), "card": m.card()},
         "iphone": {"menu": s.menu(), "switch": s.mic_switch(), "bar": s.bar(), "mic": s.mic(), "header": s.header(),
                    "session": s.session_menu(),
                    "sessions": s.sessions_sheet(), "card": s.card(), "pair": s.pairing()},
@@ -258,7 +268,11 @@ PLACES = {
              "top": "{} at the top", "row": "hover a session in the Sessions panel (on touch, its ⋯)",
              "dump": "the brain dump's review", "card": "the request's card"},
 }
-SURFACES = {"iphone": "the iPhone app", "page": "the page"}
+PLACES["mac"] = {"menu": "Settings (••• at the top, or ⌘,)", "switch": "the {} switch above the mic", "bar": "{} button at the bottom",
+                 "mic": "the mic button in the middle at the bottom ({})", "header": "{} button at the top",
+                 "session": "right-click a session", "sessions": "the sessions column on the left (in a narrow window, the Sessions button at the bottom)",
+                 "card": "the request's card"}
+SURFACES = {"iphone": "the iPhone app", "page": "the page", "mac": "the Mac app"}
 
 
 def _labels(where: dict) -> set[str]:
@@ -296,6 +310,14 @@ def render(surface: str, path: tuple, inv: dict) -> str:
     return " → ".join(x for i, x in enumerate(out) if i == 0 or x != out[i - 1])
 
 
+def _on(surface: str, path: tuple, inv: dict) -> bool:
+    try:
+        render(surface, path, inv)
+        return True
+    except ValueError:
+        return False
+
+
 # ---------- the topics, by hand ----------
 
 @dataclass(frozen=True)
@@ -306,8 +328,10 @@ class Topic:
     how: str  # one or two sentences, English; the brain answers in the user's language
     iphone: tuple = ()  # one or more paths, each a tuple: place, then labels
     page: tuple = ()
+    mac: tuple | None = None  # None: the iPhone's paths, where the Mac app has the same control (it draws the same screens)
     iphone_note: str = ""
     page_note: str = ""
+    mac_note: str = ""
     voice: tuple = ()  # what the user can say right now for the same thing (checked against the code in the tests)
     tool: str = ""  # the brain's own tool that does it, when the user asks it to
     doc: str = ""  # docs/features/<doc>: its one line in the features table is added as "about"
@@ -337,7 +361,9 @@ TOPICS = (
           "On the page Space is the talk key, Caps Lock toggles talking, and a system-wide shortcut can run it from any "
           "app. On the iPhone the Action button, Back Tap or Siri (\"Talk to Pointe\") press it, and an AirPods stem "
           "press toggles it.",
-          page=(("settings", "Microphone", "Talk key|System-wide shortcut"),), doc="push-to-talk.md"),
+          page=(("settings", "Microphone", "Talk key|System-wide shortcut"),), mac=(("menu",),),
+          mac_note="In the Mac app's Settings, under This Mac: Talk shortcut records a key that talks from any app.",
+          doc="push-to-talk.md"),
     Topic("mute", "Mute and unmute",
           ("mute", "unmute", "mute myself", "mute the mic", "stop listening", "השתק", "להשתיק", "משתיק", "השתקה",
            "מיוט", "לבטל השתקה"),
@@ -357,12 +383,14 @@ TOPICS = (
            "qr code", "scan the code", "לצמד", "מצמיד", "צימוד", "לחבר את הטלפון", "לחבר את האייפון", "קוד qr"),
           "On the Mac's page, Settings → Phone → Connect your phone shows a code; scan it with the iPhone's Camera or in "
           "the Pointe app. The code works once and expires in 5 minutes.",
-          iphone=(("pair", "Pair"),), page=(("settings", "Phone", "Connect your phone"),),
+          iphone=(("pair", "Pair"),), page=(("settings", "Phone", "Connect your phone"),), mac=(("menu", "Phone"),),
+          mac_note="The Mac app shows the code: Connect your phone, then scan it with the iPhone.",
           iphone_note="Pairing starts on the Mac's page: Settings → Phone → Connect your phone."),
     Topic("unpair", "Unpair a phone", ("unpair", "remove the phone", "forget this phone", "לבטל צימוד", "להסיר את הטלפון"),
           "On the iPhone, Unpair this phone forgets the pairing there; the page's Settings → Phone lists the paired phones "
           "and removes them from the Mac. To pair again, show a new code there.",
-          iphone=(("menu", "Unpair this phone"),), page=(("settings", "Phone", "Unpair all"),)),
+          iphone=(("menu", "Unpair this phone"),), page=(("settings", "Phone", "Unpair all"),), mac=(("menu", "Phone"),),
+          mac_note="Each paired phone has its own Unpair there."),
     Topic("voice-lock", "Voice lock", ("voice lock", "only my voice", "voiceprint", "enrol my voice", "enroll my voice",
                                        "other voices", "someone else approving", "other people approve", "someone else", "נעילת קול", "נעילה קולית",
                                        "רק הקול שלי", "טביעת קול"),
@@ -467,6 +495,7 @@ TOPICS = (
                                                "focus on a session", "active session", "לעבור לסשן", "להחליף סשן"),
           "Say \"switch to\" and the session's name, or tap it.",
           iphone=(("session", "Focus on this session"),), iphone_note="Or tap its chip at the top.",
+          mac_note="Or click it in the sessions column.",
           page_note="Click the session in the Sessions panel on the left.", voice=("switch to lantern",), tool="switch_session"),
     Topic("rename-session", "Rename a session", ("rename", "rename a session", "rename the session", "change the name",
                                                  "call it", "new name", "לשנות שם", "שינוי שם", "שם לסשן", "שם חדש", "לקרוא לו"),
@@ -531,18 +560,21 @@ def _doc_lines(root: Path) -> dict[str, str]:
 
 def build(root: Path = ROOT) -> dict:
     inv, docs = inventory(root), _doc_lines(root)
-    entries, used = [], {"iphone": set(), "page": set()}
+    entries, used = [], {"iphone": set(), "page": set(), "mac": set()}
     for t in TOPICS:
         entry = {"id": t.id, "title": t.title, "ask": list(t.ask), "how": t.how}
         if t.doc:
             if t.doc not in docs:
                 raise ValueError(f"{t.id}: docs/features/{t.doc} has no line in docs/features/README.md")
             entry["about"] = docs[t.doc]
-        for surface in ("iphone", "page"):
-            paths = [render(surface, p, inv) for p in getattr(t, surface)]
+        for surface in ("iphone", "page", "mac"):
+            wanted = getattr(t, surface)
+            if surface == "mac" and wanted is None:  # the same control, where the Mac has it
+                wanted = tuple(p for p in t.iphone if _on(surface, p, inv))
+            paths = [render(surface, p, inv) for p in wanted]
             if paths:
                 entry[surface] = paths
-            for p in getattr(t, surface):
+            for p in wanted:
                 used[surface] |= {label for seg in p[1:] for label in seg.split("|")}
             if note := getattr(t, f"{surface}_note"):
                 entry[f"{surface}_note"] = note
@@ -552,7 +584,7 @@ def build(root: Path = ROOT) -> dict:
             entry["tool"] = t.tool
         entries.append(entry)
     # Every menu item, Settings section and button no topic covers still gets an entry: its label and where it is.
-    for surface, kinds in (("iphone", ("menu", "header")), ("page", ("settings", "dock"))):
+    for surface, kinds in (("iphone", ("menu", "header")), ("page", ("settings", "dock")), ("mac", ("menu", "header"))):
         for kind in kinds:
             for label in inv[surface][kind]:
                 if label in used[surface]:

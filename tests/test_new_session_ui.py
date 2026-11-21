@@ -38,11 +38,14 @@ def swift_enum(path: Path, name: str) -> dict:
 def test_the_page_the_iphone_and_the_mac_say_the_same_words():
     page = page_dict("NEW_SESSION_COPY")
     assert tuple(page) == KEYS
-    phone = swift_enum(ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "NewSession.swift", "NewSessionCopy")
-    mac = swift_enum(ROOT / "apple" / "PointeKit" / "Sources" / "PointeKit" / "NewSessionCopy.swift", "NewSessionCopy")
+    apps = swift_enum(ROOT / "apple" / "PointeKit" / "Sources" / "PointeKit" / "NewSessionCopy.swift", "NewSessionCopy")
     for key in KEYS:
-        assert phone[key] == page[key], f"{key}: the iPhone app and the page differ"
-        assert mac[key] == page[key], f"{key}: the Mac app and the page differ"
+        assert apps[key] == page[key], f"{key}: the apps and the page differ"
+    # one dictionary: the screens both apps draw take it from the package, and neither carries a copy of its own
+    ui = ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI"
+    assert "typealias NewSessionCopy = PointeKit.NewSessionCopy" in (ui / "Shared.swift").read_text()
+    for source in [*ui.glob("*.swift"), *(ROOT / "macos" / "PointeMac").glob("*.swift"), *(ROOT / "ios" / "Pointe").glob("*.swift")]:
+        assert "enum NewSessionCopy" not in source.read_text(), source.name
 
 
 def test_no_surface_offers_a_free_path_or_a_way_to_skip_prompts():

@@ -15,7 +15,8 @@ struct ConversationView: View {
         if turns.isEmpty && hearing.isEmpty {
             if placeholder {
                 EmptyNote(title: "Nothing said yet", symbol: "waveform",
-                          text: "Talk, or tap the keyboard to type. Tap anything you said to fix it.")
+                          text: Surface.isMac ? "Talk, or press Type to type. Click anything you said to fix it."
+                                              : "Talk, or tap the keyboard to type. Tap anything you said to fix it.")
                     .padding(.top, 40)
             }
         } else {
@@ -178,8 +179,7 @@ struct EditTurnSheet: View {
                 Spacer()
             }
             .padding(20)
-            .navigationTitle("Fix it")
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle("Fix it")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {

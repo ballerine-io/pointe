@@ -57,7 +57,7 @@ def _load() -> tuple:
                 he.append(tuple(r for r in roots if len(r) >= 2))
             else:
                 en.append(tuple(_tokens(phrase)))
-        labels = " ".join([e["title"]] + e.get("iphone", []) + e.get("page", []))
+        labels = " ".join([e["title"]] + e.get("iphone", []) + e.get("page", []) + e.get("mac", []))
         index.append((e, en, he, {t for t in _tokens(labels) if t not in _STOP and len(t) > 2}))
     return data, index
 
@@ -123,15 +123,18 @@ def about_pointe(text: str) -> bool:
 
 
 def answer(question: str, surface: str) -> dict:
-    """The tool's result: the entries for `question`, each with where it is on `surface` ("iphone" or "page"), what
+    """The tool's result: the entries for `question`, each with where it is on `surface` ("iphone", "mac" or "page"), what
     the user can say instead, and the tool that does it when they ask."""
     data, _ = _load()
-    names, other = data["surfaces"], "page" if surface == "iphone" else "iphone"
+    names = data["surfaces"]
+    if surface not in names:
+        surface = "page"
+    others = [o for o in ("page", "iphone", "mac") if o != surface]  # where else it is, when it is not here
     found = lookup(question)
     if not found:
         return {"screen": names[surface], "found": "nothing",
                 "say": "Say you are not sure, and that the settings are in " + (
-                    "Settings, the ••• button at the top right." if surface == "iphone" else "Settings, in the Sessions panel.")}
+                    "Settings, in the Sessions panel." if surface == "page" else "Settings, the ••• button at the top right.")}
     items = []
     for i, e in enumerate(found):
         item = {"topic": e["title"]}
@@ -141,7 +144,7 @@ def answer(question: str, surface: str) -> dict:
             item["about"] = e["about"]
         if e.get(surface):
             item["where"] = "; or ".join(e[surface])
-        elif e.get(other):
+        elif other := next((o for o in others if e.get(o)), None):
             item["where"] = f"not on {names[surface]}; on {names[other]}: " + "; or ".join(e[other])
         if note := e.get(f"{surface}_note"):
             item["note"] = note

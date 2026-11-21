@@ -28,23 +28,25 @@ final class Windows: NSObject, NSWindowDelegate {
 
     func showMain() {
         if main == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 580),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 640),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
             window.title = "Pointe"
+            window.titlebarAppearsTransparent = true  // the brand's own header is the top of the window
+            window.titleVisibility = .hidden
             window.identifier = NSUserInterfaceItemIdentifier("pointe.main")
-            window.contentMinSize = NSSize(width: 640, height: 420)
+            window.contentMinSize = NSSize(width: 420, height: 480)
             window.isReleasedWhenClosed = false
             window.toolbarStyle = .unified
             // The window's size is the person's: the conversation's own ideal height (all of it) must not set it.
-            let root = CallWindow().environment(AppModel.shared)
-                .frame(minWidth: 640, idealWidth: 820, maxWidth: .infinity, minHeight: 420, idealHeight: 580, maxHeight: .infinity)
+            let root = MainWindow().environment(AppModel.shared)
+                .frame(minWidth: 420, idealWidth: 820, maxWidth: .infinity, minHeight: 480, idealHeight: 640, maxHeight: .infinity)
             let content = NSHostingView(rootView: root)
             content.sizingOptions = [.minSize]
             window.contentView = content
-            window.setContentSize(NSSize(width: 820, height: 580))
+            window.setContentSize(NSSize(width: 820, height: 640))
             window.center()
-            if AppModel.shared.stub == nil { window.setFrameAutosaveName("pointe.main") }  // a test's window is not the person's
+            if !AppModel.shared.session.isDemo { window.setFrameAutosaveName("pointe.main") }  // a demo's window is not the person's
             window.delegate = self
             main = window
         }

@@ -107,8 +107,7 @@ struct ShowSheet: View {
                 }
                 if !earlier.isEmpty { earlierList }
             }
-            .navigationTitle(ShowCopy.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(ShowCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .onChange(of: showing?.id) { follow.follow(showing) }
@@ -148,11 +147,15 @@ struct ShowSheet: View {
                 }
                 Spacer()
                 if a.kind == "edit" {
+                    Segments(selection: Binding(get: { face[a.id] ?? ShowCopy.file }, set: { face[a.id] = $0 }),
+                             options: [(ShowCopy.file, ShowCopy.file), (ShowCopy.diff, ShowCopy.diff)]) {
                     Picker("", selection: Binding(get: { face[a.id] ?? ShowCopy.file }, set: { face[a.id] = $0 })) {
                         Text(ShowCopy.file).tag(ShowCopy.file)
                         Text(ShowCopy.diff).tag(ShowCopy.diff)
                     }
-                    .pickerStyle(.segmented).fixedSize()
+                    .pickerStyle(.segmented)
+                    }
+                    .fixedSize()
                     .accessibilityIdentifier("showFace")
                 }
                 let isPinned = follow.pinned?.artifact.id == a.id
@@ -341,8 +344,7 @@ struct ShowSettingsSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(ShowCopy.setting)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(ShowCopy.setting)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }

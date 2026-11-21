@@ -34,13 +34,7 @@ extension API {
     func conflict(_ id: String, action: String, side: String? = nil) async throws {
         var body: [String: Any] = ["action": action, "id": id]
         if let side { body["side"] = side }
-        var r = URLRequest(url: pairing.base.appendingPathComponent("voice/conflicts"))
-        r.httpMethod = "POST"
-        r.setValue("Bearer \(pairing.key)", forHTTPHeaderField: "Authorization")
-        r.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        r.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        r.timeoutInterval = 10
-        let (data, response) = try await session.data(for: r)
+        let (data, response) = try await send(request("voice/conflicts", method: "POST", body: body))
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String
@@ -207,8 +201,7 @@ struct ConflictSettingsSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(ConflictCopy.settingsTitle)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(ConflictCopy.settingsTitle)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .task { prefs = await load(); loaded = true }

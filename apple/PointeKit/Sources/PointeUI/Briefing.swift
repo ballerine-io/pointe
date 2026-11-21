@@ -208,8 +208,7 @@ struct BriefingSheet: View {
                 KickerSection(BriefingCopy.history) { history }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(BriefingCopy.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(BriefingCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .task { await reload() }
             .onChange(of: status?.latest_id) { Task { await reload() } }
@@ -230,10 +229,12 @@ struct BriefingSheet: View {
                 button("Stop", "stop", prominent: false)
             }
         } else {
+            Segments(selection: $since, options: BriefingCopy.sinceChoices.map { ($0.since, $0.label) }) {
             Picker("Since", selection: $since) {
                 ForEach(BriefingCopy.sinceChoices, id: \.since) { Text($0.label).tag($0.since) }
             }
             .pickerStyle(.segmented)
+            }
             Picker("Length", selection: Binding(get: { length ?? page?.schedule?.length ?? "normal" }, set: { length = $0 })) {
                 ForEach(BriefingCopy.lengths, id: \.0) { Text($0.1).tag($0.0) }
             }
@@ -365,8 +366,7 @@ struct BriefingSettingsSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(BriefingCopy.settingsTitle)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(BriefingCopy.settingsTitle)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .task { schedule = await load(); loaded = true }
         }

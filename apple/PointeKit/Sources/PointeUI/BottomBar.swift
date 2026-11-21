@@ -47,6 +47,8 @@ struct BottomBar: View {
             }
             .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: Surface.isMac ? 560 : .infinity)  // in a wide window the controls stay together, as on the page
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .brandCard()
@@ -94,7 +96,7 @@ struct BottomBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
-        .accessibilityShowsLargeContentViewer { Label(label, systemImage: symbol) }
+        .largeContent { Label(label, systemImage: symbol) }
     }
 }
 
@@ -106,11 +108,13 @@ struct MicModeSwitch: View {
     let set: (String) -> Void
 
     var body: some View {
+        Segments(selection: Binding(get: { mode }, set: set), options: [("always", "Always on"), ("ptt", style.label)]) {
         Picker("Microphone", selection: Binding(get: { mode }, set: set)) {
             Text("Always on").tag("always")
             Text(style.label).tag("ptt")
         }
         .pickerStyle(.segmented)
+        }
         .fixedSize()
         .dynamicTypeSize(...DynamicTypeSize.xLarge)  // chrome over the bar: past this it crowds the cards above it
         .accessibilityIdentifier("micModeSwitch")

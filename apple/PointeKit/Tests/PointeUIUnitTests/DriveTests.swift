@@ -60,7 +60,9 @@ final class DriveTests: XCTestCase {
         XCTAssertEqual(DriveCopy.line(status: quiet, speaking: true, hearing: false), "Speaking")
         XCTAssertEqual(DriveCopy.line(status: quiet, speaking: false, hearing: true), "Listening")
         XCTAssertEqual(DriveCopy.line(status: quiet, speaking: false, hearing: false), "1 working")
+        #if os(iOS)  // the lock screen's line: the phone's alone
         XCTAssertEqual(DriveNowPlaying.info(status: try driving(voice: false))["title"] as? String, "Pointe · lantern needs you")
+        #endif
     }
 
     func testTheCopyMatchesThePage() throws {

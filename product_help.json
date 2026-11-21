@@ -2,7 +2,8 @@
  "generated_by": "tools/product_help.py: do not edit by hand",
  "surfaces": {
   "iphone": "the iPhone app",
-  "page": "the page"
+  "page": "the page",
+  "mac": "the Mac app"
  },
  "entries": [
   {
@@ -34,6 +35,10 @@
    "page": [
     "Settings → Microphone → Always on / Push to talk",
     "the Always on / Hold to talk switch above the mic"
+   ],
+   "mac": [
+    "the Always on / Hold to talk switch above the mic",
+    "Settings (••• at the top, or ⌘,) → Microphone → Always on / Push to talk"
    ]
   },
   {
@@ -66,6 +71,9 @@
    "iphone_note": "Talk button shows in Settings once Microphone is Push to talk.",
    "page": [
     "Settings → Microphone → Talk button → Hold to talk / Tap to talk"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Talk button → Hold to talk / Tap to talk"
    ]
   },
   {
@@ -92,7 +100,11 @@
    "about": "Nothing leaves the Mac unless you hold the key or the button",
    "page": [
     "Settings → Microphone → Talk key / System-wide shortcut"
-   ]
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,)"
+   ],
+   "mac_note": "In the Mac app's Settings, under This Mac: Talk shortcut records a key that talks from any app."
   },
   {
    "id": "mute",
@@ -117,7 +129,10 @@
    "page": [
     "the mic button in the middle at the bottom (Microphone)"
    ],
-   "page_note": "Space, or a headset's play/pause button, mutes too while the page has focus."
+   "page_note": "Space, or a headset's play/pause button, mutes too while the page has focus.",
+   "mac": [
+    "the mic button in the middle at the bottom (Mute / Unmute)"
+   ]
   },
   {
    "id": "hang-up",
@@ -138,6 +153,9 @@
     "Hang up button at the bottom"
    ],
    "page": [
+    "Hang up button at the bottom"
+   ],
+   "mac": [
     "Hang up button at the bottom"
    ]
   },
@@ -160,7 +178,10 @@
    "page": [
     "Connect at the top"
    ],
-   "page_note": "Or press the mic button."
+   "page_note": "Or press the mic button.",
+   "mac": [
+    "Connect button at the top"
+   ]
   },
   {
    "id": "pair-phone",
@@ -188,7 +209,11 @@
    "iphone_note": "Pairing starts on the Mac's page: Settings → Phone → Connect your phone.",
    "page": [
     "Settings → Phone → Connect your phone"
-   ]
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Phone"
+   ],
+   "mac_note": "The Mac app shows the code: Connect your phone, then scan it with the iPhone."
   },
   {
    "id": "unpair",
@@ -206,7 +231,11 @@
    ],
    "page": [
     "Settings → Phone → Unpair all"
-   ]
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Phone"
+   ],
+   "mac_note": "Each paired phone has its own Unpair there."
   },
   {
    "id": "voice-lock",
@@ -233,6 +262,9 @@
    ],
    "page": [
     "Settings → Voice lock → Enrol my voice"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Voice lock"
    ]
   },
   {
@@ -261,6 +293,9 @@
    ],
    "page": [
     "Settings → Turn taking → Wait before answering → Quick / Normal / Patient"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Wait before answering → Quick / Normal / Patient"
    ]
   },
   {
@@ -311,7 +346,10 @@
    "page": [
     "Settings → Appearance → System / Light / Dark"
    ],
-   "page_note": "The page keeps the choice in this browser."
+   "page_note": "The page keeps the choice in this browser.",
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Appearance → System / Light / Dark"
+   ]
   },
   {
    "id": "about",
@@ -332,6 +370,9 @@
    ],
    "page": [
     "Settings → About"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → About"
    ]
   },
   {
@@ -354,6 +395,9 @@
     "Brain dump button at the bottom"
    ],
    "page": [
+    "Brain dump button at the bottom"
+   ],
+   "mac": [
     "Brain dump button at the bottom"
    ],
    "voice": [
@@ -385,6 +429,10 @@
     "Meeting button at the bottom",
     "Settings → Meetings"
    ],
+   "mac": [
+    "Start a meeting button at the top",
+    "Settings (••• at the top, or ⌘,) → Meeting settings"
+   ],
    "voice": [
     "meeting mode, listening"
    ]
@@ -409,6 +457,9 @@
    ],
    "page": [
     "Challenge button at the bottom"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Challenge / End challenge"
    ],
    "voice": [
     "challenge me",
@@ -461,6 +512,9 @@
    "page": [
     "Whisper button at the bottom"
    ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Whisper"
+   ],
    "voice": [
     "whisper mode",
     "back to normal"
@@ -487,6 +541,9 @@
    "page": [
     "Briefing button at the bottom"
    ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Briefing"
+   ],
    "voice": [
     "brief me on the night"
    ],
@@ -510,6 +567,9 @@
    ],
    "page": [
     "Settings → Briefings → Scheduled briefing"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Briefing settings"
    ]
   },
   {
@@ -534,6 +594,9 @@
    ],
    "page": [
     "Settings → Dictionary → Dictionary…"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Dictionary"
    ]
   },
   {
@@ -558,6 +621,9 @@
    ],
    "page": [
     "Settings → Alerts → Desktop alerts while this tab is in the background / Approve from notifications (iPhone and Apple Watch)"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Alerts"
    ]
   },
   {
@@ -579,6 +645,9 @@
    ],
    "page": [
     "Settings → Conflict alarm → Check sessions against each other"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Conflict alarm"
    ]
   },
   {
@@ -600,6 +669,9 @@
    ],
    "page": [
     "Settings → Show while it says → Also show on the phone"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Show while it says"
    ]
   },
   {
@@ -618,6 +690,9 @@
    ],
    "page": [
     "Clean up my words at the top"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Clean up my words"
    ]
   },
   {
@@ -641,6 +716,10 @@
    ],
    "page": [
     "Orchestrator / Session in the Sessions panel on the left"
+   ],
+   "mac": [
+    "the sessions column on the left (in a narrow window, the Sessions button at the bottom) → Orchestrator / Session",
+    "Settings (••• at the top, or ⌘,) → Sessions and mode"
    ],
    "voice": [
     "orchestrator mode",
@@ -666,6 +745,10 @@
    ],
    "iphone_note": "Or tap its chip at the top.",
    "page_note": "Click the session in the Sessions panel on the left.",
+   "mac": [
+    "right-click a session → Focus on this session"
+   ],
+   "mac_note": "Or click it in the sessions column.",
    "voice": [
     "switch to lantern"
    ],
@@ -693,6 +776,9 @@
    ],
    "page": [
     "hover a session in the Sessions panel (on touch, its ⋯) → Rename"
+   ],
+   "mac": [
+    "right-click a session → Rename"
    ],
    "voice": [
     "rename this to pricing"
@@ -726,6 +812,10 @@
    "page": [
     "hover a session in the Sessions panel (on touch, its ⋯) → Disconnect from the voice"
    ],
+   "mac": [
+    "right-click a session → Disconnect from the voice",
+    "the sessions column on the left (in a narrow window, the Sessions button at the bottom) → Disconnect"
+   ],
    "voice": [
     "close lantern"
    ],
@@ -746,6 +836,9 @@
    "how": "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice. Pointe can also start a new one for you: New session.",
    "iphone": [
     "Sessions button at the bottom"
+   ],
+   "mac": [
+    "the sessions column on the left (in a narrow window, the Sessions button at the bottom)"
    ]
   },
   {
@@ -778,6 +871,9 @@
     "New session in the Sessions panel on the left",
     "Settings → New sessions → Folders"
    ],
+   "mac": [
+    "the sessions column on the left (in a narrow window, the Sessions button at the bottom) → New session"
+   ],
    "voice": [
     "start a new codex session in shop"
    ],
@@ -802,6 +898,9 @@
    ],
    "page": [
     "Settings → Machines → Invite a machine"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Machines"
    ]
   },
   {
@@ -822,6 +921,9 @@
     "Type button at the bottom"
    ],
    "page": [
+    "Type button at the bottom"
+   ],
+   "mac": [
     "Type button at the bottom"
    ]
   },
@@ -846,6 +948,9 @@
    ],
    "page": [
     "the request's card → Approve / Deny"
+   ],
+   "mac": [
+    "the request's card → Approve / Deny"
    ]
   },
   {
@@ -869,7 +974,10 @@
    "page": [
     "Settings in the Sessions panel on the left"
    ],
-   "page_note": "On a narrow window, open the Sessions button first."
+   "page_note": "On a narrow window, open the Sessions button first.",
+   "mac": [
+    "Settings (••• at the top, or ⌘,)"
+   ]
   },
   {
    "id": "update",
@@ -938,9 +1046,110 @@
    "page": [
     "More button at the bottom"
    ]
+  },
+  {
+   "id": "mac-menu-the-meeting-that-ended",
+   "title": "The meeting that ended",
+   "ask": [
+    "the meeting that ended"
+   ],
+   "how": "",
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → The meeting that ended"
+   ]
+  },
+  {
+   "id": "mac-menu-exit-demo",
+   "title": "Exit demo",
+   "ask": [
+    "exit demo"
+   ],
+   "how": "",
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Exit demo"
+   ]
   }
  ],
  "ui": {
+  "mac": {
+   "menu": {
+    "Microphone": [
+     "Always on",
+     "Push to talk"
+    ],
+    "Talk button": [
+     "Tap to talk",
+     "Hold to talk"
+    ],
+    "Wait before answering": [
+     "Quick",
+     "Normal",
+     "Patient"
+    ],
+    "Appearance": [
+     "System",
+     "Light",
+     "Dark"
+    ],
+    "Clean up my words": [],
+    "Whisper": [],
+    "Dictionary": [],
+    "Sessions and mode": [],
+    "Machines": [],
+    "Phone": [],
+    "Start a meeting": [],
+    "The meeting that ended": [],
+    "Briefing": [],
+    "End challenge": [],
+    "Challenge": [],
+    "Briefing settings": [],
+    "Meeting settings": [],
+    "Alerts": [],
+    "Voice lock": [],
+    "Conflict alarm": [],
+    "Show while it says": [],
+    "About": [],
+    "Exit demo": []
+   },
+   "switch": [
+    "Always on",
+    "Tap to talk",
+    "Hold to talk"
+   ],
+   "bar": [
+    "Brain dump",
+    "Done",
+    "Review",
+    "Type",
+    "Sessions",
+    "Hang up"
+   ],
+   "mic": [
+    "Unmute",
+    "Mute"
+   ],
+   "header": [
+    "Start a meeting",
+    "Connect"
+   ],
+   "session": [
+    "Sessions and mode",
+    "Focus on this session",
+    "Rename",
+    "Disconnect from the voice"
+   ],
+   "sessions": [
+    "Sessions",
+    "Orchestrator",
+    "Session",
+    "New session",
+    "Disconnect"
+   ],
+   "card": [
+    "Deny",
+    "Approve"
+   ]
+  },
   "iphone": {
    "menu": {
     "Microphone": [

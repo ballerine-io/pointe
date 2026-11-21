@@ -1,6 +1,8 @@
 import AVFAudio
+#if os(iOS)
 import CoreMotion
 import MediaPlayer
+#endif
 import SwiftUI
 
 // Drive & walk mode (docs/features/drive-mode.md): short answers, nothing to read or tap. The
@@ -25,13 +27,7 @@ extension API {
 
     /// On or off. The Mac refuses (409) with no call up or a meeting on.
     func drive(_ on: Bool) async throws {
-        var r = URLRequest(url: pairing.base.appendingPathComponent("voice/drive"))
-        r.httpMethod = "POST"
-        r.setValue("Bearer \(pairing.key)", forHTTPHeaderField: "Authorization")
-        r.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        r.httpBody = try? JSONSerialization.data(withJSONObject: ["on": on])
-        r.timeoutInterval = 10
-        let (data, response) = try await session.data(for: r)
+        let (data, response) = try await send(request("voice/drive", method: "POST", body: ["on": on]))
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String
@@ -152,6 +148,7 @@ struct DriveRequestCard: View {
     }
 }
 
+#if os(iOS)
 /// "Switch to Drive mode?": only ever a suggestion, never entered by itself.
 struct DriveSuggestion: View {
     let accept: () -> Void
@@ -171,6 +168,7 @@ struct DriveSuggestion: View {
         .accessibilityIdentifier("driveSuggestion")
     }
 }
+#endif
 
 /// When to suggest the mode: the car's audio (CarPlay) carries the call, or the phone has sensed driving for a minute.
 /// Once per trip: dismissed, it is not suggested again until the car and the motion have both gone away.
@@ -198,12 +196,15 @@ struct DriveSuggester: Equatable {
 
     private mutating func rearm() { if !inCar && automotiveSince == nil { dismissed = false } }
 
+    #if os(iOS)
     /// CarPlay's audio route. A plain Bluetooth car kit looks like any headset to iOS, so motion covers that case.
     static func carRoute(_ route: AVAudioSessionRouteDescription = AVAudioSession.sharedInstance().currentRoute) -> Bool {
         route.outputs.contains { $0.portType == .carAudio }
     }
+    #endif
 }
 
+#if os(iOS)
 /// The per-device setting and the sensors behind the suggestion. Motion is asked only when the user turns the setting
 /// on with a tap (iOS shows its permission prompt then); otherwise only CarPlay's route is used.
 @MainActor @Observable
@@ -238,15 +239,30 @@ final class DriveSensors {
         }
     }
 }
+#else
+/// A Mac has no motion sensor and no car's audio route: drive mode is never suggested on it, only shown and stopped
+/// (and started from its button), so the screens that ask the sensors get an answer that is always no.
+@MainActor @Observable
+final class DriveSensors {
+    var suggester = DriveSuggester()
+    let enabled = false
+    func start() {}
+    func setEnabled(_ on: Bool) {}
+}
+#endif
 
 /// The lock screen while driving: "Pointe · river-lantern needs you". Play/pause there mutes (Call.driving).
 enum DriveNowPlaying {
+    #if os(iOS)
     static func info(status: API.Status?) -> [String: Any] {
         let line = DriveCopy.line(status: status, speaking: false, hearing: false)
         return [MPMediaItemPropertyTitle: "Pointe · \(line)", MPMediaItemPropertyArtist: DriveCopy.title]
     }
+    #endif
 
     @MainActor static func update(status: API.Status?, driving: Bool) {
+        #if os(iOS)
         MPNowPlayingInfoCenter.default().nowPlayingInfo = driving ? info(status: status) : nil
+        #endif
     }
 }

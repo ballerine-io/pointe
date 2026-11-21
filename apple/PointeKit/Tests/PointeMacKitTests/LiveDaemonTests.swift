@@ -15,34 +15,40 @@ struct LiveDaemonTests {
         locator = DaemonLocator(environment: ["CLAUDE_VOICE_STATE": env["POINTE_E2E_STATE"] ?? "", "CLAUDE_VOICE_DAEMON_PORT": env["POINTE_E2E_PORT"] ?? ""])
     }
 
+    private func ask(_ request: URLRequest) async throws -> (Int, [String: Any]) {
+        let (data, response) = try await DaemonEndpoint.session().data(for: request)
+        return ((response as? HTTPURLResponse)?.statusCode ?? 0, (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:])
+    }
+
     @Test func theDaemonIsFoundVerifiedAndOpenedByThePageKey() async throws {
         #expect(locator.paths.port != DaemonPaths.defaultPort, "never the live daemon")
         guard case .running = await locator.state() else { Issue.record("the daemon is not running, or is not the listener"); return }
-        let client = DaemonClient(endpoint: try await locator.endpoint())
-        let status = try await client.status()
-        #expect(status.version != nil)
-        _ = try await client.prefs()
+        let endpoint = try await locator.endpoint()
+        let (code, status) = try await ask(endpoint.request("voice/status"))
+        #expect(code == 200 && status["version"] != nil)
+        #expect(try await ask(endpoint.request("voice/prefs")).0 == 200)
         // Without the key the same listener answers 403: the cookie is what opened it.
-        let bare = DaemonClient(endpoint: DaemonEndpoint(port: locator.paths.port, credential: .pageKey("not-the-key")))
-        await #expect(throws: API.Failure.self) { _ = try await bare.status() }
+        let bare = DaemonEndpoint(port: locator.paths.port, credential: .pageKey("not-the-key"))
+        #expect(try await ask(bare.request("voice/status")).0 == 403)
     }
 
     /// `live.py approve` holds a request open and runs this: Approve it as the app's click does.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["POINTE_E2E_APPROVE"] != nil))
     func aClicksApproveReachesTheWaitingSession() async throws {
-        let client = DaemonClient(endpoint: try await locator.endpoint())
-        var waiting: API.Session?
+        let endpoint = try await locator.endpoint()
+        var waiting: [String: Any]?
         for _ in 0..<120 where waiting == nil {
-            waiting = try await client.status().sessions.first { $0.waiting && $0.request_id != nil }
+            let sessions = try await ask(endpoint.request("voice/status")).1["sessions"] as? [[String: Any]] ?? []
+            waiting = sessions.first { $0["waiting"] as? Bool == true && $0["request_id"] is String }
             if waiting == nil { try await Task.sleep(for: .milliseconds(500)) }
         }
         let session = try #require(waiting, "no request came")
-        let id = try #require(session.request_id)
+        let body: [String: JSONValue] = ["session": .string(session["name"] as? String ?? ""), "request_id": .string(session["request_id"] as? String ?? ""),
+                                         "decision": "allow"]
         try await Task.sleep(for: .seconds(3))  // long enough for the window to show the card
-        try await client.answer(session: session.name, requestId: id, allow: true, viaNotification: false)
-        await #expect(throws: API.Failure.status(409, "that request is no longer pending")) {
-            try await client.answer(session: session.name, requestId: id, allow: true, viaNotification: false)
-        }
+        #expect(try await ask(endpoint.request("voice/approve", method: "POST", body: body)).0 == 200)
+        let again = try await ask(endpoint.request("voice/approve", method: "POST", body: body))
+        #expect(again.0 == 409 && again.1["detail"] as? String == "that request is no longer pending")
     }
 }
 #endif

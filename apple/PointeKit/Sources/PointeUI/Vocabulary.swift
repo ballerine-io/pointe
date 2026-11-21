@@ -48,20 +48,8 @@ extension API {
 
     // The Mac's own words on a refusal ("a yes, no or stop word…"), so the sheet can show why.
     private func dictionaryRequest(_ method: String, body: [String: any Sendable]? = nil, term: String? = nil) async throws -> DictionaryPage {
-        var url = pairing.base.appendingPathComponent("voice/dictionary")
-        if let term, var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-            parts.queryItems = [URLQueryItem(name: "term", value: term)]
-            url = parts.url ?? url
-        }
-        var r = URLRequest(url: url)
-        r.httpMethod = method
-        r.timeoutInterval = 10
-        r.setValue("Bearer \(pairing.key)", forHTTPHeaderField: "Authorization")
-        if let body {
-            r.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            r.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        }
-        let (data, response) = try await session.data(for: r)
+        let query = term.map { [URLQueryItem(name: "term", value: $0)] } ?? []
+        let (data, response) = try await send(request("voice/dictionary", method: method, body: body, query: query))
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String
@@ -167,7 +155,7 @@ struct VocabularySheet: View {
                 Section {
                     HStack {
                         TextField(VocabularyCopy.addPlaceholder, text: $newTerm)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .plainEntry()
                             .submitLabel(.done).onSubmit(add)
                             .accessibilityIdentifier("dictionaryNew")
                         Button(VocabularyCopy.add, action: add).disabled(newTerm.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -236,13 +224,12 @@ struct VocabularySheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(VocabularyCopy.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(VocabularyCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .task { await reload() }
             .alert(VocabularyCopy.edit, isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
                 TextField(VocabularyCopy.addPlaceholder, text: $editText)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .plainEntry()
                     .accessibilityIdentifier("dictionaryEditField")
                 Button("Save") {
                     let original = editOriginal, to = editText.trimmingCharacters(in: .whitespaces)

@@ -1,10 +1,14 @@
 import LocalAuthentication
+import PointeKit
 import SwiftUI
 
 /// The call: who you are talking to, what was said, what needs you, and the controls, with the mic at your thumb.
 struct CallView: View {
-    let pairing: Pairing
+    let link: DaemonLink
     let unpair: () -> Void
+    /// The Mac app's shell (its menu bar item, bubble and shortcut), which holds the call and hears each status. The
+    /// iPhone has none: this screen is the whole app there.
+    private let shell: CallShell?
     @State private var call: Call
     @State private var status: API.Status?
     @State private var reach = Reach.ok
@@ -48,6 +52,9 @@ struct CallView: View {
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
     @State private var showAbout = false
+    @State private var showNewSession = false
+    @State private var showPhone = false
+    @State private var wide = false  // a Mac window wide enough for the sessions column
     @State private var showCallSettings = false
     @State private var settingsNext: CallSettingsLink?  // a row's own sheet, opened once Settings has closed
     @State private var stageHeight: CGFloat = 0
@@ -56,10 +63,16 @@ struct CallView: View {
     private let demo: Demo?
 
     init(pairing: Pairing, unpair: @escaping () -> Void, demo: Demo? = nil) {
-        self.pairing = pairing
+        self.init(link: DaemonLink(pairing), unpair: unpair, demo: demo)
+    }
+
+    /// `call`: one that already exists (the Mac app's, which outlives its window); otherwise this screen makes its own.
+    init(link: DaemonLink, call: Call? = nil, shell: CallShell? = nil, unpair: @escaping () -> Void = {}, demo: Demo? = nil) {
+        self.link = link
+        self.shell = shell
         self.unpair = unpair
         self.demo = demo
-        _call = State(initialValue: Call(pairing: pairing))
+        _call = State(initialValue: call ?? Call(link: link))
         _status = State(initialValue: demo?.status)
         _showSessions = State(initialValue: demo?.screen == .sessions || demo?.screen == .machinesSessions || demo?.screen == .newSession)
         _editing = State(initialValue: demo?.screen == .edit ? demo?.status.talk?.last(where: \.mine) : nil)
@@ -125,15 +138,24 @@ struct CallView: View {
     /// Settings and the demo's growing conversation sit outside `screen`: one more modifier on that chain and CI's compiler
     /// gave up type-checking it in reasonable time.
     var body: some View {
-        screen
+        framed
             .sheet(isPresented: $showCallSettings, onDismiss: openSettingsNext) { callSettingsSheet }
             .task { await growDemoTalk() }
+            .sheet(isPresented: $showNewSession) {  // straight to the sheet, for a menu or a key (the Mac's New Session)
+                NewSessionSheet(actions: starter).sheetSurface()
+            }
+            .onChange(of: shell?.request) { _, request in if let request { perform(request.command) } }
+            #if os(macOS)
+            .sheet(isPresented: $showPhone) {
+                PhoneSheet(phones: status?.phones?.paired ?? [], act: PhoneActions(api: call.api)).sheetSurface()
+            }
+            #endif
     }
 
     private var callSettingsSheet: some View {
         CallSettingsSheet(model: settingsModel, act: settingsActions).equatable()
             .presentationDetents([.large])
-            .presentationBackground(Brand.group)
+            .sheetSurface()
     }
 
     /// The long demo conversation grows, as a live one does.
@@ -143,6 +165,27 @@ struct CallView: View {
             try? await Task.sleep(for: .seconds(1.5))
             status?.talk = (status?.talk ?? []) + [Demo.nextLine(after: status?.talk ?? [])]
         }
+    }
+
+    /// A wide Mac window has the page's left column: mode, sessions by machine, New session, recent requests. Narrow,
+    /// and on the phone, the strip of sessions over the conversation and the Sessions sheet do that job.
+    @ViewBuilder private var framed: some View {
+        #if os(macOS)
+        HStack(spacing: 0) {
+            if wide {
+                SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter,
+                              docked: SessionsSheet.Docked(settings: { showCallSettings = true }, rename: rename))
+                    .frame(width: 288)
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+                Rectangle().fill(Brand.line).frame(width: 1).ignoresSafeArea()
+            }
+            screen
+        }
+        .background(Brand.bg.ignoresSafeArea())
+        .onGeometryChange(for: Bool.self) { $0.size.width >= 780 } action: { now in withAnimation(.smooth(duration: 0.25)) { wide = now } }
+        #else
+        screen
+        #endif
     }
 
     private var screen: some View {
@@ -201,84 +244,84 @@ struct CallView: View {
                                 discard: { showDumpReview = false; await dumpAction("discard") },
                                 close: { dumpReviewClosed = dump.id; showDumpReview = false })
                     .presentationDetents([.large])
-                    .presentationBackground(Brand.group)
+                    .sheetSurface()
             }
         }
         .sheet(isPresented: $showSessions) {
             SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(item: $sessionsOn) { on in
             SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter, starter: starter)
                 .presentationDetents([.large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showMachines) {
-            MachinesSheet(status: status, pairing: pairing, ownerCheck: ownerCheck, invite: makeInvite,
+            MachinesSheet(status: status, pairing: link.pairing, ownerCheck: ownerCheck, invite: makeInvite,
                           cancelInvite: cancelInvite, revoke: revokeMachine)
                 .presentationDetents([.large])  // the code and its countdown must be on screen, on an SE too
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(item: $editing) { turn in
             EditTurnSheet(turn: turn) { text in await correct(turn, text) }
                 .presentationDetents([.medium])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showMeetingStart) {
             MeetingStartSheet(sessions: status?.sessions ?? [], defaults: prefs, vendors: meetingVendors, start: startMeeting)
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showMeetingSettings) {
             MeetingSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showVoiceLock) {
             if let lock = status?.voice_lock {
                 VoiceLockSheet(lock: lock, callUp: phase == .live, pushToTalk: status?.ptt?.mode == "ptt", send: voiceprint, ownerCheck: ownerCheck)
                     .presentationDetents([.medium, .large])
-                    .presentationBackground(Brand.group)
+                    .sheetSurface()
             }
         }
         .sheet(isPresented: $showConflictSettings) {
             ConflictSettingsSheet(load: loadPrefs, save: savePrefs).presentationDetents([.medium, .large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showBriefing) {
             BriefingSheet(status: status?.briefing, callUp: phase == .live, meetingOn: meeting?.isOn == true,
                           load: loadBriefings, act: briefing)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showBriefingSettings) {
             BriefingSettingsSheet(load: { await loadBriefings()?.schedule }, save: saveBriefingSchedule)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showAlerts) {
             AlertsSheet(phone: AlertCenter.shared.enabled, watch: prefs?.watchApprove ?? false,
                         setPhone: { await AlertCenter.shared.setEnabled($0) }, setWatch: setWatchApprove)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showSheet) {
             ShowSheet(showing: showing, earlier: status?.show_on_phone == true ? status?.shown_earlier ?? [] : [],
                       follow: $showFollow, load: loadArtifact)
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .sheet(isPresented: $showSettings) {
             ShowSettingsSheet(on: status?.show_on_phone == true, set: setShowOnPhone, ownerCheck: ownerCheck)
                 .presentationDetents([.medium])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .onChange(of: showing?.id) { showFollow.follow(showing) }
         .sheet(isPresented: $showAbout) {
-            AboutSheet(mac: status?.version).presentationDetents([.medium]).presentationBackground(Brand.group)
+            AboutSheet(mac: status?.version).presentationDetents([.medium]).sheetSurface()
         }
         .sheet(isPresented: $showDictionary) {
             VocabularySheet(load: loadDictionary, change: changeDictionary, delete: deleteFromDictionary, setLearn: setLearn)
                 .presentationDetents([.medium, .large])
-                .presentationBackground(Brand.group)
+                .sheetSurface()
         }
         .onChange(of: status?.dictionary) { showLearned(learnedToasts.fresh(status?.dictionary)) }
         .onChange(of: status?.whisper, initial: true) { if whisperFollow.follow(status?.whisper) { withAnimation(.snappy) { typing = true } } }
@@ -292,7 +335,7 @@ struct CallView: View {
         .animation(.snappy, value: toast)
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
-                IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).presentationBackground(Brand.group)
+                IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).sheetSurface()
             }
         }
         .sheet(isPresented: $showSpeakers) {
@@ -300,7 +343,7 @@ struct CallView: View {
                 await act { try await call.api.nameSpeaker(label, name) }
             }
             .presentationDetents([.medium])
-            .presentationBackground(Brand.group)
+            .sheetSurface()
         }
         .sheet(isPresented: endSheetShown) {
             if let result = meeting?.result {
@@ -309,7 +352,7 @@ struct CallView: View {
                                 save: { with in demo != nil ? "~/.claude-voice/meetings/demo.md" : (try? await call.api.exportMeeting(transcript: with)) ?? "" },
                                 send: { to in await act { try await call.api.sendActions(to: to) } ? nil : problem ?? "" },
                                 discard: { await act { try await call.api.discardMeeting() } })
-                    .presentationBackground(Brand.group)
+                    .sheetSurface()
             }
         }
         .confirmationDialog("End the meeting? Pointe stops listening and writes the summary.", isPresented: $confirmEnd,
@@ -420,6 +463,7 @@ struct CallView: View {
                 BrandHeader(mac: status?.version)
                 Spacer()
                 if demo?.tried == true { DemoBadge { call.hangUp(); unpair() } }
+                #if os(iOS)  // drive mode is for a phone in a car: the Mac shows it and stops it, as the page does, and never starts it
                 if status?.drive != nil {  // a mode, like a meeting: switched here, so the mic below never moves
                     Button { setDrive(!driving) } label: {
                         Image(systemName: driving ? "car.fill" : "car").font(.brand(.subheadline, .semibold))
@@ -434,6 +478,7 @@ struct CallView: View {
                     .accessibilityIdentifier("driveButton")
                     .accessibilityValue(driving ? "On" : "Off")
                 }
+                #endif
                 Button { openMeetingStart() } label: {
                     Image(systemName: "person.3.fill").font(.brand(.subheadline, .semibold))
                         .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
@@ -445,11 +490,13 @@ struct CallView: View {
                 menu
             }
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // chrome, like a navigation bar: the words below it take the room
+            if !wide {  // the wide Mac window lists the sessions in its left column
             SessionChips(sessions: status?.sessions ?? [], known: status != nil, active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
                          showAll: { showSessions = true }, rename: rename, machines: machines, filter: $machineFilter,
                          showMachine: { sessionsOn = MachineName(id: $0) })
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            }
             if let showing {
                 ShowCard(showing: showing) { showSheet = true }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -458,11 +505,13 @@ struct CallView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     // The empty stage says the same title and why in the middle of the screen: once is enough.
                     if !panelShown { StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking) }
+                    #if os(iOS)  // the Mac keeps itself awake only for a call from another device: on the Mac there is nothing to say
                     if let awake = API.KeepAwake.shown(status, live: phase == .live) {
                         Text(awake).font(.brand(.caption)).foregroundStyle(Brand.dim).lineLimit(1)
                             .padding(.leading, 18)  // under the title, past the state dot
                             .accessibilityIdentifier("keepAwake")
                     }
+                    #endif
                     if let n = status?.voice_lock?.ignored?.count, n > 0 {  // its own line: beside the state it wrapped the line above
                         Button { showIgnored = true } label: {
                             Text(VoiceLockCopy.ignored(n)).font(.brand(.caption)).foregroundStyle(Brand.muted).underline(color: Brand.lineStrong)
@@ -522,6 +571,22 @@ struct CallView: View {
                             unpair: { call.hangUp(); unpair() })
     }
 
+    /// What the Mac's menus and keys ask of this screen.
+    private func perform(_ command: ShellRequest.Command) {
+        switch command {
+        case .settings: showCallSettings = true
+        case .sessions: showSessions = true
+        case .newSession: showNewSession = true
+        case .brainDump: if phase == .live { dumpButton() }
+        case .meeting: openMeetingStart()
+        case .type: if !driving { withAnimation(.snappy) { typing = true } }
+        case .about: showAbout = true
+        case .briefing: showBriefing = true
+        case .machines: showMachines = true
+        case .phone: if demo == nil { showPhone = true }
+        }
+    }
+
     private func openSettingsNext() {
         guard let next = settingsNext else { return }
         settingsNext = nil
@@ -539,6 +604,7 @@ struct CallView: View {
         case .conflicts: showConflictSettings = true
         case .show: showSettings = true
         case .about: showAbout = true
+        case .phone: showPhone = true
         }
     }
 
@@ -554,10 +620,12 @@ struct CallView: View {
                                   dismiss: { await dismissBriefing(ready) })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            #if os(iOS)
             if suggestingDrive {
                 DriveSuggestion(accept: { setDrive(true) }, dismiss: { sensors.suggester.dismiss() })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            #endif
             if let pending = status?.start_pending, !driving {  // on the road nothing is tapped: the spoken yes starts it
                 StartCard(pending: pending, answer: answerStart)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -654,29 +722,14 @@ struct CallView: View {
     }
 
     private var title: String {
-        switch phase {
-        case .off: return ConnectCopy.offTitle(reach: reach, macOnACall: status?.connected == true)
-        case .connecting: return ConnectCopy.connecting(macName)
-        case .reconnecting: return "Reconnecting…"
-        case .live:
-            if challengeOn { return ChallengeCopy.state }
-            if dumping { return BrainDumpCopy.state }
-            if status?.hold != nil { return TurnsCopy.holding }
-            if call.talk.ptt {
-                if talking { return call.talkStyle.talkingLine }
-                if speaking { return "Speaking" }
-                if let note = call.talkNote { return note }
-                if let why = call.talkClosedWhy { return TalkGate.closedLine(why, style: call.talkStyle) }
-                return call.talk.roomHeard ? "Meeting: room is heard · \(call.talkStyle.label.lowercased())" : call.talkStyle.label
-            }
-            return muted ? "Muted" : speaking ? "Speaking" : "Listening"
-        }
+        CallTitle.line(phase: phase, reach: reach, status: status, call: call, macName: macName, dumping: dumping, talking: talking,
+                       speaking: speaking, muted: muted)
     }
 
     private var reachable: Bool { reach == .ok }
 
     /// The Mac's own name when its status says which machine is here; its address until then.
-    private var macName: String { status?.machines?.first { $0.here == true }?.name ?? pairing.host }
+    private var macName: String { status?.machines?.first { $0.here == true }?.name ?? link.host }
 
     /// What Connect shows: the reason the last attempt failed, or what a tap does.
     private var face: ConnectFace {
@@ -693,10 +746,11 @@ struct CallView: View {
     }
 
     private var subtitle: String {
+        if Surface.isMac, reach != .ok { return reach == .rejected ? MacCopy.keyRefused : MacCopy.daemonDown }
         if reach == .rejected { return "Pair this phone again from the page." }
         if reach == .unreachable { return "Is Twingate, Tailscale or the same Wi-Fi on for this phone?" }
-        guard let status else { return "Reaching your Mac…" }
-        if phase == .off { return ConnectCopy.tapConnect }
+        guard let status else { return Surface.isMac ? "Reaching Pointe on this Mac…" : "Reaching your Mac…" }
+        if phase == .off { return ConnectCopy.tapConnectHere }
         if title == TurnsCopy.holding { return TurnsCopy.holdingHow }
         if status.sessions.isEmpty { return "No session yet: /pointe:voice or pointe join on the Mac" }
         if status.mode == "session", let active = status.active { return "Focused on \(active)" + health }
@@ -705,6 +759,12 @@ struct CallView: View {
         let count = shown.count
         let on = machines.valid(machineFilter).map { " on \($0)" } ?? ""
         return "Orchestrating \(count) session\(count == 1 ? "" : "s")\(on)" + (needs > 0 ? " · \(needs) need\(needs == 1 ? "s" : "") you" : "") + health
+    }
+
+    /// Why the device asks who is there. iOS shows the reason as its own sentence; macOS puts it after "Pointe is trying
+    /// to", so there it starts in lower case.
+    static func ownerReason(_ reason: String) -> String {
+        Surface.isMac ? reason.prefix(1).lowercased() + reason.dropFirst() : reason
     }
 
     /// This screen's own problem first, then the call's, then the Mac's (a refused key, a vendor down), as the page does.
@@ -1017,12 +1077,12 @@ struct CallView: View {
 
     /// Face ID or the passcode, as for Approve. Also in the demo: a lowering there must fail the same way.
     private func ownerCheck(_ reason: String) async -> Bool {
-        (try? await LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) == true
+        (try? await LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason: Self.ownerReason(reason))) == true
     }
 
     /// Turning it on lowers what an Approve needs, so it asks for Face ID first, like lowering the voice lock.
     private func setWatchApprove(_ on: Bool) async -> Bool {
-        if on, !(await ownerCheck(AlertCopy.faceIDReason)) { return false }
+        if on, !(await ownerCheck(AlertCopy.faceIDReasonHere)) { return false }
         guard demo == nil else { return on }
         guard await savePrefs(["alerts.watch_approve": on]) else { return prefs?.watchApprove ?? false }
         return prefs?.watchApprove ?? on
@@ -1356,6 +1416,7 @@ struct CallView: View {
             } catch {
                 reach = .unreachable
             }
+            shell?.polled(status, reach: reach)
             // Live words need a quick refresh while the call is up; idle, once a second is enough.
             try? await Task.sleep(nanoseconds: call.state == .live ? 400_000_000 : 1_000_000_000)
         }
@@ -1366,7 +1427,7 @@ struct CallView: View {
         if allow {
             let context = LAContext()
             do {
-                guard try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Approve what \(s.name) wants to run")
+                guard try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: Self.ownerReason("Approve what \(s.name) wants to run"))
                 else { return }
             } catch { return }
         }
@@ -1522,12 +1583,12 @@ struct RequestCard: View {
                     .font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                     .accessibilityIdentifier("requestOffline")
             } else {
-                Text(session.voice_can_approve == true ? "Say yes or no, or tap." : "Too complex to read out: check it, then tap.")
+                Text(session.voice_can_approve == true ? "Say yes or no, or \(Surface.tap)." : "Too complex to read out: check it, then \(Surface.tap).")
                     .font(.brand(.caption)).foregroundStyle(Brand.muted)
                 HStack(spacing: 10) {
                     Button { act(false) } label: { Text("Deny").frame(maxWidth: .infinity) }
                         .buttonStyle(.brandQuiet).controlSize(.large)
-                    Button { act(true) } label: { Label("Approve", systemImage: "faceid").frame(maxWidth: .infinity) }
+                    Button { act(true) } label: { Label("Approve", systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
                         .buttonStyle(.brandPrimary).controlSize(.large)
                 }
                 .disabled(busy)

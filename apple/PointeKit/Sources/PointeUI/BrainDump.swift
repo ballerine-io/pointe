@@ -311,8 +311,7 @@ struct BrainDumpReview: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("dump.review")
             }
-            .navigationTitle(BrainDumpCopy.reviewTitle)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(BrainDumpCopy.reviewTitle)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close", action: close).accessibilityIdentifier("dump.close") } }
         }
         .onAppear { text = dump.prompt?.text ?? "" }

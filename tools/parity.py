@@ -31,7 +31,7 @@ _IF = re.compile(r"^\s*#(if|elseif|else|endif)\b(.*)$")
 
 def _truth(condition: str, platform: str) -> bool | None:
     """True or False when the condition is decided by the platform alone; None when it is not (DEBUG, a mix)."""
-    c = condition.strip()
+    c = condition.split("//")[0].strip()  # a comment after the condition is not part of it
     facts = {"os(iOS)": platform == "ios", "os(macOS)": platform == "mac", "canImport(UIKit)": platform == "ios",
              "canImport(AppKit)": platform == "mac"}
     if c in facts:
@@ -130,6 +130,7 @@ def ident(*names: str) -> str:
 PAGE_IS_THE_MAC = "the page is served by the daemon on the Mac: it is the side that shows the code"
 NO_DAEMON_NO_PAGE = "the page exists only while the daemon runs, so there is nothing to start, find or demo from it"
 MAC_SHELL = "a Mac shell feature: AppKit only (docs/design/macos-app.md)"
+DRIVE_IS_THE_PHONES = "drive mode is for a phone in a car: it starts there or by voice, and the Mac only shows it and stops it"
 PHONE_ONLY_HARDWARE = "needs the phone's own hardware or system service"
 
 GROUPS: list[tuple[str, list[Feature]]] = [
@@ -274,7 +275,7 @@ GROUPS: list[tuple[str, list[Feature]]] = [
         F("drive.screen", "Drive mode on screen: the one line, the request, Stop",
           web=['id="drivebar"', 'id="drive-stop"'], swift=[r"struct DriveScreen\b", ident("driveStop")]),
         F("drive.start", "Turn drive mode on from the screen",
-          web=[r"setDrive\(true\)"], swift=[ident("driveButton")]),
+          ios=[ident("driveButton")], web=DRIVE_IS_THE_PHONES, mac=DRIVE_IS_THE_PHONES),
         F("drive.suggest", "Offer drive mode when the phone is in a car",
           ios=[r"CMMotionActivityManager", r"struct DriveSuggestion\b"],
           web="no motion sensor and no car audio route on a Mac", mac="no motion sensor and no car audio route on a Mac"),

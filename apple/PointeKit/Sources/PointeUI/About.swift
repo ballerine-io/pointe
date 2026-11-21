@@ -26,8 +26,7 @@ struct AboutSheet: View {
                         .accessibilityIdentifier("aboutVersion")
                 }
             }
-            .navigationTitle(AboutCopy.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .sheetTitle(AboutCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
