@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.17
+
+- **1.17.0** (2026-11-21): The Mac app has everything the page and the iPhone app have, on the iPhone app's own screens: meetings, briefings, challenge, whisper, the dictionary, the voice lock, machines, pairing a phone and the rest, with the page's sessions column in a wide window; Pointe's own help knows the Mac app; it needs macOS 15.
+
 ## 1.16
 
 - **1.16.3** (2026-11-21): The iPhone app builds on the Xcode that CI uses again; the app is the same as in 1.16.2.
