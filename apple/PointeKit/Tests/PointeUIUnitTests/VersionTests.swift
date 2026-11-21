@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 final class VersionTests: XCTestCase {
     func testAppAloneWhenTheMacIsUnknownOrTheSame() {
@@ -16,10 +16,5 @@ final class VersionTests: XCTestCase {
     func testTheShortVersionHasNoBuildNumber() {
         XCTAssertFalse(AppVersion.short.contains("("))
         XCTAssertTrue(AppVersion.app.hasPrefix(AppVersion.short))
-    }
-
-    func testTheAppVersionComesFromTheBundle() {
-        XCTAssertFalse(AppVersion.app.isEmpty)
-        XCTAssertNotEqual(AppVersion.app, "dev")
     }
 }

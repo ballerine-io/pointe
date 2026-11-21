@@ -55,7 +55,6 @@ KNOWN_GAPS: set[tuple[str, str]] = {
     ("sessions.rename", "mac"),
     ("show.card", "mac"),
     ("show.setting", "mac"),
-    ("talk.switch", "ios"),
     ("talk.switch", "mac"),
     ("whisper", "mac"),
 }
@@ -128,8 +127,9 @@ def test_removing_a_control_from_one_surface_fails_the_scan(tmp_path):
     dictionary, those two cells are no longer yes."""
     for name in ("ui.html", "ui_dictionary.html", "ui_whisper.html", "product_help.json"):
         shutil.copy(ROOT / name, tmp_path / name)
-    for folder in ("ios/Pointe", "macos/PointeMac", "apple/PointeKit/Sources"):
+    for folder in ("ios/Pointe", "ios/Pointe.xcodeproj", "macos/PointeMac", "macos/PointeMac.xcodeproj", "apple/PointeKit/Sources"):
         shutil.copytree(ROOT / folder, tmp_path / folder)
+    shutil.copy(ROOT / "apple/PointeKit/Package.swift", tmp_path / "apple/PointeKit/Package.swift")
     assert parity.scan(tmp_path)["call.polish"]["web"].state == "yes"
     page = tmp_path / "ui.html"
     page.write_text(page.read_text().replace('id="polish"', 'id="gone"'))

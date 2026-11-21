@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from page_rig import CHROME, ROOT, Browser, StubMac, fixture, free_port  # noqa: E402
 
 PAGE = (ROOT / "ui.html").read_text()
-SWIFT = (ROOT / "ios" / "Pointe" / "PushToTalk.swift").read_text()
+SWIFT = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "PushToTalk.swift").read_text()
 needs_chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
 STYLES = {"hold": "Hold to talk", "tap": "Tap to talk"}

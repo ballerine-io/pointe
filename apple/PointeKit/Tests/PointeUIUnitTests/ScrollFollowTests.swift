@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// The conversation follows the newest line until your finger takes it off; then new lines wait behind the New pill.
 final class ScrollFollowTests: XCTestCase {

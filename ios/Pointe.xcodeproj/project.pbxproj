@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1B2C3D4E5F6000000000092 /* PointeKit in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6000000000091 /* PointeKit */; };
+		A1B2C3D4E5F6000000000092 /* PointeUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6000000000091 /* PointeUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,7 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1B2C3D4E5F6000000000092 /* PointeKit in Frameworks */,
+				A1B2C3D4E5F6000000000092 /* PointeUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,7 +130,7 @@
 			);
 			name = Pointe;
 			packageProductDependencies = (
-				A1B2C3D4E5F6000000000091 /* PointeKit */,
+				A1B2C3D4E5F6000000000091 /* PointeUI */,
 			);
 			productName = Pointe;
 			productReference = A1B2C3D4E5F600000000000A0 /* Pointe.app */;
@@ -472,9 +472,9 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A1B2C3D4E5F6000000000091 /* PointeKit */ = {
+		A1B2C3D4E5F6000000000091 /* PointeUI */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = PointeKit;
+			productName = PointeUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

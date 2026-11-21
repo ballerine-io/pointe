@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Turn taking on the phone: the hold decodes and an older Mac sends none, the setting decodes with Normal as the
 /// default, and the words are the page's (tests/test_turn_taking.py holds the same literals).

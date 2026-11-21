@@ -747,7 +747,7 @@ def test_send_to_without_the_daemon():
 # ---------- the page and the app share their words ----------
 
 def _swift_copy() -> dict:
-    swift = (ROOT / "ios" / "Pointe" / "BrainDump.swift").read_text()
+    swift = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "BrainDump.swift").read_text()
     block = swift[swift.index("enum BrainDumpCopy"):]
     block = block[:block.index("\n}\n")]
     return dict(re.findall(r'static let (\w+) = "((?:[^"\\]|\\.)*)"', block))

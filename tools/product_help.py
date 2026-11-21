@@ -59,7 +59,7 @@ def _braced(text: str, start: int) -> str:
 
 class Swift:
     def __init__(self, root: Path):
-        self.dir = root / "ios" / "Pointe"
+        self.dir = root / "apple" / "PointeKit" / "Sources" / "PointeUI"
         self.consts, self.bodies = _swift_consts(sorted(self.dir.glob("*.swift")))
 
     def file(self, name: str) -> str:

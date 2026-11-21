@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 final class PairingTests: XCTestCase {
     let fp = String(repeating: "ab", count: 32)

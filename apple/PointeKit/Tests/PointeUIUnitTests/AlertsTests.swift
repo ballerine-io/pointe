@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Feature 7: which notifications the app posts and withdraws from a status poll, and what an action on one does.
 final class AlertsTests: XCTestCase {
@@ -40,8 +40,7 @@ final class AlertsTests: XCTestCase {
     }
 
     func testAfterAnActionTheLastGoodStatusIsKeptWhenTheFetchFails() throws {
-        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-            .deletingLastPathComponent().appendingPathComponent("Pointe/CallView.swift"), encoding: .utf8)
+        let source = try Repo.source("CallView.swift")
         XCTAssertFalse(source.contains("status = try? await"), "a failed fetch would blank the Machines list")
         XCTAssertTrue(source.contains("if let fresh = try? await call.api.status() { status = fresh }"))
     }

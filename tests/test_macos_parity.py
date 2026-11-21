@@ -72,7 +72,7 @@ def test_the_state_line_and_the_session_tags_are_the_pages():
 
 def shared(file: str, name: str, ios_file: str) -> tuple[dict, dict | None]:
     kit = swift_enum(KIT / "PointeKit" / file, name)
-    ios = ROOT / "ios" / "Pointe" / ios_file
+    ios = ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / ios_file
     return kit, (swift_enum(ios, name) if ios.exists() and re.search(rf"\benum {name}\b", ios.read_text()) else None)
 
 

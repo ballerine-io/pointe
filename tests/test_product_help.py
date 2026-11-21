@@ -154,7 +154,7 @@ def test_the_committed_file_is_what_the_generator_writes():
 
 
 def _copy(tmp_path: Path) -> Path:
-    shutil.copytree(ROOT / "ios" / "Pointe", tmp_path / "ios" / "Pointe", ignore=shutil.ignore_patterns("*.xcassets", "Fonts"))
+    shutil.copytree(ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI", tmp_path / "apple" / "PointeKit" / "Sources" / "PointeUI", ignore=shutil.ignore_patterns("Resources"))
     (tmp_path / "docs" / "features").mkdir(parents=True)
     shutil.copy(ROOT / "docs" / "features" / "README.md", tmp_path / "docs" / "features" / "README.md")
     shutil.copy(ROOT / "ui.html", tmp_path / "ui.html")
@@ -165,7 +165,7 @@ def test_a_changed_label_makes_the_file_stale(tmp_path):
     """The check goes red: a label no topic names, renamed in the app's Settings, changes what the generator writes."""
     root = _copy(tmp_path)
     assert gen.dumps(gen.build(root)) == (ROOT / gen.OUT).read_text()
-    view = root / "ios" / "Pointe" / "CallSettings.swift"
+    view = root / "apple" / "PointeKit" / "Sources" / "PointeUI" / "CallSettings.swift"
     view.write_text(view.read_text().replace('row("The meeting that ended"', 'row("Last meeting"'))
     assert gen.dumps(gen.build(root)) != (ROOT / gen.OUT).read_text()
     page = root / "ui.html"
@@ -174,10 +174,10 @@ def test_a_changed_label_makes_the_file_stale(tmp_path):
 
 
 @pytest.mark.parametrize("file,old,new", [
-    ("ios/Pointe/Turns.swift", 'static let setting = "Wait before answering"', 'static let setting = "Pause"'),
+    ("apple/PointeKit/Sources/PointeUI/Turns.swift", 'static let setting = "Wait before answering"', 'static let setting = "Pause"'),
     ("ui.html", '>Connect your phone</button>', '>Pair a phone</button>'),
-    ("ios/Pointe/CallSettings.swift", 'Text("Push to talk").tag("ptt")', 'Text("Press to talk").tag("ptt")'),
-    ("ios/Pointe/BottomBar.swift", 'Text("Always on").tag("always")', 'Text("Open mic").tag("always")'),
+    ("apple/PointeKit/Sources/PointeUI/CallSettings.swift", 'Text("Push to talk").tag("ptt")', 'Text("Press to talk").tag("ptt")'),
+    ("apple/PointeKit/Sources/PointeUI/BottomBar.swift", 'Text("Always on").tag("always")', 'Text("Open mic").tag("always")'),
 ])
 def test_a_renamed_label_a_topic_names_fails_the_generator(tmp_path, file, old, new):
     root = _copy(tmp_path)

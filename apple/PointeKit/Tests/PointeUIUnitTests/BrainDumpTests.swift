@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Brain dump (BrainDump.swift): the status decodes, an older Mac sends none, the button's word follows the state, the
 /// send's target is picked the same way as on the page, and the copy is the page's word for word (tests/test_brain_dump.py

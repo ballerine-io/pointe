@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// The dictionary: the daemon's contract decodes (and an older daemon without it still does), the toast shows each
 /// learned name once and never one from before the app was following, a refusal shows the Mac's own reason, and the
@@ -76,8 +76,7 @@ final class VocabularyTests: XCTestCase {
 
     /// The page and the app say the same thing (docs/design/2026-11-feature-plan.md: parity).
     func testTheCopyIsThePagesWordForWord() throws {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let html = try String(contentsOf: root.appendingPathComponent("ui_dictionary.html"), encoding: .utf8)
+        let html = try Repo.text("ui_dictionary.html")
         let page = html.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
         for copy in [VocabularyCopy.title, VocabularyCopy.lede, VocabularyCopy.addPlaceholder, VocabularyCopy.empty,
                      VocabularyCopy.suggestions, VocabularyCopy.learn, VocabularyCopy.learnHelp, VocabularyCopy.appliesNext,

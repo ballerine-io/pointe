@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 final class TalkGateTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_000)
@@ -147,13 +147,13 @@ final class TalkGateTests: XCTestCase {
     }
 }
 
-final class TalkIntentTests: XCTestCase {
+final class TalkShortcutTests: XCTestCase {
     func testThePressTogglesOnALiveCallInPushToTalkAndOtherwiseSaysWhy() {
-        XCTAssertEqual(TalkIntent.decide(call: .live, ptt: true), .toggle)
-        XCTAssertEqual(TalkIntent.decide(call: .live, ptt: false), .alwaysOn)
-        XCTAssertEqual(TalkIntent.decide(call: nil, ptt: true), .noCall, "no call: the app opens with a notice")
-        XCTAssertEqual(TalkIntent.decide(call: .connecting, ptt: true), .noCall)
-        XCTAssertEqual(TalkIntent.decide(call: .reconnecting, ptt: true), .noCall)
+        XCTAssertEqual(TalkShortcut.decide(call: .live, ptt: true), .toggle)
+        XCTAssertEqual(TalkShortcut.decide(call: .live, ptt: false), .alwaysOn)
+        XCTAssertEqual(TalkShortcut.decide(call: nil, ptt: true), .noCall, "no call: the app opens with a notice")
+        XCTAssertEqual(TalkShortcut.decide(call: .connecting, ptt: true), .noCall)
+        XCTAssertEqual(TalkShortcut.decide(call: .reconnecting, ptt: true), .noCall)
     }
 }
 

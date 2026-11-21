@@ -25,7 +25,7 @@ from test_orchestrator import client_for, d  # noqa: E402,F401  (d is a fixture)
 
 THEME = json.loads((ROOT / "assets" / "theme.json").read_text())
 PAGE = (ROOT / "ui.html").read_text()
-BRAND = (ROOT / "ios" / "Pointe" / "Brand.swift").read_text()
+BRAND = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "Brand.swift").read_text()
 needs_chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
 
@@ -83,7 +83,7 @@ def test_the_app_carries_the_source_tokens_for_light_and_dark():
 
 def test_no_colour_of_the_old_system_is_left_on_either_surface():
     """Navy, the old orange, pure black text and the serif are V5 and earlier; a hex outside the tokens is a drift."""
-    swift = "".join(p.read_text() for p in (ROOT / "ios" / "Pointe").glob("*.swift"))
+    swift = "".join(p.read_text() for p in (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI").glob("*.swift"))
     for old in ("#FF4F1F", "#0E1622", "#0A0F17", "#152031", "Playfair", "New York", "'Inter'"):
         assert old not in PAGE, old
     assert "design: .serif" not in swift and ".italic()" not in swift
@@ -165,9 +165,9 @@ def test_both_surfaces_offer_the_same_theme_choices_with_the_same_default_and_wo
     assert dict(re.findall(r'case \.(\w+): "(\w+)"', theme)) == labels
     assert re.search(r'static let key = "pointe\.theme"', theme)
     assert re.search(r'static let setting = "Appearance"', theme) and ">Appearance</button>" in PAGE
-    settings = (ROOT / "ios" / "Pointe" / "CallSettings.swift").read_text()
+    settings = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "CallSettings.swift").read_text()
     assert 'accessibilityIdentifier("appearanceSetting")' in settings  # reachable from the app's Settings (the ••• button)
-    assert "preferredColorScheme(Theme.stored(theme).scheme)" in (ROOT / "ios" / "Pointe" / "PointeApp.swift").read_text()
+    assert "preferredColorScheme(Theme.stored(theme).scheme)" in (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "PointeRoot.swift").read_text()
 
 
 @needs_chrome
@@ -203,7 +203,7 @@ def test_the_page_follows_the_system_until_a_choice_is_made_and_keeps_the_choice
 def test_the_font_files_are_the_pinned_ones_on_both_surfaces_with_their_licence():
     files = THEME["files"]
     assert sorted(files) == sorted(f"{face}.ttf" for family in THEME["fonts"].values() for face in family["weights"].values())
-    for folder in (ROOT / "assets" / "fonts", ROOT / "ios" / "Pointe" / "Fonts"):
+    for folder in (ROOT / "assets" / "fonts", ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "Resources" / "Fonts"):
         assert sorted(p.name for p in folder.glob("*.ttf")) == sorted(files), folder
         for name, sha in files.items():
             assert hashlib.sha256((folder / name).read_bytes()).hexdigest() == sha, f"{folder.name}/{name}"
@@ -214,8 +214,13 @@ def test_the_font_files_are_the_pinned_ones_on_both_surfaces_with_their_licence(
 
 
 def test_the_app_registers_exactly_the_bundled_fonts():
+    """The fonts are the shared module's resources, registered by it at launch for both apps: every .ttf in its bundle,
+    which the test above holds to the pinned files. Neither app lists them in its Info.plist."""
+    assert 'Bundle.module.urls(forResourcesWithExtension: "ttf"' in BRAND and "CTFontManagerRegisterFontsForURL" in BRAND
+    assert "Brand.registerFonts()" in (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "PointeRoot.swift").read_text()
+    assert '.process("Resources")' in (ROOT / "apple" / "PointeKit" / "Package.swift").read_text()
     with open(ROOT / "ios" / "Pointe" / "Info.plist", "rb") as f:
-        assert sorted(plistlib.load(f)["UIAppFonts"]) == sorted(THEME["files"])
+        assert "UIAppFonts" not in plistlib.load(f)
     for family in THEME["fonts"].values():
         for face in family["weights"].values():
             assert f'"{face}"' in BRAND, face
@@ -252,7 +257,7 @@ def test_both_surfaces_carry_the_same_harness_marks():
     assert dict((k, (n, g)) for k, n, g in re.findall(r'"([\w-]+)": \(name: "(\w+)", glyph: "(\w)"\)', BRAND)) == want
     # the same words for a screen reader, and no vendor logo on either: the marks are letters (docs/design/brand-v6.md)
     assert "'runs on ' + h.name" in PAGE and 'accessibilityLabel("runs on \\(mark.name)")' in BRAND
-    sessions = (ROOT / "ios" / "Pointe" / "Sessions.swift").read_text()
+    sessions = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "Sessions.swift").read_text()
     assert sessions.count("HarnessMark(harness: s.harness") == 2  # the strip and the Sessions sheet
     assert "harnessMark(x), tools" in PAGE
 

@@ -1,6 +1,6 @@
 import SwiftUI
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Your bubbles sit at the right, but their lines start where the text reads from: English at the bubble's left edge,
 /// Hebrew at its right (docs/design/ux-review-ios.md, C1).

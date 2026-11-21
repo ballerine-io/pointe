@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Show while it says: the contract decodes (and an older Mac without it still does), and the sheet's tab follows the
 /// voice until you tap one or pin one.

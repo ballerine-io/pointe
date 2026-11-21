@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// What the page already did and the app now does too.
 final class ParityTests: XCTestCase {
@@ -154,8 +154,7 @@ final class RenameTests: XCTestCase {
 /// (tests/test_copy_parity.py checks the same from the other side).
 final class SharedWordsTests: XCTestCase {
     private func page() throws -> String {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        return try String(contentsOf: root.appendingPathComponent("ui.html"), encoding: .utf8)
+        return try Repo.text("ui.html")
     }
 
     func testTheMeetingSheetSaysWhatPointeDoesInPlainWords() throws {

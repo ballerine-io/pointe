@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Whisper mode on the phone: the Mac's status decodes, typing comes forward once when it turns on, the push-to-talk
 /// suggestion's "Not now" lasts until whisper mode ends, and the copy is the page's.
@@ -70,15 +70,14 @@ final class WhisperTests: XCTestCase {
 
     /// The page and the app say the same thing (docs/design/2026-11-feature-plan.md: parity).
     func testTheCopyIsThePagesWordForWord() throws {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let html = try String(contentsOf: root.appendingPathComponent("ui_whisper.html"), encoding: .utf8)
-        let ui = try String(contentsOf: root.appendingPathComponent("ui.html"), encoding: .utf8)
+        let html = try Repo.text("ui_whisper.html")
+        let ui = try Repo.text("ui.html")
         for copy in [WhisperCopy.title, WhisperCopy.limit, WhisperCopy.suggest, WhisperCopy.turnOn, WhisperCopy.notNow,
                      WhisperCopy.back, WhisperCopy.failed, WhisperCopy.buttonOn] {
             XCTAssertTrue(html.contains(copy), "the page says: \(copy)")
         }
         XCTAssertTrue(ui.contains(">\(WhisperCopy.button)</span>"), "the dock button")
-        let daemon = try String(contentsOf: root.appendingPathComponent("whisper.py"), encoding: .utf8)
+        let daemon = try Repo.text("whisper.py")
             .replacingOccurrences(of: "\"\\s*\n\\s*\"", with: "", options: .regularExpression)
         XCTAssertTrue(daemon.contains("A whispered yes may not match it: then tap to approve."), "the lock note comes from the Mac")
     }

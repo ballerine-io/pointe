@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Challenge me: the daemon's contract decodes (and an older daemon without it still does), the copy is the page's,
 /// and a closed challenge stays closed until a new one starts.

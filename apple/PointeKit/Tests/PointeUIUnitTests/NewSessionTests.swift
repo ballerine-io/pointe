@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Starting a new session from the phone (docs/design/new-session.md): what the status carries, what the app sends, and
 /// how a refusal reads. The sheet's own rules (what Start needs, the body) are the package's, tested there.

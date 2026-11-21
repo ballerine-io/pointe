@@ -1,3 +1,4 @@
+import CoreText
 import SwiftUI
 import UIKit
 
@@ -36,8 +37,9 @@ enum Brand {
     /// The page's name for the screen behind everything.
     static let background = bg
 
-    /// The two families, bundled (Info.plist UIAppFonts; SIL OFL 1.1, ios/Pointe/Fonts/OFL-*.txt). They carry Latin only:
-    /// iOS falls back to the system font for Hebrew and every other script, glyph by glyph.
+    /// The two families, bundled with this module (Resources/Fonts; SIL OFL 1.1, the licence texts sit beside them) and
+    /// registered at launch (`registerFonts`). They carry Latin only: the system falls back to its own font for Hebrew
+    /// and every other script, glyph by glyph.
     static let displayLight = "BricolageGrotesque-Light"
     static let displayRegular = "BricolageGrotesque-Regular"
     static func textFace(_ weight: Font.Weight) -> String {
@@ -62,6 +64,13 @@ enum Brand {
         case .caption: 12
         case .caption2: 11
         @unknown default: 17
+        }
+    }
+
+    /// The font files, for this process only: an app that links the module needs no list of them in its Info.plist.
+    static func registerFonts() {
+        for url in Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? [] {
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)  // a second call for the same file is refused: harmless
         }
     }
 
@@ -352,7 +361,7 @@ struct BrandHeader: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image("ChorusMark").resizable().frame(width: 24, height: 24).accessibilityHidden(true)
+            Image("ChorusMark", bundle: .module).resizable().frame(width: 24, height: 24).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Pointe").font(.brand(.title3)).lineLimit(1)
                 // Never a cut word: with less room the build number goes first. The version stays.

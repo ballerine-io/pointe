@@ -282,7 +282,7 @@ def test_the_apple_apps_pull_no_packages():
         assert ("XCSwiftPackageProductDependency" in text) == bool(local), project
     manifest = (ROOT / "apple" / "PointeKit" / "Package.swift").read_text()
     assert ".package(" not in manifest and "dependencies: [\n" not in manifest and "url:" not in manifest
-    assert set(re.findall(r'dependencies: \[([^\]]*)\]', manifest)) <= {'"PointeKit"', '"PointeMacKit"'}, "targets depend on each other only"
+    assert set(re.findall(r'dependencies: \[([^\]]*)\]', manifest)) <= {'"PointeKit"', '"PointeUI"', '"PointeMacKit"'}, "targets depend on each other only"
     assert not files("ios/**/Package.swift", "**/Package.resolved", "ios/**/Podfile*", "macos/**/Podfile*", "macos/**/Package.swift")
 
 

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Settings is built from a value compared as a whole: a status poll that changes nothing it shows leaves it alone. The
 /// Menu it replaced was built again on every poll, and jumped back to its top while you scrolled it.

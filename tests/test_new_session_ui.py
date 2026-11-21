@@ -38,7 +38,7 @@ def swift_enum(path: Path, name: str) -> dict:
 def test_the_page_the_iphone_and_the_mac_say_the_same_words():
     page = page_dict("NEW_SESSION_COPY")
     assert tuple(page) == KEYS
-    phone = swift_enum(ROOT / "ios" / "Pointe" / "NewSession.swift", "NewSessionCopy")
+    phone = swift_enum(ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "NewSession.swift", "NewSessionCopy")
     mac = swift_enum(ROOT / "apple" / "PointeKit" / "Sources" / "PointeKit" / "NewSessionCopy.swift", "NewSessionCopy")
     for key in KEYS:
         assert phone[key] == page[key], f"{key}: the iPhone app and the page differ"
@@ -50,7 +50,7 @@ def test_no_surface_offers_a_free_path_or_a_way_to_skip_prompts():
     sheet = PAGE[PAGE.index('id="newsheet"'):PAGE.index('id="rowsheet"')]
     assert '<select id="new-folder"' in sheet and 'id="new-path"' in sheet
     assert not re.search(r'<input[^>]*id="new-(?:folder|path)"', sheet)
-    sources = [sheet] + [p.read_text() for p in [*(ROOT / "ios" / "Pointe").glob("NewSession*.swift"),
+    sources = [sheet] + [p.read_text() for p in [*(ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI").glob("NewSession*.swift"),
                                                  *(ROOT / "macos" / "PointeMac").glob("NewSession*.swift"),
                                                  ROOT / "apple" / "PointeKit" / "Sources" / "PointeKit" / "NewSessionCopy.swift"]]
     for text in sources:

@@ -562,7 +562,7 @@ def test_the_page_and_the_app_use_the_same_words():
     import re
 
     root = Path(__file__).resolve().parents[1]
-    swift = (root / "ios" / "Pointe" / "Conflicts.swift").read_text()
+    swift = (root / "apple" / "PointeKit" / "Sources" / "PointeUI" / "Conflicts.swift").read_text()
     page = " ".join((root / "ui.html").read_text().split())
     copy = swift[swift.index("enum ConflictCopy"):swift.index("struct ConflictCard")]
     fixed = re.findall(r'static let \w+ = "([^"]+)"', copy)

@@ -1,7 +1,12 @@
+import CoreText
 import SwiftUI
-import UIKit
 import XCTest
-@testable import Pointe
+#if canImport(UIKit)
+import UIKit
+#else
+import AppKit
+#endif
+@testable import PointeUI
 
 /// Brand Guidelines V6 in the app (docs/design/brand-v6.md). The colour values are compared with the page's by
 /// tests/test_theme.py, which reads Brand.swift; these hold what only the app can check.
@@ -23,18 +28,25 @@ final class ThemeTests: XCTestCase {
     }
 
     func testTheBundledFontsLoadByTheNamesTheAppAsksFor() {
+        Brand.registerFonts()  // what PointeBoot.start does in an app
         for face in [Brand.displayLight, Brand.displayRegular, Brand.textFace(.regular), Brand.textFace(.medium), Brand.textFace(.semibold)] {
-            XCTAssertEqual(UIFont(name: face, size: 17)?.fontName, face, "\(face) is not registered (Info.plist UIAppFonts)")
+            let font = CTFontCreateWithName(face as CFString, 17, nil)
+            XCTAssertEqual(CTFontCopyPostScriptName(font) as String, face, "\(face) is not registered (Brand.registerFonts)")
         }
         XCTAssertEqual(Brand.textFace(.bold), "InstrumentSans-SemiBold", "the brand has no weight above 600")
         XCTAssertEqual(Brand.textFace(.heavy), "InstrumentSans-SemiBold")
     }
 
     func testAColourFollowsTheAppearance() {
-        func hex(_ color: Color, _ style: UIUserInterfaceStyle) -> String {
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-            UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: style)).getRed(&r, green: &g, blue: &b, alpha: &a)
-            return String(format: "#%02X%02X%02X", Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded()))
+        func hex(_ color: Color, _ style: ColorScheme) -> String {
+            var environment = EnvironmentValues()
+            environment.colorScheme = style
+            let c = color.resolve(in: environment)
+            func part(_ linear: Float) -> Int {  // Color.Resolved is linear sRGB
+                let v = Double(linear)
+                return Int(((v <= 0.0031308 ? v * 12.92 : 1.055 * pow(v, 1 / 2.4) - 0.055) * 255).rounded())
+            }
+            return String(format: "#%02X%02X%02X", part(c.linearRed), part(c.linearGreen), part(c.linearBlue))
         }
         XCTAssertEqual(hex(Brand.bg, .light), "#FFFFFF")
         XCTAssertEqual(hex(Brand.bg, .dark), "#0A0400")  // warm black, never #000

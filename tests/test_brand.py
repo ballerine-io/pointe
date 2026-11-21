@@ -30,7 +30,7 @@ def png_header(path: Path) -> tuple[int, int, int]:
 def test_the_site_and_the_app_carry_the_brand_sources_byte_for_byte():
     for name in ("favicon.svg", "logo-small.svg", "logo-small-on-dark.svg", "lockup-small.svg", "lockup-small-on-dark.svg"):
         assert (SITE / name).read_bytes() == (BRAND / name).read_bytes(), name
-    mark = XCASSETS / "ChorusMark.imageset"
+    mark = ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "Resources" / "Assets.xcassets" / "ChorusMark.imageset"  # one copy, for both apps
     assert (mark / "chorus-mark.svg").read_bytes() == (BRAND / "logo-small.svg").read_bytes()
     assert (mark / "chorus-mark-dark.svg").read_bytes() == (BRAND / "logo-small-on-dark.svg").read_bytes()
     looks = json.loads((mark / "Contents.json").read_text())

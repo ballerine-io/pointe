@@ -26,7 +26,7 @@ def _page(name: str) -> dict:
 
 
 def _app(file: str, name: str) -> dict:
-    swift = (ROOT / "ios" / "Pointe" / file).read_text()
+    swift = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / file).read_text()
     block = swift[swift.index(f"enum {name}"):]
     block = block[:block.index("\n}\n")]
     return dict(re.findall(r'static let (\w+) = "((?:[^"\\]|\\.)*)"', block))

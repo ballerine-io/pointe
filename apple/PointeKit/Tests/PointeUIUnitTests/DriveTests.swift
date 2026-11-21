@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Drive & walk mode on the phone: the status contract, the copy (word for word the page's), what the card says instead
 /// of buttons, and when the mode is suggested (never entered by itself).
@@ -64,8 +64,7 @@ final class DriveTests: XCTestCase {
     }
 
     func testTheCopyMatchesThePage() throws {
-        let page = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-            .appendingPathComponent("../../ui.html").standardizedFileURL, encoding: .utf8)
+        let page = try Repo.text("ui.html")
         for line in [DriveCopy.voice, DriveCopy.voiceStrong, DriveCopy.road, DriveCopy.hint, DriveCopy.title, DriveCopy.stop, DriveCopy.unreadable] {
             XCTAssertTrue(page.contains(line), line)
         }

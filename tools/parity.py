@@ -7,9 +7,9 @@
 The three surfaces are the page (ui.html), the iPhone app (ios/Pointe and the package it links) and the Mac app
 (macos/PointeMac and the package it links). A feature is a row of FEATURES: per surface, the regular expressions that
 must all be found in that surface's sources. All found is "yes", some is "partial", none is "no". A surface that cannot
-have the feature carries the reason in `bound`, and is "n/a". The Swift the two apps share (apple/PointeKit) is read
-once per app with the other platform's `#if os(...)` branches blanked, so a screen compiled out of the Mac app does not
-count for it. Standard library only.
+have the feature carries the reason in `bound`, and is "n/a". The Swift the two apps share (apple/PointeKit) counts for
+an app only when its project links that target, and is read with the other platform's `#if os(...)` branches blanked,
+so a screen compiled out of the Mac app does not count for it. Standard library only.
 """
 
 import json
@@ -67,13 +67,30 @@ def for_platform(text: str, platform: str) -> str:
     return "\n".join(out)
 
 
+_DEPENDS = re.compile(r'\.target\(name: "(\w+)"(?:, dependencies: \[([^\]]*)\])?')
+
+
+def linked(project: Path, root: Path) -> list[str]:
+    """The package targets an app links: the products its project names, and the targets those depend on. A module the
+    app does not link is not the app's code, whatever it holds."""
+    depends = {name: re.findall(r'"(\w+)"', deps or "")
+               for name, deps in _DEPENDS.findall((root / "apple" / "PointeKit" / "Package.swift").read_text())}
+    todo = re.findall(r"isa = XCSwiftPackageProductDependency;[^}]*?productName = (\w+);", (project / "project.pbxproj").read_text())
+    seen: list[str] = []
+    while todo:
+        target = todo.pop()
+        if target in depends and target not in seen:
+            seen.append(target)
+            todo += depends[target]
+    return sorted(seen)
+
+
 def sources(surface: str, root: Path = ROOT) -> dict[str, str]:
     """Path (relative to the repository) to text, for one surface."""
     if surface == "web":
         return {path.name: path.read_text() for path in sorted(root.glob("ui*.html"))}  # the page and the parts daemon.py puts in it
-    folders = {"ios": ["ios/Pointe", "apple/PointeKit/Sources/PointeKit", "apple/PointeKit/Sources/PointeUI"],
-               "mac": ["macos/PointeMac", "apple/PointeKit/Sources/PointeKit", "apple/PointeKit/Sources/PointeUI",
-                       "apple/PointeKit/Sources/PointeMacKit"]}[surface]
+    project, own = {"ios": ("ios/Pointe.xcodeproj", "ios/Pointe"), "mac": ("macos/PointeMac.xcodeproj", "macos/PointeMac")}[surface]
+    folders = [own] + [f"apple/PointeKit/Sources/{target}" for target in linked(root / project, root)]
     found = {}
     for folder in folders:
         for path in sorted((root / folder).rglob("*.swift")):

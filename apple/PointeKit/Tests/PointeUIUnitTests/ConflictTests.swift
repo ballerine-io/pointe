@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 final class ConflictTests: XCTestCase {
     private func status(_ json: String) throws -> API.Status {

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Multi-machine (docs/design/multi-machine.md, "iPhone app"): which machine runs each session, the filter, the labels,
 /// offline, the invite line and the notification title, on the status fields the design defines.

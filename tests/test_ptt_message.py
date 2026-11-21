@@ -428,10 +428,10 @@ DRAFT_LINES = ("Draft · not sent yet", "Sending")
 
 def test_the_page_and_the_app_say_draft_in_the_same_words():
     page = (ROOT / "ui.html").read_text()
-    swift = (ROOT / "ios" / "Pointe" / "PushToTalk.swift").read_text()
+    swift = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "PushToTalk.swift").read_text()
     for line in DRAFT_LINES:
         assert f"'{line}'" in page and f'"{line}"' in swift, line
-    api = (ROOT / "ios" / "Pointe" / "API.swift").read_text()
+    api = (ROOT / "apple" / "PointeKit" / "Sources" / "PointeUI" / "API.swift").read_text()
     assert re.search(r"let draft: Bool\?", api)  # an older Mac sends no draft: the bubble is the usual live one
 
 

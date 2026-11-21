@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Audio briefings: the daemon's contract decodes (and an older daemon without it still does), the copy matches the
 /// page's, and the phone's own reminder lands on the chosen weekdays at the chosen time.

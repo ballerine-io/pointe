@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 final class DemoTests: XCTestCase {
     func testTryADemoIsACallWithARequestWaiting() throws {

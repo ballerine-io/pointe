@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// Push to talk felt dead for the first second: a press sent only what the microphone gave after the gate opened, and
 /// only at its next buffer. The microphone runs all call long; while the gate is closed the last moments are held, and a

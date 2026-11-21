@@ -1,6 +1,6 @@
 import SwiftUI
 import XCTest
-@testable import Pointe
+@testable import PointeUI
 
 /// One rule for every message: its first strong letter decides, as the browser's dir="auto" does on the page.
 final class TextDirectionTests: XCTestCase {
