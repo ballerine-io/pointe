@@ -122,7 +122,30 @@ struct CallView: View {
                         release: { call.talkRelease(.ring) }, toggle: { call.talkToggle(touched: $0) })
     }
 
+    /// Settings and the demo's growing conversation sit outside `screen`: one more modifier on that chain and CI's compiler
+    /// gave up type-checking it in reasonable time.
     var body: some View {
+        screen
+            .sheet(isPresented: $showCallSettings, onDismiss: openSettingsNext) { callSettingsSheet }
+            .task { await growDemoTalk() }
+    }
+
+    private var callSettingsSheet: some View {
+        CallSettingsSheet(model: settingsModel, act: settingsActions).equatable()
+            .presentationDetents([.large])
+            .presentationBackground(Brand.group)
+    }
+
+    /// The long demo conversation grows, as a live one does.
+    private func growDemoTalk() async {
+        guard demo?.screen == .longTalk else { return }
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(1.5))
+            status?.talk = (status?.talk ?? []) + [Demo.nextLine(after: status?.talk ?? [])]
+        }
+    }
+
+    private var screen: some View {
         Group {
             if let meeting, meeting.isOn {
                 meetingScreen(meeting)
@@ -249,11 +272,6 @@ struct CallView: View {
                 .presentationBackground(Brand.group)
         }
         .onChange(of: showing?.id) { showFollow.follow(showing) }
-        .sheet(isPresented: $showCallSettings, onDismiss: openSettingsNext) {
-            CallSettingsSheet(model: settingsModel, act: settingsActions).equatable()
-                .presentationDetents([.large])
-                .presentationBackground(Brand.group)
-        }
         .sheet(isPresented: $showAbout) {
             AboutSheet(mac: status?.version).presentationDetents([.medium]).presentationBackground(Brand.group)
         }
@@ -319,13 +337,6 @@ struct CallView: View {
             if let prefs { call.setMicrophone(prefs.microphone) }
         }
         .task { if demo == nil { await poll() } }
-        .task {  // the long demo conversation grows, as a live one does
-            guard demo?.screen == .longTalk else { return }
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1.5))
-                status?.talk = (status?.talk ?? []) + [Demo.nextLine(after: status?.talk ?? [])]
-            }
-        }
         .task { if demo == nil { sensors.start() } }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, demo == nil { Task { await call.resume() } }  // back from the background: redial if it dropped
