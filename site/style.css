@@ -210,7 +210,7 @@ pre code { background: none; border: 0; padding: 0; }
 
 .day--live { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); column-gap: 56px; margin-top: 0; }
 .day--live .day-step { display: contents; }
-.day--live .day-scene { grid-column: 2; grid-row: 1 / span 5; align-self: start; position: sticky; top: 0; height: 100vh;
+.day--live .day-scene { grid-column: 2; grid-row: 1 / span 6; align-self: start; position: sticky; top: 0; height: 100vh;
                         display: flex; flex-direction: column; justify-content: center; opacity: 0; visibility: hidden;
                         transition: opacity .5s var(--ease), visibility 0s .5s; }
 .day--live .day-step.is-active .day-scene { opacity: 1; visibility: visible; transition: opacity .5s var(--ease); }
@@ -225,6 +225,7 @@ pre code { background: none; border: 0; padding: 0; }
 .day--live .day-step:nth-child(3) .day-copy { grid-row: 3; }
 .day--live .day-step:nth-child(4) .day-copy { grid-row: 4; }
 .day--live .day-step:nth-child(5) .day-copy { grid-row: 5; }
+.day--live .day-step:nth-child(6) .day-copy { grid-row: 6; }
 .day--live .day-step.is-active .day-ui > * { animation: day-in .5s var(--ease) both; }
 .day--live .day-step.is-active .day-ui > :nth-child(2) { animation-delay: .35s; }
 .day--live .day-step.is-active .day-ui > :nth-child(3) { animation-delay: 1.5s; }
@@ -234,7 +235,7 @@ pre code { background: none; border: 0; padding: 0; }
   /* The stage has a fixed height (the clip plus 204px for the overlay) so the first row can reserve it. */
   .day--live { grid-template-columns: minmax(0, 1fr); }
   .day--live::before { content: ""; grid-row: 1; padding-top: calc(56.25% + 228px); }
-  .day--live .day-scene { grid-column: 1; grid-row: 1 / span 6; height: auto; display: block; z-index: 1; margin: 0 -16px; padding: 12px 16px;
+  .day--live .day-scene { grid-column: 1; grid-row: 1 / span 7; height: auto; display: block; z-index: 1; margin: 0 -16px; padding: 12px 16px;
                           background: var(--bg); border-bottom: 1px solid var(--line); }
   .day--live .day-stage { height: calc((100vw - 32px) * .5625 + 204px); max-height: calc(56.25vw + 204px); }
   .day--live .day-ui { position: static; width: auto; margin-top: 10px; background: var(--dark-card); -webkit-backdrop-filter: none;
@@ -246,6 +247,8 @@ pre code { background: none; border: 0; padding: 0; }
   .day--live .day-step:nth-child(3) .day-copy { grid-row: 4; }
   .day--live .day-step:nth-child(4) .day-copy { grid-row: 5; }
   .day--live .day-step:nth-child(5) .day-copy { grid-row: 6; }
+  .day--live .day-step:nth-child(6) .day-copy { grid-row: 7; }
+  .day--live .day-scene--bare .day-stage { display: flex; flex-direction: column; justify-content: center; }
   .day-said { font-size: 13.5px; }
 }
 
