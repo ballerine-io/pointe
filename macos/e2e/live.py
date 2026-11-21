@@ -15,6 +15,13 @@ never presses the talk button, so the call's gate stays closed and the app sends
 does play through the speaker. The Approve button's Touch ID cannot be pressed by a script: Approve goes through the
 app's own loopback client (LiveDaemonTests), Deny through the window. The daemon's state (journal, log) is deleted when
 the run ends.
+
+    uv run --locked python -I macos/e2e/live.py --mic
+
+adds the one check that cannot be made without the microphone: for about ten seconds the setting is Always on while
+`say` speaks one sentence through the speaker, and the words must come back as a turn. Whatever else is said in the
+room in those seconds is heard and sent to your speech vendor too. The script prints how many characters were heard,
+never the words, and the state that holds them is deleted with the rest.
 """
 
 import json
@@ -164,6 +171,20 @@ def main() -> int:
         check("and the voice answered them", until("answer", lambda: sum(t["who"] != "user" for t in status().get("talk") or []) >= 2, 60))
         shot("live-02-call")
 
+        if "--mic" in sys.argv:
+            spoken = lambda: [t for t in status().get("talk") or [] if t["who"] == "user" and not t.get("typed")]  # noqa: E731
+            time.sleep(6)  # the answer above has been said: the room is quiet again
+            api("/voice/prefs", {"microphone": "always"})
+            until("always on", lambda: (status().get("ptt") or {}).get("mode") == "always", 10)
+            time.sleep(1.5)
+            say("Hello Pointe. Is the docs session still working?")
+            heard = until("the spoken turn", lambda: bool(spoken()), 30)
+            api("/voice/prefs", {"microphone": "ptt"})
+            check("the Mac's microphone was heard through the app: spoken words came back as a turn", heard,
+                  f"{len(spoken()[0]['text']) if heard else 0} characters")
+            until("push to talk again", lambda: (status().get("ptt") or {}).get("mode") == "ptt", 10)
+            time.sleep(8)  # the reply to it is said before the cards below
+
         first: dict = {}
         threading.Thread(target=hold_request, args=(first,), daemon=True).start()
         shown = until("the card", lambda: ax("exists", "requestDeny").returncode == 0, 40)
@@ -214,8 +235,9 @@ def main() -> int:
         check("the window says so", until("state", lambda: ax("label", "connectTitle").stdout.strip() == "Not connected"
                                           or ax("label", "statusLine").stdout.strip().startswith("Not connected"), 15),
               f"{ax('label', 'connectTitle').stdout.strip()!r} {ax('label', 'statusLine').stdout.strip()!r}")
-        check("no room audio was ever sent: no spoken turn in the whole call",
-              all(t.get("typed") or t["who"] != "user" for t in status().get("talk") or []))
+        if "--mic" not in sys.argv:
+            check("no room audio was ever sent: no spoken turn in the whole call",
+                  all(t.get("typed") or t["who"] != "user" for t in status().get("talk") or []))
     finally:
         if os.environ.get("POINTE_E2E_TRACE"):  # how the call came and went, without what was said
             for line in (STATE / "daemon.log").read_text().splitlines():
