@@ -28,6 +28,26 @@ jobs:
           SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
           xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" -only-testing:PointeTests \
             CODE_SIGNING_ALLOWED=NO -quiet
+  # The Mac app (docs/design/macos-app.md): the package the two apps share, on its own (swift test, no simulator), then the
+  # Mac app built ad hoc with its unit tests. Its UI tests need a person to unlock macOS's Automation Mode and its live
+  # test needs a microphone and keys: both run locally (macos/test.sh ui, macos/e2e/live.py).
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: PointeKit, the code the iPhone and Mac apps share
+        working-directory: apple/PointeKit
+        run: swift test
+      - name: Build the Mac app and its UI tests, and run PointeMacTests
+        working-directory: macos
+        run: |
+          xcodebuild test -project PointeMac.xcodeproj -scheme PointeMac -destination 'platform=macOS' \
+            -only-testing:PointeMacTests CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= -quiet
   # docs/security/supply-chain.md. Fails on an unpinned action, a lockfile that drifted from pyproject.toml, a package
   # missing from docs/security/dependencies-allowlist.txt, a URL to a host missing from docs/security/egress-allowlist.txt,
   # an install path that resolves unpinned, a download without a hash, or a known vulnerability in any locked version.
