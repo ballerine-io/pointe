@@ -151,10 +151,11 @@ def test_the_app_asks_for_one_entitlement_and_loopback_only():
 
 def test_the_icons_are_the_brands_drawings():
     circle = re.compile(r'<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"')
-    small = circle.findall((ROOT / "docs" / "brand" / "logo-small.svg").read_text())
+    small = circle.findall((ROOT / "docs" / "brand" / "favicon.svg").read_text())  # 18 points high: the favicon drawing
     assets = MAC / "PointeMac" / "Assets.xcassets"
     for name in ("MenuOff", "MenuLive"):
-        assert circle.findall((assets / f"{name}.imageset" / f"{name}.svg").read_text()) == small, f"{name}: the small drawing, unchanged"
+        assert circle.findall((assets / f"{name}.imageset" / f"{name}.svg").read_text()) == small, f"{name}: the favicon drawing, unchanged"
+        assert len(small) == 49
         looks = json.loads((assets / f"{name}.imageset" / "Contents.json").read_text())
         assert looks["properties"]["template-rendering-intent"] == "template", "one ink: the menu bar's"
     icon = assets / "AppIcon.appiconset"

@@ -4,8 +4,8 @@
 // A macOS icon is not the iOS one: on a 1024 canvas the tile is 824 points square with rounded corners, centred, with
 // its own soft shadow, so it sits like the other icons in the Dock (Apple HIG, App icons, macOS). The ground, the glow
 // and the outward fade are app-icon.svg's. The dots are read from the brand's SVG files (cx, cy, r), so the icon
-// follows them: the full drawing at 48 pixels and above, the small drawing (six dots and the point) below, as the
-// brand rules ask.
+// follows them: the full drawing at 48 pixels and above, the favicon drawing (three rings) below, as the brand rules
+// ask.
 import AppKit
 import Foundation
 
@@ -27,7 +27,7 @@ func dots(_ file: String, atLeast: Int) -> [Dot] {
     guard found.count >= atLeast else { fatalError("\(file): \(found.count) dots") }
     return found
 }
-let full = dots("logo-mono.svg", atLeast: 121), small = dots("logo-small.svg", atLeast: 7)
+let full = dots("logo-mono.svg", atLeast: 121), small = dots("favicon.svg", atLeast: 49)
 
 func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> CGColor {
     CGColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
