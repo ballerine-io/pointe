@@ -333,6 +333,9 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
   (there is no push server). Conflict alarms have no live run with real OpenCode or Codex sessions.
 - **Echo.** On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones. Known echo cases
   that are not solved are listed in [docs/how-it-works.md](docs/how-it-works.md#echo).
+- **Vendor-hosted cloud sessions are out of reach.** Claude Code on the web and Codex Cloud have no public interface to
+  read them or answer their approvals, so Pointe cannot join them. A cloud VM you run works, as a node. See
+  [docs/cloud-sessions.md](docs/cloud-sessions.md).
 - **Code running as you is trusted.** It can read Pointe's token and act as you. See [SECURITY.md](SECURITY.md#known-limits).
 
 ## Why Ballerine built this

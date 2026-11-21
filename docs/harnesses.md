@@ -143,3 +143,7 @@ every tool call through the voice.
 
 **Spawn-only agents (Gemini CLI, Cursor CLI)** need a `start(cwd)` capability the interface does not have yet, and do
 not fit "it keeps running in its terminal; join it again there". Deferred.
+
+## Cloud sessions hosted by the vendors
+
+Claude Code on the web and Codex Cloud cannot be joined: neither vendor has a public read or approvals interface for them. What works, what doesn't, and why: [cloud-sessions.md](cloud-sessions.md).

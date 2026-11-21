@@ -45,6 +45,7 @@ Needs a design, an owner decision, or something outside Pointe first.
 - 👍 0 · [More spoken languages beyond English and Hebrew](https://github.com/ballerine-io/pointe/issues/22) (#22) · area/daemon · help wanted
 - 👍 0 · [A native Apple Watch app](https://github.com/ballerine-io/pointe/issues/23) (#23) · area/ios
 - 👍 0 · [Measure on real voices, without any recording leaving the volunteer's machine](https://github.com/ballerine-io/pointe/issues/24) (#24) · area/daemon · help wanted
+- 👍 0 · [Cloud sessions hosted by Anthropic or OpenAI (Claude Code on the web, Codex Cloud)](https://github.com/ballerine-io/pointe/issues/29) (#29) · area/harness
 
 ## Done
 
