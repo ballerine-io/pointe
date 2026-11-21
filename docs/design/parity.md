@@ -24,20 +24,95 @@ architecture that makes "the same" cheap. The matrix itself is generated: [parit
 To add a feature: add its row, build it on every surface, run the script. To drop one from a surface: give the reason
 in the row; the reviewer sees it in the diff.
 
-## Where it stood (1.16.0)
+## Where it stood (1.16.0), and where it is
 
-By the same scan, at commit `a9ddfea` (kept in `tools/parity_baseline.json`):
+By the same scan, at commit `a9ddfea` (kept in `tools/parity_baseline.json`), and now:
 
-| Surface | yes | no | n/a |
-|---|---|---|---|
-| Page | 73 | 1 | 14 |
-| iPhone | 79 | 1 | 8 |
-| Mac | 43 | 40 | 5 |
+| Surface | yes before | no before | yes now | no now | n/a |
+|---|---|---|---|---|---|
+| Page | 73 | 1 | 73 | 0 | 15 |
+| iPhone | 79 | 1 | 80 | 0 | 8 |
+| Mac | 43 | 40 | 82 | 0 | 6 |
 
-The Mac app had the call, typing, approvals, sessions by machine, the brain dump and New session. It had none of:
-meetings, briefings, challenge, whisper, drive, the dictionary, the conflict alarm, show while it says, machines and
+The 1.16.0 Mac app had the call, typing, approvals, sessions by machine, the brain dump and New session. It had none
+of: meetings, briefings, challenge, whisper, the dictionary, the conflict alarm, show while it says, machines and
 invites, voice-lock enrolment, rename, Orchestrator/Session mode, Clean up my words, recent requests and context, About,
-the demo, or a place in the product help. Each of those sent the person to the page.
+the demo, pairing a phone, or a place in the product help. Each of those sent the person to the page. All of them are in
+the Mac app now, because it draws the iPhone app's screens (below).
+
+What stays on one surface, with the reason, is the generated file's "Bound to a platform" table. In short:
+
+- **The phone alone:** reading a pairing code and "Unpair this phone"; starting drive mode and the suggestion to
+  (the page already said "drive mode is for a phone in a car", and the Mac follows it: both show the mode and stop it);
+  the AirPods press and the lock screen's line; the line about the Mac keeping itself awake.
+- **The Mac alone:** the menu bar item, the call bubble, open at login, finding and starting Pointe, the keys' presence,
+  the folders a new session may start in (the daemon takes that setting at the Mac only: the page has it too).
+- **Not on the page:** the device's owner check on Approve (a page has no Touch ID without WebAuthn enrolment), actions
+  on a notification, a demo (the page exists only while the daemon runs).
+- **Not on the phone:** showing the pairing code; a key for every action (an iPhone has no keyboard by default).
+
+## The architecture that keeps them the same
+
+Before, each app had its own screens. The Mac's were a second, smaller set, written against copies of the models, the
+push-to-talk gate and the words (`apple/PointeKit` held one copy, `ios/Pointe` another, and a test compared them).
+
+Now there is one of each:
+
+```
+ ios/Pointe            the entry point, the Talk intent, the icon, Info.plist            3 files
+ macos/PointeMac       the shell: menu bar item, menus and keys, bubble, shortcut,       7 files
+                       open at login, find/start the daemon, this Mac's settings
+        │  both link
+ apple/PointeKit
+   PointeUI            every screen, the call (audio, socket, redial), the models,       the iPhone app's
+                       the rules, the words, the tokens, fonts and the logo              sources, moved
+   PointeKit           the wire format, the loopback endpoint, NewSession, MacCopy
+   PointeMacKit        DaemonLocator, the shortcut's rules, Keychain presence           (macOS only)
+```
+
+- **`PointeUI` is the iPhone app.** Its sources moved from `ios/Pointe` unchanged, then gained what a second platform
+  needs: `DaemonLink` (the phone reaches a paired Mac over pinned TLS with its key; the Mac app reaches its own daemon
+  on loopback with the page key, only after the listener was verified), and `#if os(...)` where a call differs.
+  `Platform.swift` holds the small differences in one place: the clipboard, a sheet's size and title, Esc, the
+  segmented control, "click" for "tap", Touch ID for Face ID.
+- **One `Call`.** The iPhone's call class is the Mac's too: the same socket protocol, redial and refusal rules, the same
+  push-to-talk sender (so the Mac got the "first word is not lost" fix the day the phone did). Only the audio session
+  differs: `AVAudioSession` on the phone; on the Mac the three engine wirings found for 1.15.0, the restart on a device
+  change, and mute by sending nothing.
+- **A wide Mac window is the page's layout**: the sessions list docked as the left column (the same `SessionsSheet`,
+  with New session and Settings at its foot), the conversation and the dock beside it. Under 780 points it is the
+  phone's: the strip of sessions and the Sessions sheet.
+- **The Mac's shell reads, it does not draw the call.** `MacSession` (public, in `PointeUI`) holds the one `Call`, which
+  outlives the window, and gives the menu bar item, the bubble and the shortcut what they show (`CallTitle.line`, the
+  same function as the window's title). Menus ask the screen for a sheet (`ask(.newSession)`); notifications are the
+  phone's `AlertCenter`. This Mac's own settings are sections the shell hands to the shared Settings sheet.
+- **One copy of every dictionary and token.** `tests/test_macos_parity.py` fails when a type is declared in two places.
+  The colours are `Brand.swift`'s for both apps, held to `assets/theme.json` and the page by `tests/test_theme.py`.
+- **macOS 15** is now the Mac app's minimum (it was 14): the shared screens use the scroll-geometry and section APIs
+  that came with iOS 18 and macOS 15.
+
+The page keeps its HTML. It follows the same spec:
+
+## Component spec
+
+One spec for three renderers. Values are points on the apps and CSS pixels on the page.
+
+| Component | Spec | Page | Apps |
+|---|---|---|---|
+| Tokens | `assets/theme.json`: every colour for light and dark, the fonts, the agent marks | CSS custom properties | `Brand.swift` (both apps) |
+| Type | Display (Bricolage Grotesque 300/400): the name, the state line, a sheet's title, the drive line. Text (Instrument Sans 400/500/600): everything else. Mono: the system's, for commands. Sizes: 34, 28, 22, 20, 17 (body), 16, 15, 13, 12, 11 | `--display`, `--font` | `Font.brand(_:_:)`, `Font.display(_:)` |
+| Spacing | 4, 8, 10, 12, 14, 16, 18, 22. A screen's gutter is 14 to 18; a card's padding 12 to 16; rows 9 to 12 | `--gutter` | literal paddings |
+| Radius | 0 (rows), 12 (buttons, inputs, a settings card), 16 (bubbles, cards, the dock), pill (chips) | same | same |
+| Elevation | a hairline (`line`), never a shadow; a card that waits for you has `orange-line` | same | `brandCard`, `orangeLine` |
+| State line | a 6-point dot, the title in display type, one muted line under it. Order of states: challenge, brain dump, holding, talking, speaking, a press's note, muted, listening | `showState` | `CallTitle.line` |
+| Conversation | your bubbles right on `raised`, the voice's left on `card`; 16 radius, 3 at the speaker's corner; follows the newest line unless you scrolled up, then a New pill | `#list`, `#newpill` | `ConversationView`, `ScrollFollow` |
+| Request card | name "needs approval", the exact command in mono on `raised`, one hint line, Deny (outline) and Approve (primary) side by side | `#attention` | `RequestCard` |
+| Dock | the mic in the exact middle, 70 points, orange only while live; side controls 46 points with an 11-point label; the Always on / Hold to talk switch over it | `.dock` | `BottomBar`, `MicModeSwitch` |
+| Sessions | wide: a left column with mode, sessions by machine, recent requests, New session and Settings at its foot. Narrow: a strip of chips and a sheet | `#side` | `SessionsSheet` docked, `SessionChips` |
+| Settings | kicker (11 points, upper case, tracked, `dim`), a card of rows with hairlines, a muted footnote; a switch that is on is orange; the chosen segment is a card on the raised track, never orange | `.settings .group` | `BrandForm` (iOS grouped list; `MacSections` on the Mac) |
+| Buttons | primary: `primary`/`on-primary`, 12 radius. Quiet: outline `line-strong`. Row: accent text, red when it deletes | `.go`, plain | `brandPrimary`, `brandQuiet`, `BrandRowButtonStyle` |
+| Motion | a card arrives from the bottom edge with opacity (snappy, about 0.25 s); a panel swap is opacity with a 0.98 scale (smooth, 0.3 s); nothing else moves | CSS transitions | `.transition`, `.animation(.snappy/.smooth)` |
+| Words | one dictionary per feature; the page's is the source, the apps' are held to it. "tap" on the phone is "click" on the Mac and the page's own wording there | `*_COPY` | `*Copy` enums, `…Here` where the Mac differs |
 
 ## What "not smooth" measured as (the 1.16.0 Mac app)
 
@@ -55,5 +130,58 @@ Profiler attached (`xctrace record --template 'Time Profiler' --attach`) while t
   repainted the sidebar with no selection transition; the window was the system font and default controls, so it did
   not read as the product the iPhone app and the page are.
 
-The fixes are in the architecture below: the Mac app now draws the iPhone app's screens, with their transitions,
-their scroll-follow rule and their type, instead of a second set of views.
+The fix is the architecture above: the Mac app draws the iPhone app's screens, with their transitions, their
+scroll-follow rule and New pill, their type and their cards, instead of a second set of views.
+
+### The same measurement on the new app
+
+Same Mac, a Debug build on the demo fixtures (`-demo request`, `-demo longTalk`), the iPhone UI suite running in the
+simulator beside it:
+
+| | 1.16.0 window | shared screens |
+|---|---|---|
+| Idle on a call, nothing heard | 0.2% CPU | 0.0 to 0.1% |
+| While your words show (the caption's wave animates) | no animation | 6 to 13% |
+| A window resize step, 7 turns | 5.4 ms (2.7 ms of layout) | 8.9 ms |
+| A window resize step, a long conversation | not measured | 10 to 12 ms (about 10 ms of layout) |
+| Main-thread work outside layout and drawing | none above 1 ms | none above 1 ms: `CallView.body` is 0.6 ms a pass |
+
+What this says, plainly: nothing blocks the main thread, and the interactions (a card arriving, a sheet, a session
+switch) are short animations that hold a frame. Two things cost more than the old window did. The caption's wave is a
+repeating symbol effect that redraws its layer every frame while words are on screen: the phone has the same one, and
+on a Mac it is a tenth of a core for as long as you speak. And a resize lays out every bubble, because the conversation
+is a plain stack (which is what lets it stay pinned to the newest line): on a long conversation that is about 10 ms a
+step in a Debug build, over the 8.3 ms of a 120 Hz frame, so a fast drag of the window's edge can drop frames there.
+Neither was changed in this pass; both are listed under "Left for later".
+
+## How it is tested
+
+| What | Where | Runs |
+|---|---|---|
+| The matrix: stale file, a missing feature, a "cannot" that can, the scan itself | `tests/test_parity_matrix.py` | offline suite, CI |
+| The words, the tokens, one copy of each dictionary, the Mac's own lines against the page's | `tests/test_copy_parity.py`, `test_theme.py`, `test_macos_parity.py`, and the per-feature ones | offline suite, CI |
+| The product help's Mac paths, read from the screens as the Mac compiles them | `tests/test_product_help.py` | offline suite, CI |
+| The shared module: models, rules, the call's refusals, the link, the title, phone pairing | `apple/PointeKit/Tests/PointeUIUnitTests` | `swift test` on the Mac and `xcodebuild test` in the iPhone simulator, both in CI |
+| The iPhone app, every screen | `ios/PointeUITests` | locally, on a simulator |
+| The Mac app's flows on the demo fixtures | `macos/e2e/smoke.py` (Accessibility API) and `macos/PointeMacUITests` (XCUITest) | the smoke unattended; XCUITest only after a person unlocks Automation Mode |
+| The Mac app against a real daemon, with nothing of the room sent | `macos/e2e/live.py` | by hand |
+
+## Screenshots
+
+The same screens on the three surfaces, light and dark, are made by:
+
+```
+uv run --locked python tools/parity_shots.py            # the page, at a desktop and a phone width
+python3 -I macos/e2e/smoke.py --shots /tmp/parity-shots/mac
+xcrun simctl launch <simulator> io.ballerine.pointe -demo request   # then: xcrun simctl io <simulator> screenshot
+```
+
+They land in `/tmp/parity-shots/` and are not committed: they show invented sessions only, and are retaken at will.
+
+## Left for later
+
+- The conversation as a lazy stack, with the pin to the newest line kept: the cost of a resize on a long conversation.
+- The caption's wave as a drawn animation that does not redraw its layer every frame.
+- A microphone picker on the Mac, and VoiceOver passes by ear on the Mac's sheets.
+- Right-to-left layout was the phone's and is the Mac's now; a Hebrew pass on the Mac's own settings sections is not done.
+- The XCUITest suite for the Mac has not run since it was rewritten for the shared screens (Automation Mode needs a person).

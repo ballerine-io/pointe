@@ -4,9 +4,15 @@ A native menu-bar app for macOS: the call, the transcript, approvals, sessions a
 tab. It is another client of the daemon on this Mac, as the page and the iPhone app are. The daemon stays the engine:
 the app holds no model key, decides nothing about approvals, and opens no port.
 
-Status: version 1 is built (`macos/`, `apple/PointeKit/`). What was checked live and what was not is under Verification.
+Status: built (`macos/`, `apple/PointeKit/`). Since 1.17.0 its window draws the iPhone app's screens and has every
+feature the page and the phone have: [parity.md](parity.md) is the audit, the architecture and the component spec, and
+supersedes "Code sharing", "Mac-native UX" (the window) and "Not in version 1" below, which are kept as the record of
+version 1. What is unchanged: the protocol, the authentication, the audio wiring, the shortcut, the daemon's
+lifecycle, distribution and the security rules.
 
 ## What it is not
+
+(Version 1. The second point no longer holds: the app has all of it.)
 
 - Not a second engine. Ears, brain, mouth, the read-out allowlist, the gate, push to talk's rule and every approval
   rule stay in `daemon.py` and its modules. A rule the app must follow is the daemon's, checked there.
