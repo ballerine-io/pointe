@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pointe: stop typing to one agent, talk to all of them</title>
-<meta name="description" content="One spoken conversation over your Claude Code, OpenCode and Codex sessions. Ask what each did, send work by name, approve prompts by voice or tap. MIT, runs on your Mac. Open source from Ballerine Engineering.">
+<title>Pointe: a conversational layer for your coding agents</title>
+<meta name="description" content="A conversational layer for your coding agents: one spoken conversation over your Claude Code, OpenCode and Codex sessions. Ask what each did, send work by name, approve prompts by voice or tap. MIT, runs on your Mac. Open source from Ballerine Engineering.">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="Pointe: stop typing to one agent, talk to all of them">
-<meta property="og:description" content="One spoken conversation over your Claude Code, OpenCode and Codex sessions. MIT, runs on your Mac, with your own model keys or fully local.">
+<meta property="og:title" content="Pointe: a conversational layer for your coding agents">
+<meta property="og:description" content="A conversational layer for your coding agents: one spoken conversation over your Claude Code, OpenCode and Codex sessions. MIT, runs on your Mac, with your own model keys or fully local.">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/">
 <meta property="og:type" content="website">
@@ -51,13 +51,14 @@
   <div class="page">
     <section class="hero" aria-labelledby="h-hero">
       <div class="hero-copy">
-        <p class="kicker">MIT · runs on your Mac · open source from Ballerine Engineering</p>
+        <p class="h3 descriptor">A conversational layer for your coding agents.</p>
         <h1 id="h-hero" class="h-hero">Stop typing to one agent.<br><span class="accent">Talk to all of them.</span></h1>
         <div>
           <p class="lead">Pointe is one voice over every Claude Code, OpenCode and Codex session you join to it. Ask what
             each one did. Send work to one by name. Approve a permission prompt by saying yes, or by a tap when the
             command cannot be read out.</p>
-          <p class="small">Runs on your Mac. No server, no account. Your own model keys, or local models.</p>
+          <p class="small">Runs on your Mac. No server, no account. Your own model keys, or local models. MIT, open source
+            from Ballerine Engineering.</p>
         </div>
       </div>
       <div class="hero-install">
@@ -87,6 +88,35 @@
           asks to run one test file, and waits for a yes, a no or a tap on the exact command. A screenshot of the
           product; the sessions and the words are invented.</figcaption>
       </figure>
+    </section>
+
+    <section class="value" aria-labelledby="h-value">
+      <h2 id="h-value" class="kicker">Why a conversation</h2>
+      <div class="value-grid">
+        <div>
+          <p class="figure figure--key">2.93×</p>
+          <p class="body"><b>Research.</b> Speech entered short English messages 2.93 times faster than a phone
+            keyboard in a lab: 153 against 52 words a minute.</p>
+          <p class="body">In Pointe you say a request instead of typing it.</p>
+          <p class="small"><a href="https://doi.org/10.1145/3161187">Ruan et al., IMWUT 2017</a></p>
+        </div>
+        <div>
+          <p class="figure">10%</p>
+          <p class="body"><b>Research.</b> After an interruption, programmers resumed editing in under a minute in
+            10% of sessions, in editor logs of 86 programmers.</p>
+          <p class="body">In Pointe you ask what a session did and hear a short report, without opening it.</p>
+          <p class="small"><a href="https://doi.org/10.1007/s11219-010-9104-9">Parnin and Rugaber, Software Quality Journal 2011</a></p>
+        </div>
+        <div>
+          <p class="figure">2.11 s</p>
+          <p class="body"><b>Measured in Pointe.</b> From your last word to the first sound of the reply: the
+            median of 24 turns with a synthesized speaker, on 2026-11-20.</p>
+          <p class="body">Pointe times each stage of that wait and publishes the table.</p>
+          <p class="small"><a href="#evidence">How it was measured</a></p>
+        </div>
+      </div>
+      <p class="small value-note">The two research figures are not about Pointe or coding agents: neither study
+        measured prompts to an agent. Their limits are under <a href="#evidence">Evidence</a>.</p>
     </section>
 
     <dl class="strip" aria-label="In short">
@@ -456,14 +486,14 @@
         <div>
           <h3 class="h3">Published research, not about Pointe</h3>
           <ul class="rows" style="margin-top:16px">
-            <li><b>Speech input was 2.93 times faster than typing on a phone</b> for short English messages: 153 against
-              52 words a minute, in a lab, on an iPhone. It left slightly more errors in the final text (1.30% against
-              0.79%). <a href="https://arxiv.org/abs/1608.07323">Ruan et al., Stanford, UW and Baidu, 2016</a>. Desktop
-              keyboards were not tested.</li>
-            <li><b>People type about 52 words a minute on a desktop keyboard</b>, on average, in a study of 168,000
-              volunteers. <a href="https://doi.org/10.1145/3173574.3174220">Dhakal et al., CHI 2018</a>.</li>
-            <li><b>After an interruption, programmers resumed coding within a minute in 10% of sessions</b>, across 10,000
-              recorded sessions of 86 programmers. <a href="https://doi.org/10.1007/s11219-010-9104-9">Parnin and Rugaber, 2011</a>.</li>
+            <li><b>The 2.93 times under the headline</b> is from a lab, on an iPhone, for transcribing short messages.
+              Speech left slightly more errors in the final text (1.30% against 0.79%). Desktop keyboards were not
+              tested. <a href="https://doi.org/10.1145/3161187">Ruan et al., IMWUT 2017</a>.</li>
+            <li><b>People typed 52 words a minute on average</b> in an online test of 168,000 volunteers, who chose to
+              take a typing test. <a href="https://doi.org/10.1145/3173574.3174220">Dhakal et al., CHI 2018</a>.</li>
+            <li><b>The 10% under the headline</b> is from editor logs of 86 programmers: the time from returning to a
+              task to the first edit. In about 30% of sessions it was over 30 minutes.
+              <a href="https://doi.org/10.1007/s11219-010-9104-9">Parnin and Rugaber, 2011</a>.</li>
             <li><b>Interrupted work was finished faster, at a price</b>: more stress, frustration, time pressure and
               effort, in a lab study of office tasks. <a href="https://doi.org/10.1145/1357054.1357072">Mark, Gudith and Klocke, CHI 2008</a>.</li>
           </ul>

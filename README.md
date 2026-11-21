@@ -7,7 +7,7 @@
 
 # Pointe
 
-Built and open-sourced by Ballerine Engineering.
+A conversational layer for your coding agents. Built and open-sourced by Ballerine Engineering.
 
 Talk to all your coding-agent sessions by voice. Ask what each one did, switch by saying its name, and answer
 permission prompts out loud, from across the room, under rules enforced in code.

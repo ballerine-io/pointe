@@ -115,6 +115,19 @@ code { font-family: var(--font-mono); font-size: 12.5px; }
 .stage-mac img, .stage-mac video { width: 100%; }
 .stage-cap { padding: 14px 0 28px; max-width: 80ch; }
 
+/* Why a conversation: three figures on hairlines, right under the hero */
+.descriptor { grid-column: 1 / -1; color: var(--body); }
+.value { padding: 36px 0 28px; }
+.value-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
+.value-grid > div { padding: 0 32px 0 0; }
+.value-grid > div + div { padding-left: 32px; border-left: 1px solid var(--line); }
+.value .figure { color: var(--text); }
+.value .figure.figure--key { color: var(--orange); }
+.value .figure + p { margin-top: 14px; }
+.value-grid .body + .body { margin-top: 6px; color: var(--text); }
+.value-grid .small { margin-top: 10px; }
+.value-note { margin-top: 22px; max-width: 86ch; }
+
 /* The strip under the hero: five facts in one row of hairlines */
 .strip { display: grid; grid-template-columns: 1.25fr 1.35fr 1.35fr .7fr .8fr; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .strip > div { padding: 18px 24px 20px 0; }
@@ -345,6 +358,10 @@ details.more-detail > div { padding: 8px 0 28px; }
   .stage-mac { width: min(70%, 232px); margin: 0 auto; border-radius: 28px; border: 6px solid #0A0400; }
   .stage-cap { padding-top: 16px; }
   .strip, .cols, .more, .rows--cols { grid-template-columns: minmax(0, 1fr); }
+  .value { padding: 28px 0 20px; }
+  .value-grid { grid-template-columns: minmax(0, 1fr); }
+  .value-grid > div, .value-grid > div + div { padding: 18px 0; border-left: 0; border-top: 1px solid var(--line); }
+  .value-grid > div:first-child { padding-top: 0; border-top: 0; }
   .rows--cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 64px; border-top: 0; }
 .rows--cols > li { border-top: 1px solid var(--line); border-bottom: 0; }
 .rows--two > li { grid-template-columns: minmax(0, 1fr); }

@@ -19,7 +19,7 @@ permission to create iOS App Store provisioning profiles".
 | Field | Value |
 |---|---|
 | Name | Pointe |
-| Subtitle (30 max) | Voice for your coding agents |
+| Subtitle (30 max) | Conversation for coding agents |
 | Category | Developer Tools (primary) |
 | Age rating | 4+ (no objectionable content; no unrestricted web access) |
 | Price | Free |
@@ -32,8 +32,8 @@ description ("Built and open-sourced by Ballerine Engineering"), never as the se
 
 **Promotional text** (170 max, can change without a new build):
 
-> Talk to Claude Code, OpenCode and Codex sessions running on your Mac. Hear what each one did, switch by name, and
-> approve its commands from your iPhone.
+> A conversational layer for your coding agents. Talk to Claude Code, OpenCode and Codex sessions on your Mac:
+> hear what each did, and approve commands from your iPhone.
 
 **Keywords** (100 max, comma-separated, no spaces after commas; 93 characters):
 
