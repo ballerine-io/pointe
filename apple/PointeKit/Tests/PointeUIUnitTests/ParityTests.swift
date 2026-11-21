@@ -40,12 +40,43 @@ final class LocalModeTests: XCTestCase {
     }
 }
 
+/// Each app says these lines in its own words: the phone speaks of the Mac it paired with, the Mac app of Pointe on
+/// this Mac and of pressing where a finger taps. The test runs on both, so both halves are checked.
+final class WordsOfEachDeviceTests: XCTestCase {
+    func testTheLinesThatDifferAreThisDevices() {
+        if Surface.isMac {
+            XCTAssertEqual(ConnectCopy.doesHere, "Starts the call on this Mac's microphone")
+            XCTAssertEqual(ConnectCopy.tapConnectHere, "Press Connect to start talking")
+            XCTAssertTrue(ConnectCopy.notPairedHere.hasPrefix("Pointe on this Mac refused this app."))
+            XCTAssertTrue(ConnectCopy.micDeniedHere.contains("System Settings"))
+            XCTAssertTrue(ConnectCopy.idleHangupHere.hasSuffix("Press Connect to talk again."))
+            XCTAssertEqual(ConnectCopy.unreachableHere("anything"), "Pointe on this Mac is not running. Start it here, or run /pointe:voice in a Claude Code session.")
+            XCTAssertEqual(AlertCopy.phoneHere, "Alerts on this Mac")
+            XCTAssertTrue(AlertCopy.helpHere.contains("Touch ID") && !AlertCopy.helpHere.contains("Face ID"))
+            XCTAssertEqual(CallView.ownerReason("Approve what docs wants to run"), "approve what docs wants to run", "macOS says: Pointe is trying to …")
+            XCTAssertEqual(Surface.ownerSymbol, "touchid")
+        } else {
+            XCTAssertEqual(ConnectCopy.doesHere, ConnectCopy.does)
+            XCTAssertEqual(ConnectCopy.tapConnectHere, ConnectCopy.tapConnect)
+            XCTAssertEqual(ConnectCopy.notPairedHere, ConnectCopy.notPaired)
+            XCTAssertEqual(ConnectCopy.micDeniedHere, ConnectCopy.micDenied)
+            XCTAssertEqual(ConnectCopy.idleHangupHere, ConnectCopy.idleHangup)
+            XCTAssertEqual(ConnectCopy.unreachableHere("mac.lan:7443"), ConnectCopy.unreachable("mac.lan:7443"))
+            XCTAssertEqual(AlertCopy.phoneHere, AlertCopy.phone)
+            XCTAssertEqual(AlertCopy.helpHere, AlertCopy.help)
+            XCTAssertEqual(CallView.ownerReason("Approve what docs wants to run"), "Approve what docs wants to run")
+            XCTAssertEqual(Surface.ownerSymbol, "faceid")
+        }
+    }
+}
+
 final class CallElsewhereTests: XCTestCase {
     func testWithNoCallHereTheMacsCallShowsAsElsewhere() {
         XCTAssertEqual(ConnectCopy.offTitle(reach: .ok, macOnACall: true), "On a call elsewhere")
         XCTAssertEqual(ConnectCopy.offTitle(reach: .ok, macOnACall: false), "Not connected")
-        XCTAssertEqual(ConnectCopy.offTitle(reach: .unreachable, macOnACall: true), "Mac not reachable")  // a stale status says nothing
-        XCTAssertEqual(ConnectCopy.offTitle(reach: .rejected, macOnACall: true), "Not paired")
+        // a stale status says nothing. The Mac app is on the Mac: it says Pointe there is not answering, not "Mac not reachable".
+        XCTAssertEqual(ConnectCopy.offTitle(reach: .unreachable, macOnACall: true), Surface.isMac ? "Pointe is not answering" : "Mac not reachable")
+        XCTAssertEqual(ConnectCopy.offTitle(reach: .rejected, macOnACall: true), Surface.isMac ? "Not connected" : "Not paired")
     }
 }
 
@@ -73,15 +104,18 @@ final class ConnectCopyTests: XCTestCase {
 
     func testTheFaceSaysWhatATapDoesOrWhyTheLastOneFailed() {
         let idle = ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: nil, macOnACall: false)
-        XCTAssertEqual(idle, ConnectFace(why: "Starts the call on this iPhone's microphone", bad: false, button: "Connect", pill: "Connect", dialling: false))
+        XCTAssertEqual(idle, ConnectFace(why: Surface.isMac ? "Starts the call on this Mac's microphone" : "Starts the call on this iPhone's microphone",
+                                         bad: false, button: "Connect", pill: "Connect", dialling: false))
         let elsewhere = ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: nil, macOnACall: true)
-        XCTAssertEqual(elsewhere.why, ConnectCopy.elsewhereWhy); XCTAssertEqual(elsewhere.button, "Connect")
+        XCTAssertEqual(elsewhere.why, ConnectCopy.elsewhereWhyHere); XCTAssertEqual(elsewhere.button, "Connect")
         let dialling = ConnectFace.make(phase: .connecting, reach: .ok, host: "h:1", problem: nil, macOnACall: false)
         XCTAssertEqual(dialling.button, "Cancel"); XCTAssertTrue(dialling.dialling); XCTAssertFalse(dialling.bad)
         let away = ConnectFace.make(phase: .off, reach: .unreachable, host: "mac.lan:7443", problem: nil, macOnACall: false)
-        XCTAssertEqual(away.button, "Try again"); XCTAssertTrue(away.bad); XCTAssertTrue(away.why.contains("mac.lan:7443"))
+        XCTAssertEqual(away.button, "Try again"); XCTAssertTrue(away.bad)
+        XCTAssertEqual(away.why, ConnectCopy.unreachableHere("mac.lan:7443"))
+        XCTAssertEqual(away.why.contains("mac.lan:7443"), !Surface.isMac, "the phone says where it looked; the Mac app looks at its own Mac")
         let unpaired = ConnectFace.make(phase: .off, reach: .rejected, host: "h:1", problem: "older problem", macOnACall: false)
-        XCTAssertEqual(unpaired.why, ConnectCopy.notPaired)  // the refused key outranks a stale call problem
+        XCTAssertEqual(unpaired.why, ConnectCopy.notPairedHere)  // the refused key outranks a stale call problem
         let busy = ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: ConnectCopy.busy, macOnACall: true)
         XCTAssertEqual(busy.why, ConnectCopy.busy); XCTAssertEqual(busy.button, "Try again")
         let live = ConnectFace.make(phase: .live, reach: .ok, host: "h:1", problem: nil, macOnACall: true)
@@ -94,10 +128,10 @@ final class ConnectCopyTests: XCTestCase {
         XCTAssertNil(Call.refusal(code: 1006, http: nil, reason: "", firstDial: false, retries: 3, place: "h:1"))  // live, dropped: redial
         XCTAssertNil(Call.refusal(code: 4409, http: nil, reason: "", firstDial: false, retries: 2, place: "h:1"))  // our own dead call
         XCTAssertEqual(Call.refusal(code: 4409, http: nil, reason: "", firstDial: true, retries: 0, place: "h:1"), ConnectCopy.busy)
-        XCTAssertEqual(Call.refusal(code: 0, http: 403, reason: "", firstDial: true, retries: 0, place: "h:1"), ConnectCopy.notPaired)
-        XCTAssertEqual(Call.refusal(code: 4401, http: 101, reason: "unpaired", firstDial: false, retries: 1, place: "h:1"), ConnectCopy.notPaired)
+        XCTAssertEqual(Call.refusal(code: 0, http: 403, reason: "", firstDial: true, retries: 0, place: "h:1"), ConnectCopy.notPairedHere)
+        XCTAssertEqual(Call.refusal(code: 4401, http: 101, reason: "unpaired", firstDial: false, retries: 1, place: "h:1"), ConnectCopy.notPairedHere)
         XCTAssertEqual(Call.refusal(code: 0, http: nil, reason: "", firstDial: true, retries: 0, place: "mac.lan:7443"),
-                       ConnectCopy.unreachable("mac.lan:7443"))
+                       ConnectCopy.unreachableHere("mac.lan:7443"))
         XCTAssertEqual(Call.refusal(code: 1011, http: 101, reason: "no audio", firstDial: true, retries: 0, place: "h:1"),
                        "The call did not connect: no audio.")
         XCTAssertEqual(Call.refusal(code: 0, http: 502, reason: "", firstDial: true, retries: 0, place: "h:1"),

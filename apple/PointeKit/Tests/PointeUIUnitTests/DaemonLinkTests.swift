@@ -90,6 +90,7 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertEqual(title(.live, speaking: true), "Speaking")
         XCTAssertEqual(title(.live, dumping: true, muted: true), BrainDumpCopy.state, "the brain dump comes before the mic's own state")
         XCTAssertEqual(CallTitle.line(phase: .off, reach: .unreachable, status: nil, call: call, macName: "studio", dumping: false, talking: false,
-                                      speaking: false, muted: false), ConnectCopy.unreachableTitle)
+                                      speaking: false, muted: false),
+                       ConnectCopy.offTitle(reach: .unreachable, macOnACall: false))
     }
 }
