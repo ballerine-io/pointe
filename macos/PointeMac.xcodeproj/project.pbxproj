@@ -326,7 +326,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT, © Ballerine";
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
-				MARKETING_VERSION = 1.14.10;
+				MARKETING_VERSION = 1.14.12;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac;
 				PRODUCT_NAME = Pointe;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -351,7 +351,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT, © Ballerine";
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
-				MARKETING_VERSION = 1.14.10;
+				MARKETING_VERSION = 1.14.12;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac;
 				PRODUCT_NAME = Pointe;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -367,7 +367,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.14.10;
+				MARKETING_VERSION = 1.14.12;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pointe.app/Contents/MacOS/Pointe";
@@ -383,7 +383,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.14.10;
+				MARKETING_VERSION = 1.14.12;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pointe.app/Contents/MacOS/Pointe";
@@ -398,7 +398,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.14.10;
+				MARKETING_VERSION = 1.14.12;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_TARGET_NAME = PointeMac;
@@ -413,7 +413,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.14.10;
+				MARKETING_VERSION = 1.14.12;
 				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_TARGET_NAME = PointeMac;
