@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.14
 
+- **1.14.11** (2026-11-21): Every surface shows the Pointe logo with many points, like the app icon: the site, the page header and tab, the iPhone app header and the link preview.
 - **1.14.10** (2026-11-21): A phone call survives a link slower than the bot's voice, and the greeting when a call opens no longer sends an earlier ask again.
 - **1.14.9** (2026-11-21): Pointe has its own logo, Chorus: on the iPhone app icon, the page's header and tab, the site, the link previews and the README.
 - **1.14.8** (2026-11-21): The voice closes sessions when asked: one at once, or several and "all except these" after reading the list back for a yes.
