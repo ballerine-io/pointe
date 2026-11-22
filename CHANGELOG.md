@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.19
+
+- **1.19.0** (2026-11-22): Night shift: "Tonight: billing fixes the retry tests; docs updates the changelog" gives your sessions work for while you are away, read back and started on your yes, by voice or from Night shift on the page, the iPhone app and the Mac app; Pointe keeps them moving, approves nothing for you (a session that needs approval waits, with its exact request on the ledger), stops at its hours and message budget or when you say so, and the morning briefing leads with the decisions made without you and the questions waiting on you
+
 ## 1.18
 
 - **1.18.0** (2026-11-22): Setup asks one question, which setup, then only for its keys and checks each with a tiny live call; `pointe setup` lists the six setups with their measured results, cost and where your words go, and switches between them; a key the setup does not need shows as optional, not missing; a Claude subscription is explained as not an API key.
