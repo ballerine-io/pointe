@@ -249,6 +249,9 @@ def test_a_spoken_entry_needs_the_consent_step_once(d, monkeypatch):
 
 
 @pytest.mark.parametrize("said,want", [("Meeting mode, listening.", "listening"), ("meeting mode participating", "participating"),
+                                       # how the ears wrote "Pointe, meeting mode, listening" on a live run
+                                       ("Point. Meeting mode. Listening.", "listening"),
+                                       ("Pointy, meeting mode, participating.", "participating"),
                                        ("מצב פגישה, השתתפות", "participating"), ("Let's discuss the meeting mode design", None)])
 def test_meeting_intent(d, said, want):
     assert d.meeting_intent(said) == want

@@ -3769,7 +3769,9 @@ async def set_drive(on: bool, how: str) -> bool:
     return changed
 
 
-_MEETING_ON = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|hey|pointe)\W+)?(?:start\s+)?meeting mode(?:\W+(listening|listen|participating|"
+# The wake word as the ears write it ("Point.", "Pointy,"): meetings.WAKE's spellings, not only "Pointe".
+_MEETING_ON = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|hey)\W+)?(?:(?:pointe|point|pointy|puente|pointer|poyant)\W+)?"
+                         r"(?:start\s+)?meeting mode(?:\W+(listening|listen|participating|"
                          r"participate|join in))?\W*$|^\W*מצב פגישה(?:\W+(הקשבה|השתתפות))?\W*$", re.I)
 
 
