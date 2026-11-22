@@ -274,3 +274,21 @@ def test_a_tap_on_send_shows_where_they_went_and_drops_a_spoken_read_back(d, mon
     status = client_for(d).get("/voice/status").json()["meeting"]
     assert status["sent_to"] == "docs/main" and status["send_pending"] is None
     assert asyncio.run(d._meeting_actions_words("Yes.")) is False  # that yes no longer sends to billing
+
+
+def test_the_entry_command_is_replayed_even_when_the_stream_opens_slowly(d, monkeypatch):
+    """From a live run on a slow link: the meeting stream took ten seconds to open, the last 5 s replayed then were
+    room noise, not "Pointe, meeting mode, listening", so the owner was never bound and "Pointe, join in" was ignored as
+    a stranger's. The command's audio is taken when the command is heard."""
+    _meeting_ready(d, monkeypatch)
+    ring = {"audio": b"the entry command"}
+    d.state.mic_gate.recent_audio = lambda secs: ring["audio"]
+
+    async def slow_open(self):
+        await asyncio.sleep(0.3)
+        ring["audio"] = b"whatever came after"  # the room went on while the stream connected
+
+    monkeypatch.setattr(FakeEars, "open", slow_open)
+    d.PREFS.update({"meeting.consented": True})
+    asyncio.run(d._start_meeting_by_voice("Pointe, meeting mode, listening.", "listening"))
+    assert FakeEars.instances[-1].sent == [b"the entry command", b"whatever came after"]  # the command first, nothing lost

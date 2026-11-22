@@ -3978,6 +3978,9 @@ async def start_meeting(mode: str, brief: str = "", sessions: list | None = None
     ears = meetings.MeetingEars(vendors.key("soniox"), phone.IN_RATE, _recognition_terms(await _listed_repos()) + linked,
                                 _on_meeting_tokens, _on_meeting_interim)
     ears.on_reconnect = _on_meeting_reconnect
+    # The command's own audio, taken now: on a slow link the stream opens seconds later, and the last 5 s by then are
+    # the room's, so the owner would never be bound.
+    entry_audio, entry_at = (state.mic_gate.recent_audio(5) if entry_words else b""), time.time()
     state.meeting_starting = True  # from here the room's audio stays out of the call, while the stream connects
     try:
         await ears.open()
@@ -3994,8 +3997,10 @@ async def start_meeting(mode: str, brief: str = "", sessions: list | None = None
     if held:  # speech queued before the meeting would otherwise be released into the room
         state.monologue_held += [(text, True) for text in held]
         held.clear()
-    if entry_words:  # the command itself, so its speaker becomes the owner
-        await ears.send(state.mic_gate.recent_audio(5))
+    if entry_audio:  # the command itself, so its speaker becomes the owner; then what the room said while it connected
+        await ears.send(entry_audio)
+        if (gap := time.time() - entry_at) > 0.2:
+            await ears.send(state.mic_gate.recent_audio(min(gap, 5)))
     active = REGISTRY.active
     if active and active.permission_id:
         active.permission_delivered_at = float("inf")  # a yes in the room answers nothing
