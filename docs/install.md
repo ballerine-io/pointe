@@ -8,9 +8,12 @@ claude plugin marketplace add https://github.com/ballerine-io/pointe.git && clau
 
 Desktop app: `/plugin marketplace add https://github.com/ballerine-io/pointe.git`, then `/plugin install pointe@pointe`.
 
-Then start a new Claude Code session. It says "Pointe is installed. Run /pointe:setup to finish." Run it: Claude checks
-your Mac, installs what is missing, helps you choose model vendors (with measured quality and cost), opens a Mac window
-for each key so it goes straight to your Keychain, starts your first voice call, and can set up your phone.
+Then open a new Claude Code session and run `/pointe:setup`: about 5 minutes, free with one Google key. The session
+says "Pointe is installed. Run /pointe:setup to finish." Claude checks your Mac and installs what is missing, asks one
+question ("Start with Free start?"; the other setups only if you ask), opens the vendor's key page and a Mac window for
+the key so it goes straight to your Keychain, checks the key with one tiny call, and starts your first call. Say
+"hello": Pointe answers that it hears you, and setup says "Pointe heard you. You're set up." Your phone, the Mac app and
+faster setups come after, as optional extras.
 
 **What do I need?** Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy
 hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20).
@@ -22,8 +25,26 @@ Pointe's voice needs its own API key from console.anthropic.com, or one Gemini k
 about $1 for a busy hour of talk.
 
 The setups side by side, what each key does in them, what each measured and where your words go:
-[setups.md](setups.md). `/pointe:setup` asks which one you want, then only for its keys; [Try it for free or
-cheap](#try-it-for-free-or-cheap) has the free and cheap ways in.
+[setups.md](setups.md). `/pointe:setup` starts you on Free start unless you ask for another, then asks only for its
+keys; [Try it for free or cheap](#try-it-for-free-or-cheap) has the free and cheap ways in.
+
+## What this does to your Mac
+
+- **Installs** the plugin into Claude Code's plugin folder; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
+  is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
+  the first run (about 530 MB on disk); and `~/.local/bin/pointe`, so `pointe` is a command in your terminal.
+- **Adds two Claude Code hooks**, active in every session: `PermissionRequest` (while Pointe runs, it holds the
+  permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
+  and `SessionStart` (one file check, to suggest `/pointe:setup` until it is done).
+- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice`, until `/pointe:stop` or a restart of the Mac.
+  Nothing starts at login unless you turn that on in the Mac app. During a call from your phone, on mains power, it
+  runs `caffeinate -i` so the Mac does not sleep under the call. After you pair a phone it also listens on port 7443.
+- **Stores** your keys in the macOS Keychain only, as `pointe.<vendor>-api-key`; settings, logs and a journal of each
+  call in `~/.claude-voice` (the journal rotates at 20 MB).
+- **Sends** your speech and your sessions' text to the vendors of the setup you choose, with your keys; and sends
+  nothing to Ballerine.
+- **Removes all of it** with `pointe uninstall`: it lists each item, asks, and deletes Keychain items only on their own
+  yes. [What it installs](#what-it-installs) has the sizes and folders.
 
 If macOS asks to install the command line developer tools, press Install, wait for it to finish, and run the command
 again: Claude Code needs `git` to fetch the plugin.
@@ -54,8 +75,8 @@ one plain sentence, do the work yourself, and never ask me to paste a key into t
    straight to my Keychain, starts my first voice call, and can set up my phone.
 ```
 
-After setup: run `/pointe:voice` in any session you want to talk to, allow the microphone in the tab that opens, and
-press Connect.
+After setup: run `/pointe:voice` in any session you want to talk to, allow the microphone in the tab that opens,
+press Connect, and say hello. If setup has not run yet, `/pointe:voice` runs it first.
 
 The last time this path was followed word for word on a clean environment, with timings and what it did not cover:
 [install-verification.md](install-verification.md).
@@ -73,8 +94,8 @@ benchmarks and list prices, not a metered bill ([how it is counted](benchmarks.m
 | Voice stays on your Mac | an Apple-silicon Mac, 2 GB of disk, one text key (Gemini or Anthropic) | about $0.30 with a Gemini key, about $0.40 with Anthropic and Gemini | 30 of 35 with Anthropic and Gemini; not run with a Gemini key alone |
 | Fully local | an Apple-silicon Mac with 32 GB of memory, 19 GB of disk | $0 | 10 of 19 one-session checks; replies take 6 to 12 s |
 
-**The free path.** Make a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey), then choose "Easiest
-start" in `/pointe:setup`. One Gemini key runs every role, and [Google's pricing page](https://aistudio.google.com/docs/pricing)
+**The free path.** Say yes to "Start with Free start?" in `/pointe:setup`: it opens
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) for you to make the key. One Gemini key runs every role, and [Google's pricing page](https://aistudio.google.com/docs/pricing)
 lists each model Pointe uses with it (`gemini-3.8-flash`, `gemini-3.5-flash-lite`, `gemini-3.8-flash-lite-tts`,
 `gemini-3.5-transcribe-live`) as "Free of charge" on the free tier. Three things to know before you rely on it:
 
@@ -114,22 +135,29 @@ name no free credit.
 - The first time setup checks your Mac, about 180 MB of Python packages and a private copy of Python (about 530 MB on
   disk), in the plugin's folder and `~/.local/share/uv`, with uv's download cache in `~/.cache/uv`. On a fast
   connection this takes under a minute.
-- Your keys, in the macOS Keychain only (`pointe key <vendor>` opens the window again).
+- Your keys, in the macOS Keychain only, as `pointe.gemini-api-key`, `pointe.anthropic-api-key` and so on
+  (`pointe key <vendor>` opens the window again). A key saved before 1.19.0 keeps its plain name (`gemini-api-key`)
+  and still works.
+- `~/.local/bin/pointe`, a two-line script that runs the plugin's `bin/pointe`, so `pointe` is a command in a new
+  terminal. Each start of Pointe points it at the plugin's current version. One you made yourself is never replaced.
 - Only if you choose a local setup: local libraries (about 290 MB to download, 1.1 GB on disk) in the plugin's folder,
   and models in `~/.cache/huggingface`. "Voice stays on your Mac" adds 2 GB of models. "Fully local" adds 17.7 GB, and
   a 0.4 GB text-model server in `~/.claude-voice/local`.
 
-To remove it: `/pointe:stop`, then remove the plugin in Claude Code's plugin settings (or
-`claude plugin uninstall pointe@pointe && claude plugin marketplace remove pointe`). Nothing keeps running. Claude Code
-deletes the plugin's folder, with its Python packages, by itself some days later. These stay until you remove them:
+To remove it, run `pointe uninstall` in a terminal (or `~/.local/bin/pointe uninstall`). It lists what is on this Mac
+and asks before it removes anything, in three groups, each with its own question:
 
-- `~/.claude-voice`: Pointe's settings and logs, which hold what was said on calls, and the local text-model server.
-  Delete the folder.
-- Local models, if you chose a local setup: in `~/.cache/huggingface/hub`, the folders whose names start with
-  `models--mlx-community--whisper-large-v3-turbo`, `models--mlx-community--Kokoro-82M` and
-  `models--mlx-community--gemma-4`, and `~/.cache/pipecat/kokoro-onnx`. Other apps may share `~/.cache/huggingface`:
-  delete only these.
-- Your keys: open Keychain Access and delete the items named `gemini-api-key`, `anthropic-api-key`, `soniox-api-key`,
-  `elevenlabs-api-key` and `openai-api-key`.
-- uv, if setup installed it: `uv cache clean`, then delete `~/.local/bin/uv`, `~/.local/bin/uvx` and `~/.local/share/uv`.
-  If uv was yours already, `uv cache clean` alone frees what Pointe's packages took in `~/.cache/uv`.
+- Pointe's own: it stops Pointe, then removes `~/.local/bin/pointe`, `~/.claude-voice` (settings, logs that hold what
+  was said on calls, phone pairings, the local text-model server), `~/Applications/Pointe.app`,
+  `~/.cache/pipecat/kokoro-onnx`, and last the plugin and its marketplace (`claude plugin uninstall pointe@pointe`,
+  `claude plugin marketplace remove pointe`). The plugin's folder holds its Python packages and both hooks.
+- Pointe's keys: the Keychain items `pointe.<vendor>-api-key`. Removed only on a yes to this question, or with
+  `--delete-keys`.
+- What another tool may share: keys under the plain names Pointe used before 1.19.0 (`gemini-api-key`,
+  `anthropic-api-key`, `soniox-api-key`, `elevenlabs-api-key`, `openai-api-key`), and the local models in
+  `~/.cache/huggingface/hub` (`models--mlx-community--whisper-large-v3-turbo`, `models--mlx-community--Kokoro-82M-bf16`,
+  `models--mlx-community--gemma-4-26b-a4b-it-4bit`, `models--deepdml--faster-whisper-large-v3-turbo-ct2`). Removed only
+  on a yes.
+
+`pointe uninstall --dry-run` only lists them. uv stays, as other tools use it: if setup installed it, `uv cache clean`,
+then delete `~/.local/bin/uv`, `~/.local/bin/uvx` and `~/.local/share/uv`.

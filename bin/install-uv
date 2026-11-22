@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # Install uv, pinned: one version, whose installer is fetched to a file and checked against a SHA-256 before it runs.
 # That installer in turn checks each uv binary it downloads against the SHA-256 it carries. /pointe:setup runs this when
-# uv is missing, in place of piping the newest installer into sh unread. Usage: install-uv (prints what it did; exit 1 on a mismatch)
+# uv is missing, in place of piping the newest installer into sh unread. It then puts `pointe` on the PATH
+# (bin/link-pointe). Usage: install-uv (prints what it did; exit 1 on a mismatch)
 set -euo pipefail
 UV_VERSION="0.12.21"  # the same version as .github/workflows/test.yml and tests/e2e/linux_node/*Dockerfile; tests/test_supply_chain.py checks
 INSTALLER_SHA256="0722d6c438395e39e1c27a86a79054d3b2820dd9399c7f8b0f6f84cd27ce36c3"  # of https://astral.sh/uv/0.12.21/install.sh
 INSTALLER_URL="https://astral.sh/uv/$UV_VERSION/install.sh"
 PATH="$PATH:$HOME/.local/bin"
 
-if command -v uv >/dev/null 2>&1; then echo "ok       uv $(uv --version | cut -d' ' -f2) is already installed"; exit 0; fi
+if command -v uv >/dev/null 2>&1; then
+  echo "ok       uv $(uv --version | cut -d' ' -f2) is already installed"
+  exec "$(dirname "${BASH_SOURCE[0]}")/link-pointe"
+fi
 
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 curl -LsSf --proto '=https' --tlsv1.2 -o "$WORK/install.sh" "$INSTALLER_URL"
@@ -20,3 +24,4 @@ if [ "$GOT" != "$INSTALLER_SHA256" ]; then
 fi
 sh "$WORK/install.sh" --quiet
 echo "ok       uv $UV_VERSION installed in $HOME/.local/bin (the installer and the binary were both checked against pinned SHA-256s)"
+exec "$(dirname "${BASH_SOURCE[0]}")/link-pointe"

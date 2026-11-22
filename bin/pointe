@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|setup|join|local|apps|stop [args]
+# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|setup|join|leave|local|apps|restart|stop|uninstall [args]
 set -euo pipefail
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -15,6 +15,8 @@ case "$cmd" in
   log)     exec "$BIN/voice-log" "$@" ;;
   context) exec "$BIN/voice-context" "$@" ;;
   stop)    exec "$BIN/voice-daemon" stop ;;
+  restart) "$BIN/voice-daemon" stop >/dev/null; exec "$BIN/voice-daemon" ensure ;;  # after a key or setup change
+  uninstall) exec python3 -I "$BIN/../uninstall.py" "$@" ;;  # standard library only: runs whatever state uv is in
   pair)    cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I pair.py "$@" ;;
   node)    ROOT="$BIN/.."; STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"  # this machine as a node: no Pipecat, no keys
            exec env UV_PROJECT_ENVIRONMENT="$STATE/node-env" uv run -q --locked --only-group node --project "$ROOT" python "$ROOT/node_cli.py" "$@" ;;
@@ -37,5 +39,20 @@ case "$cmd" in
   apps)    exec "$BIN/pointe-apps" "$@" ;;       # the iPhone and Mac apps, built from source: doctor, mac, ios
   join)    exec uv run --locked --project "$BIN/.." python -I "$BIN/../harnesses/join.py" "$@" ;;  # another harness: pointe join opencode
   leave)   exec uv run --locked --project "$BIN/.." python -I -c "import sys; sys.path.insert(0, \"$BIN/../harnesses\"); import join; join.main(sys.argv[1:], leave=True)" "$@" ;;
-  *) sed -n 2p "${BASH_SOURCE[0]}" | cut -c3-; exit 2 ;;
+  help|-h|--help) cat <<'HELP'
+Pointe: one voice over your coding agents.
+
+Start here   pointe doctor          what is ready, and the one thing to fix
+             pointe setup           choose which models Pointe uses
+             pointe key <vendor>    save a key in the Keychain, checked first
+Sessions     pointe join <agent>    add an OpenCode or Codex session (Claude Code: /pointe:voice)
+             pointe leave <agent>   take it off
+             pointe open            open the page
+             pointe restart         start Pointe again, on new keys or a new setup
+             pointe stop            end the call and stop Pointe
+More         pair · apps · local · hub · node · talk · log · context · status · uninstall
+In Claude Code: /pointe:setup, /pointe:voice, /pointe:stop
+HELP
+           exit 0 ;;
+  *) echo "pointe: no command $cmd. pointe help lists them." >&2; exit 2 ;;
 esac

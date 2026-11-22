@@ -36,9 +36,69 @@ Pointe:  Duplicate charges during failover. It decided that an hour ago.
 
 ## Install
 
-You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome, headphones, and API keys from one or
-two model vendors, or an Apple-silicon Mac with 32 GB of memory for the fully local mode. The cheapest start is one
-Google AI Studio key, which has a free tier: [Try it for free or cheap](#try-it-for-free-or-cheap).
+```
+claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
+```
+
+Then open a new Claude Code session and run `/pointe:setup`: about 5 minutes, free with one Google key. It asks one
+question, opens the key page and a Mac window for the key (the key goes to your Keychain, never into the chat), and
+starts your first call: say "hello", and Pointe answers that it hears you.
+
+You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome and headphones. More ways in, including
+the Claude desktop app: [docs/install.md](docs/install.md).
+
+Then, in each session you want to reach:
+
+```
+/pointe:voice
+```
+
+A tab opens: allow the microphone, press Connect, and say hello. `/pointe:stop` stops all voice.
+
+### What this does to your Mac
+
+- **Installs** the plugin into Claude Code's plugin folder; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
+  is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
+  the first run (about 530 MB on disk); and `~/.local/bin/pointe`, so `pointe` is a command in your terminal.
+- **Adds two Claude Code hooks**, active in every session: `PermissionRequest` (while Pointe runs, it holds the
+  permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
+  and `SessionStart` (one file check, to suggest `/pointe:setup` until it is done).
+- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice`, until `/pointe:stop` or a restart of the Mac.
+  Nothing starts at login unless you turn that on in the Mac app. During a call from your phone, on mains power, it
+  runs `caffeinate -i` so the Mac does not sleep under the call. After you pair a phone it also listens on port 7443.
+- **Stores** your keys in the macOS Keychain only, as `pointe.<vendor>-api-key`; settings, logs and a journal of each
+  call in `~/.claude-voice` (the journal rotates at 20 MB).
+- **Sends** your speech and your sessions' text to the vendors of the setup you choose, with your keys; and sends
+  nothing to Ballerine.
+- **Removes all of it** with `pointe uninstall`: it lists each item, asks, and deletes Keychain items only on their own
+  yes.
+
+| Command | Does |
+|---|---|
+| `/pointe:setup` | guided setup: keys, first call, phone |
+| `/pointe:voice` | join this session to the voice (starts the daemon if needed) |
+| `/pointe:open` | open the page again |
+| `/pointe:leave` | take this session off the voice (or say "close billing" or "close all except billing", or use × on the page) |
+| `/pointe:stop` | stop all voice |
+| `/pointe:doctor` | what runs here, what is missing, and the one key that would help most |
+| `pointe local` | fully local: download and start the local models, no keys ([details](docs/features/local.md)) |
+| `pointe local voice` | voice stays on your Mac: local ears and mouth, the brain in the cloud gets text only ([details](docs/features/voice-stays-local.md)) |
+| `/pointe:voice-review` | ask a session what happened in the last call |
+
+OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
+[docs/harnesses.md](docs/harnesses.md).
+
+Pointe can also start a session for you, in a folder you already work in: say "start a new Codex session in shop", or
+use New session on the page or in the apps. It reads back what it will start and waits for your yes:
+[docs/features/new-session.md](docs/features/new-session.md).
+
+**Optional extras.** Your phone needs no app: the page works in its browser ([docs/phone.md](docs/phone.md)). The Mac
+and iPhone apps are built from source until there is a download, from the plugin you installed, with Xcode:
+`/pointe:setup apps` in Claude Code, or `pointe apps doctor` (what is missing), `pointe apps mac` (the Mac app, into
+`~/Applications`) and `pointe apps ios` (the iPhone app, signed with your free Apple Account) in a terminal.
+[The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/phone.md#getting-the-app).
+
+### Which keys, and what they cost
 
 **What do I need?** Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy
 hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20).
@@ -61,47 +121,6 @@ about $1 for a busy hour of talk.
 
 Sources, speed and where your words go: [docs/setups.md](docs/setups.md).
 <!-- end setups -->
-
-```
-claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
-```
-
-Start a new Claude Code session and run `/pointe:setup`. It checks your Mac, installs [uv](https://docs.astral.sh/uv/)
-if it is missing, helps you choose vendors (with measured quality and cost), stores each key in the macOS Keychain
-through a Mac window (never in the chat), starts your first call, and can pair your phone. More options, including the
-Claude desktop app: [docs/install.md](docs/install.md).
-
-Then, in each session you want to reach:
-
-```
-/pointe:voice
-```
-
-The first run downloads about 180 MB. A tab opens: allow the microphone, press Connect, and talk.
-
-**The Mac and iPhone apps** are optional, and built from source until there is a download. With Xcode installed, from a
-clone of this repository: `bin/pointe apps doctor` says what is missing, `bin/pointe apps mac` builds the Mac app and
-puts it in `~/Applications`, and `bin/pointe apps ios` builds the iPhone app, signs it with your (free) Apple Account
-and installs it on your iPhone. [The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/phone.md#getting-the-app).
-
-| Command | Does |
-|---|---|
-| `/pointe:setup` | guided setup: keys, first call, phone |
-| `/pointe:voice` | join this session to the voice (starts the daemon if needed) |
-| `/pointe:open` | open the page again |
-| `/pointe:leave` | take this session off the voice (or say "close billing" or "close all except billing", or use × on the page) |
-| `/pointe:stop` | stop all voice |
-| `/pointe:doctor` | what runs here, what is missing, and the one key that would help most |
-| `pointe local` | fully local: download and start the local models, no keys ([details](docs/features/local.md)) |
-| `pointe local voice` | voice stays on your Mac: local ears and mouth, the brain in the cloud gets text only ([details](docs/features/voice-stays-local.md)) |
-| `/pointe:voice-review` | ask a session what happened in the last call |
-
-OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
-[docs/harnesses.md](docs/harnesses.md).
-
-Pointe can also start a session for you, in a folder you already work in: say "start a new Codex session in shop", or
-use New session on the page or in the apps. It reads back what it will start and waits for your yes:
-[docs/features/new-session.md](docs/features/new-session.md).
 
 ### Try it for free or cheap
 
