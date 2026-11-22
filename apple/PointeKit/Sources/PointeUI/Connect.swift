@@ -13,6 +13,10 @@ enum ConnectCopy {
     static let notPairedTitle = "Not paired"
     static let unreachableTitle = "Mac not reachable"
     static let elsewhere = "On a call elsewhere"
+    /// A refused key: the page's CONNECT_COPY.cannotHear and cannotAnswer, and the action under them.
+    static let cannotHear = "Cannot hear you"
+    static let cannotAnswer = "Cannot answer you"
+    static let fixKey = "Fix the key"
     static let does = "Starts the call on this iPhone's microphone"
     static let tapConnect = "Tap Connect to start talking"
     static let redialling = "The call dropped. It comes back by itself; Cancel stops the redials."

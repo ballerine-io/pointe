@@ -18,6 +18,7 @@ case "${1:-on}" in
       || echo "this session was not on the voice"
     exit 0 ;;
   heard)  # /pointe:setup's first call: waits until Pointe answered the person's first words (daemon.py writes first-hello)
+    [ -f "$STATE/first-hello" ] && { echo "Pointe has answered you on this Mac before. You're set up."; exit 0; }
     for _ in $(seq 1 "${2:-180}"); do
       [ -f "$STATE/first-hello" ] && { echo "Pointe heard you. You're set up."; exit 0; }
       sleep 1
@@ -33,7 +34,7 @@ esac
 : "${CLAUDE_CODE_MESSAGING_SOCKET:?this session has no inbox socket (needs Claude Code 2.1.224+)}"
 URL="$("$BIN/voice-daemon" ensure)"
 RESULT="$("$BIN/register-session" "$@" </dev/null)"
-echo "voice on for this session: $RESULT"
+echo "this session joined Pointe: $RESULT"
 CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$BIN/voice-open"
 echo "For the person (nothing here waits on them, and nothing is for you to do): they talk in the voice tab or the phone app;"
@@ -42,4 +43,4 @@ echo "Permission prompts are read out, and a spoken yes or no answers them. Hang
 echo "A spoken yes to a question the session asks in conversation may not count: Claude Code treats those words as another"
 echo "session's message, so it can ask you to type before it sends, merges or deletes."
 echo "To see what the voice heard, said and knows: $BIN/voice-log --call, $BIN/voice-context (or /pointe:voice-review)."
-echo "Reply with one line: voice is on for this session."
+echo "Reply with one line: this session joined Pointe."

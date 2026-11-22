@@ -229,6 +229,7 @@ DICTIONARY = vocabulary.Dictionary(STATE_DIR / "dictionary.json")  # names the u
 SHOWS = artifacts.Shows()  # show while it says: what is on screen while the voice reports a turn
 JOURNAL = STATE_DIR / "journal.jsonl"
 JOURNAL_MAX_BYTES = 20_000_000
+HAD_CALLS = JOURNAL.exists()  # before this start writes to it: a Mac used before 1.19.0 is not on its first call
 
 
 PROBLEM_SHOWN_SECS = 90.0
@@ -255,6 +256,17 @@ def _note_problem(message) -> None:
 
 def current_problem() -> str | None:
     return _problem[1] if time.time() - _problem[0] < PROBLEM_SHOWN_SECS else None
+
+
+def key_refused() -> dict | None:
+    """A refused key, while its line is shown: which vendor, and whether the ears run on it. The page then says Cannot
+    hear you (or Cannot answer you) with a red dot and Fix the key, never Listening with a green one."""
+    shown = current_problem()
+    vendor = vendors.refused_key(shown) if shown else None
+    if vendor is None:
+        return None
+    ears = (setup().ears or "").split(":")[0]
+    return {"vendor": vendor, "ears": bool(vendor) and vendor == ears}
 
 
 def _journal(message) -> None:
@@ -1110,8 +1122,42 @@ async def _watch_machines() -> None:
     state.machines_down = down
 
 
+FIRST_HELLO = STATE_DIR / "first-hello"  # Pointe has answered someone on this Mac: /pointe:setup waits for it
+FIRST_GREETING = "Hi, I'm Pointe. Say hello so I know I can hear you."
+
+
+def first_call() -> bool:
+    """No one on this Mac has been answered yet: the first call greets with an ask to say hello, and answers it itself.
+    A Mac with a call journal from before the marker existed is past its first call."""
+    if not FIRST_HELLO.exists() and HAD_CALLS:
+        _first_hello_done("calls before the marker: not a first call")
+    return not FIRST_HELLO.exists()
+
+
+def first_hello_reply() -> str:
+    """The answer to the first words ever heard here: that they were heard, and which sessions are joined. Fixed, so the
+    first success does not wait on a model, or on notes of a session that has just joined."""
+    sessions = list(REGISTRY.sessions.values())
+    if not sessions:
+        return "I can hear you. No session is joined yet: run slash pointe voice in a Claude Code session, and I'll pick it up."
+    if len(sessions) == 1:
+        return f"I can hear you, and {_spoken_names(sessions[0].name)} is joined. Ask me what it is doing."
+    names = ", ".join(_spoken_names(s.name) for s in sessions)
+    return f"I can hear you. {len(sessions)} sessions are joined: {names}. Ask me what one of them is doing."
+
+
+def _first_hello_done(why: str = "first hello answered") -> None:
+    try:
+        FIRST_HELLO.touch()
+    except OSError as e:
+        logger.info(f"first hello not saved: {type(e).__name__}")
+    logger.info(why)
+
+
 def fixed_greeting() -> str | None:
     """Before anything is read there is nothing to say, so no model call and nothing to get wrong."""
+    if first_call():
+        return FIRST_GREETING
     session = REGISTRY.active
     if session is None:
         return "Connected. Run slash pointe voice in Claude Code, or pointe join in another agent, and I'll pick it up."
@@ -1198,7 +1244,9 @@ def _bot_says(text: str, request_id: str | None = None) -> None:
     ECHO.bot_said(text)
     state.floor.said(text, time.time())
     _note_bot_speech(text, request_id)
-    _remember("assistant", text + " ")
+    last = state.conversation[-1] if state.conversation else None
+    if not (last and last[0] == "assistant" and last[1].rstrip().endswith(text.strip())):
+        _remember("assistant", text + " ")  # a call that reconnects greets again: one bubble must not hold it twice
     if request_id is None:
         _challenge_spoke(text)
 
@@ -1300,6 +1348,12 @@ class BrainFront(FrameProcessor):
                 self.brain.interrupt()
                 if state.utterance_spent:  # it answered a permission; [permission answered] gets the one reply
                     self.brain.append(frame.text)
+                    return
+                if first_call() and state.meeting is None:
+                    reply = first_hello_reply()
+                    _first_hello_done()
+                    self.brain.append(f"{frame.text}\n[you already answered this: {reply!r}. Do not answer it again.]")
+                    await self._speak(reply)
                     return
             self._start(frame.text)
             return
@@ -7012,6 +7066,50 @@ def _off_the_mac(request: Request) -> bool:
     return bool(request.scope.get("state", {}).get("pointe_phone")) or remote.Remote.on_tls_listener(request.scope)
 
 
+def _run_on_the_mac(*commands: list[str]) -> None:
+    """Run `bin/pointe` commands one after another, detached from this daemon: they restart it, and `voice-daemon stop`
+    ends its children. No key travels in their environment: the restarted daemon reads the Keychain afresh."""
+    script = " && ".join(" ".join(shlex.quote(part) for part in cmd) for cmd in commands)
+    env = {k: v for k, v in os.environ.items() if k not in vendors.KEY_ENVS}
+    env.update({"CLAUDE_VOICE_STATE": str(STATE_DIR), "CLAUDE_VOICE_DAEMON_PORT": str(PORT)})
+    subprocess.run(["/bin/sh", "-c", f"( {script} ) >/dev/null 2>&1 </dev/null &"], env=env, start_new_session=True,
+                   timeout=10)
+
+
+POINTE_CLI = Path(__file__).resolve().parent / "bin" / "pointe"
+
+
+@app.post("/voice/key")
+async def add_key(request: Request):
+    """Settings → Model keys, Add… and Fix the key, on the page on this Mac: `pointe key <vendor>` opens the vendor's
+    key page and the Mac's own key window, checks the key, asks again when it is refused, and restarts Pointe on it.
+    The key never passes through the page or this process. Not from the phone: the window opens on the Mac."""
+    if _off_the_mac(request):
+        raise HTTPException(status_code=403, detail="Add a key on the Mac itself.")
+    body = await request.json()
+    vendor = body.get("vendor") if isinstance(body, dict) else None
+    if vendor not in vendors.KEYS:
+        raise HTTPException(status_code=400, detail=f"vendor must be one of {', '.join(vendors.KEYS)}")
+    _run_on_the_mac([str(POINTE_CLI), "key", vendor])
+    logger.info(f"key window opened for {vendor}")
+    return {"ok": True}
+
+
+@app.post("/voice/setup")
+async def use_setup(request: Request):
+    """Settings → Setups, Use this setup, on the page on this Mac: `pointe setup <id>` (the local ones download their
+    models first), then a restart, so the daemon uses exactly that setup's vendors."""
+    if _off_the_mac(request):
+        raise HTTPException(status_code=403, detail="Switch the setup on the Mac itself.")
+    body = await request.json()
+    chosen = body.get("id") if isinstance(body, dict) else None
+    if chosen not in setups.BY_ID:
+        raise HTTPException(status_code=400, detail=f"id must be one of {', '.join(setups.BY_ID)}")
+    _run_on_the_mac([str(POINTE_CLI), "setup", chosen], [str(POINTE_CLI), "restart"])
+    logger.info(f"setup {chosen} chosen on the page")
+    return {"ok": True}
+
+
 def _may_show(request: Request) -> bool:
     """Show while it says: always on the page on this Mac; elsewhere only once enabled (owner decision 5)."""
     return not _off_the_mac(request) or PREFS.get("show.on_phone")
@@ -7026,6 +7124,8 @@ async def status(request: Request):
     return {"active": REGISTRY.active.name if REGISTRY.active else None,
             "connected": state.conn is not None,
             "problem": current_problem(),
+            "key_refused": key_refused(),
+            "first_call": first_call(),  # the page keeps its advanced controls out of the way until Pointe answered once
             "idle_hangup": state.idle_hangup,
             "monologue": state.dump.compat() if _dumping() else None,  # an older app reads this
             "brain_dump": _dump_status(),

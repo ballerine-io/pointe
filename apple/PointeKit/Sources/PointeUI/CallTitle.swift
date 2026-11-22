@@ -11,6 +11,7 @@ enum CallTitle {
         case .connecting: return ConnectCopy.connecting(macName)
         case .reconnecting: return "Reconnecting…"
         case .live:
+            if let refused = status?.key_refused { return refused.ears ? ConnectCopy.cannotHear : ConnectCopy.cannotAnswer }
             if status?.challenge?.on == true { return ChallengeCopy.state }
             if dumping { return BrainDumpCopy.state }
             if status?.hold != nil { return TurnsCopy.holding }

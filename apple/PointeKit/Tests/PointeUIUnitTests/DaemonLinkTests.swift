@@ -89,6 +89,11 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertEqual(title(.live, muted: true), "Muted")
         XCTAssertEqual(title(.live, speaking: true), "Speaking")
         XCTAssertEqual(title(.live, dumping: true, muted: true), BrainDumpCopy.state, "the brain dump comes before the mic's own state")
+        let refused = try! JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": [], "key_refused": {"vendor": "gemini", "ears": true}}"#.utf8))
+        XCTAssertEqual(title(.live, refused), "Cannot hear you", "a refused key is never Listening")
+        XCTAssertEqual(title(.live, refused, speaking: true), "Cannot hear you")
+        let brain = try! JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": [], "key_refused": {"vendor": "anthropic", "ears": false}}"#.utf8))
+        XCTAssertEqual(title(.live, brain), "Cannot answer you")
         XCTAssertEqual(CallTitle.line(phase: .off, reach: .unreachable, status: nil, call: call, macName: "studio", dumping: false, talking: false,
                                       speaking: false, muted: false),
                        ConnectCopy.offTitle(reach: .unreachable, macOnACall: false))

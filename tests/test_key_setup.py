@@ -218,8 +218,8 @@ def test_the_page_shows_optional_not_missing():
         finally:
             await stub.stop()
     got = asyncio.run(run())
-    assert got["rows"][0].split("\n") == ["Google Gemini", "In use: brain, reader, checker, ears, mouth"], got
-    assert all(r.endswith("Optional") for r in got["rows"][1:]) and len(got["rows"]) == 5, got
+    assert got["rows"][0].split("\n") == ["Google Gemini", "In use: brain, reader, checker, ears, mouth", "Replace…"], got
+    assert all(r.endswith("Optional\nAdd…") for r in got["rows"][1:]) and len(got["rows"]) == 5, got
     assert got["need"] == vendors.WHAT_YOU_NEED and "Missing" not in json.dumps(got)
 
 

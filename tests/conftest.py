@@ -7,7 +7,9 @@ from pathlib import Path
 
 _STATE = Path(tempfile.mkdtemp(prefix="cv-test-state-"))
 (_STATE / "token").write_text("test-token")
+(_STATE / "first-hello").write_text("")  # a Mac set up already: tests of the first call remove it (test_first_hello.py)
 os.environ["CLAUDE_VOICE_STATE"] = str(_STATE)
+os.environ["CLAUDE_VOICE_SKIP_KEY_CHECK"] = "1"  # no test reaches a vendor with its synthetic keys (doctor.check_keys)
 
 import sys  # noqa: E402
 

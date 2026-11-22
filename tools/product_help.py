@@ -559,11 +559,12 @@ TOPICS = (
           "can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is "
           "billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
           page=(("settings", "Model keys"),), mac=(),
-          page_note="It shows the setup in use, each key as In use, Saved, not used, Needed or Optional, and the setups "
-                    "to switch to. Keys are added on the Mac: pointe key <vendor>, or /pointe:setup.",
+          page_note="It shows the setup in use, each key as In use, Saved, not used, Needed or Optional, and the setups. "
+                    "On the Mac's own page, Add… or Replace… opens the vendor's key page and a window for the key, which "
+                    "Pointe checks before it restarts on it; Use this setup switches. On the phone, keys are added on the Mac.",
           iphone_note="The keys live in the Mac's Keychain: see them in the page's or the Mac app's Settings, Model keys.",
           mac_note="In the Mac app's Settings, under Model keys: the Setup menu, each key's state, and Add…, which opens the "
-                   "window that saves a key and then checks it."),
+                   "vendor's key page and the window for the key, checks it, and restarts Pointe on it."),
     Topic("settings", "Where the settings are", ("settings", "where are the settings", "preferences", "options", "menu",
                                                  "הגדרות", "איפה ההגדרות", "תפריט"),
           "All settings are in one place on each surface.",

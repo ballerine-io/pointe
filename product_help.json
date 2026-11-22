@@ -1023,8 +1023,8 @@
    "page": [
     "Settings → Model keys"
    ],
-   "page_note": "It shows the setup in use, each key as In use, Saved, not used, Needed or Optional, and the setups to switch to. Keys are added on the Mac: pointe key <vendor>, or /pointe:setup.",
-   "mac_note": "In the Mac app's Settings, under Model keys: the Setup menu, each key's state, and Add…, which opens the window that saves a key and then checks it."
+   "page_note": "It shows the setup in use, each key as In use, Saved, not used, Needed or Optional, and the setups. On the Mac's own page, Add… or Replace… opens the vendor's key page and a window for the key, which Pointe checks before it restarts on it; Use this setup switches. On the phone, keys are added on the Mac.",
+   "mac_note": "In the Mac app's Settings, under Model keys: the Setup menu, each key's state, and Add…, which opens the vendor's key page and the window for the key, checks it, and restarts Pointe on it."
   },
   {
    "id": "settings",

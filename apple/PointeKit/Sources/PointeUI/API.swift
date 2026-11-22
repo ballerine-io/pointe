@@ -24,6 +24,12 @@ struct API {
         }
     }
 
+    /// The key a vendor refused, and whether the call's ears run on it (then nothing is heard).
+    struct KeyRefused: Decodable, Equatable {
+        let vendor: String
+        let ears: Bool
+    }
+
     struct Status: Decodable, Equatable {
         let version: String?   // the Mac's Pointe; the brand line shows it when it differs from this app
         var active: String?
@@ -55,6 +61,7 @@ struct API {
         var tokens: Tokens?         // the voice model's own count of its context, after its last reply
         var local: LocalMode?       // local mode, read-only (local.summary); nil from a Mac without it
         var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
+        var key_refused: KeyRefused?  // a refused key while its problem shows: the title says so, never Listening
         var keep_awake: KeepAwake?  // the Mac holds off idle sleep under this call (mac.py); nil from an older Mac
         var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
         var invite: Invite?         // the one-time code to pair another machine, while one is outstanding

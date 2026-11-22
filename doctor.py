@@ -1,6 +1,10 @@
-"""bin/voice-doctor: which vendor fills each role, why, and what to do about what is missing."""
+"""pointe doctor: first whether Pointe is ready and the one fix, then which vendor fills each role, why, and what to do
+about what is missing. `--preflight` runs before the daemon starts: a missing key, or a key its vendor refuses, is said
+in words there, and the tab never opens on a call that cannot hear."""
 
 import asyncio
+import contextlib
+import io
 import os
 import socket
 import sys
@@ -62,21 +66,23 @@ NAMES = {"anthropic": "Anthropic", "gemini": "Gemini", "openai": "OpenAI", "loca
 
 
 POINTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin", "pointe")
-NO_KEY = f"""No model key yet. What do I need?
+NO_KEY_ABOUT = f"""What do I need?
 {textwrap.fill(vendors.WHAT_YOU_NEED, 118)}
 {textwrap.fill(vendors.WHY_KEYS, 118)}
 
 Setups (choose one: pointe setup <id>):
-{setups.text_table()}
+{setups.text_table()}"""
+NO_KEY_ELSEWHERE = """Without a Keychain (Linux, CI): export GOOGLE_API_KEY=... (or OPENAI_API_KEY, ANTHROPIC_API_KEY, SONIOX_API_KEY,
+ELEVENLABS_API_KEY). Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it
+(docs/features/local.md)."""
+NO_KEY = f"""No model key yet. {NO_KEY_ABOUT}
 
   In Claude Code: /pointe:setup compares the vendors and saves each key for you.
   Or yourself:    {POINTE} key gemini
-                  opens a Mac window; the key goes straight to your Keychain, never into a file or this chat.
-                  Get one at https://aistudio.google.com/apikey
+                  opens Google's key page and a Mac window; the key goes straight to your Keychain, never into a file
+                  or this chat. Get one at https://aistudio.google.com/apikey
 
-Without a Keychain (Linux, CI): export GOOGLE_API_KEY=... (or OPENAI_API_KEY, ANTHROPIC_API_KEY, SONIOX_API_KEY,
-ELEVENLABS_API_KEY). Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it
-(docs/features/local.md)."""
+{NO_KEY_ELSEWHERE}"""
 
 
 def preflight() -> int:
@@ -86,8 +92,10 @@ def preflight() -> int:
               f"{vendors.config().get('local_url') or local.url()}. Start it: pointe local start (or run pointe local).")
         return 1
     try:
-        for note in vendors.resolve(os.environ.get("CLAUDE_VOICE_FRONT", "brain")).notes:
+        resolved = vendors.resolve(os.environ.get("CLAUDE_VOICE_FRONT", "brain"))
+        for note in resolved.notes:
             print(note)
+        return check_keys(resolved)
     except SystemExit as e:
         present = {v for v in vendors.KEYS if vendors.has(v)}
         chosen = setups.chosen(vendors.config())
@@ -97,11 +105,32 @@ def preflight() -> int:
         elif status["needed"]:
             print(f"{status['line']}\n  Save it:  {POINTE} key {status['fix']}\n  Check it: {POINTE} key check {status['fix']}\n\nWhat do I need? "
                   f"{textwrap.fill(vendors.WHAT_YOU_NEED, 100)}\n{textwrap.fill(vendors.WHY_KEYS, 118)}\n"
-                  "bin/voice-doctor shows each role.")
+                  "pointe doctor shows each role.")
         else:
-            print(f"{e}\n\nbin/voice-doctor shows each role.")
+            print(f"{e}\n\npointe doctor shows each role.")
         return 1
-    return 0
+
+
+def check_keys(resolved) -> int:
+    """One tiny live call per key the call will use, at once. Only a refusal stops the start: offline, or a vendor that
+    does not answer, may still be a working call. CLAUDE_VOICE_SKIP_KEY_CHECK=1 skips it."""
+    if os.environ.get("CLAUDE_VOICE_SKIP_KEY_CHECK") == "1":
+        return 0
+    from concurrent.futures import ThreadPoolExecutor
+
+    import keys
+
+    roles = (resolved.brain, resolved.reader, resolved.checker, resolved.ears, resolved.mouth)
+    used = sorted({c.split(":")[0] for c in roles if c} & set(vendors.KEYS))
+    if not used:
+        return 0
+    with ThreadPoolExecutor(len(used)) as pool:
+        results = dict(zip(used, pool.map(keys.check, used)))
+    refused = [v for v, (ok, _) in results.items() if ok is False]
+    for vendor in refused:
+        print(f"{results[vendor][1]}\n  Fix it: pointe key {vendor} (opens {vendor}'s key page and a Mac window, checks the "
+              "new key and restarts Pointe), or /pointe:setup in Claude Code.")
+    return 1 if refused else 0
 
 
 def harnesses_here() -> list[str]:
@@ -126,10 +155,43 @@ def harnesses_here() -> list[str]:
     return lines
 
 
+def verdict(problems: int, status: dict, setup, refused: list[str]) -> list[str]:
+    """The first lines: ready or not, and the one fix."""
+    name = f" Setup: {setup.name}." if setup else ""
+    if not problems and not status["needed"] and not refused:
+        return [f"Pointe is ready.{name} Start a call: /pointe:voice in Claude Code."]
+    if refused:
+        vendor = refused[0]
+        return [f"Pointe is not ready: the {NAMES.get(vendor, vendor)} key was refused.",
+                f"Fix: pointe key {vendor}   (opens {vendor}'s key page and a Mac window, checks the new key)"]
+    if status["fix"]:
+        vendor = status["fix"]
+        where = f" (get one: {keys_where(vendor)})" if keys_where(vendor) else ""
+        return [f"Pointe is not ready: it needs {'an' if vendor in ('anthropic', 'openai', 'elevenlabs') else 'a'} "
+                f"{setups.NAMES[vendor]} key.", f"Fix: pointe key {vendor}{where}",
+                "In Claude Code, /pointe:setup does this for you. Other setups: pointe setup"]
+    return ["Pointe is not ready: see the roles below.", "Fix: pointe setup, or /pointe:setup in Claude Code."]
+
+
+def keys_where(vendor: str) -> str:
+    import keys
+
+    return keys.WHERE.get(vendor, "")
+
+
 def main() -> int:
     if "--preflight" in sys.argv:
         return preflight()
-    live, problems = "--live" in sys.argv, 0
+    details = io.StringIO()
+    with contextlib.redirect_stdout(details):
+        problems, status, setup, refused = _details()
+    print("\n".join(verdict(problems, status, setup, refused)))
+    print("\nDetails:" + details.getvalue().rstrip("\n"))
+    return 1 if problems or status["needed"] or refused else 0
+
+
+def _details() -> tuple:
+    live, problems, refused = "--live" in sys.argv, 0, []
     print("\nCoding agents:")
     print("\n".join(harnesses_here()))
     present = {v for v in vendors.KEYS if vendors.has(v)}
@@ -166,7 +228,7 @@ def main() -> int:
             problems += 1
             print(f"  {role:7} needs a key" if keyless else f"  {role:7} NOT AVAILABLE: {failed[role]}")
     if problems and keyless:
-        print("\n" + NO_KEY)
+        print(f"\n{NO_KEY_ABOUT}\n\n{NO_KEY_ELSEWHERE}")  # the fix itself is the verdict's, said once
     if chosen.get("ears") and chosen["ears"] != "soniox":
         print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
     if vendors.voice_local() and not vendors.local_only():
@@ -181,7 +243,7 @@ def main() -> int:
     port = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
     with socket.socket() as s:
         in_use = s.connect_ex(("127.0.0.1", port)) == 0
-    print(f"\nPort {port}: {'in use (the daemon, or something else: bin/voice-daemon status tells which)' if in_use else 'free'}")
+    print(f"\nPort {port}: {'in use (Pointe, or another program: pointe status tells which)' if in_use else 'free'}")
     if live:
         print("\nLive check, one short call per text model:")
         for role in ("brain", "reader", "checker"):
@@ -193,11 +255,13 @@ def main() -> int:
                 except Exception as e:
                     problems += 1
                     vendor = chosen[role].split(":")[0]
+                    if vendors.refused_key(f"{type(e).__name__} {e}") is not None:
+                        refused.append(vendor)
                     why = (vendors.refused_help(vendor) if vendors.refused_key(f"{type(e).__name__} {e}") is not None
                            else "Check the key and that it can use this model.")
                     print(f"  FAILED  {role} {chosen[role]}: {type(e).__name__}. {why}")
     print("\nChange the setup: pointe setup. One role by hand: CLAUDE_VOICE_<ROLE>=vendor:model, or ~/.claude-voice/config.json.")
-    return 1 if problems else 0
+    return problems, status, setup, refused
 
 
 if __name__ == "__main__":

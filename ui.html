@@ -373,6 +373,15 @@
   [data-state=live] .top .dot, [data-state=user] .top .dot { background: var(--success); }
   [data-state=bot] .top .dot { background: var(--orange); animation: breathe 1s ease-in-out infinite; }
   [data-state=muted] .top .dot { background: var(--orange); }
+  [data-state=broken] .top .dot { background: var(--danger); }
+  [data-state=broken] .state { color: var(--danger-text); }
+  .pill { border: 1px solid var(--line); background: var(--raised); color: var(--text); font: 500 12.5px var(--font);
+          padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+  #fixkey { margin-top: 6px; border-color: var(--danger); color: var(--danger-text); }
+  #fixkey[hidden] { display: none; }
+  /* Before Pointe has answered anyone on this Mac (status.first_call): Connect, the mic, Type, Settings and Sessions only. */
+  body.firstrun #listen, body.firstrun #meetbtn, body.firstrun #briefbtn, body.firstrun .micmode, body.firstrun #chlbtn,
+  body.firstrun #whisperbtn, body.firstrun #polishrow, body.firstrun #ctx, body.firstrun #modesec { display: none !important; }
   [data-state=connecting] .top .dot, [data-state=reconnecting] .top .dot { background: var(--orange); animation: breathe 1s infinite; }
   .state { font: 400 20px/1.2 var(--display); letter-spacing: -.015em; }
   [data-state=muted] .state { color: var(--accent); }
@@ -1024,7 +1033,7 @@
   <div class="brand">{{LOGO}}<div><div class="name">Pointe</div><div class="serif"><span class="ver" id="ver"></span></div></div>
     <button type="button" id="sideclose" onclick="toggleSessions()" aria-label="Close sessions">×</button></div>
 
-  <section>
+  <section id="modesec">
     <h3 class="label">Mode</h3>
     <div class="seg" role="tablist">
       <button id="m-orchestrator" onclick="setMode('orchestrator')">Orchestrator</button>
@@ -1465,6 +1474,7 @@
       <div class="state" id="state">Not connected</div>
       <div class="sub" id="sub">Press the mic to start talking</div>
       <div id="problem" role="alert" dir="auto"></div>
+      <button class="pill" id="fixkey" hidden onclick="fixKey()">Fix the key</button>
       <div id="vlproblem" role="alert"></div>
       <button id="vlignored" onclick="openIgnored()"></button>
     </div>
@@ -2236,6 +2246,10 @@
   const CONNECT_COPY = {
     connect: 'Connect', tryAgain: 'Try again', hangUp: 'Hang up', cancel: 'Cancel', connectFirst: 'Connect first',
     notConnected: 'Not connected', notPairedTitle: 'Not paired', elsewhere: 'On a call elsewhere',
+    // a refused key: never Listening (the apps' ConnectCopy holds the same three)
+    cannotHear: 'Cannot hear you', cannotAnswer: 'Cannot answer you', fixKey: 'Fix the key',
+    keyWindow: 'A window opened on the Mac: paste the new key there. Pointe checks it and restarts.',
+    fixOnMac: vendor => `Fix it on the Mac: Settings → Model keys there, or pointe key ${vendor}.`,
     does: device => `Starts the call on this ${device}'s microphone`,
     connecting: where => `Connecting to ${where}…`,
     reconnecting: n => `Reconnecting… attempt ${n}`,
@@ -2574,6 +2588,7 @@
     else if (call.state === 'connecting') [st, title] = ['connecting', CONNECT_COPY.connecting(macName())];
     else if (!s || !s.connected || !mine) [st, title] = ['off', s && s.connected ? CONNECT_COPY.elsewhere : CONNECT_COPY.notConnected];
     else if (micError) [st, title] = ['off', 'Cannot hear you'];
+    else if (s.key_refused) [st, title] = ['broken', s.key_refused.ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer];
     else if (pttMode() && pttOpen()) [st, title] = ['talking', pttTap() ? 'Talking · tap to send' : 'Talking'];
     else if (dumping(s)) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', DUMP_COPY.state];
     else if (s.hold) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', TURNS_COPY.holding];
@@ -2585,6 +2600,8 @@
                                        : roomHeard() ? `Meeting: room is heard · ${pttStyleLabel().toLowerCase()}` : pttStyleLabel()];
     else [st, title] = ['live', 'Listening'];
     document.body.dataset.state = st; text('state', title);
+    document.body.classList.toggle('firstrun', !!(s && s.first_call));
+    $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor);
     // the link itself, from the call's heartbeat, so "connected" is never a guess
     const quiet = mine && call.heard ? (Date.now() - call.heard) / 1000 : 0;
     const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : call.rtt != null ? ` · ${call.rtt} ms` : '';
@@ -2619,6 +2636,13 @@
     if (live && silence.paused) claimMediaKeys();
   }
   let subShown = null;
+  async function fixKey() {  // the refused key: on this Mac, its own key window; elsewhere, where to fix it
+    const vendor = status && status.key_refused && status.key_refused.vendor;
+    if (!vendor) return;
+    if (remotePage) { $('problem').textContent = CONNECT_COPY.fixOnMac(vendor); return; }
+    const r = await fetch('/voice/key', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({vendor})});
+    $('problem').textContent = r.ok ? CONNECT_COPY.keyWindow : (await r.json().catch(() => ({}))).detail || 'The key window did not open.';
+  }
   async function setMicMode(mode) {  // the dock's switch and Settings → Microphone set the same preference
     $('pref-mic').value = mode;
     want('micmode', s => { if (s.ptt) s.ptt.mode = mode; }, (async () => {  // the switch moves now; the Mac confirms on the next poll
@@ -3635,12 +3659,15 @@
   const KEYS_COPY = {title: 'What do I need?',
     need: 'Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.',
     why: 'Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe\'s voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk.',
-    how: 'Add or replace a key on the Mac: pointe key <vendor>, or the Mac app\'s Settings. Restart Pointe to use it.',
+    how: 'Add… opens the vendor\'s key page and a window on this Mac; Pointe checks the key and restarts to use it.',
+    howRemote: 'Add or replace a key on the Mac: its page or the Mac app\'s Settings, or pointe key <vendor>.',
     setups: 'Setups', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
+    add: 'Add…', replace: 'Replace…', use: 'Use this setup',
+    keyWindow: 'A window opened on this Mac: paste the key there.', switching: 'Switching. Pointe restarts in a moment.',
     inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional'};
   const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional'};
   text('pref-keys-title', KEYS_COPY.title); text('pref-keys-need', KEYS_COPY.need); text('pref-keys-sub', KEYS_COPY.why);
-  text('pref-keys-how', KEYS_COPY.how); text('pref-setups-h', KEYS_COPY.setups);
+  text('pref-keys-how', remotePage ? KEYS_COPY.howRemote : KEYS_COPY.how); text('pref-setups-h', KEYS_COPY.setups);
   function showKeys() {
     const k = status && status.keys;
     $('pref-keys-line').textContent = (k && k.line) || 'Pointe on this Mac does not report it: update it.';
@@ -3649,16 +3676,30 @@
       const row = el('div', 'r');
       row.append(el('span', '', VENDOR[vendor] || vendor),
                  el('span', 'kstate ' + (KEY_STATE[st] || ''), (KEYS_COPY[KEY_STATE[st]] || st) + (uses.length ? ': ' + uses.join(', ') : '')));
+      if (!remotePage) {  // the window opens on the Mac: a phone's page keeps the words only
+        const b = el('button', 'pill', st === 'needed' || st === 'optional' ? KEYS_COPY.add : KEYS_COPY.replace);
+        b.onclick = () => keysPost('/voice/key', {vendor}, KEYS_COPY.keyWindow);
+        row.append(b);
+      }
       return row;
     }));
     $('pref-setups').replaceChildren(...((k && k.setups) || []).map(x => {
       const row = el('div', 'r col'), head = el('div', 'shead2');
       head.append(el('b', '', x.name), el('span', 'kstate', x.id === k.setup ? KEYS_COPY.current : x.cost));
-      row.append(head, el('span', 'help', `${x.short} For ${x.pick_for}.`),
-                 el('code', '', x.id === k.setup ? '' : KEYS_COPY.switchTo + x.id));
+      row.append(head, el('span', 'help', `${x.short} Best for ${x.pick_for}.`));
+      if (x.id !== k.setup && remotePage) row.append(el('code', '', KEYS_COPY.switchTo + x.id));
+      else if (x.id !== k.setup) {
+        const b = el('button', 'pill', KEYS_COPY.use);
+        b.onclick = () => keysPost('/voice/setup', {id: x.id}, KEYS_COPY.switching);
+        row.append(b);
+      }
       return row;
     }));
     $('pref-setups-h').hidden = !(k && k.setups && k.setups.length);
+  }
+  async function keysPost(path, body, done) {
+    const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+    $('pref-keys-line').textContent = r.ok ? done : (await r.json().catch(() => ({}))).detail || 'Not done: the Mac did not answer.';
   }
   async function openSettings() {
     // The sheet opens on the click, with the values it last had; the Mac's answers fill it in as they land.
