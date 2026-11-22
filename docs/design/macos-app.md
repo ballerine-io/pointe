@@ -154,7 +154,7 @@ keyboard path.
   the brand's favicon drawing (`docs/brand/logo.md`), in the menu bar's one ink, never redrawn. The state is said beside
   it and in its label, never by colour alone: the mark dimmed with no call, a microphone while talking, and the number
   of sessions that wait. The menu: the state line; Connect or Hang up; "N need you" with one item per
-  request that opens the window on it; Brain dump; Open Pointe (⌘O); Show call bubble; Settings… (⌘,); Quit.
+  request that opens the window on it; Brain dump; Open Pointe (⌘O); Show call bubble during calls; Settings… (⌘,); Quit.
 - **The call window** (`Window`, one instance, 760 × 560 by default, remembers its frame). A sidebar lists sessions
   grouped by machine (this Mac first; a machine's header shows offline), each with its agent mark and state (working,
   approve, needs you, idle, offline); selecting one switches the active session (`/voice/switch`). The detail column is
@@ -163,8 +163,16 @@ keyboard path.
   the conversation while one is on: thoughts, then the structured prompt for review (edit, add more, read it back,
   discard, To:, Send with a second click).
 - **The call bubble** (optional; Settings or the menu). A small floating panel (`NSPanel`, non-activating, joins all
-  Spaces, movable, remembers its place): the state, the hearing line, a talk button, and the count of requests. It never
-  takes key focus, so the app in front keeps the keyboard.
+  Spaces): the state, the hearing line (or why the last call did not start), the talk mode with the shortcut, a talk
+  button, the count of requests, and − and ×. It shows while a call is up or being placed, and with no call only when
+  pinned ("Keep it on screen with no call"). It never takes key focus, so the app in front keeps the keyboard; its view
+  takes the first mouse, or AppKit would swallow every click on it while another app is active. A click opens the
+  window, a drag moves it (the frame is remembered, except in a demo or a test); − makes it a pill that opens out on
+  hover or a click, × turns it off. Its menu: Open Pointe, Keep on Screen with No Call, Make Small, Reset Position,
+  Hide the Bubble.
+- **Launch.** A launch the person made (Finder, Spotlight, the Dock) opens the window, so the app is in reach when the
+  menu bar item is hidden by the notch; a login item's launch stays in the menu bar. A call placed from the bubble, the
+  menu or ⌘↩ that ends before it starts opens the window on Connect's reason.
 - **Settings** (`Settings` scene, tabs). General: appearance (System, Light, Dark), launch at login (`SMAppService
   .mainApp`), the call bubble, alerts. Voice: microphone (Always on or Push to talk, the daemon's pref), talk button
   (Hold or Tap, this Mac's), wait before answering (the daemon's `turns.patience`), voice lock level (read from status;

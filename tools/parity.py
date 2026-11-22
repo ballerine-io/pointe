@@ -335,8 +335,11 @@ GROUPS: list[tuple[str, list[Feature]]] = [
     ("The Mac shell", [
         F("mac.menubar", "A menu bar item with the state and who needs you",
           mac=[r"MenuBarExtra"], web=MAC_SHELL, ios=MAC_SHELL),
-        F("mac.bubble", "A small call bubble that floats over other apps",
-          mac=[r"struct BubbleView\b"], web=MAC_SHELL, ios=MAC_SHELL),
+        F("mac.bubble", "A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, ×",
+          mac=[r"struct BubbleView\b", r"func acceptsFirstMouse\b", r"\"bubble\.close\"", r"func resetBubblePosition\("],
+          web=MAC_SHELL, ios=MAC_SHELL),
+        F("mac.talkmode", "The talk mode and the talk shortcut (\"Hold ⌥Space\"), in the window and the bubble",
+          mac=[r"BubbleRule\.talkMode\(", ident("talkMode"), ident("bubble.mode")], web=MAC_SHELL, ios=MAC_SHELL),
         F("mac.login", "Open at login",
           mac=[r"SMAppService"], web=MAC_SHELL, ios=MAC_SHELL),
         F("mac.daemon", "Find, start and restart Pointe on this Mac; say when versions differ",

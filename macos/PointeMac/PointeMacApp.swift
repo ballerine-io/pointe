@@ -80,7 +80,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !Self.hostsTests else { return }
-        AppModel.shared.launch()
+        AppModel.shared.launch(openWindow: Self.opensWindow(asLoginItem: Self.launchedAsLoginItem))
+    }
+
+    /// A launch the person made opens the window, so the app is always in reach: the menu bar item can sit behind the
+    /// notch, and the bubble shows only on a call. A launch at login stays in the menu bar.
+    static func opensWindow(asLoginItem: Bool) -> Bool { !asLoginItem }
+
+    /// macOS marks the open-application event of a login item's launch.
+    static var launchedAsLoginItem: Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent, event.eventID == kAEOpenApplication else { return false }
+        return event.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
     }
 
     /// Clicking the app in Finder or the Dock again opens the window: the menu bar item may be hidden behind a notch.
@@ -148,7 +158,7 @@ struct MenuContent: View {
         Divider()
         Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
         Button(MacMenu.newSession) { model.ask(.newSession) }.disabled(!model.ready)
-        Toggle("Show call bubble", isOn: Binding(get: { model.bubbleOn }, set: { model.bubbleOn = $0 }))
+        Toggle("Show call bubble during calls", isOn: Binding(get: { model.bubbleOn }, set: { model.bubbleOn = $0 }))
         Button("Settings…") { model.ask(.settings) }.keyboardShortcut(",")
         Divider()
         Button("Quit Pointe") { NSApp.terminate(nil) }.keyboardShortcut("q")

@@ -50,11 +50,18 @@ final class AppModel {
     private(set) var foldersNote: String?
 
     var shortcut: Shortcut? { didSet { Shortcut.store(shortcut, in: defaults); registerShortcut() } }
-    var bubbleOn: Bool { didSet { defaults.set(bubbleOn, forKey: Keys.bubble); windows.setBubble(bubbleOn) } }
+    /// "Show the call bubble during calls": on a call, and with none when pinned (`BubbleRule.shows`). A demo keeps
+    /// none of these.
+    var bubbleOn: Bool { didSet { remember(bubbleOn, Keys.bubble); syncBubble() } }
+    var bubblePinned: Bool { didSet { remember(bubblePinned, Keys.bubblePinned); syncBubble() } }
+    /// The bubble as a small pill; hovering or clicking it shows the whole bubble (`bubbleExpanded`) until the mouse leaves.
+    var bubbleSmall: Bool { didSet { remember(bubbleSmall, Keys.bubbleSmall); syncBubble() } }
+    var bubbleExpanded = false { didSet { syncBubble() } }
 
     enum Keys {
         static let bubble = "pointe.bubble"
-        static let opened = "pointe.opened"
+        static let bubblePinned = "pointe.bubble.pinned"
+        static let bubbleSmall = "pointe.bubble.small"
     }
 
     let windows = Windows()
@@ -64,6 +71,9 @@ final class AppModel {
     private let hotKey = HotKey()
     private var watcher: Task<Void, Never>?
     private var themeObserver: NSObjectProtocol?
+    /// A call the person placed and that has not started yet: if it ends with a reason, the window opens on it.
+    @ObservationIgnored private var dialing = false
+    @ObservationIgnored private var launched = false
 
     private init() {
         appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
@@ -71,6 +81,8 @@ final class AppModel {
         session = MacSession(daemon: LocalDaemon(endpoint: { box.endpoint }, lost: { box.set(nil) }))
         shortcut = Shortcut.stored(in: defaults)
         bubbleOn = defaults.bool(forKey: Keys.bubble)
+        bubblePinned = defaults.bool(forKey: Keys.bubblePinned)
+        bubbleSmall = defaults.bool(forKey: Keys.bubbleSmall)
         if session.isDemo { daemon = .running }  // a demo given at launch: nothing is looked for on this Mac
     }
 
@@ -79,7 +91,9 @@ final class AppModel {
 
     // MARK: launch
 
-    func launch() {
+    /// `openWindow`: the person opened the app (not macOS at login), so the window comes up: the menu bar item may be
+    /// hidden behind the notch, and the bubble shows only on a call.
+    func launch(openWindow: Bool) {
         PointeBoot.start()
         applyTheme()
         themeObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -95,12 +109,41 @@ final class AppModel {
             watcher = Task { [weak self] in await self?.watch() }
             session.start()
         }
-        windows.setBubble(bubbleOn)
-        // The window opens by itself the first time, and when a test or a screenshot asks.
-        if UserDefaults.standard.bool(forKey: "PointeOpenWindow") || !defaults.bool(forKey: Keys.opened) {
-            if !launchedForDemo { defaults.set(true, forKey: Keys.opened) }
-            windows.showMain()
+        launched = true
+        watchCall()
+        if openWindow || UserDefaults.standard.bool(forKey: "PointeOpenWindow") { windows.showMain() }
+    }
+
+    private func remember(_ value: Bool, _ key: String) {
+        if !session.isDemo { defaults.set(value, forKey: key) }
+    }
+
+    /// The talk mode as the bubble and the window say it: "Always on", or "Hold ⌥Space" in push to talk.
+    var talkMode: String {
+        BubbleRule.talkMode(pushToTalk: session.pushToTalk, hold: session.holdToTalk, shortcut: shortcutNote == nil ? shortcut?.display : nil)
+    }
+
+    /// Keeps the bubble and the window in step with the call: the bubble shows or hides, and a call the person placed
+    /// that ended with a reason opens the window on that reason.
+    private func watchCall() {
+        withObservationTracking {
+            syncBubble()
+            settleDial()
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.watchCall() }
         }
+    }
+
+    /// At once on the person's own change, so the panel's size and its content change together.
+    private func syncBubble() {
+        guard launched else { return }
+        windows.setBubble(BubbleRule.shows(on: bubbleOn, pinned: bubblePinned, phase: session.phase), small: bubbleSmall && !bubbleExpanded)
+    }
+
+    private func settleDial() {
+        guard dialing, let failed = BubbleRule.failedDial(phase: session.phase, problem: session.callProblem) else { return }
+        dialing = false
+        if failed, !windows.mainIsFront { windows.showMain() }
     }
 
     // MARK: the daemon on this Mac
@@ -239,9 +282,13 @@ final class AppModel {
 
     // MARK: the call
 
+    /// From the bubble, the menu or ⌘↩. A call that does not start never fails silently: the window opens on Connect's
+    /// reason and fix (`settleDial`).
     func toggleCall() async {
+        dialing = session.phase == .off
         if !session.live, daemon == .stopped { await startDaemon() }
         await session.toggleCall()
+        settleDial()
     }
 
     /// From a menu or a key: the sheet is the window's, so the window comes first.

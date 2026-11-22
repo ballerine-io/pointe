@@ -18,13 +18,23 @@ struct MainWindow: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if model.ready, let note = model.versionNote {
-                Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
-                    .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 18).padding(.vertical, 6)
-                    .textSelection(.enabled)
-                    .accessibilityIdentifier("versionNote")
+            if model.ready {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let note = model.versionNote {
+                        Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
+                            .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
+                            .padding(.vertical, 6)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier("versionNote")
+                    }
+                    Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
+                        .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
+                        .padding(.vertical, 4)
+                        .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
+                        .accessibilityIdentifier("talkMode")
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.horizontal, 18)
             }
         }
         .background(PointeLook.bg)
@@ -101,71 +111,5 @@ struct SetupPanel: View {
             }
         }
         .accessibilityElement(children: .contain)
-    }
-}
-
-// MARK: the call bubble
-
-/// The call in a corner of the screen: the state, what is being heard, a talk button and who waits. It floats over
-/// other apps and never takes the keyboard from them.
-struct BubbleView: View {
-    @Environment(AppModel.self) private var model
-    @State private var pressed = false
-
-    var body: some View {
-        let session = model.session
-        let live = session.live, ptt = session.pushToTalk, open = session.talking
-        HStack(spacing: 10) {
-            Image(systemName: !live ? "phone.fill" : ptt ? (open ? "mic.fill" : "mic") : (session.muted ? "mic.slash.fill" : "mic.fill"))
-                .font(.system(size: 15, weight: .semibold))
-                .frame(width: 36, height: 36)
-                .foregroundStyle(open ? PointeLook.onOrange : PointeLook.text)
-                .background(open ? PointeLook.orange : PointeLook.raised, in: Circle())
-                .contentShape(Circle())
-                .gesture(DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !pressed else { return }
-                        pressed = true
-                        if !live { Task { await model.toggleCall() } } else { session.talkDown() }
-                    }
-                    .onEnded { _ in
-                        pressed = false
-                        session.talkUp()
-                    })
-                .accessibilityElement()
-                .accessibilityAddTraits(.isButton)
-                .accessibilityLabel(!live ? MacCopy.connect : ptt ? (open ? "Talking" : session.talkLabel) : (session.muted ? "Unmute" : "Mute"))
-                .accessibilityAction {
-                    if !live { Task { await model.toggleCall() } } else { session.talkDown(); if session.holdToTalk { session.talkUp() } }
-                }
-                .accessibilityIdentifier("bubble.talk")
-            VStack(alignment: .leading, spacing: 1) {
-                Text(session.stateTitle).font(PointeLook.font(.callout, .medium)).foregroundStyle(PointeLook.text).lineLimit(1)
-                    .accessibilityIdentifier("bubble.state")
-                Text(session.hearing.isEmpty ? (session.activeSession ?? MacCopy.appName) : session.hearing)
-                    .font(PointeLook.font(.caption)).foregroundStyle(PointeLook.muted).lineLimit(1).truncationMode(.head)
-            }
-            Spacer(minLength: 0)
-            if session.needCount > 0 {
-                Button { model.windows.showMain() } label: {
-                    Text("\(session.needCount)").font(PointeLook.font(.caption, .semibold)).monospacedDigit()
-                        .frame(minWidth: 20, minHeight: 20).foregroundStyle(PointeLook.onOrange).background(PointeLook.orange, in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(MacCopy.needYou(session.needCount))
-                .help(MacCopy.needYou(session.needCount))
-            }
-        }
-        .padding(.horizontal, 12)
-        .frame(width: 260, height: 60)
-        .background(PointeLook.card, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(PointeLook.lineStrong))
-        .padding(2)
-        .contextMenu {
-            Button("Open Pointe") { model.windows.showMain() }
-            Button("Hide the bubble") { model.bubbleOn = false }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Pointe call bubble")
     }
 }

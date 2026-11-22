@@ -23,14 +23,17 @@ struct MacSettingsSections: View {
                     }
                 }
             }
-            Toggle("Show the call bubble", isOn: $model.bubbleOn).accessibilityIdentifier("settings.bubble")
+            Toggle("Show the call bubble during calls", isOn: $model.bubbleOn).accessibilityIdentifier("settings.bubble")
+            Toggle("Keep it on screen with no call", isOn: $model.bubblePinned).disabled(!model.bubbleOn)
+                .accessibilityIdentifier("settings.bubblePinned")
+            Toggle("Small bubble", isOn: $model.bubbleSmall).disabled(!model.bubbleOn).accessibilityIdentifier("settings.bubbleSmall")
             Toggle("Open Pointe at login", isOn: Binding(get: { model.loginItem }, set: { model.setLoginItem($0) }))
                 .accessibilityIdentifier("settings.login")
             if let note = model.loginNote { Text(note).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent) }
         } header: {
             Text("This Mac")
         } footer: {
-            Text("The shortcut talks from any app: in push to talk it is the talk button, in Always on it mutes, and with no call it brings Pointe forward. The bubble is a small panel that floats over other apps with the state and a talk button.")
+            Text("The shortcut talks from any app: in push to talk it is the talk button, in Always on it mutes, and with no call it brings Pointe forward. The bubble floats over other apps while a call is up: the state, the talk mode and a talk button. Click it to open Pointe, drag it anywhere; − makes it small, × hides it.")
         }
 
         Section {

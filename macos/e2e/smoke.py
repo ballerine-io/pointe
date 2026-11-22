@@ -31,8 +31,9 @@ class App:
 
     def __init__(self, binary: Path, driver: Path, *args: str, look: str = "dark", env: dict | None = None):
         self.driver = driver
+        bubble = [] if "-pointe.bubble" in args else ["-pointe.bubble", "NO"]
         self.proc = subprocess.Popen([str(binary), "-PointeOpenWindow", "YES", "-ApplePersistenceIgnoreState", "YES", "-pointe.theme", look,
-                                      "-pointe.bubble", "NO", *args],
+                                      *bubble, *args],
                                      env={**os.environ, **(env or {})}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.wait("pointe.main", 15)
 
@@ -81,7 +82,10 @@ SCREENS = {  # -demo <screen>: an identifier that screen shows
 
 
 def main() -> int:
-    built = subprocess.run([str(ROOT / "macos" / "build.sh")], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    # POINTE_SMOKE_APP: an app already built, e.g. under its own bundle id so it shares no settings with an installed one.
+    given = os.environ.get("POINTE_SMOKE_APP")
+    built = subprocess.CompletedProcess([], 0, given, "") if given else \
+        subprocess.run([str(ROOT / "macos" / "build.sh")], capture_output=True, text=True, stdin=subprocess.DEVNULL)
     work = Path(tempfile.mkdtemp(prefix="pointe-mac-smoke-"))
     driver = work / "axdrive"
     tool = subprocess.run(["swiftc", "-O", str(ROOT / "macos" / "e2e" / "axdrive.swift"), "-o", str(driver)], capture_output=True, text=True)
@@ -157,6 +161,23 @@ def main() -> int:
         finally:
             app.quit()
 
+    # the call bubble: on a call it floats with the state and the talk mode, as the window says it; × hides it
+    app = start("-demo", "call", "-pointe.bubble", "YES")
+    try:
+        app.wait("statusLine")
+        mode = app.ax("label", "bubble.mode").stdout.strip()
+        check("on a call the bubble shows the state and the talk mode", app.wait("bubble.state") and app.has("bubble.talk") and app.has("bubble.close"), mode)
+        check("the window names the same talk mode", mode != "" and mode == app.ax("label", "talkMode").stdout.strip(), mode)
+        app.shot("bubble", "dark")
+        check("× hides the bubble", app.press("bubble.close") and app.wait("bubble.state", 4, gone=True))
+    finally:
+        app.quit()
+    app = start("-demo", "call", "-pointe.bubble", "YES", "-pointe.bubble.small", "YES")
+    try:
+        check("small, the bubble is a pill with the state and the talk mode's glyph", app.wait("bubble.small") and not app.has("bubble.state"))
+    finally:
+        app.quit()
+
     # every sheet and every demo screen opens
     for sheet, ident in SHEETS.items():
         for look in (("dark", "light") if sheet in ("settings", "voiceLock", "dictionary") else ("dark",)):
@@ -180,9 +201,10 @@ def main() -> int:
     # no Pointe on this Mac: the setup guide, and the demo from it
     empty = work / "state"
     empty.mkdir()
-    app = start(env={"CLAUDE_VOICE_STATE": str(empty), "CLAUDE_VOICE_DAEMON_PORT": "7999", "CLAUDE_CONFIG_DIR": str(work / "claude")})
+    app = start("-pointe.bubble", "YES", env={"CLAUDE_VOICE_STATE": str(empty), "CLAUDE_VOICE_DAEMON_PORT": "7999", "CLAUDE_CONFIG_DIR": str(work / "claude")})
     try:
         check("with no daemon the window is the setup guide", app.wait("setup", 10) and not app.has("conversation"))
+        check("and with no call there is no bubble saying Not connected", not app.has("bubble.state") and not app.has("bubble.small"))
         app.shot("setup", "dark")
         check("Try a demo shows the call screen with a request", app.press("tryDemo") and app.wait("requestCommand", 8) and app.has("demoBadge"))
     finally:

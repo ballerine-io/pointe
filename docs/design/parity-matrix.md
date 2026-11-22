@@ -8,9 +8,9 @@ without a reason. What the rows mean, how the scan works and the component spec:
 
 | Surface | yes | partial | no | n/a (bound to another surface) |
 |---|---|---|---|---|
-| Page | 79 | 0 | 0 | 15 |
-| iPhone | 85 | 0 | 0 | 9 |
-| Mac | 88 | 0 | 0 | 6 |
+| Page | 79 | 0 | 0 | 16 |
+| iPhone | 85 | 0 | 0 | 10 |
+| Mac | 89 | 0 | 0 | 6 |
 
 Before this work (1.16.0, a9ddfea), by the same scan:
 
@@ -47,7 +47,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Microphone: Always on or Push to talk <br>`talk.mode` | yes `ui.html:1311` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:93` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:93` |
 | The Always on / Push to talk switch over the mic <br>`talk.switch` | yes `ui.html:1586` | yes `apple/PointeKit/Sources/PointeUI/BottomBar.swift:124` | yes `apple/PointeKit/Sources/PointeUI/BottomBar.swift:124` |
 | Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1312` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:99` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:99` |
-| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1498` | yes `apple/PointeKit/Sources/PointeUI/Call.swift:147` | yes `macos/PointeMac/AppModel.swift:278` |
+| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1498` | yes `apple/PointeKit/Sources/PointeUI/Call.swift:147` | yes `macos/PointeMac/AppModel.swift:325` |
 | A draft of what a press has heard so far <br>`talk.draft` | yes `ui.html:1568` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:413` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:413` |
 | Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:4086` | yes `apple/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes `apple/PointeKit/Sources/PointeUI/CallTitle.swift:22` |
 | Talk without touching the screen: a key, a system-wide shortcut, or the Action button <br>`talk.key` | yes `ui.html:1313` | yes `ios/Pointe/TalkIntent.swift:7` | yes `macos/PointeMac/HotKey.swift:5` |
@@ -66,7 +66,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1048` | yes `apple/PointeKit/Sources/PointeUI/Sessions.swift:511` | yes `apple/PointeKit/Sources/PointeUI/Sessions.swift:511` |
 | Start a new session: agent, folder, machine, name, first prompt <br>`sessions.new` | yes `ui.html:1417` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:12` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:12` |
 | The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1563` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:154` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:154` |
-| Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1342` | n/a | yes `macos/PointeMac/MacSettings.swift:79` |
+| Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1342` | n/a | yes `macos/PointeMac/MacSettings.swift:82` |
 | Machines on this voice: online, sessions, round trip, key fingerprint <br>`machines.list` | yes `ui.html:1204` | yes `apple/PointeKit/Sources/PointeUI/Settings.swift:9` | yes `apple/PointeKit/Sources/PointeUI/Settings.swift:9` |
 | Invite a machine with a one-time code, cancel it, revoke a machine <br>`machines.invite` | yes `ui.html:1215` | yes `apple/PointeKit/Sources/PointeUI/Settings.swift:131` | yes `apple/PointeKit/Sources/PointeUI/Settings.swift:131` |
 
@@ -145,7 +145,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Pair with the Mac: scan, paste or open the code; unpair this phone <br>`pair.read` | n/a | yes `apple/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a |
 | Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1370` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:156` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:156` |
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1377` | yes `apple/PointeKit/Sources/PointeUI/About.swift:14` | yes `apple/PointeKit/Sources/PointeUI/About.swift:14` |
-| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1034` | yes `apple/PointeKit/Sources/PointeUI/Brand.swift:449` | yes `macos/PointeMac/AppModel.swift:181` |
+| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1034` | yes `apple/PointeKit/Sources/PointeUI/Brand.swift:449` | yes `macos/PointeMac/AppModel.swift:224` |
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1290` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:46` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:46` |
 | The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (36 topics)` | yes `product_help.json (36 topics)` | yes `product_help.json (36 topics)` |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:7` |
@@ -156,11 +156,12 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | A menu bar item with the state and who needs you <br>`mac.menubar` | n/a | n/a | yes `macos/PointeMac/PointeMacApp.swift:16` |
-| A small call bubble that floats over other apps <br>`mac.bubble` | n/a | n/a | yes `macos/PointeMac/Panels.swift:111` |
+| A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, × <br>`mac.bubble` | n/a | n/a | yes `macos/PointeMac/Bubble.swift:96` |
+| The talk mode and the talk shortcut ("Hold ⌥Space"), in the window and the bubble <br>`mac.talkmode` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:123` |
 | Open at login <br>`mac.login` | n/a | n/a | yes `macos/PointeMac/Platform.swift:4` |
-| Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:140` |
-| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1294` | n/a | yes `macos/PointeMac/AppModel.swift:207` |
-| Which vendor keys are in the Keychain, and Add… <br>`mac.keys` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:201` |
+| Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:183` |
+| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1294` | n/a | yes `macos/PointeMac/AppModel.swift:250` |
+| Which vendor keys are in the Keychain, and Add… <br>`mac.keys` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:244` |
 
 ## The phone alone
 
@@ -192,8 +193,10 @@ A feature a surface cannot have, and why. Everything else is on all three.
 | Keyboard: a key for every main action | iPhone | an iPhone has no keyboard by default; VoiceOver and Switch Control reach every control by its label |
 | A menu bar item with the state and who needs you | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | A menu bar item with the state and who needs you | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
-| A small call bubble that floats over other apps | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
-| A small call bubble that floats over other apps | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
+| A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, × | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
+| A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, × | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
+| The talk mode and the talk shortcut ("Hold ⌥Space"), in the window and the bubble | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
+| The talk mode and the talk shortcut ("Hold ⌥Space"), in the window and the bubble | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | Open at login | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | Open at login | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | Find, start and restart Pointe on this Mac; say when versions differ | Page | the page exists only while the daemon runs, so there is nothing to start, find or demo from it |

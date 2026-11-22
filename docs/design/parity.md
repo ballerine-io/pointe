@@ -45,7 +45,7 @@ What stays on one surface, with the reason, is the generated file's "Bound to a 
 - **The phone alone:** reading a pairing code and "Unpair this phone"; starting drive mode and the suggestion to
   (the page already said "drive mode is for a phone in a car", and the Mac follows it: both show the mode and stop it);
   the AirPods press and the lock screen's line; the line about the Mac keeping itself awake.
-- **The Mac alone:** the menu bar item, the call bubble, open at login, finding and starting Pointe, the keys' presence,
+- **The Mac alone:** the menu bar item, the call bubble, the talk shortcut named beside the talk mode, open at login, finding and starting Pointe, the keys' presence,
   the folders a new session may start in (the daemon takes that setting at the Mac only: the page has it too).
 - **Not on the page:** the device's owner check on Approve (a page has no Touch ID without WebAuthn enrolment), actions
   on a notification, a demo (the page exists only while the daemon runs).
@@ -60,7 +60,7 @@ Now there is one of each:
 
 ```
  ios/Pointe            the entry point, the Talk intent, the icon, Info.plist            3 files
- macos/PointeMac       the shell: menu bar item, menus and keys, bubble, shortcut,       7 files
+ macos/PointeMac       the shell: menu bar item, menus and keys, bubble, shortcut,       8 files
                        open at login, find/start the daemon, this Mac's settings
         │  both link
  apple/PointeKit

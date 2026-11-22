@@ -60,7 +60,12 @@ For work on the app itself, `macos/build.sh --open` makes a Debug build in `maco
   right-click it to rename it or take it off the voice. Narrow, the sessions are a strip over the conversation, as on
   the phone. The conversation is on the right; click something you said to fix it. A request shows its exact text with
   Deny and Approve. Approve asks for Touch ID or your password; Deny does not.
-- **Connect** (⌘↩): the first time, macOS asks for the microphone.
+- **Opening the app** from Finder, Spotlight or the Dock opens the window, even when the menu bar item is hidden behind
+  the notch. Opened at login, it stays in the menu bar.
+- **Connect** (⌘↩): the first time, macOS asks for the microphone. A call that does not start opens the window, where
+  Connect says why and what to do.
+- **The talk mode** is named at the top of the window and in the bubble: Always on, or in push to talk the shortcut,
+  as in "Hold ⌃⌥Space".
 - **Talking.** The switch over the mic chooses Always on or push to talk. In push to talk, hold the mic, or hold Space
   while the window is in front, or hold the shortcut from any app (Settings → This Mac → Talk shortcut). Choose Tap to
   talk in Settings to press once to start and again to send. With Always on, the mic, Space and the shortcut mute.
@@ -83,7 +88,11 @@ For work on the app itself, `macos/build.sh --open` makes a Debug build in `maco
   iPhone scans, as the page's Settings → Phone does.
 - **The Call menu** has a key for each: Sessions and Mode (⇧⌘S), Start a Meeting (⇧⌘M), Briefing (⇧⌘B), Open the page
   (⇧⌘P). Esc closes a sheet.
-- **The call bubble** (menu or Settings): a small panel over other apps with the state and a talk button.
+- **The call bubble** (menu or Settings): a small panel over other apps while a call is up, with the state, the talk
+  mode and a talk button; if a call did not start, it says why. Click it to open the window; drag it anywhere, and it
+  keeps the place. − makes it a small pill that opens out when the pointer is over it; × hides it ("Show call bubble
+  during calls" in the menu, or Settings, brings it back). Right-click it for Keep on Screen with No Call, Reset
+  Position and the rest.
 - **Alerts** (Settings → Alerts): a notification when a session needs you and the window is not in front. Approve on a
   notification appears only for a request Pointe can read out and only with "Approve from notifications" on.
 - **No Pointe on this Mac yet?** The window is a setup guide then, with what is missing and the one thing to do about

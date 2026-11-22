@@ -91,33 +91,67 @@ final class Windows: NSObject, NSWindowDelegate {
 
     // MARK: the call bubble
 
-    /// A small panel that floats over other apps and never takes the keyboard from them.
-    func setBubble(_ on: Bool) {
+    private var dragStart: (mouse: NSPoint, origin: NSPoint)?
+
+    /// A small panel that floats over other apps and never takes the keyboard from them. `small`: the pill.
+    func setBubble(_ on: Bool, small: Bool = false) {
         guard on else { bubble?.orderOut(nil); return }
+        let size = small ? BubbleRule.small : BubbleRule.full
         if bubble == nil {
-            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 260, height: 64),
-                                styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView], backing: .buffered, defer: false)
-            panel.identifier = NSUserInterfaceItemIdentifier("pointe.bubble")
-            panel.isFloatingPanel = true
-            panel.level = .floating
-            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            panel.isMovableByWindowBackground = true
-            panel.hidesOnDeactivate = false
-            panel.backgroundColor = .clear
-            panel.isOpaque = false
-            panel.hasShadow = true
-            panel.title = "Pointe call bubble"
-            let content = NSHostingView(rootView: BubbleView().environment(AppModel.shared))
-            content.sizingOptions = []
-            panel.contentView = content
-            panel.setContentSize(NSSize(width: 264, height: 64))
-            if !panel.setFrameUsingName("pointe.bubble"), let screen = NSScreen.main {
-                let area = screen.visibleFrame
-                panel.setFrameOrigin(NSPoint(x: area.maxX - 284, y: area.maxY - 96))
+            let panel = Self.bubblePanel(BubbleView().environment(AppModel.shared)) { inside in
+                let model = AppModel.shared
+                model.bubbleExpanded = inside && model.bubbleSmall
+            }
+            let screens = NSScreen.screens.map(\.visibleFrame)
+            if !panel.setFrameUsingName("pointe.bubble") || !BubbleRule.reachable(panel.frame, screens: screens), let screen = NSScreen.main {
+                panel.setFrameOrigin(BubbleRule.home(size: panel.frame.size, in: screen.visibleFrame))
             }
             if Self.keepsFrames { panel.setFrameAutosaveName("pointe.bubble") }
             bubble = panel
         }
+        if let bubble, bubble.frame.size != size {
+            let screen = (bubble.screen ?? NSScreen.main)?.visibleFrame ?? bubble.frame
+            bubble.setFrame(BubbleRule.resized(bubble.frame, to: size, in: screen), display: true)
+        }
         bubble?.orderFrontRegardless()
+    }
+
+    /// The panel itself. Dragging is the view's (`dragBubble`), not the window background's: AppKit's background drag
+    /// takes the mouse down, so a click on the bubble could never be told from a drag.
+    static func bubblePanel<Content: View>(_ view: Content, hovered: @escaping (Bool) -> Void = { _ in }) -> NSPanel {
+        let panel = NSPanel(contentRect: NSRect(origin: .zero, size: BubbleRule.full),
+                            styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView], backing: .buffered, defer: false)
+        panel.identifier = NSUserInterfaceItemIdentifier("pointe.bubble")
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.isMovableByWindowBackground = false
+        panel.hidesOnDeactivate = false
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = true
+        panel.title = "Pointe call bubble"
+        let content = BubbleHost(rootView: view)
+        content.hovered = hovered
+        content.sizingOptions = []
+        panel.contentView = content
+        panel.setContentSize(BubbleRule.full)
+        return panel
+    }
+
+    /// Follows the mouse from where the drag began, on the screen's coordinates: the view moves with the panel, so its
+    /// own coordinates would chase themselves after the first step. `moved`: the view's translation, read only at that
+    /// first step (screen y grows upward). The place is kept by the frame's autosave name.
+    func dragBubble(moved: CGSize, ended: Bool) {
+        guard let bubble else { return }
+        let mouse = NSEvent.mouseLocation
+        let start = dragStart ?? (NSPoint(x: mouse.x - moved.width, y: mouse.y + moved.height), bubble.frame.origin)
+        dragStart = ended ? nil : start
+        bubble.setFrameOrigin(NSPoint(x: start.origin.x + mouse.x - start.mouse.x, y: start.origin.y + mouse.y - start.mouse.y))
+    }
+
+    func resetBubblePosition() {
+        guard let bubble, let screen = bubble.screen ?? NSScreen.main else { return }
+        bubble.setFrameOrigin(BubbleRule.home(size: bubble.frame.size, in: screen.visibleFrame))
     }
 }
