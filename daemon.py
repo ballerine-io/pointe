@@ -5712,7 +5712,7 @@ async def start_session(params: FunctionCallParams):
         await params.result_callback({"error": "Not started. The user did not ask to start a session."})
         return
     expired = state.pending_start
-    last_bot = next((text for who, text in reversed(state.conversation) if who == "assistant"), "")
+    last_bot = next((text for who, text in reversed(state.conversation) if who == "assistant"), "").strip()
     if expired and expired[1]["line"] == last_bot and not state.heard_own_words and not ECHO.repeats_bot(said) \
             and consent(said) == "allow":
         # A yes to a read-back whose minute ran out (a slow link, a pause): it starts nothing, and is put again.

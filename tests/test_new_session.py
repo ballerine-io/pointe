@@ -451,7 +451,7 @@ def test_a_yes_after_the_read_back_expired_hears_it_again_and_starts_nothing(hom
 
     async def scenario():
         first = await _ask(d, "Start a new Codex session in shop.")
-        d.state.conversation.append(("assistant", first["confirm_first"]))
+        d._remember("assistant", first["confirm_first"] + " ")  # as the voice keeps what it said
         d.state.pending_start = (d.state.pending_start[0] - newsession.CONFIRM_SECS - 1, d.state.pending_start[1])
         again = await _ask(d, "Yes.")
         return first, again
