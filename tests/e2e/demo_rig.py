@@ -173,7 +173,8 @@ async def reply_audio(browser: Browser, since: float, timeout: float = 40, quiet
     deadline = time.time() + timeout
     while time.time() < deadline:
         spans = browser.speaker.speech_spans(since=since)
-        if spans and time.time() - spans[-1][1] > quiet:
+        # "One sec." alone is the filler for a slow model step, not the reply: wait on for the words after it
+        if spans and time.time() - spans[-1][1] > quiet and sum(b - a for a, b in spans) > 1.2:
             return browser.speaker.audio(spans[0][0], spans[-1][1])
         await asyncio.sleep(0.3)
     spans = browser.speaker.speech_spans(since=since)

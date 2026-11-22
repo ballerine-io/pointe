@@ -91,9 +91,9 @@ async def one_run(n: int) -> None:
         sent_before = len(sent_to("billing"))
         t, tries = await owner_heard(browser, "Pointe, what does billing's session say about the retry limit?", r"meeting command: ")
         answer = await heard_reply(browser, t, timeout=90, quiet=3)
-        words = plain(answer)
+        heard = plain(answer)
         step("A4 the lookup: Pointe answers from billing's session, aloud and briefly",
-             bool(re.search(r"\b(5|five)\b", words)) and len(words.split()) <= 60, said=answer)
+             bool(re.search(r"\b(5|five)\b", heard)) and len(heard.split()) <= 60, said=answer)
         step("A4 the lookup is read-only: nothing was sent to billing", len(sent_to("billing")) == sent_before)
         await window.shot("a4-answer")
 
