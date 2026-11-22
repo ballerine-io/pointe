@@ -3,6 +3,52 @@
 A record of the documented install path, followed word for word in an environment with nothing of Pointe's in it.
 Repeat it before a release and add a section on top ([RELEASING.md](../RELEASING.md)).
 
+## 2026-11-23, version 1.20.0
+
+**Machine.** Apple-silicon Mac, macOS 27.0, Claude Code 2.1.330, Chrome installed.
+
+**How clean.** As in the run below: one shell with an empty environment (`env -i`), a new empty `HOME`, `PATH` set to
+`$HOME/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin`, and only a link to the Claude Code binary in that `HOME`. No uv, no
+`~/.claude`, no `~/.claude-voice`, no Keychain. Pointe ran on ports 7993 and 7994, so a running Pointe on this Mac was
+not reached.
+
+**The repository is still not public.** The install command was run as written; git in that one shell read its GitHub
+address from a local copy of the version commit (`url.<copy>.insteadOf`), as in the run below. Fetching from GitHub as
+a stranger is still to be done (see "Not covered").
+
+### Steps and timings
+
+| # | Step | Result | Time |
+|---|---|---|---|
+| 1 | `claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe` | "Successfully installed plugin: pointe@pointe (scope: user)"; `claude plugin list` shows 1.20.0, enabled | 2.2 s (local copy) |
+| 2 | The SessionStart hook (`bin/voice-first-run`) | "Pointe is installed. Run /pointe:setup to finish: about 5 minutes, free with one Google key." `voice-first-run --needed`, which `/pointe:voice` runs first, says `needed` | 0.3 s |
+| 3 | Setup step 1: `sw_vers`, Chrome, then `bin/install-uv` | macOS 27.0, Chrome found; uv 0.12.21 installed with both SHA-256 checks, and "pointe is a command now: ~/.local/bin/pointe runs Pointe"; `command -v pointe` finds it and `pointe help` lists the commands | 3.3 s |
+| 4 | Setup step 2: `bin/voice-doctor`, the first run | Python 3.12.14 and the packages downloaded; first line "Pointe is not ready: it needs a Gemini key.", then the fix, then the details; exit 1 | 21.6 s |
+| 5 | `pointe setup free` | "Setup: Free start. Pointe now uses Gemini, and no other vendor." and the one command for its key | 0.6 s |
+| 6 | The daemon as `/pointe:voice` starts it (`bin/voice-daemon ensure`), no key | Refused in words: "It needs a Gemini key", and "Fix it: pointe key gemini (opens the key page and a Mac window, and checks the key)"; nothing left running | 1.6 s |
+| 7 | The same with a made-up Gemini key | The key is checked with one tiny call before the daemon starts: "The gemini key was refused…", "Fix it: pointe key gemini…"; exit 1, so no tab would open; nothing left running | 2.9 s |
+| 8 | The same key with the check skipped (`CLAUDE_VOICE_SKIP_KEY_CHECK=1`) | Healthy on its port; the page without its key is refused (403); `/voice/status` says version 1.20.0 and `first_call: true` | 1.9 s to healthy |
+| 9 | `bin/voice-daemon stop`, then `claude-voice-attach heard 2` with no call | "stopped"; "No first words heard yet. Is the page open? …" | 2.6 s |
+| 10 | `pointe uninstall --dry-run`, then `pointe uninstall --yes` | The list: Pointe's command, `~/.claude-voice`, the plugin with its hooks, the marketplace; uv kept. Then each "done", "Pointe is removed."; `claude plugin list` empty | 1.6 s |
+
+From the install command to a daemon that answers: about 31 s of machine time on this link, plus the time to get a key.
+
+### Stumbles, and what was changed
+
+| Stumble | Fix |
+|---|---|
+| `pointe uninstall` failed at once with "unsupported operand type(s) for \|: 'type' and 'NoneType'": `bin/pointe` runs it with the `python3` on the PATH, which on a new Mac is Apple's 3.9. The tests had run it on 3.12. | `uninstall.py` reads its annotations lazily; `tests/test_uninstall.py` runs it on `/usr/bin/python3`. |
+| With no key, the start still said "Save it: …" and "Check it: …", two commands, while `pointe key` now checks the key itself. | One line: "Fix it: pointe key gemini (opens the key page and a Mac window, and checks the key)". |
+
+### Not covered
+
+- **The fetch from GitHub as a stranger**: run step 1 again, logged out, once the repository is public. Open.
+- **`/pointe:setup` driven by Claude**, the key window, the vendor's key page opening, the Keychain prompt, and a real
+  key: the clean `HOME` has no Claude sign-in and no Keychain, and no real key was used.
+- **A call**: Chrome's microphone prompt, Connect, the first hello and its answer, Cannot hear you on a refused key. They
+  are covered by the offline tests only (`tests/test_first_hello.py`).
+- **The phone, the apps, the local modes, a new macOS user account, an Intel Mac**, as in the run below.
+
 ## 2026-11-19, version 1.14.3
 
 **Machine.** Apple M5 Pro, 64 GB, macOS 27.0 (26A428), Claude Code 2.1.329, Chrome installed. Download speed about
