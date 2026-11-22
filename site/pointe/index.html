@@ -33,6 +33,7 @@
 <header class="page site-header">
   <a class="wordmark" href="./"><picture><source srcset="brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Sections">
+    <a href="#features">Features</a>
     <a href="#how">How it works</a>
     <a href="#approvals">Approvals</a>
     <a href="#privacy">Privacy</a>
@@ -123,8 +124,8 @@
     <dl class="strip" aria-label="In short">
       <div><dt class="kicker">Cost</dt><dd>About $1 for a busy hour (60 replies) on your own keys, by arithmetic. Free on one Gemini key's free tier. $0 fully local.</dd></div>
       <div><dt class="kicker">Models</dt><dd>You set each role. Defaults: Claude Sonnet 5.5 thinks, Soniox hears, ElevenLabs speaks. Or Gemini or OpenAI alone, or Whisper, Kokoro and Gemma on the Mac.</dd></div>
-      <div><dt class="kicker">Needs</dt><dd>macOS, Claude Code 2.1.224 or newer, Chrome, headphones, one model key. English and Hebrew are benchmarked.</dd></div>
-      <div><dt class="kicker">License</dt><dd>MIT. Version 1.14.9.</dd></div>
+      <div><dt class="kicker">Needs</dt><dd>macOS, Claude Code 2.1.224 or newer, Chrome, headphones, one model key. The Mac and iPhone apps are optional, built from source.</dd></div>
+      <div><dt class="kicker">License</dt><dd>MIT. Version 1.17.0.</dd></div>
       <div><dt class="kicker">Source</dt><dd><a class="link" href="https://github.com/ballerine-io/pointe">github.com/<wbr>ballerine-io/<wbr>pointe</a></dd></div>
     </dl>
   </div>
@@ -159,10 +160,10 @@
         <p class="kicker">One day, one conversation</p>
         <h2 id="h-day" class="h1">The sessions do the work. Pointe listens, reports and routes.</h2>
         <p class="lead">From typing at your agents to talking with them: one call, followed from the morning to the
-          afternoon.</p>
+          drive home.</p>
       </div>
       <div class="story-grid" data-day>
-        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> The switch</a><a href="#beat-dump"><span class="when">11:30</span> Brain dump</a><a href="#beat-challenge"><span class="when">11:50</span> Challenge</a><a href="#beat-coffee"><span class="when">13:15</span> Approval</a><a href="#beat-review"><span class="when">16:20</span> Review</a></nav>
+        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> Switch</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-pair"><span class="when">11:20</span> Pair</a><a href="#beat-dump"><span class="when">11:30</span> Dump</a><a href="#beat-challenge"><span class="when">11:50</span> Challenge</a><a href="#beat-coffee"><span class="when">13:15</span> Approve</a><a href="#beat-drive"><span class="when">18:10</span> Drive</a></nav>
         <ol class="beats">
         <li class="beat" id="beat-before">
           <div class="beat-copy">
@@ -199,6 +200,46 @@
             <div class="beat-ui beat-ui--mac"><picture>
               <source srcset="day/ui-switch-dark.jpg" media="(prefers-color-scheme: dark)">
               <img src="day/ui-switch-light.jpg" width="880" height="708" loading="lazy" alt="The call page. You: What is the billing session doing? Pointe: It finished the retry fix. Tests pass. It asks whether to open the PR. You: Tell it to open the PR. Pointe: Sent to billing.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-mac">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">10:40</span> In another app</p>
+            <h3 class="h2">Keep working. Hold a key and talk.</h3>
+            <p class="body">The Mac app puts the call in the menu bar, and a small bubble over whatever you are working in: the state, the session you are talking to, and how many wait for you. Hold the shortcut from any app to talk, and let go to send. Its window has everything the page has.</p>
+            <p class="small">Built from source for now, with one command: <code>bin/pointe apps mac</code>. It needs macOS 15 and Xcode 16. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md">mac-app.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/mac.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: at her laptop she keeps her eyes on her work, holds one key down, says a short sentence, and goes on typing.">
+              <video muted playsinline preload="none" poster="day/mac.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/mac.webm" type="video/webm"><source src="day/mac.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--bubble"><picture>
+              <source srcset="day/ui-mac-dark.png" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-mac-light.png" width="528" height="128" loading="lazy" alt="The Mac app's call bubble: Listening, billing/main, and a 1 for the one session that waits.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-pair">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">11:20</span> Before going out</p>
+            <h3 class="h2">Scan one code. The call is on your phone.</h3>
+            <p class="body">On the Mac, Settings, Phone, Connect your phone shows a QR code. Point the iPhone's Camera at it and open it in Pointe; the page turns to Connected. The code works once, for 5 minutes. Each phone gets its own key, so you can unpair one and keep the others.</p>
+            <p class="small">The phone reaches the Mac over Tailscale, a VPN such as Twingate, or the same Wi-Fi. The iPhone app: <code>bin/pointe apps ios</code>. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#pairing">phone.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/pair.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: standing at her desk she aims her phone at the monitor, smiles when it pairs, pockets the phone and reaches for her jacket.">
+              <video muted playsinline preload="none" poster="day/pair.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/pair.webm" type="video/webm"><source src="day/pair.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--mac beat-ui--left"><picture>
+              <source srcset="day/ui-pair-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-pair-light.jpg" width="680" height="656" loading="lazy" alt="The page's Settings, Phone. Scan with your iPhone's Camera, or in the Pointe app. A QR code. Waiting for your phone, expires in 4:52. Can't scan? Copy the link. Cancel.">
             </picture></div>
           </figure>
         </li>
@@ -269,55 +310,198 @@
             </picture></div>
           </figure>
         </li>
-        <li class="beat" id="beat-review">
+        <li class="beat" id="beat-drive">
           <div class="beat-copy">
-            <p class="kicker"><span class="when">16:20</span> Back, on the sofa</p>
-            <h3 class="h2">The work moved on. Review it out loud.</h3>
-            <p class="body">A question to a session by name is relayed to it, and its answer comes back as a short
-              spoken report. A "by the way" question is answered from a read-only copy, so the live session gets no new
-              message. Code is never read aloud: the page shows the file and the diff while Pointe talks.</p>
-            <p class="small"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">show-while-it-says.md</a></p>
+            <p class="kicker"><span class="when">18:10</span> The drive home</p>
+            <h3 class="h2">Eyes on the road. Short answers, by voice.</h3>
+            <p class="body">Say "drive mode". A reply is 25 words or fewer, a session's report is one line, and nothing asks you to look at a screen or touch one. A spoken yes approves only a request that can be read out whole and loses nothing: tests, a commit, a push without force. Anything else is said in full and waits until you stop. A no still denies.</p>
+            <p class="small">On the iPhone it also shows on the lock screen. Not measured on a car's hands-free audio yet. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/drive-mode.md">drive-mode.md</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/review.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late afternoon light, she sits on a sofa with a mug, asks a question out loud, listens and smiles.">
-              <video muted playsinline preload="none" poster="day/review.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
-                <source src="day/review.webm" type="video/webm"><source src="day/review.mp4" type="video/mp4"></video>
+              <img src="day/drive.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: early evening, she drives with both hands on the wheel and her eyes on the road, listens, and answers out loud.">
+              <video muted playsinline preload="none" poster="day/drive.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/drive.webm" type="video/webm"><source src="day/drive.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
             </div>
-            <div class="beat-ui beat-ui--mac"><picture>
-              <source srcset="day/ui-review-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-review-light.jpg" width="880" height="932" loading="lazy" alt="The call page. You: Billing, walk me through what you changed. Pointe: Billing added backoff with jitter to the charge retry, capped at ten seconds. Three new tests cover it, and all pass. You: By the way, what about the timeout case? Pointe: A timeout counts as a failure and is retried with the same idempotency key, so no charge is made twice.">
+            <div class="beat-ui beat-ui--card"><picture>
+              <source srcset="day/ui-drive-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-drive-light.jpg" width="680" height="797" loading="lazy" alt="The drive screen, as the Mac app draws it. Drive mode. billing/main needs you. Short answers. Pointe approves by voice only what it can read out and is safe from the road. I've stopped. A card: billing/main needs approval. Not for the road: it waits until you stop. Say no to deny it.">
             </picture></div>
           </figure>
         </li>
         </ol>
       </div>
       <p class="small note">The footage is AI-generated and shows an invented person. The panels on it are screenshots
-        of the page Pointe serves, with invented sessions; no screen in the footage is real.</p>
+        of the page Pointe serves and of the Mac app, with invented sessions and an invented pairing code; no screen in
+        the footage is real.</p>
+    </div>
+  </section>
 
-      <div class="split split--wide story-more">
-        <div>
-          <p class="kicker">More in a call, each with its rules, what was measured, and its limits</p>
-          <ul class="more">
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/brain-dump.md">Brain dump</a>talk first, send a prompt after</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">Audio briefings</a>"brief me on the night"</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-lock.md">Voice lock</a>only your voice counts</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/push-to-talk.md">Push to talk</a>no audio unless you hold</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/vocabulary.md">Vocabulary</a>fix a misheard name once</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">Meeting mode</a>notes and lookups, no sends</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/conflict-alarm.md">Conflict alarm</a>two sessions disagree</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">Show while it says</a>the diff on screen</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/alerts.md">Watch and desktop alerts</a>a session needs you</li>
-            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/README.md">All features</a>14 pages</li>
+  <section id="features" class="section" aria-labelledby="h-features">
+    <div class="page">
+      <div class="head-row">
+        <h2 id="h-features" class="h1">Everything it does, and where.</h2>
+        <p class="body">Six of them up close, then all sixty. Each name links to the page that says how to use it, its
+          rules, what was measured and its limits.</p>
+      </div>
+      <ul class="tiles">
+        <li>
+          <figure><picture>
+            <source srcset="img/f-start-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-start-light.jpg" width="760" height="507" loading="lazy" alt="A card after two lines of the conversation: Start this session? Start a Claude Code session in shop on studio, named shop-2? Say yes or tap. Cancel, Start.">
+          </picture></figure>
+          <h3 class="h3"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/new-session.md">Start a session by voice</a></h3>
+          <p class="body">"Start a Claude Code session in shop." Pointe reads back the agent, the folder and the machine, and starts it on your yes. Only in a folder you already work in.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-meeting-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-meeting-light.jpg" width="760" height="507" loading="lazy" alt="Meeting notes. Open question: What timeout does the partner gateway use? asked by Dana, with Look up in billing/main. A raised hand: Wants to say: The retry fix already shipped in billing an hour ago. Let it speak, Not now, Type it instead.">
+          </picture></figure>
+          <h3 class="h3"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">Meeting mode</a></h3>
+          <p class="body">Notes by kind, an open question looked up in a session when you ask, and a raised hand in place of an interruption. It sends nothing to a session.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-conflict-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-conflict-light.jpg" width="760" height="507" loading="lazy" alt="A card: Two sessions disagree. river-lantern: The migration adding the refund_reason column ran on staging and passed. billing/main: The refunds test that reads refund_reason failed on staging: the column does not exist. Ask river-lantern, Ask billing/main, Dismiss.">
+          </picture></figure>
+          <h3 class="h3"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/conflict-alarm.md">Conflict alarm</a></h3>
+          <p class="body">Two sessions claim opposite things about the same work. You hear it at once, see both claims, and ask either one.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-briefing-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-briefing-light.jpg" width="760" height="507" loading="lazy" alt="Under the conversation, a card: Your 08:30 briefing is ready. Dismiss, Hear it.">
+          </picture></figure>
+          <h3 class="h3"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">Audio briefings</a></h3>
+          <p class="body">"Brief me on the night": what each session did, what failed, what waits on you. On request, or on a schedule that skips a morning with nothing to say.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-show-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-show-light.jpg" width="760" height="507" loading="lazy" alt="The Showing sheet: tabs Test, pricing.py, test_pricing.py and .env; billing/pricing.py with lines 40 to 42 marked; File, Diff and Pin.">
+          </picture></figure>
+          <h3 class="h3"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">Show while it says</a></h3>
+          <p class="body">Code is never read aloud. The file, the diff or the failing test appears while the voice talks about it.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-lock-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-lock-light.jpg" width="760" height="507" loading="lazy" alt="A request card: billing/main needs approval, git push origin retry-fix, Deny and Approve, and under it: Tap to approve, or re-enrol.">
+          </picture></figure>
+          <h3 class="h3"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-lock.md">Voice lock</a></h3>
+          <p class="body">Only your voice counts, for approvals or for everything, checked on this Mac. It is not authentication: a recording of your voice can pass it.</p>
+        </li>
+      </ul>
+      <p class="small note">Screens of the Mac app, version 1.17.0, on its demo data: every session, name and line in them
+        is invented. The page and the iPhone app show the same cards.</p>
+
+      <p class="small flegend"><span class="on" aria-hidden="true"><i></i><i></i><i></i></span> The dots, in order: the page
+        Pointe serves, the iPhone app, the Mac app. A hollow dot means the feature belongs to another surface; the reason
+        for each is in <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/parity-matrix.md#bound-to-a-platform">the parity matrix</a>.</p>
+      <div class="flist" data-flist>
+        <details class="fgroup" open>
+          <summary><span class="kicker">Talk</span><span class="fcount small">12</span></summary>
+          <ul>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md">One conversation, every session</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Ask what each did. Background ones speak only when done or stuck</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md#what-the-voice-knows-and-says">Send by name</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Say a session's name, and your words go to it</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/README.md#what-it-does">"By the way" questions</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Answered from a read-only copy of the session</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/push-to-talk.md">Push to talk</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Hold or tap. No audio leaves the Mac unless you do</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/push-to-talk.md">Talk without the screen</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">A key, a shortcut from any app, or the Action button</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/design/turn-taking.md">Turn taking</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Answers Quick, Normal or Patient; "don't interrupt me"</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md#rules-enforced-in-code">Type instead</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Typed words are sent like speech, and never approve</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/vocabulary.md">Self-learning dictionary</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Fix a misheard name once; the next call hears it right</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/design/product-help.md">Clean up my words</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">A clean version of what it understood, under your words</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">Show while it says</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">The file, diff or failing test, as the voice mentions it</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/whisper-mode.md">Whisper mode</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Short, quiet replies, under the same approval rules</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">English and Hebrew</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Both benchmarked. Hebrew lines read right to left</span></li>
           </ul>
-        </div>
-        <figure>
-          <img class="shot-phone" src="img/phone-sessions.jpg" width="720" height="501" loading="lazy"
-               alt="Part of the iPhone app's Sessions sheet: river-lantern on Codex needs you, billing/main on Claude is working, docs on OpenCode is idle. Under Recent requests: push it, blocked as ambiguous between billing/main and docs.">
-          <figcaption class="small">From the Sessions sheet in the iPhone app. The last line is the gate at work: "push it"
-            was not sent, because it could mean either session.</figcaption>
-        </figure>
+        </details>
+        <details class="fgroup" open>
+          <summary><span class="kicker">Sessions and machines</span><span class="fcount small">7</span></summary>
+          <ul>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/harnesses.md">Claude Code, OpenCode, Codex</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Side by side in one call, each with its own approvals</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/multi-machine.md#use-it">Sessions by machine</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Agent and state of each. Rename, disconnect, filter</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md">Orchestrator or Session</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">The voice tracks them all, or everything goes to one</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md#what-the-voice-knows-and-says">Session notes</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Each session's goal, state, decisions and open points</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md#rules-enforced-in-code">Recent requests</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Where each request went, or why the gate blocked it</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/conflict-alarm.md">Conflict alarm</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Two sessions claim opposite things: you hear it at once</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/multi-machine.md">Machines</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Online, sessions, round trip, key. Invite or revoke one</span></li>
+          </ul>
+        </details>
+        <details class="fgroup" open>
+          <summary><span class="kicker">Approvals and safety</span><span class="fcount small">8</span></summary>
+          <ul>
+            <li><a class="link" href="#approvals">A spoken yes</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Only for a request the daemon just read out itself</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">A tap on the exact request</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Face ID on the iPhone, Touch ID on the Mac</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md#approvals-exactly">A no from anyone denies</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">In every mode</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md#rules-enforced-in-code">The gate</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">A model checks each send against what you just said</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-lock.md">Voice lock</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Only your voice counts. Checked on this Mac</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Secrets masked</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">A credential-like value is not read out or shown</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/alerts.md">Deny and Approve on a notification</a><span class="on" role="img" aria-label="On the iPhone app and the Mac app only"><i class="off"></i><i></i><i></i></span><span class="what">Approve is off by default, and only for a readable request</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Terminal-only approvals</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">One setting keeps every prompt in the terminal</span></li>
+          </ul>
+        </details>
+        <details class="fgroup" open>
+          <summary><span class="kicker">Thinking tools</span><span class="fcount small">4</span></summary>
+          <ul>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/brain-dump.md">Brain dump</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Think aloud; get a prompt in your words, sent on your say</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/challenge.md">Challenge me</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">It argues against your plan, and cannot send</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">Meeting mode</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Notes, lookups and a raised hand. No sends</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">Audio briefings</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">"Brief me on the night", on request or on a schedule</span></li>
+          </ul>
+        </details>
+        <details class="fgroup" open>
+          <summary><span class="kicker">On the go</span><span class="fcount small">9</span></summary>
+          <ul>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#getting-the-app">iPhone app</a><span class="on" role="img" aria-label="On the iPhone app only"><i class="off"></i><i></i><i class="off"></i></span><span class="what">The same call. From source: bin/pointe apps ios</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/drive-mode.md">Drive and walk mode</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Short answers, nothing to look at or touch</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/drive-mode.md">Drive mode offered in the car</a><span class="on" role="img" aria-label="On the iPhone app only"><i class="off"></i><i></i><i class="off"></i></span><span class="what">On CarPlay or detected driving. Never by itself</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/push-to-talk.md">AirPods</a><span class="on" role="img" aria-label="On the iPhone app only"><i class="off"></i><i></i><i class="off"></i></span><span class="what">A stem press talks or mutes</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/drive-mode.md">Lock screen</a><span class="on" role="img" aria-label="On the iPhone app only"><i class="off"></i><i></i><i class="off"></i></span><span class="what">Drive mode as Now Playing; play or pause mutes</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/alerts.md">Alerts</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">A notification when a session needs you</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#alerts-and-the-apple-watch">Apple Watch</a><span class="on" role="img" aria-label="On the iPhone app only"><i class="off"></i><i></i><i class="off"></i></span><span class="what">The alert on your wrist, with Deny and Approve</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#the-browser-page-older-way">The page on a phone</a><span class="on" role="img" aria-label="On the page only"><i></i><i class="off"></i><i class="off"></i></span><span class="what">Works in a phone browser, without the app</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#the-mac-stays-awake-during-a-call">The Mac stays awake</a><span class="on" role="img" aria-label="On the iPhone app only"><i class="off"></i><i></i><i class="off"></i></span><span class="what">During a call from the phone, on AC power</span></li>
+          </ul>
+        </details>
+        <details class="fgroup" open>
+          <summary><span class="kicker">Mac app</span><span class="fcount small">8</span></summary>
+          <ul>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md">Native window</a><span class="on" role="img" aria-label="On the Mac app only"><i class="off"></i><i class="off"></i><i></i></span><span class="what">All the page has. From source: bin/pointe apps mac</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#using-it">Menu bar</a><span class="on" role="img" aria-label="On the Mac app only"><i class="off"></i><i class="off"></i><i></i></span><span class="what">The mark, the state, and how many sessions wait</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#using-it">Call bubble</a><span class="on" role="img" aria-label="On the Mac app only"><i class="off"></i><i class="off"></i><i></i></span><span class="what">A small panel over other apps, with a talk button</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#using-it">Global shortcut</a><span class="on" role="img" aria-label="On the Mac app only"><i class="off"></i><i class="off"></i><i></i></span><span class="what">Hold it to talk from any app</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#getting-it">Open at login</a><span class="on" role="img" aria-label="On the Mac app only"><i class="off"></i><i class="off"></i><i></i></span><span class="what">One switch in Settings</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#using-it">Pointe on this Mac</a><span class="on" role="img" aria-label="On the Mac app only"><i class="off"></i><i class="off"></i><i></i></span><span class="what">Start or restart it; see which keys are stored</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#using-it">A key for every main action</a><span class="on" role="img" aria-label="On the page and the Mac app only"><i></i><i class="off"></i><i></i></span><span class="what">Connect, type, brain dump, sessions, meeting, briefing</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#using-it">Try a demo</a><span class="on" role="img" aria-label="On the iPhone app and the Mac app only"><i class="off"></i><i></i><i></i></span><span class="what">Invented sessions to look around; nothing is sent</span></li>
+          </ul>
+        </details>
+        <details class="fgroup" open>
+          <summary><span class="kicker">Privacy and local modes</span><span class="fcount small">6</span></summary>
+          <ul>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md">No server, no account, no telemetry</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">What leaves the Mac goes to vendors you chose</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Your own keys</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">In the macOS Keychain; they reach the daemon only</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">A model for each role</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Ears, brain, reader, gate and mouth, set separately</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-stays-local.md">Voice stays on your Mac</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Local ears and mouth: no audio to any vendor</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/local.md">Fully local</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Every model on your Mac. Slower, less accurate, measured</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md#files">Kept on the Mac</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">Voiceprint, call journal, session notes, dictionary</span></li>
+          </ul>
+        </details>
+        <details class="fgroup" open>
+          <summary><span class="kicker">Setup</span><span class="fcount small">6</span></summary>
+          <ul>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/install.md">Guided setup</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">/pointe:setup: checks, keys, and your first call</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#pairing">Pair the phone by QR</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">A code on the Mac that works once, for 5 minutes</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/features/new-session.md">Start a new session</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">By voice or from the screen; read back, started on a yes</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/multi-machine.md#set-it-up">More machines</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">A one-time code joins another Mac or Linux host</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/docs/design/product-help.md">Ask Pointe how</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">"How do I…?" It answers with the path on your screen</span></li>
+            <li><a class="link" href="https://github.com/ballerine-io/pointe/blob/main/README.md#install">Doctor</a><span class="on" role="img" aria-label="On the page, the iPhone app and the Mac app"><i></i><i></i><i></i></span><span class="what">/pointe:doctor: what runs here and what is missing</span></li>
+          </ul>
+        </details>
       </div>
     </div>
   </section>
@@ -345,8 +529,8 @@
           <p><b>Reader</b><span>Session notes, reports, briefings, conflict checks, meeting notes.</span></p>
         </div>
       </div>
-      <p class="small note">You reach the daemon from the Chrome page on the Mac (loopback only) or from the iPhone app
-        (paired once by QR code, pinned TLS certificate): one WebSocket per call carries the audio both ways, the
+      <p class="small note">You reach the daemon from the Chrome page or the Mac app on the Mac (loopback only), or from the
+        iPhone app (paired once by QR code, pinned TLS certificate): one WebSocket per call carries the audio both ways, the
         status and your taps. <a href="#machines">The drawing above</a> shows the sessions and machines it reaches.
         Each role (ears, brain, reader, gate, mouth) is set separately: a vendor you chose, under
         your key, or a model on your Mac. The gate's config name is <code>checker</code>.
@@ -373,7 +557,7 @@
                 <li>you said a plain yes and nothing else, begun after the read-out ended</li>
                 <li>within 120 seconds, on the active session</li>
               </ul></td><td class="verdict verdict--yes">Approves</td></tr>
-            <tr><td><b>You tap Approve</b> on the exact request, on the page or in the iPhone app (Face ID). A request the
+            <tr><td><b>You tap Approve</b> on the exact request, on the page, in the iPhone app (Face ID) or in the Mac app (Touch ID or your password). A request the
               daemon cannot read out whole (unknown programs or flags, <code>$</code>, globs, subshells, several lines,
               <code>sudo</code>, more than 25 words) is approved only this way.</td><td class="verdict verdict--yes">Approves</td></tr>
             <tr><td><b>You answer in the terminal</b>, as always: your Claude Code deny rules still apply. Or <b>a
@@ -549,7 +733,8 @@
             phone.</div></li>
           <li><div><span class="title">Run <code>/pointe:voice</code> in each session you want to reach</span>The first
             run downloads about 180 MB. A tab opens: allow the microphone, press Connect, and talk. OpenCode and Codex
-            sessions join with <code>pointe join</code>.</div></li>
+            sessions join with <code>pointe join</code>. Later, Pointe can start a session for you: say "start a
+            new Codex session in shop", or use New session.</div></li>
         </ol>
         <div>
           <pre class="term" aria-label="The commands, in order"><code><span class="p">$ </span>claude plugin marketplace add https://github.com/ballerine-io/pointe.git
@@ -561,7 +746,12 @@
 <span class="c"># in each session you want on the voice</span>
 <span class="p">&gt; </span>/pointe:voice
 <span class="p">$ </span>pointe join opencode
-<span class="p">$ </span>pointe join codex      <span class="c"># started as codex --remote unix://</span></code></pre>
+<span class="p">$ </span>pointe join codex      <span class="c"># started as codex --remote unix://</span>
+
+<span class="c"># optional: the apps, from a clone of the repository (Xcode 16)</span>
+<span class="p">$ </span>bin/pointe apps doctor  <span class="c"># what this Mac has, and the fix for what it lacks</span>
+<span class="p">$ </span>bin/pointe apps mac     <span class="c"># the Mac app, into ~/Applications (macOS 15)</span>
+<span class="p">$ </span>bin/pointe apps ios     <span class="c"># the iPhone app, onto your iPhone (free Apple Account)</span></code></pre>
           <p class="small">To remove it: <code>/pointe:stop</code>, then <code>claude plugin uninstall pointe@pointe</code>. Nothing keeps running.</p>
         </div>
       </div>
@@ -594,7 +784,7 @@
             <tr><th scope="row">Approving by voice</th><td>Rules in code with tests. A command the daemon cannot read out word for word needs a tap</td><td>Reads requests aloud; allows or denies when you say so, or accepts the ones that follow if you tell it to</td><td>Voice "follows the same permissions as the tasks it directs"; no spoken approval described</td><td>No</td></tr>
             <tr><th scope="row">Server and account</th><td>None. A daemon on your Mac</td><td>A relay syncs your devices, end-to-end encrypted. You can host it yourself</td><td>Runs inside Codex, under its sign-in</td><td>Claude.ai sign-in. Audio goes to Anthropic</td></tr>
             <tr><th scope="row">Cost of voice</th><td>Your vendor keys, about $1 a busy hour, or local models</td><td>Free 20 minutes every 30 days, then a subscription, or your own ElevenLabs agent</td><td>In the desktop app, a paid ChatGPT plan</td><td>Not counted toward usage limits</td></tr>
-            <tr><th scope="row">Runs on</th><td>macOS and Chrome. iPhone app built from source</td><td>App Store, Google Play, web, Windows, Linux</td><td>Codex CLI 0.156.0 or newer, ChatGPT desktop app</td><td>macOS, Linux, Windows; 20 dictation languages</td></tr>
+            <tr><th scope="row">Runs on</th><td>macOS: the page in Chrome, or the Mac app. Mac and iPhone apps built from source</td><td>App Store, Google Play, web, Windows, Linux</td><td>Codex CLI 0.156.0 or newer, ChatGPT desktop app</td><td>macOS, Linux, Windows; 20 dictation languages</td></tr>
             <tr><th scope="row">Where it is ahead of Pointe</th><td>n/a</td><td>Store apps, more platforms, more agents, and many more users: about 24,700 GitHub stars</td><td>Nothing to install, no keys</td><td>Nothing to install, no keys, more platforms</td></tr>
           </tbody>
         </table>
@@ -608,8 +798,8 @@
     <div class="page">
       <h2 id="h-limits" class="h2">What it does not do.</h2>
       <ul class="rows rows--cols block">
-        <li><b>The Mac is the hub.</b> The call runs on macOS with Chrome. Other Macs and Linux hosts join as nodes, with no audio. On Linux the daemon starts, but no real call has been made there. Windows is not supported.</li>
-        <li><b>iPhone app: build it in Xcode for now.</b> It is not in the App Store, and not on TestFlight yet; a TestFlight build is planned. With a free Apple team the build opens for 7 days. Without the app, the page works in a phone browser. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md">phone.md</a></li>
+        <li><b>The Mac is the hub.</b> The call runs on macOS, in Chrome or in the Mac app. Other Macs and Linux hosts join as nodes, with no audio. On Linux the daemon starts, but no real call has been made there. Windows is not supported.</li>
+        <li><b>The apps are built from source for now.</b> <code>bin/pointe apps ios</code> and <code>bin/pointe apps mac</code>, with Xcode 16. The iPhone app is not in the App Store or on TestFlight; with a free Apple Account a build opens for 7 days. The Mac app is not notarized, needs macOS 15, and a copy of your build does not open on another Mac. Without the apps, the page works, in a phone browser too. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#getting-the-app">phone.md</a>, <a href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#getting-it">mac-app.md</a></li>
         <li><b>Synthetic evidence.</b> The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No bench on recorded people has been run.</li>
         <li><b>The voice lock is not authentication.</b> A recording of your voice can pass it.</li>
         <li><b>Echo.</b> On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones.</li>
@@ -666,6 +856,9 @@
     demo.querySelector('figcaption').textContent = 'A recording of a call, with sound.';
   }, { once: true });
   video.load();
+
+  // The feature list: on a phone its groups open on a tap, and only the first starts open.
+  if (matchMedia('(max-width: 640px)').matches) document.querySelectorAll('[data-flist] details').forEach((d, i) => { d.open = i === 0; });
 
   // The day story. On a wide screen the beats share one sticky stage and the beat at the middle of the window shows; on
   // a narrow one they are stacked. A clip plays once when its beat shows, and holds its last frame. With reduced motion

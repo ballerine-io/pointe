@@ -173,11 +173,32 @@ code { font-family: var(--font-mono); font-size: 12.5px; }
 .rows--cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 64px; border-top: 0; }
 .rows--cols > li { border-top: 1px solid var(--line); border-bottom: 0; }
 .rows--two > li { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 4px 32px; }
-.more { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 40px; margin-top: 14px; }
-.more li { padding: 9px 0; border-bottom: 1px solid var(--line); color: var(--dim); font-size: 12.5px; line-height: 18px; }
-.more a { display: block; width: fit-content; font-size: 15px; line-height: 24px; }
-.shot-phone { width: min(100%, 330px); border-radius: 28px; border: 6px solid #0A0400; background: #0A0400; box-shadow: var(--shadow); overflow: hidden; }
-.shot-phone + figcaption, .shot + figcaption { margin-top: 12px; }
+
+/* Features: six tiles, each a crop of the product, then every feature as a list of hairline rows. The three dots of a
+   row are the page, the iPhone app and the Mac app; a hollow one is a surface the feature does not belong to. */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; margin-top: 36px; }
+.tiles figure { border-radius: 12px; overflow: hidden; background: var(--raised); box-shadow: 0 0 0 1px var(--line); }
+.tiles img { width: 100%; }
+.tiles .h3 { margin-top: 16px; }
+.tiles .h3 a { text-decoration: none; }
+.tiles .body { margin-top: 6px; }
+.flegend { margin-top: 44px; max-width: 96ch; }
+.flegend .on { margin-right: 6px; vertical-align: 1px; }
+.flist { columns: 3; column-gap: 48px; margin-top: 20px; }
+.fgroup { break-inside: avoid; padding-bottom: 24px; }
+.fgroup summary { display: flex; align-items: baseline; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line-strong);
+                  list-style: none; pointer-events: none; }
+.fgroup summary::-webkit-details-marker { display: none; }
+.fgroup .kicker { color: var(--text); }
+.fgroup li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 6px 0 7px;
+             border-bottom: 1px solid var(--line); }
+.fgroup .link { width: fit-content; text-decoration: none; }
+.fgroup .link:hover { text-decoration: underline; }
+.fgroup .what { grid-column: 1 / -1; font-size: 12.5px; line-height: 18px; color: var(--dim); }
+.on { display: inline-grid; grid-auto-flow: column; gap: 5px; }
+.on i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.on i.off { background: none; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.shot + figcaption { margin-top: 12px; }
 .shot { border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
 
 /* Tables */
@@ -272,14 +293,14 @@ details.more-detail > div { padding: 8px 0 28px; }
 .beat-ui--mac { right: -20px; width: 46%; border-radius: 10px; }
 .beat-ui--phone { right: -20px; width: 41%; border-radius: 24px; border: 5px solid #0A0400; box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, .14); }
 .beat-ui--left { left: -20px; right: auto; }
-.story-more { margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--line); align-items: center; }
-.story-more .shot-phone { width: min(100%, 340px); border-radius: 16px; border-width: 5px; }
+.beat-ui--card { right: -20px; width: 37%; border-radius: 14px; }
+.beat-ui--bubble { right: -20px; bottom: 18px; width: 46%; background: none; border-radius: 17px; }
 
 @media (min-width: 1081px) {
   .story-grid.is-stage { display: grid; grid-template-columns: minmax(0, 4.6fr) minmax(0, 7.4fr); column-gap: 64px;
                          --stage-top: max(16px, calc(50vh - 290px)); }
   .is-stage .beats, .is-stage .beat { display: contents; }
-  .is-stage .rail { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-column: 2; grid-row: 1 / span 6; align-self: start;
+  .is-stage .rail { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-column: 2; grid-row: 1 / span 8; align-self: start;
                     position: sticky; top: var(--stage-top); z-index: 2; height: 44px; box-sizing: content-box;
                     padding-bottom: calc(56.25% + 56px); pointer-events: none; }
   .rail a { pointer-events: auto; padding-top: 8px; border-top: 1px solid var(--line-strong); text-decoration: none; color: var(--dim);
@@ -288,11 +309,11 @@ details.more-detail > div { padding: 8px 0 28px; }
   .rail a .when { display: block; font-variant-numeric: tabular-nums; }
   .rail a:hover { color: var(--text); }
   .rail a[aria-current] { color: var(--text); border-top: 2px solid var(--orange); padding-top: 7px; }
-  .is-stage .beat-copy { grid-column: 1; min-height: 37vh; display: flex; flex-direction: column; justify-content: center;
+  .is-stage .beat-copy { grid-column: 1; min-height: 34vh; padding: 14px 0; display: flex; flex-direction: column; justify-content: center;
                          opacity: .36; transition: opacity .4s; }
   .is-stage .beat.is-active .beat-copy { opacity: 1; }
   /* The picture leaving stays under the one arriving until that one has faded in, so the page never shows through. */
-  .is-stage .beat-media { grid-column: 2; grid-row: 1 / span 6; align-self: start; position: sticky; top: calc(var(--stage-top) + 44px);
+  .is-stage .beat-media { grid-column: 2; grid-row: 1 / span 8; align-self: start; position: sticky; top: calc(var(--stage-top) + 44px);
                           margin: 44px 0 0; opacity: 0; visibility: hidden; transition: opacity 0s .5s, visibility 0s .5s; }
   .is-stage .beat.is-active .beat-media { opacity: 1; visibility: visible; z-index: 1; transition: opacity .5s var(--ease); }
   .is-stage .beat-ui { opacity: 0; transform: translateY(18px); transition: opacity .2s, transform 0s .2s; }
@@ -338,7 +359,10 @@ details.more-detail > div { padding: 8px 0 28px; }
   .beat-ui--left { left: 16px; right: auto; align-self: flex-start; }
   .beat-ui--phone { right: 16px; align-self: flex-end; }
   .beat-ui--phone.beat-ui--left { left: 16px; right: auto; align-self: flex-start; }
-  .more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .flist { columns: 2; }
+  .beat-ui--card { right: 16px; width: 40%; align-self: flex-end; }
+  .beat-ui--bubble { right: 16px; bottom: 0; align-self: flex-end; }
   .compare { min-width: 860px; }
 }
 @media (max-width: 640px) {
@@ -350,7 +374,7 @@ details.more-detail > div { padding: 8px 0 28px; }
   .stage { margin-top: 36px; }
   .stage-mac { width: min(70%, 232px); margin: 0 auto; border-radius: 28px; border: 6px solid #0A0400; }
   .stage-cap { padding-top: 16px; }
-  .strip, .cols, .more, .rows--cols { grid-template-columns: minmax(0, 1fr); }
+  .strip, .cols, .rows--cols { grid-template-columns: minmax(0, 1fr); }
   .value { padding: 28px 0 20px; }
   .value-grid { grid-template-columns: minmax(0, 1fr); }
   .value-grid > div, .value-grid > div + div { padding: 18px 0; border-left: 0; border-top: 1px solid var(--line); }
@@ -367,8 +391,18 @@ details.more-detail > div { padding: 8px 0 28px; }
   .beat-frame { border-radius: 10px; }
   .beat-ui { margin-top: -19%; }
   .story { padding: 44px 0; }
-  .story-more figure { display: none; }
-  .story-more .more { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+  /* Tiles go sideways on a phone, and a group of the list opens on a tap (the script closes all but the first). */
+  .tiles { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 28px -18px 0; padding: 1px 18px 4px; }
+  .tiles > li { flex: 0 0 82%; scroll-snap-align: center; }
+  .flegend { margin-top: 36px; }
+  .flist { columns: 1; }
+  .fgroup { padding-bottom: 0; }
+  .fgroup summary { pointer-events: auto; cursor: pointer; padding: 13px 0; border-bottom-color: var(--line); }
+  .fgroup summary::after { content: "+"; margin-left: auto; color: var(--dim); font-size: 18px; line-height: 16px; }
+  .fgroup[open] summary::after { content: "–"; }
+  .fgroup[open] { padding-bottom: 16px; }
+  .beat-ui--card { right: 8px; width: 52%; }
+  .beat-ui--bubble { right: 8px; width: 70%; margin-top: -9%; }
   .beat-ui--mac { right: 8px; width: 76%; }
   .beat-ui--phone { right: 8px; width: 68%; border-radius: 18px; border-width: 4px; }
   .beat-ui--left, .beat-ui--phone.beat-ui--left { left: 8px; }
