@@ -132,7 +132,7 @@ async def one_run(n: int) -> None:
         shown = await page.until("document.getElementById('endok').textContent.startsWith('Asked to send') && "
                                  "document.getElementById('endok').textContent", 8)
         step("A7 on the owner's yes the action items reach billing, and the end sheet says so",
-             bool(got) and bool(re.search(r"retry|runbook", line, re.I)) and bool(shown), sent=line[-240:], said=confirm,
+             bool(got) and "meeting action items" in line and bool(shown), sent=line[-240:], said=confirm,
              shown=shown)
         errors = await page.js("window.__errors || []")
         step("no page errors", not errors, errors=errors)

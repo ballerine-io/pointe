@@ -89,11 +89,11 @@ room in two sentences at most, and in both modes it is written as an answer note
 ## End
 
 "Pointe, end the meeting" or End meeting. A final pass writes the summary, decisions, action items and open questions.
-Then: Export, Send the action items to a session (your request goes through the normal send path and its gates), or
+Then: Export, Send the action items to a session (after a second tap, word for word as the sheet lists them), or
 Discard. Nothing happens by default.
 
 By voice, after the end: "send the action items to billing" is read back ("Send 2 action items to billing: …. Send
-them?") and sent on your next plain yes, as Send does; a no or anything else sends nothing, the read-back heard back is
+them?") and sent on your next plain yes, word for word as read back (never rewritten by the model), as Send does; a no or anything else sends nothing, the read-back heard back is
 not a yes, and with the voice lock on only your voice's yes counts. The end sheet on the page and in the apps shows the
 read-back while it waits, and where the action items went.
 
@@ -125,7 +125,7 @@ Every route is reachable with the page cookie, the bearer token and the phone ke
 | `end` | | `{ended, summary, decisions, action_items, open_questions}`; 409 while an end runs |
 | `reconnect` | | `{reconnecting: true}` |
 | `export` | `{transcript?: bool}` | `{exported: path}` |
-| `send_actions` | `{session}` | after the end only; `{asked: true}` at once, the send runs through the normal gates; a spoken read-back waiting is dropped |
+| `send_actions` | `{session}` | after the end only; `{asked: true}` at once, the items go as listed; a spoken read-back waiting is dropped |
 | `discard` | | forgets the ended meeting; 409 while it is on |
 | `GET /voice/meeting/transcript` | | `{turns: [{id, who, speaker, at, lang, text}]}` |
 | `GET /voice/notes` | `?since=<id>&kinds=a,b&changed_since=<version>&meeting=<id>` | `{version, meeting_id, notes: [...]}` |

@@ -186,7 +186,7 @@ def test_session_news_is_held_as_a_note_and_delivered_after(d, monkeypatch):
     assert d.state.monologue_held and d.NOTES.items[-1].kind == "session_news"
 
 
-def test_end_offers_export_and_the_action_items_go_through_the_normal_send(d, monkeypatch, tmp_path):
+def test_end_offers_export_and_the_action_items_go_as_shown(d, monkeypatch, tmp_path):
     _meeting_ready(d, monkeypatch)
     add(d, "a", "pricing")
     _start(d, sessions=["pricing"])
@@ -196,11 +196,16 @@ def test_end_offers_export_and_the_action_items_go_through_the_normal_send(d, mo
 
     monkeypatch.setattr(d, "_read_model", end_pass)
     sent = []
-    monkeypatch.setattr(d, "_user_text", lambda text: _record(sent, text))
+
+    async def deliver(session, text):
+        sent.append(text)
+        return True
+
+    monkeypatch.setattr(d, "deliver", deliver)
     r = client_for(d).post("/voice/meeting", json={"action": "end"}).json()
     assert r["ended"] and r["summary"] == "Ship Thursday." and FakeEars.instances[-1].closed
     assert client_for(d).post("/voice/meeting", json={"action": "send_actions", "session": "pricing"}).json() == {"asked": True}
-    assert "Write the release note (owner: Dana)" in sent[0]
+    assert "- Write the release note (owner: Dana)" in sent[0]  # as the end sheet showed it, not rewritten
     exported = client_for(d).post("/voice/meeting", json={"action": "export"}).json()["exported"]
     assert Path(exported).exists() and "Write the release note" in Path(exported).read_text()
 

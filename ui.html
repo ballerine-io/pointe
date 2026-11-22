@@ -3228,7 +3228,7 @@
       if ([...$('endsession').options].some(o => o.value === p.session)) $('endsession').value = p.session;
       $('endok').textContent = `Pointe asked: “${p.line}” Say yes, or press Send.`;
     } else if (m.sent_to) {
-      $('endok').textContent = `Asked to send the action items to ${short(m.sent_to)}. The usual checks apply.`;
+      $('endok').textContent = `Asked to send the action items to ${short(m.sent_to)}, as listed here.`;
     }
   }
   async function sendActions() {  // two clicks, no dialog: the first names where it goes, the second sends
@@ -3237,7 +3237,7 @@
       setTimeout(() => { if (Date.now() > sendSure) $('endsend').textContent = 'Send action items'; }, 4100); return; }
     sendSure = 0; $('endsend').disabled = true; $('enderr').textContent = '';
     $('endok').textContent = `Sending the action items to ${short(session)}…`;
-    try { await meetPost({action: 'send_actions', session}); $('endok').textContent = `Asked to send the action items to ${short(session)}. The usual checks apply.`; }
+    try { await meetPost({action: 'send_actions', session}); $('endok').textContent = `Asked to send the action items to ${short(session)}, as listed here.`; }
     catch (e) { $('endok').textContent = ''; $('enderr').textContent = e.message; $('endsend').disabled = false; }
     $('endsend').textContent = 'Send action items';
   }

@@ -4414,6 +4414,22 @@ def _actions_line(target, items: list[dict]) -> str:
             f"Send {'them' if len(items) != 1 else 'it'}?")
 
 
+async def _send_meeting_actions(target, items: str) -> bool:
+    """The meeting's action items, to a session, word for word as read back or shown on the end sheet: the owner
+    confirmed exactly these. Not through the model, which rewrote them and was then refused by the send check as "not
+    what the user asked". The room's words reach the session as a list the user sent, not as its own instruction."""
+    text = f"Action items from a meeting, sent by the user (what the meeting agreed; check each before acting):\n{items}"
+    ok = await _dispatch(target, text)
+    logger.info(f"-> {target.name}: meeting action items ({len(items)} chars, sent by the user)" if ok
+                else f"action items did not reach {target.name}")
+    _record(text, [target.name] if ok else [], "the meeting's action items, confirmed by the user" if ok
+            else "the action items did not reach the session")
+    if state.conn is not None:
+        await say(f"[action items sent] They went to {target.name}, as read back. Say so in a few words." if ok else
+                  f"[action items not sent] They did not reach {target.name}. Tell the user in one line.")
+    return ok
+
+
 async def _meeting_actions_words(text: str) -> bool:
     """After a meeting, by voice: "send the action items to billing" is read back, and the next plain yes sends them
     through the normal send path, as the end sheet's Send does. True when the words were taken here."""
@@ -4439,7 +4455,7 @@ async def _meeting_actions_words(text: str) -> bool:
             logger.info(f"action items: the owner said yes, sending to {target.name}")
             if state.last_meeting is not None:
                 state.last_meeting.sent_to = target.name
-            await _user_text(f"Send the action items from the meeting to {target.name}:\n{pending[2]}")
+            await _send_meeting_actions(target, pending[2])
         return True
     if asked is None:
         return False
@@ -7717,9 +7733,9 @@ async def meeting_action(request: Request):
             raise HTTPException(status_code=400, detail="name a session, and the meeting needs action items")
         if not any(s.name == session for s in REGISTRY.sessions.values()):
             raise HTTPException(status_code=400, detail="no session has that name")
-        # The owner's own request, through the normal send path and its checks; answered at once, the turn runs on.
         done.sent_to, state.pending_actions = session, None
-        asyncio.create_task(_user_text(f"Send the action items from the meeting to {session}:\n{items}"))
+        target = next(s for s in REGISTRY.sessions.values() if s.name == session)
+        asyncio.create_task(_send_meeting_actions(target, items))  # answered at once; the delivery runs on
         return {"asked": True}
     if m is None:
         raise HTTPException(status_code=409, detail="no meeting is on")

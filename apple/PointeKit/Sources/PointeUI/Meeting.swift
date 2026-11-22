@@ -825,7 +825,7 @@ struct MeetingEndSheet: View {
                         if let line = MeetingCopy.sendLine(sent: sent, pending: sendPending, sentTo: sentTo) {
                             Text(line).font(.brand(.caption)).foregroundStyle(Brand.muted).accessibilityIdentifier("meetingSent")
                         }
-                    } footer: { Group { Text("They go as your own request, through the normal checks.") }.brandFootnote() }
+                    } footer: { Group { Text("They go to the session as listed here, after you confirm.") }.brandFootnote() }
                 }
                 Section {
                     Button("Discard the meeting", role: .destructive) { confirmDiscard = true }

@@ -174,12 +174,17 @@ def _ended_meeting(d, monkeypatch):
     async def speak(text, *a):
         said.append(text)
 
-    async def user_text(text):
-        asked.append(text)
+    async def deliver(session, text):
+        asked.append(f"{session.name}|{text}")
+        return True
+
+    async def brain(text):
+        raise AssertionError("the confirmed action items go as read back, never rewritten by the model")
 
     d.state.front = SimpleNamespace(_speak=speak)
     monkeypatch.setattr(d, "FRONT", "brain")
-    monkeypatch.setattr(d, "_user_text", user_text)
+    monkeypatch.setattr(d, "deliver", deliver)
+    monkeypatch.setattr(d, "_user_text", brain)
     return said, asked
 
 
@@ -206,8 +211,12 @@ def test_send_the_action_items_is_read_back_and_sent_on_the_yes(d, monkeypatch):
     assert pending["send_pending"]["session"] == "billing/main" and pending["send_pending"]["line"] == said[-1]
     assert pending["sent_to"] is None
     assert asyncio.run(d._meeting_actions_words("Yes.")) is True
-    assert len(asked) == 1 and asked[0].startswith("Send the action items from the meeting to billing/main:")
-    assert "Update the on-call runbook (owner: Dana)" in asked[0]
+    # From a live run: sent through the model, the items were rewritten ("(currently 5)") and the send check refused
+    # the rewrite as "not what the user asked", after the owner had heard them and said yes. They go as read back.
+    assert len(asked) == 1 and asked[0].startswith("billing/main|Action items from a meeting, sent by the user")
+    assert "- Raise the retry limit to eight attempts (owner: Sam) (due: Friday)" in asked[0]
+    assert "- Update the on-call runbook (owner: Dana)" in asked[0]
+    assert "sent" in d.state.conn.injector.fed[-1][0]  # the voice says where they went
     status = client_for(d).get("/voice/status").json()["meeting"]
     assert status.get("send_pending") is None and status["sent_to"] == "billing/main"  # the end sheet shows where they went
 
