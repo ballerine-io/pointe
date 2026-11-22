@@ -418,6 +418,43 @@ def test_a_plain_yes_starts_what_was_read_back_and_it_joins_by_that_name(home, y
     assert home.sent == []  # by voice there is no first prompt
 
 
+@pytest.mark.parametrize("said", ["Start a new codec session in shop.", "start a new codecs session in shop"])
+def test_codex_misheard_as_codec_is_still_codex(home, said):
+    """From a live run: the ears wrote "codec" for "Codex", and the start was refused as not asked."""
+    result = asyncio.run(_ask(home.d, said))
+    assert result.get("confirm_first", "").startswith("Start a Codex session in shop"), result
+
+
+def test_the_ears_are_told_the_agents_names(d):
+    assert {"Codex", "OpenCode", "Claude Code"} <= set(d._recognition_terms({}))
+
+
+def test_a_yes_to_the_voices_own_offer_to_start_is_read_back_first(home):
+    """From a live run: the voice asked "Do you want a new Codex session in shop?", the user said yes, and the start was
+    refused twice as not asked. The yes asks for what the voice offered; the read-back still comes before anything starts."""
+    d = home.d
+
+    async def scenario():
+        await d.on_user_utterance("Can you get me another agent going?")
+        d.state.conversation.append(("assistant", "Do you want a new Codex session in shop?"))
+        return await _ask(d, "Yes.")
+
+    result = asyncio.run(scenario())
+    assert result.get("confirm_first", "").startswith("Start a Codex session in shop"), result
+    assert home.started == []
+
+
+def test_a_yes_to_anything_else_starts_nothing(home):
+    d = home.d
+
+    async def scenario():
+        await d.on_user_utterance("What is shop doing?")
+        d.state.conversation.append(("assistant", "Shop is running its tests. Want me to check billing too?"))
+        return await _ask(d, "Yes.")
+
+    assert "error" in asyncio.run(scenario()) and home.started == []
+
+
 async def _rename(d, said: str, new_name: str) -> dict:
     await d.on_user_utterance(said)
     p = Params(new_name=new_name)

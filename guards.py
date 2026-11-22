@@ -358,7 +358,8 @@ def close_request(text: str, sessions: list) -> CloseAsk | None:
 
 # ---------- starting a new session (docs/design/new-session.md) ----------
 
-_HARNESS_SAID = (("codex", r"codex|קודקס"), ("opencode", r"open[\s-]*code|אופן[\s-]*קוד"), ("claude-code", r"claude(?:[\s-]*code)?|קלוד(?:[\s-]*קוד)?"))
+# "codec(s)": how speech-to-text often writes "Codex" (seen live); no agent or folder here is called that.
+_HARNESS_SAID = (("codex", r"codex|codecs?|קודקס"), ("opencode", r"open[\s-]*code|אופן[\s-]*קוד"), ("claude-code", r"claude(?:[\s-]*code)?|קלוד(?:[\s-]*קוד)?"))
 _ANY_HARNESS = "|".join(pattern for _, pattern in _HARNESS_SAID)
 _NEW_ONE = (rf"(?:(?:a|an|another|one\s+more|me|us|up)\s+)*(?:(?:new|fresh|another|second|additional)\s+)*"
             rf"(?:(?:{_ANY_HARNESS})\s+)?(?:session|agent|thread)\b(?!\s+mode)")

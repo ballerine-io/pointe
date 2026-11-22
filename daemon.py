@@ -5702,6 +5702,8 @@ async def start_session(params: FunctionCallParams):
     here_folder = newsession.real(active.cwd) if active and not active.machine and newsession.find(active.cwd, folders) else None
     asked = next((t for at, t in reversed(state.recent_said) if time.time() - at < SWITCH_WORDS_SECS
                   and at > state.last_start_at and start_request(t, places) is not None), said)
+    if start_request(asked, places) is None:
+        asked = _start_the_bot_offered(places) or asked
     ask = start_request(asked, places, [m.name for m in paired_machines()], _here(), here_folder)
     if ask is None:
         await params.result_callback({"error": "Not started. The user did not ask to start a session."})
@@ -5745,6 +5747,16 @@ async def start_session(params: FunctionCallParams):
     logger.info(f"start read back: {line}")
     await params.result_callback({"confirm_first": line, "note": "Nothing is started yet. Say this line once, as it is, "
                                   "and wait. When the user answers, call start_session again."})
+
+
+def _start_the_bot_offered(places) -> str | None:
+    """"Do you want a new Codex session in shop?" "Yes.": the voice's own words, as what the yes asks for. Only a plain
+    yes in the user's voice, and only to start what the voice offered; it is read back before anything starts."""
+    said = state.last_utterance
+    if state.heard_own_words or ECHO.repeats_bot(said) or consent(said) != "allow":
+        return None
+    last_bot = next((text for who, text in reversed(state.conversation) if who == "assistant"), "")
+    return last_bot if start_request(last_bot, places) is not None else None
 
 
 def _started_note(start: newsession.Start) -> str:
@@ -7992,6 +8004,7 @@ def _recognition_terms(listed: dict[str, list[str]] | None = None) -> list[str]:
                 continue
         for f in files:
             folders.update(p for p in f.split("/")[:2][:-1] if 2 < len(p) < 40 and not p.startswith("."))
+    names += ["Codex", "OpenCode", "Claude Code"]  # the agents a session can be started with, said by name
     return vocabulary.terms_for(DICTIONARY, names, _brief_names(), sorted(folders))
 
 
