@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Add the Claude Code session this runs in to the shared voice (run it from that session's Bash tool).
-# Usage: claude-voice-attach [on|off|status] [--name NAME]
+# Usage: claude-voice-attach [on|off|status|heard [SECS]] [--name NAME]
 # Input reaches the session through its inbox socket; output is read from its transcript; no restart.
 set -euo pipefail
 
@@ -17,12 +17,19 @@ case "${1:-on}" in
       && echo "this session left the voice; its permission prompts are back in this terminal" \
       || echo "this session was not on the voice"
     exit 0 ;;
+  heard)  # /pointe:setup's first call: waits until Pointe answered the person's first words (daemon.py writes first-hello)
+    for _ in $(seq 1 "${2:-180}"); do
+      [ -f "$STATE/first-hello" ] && { echo "Pointe heard you. You're set up."; exit 0; }
+      sleep 1
+    done
+    echo "No first words heard yet. Is the page open? Press the orange Connect button; if Chrome asks for the microphone, press Allow. Then say hello."
+    exit 1 ;;
   on) shift || true ;;
   --name) ;;
-  *) echo "usage: claude-voice-attach [on|off|status] [--name NAME]; stop everything with voice-daemon stop" >&2; exit 2 ;;
+  *) echo "usage: claude-voice-attach [on|off|status|heard] [--name NAME]; stop everything with voice-daemon stop" >&2; exit 2 ;;
 esac
 
-: "${CLAUDE_CODE_SESSION_ID:?run this from inside a Claude Code session}"
+[ -n "${CLAUDE_CODE_SESSION_ID:-}" ] || { echo "Pointe: run /pointe:voice inside a Claude Code session; it joins that session. Other agents: pointe join opencode or pointe join codex." >&2; exit 1; }
 : "${CLAUDE_CODE_MESSAGING_SOCKET:?this session has no inbox socket (needs Claude Code 2.1.224+)}"
 URL="$("$BIN/voice-daemon" ensure)"
 RESULT="$("$BIN/register-session" "$@" </dev/null)"

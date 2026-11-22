@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # SessionStart: until /pointe:setup has finished once, tell the user it is the next step. One file check, nothing else.
+# voice-first-run --needed: prints "needed" when setup has not run on this Mac (/pointe:voice then runs it first), else "done".
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+set_up() { [ -f "$STATE/setup-done" ] || [ -f "$STATE/token" ]; }  # the voice has run here before: set up already
+if [ "${1:-}" = "--needed" ]; then
+  set_up && echo "done" || echo "needed"
+  exit 0
+fi
 [ -f "$STATE/setup-done" ] && exit 0
-[ -f "$STATE/token" ] && { touch "$STATE/setup-done"; exit 0; }  # the voice has run here before: set up already
-printf '{"systemMessage": "Pointe is installed. Run /pointe:setup to finish: keys, your first voice call, and your phone."}\n'
+[ -f "$STATE/token" ] && { touch "$STATE/setup-done"; exit 0; }
+printf '{"systemMessage": "Pointe is installed. Run /pointe:setup to finish: about 5 minutes, free with one Google key."}\n'

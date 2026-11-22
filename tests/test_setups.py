@@ -167,7 +167,48 @@ def test_the_page_lists_the_setups_from_the_daemon():
     assert "k.setups" in page and "pointe setup " in page and 'id="pref-setups"' in page
 
 
-def test_setup_asks_one_question_and_only_the_chosen_keys():
+def test_setup_asks_one_yes_or_no_and_shows_the_setups_only_when_asked():
+    """The onboarding review: about 400 words and a six-row table came before the first action. Now one short paragraph,
+    one question with Free start first, the table behind "Show me the other setups", and four steps before the extras."""
     text = " ".join((ROOT / "plugin" / "commands" / "setup.md").read_text().split())
-    assert 'Ask one question: "Which setup?"' in text and "pointe key check <vendor>" in text
-    assert "ask only for the keys that setup needs" in text and setups.WHY_KEYS in text
+    assert 'ask one question, "Start with Free start?"' in text
+    assert '"Yes, Free start (recommended)", "Show me the other setups", "I already have keys"' in text
+    said = text[text.index("Otherwise say this, word for word: ") + 35:text.index(" Then ask one question")]
+    assert len(said.split()) < 60 and "Free start" in said and "not confidential" in said
+    details = text[text.index("<details><summary>The six setups: only when they ask</summary>"):text.index("</details>")]
+    assert setups.table(full=False).split("\n")[2] in details, "the table is behind the question"
+    assert text.index("<details>") > text.index("Start with Free start?")
+    for n, name in enumerate(("this Mac", "your setup", "your key", "your first call"), 1):
+        assert f"Step {n} of 4: {name}." in text
+    assert "Step 5" not in text and "of 7" not in text
+    assert setups.DEFAULT == "free"
+
+
+def test_the_key_step_is_one_command_that_opens_checks_asks_again_and_restarts():
+    text = " ".join((ROOT / "plugin" / "commands" / "setup.md").read_text().split())
+    step = text[text.index("Step 3 of 4"):text.index("Step 4 of 4")]
+    assert "bin/pointe key <vendor>" in step and "pointe key check" not in step and "/pointe:stop" not in step
+    for does in ("opens the page and the window itself", "checks the key with one tiny live call",
+                 "opens the window again when the vendor refuses the key", "restarts Pointe if it runs"):
+        assert does in step, does
+
+
+def test_the_first_call_ends_on_pointe_heard_you():
+    text = " ".join((ROOT / "plugin" / "commands" / "setup.md").read_text().split())
+    step = text[text.index("Step 4 of 4"):text.index("**Done.**")]
+    assert '"Put on headphones, allow the microphone, press Connect, and say hello."' in step
+    assert "claude-voice-attach heard 180" in step and "Pointe heard you. You're set up." in step
+    assert text.index("**Done.**") < text.index("**Your phone.**") < text.index("**The Mac app and the iPhone app.**")
+
+
+def test_pointe_voice_runs_setup_on_a_first_run(tmp_path):
+    voice = (ROOT / "plugin" / "commands" / "voice.md").read_text()
+    assert "bin/voice-first-run --needed" in voice and "plugin/commands/setup.md` and follow it from step 1" in voice
+    setup_tools = re.search(r"allowed-tools: (.*)", (ROOT / "plugin" / "commands" / "setup.md").read_text()).group(1)
+    voice_tools = re.search(r"allowed-tools: (.*)", voice).group(1)
+    assert set(setup_tools.split(", ")) <= set(voice_tools.split(", ")), "voice may run every step of setup"
+    run = lambda: subprocess.run([str(ROOT / "bin" / "voice-first-run"), "--needed"], capture_output=True, text=True,
+                                 env={"CLAUDE_VOICE_STATE": str(tmp_path), "PATH": "/usr/bin:/bin"}).stdout  # noqa: E731
+    assert run() == "needed\n"
+    (tmp_path / "token").write_text("x")
+    assert run() == "done\n", "the voice ran here before"
