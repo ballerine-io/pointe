@@ -90,8 +90,10 @@ async def one_run(n: int) -> None:
         await window.shot("b1-readback")
         t, tries = await owner_heard(browser, "Yes.")
         readback = await words(audio)
+        # the agent's name is checked in the exact line (pending): the test's transcriber heard the voice's "Codex" as
+        # "Codec", "Codeck" or "Koenig"
         step("B1 “start a new Codex session in shop” is read back, nothing starts yet, and the page shows the ask",
-             re.search(r"\bcode[cx]s?\b", plain(readback)) is not None and "shop" in plain(readback) and bool(pending) and none_yet and bool(card),
+             "session in shop" in plain(readback) and "say yes" in plain(readback) and bool(pending) and pending.get("harness") == "codex" and none_yet and bool(card),
              said=readback, pending=pending, card=card)
         joined = await until(lambda: codex_sessions(), 90, 1)
         new = joined[0]["name"] if joined else ""
