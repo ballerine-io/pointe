@@ -38,6 +38,7 @@ def isolated() -> None:
 def start_daemon() -> None:
     isolated()
     fresh_state()
+    (STATE / "folders.json").unlink(missing_ok=True)  # an earlier run's folders would make "shop" a tie
     got = subprocess.run([str(ROOT / "bin" / "voice-daemon"), "ensure"], capture_output=True, text=True, env=dict(os.environ))
     assert got.returncode == 0, got.stderr[-400:]
 
