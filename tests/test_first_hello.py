@@ -206,3 +206,14 @@ def test_a_mac_with_calls_before_the_marker_is_not_on_its_first_call(first, monk
     d, _ = first
     monkeypatch.setattr(d, "HAD_CALLS", True)
     assert not d.first_call() and d.FIRST_HELLO.exists()
+
+
+def test_before_the_first_hello_the_page_shows_only_connect_the_mic_type_settings_and_sessions():
+    rule = PAGE[PAGE.index("/* Before Pointe has answered anyone on this Mac"):]
+    rule = rule[:rule.index("}")]
+    for hidden in ("#listen", "#meetbtn", "#briefbtn", ".micmode", "#chlbtn", "#whisperbtn", "#polishrow", "#ctx", "#modesec",
+                   "#m-night"):
+        assert f"body.firstrun {hidden}" in rule, hidden
+    for kept in ("#mic", "#typebtn", "#sessbtn", "#m-new", "#topconnect"):
+        assert kept not in rule, kept
+    assert "document.body.classList.toggle('firstrun', !!(s && s.first_call));" in PAGE
