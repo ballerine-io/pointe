@@ -47,4 +47,5 @@ The first time Claude Code runs in a folder it asks whether you trust it, in its
   join it.
 
 The first prompt is sent only after the session is on the voice. By voice there is no first prompt: say the request
-next ("tell invoices to list the open ones").
+next ("tell invoices to list the open ones"). Right after it joins, "rename it to shop-tests" renames the new session,
+not the active one; after a switch, "it" is the session you switched to again.

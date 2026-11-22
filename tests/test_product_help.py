@@ -164,6 +164,7 @@ def test_nothing_found_points_to_the_settings_and_is_short():
 def _voice_checks(daemon):
     import braindump
     import challenge
+    import meeting
     import drive
     import guards
     import turns
@@ -173,7 +174,10 @@ def _voice_checks(daemon):
     return {
         "hold": lambda p: turns.hold_intent(p) or turns.release_intent(p),
         "brain-dump": lambda p: braindump.start_intent(p) or braindump.done_intent(p),
-        "meeting": lambda p: daemon.meeting_intent(p) is not None,
+        # starting it, a command said in it (a question names the session the code looks it up in), or the send after it
+        "meeting": lambda p: daemon.meeting_intent(p) is not None or meeting.send_actions_intent(p) is not None
+        or (meeting.addressed(p) is not None and (meeting.command(meeting.addressed(p))[0] != "ask"
+                                                  or "session" in meeting.addressed(p))),
         "challenge": lambda p: challenge.start_intent(p) or challenge.end_intent(p),
         "drive": lambda p: drive.intent(p) is not None,
         "whisper": lambda p: whisper.intent(p) is not None,

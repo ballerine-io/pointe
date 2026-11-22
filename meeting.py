@@ -191,6 +191,18 @@ _WAITING = re.compile(r"\b(anything waiting|what'?s waiting|anything for me|need
 _END = re.compile(r"^\W*(?:(?:please|ok(?:ay)?|now|let'?s)\W+)?(?:end|stop|close|finish)\s+(?:the\s+|this\s+)?meeting"
                   r"(?:\s+mode)?(?:\W+(?:now|please|thanks|thank you))*\W*(?:[.!]\s+[^?]*)?$|"
                   r"^\W*(?:בבקשה\W+)?(?:סיים|סגור|תסיים|תסגור)\s+את\s+(?:הפגישה|מצב הפגישה)(?:\W+(?:עכשיו|בבקשה|תודה))*\W*$", re.I)
+# The whole command, as _END: "should you join in?" is a question, not a switch. "Jump in" stays "what do you think".
+_LEAD = r"^\W*(?:(?:please|ok(?:ay)?|now|so|alright|and)\W+)*"
+_TAIL = r"(?:\W+(?:now|please|too|for now|thanks|thank you))*\W*$"
+_PARTICIPATE = re.compile(
+    _LEAD + r"(?:(?:you\s+can|can\s+you|could\s+you|go\s+ahead\s+and|feel\s+free\s+to)\s+)?"
+    r"(?:join\s+in|participate|start\s+participating|take\s+part|switch\s+to\s+participating(?:\s+mode)?|"
+    r"participating(?:\s+mode)?|join\s+the\s+(?:conversation|discussion|meeting))" + _TAIL
+    + r"|^\W*(?:תשתתף|תשתתפי|מצב השתתפות|עבור להשתתפות|תעבור להשתתפות)\W*$", re.I)
+_LISTEN = re.compile(
+    _LEAD + r"(?:(?:just|only)\s+listen|listen\s+only|(?:go\s+)?back\s+to\s+listening|"
+    r"switch\s+(?:back\s+)?to\s+listening(?:\s+mode)?|listening(?:\s+mode)?|stop\s+participating)" + _TAIL
+    + r"|^\W*(?:רק\s+תקשיבי?|תקשיבי?\s+רק|מצב הקשבה|חזור להקשבה|תחזור להקשבה|תפסיק להשתתף)\W*$", re.I)
 _AGENDA = re.compile(r"^\W*(?:the\s+)?agenda\s+is\s+(.+)$|^\W*האג'?נדה\s+(?:היא\s+)?(.+)$", re.I)
 _FINISH = re.compile(r"^\W*(finish|continue|keep going)\b|^\W*תמשיך", re.I)
 _NUMBERS = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8",
@@ -223,6 +235,10 @@ def command(text: str) -> tuple[str, dict]:
     """An addressed command's kind and arguments. Anything unknown is a question for Pointe ("ask")."""
     if _END.match(text):
         return "end", {}
+    if _PARTICIPATE.match(text):
+        return "mode", {"mode": "participating"}
+    if _LISTEN.match(text):
+        return "mode", {"mode": "listening"}
     if _ME.search(text):
         return "me", {}
     m = _NAME.match(text)
@@ -283,6 +299,7 @@ class Meeting:
     ended: bool = False
     hands: int = 0
     result: dict = field(default_factory=dict)  # the end-of-meeting pass
+    sent_to: str | None = None  # after the end: the session the owner asked to take the action items (a tap or a spoken yes)
 
     @property
     def turns(self) -> list[Turn]:
@@ -519,9 +536,28 @@ def apply_end(m: Meeting, notes: Notes, reply: dict | None) -> dict:
     return m.result
 
 
+_SEND_ACTIONS = re.compile(
+    r"^\W*(?:(?:please|ok(?:ay)?|now|and|so)\W+)*(?:(?:can|could)\s+you\s+)?(?:send|forward|pass|give)\s+(?:all\s+)?"
+    r"(?:the\s+|those\s+|these\s+)?(?:meeting'?s?\s+)?action\s+items(?:\s+from\s+the\s+meeting)?\s+(?:over\s+)?to\s+"
+    r"(?:the\s+)?(.+?)(?:\s+session)?(?:\W+please)?\W*$"
+    r"|^\W*(?:תשלח|שלח|תעביר|העבר)\s+את\s+(?:המשימות|פריטי הפעולה|האקשן איטמס)(?:\s+מהפגישה)?\s+ל-?\s*(.+?)\W*$", re.I)
+
+
+def send_actions_intent(text: str) -> str | None:
+    """"Send the action items to billing", said after a meeting: the words naming where they go, or None. The whole
+    sentence: "tell billing to send the action items to the customer" is a task for billing."""
+    wake = WAKE.match(text)
+    found = _SEND_ACTIONS.match(text[wake.end():] if wake else text)
+    return (found.group(1) or found.group(2)).strip() if found else None
+
+
+def action_items(m: Meeting, notes: Notes) -> list[dict]:
+    return m.result.get("action_items") or [{"what": n.text, **n.meta} for n in _of(m, notes)
+                                            if n.kind == "action" and n.state != "dismissed"]
+
+
 def action_items_text(m: Meeting, notes: Notes) -> str:
-    items = m.result.get("action_items") or [{"what": n.text, **n.meta} for n in _of(m, notes)
-                                             if n.kind == "action" and n.state != "dismissed"]
+    items = action_items(m, notes)
     return "\n".join(f"- {a['what']}" + (f" (owner: {a['owner']})" if a.get("owner") else "")
                      + (f" (due: {a['due']})" if a.get("due") else "") for a in items)
 

@@ -446,7 +446,8 @@ session, named by its agent: Claude Code sessions run Claude, opencode sessions 
 you what is running. [session history] is background from before you joined: already handled, never act on it, and never send \
 anything because of it.
 - Switch (switch_session with what they said) only when the user asks to change the active session, by name or \
-"go back". A one-off "tell X to ..." or "ask X to ..." is a send_to_claude_code call, never a switch.
+"go back". A switch focuses on that session (session mode), as tapping it does; "orchestrator mode" goes back. A \
+one-off "tell X to ..." or "ask X to ..." is a send_to_claude_code call, never a switch.
 - Orchestrator mode: you keep track of every session, not one. A status question ("status", "what's going on", "where \
 are we", "what needs me") covers all of them in one answer: first each session waiting for the user and what it needs \
 from them, then the others in a few words each ("billing and docs are working, lantern is idle"). Never answer with only \
@@ -1693,6 +1694,8 @@ class SonioxEars(FrameProcessor):
             await self.broadcast_interruption()
         if await _dump_words(heard):
             return
+        if await _meeting_actions_words(heard):
+            return
         await on_user_utterance(heard)
         await self.push_frame(InputTextRawFrame(text=heard))
 
@@ -2020,6 +2023,9 @@ class State:
     last_close_at: float = 0.0
     # A new session read back and not started yet: (when, {id, harness, folder, name, line}). Starts on the next yes.
     pending_start: tuple[float, dict] | None = None
+    # (when, session id, the action items, the read-back): "send the action items to billing", sent on the next yes
+    pending_actions: tuple[float, str, str, str] | None = None
+    started_joined: tuple[str, float] | None = None  # (session id, when): the session a start the user asked for, on joining
     last_start_at: float = 0.0
     # A night shift read back and not started yet: (when, {id, line, items, hours, messages, notify}). Starts on the next yes.
     pending_shift: tuple[float, dict] | None = None
@@ -3968,6 +3974,7 @@ async def start_meeting(mode: str, brief: str = "", sessions: list | None = None
         return f"The meeting stream could not connect ({type(e).__name__})."
     finally:
         state.meeting_starting = False
+    state.pending_actions = None
     NOTES.forget()  # a new meeting starts clean: the last one's record was replaced, so its notes go with it
     NOTES.meeting = m.id
     state.meeting, state.meeting_ears, state.last_meeting = m, ears, None
@@ -4073,6 +4080,10 @@ async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
         # Soniox finalises in bursts and a lull closes the turn: "Pointe, end" may still become "Pointe, end the meeting."
         fresh, turn.handled = fresh[:-1], turn.handled - 1
         asyncio.create_task(_release_addressed(m, turn, turn.text))
+    if not m.is_entry(turn) and _MEETING_ON.match(said.strip()) and turn.speaker == m.owner:
+        # "Pointe, meeting mode, participating" said later, by the owner: the mode it names
+        await _meeting_mode_by_voice(m, meeting_intent(said) or m.mode, said, typed=False)
+        return
     if m.is_entry(turn) or _MEETING_ON.match(said.strip()):  # the replayed "Pointe, meeting mode, participating"
         if m.entry_bound and m.owner == turn.speaker:  # with a voiceprint, it decides, not the label of who said it
             voice = await _meeting_voice(turn)
@@ -4199,6 +4210,8 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
     logger.info(f"meeting command: {cmd}")  # the owner's command kind only
     if cmd == "end":
         await end_meeting()
+    elif cmd == "mode":
+        await _meeting_mode_by_voice(m, args["mode"], words, typed)
     elif cmd == "me":
         NOTES.add("thought", "You're bound as the owner." if m.owner else "Say “Pointe, that's me” aloud to bind your voice.",
                   dedup=False)
@@ -4223,6 +4236,8 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
         if m.mode == "participating" and not typed:
             state.last_utterance = words  # the reply's language follows the question, not the words before the meeting
             await _meeting_speak(f"[the owner asked what is waiting, in the meeting] Say only this, in a few words: {line}")
+    elif cmd == "ask" and (target := _asked_about(args["text"])) is not None:
+        asyncio.create_task(_meeting_session_question(m, target, args["text"], aloud=not typed))
     elif cmd in ("think", "ask", "finish"):
         question = args.get("text") or words
         if m.mode == "participating":
@@ -4242,6 +4257,57 @@ async def _meeting_ask(m, question: str) -> None:
         + f"\n\nThe owner asked you, in writing: {question}\nPut your answer in thoughts."), REPORT_TIMEOUT_SECS)
     if reply and state.meeting is m:
         meetings.apply_secretary(m, NOTES, reply)
+
+
+def set_meeting_mode(m, mode: str) -> None:
+    """Listening or participating, from the page, the app or the owner's voice. Listening never asks to speak, so a
+    raised hand goes with the switch."""
+    m.mode = mode
+    if mode == "listening":
+        m.hand = None
+    logger.info(f"meeting: mode -> {mode}")
+
+
+async def _meeting_mode_by_voice(m, mode: str, words: str, typed: bool) -> None:
+    """"Pointe, join in" / "Pointe, just listen". Joining is acknowledged aloud in a few fixed words, so the room knows
+    it was heard; going back to listening is silent, as listening is."""
+    if m.mode == mode:
+        return
+    set_meeting_mode(m, mode)
+    NOTES.add("thought", "Participating: I speak when you ask me, or let a raised hand speak." if mode == "participating"
+              else "Listening: I only write notes now.", dedup=False)
+    if mode == "participating" and not typed and FRONT == "brain" and state.front is not None:
+        state.meeting_may_speak_until = time.time() + MEETING_REPLY_SECS
+        await state.front._speak("אני בפנים." if re.search(r"[\u0590-\u05ff]", words) else "I'm in.")
+
+
+def _asked_about(question: str):
+    """The one session a question to Pointe names ("what does billing's session say about the retry limit?"), or None.
+    Any session of the owner's: linking a session only decides what the secretary may look up on its own."""
+    found = named_sessions(question, list(REGISTRY.sessions.values()))
+    return found[0] if len(found) == 1 else None
+
+
+async def _meeting_session_question(m, target, question: str, aloud: bool) -> None:
+    """The owner asked about a session: a read-only copy of it answers (never the live session, never a send). In
+    participating, said to the room in two sentences at most; in listening, and always, written as an answer note."""
+    answer = None
+    if COPY_SESSIONS and _capabilities(target)["side_questions"]:
+        answer = await JOBS.run(f"meeting-lookup/{target.name}", lambda: harnesses.of(target).side_question(
+            target, f"{question}\n\n(Answer in two plain spoken sentences at most, for someone in a meeting. No code, no lists.)"),
+                                COPY_TIMEOUT_SECS)
+    if not answer:
+        answer = (await _from_record(target, question)).get("answer")
+    if not answer:
+        NOTES.add("answer", f"Could not look it up in {target.name}.", session=target.name, dedup=False, meeting=m.id)
+        return
+    NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta={"question": question[:300]},
+              dedup=False, meeting=m.id)
+    if aloud and state.meeting is m and m.mode == "participating":
+        state.last_utterance = question  # the reply's language follows the question
+        await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; the "
+                             f"room hears you; at most two sentences, in the language of the question; say only the "
+                             f"answer] The owner asked: {question}\n{target.name}'s answer: {answer.strip()}")
 
 
 async def _meeting_speak(text: str) -> None:
@@ -4300,6 +4366,86 @@ async def end_meeting() -> dict:
     if state.conn is not None:
         await _after_quiet()  # session news and a pending approval held during the meeting
     return {"ended": True, **result}  # with no call up, the held news waits for the next one (_deliver_held_news)
+
+
+def _actions_pending():
+    pending = state.pending_actions
+    return pending if pending and time.time() - pending[0] < newsession.CONFIRM_SECS else None
+
+
+def _actions_pending_view() -> dict | None:
+    pending = _actions_pending()
+    target = REGISTRY.sessions.get(pending[1]) if pending else None
+    return None if target is None else {"session": target.name, "line": pending[3],
+                                        "expires_in": round(newsession.CONFIRM_SECS - (time.time() - pending[0]))}
+
+
+async def _say_exactly(line: str, tag: str) -> None:
+    """Fixed words, said as they are: a read-back the yes then answers."""
+    if state.conn is None:
+        return
+    if FRONT == "brain" and state.front is not None:
+        await state.conn.injector.inject(f"[{tag}; said to the user, by the daemon] {line} Do not say it again.", False)
+        await state.front._speak(line)
+    else:
+        await state.conn.injector.inject(f"[{tag}] Say exactly this, nothing else: {_spoken_names(line)}", True)
+
+
+def _actions_line(target, items: list[dict]) -> str:
+    said = [str(a["what"]).strip().rstrip(".") for a in items[:3]]
+    more = f", and {len(items) - 3} more" if len(items) > 3 else ""
+    return (f"Send {len(items)} action item{'s' if len(items) != 1 else ''} to {target.name}: {'; '.join(said)}{more}. "
+            f"Send {'them' if len(items) != 1 else 'it'}?")
+
+
+async def _meeting_actions_words(text: str) -> bool:
+    """After a meeting, by voice: "send the action items to billing" is read back, and the next plain yes sends them
+    through the normal send path, as the end sheet's Send does. True when the words were taken here."""
+    if state.meeting is not None or state.meeting_starting:
+        return False
+    pending, state.pending_actions = _actions_pending(), None
+    asked = meetings.send_actions_intent(text)
+    if pending and asked is None:
+        verdict = None if state.heard_own_words or ECHO.repeats_bot(text) else consent(text)
+        if verdict is None:
+            return False  # other words: the read-back is dropped, and they are the brain's
+        _remember("user", text)
+        state.last_utterance = text
+        target = REGISTRY.sessions.get(pending[1])
+        if verdict == "deny":
+            await _say_exactly("Not sent.", "action items not sent")
+        elif target is None:
+            await say("[action items not sent] That session left the voice since the read-back. Say so in one short "
+                      "sentence. Do not call any tool.")
+        elif refusal := _start_owner_refusal("Not sent", "Send"):
+            await say(f"[action items not sent] {refusal} Say it in one short sentence. Do not call any tool.")
+        else:
+            logger.info(f"action items: the owner said yes, sending to {target.name}")
+            if state.last_meeting is not None:
+                state.last_meeting.sent_to = target.name
+            await _user_text(f"Send the action items from the meeting to {target.name}:\n{pending[2]}")
+        return True
+    if asked is None:
+        return False
+    _remember("user", text)
+    state.last_utterance = text
+    done = state.last_meeting
+    items = meetings.action_items(done, NOTES) if done is not None else []
+    if not items:
+        await say("[action items] There is no ended meeting with action items to send. Say so in one short sentence. "
+                  "Do not call any tool.")
+        return True
+    found = named_sessions(asked, list(REGISTRY.sessions.values()))
+    if len(found) != 1:
+        await say(f"[action items not sent] The user asked to send the meeting's action items to \"{asked}\", which "
+                  f"names {'no session' if not found else 'more than one session'}. Ask which, in one short sentence: "
+                  f"{_names()}. Do not call any tool.")
+        return True
+    line = _actions_line(found[0], items)
+    state.pending_actions = (time.time(), found[0].id, meetings.action_items_text(done, NOTES), line)
+    logger.info(f"action items read back: {len(items)} for {found[0].name}")
+    await _say_exactly(line, "action items read back")
+    return True
 
 
 async def _end_meeting_without_call() -> None:
@@ -5214,7 +5360,7 @@ async def switch_session(params: FunctionCallParams):
     fresh = await _await_fresh_speech(state.last_switch_at)
     offered = _switch_the_bot_offered() if fresh else None
     if offered:
-        await params.result_callback(await activate(offered))
+        await params.result_callback(await _focus_by_voice(offered))
         return
     # The newest sentence that asked to switch, from the last few seconds: "switch to lighthouse", then a second sentence
     # a moment later, reached this call after the second one replaced the latest words, and the switch was refused.
@@ -5235,7 +5381,18 @@ async def switch_session(params: FunctionCallParams):
             {"error": f"Not switched. The user did not clearly name one session. "
                       + (which if which.startswith("Ask which on") else f"Ask which: {options}.")})
         return
-    await params.result_callback(await activate(spoken))
+    await params.result_callback(await _focus_by_voice(spoken))
+
+
+async def _focus_by_voice(session: Session) -> dict:
+    """A spoken switch ends where a tap on the session ends, on the page and in the apps: session mode on it. Every
+    screen shows it, and "orchestrator mode" goes back."""
+    note = await activate(session)
+    if REGISTRY.mode != "session":
+        _apply_mode("session")
+        note |= {"mode": "session", "note": f"Focused on {session.name}: everything goes to it until the user switches "
+                                            f"again or asks for orchestrator mode."}
+    return note
 
 
 def _close_pending() -> tuple[float, list[str], str] | None:
@@ -5461,6 +5618,7 @@ async def _started(session: Session, start_id) -> None:
         return
     late = start.state == "failed"  # it joined after the wait ran out: the user was told the prompt was not sent
     start.state, start.session_id, start.detail, start.ended = "joined", session.id, "", time.time()
+    state.started_joined = (session.id, time.time())  # "rename it" now means this one
     logger.info(f"{session.name} joined: started by Pointe ({start.how})")
     if not late:
         await _night_joined(session, start.id)
@@ -5489,13 +5647,12 @@ def _start_line(what: dict) -> str:
             f"Say yes or tap.")
 
 
-def _start_owner_refusal() -> str | None:
-    """A spoken yes starts a session only in the owner's voice when the voice lock is on, and only as a strong match
-    on the road, as a yes to a permission prompt."""
-    if state.drive.on() and _has_voiceprint() and not speaker.strong(state.last_speaker):
-        return "Not started: that yes was not clearly the owner's voice. They can tap Start on the screen."
-    if lock_level() != "off" and not VOICE.confident(state.last_speaker):
-        return "Not started: that yes was not clearly the owner's voice. They can tap Start on the screen."
+def _start_owner_refusal(refused: str = "Not started", tap: str = "Start") -> str | None:
+    """A spoken yes starts a session (or sends the meeting's action items) only in the owner's voice when the voice lock
+    is on, and only as a strong match on the road, as a yes to a permission prompt."""
+    if (state.drive.on() and _has_voiceprint() and not speaker.strong(state.last_speaker)) \
+            or (lock_level() != "off" and not VOICE.confident(state.last_speaker)):
+        return f"{refused}: that yes was not clearly the owner's voice. They can tap {tap} on the screen."
     return None
 
 
@@ -5685,6 +5842,15 @@ def _recent_user_words(turns: int = 3) -> list[str]:
     return [text for who, text in state.conversation if who == "user"][-turns:]
 
 
+def _just_started() -> Session | None:
+    """"Rename it" right after "start a new session in shop" and its yes: the session that just joined, not the active
+    one (a start does not move the conversation). A switch since then makes "it" the active session again."""
+    joined = state.started_joined
+    if joined is None or joined[1] < state.last_switch_at or time.time() - joined[1] > THREAD_SECS:
+        return None
+    return REGISTRY.sessions.get(joined[0])
+
+
 async def rename_session(params: FunctionCallParams):
     new_name = str(params.arguments.get("new_name", "")).strip()
     # "Rename that session." ... "You infer it from the context.": the ask can be a turn earlier.
@@ -5704,7 +5870,7 @@ async def rename_session(params: FunctionCallParams):
         options = ", ".join(s.name for g in groups for s in g)
         await params.result_callback({"error": f"Not renamed. Ask which session to rename: {options}."})
         return
-    target = groups[0][0] if groups else REGISTRY.active
+    target = groups[0][0] if groups else _just_started() or REGISTRY.active
     if target is None:
         await params.result_callback({"error": "No session to rename."})
         return
@@ -5719,6 +5885,8 @@ async def rename_session(params: FunctionCallParams):
         target.named_by = "user"
         REGISTRY.save()
     state.last_switch_at = time.time()
+    if state.started_joined and state.started_joined[0] == target.id:  # "rename it again" is still the new one
+        state.started_joined = (target.id, state.last_switch_at)
     if error:
         await params.result_callback({"error": f"Not renamed: {error}."})
         return
@@ -5781,8 +5949,11 @@ async def _ask_copy(target: Session, question: str) -> None:
     logger.info(f"copy of {target.name} answered in {time.time() - started:.1f}s: {(answer or '')[:200]!r}")
     if answer is None:  # a session in the middle of a tool call may not resume: the record is the fallback
         answer = (await _from_record(target, question)).get("answer") or "I could not get an answer."
-    if state.meeting is not None:  # in a meeting the answer is written, not said
+    if state.meeting is not None:  # in a meeting the answer is written; said only in participating, where the owner asked
         NOTES.add("answer", f"{target.name}: {answer}", session=target.name, dedup=False)
+        if state.meeting.mode == "participating":
+            await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; "
+                                 f"the room hears you; at most two sentences; say only the answer] {answer}")
     elif state.conn is not None:
         await state.conn.injector.inject(f"[{target.name} answered the user's question {question!r}] {answer}", True)
 
@@ -7142,7 +7313,9 @@ async def status(request: Request):
             "local": _local_status(),
             "keys": _keys_status(),
             "meeting": state.meeting.status() if state.meeting is not None else (
-                {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),
+                {"on": False, "ended": True, "result": state.last_meeting.result, "send_pending": _actions_pending_view(),
+                 "sent_to": state.last_meeting.sent_to}
+                if state.last_meeting is not None else None),
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},
             "attention": _attention(quiet=_quiet_here(request)),
             "mac_idle_secs": None if (idle := IDLE.secs()) is None else round(idle, 1),
@@ -7491,7 +7664,7 @@ async def meeting_action(request: Request):
         if action == "discard":
             done.assembler.closed.clear()
             NOTES.forget(done.id)
-            state.last_meeting = None
+            state.last_meeting, state.pending_actions = None, None
             return {"discarded": True}
         session = str(body.get("session") or "")
         items = meetings.action_items_text(done, NOTES)
@@ -7500,6 +7673,7 @@ async def meeting_action(request: Request):
         if not any(s.name == session for s in REGISTRY.sessions.values()):
             raise HTTPException(status_code=400, detail="no session has that name")
         # The owner's own request, through the normal send path and its checks; answered at once, the turn runs on.
+        done.sent_to, state.pending_actions = session, None
         asyncio.create_task(_user_text(f"Send the action items from the meeting to {session}:\n{items}"))
         return {"asked": True}
     if m is None:
@@ -7518,9 +7692,7 @@ async def meeting_action(request: Request):
     if action == "mode":
         if body.get("mode") not in ("listening", "participating"):
             raise HTTPException(status_code=400, detail="mode must be listening or participating")
-        m.mode = body["mode"]
-        if m.mode == "listening":
-            m.hand = None
+        set_meeting_mode(m, body["mode"])
         return {"meeting": m.status()}
     if action == "speaker":
         m.name_speaker(str(body.get("label")), str(body.get("name") or "")[:40])
@@ -7718,6 +7890,7 @@ async def _on_connect(conn: Connection) -> None:
     state.pending_shift, state.last_shift_at = None, now
     if NIGHT.latest is not None and not NIGHT.latest.on:
         _NIGHT_SEEN.add(NIGHT.latest.id)  # the user is back after the shift: its blockers alert as any do
+    state.pending_actions = None
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
     state.last_speaker = None

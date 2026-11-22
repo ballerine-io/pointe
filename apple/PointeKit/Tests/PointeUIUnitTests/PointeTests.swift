@@ -126,6 +126,17 @@ final class MeetingTests: XCTestCase {
         XCTAssertEqual(CallView.sentence(""), "")
     }
 
+    func testTheEndSheetShowsWhatTheVoiceDidWithTheActionItems() throws {
+        let asked = try decode(API.Meeting.self, #"{"on": false, "ended": true, "result": {"summary": "S"}, "send_pending": {"session": "billing", "line": "Send 2 action items to billing: A; B. Send them?", "expires_in": 50}, "sent_to": null}"#)
+        XCTAssertEqual(MeetingCopy.sendLine(sent: nil, pending: asked.send_pending, sentTo: asked.sent_to),
+                       "Pointe asked: “Send 2 action items to billing: A; B. Send them?” Say yes, or send it here.")
+        let sent = try decode(API.Meeting.self, #"{"on": false, "ended": true, "result": {"summary": "S"}, "sent_to": "billing"}"#)
+        XCTAssertEqual(MeetingCopy.sendLine(sent: nil, pending: sent.send_pending, sentTo: sent.sent_to), "Asked billing to take them.")
+        XCTAssertEqual(MeetingCopy.sendLine(sent: "Asked docs to take them.", pending: nil, sentTo: "billing"), "Asked docs to take them.")
+        let older = try decode(API.Meeting.self, #"{"on": false, "ended": true, "result": {"summary": "S"}}"#)  // an older Mac
+        XCTAssertNil(MeetingCopy.sendLine(sent: nil, pending: older.send_pending, sentTo: older.sent_to))
+    }
+
     func testMarkdownHasTheTranscriptOnlyWhenGiven() throws {
         let result = try decode(API.MeetingResult.self, #"{"summary": "We agreed.", "decisions": ["Ship"], "open_questions": ["Q?"]}"#)
         let items = [API.ActionItem(what: "Write the note", owner: "Dana", due: "")]

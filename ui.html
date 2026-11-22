@@ -3197,7 +3197,7 @@
     refresh();
   }
   function showEnd(result) {
-    endShown = true;
+    endShown = true; endVoiceShown = '';
     const body = $('endbody'); body.replaceChildren();
     if (result.summary) { const d = el('div', '', result.summary); d.dir = 'auto'; body.append(el('h3', '', 'Summary'), d); }
     for (const [key, title] of [['decisions', 'Decisions'], ['action_items', 'Action items'], ['open_questions', 'Open questions']]) {
@@ -3216,6 +3216,20 @@
     $('enderr').textContent = '';
     try { const r = await meetPost({action: 'export', transcript: withTranscript}); $('endok').textContent = `Saved to ${r.exported}`; }
     catch (e) { $('enderr').textContent = e.message; }
+  }
+  // The spoken "send the action items to billing": its read-back waits for a yes (or this sheet's Send), and where they
+  // went shows here whichever way they were sent.
+  let endVoiceShown = '';
+  function showEndVoice(m) {
+    const p = m.send_pending, key = JSON.stringify([p && p.line, m.sent_to]);
+    if (key === endVoiceShown || !$('endsheet').classList.contains('open')) return;
+    endVoiceShown = key;
+    if (p) {
+      if ([...$('endsession').options].some(o => o.value === p.session)) $('endsession').value = p.session;
+      $('endok').textContent = `Pointe asked: “${p.line}” Say yes, or press Send.`;
+    } else if (m.sent_to) {
+      $('endok').textContent = `Asked to send the action items to ${short(m.sent_to)}. The usual checks apply.`;
+    }
   }
   async function sendActions() {  // two clicks, no dialog: the first names where it goes, the second sends
     const session = $('endsession').value;
@@ -3386,6 +3400,7 @@
     $('meetbtn').disabled = (!(s && s.connected) && !meetOn) || !!(m && m.ending);
     $('meetbtn').title = meetOn ? 'End the meeting' : 'A meeting: the voice listens and takes notes';
     if (ended && !endShown && m.result) showEnd(m.result);
+    if (ended) showEndVoice(m);
     if (!m) { $('hand').hidden = true; if (!$('endsheet').classList.contains('open') && notesById.size) { notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes(); } return; }
     if (s.notes) loadNotes(s.notes.version);
     if (!meetOn) { $('hand').hidden = true; return; }

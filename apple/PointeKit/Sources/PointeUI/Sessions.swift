@@ -18,6 +18,9 @@ func byAttention(_ sessions: [API.Session]) -> [API.Session] {
 struct SessionChips: View {
     let sessions: [API.Session]
     var known = true  // false until the Mac has answered once: "No sessions" would be a guess
+    /// Sessions Pointe is starting (a spoken "start a new session" and its yes), shown at once, first after All, before
+    /// they join: at the end of a long strip they would be out of sight.
+    var starting: [NewSession.Starting] = []
     let active: String?
     let mode: String?
     let focus: (String) -> Void
@@ -77,7 +80,22 @@ struct SessionChips: View {
                     Button("Sessions and mode", systemImage: "rectangle.stack", action: showAll)
                 }
                 .accessibilityLabel("All sessions, orchestrator mode\(orchestrating ? ", on" : "")")
-                if sessions.isEmpty && known {
+                ForEach(starting) { row in
+                    HStack(spacing: 7) {
+                        Circle().stroke(Brand.dim).frame(width: 7, height: 7)  // a ring: not a session yet
+                        Text(row.name).lineLimit(1).truncationMode(.middle).frame(maxWidth: 220)
+                        Text(row.tag).font(.brand(.caption2, row.failed ? .semibold : .regular))
+                            .foregroundStyle(row.failed ? Brand.accent : Brand.muted)
+                    }
+                    .font(.brand(.subheadline))
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Brand.raised, in: Capsule())
+                    .overlay(Capsule().stroke(Brand.line, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(row.name), \(row.agent), \(row.tag)")
+                    .accessibilityIdentifier("startingChip.\(row.name)")
+                }
+                if sessions.isEmpty && starting.isEmpty && known {
                     Text("No sessions · /pointe:voice or pointe join").font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                 }
                 ForEach(groups, id: \.machine) { group in

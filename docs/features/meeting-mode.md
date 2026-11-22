@@ -44,9 +44,15 @@ only when you accept it or say "Pointe, speaker two is Dana".
 ## Voice commands
 
 Only your addressed words act ("Pointe, …", Hebrew "פוינט, …", "היי פוינט"): `that's me`, `speaker two is Dana`, `the
-agenda is …`, `go ahead` (let a raised hand speak), `look that up`, `anything waiting?`, `what do you think?` or any
-question (a spoken answer in Participating, a note in Listening), and `end the meeting`. The end command must be the
-whole sentence: "Pointe, should we close the meeting?" is a question. Another speaker's commands are ignored, except
+agenda is …`, `join in` or `participate` (to Participating; "Pointe, meeting mode, participating" too), `just listen` or
+`go back to listening` (to Listening), `go ahead` (let a raised hand speak), `look that up`, `anything waiting?`, `what
+do you think?` or any question (a spoken answer in Participating, a note in Listening), and `end the meeting`. The end
+and mode commands must be the whole sentence: "Pointe, should we close the meeting?" and "Pointe, should you join in?"
+are questions. Joining is acknowledged in two words ("I'm in"); going back to listening is silent.
+
+A question that names a session ("Pointe, what does billing's session say about the retry limit?") is looked up in a
+read-only copy of that session, any session of yours, linked or not: in Participating Pointe says the answer to the
+room in two sentences at most, and in both modes it is written as an answer note. The live session gets nothing. Another speaker's commands are ignored, except
 "that's me", which only moves the owner label (no voice action in a meeting sends or approves).
 
 ## What it does, and when
@@ -86,6 +92,11 @@ whole sentence: "Pointe, should we close the meeting?" is a question. Another sp
 Then: Export, Send the action items to a session (your request goes through the normal send path and its gates), or
 Discard. Nothing happens by default.
 
+By voice, after the end: "send the action items to billing" is read back ("Send 2 action items to billing: …. Send
+them?") and sent on your next plain yes, as Send does; a no or anything else sends nothing, the read-back heard back is
+not a yes, and with the voice lock on only your voice's yes counts. The end sheet on the page and in the apps shows the
+read-back while it waits, and where the action items went.
+
 If the call drops for 5 minutes the meeting ends, and held news reaches the next call. If the speech stream drops, it
 reconnects by itself (1 s backoff doubling to 30 s); speakers are relabelled and you say "Pointe, that's me" again.
 
@@ -114,7 +125,7 @@ Every route is reachable with the page cookie, the bearer token and the phone ke
 | `end` | | `{ended, summary, decisions, action_items, open_questions}`; 409 while an end runs |
 | `reconnect` | | `{reconnecting: true}` |
 | `export` | `{transcript?: bool}` | `{exported: path}` |
-| `send_actions` | `{session}` | after the end only; `{asked: true}` at once, the send runs through the normal gates |
+| `send_actions` | `{session}` | after the end only; `{asked: true}` at once, the send runs through the normal gates; a spoken read-back waiting is dropped |
 | `discard` | | forgets the ended meeting; 409 while it is on |
 | `GET /voice/meeting/transcript` | | `{turns: [{id, who, speaker, at, lang, text}]}` |
 | `GET /voice/notes` | `?since=<id>&kinds=a,b&changed_since=<version>&meeting=<id>` | `{version, meeting_id, notes: [...]}` |
@@ -122,4 +133,5 @@ Every route is reachable with the page cookie, the bearer token and the phone ke
 | `GET/POST /voice/prefs` | `meeting.default_mode`, `meeting.auto_lookups`, `meeting.notes_language`, `meeting.consented` | |
 
 Status: `mode_state`, `meeting` (`{on, id, ending, mode, since, speakers, owner_known, hand, speaking, paused, vendors,
-recording, sessions, auto_lookups, turns}` while on), `notes: {version, last_id}`, `attention`, `jobs`.
+recording, sessions, auto_lookups, turns}` while on; `{on: false, ended, result, send_pending: {session, line,
+expires_in} | null, sent_to}` after the end), `notes: {version, last_id}`, `attention`, `jobs`.

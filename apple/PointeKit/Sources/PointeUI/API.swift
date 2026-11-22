@@ -275,6 +275,13 @@ struct API {
         let auto_lookups: Bool?
         let turns: Int?
         let result: MeetingResult?  // after the end
+        let send_pending: SendPending?  // after the end: a spoken "send the action items to X", read back, waiting for a yes
+        let sent_to: String?        // after the end: the session asked to take the action items, by a tap or a spoken yes
+
+        struct SendPending: Decodable, Equatable {
+            let session: String
+            let line: String        // the read-back, word for word
+        }
 
         var isOn: Bool { on == true }
         var isEnding: Bool { on == true && ending == true }

@@ -119,6 +119,9 @@ async def until(what, timeout: float, every: float = 1.0):
 ROOM_ONLY = ("Nobody here has that number", "release note", "payment tests", "invoices before Thursday")
 
 
+VOICE_STEPS = 12  # fake_mac.voice_status's steps, and MeetingUITests.testFollowsWhatTheVoiceDoes's
+
+
 def meeting_lines() -> list[str]:
     """The daemon log's lines from while a meeting was on (between "meeting started" and "meeting ended")."""
     lines, on = [], False
@@ -359,7 +362,7 @@ async def fake(link: str) -> None:
     (STATE / "fake-caught-up").unlink(missing_ok=True)
 
     def serve(case: str) -> subprocess.Popen:
-        mac = subprocess.Popen([sys.executable, "-I", str(script), str(STATE), str(TLS_PORT), case],
+        mac = subprocess.Popen([sys.executable, "-I", str(script), str(STATE), str(TLS_PORT), case, str(SHOTS / "fake-step")],
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         assert "fake mac up" in mac.stdout.readline()
         return mac
@@ -372,6 +375,23 @@ async def fake(link: str) -> None:
         finally:
             mac.kill()
             mac.wait()
+
+    # What the owner's voice does on the Mac, step by step: the app shows each one with nothing tapped on the phone.
+    (SHOTS / "fake-step").write_text("0")
+    mac = serve("voice")
+    xcode = xcodebuild("voice", "testFollowsWhatTheVoiceDoes", link)
+    try:
+        for n in range(VOICE_STEPS):
+            (SHOTS / "fake-step").write_text(str(n))
+            go(f"step-{n}")
+            if not await until(cue(f"step-{n}"), 240 if n == 0 else 60):
+                break
+        finish(xcode, "the app follows the voice: a start, a rename, a focus, two closes, the meeting's mode, the end, the send")
+    finally:
+        if xcode.poll() is None:
+            xcode.kill()
+        mac.kill()
+        mac.wait()
 
     mac = serve("meeting")
     xcode = xcodebuild("meeting", "testMacUnreachable", link)

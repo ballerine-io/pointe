@@ -30,6 +30,14 @@ enum MeetingCopy {
 
     static func mode(_ mode: String?) -> String { mode == "participating" ? participating : listening }
 
+    /// Under "Send action items to…": this sheet's own send, else what the voice did (the page's end sheet says the same).
+    static func sendLine(sent: String?, pending: API.Meeting.SendPending?, sentTo: String?) -> String? {
+        if let sent { return sent }
+        if let pending { return "Pointe asked: “\(pending.line)” Say yes, or send it here." }
+        if let sentTo { return "Asked \(sentTo) to take them." }
+        return nil
+    }
+
     /// What the share sheet sends: the notes, and the transcript only when given one.
     static func markdown(result: API.MeetingResult, items: [API.ActionItem], notes: [API.Note],
                          transcript: [API.TranscriptTurn]) -> String {
@@ -736,6 +744,9 @@ struct SpeakersSheet: View {
 /// The summary and what to do with it. Nothing leaves the Mac or reaches a session unless you choose it here.
 struct MeetingEndSheet: View {
     let result: API.MeetingResult
+    /// What the voice did with the action items, from the Mac: a read-back waiting for a yes, or where they went.
+    var sendPending: API.Meeting.SendPending? = nil
+    var sentTo: String? = nil
     let notes: [API.Note]
     let sessions: [API.Session]
     let transcript: () async -> [API.TranscriptTurn]
@@ -811,7 +822,9 @@ struct MeetingEndSheet: View {
                             ForEach(sessions) { s in Button(s.name) { sendTo = s.name } }
                         } label: { Label("Send action items to…", systemImage: "paperplane") }
                         .accessibilityIdentifier("meetingSend")
-                        if let sent { Text(sent).font(.brand(.caption)).foregroundStyle(Brand.muted) }
+                        if let line = MeetingCopy.sendLine(sent: sent, pending: sendPending, sentTo: sentTo) {
+                            Text(line).font(.brand(.caption)).foregroundStyle(Brand.muted).accessibilityIdentifier("meetingSent")
+                        }
                     } footer: { Group { Text("They go as your own request, through the normal checks.") }.brandFootnote() }
                 }
                 Section {

@@ -356,7 +356,8 @@ struct CallView: View {
         }
         .sheet(isPresented: endSheetShown) {
             if let result = meeting?.result {
-                MeetingEndSheet(result: result, notes: feed.notes, sessions: status?.sessions ?? [],
+                MeetingEndSheet(result: result, sendPending: meeting?.send_pending, sentTo: meeting?.sent_to,
+                                notes: feed.notes, sessions: status?.sessions ?? [],
                                 transcript: { (try? await call.api.transcript()) ?? [] },
                                 save: { with in demo != nil ? "~/.claude-voice/meetings/demo.md" : (try? await call.api.exportMeeting(transcript: with)) ?? "" },
                                 send: { to in await act { try await call.api.sendActions(to: to) } ? nil : problem ?? "" },
@@ -500,7 +501,8 @@ struct CallView: View {
             }
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // chrome, like a navigation bar: the words below it take the room
             if !wide {  // the wide Mac window lists the sessions in its left column
-            SessionChips(sessions: status?.sessions ?? [], known: status != nil, active: status?.active, mode: status?.mode,
+            SessionChips(sessions: status?.sessions ?? [], known: status != nil, starting: status?.starting ?? [],
+                         active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
                          showAll: { showSessions = true }, rename: rename, machines: machines, filter: $machineFilter,
                          showMachine: { sessionsOn = MachineName(id: $0) })

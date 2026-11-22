@@ -418,6 +418,48 @@ def test_a_plain_yes_starts_what_was_read_back_and_it_joins_by_that_name(home, y
     assert home.sent == []  # by voice there is no first prompt
 
 
+async def _rename(d, said: str, new_name: str) -> dict:
+    await d.on_user_utterance(said)
+    p = Params(new_name=new_name)
+    await d.rename_session(p)
+    return p.results[0]
+
+
+def test_rename_it_right_after_a_start_renames_the_new_session_not_the_active_one(home):
+    """"Start a new Codex session in shop", yes, then "rename it to shop-tests": "it" is the session that just started."""
+    d = home.d
+
+    async def scenario():
+        await _ask(d, "Start a new Codex session in shop.")
+        await _ask(d, "Yes.")
+        await _settle(d)
+        return await _rename(d, "Rename it to shop-tests.", "shop-tests")
+
+    result = asyncio.run(scenario())
+    assert result == {"renamed": "shop-2", "to": "shop-tests"}, result
+
+    again = asyncio.run(_rename(d, "No, rename it to shop-e2e.", "shop-e2e"))
+    assert again == {"renamed": "shop-tests", "to": "shop-e2e"}, again
+    assert sorted(s.name for s in d.REGISTRY.sessions.values()) == ["billing", "shop", "shop-e2e"]
+    assert d.REGISTRY.active.name == "shop"  # renaming it does not move the conversation either
+
+
+def test_after_a_switch_it_is_the_session_switched_to_again(home):
+    d = home.d
+
+    async def scenario():
+        await _ask(d, "Start a new Codex session in shop.")
+        await _ask(d, "Yes.")
+        await _settle(d)
+        d.state.last_switch_at = 0.0  # the rename below must see fresh words
+        await d.activate(d.REGISTRY.sessions["s2"])
+        await asyncio.sleep(0.01)
+        return await _rename(d, "Rename it to invoices.", "invoices")
+
+    result = asyncio.run(scenario())
+    assert result == {"renamed": "billing", "to": "invoices"}, result
+
+
 @pytest.mark.parametrize("answer", ["no", "wait, not that one", "what is billing doing?", "hmm"])
 def test_anything_but_a_plain_yes_starts_nothing(home, answer):
     async def scenario():

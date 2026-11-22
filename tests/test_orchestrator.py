@@ -571,7 +571,28 @@ def test_o19_back_to_the_previous_session(d, said):
         await d.switch_session(p)
         return p.results[0]
 
-    assert asyncio.run(scenario()) == {"active": "alpha/main"}
+    assert asyncio.run(scenario())["active"] == "alpha/main"
+
+
+def test_o19d_switch_to_a_session_by_voice_focuses_on_it_as_a_tap_does(d):
+    """"Switch to billing" ends in session mode on billing, as tapping it does on the page and in the apps: every
+    screen shows it, and "go back to orchestrator mode" means something after it."""
+    add(d, "a", "alpha/main"), add(d, "b", "billing/main")
+    d.REGISTRY.set_active("a")
+
+    async def scenario():
+        now = time.time()
+        d.state.last_utterance, d.state.last_user_speech_at, d.state.last_switch_at = "Switch to billing.", now, now - 30
+        p = Params(name="billing")
+        await d.switch_session(p)
+        return p.results[0]
+
+    result = asyncio.run(scenario())
+    assert result["active"] == "billing/main" and result["mode"] == "session", result
+    status = client_for(d).get("/voice/status").json()
+    assert status["mode"] == "session" and status["active"] == "billing/main"
+    back = asyncio.run(_set_mode(d, "Go back to orchestrator mode."))
+    assert back == {"mode": "orchestrator"} and client_for(d).get("/voice/status").json()["mode"] == "orchestrator"
 
 
 def _answer_offer(d, bot_said, user_said):
@@ -588,7 +609,7 @@ def _answer_offer(d, bot_said, user_said):
 
 def test_o19b_yes_to_an_offered_switch_switches(d):
     add(d, "a", "alpha/main"), add(d, "b", "beta/main")
-    assert _answer_offer(d, "Want me to switch to beta so I can read it out?", "Go ahead.") == {"active": "beta/main"}
+    assert _answer_offer(d, "Want me to switch to beta so I can read it out?", "Go ahead.")["active"] == "beta/main"
 
 
 @pytest.mark.parametrize("bot_said, user_said", [("Beta finished its tests.", "Yes."),

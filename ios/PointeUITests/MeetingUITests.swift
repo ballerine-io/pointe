@@ -363,6 +363,54 @@ final class MeetingUITests: XCTestCase {
         shot("24-caught-up")
     }
 
+    // MARK: what the voice does on the Mac
+
+    /// fake_mac.py's voice case, one step at a time: each is something the owner said on the Mac (a start and its yes, a
+    /// rename, a focus, two closes, back to orchestrator mode, the meeting's mode, the end, the spoken send), and the phone
+    /// must show it from the status alone, with nothing tapped here.
+    func testFollowsWhatTheVoiceDoes() throws {
+        try ready()
+        guard ProcessInfo.processInfo.environment["MEETING_CASE"] == "voice" else { throw XCTSkip("the voice case") }
+        app.launch()
+        func chip(_ name: String) -> XCUIElement {
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
+        }
+        let all = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "All sessions")).firstMatch
+        let toggle = app.buttons["meetingModeToggle"]
+        let steps: [(String, () -> Bool)] = [
+            ("the three sessions", { chip("billing").exists && chip("docs").exists && chip("shop").exists }),
+            ("a session Pointe is starting shows at once, in sight", {
+                let chip = self.any("startingChip.shop-2")
+                return chip.exists && self.app.windows.firstMatch.frame.contains(chip.frame)
+            }),
+            ("it joined", { chip("shop-2").exists && !self.any("startingChip.shop-2").exists }),
+            ("renamed by voice", { chip("shop-tests").exists && !chip("shop-2").exists }),
+            ("“switch to billing” focuses on it", { chip("billing").label.contains("focused") && !all.label.hasSuffix(", on") }),
+            ("“close docs”", { !chip("docs").exists && chip("shop-tests").exists }),
+            ("“close all except billing and shop”", { !chip("shop-tests").exists && chip("billing").exists && chip("shop").exists }),
+            ("“go back to orchestrator mode”", { all.label.hasSuffix(", on") && !chip("billing").label.contains("focused") }),
+            ("a meeting, listening", { self.any("meetingBanner").exists && toggle.label.contains("Listening") }),
+            ("“Pointe, join in”", { toggle.label.contains("Participating") }),
+            ("the end, and the spoken send read back", {
+                self.any("meetingEndSheet").exists && self.any("meetingSent").label.hasPrefix("Pointe asked: “Send 2 action items to billing")
+            }),
+            ("the yes: where they went", { self.any("meetingSent").label == "Asked billing to take them." }),
+        ]
+        for (n, (name, shown)) in steps.enumerated() {
+            XCTAssertTrue(self.await("step-\(n)", timeout: n == 0 ? 120 : 60), "the driver moved to step \(n)")
+            let deadline = Date().addingTimeInterval(10)
+            var seen = shown()
+            while !seen && Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.3)
+                seen = shown()
+            }
+            if !seen { dump("voice-\(n)") }
+            XCTAssertTrue(seen, "step \(n): \(name)")
+            shot("voice-\(n)")
+            cue("step-\(n)")
+        }
+    }
+
     // MARK: demo fixtures
 
     func testDemoScreens() throws {
