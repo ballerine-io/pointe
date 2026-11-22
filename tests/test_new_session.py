@@ -444,6 +444,23 @@ def test_a_yes_to_the_voices_own_offer_to_start_is_read_back_first(home):
     assert home.started == []
 
 
+def test_a_yes_after_the_read_back_expired_hears_it_again_and_starts_nothing(home):
+    """From a live run on a slow link: the yes came after the read-back's minute; the voice's last words were the
+    read-back itself, taken as an offer with "named shop-2" in it, and refused as a name. It is said again instead."""
+    d = home.d
+
+    async def scenario():
+        first = await _ask(d, "Start a new Codex session in shop.")
+        d.state.conversation.append(("assistant", first["confirm_first"]))
+        d.state.pending_start = (d.state.pending_start[0] - newsession.CONFIRM_SECS - 1, d.state.pending_start[1])
+        again = await _ask(d, "Yes.")
+        return first, again
+
+    first, again = asyncio.run(scenario())
+    assert again.get("confirm_first") == first["confirm_first"], again
+    assert home.started == [] and d.state.pending_start is not None and d.state.readback == first["confirm_first"]
+
+
 def test_a_yes_to_anything_else_starts_nothing(home):
     d = home.d
 

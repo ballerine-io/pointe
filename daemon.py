@@ -5711,6 +5711,16 @@ async def start_session(params: FunctionCallParams):
     if not fresh:
         await params.result_callback({"error": "Not started. The user did not ask to start a session."})
         return
+    expired = state.pending_start
+    last_bot = next((text for who, text in reversed(state.conversation) if who == "assistant"), "")
+    if expired and expired[1]["line"] == last_bot and not state.heard_own_words and not ECHO.repeats_bot(said) \
+            and consent(said) == "allow":
+        # A yes to a read-back whose minute ran out (a slow link, a pause): it starts nothing, and is put again.
+        state.pending_start, state.readback = (time.time(), expired[1]), expired[1]["line"]
+        logger.info(f"start read back again (the yes came late): {expired[1]['line']}")
+        await params.result_callback({"confirm_first": expired[1]["line"], "note": "The earlier read-back ran out; "
+                                      "nothing started. Say this line once, as it is, and wait."})
+        return
     folders = _start_folders()
     places = newsession.places(list(REGISTRY.sessions.values()), folders)
     active = REGISTRY.active
