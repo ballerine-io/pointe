@@ -24,6 +24,7 @@ from any voice denies a pending request, in every mode.
 | [Night shift](night-shift.md) | "Tonight: billing fixes the retry tests": the sessions work while you sleep, nothing is approved for you, and the morning briefing leads with it |
 | [Voice stays on your Mac](voice-stays-local.md) | Ears and mouth on your Mac, no audio to any vendor; the cloud brain gets text only |
 | [Fully local](local.md) | Every model on your Mac, no keys, nothing sent out; slower and less accurate, by measure |
+| [OpenAI models from another host](openai-url.md) | Azure OpenAI or another OpenAI-compatible host for the text models, with the key in the Keychain; not measured |
 
 The core, which these build on:
 
