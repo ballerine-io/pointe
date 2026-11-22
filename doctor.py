@@ -103,7 +103,8 @@ def preflight() -> int:
         if not present and chosen is None:
             print(NO_KEY)
         elif status["needed"]:
-            print(f"{status['line']}\n  Save it:  {POINTE} key {status['fix']}\n  Check it: {POINTE} key check {status['fix']}\n\nWhat do I need? "
+            print(f"{status['line']}\n  Fix it: pointe key {status['fix']} (opens the key page and a Mac window, and checks the "
+                  f"key), or /pointe:setup in Claude Code. The full path: {POINTE}\n\nWhat do I need? "
                   f"{textwrap.fill(vendors.WHAT_YOU_NEED, 100)}\n{textwrap.fill(vendors.WHY_KEYS, 118)}\n"
                   "pointe doctor shows each role.")
         else:

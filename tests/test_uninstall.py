@@ -153,3 +153,12 @@ def test_the_install_docs_and_the_readme_say_what_it_does_to_your_mac():
                      "caffeinate", "Keychain", "pointe uninstall", "~/.claude-voice", "nothing to Ballerine"):
             assert fact in box, (doc, fact)
         assert re.search(r"pointe\.<vendor>-api-key|pointe\.gemini-api-key", box), doc
+
+
+@pytest.mark.skipif(not Path("/usr/bin/python3").exists(), reason="macOS's own python3")
+def test_uninstall_runs_on_the_python_macos_ships(mac):
+    """bin/pointe runs it with the python3 on the PATH, which on a new Mac is Apple's 3.9: the clean-install run found
+    `Path | None` failing there at import."""
+    got = subprocess.run(["/usr/bin/python3", "-I", str(ROOT / "uninstall.py"), "--dry-run"], env=mac.env,
+                         capture_output=True, text=True, timeout=60)
+    assert got.returncode == 0 and "Dry run: nothing removed." in got.stdout, got.stderr

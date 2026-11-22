@@ -10,6 +10,7 @@ another tool may share (the Keychain items under the plain names Pointe used bef
 shared Hugging Face cache). uv stays: other tools use it. Standard library only, so it runs whatever state the plugin's
 Python is in. docs/install.md, "What this does to your Mac", is the same list.
 """
+from __future__ import annotations  # macOS's own python3 (3.9) runs this: `bin/pointe uninstall` needs no uv
 
 import os
 import re
