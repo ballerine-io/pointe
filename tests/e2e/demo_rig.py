@@ -149,21 +149,44 @@ async def owner_says(browser: Browser, text: str, settle: float = 0.3) -> float:
     return end
 
 
+async def owner_heard(browser: Browser, text: str, heard: str = r"user said: ", timeout: float = 15,
+                      tries: int = 2) -> tuple[float, int]:
+    """The owner's words, said again only when the daemon never got them (no `heard` line in its log): on a congested
+    uplink the speech stream stalls and drops what was said, which is the network, not what Pointe does with words it
+    hears. Returns when the words ended, and how many tries it took (each retry is reported)."""
+    for n in range(1, tries + 1):
+        before = len(log_lines(heard))
+        end = await owner_says(browser, text)
+        if await until(lambda: len(log_lines(heard)) > before, timeout, 0.3):
+            return end, n
+    return end, tries
+
+
 async def room_says(browser: Browser, voice: str, text: str, pause: float = 1.0) -> None:
     _, end = await browser.say(text, voice)
     await asyncio.sleep(max(0.0, end - time.time()) + pause)
 
 
-async def heard_reply(browser: Browser, since: float, timeout: float = 40, quiet: float = 2.5) -> str:
-    """What the bot said after `since`, once it has been quiet a moment; '' when it said nothing."""
+async def reply_audio(browser: Browser, since: float, timeout: float = 40, quiet: float = 2.5):
+    """The bot's audio after `since`, once it has been quiet a moment (None when it said nothing). A person answers a
+    read-back as soon as it ends: transcribe it afterwards, not before the answer (on a slow link that takes long)."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         spans = browser.speaker.speech_spans(since=since)
         if spans and time.time() - spans[-1][1] > quiet:
-            return await transcribe(browser.speaker.audio(spans[0][0], spans[-1][1]))
+            return browser.speaker.audio(spans[0][0], spans[-1][1])
         await asyncio.sleep(0.3)
     spans = browser.speaker.speech_spans(since=since)
-    return await transcribe(browser.speaker.audio(spans[0][0], spans[-1][1])) if spans else ""
+    return browser.speaker.audio(spans[0][0], spans[-1][1]) if spans else None
+
+
+async def words(pcm) -> str:
+    return await transcribe(pcm) if pcm is not None else ""
+
+
+async def heard_reply(browser: Browser, since: float, timeout: float = 40, quiet: float = 2.5) -> str:
+    """What the bot said after `since`, once it has been quiet a moment; '' when it said nothing."""
+    return await words(await reply_audio(browser, since, timeout, quiet))
 
 
 async def greeted(browser: Browser, timeout: float = 60) -> None:
@@ -212,7 +235,11 @@ class PageWindow:
         url = f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"
         self.proc = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={self.port}",
                                       f"--user-data-dir={profile}", "--window-size=1400,900", "--no-first-run",
-                                      "--lang=en-US", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                      "--lang=en-US",
+                                      # a headless page counts as hidden: Chrome would slow its 0.7 s poll to once a
+                                      # minute, and the checks would time the throttle, not the page
+                                      "--disable-background-timer-throttling", "--disable-renderer-backgrounding",
+                                      "--disable-backgrounding-occluded-windows", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         target = None
         for _ in range(60):
             try:
@@ -247,6 +274,13 @@ ROWS = "[...document.querySelectorAll('#list .s:not(.starting) .nm')].map(x => x
 
 def plain(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^\w\s-]", " ", text.lower())).strip()
+
+
+def keep_log(folder: Path) -> None:
+    """The run's daemon log beside its screenshots: the next run starts a fresh one."""
+    folder.mkdir(parents=True, exist_ok=True)
+    if LOG.exists():
+        shutil.copy(LOG, folder / "daemon.log")
 
 
 def cleanup(root: Path) -> None:

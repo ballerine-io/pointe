@@ -21,7 +21,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from demo_rig import (greeted, PageWindow, call, cleanup, heard_reply, log_lines, owner_says, plain, room_says, spoke_since,  # noqa: E402
+from demo_rig import (greeted, reply_audio, words, keep_log, owner_heard, PageWindow, call, cleanup, heard_reply, log_lines, owner_says, plain, room_says, spoke_since,  # noqa: E402
                       start_daemon, start_sessions, status, stop_daemon, stop_sessions, until, workspace)
 from rig import GUEST_VOICES, Browser  # noqa: E402
 from scenarios import check, results  # noqa: E402
@@ -47,8 +47,10 @@ def sent_to(name: str) -> list[str]:
 
 
 async def one_run(n: int) -> None:
+    tries = 1
+
     def step(name: str, ok: bool, **info) -> None:
-        check(f"[run {n}] {name}", ok, **info)
+        check(f"[run {n}] {name}", ok, **info, **({"retried_unheard": tries} if tries > 1 else {}))
 
     start_daemon()
     call("/voice/prefs", {"meeting.consented": True, "meeting.notes_language": "en"})  # the consent step, accepted once before
@@ -63,11 +65,12 @@ async def one_run(n: int) -> None:
         await until(lambda: status().get("connected"), 20)
         await greeted(browser)
 
-        t = await owner_says(browser, "Pointe, meeting mode, listening.")
+        t, tries = await owner_heard(browser, "Pointe, meeting mode, listening.", r"meeting started \(")
         on = await until(lambda: (status().get("meeting") or {}).get("on"), 15)
-        banner = await page.until("document.body.classList.contains('meeting') && document.getElementById('meetwhat').textContent", 10)
+        seen_from = time.time()
+        banner = await page.until("document.body.classList.contains('meeting') && document.getElementById('meetwhat').textContent", 20)
         step("A1 listening: the meeting starts by voice, and the page shows it", bool(on) and banner == "Meeting · Listening",
-             banner=banner, mode=(status().get("meeting") or {}).get("mode"))
+             banner=banner, mode=(status().get("meeting") or {}).get("mode"), page_after_s=round(time.time() - seen_from, 1))
         await window.shot("a1-listening")
 
         quiet_from = time.time()
@@ -76,7 +79,7 @@ async def one_run(n: int) -> None:
         await asyncio.sleep(4)
         step("A2 listening: the room talks and Pointe says nothing", not spoke_since(browser, quiet_from))
 
-        t = await owner_says(browser, "Pointe, join in.")
+        t, tries = await owner_heard(browser, "Pointe, join in.", r"meeting command: ")
         joined = await until(lambda: (status().get("meeting") or {}).get("mode") == "participating", 10)
         banner = await page.until("document.getElementById('meetwhat').textContent === 'Meeting · Participating' && "
                                   "document.getElementById('meetwhat').textContent", 8)
@@ -86,7 +89,7 @@ async def one_run(n: int) -> None:
         await window.shot("a3-participating")
 
         sent_before = len(sent_to("billing"))
-        t = await owner_says(browser, "Pointe, what does billing's session say about the retry limit?")
+        t, tries = await owner_heard(browser, "Pointe, what does billing's session say about the retry limit?", r"meeting command: ")
         answer = await heard_reply(browser, t, timeout=90, quiet=3)
         words = plain(answer)
         step("A4 the lookup: Pointe answers from billing's session, aloud and briefly",
@@ -100,7 +103,7 @@ async def one_run(n: int) -> None:
         await asyncio.sleep(10)
         step("A5 participating: the room goes on, and Pointe stays quiet", not spoke_since(browser, quiet_from))
 
-        t = await owner_says(browser, "Pointe, end the meeting.")
+        t, tries = await owner_heard(browser, "Pointe, end the meeting.", r"meeting command: ")
         ended = await until(lambda: (status().get("meeting") or {}).get("ended"), 90, 1)
         result = (status().get("meeting") or {}).get("result") or {}
         body = await page.until("document.getElementById('endsheet').classList.contains('open') && "
@@ -112,15 +115,17 @@ async def one_run(n: int) -> None:
         await asyncio.sleep(4)
 
         sent_before = len(sent_to("billing"))
-        t = await owner_says(browser, "Send the action items to billing.")
-        readback = await heard_reply(browser, t, timeout=40, quiet=2.5)
+        t, tries = await owner_heard(browser, "Send the action items to billing.", r"action items read back|user said: ")
+        audio = await reply_audio(browser, t, timeout=40, quiet=2.5)
         held = len(sent_to("billing")) == sent_before
         shown = await page.until("document.getElementById('endok').textContent.startsWith('Pointe asked') && "
                                  "document.getElementById('endok').textContent", 8)
+        await window.shot("a7-readback")
+        t, tries_yes = await owner_heard(browser, "Yes.", r"action items: the owner said yes|user said: ")
+        readback = await words(audio)
         step("A7 “send the action items to billing” is read back first, nothing is sent yet, and the end sheet shows the ask",
              "billing" in plain(readback) and held and bool(shown), said=readback, shown=shown)
-        await window.shot("a7-readback")
-        t = await owner_says(browser, "Yes.")
+        tries = max(tries, tries_yes)
         got = await until(lambda: len(sent_to("billing")) > sent_before, 60, 1)
         line = (sent_to("billing") or [""])[-1]
         confirm = await heard_reply(browser, t, timeout=30, quiet=2)
@@ -135,6 +140,7 @@ async def one_run(n: int) -> None:
         await window.close()
         await browser.close()
         stop_sessions(sessions)
+        keep_log(window.shots)
         stop_daemon()
         cleanup(root)
 

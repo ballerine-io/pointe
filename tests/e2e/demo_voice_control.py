@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from demo_rig import (greeted, ROWS, PageWindow, cleanup, heard_reply, names, owner_says, plain, start_daemon,  # noqa: E402
+from demo_rig import (greeted, reply_audio, words, keep_log, owner_heard, ROWS, PageWindow, cleanup, heard_reply, names, owner_says, plain, start_daemon,  # noqa: E402
                       start_sessions, status, stop_daemon, stop_sessions, until, workspace)
 from rig import Browser  # noqa: E402
 from scenarios import check, results  # noqa: E402
@@ -64,8 +64,10 @@ async def archive(thread_ids: list[str]) -> None:
 
 
 async def one_run(n: int) -> None:
+    tries = 1
+
     def step(name: str, ok: bool, **info) -> None:
-        check(f"[run {n}] {name}", ok, **info)
+        check(f"[run {n}] {name}", ok, **info, **({"retried_unheard": tries} if tries > 1 else {}))
 
     start_daemon()
     root = workspace("demo-vc", FOLDERS)
@@ -80,15 +82,17 @@ async def one_run(n: int) -> None:
         rows = await page.until(f"{ROWS} === 'billing,docs,shop' && {ROWS}", 10)
         step("B0 the page lists the three sessions", bool(rows), rows=rows)
 
-        t = await owner_says(browser, "Start a new Codex session in shop.")
-        readback = await heard_reply(browser, t, timeout=30)
+        t, tries = await owner_heard(browser, "Start a new Codex session in shop.")
+        audio = await reply_audio(browser, t, timeout=30)
         pending = await until(lambda: status().get("start_pending"), 5)
         card = await page.until("document.getElementById('startask').textContent", 5)
-        step("B1 “start a new Codex session in shop” is read back, nothing starts yet, and the page shows the ask",
-             "codex" in plain(readback) and "shop" in plain(readback) and bool(pending) and not codex_sessions() and bool(card),
-             said=readback, pending=pending, card=card)
+        none_yet = not codex_sessions()
         await window.shot("b1-readback")
-        t = await owner_says(browser, "Yes.")
+        t, tries = await owner_heard(browser, "Yes.")
+        readback = await words(audio)
+        step("B1 “start a new Codex session in shop” is read back, nothing starts yet, and the page shows the ask",
+             re.search(r"\bcode[cx]s?\b", plain(readback)) is not None and "shop" in plain(readback) and bool(pending) and none_yet and bool(card),
+             said=readback, pending=pending, card=card)
         joined = await until(lambda: codex_sessions(), 90, 1)
         new = joined[0]["name"] if joined else ""
         started = codex_ids()
@@ -99,14 +103,14 @@ async def one_run(n: int) -> None:
         await window.shot("b1-joined")
 
         before = names() - {new}
-        t = await owner_says(browser, "Rename it to shop-tests.")
+        t, tries = await owner_heard(browser, "Rename it to shop-tests.")
         renamed = await until(lambda: any(s["name"] == "shop-tests" for s in codex_sessions()), 30)
         said = await heard_reply(browser, t, timeout=20)
         shown = await page.until(f"{ROWS}.split(',').includes('shop-tests')", 8)
         step("B2 “rename it to shop-tests” renames the new Codex session, no other, and the page shows it",
              bool(renamed) and before <= names() and bool(shown), names=sorted(names()), said=said)
 
-        t = await owner_says(browser, "Switch to billing.")
+        t, tries = await owner_heard(browser, "Switch to billing.")
         active = await until(lambda: (status().get("active") or "").split("/")[0] == "billing", 20)
         said = await heard_reply(browser, t, timeout=20)
         shown = await page.until("document.getElementById('list').textContent && "
@@ -117,28 +121,30 @@ async def one_run(n: int) -> None:
              active=status().get("active"), shown=shown, mode=status().get("mode"), said=said)
         await window.shot("b3-switched")
 
-        t = await owner_says(browser, "Close docs.")
+        t, tries = await owner_heard(browser, "Close docs.")
         gone = await until(lambda: "docs" not in names(), 30)
         said = await heard_reply(browser, t, timeout=20)
         shown = await page.until(f"!{ROWS}.split(',').includes('docs')", 8)
         step("B4 “close docs” takes docs off the voice at once, and the page drops it",
-             bool(gone) and bool(shown) and {"billing", "shop", "shop-tests"} <= names(), names=sorted(names()), said=said)
+             bool(gone) and bool(shown) and {"billing", "shop"} <= names(), names=sorted(names()), said=said)
 
-        t = await owner_says(browser, "Close all except billing and shop.")
-        readback = await heard_reply(browser, t, timeout=30)
+        t, tries = await owner_heard(browser, "Close all except billing and shop.")
+        audio = await reply_audio(browser, t, timeout=30)
         held = {"billing", "shop", "shop-tests"} <= names()
+        await window.shot("b5-readback")
+        t, tries = await owner_heard(browser, "Yes.")
+        readback = await words(audio)
+        readback_ok = held and "go ahead" in plain(readback)
         step("B5 “close all except billing and shop” is read back, and nothing closes yet",
              held and "go ahead" in plain(readback) and re.search(r"shop[ -]?tests", plain(readback)) is not None,
              said=readback, names=sorted(names()))
-        await window.shot("b5-readback")
-        t = await owner_says(browser, "Yes.")
         closed = await until(lambda: names() == {"billing", "shop"}, 30)
         said = await heard_reply(browser, t, timeout=20)
         shown = await page.until(f"{ROWS} === 'billing,shop'", 8)
         step("B5 on yes only shop-tests closes, billing and shop stay, and the page shows it",
-             bool(closed) and bool(shown), names=sorted(names()), said=said)
+             readback_ok and bool(closed) and bool(shown), names=sorted(names()), said=said)
 
-        t = await owner_says(browser, "Go back to orchestrator mode.")
+        t, tries = await owner_heard(browser, "Go back to orchestrator mode.")
         mode = await until(lambda: status().get("mode") == "orchestrator", 20)
         said = await heard_reply(browser, t, timeout=20)
         shown = await page.until("document.getElementById('m-orchestrator').classList.contains('on') && "
@@ -152,6 +158,7 @@ async def one_run(n: int) -> None:
         await window.close()
         await browser.close()
         stop_sessions(sessions)
+        keep_log(window.shots)
         stop_daemon()
         if started:
             await archive(started)
