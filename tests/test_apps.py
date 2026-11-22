@@ -6,6 +6,7 @@ fake_tool.py), so this passes on Linux and builds nothing. The fixtures: the dev
 identifier replaced by an invented one; the other error texts are Apple's wording as Xcode and devicectl print it.
 The certificates are self-signed and synthetic. No real Team ID, device or person is in any of them."""
 
+import argparse
 import datetime
 import json
 import os
@@ -13,6 +14,7 @@ import plistlib
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -379,3 +381,63 @@ def test_the_docs_name_the_command_and_every_troubleshooting_row_has_its_fix_in_
         assert words in phone, words
     setup = (ROOT / "plugin" / "commands" / "setup.md").read_text()
     assert "bin/pointe apps doctor" in setup and "pointe apps" in (ROOT / "README.md").read_text()
+
+
+# ---------- the team and bundle ID outlast a plugin update ----------
+
+@pytest.fixture
+def plugin_copies(tmp_path, monkeypatch):
+    """Claude Code's plugin cache: one folder per version, no .git, the newest being the one that runs."""
+    cache = tmp_path / "plugins" / "cache" / "pointe" / "pointe"
+    for version in ("1.17.0", "1.18.0", "1.19.0"):
+        (cache / version / "ios").mkdir(parents=True)
+    monkeypatch.setattr(apps, "ROOT", cache / "1.19.0")
+    monkeypatch.setenv("CLAUDE_VOICE_STATE", str(tmp_path / "state"))
+    monkeypatch.delenv("POINTE_TEAM_FILE", raising=False)
+    monkeypatch.delenv("POINTE_APPS_BUILD", raising=False)
+    return cache
+
+
+def _saved(folder: Path, team: str, bundle: str, age: float) -> None:
+    (folder / ".team").write_text(team + "\n")
+    (folder / ".bundle-id").write_text(bundle + "\n")
+    os.utime(folder / ".team", (time.time() - age, time.time() - age))
+
+
+def test_a_plugin_update_keeps_the_team_and_bundle_id_so_the_iphone_keeps_one_app(plugin_copies, tmp_path):
+    _saved(plugin_copies / "1.17.0" / "ios", "OLDTEAM111", "com.example.old", age=900)
+    _saved(plugin_copies / "1.18.0" / "ios", "ABCDE12345", "com.example.mine", age=60)
+    assert apps.team_file() == tmp_path / "state" / "apps" / ".team", "the plugin's copy saves outside its version folder"
+    assert apps.take_over_saved() == plugin_copies / "1.18.0" / "ios", "the newest earlier copy"
+    assert apps.stored_team() == "ABCDE12345"
+    args = argparse.Namespace(bundle_id=None, dry_run=False)
+    assert apps.resolve_bundle_id(args, "ABCDE12345")[0] == "com.example.mine", "the same app, not a second one"
+    assert oct((tmp_path / "state" / "apps" / ".team").stat().st_mode & 0o777) == "0o600"
+    assert apps.take_over_saved() is None, "once: afterwards the saved one is the one"
+    _saved(plugin_copies / "1.17.0" / "ios", "OLDTEAM111", "com.example.old", age=0)
+    assert apps.stored_team() == "ABCDE12345"
+
+
+def test_builds_of_the_plugin_copy_outlast_it_and_a_clone_keeps_its_own(plugin_copies, tmp_path, monkeypatch):
+    assert apps.build_dir("ios") == tmp_path / "state" / "apps" / "build" / "ios"
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    monkeypatch.setattr(apps, "ROOT", clone)
+    assert apps.team_file() == clone / "ios" / ".team" and apps.build_dir("ios") == clone / "ios" / "build" / "apps"
+    assert apps.take_over_saved() is None
+
+
+def test_the_cli_takes_over_an_earlier_copys_team_once_and_says_so(plugin_copies, tmp_path, monkeypatch, capsys):
+    _saved(plugin_copies / "1.18.0" / "ios", "ABCDE12345", "com.example.mine", age=60)
+    monkeypatch.setattr(apps, "cmd_ios", lambda args: 0)
+    assert apps.main(["ios"]) == 0
+    assert "an earlier version of Pointe saved" in capsys.readouterr().out
+    assert (tmp_path / "state" / "apps" / ".bundle-id").read_text() == "com.example.mine\n"
+    apps.main(["ios"])
+    assert "earlier version" not in capsys.readouterr().out
+
+
+def test_a_long_status_word_keeps_a_space_before_its_line(capsys):
+    apps.say("not yet", "pointe apps ios       needs a signing certificate")
+    apps.say("ok", "built")
+    assert capsys.readouterr().out == "not yet pointe apps ios       needs a signing certificate\nok    built\n"

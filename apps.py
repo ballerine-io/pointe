@@ -6,8 +6,10 @@
     pointe apps ios --sim    build it for the iPhone Simulator and open it there (no Apple account, no iPhone)
 
 Runs on the Python that comes with Xcode (3.9), standard library only, and reaches no network itself: Xcode talks to
-Apple when it signs. A Team ID is never printed: output says "your team". The team lives in ios/.team and the bundle ID
-in ios/.bundle-id, both gitignored; the committed projects are not changed (the values go on xcodebuild's command line).
+Apple when it signs. A Team ID is never printed: output says "your team". The team and the bundle ID are saved where they
+outlast an update: in a clone, ios/.team and ios/.bundle-id (gitignored); in the plugin's copy, which Claude Code keeps
+one folder per version of, ~/.claude-voice/apps (an older copy's are taken over once, so an update keeps the same app
+and its pairing). The committed projects are not changed (the values go on xcodebuild's command line).
 Docs: docs/phone.md "Getting the app", docs/mac-app.md "Getting it"."""
 from __future__ import annotations
 
@@ -41,7 +43,7 @@ class Stop(Exception):
 
 def say(kind: str, text: str) -> None:
     lines = text.splitlines() or [""]
-    print(f"{kind:<6}{lines[0]}")
+    print(f"{kind:<6}{lines[0]}" if len(kind) < 6 else f"{kind} {lines[0]}")  # "not yet" is longer than the column
     for line in lines[1:]:
         print(f"      {line}")
     sys.stdout.flush()
@@ -71,14 +73,49 @@ def run(cmd: list[str], timeout: float | None = 120) -> tuple[int, str]:
         return 124, (e.stdout or "") if isinstance(e.stdout, str) else ""
 
 
+def is_clone(root: Path | None = None) -> bool:
+    """A git checkout (a clone or a worktree) keeps what it saves beside its sources. The plugin's copy has no .git."""
+    return ((root or ROOT) / ".git").exists()
+
+
+def saved_dir() -> Path:
+    """Where the team, the bundle ID and the builds outlast the next plugin version."""
+    return Path(os.environ.get("CLAUDE_VOICE_STATE") or Path.home() / ".claude-voice") / "apps"
+
+
 def build_dir(platform: str) -> Path:
     base = os.environ.get("POINTE_APPS_BUILD")
+    if base:
+        return Path(base) / platform
+    if not is_clone():
+        return saved_dir() / "build" / platform
     folder, _, kind = platform.partition("-")  # "ios-sim": beside the device build, under ios/build (gitignored)
-    return Path(base) / platform if base else ROOT / folder / "build" / ("apps-" + kind if kind else "apps")
+    return ROOT / folder / "build" / ("apps-" + kind if kind else "apps")
 
 
 def team_file() -> Path:
-    return Path(os.environ.get("POINTE_TEAM_FILE") or ROOT / "ios" / ".team")
+    if os.environ.get("POINTE_TEAM_FILE"):
+        return Path(os.environ["POINTE_TEAM_FILE"])
+    return ROOT / "ios" / ".team" if is_clone() else saved_dir() / ".team"
+
+
+def take_over_saved() -> Path | None:
+    """The plugin's copy, the first time it runs: the team and bundle ID an earlier version saved inside its own folder
+    (before 1.19.0, ios/.team there), so the build updates the same app on the iPhone instead of adding a second one
+    with a new pairing. The newest such folder wins; its two files are copied together, as they belong together.
+    Returns the folder taken from, if any."""
+    if os.environ.get("POINTE_TEAM_FILE") or is_clone() or team_file().exists():
+        return None
+    found = [ROOT / "ios", *(p / "ios" for p in ROOT.parent.iterdir() if p != ROOT and p.is_dir())] \
+        if ROOT.parent.is_dir() else []
+    found = [d for d in found if (d / ".team").is_file()]
+    if not found:
+        return None
+    newest = max(found, key=lambda d: (d / ".team").stat().st_mtime)
+    for name in (".team", ".bundle-id"):
+        if (newest / name).is_file():
+            _write(saved_dir() / name, (newest / name).read_text().strip())
+    return newest
 
 
 def bundle_file() -> Path:
@@ -216,7 +253,7 @@ def resolve_team(args, signing: dict | None = None, quiet: bool = False) -> str 
         if saved and bundle_file().exists() and not os.environ.get("POINTE_BUNDLE_ID"):
             bundle_file().unlink()  # a bundle ID registered to the old team cannot be signed by the new one
         if not quiet:
-            ok(f"Using your team ({how}); saved in {shown(team_file())}, which git ignores.")
+            ok(f"Using your team ({how}); saved in {shown(team_file())}" + (", which git ignores." if is_clone() else "."))
     return chosen
 
 
@@ -804,6 +841,8 @@ def main(argv: list[str] | None = None) -> int:
         p.print_help()
         return 2
     try:
+        if args.command != "doctor" and not getattr(args, "dry_run", False) and take_over_saved():
+            note(f"Using the team and bundle ID an earlier version of Pointe saved; now kept in {shown(team_file().parent)}.")
         return {"doctor": cmd_doctor, "mac": cmd_mac, "ios": cmd_ios}[args.command](args)
     except Stop as stop:
         print()
