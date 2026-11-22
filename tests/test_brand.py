@@ -87,7 +87,7 @@ def test_the_page_icons_are_inline_and_the_same_bytes_as_the_site_ones():
 
 
 def test_every_pointe_site_page_has_the_icons_and_the_lockup_in_its_header():
-    for page in ("index.html", "roadmap/index.html", "contribute/index.html"):
+    for page in ("index.html", "roadmap/index.html", "contribute/index.html", "features/index.html"):
         path = ROOT / "site" / "pointe" / page
         html = path.read_text()
         refs = re.findall(r'(?:href|src|srcset)="([^"]*brand/[^"]+)"', html)
