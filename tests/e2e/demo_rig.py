@@ -183,7 +183,13 @@ async def reply_audio(browser: Browser, since: float, timeout: float = 40, quiet
 
 
 async def words(pcm) -> str:
-    return await transcribe(pcm) if pcm is not None else ""
+    """What the bot said, by the test's transcriber; bounded, since a stalled request to it once hung a run for good."""
+    if pcm is None:
+        return ""
+    try:
+        return await asyncio.wait_for(transcribe(pcm), 90)
+    except asyncio.TimeoutError:
+        return "(the test's transcriber did not answer)"
 
 
 async def heard_reply(browser: Browser, since: float, timeout: float = 40, quiet: float = 2.5) -> str:
