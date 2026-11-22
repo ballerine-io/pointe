@@ -158,8 +158,10 @@ def test_the_wire_format_and_the_keys_are_the_daemons():
     assert 'isLocal ? "Mac" : "iPhone"' in daemon_link and "hello.get(\"device\") == \"Mac\"" in (ROOT / "daemon.py").read_text()
     locator = (KIT / "PointeMacKit" / "DaemonLocator.swift").read_text()
     cases = re.search(r"enum Vendor: [^{]*\{\s*case ([^\n]+)", locator).group(1).replace(" ", "").split(",")
-    assert sorted(cases) == sorted(vendors.KEYS) and 'var service: String { "\\(rawValue)-api-key" }' in locator
-    assert all(item == f"{vendor}-api-key" for vendor, (_, item) in vendors.KEYS.items())
+    assert sorted(cases) == sorted(vendors.KEYS) and 'var service: String { "pointe.\\(rawValue)-api-key" }' in locator
+    assert 'var legacyService: String { "\\(rawValue)-api-key" }' in locator
+    assert all(item == f"pointe.{vendor}-api-key" for vendor, (_, item) in vendors.KEYS.items())
+    assert all(item == f"{vendor}-api-key" for vendor, item in vendors.LEGACY_ITEMS.items())
     client = (KIT / "PointeKit" / "DaemonClient.swift").read_text()
     import guards
     assert f'cookieName = "{guards.LOCAL_COOKIE}"' in client

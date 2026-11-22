@@ -46,7 +46,11 @@ production.cloudflare.docker.com   twingate/connector:1 (bin/voice-connector onl
 
 # shown to a person, never contacted
 link docs.astral.sh        where to install uv by hand (bin/voice-daemon, bin/voice-doctor, bin/voice-node, node_cli.py)
-link aistudio.google.com   where to get a Gemini key (doctor.py, bench)
+link aistudio.google.com   where to get a Gemini key (doctor.py, keys.py opens it for the person, bench)
+link console.anthropic.com where to get an Anthropic key (keys.py opens it for the person)
+link platform.openai.com   where to get an OpenAI key (keys.py opens it for the person)
+link console.soniox.com    where to get a Soniox key (keys.py opens it for the person)
+link elevenlabs.io         where to get an ElevenLabs key (keys.py opens it for the person)
 link platform.claude.com   where to get an Anthropic key (bench)
 link developers.openai.com where OpenAI's models are documented (bench)
 link code.claude.com       where to get Claude Code (doctor.py, site)

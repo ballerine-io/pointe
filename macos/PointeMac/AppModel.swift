@@ -209,11 +209,10 @@ final class AppModel {
     /// After Add…, one tiny live call says whether the saved key works (`pointe key check`): the app never sees the key.
     func addKey(_ vendor: Vendor) async {
         guard let plugin else { keyNote = MacCopy.noPlugin; return }
-        let saved = (try? await locator.addKey(vendor, plugin: plugin)) ?? "The key window did not open."
+        keyNote = "Paste the key in the window that opened. Pointe checks it, saves it and restarts."
+        // `pointe key` checks the key with one tiny call, asks again when it is refused, and restarts Pointe on it.
+        keyNote = (try? await locator.addKey(vendor, plugin: plugin)) ?? "The key window did not open."
         refreshKeys()
-        guard saved.hasPrefix("Saved") else { keyNote = saved; return }
-        keyNote = "Saved. Checking it…"
-        keyNote = (try? await locator.checkKey(vendor, plugin: plugin)) ?? saved
     }
 
     /// `pointe setup <id>`: the daemon uses exactly that setup's vendors after a restart.

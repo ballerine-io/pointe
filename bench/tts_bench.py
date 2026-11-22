@@ -47,8 +47,15 @@ OPENAI_VOICE = "ash"
 _SECRETS: set[str] = set()
 
 
+def _pointe_first(item: str) -> str:
+    """Pointe saves keys as pointe.<item> since 1.19.0 (vendors.KEYS); the old name is the fallback."""
+    named = f"pointe.{item}"
+    found = subprocess.run(["security", "find-generic-password", "-s", named], capture_output=True)
+    return named if found.returncode == 0 else item
+
+
 def keychain(item: str) -> str:
-    value = subprocess.run(["security", "find-generic-password", "-s", item, "-w"],
+    value = subprocess.run(["security", "find-generic-password", "-s", _pointe_first(item), "-w"],
                            capture_output=True, text=True, check=True).stdout.strip()
     _SECRETS.add(value)
     return value

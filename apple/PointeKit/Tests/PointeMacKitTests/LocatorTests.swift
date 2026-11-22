@@ -202,7 +202,8 @@ struct Sandbox {
     }
 
     @Test func eachVendorsKeychainItemIsTheDaemons() {
-        #expect(Vendor.allCases.map(\.service) == ["gemini-api-key", "openai-api-key", "anthropic-api-key", "soniox-api-key", "elevenlabs-api-key"])
+        #expect(Vendor.allCases.map(\.service) == ["pointe.gemini-api-key", "pointe.openai-api-key", "pointe.anthropic-api-key", "pointe.soniox-api-key", "pointe.elevenlabs-api-key"])
+        #expect(Vendor.allCases.map(\.legacyService) == ["gemini-api-key", "openai-api-key", "anthropic-api-key", "soniox-api-key", "elevenlabs-api-key"])
     }
 }
 #endif

@@ -24,12 +24,15 @@ import assets
 import setups
 
 KEYS = {
-    "gemini": ("GOOGLE_API_KEY", "gemini-api-key"),
-    "openai": ("OPENAI_API_KEY", "openai-api-key"),
-    "anthropic": ("ANTHROPIC_API_KEY", "anthropic-api-key"),
-    "soniox": ("SONIOX_API_KEY", "soniox-api-key"),
-    "elevenlabs": ("ELEVENLABS_API_KEY", "elevenlabs-api-key"),
+    "gemini": ("GOOGLE_API_KEY", "pointe.gemini-api-key"),
+    "openai": ("OPENAI_API_KEY", "pointe.openai-api-key"),
+    "anthropic": ("ANTHROPIC_API_KEY", "pointe.anthropic-api-key"),
+    "soniox": ("SONIOX_API_KEY", "pointe.soniox-api-key"),
+    "elevenlabs": ("ELEVENLABS_API_KEY", "pointe.elevenlabs-api-key"),
 }
+# The names before 1.19.0. Still read, after Pointe's own, so a key saved then keeps working; never written or deleted
+# here, because another tool may keep an item of the same name.
+LEGACY_ITEMS = {vendor: item.removeprefix("pointe.") for vendor, (_, item) in KEYS.items()}
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names
 LOCAL = "local"  # needs no key: Whisper and Kokoro on this machine, and an OpenAI-compatible server for text models
 LOCAL_URL = "http://localhost:11434/v1"  # Ollama; CLAUDE_VOICE_LOCAL_URL or "local_url" points it at mlx-lm, LM Studio, vLLM...
@@ -83,14 +86,15 @@ def key(vendor: str) -> str | None:
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
         return value
-    try:
-        got = subprocess.run(["security", "find-generic-password", "-s", item, "-w"], capture_output=True, text=True,
-                             timeout=5)
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if not got.returncode and got.stdout.strip():
-        os.environ[env] = got.stdout.strip()
-        return os.environ[env]
+    for name in (item, LEGACY_ITEMS[vendor]):
+        try:
+            got = subprocess.run(["security", "find-generic-password", "-s", name, "-w"], capture_output=True,
+                                 text=True, timeout=5)
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        if not got.returncode and got.stdout.strip():
+            os.environ[env] = got.stdout.strip()
+            return os.environ[env]
     return None
 
 

@@ -230,7 +230,9 @@ public enum Vendor: String, CaseIterable, Identifiable, Sendable {
     case gemini, openai, anthropic, soniox, elevenlabs
 
     public var id: String { rawValue }
-    public var service: String { "\(rawValue)-api-key" }
+    public var service: String { "pointe.\(rawValue)-api-key" }
+    /// The item's name before 1.19.0 (`vendors.LEGACY_ITEMS`): still read, never written.
+    public var legacyService: String { "\(rawValue)-api-key" }
     public var label: String {
         switch self {
         case .gemini: "Google Gemini"
