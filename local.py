@@ -89,7 +89,7 @@ def write_config(text_model: str = TEXT_MODEL) -> None:
     path, current = _config_path(), _save_before()
     current.pop("voice_local", None)
     current.update(brain=f"local:{text_model}", reader=f"local:{text_model}", checker=f"local:{text_model}",
-                   ears="local", mouth=MOUTH, local_only=True, local_url=url())
+                   ears="local", mouth=MOUTH, local_only=True, local_url=url(), setup="local")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(current, indent=2) + "\n")
 
@@ -103,7 +103,7 @@ def write_voice_config() -> None:
             current.pop(role)
     for gone in ("local_only", "local_url"):
         current.pop(gone, None)
-    current.update(ears=vendors.LOCAL, mouth=VOICE_MOUTH, voice_local=True)
+    current.update(ears=vendors.LOCAL, mouth=VOICE_MOUTH, voice_local=True, setup="voice-local")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(current, indent=2) + "\n")
 
@@ -115,6 +115,8 @@ def restore_config() -> None:
         saved.unlink()
     else:
         restored = {k: v for k, v in vendors.config().items() if k not in LOCAL_KEYS}
+    if restored.get("setup") in ("local", "voice-local"):
+        restored.pop("setup")
     _config_path().write_text(json.dumps(restored, indent=2) + "\n")
 
 

@@ -779,7 +779,11 @@
   .settings #ph-qr { padding: 16px 14px 14px; } .settings #ph-qr .help { padding: 0; }
   .settings #ph-qr .row { padding: 0; gap: 12px; }
   .settings #ph-done { padding: 12px 14px; margin: 0; }
-  .settings #pref-local { font-size: 14px; color: var(--text); }
+  .settings #pref-local, .settings #pref-keys-line { font-size: 14px; color: var(--text); }
+  .settings #pref-keys .r + .r, .settings #pref-setups .r + .r { border-top: 1px solid var(--line); }
+  .settings #pref-setups .shead2 { display: flex; justify-content: space-between; gap: 10px; }
+  .settings #pref-setups code:empty { display: none; }
+  .settings #pref-keys .kstate { color: var(--muted); } .settings #pref-keys .kstate.inUse { color: var(--text); }
   .settings #mach-invite { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
   .settings #mach-invite .note { padding: 0; }
   .settings #pref-consent .note { padding-bottom: 4px; } .settings #pref-consent .row { padding-top: 0; }
@@ -1109,6 +1113,7 @@
         <button type="button" data-section="g-briefings" onclick="settingsJump('g-briefings')">Briefings</button>
         <button type="button" data-section="g-meetings" onclick="settingsJump('g-meetings')">Meetings</button>
         <button type="button" data-section="g-local" onclick="settingsJump('g-local')">Local mode</button>
+        <button type="button" data-section="g-keys" onclick="settingsJump('g-keys')">Model keys</button>
         <button type="button" data-section="g-show" onclick="settingsJump('g-show')">Show while it says</button>
         <button type="button" data-section="g-mic" onclick="settingsJump('g-mic')">Microphone</button>
         <button type="button" data-section="g-turns" onclick="settingsJump('g-turns')">Turn taking</button>
@@ -1243,6 +1248,14 @@
         <section class="group" id="g-local">
           <h3>Local mode</h3>
           <div class="card"><div class="note" id="pref-local"></div></div>
+        </section>
+        <section class="group" id="g-keys">
+          <h3>Model keys</h3>
+          <div class="card"><div class="note" id="pref-keys-line"></div><div id="pref-keys"></div></div>
+          <div class="note foot" id="pref-setups-h"></div>
+          <div class="card"><div id="pref-setups"></div></div>
+          <div class="note foot"><b id="pref-keys-title"></b> <span id="pref-keys-need"></span> <span id="pref-keys-sub"></span>
+            <span id="pref-keys-how"></span></div>
         </section>
         <section class="group" id="g-show">
           <h3>Show while it says</h3>
@@ -3379,9 +3392,40 @@
     repoURL: 'https://github.com/ballerine-io/pointe', maker: 'ballerine.com', makerURL: 'https://ballerine.com', version: 'Version'};
   text('about-body', ABOUT_COPY.body); text('about-repo', ABOUT_COPY.repo); text('about-maker', ABOUT_COPY.maker);
   text('about-ver-label', ABOUT_COPY.version); $('about-repo').href = ABOUT_COPY.repoURL; $('about-maker').href = ABOUT_COPY.makerURL;
+  // Settings → Model keys: the same words as /pointe:setup, the doctor and the Mac app (vendors.WHAT_YOU_NEED, KeyCopy;
+  // tests/test_key_setup.py). A key no role needs is Optional, never Missing.
+  const KEYS_COPY = {title: 'What do I need?',
+    need: 'Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.',
+    why: 'Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe\'s voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk.',
+    how: 'Add or replace a key on the Mac: pointe key <vendor>, or the Mac app\'s Settings. Restart Pointe to use it.',
+    setups: 'Setups', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
+    inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional'};
+  const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional'};
+  text('pref-keys-title', KEYS_COPY.title); text('pref-keys-need', KEYS_COPY.need); text('pref-keys-sub', KEYS_COPY.why);
+  text('pref-keys-how', KEYS_COPY.how); text('pref-setups-h', KEYS_COPY.setups);
+  function showKeys() {
+    const k = status && status.keys;
+    $('pref-keys-line').textContent = (k && k.line) || 'Pointe on this Mac does not report it: update it.';
+    $('pref-keys').replaceChildren(...Object.entries((k && k.keys) || {}).map(([vendor, st]) => {
+      const uses = (k.uses || {})[vendor] || [];
+      const row = el('div', 'r');
+      row.append(el('span', '', VENDOR[vendor] || vendor),
+                 el('span', 'kstate ' + (KEY_STATE[st] || ''), (KEYS_COPY[KEY_STATE[st]] || st) + (uses.length ? ': ' + uses.join(', ') : '')));
+      return row;
+    }));
+    $('pref-setups').replaceChildren(...((k && k.setups) || []).map(x => {
+      const row = el('div', 'r col'), head = el('div', 'shead2');
+      head.append(el('b', '', x.name), el('span', 'kstate', x.id === k.setup ? KEYS_COPY.current : x.cost));
+      row.append(head, el('span', 'help', `${x.short} For ${x.pick_for}.`),
+                 el('code', '', x.id === k.setup ? '' : KEYS_COPY.switchTo + x.id));
+      return row;
+    }));
+    $('pref-setups-h').hidden = !(k && k.setups && k.setups.length);
+  }
   async function openSettings() {
     // The sheet opens on the click, with the values it last had; the Mac's answers fill it in as they land.
     $('pref-local').textContent = (status && status.local && status.local.line) || 'Pointe on this Mac does not report it: update it.';
+    showKeys();
     pendingKey = ptt.key; $('pref-key').textContent = keyName(ptt.key); $('pref-style').value = ptt.style;
     const talkCmd = (status && status.talk_command) || '';
     $('pref-talk').hidden = !talkCmd; $('pref-talk-cmd').textContent = talkCmd; $('pref-talk-copy').textContent = 'Copy command';

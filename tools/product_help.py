@@ -537,6 +537,25 @@ TOPICS = (
                                                    "allow it", "לאשר", "לסרב", "בקשת הרשאה", "אישור"),
           "When a session asks permission, Pointe reads it out: say yes or no, or tap on its card.",
           iphone=(("card", "Approve|Deny"),), page=(("card", "Approve|Deny"),)),
+    Topic("keys", "Which model keys you need, and the setups",
+          ("which keys", "what keys", "keys do i need", "model key", "model keys", "api key", "api keys", "add a key",
+           "claude subscription", "my subscription", "claude pro", "claude max", "anthropic key", "gemini key", "soniox key",
+           "missing key", "do i need all the keys", "which setup", "switch setup", "change the setup", "free start",
+           "איזה מפתחות", "מפתח", "מפתחות", "מנוי"),
+          # vendors.WHAT_YOU_NEED and setups.WHY_KEYS, word for word (tests/test_key_setup.py)
+          "Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with "
+          "billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). "
+          "Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy "
+          "hour. Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, "
+          "the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps "
+          "can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is "
+          "billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
+          page=(("settings", "Model keys"),), mac=(),
+          page_note="It shows the setup in use, each key as In use, Saved, not used, Needed or Optional, and the setups "
+                    "to switch to. Keys are added on the Mac: pointe key <vendor>, or /pointe:setup.",
+          iphone_note="The keys live in the Mac's Keychain: see them in the page's or the Mac app's Settings, Model keys.",
+          mac_note="In the Mac app's Settings, under Model keys: the Setup menu, each key's state, and Add…, which opens the "
+                   "window that saves a key and then checks it."),
     Topic("settings", "Where the settings are", ("settings", "where are the settings", "preferences", "options", "menu",
                                                  "הגדרות", "איפה ההגדרות", "תפריט"),
           "All settings are in one place on each surface.",

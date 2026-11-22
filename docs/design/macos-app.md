@@ -232,7 +232,7 @@ was rejected: it needs Input Monitoring and sees every key.
 - **First run.** A short guide in the window, each step with its state: the plugin (found, or the install command to
   copy), a model key (present in the Keychain or the environment as the daemon reports through its preflight, or
   `pointe local`), the daemon (Start), the microphone (Allow), a session (run `/pointe:voice`).
-- **Keys.** The app never reads, shows, stores or logs a key. "In the Keychain" is `SecItemCopyMatching` for the
+- **Keys.** The app never reads, shows, stores or logs a key. Whether a key is there is `SecItemCopyMatching` for the
   service names in `vendors.KEYS` (`gemini-api-key`, `anthropic-api-key`, …) asking for attributes only, which loads
   no secret and raises no prompt. "Add…" runs the plugin's `bin/pointe key <vendor>`: the existing hidden-input dialog,
   with `security` storing the key through its own prompt.

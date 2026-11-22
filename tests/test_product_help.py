@@ -54,6 +54,10 @@ spec.loader.exec_module(gen)
     ("Can you start a new agent for me?", "new-session"),
     ("איך פותחים סשן חדש?", "new-session"),
     ("How do I join a session to the voice?", "join-session"),
+    ("Which keys do I need?", "keys"),
+    ("Can I use my Claude subscription instead of an API key?", "keys"),
+    ("Do I need all the keys?", "keys"),
+    ("איזה מפתחות צריך?", "keys"),
 ])
 def test_a_question_finds_its_topic_first(question, topic):
     found = howto.lookup(question)

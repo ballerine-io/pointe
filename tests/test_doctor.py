@@ -33,7 +33,7 @@ def test_an_unmeasured_mix_says_so():
 
 def test_the_best_setup_has_nothing_to_add():
     keys = {"anthropic", "soniox", "gemini", "elevenlabs"}
-    assert doctor.advice(keys, keys)[-1] == "You have every key the best measured setup uses."
+    assert doctor.advice(keys, keys)[-1] == "You have every key of the fastest and most accurate voice setup."
 
 
 def test_every_measured_result_is_filled_in():

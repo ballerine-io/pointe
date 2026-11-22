@@ -12,6 +12,19 @@ Then start a new Claude Code session. It says "Pointe is installed. Run /pointe:
 your Mac, installs what is missing, helps you choose model vendors (with measured quality and cost), opens a Mac window
 for each key so it goes straight to your Keychain, starts your first voice call, and can set up your phone.
 
+**What do I need?** Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy
+hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20).
+Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.
+
+Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and
+the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so
+Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use:
+about $1 for a busy hour of talk.
+
+The setups side by side, what each key does in them, what each measured and where your words go:
+[setups.md](setups.md). `/pointe:setup` asks which one you want, then only for its keys; [Try it for free or
+cheap](#try-it-for-free-or-cheap) has the free and cheap ways in.
+
 If macOS asks to install the command line developer tools, press Install, wait for it to finish, and run the command
 again: Claude Code needs `git` to fetch the plugin.
 

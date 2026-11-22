@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.18
+
+- **1.18.0** (2026-11-22): Setup asks one question, which setup, then only for its keys and checks each with a tiny live call; `pointe setup` lists the six setups with their measured results, cost and where your words go, and switches between them; a key the setup does not need shows as optional, not missing; a Claude subscription is explained as not an API key.
+
 ## 1.17
 
 - **1.17.0** (2026-11-21): The Mac app has everything the page and the iPhone app have, on the iPhone app's own screens: meetings, briefings, challenge, whisper, the dictionary, the voice lock, machines, pairing a phone and the rest, with the page's sessions column in a wide window; Pointe's own help knows the Mac app; it needs macOS 15.

@@ -120,7 +120,7 @@
       <div><dt class="kicker">Cost</dt><dd>About $1 for a busy hour (60 replies) on your own keys, by arithmetic. Free on one Gemini key's free tier. $0 fully local.</dd></div>
       <div><dt class="kicker">Models</dt><dd>You set each role. Defaults: Claude Sonnet 5.5 thinks, Soniox hears, ElevenLabs speaks. Or Gemini or OpenAI alone, or Whisper, Kokoro and Gemma on the Mac.</dd></div>
       <div><dt class="kicker">Needs</dt><dd>macOS, Claude Code 2.1.224 or newer, Chrome, headphones, one model key. The Mac and iPhone apps are optional, built from source.</dd></div>
-      <div><dt class="kicker">License</dt><dd>MIT. Version <span data-version>1.17.0</span>.</dd></div>
+      <div><dt class="kicker">License</dt><dd>MIT. Version <span data-version>1.18.0</span>.</dd></div>
       <div><dt class="kicker">Source</dt><dd><a class="link" href="https://github.com/ballerine-io/pointe">github.com/<wbr>ballerine-io/<wbr>pointe</a></dd></div>
     </dl>
   </div>
@@ -552,9 +552,9 @@
         <ol class="steps">
           <li><div><span class="title">Install the plugin</span>Two commands, from the repository.</div></li>
           <li><div><span class="title">Run <code>/pointe:setup</code> in a new Claude Code session</span>It checks your
-            Mac and installs uv if it is missing, shows vendors with measured quality and cost, stores each key in the
-            macOS Keychain through a system window (never in the chat), starts your first call, and can pair your
-            phone.</div></li>
+            Mac and installs uv if it is missing, asks which setup you want (one Gemini key is enough to start), asks only
+            for that setup's keys and stores each in the macOS Keychain through a system window (never in the chat),
+            checks each one, starts your first call, and can pair your phone.</div></li>
           <li><div><span class="title">Run <code>/pointe:voice</code> in each session you want to reach</span>The first
             run downloads about 180 MB. A tab opens: allow the microphone, press Connect, and talk. OpenCode and Codex
             sessions join with <code>pointe join</code>. Later, say "start a new Codex session in shop" and
@@ -580,7 +580,7 @@
       </div>
       <p class="small note">To try it free: one Google AI Studio key, no card. The quota is small, and Google may review
         what you send on that tier. With local voice and one text key, a busy hour is about $0.30 to $0.40. You pay the
-        vendors directly. Other setups: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">benchmarks.md</a>.
+        vendors directly. Which keys each setup needs, and what it measured: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/setups.md">setups.md</a>.
         More install options, including the Claude desktop app: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/install.md">install.md</a>.</p>
     </div>
   </section>

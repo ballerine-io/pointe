@@ -21,6 +21,7 @@ from pathlib import Path
 from loguru import logger
 
 import assets
+import setups
 
 KEYS = {
     "gemini": ("GOOGLE_API_KEY", "gemini-api-key"),
@@ -177,6 +178,16 @@ def pick(env: str, order: list[str]) -> str:
         if not has(wanted.split(":")[0]):
             raise SystemExit(f"{env}={wanted} needs a key: {missing_key_help(wanted.split(':')[0])}")
         return wanted
+    chosen = setups.chosen(config())
+    if chosen is not None and chosen.local != "all":
+        allowed = {*chosen.keys, *chosen.optional}
+        order = [c for c in order if c.split(":")[0] in allowed]
+        for choice in order:
+            if has(choice.split(":")[0]):
+                return choice
+        need = next(c.split(":")[0] for c in order if c.split(":")[0] in chosen.keys)
+        raise SystemExit(f"{env}: the setup {chosen.name} needs its {NAMES[need]} key: {missing_key_help(need)}. "
+                         "Another setup: pointe setup")
     for choice in order:
         if has(choice.split(":")[0]):
             return choice
@@ -213,6 +224,75 @@ def resolve(front: str = "brain") -> Setup:
     if voice_local() and not local_only():
         s.notes.append(f"{VOICE_LOCAL}: ears and mouth run on this Mac; the text models get text only.")
     return s
+
+
+# ---------- which keys a person needs: the one answer /pointe:setup, the doctor, the docs, the page and the Mac app give ----------
+
+ROLE_ORDERS = {"brain": BRAIN_ORDER, "reader": READER_ORDER, "checker": CHECKER_ORDER, "ears": EARS_ORDER, "mouth": MOUTH_ORDER}
+# Each of these alone fills every role (tests/test_key_setup.py resolves each). Costs: docs/benchmarks.md, "Other setups".
+START_KEYS = (("gemini",), ("openai",), ("soniox", "anthropic"))
+WHAT_YOU_NEED = ("Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour "
+                 "with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about "
+                 "$1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), "
+                 "about $1 a busy hour.")
+# Pointe calls the vendors' APIs with its own key: a Claude.ai login is not one (key() reads ANTHROPIC_API_KEY only).
+WHY_KEYS = setups.WHY_KEYS
+# The one key to suggest when a role is empty and no setup is chosen: the ears' measured lead first (docs/benchmarks.md).
+FIX_ORDER = ("soniox", "anthropic", "elevenlabs", "gemini", "openai")
+NAMES = {"gemini": "Gemini", "openai": "OpenAI", "anthropic": "Anthropic", "soniox": "Soniox", "elevenlabs": "ElevenLabs"}
+ROLE_WORDS = {"brain": "think", "reader": "read your sessions", "checker": "check each send", "ears": "hear you",
+              "mouth": "speak"}
+
+
+def filled(present: set[str], voice_on_mac: bool = False, setup: "setups.Setup | None" = None) -> dict[str, str | None]:
+    """Each role's vendor with only these keys and no role chosen by hand, None where no key fills it. A chosen setup
+    allows only its own vendors; one that runs a role on this Mac fills it with LOCAL."""
+    if setup is not None:
+        present = present & {*setup.keys, *setup.optional}
+        voice_on_mac = voice_on_mac or bool(setup.local)
+    roles = {}
+    for role, order in ROLE_ORDERS.items():
+        if (voice_on_mac and role in ("ears", "mouth")) or (setup is not None and setup.local == "all"):
+            roles[role] = LOCAL
+        else:
+            roles[role] = next((c.split(":")[0] for c in order if c.split(":")[0] in present), None)
+    return roles
+
+
+def _words(items: list[str], last: str = "or") -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + f" {last} " + items[-1]
+
+
+def _a(name: str) -> str:
+    return f"{'an' if name[0] in 'AEIOU' else 'a'} {name}"
+
+
+def key_status(present: set[str], voice_on_mac: bool = False, setup: "setups.Setup | None" = None) -> dict:
+    """What each key does here, and the one problem worth saying. With a setup chosen, a key it uses and that is not
+    there is "needed", and every other key "optional". With none, an empty role names the single key that fills it.
+    A key no role needs is "optional", never "missing"."""
+    roles = filled(present, voice_on_mac, setup)
+    empty = [r for r, v in roles.items() if v is None]
+    if setup is not None:
+        needed = [v for v in setup.keys if v not in present]
+    elif empty:
+        needed = ["gemini"] if not present else [next(v for v in FIX_ORDER if None not in filled(present | {v}, voice_on_mac).values())]
+    else:
+        needed = []
+    uses = {v: [r for r, x in roles.items() if x == v] for v in KEYS}
+    keys = {v: ("in use" if uses[v] else "not used") if v in present else "needed" if v in needed else "optional" for v in KEYS}
+    head = f"Setup: {setup.name}. " if setup is not None else ""
+    if setup is not None and needed:
+        line = head + f"It needs {_words([_a(NAMES[v]) for v in needed], 'and')} key: pointe key {needed[0]}."
+    elif not empty and not needed:
+        line = head + "Every role is filled." + (" The other keys are optional: not needed with your current keys."
+                                                 if "optional" in keys.values() else "")
+    elif not present:
+        line = f"No model key yet. {WHAT_YOU_NEED}"
+    else:
+        line = f"Pointe cannot {_words([ROLE_WORDS[r] for r in empty])} yet: add {_a(NAMES[needed[0]])} key."
+    return {"roles": roles, "empty": empty, "fix": needed[0] if needed else None, "needed": needed, "keys": keys,
+            "uses": uses, "line": line}
 
 
 # ---------- text models: one call shape for the gates and the reader ----------

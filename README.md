@@ -36,9 +36,31 @@ Pointe:  Duplicate charges during failover. It decided that an hour ago.
 
 ## Install
 
-You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome, headphones, and one model key, or an
-Apple-silicon Mac with 32 GB of memory for the fully local mode. The cheapest start is one Google AI Studio key, which
-has a free tier: [Try it for free or cheap](#try-it-for-free-or-cheap).
+You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome, headphones, and API keys from one or
+two model vendors, or an Apple-silicon Mac with 32 GB of memory for the fully local mode. The cheapest start is one
+Google AI Studio key, which has a free tier: [Try it for free or cheap](#try-it-for-free-or-cheap).
+
+**What do I need?** Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy
+hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20).
+Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.
+
+Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and
+the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so
+Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use:
+about $1 for a busy hour of talk.
+
+<!-- setups: written by tools/setups.py from setups.py -->
+| Setup (`pointe setup <id>`) | Keys | Measured | A busy hour | Pick it for |
+|---|---|---|---|---|
+| Free start (`free`) | Gemini | 28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19); replies took 4.0 to 4.5 s | $0 until the free quota ends; about $0.70 to $0.95 with billing on | just trying it; no budget |
+| One OpenAI key (`openai`) | OpenAI | 24 of 35 audio checks; whole replies not measured; the brain answers in 2.4 s at the median | about $0.95 | you already pay for OpenAI |
+| Two keys (`two`) | Soniox + Anthropic | 30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work; whole replies not measured; the brain answers in 1.8 s at the median, the voice starts in 301 ms | about $1.20 | the best ears with two accounts; laptop speakers |
+| Fastest and most accurate voice (`full`) | Anthropic + Soniox + ElevenLabs + Gemini | 34 of 35 audio checks, echo guard 4 of 4: the highest whole-setup result; replies in 2.4 s at the median (2.0 to 2.6), the fastest measured | about $1 | daily use |
+| Voice stays on your Mac (`voice-local`) | Anthropic (Gemini optional) | 30 of 35 audio checks, with Anthropic and Gemini keys; replies in 4.1 s at the median | about $0.40 (Anthropic and Gemini) | confidential work where text may leave the Mac but your voice may not |
+| Fully local (`local`) | none | 10 of 19 one-session audio checks, every approval check among them; replies took 5.8 to 11.6 s | $0 | nothing may leave the Mac; no budget with a 32 GB Mac |
+
+Sources, speed and where your words go: [docs/setups.md](docs/setups.md).
+<!-- end setups -->
 
 ```
 claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
@@ -246,24 +268,17 @@ files and what they hold: [SECURITY.md](SECURITY.md#files).
 Each role is separate. Set any of them in `~/.claude-voice/config.json`, or with `CLAUDE_VOICE_<ROLE>` (the environment
 wins). A role you do not set takes the first vendor with a key.
 
-| Role | Does | Best measured |
+| Role | Does | Default (why: [docs/benchmarks.md](docs/benchmarks.md)) |
 |---|---|---|
 | `ears` | speech to text | `soniox` |
-| `brain` | decides what to say and do | `anthropic:claude-sonnet-5-5` |
-| `reader` | reads whole sessions and reports | `anthropic:claude-sonnet-5-5` |
-| `checker` | checks each send against what you asked | `gemini:gemini-3.5-flash-lite` |
-| `mouth` | text to speech | `elevenlabs:eleven_v4_turbo` |
+| `brain` | understands you and replies | `anthropic:claude-sonnet-5-5` |
+| `reader` | turns session output into short reports | `anthropic:claude-sonnet-5-5` |
+| `checker` | a safety check on each send and approval | `gemini:gemini-3.5-flash-lite` |
+| `mouth` | the voice | `elevenlabs:eleven_v4_turbo` |
 
-| Keys | Full audio test (real sessions, synthetic speech) | A busy hour |
-|---|---|---|
-| Anthropic, Soniox, ElevenLabs, Gemini | 34 of 35; echo 4 of 4 | about $1 |
-| Anthropic, Soniox | 30 of 35 (31 with the two-session suite rerun); echo 3 of 4 | about $1.20 |
-| Gemini only (no echo guard: use headphones; replies take about 4 s) | 28 of 35; echo 0 of 4 | about $0.70 to $0.95 (free while a free-tier quota lasts) |
-| OpenAI only (no echo guard: use headphones; weak on Hebrew) | 24 of 35; echo 0 of 4 | about $0.95 |
-| Anthropic, Gemini, voice on the Mac (`pointe local voice`; headphones; English speech only) | 30 of 35; echo 3 of 4, then 1 of 4 on four reruns | about $0.40 |
-
-The audio test is the three suites in `tests/e2e/run_all.sh` with only those keys visible, one run each on 2026-11-13. `bin/voice-doctor` tells you which row you are on.
-The hourly cost is arithmetic from measured and list prices, not a metered bill.
+The defaults are the first vendor with a key; a chosen setup (`pointe setup <id>`) uses only its own vendors. Each
+setup's measured result, speed, cost and where your words go, with the file and row of every number:
+[docs/setups.md](docs/setups.md). `bin/voice-doctor` tells you which setup you are on.
 
 **Fully local:** `pointe local` downloads and starts Whisper (ears), Kokoro (mouth) and Gemma 4 26B A4B (brain,
 reader and gate) on this Mac, and reads no key. On an M5 Pro with 64 GB, the brain passed 76.9% of 78 cases (Sonnet

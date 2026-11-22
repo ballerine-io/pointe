@@ -4,13 +4,15 @@ import asyncio
 import os
 import socket
 import sys
+import textwrap
 
 import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
 import local
+import setups
 import vendors
 
 ROLES = [("brain", "CLAUDE_VOICE_BRAIN", vendors.BRAIN_ORDER), ("reader", "CLAUDE_VOICE_READER", vendors.READER_ORDER),
-         ("gate", "CLAUDE_VOICE_CHECKER", vendors.CHECKER_ORDER), ("ears", "CLAUDE_VOICE_EARS", vendors.EARS_ORDER),
+         ("checker", "CLAUDE_VOICE_CHECKER", vendors.CHECKER_ORDER), ("ears", "CLAUDE_VOICE_EARS", vendors.EARS_ORDER),
          ("mouth", "CLAUDE_VOICE_MOUTH", vendors.MOUTH_ORDER)]
 
 
@@ -24,8 +26,9 @@ MEASURED = {
 }
 # The next key, by how much it measurably improves a role (docs/benchmarks.md).
 NEXT_KEY = [
-    ("soniox", "ears get 94.6% of intents right, against 88 to 90%, and the echo guard lets you use speakers"),
-    ("anthropic", "the brain passes 95.5% of cases, against 90.9% on Gemini and 87.9% on OpenAI"),
+    ("soniox", "ears get 95.9% of intents right, against 92.0% on Gemini and 90.9% on OpenAI, and the echo guard lets "
+               "you use speakers"),
+    ("anthropic", "the brain answers in 1.8 s at the median, against 2.7 s on Gemini; their accuracy is within the margin"),
     ("elevenlabs", "the voice starts in 0.21 s, against 0.44 s on Gemini and 0.80 s on OpenAI"),
     ("gemini", "the check on each send is the fastest measured"),
 ]
@@ -52,21 +55,25 @@ def advice(present: set[str], used: set[str]) -> list[str]:
     for vendor, why in NEXT_KEY:
         if vendor not in present:
             return lines + [f"Next key: {vendor}. With it, {why}."]
-    return lines + ["You have every key the best measured setup uses."]
+    return lines + ["You have every key of the fastest and most accurate voice setup."]
 
 
 NAMES = {"anthropic": "Anthropic", "gemini": "Gemini", "openai": "OpenAI", "local": "the local model"}
 
 
 POINTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin", "pointe")
-NO_KEY = f"""No model key yet. One key is enough to start: Gemini alone runs every role (free tier available).
+NO_KEY = f"""No model key yet. What do I need?
+{textwrap.fill(vendors.WHAT_YOU_NEED, 118)}
+{textwrap.fill(vendors.WHY_KEYS, 118)}
+
+Setups (choose one: pointe setup <id>):
+{setups.text_table()}
 
   In Claude Code: /pointe:setup compares the vendors and saves each key for you.
   Or yourself:    {POINTE} key gemini
                   opens a Mac window; the key goes straight to your Keychain, never into a file or this chat.
                   Get one at https://aistudio.google.com/apikey
 
-The best setup uses four: Anthropic (brain, reader), Soniox (ears, echo guard), ElevenLabs (mouth), Gemini (gate).
 Without a Keychain (Linux, CI): export GOOGLE_API_KEY=... (or OPENAI_API_KEY, ANTHROPIC_API_KEY, SONIOX_API_KEY,
 ELEVENLABS_API_KEY). Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it
 (docs/features/local.md)."""
@@ -82,10 +89,17 @@ def preflight() -> int:
         for note in vendors.resolve(os.environ.get("CLAUDE_VOICE_FRONT", "brain")).notes:
             print(note)
     except SystemExit as e:
-        if not any(vendors.has(v) for v in vendors.KEYS):
+        present = {v for v in vendors.KEYS if vendors.has(v)}
+        chosen = setups.chosen(vendors.config())
+        status = vendors.key_status(present, vendors.voice_local(), chosen)
+        if not present and chosen is None:
             print(NO_KEY)
+        elif status["needed"]:
+            print(f"{status['line']}\n  Save it:  {POINTE} key {status['fix']}\n  Check it: {POINTE} key check {status['fix']}\n\nWhat do I need? "
+                  f"{textwrap.fill(vendors.WHAT_YOU_NEED, 100)}\n{textwrap.fill(vendors.WHY_KEYS, 118)}\n"
+                  "bin/voice-doctor shows each role.")
         else:
-            print(f"{e}\n\nThese keys alone cannot fill every role. A Gemini key or an OpenAI key can. bin/voice-doctor shows each role.")
+            print(f"{e}\n\nbin/voice-doctor shows each role.")
         return 1
     return 0
 
@@ -118,29 +132,45 @@ def main() -> int:
     live, problems = "--live" in sys.argv, 0
     print("\nCoding agents:")
     print("\n".join(harnesses_here()))
-    print("\nKeys (value never shown):" + (" none is read in fully local mode" if vendors.local_only() else ""))
-    for vendor in vendors.KEYS:
-        if vendor in vendors.AUDIO_ONLY and vendors.voice_local() and not vendors.local_only():
-            print(f"  not read {vendor} (audio only: the voice stays on this Mac)")
-            continue
-        print(f"  {'found  ' if vendors.has(vendor) else 'missing'}  {vendor}")
-    print("\n" + "\n".join(local.status_lines()))
-    print("\nRoles:")
-    chosen, keyless = {}, not any(vendors.has(v) for v in vendors.KEYS)
+    present = {v for v in vendors.KEYS if vendors.has(v)}
+    setup = setups.chosen(vendors.config())
+    status = vendors.key_status(present, vendors.voice_local() and not vendors.local_only(), setup)
+    print(f"\nSetup: {setup.name} ({setup.id}). Switch: pointe setup" if setup else
+          "\nSetup: none chosen, so each role takes the first vendor with a key. Choose one: pointe setup")
+    chosen, keyless, failed = {}, not present, {}
     for role, env, order in ROLES:
         try:
             chosen[role] = vendors.pick(env, order)
-            print(f"  {role:7} {chosen[role]}")
         except SystemExit as e:
+            failed[role] = e
+    print("\nKeys (value never shown):" + (" none is read in fully local mode" if vendors.local_only() else ""))
+    for vendor in vendors.KEYS:
+        uses = [role for role, choice in chosen.items() if choice.split(":")[0] == vendor]
+        if vendor in vendors.AUDIO_ONLY and vendors.voice_local() and not vendors.local_only():
+            print(f"  not read {vendor} (audio only: the voice stays on this Mac)")
+        elif vendor in present:
+            print(f"  found    {vendor} ({', '.join(uses) if uses else 'not used: another key fills its roles'})")
+        elif status["keys"][vendor] == "needed":
+            print(f"  needed   {vendor} (" + (f"the setup uses it: pointe key {vendor}" if setup else
+                                            f"the one key that fills {', '.join(status['empty'])}") + ")")
+        elif setup is not None:
+            print(f"  optional {vendor} (the {setup.name} setup does not use it)")
+        else:
+            print(f"  optional {vendor}" + ("" if status["empty"] or vendors.local_only() else " (not needed with your current keys)"))
+    print("\n" + "\n".join(local.status_lines()))
+    print("\nRoles:")
+    for role, _env, _order in ROLES:
+        if role in chosen:
+            print(f"  {role:7} {chosen[role]}")
+        else:
             problems += 1
-            print(f"  {role:7} needs a key" if keyless else f"  {role:7} NOT AVAILABLE: {e}")
+            print(f"  {role:7} needs a key" if keyless else f"  {role:7} NOT AVAILABLE: {failed[role]}")
     if problems and keyless:
         print("\n" + NO_KEY)
     if chosen.get("ears") and chosen["ears"] != "soniox":
         print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
-    present = {v for v in vendors.KEYS if vendors.has(v)}
     if vendors.voice_local() and not vendors.local_only():
-        text = sorted({NAMES.get(v, v) for v in (chosen[r].split(":")[0] for r in ("brain", "reader", "gate") if r in chosen)})
+        text = sorted({NAMES.get(v, v) for v in (chosen[r].split(":")[0] for r in ("brain", "reader", "checker") if r in chosen)})
         print(f"\nThis setup: {vendors.VOICE_LOCAL}. Your voice is heard and spoken on this Mac, and no audio goes to any "
               f"vendor; {' and '.join(text) or 'the text models'} {'gets' if len(text) == 1 else 'get'} text only. {VOICE_LOCAL_MEASURED}. "
               "Back to your vendors: pointe local off.")
@@ -154,7 +184,7 @@ def main() -> int:
     print(f"\nPort {port}: {'in use (the daemon, or something else: bin/voice-daemon status tells which)' if in_use else 'free'}")
     if live:
         print("\nLive check, one short call per text model:")
-        for role in ("brain", "reader", "gate"):
+        for role in ("brain", "reader", "checker"):
             if role in chosen:
                 try:
                     asyncio.run(vendors.text(chosen[role], "Reply with the word ok."))
@@ -166,7 +196,7 @@ def main() -> int:
                     why = (vendors.refused_help(vendor) if vendors.refused_key(f"{type(e).__name__} {e}") is not None
                            else "Check the key and that it can use this model.")
                     print(f"  FAILED  {role} {chosen[role]}: {type(e).__name__}. {why}")
-    print("\nChange a role: CLAUDE_VOICE_<ROLE>=vendor:model, or ~/.claude-voice/config.json (for the gate, the name is \"checker\").")
+    print("\nChange the setup: pointe setup. One role by hand: CLAUDE_VOICE_<ROLE>=vendor:model, or ~/.claude-voice/config.json.")
     return 1 if problems else 0
 
 

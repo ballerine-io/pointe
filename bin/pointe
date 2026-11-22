@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|join|local|apps|stop [args]
+# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|setup|join|local|apps|stop [args]
 set -euo pipefail
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -20,6 +20,11 @@ case "$cmd" in
            exec env UV_PROJECT_ENVIRONMENT="$STATE/node-env" uv run -q --locked --only-group node --project "$ROOT" python "$ROOT/node_cli.py" "$@" ;;
   hub)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I hub_nodes.py "$@" ;;  # machines: invite, nodes, revoke
   key)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I keys.py "$@" ;;
+  setup)   case "${1:-}" in  # which vendors Pointe uses (setups.py); the two local setups download their models first
+             voice-local) exec "$0" local voice ;;
+             local)       exec "$0" local ;;
+           esac
+           exec uv run --locked --project "$BIN/.." python -I "$BIN/../setups.py" "$@" ;;
   local)   case "${1:-}" in
              off|stop|status) ;;  # nothing to install
              *) # The Mac and the key first: the libraries below are 1.1 GB on disk, for nothing on a Mac that cannot use them.

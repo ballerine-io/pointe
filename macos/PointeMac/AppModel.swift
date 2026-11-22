@@ -38,6 +38,8 @@ final class AppModel {
     private(set) var plugin: PluginInstall?
     private(set) var keys: [Vendor: Bool] = [:]
     private(set) var keyNote: String?
+    private(set) var setupID: String?
+    private(set) var setupBusy = false
     private(set) var loginItem = false
     private(set) var loginNote: String?
     /// The shortcut arrived since Settings asked for it: proof that nothing else owns it.
@@ -193,16 +195,34 @@ final class AppModel {
     // MARK: keys (never read: only whether one is there)
 
     func refreshKeys() {
-        guard !session.isDemo else { keys = [.gemini: true, .anthropic: true, .soniox: true, .elevenlabs: false, .openai: false]; return }
+        guard !session.isDemo else { keys = [.gemini: true, .anthropic: true, .soniox: true, .elevenlabs: false, .openai: false]; setupID = "two"; return }
+        setupID = locator.chosenSetup()
         Task {
             let found = await Task.detached { Dictionary(uniqueKeysWithValues: Vendor.allCases.map { ($0, KeychainPresence.has($0)) }) }.value
             keys = found
         }
     }
 
+    /// Which roles the Keychain's keys fill under the chosen setup; nil until the first look.
+    var keyPlan: KeyPlan? { keys.isEmpty ? nil : KeyPlan(present: Set(keys.filter(\.value).map(\.key)), setup: SetupChoice.named(setupID)) }
+
+    /// After Add…, one tiny live call says whether the saved key works (`pointe key check`): the app never sees the key.
     func addKey(_ vendor: Vendor) async {
         guard let plugin else { keyNote = MacCopy.noPlugin; return }
-        keyNote = (try? await locator.addKey(vendor, plugin: plugin)) ?? "The key window did not open."
+        let saved = (try? await locator.addKey(vendor, plugin: plugin)) ?? "The key window did not open."
+        refreshKeys()
+        guard saved.hasPrefix("Saved") else { keyNote = saved; return }
+        keyNote = "Saved. Checking it…"
+        keyNote = (try? await locator.checkKey(vendor, plugin: plugin)) ?? saved
+    }
+
+    /// `pointe setup <id>`: the daemon uses exactly that setup's vendors after a restart.
+    func chooseSetup(_ id: String) async {
+        guard let plugin else { keyNote = MacCopy.noPlugin; return }
+        setupBusy = true
+        keyNote = (try? await locator.chooseSetup(id, plugin: plugin)) ?? "The setup could not be saved."
+        setupBusy = false
+        setupID = locator.chosenSetup()
         refreshKeys()
     }
 

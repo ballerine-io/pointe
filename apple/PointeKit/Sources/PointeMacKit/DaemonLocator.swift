@@ -198,6 +198,26 @@ public struct DaemonLocator: Sendable {
         return Self.lastLines(result.output, 1)
     }
 
+    /// `pointe key check <vendor>`: one tiny live call with the saved key. Returns its one line ("The gemini key works.").
+    public func checkKey(_ vendor: Vendor, plugin: PluginInstall) async throws -> String {
+        let result = try await runner.run(plugin.cli, ["key", "check", vendor.rawValue], environment: scriptEnvironment(), timeout: 60)
+        return Self.lastLines(result.output, 1)
+    }
+
+    /// `pointe setup <id>`: from now on the daemon uses exactly that setup's vendors. The local setups download their
+    /// models first, so this can take minutes.
+    public func chooseSetup(_ id: String, plugin: PluginInstall) async throws -> String {
+        let result = try await runner.run(plugin.cli, ["setup", id], environment: scriptEnvironment(), timeout: 1200)
+        return Self.lastLines(result.output, 2)
+    }
+
+    /// The setup in config.json ("setup"), nil when none was chosen. The file holds no secret.
+    public func chosenSetup() -> String? {
+        guard let data = try? Data(contentsOf: paths.stateDir.appendingPathComponent("config.json")),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return json["setup"] as? String
+    }
+
     static func lastLines(_ text: String, _ n: Int = 4) -> String {
         text.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             .suffix(n).joined(separator: "\n")

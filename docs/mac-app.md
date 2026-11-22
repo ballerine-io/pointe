@@ -74,8 +74,11 @@ For work on the app itself, `macos/build.sh --open` makes a Debug build in `maco
   wait before answering, Clean up my words, whisper, the dictionary, sessions and mode, machines, Phone, meetings,
   briefings, challenge, alerts, the voice lock, the conflict alarm, show while it says, appearance, About), then this
   Mac's own: the talk shortcut, the call bubble, open at login, Pointe on this Mac (running or not, its version, Start
-  and Restart), the folders a new session may start in, and each model key as "In the Keychain" or "Missing". Add…
-  opens Pointe's own key window; the app never sees a key.
+  and Restart), the folders a new session may start in, and the model keys: the Setup menu (`pointe setup <id>`, the
+  rows of [setups.md](setups.md)), one line on whether every role is filled,
+  and each key as In use, Saved, not used, Needed (the one key an empty role needs) or Optional, never "missing" when
+  no role needs it (`KeyPlan`, the daemon's `vendors.key_status`). Add… opens Pointe's own key window, then
+  `pointe key check` tries the key with one tiny live call; the app never sees a key.
 - **Phone** (Settings, or Call → Pair a Phone…): the paired phones, and Connect your phone, which shows the code the
   iPhone scans, as the page's Settings → Phone does.
 - **The Call menu** has a key for each: Sessions and Mode (⇧⌘S), Start a Meeting (⇧⌘M), Briefing (⇧⌘B), Open the page

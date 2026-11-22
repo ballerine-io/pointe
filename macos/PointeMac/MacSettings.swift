@@ -86,12 +86,19 @@ struct MacSettingsSections: View {
         .task { await model.loadFolders() }
 
         Section {
+            SetupPicker()
+            if let plan = model.keyPlan {
+                Text(plan.line).font(PointeLook.font(.callout))
+                    .foregroundStyle(plan.ready ? PointeLook.text : PointeLook.accent)
+                    .textSelection(.enabled).accessibilityIdentifier("settings.keys.line")
+            }
             ForEach(Vendor.allCases) { vendor in
                 LabeledContent(vendor.label) {
                     HStack {
                         let has = model.keys[vendor] == true
-                        Label(has ? "In the Keychain" : "Missing", systemImage: has ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(has ? PointeLook.successText : PointeLook.muted)
+                        let state = model.keyPlan?.state(vendor) ?? .optional
+                        Label(KeyRow.text(state), systemImage: KeyRow.symbol(state))
+                            .foregroundStyle(state == .inUse ? PointeLook.successText : state == .needed ? PointeLook.accent : PointeLook.muted)
                         Button(has ? "Replace…" : "Add…") { Task { await model.addKey(vendor) } }
                             .buttonStyle(.bordered)
                             .disabled(model.plugin == nil)
@@ -104,9 +111,57 @@ struct MacSettingsSections: View {
         } header: {
             Text("Model keys")
         } footer: {
-            Text("Keys stay in your Keychain. This app only checks that one is there: it never reads, shows or stores a key. Add… opens Pointe's own window, which hands the key to the Keychain. Restart Pointe to use a new key.")
+            Text("\(KeyCopy.whatYouNeedTitle) \(KeyCopy.whatYouNeed)\n\n\(KeyCopy.whyKeys)\n\nKeys stay in your Keychain. This app only checks that one is there: it never reads, shows or stores a key. Add… opens Pointe's own window, which hands the key to the Keychain. After Add…, Pointe tries the key with one tiny live call. Restart Pointe to use a new key or setup. Each setup's measured results and sources: docs/setups.md.")
         }
         .task { model.refreshKeys() }
+    }
+}
+
+/// The setup menu: each row of `setups.SETUPS` with what it is for; choosing one runs `pointe setup <id>`.
+struct SetupPicker: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            LabeledContent(KeyCopy.setupLabel) {
+                HStack {
+                    if model.setupBusy { ProgressView().controlSize(.small) }
+                    Menu(SetupChoice.named(model.setupID)?.name ?? KeyCopy.noSetup) {
+                        ForEach(SetupChoice.all) { choice in
+                            Button("\(choice.name): for \(choice.pickFor)") { Task { await model.chooseSetup(choice.id) } }
+                        }
+                    }
+                    .fixedSize()
+                    .disabled(model.plugin == nil || model.setupBusy)
+                    .accessibilityIdentifier("settings.setup")
+                }
+            }
+            if let chosen = SetupChoice.named(model.setupID) {
+                Text(chosen.short).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
+            }
+        }
+    }
+}
+
+/// A key's row: in use, saved but not used, the one key needed, or optional. Never "missing": a key no role needs is
+/// not a problem.
+enum KeyRow {
+    static func text(_ state: KeyPlan.State) -> String {
+        switch state {
+        case .inUse: KeyCopy.inUse
+        case .notUsed: KeyCopy.notUsed
+        case .needed: KeyCopy.needed
+        case .optional: KeyCopy.optional
+        }
+    }
+
+    static func symbol(_ state: KeyPlan.State) -> String {
+        switch state {
+        case .inUse: "checkmark.circle.fill"
+        case .notUsed: "checkmark.circle"
+        case .needed: "exclamationmark.circle"
+        case .optional: "circle.dashed"
+        }
     }
 }
 

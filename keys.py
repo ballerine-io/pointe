@@ -1,6 +1,8 @@
 """Save a model key in the macOS Keychain without it ever touching a command line, a chat, a file or a log.
 
     pointe key gemini|anthropic|openai|soniox|elevenlabs
+    pointe key check <vendor>     one tiny live call with the saved key: works, refused, or unreachable
+
 
 A native dialog with hidden input asks for the key; `security` receives it through its own password prompt (a pty), so it
 is never an argument. Made for people who do not use a terminal: Claude Code can run this for them.
@@ -14,6 +16,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
+import vendors  # noqa: E402
 from vendors import KEYS  # noqa: E402
 
 WHERE = {
@@ -62,9 +65,48 @@ def save(item: str, secret: str) -> bool:
         os.close(fd)
 
 
+# The audio-only vendors have no text model: a list of their models is the smallest call their key must authorise.
+AUDIO_CHECK = {"soniox": ("https://api.soniox.com/v1/models", "Authorization", "Bearer {}"),
+               "elevenlabs": ("https://api.elevenlabs.io/v1/models", "xi-api-key", "{}")}
+
+
+def check(vendor: str) -> tuple[bool, str]:
+    """One tiny live call with the saved key. The answer never holds the key or the vendor's own error text (some echo
+    part of the key back)."""
+    import asyncio
+    import urllib.error
+    import urllib.request
+
+    secret = vendors.key(vendor)
+    if not secret:
+        return False, f"No {vendor} key found: save one with pointe key {vendor}."
+    try:
+        if vendor in AUDIO_CHECK:
+            url, header, form = AUDIO_CHECK[vendor]
+            urllib.request.urlopen(urllib.request.Request(url, headers={header: form.format(secret)}), timeout=15).close()
+        else:
+            model = next(c for c in vendors.CHECKER_ORDER if c.startswith(f"{vendor}:")).split(":", 1)[1]
+            asyncio.run(vendors._TEXT[vendor](model, "Reply with the word ok.", None, False, None, 16, 0.0))
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return False, vendors.refused_help(vendor)
+        return False, f"The {vendor} key could not be checked: the vendor answered HTTP {e.code}. Try again later."
+    except urllib.error.URLError:
+        return False, f"The {vendor} key could not be checked: no connection to {vendor}."
+    except Exception as e:
+        if vendors.refused_key(f"{type(e).__name__} {e}") is not None:
+            return False, vendors.refused_help(vendor)
+        return False, f"The {vendor} key could not be checked: {type(e).__name__}. Try again, or run /pointe:doctor."
+    return True, f"The {vendor} key works."
+
+
 def main(argv: list[str]) -> int:
+    if len(argv) == 2 and argv[0] == "check" and argv[1] in KEYS:
+        ok, said = check(argv[1])
+        print(said)
+        return 0 if ok else 1
     if len(argv) != 1 or argv[0] not in KEYS:
-        print(f"usage: pointe key {'|'.join(KEYS)}")
+        print(f"usage: pointe key {'|'.join(KEYS)}, or pointe key check <vendor>")
         return 2
     vendor = argv[0]
     secret = ask(vendor)

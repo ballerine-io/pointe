@@ -55,6 +55,7 @@ import modes
 import speaker
 import turns
 from ptt import Ptt
+import setups
 import vendors
 import vocabulary
 import watchdog
@@ -2501,6 +2502,30 @@ def _local_status() -> dict:
     if _local_cache[1] is None or time.time() - _local_cache[0] > LOCAL_STATUS_SECS:
         _local_cache = (time.time(), local.summary())
     return _local_cache[1]
+
+
+_keys_cache: dict | None = None
+
+
+def _keys_status() -> dict:
+    """Settings → Model keys: the setup in use, which roles each key fills, "optional" for a key the setup does not
+    need, and the setups to switch to. Whether a key is there, never its value. Read once: a new key or setup reaches
+    the daemon only on a restart."""
+    global _keys_cache
+    if _keys_cache is None:
+        chosen = setups.chosen(vendors.config())
+        rows = [{"id": x.id, "name": x.name, "short": x.short, "pick_for": x.pick_for, "cost": x.cost}
+                for x in setups.SETUPS]
+        if vendors.local_only():
+            return {"line": "Fully local mode: no key is read.", "keys": {}, "setup": "local", "setups": rows}
+        present = {v for v in vendors.KEYS if vendors.has(v)}
+        found = vendors.key_status(present, vendors.voice_local(), chosen)
+        s = setup()
+        running = {"brain": s.brain, "reader": s.reader, "checker": s.checker, "ears": s.ears, "mouth": s.mouth}
+        uses = {v: [role for role, choice in running.items() if choice and choice.split(":")[0] == v] for v in vendors.KEYS}
+        _keys_cache = {"line": found["line"], "uses": uses, "setup": chosen.id if chosen else None, "setups": rows,
+                       "keys": {v: ("in use" if uses[v] else "not used") if v in present else found["keys"][v] for v in vendors.KEYS}}
+    return _keys_cache
 
 
 def _briefing_status() -> dict:
@@ -6404,6 +6429,7 @@ async def status(request: Request):
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "drive": _drive_status(),
             "local": _local_status(),
+            "keys": _keys_status(),
             "meeting": state.meeting.status() if state.meeting is not None else (
                 {"on": False, "ended": True, "result": state.last_meeting.result} if state.last_meeting is not None else None),
             "notes": {"version": NOTES.version, "last_id": NOTES.next_id - 1},

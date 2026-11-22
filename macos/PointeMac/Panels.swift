@@ -54,10 +54,10 @@ struct SetupPanel: View {
                         }
                     }
                 }
-                step(done: model.keys.values.contains(true), title: "A model key, in your Keychain",
-                     detail: model.keys.values.contains(true) ? "Found. The app never reads it; Pointe on this Mac does."
-                        : "One key is enough to start (or run pointe local for none). Add one with pointe key in a terminal, or in Settings once Pointe runs.") {
-                    EmptyView()
+                step(done: model.keyPlan?.ready == true, title: "A setup and its keys",
+                     detail: model.keyPlan?.ready == true ? "\(model.keyPlan?.line ?? KeyCopy.allFilled) The app never reads a key; Pointe on this Mac does."
+                        : "\(model.keyPlan.map { $0.present.isEmpty && $0.setup == nil ? KeyCopy.noKey : $0.line } ?? KeyCopy.noKey) \(KeyCopy.whatYouNeedTitle) \(KeyCopy.whatYouNeed) Choose a setup, then add the keys it marks Needed in Settings, Model keys.\n\n\(KeyCopy.whyKeys)") {
+                    SetupPicker()
                 }
                 step(done: model.daemon == .running, title: "Pointe on this Mac", detail: model.daemonLine) {
                     switch model.daemon {
