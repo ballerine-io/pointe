@@ -97,7 +97,7 @@ def test_dry_run_lists_every_group_and_removes_nothing(mac):
     assert got.returncode == 0 and "Dry run: nothing removed." in got.stdout
     for expected in (".local/bin/pointe (the pointe command)", ".claude-voice (", "Pointe.app (the Mac app)",
                      "claude plugin uninstall", "Keychain item pointe.gemini-api-key",
-                     "Keychain item soniox-api-key (Pointe's name before 1.19.0; another tool may use the same name)",
+                     "Keychain item soniox-api-key (Pointe's name before 1.20.0; another tool may use the same name)",
                      "models--mlx-community--whisper-large-v3-turbo", "Kept: uv"):
         assert expected in got.stdout, expected
     assert mac.state.exists() and (mac.keychain / "pointe.gemini-api-key").exists() and not mac.claude()

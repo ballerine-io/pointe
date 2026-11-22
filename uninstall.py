@@ -6,7 +6,7 @@
     pointe uninstall --delete-keys    also Pointe's keys in the Keychain (never without this or a yes to its own question)
 
 Three groups, each with its own question: Pointe's own files and the plugin; Pointe's keys in the Keychain; and things
-another tool may share (the Keychain items under the plain names Pointe used before 1.19.0, and the model downloads in the
+another tool may share (the Keychain items under the plain names Pointe used before 1.20.0, and the model downloads in the
 shared Hugging Face cache). uv stays: other tools use it. Standard library only, so it runs whatever state the plugin's
 Python is in. docs/install.md, "What this does to your Mac", is the same list.
 """
@@ -91,7 +91,7 @@ def plan() -> dict[str, list[Item]]:
                         command=(claude, "plugin", "marketplace", "remove", "pointe")))
     keys = [Item(f"Keychain item pointe.{v}-api-key", keychain=f"pointe.{v}-api-key") for v in KEY_VENDORS
             if _in_keychain(f"pointe.{v}-api-key")]
-    shared = [Item(f"Keychain item {v}-api-key (Pointe's name before 1.19.0; another tool may use the same name)",
+    shared = [Item(f"Keychain item {v}-api-key (Pointe's name before 1.20.0; another tool may use the same name)",
                    keychain=f"{v}-api-key") for v in KEY_VENDORS if _in_keychain(f"{v}-api-key")]
     hub = Path(os.environ.get("HF_HUB_CACHE") or Path(os.environ.get("HF_HOME") or home() / ".cache" / "huggingface") / "hub")
     for repo in _hf_models():

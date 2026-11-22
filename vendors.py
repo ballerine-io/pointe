@@ -30,7 +30,7 @@ KEYS = {
     "soniox": ("SONIOX_API_KEY", "pointe.soniox-api-key"),
     "elevenlabs": ("ELEVENLABS_API_KEY", "pointe.elevenlabs-api-key"),
 }
-# The names before 1.19.0. Still read, after Pointe's own, so a key saved then keeps working; never written or deleted
+# The names before 1.20.0. Still read, after Pointe's own, so a key saved then keeps working; never written or deleted
 # here, because another tool may keep an item of the same name.
 LEGACY_ITEMS = {vendor: item.removeprefix("pointe.") for vendor, (_, item) in KEYS.items()}
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names

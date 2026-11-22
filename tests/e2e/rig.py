@@ -41,7 +41,7 @@ ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07|\x1b[()][A-Z0-9]")
 
 
 def _pointe_first(item: str) -> str:
-    """Pointe saves keys as pointe.<item> since 1.19.0 (vendors.KEYS); the old name is the fallback."""
+    """Pointe saves keys as pointe.<item> since 1.20.0 (vendors.KEYS); the old name is the fallback."""
     named = f"pointe.{item}"
     found = subprocess.run(["security", "find-generic-password", "-s", named], capture_output=True)
     return named if found.returncode == 0 else item

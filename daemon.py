@@ -229,7 +229,7 @@ DICTIONARY = vocabulary.Dictionary(STATE_DIR / "dictionary.json")  # names the u
 SHOWS = artifacts.Shows()  # show while it says: what is on screen while the voice reports a turn
 JOURNAL = STATE_DIR / "journal.jsonl"
 JOURNAL_MAX_BYTES = 20_000_000
-HAD_CALLS = JOURNAL.exists()  # before this start writes to it: a Mac used before 1.19.0 is not on its first call
+HAD_CALLS = JOURNAL.exists()  # before this start writes to it: a Mac used before 1.20.0 is not on its first call
 
 
 PROBLEM_SHOWN_SECS = 90.0

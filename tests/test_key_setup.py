@@ -394,7 +394,7 @@ def test_check_tries_a_key_before_it_is_saved_and_leaves_the_environment_as_it_w
 
 
 def test_keys_are_saved_under_pointes_own_name_and_the_old_name_still_reads(tmp_path, monkeypatch):
-    """1.19.0 moved the Keychain items to pointe.<vendor>-api-key: a key saved before then must keep working, and an item
+    """1.20.0 moved the Keychain items to pointe.<vendor>-api-key: a key saved before then must keep working, and an item
     another tool keeps under the plain name is read only when Pointe has none of its own."""
     monkeypatch.setenv("CLAUDE_VOICE_STATE", str(tmp_path))
     for env in vendors.KEY_ENVS:

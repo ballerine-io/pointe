@@ -48,7 +48,7 @@ _SECRETS: set[str] = set()
 
 
 def _pointe_first(item: str) -> str:
-    """Pointe saves keys as pointe.<item> since 1.19.0 (vendors.KEYS); the old name is the fallback."""
+    """Pointe saves keys as pointe.<item> since 1.20.0 (vendors.KEYS); the old name is the fallback."""
     named = f"pointe.{item}"
     found = subprocess.run(["security", "find-generic-password", "-s", named], capture_output=True)
     return named if found.returncode == 0 else item

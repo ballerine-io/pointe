@@ -101,7 +101,7 @@ def team_file() -> Path:
 
 def take_over_saved() -> Path | None:
     """The plugin's copy, the first time it runs: the team and bundle ID an earlier version saved inside its own folder
-    (before 1.19.0, ios/.team there), so the build updates the same app on the iPhone instead of adding a second one
+    (before 1.20.0, ios/.team there), so the build updates the same app on the iPhone instead of adding a second one
     with a new pairing. The newest such folder wins; its two files are copied together, as they belong together.
     Returns the folder taken from, if any."""
     if os.environ.get("POINTE_TEAM_FILE") or is_clone() or team_file().exists():

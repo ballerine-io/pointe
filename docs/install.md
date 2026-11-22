@@ -136,7 +136,7 @@ name no free credit.
   disk), in the plugin's folder and `~/.local/share/uv`, with uv's download cache in `~/.cache/uv`. On a fast
   connection this takes under a minute.
 - Your keys, in the macOS Keychain only, as `pointe.gemini-api-key`, `pointe.anthropic-api-key` and so on
-  (`pointe key <vendor>` opens the window again). A key saved before 1.19.0 keeps its plain name (`gemini-api-key`)
+  (`pointe key <vendor>` opens the window again). A key saved before 1.20.0 keeps its plain name (`gemini-api-key`)
   and still works.
 - `~/.local/bin/pointe`, a two-line script that runs the plugin's `bin/pointe`, so `pointe` is a command in a new
   terminal. Each start of Pointe points it at the plugin's current version. One you made yourself is never replaced.
@@ -153,7 +153,7 @@ and asks before it removes anything, in three groups, each with its own question
   `claude plugin marketplace remove pointe`). The plugin's folder holds its Python packages and both hooks.
 - Pointe's keys: the Keychain items `pointe.<vendor>-api-key`. Removed only on a yes to this question, or with
   `--delete-keys`.
-- What another tool may share: keys under the plain names Pointe used before 1.19.0 (`gemini-api-key`,
+- What another tool may share: keys under the plain names Pointe used before 1.20.0 (`gemini-api-key`,
   `anthropic-api-key`, `soniox-api-key`, `elevenlabs-api-key`, `openai-api-key`), and the local models in
   `~/.cache/huggingface/hub` (`models--mlx-community--whisper-large-v3-turbo`, `models--mlx-community--Kokoro-82M-bf16`,
   `models--mlx-community--gemma-4-26b-a4b-it-4bit`, `models--deepdml--faster-whisper-large-v3-turbo-ct2`). Removed only
