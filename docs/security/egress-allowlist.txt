@@ -13,6 +13,8 @@ localhost                  the page's address; Ollama's default (vendors.LOCAL_U
 api.anthropic.com          brain, reader, checker: the Anthropic SDK
 generativelanguage.googleapis.com   Gemini text, ears, mouth and realtime front (google-genai)
 api.openai.com             OpenAI text, ears, mouth and realtime front (openai SDK; bench)
+# openai_url (docs/features/openai-url.md): a host the user sets for the OpenAI text models, https only. It is theirs
+# to choose, so it is not listed; with it set, the OpenAI key is never sent to api.openai.com.
 api.elevenlabs.io          ElevenLabs ears and mouth (pipecat; bench)
 stt-rt.soniox.com          Soniox ears, meeting ears (daemon.py, meeting.py, bench)
 tts-rt.soniox.com          Soniox mouth (pipecat; bench)

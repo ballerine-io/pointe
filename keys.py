@@ -85,7 +85,9 @@ def check(vendor: str) -> tuple[bool, str]:
             url, header, form = AUDIO_CHECK[vendor]
             urllib.request.urlopen(urllib.request.Request(url, headers={header: form.format(secret)}), timeout=15).close()
         else:
-            model = next(c for c in vendors.CHECKER_ORDER if c.startswith(f"{vendor}:")).split(":", 1)[1]
+            # Their own choice first: on another host (openai_url) the default model names are not deployed.
+            configured = [c for c in (vendors.config().get(r) for r in ("checker", "brain", "reader")) if c]
+            model = next(c for c in [*configured, *vendors.CHECKER_ORDER] if c.startswith(f"{vendor}:")).split(":", 1)[1]
             asyncio.run(vendors._TEXT[vendor](model, "Reply with the word ok.", None, False, None, 16, 0.0))
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):

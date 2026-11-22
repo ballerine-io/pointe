@@ -7033,6 +7033,7 @@ async def _on_connect(conn: Connection) -> None:
 
 def build_front():
     if FRONT == "openai":
+        vendors.refuse_openai_audio("CLAUDE_VOICE_FRONT=openai")
         from pipecat.services.openai.realtime.events import (
             AudioConfiguration,
             AudioInput,

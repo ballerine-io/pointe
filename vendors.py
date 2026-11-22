@@ -5,7 +5,7 @@
     CLAUDE_VOICE_EARS=vendor          speech to text
     CLAUDE_VOICE_MOUTH=vendor:model[:voice]   text to speech
 
-Or the same names, in lower case, in ~/.claude-voice/config.json. "local" runs Whisper, Kokoro and any OpenAI-compatible server. bin/voice-doctor shows what runs. Unset, each role takes the first vendor in its order whose key exists. Keys come from the environment or, on macOS, the
+Or the same names, in lower case, in ~/.claude-voice/config.json. "local" runs Whisper, Kokoro and any OpenAI-compatible server. CLAUDE_VOICE_OPENAI_URL (or "openai_url") points the OpenAI text models at another host, such as Azure OpenAI. bin/voice-doctor shows what runs. Unset, each role takes the first vendor in its order whose key exists. Keys come from the environment or, on macOS, the
 Keychain item named here, and reach this process only when a role in use needs them.
 """
 
@@ -115,10 +115,28 @@ def _anthropic():
     return _clients.setdefault("anthropic", anthropic.AsyncAnthropic(api_key=key("anthropic")))
 
 
+def openai_url() -> str | None:
+    """Another host for the OpenAI text models (Azure OpenAI, or any server that speaks OpenAI's API):
+    CLAUDE_VOICE_OPENAI_URL or "openai_url". The OpenAI key then belongs to that host. docs/features/openai-url.md"""
+    url = os.environ.get("CLAUDE_VOICE_OPENAI_URL") or config().get("openai_url")
+    if not url:
+        return None
+    if not str(url).startswith("https://"):
+        raise SystemExit(f"openai_url={url}: it must start with https://, because the OpenAI key is sent there")
+    return str(url)
+
+
+def refuse_openai_audio(what: str) -> None:
+    """With openai_url set, the OpenAI key is another host's: OpenAI's own audio services would send it to OpenAI."""
+    if openai_url():
+        raise SystemExit(f"{what}: openai_url is set, so the OpenAI key runs text models only "
+                         "(brain, reader, checker). Choose another vendor for ears and mouth.")
+
+
 def _openai():
     from openai import AsyncOpenAI
 
-    return _clients.setdefault("openai", AsyncOpenAI(api_key=key("openai")))
+    return _clients.setdefault("openai", AsyncOpenAI(api_key=key("openai"), base_url=openai_url()))
 
 
 def warm(choices: list[str]) -> None:
@@ -169,6 +187,10 @@ def pick(env: str, order: list[str]) -> str:
                              "Turn it off with: pointe local off")
         if not wanted or wanted == "auto":
             return LOCAL if env == "CLAUDE_VOICE_EARS" else LOCAL_MOUTH
+    if env in ("CLAUDE_VOICE_EARS", "CLAUDE_VOICE_MOUTH") and openai_url():
+        if wanted and wanted.split(":")[0] == "openai":
+            refuse_openai_audio(f"{env}={wanted}")
+        order = [c for c in order if c.split(":")[0] != "openai"]
     if wanted and wanted != "auto":
         if wanted.split(":")[0] not in {*KEYS, LOCAL}:
             raise SystemExit(f"{env}={wanted}: unknown vendor. Choose from: {', '.join([*KEYS, LOCAL])}")
@@ -665,6 +687,7 @@ def build_ears(vendor: str, terms: list[str]):
 
         return GeminiSTTService(api_key=key("gemini"))
     if vendor == "openai":
+        refuse_openai_audio("CLAUDE_VOICE_EARS=openai")
         from pipecat.services.openai.stt import OpenAIRealtimeSTTService
 
         return OpenAIRealtimeSTTService(api_key=key("openai"))
@@ -752,6 +775,7 @@ def build_mouth(choice: str, rate: int, http):
         return GeminiTTSService(api_key=key("gemini"), sample_rate=rate,
                                 settings=GeminiTTSService.Settings(voice=voice or DEFAULT_GEMINI_VOICE, model=model))
     if vendor == "openai":
+        refuse_openai_audio(f"CLAUDE_VOICE_MOUTH={choice}")
         from pipecat.services.openai.tts import OpenAITTSService
 
         return OpenAITTSService(api_key=key("openai"), sample_rate=rate,
