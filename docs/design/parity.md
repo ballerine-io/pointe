@@ -178,6 +178,10 @@ xcrun simctl launch <simulator> io.ballerine.pointe -demo request   # then: xcru
 
 They land in `/tmp/parity-shots/` and are not committed: they show invented sessions only, and are retaken at will.
 
+Pictures for the site are in English only. The apps' demo data holds a few Hebrew samples for the right-to-left checks;
+add `-demoEnglish` to the launch (`-demo machines -demoEnglish`) and they are swapped for English ones
+(`Demo.englishSamples`). `tests/test_site.py` fails when a page of the site holds Hebrew text.
+
 ## Left for later
 
 - The conversation as a lazy stack, with the pin to the newest line kept: the cost of a resize on a long conversation.

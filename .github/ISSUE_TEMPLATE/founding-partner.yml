@@ -1,0 +1,32 @@
+name: Founding partner
+description: Your engineering team wants to help shape Pointe.
+title: "Founding partner: "
+labels: [founding-partner]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Founding partners are engineering teams that use Pointe and tell us what to build next. There is no fee and
+        no contract. This issue is public: write nothing here that you would not publish.
+  - type: input
+    id: team
+    attributes:
+      label: Team or company
+    validations:
+      required: true
+  - type: textarea
+    id: use
+    attributes:
+      label: How your team works with coding agents today
+      description: Which agents, how many sessions at once, on which machines.
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What you need from Pointe
+  - type: input
+    id: contact
+    attributes:
+      label: How to reach you
+      description: A GitHub handle is enough.

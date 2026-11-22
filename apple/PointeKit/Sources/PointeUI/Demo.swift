@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Sample calls for looking at the screens without a Mac. Every name and word here is made up. Two ways in:
-/// `-demo [call|sessions|edit|typing|request]` at launch (Debug builds only, for tests and screenshots), and
+/// `-demo [call|sessions|edit|typing|request]` at launch (Debug builds only, for tests and screenshots; with
+/// `-demoEnglish`, no Hebrew sample), and
 /// "Try a demo" on the pairing screen (every build: App Review has no Mac to pair with), which shows the Demo badge.
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainDump, brainDumpReview, brainDumpPinned, brainDumpGone, meetingStart, meeting, meetingHand, meetingEnd, talking,
@@ -20,7 +21,7 @@ struct Demo {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-demo") else { return nil }
-        return make(args.indices.contains(i + 1) ? Screen(rawValue: args[i + 1]) ?? .call : .call)
+        return make(args.indices.contains(i + 1) ? Screen(rawValue: args[i + 1]) ?? .call : .call, english: args.contains("-demoEnglish"))
         #else
         return nil
         #endif
@@ -33,8 +34,24 @@ struct Demo {
         return demo
     }
 
-    static func make(_ screen: Screen) -> Demo? {
-        let json = switch screen {
+    /// The Hebrew samples of the screens that are not about Hebrew, with what `-demoEnglish` shows in their place: for
+    /// pictures on the site, which are in English only. The Hebrew stays the default: the right-to-left checks read it.
+    static let englishSamples = [("חנות", "store"), ("נשתמש במפתח אידמפוטנטי לכל חיוב.", "We use an idempotency key for every charge.")]
+
+    static func inEnglish(_ json: String) -> String {
+        englishSamples.reduce(json) { $0.replacingOccurrences(of: $1.0, with: $1.1) }
+    }
+
+    static func make(_ screen: Screen, english: Bool = false) -> Demo? {
+        let json = english ? inEnglish(source(screen)) : source(screen)
+        guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
+        let notes = (try? JSONDecoder().decode([API.Note].self, from: Data(notesJSON.utf8))) ?? []
+        return Demo(screen: screen, status: status, notes: [.meeting, .meetingHand, .meetingEnd].contains(screen) ? notes : [])
+    }
+
+    /// The status a screen shows, as the Mac would send it.
+    static func source(_ screen: Screen) -> String {
+        switch screen {
         case .request: requestJSON
         case .drive: driveJSON
         case .brainDump: brainDumpJSON(review: false)
@@ -65,9 +82,6 @@ struct Demo {
         case .newSession, .startPending: newSessionJSON(pending: screen == .startPending)  // NewSession.swift
         default: callJSON
         }
-        guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
-        let notes = (try? JSONDecoder().decode([API.Note].self, from: Data(notesJSON.utf8))) ?? []
-        return Demo(screen: screen, status: status, notes: [.meeting, .meetingHand, .meetingEnd].contains(screen) ? notes : [])
     }
 
     static let pairing = Pairing(host: "demo.invalid", port: 7443, fingerprint: String(repeating: "0", count: 64),

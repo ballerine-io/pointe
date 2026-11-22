@@ -97,26 +97,44 @@ code { font-family: var(--font-mono); font-size: 12.5px; }
 .site-header nav a.gh:hover { border-color: var(--text); }
 .gh svg { width: 16px; height: 16px; }
 
-/* Hero */
-.hero { background: var(--hero); border-radius: 16px 16px 0 0; padding: 72px 48px 0; }
-.hero-copy { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 24px 64px; align-items: start; }
-.hero-copy .kicker { grid-column: 1 / -1; }
-.hero .lead + .small { margin-top: 12px; font-size: 15px; line-height: 24px; }
+/* Hero: the copy and the two buttons on the left; on the right the product in its three places, each a real screenshot
+   in a frame drawn here (a browser window, the Mac app's own window, an iPhone). */
+.hero { background: var(--hero); border-radius: 16px 16px 0 0; padding: 48px 28px 40px 48px; display: grid;
+        grid-template-columns: minmax(0, 4.5fr) minmax(0, 7.5fr); gap: 32px 48px; align-items: center; }
+.hero .h-hero { font-size: clamp(32px, 3.2vw, 46px); }
+.hero-copy > * + * { margin-top: 18px; }
+.hero-copy .lead + .small { margin-top: 10px; font-size: 15px; line-height: 24px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.btn { display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 600; text-decoration: none;
+       color: var(--text); border: 1px solid var(--line-strong); }
+.btn:hover { color: var(--text); border-color: var(--text); }
+.btn--primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.btn--primary:hover { color: var(--on-primary); opacity: .88; }
 .cmd { position: relative; }
 .cmd pre { padding: 13px 88px 13px 16px; background: var(--card); border: 1px solid var(--line-strong); border-radius: 12px;
            white-space: pre-wrap; overflow-wrap: anywhere; line-height: 20px; color: var(--text); }
 .copy { position: absolute; top: 7px; right: 7px; height: 32px; padding: 0 12px; font: 600 12.5px var(--font-sans);
         color: var(--text); background: var(--raised); border: 0; border-radius: 8px; cursor: pointer; }
-.hero-install { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 12px 64px; align-items: center; margin-top: 36px; }
-.hero-install p { color: var(--muted); }
-
-.stage { margin: 56px 0 0; }
-.stage-mac { border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); background: var(--card); }
-.stage-mac img, .stage-mac video { width: 100%; }
-.stage-cap { padding: 14px 0 28px; max-width: 80ch; }
+.devices-stage { position: relative; padding-bottom: 9%; }
+.dev { overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
+.dev img { width: 100%; }
+.dev-web { width: 88%; margin-left: 7%; border-radius: 10px; }
+.dev-bar { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; background: var(--raised); border-bottom: 1px solid var(--line); }
+.dev-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+.dev-bar span { margin: 0 auto; padding-right: 36px; font-size: 11px; line-height: 16px; color: var(--dim); }
+.dev-mac { position: absolute; left: 0; bottom: 0; width: 43%; border-radius: 9px; }
+.dev-bubble { position: absolute; left: 0; top: -5%; width: 29%; z-index: 1; filter: drop-shadow(0 10px 18px rgba(10, 5, 0, .28)); }
+.dev-bubble img { width: 100%; }
+.dev-phone { position: absolute; right: 0; bottom: 0; width: 21%; border: 5px solid #0A0400; border-radius: 22px; background: #0A0400;
+             box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, .14); }
+.dev-phone img { border-radius: 17px; }
+.dev-phone::before { content: ""; position: absolute; left: 50%; top: 2.2%; width: 30%; height: 3%; transform: translateX(-50%); border-radius: 99px;
+                     background: #0A0400; z-index: 1; }
+.devices figcaption { margin-top: 16px; }
+@media (prefers-color-scheme: dark) { .dev-phone { border-color: #2B241F; background: #2B241F; } }
 
 /* Why a conversation: three figures on hairlines, right under the hero */
-.descriptor { grid-column: 1 / -1; color: var(--body); }
+.descriptor { color: var(--body); }
 .value { padding: 36px 0 28px; }
 .value-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
 .value-grid > div { padding: 0 32px 0 0; }
@@ -136,7 +154,7 @@ code { font-family: var(--font-mono); font-size: 12.5px; }
 .strip dd { color: var(--body); }
 
 /* Sections */
-.section { padding: 64px 0; }
+.section { padding: 56px 0; }
 .section + .section, .section--rule { border-top: 1px solid var(--line); }
 .head-row { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 64px; align-items: end; }
 .head-row .kicker { grid-column: 1 / -1; margin-bottom: -8px; }
@@ -279,13 +297,12 @@ details.more-detail > div { padding: 8px 0 28px; }
 .beat-ui--phone { right: -20px; width: 41%; border-radius: 24px; border: 5px solid #0A0400; box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, .14); }
 .beat-ui--left { left: -20px; right: auto; }
 .beat-ui--card { right: -20px; width: 37%; border-radius: 14px; }
-.beat-ui--bubble { right: -20px; bottom: 18px; width: 46%; background: none; border-radius: 17px; }
 
 @media (min-width: 1081px) {
   .story-grid.is-stage { display: grid; grid-template-columns: minmax(0, 4.6fr) minmax(0, 7.4fr); column-gap: 64px;
                          --stage-top: max(16px, calc(50vh - 290px)); }
   .is-stage .beats, .is-stage .beat { display: contents; }
-  .is-stage .rail { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-column: 2; grid-row: 1 / span 8; align-self: start;
+  .is-stage .rail { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-column: 2; grid-row: 1 / span 5; align-self: start;
                     position: sticky; top: var(--stage-top); z-index: 2; height: 44px; box-sizing: content-box;
                     padding-bottom: calc(56.25% + 56px); pointer-events: none; }
   .rail a { pointer-events: auto; padding-top: 8px; border-top: 1px solid var(--line-strong); text-decoration: none; color: var(--dim);
@@ -294,16 +311,22 @@ details.more-detail > div { padding: 8px 0 28px; }
   .rail a .when { display: block; font-variant-numeric: tabular-nums; }
   .rail a:hover { color: var(--text); }
   .rail a[aria-current] { color: var(--text); border-top: 2px solid var(--orange); padding-top: 7px; }
-  .is-stage .beat-copy { grid-column: 1; min-height: 30vh; padding: 10px 0; display: flex; flex-direction: column; justify-content: center;
+  .is-stage .beat-copy { grid-column: 1; min-height: 34vh; padding: 10px 0; display: flex; flex-direction: column; justify-content: center;
                          opacity: .36; transition: opacity .4s; }
   .is-stage .beat.is-active .beat-copy { opacity: 1; }
   /* The picture leaving stays under the one arriving until that one has faded in, so the page never shows through. */
-  .is-stage .beat-media { grid-column: 2; grid-row: 1 / span 8; align-self: start; position: sticky; top: calc(var(--stage-top) + 44px);
+  .is-stage .beat-media { grid-column: 2; grid-row: 1 / span 5; align-self: start; position: sticky; top: calc(var(--stage-top) + 44px);
                           margin: 44px 0 0; opacity: 0; visibility: hidden; transition: opacity 0s .5s, visibility 0s .5s; }
   .is-stage .beat.is-active .beat-media { opacity: 1; visibility: visible; z-index: 1; transition: opacity .5s var(--ease); }
   .is-stage .beat-ui { opacity: 0; transform: translateY(18px); transition: opacity .2s, transform 0s .2s; }
   .is-stage .beat.is-active .beat-ui { opacity: 1; transform: none; transition: opacity .45s .2s, transform .7s var(--ease) .2s; }
 }
+
+/* Founding partners: one line and one link, until there are names to show */
+.partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 32px; }
+.partners .link { text-decoration: none; }
+.partners .link:hover { text-decoration: underline; }
+#partners { padding: 36px 0; }
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }
@@ -326,9 +349,9 @@ details.more-detail > div { padding: 8px 0 28px; }
 
 @media (max-width: 1080px) {
   .site-header nav a:not(.gh) { display: none; }
-  .hero { padding: 56px 32px 0; }
+  .hero { padding: 48px 32px 36px; grid-template-columns: minmax(0, 1fr); }
   .daemon { grid-template-columns: minmax(0, 1fr); }
-  .hero-copy, .hero-install, .head-row, .split, .split--wide, .split--term, .split--half, .band-foot, .footer-grid, .project { grid-template-columns: minmax(0, 1fr); }
+  .head-row, .split, .split--wide, .split--term, .split--half, .band-foot, .footer-grid, .project { grid-template-columns: minmax(0, 1fr); }
   .head-row .kicker { margin-bottom: 0; }
   .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .strip > div { padding: 16px 16px 16px 0; border-bottom: 1px solid var(--line); }
@@ -346,7 +369,6 @@ details.more-detail > div { padding: 8px 0 28px; }
   .beat-ui--phone.beat-ui--left { left: 16px; right: auto; align-self: flex-start; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .beat-ui--card { right: 16px; width: 40%; align-self: flex-end; }
-  .beat-ui--bubble { right: 16px; bottom: 0; align-self: flex-end; }
   .compare { min-width: 860px; }
 }
 @media (max-width: 640px) {
@@ -354,10 +376,13 @@ details.more-detail > div { padding: 8px 0 28px; }
   .section { padding: 56px 0; }
   .band-dark { padding: 56px 0; }
   .site-header { height: 60px; }
-  .hero { padding: 40px 18px 0; margin: 0 -10px; border-radius: 12px 12px 0 0; }
-  .stage { margin-top: 36px; }
-  .stage-mac { width: min(70%, 232px); margin: 0 auto; border-radius: 28px; border: 6px solid #0A0400; }
-  .stage-cap { padding-top: 16px; }
+  .hero { padding: 36px 18px 28px; margin: 0 -10px; border-radius: 12px 12px 0 0; }
+  .devices-stage { padding-bottom: 20%; }
+  .dev-web { width: 100%; margin-left: 0; }
+  .dev-mac, .dev-bubble { display: none; }
+  .dev-phone { width: 30%; right: 5%; border-width: 4px; border-radius: 18px; }
+  .dev-phone img { border-radius: 14px; }
+  .btn { flex: 1; justify-content: center; }
   .strip, .cols, .rows--cols { grid-template-columns: minmax(0, 1fr); }
   .value { padding: 28px 0 20px; }
   .value-grid { grid-template-columns: minmax(0, 1fr); }
@@ -379,7 +404,6 @@ details.more-detail > div { padding: 8px 0 28px; }
   .tiles { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 24px -18px 0; padding: 1px 18px 4px; }
   .tiles > li { flex: 0 0 82%; scroll-snap-align: center; }
   .beat-ui--card { right: 8px; width: 52%; }
-  .beat-ui--bubble { right: 8px; width: 70%; margin-top: -9%; }
   .beat-ui--mac { right: 8px; width: 76%; }
   .beat-ui--phone { right: 8px; width: 68%; border-radius: 18px; border-width: 4px; }
   .beat-ui--left, .beat-ui--phone.beat-ui--left { left: 8px; }

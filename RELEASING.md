@@ -16,9 +16,11 @@ together:
 - `macos/tools/make_project.py`: `VERSION`, and `BUILD` one higher, then `python3 macos/tools/make_project.py` (it
   writes `macos/PointeMac.xcodeproj`)
 - `CHANGELOG.md`: one line on top, the same words as the commit subject
+- `python3 tools/site_version.py`: writes the version into the site's pages (`site/deploy.sh` runs it too)
 
 Commit as `Version X.Y.Z: <what changed, in the words a user would use>`, with `git commit -s`.
 `tests/test_version.py` fails when the manifest, `pyproject.toml`, `uv.lock`, the two apps and the changelog disagree.
+`tests/test_site.py` fails while a page of the site shows another version.
 
 ## 2. Checks
 

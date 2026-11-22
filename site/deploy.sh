@@ -11,4 +11,5 @@
 set -eu
 cd "$(dirname "$0")/.."
 if [ "${1:-}" = "--roadmap" ]; then shift; python3 tools/roadmap.py; fi
+python3 tools/site_version.py  # the version on the pages is the plugin manifest's (tests/test_site.py)
 exec npx -y wrangler@4.166.0 pages deploy site --project-name pointe-site --branch "${1:-main}" --commit-dirty=true

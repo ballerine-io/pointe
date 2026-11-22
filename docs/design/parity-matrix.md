@@ -143,7 +143,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:989` | yes `apple/PointeKit/Sources/PointeUI/Brand.swift:449` | yes `macos/PointeMac/AppModel.swift:179` |
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1243` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:46` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:46` |
 | The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (34 topics)` | yes `product_help.json (35 topics)` | yes `product_help.json (35 topics)` |
-| A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:6` | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:6` |
+| A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:7` |
 | Keyboard: a key for every main action <br>`keys` | yes `ui.html:2835` | n/a | yes `macos/PointeMac/PointeMacApp.swift:35` |
 
 ## The Mac shell
