@@ -44,7 +44,7 @@ class Setup:
     speed: tuple
     cost: str
     privacy: str
-    pick_for: str
+    pick_for: str  # reads after "Best for": "Best for daily use."
     optional: tuple = ()  # used when present, never asked for
     needs: str = ""  # beyond a Mac and Chrome
     local: str = ""  # "voice": ears and mouth on this Mac; "all": every model on this Mac
@@ -64,7 +64,7 @@ SETUPS = (
           cost="$0 until the free quota ends; about $0.70 to $0.95 with billing on",
           privacy="Speech and session text go to Google. On the free tier Google may use and review them: not for "
                   "confidential work.",
-          pick_for="just trying it; no budget",
+          pick_for="trying Pointe at no cost",
           short="One Gemini key. Free to try; slower replies, headphones."),
     Setup("openai", "One OpenAI key", ("openai",), {"openai": ("brain", "reader", "checker", "ears", "mouth")},
           measured=(("24 of 35 audio checks", "bench/results/combinations.md, \"OpenAI only\""),
@@ -74,7 +74,7 @@ SETUPS = (
           speed=(("whole replies not measured; the brain answers in 2.4 s at the median",
                   "bench/results/brain_substance.md, gpt-6-sol (v7openai)"),),
           cost="about $0.95", privacy="Speech and session text go to OpenAI.",
-          pick_for="you already pay for OpenAI",
+          pick_for="people who already pay for OpenAI",
           short="One OpenAI key. Headphones; weakest audio result."),
     Setup("two", "Two keys", ("soniox", "anthropic"),
           {"anthropic": ("brain", "reader", "checker"), "soniox": ("ears", "mouth")},
@@ -84,7 +84,7 @@ SETUPS = (
           speed=(("whole replies not measured; the brain answers in 1.8 s at the median, the voice starts in 301 ms",
                   "docs/benchmarks.md, \"Brain and reader\" and the mouth table"),),
           cost="about $1.20", privacy="Speech goes to Soniox; session text to Anthropic.",
-          pick_for="the best ears with two accounts; laptop speakers",
+          pick_for="the best ears with two accounts, on laptop speakers",
           short="Soniox and Anthropic. Best ears, works on speakers."),
     Setup("full", "Fastest and most accurate voice", ("anthropic", "soniox", "elevenlabs", "gemini"),
           {"anthropic": ("brain", "reader"), "gemini": ("checker",), "soniox": ("ears",), "elevenlabs": ("mouth",)},
@@ -121,12 +121,12 @@ SETUPS = (
                     ("brain 76.9% against Sonnet's 91.9%", "docs/benchmarks.md, \"Fully local\"")),
           speed=(("replies took 5.8 to 11.6 s", "bench/results/combinations.md, \"None: fully local\""),),
           cost="$0", privacy="Nothing leaves the Mac.",
-          pick_for="nothing may leave the Mac; no budget with a 32 GB Mac",
+          pick_for="work where nothing may leave the Mac, on a 32 GB Mac",
           needs="an Apple-silicon Mac with 32 GB of memory, about 19 GB of disk, headphones; English only", local="all",
           short="No key. Every model on the Mac; slow, English only."),
 )
 BY_ID = {s.id: s for s in SETUPS}
-DEFAULT = "free"  # the one recommended when the person has no preference: one key, two minutes
+DEFAULT = "free"  # the one /pointe:setup offers first: one key, about 5 minutes
 
 
 def _keys(s: Setup) -> str:
@@ -141,11 +141,11 @@ def _does(s: Setup) -> str:
 def table(full: bool = True) -> str:
     """The Markdown table: full with sources (docs/setups.md), or the short one for the README and /pointe:setup."""
     if not full:
-        rows = ["| Setup (`pointe setup <id>`) | Keys | Measured | A busy hour | Pick it for |", "|---|---|---|---|---|"]
+        rows = ["| Setup (`pointe setup <id>`) | Keys | Measured | A busy hour | Best for |", "|---|---|---|---|---|"]
         for s in SETUPS:
             rows.append(f"| {s.name} (`{s.id}`) | {_keys(s)} | {s.measured[0][0]}; {s.speed[0][0]} | {s.cost} | {s.pick_for} |")
         return "\n".join(rows)
-    rows = ["| Setup | Keys | What each one does | Measured | Speed | A busy hour | Where your words go | Pick it for |",
+    rows = ["| Setup | Keys | What each one does | Measured | Speed | A busy hour | Where your words go | Best for |",
             "|---|---|---|---|---|---|---|---|"]
     for s in SETUPS:
         cite = lambda claims: "<br>".join(f"{c} ({src})" for c, src in claims)  # noqa: E731
@@ -158,7 +158,8 @@ def text_table() -> str:
     """The same choice for a terminal: the doctor and `pointe setup`."""
     lines = []
     for s in SETUPS:
-        lines.append(f"  {s.id:12} {s.name}: {_keys(s)}. {s.cost} a busy hour. For {s.pick_for}.")
+        keys = _keys(s) if s.keys else "no key"
+        lines.append(f"  {s.id:12} {s.name}: {keys}. A busy hour: {s.cost}. Best for {s.pick_for}.")
         lines.append(f"  {'':12} {s.measured[0][0]}; {s.speed[0][0]}.")
     return "\n".join(lines)
 
@@ -212,8 +213,8 @@ def main(argv: list[str]) -> int:
     print(f"Setup: {s.name}. Pointe now uses {_keys(s) if s.keys else 'no key'}"
           f"{' and the models on this Mac' if s.local else ''}, and no other vendor.")
     for vendor in s.keys:
-        print(f"  Its {NAMES[vendor]} key: save it with pointe key {vendor}, check it with pointe key check {vendor}.")
-    print("If the voice is running, restart it to use the setup: /pointe:stop, then /pointe:voice.")
+        print(f"  Its {NAMES[vendor]} key: pointe key {vendor} opens the key page and a Mac window, and checks the key.")
+    print("If Pointe is running, restart it to use the setup: pointe restart.")
     return 0
 
 

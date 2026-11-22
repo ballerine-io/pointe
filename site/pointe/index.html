@@ -58,6 +58,7 @@
           <pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre>
           <button type="button" class="copy" hidden>Copy</button>
         </div>
+        <p class="small">Then run <code>/pointe:setup</code> in Claude Code: about 5 minutes, free with one Google key.</p>
       </div>
       <figure class="devices">
         <div class="devices-stage">
@@ -550,13 +551,14 @@
       </div>
       <div class="split split--term block">
         <ol class="steps">
-          <li><div><span class="title">Install the plugin</span>Two commands, from the repository.</div></li>
-          <li><div><span class="title">Run <code>/pointe:setup</code> in a new Claude Code session</span>It checks your
-            Mac and installs uv if it is missing, asks which setup you want (one Gemini key is enough to start), asks only
-            for that setup's keys and stores each in the macOS Keychain through a system window (never in the chat),
-            checks each one, starts your first call, and can pair your phone.</div></li>
+          <li><div><span class="title">Install the plugin</span>One command, from the repository.</div></li>
+          <li><div><span class="title">Run <code>/pointe:setup</code> in a new Claude Code session</span>About 5
+            minutes, free with one Google key. It checks your Mac, asks one question (Start with Free start?), opens the
+            key page and a Mac window for the key, so the key goes to your Keychain and never into the chat, checks it,
+            and starts your first call: say hello, and Pointe answers that it hears you. Your phone and the apps come
+            after, if you want them.</div></li>
           <li><div><span class="title">Run <code>/pointe:voice</code> in each session you want to reach</span>The first
-            run downloads about 180 MB. A tab opens: allow the microphone, press Connect, and talk. OpenCode and Codex
+            run downloads about 180 MB. A tab opens: allow the microphone, press Connect, and say hello. OpenCode and Codex
             sessions join with <code>pointe join</code>. Later, say "start a new Codex session in shop" and
             Pointe starts one.</div></li>
         </ol>
@@ -575,7 +577,8 @@
 <span class="c"># optional: the apps, from a clone of the repository (Xcode 16)</span>
 <span class="p">$ </span>bin/pointe apps mac     <span class="c"># the Mac app, into ~/Applications (macOS 15)</span>
 <span class="p">$ </span>bin/pointe apps ios     <span class="c"># the iPhone app, onto your iPhone (free Apple Account)</span></code></pre>
-          <p class="small">To remove it: <code>/pointe:stop</code>, then <code>claude plugin uninstall pointe@pointe</code>. Nothing keeps running.</p>
+          <p class="small">To remove it: <code>pointe uninstall</code> in a terminal. It lists what Pointe added (the plugin and
+            its two hooks, <code>~/.claude-voice</code>, the Mac app, its keys in the Keychain), asks, and removes it.</p>
         </div>
       </div>
       <p class="small note">To try it free: one Google AI Studio key, no card. The quota is small, and Google may review

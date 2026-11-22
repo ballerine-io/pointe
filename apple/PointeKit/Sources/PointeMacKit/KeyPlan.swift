@@ -30,12 +30,12 @@ public struct SetupChoice: Identifiable, Equatable, Sendable {
     public let pickFor: String
 
     public static let all: [SetupChoice] = [
-        SetupChoice(id: "free", name: "Free start", keys: [.gemini], optional: [], local: "", short: "One Gemini key. Free to try; slower replies, headphones.", pickFor: "just trying it; no budget"),
-        SetupChoice(id: "openai", name: "One OpenAI key", keys: [.openai], optional: [], local: "", short: "One OpenAI key. Headphones; weakest audio result.", pickFor: "you already pay for OpenAI"),
-        SetupChoice(id: "two", name: "Two keys", keys: [.soniox, .anthropic], optional: [], local: "", short: "Soniox and Anthropic. Best ears, works on speakers.", pickFor: "the best ears with two accounts; laptop speakers"),
+        SetupChoice(id: "free", name: "Free start", keys: [.gemini], optional: [], local: "", short: "One Gemini key. Free to try; slower replies, headphones.", pickFor: "trying Pointe at no cost"),
+        SetupChoice(id: "openai", name: "One OpenAI key", keys: [.openai], optional: [], local: "", short: "One OpenAI key. Headphones; weakest audio result.", pickFor: "people who already pay for OpenAI"),
+        SetupChoice(id: "two", name: "Two keys", keys: [.soniox, .anthropic], optional: [], local: "", short: "Soniox and Anthropic. Best ears, works on speakers.", pickFor: "the best ears with two accounts, on laptop speakers"),
         SetupChoice(id: "full", name: "Fastest and most accurate voice", keys: [.anthropic, .soniox, .elevenlabs, .gemini], optional: [], local: "", short: "Anthropic, Soniox, ElevenLabs, Gemini. Fastest replies, best ears and voice.", pickFor: "daily use"),
         SetupChoice(id: "voice-local", name: "Voice stays on your Mac", keys: [.anthropic], optional: [.gemini], local: "voice", short: "One Anthropic key; ears and voice on the Mac. No audio leaves it.", pickFor: "confidential work where text may leave the Mac but your voice may not"),
-        SetupChoice(id: "local", name: "Fully local", keys: [], optional: [], local: "all", short: "No key. Every model on the Mac; slow, English only.", pickFor: "nothing may leave the Mac; no budget with a 32 GB Mac"),
+        SetupChoice(id: "local", name: "Fully local", keys: [], optional: [], local: "all", short: "No key. Every model on the Mac; slow, English only.", pickFor: "work where nothing may leave the Mac, on a 32 GB Mac"),
     ]
 
     public static func named(_ id: String?) -> SetupChoice? { all.first { $0.id == id } }

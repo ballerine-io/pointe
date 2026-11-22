@@ -10,18 +10,18 @@ What each surface has, and why the few differences exist: [design/parity.md](des
 
 ## Getting it
 
-It is not notarized yet and there is no download: you build it on your Mac. One command builds it, signs it, and puts
-it in `~/Applications`:
+It is not notarized yet and there is no download: you build it on your Mac, from the plugin you installed. In Claude
+Code, `/pointe:setup apps` does it for you. In a terminal, one command builds it, signs it, and puts it in
+`~/Applications`:
 
 ```
-git clone https://github.com/ballerine-io/pointe.git && cd pointe
-bin/pointe apps mac
+pointe apps mac
 ```
 
 You need Xcode 16 or newer (free in the App Store) and macOS 15 or newer. You do not need an Apple Account.
-`bin/pointe apps doctor` checks the Mac first and prints the fix for anything missing. The plugin must be installed
-too (`claude plugin install pointe@pointe`, see the [README](../README.md#install)): the app starts and talks to the
-plugin's daemon and has no engine of its own.
+`pointe apps doctor` checks the Mac first and prints the fix for anything missing. The plugin must be installed too
+(see the [README](../README.md#install)): the app starts and talks to the plugin's daemon and has no engine of its own,
+and `pointe` is the command setup puts on your PATH. Contributors building from a clone run `bin/pointe apps mac` there.
 
 **What the command does, and why**
 
@@ -29,12 +29,12 @@ plugin's daemon and has no engine of its own.
 |---|---|
 | Checks Xcode | The build needs the full Xcode, selected and with its license accepted; the command line tools alone cannot build an app. |
 | Chooses how to sign | With an Apple Development certificate in your keychain (a free Apple Account is enough, [how](phone.md#getting-the-app)) it signs as your team. Without one it signs ad hoc, which Xcode calls "Sign to Run Locally". If signing as your team fails, it says why and signs ad hoc instead. |
-| Builds Release | The optimized build, into `macos/build/apps` (git ignores it). The first build takes a few minutes. |
+| Builds Release | The optimized build, into `~/.claude-voice/apps/build` (in a clone, `macos/build/apps`, which git ignores). The first build took 44 s on an Apple-silicon Mac in the clean-install run. |
 | Quits a running Pointe and replaces `~/Applications/Pointe.app` | So there is one copy, where Spotlight and Login Items find it. Only the copy at that path is quit; if it was running, the new one is opened. |
 
 Both ways of signing give an app that runs on this Mac. The difference is the microphone permission: macOS ties it to
 the signature. Signed as your team, the permission is kept across rebuilds. Signed ad hoc, macOS asks again after each
-rebuild. With a team, the app's bundle ID is your own (`ios/.bundle-id` plus `.mac`), for the same reason as on the
+rebuild. With a team, the app's bundle ID is your own (the saved iPhone bundle ID plus `.mac`), for the same reason as on the
 iPhone: `io.ballerine.pointe.mac` belongs to the team that publishes Pointe.
 
 **Gatekeeper** does not stop it. Gatekeeper checks files that were downloaded (macOS marks them as quarantined), and an
@@ -47,7 +47,7 @@ Options: `--open` opens the app when it is installed, `--adhoc` signs to run loc
 installs somewhere other than `~/Applications`, `--dry-run` shows the Xcode command without running it. Run the command
 again to update. If the build fails, the command prints the cause and the fix; the table in
 [phone.md](phone.md#getting-the-app) covers the Xcode license, `xcode-select` and signing errors, and the full output
-is in `macos/build/apps/build.log`.
+is in `build.log` in the build folder.
 
 For work on the app itself, `macos/build.sh --open` makes a Debug build in `macos/build/dd` and installs nothing.
 

@@ -1,5 +1,5 @@
 ---
-description: Add this Claude Code session to the shared voice (starts the voice daemon if needed; sets Pointe up on a first run)
+description: Join this Claude Code session to Pointe (starts Pointe if needed; sets it up on a first run)
 allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe node status:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run:*), Read(${CLAUDE_PLUGIN_ROOT}/plugin/commands/setup.md), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-daemon:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/install-uv:*), Bash(command -v:*), Bash(ls:*), Bash(sw_vers:*), Bash(open:*), Bash(echo:*), Bash(mkdir -p ~/.claude-voice:*), Bash(touch ~/.claude-voice/setup-done:*)
 ---
 

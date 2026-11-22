@@ -41,17 +41,19 @@ No setup is best on every axis. The fastest and most accurate voice has the high
 and voice, but its brain (Sonnet) and the Free start's brain (Gemini) are within the margin of each other: Gemini passed
 more cases, Sonnet answered faster. Pick by what matters to you:
 
-{chr(10).join(f"- **{s.pick_for[0].upper() + s.pick_for[1:]}**: {s.name} (`pointe setup {s.id}`)" for s in setups.SETUPS)}
+{chr(10).join(f"- **Best for {s.pick_for}**: {s.name} (`pointe setup {s.id}`)" for s in setups.SETUPS)}
 
-With nothing chosen, `/pointe:setup` recommends **{setups.BY_ID[setups.DEFAULT].name}**: one key, working in two minutes.
+With nothing chosen, `/pointe:setup` asks one question, "Start with {setups.BY_ID[setups.DEFAULT].name}?": one key, about 5
+minutes, and this table only if you ask for the other setups.
 
 ## Choosing and switching
 
 `pointe setup` shows this table and the setup in use; `pointe setup <id>` switches, and from then on the daemon uses
 exactly that setup's vendors, whatever other keys the Keychain holds. `pointe key <vendor>` saves a key through a Mac
-window, `pointe key check <vendor>` tries it with one tiny live call. Restart the voice (`/pointe:stop`, then
-`/pointe:voice`) to use a new setup or key. The Mac app's Settings, Model keys, does the same with a menu, and the page's
-Settings shows the setup in use and each key as In use, Needed or Optional.
+window after opening the vendor's key page, checks it with one tiny live call (and asks again when the vendor refuses
+it), and restarts Pointe to use it; `pointe key check <vendor>` checks a saved key. After `pointe setup <id>`, restart
+with `pointe restart`. The page's Settings, Model keys, and the Mac app's do the same with buttons: Add… or Replace… for a
+key, Use this setup for a setup, each shown with the key as In use, Needed or Optional.
 """
 
 

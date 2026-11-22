@@ -1,18 +1,36 @@
 # Phone access
 
+Start with your phone's browser: it needs nothing built or installed on the phone. The iPhone app is not on TestFlight
+or in the App Store yet, so it is built with Xcode ([below](#the-iphone-app)); until it ships, the browser is the
+quick way.
+
+## In the phone's browser
+
+1. Give the phone a private way to reach this Mac. Easiest: [Tailscale](https://tailscale.com/download) on the Mac and
+   the phone, signed in to the same account, then `pointe pair tailscale`. A VPN that routes to this Mac (Twingate, for
+   example): `pointe pair host <name>`. The same Wi-Fi only: `pointe pair wifi`. In Claude Code, `/pointe:setup phone`
+   walks you through it.
+2. `pointe pair link` prints an address. It holds a secret: send it only to your own phone (AirDrop or Notes), and
+   open it once in the phone's browser. The page then works there like on the Mac.
+
+If the browser refuses the Mac's certificate, the steps in [A certificate the phone trusts](#a-certificate-the-phone-trusts)
+make it trust this one name. Not measured: how each phone browser treats the certificate on a first visit.
+
 ## The iPhone app
 
 ### Getting the app
 
-The app is not in the App Store and not on TestFlight yet. Until it is, you build it on your own Mac with Xcode. One
-command does the build, the signing and the install, and tells you what to do when something is missing:
+The app is not in the App Store and not on TestFlight yet. Until it is, you build it on your own Mac with Xcode, from
+the plugin you installed. In Claude Code, `/pointe:setup apps` does it for you. In a terminal, one command does the
+build, the signing and the install, and tells you what to do when something is missing:
 
 ```
-git clone https://github.com/ballerine-io/pointe.git && cd pointe
-bin/pointe apps doctor      # what this Mac has and lacks, with the exact fix for each
-bin/pointe apps ios         # build, sign for your Apple Account, install on the connected iPhone
-bin/pointe apps ios --sim   # no iPhone or no Apple Account: run it in the iPhone Simulator
+pointe apps doctor      # what this Mac has and lacks, with the exact fix for each
+pointe apps ios         # build, sign for your Apple Account, install on the connected iPhone
+pointe apps ios --sim   # no iPhone or no Apple Account: run it in the iPhone Simulator
 ```
+
+Contributors building from a clone run `bin/pointe apps …` there.
 
 You need a Mac with Xcode 16 or newer (free in the App Store), an iPhone on iOS 18 or newer, and an Apple Account. A
 free one is enough. Nothing is uploaded and no file in the repository is changed. Run the same command again at any
@@ -33,8 +51,8 @@ time: it updates the app in place and keeps its pairing and settings.
 |---|---|
 | Sign in to Xcode | An iPhone runs only apps that Apple has signed for a known developer. Your Apple Account is that developer. |
 | Apple Development certificate | The key, in your Mac's keychain, that signs the app as you. The command reads your team from it, so you never type a Team ID. |
-| Team, saved in `ios/.team` | Xcode needs to know which team signs. With one team it is picked for you; with several the command asks once. Git ignores the file. |
-| Bundle ID, saved in `ios/.bundle-id` | Apple gives each bundle ID to one team, and `io.ballerine.pointe` belongs to the team that publishes Pointe. The command makes one for you (`io.ballerine.pointe.dev` plus eight characters) and passes it to Xcode on the command line, so the project file stays as committed. It is saved so every rebuild updates the same app. |
+| Team, saved in `~/.claude-voice/apps/.team` | Xcode needs to know which team signs. With one team it is picked for you; with several the command asks once. It is saved outside the plugin's folder, so a plugin update keeps it (a clone keeps it in `ios/.team`, which git ignores). |
+| Bundle ID, saved in `~/.claude-voice/apps/.bundle-id` | Apple gives each bundle ID to one team, and `io.ballerine.pointe` belongs to the team that publishes Pointe. The command makes one for you (`io.ballerine.pointe.dev` plus eight characters) and passes it to Xcode on the command line, so the project file stays as committed. It is saved so every rebuild, and every plugin update, updates the same app and keeps its pairing (a clone keeps it in `ios/.bundle-id`). |
 | Trust This Computer | Lets this Mac install apps on the iPhone. |
 | Developer Mode | iOS refuses apps that did not come from the App Store until you turn this on. |
 | Build with `-allowProvisioningUpdates` | Lets Xcode ask Apple for a provisioning profile: the signed note that says this app, from this team, may run on this iPhone. It also registers the iPhone with your team. |
@@ -59,12 +77,12 @@ time: it updates the app in place and keeps its pairing and settings.
 
 **When something fails**
 
-The command prints the cause and the fix, and keeps Xcode's full output in `ios/build/apps/build.log`. The usual ones:
+The command prints the cause and the fix, and keeps Xcode's full output in `build.log` in the build folder (`~/.claude-voice/apps/build/ios`, or `ios/build/apps` in a clone). The usual ones:
 
 | What you see | What it means | Fix |
 |---|---|---|
 | "No Apple Development certificate on this Mac", or `No signing certificate "iOS Development" found`, or `No Accounts: Add a new account` | Xcode is not signed in, or has no certificate yet | Xcode, Settings, Accounts: sign in, then Manage Certificates, +, Apple Development |
-| `Failed to register bundle identifier … not available` | The bundle ID belongs to another team | Delete `ios/.bundle-id` and run again, or pass `--bundle-id com.<yourname>.pointe` |
+| `Failed to register bundle identifier … not available` | The bundle ID belongs to another team | Delete the saved `.bundle-id` (`~/.claude-voice/apps/.bundle-id`, or `ios/.bundle-id` in a clone) and run again, or pass `--bundle-id com.<yourname>.pointe` |
 | `CoreDeviceError error 4016`, "The device is unavailable", or the iPhone shown as not reachable | Xcode knows the iPhone but cannot reach it now | Unlock it and keep the screen on; use a cable, or the same Wi-Fi as the Mac with no VPN in between; tap Trust if asked |
 | "Untrusted Developer" on the iPhone, or `profile has not been explicitly trusted by the user` | iOS has not been told to trust your account | iPhone: Settings, General, VPN & Device Management, your Apple Account, Trust |
 | `Developer Mode is disabled` | iOS blocks apps built from source | iPhone: Settings, Privacy & Security, Developer Mode, on, restart, confirm. The row appears after the iPhone was connected to a Mac with Xcode |
@@ -78,7 +96,7 @@ Options: `--device <name>` when more than one iPhone is connected, `--team <Team
 
 If you would rather use Xcode's window: open `ios/Pointe.xcodeproj`, choose your team under Signing & Capabilities,
 change the Bundle Identifier to one of your own (keep that change out of commits), choose the iPhone, press Run.
-Without the app, the page works in the phone's browser ([below](#the-browser-page-older-way)).
+Without the app, the page works in the phone's browser ([above](#in-the-phones-browser)).
 
 ### Pairing
 
@@ -135,9 +153,9 @@ To check by hand on a real iPhone and watch (the simulator has no watch; not yet
 4. Take the watch off (locked): Approve asks to unlock it first.
 5. An unreadable request (`python3 -c …`): the watch shows only "Bash: open Pointe to see the exact request", Deny only.
 
-## The browser page (older way)
+## A certificate the phone trusts
 
-The browser page over Twingate. Call audio is one WebSocket on the same HTTPS port, so no UDP resource is needed.
+For the browser page over Twingate, with a certificate the phone trusts for this one name. Call audio is one WebSocket on the same HTTPS port, so no UDP resource is needed.
 
 1. Twingate console: a remote network with a Connector running in Docker (Colima) on this Mac; a resource
    `host.docker.internal`, alias `phone.example.internal`, TCP 7443, access for you only.

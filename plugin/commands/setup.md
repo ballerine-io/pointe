@@ -39,14 +39,14 @@ with these options in this order: "Yes, Free start (recommended)", "Show me the 
 <details><summary>The six setups: only when they ask</summary>
 
 <!-- setups: written by tools/setups.py from setups.py -->
-| Setup (`pointe setup <id>`) | Keys | Measured | A busy hour | Pick it for |
+| Setup (`pointe setup <id>`) | Keys | Measured | A busy hour | Best for |
 |---|---|---|---|---|
-| Free start (`free`) | Gemini | 28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19); replies took 4.0 to 4.5 s | $0 until the free quota ends; about $0.70 to $0.95 with billing on | just trying it; no budget |
-| One OpenAI key (`openai`) | OpenAI | 24 of 35 audio checks; whole replies not measured; the brain answers in 2.4 s at the median | about $0.95 | you already pay for OpenAI |
-| Two keys (`two`) | Soniox + Anthropic | 30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work; whole replies not measured; the brain answers in 1.8 s at the median, the voice starts in 301 ms | about $1.20 | the best ears with two accounts; laptop speakers |
+| Free start (`free`) | Gemini | 28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19); replies took 4.0 to 4.5 s | $0 until the free quota ends; about $0.70 to $0.95 with billing on | trying Pointe at no cost |
+| One OpenAI key (`openai`) | OpenAI | 24 of 35 audio checks; whole replies not measured; the brain answers in 2.4 s at the median | about $0.95 | people who already pay for OpenAI |
+| Two keys (`two`) | Soniox + Anthropic | 30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work; whole replies not measured; the brain answers in 1.8 s at the median, the voice starts in 301 ms | about $1.20 | the best ears with two accounts, on laptop speakers |
 | Fastest and most accurate voice (`full`) | Anthropic + Soniox + ElevenLabs + Gemini | 34 of 35 audio checks, echo guard 4 of 4: the highest whole-setup result; replies in 2.4 s at the median (2.0 to 2.6), the fastest measured | about $1 | daily use |
 | Voice stays on your Mac (`voice-local`) | Anthropic (Gemini optional) | 30 of 35 audio checks, with Anthropic and Gemini keys; replies in 4.1 s at the median | about $0.40 (Anthropic and Gemini) | confidential work where text may leave the Mac but your voice may not |
-| Fully local (`local`) | none | 10 of 19 one-session audio checks, every approval check among them; replies took 5.8 to 11.6 s | $0 | nothing may leave the Mac; no budget with a 32 GB Mac |
+| Fully local (`local`) | none | 10 of 19 one-session audio checks, every approval check among them; replies took 5.8 to 11.6 s | $0 | work where nothing may leave the Mac, on a 32 GB Mac |
 
 Sources, speed and where your words go: [docs/setups.md](../../docs/setups.md).
 <!-- end setups -->

@@ -107,7 +107,7 @@ def test_pointe_setup_lists_the_table_and_switches(state, capsys):
     assert setups.WHY_KEYS in out and all(s.name in out for s in setups.SETUPS) and "Recommended to start: pointe setup free" in out
     assert setups.main(["two"]) == 0
     out = capsys.readouterr().out
-    assert "Setup: Two keys." in out and "pointe key check soniox" in out
+    assert "Setup: Two keys." in out and "pointe key soniox opens the key page" in out and "pointe restart" in out
     assert setups.main(["best"]) == 2
 
 
@@ -212,3 +212,17 @@ def test_pointe_voice_runs_setup_on_a_first_run(tmp_path):
     assert run() == "needed\n"
     (tmp_path / "token").write_text("x")
     assert run() == "done\n", "the voice ran here before"
+
+
+def test_every_best_for_line_reads_as_a_sentence():
+    """The onboarding review: "For you already pay for OpenAI.", "For nothing may leave the Mac; no budget with a 32 GB
+    Mac." and "Fully local: none. $0 a busy hour." in the doctor, `pointe setup` and the page."""
+    table = setups.text_table()
+    for s in setups.SETUPS:
+        assert f"Best for {s.pick_for}." in table and not s.pick_for.startswith(("you ", "nothing ", "just "))
+        assert ";" not in s.pick_for
+    assert "Fully local: no key. A busy hour: $0." in table and "For " not in table
+    page = (ROOT / "ui.html").read_text()
+    assert "For ${x.pick_for}" not in page.replace("Best for ${x.pick_for}", "")
+    mac = (ROOT / "macos" / "PointeMac" / "MacSettings.swift").read_text()
+    assert ': best for \\(choice.pickFor)"' in mac

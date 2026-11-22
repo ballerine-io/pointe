@@ -128,7 +128,7 @@ struct SetupPicker: View {
                     if model.setupBusy { ProgressView().controlSize(.small) }
                     Menu(SetupChoice.named(model.setupID)?.name ?? KeyCopy.noSetup) {
                         ForEach(SetupChoice.all) { choice in
-                            Button("\(choice.name): for \(choice.pickFor)") { Task { await model.chooseSetup(choice.id) } }
+                            Button("\(choice.name): best for \(choice.pickFor)") { Task { await model.chooseSetup(choice.id) } }
                         }
                     }
                     .fixedSize()
