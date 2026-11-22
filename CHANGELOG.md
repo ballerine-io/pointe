@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.20
 
+- **1.20.1** (2026-11-23): In the Mac app, a click on the call bubble works again (Connect from it did nothing); the bubble shows only on a call unless you pin it, opens Pointe when clicked, says why a call did not start, shows the talk mode and its shortcut, stays where you drag it, and gets small or closes with ×; opening the app opens its window even when the menu bar icon is behind the notch
 - **1.20.0** (2026-11-23): Setup is one yes or no, Start with Free start?, then one key: pointe key opens the vendor's key page and a window with three numbered steps, checks the key before saving it, asks again when it is refused, and restarts Pointe; your first call ends on "I can hear you", and setup on "Pointe heard you. You're set up."; a refused key shows Cannot hear you with a red dot and Fix the key, never Listening, and is checked before the tab opens; pointe is a command after setup, and pointe uninstall removes what Pointe added; the page adds keys and switches setups with buttons and hides its advanced controls until your first hello; a plugin update keeps the iPhone app's team and bundle ID; keys are saved as pointe.<vendor>-api-key, and a key saved before keeps working
 
 ## 1.19
