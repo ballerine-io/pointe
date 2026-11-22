@@ -3825,8 +3825,8 @@ class MicGate(FrameProcessor):
         await self.push_frame(frame, direction)
 
     def recent_audio(self, secs: float) -> bytes:
-        data = b"".join(self.ring)
-        return data[-int(secs * phone.IN_RATE * 2):]
+        n = int(secs * phone.IN_RATE) * 2  # whole 16-bit samples: Soniox closes a stream on an odd length
+        return b"".join(self.ring)[-n:] if n > 0 else b""
 
 
 def _room_heard() -> bool:

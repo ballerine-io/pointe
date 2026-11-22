@@ -292,3 +292,12 @@ def test_the_entry_command_is_replayed_even_when_the_stream_opens_slowly(d, monk
     d.PREFS.update({"meeting.consented": True})
     asyncio.run(d._start_meeting_by_voice("Pointe, meeting mode, listening.", "listening"))
     assert FakeEars.instances[-1].sent == [b"the entry command", b"whatever came after"]  # the command first, nothing lost
+
+
+@pytest.mark.parametrize("secs", [5, 2.94871875, 0.00009375])  # the last two are odd byte counts
+def test_recent_audio_is_whole_samples(d, secs):
+    """From a live run: 2.948 s of room audio came out as an odd number of bytes, Soniox refused it ("must be a multiple
+    of 2") and closed the meeting stream, which relabelled every speaker and lost the owner."""
+    gate = d.MicGate()
+    gate.ring.append(b"\x01\x02" * 100_000)
+    assert len(gate.recent_audio(secs)) % 2 == 0
