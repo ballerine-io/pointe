@@ -119,6 +119,7 @@ class StubMac:
         app.router.add_get("/voice/phone/invite", self._ok)
         app.router.add_get("/voice/artifact", self._gone)
         app.router.add_get("/voice/new-session", self._new_session)
+        app.router.add_get("/voice/night-shift", self._night_shift)
         app.router.add_route("POST", "/{tail:.*}", self._post)
         app.router.add_route("DELETE", "/{tail:.*}", self._ok)
         self._runner = web.AppRunner(app, access_log=None)
@@ -181,6 +182,17 @@ class StubMac:
         await self._stall()
         return web.json_response(self.new_session)
 
+    # The night shift sheet and ledger (daemon.night_shift_view); a test may replace `night`.
+    night = {"shift": None, "history": [], "caps": {"hours": 8.0, "messages": 40, "notify": False},
+             "limits": {"hours": 12.0, "messages": 200, "sessions": 8, "tasks": 5, "task_chars": 2000, "followups": 3},
+             "rule": "I approve nothing: a session that needs approval waits for you.", "pending": None,
+             "sessions": [{"name": "shop", "harness": "claude-code", "available": True, "why": None},
+                          {"name": "billing", "harness": "opencode", "available": True, "why": None}]}
+
+    async def _night_shift(self, request):
+        await self._stall()
+        return web.json_response(self.night)
+
     async def _gone(self, request):
         return web.json_response({"detail": "gone"}, status=404)
 
@@ -207,6 +219,21 @@ class StubMac:
                 s.setdefault("starting", []).append({"id": f"st{len(self.posts)}", "name": name, "harness": started["harness"],
                                                      "label": started["harness"], "folder": started["folder"].rsplit("/", 1)[-1],
                                                      "state": "starting", "detail": "", "since": time.time()})
+        elif path == "/voice/night-shift":  # as daemon.night_shift_action: a start runs, a stop ends, a tap answers the card
+            action = body.get("action")
+            if action in ("confirm", "cancel"):
+                s["shift_pending"] = None
+            if action in ("start", "confirm"):
+                tasks = len(body.get("items") or [1, 1])
+                summary = {"on": True, "id": "n1", "at": time.time(), "ends_at": time.time() + 8 * 3600, "ended": None, "why": "",
+                           "sent": tasks, "budget": body.get("messages", 40), "hours": body.get("hours", 8), "notify": bool(body.get("notify")),
+                           "tasks": tasks, "done": 0, "in_flight": tasks, "blocked": 0, "decided": 0, "asked": 0, "fronts": []}
+                s["night_shift"] = summary
+                ledger = {k: [] for k in ("done", "in_flight", "blocked", "decided", "asked", "not_started")}
+                self.night = {**self.night, "history": [summary], "shift": {**summary, "how": "page", "ledger": ledger, "morning": [
+                    {"kind": "headline", "title": "Night shift", "text": f"Night shift, 22:10 and still running: 0 of {tasks} tasks done."}]}}
+            elif action == "stop" and s.get("night_shift"):
+                s["night_shift"].update(on=False, why="stopped", ended=time.time())
         elif path == "/voice/listen":
             s["monologue"] = {"since": time.time(), "said": ""} if body.get("on") else None
         elif path == "/voice/dump":  # as daemon.py's route would, with the model's part stubbed

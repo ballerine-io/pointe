@@ -61,6 +61,8 @@ struct API {
         var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
         var starting: [NewSession.Starting]?    // sessions Pointe is starting, or that just failed to; nil from an older Mac
         var start_pending: NewSession.Pending?  // a read-back that waits for a yes or a tap; nil when none
+        var night_shift: NightShift.Summary?    // the running or the last night shift; nil when there was none, or from an older Mac
+        var shift_pending: NightShift.Pending?  // a night shift's read-back that waits for a yes or a tap; nil when none
         #if os(macOS)
         var phones: Phones?         // Settings → Phone: the paired phones; the Mac sends them to its own page and app only
         #endif
@@ -545,6 +547,23 @@ struct API {
     /// The sheet's Start (`NewSession.Draft.body`), or a tap on a read-back: `confirm` or `cancel` with its id. A refusal
     /// carries the Mac's own words.
     func newSession(_ body: [String: String]) async throws { try await post("voice/new-session", body) }
+
+    // MARK: night shift (NightShift.swift)
+
+    /// The running or the last shift with its ledger (or the one from the history with this id), the last seven, the
+    /// caps, and the sessions a task may go to.
+    func nightShift(id: String? = nil) async throws -> NightShift.Options {
+        let query = id.map { [URLQueryItem(name: "id", value: $0)] } ?? []
+        return try JSONDecoder().decode(NightShift.Options.self, from: try await checked(request("voice/night-shift", query: query)))
+    }
+
+    /// The sheet's Start (`NightShift.Draft.body`). A refusal carries the Mac's own words.
+    func startShift(_ draft: NightShift.Draft) async throws { try await post("voice/night-shift", draft.body) }
+
+    /// `stop`, or a tap on a read-back: `confirm` or `cancel` with its id.
+    func shiftAction(_ action: String, id: String? = nil) async throws {
+        try await post("voice/night-shift", id.map { ["action": action, "id": $0] } ?? ["action": action])
+    }
 
     // MARK: machines
 

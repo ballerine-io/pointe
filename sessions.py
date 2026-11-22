@@ -56,6 +56,7 @@ class Session:
     permission_answer: object = None  # a future, while Claude Code's PermissionRequest hook waits on the voice
     permission_full: str = ""
     permission_since: float | None = None  # when it arrived: a background session can wait on it for long
+    permission_until: float = 0.0  # when the voice lets go of it: far off for a session on a night shift (nightshift.PARK_SECS)
     last_delegation_at: float = 0.0
     busy: bool = False
     # The prompt it waits at in its own terminal, in its harness's word ("permission prompt"), read from the harness

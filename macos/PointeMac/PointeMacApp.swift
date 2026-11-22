@@ -51,6 +51,7 @@ struct PointeCommands: Commands {
             Button(MacMenu.sessions) { model.ask(.sessions) }.keyboardShortcut("s", modifiers: [.command, .shift]).disabled(!model.ready)
             Button(MacMenu.meeting) { model.ask(.meeting) }.keyboardShortcut("m", modifiers: [.command, .shift]).disabled(!model.ready)
             Button(MacMenu.briefing) { model.ask(.briefing) }.keyboardShortcut("b", modifiers: [.command, .shift]).disabled(!model.ready)
+            Button(MacMenu.nightShift) { model.ask(.nightShift) }.keyboardShortcut("n", modifiers: [.command, .shift]).disabled(!model.ready)
             Button(MacMenu.machines) { model.ask(.machines) }.disabled(!model.ready)
             Button(MacMenu.phone) { model.ask(.phone) }.disabled(!model.ready || model.session.isDemo)
             Divider()
@@ -67,6 +68,7 @@ enum MacMenu {
     static let sessions = "Sessions and Mode"
     static let meeting = "Start a Meeting"
     static let briefing = "Briefing"
+    static let nightShift = NightShiftCopy.title
     static let machines = "Machines"
     static let phone = "Pair a Phone…"
 }

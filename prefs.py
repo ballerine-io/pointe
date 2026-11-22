@@ -7,6 +7,7 @@ from pathlib import Path
 
 from briefing import valid_days, valid_time
 from newsession import valid_folders
+from nightshift import HOURS, MESSAGES, valid_hours, valid_messages
 
 # key -> (default, allowed values, a type, or a check)
 SCHEMA: dict[str, tuple] = {
@@ -30,6 +31,10 @@ SCHEMA: dict[str, tuple] = {
     # Folders a new session may start in, beside those of current and recent sessions (docs/design/new-session.md).
     # Changed only at the Mac: daemon.prefs_set refuses it from the phone and from a page over the network.
     "sessions.folders": ([], valid_folders),
+    # A night shift's caps and whether its blockers may alert overnight (docs/design/night-shift.md).
+    "nightshift.hours": (HOURS, valid_hours),  # a shift ends after this many hours, at most 12
+    "nightshift.messages": (MESSAGES, valid_messages),  # messages a shift may send to sessions, at most 200
+    "nightshift.notify": (False, bool),  # off: a blocked session raises no alert until morning
     "turns.patience": ("normal", ("quick", "normal", "patient")),  # wait before answering (turns.LEVELS): how long a pause ends a sentence
 }
 

@@ -524,6 +524,14 @@ TOPICS = (
           "you already work in, or added in Settings on the Mac.",
           iphone=(("sessions", "New session"),), page=(("side", "New session"), ("settings", "New sessions", "Folders")),
           voice=("start a new codex session in shop",), tool="start_session", doc="new-session.md"),
+    Topic("night-shift", "Night shift", ("night shift", "tonight", "overnight", "work while i sleep", "while i sleep",
+                                         "tasks for the night", "stop the night shift", "night ledger", "work at night",
+                                         "keep working when i am away", "משמרת לילה", "לעבוד בלילה", "בזמן שאני ישן"),
+          "Say \"tonight:\" and what each session should get done. Pointe reads the plan back and starts on your yes, "
+          "keeps the sessions moving while you are away, and approves nothing for you: a session that needs approval "
+          "waits. The morning briefing leads with it. Or use Night shift on screen; Stop shift ends it.",
+          iphone=(("menu", "Night shift"),), page=(("side", "Night shift"),),
+          voice=("tonight: billing fixes the retry tests", "stop the night shift"), tool="night_shift", doc="night-shift.md"),
     Topic("machines", "Other machines", ("machines", "another mac", "linux machine", "other computer", "invite a machine",
                                          "remote machine", "מחשב אחר", "מכונה אחרת"),
           "Sessions on your other Macs and Linux machines join through a small Pointe there: invite the machine and run "

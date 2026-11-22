@@ -40,6 +40,7 @@ extension API {
         let length: String?
         let sections: [BriefingSection]?
         let opener: String?
+        let lead: [String]?         // a night shift's morning report, said before anything else; nil from an older Mac
         let scheduled: Bool?
         let empty: Bool?
     }
@@ -263,7 +264,10 @@ struct BriefingSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(BriefingCopy.heading(at: b.at, since: b.since_label ?? "", scheduled: b.scheduled == true))
                     .font(.brand(.caption)).foregroundStyle(Brand.muted)
-                if let opener = b.opener { Text(opener).font(.brand(.subheadline, .semibold)) }
+                ForEach(Array((b.lead ?? []).enumerated()), id: \.offset) { _, line in
+                    Text(line).readingDirection(of: line).font(.brand(.subheadline))
+                }
+                if let opener = b.opener, !opener.isEmpty { Text(opener).font(.brand(.subheadline, .semibold)) }
                 if b.empty != true {
                     ForEach(b.sections ?? [], id: \.self) { s in
                         VStack(alignment: .leading, spacing: 3) {

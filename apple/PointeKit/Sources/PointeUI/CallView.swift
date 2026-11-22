@@ -53,6 +53,7 @@ struct CallView: View {
     @State private var showMachines = false
     @State private var showAbout = false
     @State private var showNewSession = false
+    @State private var showNightShift = false
     @State private var showPhone = false
     @State private var wide = false  // a Mac window wide enough for the sessions column
     @State private var showCallSettings = false
@@ -78,6 +79,7 @@ struct CallView: View {
         _editing = State(initialValue: demo?.screen == .edit ? demo?.status.talk?.last(where: \.mine) : nil)
         _typing = State(initialValue: demo?.screen == .typing)
         _showMeetingStart = State(initialValue: demo?.screen == .meetingStart)
+        _showNightShift = State(initialValue: demo?.screen == .nightShiftStart || demo?.screen == .nightShiftLedger)
         #if DEBUG
         // `-demo call -sheet voiceLock`: a sheet open at launch, for screenshots and UI tests.
         switch demo == nil ? nil : UserDefaults.standard.string(forKey: "sheet") {
@@ -145,6 +147,11 @@ struct CallView: View {
             .task { await growDemoTalk() }
             .sheet(isPresented: $showNewSession) {  // straight to the sheet, for a menu or a key (the Mac's New Session)
                 NewSessionSheet(actions: starter).sheetSurface()
+            }
+            .sheet(isPresented: $showNightShift) {
+                NightShiftLedger(live: status?.night_shift, actions: nightShift, startOpen: demo?.screen == .nightShiftStart)
+                    .presentationDetents([.large])
+                    .sheetSurface()
             }
             .onChange(of: shell?.request) { _, request in if let request { perform(request.command) } }
             #if os(macOS)
@@ -586,6 +593,7 @@ struct CallView: View {
         case .briefing: showBriefing = true
         case .machines: showMachines = true
         case .phone: if demo == nil { showPhone = true }
+        case .nightShift: showNightShift = true
         }
     }
 
@@ -607,6 +615,7 @@ struct CallView: View {
         case .show: showSettings = true
         case .about: showAbout = true
         case .phone: showPhone = true
+        case .nightShift: showNightShift = true
         }
     }
 
@@ -628,6 +637,14 @@ struct CallView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             #endif
+            if let shift = status?.night_shift, shift.on, !showNightShift {  // the ledger has Stop too
+                NightShiftStrip(shift: shift, open: { showNightShift = true }, stop: stopShift)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if let pending = status?.shift_pending, !driving {  // as a new session's read-back: on the road the spoken yes starts it
+                ShiftCard(pending: pending, answer: answerShift)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             if let pending = status?.start_pending, !driving {  // on the road nothing is tapped: the spoken yes starts it
                 StartCard(pending: pending, answer: answerStart)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -1303,6 +1320,47 @@ struct CallView: View {
             status?.sessions.append(API.Session(name: name, working: false, waiting: false, request: nil, request_id: nil,
                                                 voice_can_approve: nil, needs: nil, harness: harness, capabilities: nil))
         }
+    }
+
+    // MARK: night shift (NightShift.swift)
+
+    private var nightShift: NightShiftActions {
+        NightShiftActions(ownerCheck: ownerCheck, load: loadShift, startOptions: startOptions, start: startShift, stop: stopShift)
+    }
+
+    private func loadShift(_ id: String?) async throws -> NightShift.Options {
+        if demo != nil, let page = Demo.nightShiftPage(on: status?.night_shift?.on) { return page }
+        return try await call.api.nightShift(id: id)
+    }
+
+    /// The sheet's Start, after its Face ID. The demo plays along on its own status.
+    private func startShift(_ draft: NightShift.Draft) async throws {
+        if demo != nil {
+            status?.night_shift = Demo.runningShift
+            return
+        }
+        try await call.api.startShift(draft)
+        await refreshStatus()
+    }
+
+    /// Stop needs no one: after it Pointe sends nothing more, and a turn already running finishes on its own.
+    private func stopShift() async {
+        if demo != nil {
+            status?.night_shift?.on = false
+            return
+        }
+        await act { try await call.api.shiftAction("stop") }
+    }
+
+    /// A tap on the read-back's card. Start needs Face ID (or the passcode), as Approve does; Cancel never does.
+    private func answerShift(_ pending: NightShift.Pending, _ start: Bool) async {
+        if start, !(await ownerCheck(NightShiftSheet.faceIDReason)) { return }
+        if demo != nil {
+            status?.shift_pending = nil
+            if start { status?.night_shift = Demo.runningShift }
+            return
+        }
+        await act { try await call.api.shiftAction(start ? "confirm" : "cancel", id: pending.id) }
     }
 
     // MARK: machines

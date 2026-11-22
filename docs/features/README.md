@@ -21,6 +21,7 @@ from any voice denies a pending request, in every mode.
 | [Conflict alarm](conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once |
 | [Meeting mode](meeting-mode.md) | Notes, lookups and a raised hand in a meeting, with consent and no sends |
 | [Start a new session](new-session.md) | "Start a Codex session in shop": read back, started on your yes, only in folders you already work in |
+| [Night shift](night-shift.md) | "Tonight: billing fixes the retry tests": the sessions work while you sleep, nothing is approved for you, and the morning briefing leads with it |
 | [Voice stays on your Mac](voice-stays-local.md) | Ears and mouth on your Mac, no audio to any vendor; the cloud brain gets text only |
 | [Fully local](local.md) | Every model on your Mac, no keys, nothing sent out; slower and less accurate, by measure |
 

@@ -51,7 +51,7 @@ struct CallSettingsModel: Equatable, Sendable {
 /// A sheet of its own, opened from Settings once Settings has closed (one sheet at a time).
 enum CallSettingsLink: Equatable {
     case sessions, machines, meetingStart, meetingEnd, briefing, briefingSettings, meetingSettings, alerts, dictionary,
-         voiceLock, conflicts, show, about, phone
+         voiceLock, conflicts, show, about, phone, nightShift
 }
 
 /// What the rows do. Not compared: the closures are new on every render of the call and change nothing that shows.
@@ -127,6 +127,7 @@ struct CallSettingsSheet: View, Equatable {
                     if !model.meetingOn { row("Start a meeting", "person.3", .meetingStart) }
                     if model.meetingEnded { row("The meeting that ended", "doc.text", .meetingEnd).accessibilityIdentifier("reopenMeetingEnd") }
                     row(BriefingCopy.title, "sun.horizon", .briefing)
+                    row(NightShiftCopy.title, "moon.stars", .nightShift).accessibilityIdentifier("nightShiftItem")
                     Button { dismiss(); act.challenge() } label: {
                         Label(model.challengeOn ? ChallengeCopy.end : ChallengeCopy.menuItem, systemImage: "figure.fencing")
                     }

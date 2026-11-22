@@ -74,5 +74,6 @@ final class PointeMacTests: XCTestCase {
         XCTAssertEqual(MacMenu.newSession, "New Session")
         XCTAssertEqual(MacMenu.sessions, "Sessions and Mode")
         XCTAssertEqual(MacMenu.meeting, "Start a Meeting")
+        XCTAssertEqual(MacMenu.nightShift, NightShiftCopy.title, "the ledger's own title, as on the page and the phone")
     }
 }

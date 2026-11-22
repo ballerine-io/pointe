@@ -9,5 +9,9 @@ typealias Wire = PointeKit.Wire
 typealias NewSession = PointeKit.NewSession
 /// Its words, the page's (ui.html, NEW_COPY): one dictionary for both apps.
 typealias NewSessionCopy = PointeKit.NewSessionCopy
+/// Step 3: the night shift (docs/design/night-shift.md): what the Mac offers, the sheet's draft, the ledger.
+typealias NightShift = PointeKit.NightShift
+/// Its words, the page's (ui.html, NIGHT_SHIFT_COPY): one dictionary for both apps.
+typealias NightShiftCopy = PointeKit.NightShiftCopy
 /// Which coding agent runs a session, as a neutral letter tile (assets/theme.json): one table for both apps.
 typealias Harness = PointeKit.Harness

@@ -212,6 +212,36 @@
   #newsheet .err { color: var(--accent); font-size: 13px; }
   #startask { padding: 0 var(--gutter); }
   #startask:empty { display: none; }
+  /* night shift (docs/design/night-shift.md): the strip while one runs, the read-back's card, the sheet and its ledger */
+  #nightstrip, #shiftask { padding: 0 var(--gutter); } #nightstrip:empty, #shiftask:empty { display: none; }
+  .night-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; border: 1px solid var(--line); border-radius: 12px;
+                 padding: 10px 14px; background: var(--card); font-size: 13.5px; }
+  .night-strip b { font-weight: 600; } .night-strip .how { color: var(--muted); flex: 1 1 auto; }
+  .night-strip button { border: 0; border-radius: 10px; min-height: 36px; padding: 0 12px; background: transparent; color: var(--text);
+                        font: 600 13px var(--font); cursor: pointer; box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .night-strip button:hover { background: var(--raised); }
+  #m-night { margin-top: 4px; align-self: flex-start; border: 0; border-radius: 12px; min-height: 36px; padding: 0 14px; background: transparent;
+             color: var(--muted); font: 600 13px var(--font); cursor: pointer; }
+  #m-night:hover { background: var(--raised); color: var(--text); }
+  #night-rows { display: flex; flex-direction: column; gap: 10px; }
+  #night-form:not([hidden]), #night-ledger:not([hidden]) { display: flex; flex-direction: column; gap: 14px; }
+  #night-form input[type=number] { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+                                   font: 14px var(--font); outline: none; min-height: 44px; }
+  #night-form input[type=number]:focus { border-color: var(--orange-line); }
+  .night-row { display: grid; grid-template-columns: minmax(0, 1fr) 36px; gap: 6px 8px; background: var(--card); border-radius: 12px; padding: 10px 12px; }
+  .night-row select, .night-row textarea { width: 100%; min-width: 0; } .night-row textarea { grid-column: 1 / -1; min-height: 56px; }
+  .night-row .night-new { grid-column: 1 / -1; display: flex; gap: 8px; } .night-row .night-new[hidden] { display: none; }
+  .night-row .rm { border: 0; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; border-radius: 10px; }
+  .night-row .rm:hover { background: var(--raised); color: var(--text); }
+  #night-head { font-weight: 600; font-size: 14px; line-height: 1.45; }
+  #night-sections { display: flex; flex-direction: column; gap: 12px; }
+  #night-sections h3 { margin: 0 0 6px; } #night-sections ul, #night-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  #night-sections li { background: var(--card); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
+  #night-sections li b { margin-right: 6px; } #night-sections li .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  #night-sections li pre { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.45 var(--mono, ui-monospace, Menlo, monospace);
+                           background: var(--raised); border-radius: 8px; padding: 8px 10px; max-height: 30vh; overflow-y: auto; }
+  #night-history li { font-size: 13px; color: var(--muted); } #night-history button { border: 0; background: transparent; color: var(--text);
+                      font: inherit; cursor: pointer; padding: 6px 0; text-align: left; } #night-history button:hover { text-decoration: underline; }
   #pref-folders { width: 100%; min-height: 96px; resize: vertical; background: var(--card); color: var(--text); border: 1px solid var(--line);
                   border-radius: 12px; padding: 10px 12px; font: 12.5px/1.5 var(--mono); outline: none; }
   .agent { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted); border: 1px solid var(--line-strong);
@@ -896,7 +926,8 @@
     body.showing #sessbtn { display: flex; } body.showing:not(.showfold) #sideclose { display: grid; }
   }
   @media (max-width: 900px) {  /* narrow: the sessions column becomes a sheet behind the Sessions button */
-    #m-new { min-height: 44px; }  /* to the finger */
+    #m-new, #m-night, .night-strip button, .night-row .rm { min-height: 44px; }  /* to the finger */
+    .night-row { grid-template-columns: minmax(0, 1fr) 44px; }
     body { grid-template-columns: 1fr; }
     main { --gutter: 16px; }
     #side { position: fixed; inset: 0 auto 0 0; width: min(360px, 92vw); z-index: 20; transform: translateX(-102%); visibility: hidden;
@@ -1008,6 +1039,7 @@
     <div id="list"></div>
     <div id="renameproblem" role="alert"></div>
     <button id="m-new" type="button" onclick="openNewSession()" title="Start a coding agent in a folder you already work in">New session</button>
+    <button id="m-night" type="button" onclick="openNightShift()" title="Give your sessions work for while you are away">Night shift</button>
   </section>
 
   <section class="routing">
@@ -1386,6 +1418,33 @@
     <div class="row"><button type="button" id="new-cancel" onclick="closeSheet('newsheet')"></button><button type="button" class="go" id="new-start" onclick="startNewSession()"></button></div>
   </div>
 </div>
+<div class="sheetbg" id="nightsheet" onclick="if (event.target === this) closeSheet('nightsheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="night-h">
+    <h2 id="night-h"><span id="night-title"></span><button class="x" onclick="closeSheet('nightsheet')" aria-label="Close">×</button></h2>
+    <div id="night-form" hidden>
+      <div class="lede" id="night-lede"></div>
+      <div id="night-rows"></div>
+      <div class="row" style="justify-content:flex-start"><button type="button" id="night-add" onclick="nightAddRow()"></button></div>
+      <div class="brf-pick">
+        <label class="field"><span id="night-hours-l"></span><input id="night-hours" type="number" min="0.25" step="0.25" inputmode="decimal"></label>
+        <label class="field"><span id="night-messages-l"></span><input id="night-messages" type="number" min="1" step="1" inputmode="numeric"></label>
+      </div>
+      <label class="tick"><input type="checkbox" id="night-notify"><span id="night-notify-l"></span></label>
+      <div class="note" id="night-rule"></div>
+      <div class="err" id="night-err" role="alert"></div>
+      <div class="row"><button type="button" id="night-cancel" onclick="closeSheet('nightsheet')"></button><button type="button" class="go" id="night-start" onclick="startShift()"></button></div>
+    </div>
+    <div id="night-ledger" hidden>
+      <div id="night-head" dir="auto"></div>
+      <div class="note" id="night-rule2"></div>
+      <div id="night-sections"></div>
+      <div class="err" id="night-lerr" role="alert"></div>
+      <div class="row"><button type="button" id="night-stop" onclick="stopShift()"></button><button type="button" class="go" id="night-new" onclick="nightForm()"></button></div>
+      <h3 id="night-history-h"></h3>
+      <ul id="night-history"></ul>
+    </div>
+  </div>
+</div>
 <div class="sheetbg" id="rowsheet" onclick="if (event.target === this) closeSheet('rowsheet')">
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="row-h">
     <h2 id="row-h"><span id="row-name" dir="auto"></span><button class="x" onclick="closeSheet('rowsheet')" aria-label="Close">×</button></h2>
@@ -1491,6 +1550,8 @@
   </div>
   <div id="attention"></div>
   <div id="startask"></div>
+  <div id="shiftask"></div>
+  <div id="nightstrip"></div>
   <div id="briefalert"></div>
   <div id="whispercard"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
@@ -1742,6 +1803,7 @@
                                 ...(foldedNames.includes(g.m.name) ? [] : byUrgency(g.sessions).map(keyed))])).concat(starts);
     reconcile($('list'), listShown, wanted);
     showStartAsk(s);
+    showNightShift(s);
     showMachines(s, mv);
     showPhones(s);
     syncSettingsNav();
@@ -1933,6 +1995,182 @@
     if (r && r.ok) closeSheet('newsheet');
     else { $('new-err').textContent = (r && (await r.json().catch(() => ({}))).detail) || 'Not started: the Mac did not answer.'; newSessionSync(); }
     refresh();
+  }
+
+  // Night shift (docs/design/night-shift.md). Shared with the apps' NightShiftCopy (tests/test_night_shift_ui.py). The Mac
+  // runs the shift; the page starts one, shows how it goes, stops it and shows its ledger. Nothing here approves.
+  const NIGHT_SHIFT_COPY = {
+    title: 'Night shift',
+    lede: 'Give your sessions work for while you are away. Pointe keeps them moving, and the morning briefing leads with what was decided and what waits on you.',
+    rule: 'Pointe approves nothing: a session that needs approval waits for you.',
+    session: 'Session',
+    task: 'Task',
+    taskPlaceholder: 'What it should get done tonight',
+    addTask: 'Add a task',
+    newSession: 'New session',
+    hours: 'Hours',
+    messages: 'Messages',
+    notify: 'Alert me about blockers overnight',
+    start: 'Start shift',
+    cancel: 'Cancel',
+    stop: 'Stop shift',
+    confirmTitle: 'Start this night shift?',
+    ledger: 'Ledger',
+    decided: 'Decisions made without you',
+    asked: 'Questions waiting on you',
+    done: 'Done',
+    blocked: 'Blocked',
+    inFlight: 'In flight',
+    notStarted: 'Not started',
+    exact: 'The exact request',
+    empty: 'No night shift yet.',
+    noSessions: 'No session is on the voice yet. Join one, then give it a task.',
+    history: 'Last 7 shifts',
+    running: 'running',
+  };
+  const NIGHT_NEW = '\u0000new';  // the "New session" pick in a row: never a session's name
+  const NIGHT_ORDER = [['decided', 'decided'], ['asked', 'asked'], ['done', 'done'], ['blocked', 'blocked'], ['in_flight', 'inFlight'], ['not_started', 'notStarted']];
+  const nightLine = n => `${n.done} of ${n.tasks} done · ${n.blocked} blocked`;
+  const nightPost = async body => {
+    const r = await fetch('/voice/night-shift', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)}).catch(() => null);
+    const data = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok) throw new Error(data.detail || 'The Mac did not answer.');
+    return data;
+  };
+  let nightData = null, nightStarts = null, nightStripKey = '', shiftAskShown = '';
+  // The strip while a shift runs, and what the voice read back and waits on: a yes by voice, or a tap here.
+  function showNightShift(s) {
+    const n = s.night_shift, c = NIGHT_SHIFT_COPY;
+    const key = n && n.on ? [n.id, n.done, n.tasks, n.blocked].join() : '';
+    if (key !== nightStripKey) {
+      nightStripKey = key;
+      if (!key) $('nightstrip').replaceChildren();
+      else {
+        const b = el('div', 'night-strip'), ledger = el('button', '', c.ledger), stop = el('button', '', c.stop);
+        ledger.onclick = () => openNightShift(); stop.onclick = () => stopShift();
+        b.append(el('b', '', c.title), el('span', 'how', nightLine(n)), ledger, stop);
+        $('nightstrip').replaceChildren(b);
+      }
+      if ($('nightsheet').classList.contains('open') && !$('night-ledger').hidden) openNightShift();
+    }
+    $('m-night').classList.toggle('on', !!(n && n.on));
+    const p = s.shift_pending, pkey = p ? p.id : '';
+    if (pkey === shiftAskShown) return;
+    shiftAskShown = pkey;
+    if (!p) { $('shiftask').replaceChildren(); return; }
+    const b = el('div', 'ask'), row = el('div', 'answer');
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
+    for (const [label, cls, action] of [[c.cancel, 'deny', 'cancel'], [c.start, 'allow', 'confirm']]) {
+      const button = el('button', cls, label);
+      button.onclick = async () => {
+        button.disabled = true;
+        try { await nightPost({action, id: p.id}); } catch (e) { $('problem').textContent = e.message; }
+        refresh();
+      };
+      row.append(button);
+    }
+    b.append(row);
+    $('shiftask').replaceChildren(b);
+  }
+  async function openNightShift(id) {
+    const c = NIGHT_SHIFT_COPY;
+    for (const [where, words] of [['night-title', c.title], ['night-lede', c.lede], ['night-add', c.addTask], ['night-hours-l', c.hours],
+                                  ['night-messages-l', c.messages], ['night-notify-l', c.notify], ['night-rule', c.rule], ['night-rule2', c.rule],
+                                  ['night-cancel', c.cancel], ['night-start', c.start], ['night-stop', c.stop], ['night-new', c.start],
+                                  ['night-history-h', c.history]]) text(where, words);
+    $('night-err').textContent = ''; $('night-lerr').textContent = '';
+    if (!$('nightsheet').classList.contains('open')) openSheet('nightsheet', 'night-title');
+    nightData = await fetch('/voice/night-shift' + (id ? `?id=${encodeURIComponent(id)}` : '')).then(r => r.ok ? r.json() : null).catch(() => null);
+    if (!nightData) { nightForm(); $('night-err').textContent = 'Pointe on this Mac does not offer this yet: update it.'; return; }
+    if (nightData.shift) nightLedger(); else nightForm();
+  }
+  function nightLedger() {
+    const c = NIGHT_SHIFT_COPY, shift = nightData.shift, running = (nightData.history || []).some(h => h.on);
+    $('night-form').hidden = true; $('night-ledger').hidden = false;
+    text('night-head', (shift.morning && shift.morning[0] ? shift.morning[0].text : c.title));
+    $('night-sections').replaceChildren(...NIGHT_ORDER.filter(([key]) => (shift.ledger[key] || []).length).map(([key, title]) => {
+      const sec = el('section'), list = el('ul');
+      sec.append(el('h3', 'label', c[title]), list);
+      for (const e of shift.ledger[key]) {
+        const li = el('li'); li.dir = 'auto';
+        if (key === 'decided') {
+          li.append(el('b', '', e.session), e.question || e.text);
+          li.append(el('div', 'sub', `→ ${e.choice || '—'}` + (e.otherwise ? ` → ${e.otherwise}` : '')));
+        } else if (key === 'asked') li.append(el('b', '', e.session), e.question || e.text);
+        else if (key === 'in_flight' || key === 'not_started') li.append(el('b', '', e.session), e.task);
+        else {
+          li.append(el('b', '', e.session), key === 'done' ? (e.proof || e.text) : e.text);
+          if (e.task) li.append(el('div', 'sub', e.task));
+          if (key === 'done' && (e.commit || e.pr)) li.append(el('div', 'sub', [e.commit && `commit ${e.commit}`, e.pr].filter(Boolean).join(' · ')));
+          if (key === 'blocked' && e.request) { li.append(el('div', 'sub', c.exact), el('pre', '', e.request)); }
+        }
+        if (e.resolved) li.append(el('div', 'sub', e.resolved));
+        list.append(li);
+      }
+      return sec;
+    }));
+    $('night-stop').hidden = !shift.on; $('night-new').hidden = running;
+    $('night-history').replaceChildren(...(nightData.history || []).map(h => {
+      const li = el('li'), open = el('button', '', `${brfWhen(h.at)} · ${nightLine(h)}${h.on ? ` · ${c.running}` : ''}`);
+      open.onclick = () => openNightShift(h.id);
+      li.append(open);
+      return li;
+    }));
+  }
+  async function nightForm() {
+    const c = NIGHT_SHIFT_COPY, d = nightData || {caps: {hours: 8, messages: 40, notify: false}, limits: {hours: 12, messages: 200, tasks: 5, sessions: 8, task_chars: 2000}, sessions: []};
+    $('night-ledger').hidden = true; $('night-form').hidden = false;
+    $('night-hours').value = d.caps.hours; $('night-hours').max = d.limits.hours;
+    $('night-messages').value = d.caps.messages; $('night-messages').max = d.limits.messages;
+    $('night-notify').checked = !!d.caps.notify;
+    $('night-rows').replaceChildren();
+    nightStarts = await fetch('/voice/new-session').then(r => r.ok ? r.json() : null).catch(() => null);
+    nightAddRow();
+    if (!(d.sessions || []).some(x => x.available)) text('night-err', c.noSessions);
+  }
+  function nightAddRow() {
+    const c = NIGHT_SHIFT_COPY, d = nightData || {sessions: [], limits: {task_chars: 2000}}, o = nightStarts || {harnesses: [], folders: []};
+    const row = el('div', 'night-row'), who = el('select', 'night-who'), task = el('textarea', 'night-task'), rm = el('button', 'rm', '×');
+    const option = (value, label, off, why) => { const e = el('option', '', label + (off ? ' (not available)' : '')); e.value = value; e.disabled = !!off; if (why) e.title = why; return e; };
+    who.setAttribute('aria-label', c.session); task.setAttribute('aria-label', c.task);
+    who.append(...(d.sessions || []).map(x => option(x.name, x.name, !x.available, x.why)), option(NIGHT_NEW, c.newSession + '…', !o.folders.length || !o.harnesses.some(h => h.available)));
+    const fresh = el('span', 'night-new'), agent = el('select', 'night-agent'), folder = el('select', 'night-folder');
+    agent.setAttribute('aria-label', NEW_SESSION_COPY.agent); folder.setAttribute('aria-label', NEW_SESSION_COPY.folder);
+    agent.append(...o.harnesses.map(h => option(h.name, h.title, !h.available, h.why)));
+    folder.append(...o.folders.map(f => option(f.path, f.name)));
+    const firstOk = o.harnesses.find(h => h.available); if (firstOk) agent.value = firstOk.name;
+    fresh.append(agent, folder); fresh.hidden = true;
+    who.onchange = () => { fresh.hidden = who.value !== NIGHT_NEW; nightSync(); };
+    task.placeholder = c.taskPlaceholder; task.maxLength = d.limits.task_chars; task.dir = 'auto'; task.oninput = nightSync;
+    rm.type = 'button'; rm.setAttribute('aria-label', 'Remove this task'); rm.onclick = () => { row.remove(); nightSync(); };
+    row.append(who, rm, fresh, task);
+    $('night-rows').append(row);
+    if (who.selectedOptions[0] && who.selectedOptions[0].disabled) who.selectedIndex = -1;
+    fresh.hidden = who.value !== NIGHT_NEW;
+    nightSync();
+  }
+  const nightItems = () => [...document.querySelectorAll('#night-rows .night-row')].map(row => {
+    const who = row.querySelector('.night-who').value, task = row.querySelector('.night-task').value.trim();
+    return who === NIGHT_NEW ? {start: {harness: row.querySelector('.night-agent').value, folder: row.querySelector('.night-folder').value}, task}
+                             : {session: who, task};
+  });
+  function nightSync() {
+    const items = nightItems();
+    $('night-start').disabled = !items.length || !items.every(i => i.task && (i.session || (i.start && i.start.harness && i.start.folder)));
+  }
+  async function startShift() {
+    $('night-start').disabled = true; $('night-err').textContent = '';
+    try {
+      await nightPost({action: 'start', items: nightItems(), hours: Number($('night-hours').value), messages: Math.round(Number($('night-messages').value)),
+                       notify: $('night-notify').checked});
+      await openNightShift();
+    } catch (e) { $('night-err').textContent = e.message; nightSync(); }
+    refresh();
+  }
+  async function stopShift() {
+    try { await nightPost({action: 'stop'}); } catch (e) { $('night-lerr').textContent = e.message; $('problem').textContent = e.message; }
+    await refresh();
+    if ($('nightsheet').classList.contains('open')) openNightShift();
   }
 
   function approvalCard(x, s, more) {
@@ -2844,7 +3082,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet', 'nightsheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;
@@ -3868,7 +4106,9 @@
   function showBriefings(list) {
     $('brf-list').replaceChildren(...(list.length ? list.map(b => {
       const li = el('li'); li.dir = 'auto';
-      li.append(el('div', 'when', `${brfWhen(b.at)} · ${b.since_label}${b.scheduled ? ' · scheduled' : ''}`), el('div', 'open', b.opener));
+      li.append(el('div', 'when', `${brfWhen(b.at)} · ${b.since_label}${b.scheduled ? ' · scheduled' : ''}`));
+      for (const part of b.lead || []) li.append(el('div', 'sec night', part));  // a night shift's report leads (nightshift.morning)
+      if (b.opener) li.append(el('div', 'open', b.opener));
       if (!b.empty) for (const x of b.sections) {
         const sec = el('div', 'sec'); sec.append(el('b', '', x.session), el('span', 'chip ' + x.status, BRF_CHIP[x.status] || x.status), x.text);
         li.append(sec);

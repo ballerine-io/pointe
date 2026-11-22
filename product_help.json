@@ -880,6 +880,41 @@
    "tool": "start_session"
   },
   {
+   "id": "night-shift",
+   "title": "Night shift",
+   "ask": [
+    "night shift",
+    "tonight",
+    "overnight",
+    "work while i sleep",
+    "while i sleep",
+    "tasks for the night",
+    "stop the night shift",
+    "night ledger",
+    "work at night",
+    "keep working when i am away",
+    "משמרת לילה",
+    "לעבוד בלילה",
+    "בזמן שאני ישן"
+   ],
+   "how": "Say \"tonight:\" and what each session should get done. Pointe reads the plan back and starts on your yes, keeps the sessions moving while you are away, and approves nothing for you: a session that needs approval waits. The morning briefing leads with it. Or use Night shift on screen; Stop shift ends it.",
+   "about": "\"Tonight: billing fixes the retry tests\": the sessions work while you sleep, nothing is approved for you, and the morning briefing leads with it",
+   "iphone": [
+    "Settings (••• at the top) → Night shift"
+   ],
+   "page": [
+    "Night shift in the Sessions panel on the left"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Night shift"
+   ],
+   "voice": [
+    "tonight: billing fixes the retry tests",
+    "stop the night shift"
+   ],
+   "tool": "night_shift"
+  },
+  {
    "id": "machines",
    "title": "Other machines",
    "ask": [
@@ -1138,6 +1173,7 @@
     "Start a meeting": [],
     "The meeting that ended": [],
     "Briefing": [],
+    "Night shift": [],
     "End challenge": [],
     "Challenge": [],
     "Briefing settings": [],
@@ -1216,6 +1252,7 @@
     "Start a meeting": [],
     "The meeting that ended": [],
     "Briefing": [],
+    "Night shift": [],
     "End challenge": [],
     "Challenge": [],
     "Briefing settings": [],
@@ -1389,6 +1426,7 @@
     "Orchestrator",
     "Session",
     "New session",
+    "Night shift",
     "Settings"
    ],
    "top": [

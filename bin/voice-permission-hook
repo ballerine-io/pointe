@@ -11,7 +11,10 @@ PID="$(cat "$STATE/daemon.pid")"
 OURS="$({ echo "$PID"; pgrep -P "$PID" 2>/dev/null || tr ' ' '\n' </proc/"$PID"/task/"$PID"/children 2>/dev/null; } |
   grep -x '[0-9][0-9]*')"
 "$BIN/voice-listeners" pids "$PORT" 2>/dev/null | grep -qxF "$OURS" || exit 0
-REPLY="$(curl -sf --connect-timeout 1 --max-time 290 --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") \
+# The daemon lets an ordinary request go after 280 s. A session on a night shift is held until its user answers, for up to
+# 12 hours: the wait here is as long as the hook's own timeout allows (hooks/hooks.json, 43500 s). A daemon that stops
+# drops the connection, and the prompt is at the terminal.
+REPLY="$(curl -sf --connect-timeout 1 --max-time 43490 --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") \
   -H 'content-type: application/json' --data-binary @- "http://127.0.0.1:$PORT/voice/permission-hook")" || exit 0
 [ "$REPLY" = "{}" ] || printf '%s\n' "$REPLY"
 exit 0

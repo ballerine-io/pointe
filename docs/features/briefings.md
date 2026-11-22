@@ -21,6 +21,13 @@ phrases); `daemon.py` builds and plays it.
 - **iPhone app:** "Briefing" and "Briefing settings" in the Settings (⋯) menu, the same sheet and copy, the same ready
   banner, Part N of M with controls while one plays, and a weekly local notification at the scheduled time.
 
+## After a night shift
+
+When a [night shift](night-shift.md) ran since the briefing's start, the briefing leads with it, from its ledger and in
+code: one line on how it went, the decisions made without you, the questions waiting on you, then done, blocked and
+still in flight. The shift's sessions are not read a second time; your other sessions follow in the usual order.
+"Briefing on billing" is about billing only, as always.
+
 ## Schedule
 
 One time a day, on the weekdays you choose, with a length (short, normal, full), whether to speak it when you connect,

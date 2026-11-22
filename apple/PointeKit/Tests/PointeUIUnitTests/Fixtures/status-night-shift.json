@@ -1,0 +1,10 @@
+{"version": "1.18.0", "active": "billing", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
+ "sessions": [{"name": "billing", "working": true, "waiting": false, "needs": null, "harness": "claude-code"},
+              {"name": "shop", "working": false, "waiting": false, "needs": null, "harness": "codex"}],
+ "talk": [],
+ "night_shift": {"on": true, "id": "ns-3", "at": 1700000000, "ends_at": 1700028800, "ended": null, "why": "", "sent": 9, "budget": 40,
+                 "hours": 8, "notify": false, "tasks": 3, "done": 1, "in_flight": 1, "blocked": 1, "decided": 1, "asked": 1,
+                 "fronts": [{"session": "billing", "harness": "claude-code", "state": "working", "task": "add the idempotency test", "done": 1, "total": 2},
+                            {"session": "shop", "harness": "codex", "state": "waiting", "task": "fix the flaky test", "done": 0, "total": 1}]},
+ "shift_pending": {"id": "sp-1", "line": "Night shift. billing: fix the retry tests. Up to 8 hours and 40 messages. I approve nothing: a session that needs approval waits for you. Start? Say yes or tap.",
+                   "items": [{"session": "billing", "task": "fix the retry tests", "new": false, "agent": "Claude Code"}], "expires_in": 52}}

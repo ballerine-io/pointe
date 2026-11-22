@@ -140,6 +140,7 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
 | | |
 |---|---|
 | [Start a new session](docs/features/new-session.md) | "Start a Codex session in shop": read back, started on your yes, only in folders you already work in, never with prompts skipped. |
+| [Night shift](docs/features/night-shift.md) | "Tonight: billing fixes the retry tests; docs updates the changelog": your sessions work while you sleep, Pointe approves nothing for you, and the morning briefing leads with what was decided and what waits. |
 | [Machines](docs/multi-machine.md) | Sessions on your other Macs and Linux machines join the same voice, each shown with its machine. |
 | [Voice lock](docs/features/voice-lock.md) | Only your voice counts, for approvals or for everything. Checked on this Mac. |
 | [Self-learning vocabulary](docs/features/vocabulary.md) | Fix a misheard name once, and the next call hears it right. |

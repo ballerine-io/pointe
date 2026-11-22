@@ -68,6 +68,29 @@ that creates a process, so it is fenced on every side, in code with tests (`test
   "recent". A paired phone can start a session with a first prompt in an allowed folder; it could already send requests
   to the sessions there.
 
+### Night shift
+
+A night shift (`docs/features/night-shift.md`) is the one time Pointe sends to sessions while nobody is listening, so
+its rules are code with tests (`nightshift.py`, `tests/test_night_shift.py`):
+
+- **It starts on your yes.** The sessions and tasks are cut from your own words, read back with the caps, and started
+  on a plain yes within 60 seconds, under the rules of a new session's yes. On a screen, Start shift is its own button;
+  the apps ask for Face ID or Touch ID.
+- **Pointe never answers an approval.** A permission request from a session on the shift is held, neither allowed nor
+  denied, for up to 12 hours, and recorded word for word in the ledger. It is answered only by you: the read-out and
+  your yes, a tap, or the session's own terminal. No function of the shift can reach the code that delivers a verdict
+  (tested by reading the source).
+- **Every message is a fixed template** around your own task. No model writes a send at night. Each one repeats that
+  nothing destructive or outward-facing beyond the task may be done.
+- **Nothing is widened.** No permission mode or allow rule changes; a new session on the plan passes New session's
+  checks.
+- **Caps and stop.** 8 hours and 40 messages by default, at most 12 and 200. "Stop the night shift" counts from any
+  voice, as a no does; it only ends sending.
+- **Left open.** A session told to "choose the most defensible answer" makes judgment calls you did not see: they are
+  on the ledger with what changes otherwise, and the briefing leads with them. A paired phone can start a shift, as it
+  can already send requests. `hooks/hooks.json` lets the permission hook wait 12 hours (it was 5 minutes): the daemon
+  still lets an ordinary request go after 280 seconds, and a daemon that stops drops the connection.
+
 ### Drive mode (optional)
 
 Drive & walk mode (`drive.py`) only narrows the rules above; it never widens them. You enter it yourself ("drive mode",
@@ -211,7 +234,8 @@ computed and kept only on this Mac, deleted from Settings → Voice lock on the 
 speaker model. With fully local mode, `local/` holds the text-model server's environment, its log (which may hold session
 content in errors) and `config.before-local.json`, the choice `pointe local off` restores; the models themselves sit in
 the Hugging Face cache (`~/.cache/huggingface`) and Kokoro's in `~/.cache/pipecat`. The journal records an ignored utterance's length and score, never its words. `briefings.json` (0600) keeps
-the last seven briefings, written out per session and redacted. `dictionary.json` (0600) holds the names you added or
+the last seven briefings, written out per session and redacted. `night-shifts.json` (0600) keeps the last seven night
+shifts: tasks, what sessions reported and any approval request they waited on, with credentials masked. `dictionary.json` (0600) holds the names you added or
 fixed (Settings → Dictionary on the page or in the app shows, edits and deletes each one); it never takes a yes, no or
 stop word, anything `readout.mask` would hide, or words from a meeting. Delete what you no longer need.
 

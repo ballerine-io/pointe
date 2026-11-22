@@ -199,18 +199,29 @@ class Briefing:
     slot: str = ""
     heard: bool = False
     empty: bool = False
+    # A night shift's morning report (nightshift.morning), spoken before anything else: decisions made without the
+    # user, questions waiting on them, then done and blocked. `night` is that shift's id.
+    lead: list[str] = field(default_factory=list)
+    night: str = ""
 
-    def parts(self) -> list[str]:
-        """What is spoken, one feed message each: the opener with the first section, then one per session. Quiet
-        sessions were named in the opener and are not read again."""
+    def _rest(self) -> list[str]:
+        if self.lead and not self.opener:  # only the shift's sessions were up, or the others were quiet
+            return []
         if self.empty:
             return [self.opener]
         loud = [s.text for s in self.sections if s.status != "quiet"]
         return [f"{self.opener} {loud[0]}", *loud[1:]] if loud else [self.opener]
 
+    def parts(self) -> list[str]:
+        """What is spoken, one feed message each: a night shift's report first, then the opener with the first
+        section, then one per session. Quiet sessions were named in the opener and are not read again."""
+        return [*self.lead, *self._rest()]
+
     def written(self) -> str:
-        """The written form, for the notes: the opener, then each session's part."""
-        return "\n\n".join([self.opener] + ([] if self.empty else [f"{s.session}: {s.text}" for s in self.sections]))
+        """The written form, for the notes: the night shift's report, the opener, then each session's part."""
+        rest = [] if not self.opener else \
+            [self.opener] + ([] if self.empty else [f"{s.session}: {s.text}" for s in self.sections])
+        return "\n\n".join([*self.lead, *rest])
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -221,7 +232,7 @@ class Briefing:
 
 
 def assemble(sections: list[Section], since_label: str, length: str, since: float, now: float, scheduled: bool = False,
-             slot: str = "") -> Briefing:
+             slot: str = "", lead: list[str] | None = None, night: str = "") -> Briefing:
     ordered = order(sections)
     empty = all(s.status == "quiet" for s in ordered)
     if empty:
@@ -229,8 +240,11 @@ def assemble(sections: list[Section], since_label: str, length: str, since: floa
             f"Quiet {since_label}. Nothing waits on you."
     else:
         line = opener(ordered, since_label)
+    if empty and lead:  # the night's report said it all: "Quiet night. Nothing waits on you." after it would be false
+        line = ""
     return Briefing(id=secrets.token_hex(4), at=now, since=since, since_label=since_label, length=length,
-                    sections=ordered, opener=line, scheduled=scheduled, slot=slot, empty=empty)
+                    sections=ordered, opener=line, scheduled=scheduled, slot=slot, empty=empty and not lead,
+                    lead=list(lead or []), night=night)
 
 
 # ---------- the schedule ----------

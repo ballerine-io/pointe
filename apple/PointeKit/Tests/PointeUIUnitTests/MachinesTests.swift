@@ -235,6 +235,7 @@ final class MachinesTests: XCTestCase {
 final class HubStub: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var reply: (Int, String) = (200, "{}")
     nonisolated(unsafe) static var bodies: [[String: Any]] = []
+    nonisolated(unsafe) static var urls: [URL] = []
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -247,6 +248,7 @@ final class HubStub: URLProtocol, @unchecked Sendable {
         }
         let body = (try? JSONSerialization.jsonObject(with: data)) ?? [:]
         Self.bodies.append(["path": request.url?.path ?? "", "body": body])
+        if let url = request.url { Self.urls.append(url) }
         let response = HTTPURLResponse(url: request.url!, statusCode: Self.reply.0, httpVersion: nil, headerFields: nil)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(Self.reply.1.utf8))

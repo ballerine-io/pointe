@@ -10,7 +10,8 @@ struct Demo {
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
                        empty, noSessions, many, longNames, longRequest, hold, speaking, muted,
-                       newSession, startPending, longTalk }
+                       newSession, startPending, longTalk,
+                       nightShiftStart, nightShift, nightShiftLedger, nightShiftPending }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -80,6 +81,7 @@ struct Demo {
         case .empty, .noSessions, .many, .longNames, .longRequest, .hold: stressJSON(screen)
         case .machines, .machinesOne, .machinesOffline, .machinesDrive, .machinesSessions: machinesJSON(screen)  // Settings.swift
         case .newSession, .startPending: newSessionJSON(pending: screen == .startPending)  // NewSession.swift
+        case .nightShiftStart, .nightShift, .nightShiftLedger, .nightShiftPending: nightShiftJSON(screen)  // NightShift.swift
         default: callJSON
         }
     }

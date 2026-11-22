@@ -58,6 +58,10 @@ spec.loader.exec_module(gen)
     ("Can I use my Claude subscription instead of an API key?", "keys"),
     ("Do I need all the keys?", "keys"),
     ("איזה מפתחות צריך?", "keys"),
+    ("How does the night shift work?", "night-shift"),
+    ("Can my sessions keep working while I sleep?", "night-shift"),
+    ("How do I stop the night shift?", "night-shift"),
+    ("מה זה משמרת לילה?", "night-shift"),
 ])
 def test_a_question_finds_its_topic_first(question, topic):
     found = howto.lookup(question)
@@ -165,6 +169,7 @@ def _voice_checks(daemon):
     import turns
     import whisper
     import briefing
+    import nightshift
     return {
         "hold": lambda p: turns.hold_intent(p) or turns.release_intent(p),
         "brain-dump": lambda p: braindump.start_intent(p) or braindump.done_intent(p),
@@ -178,6 +183,7 @@ def _voice_checks(daemon):
         "rename-session": guards.rename_intent,
         "close-session": guards.disconnect_intent,
         "new-session": guards.start_intent,
+        "night-shift": lambda p: nightshift.shift_intent(p) is not None or nightshift.stop_intent(p),
     }
 
 

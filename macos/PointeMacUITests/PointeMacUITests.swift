@@ -88,6 +88,23 @@ final class PointeMacUITests: XCTestCase {
         XCTAssertTrue(any("typeField").waitForExistence(timeout: 5), "⌘T is the type bar")
     }
 
+    @MainActor func testTheNightShiftHasItsStripItsLedgerAndItsKey() {
+        _ = launch("nightShift")
+        XCTAssertTrue(any("nightShiftStrip").waitForExistence(timeout: 5), "a running shift shows its strip")
+        XCTAssertTrue(any("nightShiftStop").exists)
+        shot("06-night-shift")
+        app.typeKey("n", modifierFlags: [.command, .shift])
+        XCTAssertTrue(any("nightShiftHeadline").waitForExistence(timeout: 5), "⇧⌘N is the night shift's ledger")
+        XCTAssertTrue(any("nightShiftSection.decided").exists && any("nightShiftLedgerStop").exists)
+        shot("07-night-shift-ledger")
+        any("nightShiftLedgerStop").click()
+        XCTAssertTrue(any("nightShiftOpenStart").waitForExistence(timeout: 5), "stopped: another can start")
+        any("nightShiftOpenStart").click()
+        XCTAssertTrue(any("nightShiftTask.0").waitForExistence(timeout: 5))
+        XCTAssertTrue(any("nightShiftNotify").exists && any("nightShiftStart").exists)
+        shot("08-night-shift-start")
+    }
+
     @MainActor func testTypingAndTheBrainDump() {
         _ = launch("call")
         any("typeButton").click()

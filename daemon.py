@@ -45,6 +45,7 @@ import howto
 import latency
 import mac
 import newsession
+import nightshift
 import hub_nodes
 import phone_pairing
 import nodelink
@@ -449,6 +450,11 @@ again. "Tell <session> to close X" is a send, never a disconnect.
 call start_session once; the daemon takes the agent, the folder and the name from the user's words, and only folders \
 the user already works in. Nothing starts yet: the result has confirm_first; say that line once, exactly, and wait. \
 When the user answers, call start_session again. "Tell <session> to start X" is a send, never a new session.
+- "Tonight: <session> does X; <session> does Y" or "night shift: ..." gives the sessions work for while the user is \
+away: call night_shift once, with no send_to_claude_code; the daemon takes the sessions and the tasks from the user's \
+words. Nothing starts yet: the result has confirm_first; say that line once, exactly, and wait. When the user answers, \
+call night_shift again. You never send, decide or approve anything for a night shift: the daemon runs it, holds every \
+approval for the user, and the morning briefing leads with it. "Stop the night shift" is handled by the daemon.
 - Change mode with set_mode only when the user asks for it. "Tell all sessions / everyone to ..." is one \
 send_to_claude_code call, not a mode change.
 - Different instructions for different sessions in one breath: call send_to_claude_code once per instruction, \
@@ -879,6 +885,8 @@ def _brain_context() -> str:
         parts.append(f"Voice lock: {level} ({LOCK_HELP[level]}).")
     if playing := _briefing_context():
         parts.append(playing)
+    if night := _night_context():
+        parts.append(night)
     if state.challenge is not None:
         parts.append(challenge.context_line(state.challenge))
     if current_mode() is modes.DRIVE:
@@ -1466,6 +1474,7 @@ class SonioxEars(FrameProcessor):
         if level in ("commands", "everything") and not VOICE.confident(verdict):
             VOICE.ignore(verdict, heard if level == "commands" else None)
             await _answer_permission(heard, deny_only=True)  # a no counts from anyone; the words still stay out
+            await _night_stop_words(heard)  # as does a stop of the night shift: it only ends sending
             if ECHO.speaking:  # anyone may pause the bot; only the owner may take the turn
                 await self.broadcast_interruption()
             if state.conn is not None:
@@ -1573,6 +1582,23 @@ class SonioxEars(FrameProcessor):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
             await _no_also_denies(heard)
             await briefing_control(steer)
+            return
+        if not _dumping() and state.meeting is None and state.challenge is None and await _night_words(heard):
+            return
+        if not _dumping() and nightshift.stop_intent(heard):
+            _remember("user", heard)
+            state.last_utterance = heard  # its language; never fresh speech for a send, and no yes or no to a prompt
+            await _night_stop_words(heard)
+            return
+        if not _dumping() and state.meeting is None and state.challenge is None \
+                and (waits := _night_release(heard)) is not None:
+            # "Approve billing's push": billing becomes the active session and its exact request is read out. These
+            # words approve nothing (the request was not read out when they were said); the yes after it does.
+            _remember("user", heard)
+            state.last_utterance = heard
+            _briefing_heard(heard)  # a briefing that is playing pauses: the request is read out, not talked over
+            logger.info(f"night shift: the user asked for {waits.name}'s request; reading it out")
+            await activate(waits)
             return
         if not _dumping() and (asked := briefing.briefing_intent(heard)) is not None \
                 and ((refusal := _briefing_refusal()) is None or state.challenge is not None):
@@ -1941,6 +1967,9 @@ class State:
     # A new session read back and not started yet: (when, {id, harness, folder, name, line}). Starts on the next yes.
     pending_start: tuple[float, dict] | None = None
     last_start_at: float = 0.0
+    # A night shift read back and not started yet: (when, {id, line, items, hours, messages, notify}). Starts on the next yes.
+    pending_shift: tuple[float, dict] | None = None
+    last_shift_at: float = 0.0
     notes_turns: dict[str, int] = field(default_factory=dict)  # per session: turns since the notes were last given
     brief_again: set[str] = field(default_factory=set)
     briefing: set[str] = field(default_factory=set)  # sessions whose notes are being written now
@@ -1991,6 +2020,10 @@ async def feed(session: Session, text: str, respond: bool) -> None:
         while report.get("urgency") != "high" and state.digesting and waited < 8.0:
             await asyncio.sleep(0.2)
             waited += 0.2
+        try:
+            await _night_report(session, report)  # a night shift moves on with or without a call
+        except Exception as e:
+            logger.error(f"night shift: the report of {session.name} was not handled: {type(e).__name__}: {e}")
     if state.conn is None:
         return
     active = session is REGISTRY.active
@@ -2313,13 +2346,23 @@ async def build_briefing(since_words: str, scope: str, length: str, scheduled: b
     since, since_label = briefing.parse_since(since_words, now, BRIEFINGS.last_call_end)
     lang = _user_language()
     groups = _briefing_groups(scope)
+    # A night shift that ran since then leads the briefing, from its ledger and in code: decisions made, questions
+    # waiting, then done and blocked (nightshift.morning). Its sessions are not read a second time. Not when the user
+    # asked about named sessions only.
+    shift = NIGHT.since(since) if len(groups) == len(_briefing_groups("")) else None
+    lead = [p["text"] for p in nightshift.morning(shift, now)] if shift is not None else []
+    if shift is not None:
+        on_shift = {f.session for f in shift.fronts}
+        groups = [g for g in groups if g[-1].name not in on_shift]
     sections = await asyncio.gather(*[_brief_section(g, since, since_label, length, lang) for g in groups])
-    b = briefing.assemble(list(sections), since_label, length, since, now, scheduled=scheduled, slot=slot)
+    b = briefing.assemble(list(sections), since_label, length, since, now, scheduled=scheduled, slot=slot, lead=lead,
+                          night=shift.id if shift is not None else "")
     BRIEFINGS.add(b)
     if state.meeting is None:  # a meeting's notes stay that meeting's; the briefing is in the history either way
         NOTES.add("briefing", b.written(), meta={"briefing": b.id, "since": since_label, "scheduled": scheduled},
                   dedup=False)
-    logger.info(f"briefing {b.id}: {len(b.sections)} session(s) {since_label}{' (scheduled)' if scheduled else ''}")
+    logger.info(f"briefing {b.id}: {len(b.sections)} session(s) {since_label}{' (scheduled)' if scheduled else ''}"
+                + (f", led by night shift {shift.id} ({len(lead)} parts)" if shift is not None else ""))
     return b
 
 
@@ -2595,6 +2638,469 @@ async def briefing_tool(params: FunctionCallParams):
     await params.result_callback({"ok": True, "what": "the scheduled briefing that was waiting" if ready else "a new briefing",
                                   "say": "In a few words, say it is coming. Its parts arrive in the feed: say each as "
                                          "given. Send nothing."})
+# ---------- night shift (the rules: nightshift.py; docs/design/night-shift.md) ----------
+# Pointe sends to sessions while nobody listens, so everything it may send is a fixed template around the user's own
+# task (nightshift.message), and nothing here answers a permission request: a request from a session on the shift is
+# held, unanswered, and written down word for word as Blocked.
+
+NIGHT = nightshift.Store(STATE_DIR / "night-shifts.json")
+NIGHT_TICK_SECS = float(os.environ.get("POINTE_NIGHT_TICK_SECS") or 10.0)
+NIGHT_STALL_SECS = float(os.environ.get("POINTE_NIGHT_STALL_SECS") or nightshift.STALL_SECS)
+_NIGHT_WATCH: dict[str, list] = {}  # session id -> the watcher tasks the keeper runs for it while no call is up
+_NIGHT_SEEN: set[str] = set()  # shifts the user has come back to: their blockers alert again
+
+
+def _night_front(session: Session):
+    """(shift, front) when this session is on the running shift, else None."""
+    shift = NIGHT.current
+    front = shift.front_of(session.id) if shift is not None else None
+    return (shift, front) if front is not None else None
+
+
+def _night_parks(session: Session) -> bool:
+    """Its permission requests are held for the user through the night instead of going back to its terminal."""
+    return _night_front(session) is not None and not session.machine
+
+
+def _night_quiet(session: Session) -> bool:
+    """Its blockers raise no alert: it is on a shift the user has not come back to, alerts for the night are off, and
+    no call is up (a user on a call is there to be told)."""
+    shift = NIGHT.latest
+    return (shift is not None and shift.front_of(session.id) is not None and not shift.notify and state.conn is None
+            and shift.id not in _NIGHT_SEEN)
+
+
+def _night_refusal() -> str | None:
+    if state.meeting is not None or state.meeting_starting:
+        return "Not during a meeting: nothing goes to a session during one. Start the night shift after it ends."
+    if state.challenge is not None:
+        return "Not during a challenge. End it first, then ask again."
+    if _dumping():
+        return "Not while the user is thinking out loud."
+    if NIGHT.current is not None:
+        return "A night shift is already running. Stop it first, then start a new one."
+    return None
+
+
+def _default_harness() -> str | None:
+    available = [h for h in _start_harnesses() if h["available"]]
+    return next((h["name"] for h in available if h["name"] == "claude-code"), None) \
+        or (available[0]["name"] if len(available) == 1 else None)
+
+
+def _check_shift(items: list) -> list[dict]:
+    """Everything a plan must pass, whoever asked, or StartRefused. Returns what will run, one dict per item, with the
+    final name of each session: a session on this Mac, or a new one checked exactly as New session checks it."""
+    if why := nightshift.limits_problem(items):
+        raise StartRefused(why)
+    out, new_names = [], set()
+    for item in items:
+        task = " ".join(item.task.split())
+        if item.start:
+            harness = item.start.get("harness") or _default_harness()
+            if harness is None:
+                raise StartRefused("Say which agent the new session should be: "
+                                   + (", ".join(h["title"] for h in _start_harnesses() if h["available"]) or "none can "
+                                      "be started on this Mac") + ".")
+            what = _check_start(harness, item.start.get("folder") or "", item.start.get("name") or None)
+            if what["name"].lower() in new_names:
+                raise StartRefused("Two new sessions would get the same name. Give one of them a name.", 409)
+            new_names.add(what["name"].lower())
+            out.append({"session": what["name"], "session_id": "", "task": task, "new": True, "harness": harness,
+                        "agent": _harness_title(harness), "folder": what["folder"]["path"],
+                        "said_folder": what["said_folder"], "name_given": bool(item.start.get("name"))})
+            continue
+        session = REGISTRY.sessions.get(item.session_id) or next(
+            (s for s in REGISTRY.sessions.values() if item.name and s.name.lower() == item.name.lower()), None)
+        if session is None:
+            raise StartRefused(f"{item.name or 'That session'} is not on the voice.", 409)
+        if session.machine:
+            raise StartRefused(f"{session.name} runs on another machine. {nightshift.THIS_MAC_ONLY}", 409)
+        out.append({"session": session.name, "session_id": session.id, "task": task, "new": False,
+                    "harness": session.harness, "agent": _harness_title(session.harness), "folder": "", "said_folder": "",
+                    "name_given": False})
+    return out
+
+
+def _shift_caps(hours=None, messages=None, notify=None) -> dict:
+    hours = PREFS.get("nightshift.hours") if hours is None else hours
+    messages = PREFS.get("nightshift.messages") if messages is None else messages
+    notify = PREFS.get("nightshift.notify") if notify is None else notify
+    if not nightshift.valid_hours(hours) or not nightshift.valid_messages(messages) or not isinstance(notify, bool):
+        raise StartRefused(f"The caps are out of range: up to {nightshift.MAX_HOURS:g} hours and "
+                           f"{nightshift.MAX_MESSAGES} messages.")
+    return {"hours": hours, "messages": messages, "notify": notify}
+
+
+def _shift_line(checked: list[dict], caps: dict) -> str:
+    said = [{**c, "session": _spoken_names(c["session"]), "folder": _spoken_names(c["said_folder"])} for c in checked]
+    return nightshift.read_back(said, caps["hours"], caps["messages"])
+
+
+def _shift_pending() -> tuple[float, dict] | None:
+    pending = state.pending_shift
+    return pending if pending and time.time() - pending[0] < nightshift.CONFIRM_SECS + pending[1].get("say_secs", 0.0) else None
+
+
+def _shift_items(checked: list[dict]) -> list:
+    return [nightshift.Item(task=c["task"], session_id=c["session_id"], name=c["session"],
+                            start={"harness": c["harness"], "folder": c["folder"],
+                                   "name": c["session"] if c["name_given"] else None} if c["new"] else None)
+            for c in checked]
+
+
+async def begin_shift(checked: list[dict], caps: dict, how: str):
+    """Start the shift that was read back (or the sheet's): each session gets its first task inside the night brief."""
+    now = time.time()
+    fronts: dict[str, nightshift.Front] = {}
+    for n, c in enumerate(checked):
+        key = c["session_id"] or f"new:{n}"
+        if key not in fronts:
+            if c["new"]:
+                entry = newsession.find(c["folder"], _start_folders())
+                start = begin_start({"harness": c["harness"], "folder": entry, "name": c["session"], "prompt": ""},
+                                    f"night shift, {how}")
+                fronts[key] = nightshift.Front(session=c["session"], harness=c["harness"], start_id=start.id, state="starting")
+            else:
+                fronts[key] = nightshift.Front(session=c["session"], session_id=c["session_id"], harness=c["harness"])
+        fronts[key].tasks.append(nightshift.Task(text=c["task"]))
+    shift = nightshift.new_shift(list(fronts.values()), caps["hours"], caps["messages"], caps["notify"], how, now)
+    NIGHT.add(shift)
+    logger.info(f"night shift {shift.id} started ({how}): {len(shift.fronts)} session(s), "
+                f"{sum(len(f.tasks) for f in shift.fronts)} task(s), up to {caps['hours']:g} h and {caps['messages']} messages")
+    for front in shift.fronts:
+        if front.state != "starting":
+            await _night_send(shift, front, shift.next_task(front, time.time()))
+    NIGHT.save()
+    return shift
+
+
+async def _night_send(shift, front, kind: str | None) -> None:
+    """Send the front its next fixed message, if there is one. The text is nightshift.message and nothing else."""
+    session = REGISTRY.sessions.get(front.session_id)
+    task = front.task()
+    if kind is None or session is None or task is None or not shift.can_send():
+        NIGHT.save()
+        return
+    text = nightshift.message(kind, task.text)
+    session.joining = False  # its next finished turn answers this
+    began = time.time()
+    delivered = await _dispatch(session, text)
+    aside = _set_aside(session, began)
+    if not delivered or aside:
+        why = ("Its Claude Code held or refused a message from the voice: set crossSessionInbound to accept in that "
+               "session's settings." if aside else "")
+        shift.not_delivered(front, why, time.time())
+        logger.warning(f"night shift: the {kind} message did not reach {session.name}")
+    else:
+        shift.sent_to(front, kind, time.time())
+        logger.info(f"night shift -> {session.name}: {kind} ({shift.sent} of {shift.messages} messages)")
+        state.dispatches.append({"at": time.strftime("%H:%M:%S"), "said": "", "message": task.text, "to": [session.name],
+                                 "how": f"night shift: {kind}"})
+        del state.dispatches[:-20]
+    NIGHT.save()
+
+
+async def _night_report(session: Session, report: dict) -> None:
+    """A session on the shift ended a turn: record what it said, and send what comes next."""
+    found = _night_front(session)
+    if found is None:
+        return
+    shift, front = found
+    task = front.task()
+    if task is None or task.state != "working" or session.last_delegation_at > task.sent_at:
+        return  # no task in flight, or the user spoke to it since: that turn answered them, not the shift
+    outcome = nightshift.read_report(mask(str(report.get("final") or "")), report)
+    kind = shift.report(front, outcome, time.time())
+    logger.info(f"night shift: {session.name} reported {outcome.status}; next: {kind or 'nothing'}")
+    await _night_send(shift, front, kind)
+    _night_end_if_over(shift)
+
+
+def _night_look(shift, front, now: float) -> str | None:
+    """What the keeper sees of one front now (nightshift.Shift.tick): gone, waiting on an approval, stalled."""
+    session = REGISTRY.sessions.get(front.session_id)
+    if session is None:
+        return shift.tick(front, now, present=False)
+    busy = bool(session.busy and now - max(session.active_at, session.last_delegation_at) < NIGHT_STALL_SECS)
+    return shift.tick(front, now, present=True, busy=busy, request_id=session.permission_id or "",
+                      request=session.permission_full if session.permission_id else "",
+                      terminal_wait=terminal_wait(session), stall_secs=NIGHT_STALL_SECS)
+
+
+def _night_end_if_over(shift) -> None:
+    why = shift.over(time.time())
+    if why:
+        shift.end(why, time.time())
+        logger.info(f"night shift {shift.id} ended: {why}")
+    NIGHT.save()
+
+
+async def _night_tick(now: float) -> None:
+    shift = NIGHT.current
+    await _night_watchers(shift)
+    if shift is None:
+        return
+    before = json.dumps(shift.to_dict(), sort_keys=True)
+    if why := shift.over(now):  # the caps first: past its hours a shift sends nothing, not even a status message
+        shift.end(why, now)
+        logger.info(f"night shift {shift.id} ended: {why}")
+    for front in shift.fronts if shift.on else []:
+        if front.state == "starting":
+            start = STARTS.get(front.start_id)
+            if start is not None and start.state == "joined" and start.session_id in REGISTRY.sessions:
+                await _night_joined(REGISTRY.sessions[start.session_id], start.id)
+            elif start is None or start.state == "failed" or now - shift.at > nightshift.START_WAIT_SECS:
+                shift.not_started(front, start.detail if start is not None else "", now)
+            continue
+        kind = _night_look(shift, front, now)
+        if kind:
+            await _night_send(shift, front, kind)
+    why = shift.over(now)
+    if why:
+        shift.end(why, now)
+        logger.info(f"night shift {shift.id} ended: {why}")
+    if not shift.on or json.dumps(shift.to_dict(), sort_keys=True) != before:
+        NIGHT.save()
+    if not shift.on:
+        await _night_watchers(None)
+
+
+async def _night_keeper() -> None:
+    """Runs with or without a call: the shift's sessions are followed, stalls and approvals noticed, the caps kept."""
+    while True:
+        await asyncio.sleep(NIGHT_TICK_SECS)
+        try:
+            await _night_tick(time.time())
+        except Exception as e:
+            logger.error(f"night shift keeper failed: {type(e).__name__}: {e}")
+
+
+async def _night_watchers(shift) -> None:
+    """With no call up nothing follows a session's record, so no report would arrive: the keeper runs each front's
+    harness watcher itself, and stops them when a call's own workers take over or the shift ends."""
+    wanted = set() if shift is None or state.conn is not None else {
+        f.session_id for f in shift.fronts if f.session_id in REGISTRY.sessions and f.state in ("working", "waiting")}
+    gone = [sid for sid in _NIGHT_WATCH if sid not in wanted]
+    for sid in gone:
+        tasks = _NIGHT_WATCH.pop(sid)
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+    for sid in wanted - set(_NIGHT_WATCH):
+        session = REGISTRY.sessions[sid]
+        if not session.followed:
+            _NIGHT_WATCH[sid] = [asyncio.create_task(c) for c in harnesses.of(session).watch(session, feed)]
+
+
+async def _night_joined(session: Session, start_id: str) -> None:
+    """A session the shift started is on the voice: its first task goes now."""
+    shift = NIGHT.current
+    front = next((f for f in shift.fronts if f.start_id == start_id and f.state == "starting"), None) if shift else None
+    if front is None:
+        return
+    front.session_id, front.session, front.state = session.id, session.name, "working"
+    await _night_send(shift, front, shift.next_task(front, time.time()))
+
+
+def _night_blocked_now(session: Session) -> None:
+    """A request arrived from a session on the shift: Blocked, with the exact request, at once."""
+    found = _night_front(session)
+    if found is not None:
+        _night_look(found[0], found[1], time.time())
+        NIGHT.save()
+        logger.info(f"night shift: {session.name} waits for the user's approval; held, not answered")
+
+
+def _night_answered(session: Session, request_id: str, verdict: str) -> None:
+    """The user answered a request a shift had parked: the ledger says so. Called only from the user's own answer."""
+    shift = NIGHT.latest
+    if shift is not None and shift.answered(session.id, request_id, verdict, time.time()):
+        _NIGHT_SEEN.add(shift.id)
+        NIGHT.save()
+
+
+def _night_user_said(session: Session, words: str) -> None:
+    shift = NIGHT.latest
+    if shift is not None and shift.front_of(session.id) is not None and shift.user_said(session.name, words, time.time()):
+        NIGHT.save()
+
+
+def stop_shift(how: str):
+    """The user stopped the shift: nothing more is sent. A turn already running finishes on its own."""
+    shift = NIGHT.current
+    if shift is None:
+        return None
+    shift.end("stopped", time.time())
+    _NIGHT_SEEN.add(shift.id)
+    NIGHT.save()
+    logger.info(f"night shift {shift.id} stopped ({how})")
+    return shift
+
+
+async def _night_stop_words(heard: str) -> bool:
+    """"Stop the night shift", spoken: from any voice, with no read-back. True when the words were that."""
+    if not nightshift.stop_intent(heard):
+        return False
+    stopped = stop_shift("voice")
+    line = ("The user stopped the night shift. Pointe sends nothing more; a turn already running finishes on its own. "
+            "Say so in one short line." if stopped else "The user asked to stop the night shift, and none is running. "
+            "Say so in one short line.")
+    await say(f"[night shift] {line}")
+    return True
+
+
+def _night_release(heard: str) -> Session | None:
+    """"Approve billing's push": the shift session these words name, when it waits on an approval."""
+    shift = NIGHT.latest
+    if shift is None:
+        return None
+    waiting = [s for s in REGISTRY.sessions.values() if s.permission_id and shift.front_of(s.id) is not None]
+    return nightshift.release_intent(heard, waiting) if waiting else None
+
+
+def _night_context() -> str | None:
+    shift = NIGHT.current
+    if shift is None:
+        return None
+    s = shift.summary()
+    return (f"A night shift is running since {time.strftime('%H:%M', time.localtime(shift.at))}: {s['done']} of "
+            f"{s['tasks']} task(s) done, {s['in_flight']} in flight, {s['blocked']} blocked. \"Stop the night shift\" "
+            f"ends it. You send nothing for it and approve nothing; the daemon runs it.")
+
+
+def _shift_pending_view() -> dict | None:
+    p = _shift_pending()
+    return None if p is None else {"id": p[1]["id"], "line": p[1]["line"],
+                                   "items": [{k: c[k] for k in ("session", "task", "new", "agent")} for c in p[1]["checked"]],
+                                   "expires_in": round(nightshift.CONFIRM_SECS + p[1].get("say_secs", 0.0) - (time.time() - p[0]))}
+
+
+async def _begin_pending(pend: dict, how: str):
+    """Start what was read back, checked again: a session may have left, or a name been taken, since."""
+    if refusal := _night_refusal():
+        raise StartRefused(refusal, 409)
+    checked = _check_shift(_shift_items(pend["checked"]))
+    if [c["session"] for c in checked] != [c["session"] for c in pend["checked"]]:
+        raise StartRefused("Not started: a session's name changed since the plan was read back. Ask again.", 409)
+    return await begin_shift(checked, pend["caps"], how)
+
+
+def _shift_ask(asked: str) -> dict:
+    """The plan in these words of the user's, checked and read back: {"confirm_first": line}, or {"error": words}.
+    Nothing is sent; the plan waits for a yes (state.pending_shift)."""
+    if refusal := _night_refusal():
+        return {"error": f"Not started. {refusal}"}
+    folders = _start_folders()
+    everyone = list(REGISTRY.sessions.values())
+    places = newsession.places(everyone, folders)
+    active = REGISTRY.active
+    here_folder = newsession.real(active.cwd) if active and not active.machine and newsession.find(active.cwd, folders) else None
+    plan = nightshift.plan_request(asked, everyone, places, [m.name for m in paired_machines()], _here(), here_folder)
+    if plan is None:
+        return {"error": "Not started. The user did not ask for a night shift: it starts with words like \"tonight: "
+                         "billing fixes the retry tests\"."}
+    state.last_shift_at = time.time()
+    if plan.problem:
+        return {"error": plan.problem if plan.problem.startswith("Not started") else f"Not started. {plan.problem}"}
+    try:
+        checked, caps = _check_shift(plan.items), _shift_caps()
+    except StartRefused as e:
+        return {"error": f"Not started. {e}"}
+    line = _shift_line(checked, caps)
+    # The minute for a yes starts when the read-back ends, not when it begins: a long plan takes most of a minute to say.
+    say_secs = len(line.split()) / nightshift.WORDS_PER_SEC if state.conn is not None else 0.0
+    state.pending_shift = (time.time(), {"id": secrets.token_hex(8), "line": line, "checked": checked, "caps": caps,
+                                         "say_secs": say_secs})
+    logger.info(f"night shift read back: {line}")
+    return {"confirm_first": line, "note": "Nothing is started yet. Say this line once, as it is, and wait. When the "
+                                           "user answers, call night_shift again."}
+
+
+async def _shift_answer(pending: tuple[float, dict], said: str) -> dict | None:
+    """The user's words after the read-back. A plain yes of the owner's starts the shift; a no, or anything that is not
+    a new plan, drops it. None: the words are a new plan (asked again), and nothing was decided here."""
+    state.pending_shift = None
+    echo = state.heard_own_words or ECHO.repeats_bot(said)
+    verdict = None if echo else consent(said)
+    asks_again = nightshift.shift_intent(said) is not None
+    if verdict == "allow" and not asks_again:
+        state.last_shift_at = time.time()
+        if refusal := _start_owner_refusal():
+            return {"error": refusal}
+        try:
+            shift = await _begin_pending(pending[1], "voice")
+        except StartRefused as e:
+            return {"error": str(e)}
+        return {"started": True, "sessions": [f.session for f in shift.fronts],
+                "note": "The night shift is running. Say so in one short line, and that the morning briefing will lead "
+                        "with it. Send nothing yourself."}
+    if verdict == "deny" or not asks_again:
+        return {"error": "Not started: the user did not say yes. No night shift was started; ask what they want if it "
+                         "is unclear."}
+    return None
+
+
+async def night_shift(params: FunctionCallParams):
+    """Starts tonight's shift: the sessions and their tasks come from the user's own words, never from the model's
+    arguments. The plan is always read back first, and the shift starts on the user's next plain yes (or a tap)."""
+    pending = _shift_pending()
+    fresh = await _await_fresh_speech(pending[0] if pending else state.last_shift_at)
+    said = state.last_utterance
+    if pending and not fresh:
+        await params.result_callback({"error": f"Nothing started yet: you asked \"{pending[1]['line']}\". Wait for the "
+                                      "answer; do not ask again."})
+        return
+    if pending and (answer := await _shift_answer(pending, said)) is not None:
+        await params.result_callback(answer)
+        return
+    if not fresh:
+        await params.result_callback({"error": "Not started. The user did not ask for a night shift."})
+        return
+    asked = next((t for at, t in reversed(state.recent_said) if time.time() - at < SWITCH_WORDS_SECS
+                  and at > state.last_shift_at and nightshift.shift_intent(t) is not None), said)
+    await params.result_callback(_shift_ask(asked))
+
+
+async def _night_words(heard: str) -> bool:
+    """A night's plan, or the yes or no to its read-back, taken in code: the model sometimes answers a long plan from
+    memory, or too late, and a read-back must be the daemon's own words. True when these words were that, and no reply
+    from the model is due. The rules are the tool's (night_shift): the same two functions decide."""
+    pending = _shift_pending()
+    if pending is not None and nightshift.shift_intent(heard) is None:
+        if consent(heard) is None:
+            return False  # a question, or something else: the model answers it, and the tool's rules drop the plan
+        state.last_utterance = heard  # its language; a yes to the plan is never fresh speech for a send
+        answer = await _shift_answer(pending, heard)
+        _remember("user", heard)
+        state.last_shift_at = time.time()
+        if answer and answer.get("started"):
+            await say("[night shift started] The user said yes to the plan and the night shift is running: "
+                      f"{', '.join(answer['sessions'])}. Say so in one short line, and that the morning briefing will "
+                      "lead with it. Send nothing.")
+        else:
+            await say(f"[night shift not started] {(answer or {}).get('error', 'Nothing was started.')} Tell the user "
+                      "in one short line. Send nothing.")
+        return True
+    if nightshift.shift_intent(heard) is None:
+        return False
+    result = _shift_ask(heard)
+    if "confirm_first" not in result and "named no session" in result.get("error", ""):
+        return False  # "tonight I am going out": not a plan; the model answers as it would any words
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; never fresh speech for a send
+    line = result.get("confirm_first")
+    if line and FRONT == "brain" and state.front is not None and state.conn is not None:
+        await state.conn.injector.inject(f"[read out to the user, by the daemon: tonight's plan, not started yet. Their "
+                                         f"next yes or no answers it; the daemon takes it] {line}", False)
+        await state.front._speak(line, None)
+    elif line:
+        await say(f"[night shift read back] Say this line once, exactly as it is, and wait for the answer: {line}")
+    else:
+        await say(f"[night shift not started] {result['error']} Tell the user in one short line. Send nothing.")
+    return True
+
+
 # ---------- conflict alarm (conflicts.py) ----------
 # Reads only: it shows and says what two sessions disagree about, and the user decides whether to ask either one.
 
@@ -3813,7 +4319,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     session = REGISTRY.active
     if not session or not session.permission_id or state.conn is None:
         return
-    pending = _close_pending() or _start_pending()
+    pending = _close_pending() or _start_pending() or _shift_pending()
     if pending and sum(at > pending[0] for at, _ in state.recent_said) == 1:
         return  # the first words after "Closing A and B. Go ahead?" (or "Start ...?") answer that, never a prompt
     if not online(session):  # its node handed the prompt back to its terminal when the link dropped
@@ -3895,6 +4401,7 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
         return False
     session.permission_since = None
     REGISTRY.save()
+    _night_answered(session, request_id, verdict)
     word = "approved" if verdict == "allow" else "denied"
     await say(f"[permission answered] The user {word} it. Acknowledge in two or three words.")
     return True
@@ -4422,6 +4929,7 @@ async def _send_now(message: str) -> dict:
     for target in targets:
         state.owner_words.setdefault(target.id, []).append(state.last_utterance)
         del state.owner_words[target.id][:-12]
+        _night_user_said(target, state.last_utterance)  # an open question on the night's ledger is answered
         state.unconfirmed.setdefault(target.id, []).append(message)
         asyncio.create_task(_refresh_brief_soon(target))
         if target.open_questions:
@@ -4900,6 +5408,8 @@ async def _started(session: Session, start_id) -> None:
     late = start.state == "failed"  # it joined after the wait ran out: the user was told the prompt was not sent
     start.state, start.session_id, start.detail, start.ended = "joined", session.id, "", time.time()
     logger.info(f"{session.name} joined: started by Pointe ({start.how})")
+    if not late:
+        await _night_joined(session, start.id)
     if start.prompt and not late:
         asyncio.create_task(_first_prompt(session, start.prompt))
 
@@ -5322,6 +5832,14 @@ TOOLS = ToolsSchema(standard_tools=[
         properties={"folder": {"type": "string", "description": "The folder name the user said, if any."}},
         required=[], handler=_traced(start_session)),
     FunctionSchema(
+        name="night_shift",
+        description="Start a night shift: tasks the sessions work on while the user is away, with the morning briefing "
+        "leading with what was decided and what waits. Only when the user just gave tonight's tasks (\"tonight: billing "
+        "fixes the retry tests; docs updates the changelog\", \"night shift: ...\"). Call it once: the daemon takes the "
+        "sessions and tasks from the user's own words and returns confirm_first, a line to say exactly. Again after the "
+        "user answers it. It never approves anything.",
+        properties={}, required=[], handler=_traced(night_shift)),
+    FunctionSchema(
         name="set_mode",
         description="Change routing mode, only when the user asked: orchestrator mode routes each request to the "
         "right session; session mode sends everything to the active session only.",
@@ -5390,9 +5908,11 @@ async def _with_housekeeping(_app):
     watchdog.start(threading.get_ident())  # logs where the loop is stuck when it freezes, which delays every reply
     state.heartbeat = asyncio.create_task(watchdog.heartbeat())
     scheduler = asyncio.create_task(_briefing_scheduler())  # a scheduled briefing is read with no call up too
+    keeper = asyncio.create_task(_night_keeper())  # a night shift runs with no call up
     async with _listeners(_app):
         yield
     scheduler.cancel()
+    keeper.cancel()
 
 
 app.router.lifespan_context = _with_housekeeping
@@ -5646,6 +6166,8 @@ async def _deliver_verdict(session: Session, request_id: str, verdict: str) -> b
 def _hand_prompts_back() -> None:
     """The call ended: whatever the hook still holds goes to the terminal dialog."""
     for session in REGISTRY.sessions.values():
+        if _night_parks(session):
+            continue  # a night shift's request stays held for the user: it is on the ledger, and answered in the morning
         if session.permission_answer is not None and not session.permission_answer.done():
             session.permission_answer.set_result(None)
 
@@ -5657,7 +6179,7 @@ async def permission_hook(request: Request, authorization: str | None = Header(N
     _auth(authorization)
     p = await request.json()
     session = REGISTRY.sessions.get(p.get("session_id"))
-    if session is None or session.channel_url or state.conn is None:
+    if session is None or session.channel_url or (state.conn is None and not _night_parks(session)):
         return {}
     # Claude Code's hook is its adapter's approval path: the same rules as any harness's (_harness_permission)
     verdict = await _harness_permission(session, str(p.get("tool_name")), p.get("tool_input") or {}, request.is_disconnected)
@@ -5669,7 +6191,7 @@ async def permission_hook(request: Request, authorization: str | None = Header(N
 
 async def _harness_permission(session: Session, tool_name: str, tool_input: dict, gone=None) -> str | None:
     """A harness adapter's permission request (OpenCode's permission.asked): the same rules as Claude Code's hook."""
-    if session.id not in REGISTRY.sessions or state.conn is None:
+    if session.id not in REGISTRY.sessions or (state.conn is None and not _night_parks(session)):
         return None
     if vendors.config().get("approvals") == "terminal":
         await say(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in one line.")
@@ -5682,7 +6204,11 @@ async def hold_permission(session: Session, tool_name: str, tool_input: dict, go
     """Put a harness's permission request to the user and wait for their answer: "allow", "deny", or None, when it
     goes back to the harness's own prompt (no answer in time, or `gone()` says it was answered there)."""
     preview = json.dumps(tool_input, ensure_ascii=False)
-    deadline = time.time() + (deadline_secs or harnesses.of(session).permission_deadline)
+    # A session on a night shift: held for the user until they answer, never handed back at 280 s and never answered
+    # here (docs/design/night-shift.md). They can still answer at the session's own prompt.
+    deadline = time.time() + (deadline_secs or (nightshift.PARK_SECS if _night_parks(session)
+                                                else harnesses.of(session).permission_deadline))
+    session.permission_until = deadline
     # Several at once (OpenCode and Codex run tools in parallel): each waits its turn and is read out after the one before
     # is answered. Handing the earlier one "back to the terminal" left it unanswered where no terminal prompt is in view.
     lock = _PERMISSION_LOCKS.setdefault(session.id, asyncio.Lock())
@@ -5760,6 +6286,9 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     alerts.note_request(session.id, request_id, tool_name, readable)
     state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine))
     REGISTRY.save()
+    _night_blocked_now(session)
+    if state.conn is None:  # only a night shift's request is held with no call: nobody to read it to until morning
+        return {}
     if session is REGISTRY.active:
         await _ask_permission(session)
     else:
@@ -5850,7 +6379,8 @@ async def _ask_permission(session: Session) -> None:
 def _permission_urgent(session: Session) -> bool:
     """The one exception to the floor: this request goes back to its terminal within URGENT_LEFT_SECS."""
     since = session.permission_since
-    return bool(since) and since + harnesses.of(session).permission_deadline - time.time() <= flow.URGENT_LEFT_SECS
+    until = session.permission_until or (since or 0) + harnesses.of(session).permission_deadline
+    return bool(since) and until - time.time() <= flow.URGENT_LEFT_SECS
 
 
 async def _read_out_when_quiet(session: Session, request_id: str) -> None:
@@ -6179,6 +6709,87 @@ async def new_session(request: Request):
     return {"id": start.id, "name": start.name}
 
 
+@app.get("/voice/night-shift")
+async def night_shift_view(id: str = ""):
+    """The night shift sheet and the ledger: the running or last shift in full (or the one asked for), the last seven
+    in short, the caps, and who can be given a task."""
+    shift = NIGHT.get(id) if id else NIGHT.latest
+    if shift is not None and not shift.on:
+        _NIGHT_SEEN.add(shift.id)  # the user is looking at it: its blockers are no longer the night's secret
+    return {"shift": shift.view() if shift is not None else None,
+            "history": [x.summary() for x in reversed(NIGHT.items)],
+            "caps": {"hours": PREFS.get("nightshift.hours"), "messages": PREFS.get("nightshift.messages"),
+                     "notify": PREFS.get("nightshift.notify")},
+            "limits": {"hours": nightshift.MAX_HOURS, "messages": nightshift.MAX_MESSAGES, "sessions": nightshift.MAX_FRONTS,
+                       "tasks": nightshift.MAX_TASKS, "task_chars": nightshift.MAX_TASK_CHARS,
+                       "followups": nightshift.FOLLOWUPS},
+            "rule": nightshift.RULE,
+            "pending": _shift_pending_view(),
+            "sessions": [{"name": s.name, "harness": s.harness, "available": not s.machine,
+                          "why": nightshift.THIS_MAC_ONLY if s.machine else None} for s in REGISTRY.sessions.values()]}
+
+
+@app.post("/voice/night-shift")
+async def night_shift_action(request: Request):
+    """The sheet's Start ({action: start, items: [{session, task} | {start: {harness, folder, name?}, task}], hours?,
+    messages?, notify?}), a tap on a read-back's card ({action: confirm | cancel, id}), or Stop ({action: stop}).
+    Same-origin, or the phone's key. Nothing here answers a permission request."""
+    body = await _body(request)
+    action = body.get("action")
+    if action == "stop":
+        shift = stop_shift(_start_how(request))
+        if shift is None:
+            raise HTTPException(status_code=409, detail="No night shift is running.")
+        if state.conn is not None:
+            await state.conn.injector.inject("[night shift] The user stopped the night shift from the screen. Do not "
+                                             "announce it.", False)
+        return {"stopped": True, "shift": shift.summary()}
+    if action in ("confirm", "cancel"):
+        pending = _shift_pending()
+        if not pending or not hmac.compare_digest(str(body.get("id") or ""), pending[1]["id"]):
+            raise HTTPException(status_code=409, detail="That is no longer waiting for an answer.")
+        state.pending_shift, state.last_shift_at = None, time.time()
+        if action == "cancel":
+            if state.conn is not None:
+                await state.conn.injector.inject("[night shift cancelled] The user tapped Cancel: no night shift was "
+                                                 "started. Do not announce it.", False)
+            return {"cancelled": True}
+        try:
+            shift = await _begin_pending(pending[1], _start_how(request))
+        except StartRefused as e:
+            raise HTTPException(status_code=e.status, detail=str(e))
+    elif action == "start":
+        if refusal := _night_refusal():
+            raise HTTPException(status_code=409, detail=refusal)
+        raw = body.get("items")
+        if not isinstance(raw, list) or not all(isinstance(i, dict) and isinstance(i.get("task"), str) for i in raw):
+            raise HTTPException(status_code=400, detail="items: a list of {session, task} or {start, task}")
+        items = []
+        for i in raw:
+            start = i.get("start")
+            if start is not None and not isinstance(start, dict):
+                raise HTTPException(status_code=400, detail="start: {harness, folder, name?}")
+            items.append(nightshift.Item(task=i["task"].strip(), name=str(i.get("session") or ""),
+                                         start={"harness": str(start.get("harness") or "") or None,
+                                                "folder": start.get("folder") or "",
+                                                "name": start.get("name") or None} if start else None))
+        try:
+            checked = _check_shift(items)
+            caps = _shift_caps(body.get("hours"), body.get("messages"), body.get("notify"))
+            shift = await begin_shift(checked, caps, _start_how(request))
+        except StartRefused as e:
+            raise HTTPException(status_code=e.status, detail=str(e))
+        # The sheet is where the caps are set: what it started with is what the next shift, by voice too, starts with.
+        PREFS.update({"nightshift.hours": caps["hours"], "nightshift.messages": caps["messages"],
+                      "nightshift.notify": caps["notify"]})
+    else:
+        raise HTTPException(status_code=400, detail="action: start, confirm, cancel or stop")
+    if state.conn is not None:
+        await state.conn.injector.inject("[night shift] The user started a night shift from the screen. The daemon "
+                                         "runs it; send nothing for it. Do not announce it.", False)
+    return {"started": True, "shift": shift.summary()}
+
+
 @app.post("/voice/page-event")
 async def page_event(request: Request):
     """What the page saw that only the device knows (media keys, the OS muting the mic), into the journal.
@@ -6460,6 +7071,9 @@ async def status(request: Request):
             "starting": [x.view(_harness_title(x.harness)) for x in newsession.shown(STARTS)],
             "start_pending": (lambda p: None if p is None else {k: p[1][k] for k in ("id", "line", "harness", "name")}
                               | {"folder": p[1]["said_folder"], "expires_in": round(newsession.CONFIRM_SECS - (time.time() - p[0]))})(_start_pending()),
+            # A night shift (docs/design/night-shift.md): the running or last one in short, and a read-back that waits.
+            "night_shift": NIGHT.latest.summary() if NIGHT.latest is not None else None,
+            "shift_pending": _shift_pending_view(),
             "invite": _invite(request),
             "can_invite": _can_invite(request),
             "invite_ended": _invite_ended(request),
@@ -6517,7 +7131,9 @@ def _attention(quiet: bool = False) -> list[dict]:
         items.append(alerts.hand_alert(m.id, m.hand.n, m.hand.line, m.hand.at))
     if alert := _briefing_alert():
         items.append(alert)
-    return [{"quiet": quiet, **i} for i in items if i["id"] not in state.attention_dismissed]
+    hushed = {s.name for s in REGISTRY.sessions.values() if _night_quiet(s)}  # a night shift's blockers wait for morning
+    return [{"quiet": quiet, **i, **({"quiet": True} if i.get("session") in hushed else {})}
+            for i in items if i["id"] not in state.attention_dismissed]
 
 
 @app.get("/voice/artifact")
@@ -6999,6 +7615,9 @@ async def _on_connect(conn: Connection) -> None:
     state.unconfirmed, state.blocked, state.pending_route, state.notes_turns = {}, [], None, {}
     state.pending_close, state.last_close_at = None, now
     state.pending_start, state.last_start_at = None, now
+    state.pending_shift, state.last_shift_at = None, now
+    if NIGHT.latest is not None and not NIGHT.latest.on:
+        _NIGHT_SEEN.add(NIGHT.latest.id)  # the user is back after the shift: its blockers alert as any do
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
     state.last_speaker = None
@@ -7010,6 +7629,7 @@ async def _on_connect(conn: Connection) -> None:
         VOICE.load_soon()  # loaded before the first utterance, never while it waits
     for session in REGISTRY.sessions.values():
         session.on_hold = False
+    await _night_watchers(None)  # the call's own workers follow the sessions from here
     for session in REGISTRY.sessions.values():
         await _add_worker(session)
     _start_briefs()

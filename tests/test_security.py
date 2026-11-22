@@ -468,7 +468,9 @@ def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
               "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive",
               "/voice/dump"}
     # and, since 1.16.0, the New session sheet (docs/design/new-session.md): options and a start in an allowed folder
-    assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/new-session"}
+    # and, since 1.19.0, the night shift (docs/design/night-shift.md): its sheet, Start, Stop and the ledger; never an approval
+    assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/new-session",
+                                     "/voice/night-shift"}
     assert before <= _PHONE_PATHS
 
 
