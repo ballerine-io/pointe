@@ -244,6 +244,9 @@ class PageWindow:
         self.proc = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={self.port}",
                                       f"--user-data-dir={profile}", "--window-size=1400,900", "--no-first-run",
                                       "--lang=en-US",
+                                      # never the login Keychain: with no mock, Chrome reaches for it and macOS can ask
+                                      # the owner to reset a keychain it cannot find
+                                      "--use-mock-keychain", "--password-store=basic",
                                       # a headless page counts as hidden: Chrome would slow its 0.7 s poll to once a
                                       # minute, and the checks would time the throttle, not the page
                                       "--disable-background-timer-throttling", "--disable-renderer-backgrounding",
