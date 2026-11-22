@@ -285,3 +285,23 @@ def test_no_rename_to_a_name_the_user_did_not_say(d):
     _setup(d, ["atlas-feature", "orchard-bank"])
     result = asyncio.run(_rename(d, "rename orchard to pricing", "billing"))
     assert "error" in result and d.REGISTRY.sessions["orchard-bank"].name == "orchard-bank"
+
+
+def test_the_read_back_is_said_word_for_word_whatever_the_model_writes(d):
+    """From live runs: the model said "Closing shop-tests. Keeping billing and shop." and dropped "Go ahead?", twice out
+    of two, so the user heard no question. The read-back is the daemon's: it goes out exactly, and only once."""
+    from types import SimpleNamespace
+
+    _setup(d)
+    first = asyncio.run(_close(d, ALL_BUT_THREE, name="orchard-bank"))
+    line = first["confirm_first"]
+    spoken = []
+
+    async def push(frame):
+        spoken.append(frame.text)
+
+    front = SimpleNamespace(push_frame=push)
+    assert not d.BrainFront._may_speak_early_now()  # the reply arrives whole, so it can be checked before it is said
+    asyncio.run(d.BrainFront._speak(front, "Closing orchard-bank, atlas-feature and two more. Keeping the rest."))
+    asyncio.run(d.BrainFront._speak(front, "Anything else?"))
+    assert spoken[0] == d._spoken_names(line) and spoken[1] == "Anything else?"

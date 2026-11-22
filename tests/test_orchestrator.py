@@ -595,6 +595,23 @@ def test_o19d_switch_to_a_session_by_voice_focuses_on_it_as_a_tap_does(d):
     assert back == {"mode": "orchestrator"} and client_for(d).get("/voice/status").json()["mode"] == "orchestrator"
 
 
+def test_o19e_switch_to_the_active_session_right_after_a_rename_still_focuses_on_it(d):
+    """From a live run: billing was already the active session (the first to join), a rename had just set the switch
+    clock, and "switch to billing" was taken for the model repeating a switch that worked: no focus, nothing on screen."""
+    add(d, "a", "billing/main"), add(d, "b", "shop/main")
+    d.REGISTRY.set_active("a")
+
+    async def scenario():
+        now = time.time()
+        d.state.last_utterance, d.state.last_user_speech_at, d.state.last_switch_at = "Switch to billing.", now, now - 3
+        p = Params(name="billing")
+        await d.switch_session(p)
+        return p.results[0]
+
+    result = asyncio.run(scenario())
+    assert result["active"] == "billing/main" and d.REGISTRY.mode == "session", result
+
+
 def _answer_offer(d, bot_said, user_said):
     async def scenario():
         now = time.time()

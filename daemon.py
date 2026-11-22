@@ -1260,15 +1260,23 @@ class BrainFront(FrameProcessor):
         state.front = self
         self.brain = make_brain(self._speak, self._filler)
         self.brain.speak_first, self.brain.speak_rest = self._speak_first, self._speak_rest
-        # Not where a mode has its own rules for what is said, and when: a meeting lets one reply through per ask.
-        self.brain.may_speak_early = lambda: (current_mode().speech != "never" and state.meeting is None
-                                              and state.challenge is None)
+        self.brain.may_speak_early = self._may_speak_early_now
         for m in opening[:-1]:
             self.brain.append(m["content"])
         self._opening = opening[-1]["content"]
         self._speaking = False
 
+    @staticmethod
+    def _may_speak_early_now() -> bool:
+        """Not where a mode has its own rules for what is said, and when: a meeting lets one reply through per ask. Not
+        while a read-back waits to be said: the reply must arrive whole so the read-back replaces it (_speak)."""
+        return (current_mode().speech != "never" and state.meeting is None and state.challenge is None
+                and state.readback is None)
+
     async def _speak(self, text: str, request_id: str | None = None) -> None:
+        if request_id is None and state.readback is not None:
+            # A start's or a close's read-back is the daemon's words: the model has dropped its question ("Go ahead?").
+            text, state.readback = state.readback, None
         if current_mode().speech == "never" and request_id is None:
             logger.info("speech held: the mode is silent")  # listening and brainstorm never talk; the words are not logged
             return
@@ -2025,6 +2033,7 @@ class State:
     pending_start: tuple[float, dict] | None = None
     # (when, session id, the action items, the read-back): "send the action items to billing", sent on the next yes
     pending_actions: tuple[float, str, str, str] | None = None
+    readback: str | None = None  # a start's or a close's read-back, said word for word by the next reply (BrainFront._speak)
     started_joined: tuple[str, float] | None = None  # (session id, when): the session a start the user asked for, on joining
     last_start_at: float = 0.0
     # A night shift read back and not started yet: (when, {id, line, items, hours, messages, notify}). Starts on the next yes.
@@ -4501,6 +4510,7 @@ async def on_user_utterance(text: str) -> None:
     state.recent_said.append((time.time(), text))
     _remember("user", text)
     state.utterance_spent = False
+    state.readback = None  # a read-back not said by now is not said over the user's next words
     _update_holds(text)
     if dismiss_intent(text):
         _snooze_nudge()
@@ -5355,7 +5365,11 @@ def _switch_the_bot_offered() -> Session | None:
 async def switch_session(params: FunctionCallParams):
     said = name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
     if time.time() - state.last_switch_at < 15 and len(said) == 1 and said[0] == [REGISTRY.active]:
-        await params.result_callback({"active": REGISTRY.active.name})  # the model repeats a call that already worked
+        # The model repeats a call that already worked, or the user names the active session (the clock may be a
+        # rename's): either way it ends focused on it, as a first switch does.
+        if REGISTRY.mode != "session":
+            _apply_mode("session")
+        await params.result_callback({"active": REGISTRY.active.name, "mode": REGISTRY.mode})
         return
     fresh = await _await_fresh_speech(state.last_switch_at)
     offered = _switch_the_bot_offered() if fresh else None
@@ -5465,6 +5479,7 @@ async def disconnect_session(params: FunctionCallParams):
     kept = [s for s in sessions if s not in ask.close]
     readback = f"Closing {_said_list(ask.close)}." + (f" Keeping {_said_list(kept)}." if kept else "") + " Go ahead?"
     state.pending_close = (time.time(), [s.id for s in ask.close], readback)
+    state.readback = readback
     logger.info(f"close read back: {readback}")
     await params.result_callback({"confirm_first": readback, "note": "Nothing is closed yet. Say this line once, as it "
                                   "is, and wait. When the user answers, call disconnect_session again. Closing only "
@@ -5745,6 +5760,7 @@ async def start_session(params: FunctionCallParams):
                                          "name": what["name"], "name_given": bool(ask.name), "line": line,
                                          "said_folder": what["said_folder"]})
     logger.info(f"start read back: {line}")
+    state.readback = line
     await params.result_callback({"confirm_first": line, "note": "Nothing is started yet. Say this line once, as it is, "
                                   "and wait. When the user answers, call start_session again."})
 
@@ -7902,7 +7918,7 @@ async def _on_connect(conn: Connection) -> None:
     state.pending_shift, state.last_shift_at = None, now
     if NIGHT.latest is not None and not NIGHT.latest.on:
         _NIGHT_SEEN.add(NIGHT.latest.id)  # the user is back after the shift: its blockers alert as any do
-    state.pending_actions = None
+    state.pending_actions, state.readback = None, None
     state.utterance_spent = False
     state.owner_words, state.last_report, state.holding, state.last_sent, state.warned = {}, {}, False, (0.0, ""), 0.0
     state.last_speaker = None
