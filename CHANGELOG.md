@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.20
+
+- **1.20.0** (2026-11-23): Setup is one yes or no, Start with Free start?, then one key: pointe key opens the vendor's key page and a window with three numbered steps, checks the key before saving it, asks again when it is refused, and restarts Pointe; your first call ends on "I can hear you", and setup on "Pointe heard you. You're set up."; a refused key shows Cannot hear you with a red dot and Fix the key, never Listening, and is checked before the tab opens; pointe is a command after setup, and pointe uninstall removes what Pointe added; the page adds keys and switches setups with buttons and hides its advanced controls until your first hello; a plugin update keeps the iPhone app's team and bundle ID; keys are saved as pointe.<vendor>-api-key, and a key saved before keeps working
+
 ## 1.19
 
 - **1.19.0** (2026-11-22): Night shift: "Tonight: billing fixes the retry tests; docs updates the changelog" gives your sessions work for while you are away, read back and started on your yes, by voice or from Night shift on the page, the iPhone app and the Mac app; Pointe keeps them moving, approves nothing for you (a session that needs approval waits, with its exact request on the ledger), stops at its hours and message budget or when you say so, and the morning briefing leads with the decisions made without you and the questions waiting on you
