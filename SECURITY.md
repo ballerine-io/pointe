@@ -342,6 +342,12 @@ no rule above and adds no listener.
   Input Monitoring permission and sees no other key. While a press is open it reads that one key's up or down state.
 - **One entitlement**, the microphone, under the hardened runtime. Not sandboxed: it starts the plugin's
   `voice-daemon ensure` and reads the state folder. It makes no outbound connection and looks for no updates.
+- **The plugin's scripts get none of the app's permissions.** Any process of yours can edit the plugin's folder, and
+  macOS counts a child as the app that started it, microphone permission included. So the app starts every script
+  (`voice-daemon`, `pointe key`, `pointe setup`, `voice-open`) disclaimed (`CommandRunner.swift`): with
+  `posix_spawn` and macOS's `responsibility_spawnattrs_setdisclaim`, a libSystem call that is not in Apple's headers,
+  so macOS judges the script by its own permissions, not the app's. The daemon needs no microphone: call audio reaches it over the socket. An app
+  for the App Store could not use that call; this one is built from source.
 - **Known limits:** code running as you can read the page key the app reads. The browser page still sends the page key
   as its cookie, so a program that holds the port while the daemon is down gets the key from an open page's next
   request.

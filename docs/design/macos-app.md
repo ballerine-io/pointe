@@ -240,7 +240,8 @@ was rejected: it needs Input Monitoring and sees every key.
   GUI app's `PATH` has neither, and `uv` lives there). The script is the plugin's, unchanged: it checks the port,
   syncs the locked environment, runs the preflight and detaches the daemon, which reads its keys from the Keychain
   itself. Its last lines are shown when it fails. The app never starts `daemon.py` itself and never stops a daemon it
-  did not start unless the user presses Restart.
+  did not start unless the user presses Restart. Every script is started disclaimed (`ProcessRunner`), so macOS does
+  not count it as the app and it gets none of the app's microphone permission (SECURITY.md, "The Mac app").
 - **A node.** If `node.json` names a hub, this machine has no call: the app says so, as `bin/voice-open` does.
 - **Versions.** The app's version is the plugin's (`tests/test_version.py` holds them together). Status carries the
   daemon's. When they differ the window and Settings say "Pointe on this Mac is 1.14.8; this app is 1.15.0" and how to

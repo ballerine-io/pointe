@@ -190,6 +190,11 @@ public struct DaemonLocator: Sendable {
         guard result.status == 0 else { throw LocatorError.startFailed(Self.lastLines(result.errors.isEmpty ? result.output : result.errors)) }
     }
 
+    /// The page in the browser, as `bin/voice-open` opens it: the browser then holds its own key.
+    public func openPage(_ plugin: PluginInstall) async throws {
+        _ = try await runner.run(plugin.root.appendingPathComponent("bin/voice-open"), [], environment: scriptEnvironment(), timeout: 30)
+    }
+
     public func stop(_ plugin: PluginInstall) async throws {
         _ = try await runner.run(plugin.daemon, ["stop"], environment: scriptEnvironment(), timeout: 60)
     }

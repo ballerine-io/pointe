@@ -204,6 +204,17 @@ struct Sandbox {
         #expect(runner.ran.last?.1 == ["key", "soniox"])
     }
 
+    /// Every script of the plugin goes through the runner, which starts it disclaimed (CommandRunnerTests).
+    @Test func openingThePageRunsThePluginsOwnScriptThroughTheRunner() async throws {
+        let box = try Sandbox(); defer { box.remove() }
+        let plugin = try #require(PluginInstall(root: try box.plugin("src/pointe", version: "1.15.0")))
+        let runner = FakeRunner()
+        try await box.locator(runner, environment: ["ANTHROPIC_API_KEY": "sk-made-up", "HOME": box.home.path]).openPage(plugin)
+        let (executable, arguments, passed) = try #require(runner.ran.last)
+        #expect(executable.path.hasSuffix("src/pointe/bin/voice-open") && arguments.isEmpty)
+        #expect(passed?["ANTHROPIC_API_KEY"] == nil && passed?["HOME"] == box.home.path)
+    }
+
     @Test func eachVendorsKeychainItemIsTheDaemons() {
         #expect(Vendor.allCases.map(\.service) == ["pointe.gemini-api-key", "pointe.openai-api-key", "pointe.anthropic-api-key", "pointe.soniox-api-key", "pointe.elevenlabs-api-key"])
         #expect(Vendor.allCases.map(\.legacyService) == ["gemini-api-key", "openai-api-key", "anthropic-api-key", "soniox-api-key", "elevenlabs-api-key"])
