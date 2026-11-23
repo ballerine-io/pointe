@@ -1,7 +1,7 @@
 {
  "benchmark": "actions",
- "frozen_at": "2026-11-23T03:16:47+0200",
- "pointe_commit": "6544cdc",
+ "frozen_at": "2026-11-23T12:45:20+0200",
+ "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
  "pointe_commit_note": "origin/main at the build's start; this branch adds only bench/ and tests/ files, and the runner refuses a paid run when anything else differs from this commit",
  "router_prompt_commit": "e382a13",
  "router_prompt_sha256": "1f22763e43f9a82f19b0955b9a2095f86cbfd9792f0cb7f4880e8856280057dd",
@@ -19,5 +19,16 @@
    "why": "in paid run act-20261123-031705 the router chose send for a question while a prompt was pending; the adapter typed it into the open dialog and Enter pressed its default Yes (item act006). A harness wiring fault, not the router's decision. naive already had this rule.",
    "consequence": "run act-20261123-031705 (43 rows) is aborted and not published; every arm is run again from the start in the next run. The Pointe commit, the router prompt, the items and the audio are unchanged."
   }
- ]
+ ],
+ "earlier": [
+  {
+   "pointe_commit": "6544cdc",
+   "frozen_at": "2026-11-23T03:16:47+0200",
+   "runs": [
+    "act-20261123-033255"
+   ],
+   "why": "the published run before the fixes of the benchmark findings; its reference arms still stand"
+  }
+ ],
+ "rerun": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run."
 }
