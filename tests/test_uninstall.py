@@ -86,7 +86,7 @@ def test_link_pointe_leaves_a_pointe_it_did_not_write(tmp_path):
 def test_setup_and_each_start_link_pointe():
     install_uv = (ROOT / "bin" / "install-uv").read_text()
     assert install_uv.count('exec "$(dirname "${BASH_SOURCE[0]}")/link-pointe"') == 2, "both when uv is there and after installing it"
-    assert '"$ROOT/bin/link-pointe" --quiet' in (ROOT / "bin" / "voice-daemon").read_text()
+    assert '"$ROOT/bin/link-pointe" --at-start' in (ROOT / "bin" / "voice-daemon").read_text()
     assert "~/.local/bin/pointe" in (ROOT / "plugin" / "commands" / "setup.md").read_text()
 
 
@@ -162,3 +162,36 @@ def test_uninstall_runs_on_the_python_macos_ships(mac):
     got = subprocess.run(["/usr/bin/python3", "-I", str(ROOT / "uninstall.py"), "--dry-run"], env=mac.env,
                          capture_output=True, text=True, timeout=60)
     assert got.returncode == 0 and "Dry run: nothing removed." in got.stdout, got.stderr
+
+
+def _linked_to(home: Path) -> str:
+    return (home / ".local" / "bin" / "pointe").read_text()
+
+
+def test_a_start_from_a_checkout_leaves_a_working_pointe_command_alone(tmp_path):
+    """A daemon started from a clone or a worktree used to take ~/.local/bin/pointe over; once that checkout was deleted
+    every `pointe`, uninstall included, failed with rc 126."""
+    home = tmp_path / "home"
+    plugin = tmp_path / "home" / ".claude" / "plugins" / "cache" / "pointe" / "pointe" / "1.20.0" / "bin"
+    plugin.mkdir(parents=True)
+    for name in ("link-pointe", "pointe"):
+        (plugin / name).write_text((ROOT / "bin" / name).read_text())
+        (plugin / name).chmod(0o755)
+    env = {"HOME": str(home), "PATH": "/usr/bin:/bin"}
+    subprocess.run([str(plugin / "link-pointe"), "--at-start"], env=env, check=True)
+    assert f"exec {plugin / 'pointe'}" in _linked_to(home)
+    subprocess.run([str(LINK), "--at-start"], env=env, check=True)  # this checkout's daemon starts
+    assert f"exec {plugin / 'pointe'}" in _linked_to(home)
+
+
+def test_a_checkout_repairs_a_pointe_command_whose_copy_is_gone(tmp_path):
+    home = tmp_path / "home"
+    gone = tmp_path / "deleted-worktree" / "bin"
+    gone.mkdir(parents=True)
+    (gone / "link-pointe").write_text(LINK.read_text())
+    (gone / "link-pointe").chmod(0o755)
+    env = {"HOME": str(home), "PATH": "/usr/bin:/bin"}
+    subprocess.run([str(gone / "link-pointe"), "--quiet"], env=env, check=True)
+    subprocess.run(["rm", "-rf", str(gone.parent)], check=True)
+    subprocess.run([str(LINK), "--at-start"], env=env, check=True)
+    assert f"exec {ROOT / 'bin' / 'pointe'}" in _linked_to(home)

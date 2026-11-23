@@ -2,13 +2,24 @@
 # Put `pointe` on the PATH: ~/.local/bin/pointe, a small script (not a symlink, which would dangle once a plugin update
 # deletes this folder) that runs this copy's bin/pointe. bin/install-uv runs it during setup, and bin/voice-daemon at each
 # start, so it follows plugin updates. A ~/.local/bin/pointe that Pointe did not write is left alone; `pointe uninstall`
-# removes Pointe's. Usage: link-pointe [--quiet]
+# removes Pointe's. Usage: link-pointe [--quiet | --at-start]
+# --at-start (bin/voice-daemon): quiet, and a copy that is not the installed plugin (a clone, a worktree, a test's
+# checkout) takes the command only when the one there runs nothing: a start from another checkout once left every
+# `pointe`, uninstall included, failing once that checkout was deleted.
 set -euo pipefail
 BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIR="${POINTE_LINK_DIR:-$HOME/.local/bin}"
 LINK="$DIR/pointe"
 MARK="# Written by Pointe (bin/link-pointe): runs the Pointe plugin's own bin/pointe."
-quiet() { [ "${1:-}" = "--quiet" ]; }
+quiet() { [ "${1:-}" = "--quiet" ] || [ "${1:-}" = "--at-start" ]; }
+
+if [ "${1:-}" = "--at-start" ]; then
+  case "$BIN" in
+    */plugins/cache/*) ;;  # the installed plugin: the command follows its updates
+    *) TARGET="$(sed -n 's/^exec \(.*\) "\$@"$/\1/p' "$LINK" 2>/dev/null)"
+       [ -n "$TARGET" ] && [ -x "$TARGET" ] && exit 0 ;;
+  esac
+fi
 
 if [ -e "$LINK" ] && ! grep -qsF "$MARK" "$LINK"; then
   quiet "${1:-}" || echo "note     $LINK is not Pointe's: left as it is. Pointe's own command is $BIN/pointe"

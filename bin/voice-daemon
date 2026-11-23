@@ -67,7 +67,7 @@ if "$LISTENERS" taken "$PORT"; then
   echo "voice-daemon: port $PORT is taken by another process ($("$LISTENERS" pids "$PORT" | head -1 | xargs ps -o comm= -p 2>/dev/null)). Use another: CLAUDE_VOICE_DAEMON_PORT=7870" >&2; exit 1
 fi
 
-"$ROOT/bin/link-pointe" --quiet || true  # ~/.local/bin/pointe follows this copy after a plugin update
+"$ROOT/bin/link-pointe" --at-start || true  # ~/.local/bin/pointe follows the plugin after an update
 # First run downloads the dependencies; done here so that time does not count against the start below.
 command -v uv >/dev/null 2>&1 || { echo "voice-daemon: uv is missing. Install it: https://docs.astral.sh/uv/" >&2; exit 1; }
 # Local ears and mouth are large and optional: installed only when asked for.
