@@ -202,7 +202,7 @@ def test_a_stop_interrupts_the_running_turn_and_nothing_when_idle(fake, tmp_path
 def test_an_approval_goes_through_the_daemons_flow_and_the_answer_goes_back(fake, tmp_path, monkeypatch, verdict, expected):
     asked = []
 
-    async def hold(session, tool_name, tool_input, gone):
+    async def hold(session, tool_name, tool_input, gone, run_in=None):
         asked.append((tool_name, tool_input["command"]))
         return verdict
 
@@ -224,8 +224,35 @@ def test_an_approval_goes_through_the_daemons_flow_and_the_answer_goes_back(fake
     assert asked == [("Bash", "touch x")] and fake.replies == [(0, {"decision": expected})]
 
 
+def test_an_approval_is_read_from_the_folder_codex_runs_it_in(fake, tmp_path, monkeypatch):
+    """The model picks each command's folder: rm -rf build there is not rm -rf build in the project."""
+    asked = []
+
+    async def hold(session, tool_name, tool_input, gone, run_in=None):
+        asked.append((tool_input["command"], run_in))
+        return "deny"
+
+    monkeypatch.setattr(harnesses.HOST, "hold_permission", hold)
+
+    async def scenario():
+        await fake.start()
+        cx = Codex(Connection(fake.path))
+        task = asyncio.create_task(cx.watch(_session(tmp_path), lambda *a: asyncio.sleep(0))[0])
+        await asyncio.sleep(0.4)
+        await fake.push("item/commandExecution/requestApproval", {
+            "threadId": THREAD, "command": "rm -rf build", "cwd": "/Users/u/other-repo",
+            "availableDecisions": ["accept", "cancel"]}, request_id=4)
+        await asyncio.sleep(0.4)
+        task.cancel()
+        await cx.link.close()
+        await fake.stop()
+
+    asyncio.run(scenario())
+    assert asked == [("rm -rf build", "/Users/u/other-repo")]
+
+
 def test_an_approval_answered_in_the_tui_first_is_let_go(fake, tmp_path, monkeypatch):
-    async def hold(session, tool_name, tool_input, gone):
+    async def hold(session, tool_name, tool_input, gone, run_in=None):
         while not await gone():
             await asyncio.sleep(0.05)
         return "allow"  # what the voice would have said: too late, the TUI answered

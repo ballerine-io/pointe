@@ -141,8 +141,9 @@ def tool_request(method: str, params: dict) -> tuple[str, dict] | None:
     kinds the voice does not answer (permission grants): the TUI asks for those."""
     if method == "item/commandExecution/requestApproval":
         return "Bash", {"command": command_text(str(params.get("command") or "")), "description": str(params.get("reason") or "")}
-    if method == "item/fileChange/requestApproval":
-        return "Edit", {"file_path": str(params.get("grantRoot") or ""), "description": str(params.get("reason") or "Change files")}
+    if method == "item/fileChange/requestApproval":  # names no file: never read out as one, so a tap answers it
+        return "Codex file change", {"grant_root": str(params.get("grantRoot") or ""),
+                                     "description": str(params.get("reason") or "Change files")}
     return None
 
 
@@ -469,7 +470,8 @@ class Codex(Harness):
             return request_id in self._resolved
 
         try:
-            verdict = await HOST.hold_permission(session, tool_name, tool_input, gone)
+            run_in = params.get("cwd") if tool_name == "Bash" and isinstance(params.get("cwd"), str) else None
+            verdict = await HOST.hold_permission(session, tool_name, tool_input, gone, run_in=run_in)  # its own folder
             if verdict is None or request_id in self._resolved:
                 return  # answered in the TUI, or the voice let go
             chosen = decision(verdict, params.get("availableDecisions") or [])

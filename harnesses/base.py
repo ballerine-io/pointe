@@ -9,8 +9,8 @@ if TYPE_CHECKING:
     from sessions import Feed, Session
 
 # Set by the daemon at start, so adapters can use its flows without importing it:
-#   hold_permission(session, tool_name, tool_input, gone, deadline) -> "allow" | "deny" | None (None: the harness's own
-#     prompt answers)
+#   hold_permission(session, tool_name, tool_input, gone, deadline, run_in=folder) -> "allow" | "deny" | None (None: the
+#     harness's own prompt answers; run_in: the folder the request runs in, when the harness reports it)
 #   post_channel(session, path, body) -> bool
 #   state_dir: Path
 #   port: the port the daemon listens on (a session it starts registers there)

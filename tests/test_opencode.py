@@ -166,7 +166,7 @@ def test_a_finished_turn_reaches_the_feed_once_and_history_does_not(fake, tmp_pa
 def test_a_permission_goes_through_the_daemons_flow_and_the_answer_goes_back(fake, tmp_path, monkeypatch, verdict, decision):
     asked = []
 
-    async def hold(session, tool_name, tool_input, gone):
+    async def hold(session, tool_name, tool_input, gone, run_in=None):
         asked.append((tool_name, tool_input["command"]))
         return verdict
 
@@ -189,7 +189,7 @@ def test_a_permission_goes_through_the_daemons_flow_and_the_answer_goes_back(fak
 
 
 def test_an_approval_answered_in_opencode_first_is_let_go(fake, tmp_path, monkeypatch):
-    async def hold(session, tool_name, tool_input, gone):
+    async def hold(session, tool_name, tool_input, gone, run_in=None):
         for _ in range(30):
             if await gone():
                 return None

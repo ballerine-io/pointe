@@ -70,6 +70,7 @@ _GIT_SAID_BY_SUB = {
     "pull": {"--rebase", "--force"}, "fetch": {"--prune", "--force", "--all"},
 }
 _GIT_REMOTE = {"push", "pull", "fetch"}  # their arguments name remotes and refs: said whole, never shortened
+_URL_PATH = 60  # a URL's path longer than this is not read out: it is said whole or not at all
 _SAFE_VARIABLES = {"CI", "NODE_ENV", "DEBUG", "TZ", "LANG", "LC_ALL", "NO_COLOR", "FORCE_COLOR", "TERM"}
 _JOIN = {"|": "into", "&&": "then", ";": "then", "||": "or else"}
 _REDIRECT = {">": "writing to", ">>": "appending to", "<": "reading"}
@@ -285,7 +286,10 @@ def _python_calls(code: str, cwd: str | None) -> list[str] | None:
     return calls or None
 
 
-def spoken(command: str, cwd: str | None) -> str | None:
+def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | None:
+    """The short form of a shell command, or None. `cwd` is the session's folder, `run_in` the folder the command runs
+    in when the harness reports it (a shell that cd'd earlier, a Codex command given its own folder): from another one,
+    the read-out starts with where, and its paths are said from there."""
     if not command.strip() or _hidden(command.replace("\n", "").replace("\t", "")) or "\r" in command:
         return None  # a newline is a line of code below; anywhere else it is refused further down
     emptied = _EMPTY_FILE.match(command)
@@ -324,6 +328,11 @@ def spoken(command: str, cwd: str | None) -> str | None:
     program = sub = redirect = cd_to = None
     then = None
     here = cwd
+    if run_in and (not cwd or os.path.normpath(run_in) != os.path.normpath(cwd)):
+        here = os.path.normpath(run_in)
+        words.append(f"in {place(here, cwd)},")
+    moved = False  # a cd has been read as taken: from here on only "&&" may follow, or what runs may not be where it says
+    unsure = False  # an "||" or "|" came before: a cd after it may not run, or runs in a subshell
     echoed: list[str] = []
     positionals, pattern_given = 0, False  # grep and rg: the first positional is the pattern unless -e gave one
 
@@ -349,9 +358,14 @@ def spoken(command: str, cwd: str | None) -> str | None:
         if token in _JOIN and not was_quoted:
             if redirect or program is None or program == "cd" and cd_to is None:
                 return None
+            if moved and token in (";", "||"):
+                return None  # "cd x && ls ; rm src": rm runs in the project when the cd failed
             if program == "cd":  # what follows runs there: its paths are said from there, in full outside the project
+                if token != "&&" or unsure:
+                    return None  # "cd x ; rm src", "cd x | rm src", "ls || cd x && rm src": rm may run where it started
                 here = os.path.normpath(os.path.join(here or "/", os.path.expanduser(cd_to))) if here else None
-                cd_to = None
+                cd_to, moved = None, True
+            unsure = unsure or token in ("||", "|")
             echoed = []  # echo printing to the screen: not said
             words.append(_JOIN[token])
             program = sub = None
@@ -492,11 +506,15 @@ def spoken(command: str, cwd: str | None) -> str | None:
                 host = url.hostname
             except ValueError:
                 return None
-            if not host or "@" in url.netloc:
-                return None
-            words.append(host + (url.path if len(url.path) <= 30 else ""))
+            if not host or "@" in url.netloc or len(url.path) > _URL_PATH:
+                return None  # the path picks what is fetched, and for a git remote whose repository: never dropped
+            words.append(host + url.path)
         elif program == "git" and sub in _GIT_REMOTE:
             words.append(token)
+        elif program == "uniq" and positionals == 2:
+            words.append(f"writing to {at(token)}")  # uniq in out: out is overwritten
+        elif program == "uniq" and positionals > 2:
+            return None
         else:
             words.append(at(token))
     if redirect or then or program is None:

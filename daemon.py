@@ -7284,25 +7284,28 @@ async def permission_hook(request: Request, authorization: str | None = Header(N
     if session is None or session.channel_url or (state.conn is None and not _night_parks(session)):
         return {}
     # Claude Code's hook is its adapter's approval path: the same rules as any harness's (_harness_permission)
-    verdict = await _harness_permission(session, str(p.get("tool_name")), p.get("tool_input") or {}, request.is_disconnected)
+    run_in = p.get("cwd") if isinstance(p.get("cwd"), str) else None  # the shell's folder now: a cd earlier persists
+    verdict = await _harness_permission(session, str(p.get("tool_name")), p.get("tool_input") or {}, request.is_disconnected,
+                                        run_in=run_in)
     if verdict is None:
         return {}
     decision = {"behavior": verdict, **({"message": "The user denied this."} if verdict == "deny" else {})}
     return {"hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": decision}}
 
 
-async def _harness_permission(session: Session, tool_name: str, tool_input: dict, gone=None) -> str | None:
+async def _harness_permission(session: Session, tool_name: str, tool_input: dict, gone=None,
+                              run_in: str | None = None) -> str | None:
     """A harness adapter's permission request (OpenCode's permission.asked): the same rules as Claude Code's hook."""
     if session.id not in REGISTRY.sessions or (state.conn is None and not _night_parks(session)):
         return None
     if vendors.config().get("approvals") == "terminal":
         await say(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in one line.")
         return None
-    return await hold_permission(session, tool_name, tool_input, gone)
+    return await hold_permission(session, tool_name, tool_input, gone, run_in=run_in)
 
 
 async def hold_permission(session: Session, tool_name: str, tool_input: dict, gone=None,
-                          deadline_secs: float | None = None) -> str | None:
+                          deadline_secs: float | None = None, run_in: str | None = None) -> str | None:
     """Put a harness's permission request to the user and wait for their answer: "allow", "deny", or None, when it
     goes back to the harness's own prompt (no answer in time, or `gone()` says it was answered there)."""
     preview = json.dumps(tool_input, ensure_ascii=False)
@@ -7320,7 +7323,7 @@ async def hold_permission(session: Session, tool_name: str, tool_input: dict, go
         logger.info(f"permission {session.name}: waited its turn past the deadline, back to the agent's own prompt")
         return None
     try:
-        return await _hold_one(session, tool_name, tool_input, preview, gone, deadline)
+        return await _hold_one(session, tool_name, tool_input, preview, gone, deadline, run_in)
     finally:
         lock.release()
 
@@ -7328,13 +7331,14 @@ async def hold_permission(session: Session, tool_name: str, tool_input: dict, go
 _PERMISSION_LOCKS: dict[str, asyncio.Lock] = {}
 
 
-async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview: str, gone, deadline: float) -> str | None:
+async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview: str, gone, deadline: float,
+                    run_in: str | None = None) -> str | None:
     if gone is not None and await gone():  # answered at the agent while it waited its turn
         return None
     answer = asyncio.get_running_loop().create_future()
     session.permission_answer = answer
     request_id = secrets.token_hex(4)
-    await _put_permission(session, request_id, tool_name, str(tool_input.get("description") or ""), preview)
+    await _put_permission(session, request_id, tool_name, str(tool_input.get("description") or ""), preview, run_in=run_in)
     try:
         while time.time() < deadline and not answer.done():
             await asyncio.wait([answer], timeout=1.0)
@@ -7367,7 +7371,8 @@ async def on_permission(request: Request, authorization: str | None = Header(Non
 
 
 async def _put_permission(session: Session, request_id: str, tool_name: str, description: str, preview: str,
-                          node_readable: str | None = None) -> dict:
+                          node_readable: str | None = None, run_in: str | None = None) -> dict:
+    """`run_in`: the folder the request runs in, when the harness reports it and it is not the session's own."""
     try:
         tool_input = json.loads(preview)
     except ValueError:  # an older Claude Code cuts the preview, so what runs is not all here
@@ -7375,7 +7380,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     if session.machine:  # the node's read-out, from the unmasked input: the preview here is masked
         readable = node_readable
     else:
-        readable = readable_request(tool_name, tool_input, session.cwd) if isinstance(tool_input, dict) else None
+        readable = readable_request(tool_name, tool_input, session.cwd, run_in) if isinstance(tool_input, dict) else None
     session.permission_spoken = (readable or "") if FRONT == "brain" else ""  # a realtime model words it itself: no line to bind
     session.permission_id = request_id
     session.permission_read_at = 0.0
@@ -7391,11 +7396,12 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     session.permission_truncated = not isinstance(tool_input, dict)
     runs = (readout.visible(preview) if session.permission_truncated else
             json.dumps(readout.visible({k: v for k, v in tool_input.items() if k != "description"}), ensure_ascii=False))
-    session.permission_full = f"{readout.visible(tool_name)}\n{runs}"
+    elsewhere = run_in and os.path.normpath(run_in) != os.path.normpath(session.cwd or "")
+    session.permission_full = f"{readout.visible(tool_name)}{f' in {readout.visible(run_in)}' if elsewhere else ''}\n{runs}"
     note = " ".join(str(description or "").split())
     session.permission_note = readout.visible(note if len(note) <= REQUEST_NOTE_CHARS else note[:REQUEST_NOTE_CHARS] + "…")
     alerts.note_request(session.id, request_id, tool_name, readable)
-    state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine))
+    state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine), run_in=run_in)
     REGISTRY.save()
     _night_blocked_now(session)
     if state.conn is None:  # only a night shift's request is held with no call: nobody to read it to until morning

@@ -79,7 +79,7 @@ def test_the_road_refuses_output_files_and_flags_it_does_not_know(command):
 
 def test_the_road_checks_flags_on_its_own_and_not_only_through_the_read_out(monkeypatch):
     """road_safe is an allowlist of its own: should the read-out ever accept a flag, the road still refuses it."""
-    monkeypatch.setattr(readout, "spoken", lambda command, cwd: "anything")
+    monkeypatch.setattr(readout, "spoken", lambda command, cwd, run_in=None: "anything")
     for command in ("git fetch --upload-pack=x .", "git -c core.pager=x log", "curl --json x https://e.example",
                     "rg --pre sh TODO", "go test -exec sh ./...", "uniq a.txt b.txt", "python -m pytest --basetemp=/"):
         assert not drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command

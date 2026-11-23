@@ -537,6 +537,7 @@
   .clash .claim b { color: var(--accent); font-weight: 600; }
   .clash .claim .when { color: var(--muted); font-size: 12px; margin-left: 6px; }
   .clash .answer button:disabled { opacity: .45; cursor: default; }
+  .ask .answer button:disabled { opacity: .45; cursor: default; }
 
   /* the live caption: your words as you speak */
   #caption { margin: 6px var(--gutter) 0; padding: 14px 18px; border-radius: 16px; background: var(--card); border: 1px solid var(--line);
@@ -1870,6 +1871,7 @@
     const first = waiting[0];
     const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) + !!(s.drive && s.drive.on)
                         + (first.online === false) + machineView(s).mixed : '';
+    if (armed.id === undefined) armed = {id: first ? first.request_id : null, until: 0};
     if (key !== attentionShown) {
       attentionShown = key;
       $('attention').replaceChildren(...(first ? [approvalCard(first, s, waiting.length - 1)] : []));
@@ -2003,6 +2005,11 @@
   $('list').addEventListener('scroll', listEdges, {passive: true});
   addEventListener('resize', listEdges);
   let attentionShown = '', chipsShown = '', recentShown = '', agentBadges = false, agentOf = x => x.harness;
+  // A card for a request not on screen before ignores Approve for ARM_MS: the second click of a double-click on the last
+  // card, or a click as a new card lands under the pointer, must not approve a request nobody read. The first card the
+  // page draws is not armed: no click on this page can be under way yet.
+  const ARM_MS = 700;
+  let armed = {id: undefined, until: 0};
   // Which coding agent runs a session. The vendors' own logos are not used: their terms do not allow a third party to
   // show them recoloured without permission (docs/design/brand-v6.md), so the mark is a neutral letter tile. The agent's
   // name is its label and its tooltip, not text in the row: the session's name gets the width. assets/theme.json holds
@@ -2515,6 +2522,14 @@
       if (decision === 'allow' && x.request_truncated) continue;  // cut short: approved only in its terminal
       const button = el('button', decision, label);
       button.onclick = e => { e.stopPropagation(); answer(x, decision, button); };
+      if (decision === 'allow') {
+        if (armed.id !== x.request_id) armed = {id: x.request_id, until: Date.now() + ARM_MS};
+        const wait = armed.until - Date.now();
+        if (wait > 0) {
+          button.disabled = true;
+          setTimeout(() => { if (button.isConnected && !row.dataset.answering) button.disabled = false; }, wait);
+        }
+      }
       row.append(button);
     }
     b.append(row);
@@ -2998,12 +3013,14 @@
   async function answer(x, decision, button) {
     const card = button.closest('.ask'), buttons = card ? [...card.querySelectorAll('.answer button')] : [button];
     for (const b of buttons) b.disabled = true;
+    if (button.parentNode) button.parentNode.dataset.answering = '1';  // an arming timer must not give a button back
     let why = null;
     try {
       const r = await fetch('/voice/approve', {method: 'POST', headers: {'content-type': 'application/json'},
                                                body: JSON.stringify({session: x.name, request_id: x.request_id, decision})});
       if (!r.ok) why = 'Not answered: ' + ((await r.json().catch(() => ({}))).detail || `the Mac said ${r.status}`) + '.';
     } catch (e) { why = 'Not sent: the Mac did not answer. Check the connection, then tap again.'; }
+    if (button.parentNode) delete button.parentNode.dataset.answering;
     if (why) {
       answerProblems.set(x.request_id, why);
       for (const b of buttons) b.disabled = false;

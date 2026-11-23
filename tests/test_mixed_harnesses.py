@@ -216,7 +216,7 @@ def test_two_approval_requests_at_once_are_asked_in_turn_and_none_is_dropped(d, 
     shop = d.REGISTRY.sessions["ses_shop"]
     put = []
 
-    async def fake_put(session, request_id, tool_name, description, preview):
+    async def fake_put(session, request_id, tool_name, description, preview, run_in=None):
         put.append(preview)
         session.permission_id = request_id
         return {}
