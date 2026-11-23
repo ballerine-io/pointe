@@ -1,0 +1,11 @@
+{
+ "reasons": {
+  "read-then-decide-2-keyboard-transcript-1": "request skipped",
+  "two-repo-handoff-0-llm-router-0": "prompt without hook"
+ },
+ "rule": "core.runner.harness_fault",
+ "slots": [
+  "read-then-decide-2-keyboard-transcript-1",
+  "two-repo-handoff-0-llm-router-0"
+ ]
+}

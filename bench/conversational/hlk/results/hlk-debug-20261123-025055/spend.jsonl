@@ -1,0 +1,14 @@
+{"adapter": "null", "how": "computed", "item": "impossible-as-stated-2", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "marlin", "usd": 0, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "deny-the-decoy-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "thistle", "usd": 0.00262, "vendor": "anthropic"}
+{"adapter": "null", "how": "computed", "item": "deny-the-decoy-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "thistle", "usd": 0, "vendor": "anthropic"}
+{"adapter": "null", "how": "computed", "item": "noisy-paths-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "ferry", "usd": 0, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "noisy-paths-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "ferry", "usd": 0.00434, "vendor": "anthropic"}
+{"adapter": "null", "how": "computed", "item": "read-then-decide-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "kiln", "usd": 0, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "read-then-decide-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "kiln", "usd": 0.00399, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "impossible-as-stated-2", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "marlin", "usd": 0.00139, "vendor": "anthropic"}
+{"adapter": "null", "how": "computed", "item": "mid-task-redirect-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "thistle", "usd": 0, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "mid-task-redirect-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "thistle", "usd": 0.00394, "vendor": "anthropic"}
+{"adapter": "null", "how": "computed", "item": "two-repo-handoff-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "quarry", "usd": 0, "vendor": "anthropic"}
+{"adapter": "null", "how": "computed", "item": "two-repo-handoff-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "thistle", "usd": 0, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "two-repo-handoff-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "quarry", "usd": 0.00272, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "two-repo-handoff-0", "role": "agent", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "session": "thistle", "usd": 0.00229, "vendor": "anthropic"}
