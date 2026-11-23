@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import daemon  # noqa: E402  (at import: it reads the state dir conftest set, never a test's own)
 import doctor  # noqa: E402
+import setups  # noqa: E402
 import vendors  # noqa: E402
 
 ENVS = {vendor: env for vendor, (env, _) in vendors.KEYS.items()}
@@ -140,6 +141,22 @@ def test_voice_on_the_mac_needs_only_a_text_key():
     assert not s["empty"] and s["roles"]["ears"] == vendors.LOCAL
 
 
+def test_with_the_voice_on_the_mac_an_audio_key_is_not_read_never_optional():
+    """Voice stays on your Mac never reads a Soniox or ElevenLabs key (the doctor says "not read"): the page must not
+    offer to add one."""
+    setup = next(x for x in setups.SETUPS if x.id == "voice-local")
+    for present in ({"anthropic"}, {"anthropic", "gemini"}, {"anthropic", "soniox"}):
+        keys = vendors.key_status(present, voice_on_mac=True, setup=setup)["keys"]
+        assert keys["soniox"] == keys["elevenlabs"] == "not read", keys
+    assert vendors.key_status({"anthropic"})["keys"]["soniox"] != "not read"
+
+
+def test_the_page_offers_no_add_for_a_key_that_is_not_read():
+    assert _page("notRead") == "Not read: the voice stays on this Mac"
+    assert "'not read': 'notRead'" in PAGE
+    assert "st !== 'not read'" in PAGE[PAGE.index("function showKeys()"):][:1600]
+
+
 # ---------- the doctor ----------
 
 def _doctor(capsys, monkeypatch, *argv):
@@ -193,6 +210,15 @@ def test_the_daemons_key_status_marks_unneeded_keys_optional(keys, monkeypatch):
     assert got["uses"]["anthropic"] == ["brain", "reader", "checker"] and got["uses"]["soniox"] == ["ears", "mouth"]
     assert "not needed with your current keys" in got["line"]
     assert not any("synthetic" in json.dumps(v) for v in got.values()), "presence only, never a value"
+
+
+def test_the_daemons_key_status_with_the_voice_on_the_mac_says_not_read(keys, monkeypatch):
+    keys("anthropic", "soniox")
+    monkeypatch.setenv("CLAUDE_VOICE_VOICE_LOCAL", "1")
+    monkeypatch.setattr(daemon, "_setup", None)
+    monkeypatch.setattr(daemon, "_keys_cache", None)
+    got = daemon._keys_status()["keys"]
+    assert got["soniox"] == got["elevenlabs"] == "not read" and got["anthropic"] == "in use", got
 
 
 @pytest.mark.skipif(not os.path.exists(__import__("page_rig").CHROME), reason="headless Chrome is not installed here")

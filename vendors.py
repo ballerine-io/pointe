@@ -306,7 +306,8 @@ def key_status(present: set[str], voice_on_mac: bool = False, setup: "setups.Set
     else:
         needed = []
     uses = {v: [r for r, x in roles.items() if x == v] for v in KEYS}
-    keys = {v: ("in use" if uses[v] else "not used") if v in present else "needed" if v in needed else "optional" for v in KEYS}
+    keys = {v: "not read" if voice_on_mac and v in AUDIO_ONLY else ("in use" if uses[v] else "not used") if v in present
+            else "needed" if v in needed else "optional" for v in KEYS}  # "not read": nothing to add, the doctor's words
     head = f"Setup: {setup.name}. " if setup is not None else ""
     if setup is not None and needed:
         line = head + f"It needs {_words([_a(NAMES[v]) for v in needed], 'and')} key: pointe key {needed[0]}."

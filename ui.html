@@ -3837,8 +3837,8 @@
     setups: 'Setups', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
     add: 'Add…', replace: 'Replace…', use: 'Use this setup',
     keyWindow: 'A window opened on this Mac: paste the key there.', switching: 'Switching. Pointe restarts in a moment.',
-    inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional'};
-  const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional'};
+    inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional', notRead: 'Not read: the voice stays on this Mac'};
+  const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional', 'not read': 'notRead'};
   text('pref-keys-title', KEYS_COPY.title); text('pref-keys-need', KEYS_COPY.need); text('pref-keys-sub', KEYS_COPY.why);
   text('pref-keys-how', remotePage ? KEYS_COPY.howRemote : KEYS_COPY.how); text('pref-setups-h', KEYS_COPY.setups);
   function showKeys() {
@@ -3849,7 +3849,7 @@
       const row = el('div', 'r');
       row.append(el('span', '', VENDOR[vendor] || vendor),
                  el('span', 'kstate ' + (KEY_STATE[st] || ''), (KEYS_COPY[KEY_STATE[st]] || st) + (uses.length ? ': ' + uses.join(', ') : '')));
-      if (!remotePage) {  // the window opens on the Mac: a phone's page keeps the words only
+      if (!remotePage && st !== 'not read') {  // the window opens on the Mac: a phone's page keeps the words only
         const b = el('button', 'pill', st === 'needed' || st === 'optional' ? KEYS_COPY.add : KEYS_COPY.replace);
         b.onclick = () => keysPost('/voice/key', {vendor}, KEYS_COPY.keyWindow);
         row.append(b);

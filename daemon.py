@@ -2716,7 +2716,8 @@ def _keys_status() -> dict:
         running = {"brain": s.brain, "reader": s.reader, "checker": s.checker, "ears": s.ears, "mouth": s.mouth}
         uses = {v: [role for role, choice in running.items() if choice and choice.split(":")[0] == v] for v in vendors.KEYS}
         _keys_cache = {"line": found["line"], "uses": uses, "setup": chosen.id if chosen else None, "setups": rows,
-                       "keys": {v: ("in use" if uses[v] else "not used") if v in present else found["keys"][v] for v in vendors.KEYS}}
+                       "keys": {v: found["keys"][v] if v not in present or found["keys"][v] == "not read"
+                                else "in use" if uses[v] else "not used" for v in vendors.KEYS}}
     return _keys_cache
 
 
