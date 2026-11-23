@@ -1,8 +1,8 @@
-# Pointe Conversational Coding Benchmarks
+# Barge-in: its harness
 
 One runner (`run.py`), one adapter interface (`core/adapter.py`), one synthetic speech corpus builder
-(`core/corpus.py`, Kokoro-82M) and one results format, per the design (revision 2). This branch holds the shared core
-and the `bargein` benchmark: see [bargein/README.md](bargein/README.md) and [bargein/RESULTS.md](bargein/RESULTS.md).
+(`core/corpus.py`, Kokoro-82M) and one results format, per the design (revision 2). This folder holds one benchmark of the
+suite (`../README.md`), `bargein`, with the harness it was run with: see [bargein/README.md](bargein/README.md) and [bargein/RESULTS.md](bargein/RESULTS.md).
 
 ## Add an adapter
 

@@ -1,10 +1,10 @@
-# Pointe Conversational Coding Benchmarks
+# Session Routing: its harness
 
 A reproducible self-evaluation harness with an adapter interface: one system under test (Pointe) and reference arms
 the same team wrote, on synthetic speech. Not a leaderboard.
 
-This branch carries the shared core and one benchmark, **Session Routing** (`routing/`, see its README). The other
-benchmarks of the suite are built on their own branches against the same layout.
+This folder holds one benchmark of the suite (`../README.md`), **Session Routing** (`routing/`, see its README), with
+the harness it was run with. Its Python package is `conversational.routing`.
 
 ```
 run.py                 the one command: routing | corpus | verify | freeze | report

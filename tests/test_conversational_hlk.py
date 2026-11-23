@@ -157,9 +157,10 @@ def test_generated_pages_match_the_rows():
     if not (BENCH / "FROZEN.json").exists():
         pytest.skip("no frozen run yet")
     from core import report
-    text, page = report.build()
+    text, page, data = report.build_all()
     assert report.DOC.read_text() == text, "run: uv run --locked python bench/conversational/hlk/run.py report"
     assert report.PAGE.read_text() == page
+    assert report.SUMMARY.read_text() == data
     for body in (text, page):
         assert "Humanity's Last Keystroke" in body and report.SUBTITLE in body
         assert "36 instances in 12 families" in body

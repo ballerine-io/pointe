@@ -1,9 +1,9 @@
-# Pointe Conversational Coding Benchmarks
+# Spoken Identifiers: its harness
 
 A reproducible self-evaluation harness with an adapter interface: one system under test (Pointe) and reference arms
 written by the same team, on synthetic speech. Not a leaderboard. Design: revision 2 of the suite design (sections 3
-to 5). This build carries the shared core and the first benchmark, `identifiers` (Spoken Identifiers); the others
-(`hlk`, `actions`, `routing`, `bargein`) plug into the same `core/` and `adapters/`.
+to 5). This folder holds one benchmark of the suite (`../README.md`), `identifiers` (Spoken Identifiers), with the
+`core/` and `adapters/` it was run with. Each benchmark of the suite keeps its own copy.
 
 ## Run it
 

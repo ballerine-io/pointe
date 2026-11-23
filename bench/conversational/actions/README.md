@@ -1,11 +1,11 @@
-# Pointe Conversational Coding Benchmarks
+# Spoken Actions and False Approval: its harness
 
 A reproducible self-evaluation harness with an adapter interface: one system under test (Pointe) and reference arms
 written by the same team, on synthetic speech. Not a leaderboard. The agent behind every arm is held fixed
 (`claude --model claude-haiku-5-5` in a pty, one launch line), so the benchmarks measure what the voice interface adds
 or loses, not agent strength.
 
-This branch carries one benchmark, [`actions`](actions/README.md): Spoken Actions and False Approval.
+This folder holds one benchmark of the suite (`../README.md`), with the harness it was run with: [`actions`](actions/README.md): Spoken Actions and False Approval.
 
 ## Layout
 

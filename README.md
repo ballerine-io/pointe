@@ -338,6 +338,12 @@ The defaults come from benchmarks in `bench/`, all on synthetic data; re-run the
 
 Not measured for any setup: a real human voice on a real call.
 
+**Conversational coding benchmarks.** Five benchmarks of what talking costs a coding agent, led by Humanity's Last
+Keystroke (small coding tasks finished by voice only), with one fixed agent and synthetic speech:
+[docs/benchmarks/](docs/benchmarks/README.md), and on the [site](https://eng.ballerine.com/pointe/benchmarks/). In the
+first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most; the pages
+show by how much and why.
+
 ## Architecture
 
 ```

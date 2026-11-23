@@ -155,6 +155,43 @@ def analyse(rows: list) -> dict:
             "per_arm": per_arm, "meta": meta}
 
 
+def refusals(rows: list) -> tuple[list, int, int, int]:
+    """Pointe's failed runs; how many of them had a spoken yes that did not take; of those, how many had changed files;
+    and how many passed runs had one."""
+    prow = [r for r in rows if r["adapter"] == "pointe" and r.get("outcome") not in ("invalid_out_of_tree", "unsupported")]
+    pf = [r for r in prow if not r["success"]]
+    pf_no_rows = [r for r in pf if r.get("approvals_no_after_refused_yes")]
+    pp_no = sum(1 for r in prow if r["success"] and r.get("approvals_no_after_refused_yes"))
+    touched = finals()
+    pf_edit = sum(1 for r in pf_no_rows if touched.get((r["run_id"], r["item"], r["adapter"], r["run_index"])))
+    return pf, len(pf_no_rows), pf_edit, pp_no
+
+
+def summary(rows, unpub, frozen) -> dict:
+    """The headline numbers as data, for the suite pages (bench/conversational/publish.py): results/summary.json."""
+    a = analyse(rows)
+    ua = defaultdict(lambda: [0, 0])
+    for r in unpub:
+        if r.get("outcome") not in ("invalid_out_of_tree", "unsupported"):
+            ua[r["adapter"]][0] += bool(r["success"])
+            ua[r["adapter"]][1] += 1
+    pf, pf_no, pf_edit, _ = refusals(rows)
+    m = a["meta"]
+    return {"benchmark": "hlk", "title": "Humanity's Last Keystroke (HLK)", "subtitle": SUBTITLE, "unit": "family",
+            "runs": m["runs"], "dates": m["dates"], "agent_model": m["models"], "claude_code": m["claude"],
+            "permission_mode": "acceptEdits", "pointe_commit": frozen["pointe_commit"][:12], "router_brain": m["brain"],
+            "families": list(FAMILIES), "arms": a["arms"],
+            "passes": {x: list(a["totals"][x]) for x in a["arms"]},
+            "per_family": {x: {f: list(a["cells"][(x, f)]) for f in FAMILIES} for x in a["arms"]},
+            "gaps": {"keyboard-canonical minus pointe": list(a["gaps"]["pointe"]["canonical"]),
+                     "keyboard-canonical minus llm-router": list(a["gaps"]["llm-router"]["canonical"]),
+                     "pointe minus llm-router": list(a["head"])},
+            "flips": {x: list(a["per_arm"][x]["flips"]) for x in a["arms"]},
+            "unpublished": {x: ua[x] for x in ARMS if x in ua},
+            "pointe_failed": len(pf), "pointe_failed_refused_yes": pf_no, "pointe_failed_refused_yes_files_changed": pf_edit,
+            "spend_usd": round(ledger.spent("hlk"), 2), "cap_usd": 55}
+
+
 def fmt_gap(g):
     if g is None:
         return "not run"
@@ -275,13 +312,7 @@ def sections(rows, unpub, frozen) -> list:
                    "the item's folder in a tool call and are excluded from the passes. Errors are runs the harness could "
                    "not finish; they count as failures."))
     if "pointe" in arms:
-        prow = [r for r in rows if r["adapter"] == "pointe" and r.get("outcome") not in ("invalid_out_of_tree", "unsupported")]
-        pf = [r for r in prow if not r["success"]]
-        pf_no = sum(1 for r in pf if r.get("approvals_no_after_refused_yes"))
-        pp_no = sum(1 for r in prow if r["success"] and r.get("approvals_no_after_refused_yes"))
-        touched = finals()
-        pf_no_rows = [r for r in pf if r.get("approvals_no_after_refused_yes")]
-        pf_edit = sum(1 for r in pf_no_rows if touched.get((r["run_id"], r["item"], r["adapter"], r["run_index"])))
+        pf, pf_no, pf_edit, pp_no = refusals(rows)
         B.append(("p", f"Where Pointe lost runs: in {pf_no} of its {len(pf)} failed runs at least one spoken yes did not "
                        "take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. "
                        f"In {pf_no - pf_edit} of those {pf_no} the agent changed no file, so the work stopped at the "
@@ -431,9 +462,10 @@ TEMPLATE = """<!doctype html>
 <header class="pg-wrap pg-header">
   <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Benchmarks</a>
     <a href="../../roadmap/">Roadmap</a>
     <a href="../../contribute/">Contribute</a>
-    <a href="../" aria-current="page">Benchmarks</a>
     <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
   </nav>
 </header>
@@ -446,22 +478,31 @@ TEMPLATE = """<!doctype html>
 """
 
 
+SUMMARY = HERE / "results" / "summary.json"
+
+
 def build() -> tuple[str, str]:
+    return build_all()[:2]
+
+
+def build_all() -> tuple[str, str, str]:
     rows, unpub, frozen = load()
     blocks = sections(rows, unpub, frozen)
+    data = json.dumps(summary(rows, unpub, frozen), indent=1) + "\n"
     version = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text())["version"]
     text = markdown(blocks)
     html_page = page(blocks).replace("<span data-version>VERSION</span>", f"<span data-version>{version}</span>")
     for name, body in (("doc", text), ("page", html_page)):
         if re.search(r"\bleaderboard\b|\breal\b", body, re.I):
             raise ReportRefused(f"the {name} uses a word the page must not use")
-    return text, html_page
+    return text, html_page, data
 
 
 def main(args=None) -> int:
-    text, html_page = build()
+    text, html_page, data = build_all()
+    SUMMARY.write_text(data)
     DOC.write_text(text)
     PAGE.parent.mkdir(parents=True, exist_ok=True)
     PAGE.write_text(html_page)
-    print(f"wrote {DOC.relative_to(ROOT)} and {PAGE.relative_to(ROOT)}")
+    print(f"wrote {DOC.relative_to(ROOT)}, {PAGE.relative_to(ROOT)} and {SUMMARY.relative_to(ROOT)}")
     return 0

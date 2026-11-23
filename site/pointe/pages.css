@@ -89,8 +89,8 @@
 }
 @media (max-width: 640px) {
   .pg-wrap { padding: 0 18px; }
-  .pg-header { height: 60px; }
-  .pg-header nav { gap: 16px; }
+  .pg-header { height: auto; min-height: 60px; flex-wrap: wrap; row-gap: 4px; padding-top: 12px; padding-bottom: 10px; }
+  .pg-header nav { flex-wrap: wrap; gap: 6px 16px; }
   .pg-hero { padding: 40px 0 28px; }
   .pg-map th { white-space: normal; }
 }

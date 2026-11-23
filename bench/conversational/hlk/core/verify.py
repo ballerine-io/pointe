@@ -127,7 +127,9 @@ def main(args) -> int:
             problems.append("the question detector is under 95%: fix the rule list before any paid run")
     try:
         from core import report
-        text, page = report.build()
+        text, page, data = report.build_all()
+        if report.SUMMARY.exists() and report.SUMMARY.read_text() != data:
+            problems.append("results/summary.json does not match the rows: run.py report")
         if report.DOC.exists() and report.DOC.read_text() != text:
             problems.append("docs/benchmarks/hlk.md does not match the rows: run.py report")
         if report.PAGE.exists() and report.PAGE.read_text() != page:

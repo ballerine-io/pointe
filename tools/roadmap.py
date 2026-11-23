@@ -170,6 +170,8 @@ TEMPLATE = """<!doctype html>
 <header class="pg-wrap pg-header">
   <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
+    <a href="../features/">Features</a>
+    <a href="../benchmarks/">Benchmarks</a>
     <a href="./" aria-current="page">Roadmap</a>
     <a href="../contribute/">Contribute</a>
     <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>

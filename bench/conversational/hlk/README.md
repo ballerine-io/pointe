@@ -1,10 +1,10 @@
-# Pointe Conversational Coding Benchmarks
+# Humanity's Last Keystroke: its harness
 
 A reproducible self-evaluation harness with an adapter interface: audio in, coding-agent actions on a repository,
 speech out. The coding agent is held fixed, so a score is the loss the voice interface adds. One system under test
 (Pointe) and reference arms written by the same team, on synthetic speech. Not a ranking of products.
 
-This branch builds the shared harness and its flagship, **Humanity's Last Keystroke (HLK)**: a pilot voice-only coding
+This folder holds the flagship of the suite (`../README.md`), **Humanity's Last Keystroke (HLK)**, with the harness it was run with: a pilot voice-only coding
 benchmark, v0.1, synthetic speech, n = 36 in 12 families. See `hlk/README.md` and the results page,
 `docs/benchmarks/hlk.md`.
 
