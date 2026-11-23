@@ -87,6 +87,21 @@ def test_a_send_that_went_through_is_never_followed_by_say_that_again(monkeypatc
     assert sent and spoken == [brain_mod.SENT_SLOW_LINE]
 
 
+def test_a_send_that_went_and_one_refused_say_both_when_the_model_is_slow(monkeypatch):
+    """QA round 2: "Switch to lighthouse", then a task for lighthouse and one for harbor: lighthouse's went, harbor's was
+    refused (session mode), and the voice said only "The model took too long to answer. Say that again?"."""
+    calls = [{"id": "a", "name": "send_to_claude_code", "args": {"session": "lighthouse", "message": "touch both-a.txt"}},
+             {"id": "b", "name": "send_to_claude_code", "args": {"session": "harbor", "message": "touch both-b.txt"}}]
+    _steps(monkeypatch, vendors.Step(calls))
+    results = iter([{"sent_to": ["lighthouse/main"]}, {"error": "Not sent: session mode is pinned to lighthouse/main."}])
+
+    async def send():
+        return next(results)
+    b, spoken = _brain([], tools=[Tool("send_to_claude_code", send)])
+    asyncio.run(b.turn("Tell lighthouse to run touch both-a.txt, and tell harbor to run touch both-b.txt."))
+    assert spoken == ["Sent to lighthouse. The part for harbor was not sent, and the model was too slow to say why."]
+
+
 def test_a_rename_that_went_through_says_done(monkeypatch):
     async def rename():
         return {"renamed": "payments"}

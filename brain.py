@@ -51,6 +51,15 @@ SLOW_LINE = "The model took too long to answer. Say that again?"
 LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
 # After a step that already acted: "say that again" would invite the user to send it twice (sends have no dedupe).
 SENT_SLOW_LINE = "Sent. The model was too slow to say more."
+
+
+def _partly_sent_line(sent_to: list[str], refused_for: list[str]) -> str:
+    """A send that went and one that was refused, then a model too slow to say so: both, so the user neither repeats the
+    sent part nor thinks the refused one went (QA round 2: "Say that again?", and the refusal was never said)."""
+    went = f"Sent to {' and '.join(n.split('/')[0] for n in sent_to)}." if sent_to else "Part of it was sent."
+    names = [n.split("/")[0] for n in refused_for if n]
+    held = f"The part for {' and '.join(names)} was not sent" if names else "The rest was not sent"
+    return f"{went} {held}, and the model was too slow to say why."
 DONE_SLOW_LINE = "Done. The model was too slow to say more."
 # Tools that only read: one of them having run does not make the turn's work done.
 READ_ONLY_TOOLS = {"list_sessions", "ask_about_session", "how_to_use_pointe", "briefing"}
@@ -531,6 +540,7 @@ class Brain:
         thinking."""
         decls = [SPEAK] if speech_only else self._decls()
         sent, retries, filled, refused, shortened = False, 0, not user, False, False
+        sent_to, refused_for = [], []  # the sessions this turn's sends reached, and those a refused send named
         acted = False  # a tool that changes something ran without an error this turn
         self._trigger = trigger or ""
         own_words = trigger is not None and not trigger.lstrip().startswith("[")  # not a report, a click or a mode's line
@@ -582,7 +592,9 @@ class Brain:
                     self._unsaid = trigger
                     return
                 # A step past the timeout is the model being slow, not a lost connection: the words must not say otherwise
-                if sent or acted:
+                if sent and refused:
+                    await self.speak(_partly_sent_line(sent_to, refused_for))
+                elif sent or acted:
                     await self.speak(SENT_SLOW_LINE if sent else DONE_SLOW_LINE)
                 else:
                     await self.speak(SLOW_LINE if isinstance(e, TimeoutError) else LOST_LINE)
@@ -619,6 +631,12 @@ class Brain:
                 sent = sent or (call["name"] == "send_to_claude_code" and "sent_to" in (result or {}))
                 acted = acted or (call["name"] not in READ_ONLY_TOOLS and not (isinstance(result, dict) and "error" in result))
                 refused = refused or (call["name"] == "send_to_claude_code" and "error" in (result or {}))
+                if call["name"] == "send_to_claude_code" and isinstance(result, dict):
+                    if "sent_to" in result:
+                        reached = result["sent_to"]
+                        sent_to += [n for n in ([reached] if isinstance(reached, str) else reached) if n not in sent_to]
+                    elif "error" in result:
+                        refused_for.append(str((call.get("args") or {}).get("session") or ""))
             speaks = [c for c in calls if c["name"] == "speak"]
             for call in speaks[:-1]:  # a draft and its rewrite in one step: one reply per turn, the last
                 logger.info(f"speak dropped, a later one in the same step replaces it: {call['args'].get('text', '')!r}")
