@@ -146,11 +146,22 @@ def estimate(run: dict) -> float:
     return EST_REPEAT[run["part"]] if run["k"] else EST[(run["part"], run["arm"])]
 
 
-def trim(runs: list[dict], left: float) -> tuple[list[dict], list[str]]:
-    """The written trim order when the cap is short: repeats first, then Part B naive."""
+def measured() -> dict[str, float]:
+    """Twice the mean computed cost of an arm's runs so far in the ledger (smoke and debug included), per arm."""
+    by: dict[str, list[float]] = {}
+    for r in ledger.rows():
+        if r.get("benchmark") == BENCH and r.get("item") != "preflight":
+            by.setdefault(r["arm"], []).append(r["usd"])
+    return {arm: 2 * sum(v) / len(v) for arm, v in by.items() if v}
+
+
+def trim(runs: list[dict], left: float, cost=None) -> tuple[list[dict], list[str]]:
+    """The written trim order when the cap is short: repeats first, then Part B naive. `cost` prices one run (the
+    design's estimates by default; the runner passes twice the measured mean where the ledger has one)."""
+    cost = cost or estimate
     trimmed = []
     for label, drop in (("repeats", lambda r: r["k"] > 0), ("part B naive", lambda r: r["part"] == "b" and r["arm"] == "naive")):
-        if sum(estimate(r) for r in runs) <= left:
+        if sum(cost(r) for r in runs) <= left:
             break
         runs = [r for r in runs if not drop(r)]
         trimmed.append(label)
@@ -429,8 +440,10 @@ def main(args) -> int:
     runs = plan(adapters, args.smoke, args.items)
     kind = "smoke" if args.smoke else ("debug" if args.debug else "paid")
     left = CAP_USD - ledger.spent(BENCH)
-    runs, trimmed = trim(runs, left) if kind == "paid" else (runs, [])
-    est = sum(estimate(r) for r in runs)
+    seen = measured()
+    priced = lambda r: seen.get(r["arm"], estimate(r))  # noqa: E731
+    runs, trimmed = trim(runs, left, priced) if kind == "paid" else (runs, [])
+    est = sum(priced(r) for r in runs)
     print(f"bargein: {len(runs)} runs, estimated ${est:.2f}; ${left:.2f} left of ${CAP_USD:.2f}"
           + (f"; trimmed: {', '.join(trimmed)}" if trimmed else ""))
     if args.dry_run:
@@ -455,7 +468,8 @@ def main(args) -> int:
     pcm, audio_ok = corpus.render(clips(), HERE / "audio.lock")
     audio.transcribe(pcm[items("b")[0]["id"]])  # load the recognizer before the first timed run
     meta = {"run_id": run_id, "benchmark": BENCH, "cap_usd": CAP_USD, "seed": SEED, "kind": kind, "workers": 1,
-            "trimmed": trimmed, "planned": len(runs), "estimated_usd": round(est, 3), "load_flag": runner.LOAD_FLAG,
+            "trimmed": trimmed, "planned": len(runs), "estimated_usd": round(est, 3),
+            "design_estimate_usd": round(sum(estimate(r) for r in runs), 3), "measured_cost_per_run_x2": seen, "load_flag": runner.LOAD_FLAG,
             "window_b_s": WINDOW_B, "claude_code": agent_mod.claude_version(), "agent_model": agent_mod.MODEL,
             "permission_mode": MODE, "frozen": freeze, "started": datetime.now().astimezone().isoformat(timespec="seconds"),
             "audio_matches_lock": audio_ok, "preflight": probe}
