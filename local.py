@@ -227,6 +227,17 @@ def impostor() -> bool:
     return configured == url() and answering(url()) and not ours()
 
 
+def recheck() -> None:
+    """The daemon's liveness round, in fully local mode: the preflight checked who serves the text model at start, but
+    the server can exit mid-run and another account take its port. Until the program there is the server Pointe
+    started again, local text calls are refused (vendors._local)."""
+    own = (vendors.config().get("local_url") or url()).rstrip("/") == url()
+    refused = IMPOSTOR.format(url=url()) if own and not ours() else None
+    if refused != vendors._local_refused:
+        print(refused or f"The text-model server on {url()} is Pointe's again.", file=sys.stderr)
+    vendors._local_refused = refused
+
+
 def memory(pid: int) -> str:
     """The process's footprint as macOS counts it. Not ps's RSS: the model's weights are GPU memory, which RSS leaves out."""
     got = subprocess.run(["footprint", str(pid)], capture_output=True, text=True, env=childenv.child_env())

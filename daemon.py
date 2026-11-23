@@ -8803,6 +8803,8 @@ async def _liveness() -> None:
         _follow_titles()
         await _watch_machines()
         await _follow_pairing()
+        if vendors.local_only():
+            await asyncio.to_thread(local.recheck)
         _notify_call()  # also catches a change of the approvals setting in config.json
         await KEEP_AWAKE.update(state.call_from_elsewhere)  # unplugged mid-call: released within one round
 

@@ -465,3 +465,44 @@ def test_preflight_refuses_local_mode_when_a_stranger_answers_on_the_port(impost
     local.write_config()
     assert doctor.preflight() == 1
     assert "not the text-model server Pointe started" in capsys.readouterr().out
+
+
+def test_a_text_model_server_that_is_no_longer_pointes_gets_no_transcript_until_it_is_again(state, monkeypatch):
+    """The preflight checks who serves the text model once, at start. The server can exit mid-run and another account
+    take its port: the daemon checks again each liveness round (local.recheck), and local text calls are refused while
+    the program on the port is not the server Pointe started."""
+    import ast
+    import asyncio
+    from types import SimpleNamespace
+
+    local.write_config()
+    sent = []
+
+    async def create(**kwargs):
+        sent.append(kwargs)
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="yes"))])
+
+    monkeypatch.setattr(vendors, "_clients", {vendors.LOCAL: SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=create)))})
+    monkeypatch.setattr(vendors, "_local_refused", None)
+    monkeypatch.setattr(local, "ours", lambda: False)
+    local.recheck()
+    with pytest.raises(ConnectionError):
+        asyncio.run(vendors.text("local:m", "a transcript"))
+    assert sent == []
+    monkeypatch.setattr(local, "ours", lambda: True)  # Pointe's own server is back on the port
+    local.recheck()
+    assert asyncio.run(vendors.text("local:m", "a transcript")) == "yes"
+    daemon = ast.parse((Path(local.__file__).parent / "daemon.py").read_text())
+    liveness = next(f for f in ast.walk(daemon) if isinstance(f, ast.AsyncFunctionDef) and f.name == "_liveness")
+    assert "local.recheck" in ast.unparse(liveness), "the daemon's 5-second round checks it again"
+
+
+def test_a_server_the_user_points_local_url_at_is_theirs_and_not_rechecked(state, monkeypatch):
+    local.write_config()
+    config = json.loads((state / "config.json").read_text())
+    (state / "config.json").write_text(json.dumps({**config, "local_url": "http://localhost:11434/v1"}))  # Ollama, set up by the user
+    monkeypatch.setattr(vendors, "_local_refused", None)
+    monkeypatch.setattr(local, "ours", lambda: (_ for _ in ()).throw(AssertionError("not asked")))
+    local.recheck()
+    assert vendors._local_refused is None
