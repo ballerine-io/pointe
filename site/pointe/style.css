@@ -357,9 +357,20 @@ details.more-detail > div { padding: 8px 0 28px; }
 .partners .link { text-decoration: none; }
 .partners .link:hover { text-decoration: underline; }
 #working-group { padding: 36px 0; }
-.wg-logos { flex-basis: 100%; display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center;
-  gap: 12px 28px; margin-top: 12px; }
-.wg-label { margin: 0; }
+.wg-logos { flex-basis: 100%; display: grid; grid-template-columns: max-content minmax(0, 1fr) auto;
+  grid-template-areas: "label logos pause"; align-items: center; gap: 12px 28px; margin-top: 12px; }
+.wg-label { grid-area: label; margin: 0; }
+.wg-viewport { grid-area: logos; }
+/* WCAG 2.2.2: the loop moves for more than five seconds, so it has a pause. A fixed size, so nothing shifts. */
+.wg-pause { grid-area: pause; position: relative; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line-strong);
+  border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
+.wg-pause:hover { color: var(--text); }
+.wg-pause:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wg-pause::before { content: ""; position: absolute; inset: 0; margin: auto; width: 8px; height: 10px;
+  border-left: 3px solid currentColor; border-right: 3px solid currentColor; }
+.wg-pause[aria-pressed="true"]::before { width: 0; height: 0; border-style: solid; border-color: transparent;
+  border-width: 5px 0 5px 9px; border-left-color: currentColor; margin-left: 10px; }
+.wg-logos.is-paused .wg-track { animation-play-state: paused; }
 /* Ten logos to a viewport on a wide screen, four on a phone; the height is fixed, so nothing shifts as logos load. */
 .wg-viewport { container-type: inline-size; overflow: hidden; }
 .wg-track { display: flex; }
@@ -388,8 +399,11 @@ details.more-detail > div { padding: 8px 0 28px; }
   .wg-marquee .wg-track { width: auto; animation: none; }
   .wg-marquee .wg-list { flex-wrap: wrap; justify-content: center; width: 100%; }
   .wg-marquee .wg-list[aria-hidden] { display: none; }
+  .wg-pause { display: none; }
 }
-@media (max-width: 640px) { .wg-logos { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .wg-logos { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label pause" "logos logos"; }
+}
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }

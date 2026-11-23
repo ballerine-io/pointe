@@ -5,7 +5,7 @@
 
 Only a team with "consent": true is shown, and the row only once a team other than the maintainer is in it (the
 maintainer is credited elsewhere on the page). Six or more scroll in an endless loop (the list twice, the copy hidden from
-assistive technology and from the tab order); fewer sit still in one centered row. The logos are masks filled with the
+assistive technology and from the tab order), with a button that pauses it; fewer sit still in one centered row. The logos are masks filled with the
 page's own colour, so every logo is monochrome in light and dark. Standard library only.
 """
 
@@ -81,15 +81,18 @@ def render(data: dict, base: Path) -> str:
         lists = f'<ul class="wg-list">{one}</ul>'
         kind = "wg-static"
         wrap = "wg-logos wg-logos--static"
+        pause = ""
     else:
         copy = "".join(item(t, True) for t in shown)
         lists = f'<ul class="wg-list">{one}</ul><ul class="wg-list" aria-hidden="true">{copy}</ul>'
         kind = "wg-marquee"
         wrap = "wg-logos"
+        pause = ('\n        <button type="button" class="wg-pause" aria-pressed="false" aria-label="Pause the logos">'
+                 '</button>')
     return (f'<div class="{wrap}">\n'
             f'        <p class="small wg-label" id="wg-label">Built with engineers from:</p>\n'
             f'        <div class="wg-viewport {kind}" style="--n: {len(shown)}" role="group" aria-labelledby="wg-label">'
-            f'<div class="wg-track">{lists}</div></div>\n'
+            f'<div class="wg-track">{lists}</div></div>{pause}\n'
             f'      </div>')
 
 

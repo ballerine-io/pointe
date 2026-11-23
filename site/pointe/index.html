@@ -804,6 +804,13 @@
   </div>
 </footer>
 <script>
+  for (const b of document.querySelectorAll('.wg-pause')) {
+    b.addEventListener('click', () => {
+      const paused = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', String(paused));
+      b.closest('.wg-logos').classList.toggle('is-paused', paused);
+    });
+  }
   for (const box of document.querySelectorAll('[data-cmd]')) {
     const b = box.querySelector('button.copy');
     if (!b || !navigator.clipboard) continue;

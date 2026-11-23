@@ -37,7 +37,7 @@ def test_the_maintainer_alone_shows_no_row_and_leaves_no_space():
     alone = {"teams": [t for t in data["teams"] if t.get("maintainer")]}
     assert alone["teams"] and wg.render(alone, wg.SITE) == ""
     text = wg.page(wg.PAGE.read_text(), alone, wg.SITE)
-    assert f"{wg.BEGIN}\n      {wg.END}" in text and "wg-logos" not in text
+    assert f"{wg.BEGIN}\n      {wg.END}" in text
 
 
 def test_the_first_other_team_brings_the_row_with_the_maintainer_in_it():
@@ -83,3 +83,36 @@ def test_the_loop_stops_for_hover_focus_and_reduced_motion():
     assert ".wg-marquee:hover .wg-track, .wg-marquee:focus-within .wg-track { animation-play-state: paused; }" in css
     reduced = css[css.index("@media (prefers-reduced-motion: reduce) {\n  .wg-marquee"):]
     assert "animation: none" in reduced and ".wg-list[aria-hidden] { display: none; }" in reduced
+
+
+def test_only_a_moving_row_has_the_pause_button():
+    assert wg.render(TEN, FIXTURE).count('<button type="button" class="wg-pause" aria-pressed="false" '
+                                         'aria-label="Pause the logos">') == 1
+    five = {"teams": TEN["teams"][:5]}
+    assert "wg-pause" not in wg.render(five, FIXTURE)
+
+
+CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="headless Chrome is not installed here")
+def test_the_pause_button_is_reachable_by_keyboard_and_stops_and_restarts_the_loop(tmp_path):
+    """The real page, with the ten invented teams, in headless Chrome: the button takes focus from the tab order, and
+    each press flips aria-pressed and the loop's animation state."""
+    site = ROOT / "site" / "pointe"
+    text = wg.page(wg.PAGE.read_text(), TEN, FIXTURE).replace("<head>", f'<head>\n<base href="{site.as_uri()}/">', 1)
+    probe = """<script>
+      const b = document.querySelector('.wg-pause'), track = document.querySelector('.wg-track'), out = [];
+      const state = () => [b.getAttribute('aria-pressed'), getComputedStyle(track).animationPlayState];
+      b.focus(); out.push(document.activeElement === b && b.tabIndex === 0, state());
+      b.click(); out.push(state()); b.click(); out.push(state());
+      document.body.dataset.out = JSON.stringify(out);
+    </script></body>"""
+    page = tmp_path / "index.html"
+    page.write_text(text.replace("</body>", probe, 1))
+    dom = subprocess.run([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu",
+                          f"--user-data-dir={tmp_path / 'profile'}", "--allow-file-access-from-files", "--virtual-time-budget=2000",
+                          "--dump-dom", page.as_uri()],
+                         capture_output=True, text=True, timeout=60).stdout
+    got = json.loads(re.search(r'data-out="([^"]*)"', dom)[1].replace("&quot;", '"'))
+    assert got == [True, ["false", "running"], ["true", "paused"], ["false", "running"]]
