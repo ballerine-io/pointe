@@ -464,3 +464,14 @@ def test_the_context_panel_keeps_the_keyboard_inside_and_gives_it_back():
     assert modal == "true" and stops[0][1], stops[0]
     assert all(inside for _, inside in stops), [s for s in stops if not s[1]]
     assert back == "ctx", back
+
+
+def test_the_sessions_list_is_never_a_small_box_inside_the_column():
+    """Nine sessions on three machines: the list shows whole and the column scrolls as one, so no row or machine header
+    is cut by an inner scroll box of four rows; Settings stays at the column's foot."""
+    probe = """(() => { const l = document.getElementById('list'), side = document.getElementById('side').getBoundingClientRect(),
+      f = document.querySelector('#side footer').getBoundingClientRect();
+      return {inner: l.scrollHeight - l.clientHeight, footer: f.bottom <= side.bottom + 1 && f.bottom >= side.bottom - 24}; })()"""
+    status = fixture(sessions=9, machines=3, talk=4, approval=True, connected=True)
+    for r in _run([(1440, LIVE, probe), (390, "toggleSessions(true);", probe)], status):
+        assert r["inner"] <= 1 and r["footer"], r

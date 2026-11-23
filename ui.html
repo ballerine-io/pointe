@@ -158,8 +158,10 @@
   .sheetbox input[type=checkbox]:not(.tick input) { accent-color: var(--orange); }
 
   /* ---- sessions column ---- */
-  #side { display: flex; flex-direction: column; gap: 20px; padding: 20px 16px 12px; border-right: 1px solid var(--line);
-          background: var(--surface); overflow: hidden; min-width: 0; }
+  /* The column scrolls as one: a list squeezed into its own scroll box showed four rows and cut the next one in half. */
+  #side { display: flex; flex-direction: column; gap: 20px; padding: 20px 16px 0; border-right: 1px solid var(--line);
+          background: var(--surface); overflow-y: auto; overscroll-behavior: contain; min-width: 0; }
+  #side > * { flex-shrink: 0; }
   body.nosessions #side { padding: 0; border: 0; }
   .brand { display: flex; align-items: center; gap: 12px; color: var(--muted); padding: 0 2px; }
   #sideclose { display: none; margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--raised); color: var(--muted);
@@ -367,7 +369,7 @@
   #renameproblem { color: var(--accent); font-size: 12px; }
   #renameproblem:empty { display: none; }
 
-  .routing { flex: 1; min-height: 104px; display: flex; flex-direction: column; }  /* a long sessions list scrolls; this keeps a request and a half */
+  .routing { flex: 1 0 auto; display: flex; flex-direction: column; }
   #recent { margin: 0; padding: 0 4px; list-style: none; overflow-y: auto; }
   #recent li { padding: 9px 0; border-bottom: 1px solid var(--line); }
   #recent li:last-child { border-bottom: 0; }
@@ -376,7 +378,8 @@
   .t { font: 11px var(--mono); }
   .to { color: var(--muted); font-weight: 600; }
   .blocked { color: var(--accent); }
-  footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  footer { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line);
+           position: sticky; bottom: 0; z-index: 1; background: var(--surface); }  /* Settings stays at the foot */
   footer button { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line);
                   background: var(--card); color: var(--muted); font: 600 12px var(--font); cursor: pointer; white-space: nowrap; min-width: 0; }
   footer button:hover { color: var(--text); background: var(--raised); }
