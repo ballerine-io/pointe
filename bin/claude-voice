@@ -38,7 +38,7 @@ cat >"$SESSION_STATE/settings.json" <<EOF
     "command": "'$ROOT/bin/register-session' --quiet --channel-url http://127.0.0.1:$CHANNEL_PORT" } ] } ] } }
 EOF
 
-"$ROOT/bin/voice-ours" || { echo "claude-voice: another program holds port $PORT" >&2; exit 1; }  # the token goes only to the daemon
+"$ROOT/bin/voice-ours" || { echo "claude-voice: the program on port $PORT is not Pointe, or nothing here can tell (lsof, ss or /proc)" >&2; exit 1; }  # the token goes only to the daemon
 CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$ROOT/bin/voice-open"
 

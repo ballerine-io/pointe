@@ -36,7 +36,7 @@ esac
 URL="$("$BIN/voice-daemon" ensure)"
 RESULT="$("$BIN/register-session" "$@" </dev/null)"
 echo "this session joined Pointe: $RESULT"
-"$BIN/voice-ours" || { echo "Pointe: another program holds port $PORT" >&2; exit 1; }  # the token goes only to the daemon
+"$BIN/voice-ours" || { echo "Pointe: the program on port $PORT is not Pointe, or nothing here can tell (lsof, ss or /proc)" >&2; exit 1; }  # the token goes only to the daemon
 CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$BIN/voice-open"
 echo "For the person (nothing here waits on them, and nothing is for you to do): they talk in the voice tab or the phone app;"
