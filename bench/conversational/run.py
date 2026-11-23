@@ -3,7 +3,8 @@
     uv run --locked python bench/conversational/run.py identifiers --budget-usd 12 [--adapter a,b] [--smoke] [--dry-run]
     uv run --locked python bench/conversational/run.py corpus [identifiers]     render the audio, $0
     uv run --locked python bench/conversational/run.py verify                   offline: items, checks, decoys
-    uv run --locked python bench/conversational/run.py report <run-id>          rows -> summary.json and summary.md
+    uv run --locked python bench/conversational/run.py report <run-id> [arm=<run-id>] [--why ...]
+                                                                                rows -> summary.json and summary.md
     uv run --locked python bench/conversational/run.py freeze                   write FROZEN.json (before paid rows)
 
 Options: --adapter keyboard-canonical,keyboard-transcript,null,naive,llm-router,pointe,pointe-text (default: all),
@@ -108,6 +109,7 @@ def main() -> int:
     ap.add_argument("--items")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--why", help="report: why an arm's rows come from another run")
     ap.add_argument("--pointe-commit", help="freeze: the Pointe commit under test (default: origin/main)")
     a = ap.parse_args()
 
@@ -118,7 +120,8 @@ def main() -> int:
         return 0
     if a.what == "report":
         from identifiers import report
-        report.write(a.rest[0])
+        arm_from = dict(x.split("=", 1) for x in a.rest[1:] if "=" in x)  # report <run-id> [arm=<run-id> ...]
+        report.write(a.rest[0], arm_from, a.why or "")
         return 0
     if a.what == "freeze":
         runner.git("fetch", "-q", "origin")

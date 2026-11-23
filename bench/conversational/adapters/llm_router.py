@@ -16,6 +16,7 @@ from core.ledger import PRICES, tokens_usd
 
 HERE = Path(__file__).resolve().parent
 PROMPT = (HERE / "llm_router_prompt.txt").read_text()
+MAX_TOKENS = 8000
 sys.path.insert(0, str(HERE.parents[2]))
 
 
@@ -55,7 +56,10 @@ class LlmRouter(AgentAdapter):
         client = anthropic.Anthropic(api_key=self.env.secrets["anthropic"], max_retries=4)
         payload = {"transcript": transcript, "sessions": list(self.agents), "pending_prompt": None,
                    "last_action": self.last_action, "earlier": self.earlier[-6:]}
-        resp = client.messages.create(model=self.model, max_tokens=400, system=PROMPT,  # this model takes no temperature
+        # The model thinks before it answers by default: a small max_tokens is spent on thinking and cuts the JSON off
+        # (seen on 2026-11-23: 400 left about one call in two as "none"). 8000 is what Pointe's own text calls allow
+        # (vendors._anthropic_text). This model takes no temperature.
+        resp = client.messages.create(model=self.model, max_tokens=MAX_TOKENS, system=PROMPT,
                                       messages=[{"role": "user", "content": json.dumps(payload)}])
         u = resp.usage
         self.usage["input"] += u.input_tokens
@@ -66,9 +70,10 @@ class LlmRouter(AgentAdapter):
         raw = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
         m = re.search(r"\{.*\}", raw, re.S)
         try:
-            action = json.loads(m.group(0)) if m else {"action": "none"}
+            action = json.loads(m.group(0)) if m else {"action": "none", "unparsed": raw[:200]}
         except ValueError:
             action = {"action": "none", "unparsed": raw[:200]}
+        action["stop_reason"] = resp.stop_reason
         self.earlier.append({"transcript": transcript, "action": action})
         self.last_action = action
         return action

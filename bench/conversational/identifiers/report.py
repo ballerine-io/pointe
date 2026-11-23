@@ -56,8 +56,15 @@ def by_target(rs: list[dict]) -> dict:
     return out
 
 
-def summarize(run_id: str, frozen: dict | None) -> dict:
+def summarize(run_id: str, frozen: dict | None, arm_from: dict | None = None, why: str = "") -> dict:
+    """arm_from: arm -> another run id whose rows replace this run's rows of that arm (a harness bug fixed and the
+    arm rerun). The replaced rows stay committed and are counted under "superseded"."""
+    arm_from = arm_from or {}
     allr = rows(run_id)
+    superseded = {a: sum(r["arm"] == a for r in allr) for a in arm_from}
+    allr = [r for r in allr if r["arm"] not in arm_from]
+    for a, other in arm_from.items():
+        allr += [r for r in rows(other) if r["arm"] == a]
     bad = lambda r: r.get("smoke") or r["outcome"] in ("invalid_out_of_tree", "error")  # noqa: E731
     pub = [r for r in allr if not bad(r) and r["run_index"] == 0
            and (not frozen or r["pointe_commit"] == frozen["pointe_commit"])]
@@ -66,7 +73,8 @@ def summarize(run_id: str, frozen: dict | None) -> dict:
                "excluded": {a: {"invalid_out_of_tree": sum(r["arm"] == a and r["outcome"] == "invalid_out_of_tree"
                                                          for r in allr),
                                 "error": sum(r["arm"] == a and r["outcome"] == "error" for r in allr)} for a in arms},
-               "arms": {}, "slices": {}, "paired": {}, "repeat": {}}
+               "arms": {}, "slices": {}, "paired": {}, "repeat": {},
+               "superseded": {a: {"rows": n, "replaced_by_run": arm_from[a], "why": why} for a, n in superseded.items()}}
     for a in arms:
         rs = [r for r in pub if r["arm"] == a]
         summary["arms"][a] = arm_table(rs)
@@ -99,6 +107,7 @@ def summarize(run_id: str, frozen: dict | None) -> dict:
     meta = pub[0] if pub else (allr[0] if allr else {})
     summary["conditions"] = {
         "dates": sorted({r["time"][:10] for r in pub}), "repo_commits": sorted({r["repo_commit"] for r in pub}),
+        "run_ids": sorted({r["run_id"] for r in pub}),
         "pointe_commits": sorted({r["pointe_commit"] for r in pub}), "agent_model": meta.get("agent_model"),
         "claude_code": sorted({r["claude_code"] for r in pub}), "permission_mode": meta.get("permission_mode"),
         "router_models": sorted({r["adapter_versions"].get("router_model") for r in pub
@@ -154,6 +163,8 @@ def markdown(s: dict) -> str:
             v = s["slices"][a].get(k)
             cells.append("n/a" if not v else f"{fmt(v['right_symbol'])}; wrong {fmt(v['wrong_symbol'])}")
         out.append(f"| {k} | " + " | ".join(cells) + " |")
+    for a, v in s.get("superseded", {}).items():
+        out += ["", f"**{a}: {v['rows']} rows of this run superseded** by run `{v['replaced_by_run']}`: {v['why']}"]
     out += ["", "## Excluded rows", "", "| Arm | invalid_out_of_tree | error |", "|---|---|---|"]
     for a, v in s["excluded"].items():
         out.append(f"| {a} | {v['invalid_out_of_tree']} | {v['error']} |")
@@ -171,10 +182,10 @@ def markdown(s: dict) -> str:
     return "\n".join(out)
 
 
-def write(run_id: str) -> dict:
+def write(run_id: str, arm_from: dict | None = None, why: str = "") -> dict:
     frozen_path = HERE / "FROZEN.json"
     frozen = json.loads(frozen_path.read_text()) if frozen_path.exists() else None
-    s = summarize(run_id, frozen)
+    s = summarize(run_id, frozen, arm_from, why)
     d = HERE / "results" / run_id
     (d / "summary.json").write_text(json.dumps(s, indent=1) + "\n")
     (d / "summary.md").write_text(markdown(s))
