@@ -419,3 +419,16 @@ def test_the_typed_message_field_has_a_name_and_shows_its_focus():
             await stub.stop()
     r = asyncio.run(run())
     assert r["ring"] and r["name"].strip(), r
+
+
+def test_a_screen_reader_hears_an_approval_and_the_call_changing_but_not_each_turn():
+    """The approval card's region is live; the call's own changes (connected, muted) are read out, the Speaking and
+    Listening of every turn are not, since they would talk over the voice."""
+    say = "[document.getElementById('attention').getAttribute('aria-live'), document.getElementById('statesay').textContent]"
+    status = fixture(sessions=3, talk=2, approval=True, connected=True)
+    off, live, muted = _run([(1440, "", say), (1440, LIVE, say), (1440, "muted = true; render();", say)], status)
+    talking = status | {"speaking": "bot"}
+    _, first, turn = _run([(1440, "", say), (1440, LIVE, say), (1440, "", say)], talking)
+    assert off == ["polite", ""], off
+    assert live == ["polite", "Listening"] and muted[1] == "Muted", (live, muted)
+    assert first[1] == turn[1] == "Speaking", (first, turn)  # said once, as the call came up

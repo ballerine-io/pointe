@@ -1514,6 +1514,7 @@
     <span class="dot"></span>
     <div class="grow">
       <div class="state" id="state">Not connected</div>
+      <div class="sr" id="statesay" role="status"></div>
       <div class="sub" id="sub">Press the mic to start talking</div>
       <div id="problem" role="alert" dir="auto"></div>
       <button class="pill" id="fixkey" hidden onclick="fixKey()">Fix the key</button>
@@ -1600,7 +1601,7 @@
     <div class="dhint">Short answers. Pointe approves by voice only what it can read out and is safe from the road.</div>
     <button id="drive-stop" onclick="setDrive(false)">I've stopped</button>
   </div>
-  <div id="attention"></div>
+  <div id="attention" role="region" aria-label="Needs you" aria-live="polite"></div>
   <div id="startask"></div>
   <div id="attachask"></div>
   <div id="shiftask"></div>
@@ -2729,6 +2730,7 @@
     return micError || callNote;
   }
   setInterval(checkMic, 2000);
+  let saidState = 'off';
   function showState() {
     const mine = call.state === 'live';  // this page's own call, not the daemon's: the call may be on the phone
     let st, title;
@@ -2759,6 +2761,10 @@
                                        : roomHeard() ? `Meeting: room is heard · ${pttStyleLabel().toLowerCase()}` : pttStyleLabel()];
     else [st, title] = ['live', 'Listening'];
     document.body.dataset.state = st; text('state', title);
+    // Read out when the call itself changes (connected, dropped, muted, refused), not each turn's Speaking and Listening:
+    // those would talk over the voice.
+    const callIs = ['live', 'bot', 'user', 'ptt', 'talking'].includes(st) ? 'on' : st;
+    if (callIs !== saidState) { saidState = callIs; if (callIs !== 'off' || $('statesay').textContent) text('statesay', title); }
     document.body.classList.toggle('firstrun', !!(s && s.first_call));
     $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor);
     // the link itself, from the call's heartbeat, so "connected" is never a guess
