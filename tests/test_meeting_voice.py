@@ -327,3 +327,17 @@ def test_a_meeting_started_by_voice_that_names_a_session_links_that_one(d):
     add(d, "s1", "pricing")
     add(d, "s2", "billing/main")
     assert d._meeting_sessions_heard("Pointe, meeting mode with billing, join in.") == ["billing/main"]
+
+
+def test_meeting_mode_by_voice_before_consent_says_the_fixed_line(d, monkeypatch):
+    """From a live run: "Meeting mode, join in." before the consent step got "pricing is joined and idle... What would
+    you like it to do?" from the model."""
+    said = []
+
+    async def say_exactly(line, tag):
+        said.append(line)
+
+    monkeypatch.setattr(d, "_say_exactly", say_exactly)
+    d.PREFS.update({"meeting.consented": False})
+    asyncio.run(d._start_meeting_by_voice("Meeting mode, join in.", "participating"))
+    assert said == [d.MEETING_CONSENT_FIRST] and d.state.meeting is None

@@ -4001,14 +4001,19 @@ class PttGate(FrameProcessor):
             await self.tick(time.time())
 
 
+MEETING_CONSENT_FIRST = ("Meeting mode needs its consent step once: start the first meeting from the page or the phone, "
+                         "where it shows who receives the room's audio.")
+
+
 async def _start_meeting_by_voice(heard: str, mode: str) -> None:
+    """Fixed words when it does not start: asked to explain, the model once answered with the sessions' status instead."""
+    _remember("user", heard)
     if not PREFS.get("meeting.consented"):
-        await say("[meeting mode] It needs the consent step once: tell the user in one line to start it from the page or "
-                  "the phone the first time, where it shows who receives the room's audio.")
+        await _say_exactly(MEETING_CONSENT_FIRST, "meeting mode not started")
         return
     error = await start_meeting(mode, sessions=_meeting_sessions_heard(heard), entry_words=heard)
     if error:
-        await say(f"[meeting mode not started] {error} Say it in one line.")
+        await _say_exactly(f"Meeting mode did not start. {error}", "meeting mode not started")
 
 
 def _meeting_sessions_heard(heard: str) -> list[str]:
