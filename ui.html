@@ -895,6 +895,7 @@
   .settings #pref-keys .pill { min-width: 6.5em; }
   .settings .note.foot + .note.foot { margin-top: -4px; }
   .settings #pref-setups code:empty { display: none; }
+  .settings #pref-setups .snote { font-size: 13px; color: var(--accent); } .settings #pref-setups .snote:empty { display: none; }
   .settings #pref-keys .r { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; }  /* every state at one x */
   .settings #pref-keys .kstate { color: var(--muted); } .settings #pref-keys .kstate.inUse { color: var(--text); }
   .settings #mach-invite { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
@@ -1105,6 +1106,16 @@
   @media (max-width: 389px) {  /* a small phone: a smaller mic keeps two labelled controls each side of it */
     #mic { width: 60px; height: 60px; } #mic svg { width: 26px; height: 26px; }
     .dock .btn .lb { font-size: 11px; }
+  }
+  @media (forced-colors: active) {  /* Windows High Contrast and the like: the system colours, with the marks drawn again */
+    button, .pill, #mic, .dock .btn .ic, .ask .answer button, .seg, #compose input { border: 1px solid ButtonText; }
+    .seg button.on, .seg button[aria-pressed=true], .seg button[aria-checked=true], .micmode button.on, .ask .answer .allow { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .st, .top .dot, .ml, .toggle input[type=checkbox], .tick input[type=checkbox], .toggle input[type=checkbox]::after,
+    .tick input[type=checkbox]::after { forced-color-adjust: none; border: 1px solid CanvasText; }
+    .st.working, .st.wait, [data-state] .top .dot, .toggle input[type=checkbox]:checked, .tick input[type=checkbox]:checked,
+    .toggle input[type=checkbox]::after, .tick input[type=checkbox]::after { background: CanvasText; }
+    .toggle input[type=checkbox]:checked::after, .tick input[type=checkbox]:checked::after { background: Canvas; }
+    [data-state=off] .top .dot { background: Canvas; }  /* no call: hollow */
   }
   @media (prefers-reduced-motion: reduce) {  /* the breathing dots, the wave and the slides stop for a person who asked for less motion */
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
@@ -1869,11 +1880,11 @@
       const hot = needsYou(x) && !away;
       const tools = el('span', 'tools');
       tools.append(el('span', 'tag' + (hot ? ' hot' : ''), away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'));
-      const pen = el('span', 'edit', '✎'); pen.title = 'Rename'; pen.setAttribute('aria-hidden', 'true');  // a pointer's shortcut: ⋯ has both
+      const pen = el('span', 'edit', '✎'); pen.title = 'Rename (F2)'; pen.setAttribute('aria-hidden', 'true');  // a pointer's shortcut: ⋯ has both
       pen.onclick = ev => { ev.stopPropagation(); startRename(b, x.name); };
       const sure = asking === x.name;
       const cut = el('span', 'edit' + (sure ? ' sure' : ''), sure ? 'disconnect?' : '×');
-      cut.title = 'Disconnect from the voice (it keeps running in its terminal)'; cut.setAttribute('aria-hidden', 'true');
+      cut.title = 'Disconnect from the voice (Delete); it keeps running in its terminal'; cut.setAttribute('aria-hidden', 'true');
       cut.onclick = ev => { ev.stopPropagation(); disconnect(x.name); };
       const more = el('button', 'more', '⋯'); more.type = 'button';
       more.setAttribute('aria-label', `Rename or disconnect ${x.name}`); more.setAttribute('aria-haspopup', 'dialog');
@@ -1887,7 +1898,14 @@
       nm.tabIndex = 0; nm.setAttribute('role', 'button');
       nm.setAttribute('aria-label', `${x.name}, ${agentOf(x)}, ${state}${reason ? ': ' + reason : ''}`);
       if (pinned) nm.setAttribute('aria-current', 'true');
-      nm.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchTo(x.name); } };  // a button: Space too
+      // A button: Space too. Its Rename and Disconnect are marks under the pointer, not stops in the tab order: the
+      // keyboard has F2 and Delete, Delete twice as a second click is.
+      nm.setAttribute('aria-keyshortcuts', 'F2 Delete');
+      nm.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchTo(x.name); }
+        else if (e.key === 'F2') { e.preventDefault(); startRename(b, x.name); }
+        else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); disconnect(x.name); }
+      };
       b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
       if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n')[0] : x.needs));
       b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
@@ -3514,12 +3532,17 @@
     try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { meetError(plain(e)); }
     refresh();
   }
+  // An action item as a line: what, then who and by when, each only when the notes say it ("not stated" says nothing),
+  // set off by a dot so an owner that carries its own brackets never nests them.
+  const UNSTATED = /^(not stated|unstated|unassigned|none|unknown|n\/a|tbd|-|—)$/i;
+  const endItem = x => [x.what || x.q || x.text, x.owner, x.due && `by ${x.due}`]
+    .filter(v => v && !UNSTATED.test(String(v).replace(/^by /, '').trim())).join(' · ');
   function showEnd(result) {
     endShown = true; endVoiceShown = '';
     const body = $('endbody'); body.replaceChildren();
     if (result.summary) { const d = el('div', '', result.summary); d.dir = 'auto'; body.append(el('h3', '', 'Summary'), d); }
     for (const [key, title] of [['decisions', 'Decisions'], ['action_items', 'Action items'], ['open_questions', 'Open questions']]) {
-      const items = (result[key] || []).map(x => typeof x === 'string' ? x : [x.what || x.q || x.text, x.owner && `(${x.owner})`, x.due && `by ${x.due}`].filter(Boolean).join(' '));
+      const items = (result[key] || []).map(x => typeof x === 'string' ? x : endItem(x));
       if (items.length) { const ul = el('ul', 'items'); items.forEach(t => { const li = el('li', '', t); li.dir = 'auto'; ul.append(li); }); body.append(el('h3', '', title), ul); }
     }
     if (!body.children.length) body.append(el('div', 'lede', 'Nothing was noted.'));
@@ -3997,7 +4020,8 @@
     how: 'Add… opens the vendor\'s key page and a window on this Mac; Pointe checks the key and restarts to use it.',
     howRemote: 'Add or replace a key on the Mac: its page or the Mac app\'s Settings, or pointe key <vendor>.',
     setups: 'Setups, with the cost of a busy hour of talk', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
-    add: 'Add…', replace: 'Replace…', use: 'Use this setup',
+    add: 'Add…', replace: 'Replace…', use: 'Use this setup', addKey: v => `Add the ${v} key…`,
+    missing: names => `Needs the ${names.join(' and the ')} key${names.length > 1 ? 's' : ''}: not saved yet.`,
     keyWindow: 'A window opened on this Mac: paste the key there.', switching: 'Switching. Pointe restarts in a moment.',
     inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional', notRead: 'Not read: the voice stays on this Mac'};
   const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional', 'not read': 'notRead'};
@@ -4024,24 +4048,37 @@
       }
       return row;
     }));
+    // A setup's keys (a Mac that sends them): one the Mac reports as not saved is named before any click, with its own
+    // Add, and Use this setup waits for it. A key whose state is not reported ('not read', or none) is not guessed at.
+    const unsaved = v => ['needed', 'optional'].includes(((k && k.keys) || {})[v]);
     $('pref-setups').replaceChildren(...((k && k.setups) || []).map(x => {
-      const row = el('div', 'r col'), head = el('div', 'shead2');
+      const row = el('div', 'r col'), head = el('div', 'shead2'), current = x.id === k.setup;
       head.append(el('b', '', x.name));
-      if (x.id === k.setup) head.append(el('span', 'kstate inUse', KEYS_COPY.current));
+      if (current) head.append(el('span', 'kstate inUse', KEYS_COPY.current));
       row.append(head, el('span', 'cost', x.cost), el('span', 'help', `${x.short} Best for ${x.pick_for}.`));
-      if (x.id !== k.setup && remotePage) row.append(el('code', '', KEYS_COPY.switchTo + x.id));
-      else if (x.id !== k.setup) {
+      const missing = (x.keys || []).filter(unsaved), note = el('div', 'snote');
+      if (!current && missing.length) note.textContent = KEYS_COPY.missing(missing.map(v => VENDOR[v] || v));
+      row.append(note);  // read before the button; a refusal comes back here, by the click
+      if (!current && remotePage) row.append(el('code', '', KEYS_COPY.switchTo + x.id));
+      else if (!current && missing.length) {
+        for (const v of missing) {
+          const b = el('button', 'pill', KEYS_COPY.addKey(VENDOR[v] || v));
+          b.onclick = () => keysPost('/voice/key', {vendor: v}, KEYS_COPY.keyWindow, note);
+          row.append(b);
+        }
+      } else if (!current) {
         const b = el('button', 'pill', KEYS_COPY.use);
-        b.onclick = () => keysPost('/voice/setup', {id: x.id}, KEYS_COPY.switching);
+        b.onclick = () => keysPost('/voice/setup', {id: x.id}, KEYS_COPY.switching, note);
         row.append(b);
       }
       return row;
     }));
     $('pref-setups-h').hidden = !(k && k.setups && k.setups.length);
   }
-  async function keysPost(path, body, done) {
+  async function keysPost(path, body, done, where = $('pref-keys-line')) {  // a refusal shows by the click that met it
     const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-    $('pref-keys-line').textContent = r.ok ? done : (await r.json().catch(() => ({}))).detail || 'Not done: the Mac did not answer.';
+    if (r.ok) { $('pref-keys-line').textContent = done; if (where !== $('pref-keys-line')) where.textContent = ''; return; }
+    where.textContent = (await r.json().catch(() => ({}))).detail || 'Not done: the Mac did not answer.';
   }
   async function openSettings() {
     // The sheet opens on the click, with the values it last had; the Mac's answers fill it in as they land.

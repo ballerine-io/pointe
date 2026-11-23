@@ -212,6 +212,16 @@ def test_the_daemons_key_status_marks_unneeded_keys_optional(keys, monkeypatch):
     assert not any("synthetic" in json.dumps(v) for v in got.values()), "presence only, never a value"
 
 
+def test_each_setup_in_the_key_status_lists_its_keys(keys, monkeypatch):
+    """Settings names a setup's missing key before the click (QA round 3): the page reads which keys each setup needs."""
+    keys("gemini")
+    monkeypatch.setattr(daemon, "_setup", None)
+    monkeypatch.setattr(daemon, "_keys_cache", None)
+    rows = {row["id"]: row for row in daemon._keys_status()["setups"]}
+    assert rows["free"]["keys"] == ["gemini"] and rows["openai"]["keys"] == ["openai"]
+    assert set(rows["two"]["keys"]) == {"soniox", "anthropic"}
+
+
 def test_the_daemons_key_status_with_the_voice_on_the_mac_says_not_read(keys, monkeypatch):
     keys("anthropic", "soniox")
     monkeypatch.setenv("CLAUDE_VOICE_VOICE_LOCAL", "1")

@@ -48,6 +48,13 @@ def test_remote_needs_pairing(app):
     assert remote_client(app).get("/voice/status").status_code == 403
 
 
+def test_an_unpaired_phone_browser_is_told_in_words_how_to_pair_again(app):
+    """The page shows this text when the phone's browser is no longer paired: words, not "not paired" and a backtick."""
+    r = remote_client(app).get("/voice/status")
+    assert r.status_code == 403 and "`" not in r.text
+    assert r.text.startswith("This browser is no longer paired with the Mac.") and "pointe pair link" in r.text
+
+
 def test_pairing_link_sets_the_cookie_and_hides_the_secret(app):
     c = remote_client(app)
     r = c.get("/voice?pair=s3cret-token")

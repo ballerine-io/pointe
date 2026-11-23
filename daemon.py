@@ -2721,7 +2721,7 @@ def _keys_status() -> dict:
     global _keys_cache
     if _keys_cache is None:
         chosen = setups.chosen(vendors.config())
-        rows = [{"id": x.id, "name": x.name, "short": x.short, "pick_for": x.pick_for, "cost": x.cost}
+        rows = [{"id": x.id, "name": x.name, "short": x.short, "pick_for": x.pick_for, "cost": x.cost, "keys": list(x.keys)}
                 for x in setups.SETUPS]
         if vendors.local_only():
             return {"line": "Fully local mode: no key is read.", "keys": {}, "setup": "local", "setups": rows}
