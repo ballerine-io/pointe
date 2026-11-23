@@ -123,6 +123,23 @@ final class PointeMacTests: XCTestCase {
     // MARK: the call bubble
 
     /// The bubble is the call's: while one is up or being placed, and with none only when pinned. Off is off.
+    /// On the setup guide (no Pointe running) Settings… and About Pointe did nothing: there was no call screen to open
+    /// their sheets. Those two open over the guide; the rest need Pointe and wait for it.
+    func testSettingsAndAboutOpenOnTheSetupGuide() {
+        XCTAssertTrue(AppModel.setupAnswers(.settings))
+        XCTAssertTrue(AppModel.setupAnswers(.about))
+        for command in [MacSession.Command.sessions, .newSession, .brainDump, .meeting, .type, .briefing, .machines, .phone, .nightShift,
+                        .approve, .deny] {
+            XCTAssertFalse(AppModel.setupAnswers(command), "\(command)")
+        }
+    }
+
+    /// Help opens Pointe's Mac page; macOS's own item looked for a help book the app does not have.
+    func testHelpOpensTheMacAppsPage() {
+        XCTAssertEqual(MacMenu.help, "Pointe Help")
+        XCTAssertEqual(MacMenu.helpURL.absoluteString, "https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md")
+    }
+
     func testTheBubbleShowsOnACallOrWhenPinned() {
         XCTAssertFalse(BubbleRule.shows(on: true, pinned: false, phase: .off), "no call: no bubble saying Not connected")
         for phase in [MacSession.Phase.connecting, .live, .reconnecting] { XCTAssertTrue(BubbleRule.shows(on: true, pinned: false, phase: phase)) }

@@ -27,11 +27,13 @@ struct BottomBar: View {
                      on: dump != nil, action: listen)
                     .disabled(!live)
                     .accessibilityIdentifier("dumpButton")
+                Spacer(minLength: 0)
                 if !driving {
-                    Spacer(minLength: 0)
                     side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
                         .disabled(!live && !typing)  // typing needs the call (Connect says so): a field it could not send from took text
                         .accessibilityIdentifier("typeButton")
+                } else {  // its slot stays, empty, so Brain dump is where the thumb knows it
+                    side("Type", "keyboard", action: {}).hidden().accessibilityHidden(true)
                 }
                 Spacer(minLength: 0)
             }
@@ -134,13 +136,15 @@ extension EnvironmentValues {
 
 struct Dock<Cards: View, Bar: View>: View {
     var limit: CGFloat = .infinity
+    /// Where the cards rest when they must scroll: on their bottom, where a card's answer buttons are.
+    var anchor: UnitPoint = .bottom
     @ViewBuilder var cards: Cards
     @ViewBuilder var bar: Bar
     @State private var barHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 10) {
-            FitScroll(limit: limit - barHeight - 10) {
+            FitScroll(limit: limit - barHeight - 10, anchor: anchor) {
                 VStack(spacing: 10) { cards }.padding(1)  // a card's hairline is on its edge: keep it inside what is clipped
                     .environment(\.dockRoom, limit - barHeight - 10)
             }
@@ -196,6 +200,7 @@ struct TypeBar: View {
                 .accessibilityIdentifier("typeField")
                 .submitLabel(.send)
                 .onSubmit(submit)
+                .onKeyPress(.escape) { close(); return .handled }  // a hardware keyboard's Esc closes it, as Return sends
                 .onChange(of: text) {  // a multi-line field takes Return as a new line: Return sends, as the key says
                     if text.hasSuffix("\n") { text.removeLast(); submit() }
                 }

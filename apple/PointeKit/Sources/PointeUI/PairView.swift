@@ -9,26 +9,29 @@ struct PairView: View {
     @State private var link = ""
     @State private var problem: String?
     @State private var scanning = true
-    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var room: CGFloat = 0    // the screen's height for this view, less the keyboard
+    @State private var whole: CGFloat = 0   // the form's height, camera included
+    @State private var camera: CGFloat = 0  // the camera's height as drawn
+
+    /// The camera takes what the rest leaves, from 200 to 480 points. Past that the form scrolls: at the largest type
+    /// Pair and Try a demo were below the screen, out of reach.
+    static func cameraHeight(room: CGFloat, rest: CGFloat) -> CGFloat {
+        guard room > 0 else { return 240 }
+        return min(480, max(200, room - rest))
+    }
 
     var body: some View {
-        // The screen scrolls when it is taller than the room: at the accessibility sizes, and on a small phone with the
-        // keyboard up. Below those it fills the screen and the camera takes what is left. Laid out without a scroll, the
-        // keyboard pushed the stack up: the intro ran under the clock and the link's error sat under the keys. Clipped to
-        // the safe area, so what scrolls up never draws under the clock either. (One container in every case: a field
-        // that moved between two lost its focus, and ViewThatFits kept both copies of the field.)
-        GeometryReader { room in
-            ScrollView {
-                content.frame(minHeight: typeSize.isAccessibilitySize ? 0 : room.size.height, alignment: .top)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
+        ScrollView {
+            form.frame(minHeight: room, alignment: .top)
         }
-        .clipped()
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollDismissesKeyboard(.interactively)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { room = $0 }
+        .clipped()  // what scrolls up never draws under the clock
         .background(Brand.background)
     }
 
-    private var content: some View {
+    private var form: some View {
         VStack(alignment: .leading, spacing: 16) {
             BrandHeader().dynamicTypeSize(...DynamicTypeSize.accessibility2)  // the call screen's header stops there too
             Text("On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone. Scan the code it shows here, or with the Camera app.")
@@ -44,12 +47,14 @@ struct PairView: View {
                         if PairingLink(code) != nil { submit(code) } else { problem = "That code is not a Pointe pairing code." }
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 240, maxHeight: .infinity)
+                .frame(maxWidth: .infinity)
+                .frame(height: Self.cameraHeight(room: room, rest: whole - camera))
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { camera = $0 }
                 .background(Brand.raised, in: RoundedRectangle(cornerRadius: 16))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.line))
             }
-            // over the field, not under Pair: with the keyboard up, under Pair was under the keys, and Pair seemed to do nothing
+            // Over the field, not under Pair: with the keyboard up, under Pair was behind the keyboard.
             if let problem {
                 Text(problem).font(.brand(.footnote)).foregroundStyle(Brand.accent).fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("pairProblem")
@@ -61,7 +66,7 @@ struct PairView: View {
                 .onSubmit(use)
             Button(action: use) { Text("Pair").frame(maxWidth: .infinity) }
                 .buttonStyle(.brandPrimary).controlSize(.large).disabled(link.isEmpty)
-            if !scanning { Spacer() }
+            if !scanning { Spacer(minLength: 0) }
             Button(action: tryDemo) {
                 Label("No Mac yet? Try a demo", systemImage: "play.circle")
                     .font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.muted)
@@ -75,6 +80,7 @@ struct PairView: View {
                 .accessibilityIdentifier("pairSecurityNote")
         }
         .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 16)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { whole = $0 }
     }
 
     private func use() {

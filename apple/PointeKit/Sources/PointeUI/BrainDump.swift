@@ -289,14 +289,14 @@ struct BrainDumpReview: View {
                             busy = false
                         }
                     } label: {
-                        Text(sure ? BrainDumpCopy.sendSure : BrainDumpCopy.send)
+                        Text(sure ? Surface.pointer(BrainDumpCopy.sendSure) : BrainDumpCopy.send)
                             .font(.brand(.headline)).frame(maxWidth: .infinity).padding(.vertical, 6)
                     }
                     .buttonStyle(.brandPrimary).controlSize(.large)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orange, lineWidth: 2).padding(-4).opacity(sure ? 1 : 0))
                     .animation(.easeOut(duration: 0.15), value: sure)
                     .disabled(target == nil || busy)
-                    .accessibilityLabel(sure ? BrainDumpCopy.sendSure : "\(BrainDumpCopy.sendTo) \(target?.label ?? "")")
+                    .accessibilityLabel(sure ? Surface.pointer(BrainDumpCopy.sendSure) : "\(BrainDumpCopy.sendTo) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.send")
                     HStack(spacing: 8) {
                         quiet(BrainDumpCopy.addMore, id: "dump.more") { await more() }
@@ -322,6 +322,7 @@ struct BrainDumpReview: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("dump.review")
             }
+            .scrollCue()  // the actions under the prompt were cut by the sheet's bar with nothing to say there were more
             .sheetTitle(BrainDumpCopy.reviewTitle)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close", action: close).accessibilityIdentifier("dump.close") } }
         }

@@ -1,3 +1,4 @@
+import LocalAuthentication
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
@@ -29,6 +30,31 @@ enum Surface {
     /// which on the Mac is a click.
     static func shown(_ line: String) -> String {
         isMac ? line.replacingOccurrences(of: "Say yes or tap.", with: "Say yes or click.") : line
+    }
+
+    /// A line written for the phone (the page's words, or the Mac's own read-backs: "Say yes or tap."), as the Mac says
+    /// it: a pointer clicks.
+    static func pointer(_ line: String) -> String {
+        guard isMac else { return line }
+        return line.replacing(/\btap\b/, with: "click").replacing(/\bTap\b/, with: "Click")
+    }
+}
+
+/// What Approve says when the owner check did not let it through: before, it did nothing at all.
+enum OwnerCopy {
+    static let notChecked = "Not approved: Pointe could not check that it is you. Try again."
+    static let noPasscode = Surface.isMac ? "Not approved: this Mac has no password to check that it is you."
+                                          : "Not approved: this phone has no passcode, so Pointe cannot check that it is you. Set one in Settings."
+    static let noMatch = "Not approved: that did not match. Try again."
+
+    /// Nil when the person cancelled: they know why nothing happened.
+    static func refusal(_ code: LAError.Code?) -> String? {
+        switch code {
+        case .userCancel, .appCancel, .systemCancel, .userFallback: nil
+        case .passcodeNotSet: noPasscode
+        case .authenticationFailed: noMatch
+        default: notChecked
+        }
     }
 }
 
@@ -189,13 +215,22 @@ extension View {
 }
 
 extension ToolbarItemPlacement {
-    /// The leading edge of a sheet's bar. On the Mac a sheet's buttons sit at the bottom, and this is their leading side
-    /// without the cancel role: a cancellation action takes Escape, so Escape opened New session instead of closing.
+    /// The leading edge of a sheet's bar. On the Mac a sheet's buttons sit at the bottom, and its leading side is the
+    /// destructive one's place: the cancel side would make the button the sheet's Esc (Esc on Sessions opened New session).
     static var sheetLeading: ToolbarItemPlacement {
         #if os(macOS)
         .destructiveAction
         #else
         .topBarLeading
+        #endif
+    }
+
+    /// Done on a sheet whose only way out it is: on the Mac the cancel side, so Esc closes the sheet.
+    static var sheetDone: ToolbarItemPlacement {
+        #if os(macOS)
+        .cancellationAction
+        #else
+        .confirmationAction
         #endif
     }
 }

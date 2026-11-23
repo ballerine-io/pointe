@@ -86,8 +86,12 @@ For work on the app itself, `macos/build.sh --open` makes a Debug build in `maco
   `pointe key check` tries the key with one tiny live call; the app never sees a key.
 - **Phone** (Settings, or Call → Pair a Phone…): the paired phones, and Connect your phone, which shows the code the
   iPhone scans, as the page's Settings → Phone does.
-- **The Call menu** has a key for each: Sessions and Mode (⇧⌘S), Start a Meeting (⇧⌘M), Briefing (⇧⌘B), Open the page
-  (⇧⌘P). Esc closes a sheet.
+- **The Call menu** has a key for each: Mute (⇧⌘A, in Always on), Approve Request (⌘Y, with Touch ID or the password, as
+  the card's button) and Deny Request (⌘D) for the first card that waits, Sessions and Mode (⇧⌘S), Start a Meeting
+  (⇧⌘M), Briefing (⇧⌘B), Open the page (⇧⌘P). While a sheet is open the commands for the window wait for it to close.
+  Esc closes a sheet and the Type bar. Help, Pointe Help (⌘?) opens this page.
+- **Before Pointe runs**, the window is the setup guide; Settings… (⌘,) opens this Mac's own settings over it, and About
+  Pointe opens About.
 - **The call bubble** (menu or Settings): a small panel over other apps while a call is up, with the state, the talk
   mode and a talk button; if a call did not start, it says why. Click it to open the window; drag it anywhere, and it
   keeps the place. − makes it a small pill that opens out when the pointer is over it; × hides it ("Show Call Bubble

@@ -11,7 +11,7 @@ public final class MacSession: CallShell {
     public enum Phase: Sendable { case off, connecting, live, reconnecting }
     /// What the menu bar item shows beside the mark: never by colour alone.
     public enum Glyph: Sendable { case down, off, live, talking, speaking, needsYou }
-    public enum Command: Sendable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift }
+    public enum Command: Sendable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift, approve, deny }
 
     /// A session that waits for an answer, for the menu.
     public struct Waiting: Identifiable, Equatable, Sendable {
@@ -199,6 +199,8 @@ public final class MacSession: CallShell {
         case .machines: .machines
         case .phone: .phone
         case .nightShift: .nightShift
+        case .approve: .approve
+        case .deny: .deny
         }
         request = ShellRequest(id: requests, command: wanted)
     }
@@ -350,6 +352,8 @@ public struct MacSetupSheetView: View {
 /// The brand's colours and type, for what the Mac app draws itself (the bubble, the setup panel, its own settings).
 public enum PointeLook {
     public static var bg: Color { Brand.bg }
+    /// The brand's mark, as the call screen's header draws it.
+    public static var mark: Image { Image("ChorusMark", bundle: .module) }
     public static var card: Color { Brand.card }
     public static var raised: Color { Brand.raised }
     public static var group: Color { Brand.group }

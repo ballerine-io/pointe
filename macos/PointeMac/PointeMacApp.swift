@@ -28,40 +28,48 @@ struct PointeCommands: Commands {
     let model: AppModel
 
     var body: some Commands {
+        // A sheet over the window takes the window's commands: one asked for behind it opened nothing, or opened hidden.
+        let open = model.ready && !model.sheetUp
         CommandGroup(replacing: .appInfo) {
-            Button("About Pointe") { model.ask(.about) }
+            Button("About Pointe") { model.ask(.about) }.disabled(model.sheetUp)
         }
         CommandGroup(replacing: .appSettings) {
-            Button("Settings…") { model.ask(.settings) }.keyboardShortcut(",")
+            Button("Settings…") { model.ask(.settings) }.keyboardShortcut(",").disabled(model.sheetUp)
         }
         CommandGroup(replacing: .newItem) {
             Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
             Button(MacMenu.newSession) { model.ask(.newSession) }.keyboardShortcut("n")
-                .disabled(!model.ready)
+                .disabled(!open)
             Button(MacMenu.addSessions) { model.ask(.addSessions) }.keyboardShortcut("j", modifiers: [.command, .shift])
-                .disabled(!model.ready)
-        }
-        CommandGroup(replacing: .help) {
-            Button(MacMenu.help) { NSWorkspace.shared.open(MacMenu.helpURL) }.keyboardShortcut("?")
+                .disabled(!open)
         }
         CommandMenu("Call") {
             Button(MacMenu.title(model.session.phase == .off ? MacCopy.connect : MacCopy.hangUp)) { Task { await model.toggleCall() } }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(model.session.isDemo)
+            Button(model.session.muted ? MacMenu.unmute : MacMenu.mute) { model.session.toggleMute() }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
+                .disabled(!model.session.live || model.session.pushToTalk)
             Button(MacMenu.title(model.session.dumpLabel)) { model.ask(.brainDump) }
                 .keyboardShortcut("b")
-                .disabled(!model.session.live)
-            Button(MacMenu.type) { model.ask(.type) }.keyboardShortcut("t").disabled(!model.ready)
+                .disabled(!model.session.live || model.sheetUp)
+            Button(MacMenu.type) { model.ask(.type) }.keyboardShortcut("t").disabled(!open)
             Divider()
-            Button(MacMenu.sessions) { model.ask(.sessions) }.keyboardShortcut("s", modifiers: [.command, .shift]).disabled(!model.ready)
-            Button(MacMenu.meeting) { model.ask(.meeting) }.keyboardShortcut("m", modifiers: [.command, .shift]).disabled(!model.ready)
-            Button(MacMenu.briefing) { model.ask(.briefing) }.keyboardShortcut("b", modifiers: [.command, .shift]).disabled(!model.ready)
-            Button(MacMenu.nightShift) { model.ask(.nightShift) }.keyboardShortcut("n", modifiers: [.command, .shift]).disabled(!model.ready)
-            Button(MacMenu.machines) { model.ask(.machines) }.disabled(!model.ready)
-            Button(MacMenu.phone) { model.ask(.phone) }.disabled(!model.ready || model.session.isDemo)
+            Button(MacMenu.approve) { model.ask(.approve) }.keyboardShortcut("y").disabled(!open || model.session.waiting.isEmpty)
+            Button(MacMenu.deny) { model.ask(.deny) }.keyboardShortcut("d").disabled(!open || model.session.waiting.isEmpty)
+            Divider()
+            Button(MacMenu.sessions) { model.ask(.sessions) }.keyboardShortcut("s", modifiers: [.command, .shift]).disabled(!open)
+            Button(MacMenu.meeting) { model.ask(.meeting) }.keyboardShortcut("m", modifiers: [.command, .shift]).disabled(!open)
+            Button(MacMenu.briefing) { model.ask(.briefing) }.keyboardShortcut("b", modifiers: [.command, .shift]).disabled(!open)
+            Button(MacMenu.nightShift) { model.ask(.nightShift) }.keyboardShortcut("n", modifiers: [.command, .shift]).disabled(!open)
+            Button(MacMenu.machines) { model.ask(.machines) }.disabled(!open)
+            Button(MacMenu.phone) { model.ask(.phone) }.disabled(!open || model.session.isDemo)
             Divider()
             Button(MacMenu.title(MacCopy.openPage)) { model.openPage() }.keyboardShortcut("p", modifiers: [.command, .shift])
                 .disabled(model.daemon != .running)
+        }
+        CommandGroup(replacing: .help) {  // macOS's own item looked for a help book the app does not have
+            Button(MacMenu.help) { NSWorkspace.shared.open(MacMenu.helpURL) }.keyboardShortcut("?")
         }
     }
 }
@@ -77,6 +85,11 @@ enum MacMenu {
     static let nightShift = title(NightShiftCopy.title)
     static let machines = "Machines"
     static let phone = "Pair a Phone…"
+    /// The first waiting request's card, from the keyboard: Approve asks for Touch ID or the password, as its button does.
+    static let approve = "Approve Request"
+    static let deny = "Deny Request"
+    static let mute = "Mute"
+    static let unmute = "Unmute"
     static let help = "Pointe Help"
     /// Help → Pointe Help (⌘?): the Mac app's guide. Without it macOS said "Help isn't available for Pointe."
     static let helpURL = URL(string: "https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md")!

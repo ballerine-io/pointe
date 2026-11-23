@@ -252,9 +252,12 @@ struct BrandRowButtonStyle: ButtonStyle {
 }
 
 /// What a card holds when it may be long (a command, the cards over the bar): its own height up to a limit, and past that
-/// it scrolls in place, so what is under it (Approve, the mic) stays on screen.
+/// it scrolls in place, so what is under it (Approve, the mic) stays on screen. An edge with more past it fades, so a box
+/// cut short reads as one to scroll.
 struct FitScroll<Content: View>: View {
     let limit: CGFloat
+    /// Where it rests when it must scroll. The cards over the bar rest on their bottom: the answer buttons are there.
+    var anchor: UnitPoint = .top
     @ViewBuilder var content: Content
     @State private var height: CGFloat = 0
 
@@ -263,8 +266,8 @@ struct FitScroll<Content: View>: View {
             content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
-        .scrollIndicatorsFlash(trigger: height > limit)  // the cue that there is more: shown when it starts to scroll
-        .edgeFade(.vertical)  // and it stays: an edge with more beyond it fades instead of cutting a line through its letters
+        .defaultScrollAnchor(anchor)
+        .scrollCue()
         .frame(height: min(height, max(0, limit)))
     }
 }
@@ -303,6 +306,61 @@ struct EdgeFade: ViewModifier {
 
 extension View {
     func edgeFade(_ axis: Axis = .horizontal) -> some View { modifier(EdgeFade(axis: axis)) }
+}
+
+extension View {
+    /// On a ScrollView: an edge with more past it fades, and the indicators flash when that changes, so a box cut short
+    /// reads as one to scroll (a Mac hides its scroll bars until you scroll).
+    func scrollCue() -> some View { modifier(ScrollCue()) }
+}
+
+struct ScrollCue: ViewModifier {
+    @State private var more = ScrollMore()
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: ScrollMore.self) { ScrollMore(visible: $0.visibleRect, content: $0.contentSize) } action: { _, now in more = now }
+            .mask(ScrollMore.fade(more))
+            .scrollIndicatorsFlash(trigger: more)
+    }
+}
+
+/// Whether a scrolled box hides content above or below what shows.
+struct ScrollMore: Equatable {
+    var above = false
+    var below = false
+
+    init(above: Bool = false, below: Bool = false) { self.above = above; self.below = below }
+
+    init(visible: CGRect, content: CGSize) {
+        above = visible.minY > 1
+        below = visible.maxY < content.height - 1
+    }
+
+    /// Opaque where nothing is hidden; a hidden side fades out over its last points.
+    static func fade(_ more: ScrollMore, length: CGFloat = 22) -> some View {
+        VStack(spacing: 0) {
+            LinearGradient(colors: [.black.opacity(more.above ? 0.1 : 1), .black], startPoint: .top, endPoint: .bottom).frame(height: length)
+            Rectangle()
+            LinearGradient(colors: [.black, .black.opacity(more.below ? 0.1 : 1)], startPoint: .top, endPoint: .bottom).frame(height: length)
+        }
+    }
+}
+
+/// A panel between the header and the controls (drive mode): centred in the room it is given, and scrolled when that is
+/// less than it needs, so it never pushes the header under the status bar or the controls off the screen.
+struct StageScroll<Content: View>: View {
+    @ViewBuilder var content: Content
+    @State private var room: CGFloat = 0
+
+    var body: some View {
+        ScrollView {
+            content.frame(maxWidth: .infinity, minHeight: room)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollCue()
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { room = $0 }
+    }
 }
 
 /// A section under a kicker.
@@ -508,6 +566,12 @@ struct BrandHeader: View {
 
 /// The version, always on screen but quiet: "1.2.0", or "1.2.0 · Mac 1.1.0" when the Mac runs another build, so an
 /// update that landed on one side only is visible at a glance.
+extension String {
+    /// A slash command kept whole on screen: a line may break after "/", which left "/" at a line's end and
+    /// "pointe:voice" on the next. The word joiner is invisible and is not read out.
+    public var unbrokenCommands: String { replacingOccurrences(of: "/pointe:", with: "/\u{2060}pointe:") }
+}
+
 enum AppVersion {
     static var app: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"

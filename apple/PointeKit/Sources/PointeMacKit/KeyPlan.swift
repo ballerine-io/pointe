@@ -17,6 +17,8 @@ public enum KeyCopy {
     public static let setupLabel = "Setup"
     public static let noSetup = "None chosen"
     public static let noSetupHow = "None chosen, so each role takes the first vendor with a key."
+    /// Before "Every role is filled." with no setup chosen: the picker beside it says None chosen.
+    public static let noSetupHead = "Setup: \(noSetup), so Pointe uses the keys you have. "
 }
 
 /// One row of `setups.SETUPS`, as the Mac app's menu shows it; tests/test_setups.py holds this list to it.
@@ -104,7 +106,7 @@ public struct KeyPlan: Equatable, Sendable {
 
     /// The one line above the keys: all filled, nothing yet, or what is missing and the key that fixes it.
     public var line: String {
-        let head = setup.map { "Setup: \($0.name). " } ?? ""
+        let head = setup.map { "Setup: \($0.name). " } ?? (ready ? KeyCopy.noSetupHead : "")
         if setup != nil, !needed.isEmpty {
             return head + "It needs \(Self.join(needed.map { Self.article($0.shortName) }, "and")) key: pointe key \(needed[0].rawValue)."
         }

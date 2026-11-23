@@ -310,6 +310,12 @@ final class AppModel {
         if ready { session.ask(command) } else { setupSheet = MacSetupSheet(command) }
     }
 
+    /// A sheet is over the main window (`Windows`): the menus' commands for the window wait until it closes.
+    var sheetUp = false
+
+    /// The setup guide has no call screen to open a sheet from: Settings and About open over the guide instead.
+    static func setupAnswers(_ command: MacSession.Command) -> Bool { MacSetupSheet(command) != nil }
+
     func openMicrophoneSettings() {
         SystemSettings.openMicrophone()
     }

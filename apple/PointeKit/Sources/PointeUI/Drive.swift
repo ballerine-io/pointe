@@ -95,45 +95,36 @@ struct DriveScreen: View {
     }
 
     var body: some View {
-        // The words scroll when the room is short (a small phone, large type) and are never cut; I've stopped stays in
-        // view under them. A stack that did not fit pushed the header under the status bar and the bar off the screen.
-        VStack(spacing: 14) {
-            GeometryReader { room in
-                ScrollView {
-                    VStack(spacing: 14) {
-                        Label(DriveCopy.title, systemImage: "car.fill")
-                            .font(.brand(.caption, .semibold)).kerning(1.4).foregroundStyle(Brand.muted).textCase(.uppercase)
-                        Text(DriveCopy.line(status: status, speaking: speaking, hearing: !(status?.hearing ?? "").isEmpty))
-                            .font(.display(36)).multilineTextAlignment(.center)
-                            .minimumScaleFactor(0.6).lineLimit(2)
-                            .contentTransition(.opacity)
-                            .accessibilityIdentifier("driveLine")
-                        if !caption.isEmpty {
-                            Text(caption).font(.brand(.title3)).foregroundStyle(Brand.muted).multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityIdentifier("driveCaption")
-                        }
-                        Text(DriveCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted).multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier("driveNote")
-                    }
-                    .frame(maxWidth: .infinity, minHeight: room.size.height)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollIndicators(.visible)
-                .scrollIndicatorsFlash(onAppear: true)  // the cue that more words are below
-                .edgeFade(.vertical)  // and the last line fades above I've stopped instead of being cut through its letters
+        StageScroll { lines }
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, lineWidth: 1))
+            .padding(.horizontal, 14).padding(.vertical, 8)
+    }
+
+    private var lines: some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 0)
+            Label(DriveCopy.title, systemImage: "car.fill")
+                .font(.brand(.caption, .semibold)).kerning(1.4).foregroundStyle(Brand.muted).textCase(.uppercase)
+            Text(DriveCopy.line(status: status, speaking: speaking, hearing: !(status?.hearing ?? "").isEmpty))
+                .font(.display(36)).multilineTextAlignment(.center)
+                .minimumScaleFactor(0.6).lineLimit(2)
+                .contentTransition(.opacity)
+                .accessibilityIdentifier("driveLine")
+            if !caption.isEmpty {
+                Text(caption).font(.brand(.title3)).foregroundStyle(Brand.muted).multilineTextAlignment(.center).lineLimit(3)
+                    .accessibilityIdentifier("driveCaption")
             }
+            Text(DriveCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted).multilineTextAlignment(.center)
             Button(action: stop) {
                 Text(DriveCopy.stop).font(.brand(.title3, .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)
             }
             .buttonStyle(.brandQuiet).controlSize(.large)
             .accessibilityIdentifier("driveStop")
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24).padding(.vertical, 22)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 10).padding(.vertical, 16)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // already the largest type in the app, set to be read at a glance
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, lineWidth: 1).padding(.horizontal, 14).padding(.vertical, 8))
     }
 }
 
@@ -156,8 +147,8 @@ struct DriveRequestCard: View {
         .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // the drive screen's own largest type: past it the card took the screen
         .sensoryFeedback(.warning, trigger: session.request_id)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // as the drive screen over it: larger, it left the screen no room
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("driveRequest")
     }

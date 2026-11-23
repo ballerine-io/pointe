@@ -75,6 +75,11 @@ final class Windows: NSObject, NSWindowDelegate {
             if Self.keepsFrames { window.setFrameAutosaveName("pointe.main") }
             window.delegate = self
             main = window
+            for (name, up) in [(NSWindow.willBeginSheetNotification, true), (NSWindow.didEndSheetNotification, false)] {
+                observers.append(NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { _ in
+                    MainActor.assumeIsolated { AppModel.shared.sheetUp = up }
+                })
+            }
             watchSpace()
         }
         activate()

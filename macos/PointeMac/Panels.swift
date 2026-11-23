@@ -22,6 +22,17 @@ struct MainWindow: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
+            if model.ready, let note = model.versionNote {
+                Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
+                    .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
+                    .padding(.vertical, 6)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier("versionNote")
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 18)
+            }
+        }
+        .overlay(alignment: .topTrailing) {  // in the title bar's row, beside nothing: a row of its own floated over the header
             if model.ready {
                 // One band: the version note takes what the talk mode leaves beside it, so the mode keeps its place at the
                 // trailing edge and the note adds a line only when it wraps.
@@ -131,3 +142,4 @@ struct SetupPanel: View {
         .accessibilityElement(children: .contain)
     }
 }
+

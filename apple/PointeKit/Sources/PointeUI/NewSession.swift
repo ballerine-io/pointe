@@ -159,7 +159,7 @@ struct StartCard: View {
         AnswersInView {
             Label { Text(NewSessionCopy.confirmTitle) } icon: { Image(systemName: "plus.circle.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
-            Text(Surface.shown(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
+            Text(Surface.pointer(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("startLine")
         } answers: {
             HStack(spacing: 10) {

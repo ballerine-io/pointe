@@ -75,12 +75,86 @@ final class LayoutUITests: XCTestCase {
         for (a, b) in zip(controls, controls.dropFirst()) {
             XCTAssertLessThanOrEqual(a.maxX, b.minX + 0.5, "the bar's controls do not run into each other")
         }
-        // The card is taller than the room left: it scrolls above the bar instead of pushing the header off the screen.
-        XCTAssertTrue(app.buttons["Approve"].exists && app.buttons["Deny"].exists, "the request is there")
-        text(app, "needs approval").swipeUp()
-        XCTAssertTrue(app.buttons["Approve"].isHittable, "and one swipe on the card brings Approve up")
-        XCTAssertLessThanOrEqual(app.buttons["Approve"].frame.maxY, app.buttons["micRing"].frame.minY, "above the bar")
-        onScreen(app, app.buttons["Settings"], "the menu, after the swipe")
+        // The card is taller than the room left: it scrolls above the bar, resting on its buttons, and never pushes the
+        // header off the screen. A swipe to find Approve was QA round 5's finding 1.
+        answerInReach(app)
+        onScreen(app, app.buttons["Settings"], "the menu")
+    }
+
+    private func answerInReach(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        for name in ["Approve", "Deny"] {
+            XCTAssertTrue(app.buttons[name].waitForExistence(timeout: 5), "\(name) is there", file: file, line: line)
+            onScreen(app, app.buttons[name], name, file: file, line: line)
+            XCTAssertTrue(app.buttons[name].isHittable, "\(name) takes a tap without a swipe", file: file, line: line)
+            XCTAssertLessThanOrEqual(app.buttons[name].frame.maxY, app.buttons["micRing"].frame.minY, "\(name) is above the bar",
+                                     file: file, line: line)
+        }
+    }
+
+    /// At accessibility XL every card that answers keeps its buttons in reach: the request, a long one, and a conflict.
+    func testTheAnswerButtonsNeedNoSwipeAtAccessibilityXL() {
+        for screen in ["request", "longRequest", "longNames"] {
+            let app = launch(screen, ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"])
+            answerInReach(app)
+            onScreen(app, app.buttons["Settings"], "the menu, on \(screen)")
+        }
+        let app = launch("conflict", ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"])
+        let dismiss = app.buttons["Dismiss"]
+        XCTAssertTrue(dismiss.waitForExistence(timeout: 5))
+        onScreen(app, dismiss, "the conflict's Dismiss")
+        XCTAssertTrue(dismiss.isHittable, "Dismiss takes a tap without a swipe")
+    }
+
+    /// Drive mode at the largest type: the header stays under the status bar and the bar stays on the screen. Before,
+    /// Hang up was at y=787 on a 667-point screen and no swipe reached it.
+    func testDriveModeKeepsTheHeaderAndTheBarOnTheScreenAtLargeType() {
+        for size in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXL", "UICTContentSizeCategoryAccessibilityXXXL"] {
+            let app = launch("drive", ["-UIPreferredContentSizeCategoryName", size])
+            XCTAssertTrue(app.descendants(matching: .any)["driveLine"].firstMatch.waitForExistence(timeout: 10))
+            onScreen(app, app.buttons["Settings"], "the menu at \(size)")
+            onScreen(app, app.buttons["driveButton"], "the Drive switch at \(size)")
+            for name in ["hangUp", "micRing", "Sessions"] {
+                onScreen(app, app.buttons[name], "\(name) at \(size)")
+                XCTAssertTrue(app.buttons[name].isHittable, "\(name) takes a tap at \(size)")
+            }
+        }
+    }
+
+    /// The empty stage at accessibility XL with the Mac unreachable: drawn in the stage, not over the header, and Try
+    /// again in reach.
+    func testMacNotReachableStaysInTheStageAtAccessibilityXL() {
+        let app = XCUIApplication()
+        app.launchEnvironment["POINTE_PAIR"] = "pointe://pair?v=1&host=127.0.0.1&port=1&fp=\(String(repeating: "ab", count: 32))&key=\(String(repeating: "k", count: 40))"
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        let button = app.buttons["connectButton"]
+        XCTAssertTrue(NSPredicate(format: "label == %@", "Try again").wait(for: button, timeout: 20))
+        onScreen(app, button, "Try again")
+        XCTAssertTrue(button.isHittable, "Try again takes a tap")
+        onScreen(app, app.buttons["Settings"], "the menu")
+        let line = app.descendants(matching: .any)["statusLine"].firstMatch
+        if line.exists, app.staticTexts["connectTitle"].isHittable {
+            XCTAssertGreaterThanOrEqual(app.staticTexts["connectTitle"].frame.minY, app.buttons["Settings"].frame.maxY, "the title is under the header")
+        }
+        XCTAssertFalse(app.buttons["Type"].isEnabled, "with no call, Type waits for one")
+    }
+
+    /// The pairing screen at the largest type scrolls: Pair and Try a demo were below the screen, out of reach, and the
+    /// demo is App Review's only way in.
+    func testThePairingScreenScrollsToItsButtonsAtTheLargestType() {
+        let app = XCUIApplication()
+        app.launchEnvironment["POINTE_FORGET"] = "1"
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        let demo = app.buttons["tryDemo"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 15), "the pairing screen")
+        let bottom = app.windows.firstMatch.frame.maxY
+        for _ in 0..<6 where !(demo.isHittable && demo.frame.maxY <= bottom) { app.swipeUp(velocity: .slow) }
+        XCTAssertTrue(demo.isHittable, "Try a demo is reached by scrolling")
+        onScreen(app, demo, "Try a demo")
+        XCTAssertTrue(app.buttons["Pair"].exists)
+        demo.tap()
+        XCTAssertTrue(app.buttons["micRing"].waitForExistence(timeout: 10), "and it opens the demo call")
     }
 
     /// At large type the command's box gives up its height first: Deny and Approve are on the screen without a scroll.

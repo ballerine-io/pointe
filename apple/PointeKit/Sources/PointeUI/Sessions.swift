@@ -243,7 +243,7 @@ struct SessionsSheet: View {
                         Button(AddSessionsCopy.title) { showAddSessions = true }.accessibilityIdentifier("addSessions")
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .sheetDone) { Button("Done") { dismiss() } }
             }
             .sheet(isPresented: $showNewSession) {
                 if let starter {
@@ -308,7 +308,7 @@ struct SessionsSheet: View {
                 } else {
                     KickerSection("On the voice") {
                         if (status?.sessions ?? []).isEmpty {
-                            Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.").foregroundStyle(Brand.muted)
+                            Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.".unbrokenCommands).foregroundStyle(Brand.muted)
                         }
                         rows(status?.sessions ?? [])
                         startingRows
@@ -403,7 +403,7 @@ struct SessionsSheet: View {
         Section {
         } footer: {
             Group {
-                Text("\(Surface.isMac ? "Right-click" : "Swipe") a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.")
+                Text("\(Surface.isMac ? "Right-click" : "Swipe") a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.".unbrokenCommands)
             }.brandFootnote()
         }
     }

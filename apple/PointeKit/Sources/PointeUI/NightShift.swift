@@ -31,8 +31,10 @@ struct NightShiftSheet: View {
     var body: some View {
         NavigationStack {
             BrandForm {
-                Section {} header: {  // a header keeps the form's text inset: a zero-inset row clipped the first letters
-                    Text(NightShiftCopy.lede).brandFootnote().accessibilityIdentifier("nightShiftLede")
+                Section {
+                    Text(NightShiftCopy.lede).brandFootnote().accessibilityIdentifier("nightShiftLede").fixedSize(horizontal: false, vertical: true)
+                        // In line with the section titles below. With no inset the row's clip cut its first letters ("ive").
+                        .listRowBackground(Color.clear).listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 4, trailing: 20))
                 }
                 if let options { fields(options) }
                 if let problem {
@@ -220,7 +222,7 @@ struct ShiftCard: View {
         AnswersInView {
             Label { Text(NightShiftCopy.confirmTitle) } icon: { Image(systemName: "moon.stars.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
-            Text(Surface.shown(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
+            Text(Surface.pointer(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("nightShiftLine")
         } answers: {
             HStack(spacing: 10) {
