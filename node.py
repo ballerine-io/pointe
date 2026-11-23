@@ -481,6 +481,7 @@ class Node:
                     self._closed(ws)
                     return False
                 welcomed = True
+                self._hub_named(config, challenge["hub"].get("name"))
                 await self._welcomed(ws, welcome)
                 watchdog = asyncio.create_task(self._watchdog(ws))
                 try:
@@ -504,6 +505,19 @@ class Node:
         if self.link_error:
             logger.info(f"link: {self.link_error}")
         return welcomed
+
+    def _hub_named(self, config: dict, name) -> None:
+        """The hub says its name at each link (its certificate checked first): a renamed hub is called by its new name
+        here too, in pointe node status, pointe open and node leave. node.json was written once, at the join."""
+        name = " ".join(str(name or "").split())[:80]
+        if not name or name == config["hub"].get("name"):
+            return
+        logger.info(f"link: the hub {config['hub'].get('name')} is now called {name}")
+        config["hub"]["name"] = name
+        current = _read_json(self.state / "node.json")
+        if (current.get("hub") or {}).get("id") == config["hub"].get("id"):
+            current["hub"]["name"] = name
+            _write_private(self.state / "node.json", json.dumps(current) + "\n")  # one line, as node_cli writes it
 
     @staticmethod
     async def _receive(ws, timeout: float) -> dict | None:

@@ -271,6 +271,29 @@ def test_the_node_authenticates_with_an_hmac_and_never_sends_its_key(tmp_path):
     run(scenario, tmp_path)
 
 
+def test_a_renamed_hub_is_called_by_its_new_name_after_the_next_link(tmp_path):
+    """node.json was written once, at the join: after the hub was renamed, pointe node status, pointe open and node leave
+    kept its old name."""
+    async def go():
+        hub = FakeHub(tmp_path)
+        await hub.start()
+        state = tmp_path / "state"
+        _pair(state, hub)  # paired while it was called studio
+        hub.HUB = {**FakeHub.HUB, "name": "atelier"}  # then renamed: config.json "machine"
+        (state / "token").write_text("t0k3n")
+        n = node.Node(state, port=0)
+        await n.start()
+        try:
+            await asyncio.wait_for(n.linked.wait(), 5)
+        finally:
+            await n.stop()
+            await hub.stop()
+        return json.loads((state / "node.json").read_text())
+
+    saved = asyncio.run(go())
+    assert saved["hub"]["name"] == "atelier" and saved["hub"]["id"] == FakeHub.HUB["id"] and saved["name"] == "devbox"
+
+
 def test_a_hub_whose_certificate_is_not_the_pinned_one_gets_nothing(tmp_path):
     async def go():
         hub = FakeHub(tmp_path, wrong_cert=True)
