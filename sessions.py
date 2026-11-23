@@ -54,7 +54,9 @@ class Session:
     permission_cut: bool = False
     permission_spoken: str = ""  # the exact words a yes approves; empty: only the terminal can approve
     permission_answer: object = None  # a future, while Claude Code's PermissionRequest hook waits on the voice
-    permission_full: str = ""
+    permission_full: str = ""  # what a tap approves: the tool, then its input, never the model's description
+    permission_note: str = ""  # the session model's description: one line, capped, shown apart as its note
+    permission_truncated: bool = False  # the preview came cut short: a tap may deny it, never approve it
     permission_since: float | None = None  # when it arrived: a background session can wait on it for long
     permission_until: float = 0.0  # when the voice lets go of it: far off for a session on a night shift (nightshift.PARK_SECS)
     last_delegation_at: float = 0.0
@@ -96,6 +98,7 @@ class Session:
 
 PERSISTED = ("id", "name", "named_by", "cwd", "pid", "transcript", "inbox_socket", "inbox_token", "channel_url",
              "permission_id", "permission_text", "permission_since", "permission_cut", "permission_full", "permission_spoken",
+             "permission_note", "permission_truncated",
              "harness", "home", "harness_data", "machine")  # Claude Code still waits after a restart
 MAX_DEPARTED = 20
 

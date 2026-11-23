@@ -147,8 +147,22 @@ def _hidden(text: str) -> bool:
                for c in text)
 
 
+def visible(value):
+    """Text, or a tool input's strings, with every format and control character but a line break and a tab written as
+    \\uXXXX: a bidi override or a zero-width space on an approval card shows what runs reordered or as a look-alike."""
+    if isinstance(value, str):
+        return "".join(c if c in "\n\t" or not unicodedata.category(c).startswith("C") else f"\\u{ord(c):04x}"
+                       for c in value)
+    if isinstance(value, dict):
+        return {visible(k): visible(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [visible(v) for v in value]
+    return value
+
+
 def place(path: str, cwd: str | None) -> str:
-    """Plainly inside the project: its name. Anywhere else, or through a hidden folder: the whole path."""
+    """Plainly inside the project: its name. Anywhere else, through a hidden folder, or through a symlink that leaves the
+    project: the whole path."""
     if ":" in path or "@" in path:
         return path  # host:path is another machine
     full = os.path.normpath(os.path.join(cwd or "/", os.path.expanduser(path))) if cwd else None
@@ -157,9 +171,16 @@ def place(path: str, cwd: str | None) -> str:
     inside = os.path.relpath(full, cwd)
     if inside.startswith("..") or path.startswith(("~", "/")) and not full.startswith(cwd.rstrip("/") + "/"):
         return full if not path.startswith("~") else path
+    # Through a symlink (a cloned repo's docs -> ~/.ssh), where it really goes. Run on the disk the session runs on: a
+    # node builds its own read-out, and the hub never rebuilds one for a remote session.
+    real = os.path.realpath(full)
+    real_inside = os.path.relpath(real, os.path.realpath(cwd))
+    if real_inside.startswith(".."):
+        return real
+    for rel in (inside, real_inside):
+        if any(p.startswith(".") and p not in (".", "..") or p == "node_modules" for p in rel.split(os.sep)):
+            return rel  # .git/hooks/x and node_modules/.bin/x run code: say where
     parts = inside.split(os.sep)
-    if any(p.startswith(".") and p not in (".", "..") or p == "node_modules" for p in parts):
-        return inside  # .git/hooks/x and node_modules/.bin/x run code: say where
     return parts[-1] if inside != "." else "."
 
 
@@ -227,6 +248,7 @@ def spoken(command: str, cwd: str | None) -> str | None:
     then = None
     here = cwd
     echoed: list[str] = []
+    positionals, pattern_given = 0, False  # grep and rg: the first positional is the pattern unless -e gave one
 
     def at(path: str) -> str:
         if here == cwd or path.startswith(("/", "~")) or not here:
@@ -234,13 +256,19 @@ def spoken(command: str, cwd: str | None) -> str | None:
         return place(os.path.join(here, path), cwd)
   # what to do with this word, set by the flag before it
     for token, was_quoted in zip(tokens, quoted):
+        if was_quoted and token.startswith("-"):
+            return None  # a flag in quotes is still a flag: never "some text"
         if then:
+            if re.fullmatch(r"[|&;<>]+", token) and not was_quoted or token.startswith("-"):
+                return None  # "git commit -m ; rm x": the flag's value is missing, and what follows is not its value
             if then == "say":
                 if was_quoted or not _WORD.fullmatch(token):
                     return None
                 words.append(at(token))
             then = None
             continue
+        if was_quoted and _WORD.fullmatch(token) and not token.startswith("~") and not (program is None and "=" in token):
+            was_quoted = False  # 'main' is main: said, and checked, as if unquoted ('~/x' is a folder named ~, not home)
         if token in _JOIN and not was_quoted:
             if redirect or program is None or program == "cd" and cd_to is None:
                 return None
@@ -250,6 +278,7 @@ def spoken(command: str, cwd: str | None) -> str | None:
             echoed = []  # echo printing to the screen: not said
             words.append(_JOIN[token])
             program = sub = None
+            positionals, pattern_given = 0, False
             continue
         if token in _REDIRECT and not was_quoted:
             if program is None or redirect:
@@ -346,6 +375,8 @@ def spoken(command: str, cwd: str | None) -> str | None:
             if known is None:
                 return None
             said, then = known
+            if program in ("grep", "rg") and token.split("=", 1)[0] in ("-e", "--regexp"):
+                pattern_given = True  # the positionals are all files now
             if said:
                 words.append(said)
             continue
@@ -359,7 +390,10 @@ def spoken(command: str, cwd: str | None) -> str | None:
             cd_to = token
         if program in ("npm", "pnpm", "yarn") and sub == "install" and re.search(r"[/:@]", token):
             return None  # owner/repo, git URLs and scoped names install other people's code with its scripts
+        positionals += 1
         if was_quoted:
+            if program not in ("grep", "rg") or positionals > 1 or pattern_given:
+                return None  # a quoted path, URL, ref or target is never "some text": only a search pattern is
             words.append("some text")
         elif not _WORD.fullmatch(token):
             return None

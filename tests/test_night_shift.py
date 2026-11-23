@@ -858,7 +858,7 @@ def test_a_request_from_a_shift_session_is_held_unanswered_and_written_down_word
     assert left > ns.PARK_SECS - 60  # held for the night, not for 280 seconds
     (entry,) = d.NIGHT.current.ledger()["blocked"]
     assert entry["request_id"] == request_id and entry["waits_on"] == "your approval"
-    assert entry["request"] == 'Bash: push the branch\n{"command": "git push origin retry-work", "description": "push the branch"}'
+    assert entry["request"] == 'Bash\n{"command": "git push origin retry-work"}'  # what runs; never the model's description
     assert night.sent == [] and d.NIGHT.current.fronts[0].state == "waiting"
 
 

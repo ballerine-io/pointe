@@ -50,7 +50,10 @@ _GIT_REFUSED = {
 }
 # Options before the subcommand (-c config, -C dir, --git-dir), aliases, abbreviated (--forc) and bundled (-Af) flags
 # never reach this check: none is in _SUBS["git"] or in readout's exact-token flag list, so they are never read out.
-_CURL_REFUSED = {"-X", "--request", "-d", "--data", "-o", "-O", "--output", "-T", "--upload-file", "-F", "--form"}
+_CURL_REFUSED = {"-X", "--request", "-d", "--data", "--data-binary", "--data-raw", "--data-urlencode", "--json", "-o", "-O",
+                 "--output", "-T", "--upload-file", "-F", "--form", "-K", "--config"}
+_GIT_RUNS = {"--upload-pack", "--receive-pack", "--exec", "-c"}  # run a program or set config: refused on every subcommand
+_ONE_FILE = {"uniq"}  # a second positional is the file it writes
 _FILE_TOOLS = {"Edit", "MultiEdit", "NotebookEdit", "Write"}
 
 
@@ -88,6 +91,25 @@ def _segments(command: str) -> list[list[str]] | None:
     return segments
 
 
+def _flags_known(program: str, sub: str | None, args: list[str]) -> bool:
+    """Every flag is one the read-out's own table knows for this program (readout._flag): an allowlist, so a flag nobody
+    listed waits for a tap. The value a known flag takes is skipped, as the read-out skips it."""
+    skip = False
+    for word in args:
+        if skip:
+            skip = False
+            continue
+        if not word.startswith("-") or word == "-":
+            continue
+        if word.split("=", 1)[0] in (_GIT_RUNS if program == "git" else ()):
+            return False
+        known = readout._flag(program, sub, word, lambda path: path) if program in readout._PROGRAMS or program == "git" else None
+        if known is None:
+            return False
+        skip = known[1] is not None
+    return True
+
+
 def _command_safe(words: list[str]) -> bool:
     while words and re.fullmatch(r"[A-Za-z_]\w*=\S*", words[0]):
         words = words[1:]  # "CI=1 pytest": readout already allowed only harmless variables
@@ -99,16 +121,22 @@ def _command_safe(words: list[str]) -> bool:
             return False
     program = words[0]
     if program in ("python", "python3"):  # readout allows only "python -m pytest"
-        return words[1:3] == ["-m", "pytest"]
+        return words[1:3] == ["-m", "pytest"] and _flags_known("pytest", None, words[3:])
     if program == "curl":
-        return not any(w.split("=", 1)[0] in _CURL_REFUSED for w in words[1:])
+        return not any(w.split("=", 1)[0] in _CURL_REFUSED for w in words[1:]) and _flags_known("curl", None, words[1:])
+    if program in ("echo", "sed"):
+        return True  # echo only prints (a redirect never gets here); the read-out allows sed only as "sed -n 'Np' file"
     if program in _READS:
-        return True
+        if program in _ONE_FILE and len([w for w in words[1:] if not w.startswith("-") or w == "-"]) > 1:
+            return False  # uniq in out: out is overwritten
+        return _flags_known(program, None, words[1:])
     if program not in _SUBS or len(words) < 2 or words[1] not in _SUBS[program]:
         return False  # rm, mv, cp, make, gh, git reset/clean/rebase/checkout/stash..., npm run/install
     if program != "git":
-        return True
+        return _flags_known(program, words[1], words[2:])
     sub, rest = words[1], words[2:]
+    if not _flags_known("git", sub, rest):
+        return False
     if any(w.split("=", 1)[0] in _GIT_REFUSED.get(sub, ()) for w in rest):
         return False
     if sub == "push" and any(w.startswith("+") or ":" in w for w in rest if not w.startswith("-")):

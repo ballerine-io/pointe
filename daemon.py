@@ -89,6 +89,7 @@ from brief import (
 from brief import parse as parse_reply
 from echo import AudioClock, EchoGuard, LevelGate, lone_stop, spoken_form, words as echo_words
 import phone
+import readout
 from readout import mask
 from guards import (relays_approval, remote_readable, 
     JsonPosts,
@@ -379,6 +380,7 @@ EARLY_YES_PROMPTS = 2  # yeses refused for coming too early, per request, that t
 KEEP_WINDOW = "keep-window"  # a line about the request that neither reads it out nor takes the user away from it
 UPDATE_POLL_SECS = 0.1  # how often queued updates look for a gap in the conversation
 PERMISSION_VOICE_CHARS = 500
+REQUEST_NOTE_CHARS = 200  # the agent's note on an approval card: one line, this long at most
 CHECK_TIMEOUT_SECS = 5.0  # a stuck Flash-Lite call must not freeze the voice
 REPLY_WAIT_SECS = 4.0  # how long a reply the bot was asked for may take to start before held speech goes anyway
 NUDGE_CONNECT_GRACE_SECS = 30.0
@@ -2060,6 +2062,7 @@ class State:
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
     meeting_may_speak_until: float = 0.0  # in participating, the room hears the bot only inside this window
+    meeting_asked: tuple[float, str] = (0.0, "")  # (when, words): the owner's last question to Pointe in a meeting
     # (when, text): what the bot said lately, in a meeting or just before one (its echo lands in the next meeting's stream)
     bot_spoke: deque = field(default_factory=lambda: deque(maxlen=8))
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
@@ -4307,6 +4310,7 @@ async def _meeting_lookup(note_id: int, session_name: str, question: str) -> Non
     if not answer:
         NOTES.add("answer", f"Could not look it up in {target.name}.", session=target.name, dedup=False, meeting=meeting)
         return
+    answer = mask(answer)
     NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta={"question_id": note_id}, dedup=False,
               meeting=meeting)
     if note is not None:
@@ -4321,6 +4325,8 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
         return
     cmd, args = meetings.command(words)
     logger.info(f"meeting command: {cmd}")  # the owner's command kind only
+    if cmd in ("think", "ask", "finish"):
+        state.meeting_asked = (time.time(), words)  # a look-up the reply makes must name a session in these words
     if cmd == "end":
         await end_meeting()
     elif cmd == "mode":
@@ -4414,6 +4420,7 @@ async def _meeting_session_question(m, target, question: str, aloud: bool) -> No
     if not answer:
         NOTES.add("answer", f"Could not look it up in {target.name}.", session=target.name, dedup=False, meeting=m.id)
         return
+    answer = mask(answer)  # said to the room and written down: as _ask_copy's
     NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta={"question": question[:300]},
               dedup=False, meeting=m.id)
     if aloud and state.meeting is m and m.mode == "participating":
@@ -6406,6 +6413,12 @@ async def ask_about_session(params: FunctionCallParams):
     if target is None:
         await params.result_callback({"error": error})
         return
+    if state.meeting is not None:  # the room's words reach this turn as data: only the owner's own may pick the session
+        when, words = state.meeting_asked
+        if time.time() - when > MEETING_REPLY_SECS or target not in named_sessions(words, list(REGISTRY.sessions.values())):
+            await params.result_callback({"error": f"In a meeting, look up a session only when the owner's own question "
+                                                   f"names it; they did not name {target.name}."})
+            return
     state.thread = (target.id, time.time())  # asking about a session is talking about it
     question = params.arguments.get("question", "")
     if COPY_SESSIONS and _capabilities(target)["side_questions"] and not quote_intent(question) and not quote_intent(state.last_utterance):
@@ -6431,6 +6444,7 @@ async def _ask_copy(target: Session, question: str) -> None:
     if answer is None:  # a session in the middle of a tool call may not resume: the record is the fallback
         answer = (await _from_record(target, question)).get("answer") or "I could not get an answer."
     if state.meeting is not None:  # in a meeting the answer is written; said only in participating, where the owner asked
+        answer = mask(answer)  # the room, the mouth vendor and the notes: a copy can read files, so its answer is masked
         NOTES.add("answer", f"{target.name}: {answer}", session=target.name, dedup=False)
         if state.meeting.mode == "participating":
             await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; "
@@ -6848,7 +6862,7 @@ def remote_resolved(session: Session, request_id: str, how: str) -> None:
     if session.permission_id != request_id:
         return
     if how == "timeout" and current_mode().holds_news:  # as _hold_one says a local one's, at the hand-off
-        what = mask((session.permission_full or "").split("\n")[0])[:120]  # said aloud later: the one credential rule
+        what = mask(" ".join(x for x in ((session.permission_full or "").split("\n")[0], session.permission_note) if x))[:120]  # said aloud later: the one credential rule
         state.monologue_held.append((f"[{session.name}: its approval request waited during the user's brain dump, "
                                      f"then went back to its terminal] {what}", True))
     session.permission_id, session.permission_since = None, None
@@ -6950,7 +6964,7 @@ async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview:
     answer = asyncio.get_running_loop().create_future()
     session.permission_answer = answer
     request_id = secrets.token_hex(4)
-    await _put_permission(session, request_id, tool_name, str(tool_input.get("description") or "use this tool"), preview)
+    await _put_permission(session, request_id, tool_name, str(tool_input.get("description") or ""), preview)
     try:
         while time.time() < deadline and not answer.done():
             await asyncio.wait([answer], timeout=1.0)
@@ -6999,8 +7013,17 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     session.permission_since = time.time()
     session.permission_cut = not session.permission_spoken  # a yes must not approve what was never read out
     cut = " [cannot be read out exactly: a yes will not count here; it waits for a tap on the page or phone, or the terminal]" if session.permission_cut else ""
-    session.permission_text = f"[permission request] {tool_name}: {description}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
-    session.permission_full = f"{tool_name}: {description}\n{preview}"
+    session.permission_text = f"[permission request] {tool_name}: {description or 'use this tool'}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
+    # The card (page, apps, night ledger): what runs first and alone, so the session model's description can never stand
+    # in for it or push it out of view; that description is a capped line apart, shown as the agent's note. Hidden
+    # characters are written as escapes. A preview that does not parse was cut: a tap may deny it, never approve it.
+    # Escaped inside the input, not in its JSON: an app decodes the JSON, and "\u202e" there is U+202E again.
+    session.permission_truncated = not isinstance(tool_input, dict)
+    runs = (readout.visible(preview) if session.permission_truncated else
+            json.dumps(readout.visible({k: v for k, v in tool_input.items() if k != "description"}), ensure_ascii=False))
+    session.permission_full = f"{readout.visible(tool_name)}\n{runs}"
+    note = " ".join(str(description or "").split())
+    session.permission_note = readout.visible(note if len(note) <= REQUEST_NOTE_CHARS else note[:REQUEST_NOTE_CHARS] + "…")
     alerts.note_request(session.id, request_id, tool_name, readable)
     state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine))
     REGISTRY.save()
@@ -7150,6 +7173,8 @@ async def approve(request: Request):
         raise HTTPException(status_code=409, detail="that request is no longer pending")
     if not online(session):
         raise HTTPException(status_code=409, detail=f"{session.machine} is offline: answer it in its terminal")
+    if decision == "allow" and session.permission_truncated:  # what runs is not all on the card: approve where it is
+        raise HTTPException(status_code=409, detail="this request came cut short: approve it in its terminal, or deny it here")
     notified = p.get("via") == "notification"  # an action on a notification: the phone could not ask for Face ID
     if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.id, session.permission_id)):
         raise HTTPException(status_code=403, detail="approve this one in the app or on the page")
@@ -7903,6 +7928,8 @@ async def status(request: Request):
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": _working(s), "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
+                          "request_note": s.permission_note if s.permission_id else None,  # the agent's own words: never what runs
+                          "request_truncated": bool(s.permission_id and s.permission_truncated),
                           "request_id": s.permission_id,
                           "voice_can_approve": bool(s.permission_id and not s.permission_cut and online(s)),
                           # A prompt in its terminal is a need too: both screens show "needs you" and these words.
