@@ -239,6 +239,41 @@ def test_nothing_the_plugin_runs_fetches_remote_code():
                 assert "127.0.0.1" in line or "$URL" in line or "DAEMON_URL" in line, f"{rel(path)}:{n}: reaches past loopback: {line.strip()[:100]}"
 
 
+PY_INLINE = re.compile(r"(?:\bpython3?|\"\$PY\")((?:\s+-[A-Za-z]+)*?)\s+(-c\b|-(?=\s|$))")
+
+
+def test_no_script_runs_python_code_with_the_current_folder_on_its_path():
+    """`python3 -c` and `python3 -` put the folder they run in first on the import path: a session's repo with a
+    `json.py` would run as you, with the token at hand. `-I` leaves it out (and ignores PYTHON* variables)."""
+    bad = []
+    for path in files("bin/*", "hooks/**/*", "plugin/**/*"):
+        for n, line in enumerate(path.read_text().splitlines(), 1):
+            for flags, _ in PY_INLINE.findall(line):
+                if "-I" not in flags.split():
+                    bad.append(f"{rel(path)}:{n}: {line.strip()[:90]}")
+    assert not bad, "use python3 -I -c / python3 -I -:\n" + "\n".join(bad)
+    assert PY_INLINE.findall("x | python3 -c 'import json'") == [("", "-c")]
+    assert PY_INLINE.findall('python3 - "$J" <<PY') == [("", "-")]
+    assert PY_INLINE.findall('"$PY" -c "print(1)"') == [("", "-c")]
+
+
+SHIPPED_PY = ("*.py", "harnesses/*.py")
+
+
+def test_the_keychain_and_dialog_tools_are_run_by_their_absolute_path():
+    """`security` gives out a key (`-w`) and takes one (`add-generic-password`), `osascript` returns the key typed in its
+    dialog: none of these is looked up on PATH, where a folder earlier in it could hold another program of that name.
+    Both tools are macOS-only, in /usr/bin. (uninstall.py and apps.py only ask whether an item exists, delete one, or
+    list signing identities; their tests put a stand-in `security` on PATH, so they keep the name.)"""
+    bad = []
+    for path in files(*SHIPPED_PY):
+        for n, line in enumerate(path.read_text().splitlines(), 1):
+            named = re.search(r"[\[(]\s*[\"'](security|osascript)[\"']", line)
+            if named and "/usr/bin/" not in line and (named.group(1) == "osascript" or re.search(r"[\"']-w[\"']|add-generic-password", line)):
+                bad.append(f"{rel(path)}:{n}: {line.strip()[:90]}")
+    assert not bad, "use /usr/bin/security and /usr/bin/osascript:\n" + "\n".join(bad)
+
+
 def test_setup_installs_uv_through_the_pinned_installer_only():
     assert re.fullmatch(r"\d+\.\d+\.\d+", UV_VERSION)
     assert re.search(r'^INSTALLER_SHA256="[0-9a-f]{64}"', INSTALL_UV, re.M)

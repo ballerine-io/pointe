@@ -70,7 +70,7 @@ command -v uv >/dev/null 2>&1 || { echo "voice-node: uv is missing. Install it: 
 UV_PROJECT_ENVIRONMENT="$ENV_DIR" uv sync --locked --quiet --only-group node --project "$ROOT"
 PY="$ENV_DIR/bin/python"
 
-( umask 077; "$PY" -c 'import secrets; print(secrets.token_hex(24))' >"$STATE/token" )
+( umask 077; "$PY" -I -c 'import secrets; print(secrets.token_hex(24))' >"$STATE/token" )
 umask 077  # the log holds session content
 rm -f "$STATE/daemon.log"
 UNSET=(-u CLAUDE_CONFIG_DIR -u CLAUDECODE -u CLAUDE_PID)

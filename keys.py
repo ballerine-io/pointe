@@ -60,7 +60,7 @@ def ask(vendor: str, refused: bool = False) -> str | None:
     script = (f'display dialog "{prompt(vendor, refused)}" default answer "" with hidden answer '
               f'with title "Pointe: {LABEL[vendor]} key" buttons {{"Cancel", "Save"}} default button "Save"\n'
               f'text returned of result')
-    got = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, env=childenv.child_env())
+    got = subprocess.run(["/usr/bin/osascript", "-e", script], capture_output=True, text=True, env=childenv.child_env())
     return got.stdout.strip() if got.returncode == 0 and got.stdout.strip() else None
 
 
@@ -76,8 +76,8 @@ def save(item: str, secret: str) -> bool:
     """`security` asks for the password on its terminal: answer it there, twice, so the key never is an argument."""
     pid, fd = pty.fork()
     if pid == 0:
-        os.execvpe("security", ["security", "add-generic-password", "-U", "-s", item, "-a", os.environ.get("USER", "pointe"), "-w"],
-                   childenv.child_env())
+        os.execve("/usr/bin/security", ["security", "add-generic-password", "-U", "-s", item, "-a", os.environ.get("USER", "pointe"),
+                             "-w"], childenv.child_env())
     answered, deadline = 0, time.time() + 15
     try:
         while time.time() < deadline:

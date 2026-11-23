@@ -8,7 +8,7 @@ set -euo pipefail
 PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 BODY="$(curl -fsS --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/context")"
-python3 - "${1:-}" "$BODY" <<'PY'
+python3 -I - "${1:-}" "$BODY" <<'PY'
 import json, sys
 arg, raw = sys.argv[1], json.loads(sys.argv[2])
 if arg == "--json":

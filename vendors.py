@@ -93,7 +93,7 @@ def key(vendor: str) -> str | None:
         return _found[vendor]
     for name in (item, LEGACY_ITEMS[vendor]):
         try:
-            got = subprocess.run(["security", "find-generic-password", "-s", name, "-w"], capture_output=True,
+            got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", name, "-w"], capture_output=True,
                                  text=True, timeout=5, env=childenv.child_env())
         except (OSError, subprocess.TimeoutExpired):
             return None

@@ -5,7 +5,7 @@ set -euo pipefail
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 ENVF="$STATE/twingate-connector.env"
 umask 077
-pbpaste | python3 -c '
+pbpaste | python3 -I -c '
 import re, sys
 cmd = sys.stdin.read()
 pairs = re.findall(r"(?:--env|-e)\s+\"?(TWINGATE_[A-Z_]+)=\"?([^\"\s]+)\"?", cmd)

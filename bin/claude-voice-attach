@@ -35,7 +35,7 @@ esac
 URL="$("$BIN/voice-daemon" ensure)"
 RESULT="$("$BIN/register-session" "$@" </dev/null)"
 echo "this session joined Pointe: $RESULT"
-CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
+CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$BIN/voice-open"
 echo "For the person (nothing here waits on them, and nothing is for you to do): they talk in the voice tab or the phone app;"
 echo "$BIN/voice-open opens the tab again. Stop all voice with: $BIN/voice-daemon stop"

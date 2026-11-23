@@ -22,9 +22,9 @@ SESSION_ID="${CLAUDE_CODE_SESSION_ID:-}"
 TRANSCRIPT=""
 if [ ! -t 0 ]; then  # hook mode: the event JSON carries the session id and transcript path
   HOOK="$(cat)"
-  HOOK_ID="$(printf '%s' "$HOOK" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("session_id",""))' 2>/dev/null || true)"
+  HOOK_ID="$(printf '%s' "$HOOK" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("session_id",""))' 2>/dev/null || true)"
   [ -n "$HOOK_ID" ] && SESSION_ID="$HOOK_ID"
-  TRANSCRIPT="$(printf '%s' "$HOOK" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("transcript_path",""))' 2>/dev/null || true)"
+  TRANSCRIPT="$(printf '%s' "$HOOK" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("transcript_path",""))' 2>/dev/null || true)"
 fi
 [ -n "$SESSION_ID" ] || { echo "register-session: not inside a Claude Code session" >&2; exit 1; }
 # Each Claude account (CLAUDE_CONFIG_DIR) keeps its own transcripts: look in this session's, and tell the daemon which.
@@ -40,7 +40,7 @@ if [ -z "$NAME" ]; then
 fi
 
 BODY="$(CONFIG_DIR="$CONFIG_DIR" SESSION_ID="$SESSION_ID" NAME="$NAME" NAME_GIVEN="$NAME_GIVEN" TRANSCRIPT="$TRANSCRIPT" CHANNEL_URL="$CHANNEL_URL" START="$START" \
-  PID_="${CLAUDE_PID:-$PPID}" python3 -c '
+  PID_="${CLAUDE_PID:-$PPID}" python3 -I -c '
 import json, os
 print(json.dumps({
     "id": os.environ["SESSION_ID"], "name": os.environ["NAME"], "cwd": os.getcwd(),
