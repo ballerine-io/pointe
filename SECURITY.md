@@ -357,7 +357,8 @@ The Mac with the call (the hub) keeps every rule above for them.
   together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
   `/voice/node/pair` and `/voice/phone/pair` take no secret, so they answer 403 before reading a byte of the body
   when no code is out, and read at most 4 kB of it when one is (413 past that). No invite, an expired one and a wrong
-  code get the same 403 text, so a caller cannot tell when a code is live; only the owner is told why an invite ended.
+  code get the same 403 text; only the owner is told why an invite ended. A caller can still tell that a code is live
+  from a refused oversized body (413) or the rate limit (429), which answer only then; that gives no code.
   A guesser behind the same connector as your machine can delay it by a minute, not lock it out. Making it from the
   app needs Face ID there; the daemon makes one for any holder of the phone key (see Phone access).
   The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. It

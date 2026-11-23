@@ -410,7 +410,7 @@ request is in the session's own terminal.
 | Two sessions named `shop` on two machines | the hub suffixes the later one with the machine, the way it suffixes a second harness (`daemon.py:4006-4014`): `shop devbox`. A session on the hub always keeps the plain name: a remote `shop` that joined first becomes `shop devbox` when a local `shop` joins | "shop devbox finished…" |
 | Same session id on two nodes (a cloned VM) | hub ids are prefixed by node; and a clone with the same node key cannot connect while the original is connected | |
 | A node is revoked while its session holds a prompt | the link closes; the node hands the prompt to the terminal | the group disappears; one line |
-| Invite expires, is mistyped, or the address is rate-limited | `403` with one text for no invite, expired and wrong code (so a scanner cannot tell when a code is live) / `429` | `pointe node join` prints the hub's message; the hub's page and log say why an invite ended |
+| Invite expires, is mistyped, or the address is rate-limited | `403` with one text for no invite, expired and wrong code (the 413 and 429 below still answer only while a code is out) / `429` | `pointe node join` prints the hub's message; the hub's page and log say why an invite ended |
 
 ### Latency budget
 
