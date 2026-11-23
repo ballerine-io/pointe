@@ -10,3 +10,4 @@
 {"at": "2026-11-23T02:52:12+0200", "benchmark": "routing", "run_id": "routing-20261123-0250-8f07-smoke", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.103432, "kind": "smoke", "how": "computed"}
 {"at": "2026-11-23T02:52:44+0200", "benchmark": "routing", "run_id": "routing-20261123-0252-de12-smoke", "arm": "preflight", "usd": 0.000880775, "kind": "smoke", "how": "metered"}
 {"at": "2026-11-23T02:54:30+0200", "benchmark": "routing", "run_id": "routing-20261123-0252-de12-smoke", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.13389, "kind": "smoke", "how": "computed"}
+{"at": "2026-11-23T02:57:35+0200", "benchmark": "routing", "run_id": "kb-debug", "arm": "keyboard-canonical", "usd": 0.010476000000000001, "kind": "debug", "how": "computed"}

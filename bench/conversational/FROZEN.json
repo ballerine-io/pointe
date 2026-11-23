@@ -1,0 +1,12 @@
+{
+ "benchmark": "routing",
+ "frozen_at": "2026-11-23T02:57:42+0200",
+ "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "router_prompt_sha256": "7983993a3c04153fdf8571dd8d651db79a4415af49e28963dd5e2ae906a50a38",
+ "dataset_sha256": "440ee4c7008f2cb7ec7296d9cb41035246722d09a1cf20314079d281bb4ccbbc",
+ "item_order_seed": 20261123,
+ "claude_code_version": "2.1.330 (Claude Code)",
+ "dataset_version": "routing-0.1",
+ "unpublished_seed_manifest_sha256": null,
+ "note": "routing has no unpublished seeds; the router prompt commit is the commit that adds this file"
+}
