@@ -133,8 +133,9 @@ class AgentArm(Arm):
 
     def audit(self) -> list[dict]:
         """Tool inputs that name a path outside the session's own repo. `scoring` is True when the path is in the
-        checkout's benchmark folder (the answer keys) or in another repo of this run: such a read could change a score,
-        and the turn is excluded. Anything else (a `find /`, a system file) is counted and kept."""
+        checkout's benchmark folder (the answer keys): the turn is excluded. `cross_repo` marks a path in another repo
+        of this run (after a misroute the agent looks for the repo it was meant for); it comes after the arm's routing
+        decision, edits there are denied, and it is counted per arm, not excluded. Anything else is counted and kept."""
         flagged = []
         run_root = (str(self.env.root), os.path.realpath(self.env.root))
         bench = str(self.env.checkout / "bench" / "conversational")
@@ -147,9 +148,8 @@ class AgentArm(Arm):
                         continue
                     if self.plugin and token.startswith(str(self.env.checkout)) and not token.startswith(bench):
                         continue  # the Pointe plugin itself, the one allowed exception
-                    scoring = token.startswith(bench) or token.startswith(run_root)
                     flagged.append({"session": n, "tool": call["tool"], "path": token[:120], "t": call.get("t"),
-                                    "scoring": scoring})
+                                    "scoring": token.startswith(bench), "cross_repo": token.startswith(run_root)})
         return flagged
 
     async def stop(self) -> None:

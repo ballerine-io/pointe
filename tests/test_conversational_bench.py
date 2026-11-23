@@ -238,7 +238,8 @@ def test_audit_flags_a_planted_out_of_tree_read():
         {"tool": "Read", "input": {"file_path": str(root / "a" / "repos" / "depot" / "NOTES.md")}},
         {"tool": "Bash", "input": {"command": "find / -iname '*web*'"}}])}
     flagged = arm.audit()
-    assert [f["scoring"] for f in flagged] == [True, True, False]
+    assert [f["scoring"] for f in flagged] == [True, False, False]
+    assert [f["cross_repo"] for f in flagged] == [False, True, False]
     assert all(f["session"] == "tariff" for f in flagged)
 
 

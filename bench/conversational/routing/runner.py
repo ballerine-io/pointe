@@ -172,6 +172,7 @@ async def run_conversation(arm, conv: dict, ds: dict, audio: dict, root: Path, o
     for row in rows:  # the audit, attributed to the turn whose window holds the tool call
         hits = [a for a in audit if a.get("t") and row["t_start"] <= a["t"] <= row["t_end"] + 5]
         row["out_of_tree"] = len(hits)
+        row["cross_repo_reads"] = sum(bool(a.get("cross_repo")) for a in hits)
         row["invalid_out_of_tree"] = any(a["scoring"] for a in hits)
     return {"rows": rows, "events": events, "spend": spend, "audit": audit, "versions": versions, "error": error,
             "processes": procs}

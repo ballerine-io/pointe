@@ -88,10 +88,11 @@ until the turn's cap and swallowed the next request.
   recognizer run on recorded audio. Routing is scored on the file system; the question only decides the ask rate,
   and the exact text is the more reliable input for every arm alike. The detector is tested on 40 labelled lines.
 - **Baseline speech out is not rendered.** Nothing in this benchmark scores it.
-- **Out-of-tree reads:** a turn is excluded only when an agent's tool call names the checkout's benchmark folder or
-  another repo of this run (a read that could change a score). Other paths outside the repo (a system file) are
-  counted per row and kept. `find /` and `find ~` are denied in every arm's settings (the same file everywhere): on
-  a misrouted request the agent otherwise searched the disk and stalled the turn.
+- **Out-of-tree reads:** a turn is excluded only when an agent's tool call names the checkout's benchmark folder
+  (the answer keys). A read into a sibling repo of the run is counted per arm and kept: it happens after the arm has
+  routed the request (after a misroute the agent looks for the repo it was meant for), edits there are denied, and
+  excluding those turns would drop mostly the failures of the arm that misroutes (in the paid run, all 14 such turns
+  were naive's). `find /` and `find ~` are denied in every arm's settings (the same file everywhere).
 - **Spend is computed, not metered:** agents from transcript usage, the router from response usage, Soniox from audio
   seconds, Pointe's vendors from its log with stated assumptions (reply tokens per brain step, a reader report per
   finished turn, a checker call per send). See `prices.json`.

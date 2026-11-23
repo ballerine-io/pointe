@@ -1,0 +1,146 @@
+64 conversation runs, 290 turns, estimated $8.75 (cap $9.00; spent so far $1.28)
+  c12 pointe              run 0 turns all
+  c12 llm-router          run 0 turns all
+  c12 naive               run 0 turns all
+  c12 keyboard-canonical  run 0 turns [4]
+  c12 null                run 0 turns all
+  c06 pointe              run 0 turns all
+  c06 llm-router          run 0 turns all
+  c06 naive               run 0 turns all
+  c06 keyboard-canonical  run 0 turns [1, 2]
+  c06 null                run 0 turns all
+  c02 pointe              run 0 turns all
+  c02 llm-router          run 0 turns all
+  c02 naive               run 0 turns all
+  c02 keyboard-canonical  run 0 turns [2, 3, 4]
+  c02 null                run 0 turns all
+  c04 pointe              run 0 turns all
+  c04 llm-router          run 0 turns all
+  c04 naive               run 0 turns all
+  c04 null                run 0 turns all
+  c01 pointe              run 0 turns all
+  c01 llm-router          run 0 turns all
+  c01 naive               run 0 turns all
+  c01 keyboard-canonical  run 0 turns [2, 5]
+  c01 null                run 0 turns all
+  c05 pointe              run 0 turns all
+  c05 llm-router          run 0 turns all
+  c05 naive               run 0 turns all
+  c05 null                run 0 turns all
+  c07 pointe              run 0 turns all
+  c07 llm-router          run 0 turns all
+  c07 naive               run 0 turns all
+  c07 keyboard-canonical  run 0 turns [2, 3]
+  c07 null                run 0 turns all
+  c09 pointe              run 0 turns all
+  c09 llm-router          run 0 turns all
+  c09 naive               run 0 turns all
+  c09 keyboard-canonical  run 0 turns [1]
+  c09 null                run 0 turns all
+  c03 pointe              run 0 turns all
+  c03 llm-router          run 0 turns all
+  c03 naive               run 0 turns all
+  c03 keyboard-canonical  run 0 turns [1, 3, 5]
+  c03 null                run 0 turns all
+  c08 pointe              run 0 turns all
+  c08 llm-router          run 0 turns all
+  c08 naive               run 0 turns all
+  c08 keyboard-canonical  run 0 turns [1]
+  c08 null                run 0 turns all
+  c11 pointe              run 0 turns all
+  c11 llm-router          run 0 turns all
+  c11 naive               run 0 turns all
+  c11 keyboard-canonical  run 0 turns [5]
+  c11 null                run 0 turns all
+  c10 pointe              run 0 turns all
+  c10 llm-router          run 0 turns all
+  c10 naive               run 0 turns all
+  c10 keyboard-canonical  run 0 turns [1, 3, 4, 5]
+  c10 null                run 0 turns all
+  c03 pointe              run 1 turns all
+  c03 llm-router          run 1 turns all
+  c11 pointe              run 1 turns all
+  c11 llm-router          run 1 turns all
+  c01 pointe              run 1 turns all
+  c01 llm-router          run 1 turns all
+c12 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              4/5 correct, $0.285, error=None, leftovers=0
+  llm-router          5/5 correct, $0.028, error=None, leftovers=0
+  naive               2/5 correct, $0.009, error=None, leftovers=0
+  keyboard-canonical  1/1 correct, $0.002, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c06 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              3/5 correct, $0.255, error=None, leftovers=0
+  llm-router          5/5 correct, $0.030, error=None, leftovers=0
+  naive               2/5 correct, $0.012, error=None, leftovers=0
+  keyboard-canonical  2/2 correct, $0.004, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c02 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              4/5 correct, $0.234, error=None, leftovers=0
+  llm-router          4/5 correct, $0.023, error=None, leftovers=0
+  naive               2/5 correct, $0.011, error=None, leftovers=0
+  keyboard-canonical  3/3 correct, $0.006, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c04 run 0: pointe, llm-router, naive, null
+  pointe              4/5 correct, $0.247, error=None, leftovers=0
+  llm-router          4/5 correct, $0.028, error=None, leftovers=0
+  naive               2/5 correct, $0.011, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c01 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              3/5 correct, $0.223, error=None, leftovers=0
+  llm-router          5/5 correct, $0.031, error=None, leftovers=0
+  naive               2/5 correct, $0.008, error=None, leftovers=0
+  keyboard-canonical  1/2 correct, $0.006, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c05 run 0: pointe, llm-router, naive, null
+  pointe              4/5 correct, $0.245, error=None, leftovers=0
+  llm-router          5/5 correct, $0.027, error=None, leftovers=0
+  naive               3/5 correct, $0.011, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c07 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              3/5 correct, $0.277, error=None, leftovers=0
+  llm-router          5/5 correct, $0.028, error=None, leftovers=0
+  naive               2/5 correct, $0.011, error=None, leftovers=0
+  keyboard-canonical  2/2 correct, $0.004, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c09 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              2/5 correct, $0.250, error=None, leftovers=0
+  llm-router          3/5 correct, $0.025, error=None, leftovers=0
+  naive               2/5 correct, $0.009, error=None, leftovers=0
+  keyboard-canonical  1/1 correct, $0.003, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c03 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              4/5 correct, $0.242, error=None, leftovers=0
+  llm-router          5/5 correct, $0.026, error=None, leftovers=0
+  naive               3/5 correct, $0.014, error=None, leftovers=0
+  keyboard-canonical  3/3 correct, $0.006, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c08 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              3/5 correct, $0.314, error=None, leftovers=0
+  llm-router          4/5 correct, $0.025, error=None, leftovers=0
+  naive               2/5 correct, $0.011, error=None, leftovers=0
+  keyboard-canonical  1/1 correct, $0.002, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c11 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              3/5 correct, $0.281, error=None, leftovers=0
+  llm-router          5/5 correct, $0.028, error=None, leftovers=0
+  naive               3/5 correct, $0.010, error=None, leftovers=0
+  keyboard-canonical  1/1 correct, $0.002, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c10 run 0: pointe, llm-router, naive, keyboard-canonical, null
+  pointe              4/5 correct, $0.259, error=None, leftovers=0
+  llm-router          5/5 correct, $0.029, error=None, leftovers=0
+  naive               2/5 correct, $0.010, error=None, leftovers=0
+  keyboard-canonical  4/4 correct, $0.009, error=None, leftovers=0
+  null                0/5 correct, $0.000, error=None, leftovers=0
+c03 run 1: pointe, llm-router
+  pointe              4/5 correct, $0.233, error=None, leftovers=0
+  llm-router          5/5 correct, $0.025, error=None, leftovers=0
+c11 run 1: pointe, llm-router
+  pointe              4/5 correct, $0.227, error=None, leftovers=0
+  llm-router          4/5 correct, $0.023, error=None, leftovers=0
+c01 run 1: pointe, llm-router
+  pointe              4/5 correct, $0.266, error=None, leftovers=0
+  llm-router          5/5 correct, $0.029, error=None, leftovers=0
+done: routing-20261123-0331-d17a; spent $5.69 on routing; leftovers []; installed pointe link unchanged: True
+exit 0
