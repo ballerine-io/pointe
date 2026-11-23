@@ -597,8 +597,9 @@
   #miclabel { font: 600 12px var(--font); color: var(--text); line-height: 1; }
   #keyhint { font: 11px var(--font); color: var(--dim); line-height: 1; white-space: nowrap; }
   #hangup { position: absolute; left: calc(50% + 34px + 12px); top: 50%; transform: translateY(-50%); min-width: 0; padding: 0; color: var(--danger-text); }
-  #hangup .ic { width: 48px; height: 48px; background: var(--danger); color: #fff; }
-  #hangup:hover .ic { filter: brightness(1.1); }
+  /* as the apps' bar (BottomBar.swift): a quiet disc with a red glyph, one of the bar's controls, not a second solid button */
+  #hangup .ic { width: 48px; height: 48px; background: var(--raised); color: var(--danger-text); }
+  #hangup:hover .ic { background: var(--raised2); }
   #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #hangup:disabled { visibility: hidden; }
   #sessbtn { display: none; }  /* shown where the sessions column is a sheet (narrow, or beside the Showing pane) */

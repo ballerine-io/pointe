@@ -856,3 +856,12 @@ def test_a_mac_that_stopped_answering_leaves_no_stale_sessions_line_and_an_empty
                 (1280, down, "[document.getElementById('state').textContent, document.getElementById('sub').textContent]")], status)
     assert got[0] is True, got
     assert got[1][0] == "Pointe is not answering" and "session" not in got[1][1], got
+
+
+def test_hang_up_is_the_apps_quiet_disc_with_a_red_glyph():
+    """Parity (QA round 5): the page's Hang up was a solid red disc, the iPhone and Mac apps' a neutral disc with a red
+    glyph (BottomBar.swift, tint Brand.dangerText)."""
+    look = """(() => { const ic = getComputedStyle(document.querySelector('#hangup .ic')), side = getComputedStyle(document.querySelector('#typebtn .ic'));
+      return [ic.backgroundColor === side.backgroundColor, ic.color !== side.color]; })()"""  # the bar's disc; its own red glyph
+    for got in _run([(390, LIVE, look), (1280, "", look)], fixture(sessions=2, talk=2, connected=True)):
+        assert got == [True, True], got
