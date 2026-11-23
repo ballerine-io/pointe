@@ -231,7 +231,12 @@ LIMITS = [
 def main(run_id: str | None) -> int:
     ids = [run_id] if run_id else sorted(p.name for p in RESULTS.iterdir() if p.is_dir() and p.name.startswith("bargein-")
                                          and not p.name.endswith("smoke"))
-    rows = [r for r in load_rows(ids) if r.get("kind_of_run") == "paid"]
+    every = [r for r in load_rows(ids) if r.get("kind_of_run") == "paid"]
+    last = {}
+    for r in every:  # a resumed run repeats an errored run: the later row stands, the superseded ones are counted
+        last[(r["run_id"], r["part"], r["item"], r["adapter"], r["run_index"])] = r
+    rows = list(last.values())
+    superseded = len(every) - len(rows)
     freeze_data = json.loads((HERE.parent / "FROZEN.json").read_text())
     bad = [r for r in rows if r["pointe_commit"] != freeze_data["pointe_commit"]]
     if bad:
@@ -243,7 +248,8 @@ def main(run_id: str | None) -> int:
            "pointe_commit": freeze_data["pointe_commit"],
            "pointe_setup": pointe_rows[0]["versions"].get("pointe_setup") if pointe_rows else "",
            "pointe_roles": pointe_rows[0]["versions"].get("pointe_roles") if pointe_rows else "",
-           "spend_usd": round(sum(r.get("spend_usd", 0) for r in rows), 4), "rows": len(rows),
+           "spend_usd": round(sum(r.get("spend_usd", 0) for r in every), 4), "rows": len(rows),
+           "superseded_error_rows": superseded,
            "part_a": part_a(rows), "part_b": part_b(rows), "repeats": repeats(rows),
            "paired": {p: paired(rows, p) for p in ("a", "b")}, "limits": LIMITS}
     out = RESULTS / ids[-1] if len(ids) == 1 else RESULTS

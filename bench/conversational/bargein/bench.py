@@ -464,8 +464,8 @@ def main(args) -> int:
     results = runner.Results(run_id)
     done = set()
     if args.resume and (results.dir / "rows.jsonl").exists():
-        done = {(r["part"], r["item"], r["adapter"], r["run_index"])
-                for r in map(json.loads, (results.dir / "rows.jsonl").read_text().splitlines())}
+        done = {(r["part"], r["item"], r["adapter"], r["run_index"])  # an errored run is run again on resume
+                for r in map(json.loads, (results.dir / "rows.jsonl").read_text().splitlines()) if r["status"] != "error"}
     pcm, audio_ok = corpus.render(clips(), HERE / "audio.lock")
     audio.transcribe(pcm[items("b")[0]["id"]])  # load the recognizer before the first timed run
     meta = {"run_id": run_id, "benchmark": BENCH, "cap_usd": CAP_USD, "seed": SEED, "kind": kind, "workers": 1,

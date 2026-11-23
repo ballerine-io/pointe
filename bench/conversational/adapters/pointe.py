@@ -150,6 +150,22 @@ def product(commit: str) -> Path:
     return target
 
 
+def free_ports(ports) -> int:
+    """Kills a Pointe daemon of ours (run from /tmp/pccb) still listening on the run's ports: a start that timed out
+    on a loaded machine can leave one behind. Never touches another process."""
+    killed = 0
+    for port in ports:
+        pids = subprocess.run(["lsof", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"], capture_output=True, text=True).stdout.split()
+        for pid in pids:
+            cmd = subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout
+            if "/tmp/pccb/" in cmd:
+                subprocess.run(["kill", "-9", pid])
+                killed += 1
+    if killed:
+        time.sleep(1.0)
+    return killed
+
+
 class Pointe(PtyArm):
     name = "pointe"
     capabilities = frozenset({"audio_in", "text_in", "speech_out", "approvals", "sessions", "interrupt"})
@@ -178,8 +194,15 @@ class Pointe(PtyArm):
         self.commit = runner.product_commit()
         self.dir = product(self.commit)
         self.extra_args = ("--plugin-dir", str(self.dir))
-        out = subprocess.run([str(self.dir / "bin" / "voice-daemon"), "ensure"], env=agent_mod.clean_env(self.daemon_env),
-                             capture_output=True, text=True, timeout=240)
+        self.freed = free_ports((port, port + 1))
+        for attempt in range(2):  # the launcher waits 60 s for health; a loaded machine can miss that once
+            out = subprocess.run([str(self.dir / "bin" / "voice-daemon"), "ensure"], env=agent_mod.clean_env(self.daemon_env),
+                                 capture_output=True, text=True, timeout=240)
+            if out.returncode == 0:
+                break
+            subprocess.run([str(self.dir / "bin" / "voice-daemon"), "stop"], env=agent_mod.clean_env(self.daemon_env),
+                           capture_output=True, timeout=60)
+            self.freed += free_ports((port, port + 1))
         if out.returncode != 0:
             raise RuntimeError(f"the isolated daemon did not start: {out.stderr[-400:]}")
         self.call = Call(f"ws://127.0.0.1:{port}/voice/call", (state / "token").read_text().strip())
@@ -237,7 +260,8 @@ class Pointe(PtyArm):
         return found
 
     def versions(self):
-        return {**super().versions(), "pointe_commit": getattr(self, "commit", ""), "pointe_setup": self.env.setup or "(default)",
+        return {**super().versions(), "pointe_commit": getattr(self, "commit", ""),
+                "stray_daemons_freed": str(getattr(self, "freed", 0)), "pointe_setup": self.env.setup or "(default)",
                 "pointe_roles": json.dumps(self.roles())}
 
     def spend(self):
@@ -267,3 +291,4 @@ class Pointe(PtyArm):
         if getattr(self, "daemon_env", None):
             subprocess.run([str(self.dir / "bin" / "voice-daemon"), "stop"], env=agent_mod.clean_env(self.daemon_env),
                            capture_output=True, timeout=60)
+            free_ports((self.port, self.port + 1))
