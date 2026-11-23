@@ -424,6 +424,14 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   on (`alerts.watch_approve`, off by default; the app asks for Face ID to turn it on), a notification's Approve needs an
   unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
   read out, bound to that request's id (`alerts.py`).
+- **What Face ID protects, and what it does not.** Every Face ID or passcode check in the app (Approve; starting,
+  adding or joining sessions; night shift; a machine invite or revoke; lowering the voice lock or deleting a
+  voiceprint; turning on show while it says or approve from notifications; replacing the pairing) runs in the app,
+  before it sends an ordinary request with the phone key. It stops a person who holds your unlocked iPhone. It does not
+  bind the key: the daemon cannot tell whether Face ID ran. Whoever has the phone key itself (a `pointe pair` code that
+  was copied or photographed, an app that redeemed a code scanned outside Pointe, the Keychain of a jailbroken phone)
+  can do everything the key opens (`_PHONE_PATHS` in `guards.py`), approvals included, with no Face ID. Unpair on the
+  Mac (Settings → Phone) ends that key at its next request.
 - **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
   description; a request that cannot be read out shows only its tool. Credential-like values follow the same rule as
   the voice (`readout.redact`): never shown, never said.
