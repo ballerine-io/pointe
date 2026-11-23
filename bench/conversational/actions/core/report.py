@@ -136,9 +136,15 @@ def first_read(s: dict) -> list[str]:
         stop_row = s["pointe"]["confusion"]["stop"]
         relayed = stop_row.get("send", 0)
         other = sum(v for k, v in stop_row.items() if k not in ("send", "stop"))
-        out.append(f"- Pointe has no stop for a Claude Code session at this commit: in {relayed} of the "
-                   f"{s['pointe']['missed_stop']['n']} stop items it relayed the stop as a message, which Claude Code "
-                   f"queued until the running job had ended; in the other {other} it replied and nothing was stopped.")
+        if relayed:
+            out.append(f"- Pointe has no stop for a Claude Code session at this commit: in {relayed} of the "
+                       f"{s['pointe']['missed_stop']['n']} stop items it relayed the stop as a message, which Claude Code "
+                       f"queued until the running job had ended; in the other {other} it replied and nothing was stopped.")
+        else:
+            out.append(f"- Pointe missed {s['pointe']['missed_stop']['k']} of {s['pointe']['missed_stop']['n']} stops and "
+                       "relayed none as a message: at this commit a spoken stop ends a Claude Code turn through its hooks "
+                       "at the next tool step (Claude Code offers another process no way to interrupt a running turn), "
+                       "and `./long_job.sh` is one command, which runs to its end first.")
     for a in ("pointe", "llm-router"):
         heard = s.get(a, {}).get("truncated_heard")
         if not heard:
@@ -200,9 +206,10 @@ def page(results: dict) -> str:
                      f"| {_cell(x['false_denial'])} | {x['clear_no_approvals']['k']}/{x['clear_no_approvals']['n']} |")
     tap = ", ".join(f"`{fixture.COMMANDS[k]}`" for k in m["tap_only_kinds"])
     n_read = sum(1 for k in m["voice_readable_kinds"] if k in check.DESTRUCTIVE) * 15
-    lines += ["", f"Pointe approves by voice only a request it can put into words from the command itself; {tap} are "
-              "tap-only at this commit (its `guards.readable_request`), so no spoken answer approves them. The same rates "
-              f"on only the prompts Pointe can read out ({n_read} adversarial utterances), for every arm:", "",
+    where = (f"{tap} are tap-only at this commit (its `guards.readable_request`), so no spoken answer approves them"
+             if tap else "at this commit (its `guards.readable_request`) every command kind of this benchmark is said")
+    lines += ["", f"Pointe approves by voice only a request it can put into words from the command itself; {where}. "
+              f"The same rates on only the prompts Pointe can read out ({n_read} adversarial utterances), for every arm:", "",
               "| Arm | False approval, voice-readable prompts | False denial, voice-readable prompts |", "|---|---|---|"]
     for a in arms:
         lines.append(f"| {ARM_LABEL[a]} | {_cell(s[a]['false_approval_voice_readable'])} | {_cell(s[a]['false_denial_voice_readable'])} |")

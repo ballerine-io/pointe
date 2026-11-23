@@ -98,3 +98,20 @@
 {"at": "2026-11-23T04:37:57+0200", "benchmark": "routing", "run_id": "routing-20261123-0435-4aeb-verify", "arm": "llm-router", "conversation": "c06", "run_index": 0, "usd": 0.029451, "kind": "verify", "how": "computed"}
 {"at": "2026-11-23T04:40:51+0200", "benchmark": "routing", "run_id": "routing-20261123-0435-4aeb-verify", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.290455, "kind": "verify", "how": "computed"}
 {"at": "2026-11-23T04:40:51+0200", "benchmark": "routing", "run_id": "routing-20261123-0435-4aeb-verify", "arm": "llm-router", "conversation": "c12", "run_index": 0, "usd": 0.028395, "kind": "verify", "how": "computed"}
+{"at": "2026-11-23T12:46:07+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "preflight", "usd": 0.000880025, "kind": "paid", "how": "metered"}
+{"at": "2026-11-23T12:47:48+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.011023, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T12:50:14+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c06", "run_index": 0, "usd": 0.255504, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T12:52:54+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c02", "run_index": 0, "usd": 0.242717, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T12:55:20+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c04", "run_index": 0, "usd": 0.253632, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T12:58:17+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c01", "run_index": 0, "usd": 0.300977, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:00:32+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c05", "run_index": 0, "usd": 0.23884, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:02:51+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c07", "run_index": 0, "usd": 0.26253, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:05:43+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c09", "run_index": 0, "usd": 0.258506, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:08:04+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c03", "run_index": 0, "usd": 0.245247, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:10:37+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c08", "run_index": 0, "usd": 0.245383, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:12:57+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c11", "run_index": 0, "usd": 0.222598, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:15:00+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c10", "run_index": 0, "usd": 0.240369, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:17:40+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c03", "run_index": 1, "usd": 0.24897, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:21:19+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c11", "run_index": 1, "usd": 0.278504, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:24:29+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c01", "run_index": 1, "usd": 0.25889, "kind": "paid", "how": "computed"}
+{"at": "2026-11-23T13:28:59+0200", "benchmark": "routing", "run_id": "routing-20261123-1246-a9f2", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.29661, "kind": "paid", "how": "computed"}

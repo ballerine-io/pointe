@@ -531,3 +531,18 @@
 {"adapter": "pointe", "benchmark": "hlk", "item": "twin-symbols-0", "kind": "debug", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "t": "2026-11-23T09:41:30+0200", "usd": 0.13481}
 {"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "self-correction-0", "kind": "debug", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "t": "2026-11-23T09:42:40+0200", "usd": 0.00344}
 {"adapter": "pointe", "benchmark": "hlk", "item": "self-correction-0", "kind": "debug", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "t": "2026-11-23T09:44:49+0200", "usd": 0.07931}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-20261123-133712", "t": "2026-11-23T13:37:27+0200", "usd": 0.00087637}
+{"adapter": "pointe", "benchmark": "hlk", "item": "impossible-as-stated-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 0, "t": "2026-11-23T13:40:14+0200", "usd": 0.06427}
+{"adapter": "pointe", "benchmark": "hlk", "item": "impossible-as-stated-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 1, "t": "2026-11-23T13:41:11+0200", "usd": 0.15693}
+{"adapter": "pointe", "benchmark": "hlk", "item": "long-dictation-1", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 0, "t": "2026-11-23T13:44:29+0200", "usd": 0.08479}
+{"adapter": "pointe", "benchmark": "hlk", "item": "long-dictation-1", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 1, "t": "2026-11-23T13:44:40+0200", "usd": 0.06192}
+{"adapter": "pointe", "benchmark": "hlk", "item": "deny-the-decoy-1", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 0, "t": "2026-11-23T13:46:57+0200", "usd": 0.08645}
+{"adapter": "pointe", "benchmark": "hlk", "item": "deny-the-decoy-1", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 1, "t": "2026-11-23T13:47:13+0200", "usd": 0.05141}
+{"adapter": "pointe", "benchmark": "hlk", "item": "self-correction-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 0, "t": "2026-11-23T13:49:33+0200", "usd": 0.05159}
+{"adapter": "pointe", "benchmark": "hlk", "item": "self-correction-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 1, "t": "2026-11-23T13:49:53+0200", "usd": 0.0681}
+{"adapter": "pointe", "benchmark": "hlk", "item": "long-dictation-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 0, "t": "2026-11-23T13:53:09+0200", "usd": 0.05712}
+{"adapter": "pointe", "benchmark": "hlk", "item": "long-dictation-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 1, "t": "2026-11-23T13:53:19+0200", "usd": 0.07973}
+{"adapter": "pointe", "benchmark": "hlk", "item": "mid-task-redirect-1", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 0, "t": "2026-11-23T13:56:00+0200", "usd": 0.05394}
+{"adapter": "pointe", "benchmark": "hlk", "item": "mid-task-redirect-1", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 1, "t": "2026-11-23T13:56:02+0200", "usd": 0.05184}
+{"adapter": "pointe", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 0, "t": "2026-11-23T13:58:37+0200", "usd": 0.05106}
+{"adapter": "pointe", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "paid", "run_id": "hlk-20261123-133712", "run_index": 1, "t": "2026-11-23T13:58:49+0200", "usd": 0.08484}

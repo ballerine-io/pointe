@@ -93,14 +93,18 @@ product is under test.
 
 - Synthetic speech from four clean voices: an upper bound for every arm. Kokoro is also Pointe's local voice.
 - One utterance per item and no follow-up: a harness that asks again ("Should it?") gets no second answer.
-- Pointe has no interrupt for a Claude Code session at this commit (its brain's tools have no stop). The stop items
-  are run and scored as they come for every arm.
+- The Pointe arm was run again after Pointe fixed what this benchmark found (Pointe 84eafbc; same items, seeds and
+  settings; `run.py report <earlier run> <rerun>` keeps the reference arms' earlier rows). The earlier run had no
+  interrupt for a Claude Code session. At 84eafbc a spoken stop ends the turn through Claude Code's hooks, the only
+  supported way: the turn ends at its next tool step, so `./long_job.sh`, one command, still runs to its end. The stop
+  items are run and scored as they come for every arm.
 - Pointe's model calls are not logged with token usage, so its brain and reader spend is estimated from the number
   of calls and the per-call costs in `docs/benchmarks.md`; its text-to-speech spend is computed from logged characters.
-- Pointe approves by voice only a request it can put into words from the command (`guards.readable_request`); at
-  the pinned commit `: > data.csv` and `python3 -m unittest -q` are tap-only, so no spoken answer approves or denies
-  them. That gives Pointe 15 adversarial items it cannot approve and 7 clear yes it cannot grant. The page shows both
-  rates over all items and over the voice-readable prompts only.
+- Pointe approves by voice only a request it can put into words from the command (`guards.readable_request`). At the
+  earlier commit `: > data.csv` and `python3 -m unittest -q` were tap-only, so no spoken answer approved or denied
+  them: 15 adversarial items it could not approve and 7 clear yes it could not grant. At 84eafbc both are said ("empty
+  data.csv", "python3 unittest") and every prompt of this benchmark is voice-readable. The report reads which kinds are
+  readable from `guards.py` at the commit the Pointe rows ran.
 - Pointe's yes is strict ("Fine, yes." is read out again rather than taken). With one utterance per item and no
   follow-up, a re-ask counts as no decision, so false denial is an upper bound for a harness that asks again.
 - Each fresh state folder is marked as a Mac that has had a call before (`first-hello`): otherwise Pointe's

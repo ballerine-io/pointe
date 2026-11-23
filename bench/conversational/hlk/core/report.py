@@ -32,6 +32,9 @@ def load(results: Path = HERE / "results") -> tuple[list, list, dict]:
     frozen = json.loads((HERE / "FROZEN.json").read_text())
     published, unpublished = [], []
     for path in sorted(results.glob("hlk-*/rows.jsonl")):
+        meta = path.parent / "run.json"
+        if meta.exists() and json.loads(meta.read_text()).get("stopped"):
+            continue  # a run stopped by the operator and not used (its run.json says why)
         for line in path.read_text().splitlines():
             if not line.strip():
                 continue
@@ -232,6 +235,7 @@ def sections(rows, unpub, frozen) -> list:
                    "12, the families, and the intervals are wide. The suite can show a large gap; it cannot rank two "
                    "close systems."))
     B.append(("h2", "Limits, plainly"))
+    earlier_runs = {r for e in frozen.get("earlier", []) for r in e["runs"]}
     B.append(("ul", [
         "Synthetic speech favours Pointe and is an upper bound for everyone: Kokoro, the text-to-speech here, is also "
         "Pointe's local voice, and four clean US and British voices are easier than people. Every table title says "
@@ -256,17 +260,23 @@ def sections(rows, unpub, frozen) -> list:
         "which are not committed). This counts against Pointe; the typed arms read the terminal and cannot hit it."]
         + ([underspecified(rows)] if rows else [])
         + ([f"The first-run rows ran on the benchmark at commit "
-            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if not r.get('rerun_of')}))}. A fault of that runner "
+            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if not r.get('rerun_of') and r['run_id'] in earlier_runs}))}"
+            ". A fault of that runner "
             "(an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by "
             "the rule below, at commit "
-            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if r.get('rerun_of')})) or 'n/a'}."] if rows else [])))
+            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if r.get('rerun_of')})) or 'n/a'}."] if rows else [])
+        + ([f"The Pointe arm was run again after Pointe fixed what this suite found: Pointe {frozen['pointe_commit'][:7]}, "
+            "the same agent, instances, voices, seeds and settings. The reference arms run no Pointe code; their rows come "
+            f"from the earlier runs ({', '.join(sorted(earlier_runs))}, Pointe "
+            f"{', '.join(sorted({e['pointe_commit'][:7] for e in frozen.get('earlier', [])}))}). The earlier page is "
+            "kept as published in docs/benchmarks/earlier/."] if frozen.get("earlier") else [])))
     if not a:
         B.append(("p", "No published run yet."))
         return B
     m = a["meta"]
     B.append(("p", f"Runs: {', '.join(m['runs'])}. Dates: {', '.join(m['dates'])}. Agent: {', '.join(m['models'])} in "
                    f"Claude Code {', '.join(m['claude'])}. Pointe commit {frozen['pointe_commit'][:12]} (frozen before "
-                   f"the first paid row, {frozen['frozen_at'][:10]}). Router brain: {', '.join(m['brain']) or 'n/a'}. "
+                   f"its first paid row, {frozen['frozen_at'][:10]}). Router brain: {', '.join(m['brain']) or 'n/a'}. "
                    f"Spoken output of every arm is read by one pinned local Whisper (large-v3-turbo)."))
     stops = []
     for rid in m["runs"]:
@@ -325,9 +335,7 @@ def sections(rows, unpub, frozen) -> list:
                        "take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. "
                        f"In {pf_no - pf_edit} of those {pf_no} the agent changed no file, so the work stopped at the "
                        f"refusal or after it. In the other {pf_edit} the agent had already changed files and the hidden "
-                       "tests still failed: there the instruction as Pointe passed it on was often wrong (in "
-                       "twin-symbols, \"a value that ends in s\" reached the agent as ending in \"S\", and its code "
-                       f"checks for a capital S). {pp_no} runs passed despite such a refusal. The other arms act on a "
+                       f"tests still failed. {pp_no} runs passed despite such a refusal. The other arms act on a "
                        "spoken yes for any command: they have no such guard."))
     reruns = ", ".join(f"{LABEL[k]} {v}" for k, v in sorted(RERUNS.items())) or "none"
     B.append(("p", "Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the "

@@ -1,0 +1,66 @@
+{
+ "run_id": "act-20261123-132915",
+ "benchmark": "actions",
+ "kind": "paid",
+ "started": "2026-11-23T13:29:18+0200",
+ "repo_commit": "ecdf02b4c870c0b4ee5720d644976b8de6949323",
+ "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
+ "frozen": {
+  "benchmark": "actions",
+  "frozen_at": "2026-11-23T12:45:20+0200",
+  "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
+  "pointe_commit_note": "origin/main at the build's start; this branch adds only bench/ and tests/ files, and the runner refuses a paid run when anything else differs from this commit",
+  "router_prompt_commit": "e382a13",
+  "router_prompt_sha256": "1f22763e43f9a82f19b0955b9a2095f86cbfd9792f0cb7f4880e8856280057dd",
+  "items_sha256": "2c2f7cf3ad50359a43b879f6f888a4c2767c4b0fe70783830a67ca8e1b0f3b5a",
+  "audio_lock_sha256": "a2c5a8ad9b840b73c29c8aeb308f8152feea3cab41cf70320b85614c5389cd29",
+  "unpublished_seed_manifest_sha256": null,
+  "unpublished_seed_note": "actions has no unpublished seeds (design 5.3)",
+  "item_order_seed": 51230,
+  "claude_code": "2.1.330",
+  "agent_model": "claude-haiku-5-5",
+  "amendments": [
+   {
+    "time": "2026-11-23T03:31:37+0200",
+    "what": "llm-router and naive actuation (adapters/spoken.py): nothing is typed while a permission dialog is open",
+    "why": "in paid run act-20261123-031705 the router chose send for a question while a prompt was pending; the adapter typed it into the open dialog and Enter pressed its default Yes (item act006). A harness wiring fault, not the router's decision. naive already had this rule.",
+    "consequence": "run act-20261123-031705 (43 rows) is aborted and not published; every arm is run again from the start in the next run. The Pointe commit, the router prompt, the items and the audio are unchanged."
+   }
+  ],
+  "earlier": [
+   {
+    "pointe_commit": "6544cdc",
+    "frozen_at": "2026-11-23T03:16:47+0200",
+    "runs": [
+     "act-20261123-033255"
+    ],
+    "why": "the published run before the fixes of the benchmark findings; its reference arms still stand"
+   }
+  ],
+  "rerun": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run."
+ },
+ "claude_code": "2.1.330",
+ "agent_model": "claude-haiku-5-5",
+ "arms": [
+  "pointe"
+ ],
+ "seed": 51230,
+ "workers": 2,
+ "budget_usd": 15.5,
+ "audio_matches_lock": false,
+ "router_model": null,
+ "preflight": {
+  "api_key_source": "ANTHROPIC_API_KEY",
+  "permission_mode": "default",
+  "plugins": [],
+  "builtin_plugins": [
+   "cc-plugin-agents-md",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "ok": true
+ },
+ "items_version": 1,
+ "planned_runs": 140,
+ "stopped": "stopped by the operator and not used: launched beside two other benchmarks on a loaded machine (the first), then its daemons found the ports still held by the first one's daemons (the second, 4 error rows, $0)"
+}

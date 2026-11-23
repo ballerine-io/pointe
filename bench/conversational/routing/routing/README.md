@@ -106,8 +106,13 @@ laptop under load from other work (load average in every row). Haiku as the fixe
 
 Found in an adversarial check of the first published run, stated here so the numbers are read correctly:
 
-- **The sentence template amplifies Pointe's main failure.** Every request is "add a line with the word X to the notes
-  file" with one word changed. At the frozen commit Pointe's send layer, when the user's words name a session, can
+- **The rerun after the fixes** (`routing-20261123-1246-a9f2`, Pointe 84eafbc, Pointe arm only, same conversations,
+  seeds and settings; `run.py report routing-20261123-0331-d17a routing-20261123-1246-a9f2` takes each arm from the last
+  run that ran it). No send delivered an earlier request's text. One conversation (c12) timed out at the start on a
+  loaded machine and was run again with `--resume`; the first attempt wrote no turn rows (its events and spend are kept). The bullets below
+  describe the earlier run, kept as published in `RESULTS-2026-11-23-pointe-6544cdc.md`.
+- **The sentence template amplified Pointe's main failure in the earlier run.** Every request is "add a line with the
+  word X to the notes file" with one word changed. At the earlier frozen commit (6544cdc) Pointe's send layer, when the user's words name a session, can
   replace the brain's message with an earlier request's text if the two share at least half their content words
   (`_corrects_last_send`, `_mostly_same`). With this template every pair of requests qualifies, so the swap fired in 9
   of Pointe's 19 failed turns, 7 of them right after it asked which session; in all 9 the brain's own call carried the

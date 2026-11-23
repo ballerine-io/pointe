@@ -93,6 +93,14 @@ Published summary: `results/identifiers-20261123-031106/summary.json` and `summa
 
 ## Limits of this run
 
+- **The Pointe arms were run again after the fixes** (`identifiers-20261123-125649`, Pointe 84eafbc, the same clips,
+  voices and settings; `run.py report identifiers-20261123-125649 <arm>=<earlier run> ...` takes the other arms from
+  the earlier runs). At 84eafbc a code name the brain builds from the user's words goes to the agent with the words as
+  heard, and "X, as in Y" for a homophone is resolved in code (`relay.py`). The bullets below on code names, the marker
+  text, noise and timing describe the earlier run (`identifiers-20261123-031106`, its own `summary.md`). In the rerun,
+  Pointe's no-action rows are t07 twice (the recognizer's connection dropped on a loaded machine, load average up to
+  517, so no words reached Pointe) and t21 once (the recognizer gave Pointe only the last words, "Time zone."); t08,
+  the homophone, is still wrong twice: the name itself is heard as "right column".
 - **Small.** 24 targets in one invented repository, one agent model (`claude-haiku-5-5`). A difference under about
   ten points between two speech arms is not resolved: every speech-arm interval overlaps.
 - **One recognizer.** `pointe`, `llm-router` and `naive` all hear through Soniox `stt-rt-v6`, and on the same clip they
