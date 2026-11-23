@@ -160,7 +160,7 @@
           to the briefing the next one.</p>
       </div>
       <div class="story-grid" data-day>
-        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> By voice</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-pair"><span class="when">11:20</span> Away</a><a href="#beat-meeting"><span class="when">14:00</span> Meeting</a><a href="#beat-drive"><span class="when">18:10</span> Drive</a><a href="#beat-night"><span class="when">21:30</span> Night</a><a href="#beat-morning"><span class="when">07:40</span> Morning</a></nav>
+        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> By voice</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-pair"><span class="when">11:20</span> Away</a><a href="#beat-meeting"><span class="when">14:00</span> Meeting</a><a href="#beat-drive"><span class="when">18:10</span> Drive</a><a href="#beat-night"><span class="when">22:40</span> Night</a><a href="#beat-morning"><span class="when">07:40</span> Morning</a></nav>
         <ol class="beats">
         <li class="beat" id="beat-before">
           <div class="beat-copy">
@@ -241,21 +241,35 @@
         <li class="beat" id="beat-meeting">
           <div class="beat-copy">
             <p class="kicker"><span class="when">14:00</span> The project meeting</p>
-            <h3 class="h2">It listens. Ask, and it answers from a session.</h3>
-            <p class="body">In a meeting Pointe takes notes and says nothing. Say "Pointe, join in", then "Pointe, what does billing's session say about the retry limit?" It answers the room in two sentences at most, from a read-only copy: the live session gets nothing. Afterwards, "send the action items to billing" is read back, and sent on your yes.</p>
-            <p class="small">The room's audio goes to the speech vendor while a meeting runs, so it starts with a consent step. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">meeting-mode.md</a></p>
+            <h3 class="h2">The phone on the table. It listens until you ask.</h3>
+            <p class="body">Put the phone on the table in Meeting mode. Listening, Pointe takes notes and never speaks. Someone asks what the retry limit on the billing queue is. One tap switches to Participating, and Pointe answers the room from the billing session, in two sentences at most. A follow-up gets its answer the same way. One more tap, and it is listening again.</p>
+            <p class="small">Answers come from a read-only copy: the live session gets nothing. The room's audio goes to the speech vendor while a meeting runs, so it starts with a consent step. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">meeting-mode.md</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/meeting.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: three people at a meeting table; a colleague asks a question, she turns to her open laptop and asks it out loud, and all three listen to the answer.">
+              <img src="day/meeting.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: a quiet project meeting; a colleague asks a question, she reaches to the phone lying on the table, taps it once and sits back, and they listen.">
               <video muted playsinline preload="none" poster="day/meeting.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
                 <source src="day/meeting.webm" type="video/webm"><source src="day/meeting.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
             </div>
-            <div class="beat-ui beat-ui--card beat-ui--left"><picture>
-              <source srcset="day/ui-meeting-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-meeting-light.jpg" width="680" height="688" loading="lazy" alt="The meeting screen in the Mac app. Meeting, Participating, 28:36. It speaks only when you ask. Notes: Brief: Weekly sync: retry fix rollout, queue idea, partner timeouts. Decision: Ship the retry fix behind a flag. Open question: What timeout does the partner gateway use? asked by Dana. Look up in billing/main.">
-            </picture></div>
+            <div class="beat-ui beat-ui--phone beat-ui--seq" style="--n:4">
+              <picture style="--i:0">
+                <source srcset="day/ui-meeting-1-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-1-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Listening. It never speaks. Open question: What's the retry limit on the billing queue? asked by Sam.">
+              </picture>
+              <picture style="--i:1">
+                <source srcset="day/ui-meeting-2-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-2-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Participating. It speaks only when you ask. Answer found: Five attempts, with backoff. It is set in the queue config. From billing.">
+              </picture>
+              <picture class="still" style="--i:2">
+                <source srcset="day/ui-meeting-3-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-3-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Participating. A second question: Which region does the worker run in? asked by Dana. Answer found: One region, eu-west. A second one is planned, not built. From billing.">
+              </picture>
+              <picture style="--i:3">
+                <source srcset="day/ui-meeting-4-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-4-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Listening again, with both questions and both answers in the notes.">
+              </picture>
+            </div>
           </figure>
         </li>
         <li class="beat" id="beat-drive">
@@ -280,29 +294,35 @@
         </li>
         <li class="beat" id="beat-night">
           <div class="beat-copy">
-            <p class="kicker"><span class="when">21:30</span> Before bed</p>
-            <h3 class="h2">Give the night's work. It starts on your yes.</h3>
-            <p class="body">"Tonight: billing fixes the retry tests; docs updates the changelog." Pointe reads the plan back and starts on your yes. It keeps the sessions moving while you sleep, for up to 8 hours and 40 messages. It approves nothing: a session that needs approval waits for you.</p>
+            <p class="kicker"><span class="when">22:40</span> Getting into bed</p>
+            <h3 class="h2">Two tasks for the night, from the phone.</h3>
+            <p class="body">"Tonight: billing fixes the retry tests; docs updates the changelog." The phone shows the plan read back, and it starts on your yes or a tap. Pointe keeps the two sessions moving for up to 8 hours and 40 messages. It approves nothing: a session that needs approval waits for you.</p>
             <p class="small">This version runs sessions on the Mac Pointe runs on. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/night-shift.md">night-shift.md</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
-              <img src="day/night.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: late evening on a sofa by lamp light, she counts two tasks off on her fingers, listens to them read back, says yes and leans back with her mug.">
+              <img src="day/night.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: in bed by a bedside lamp, she says two sentences to her phone, reads it, taps once and puts it on the bedside table.">
               <video muted playsinline preload="none" poster="day/night.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
                 <source src="day/night.webm" type="video/webm"><source src="day/night.mp4" type="video/mp4"></video>
               <span class="ai">AI-generated footage</span>
             </div>
-            <div class="beat-ui beat-ui--mac"><picture>
-              <source srcset="day/ui-night-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-night-light.jpg" width="680" height="363" loading="lazy" alt="A card in the Mac app: Start this night shift? Night shift. billing: finish the retry work and open a PR. docs: update the changelog. A new Codex session in shop, named shop-2: fix the flaky test. Up to 8 hours and 40 messages. I approve nothing: a session that needs approval waits for you. Start? Say yes or tap. Cancel, Start shift.">
-            </picture></div>
+            <div class="beat-ui beat-ui--phone beat-ui--seq" style="--n:2">
+              <picture class="still" style="--i:0">
+                <source srcset="day/ui-night-1-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-night-1-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. You: Tonight: billing fixes the retry tests; docs updates the changelog. A card: Start this night shift? Night shift. billing: fixes the retry tests. docs: updates the changelog. Up to 8 hours and 40 messages. I approve nothing: a session that needs approval waits for you. Start? Say yes or tap. Cancel, Start shift.">
+              </picture>
+              <picture style="--i:1">
+                <source srcset="day/ui-night-2-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-night-2-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. You: Yes. Pointe: Night shift started. Good night. A strip: Night shift, 0 of 2 done, 0 blocked, Stop shift.">
+              </picture>
+            </div>
           </figure>
         </li>
         <li class="beat" id="beat-morning">
           <div class="beat-copy">
             <p class="kicker"><span class="when">07:40</span> The next morning</p>
             <h3 class="h2">The briefing leads with what was decided without you.</h3>
-            <p class="body">"Brief me on the night." First the decisions the sessions made alone, then the questions that wait on you, then what is done and what is blocked. "Approve billing's push" reads the exact request out, and your yes answers it.</p>
+            <p class="body">"Brief me on the night." First the decisions billing and docs made alone, then the questions that wait on you, then what is done and what is blocked. "Approve billing's request" reads out the exact command that waited all night, and your yes answers it.</p>
             <p class="small">A request that cannot be read out whole waits for a tap. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">briefings.md</a></p>
           </div>
           <figure class="beat-media">
@@ -314,14 +334,14 @@
             </div>
             <div class="beat-ui beat-ui--card"><picture>
               <source srcset="day/ui-morning-dark.jpg" media="(prefers-color-scheme: dark)">
-              <img src="day/ui-morning-light.jpg" width="680" height="657" loading="lazy" alt="The night shift ledger in the Mac app. Six hours in: 2 of 5 tasks done, 1 blocked. Decisions made without you: billing, finish the retry work and open a PR. Retry three times or five? Three, with backoff. Five means raising the timeout budget in the config. Questions waiting on you: docs, update the changelog. Should the changelog list internal refactors?">
+              <img src="day/ui-morning-light.jpg" width="680" height="773" loading="lazy" alt="The page the next morning. You: Approve billing's request. Pointe: Billing wants to run: pytest -q tests/test_retry.py. Say yes or no. You: Yes. A card: billing needs approval, pytest -q tests/test_retry.py, say yes or no, or tap, with Deny and Approve.">
             </picture></div>
           </figure>
         </li>
         </ol>
       </div>
       <p class="small note">The footage is AI-generated and shows an invented person. The panels on it are screenshots
-        of the page Pointe serves and of the Mac app, with invented sessions and an invented pairing code; no screen in
+        of the page Pointe serves, the iPhone app and the Mac app, with invented sessions and an invented pairing code; no screen in
         the footage is real.</p>
     </div>
   </section>

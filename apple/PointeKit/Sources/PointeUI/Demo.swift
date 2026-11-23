@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Sample calls for looking at the screens without a Mac. Every name and word here is made up. Two ways in:
 /// `-demo [call|sessions|edit|typing|request]` at launch (Debug builds only, for tests and screenshots; with
-/// `-demoEnglish`, no Hebrew sample), and
+/// `-demoEnglish`, no Hebrew sample; `-demoStatus <json>` and `-demoNotes <json>` replace what the screen shows), and
 /// "Try a demo" on the pairing screen (every build: App Review has no Mac to pair with), which shows the Demo badge.
 struct Demo {
     enum Screen: String { case call, sessions, edit, typing, request, brainDump, brainDumpReview, brainDumpPinned, brainDumpGone, meetingStart, meeting, meetingHand, meetingEnd, talking,
@@ -22,7 +22,15 @@ struct Demo {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-demo") else { return nil }
-        return make(args.indices.contains(i + 1) ? Screen(rawValue: args[i + 1]) ?? .call : .call, english: args.contains("-demoEnglish"))
+        guard var demo = make(args.indices.contains(i + 1) ? Screen(rawValue: args[i + 1]) ?? .call : .call, english: args.contains("-demoEnglish")) else { return nil }
+        // A picture of one exact moment (the site's story): the screen's status, and its notes, given as JSON.
+        func given<T: Decodable>(_ name: String, _ type: T.Type) -> T? {
+            guard let at = args.firstIndex(of: name), args.indices.contains(at + 1) else { return nil }
+            return try? JSONDecoder().decode(type, from: Data(args[at + 1].utf8))
+        }
+        if let status = given("-demoStatus", API.Status.self) { demo = Demo(screen: demo.screen, status: status, notes: demo.notes) }
+        if let notes = given("-demoNotes", [API.Note].self) { demo.notes = notes }
+        return demo
         #else
         return nil
         #endif
