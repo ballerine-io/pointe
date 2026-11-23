@@ -140,7 +140,8 @@ def test_a_claim_closing_in_one_turn_with_the_bots_echo_is_heard(d, monkeypatch)
     are then the bot's, and the late-echo check took the whole turn, claim included, as echo: no log line, no owner."""
     bot = "I'd keep going, briefly. The refund pricing issue and the alerts question are still open."
     m, turns = _bot_said_then_room_turn(d, monkeypatch, bot, bot + " Pointe, that's me.", "5")
-    assert m.owner == "5", (m.owner, [t.who for t in turns])
+    # Heard, not taken as echo. With no voiceprint a claim moves no seat (Mythos review AV-2): it is answered with the tap.
+    assert m.owner == "1" and any(n.text == d.OWNER_BY_TAP for n in d.NOTES.items), (m.owner, [t.who for t in turns])
 
 
 def test_the_bots_words_from_just_before_the_meeting_are_its_echo_in_it(d, monkeypatch):

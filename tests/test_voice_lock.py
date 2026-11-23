@@ -350,11 +350,12 @@ def test_in_a_meeting_a_stranger_cannot_claim_the_owners_seat(d, v, monkeypatch,
     assert m.owner == "1"
 
 
-def test_in_a_meeting_without_the_lock_that_is_me_still_rebinds(d, v, monkeypatch, tmp_path):
+def test_in_a_meeting_without_the_lock_that_is_me_does_not_rebind(d, v, monkeypatch, tmp_path):
+    """It used to: with the lock off any voice took the seat by saying so (Mythos review AV-2). Only a tap moves it."""
     m, _ = _meeting(d, monkeypatch, tmp_path)
     m.bind_owner("1")
     _room(d, "2", "Pointe, that's me.", OTHER_HZ, 0, 1500)
-    assert m.owner == "2"  # today's behaviour when the lock is off
+    assert m.owner == "1"
 
 
 def test_a_push_to_talk_press_is_not_voice(d, v, monkeypatch):

@@ -39,7 +39,8 @@ voiceprint.
   that voice's words out, the interrupted report comes back at once.
 - **Push to talk.** Only speech is scored, never the silence between a press and your first word.
 - **Meetings.** With a voiceprint and the lock on, a meeting turn in your voice marks you as the owner of that speaker
-  label, and a "that's me" in another voice is refused. With the lock off, meetings use the label heuristic.
+  label, and a "that's me" in another voice is refused. With the lock off,
+  only the words that started the meeting or a tap on "That was me" mark the owner; a spoken "that's me" never does.
 - **Drive mode** uses the voiceprint whenever one is stored, at any level: see [drive mode](drive-mode.md).
 - **Whisper mode** never lowers the lock: see [whisper mode](whisper-mode.md).
 

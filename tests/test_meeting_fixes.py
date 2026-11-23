@@ -583,10 +583,13 @@ def test_sending_the_action_items_answers_at_once(d, monkeypatch):
 @pytest.mark.parametrize("said", ["Pointe, that's me.", "Point, that is me.", "Pointe. It's me.", "Hi all. Pointe, that's me.",
                                   "Pointe, this is me"])
 def test_the_owner_claims_the_seat_however_it_is_transcribed(d, monkeypatch, said):
+    """The claim is heard however it is transcribed. With no voiceprint it no longer binds anyone (anyone can say it:
+    Mythos review AV-2): it is answered with how to take the seat, a tap on one of your lines."""
     _meeting_ready(d, monkeypatch)
     _start(d)
     _feed(d, "2", said, 100.0)
-    assert d.state.meeting.owner == "2"
+    assert d.state.meeting.owner is None
+    assert any(n.text == d.OWNER_BY_TAP for n in d.NOTES.items), [n.text for n in d.NOTES.items]
 
 
 def test_the_assistant_is_never_suggested_as_a_speakers_name():

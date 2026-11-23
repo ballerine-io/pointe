@@ -144,6 +144,33 @@ def test_only_the_owner_commands_and_a_stranger_cannot(d, monkeypatch):
     assert pushed and "owner asked you to speak" in pushed[-1].text
 
 
+def test_with_no_voiceprint_a_guest_saying_thats_me_does_not_take_the_owners_seat(d, monkeypatch):
+    """Mythos review AV-2. With no voiceprint a label is all there is: "Pointe, that's me" from someone else in the room
+    must not move the seat, or the guest can then end the meeting and have session content read to the room."""
+    pushed, _ = _meeting_ready(d, monkeypatch)
+    _start(d, "participating")
+    d.state.meeting.bind_owner("1")
+    _say(d, "2", "Pointe, that's me.")
+    assert d.state.meeting.owner == "1"
+    _say(d, "2", "Pointe, end the meeting.")
+    assert d.state.meeting is not None
+    _say(d, "1", "Pointe, end the meeting.")  # the owner's own flow is unchanged
+    assert d.state.meeting is None
+
+
+def test_with_no_voiceprint_an_empty_seat_is_taken_by_a_tap_never_by_voice(d, monkeypatch):
+    _meeting_ready(d, monkeypatch)
+    _start(d, "participating")  # from the page: no spoken entry command, so no owner yet
+    m = d.state.meeting
+    assert m.owner is None
+    _say(d, "2", "Pointe, that's me.")
+    assert m.owner is None
+    assert any("tap" in n.text.lower() for n in d.NOTES.items), [n.text for n in d.NOTES.items]
+    turn = next(t for t in m.turns if t.speaker == "2")
+    r = client_for(d).post("/voice/meeting", json={"action": "owner", "turn_id": turn.id})
+    assert r.status_code == 200 and m.owner == "2", r.text
+
+
 def test_a_hand_is_spoken_only_when_the_owner_lets_it(d, monkeypatch):
     pushed, _ = _meeting_ready(d, monkeypatch)
     _start(d, "participating")

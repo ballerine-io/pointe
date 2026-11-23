@@ -4104,8 +4104,9 @@ async def _on_meeting_reconnect() -> None:
         await _on_meeting_turn(m, turn)
     if not heard:
         return  # nobody had spoken on the old stream: no label is lost, and a note would open the meeting with a riddle
-    NOTES.add("thought", "The meeting's audio stream reconnected, so speakers are labelled afresh. Say “Pointe, that's me” "
-                         "to be the owner again.", dedup=False)
+    again = "tap “That was me” on one of your lines" if _meeting_voiceless() else "say “Pointe, that's me”"
+    NOTES.add("thought", f"The meeting's audio stream reconnected, so speakers are labelled afresh. To be the owner again, "
+                         f"{again}.", dedup=False)
 
 
 MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing as a meeting turn
@@ -4190,6 +4191,14 @@ async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
                 return
             continue
         cmd, _ = meetings.command(words)
+        if cmd == "me" and _meeting_voiceless():
+            # No voiceprint: a label is all there is, and anyone in the room can say "that's me". The seat is the entry
+            # command's speaker's, or a tap's; a voice never takes it, empty or held, before or after a reconnect.
+            if turn.speaker == m.bot and turn.speaker != "?":  # its words passed the echo check: the label is a person's
+                m.bot = None
+            logger.info("meeting: \"that's me\" with no voiceprint (ignored: only a tap binds the owner)")
+            NOTES.add("thought", OWNER_BY_TAP, dedup=False)
+            continue
         if cmd == "me" and turn.speaker == "?":  # every unlabelled turn shares "?": it is nobody in particular
             logger.info("meeting: \"that's me\" from an unlabelled speaker (ignored)")
             NOTES.add("thought", "I couldn't tell who said “that's me”. Say it again.", dedup=False)
@@ -4209,11 +4218,20 @@ async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
             logger.info(f"meeting: addressed by a non-owner (ignored: {cmd})")  # the kind only, never the words
 
 
+OWNER_BY_TAP = ("With no voiceprint I can't tell voices apart, so nobody becomes the owner by saying so. Tap “That was "
+                "me” on one of your lines.")
+
+
+def _meeting_voiceless() -> bool:
+    """No voiceprint to tell the owner by (the lock is off, or nothing is enrolled): _meeting_voice gives no verdict."""
+    return lock_level() == "off" or not VOICE.profiles.items
+
+
 async def _meeting_voice(turn):
     """The voiceprint's verdict on a meeting turn, or None when the lock is off or there is no voiceprint (then the
     label binding alone decides, as before). A turn without audio is a verdict too: not scored, so not the owner.
     The whole turn is scored, not its newest fragment: "Pointe, that's me" alone is often under speaker.MIN_SECS."""
-    if lock_level() == "off" or not VOICE.profiles.items:
+    if _meeting_voiceless():
         return None
     ears = state.meeting_ears
     span = turn.span_ms or turn.audio_ms
@@ -4297,8 +4315,8 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
     elif cmd == "mode":
         await _meeting_mode_by_voice(m, args["mode"], words, typed)
     elif cmd == "me":
-        NOTES.add("thought", "You're bound as the owner." if m.owner else "Say “Pointe, that's me” aloud to bind your voice.",
-                  dedup=False)
+        NOTES.add("thought", "You're bound as the owner." if m.owner else OWNER_BY_TAP if _meeting_voiceless()
+                  else "Say “Pointe, that's me” aloud to bind your voice.", dedup=False)
     elif cmd == "name":
         m.name_speaker(args["label"], args["name"])
     elif cmd == "agenda":

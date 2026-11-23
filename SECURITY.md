@@ -147,6 +147,11 @@ and their words are not shown or kept).
 - **It fails closed.** When it cannot tell (no model yet, a model error or a score slower than 0.6 s, under 0.3 s of
   audio, a damaged voiceprint), the speech counts as not yours for what the level guards. A tap, Face ID, the terminal
   and typed text still work, so this costs convenience, never control. Deleting the voiceprint turns the lock off.
+- **Meetings.** The meeting's owner is the one whose addressed words act (end the meeting, ask a session, speak to the
+  room). With a voiceprint, a turn that strongly matches it binds the owner. Without one, a label is all Pointe has, so
+  only the speaker of the words that started the meeting, or a tap on "That was me", becomes the owner; "Pointe, that's
+  me" by voice never takes the seat, empty or held, before or after the room's stream reconnects. Left open: the
+  speech vendor can file a guest's turn under the owner's label, and with no voiceprint nothing catches that.
 - **It is not authentication.** It is a check against the bystander (a spouse, a colleague, a TV), not an attacker: a
   recording of your voice can pass it, and a short "yes" is weakly scored (it counts on its own only after a strong
   match within a minute, on the same device's voiceprint). Measured on synthetic voices only: see

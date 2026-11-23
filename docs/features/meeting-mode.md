@@ -34,9 +34,13 @@ all during a meeting, which keeps a "yes" said in the room away from the approva
 You are identified in one of two ways:
 
 - **By the words that started it:** a voice start replays the last 5 s of audio into the meeting stream, so whoever
-  said "meeting mode" is you. After a tap start, say "Pointe, that's me", or tap "That was me" on one of your turns.
+  said "meeting mode" is you. After a tap start, tap "That was me" on one of your turns.
 - **By the [voice lock](voice-lock.md),** when a voiceprint is stored and the lock is on: a turn in your voice binds
-  you, and a "that's me" in another voice is refused.
+  you, "Pointe, that's me" in your voice moves the seat to you, and a "that's me" in another voice is refused.
+
+With no voiceprint a label is all Pointe has, and anyone in the room can say "that's me": so nobody takes the seat by
+voice, whether it is empty or held. Pointe answers the claim with a note to tap "That was me" instead. Once the seat is
+yours, only a tap moves it.
 
 Other speakers are "Speaker 2", "Speaker 3". The note-taker may suggest a name from an introduction; a name is applied
 only when you accept it or say "Pointe, speaker two is Dana".
@@ -52,8 +56,9 @@ are questions. Joining is acknowledged in two words ("I'm in"); going back to li
 
 A question that names a session ("Pointe, what does billing's session say about the retry limit?") is looked up in a
 read-only copy of that session, any session of yours, linked or not: in Participating Pointe says the answer to the
-room in two sentences at most, and in both modes it is written as an answer note. The live session gets nothing. Another speaker's commands are ignored, except
-"that's me", which only moves the owner label (no voice action in a meeting sends or approves).
+room in two sentences at most, and in both modes it is written as an answer note. The live session gets nothing. Another speaker's commands are ignored; their
+"that's me" moves the owner label only with a voiceprint, as a strong match for your voice (no voice action in a
+meeting sends or approves).
 
 ## What it does, and when
 
@@ -102,7 +107,8 @@ with the voice lock on only your voice's yes counts. The end sheet on the page a
 read-back while it waits, and where the action items went.
 
 If the call drops for 5 minutes the meeting ends, and held news reaches the next call. If the speech stream drops, it
-reconnects by itself (1 s backoff doubling to 30 s); speakers are relabelled and you say "Pointe, that's me" again.
+reconnects by itself (1 s backoff doubling to 30 s); speakers are relabelled, and you tap "That was me" again (with a
+voiceprint, your next turn binds you by itself).
 
 ## Limits
 
