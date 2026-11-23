@@ -383,7 +383,7 @@ def test_fetch_keeps_only_a_file_whose_hash_is_the_pinned_one(tmp_path, monkeypa
 
 URL_HOST = re.compile(r"(?:https?|wss?)://([A-Za-z0-9][A-Za-z0-9.-]*)")
 EGRESS_SOURCES = ("*.py", "harnesses/*.py", "bench/**/*.py", "bench/**/*.sh", "bench/**/*.ts", "evals/**/*.py", "demo/**/*.py",
-                  "ios/e2e/*.py", "ios/*.sh", "macos/e2e/*", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
+                  "ios/e2e/*.py", "ios/*.sh", "macos/e2e/*", "tools/*.py", "tools/*.sh", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
                   "channel/*.mjs", "channel/package.json", "ui*.html", "site/**/*", "ios/Pointe/**/*.swift", "apple/PointeKit/Package.swift",
                   "apple/PointeKit/Sources/**/*.swift", "macos/PointeMac/**/*.swift", "macos/*.sh",
                   "macos/tools/*", ".github/**/*.yml")
