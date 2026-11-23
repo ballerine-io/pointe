@@ -648,3 +648,57 @@ def test_the_phone_sessions_drawer_scrolls_as_one_and_shows_the_session_that_nee
     for r in got:
         assert not r["nested"], r
         assert r["hot"] and r["hot"][0] >= 0 and r["hot"][1] <= r["vh"], r
+
+
+SHORT = """(async () => { const hit = s => { const e = document.querySelector(s); e.scrollIntoView({block: 'nearest'}); const b = e.getBoundingClientRect();
+    const t = document.elementFromPoint(b.left + Math.min(12, b.width / 2), b.top + b.height / 2); return !!t && (e === t || e.contains(t)); };
+  const what = document.querySelector('#attention .ask .what').getBoundingClientRect();
+  const atLoad = what.top >= 0 && what.bottom <= innerHeight && hit('#attention .ask .what');
+  return {atLoad, approve: hit('#attention .ask .allow'), mic: hit('#mic'), hangup: hit('#hangup')}; })()"""
+
+
+def test_on_a_short_screen_the_approval_card_is_never_under_the_conversation():
+    """A phone held sideways (844x390) or a laptop at 200 % zoom (720x450): the card's header, which names the session
+    that asks, shows when the page opens, and the card and the dock can be reached; no bubble lies over them."""
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=4, talk=12, approval=True, connected=True)
+        out = []
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                for w, h in ((844, 390), (720, 450)):
+                    await page.cdp("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 1, "mobile": False})
+                    await page.eval(f"(async () => {{ {LIVE} await refresh(); document.querySelector('main').scrollTop = 0; return true; }})()")
+                    await asyncio.sleep(0.6)
+                    out.append(await page.eval(SHORT))
+        finally:
+            await stub.stop()
+        return out
+    for r in asyncio.run(run()):
+        assert r == {"atLoad": True, "approve": True, "mic": True, "hangup": True}, r
+
+
+def test_the_newest_turn_is_in_view_when_the_page_opens_with_a_card_up():
+    """The first paint scrolls to the newest turn and the card then takes its room in the same frame: the scroll event
+    that follows is the page's own, not the user scrolling up, so the conversation stays on its newest turn."""
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=4, talk=30, approval=True, connected=True)
+        out = []
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                for w, h in ((1440, 900), (390, 844)):
+                    await page.cdp("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 1, "mobile": w < 500})
+                    await page.cdp("Page.reload", {"ignoreCache": True})
+                    await asyncio.sleep(0.3)
+                    await page.wait_for_page()
+                    await asyncio.sleep(0.8)
+                    out.append(await page.eval("(() => { const t = document.getElementById('talk'); return [Math.round(t.scrollHeight - t.scrollTop - t.clientHeight),"
+                                               " !!document.querySelector('#attention .ask')]; })()"))
+        finally:
+            await stub.stop()
+        return out
+    for gap, card in asyncio.run(run()):
+        assert card and gap <= 2, (gap, card)
