@@ -90,6 +90,7 @@ from echo import AudioClock, EchoGuard, LevelGate, lone_stop, spoken_form, words
 import phone
 from readout import mask
 from guards import (relays_approval, remote_readable, 
+    JsonPosts,
     LocalAuth,
     permission_answer,
     quote_intent,
@@ -6499,6 +6500,7 @@ TOOLS = ToolsSchema(standard_tools=[
 # ---------- HTTP: registration, permission relay, status ----------
 
 app = FastAPI()
+app.add_middleware(JsonPosts)  # first, so innermost: the guards below answer a caller without a secret before it
 REMOTE = remote.Remote(STATE_DIR)
 remote.install(REMOTE, app)  # localhost as before; a paired phone over HTTPS through the private network
 PHONES = phone_pairing.Phones(STATE_DIR)  # each phone's key (hashed), name and last seen (Settings → Phone)

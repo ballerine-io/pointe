@@ -509,3 +509,29 @@ def test_the_phone_key_still_cannot_pair_a_node_or_open_the_node_socket(hub_app)
     node = hub.nodes.add("devbox", "linux")
     assert _node_close_code(tls(hub_app), "", node["id"], **key) == 4401  # the HMAC, never the phone key
     assert _pair(tls(hub_app), "AAAA-AAAA").status_code == 403  # no invite: the phone key opens no pairing
+
+
+# ---------- every POST is JSON (guards.JsonPosts): the page's own requests say so ----------
+
+def _fetch_calls(text: str):
+    """Each fetch(...) call's whole text, brackets balanced."""
+    at = 0
+    while (start := text.find("fetch(", at)) != -1:
+        depth, i = 0, start + len("fetch")
+        while True:
+            depth += {"(": 1, ")": -1}.get(text[i], 0)
+            i += 1
+            if depth == 0:
+                break
+        yield text[start:i]
+        at = i
+
+
+@pytest.mark.parametrize("page", ["ui.html", "ui_dictionary.html", "ui_whisper.html"])
+def test_every_post_the_page_makes_says_it_is_json(page):
+    text = (Path(__file__).resolve().parents[1] / page).read_text()
+    assert "sendBeacon" not in text  # it sends text/plain, which the daemon refuses
+    posts = [c for c in _fetch_calls(text) if "'POST'" in c or "\"POST\"" in c]
+    assert posts or page != "ui.html"
+    for call in posts:
+        assert "'content-type': 'application/json'" in call, call

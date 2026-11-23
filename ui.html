@@ -2646,7 +2646,7 @@
   });
   function endCall() {  // hung up by the user: a prompt the voice holds goes back to the terminal now
     wantCall = false; clearTimeout(retry); retry = null; callNote = '';
-    fetch('/voice/hung-up', {method: 'POST'});
+    fetch('/voice/hung-up', {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'});
     call.ws?.close(1000); call.state = 'off'; showState();
   }
   // The Connect control: the empty stage's button and the top bar's pill do the same thing, by the call's state.

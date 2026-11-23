@@ -327,7 +327,7 @@ def test_the_phone_key_reaches_the_drive_route():
 def test_hanging_up_leaves_drive_mode_at_once(d):
     d.state.conn = fake_conn()
     asyncio.run(d.set_drive(True, "button"))
-    client_for(d).post("/voice/hung-up")
+    client_for(d).post("/voice/hung-up", json={})
     assert not d.state.drive.on()
 
 

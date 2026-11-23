@@ -805,6 +805,24 @@ class LocalAuth:
         await self.app(scope, receive, framed)
 
 
+class JsonPosts:
+    """Every POST says `Content-Type: application/json`, or 415. A page on another origin can POST without a CORS
+    preflight only as a "simple" request (text/plain, a form, or no body), and this app sends no CORS headers, so no
+    such request reaches a handler on either listener. Installed inside LocalAuth and Remote.guard: a caller without a
+    secret still gets their 403 first."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["method"] == "POST":
+            content_type = dict(scope["headers"]).get(b"content-type", b"").split(b";")[0].strip().lower()
+            if content_type != b"application/json":
+                return await PlainTextResponse("POST a JSON body (Content-Type: application/json)",
+                                               status_code=415)(scope, receive, send)
+        await self.app(scope, receive, send)
+
+
 # Monologue: the user thinks out loud and the bot stays silent until handed the turn. Both ends match only at the start
 # of an utterance: "I'll just listen to the customer" mid-thought must not enter, and "what do you think about X" inside a
 # monologue is content unless it opens the utterance.

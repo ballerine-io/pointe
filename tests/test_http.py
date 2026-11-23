@@ -187,3 +187,48 @@ def test_the_address_with_the_page_key_stays_out_of_the_log(tmp_path):
     daemon, _ = _client(tmp_path)
     daemon._start_journal()
     assert logging.getLogger("uvicorn.access").disabled
+
+
+# A page on another origin can send a POST with no preflight only as a "simple" request: text/plain, a form, or no body.
+# Every POST must say application/json, so no such request reaches a handler, on either listener.
+
+def test_a_post_that_is_not_json_is_refused_and_changes_nothing(tmp_path):
+    _, client = _client(tmp_path)
+    _register(client, "a", "alpha/main"), _register(client, "b", "beta/main")
+    for content_type in ("text/plain", "text/plain;charset=UTF-8", "application/x-www-form-urlencoded",
+                         "multipart/form-data; boundary=x", "application/jsonx", None):
+        headers = {"content-type": content_type} if content_type else {}
+        r = client.post("/voice/switch", content=json.dumps({"name": "beta/main"}), headers=headers)
+        assert r.status_code == 415, content_type
+    assert client.get("/voice/status").json()["active"] == "alpha/main"
+    assert client.post("/voice/hung-up").status_code == 415  # no body at all: still a simple request
+    assert client.post("/voice/hung-up", json={}).status_code == 200
+    r = client.post("/voice/switch", content=json.dumps({"name": "beta/main"}),
+                    headers={"content-type": "Application/JSON; charset=utf-8"})
+    assert r.json() == {"active": "beta/main"}
+
+
+def test_a_post_without_a_secret_is_still_refused_first(tmp_path):
+    """The content check runs inside the guards: a stranger learns nothing new from a 415."""
+    daemon, _ = _client(tmp_path)
+    from fastapi.testclient import TestClient
+
+    stranger = TestClient(daemon.app, base_url="http://127.0.0.1:7860")
+    assert stranger.post("/voice/switch", content="{}", headers={"content-type": "text/plain"}).status_code == 403
+
+
+def test_a_paired_page_over_the_phone_listener_must_post_json_too(tmp_path, monkeypatch):
+    daemon, _ = _client(tmp_path)
+    from fastapi.testclient import TestClient
+    from remote import COOKIE, TLS_PORT
+
+    (tmp_path / "cert.pem").write_text("x"), (tmp_path / "key.pem").write_text("x")
+    for name, value in (("host", "studio.example.internal"), ("token", "pair-secret"),
+                        ("cert", tmp_path / "cert.pem"), ("key", tmp_path / "key.pem")):
+        monkeypatch.setattr(daemon.REMOTE, name, value)
+    _register(_client(tmp_path)[1], "a", "alpha/main"), _register(_client(tmp_path)[1], "b", "beta/main")
+    phone = TestClient(daemon.app, base_url=f"https://studio.example.internal:{TLS_PORT}", cookies={COOKIE: "pair-secret"})
+    own = {"origin": f"https://studio.example.internal:{TLS_PORT}"}
+    r = phone.post("/voice/switch", content=json.dumps({"name": "beta/main"}), headers={**own, "content-type": "text/plain"})
+    assert r.status_code == 415
+    assert phone.post("/voice/switch", json={"name": "beta/main"}, headers=own).json() == {"active": "beta/main"}

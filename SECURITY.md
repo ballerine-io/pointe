@@ -18,6 +18,9 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
 - That cookie lives on a private name, `<hash>.localhost`. Cookies ignore ports, so one set on plain `localhost` would reach any
   server you open on another port.
 - `Origin` must match `Host` exactly, for HTTP and for WebSocket. This stops other web pages and DNS rebinding.
+- Every POST must say `Content-Type: application/json`, on this port and on the phone's listener, or it gets 415. A page
+  on another origin can send a POST without asking first only as text, a form or an empty body, so none reaches a
+  route. The check runs after the secret check.
 - Only the same origin can frame the page, which blocks clickjacking.
 - An empty secret opens nothing.
 

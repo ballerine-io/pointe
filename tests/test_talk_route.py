@@ -79,7 +79,7 @@ def test_on_and_off_are_idempotent_and_an_empty_body_toggles(d, monkeypatch):
     assert c.post("/voice/talk", json={"action": "on"}).json()["open"] is True
     assert c.post("/voice/talk", json={"action": "off"}).json()["open"] is False
     assert c.post("/voice/talk", json={"action": "off"}).json()["open"] is False
-    assert c.post("/voice/talk").json()["open"] is True
+    assert c.post("/voice/talk", headers={"content-type": "application/json"}).json()["open"] is True  # empty body
     assert len(link.sent) == 5
     assert c.post("/voice/talk", json={"action": "hold"}).status_code == 400
 
