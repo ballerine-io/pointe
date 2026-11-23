@@ -258,7 +258,7 @@ def resolve(front: str = "brain") -> Setup:
         s.mouth = pick("CLAUDE_VOICE_MOUTH", MOUTH_ORDER)
     s.ears = pick("CLAUDE_VOICE_EARS", EARS_ORDER)
     if s.ears != "soniox":
-        s.notes.append("Without Soniox the echo guard has no mirror stream: use headphones or browser echo cancellation.")
+        s.notes.append("Use headphones: on speakers Pointe can hear itself.")  # no Soniox, so no echo guard (docs/benchmarks.md)
     if voice_local() and not local_only():
         s.notes.append(f"{VOICE_LOCAL}: ears and mouth run on this Mac; the text models get text only.")
     return s
