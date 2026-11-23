@@ -6,7 +6,7 @@ import Foundation
 public enum KeyCopy {
     public static let whatYouNeedTitle = "What do I need?"
     public static let whatYouNeed = "Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour."
-    public static let whyKeys = "Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk."
+    public static let whyKeys = "Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk."
     public static let allFilled = "Every role is filled."
     public static let othersOptional = "The other keys are optional: not needed with your current keys."
     public static let noKey = "No model key yet."

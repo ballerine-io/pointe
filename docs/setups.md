@@ -2,7 +2,7 @@
 
 Written by `tools/setups.py` from `setups.py`: edit those, not this file.
 
-Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk.
+Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk.
 
 Pointe has five roles. Each setup fills all five, with the keys in its row:
 

@@ -219,6 +219,16 @@ def test_the_daemons_key_status_with_the_voice_on_the_mac_says_not_read(keys, mo
     monkeypatch.setattr(daemon, "_keys_cache", None)
     got = daemon._keys_status()["keys"]
     assert got["soniox"] == got["elevenlabs"] == "not read" and got["anthropic"] == "in use", got
+def test_with_the_voice_on_this_mac_the_audio_only_keys_are_not_read(keys, monkeypatch):
+    """As the doctor says (doctor.py: "not read ... audio only"): with the voice on this Mac a Soniox or ElevenLabs key
+    is never read, so Settings must not offer it as Optional with Add."""
+    keys("gemini")
+    monkeypatch.setenv("CLAUDE_VOICE_VOICE_LOCAL", "1")
+    monkeypatch.setattr(daemon, "_setup", None)
+    monkeypatch.setattr(daemon, "_keys_cache", None)
+    got = daemon._keys_status()
+    assert got["keys"]["soniox"] == "not read" and got["keys"]["elevenlabs"] == "not read", got["keys"]
+    assert got["keys"]["gemini"] == "in use"
 
 
 @pytest.mark.skipif(not os.path.exists(__import__("page_rig").CHROME), reason="headless Chrome is not installed here")
@@ -229,7 +239,7 @@ def test_the_page_shows_optional_not_missing():
         stub = await StubMac(free_port()).start()
         stub.status = {**fixture(sessions=1), "keys": {
             "line": "Every role is filled. The other keys are optional: not needed with your current keys.",
-            "keys": {"gemini": "in use", "openai": "optional", "anthropic": "optional", "soniox": "optional", "elevenlabs": "optional"},
+            "keys": {"gemini": "in use", "openai": "optional", "anthropic": "optional", "soniox": "optional", "elevenlabs": "not read"},
             "uses": {"gemini": ["brain", "reader", "checker", "ears", "mouth"]}}}
         try:
             async with Browser() as browser:
@@ -239,13 +249,16 @@ def test_the_page_shows_optional_not_missing():
                 await page.eval("(async () => { await openSettings(); settingsJump('g-keys'); return true; })()")
                 await asyncio.sleep(0.4)
                 return await page.eval("""(() => ({rows: [...document.querySelectorAll('#pref-keys .r')].map(r => r.innerText),
+                  x: [...document.querySelectorAll('#pref-keys .kstate')].map(k => Math.round(k.getBoundingClientRect().left)),
                   line: document.getElementById('pref-keys-line').textContent,
                   need: document.getElementById('pref-keys-need').textContent}))()""")
         finally:
             await stub.stop()
     got = asyncio.run(run())
     assert got["rows"][0].split("\n") == ["Google Gemini", "In use: brain, reader, checker, ears, mouth", "Replace…"], got
-    assert all(r.endswith("Optional\nAdd…") for r in got["rows"][1:]) and len(got["rows"]) == 5, got
+    assert all(r.endswith("Optional\nAdd…") for r in got["rows"][1:4]) and len(got["rows"]) == 5, got
+    assert got["rows"][4].split("\n") == ["ElevenLabs", "Not read: the voice stays on this Mac"], got  # nothing to add
+    assert len(set(got["x"])) == 1, got  # each state starts at the same x
     assert got["need"] == vendors.WHAT_YOU_NEED and "Missing" not in json.dumps(got)
 
 

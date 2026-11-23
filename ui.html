@@ -865,6 +865,7 @@
   /* a column for the state: name, state, button */
   .settings #pref-keys .r { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) auto; }
   .settings #pref-setups code:empty { display: none; }
+  .settings #pref-keys .r { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; }  /* every state at one x */
   .settings #pref-keys .kstate { color: var(--muted); } .settings #pref-keys .kstate.inUse { color: var(--text); }
   .settings #mach-invite { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
   .settings #mach-invite .note { padding: 0; }
@@ -3888,7 +3889,7 @@
   // tests/test_key_setup.py). A key no role needs is Optional, never Missing.
   const KEYS_COPY = {title: 'What do I need?',
     need: 'Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.',
-    why: 'Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe\'s voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk.',
+    why: 'Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe\'s voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk.',
     how: 'Add… opens the vendor\'s key page and a window on this Mac; Pointe checks the key and restarts to use it.',
     howRemote: 'Add or replace a key on the Mac: its page or the Mac app\'s Settings, or pointe key <vendor>.',
     setups: 'Setups', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',

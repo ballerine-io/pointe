@@ -27,8 +27,8 @@ NAMES = {"gemini": "Gemini", "openai": "OpenAI", "anthropic": "Anthropic", "soni
 
 WHY_KEYS = ("Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, "
             "the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other "
-            "apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API "
-            "key is billed per use: about $1 for a busy hour of talk.")
+            "apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI "
+            "key. An API key is billed per use: about $1 for a busy hour of talk.")
 
 BUSY_HOUR = ("A busy hour: 60 spoken replies, 10 session reports and the call open for the hour, by arithmetic from "
              "measured and list prices (docs/benchmarks.md, \"Cost arithmetic\"), not a metered bill.")

@@ -565,8 +565,8 @@ TOPICS = (
           "Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy "
           "hour. Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, "
           "the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps "
-          "can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is "
-          "billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
+          "can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An "
+          "API key is billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
           page=(("settings", "Model keys"),), mac=(),
           page_note="It shows the setup in use, each key as In use, Saved, not used, Needed or Optional, and the setups. "
                     "On the Mac's own page, Add… or Replace… opens the vendor's key page and a window for the key, which "
