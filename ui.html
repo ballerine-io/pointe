@@ -2456,7 +2456,9 @@
     connecting: where => `Connecting to ${where}…`,
     reconnecting: n => `Reconnecting… attempt ${n}`,
     // (a) the Mac is not reachable at its address; on the Mac itself that means Pointe is not running
-    unreachable: host => `Can't reach your Mac at ${host}. Is Twingate or Tailscale on? Is the Mac awake?`,
+    // the Wi-Fi route (a private address or a .local name) asks about the Wi-Fi; any other is a VPN's or a tunnel's
+    unreachable: host => `Can't reach your Mac at ${host}. ${/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)|\.local(:\d+)?$/.test(host)
+      ? 'Is this phone on the same Wi-Fi as the Mac?' : 'Is Twingate or Tailscale on?'} Is the Mac awake?`,
     daemonDown: 'Pointe on this Mac is not answering. Start it again: /pointe:voice in a Claude Code session, or open the Pointe app.',
     // (b) the key this page or phone holds is refused
     notPaired: 'This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open.',
@@ -4166,9 +4168,9 @@
       radio.onchange = () => { phonePick = r; showRoutes(phoneRoutesSeen); };
       const title = el('span', 'pl', r.label);
       if (r.recommended) title.append(el('span', 'best', 'Recommended'));
-      if (r.current) title.append(el('span', 'now', 'set up now'));
+      if (r.current) title.append(el('span', 'now', 'in use'));
       label.append(radio, title, el('span', 'pw', r.words));
-      if (r.problem) label.append(el('span', 'pp', r.problem));
+      if (r.problem && !r.current) label.append(el('span', 'pp', r.problem));  // the route phones pair through works: no alarm under it
       return label;
     }));
     $('ph-advice').textContent = found.advice || '';

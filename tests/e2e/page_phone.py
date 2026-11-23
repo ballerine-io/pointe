@@ -142,7 +142,7 @@ async def run(page: Page, legacy: str) -> None:
            and all(r["words"] for r in shown), shown=shown)
     old_route = next((r for r in shown if r["title"].startswith(OLD)), {})
     _check("the route set up before is offered, recommended and picked", old_route.get("on")
-           and "Recommended" in old_route.get("title", "") and "set up now" in old_route.get("title", ""), route=old_route)
+           and "Recommended" in old_route.get("title", "") and "in use" in old_route.get("title", ""), route=old_route)
     await page.shot("phone-3-routes")
 
     await page.js(f"document.getElementById('ph-host').value = {json.dumps(NAME)}; "

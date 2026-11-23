@@ -27,7 +27,7 @@ enum PhoneCopy {
     static let noAnswer = "The Mac did not answer."
     static let newCertificate = "Choosing this makes a new certificate for this Mac: a phone or machine paired now must connect again."
     static let recommended = "Recommended"
-    static let setUpNow = "set up now"
+    static let setUpNow = "in use"
     static let allUnpaired = "Every phone unpaired. Each must connect again."
     static func unpairSure(_ name: String) -> String { "Unpair \(name)?" }
     static func unpaired(_ name: String) -> String { "\(name) unpaired." }
@@ -277,7 +277,7 @@ struct PhoneSheet: View {
                                     if route.current == true { Text(PhoneCopy.setUpNow).font(.brand(.caption2)).foregroundStyle(Brand.muted) }
                                 }
                                 if let words = route.words, !words.isEmpty { Text(words).font(.brand(.caption)).foregroundStyle(Brand.muted) }
-                                if let problem = route.problem, !problem.isEmpty { Text(problem).font(.brand(.caption)).foregroundStyle(Brand.accent) }
+                                if let problem = route.problem, !problem.isEmpty, route.current != true { Text(problem).font(.brand(.caption)).foregroundStyle(Brand.accent) }
                             }
                         }
                         .contentShape(Rectangle())

@@ -393,3 +393,31 @@ def test_the_mac_page_shows_no_bare_latency_and_a_phone_page_labels_it():
     """On the Mac's own page the call's round trip is a loopback (· 0 ms): noise. Over the phone's listener it says
     what the number is."""
     assert "const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : remotePage && call.rtt != null ? ` · round trip ${call.rtt} ms` : '';" in PAGE
+
+
+@needs_chrome
+def test_the_route_in_use_reads_in_use_and_carries_no_alarm():
+    """A Twingate name served on loopback is the route phones pair through: 'set up now' read as an instruction, and the
+    orange 'points at this Mac itself' sat under the Recommended route that works."""
+    got = asyncio.run(_render("""(async () => {
+        openSettings(); await new Promise(r => setTimeout(r, 300));
+        document.getElementById('ph-pick').hidden = false;
+        showRoutes({current: 'pointe.example.test', advice: '', routes: [
+          {kind: 'host', host: 'pointe.example.test', label: 'pointe.example.test', usable: true, recommended: true, current: true,
+           words: 'the private network name you set up', problem: 'It points at this Mac itself (127.0.0.1): your phone needs its own way to it.'},
+          {kind: 'wifi', host: '192.168.1.20', label: 'Wi-Fi', usable: true, recommended: false, current: false, words: 'the same Wi-Fi only',
+           problem: 'Only while the phone is on this Wi-Fi.'}]}, '');
+        return [...document.querySelectorAll('#ph-routes label')].map(l => ({title: l.querySelector('.pl').textContent,
+                                                                             problem: l.querySelector('.pp')?.textContent ?? null}));
+    })()"""))
+    assert got[0] == {"title": "pointe.example.testRecommendedin use", "problem": None}, got
+    assert got[1]["problem"] == "Only while the phone is on this Wi-Fi.", got
+
+
+@needs_chrome
+def test_mac_not_reachable_on_the_wifi_route_asks_about_the_wifi():
+    got = asyncio.run(_render("""(() => [CONNECT_COPY.unreachable('192.168.1.20:7443'), CONNECT_COPY.unreachable('studio.local:7443'),
+                                        CONNECT_COPY.unreachable('studio.example:7443')])()"""))
+    assert got[0] == got[1].replace("studio.local", "192.168.1.20") == \
+        "Can't reach your Mac at 192.168.1.20:7443. Is this phone on the same Wi-Fi as the Mac? Is the Mac awake?", got
+    assert got[2] == "Can't reach your Mac at studio.example:7443. Is Twingate or Tailscale on? Is the Mac awake?", got  # the app's words
