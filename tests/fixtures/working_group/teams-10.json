@@ -1,0 +1,60 @@
+{
+  "_consent": "Invented teams for the tests; never deployed.",
+  "teams": [
+    {
+      "name": "Acme Labs",
+      "logo": "img/logos/acme-labs.svg",
+      "consent": true
+    },
+    {
+      "name": "Northwind",
+      "logo": "img/logos/northwind.svg",
+      "consent": true
+    },
+    {
+      "name": "Tidepool",
+      "logo": "img/logos/tidepool.svg",
+      "consent": true
+    },
+    {
+      "name": "Brightwater",
+      "logo": "img/logos/brightwater.svg",
+      "consent": true
+    },
+    {
+      "name": "Copperline",
+      "logo": "img/logos/copperline.svg",
+      "consent": true
+    },
+    {
+      "name": "Fernhill",
+      "logo": "img/logos/fernhill.svg",
+      "consent": true
+    },
+    {
+      "name": "Harbor and Pine",
+      "logo": "img/logos/harbor-and-pine.svg",
+      "consent": true
+    },
+    {
+      "name": "Juniper Grid",
+      "logo": "img/logos/juniper-grid.svg",
+      "consent": true
+    },
+    {
+      "name": "Quillstone",
+      "logo": "img/logos/quillstone.svg",
+      "consent": true
+    },
+    {
+      "name": "Saltmarsh",
+      "logo": "img/logos/saltmarsh.svg",
+      "consent": true
+    },
+    {
+      "name": "Unconsented Co",
+      "logo": "img/logos/acme-labs.svg",
+      "consent": false
+    }
+  ]
+}
