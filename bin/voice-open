@@ -9,6 +9,8 @@ if grep -qs '"hub"' "$STATE/node.json"; then  # a node (pointe node join): the p
   exit 0
 fi
 [ -r "$STATE/page_key" ] || { echo "voice-open: the daemon has not started yet; run /pointe:voice in a Claude Code session" >&2; exit 1; }
+# The key goes only to the daemon itself: with it down, another program on the port would get it.
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || { echo "voice-open: Pointe is not running on port $PORT" >&2; exit 1; }
 URL="http://localhost:$PORT/voice?key=$(cat "$STATE/page_key")"
 if command -v open >/dev/null 2>&1; then open "$URL"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
 else echo "voice-open: no browser opener found; open http://localhost:$PORT/voice?key= followed by the contents of $STATE/page_key" >&2; exit 1; fi

@@ -10,6 +10,7 @@ uv run --locked pytest -q tests/test_new_session.py
 import asyncio
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -228,11 +229,15 @@ def test_the_register_script_passes_the_start_id(tmp_path):
     (fake_bin / "curl").write_text('#!/bin/sh\ncat > "$OUT"\necho \'{"name": "shop-2"}\'\n')
     (fake_bin / "curl").chmod(0o755)
     (tmp_path / "token").write_text("t")
+    listener = socket.create_server(("127.0.0.1", 0))  # the daemon's port, held by this process (bin/voice-ours)
+    (tmp_path / "daemon.pid").write_text(str(os.getpid()))
     hook = json.dumps({"session_id": "sess-1", "transcript_path": "/tmp/none.jsonl"})
-    env = {"PATH": f"{fake_bin}:/usr/bin:/bin", "HOME": str(tmp_path), "CLAUDE_VOICE_STATE": str(tmp_path),
+    env = {"PATH": f"{fake_bin}:/usr/bin:/bin:/usr/sbin:/sbin", "HOME": str(tmp_path), "CLAUDE_VOICE_STATE": str(tmp_path),
+           "CLAUDE_VOICE_DAEMON_PORT": str(listener.getsockname()[1]),
            "OUT": str(tmp_path / "body.json"), "CLAUDE_PID": "4242", "CLAUDE_CODE_MESSAGING_SOCKET": "/tmp/sock"}
-    done = subprocess.run([str(ROOT / "bin" / "register-session"), "--quiet", "--name", "shop-2", "--start", "abc123"],
-                          input=hook, text=True, capture_output=True, env=env, cwd=tmp_path)
+    with listener:
+        done = subprocess.run([str(ROOT / "bin" / "register-session"), "--quiet", "--name", "shop-2", "--start", "abc123"],
+                              input=hook, text=True, capture_output=True, env=env, cwd=tmp_path)
     assert done.returncode == 0, done.stderr
     body = json.loads((tmp_path / "body.json").read_text())
     assert body["start"] == "abc123" and body["name"] == "shop-2" and body["name_given"] and body["pid"] == 4242

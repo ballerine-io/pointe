@@ -15,6 +15,9 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
   never leaves loopback either. Only `pointe pair` opens another address (see Phone access).
 - Every route except `/voice/health` needs a secret. Scripts send a per-daemon token (`~/.claude-voice/token`, 0600). The page
   opens once with a key in its address (`bin/voice-open`), which becomes an `HttpOnly`, `SameSite=Strict` cookie.
+- A script sends the token or the page key only when the program listening on the port is the one the daemon's pid file
+  names, or its child (`bin/voice-ours`): with the daemon down, another user's program on `127.0.0.1:7860` gets nothing.
+  Where nothing can tell who listens (no `lsof`, `ss` or `/proc`), nothing is sent.
 - That cookie lives on a private name, `<hash>.localhost`. Cookies ignore ports, so one set on plain `localhost` would reach any
   server you open on another port.
 - `Origin` must match `Host` exactly, for HTTP and for WebSocket. This stops other web pages and DNS rebinding.

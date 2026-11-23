@@ -81,3 +81,62 @@ def test_voice_context_reads_the_context_on_stdin_not_its_command_line(daemon):
     assert "messages: 1000 (showing 20)" in got.stdout
     script = (BIN / "voice-context").read_text()
     assert '"$BODY"' not in script.split("python3", 1)[1].split("\n", 1)[0], "the body is never an argument"
+
+
+def _stub_open(tmp: Path) -> tuple[Path, Path]:
+    stubs, opened = tmp / "stubs", tmp / "opened"
+    stubs.mkdir(exist_ok=True)
+    for name in ("open", "xdg-open"):
+        (stubs / name).write_text(f'#!/bin/sh\necho "$@" >>{opened}\n')
+        (stubs / name).chmod(0o755)
+    return stubs, opened
+
+
+SCRIPTS = {  # each script, as a session or a person runs it: (argv, extra environment, stdin)
+    "register-session": (["register-session", "--quiet"], {"CLAUDE_PID": "4242"},
+                         json.dumps({"session_id": "sess-1", "transcript_path": "/tmp/none.jsonl"})),
+    "voice-talk": (["voice-talk", "on"], {}, ""),
+    "voice-context": (["voice-context", "--json"], {}, ""),
+    "claude-voice-attach status": (["claude-voice-attach", "status"], {}, ""),
+    "claude-voice-attach off": (["claude-voice-attach", "off"], {"CLAUDE_CODE_SESSION_ID": "sess-1"}, ""),
+    "voice-open": (["voice-open"], {}, ""),
+}
+
+
+def _run(daemon, name):
+    argv, extra, stdin = SCRIPTS[name]
+    stubs, opened = _stub_open(daemon.state.parent)
+    env = daemon.env(**extra)
+    env["PATH"] = f"{stubs}:{env['PATH']}"
+    got = subprocess.run([str(BIN / argv[0]), *argv[1:]], env=env, input=stdin, capture_output=True, text=True,
+                         timeout=30, cwd=daemon.state.parent)
+    return got, (opened.read_text() if opened.exists() else "")
+
+
+@pytest.mark.parametrize("pid", ["1", None], ids=["another-process", "no-pid-file"])
+@pytest.mark.parametrize("name", sorted(SCRIPTS))
+def test_a_secret_goes_only_to_the_daemon_that_owns_the_port(daemon, name, pid):
+    """The daemon is down and another program listens on its port: it gets no token, no page key, no session details."""
+    daemon.answer = _context(1) | {"open": True, "name": "api"}
+    if pid:
+        (daemon.state / "daemon.pid").write_text(pid)
+    else:
+        (daemon.state / "daemon.pid").unlink()
+    got, opened = _run(daemon, name)
+    assert not [r for r in daemon.requests if r["auth"] or r["body"]], f"{name} sent to a stranger: {daemon.requests}"
+    assert "synthetic-page-key" not in opened, f"{name} opened the page with its key on another program's port"
+
+
+@pytest.mark.parametrize("name", sorted(SCRIPTS))
+def test_with_the_daemon_listening_each_script_reaches_it_as_before(daemon, name):
+    daemon.answer = _context(1) | {"open": True, "name": "api"}
+    got, opened = _run(daemon, name)
+    if name == "voice-open":
+        assert "synthetic-page-key" in opened and str(daemon.port) in opened, got.stderr
+    else:
+        assert [r for r in daemon.requests if r["auth"] == f"Bearer {TOKEN}"], f"{name}: {got.stderr}"
+
+
+def test_the_permission_hook_uses_the_same_check():
+    hook = (BIN / "voice-permission-hook").read_text()
+    assert '"$BIN/voice-ours" </dev/null || exit 0' in hook and "pgrep" not in hook
