@@ -111,3 +111,8 @@ tags are not yet in use (see Open).
 - `osv-scanner` and a Software Bill of Materials diff between releases are not run; the SBOM is produced, not compared.
 - The Twingate image tag (above) and the e2e Dockerfile base images are accepted as moving.
 - `bench/local_tts_bench.py` downloads Chatterbox unpinned; measurement code, not shipped behaviour.
+- **Accepted:** CI's `uvx pip-audit@2.10.1` and `uvx --from cyclonedx-bom@8.0.1` pin each tool's version, not its
+  dependencies or their hashes, so those resolve to whatever PyPI serves that day. Locking them would add a dependency
+  group (new packages in `uv.lock` and the allowlist), which needs the owner's yes. The risk is bounded: the job runs
+  with a read-only token and no secrets, reads only this repository, and its outputs are a pass or fail and the SBOM
+  artifact; nothing it produces ships to a user.
