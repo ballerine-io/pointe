@@ -92,6 +92,9 @@ def preflight() -> int:
         print(f"Fully local mode is on, but the local text model does not answer at "
               f"{vendors.config().get('local_url') or local.url()}. Start it: pointe local start (or run pointe local).")
         return 1
+    if vendors.local_only() and local.impostor():
+        print(local.IMPOSTOR.format(url=local.url()))
+        return 1
     try:
         resolved = vendors.resolve(os.environ.get("CLAUDE_VOICE_FRONT", "brain"))
         for note in resolved.notes:

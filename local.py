@@ -195,6 +195,33 @@ def answering(base: str | None = None) -> bool:
         return False
 
 
+IMPOSTOR = ("Something answers on {url}, but it is not the text-model server Pointe started (local/server.pid): it "
+            "would receive every transcript and write the gate's verdicts, so Pointe will not use it. Stop that program, "
+            "or run pointe local again with CLAUDE_VOICE_LOCAL_PORT set to a free port.")
+
+
+def ours() -> bool:
+    """Whether what listens on the text-model port is the server started here (server.pid) or its child. Answering is
+    not enough: with the server stopped, another account can take 127.0.0.1:<port> (bin/voice-ours, for the daemon).
+    False when nothing here can tell who listens."""
+    pid = _pid()
+    if pid is None:
+        return False
+    found = subprocess.run([str(ROOT / "bin" / "voice-listeners"), "pids", str(port())], capture_output=True, text=True,
+                           env=childenv.child_env())
+    if found.returncode != 0:
+        return False
+    kids = subprocess.run(["pgrep", "-P", str(pid)], capture_output=True, text=True, env=childenv.child_env()).stdout
+    return bool({str(pid), *kids.split()} & set(found.stdout.split()))
+
+
+def impostor() -> bool:
+    """Fully local mode points at Pointe's own server, something answers there, and it is not that server. A server
+    the user set up elsewhere (local_url to Ollama, say) is theirs to vouch for."""
+    configured = (vendors.config().get("local_url") or url()).rstrip("/")
+    return configured == url() and answering(url()) and not ours()
+
+
 def memory(pid: int) -> str:
     """The process's footprint as macOS counts it. Not ps's RSS: the model's weights are GPU memory, which RSS leaves out."""
     got = subprocess.run(["footprint", str(pid)], capture_output=True, text=True, env=childenv.child_env())
@@ -206,7 +233,10 @@ def start(text_model: str | None = None, quiet: bool = False) -> bool:
     """Start the server if nothing answers, load the model with one tiny request, and return once it replies."""
     text_model = text_model or model()
     if answering(url()):
-        return True
+        if ours():
+            return True
+        print(IMPOSTOR.format(url=url()), file=sys.stderr)
+        return False
     if not server_bin().exists():
         print("The local text-model server is not installed. Run: pointe local", file=sys.stderr)
         return False
@@ -225,7 +255,7 @@ def start(text_model: str | None = None, quiet: bool = False) -> bool:
         if proc.poll() is not None:
             print(f"The text-model server stopped. Its log: {log}", file=sys.stderr)
             return False
-        if answering(url()) and _warm(text_model):
+        if answering(url()) and ours() and _warm(text_model):  # not a program that took the port before it did
             if not quiet:
                 print(f"Text model ready in {time.time() - began:.0f} s.", flush=True)
             return True

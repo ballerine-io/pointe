@@ -40,6 +40,12 @@ can pick a vendor, the Soniox mirror stream (the echo guard) is off, and meeting
 in `config.json` or the environment is refused at start, with the command that turns the mode off. Tests:
 `tests/test_local.py`.
 
+Answering on `127.0.0.1:7869` is not enough to be trusted with your transcripts: with the server stopped, another
+account on the Mac could take the port and answer in its place. Pointe uses the server only when the program
+listening there is the one it started (`local/server.pid`) or its child (`local.ours`, through `bin/voice-listeners`);
+otherwise `pointe local start` and the daemon's start refuse, and say what to do. A server you set up yourself and
+point `local_url` at (Ollama, say) is yours to vouch for, and is not checked.
+
 What still goes out: model downloads, once, from Hugging Face and GitHub; your coding agents' own traffic, as always.
 onnxruntime (the voice detector, the voice lock, kokoro-onnx) connects to Microsoft's telemetry collector when it
 loads; Pointe turns that off in every setup (`ORT_DISABLE_TELEMETRY=1`, `no_telemetry.py`), found while measuring

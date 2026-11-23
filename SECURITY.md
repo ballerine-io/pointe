@@ -254,7 +254,9 @@ meeting you started (it asks for consent and shows a recording indicator), the r
 vendor without a press; talking to Pointe outside the meeting stream still needs one.
 
 In fully local mode (`pointe local`), none of these goes anywhere: no key is read, from the environment or the
-Keychain, so no vendor can be reached, and the text-model server listens on loopback only. See
+Keychain, so no vendor can be reached, and the text-model server listens on loopback only. The daemon uses that
+server only when the program listening on its port is the one `pointe local` started (its pid file) or its child:
+otherwise another account that took the port would receive every transcript, so the start is refused. See
 [docs/features/local.md](docs/features/local.md).
 
 With "Voice stays on your Mac" (`pointe local voice`), no audio goes to a vendor: ears and mouth run on the Mac, the

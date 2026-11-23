@@ -127,6 +127,7 @@ def test_preflight_in_local_mode_passes_with_zero_keys(state, monkeypatch):
     local.write_config()
     monkeypatch.setattr(subprocess, "run", no_keychain)
     monkeypatch.setattr(local, "answering", lambda *a: True)
+    monkeypatch.setattr(local, "ours", lambda: True)  # the server that answers is the one Pointe started
     assert doctor.preflight() == 0
 
 
@@ -215,6 +216,7 @@ def test_the_text_model_server_starts_offline(state, monkeypatch, tmp_path):
     monkeypatch.setattr(local.subprocess, "Popen", popen)
     monkeypatch.setattr(local, "answering", lambda *a: bool(seen))
     monkeypatch.setattr(local, "_warm", lambda m: True)
+    monkeypatch.setattr(local, "ours", lambda: True)  # the stand-in server holds the port
     monkeypatch.setenv("GOOGLE_API_KEY", "x")
     (state / "local").mkdir()
     assert local.start(quiet=True)
@@ -323,3 +325,71 @@ def test_status_carries_the_local_summary_without_reading_the_disk_on_every_poll
     for _ in range(3):
         assert client.get("/voice/status").json()["local"] == {"mode": "off", "models": None, "line": "Local mode: off"}
     assert len(calls) == 1
+
+
+class _Impostor:
+    """Another program answering an OpenAI-shaped /v1/models on the text-model port, in this test's own process."""
+
+    def __init__(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"data": [{"id": "anything"}]}')
+
+            def log_message(self, *a):
+                pass
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.port = self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+@pytest.fixture
+def impostor(state, monkeypatch):
+    fake = _Impostor()
+    monkeypatch.setenv("CLAUDE_VOICE_LOCAL_PORT", str(fake.port))
+    (state / "local").mkdir()
+    monkeypatch.setattr(local, "server_bin", lambda: state / "no-server-here")  # no real server is ever started
+    yield fake
+    fake.close()
+
+
+def test_start_refuses_a_program_on_the_port_that_is_not_its_server(impostor, state, capsys):
+    """With no server.pid, whatever answers is not Pointe's: it would get every transcript and write the gate's verdicts."""
+    assert local.start(quiet=True) is False
+    assert "not the text-model server Pointe started" in capsys.readouterr().err
+
+
+def test_start_refuses_it_when_server_pid_names_another_process(impostor, state, capsys):
+    other = subprocess.Popen(["sleep", "30"])  # alive, and not the listener
+    try:
+        (state / "local" / "server.pid").write_text(str(other.pid))
+        assert local.start(quiet=True) is False
+    finally:
+        other.kill()
+        other.wait()
+    assert "not the text-model server Pointe started" in capsys.readouterr().err
+
+
+def test_start_accepts_its_own_server_already_running(impostor, state):
+    import os
+
+    (state / "local" / "server.pid").write_text(str(os.getpid()))  # this process holds the listener
+    assert local.start(quiet=True) is True
+
+
+def test_preflight_refuses_local_mode_when_a_stranger_answers_on_the_port(impostor, state, capsys):
+    import doctor
+
+    local.write_config()
+    assert doctor.preflight() == 1
+    assert "not the text-model server Pointe started" in capsys.readouterr().out
