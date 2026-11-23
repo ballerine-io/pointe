@@ -133,7 +133,7 @@ def paired_line(paired: dict) -> str:
 
 def _write_private(path: Path, text: str) -> None:
     """Temp and replace, 0600 from the first byte, as Registry.save does."""
-    tmp = path.with_name(path.name + ".tmp")
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")  # two writers never share one temp file
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as f:
         f.write(text)

@@ -42,12 +42,35 @@ case "${1:-ensure}" in
   *) echo "usage: voice-daemon ensure|stop|status" >&2; exit 2 ;;
 esac
 
+# One start at a time: two sessions running /pointe:voice together each started a daemon, the pidfile named the one
+# that lost the port, and the winner ran on where status and stop could not see it. The lock is a directory (macOS has
+# no flock); a holder that died leaves it behind, and the next start takes it over.
+LOCK="$STATE/start.lock"
+take_lock() {
+  local holder empty=0
+  for _ in $(seq 1 4800); do  # 20 minutes: a first start downloads, a fully local one loads a 17 GB model
+    if mkdir "$LOCK" 2>/dev/null; then
+      echo $$ >"$LOCK/pid"; trap 'rm -rf "$LOCK"' EXIT; return 0
+    fi
+    holder="$(cat "$LOCK/pid" 2>/dev/null || true)"
+    if [ -n "$holder" ]; then
+      kill -0 "$holder" 2>/dev/null || rm -rf "$LOCK"
+    elif [ $((empty += 1)) -gt 40 ]; then
+      rm -rf "$LOCK"  # made, and its holder died before it wrote its pid
+    fi
+    sleep 0.25
+  done
+  echo "voice-daemon: another start is still running ($LOCK)" >&2; exit 1
+}
+take_lock
+
 # Answering is not enough: a squatter on the port would then be handed the token and the page key.
 ours() {
-  local pid pids rc=0; pid="$(cat "$PIDFILE")"
+  local pid pids kids rc=0; pid="$(cat "$PIDFILE")"
   pids="$("$LISTENERS" pids "$PORT")" || rc=$?
   [ "$rc" -eq 3 ] && return 0  # nothing here can tell who listens
-  [ -n "$pids" ] && grep -qxE "$pid|$(pgrep -P "$pid" | paste -sd'|' -)" <<<"$pids"
+  kids="$(pgrep -P "$pid" | paste -sd'|' - || true)"
+  [ -n "$pids" ] && grep -qxE "$pid${kids:+|$kids}" <<<"$pids"  # never "pid|": BSD grep refuses an empty branch
 }
 healthy() { curl -sf -m 2 -o /dev/null "$URL/voice/health" && ours; }
 wait_healthy() {
