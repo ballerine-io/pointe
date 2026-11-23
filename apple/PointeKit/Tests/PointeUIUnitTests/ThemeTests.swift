@@ -41,6 +41,9 @@ final class ThemeTests: XCTestCase {
     /// not resolve leaves a blank slot and no error.
     @MainActor
     func testTheChorusMarkDraws() throws {
+        // An older `swift build` (Xcode 26's, in CI) copies Assets.xcassets without compiling it, so no image resolves;
+        // xcodebuild, which builds the apps and runs this test on the iPhone, compiles it to Assets.car.
+        try XCTSkipIf(PointeBoot.bundle.url(forResource: "Assets", withExtension: "car") == nil, "the package's asset catalog is not compiled in this build")
         for scheme in [ColorScheme.light, .dark] {
             let mark = Image("ChorusMark", bundle: PointeBoot.bundle).resizable().frame(width: 24, height: 24)
                 .environment(\.colorScheme, scheme)
