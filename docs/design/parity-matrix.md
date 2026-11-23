@@ -47,7 +47,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Microphone: Always on or Push to talk <br>`talk.mode` | yes `ui.html:1334` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:93` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:93` |
 | The Always on / Push to talk switch over the mic <br>`talk.switch` | yes `ui.html:1621` | yes `apple/PointeKit/Sources/PointeUI/BottomBar.swift:124` | yes `apple/PointeKit/Sources/PointeUI/BottomBar.swift:124` |
 | Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1335` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:99` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:99` |
-| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1532` | yes `apple/PointeKit/Sources/PointeUI/Call.swift:147` | yes `macos/PointeMac/AppModel.swift:325` |
+| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1532` | yes `apple/PointeKit/Sources/PointeUI/Call.swift:147` | yes `macos/PointeMac/AppModel.swift:322` |
 | A draft of what a press has heard so far <br>`talk.draft` | yes `ui.html:1603` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:418` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:418` |
 | Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:4252` | yes `apple/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes `apple/PointeKit/Sources/PointeUI/CallTitle.swift:22` |
 | Talk without touching the screen: a key, a system-wide shortcut, or the Action button <br>`talk.key` | yes `ui.html:1336` | yes `ios/Pointe/TalkIntent.swift:7` | yes `macos/PointeMac/HotKey.swift:5` |
@@ -162,8 +162,8 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | The talk mode and the talk shortcut ("Hold ⌥Space"), in the window and the bubble <br>`mac.talkmode` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:123` |
 | Open at login <br>`mac.login` | n/a | n/a | yes `macos/PointeMac/Platform.swift:4` |
 | Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:183` |
-| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1317` | n/a | yes `macos/PointeMac/AppModel.swift:250` |
-| Which vendor keys are in the Keychain, and Add… <br>`mac.keys` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:244` |
+| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1317` | n/a | yes `macos/PointeMac/AppModel.swift:247` |
+| Which vendor keys are in the Keychain, and Add… <br>`mac.keys` | n/a | n/a | yes `macos/PointeMac/AppModel.swift:241` |
 
 ## The phone alone
 
