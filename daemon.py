@@ -4848,6 +4848,24 @@ def _clause_for(message: str) -> int | None:
     return tied[0]
 
 
+def _unnamed_part(message: str) -> str | None:
+    """The sentence or clause of the latest words that carries this message, when it names no session and another part
+    does. "Billing adds a marker file. Dox checks the versions.": a send of the versions check belongs to the second
+    sentence, and billing, named only in the first, is no target for it (QA round 2: it went to billing)."""
+    sessions = list(REGISTRY.sessions.values())
+    parts = [c for sentence in re.split(r"(?<=[.!?])\s+", state.last_utterance) for c in clauses(sentence) if c.strip()]
+    if len(parts) < 2:
+        return None
+    named = [bool(named_sessions(p, sessions)) for p in parts]
+    if not any(named):
+        return None
+    overlap = [len(content_words(message) & content_words(p)) for p in parts]
+    top = max(overlap)
+    if not top or overlap.count(top) > 1 or named[overlap.index(top)]:
+        return None
+    return parts[overlap.index(top)]
+
+
 def _used_clauses() -> set[int]:
     if state.clauses_at != state.last_user_speech_at:
         state.clauses_at, state.clauses_used = state.last_user_speech_at, set()
@@ -4947,10 +4965,13 @@ def _unrouted(how: str, said: str) -> str:
         thread, picked = state.off_thread
         return (f"Not sent: you were talking about {thread}, but this sounds like it is for {picked}. Ask the user "
                 f"which session it is for.")
+    if how == "unnamed":
+        return (f"Not sent: the user named no session for this part ({said!r}), and the session the other part names is "
+                f"not it. Open sessions: {_names()}. Ask which session it is for.")
     return "No session to send to."
 
 
-UNROUTED_NOTES = {"off-thread": "sounded like another session; asked which", "ambiguous": "fits more than one session; asked which",
+UNROUTED_NOTES = {"unnamed": "no session named for that part; asked which", "off-thread": "sounded like another session; asked which", "ambiguous": "fits more than one session; asked which",
                   "closed": "that session closed", "session mode": "no session in focus", "active": "no session to send to"}
 
 
@@ -5219,11 +5240,15 @@ async def _send_now(message: str) -> dict:
     if refusal:
         _record(message, [], "blocked: session mode, another session named")
         return {"error": refusal}
-    named = _brain_named(said)
+    unnamed = _unnamed_part(message) if clause is None and _routing_mode() != "session" else None
+    said = unnamed or said
+    named = _brain_named(said, alone=bool(unnamed))
     if named and named.on_hold and not named_sessions(state.last_utterance, [named]):
         _record(message, [], "blocked: that session is on hold")
         return {"error": f"Not sent: the user said to hold {named.name}. Say so, and ask if they want to lift that."}
     targets, how = ([confirmed], "confirmed") if confirmed else ([named], "brain") if named else await _route(message, said)
+    if unnamed and how != "brain" and any(named_sessions(state.last_utterance, [t]) for t in targets):
+        targets, how = [], "unnamed"  # the session another sentence names is the one place this part surely is not for
     if not targets:
         picked = next((s.id for s in REGISTRY.sessions.values() if state.off_thread and s.name == state.off_thread[1]), None)
         state.pending_route = (time.time(), picked if how == "off-thread" else None, message)
@@ -5329,9 +5354,13 @@ def _asked_of_several(said: str) -> bool:
             or bool(re.search(r"\b(?:both|each|two)\b|שניהם|שתיהן", said.lower())))
 
 
-def _brain_named(said: str) -> Session | None:
+def _brain_named(said: str, alone: bool = False) -> Session | None:
     """The session the brain chose, by exact name. It read the whole sentence and the call; "tell Claude" or a word in
-    another session's name does not fool it the way name matching can. Session mode stays pinned, and "all" stays a broadcast."""
+    another session's name does not fool it the way name matching can. Session mode stays pinned, and "all" stays a broadcast.
+
+    alone: `said` is the one part of the latest words that carries the message, it names no session, and other parts
+    name others ("Dox checks the versions" beside "Billing adds a file"). The brain's choice holds there, unless it is
+    a session those other parts name: the ears misheard a name the brain still recognised."""
     wanted = (state.brain_target or "").strip().lower()
     if _routing_mode() == "session" or not wanted or broadcast_intent(said):
         return None
@@ -5340,6 +5369,8 @@ def _brain_named(said: str) -> Session | None:
         return None
     if named_sessions(said, [chosen]):
         return chosen
+    if alone:
+        return None if named_sessions(state.last_utterance, [chosen]) else chosen
     # Or the answer to the bot's clarifying question about a request that named it: "Ask orchard to run two commands." /
     # "Which two?" / "Touch x, then echo y." The name is in the sentence before, and only that one.
     talk = state.conversation
