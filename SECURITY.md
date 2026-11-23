@@ -467,9 +467,12 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 - **Pairing.** `pointe pair tailscale|wifi|host <name>` makes a TLS certificate for that one name, and a QR code with its
   SHA-256 and the phone's own key (`phone_key`, 0600). The app keeps both in the Keychain and talks only to that Mac.
 - **Only a code scanned or pasted in the app pairs** (`PairingFlow.swift`). The app first shows the Mac's address and
-  the first 16 characters of its certificate's SHA-256, and pairs only on the owner's confirm. Replacing a pairing names
-  both Macs and needs Face ID or the passcode, and the old pairing stays until the new Mac has answered: the code
-  redeemed, or, for a `pointe pair` code, the new key answered over the pinned connection. A `pointe://` link that
+  the first 16 characters of its certificate's SHA-256, and pairs only on the owner's confirm; the page's Settings →
+  Phone and the Mac app's show the same 16 beside the code to compare. The confirm pairs only the code it shows: one the
+  camera reads under it is ignored. Replacing a pairing names both Macs and needs Face ID or the passcode, and the old
+  pairing stays until the new Mac has answered: the code redeemed, or, for a `pointe pair` code, the new key answered
+  over the pinned connection. Unpair this phone asks first and needs Face ID or the passcode too, so unpairing and then
+  pairing anew (a first pairing asks for neither) does not get around it. A `pointe://` link that
   opens the app from outside (the Camera, another app, a web page) pairs nothing, whatever it holds: any app or page can
   open one, and another app can register the same scheme. It only opens a sheet that says to scan the code inside
   Pointe. The app still registers the scheme for that sheet; without it, an app that claims `pointe://` would be the

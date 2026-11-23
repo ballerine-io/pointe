@@ -29,10 +29,16 @@ enum PhoneCopy {
     static let recommended = "Recommended"
     static let setUpNow = "in use"
     static let allUnpaired = "Every phone unpaired. Each must connect again."
+    static let certificate = "Your iPhone should show certificate"
     static func unpairSure(_ name: String) -> String { "Unpair \(name)?" }
     static func unpaired(_ name: String) -> String { "\(name) unpaired." }
     static func connected(_ name: String) -> String { "Connected: \(name)" }
     static func waiting(_ left: String) -> String { "Waiting for your phone · expires in \(left)" }
+    /// Beside the code: the certificate's first 16 hex characters, which the iPhone's confirm shows (PairingOffer).
+    static func certificateLine(_ link: String) -> String? {
+        guard case .invite(let invite)? = PairingLink(link) else { return nil }
+        return "\(certificate) \(invite.fingerprint.prefix(16))…"
+    }
 }
 
 extension API {
@@ -319,6 +325,10 @@ struct PhoneSheet: View {
                     Image(nsImage: image).interpolation(.none).resizable().frame(width: 220, height: 220)
                         .padding(12).background(Color.white, in: RoundedRectangle(cornerRadius: 12))  // a code is read on white, in either theme
                         .accessibilityLabel("Pairing code").accessibilityIdentifier("phoneCode")
+                }
+                if let link = pairing.invite?.link, let line = PhoneCopy.certificateLine(link) {
+                    Text(line).font(.brand(.footnote)).foregroundStyle(Brand.muted).textSelection(.enabled)
+                        .accessibilityIdentifier("phoneCertificate")
                 }
                 Text(PhoneCopy.waiting(pairing.left(now: now))).font(.brand(.footnote)).monospacedDigit().foregroundStyle(Brand.muted)
                     .accessibilityIdentifier("phoneCountdown")

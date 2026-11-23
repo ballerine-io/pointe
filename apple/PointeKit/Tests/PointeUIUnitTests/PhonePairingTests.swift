@@ -74,5 +74,13 @@ final class PhonePairingTests: XCTestCase {
     func testTheCodeIsDrawnOnThisMac() {
         XCTAssertNotNil(PhoneSheet.qr("pointe://pair?v=2&host=studio.example.ts.net&port=7443&fp=00&code=K7PQ-2MXD"))
     }
+
+    /// The iPhone's confirm names the certificate's first 16 hex characters (PairingOffer.message): the sheet shows them.
+    func testBesideTheCodeTheSheetShowsTheCertificateTheIPhoneConfirmShows() {
+        let fp = "0123456789abcdef" + String(repeating: "ab", count: 24)
+        XCTAssertEqual(PhoneCopy.certificateLine("pointe://pair?v=2&host=studio.example.ts.net&port=7443&fp=\(fp)&code=K7PQ-2MXD"),
+                       "Your iPhone should show certificate 0123456789abcdef…")
+        XCTAssertNil(PhoneCopy.certificateLine("pointe://pair?v=2&host=studio.example.ts.net&port=7443&fp=00&code=K7PQ-2MXD"))
+    }
 }
 #endif

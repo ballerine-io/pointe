@@ -1348,6 +1348,7 @@
             <div id="ph-qr" hidden>
               <div class="help">Scan it in the Pointe app on your iPhone.</div>
               <div class="qrtile"><div id="ph-svg" role="img" aria-label="Pairing code"></div></div>
+              <div id="ph-fp" class="help" dir="ltr"></div>
               <div id="ph-left" role="timer"></div>
               <div class="row">
                 <button type="button" id="ph-copy" onclick="phoneCopyLink()">Can't scan? Copy the link</button>
@@ -4381,6 +4382,8 @@
     $('ph-pick').hidden = true; $('ph-qr').hidden = false; $('ph-foot').hidden = false; $('ph-done').textContent = '';
     $('ph-svg').replaceChildren(...qrNodes(made.svg));  // made by this Mac (segno): no image service sees the code
     $('ph-link').textContent = made.link;
+    const fp = /[?&]fp=([0-9a-f]{16})/.exec(made.link);  // what the iPhone's confirm names: the owner compares the two
+    $('ph-fp').textContent = fp ? `Your iPhone should show certificate ${fp[1]}…` : '';
     $('ph-copy').textContent = "Can't scan? Copy the link";
     phoneTick();
   }

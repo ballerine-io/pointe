@@ -72,7 +72,7 @@ final class PairPasteUITests: XCTestCase {
         for element in [problem, field] { XCTAssertGreaterThanOrEqual(element.frame.minY, top) }
     }
 
-    func testAPastedLinkPairsAndConnectSaysTheMacCannotBeReachedThenUnpairGoesBack() {
+    func testAPastedLinkPairsAndConnectSaysTheMacCannotBeReachedAndUnpairNeedsTheOwner() {
         let app = unpaired()
         paste("pointe://pair?v=1&host=127.0.0.1&port=1&fp=\(fingerprint)&key=\(key)", in: app)
 
@@ -98,7 +98,11 @@ final class PairPasteUITests: XCTestCase {
         let unpair = app.settingsItem("Unpair this phone", .button)
         XCTAssertTrue(unpair.waitForExistence(timeout: 5))
         unpair.tap()
-        XCTAssertTrue(app.buttons["tryDemo"].waitForExistence(timeout: 10), "unpaired: back to the pairing screen")
+        let sure = app.buttons["Unpair"]
+        XCTAssertTrue(sure.waitForExistence(timeout: 5), "Unpair asks first")
+        sure.tap()
+        // Then Face ID or the passcode, as for a replace: the Simulator has no passcode, so the pairing stays.
+        XCTAssertFalse(app.buttons["tryDemo"].waitForExistence(timeout: 5), "no owner check, no unpair")
     }
 
     func testACodeLinkToAMacThatDoesNotAnswerSaysSoAndPairsNothing() {

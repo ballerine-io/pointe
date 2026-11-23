@@ -30,7 +30,7 @@ struct PairingOffer: Equatable {
     var host: String { place.host }
     var title: String { replaces.map { "Replace your Mac \($0) with \(host)?" } ?? "Pair with \(host)?" }
     var message: String {
-        "Pointe will talk only to \(host):\(place.port), certificate \(place.fingerprint.prefix(16))…. Go on only if this is your own Mac and you scanned the code it shows."
+        "Pointe will talk only to \(host):\(place.port), certificate \(place.fingerprint.prefix(16))…, which should match what your Mac shows beside the code. Go on only if this is your own Mac."
     }
     var action: String { replaces == nil ? "Pair" : "Replace" }
     var ownerReason: String { "Replace your Mac \(replaces ?? "") with \(host)" }
@@ -79,8 +79,10 @@ final class PairingFlow {
         scanning = pairing != nil
     }
 
-    /// A code from the scanner or the paste field: offered to the owner, never kept before the confirm.
+    /// A code from the scanner or the paste field: offered to the owner, never kept before the confirm. While one is
+    /// on screen another is ignored: the camera keeps reading under the alert.
     func scanned(_ code: String) {
+        guard offer == nil else { return }
         guard let link = PairingLink(code) else {
             note = PairingNote(text: "That is not a Pointe pairing code.", state: .failed)
             attempt += 1
@@ -94,11 +96,17 @@ final class PairingFlow {
         attempt += 1
     }
 
-    /// The confirm button: the offer leaves the screen at once, and the rest follows.
-    func confirmTapped() {
-        guard let offer else { return }
+    /// The confirm button of the alert that showed `presented`: the offer leaves the screen at once, and the rest
+    /// follows. An offer that is no longer the one on screen pairs nothing.
+    @discardableResult
+    func confirmTapped(_ presented: PairingOffer) -> Task<Void, Never>? {
+        guard let offer else { return nil }
         self.offer = nil
-        Task { await finish(offer) }
+        guard offer == presented else {
+            attempt += 1
+            return nil
+        }
+        return Task { await finish(offer) }
     }
 
     /// The owner said yes. A replace asks for Face ID first, and keeps the old pairing until the new Mac has answered.
@@ -148,7 +156,10 @@ final class PairingFlow {
         scanning = false
     }
 
-    func unpair() {
+    /// Settings → Unpair this phone, after its confirm. Face ID or the passcode, as for a replace: otherwise someone
+    /// holding the unlocked phone could unpair it and scan their own Mac's code, which a first pairing does not ask for.
+    func unpair() async {
+        guard let host = pairing?.host, await ownerCheck("Unpair this phone from \(host)") else { return }
         keeper.forget()
         pairing = nil
     }

@@ -127,4 +127,49 @@ final class PairingFlowTests: XCTestCase {
         XCTAssertEqual(flow.note?.state, .failed)
         XCTAssertEqual(keeper.saves, [])
     }
+
+    /// Unpair, then a first pairing (which asks no Face ID), was the way around "replacing a pairing needs Face ID".
+    func testUnpairingNeedsTheOwnerAndNamesTheMac() async {
+        let keeper = Keeper(home)
+        var reasons: [String] = []
+        let no = PairingFlow(keeper: keeper, ownerCheck: { reasons.append($0); return false },
+                             redeem: { _ in throw Refused() }, answers: { _ in true })
+        await no.unpair()
+        XCTAssertEqual(keeper.stored, home, "no Face ID, no unpair")
+        XCTAssertEqual(no.pairing, home)
+        XCTAssertTrue(reasons.first?.contains("studio.example.ts.net") == true, reasons.first ?? "the owner was not asked")
+
+        let yes = flow(keeper, owner: true)
+        await yes.unpair()
+        XCTAssertNil(keeper.stored)
+        XCTAssertNil(yes.pairing)
+    }
+
+    /// The alert names one Mac: a code the camera reads under it, or a paste, does not change what Pair confirms.
+    func testTheConfirmPairsOnlyTheOfferOnScreen() async {
+        let keeper = Keeper(nil)
+        let flow = flow(keeper)
+        let mine = "pointe://pair?v=1&host=studio.example.ts.net&port=7443&fp=\(fp)&key=\(key)"
+        flow.scanned(mine)
+        let shown = try? XCTUnwrap(flow.offer)
+        flow.scanned(evilLink)
+        XCTAssertEqual(flow.offer, shown, "a scan while an offer is on screen is ignored")
+
+        flow.cancel()
+        flow.scanned(evilLink)  // the offer changed under an alert still showing the first
+        await flow.confirmTapped(shown!)?.value
+        XCTAssertEqual(keeper.saves, [], "Pair on the old alert pairs nothing")
+        XCTAssertNil(flow.offer)
+
+        flow.scanned(mine)
+        await flow.confirmTapped(flow.offer!)?.value
+        XCTAssertEqual(keeper.stored?.host, "studio.example.ts.net")
+    }
+
+    func testTheConfirmSaysToCompareTheCertificateWithTheMac() {
+        let flow = flow(Keeper(nil))
+        flow.scanned(evilLink)
+        let message = flow.offer?.message ?? ""
+        XCTAssertTrue(message.contains(String(otherFp.prefix(16))) && message.contains("should match what your Mac shows"), message)
+    }
 }
