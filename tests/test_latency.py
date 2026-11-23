@@ -292,9 +292,18 @@ def test_a_first_sentence_that_takes_most_of_the_limit_waits_and_the_whole_reply
     short = "A mutex has one owner who must unlock it. A semaphore is a counter any thread can signal."
     assert cv.count_words(mutex) > cv.REPLY.words * 2 / 3 and cv.retry_problem(long, cv.REPLY) and not cv.length_problem(short, cv.REPLY)
     b, events, steps = _streaming_brain(monkeypatch, [long, short])
-    asyncio.run(b.turn("What is the difference between a mutex and a semaphore?"))
+    asyncio.run(b.turn("What is a mutex, and what is a semaphore?"))
     assert ("first", mutex) not in events and len(steps) == 2
     assert events[-1][0] == "rest" and events[-1][-1] == short  # both halves, inside the limit
+
+
+def test_a_comparison_has_room_for_both_halves_with_no_second_step(monkeypatch):
+    """QA round 2: at 30 words the comparison lost its second half 3 of 3 times; a comparison's limit holds both."""
+    mutex = "A mutex is a lock with an owner: only the thread that locked it can unlock it, so one thread at a time."
+    long = f"{mutex} A semaphore is a counter allowing up to N holders, and any thread can signal it."
+    b, events, steps = _streaming_brain(monkeypatch, [long])
+    asyncio.run(b.turn("What is the difference between a mutex and a semaphore?"))
+    assert len(steps) == 1 and " ".join(e[1] for e in events if isinstance(e, tuple)).count("semaphore") >= 1
 
 
 def test_the_opening_of_a_reply_being_written_is_whole_sentences_with_enough_words():
