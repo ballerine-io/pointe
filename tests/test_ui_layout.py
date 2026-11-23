@@ -631,3 +631,20 @@ def test_hang_up_never_lies_over_a_dock_button_on_a_desktop():
                           "artifacts": [{"id": "a1", "kind": "edit", "name": "checkout.py", "path": "shop/checkout.py"}]}
     for got in _run([(w, LIVE, HANG) for w in (1440, 1280, 1024)], showing):
         assert got == [], got
+
+
+DRAWER = """(() => { const r = e => e.getBoundingClientRect(), list = document.getElementById('list');
+  const hot = [...list.querySelectorAll('.s')].find(x => x.querySelector('.tag.hot'));
+  return {nested: list.scrollHeight > list.clientHeight + 1, hot: hot ? [Math.round(r(hot).top), Math.round(r(hot).bottom)] : null,
+          vh: innerHeight, side: document.getElementById('side').scrollHeight > document.getElementById('side').clientHeight}; })()"""
+
+
+def test_the_phone_sessions_drawer_scrolls_as_one_and_shows_the_session_that_needs_you():
+    """Nine sessions on a phone: the list scrolled in a third of the screen, cut a row mid-height, and the one waiting on
+    an approval was under the cut. The drawer scrolls as one sheet, and opening it brings a session that needs you into view."""
+    status = fixture(sessions=9, machines=3, talk=4, approval=True, connected=True)
+    status["sessions"][1], status["sessions"][8] = status["sessions"][8], status["sessions"][1]
+    got = _run([(390, LIVE + "toggleSessions(true);", DRAWER), (360, "toggleSessions(false); toggleSessions(true);", DRAWER)], status)
+    for r in got:
+        assert not r["nested"], r
+        assert r["hot"] and r["hot"][0] >= 0 and r["hot"][1] <= r["vh"], r

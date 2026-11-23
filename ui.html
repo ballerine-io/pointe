@@ -990,6 +990,10 @@
     body.sheet::before { content: ''; position: fixed; inset: 0; z-index: 19; background: var(--scrim); }
     #sessbtn { display: flex; } #sideclose { display: grid; }
     body.nosessions #side { transform: translateX(-102%); }
+    /* a sheet scrolls as one: a list scrolling inside it took a third of a phone and cut a row mid-height */
+    #side { overflow-y: auto; overscroll-behavior: contain; }
+    #side > section, .routing { flex: none; min-height: 0 !important; }
+    #list, #recent { overflow: visible; }
     .dock { gap: 0 8px; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
     #compose.folded { display: none; }
     body.showing, body.showing.showfold, body.showing.nosessions, body.showing.showfold.nosessions { grid-template-columns: 1fr; }
@@ -3086,7 +3090,11 @@
   // The sessions sheet (narrow, or beside the Showing pane): focus goes in with it and back to the button that opened it.
   function toggleSessions(open) {
     const on = document.body.classList.toggle('sheet', open);
-    if (on) requestAnimationFrame(() => $('sideclose').focus());
+    if (on) requestAnimationFrame(() => {
+      $('sideclose').focus();
+      const hot = [...$('list').querySelectorAll('.s')].find(r => r.querySelector('.tag.hot'));  // the one that needs you, in view
+      if (hot) hot.scrollIntoView({block: 'nearest'});
+    });
     else if ($('side').contains(document.activeElement) && $('sessbtn').offsetParent) $('sessbtn').focus();
   }
   // Two clicks, no dialog: the first asks, the second does it. Kept outside the list, whose rows are redrawn as it changes.
