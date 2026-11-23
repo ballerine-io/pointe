@@ -379,3 +379,14 @@ def test_a_page_that_may_not_change_machines_offers_neither_revoke_nor_an_empty_
     (mine,), (theirs,) = (_run([(390, "openSettings();", MACH)], s) for s in (owner, remote))
     assert mine == {"revoke": ["Revoke"], "emptyRow": False}, mine
     assert theirs == {"revoke": [], "emptyRow": False}, theirs
+
+
+def test_more_is_never_an_empty_sheet():
+    """The first call hides everything More would hold, so on a phone it offers no More at all."""
+    more = """(() => ({more: !!document.getElementById('morebtn').offsetParent,
+                    items: [...document.getElementById('more-list').children].filter(c => getComputedStyle(c).display !== 'none').length}))()"""
+    first = fixture(sessions=1, talk=1, connected=True)
+    first["first_call"] = True
+    for status in (first, fixture(sessions=3, talk=4, connected=True)):
+        (r,) = _run([(390, LIVE, more)], status)
+        assert not r["more"] or r["items"] > 0, r
