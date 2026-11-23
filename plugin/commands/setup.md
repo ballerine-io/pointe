@@ -18,9 +18,9 @@ installer, checked against a known checksum. It also makes `pointe` a command in
 say so in one line.
 
 **Step 2 of 4: your setup.** Run `${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor` with a 10-minute timeout. The first run downloads Pointe's
-Python packages, about 180 MB: say so first ("this downloads what Pointe needs, usually under a minute"). Read back its
-verdict, the line that starts "Pointe is" (ready, or not ready and why), and nothing else: the "ok uv" and node lines
-above it are not news.
+Python packages, about 180 MB: say so first ("this downloads what Pointe needs, usually under a minute"). Read back only
+its verdict: the line that starts "Pointe is ready" or "Pointe is not ready", and the "Fix:" line under it. The lines
+before it (uv, node, the download) are not for the person.
 
 If the doctor found keys that already fill a setup (its "Setup" or "Keys" lines), skip the question below and say so in
 one line, for example "Your Anthropic and Soniox keys fill the Two keys setup. Using it.", then run

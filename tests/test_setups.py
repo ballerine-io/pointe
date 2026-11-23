@@ -201,6 +201,20 @@ def test_setup_asks_one_yes_or_no_and_shows_the_setups_only_when_asked():
     assert setups.DEFAULT == "free"
 
 
+def test_the_doctor_step_reads_back_the_verdict_not_the_first_line():
+    """bin/voice-doctor prints "ok uv", the node line and, on a first run, about 40 lines of download before the
+    doctor's verdict, so "its first line" read back "ok uv"."""
+    import doctor
+    text = " ".join((ROOT / "plugin" / "commands" / "setup.md").read_text().split())
+    step = text[text.index("Step 2 of 4"):text.index("Step 3 of 4")]
+    assert "first line" not in step
+    ready = doctor.verdict(0, {"needed": [], "fix": None}, None, [])[0]
+    not_ready = doctor.verdict(1, {"needed": ["gemini"], "fix": "gemini"}, None, [])
+    assert ready.startswith("Pointe is ready") and not_ready[0].startswith("Pointe is not ready")
+    assert not_ready[1].startswith("Fix:")
+    assert '"Pointe is ready" or "Pointe is not ready"' in step and '"Fix:"' in step
+
+
 def test_the_key_step_is_one_command_that_opens_checks_asks_again_and_restarts():
     text = " ".join((ROOT / "plugin" / "commands" / "setup.md").read_text().split())
     step = text[text.index("Step 3 of 4"):text.index("Step 4 of 4")]
