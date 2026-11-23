@@ -274,7 +274,7 @@ CONNECT_STATES = """(async () => {
     micError = 'The browser blocked the microphone. Allow it for this page, then press Connect.'; showState(); out.micDenied = snap(); micError = '';
     // a first dial that never opened
     callNote = 'The call did not connect.'; showState(); out.failed = snap(); callNote = '';
-    // live: the panel loses its button, the pill hangs up, the mic is a mic
+    // live: the panel loses its button, the pill steps aside for the dock's Hang up, the mic is a mic
     window.__status = {...window.__status, connected: true}; call.state = 'live'; call.heard = Date.now(); await refresh(); out.live = snap();
     // with a conversation on screen the top bar carries the reason and the pill is the way back
     call.state = 'off'; window.__status = {...window.__status, connected: false, talk: [{id: 1, who: 'user', text: 'hello'}, {id: 2, who: 'assistant', text: 'hi'}]};
@@ -315,7 +315,7 @@ def test_connect_is_its_own_control_and_says_why_it_failed():
     assert got["micDenied"]["why"].startswith("The browser blocked the microphone") and got["micDenied"]["button"] == "Try again"
     assert got["failed"]["why"] == "The call did not connect." and got["failed"]["button"] == "Try again"
     live = got["live"]
-    assert live["state"] == "live" and live["button"] is None and live["pill"] == "Hang up"
+    assert live["state"] == "live" and live["button"] is None and live["pill"] is None  # one Hang up: the dock's, as in the apps
     assert live["mic"] == ["Mute", "Mute", "false", "Space or AirPods to mute"] and live["hint"] == "Or type below · Press Space to mute"
     dropped = got["dropped"]
     assert not dropped["panelShown"] and dropped["pill"] == "Try again" and dropped["problem"] == "The call did not connect."
@@ -345,7 +345,7 @@ def test_machines_where_this_page_cannot_invite_shows_no_empty_row():
 
 def test_a_page_over_the_phones_listener_offers_no_revoke():
     """The Mac answers a revoke from there with a bare 403: the page does not offer one, and says where it is done."""
-    assert "if (!m.here && !remotePage) {" in PAGE
+    assert "if (!m.here && canInvite && !remotePage) {" in PAGE
     assert "Invite or revoke a machine on the Mac's own page or in the app." in PAGE
 
 
@@ -454,7 +454,7 @@ def test_the_page_has_a_title_heading_named_fields_and_the_night_sheet_takes_foc
 def test_copy_polish_round_4():
     """Words a reader stumbled on: 'work for while', a bare ': No longer available.', 'Press G' on a phone."""
     assert "work for while" not in PAGE and PAGE.count("Give your sessions work to do while you are away") == 2
-    assert "`${v.name || ''}: ${v.problem}`" not in PAGE and "v.name ? `${v.name}: ${v.problem}` : v.problem" in PAGE
+    assert "`${v.name || ''}: ${v.problem}`" not in PAGE and "name ? `${name}: ${v.problem}` : v.problem" in PAGE
     assert '<div class="hint keyonly">Press G to let it speak. Anyone talking over it stops it.</div>' in PAGE
     assert "@media (hover: none) { .keyonly { display: none; } }" in PAGE
 

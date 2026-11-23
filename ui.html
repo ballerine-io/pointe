@@ -600,7 +600,8 @@
   /* as the apps' bar (BottomBar.swift): a quiet disc with a red glyph, one of the bar's controls, not a second solid button */
   #hangup .ic { width: 48px; height: 48px; background: var(--raised); color: var(--danger-text); }
   #hangup:hover .ic { background: var(--raised2); }
-  #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* labelled as every dock button is; the label hangs under the disc, so the disc stays level with the mic */
+  #hangup .lb { position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%); white-space: nowrap; line-height: 1; }
   #hangup:disabled { visibility: hidden; }
   #sessbtn { display: none; }  /* shown where the sessions column is a sheet (narrow, or beside the Showing pane) */
   #morebtn { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--raised);
@@ -631,7 +632,7 @@
     body.showing .dock { gap: 0 8px; padding: 8px 10px 10px; }
     body.showing .dock-side { gap: 2px; }
     body.showing .dock .btn { min-width: 44px; }
-    body.showing .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    body.showing .dock .btn .lb, body.showing #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     body.showing .micmode button { min-width: 80px; padding-left: 9px; padding-right: 9px; }
   }
   #more-list { display: flex; flex-direction: column; gap: 2px; }
@@ -998,7 +999,7 @@
      phone or a small tablet the bar is the app's four (the rest is in More) and keeps them. Measured: at 1024 px the labels leave 55 px a side, the longest ones
      ("End challenge", "Whispering") 22 px; at 1000 and 761 px, 10 px (tests/test_ui_layout.py). */
   @media (min-width: 901px) and (max-width: 999px) {
-    .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .dock .btn .lb, #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   }
   @media (min-width: 901px) and (max-width: 1339px) {  /* a small laptop with the Showing pane open: the sessions column steps aside, as on a narrow screen */
     body.showing:not(.showfold), body.showing.nosessions:not(.showfold) { grid-template-columns: minmax(0, 1fr) minmax(340px, 34vw); }
@@ -1052,7 +1053,7 @@
     .microw { padding: 0; }
     #hangup { position: static; transform: none; min-width: 46px; padding: 4px 2px; }
     #hangup .ic { width: 44px; height: 44px; }
-    #hangup .lb { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+    #hangup .lb { position: static; width: auto; height: auto; overflow: visible; clip-path: none; transform: none; line-height: normal; }
     /* Clean up my words moves to More (layoutDock): a bare switch in the top bar says nothing about what it does */
     #more-list .toggle { flex-direction: row-reverse; justify-content: space-between; min-height: 54px; padding: 6px 10px 6px 64px; font-size: 15px; color: var(--text);
                          white-space: normal; border-top: 1px solid var(--line); margin-top: 6px; }
@@ -2526,7 +2527,7 @@
     notPaired: 'This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open.',
     notPairedBrowser: 'This phone is no longer paired with this Mac. On the Mac, run pointe pair link and open the new address here.',
     // (c) the Mac has no listener for the phone yet
-    noListener: 'Optional: talk from your phone too. Settings → Phone.',
+    noListener: 'Your phone cannot reach this Mac yet: Settings → Phone → Connect your phone.',
     // (d) no microphone to start the call on
     micDenied: 'The browser blocked the microphone. Allow it for this page, then press Connect.',
     noMic: 'No microphone found. Plug one in, then press Connect.',
@@ -2909,7 +2910,7 @@
     const pill = $('topconnect'), pillLabel = mine ? CONNECT_COPY.hangUp : dialling ? CONNECT_COPY.cancel : issue ? CONNECT_COPY.tryAgain : CONNECT_COPY.connect;
     text('topconnect', pillLabel);
     pill.classList.toggle('hang', mine); pill.classList.toggle('quiet', !mine && dialling);
-    pill.hidden = (panel || denied) && !mine;
+    pill.hidden = ((panel || denied) && !mine) || live;  // on a live call Hang up is the dock's, beside the mic, as in the apps
     showConnect();
     const micMode = pttMode() ? 'ptt' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
     for (const m of ['always', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }

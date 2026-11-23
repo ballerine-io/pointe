@@ -460,13 +460,14 @@ def test_model_keys_states_line_up_and_a_setup_reads_as_a_choice():
         assert r["use"] and all(h >= 36 for h in r["use"]), r
 
 
-def test_a_first_open_offers_no_phone_errand_and_a_later_one_says_the_phone_is_optional():
+def test_a_first_open_offers_no_phone_errand_and_a_later_one_names_the_paired_phone():
+    """A first open is no time for a phone errand; once a phone is paired and cannot reach this Mac, the line says so."""
     phone = "(() => { const b = document.getElementById('connect-phone'); return [!!b.offsetParent, b.textContent]; })()"
-    first = {**fixture(sessions=2), "first_call": True, "phone_listener": False}
+    first = {**fixture(sessions=2), "first_call": True, "phone_listener": False, "phones": {"paired": [{"name": "phone"}]}}
     later = {**first, "first_call": False}
     (a,), (b,) = (_run([(1440, "", phone)], s) for s in (first, later))
     assert a[0] is False, a
-    assert b[0] is True and b[1].startswith("Optional:"), b
+    assert b[0] is True and b[1].startswith("Your phone"), b
 
 
 def test_an_invite_with_no_address_offers_the_pages_own_phone_step():
@@ -499,7 +500,7 @@ def test_a_gone_artifact_is_named_not_led_by_a_colon():
 
 
 def test_space_on_a_session_row_switches_as_enter_does():
-    """A row is role=button: Space presses it, as it presses every button (WAI-ARIA button pattern)."""
+    """A row's name is its button: Space presses it, as it presses every button (WAI-ARIA button pattern)."""
     async def run():
         stub = await StubMac(free_port()).start()
         stub.status = fixture(sessions=3, talk=2, connected=True)
@@ -507,8 +508,8 @@ def test_space_on_a_session_row_switches_as_enter_does():
             async with Browser() as browser:
                 page = await browser.open(stub.url)
                 await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
-                await page.eval(f"(async () => {{ {LIVE} await refresh(); [...document.querySelectorAll('#list .s')]"
-                                ".find(r => r.querySelector('.nm').textContent === 's2-mobile').focus(); return true; })()")
+                await page.eval(f"(async () => {{ {LIVE} await refresh(); [...document.querySelectorAll('#list .s .nm')]"
+                                ".find(n => n.textContent === 's2-mobile').focus(); return true; })()")
                 for kind in ("keyDown", "keyUp"):
                     await page.cdp("Input.dispatchKeyEvent", {"type": kind, "key": " ", "code": "Space", "windowsVirtualKeyCode": 32,
                                                              **({"text": " "} if kind == "keyDown" else {})})
@@ -779,3 +780,25 @@ def test_hang_up_is_the_apps_quiet_disc_with_a_red_glyph():
       return [ic.backgroundColor === side.backgroundColor, ic.color !== side.color]; })()"""  # the bar's disc; its own red glyph
     for got in _run([(390, LIVE, look), (1280, "", look)], fixture(sessions=2, talk=2, connected=True)):
         assert got == [True, True], got
+
+
+ONE_HANG = """(() => { const r = e => e.getBoundingClientRect(), vis = e => { const b = r(e), cs = getComputedStyle(e);
+    return b.width > 0 && b.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && !e.closest('[hidden]'); };
+  const hang = [...document.querySelectorAll('button')].filter(b => vis(b) && /hang up/i.test(b.textContent));
+  const shown = l => r(l).width > 2 && r(l).height > 2;
+  const h = document.getElementById('hangup'), mic = r(document.getElementById('mic'));
+  const others = [...document.querySelectorAll('.dock-side .btn')].filter(vis).map(b => shown(b.querySelector('.lb')));
+  return {hang: hang.map(b => b.id), label: shown(h.querySelector('.lb')), others: others.length && others.every(Boolean),
+          gap: Math.round(Math.max(r(h).left - mic.right, mic.left - r(h).right))}; })()"""
+
+
+def test_a_call_shows_one_hang_up_labelled_as_the_dock_and_the_apps():
+    """Final review, round 5: on a desktop the call showed an unlabelled hang-up disc against the mic and a second Hang up
+    in the top bar; the apps show one, labelled, in the bar. One Hang up at every width, its label shown wherever the
+    dock's other labels are, and clear of the mic."""
+    status = fixture(sessions=3, talk=4, connected=True)
+    widths = (1440, 1280, 1024, 800, 390, 320)
+    for w, r in zip(widths, _run([(w, LIVE, ONE_HANG) for w in widths], status)):
+        assert r["hang"] == ["hangup"], (w, r)
+        assert r["label"] == r["others"], (w, r)
+        assert r["gap"] >= 8, (w, r)
