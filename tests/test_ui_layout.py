@@ -290,3 +290,77 @@ def test_the_dock_keeps_its_labels_where_they_fit():
     assert [s["labels"] for s in longs[0]][1] == ["End challenge", "Whispering", "Type"]
     for sides in got[3:]:
         assert all(s["rows"] == 1 and set(s["labels"]) == {None} for s in sides), sides
+
+
+OVERLAPS = """(() => { const btns = [...document.querySelectorAll('.dock button')].filter(b => b.offsetParent && getComputedStyle(b).visibility !== 'hidden');
+  const box = b => (b.querySelector('.ic') || b).getBoundingClientRect(), out = [];
+  for (const [i, a] of btns.entries()) for (const b of btns.slice(i + 1)) {
+    if (a.contains(b) || b.contains(a)) continue;
+    const p = box(a), q = box(b), x = Math.min(p.right, q.right) - Math.max(p.left, q.left), y = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top);
+    if (x > 0.5 && y > 0.5) out.push(a.id + ' over ' + b.id + ' by ' + Math.round(x)); }
+  return out; })()"""
+
+
+def test_no_dock_button_covers_another_on_the_first_call_or_after():
+    """The first call hides the mode switch and most of the dock; Hang up still has its own room beside the mic, so Type
+    never slides under it (QA round 1: 16 px of overlap from 901 to 1440 px)."""
+    widths = (1440, 1280, 1100, 1024, 901, 800, 600, 390, 360)
+    first = fixture(sessions=1, talk=1, connected=True)
+    first["first_call"] = True
+    for status in (first, fixture(sessions=3, talk=4, connected=True)):
+        got = _run([(w, LIVE, OVERLAPS) for w in widths], status)
+        assert got == [[]] * len(widths), dict(zip(widths, got))
+
+
+SHORT = """(async () => { const hit = s => { const e = document.querySelector(s); e.scrollIntoView({block: 'nearest'}); const b = e.getBoundingClientRect();
+    const t = document.elementFromPoint(b.left + Math.min(12, b.width / 2), b.top + b.height / 2); return !!t && (e === t || e.contains(t)); };
+  const what = document.querySelector('#attention .ask .what').getBoundingClientRect();
+  const atLoad = what.top >= 0 && what.bottom <= innerHeight && hit('#attention .ask .what');
+  return {atLoad, approve: hit('#attention .ask .allow'), mic: hit('#mic'), hangup: hit('#hangup')}; })()"""
+
+
+def test_on_a_short_screen_the_approval_card_is_never_under_the_conversation():
+    """A phone held sideways (844x390) or a laptop at 200 % zoom (720x450): the card's header, which names the session
+    that asks, shows when the page opens, and the card and the dock can be reached; no bubble lies over them."""
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=4, talk=12, approval=True, connected=True)
+        out = []
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                for w, h in ((844, 390), (720, 450)):
+                    await page.cdp("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 1, "mobile": False})
+                    await page.eval(f"(async () => {{ {LIVE} await refresh(); document.querySelector('main').scrollTop = 0; return true; }})()")
+                    await asyncio.sleep(0.6)
+                    out.append(await page.eval(SHORT))
+        finally:
+            await stub.stop()
+        return out
+    for r in asyncio.run(run()):
+        assert r == {"atLoad": True, "approve": True, "mic": True, "hangup": True}, r
+
+
+def test_the_newest_turn_is_in_view_when_the_page_opens_with_a_card_up():
+    """The first paint scrolls to the newest turn and the card then takes its room in the same frame: the scroll event
+    that follows is the page's own, not the user scrolling up, so the conversation stays on its newest turn."""
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=4, talk=30, approval=True, connected=True)
+        out = []
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                for w, h in ((1440, 900), (390, 844)):
+                    await page.cdp("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 1, "mobile": w < 500})
+                    await page.cdp("Page.reload", {"ignoreCache": True})
+                    await asyncio.sleep(0.3)
+                    await page.wait_for_page()
+                    await asyncio.sleep(0.8)
+                    out.append(await page.eval("(() => { const t = document.getElementById('talk'); return [Math.round(t.scrollHeight - t.scrollTop - t.clientHeight),"
+                                               " !!document.querySelector('#attention .ask')]; })()"))
+        finally:
+            await stub.stop()
+        return out
+    for gap, card in asyncio.run(run()):
+        assert card and gap <= 2, (gap, card)
