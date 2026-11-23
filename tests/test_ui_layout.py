@@ -583,3 +583,12 @@ def test_mode_settings_nav_and_the_page_title_carry_their_roles():
     (r,) = _run([(1440, "openSettings(); settingsJump('machines');", probe)], fixture(sessions=2, machines=2, connected=True))
     assert r["group"] == "radiogroup" and r["modes"] == [["radio", "true"], ["radio", "false"]], r
     assert r["current"] == ["Machines"] and r["h1"] == ["Pointe"], r
+
+
+def test_the_folders_field_lines_up_with_the_other_settings_rows():
+    probe = """(() => { const f = document.getElementById('pref-folders').closest('.field'), t = document.getElementById('pref-folders');
+      const text = document.createRange(); text.selectNodeContents(f.firstChild); const row = document.getElementById('pref-conflicts').closest('label, .tick, .r, .field');
+      const inset = e => Math.round(e.getBoundingClientRect().left + parseFloat(getComputedStyle(e).paddingLeft));
+      return [Math.round(text.getBoundingClientRect().left), inset(row), Math.round(t.getBoundingClientRect().left) - Math.round(f.getBoundingClientRect().left)]; })()"""
+    for label, row, box in _run([(1440, "openSettings();", probe), (390, "", probe)], fixture(sessions=2, connected=True)):
+        assert abs(label - row) <= 1 and box >= 13, (label, row, box)
