@@ -42,6 +42,10 @@ PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses from al
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
+# Sockets on /voice/node that have not proven a key yet (each waits up to HELLO_WAIT_SECS for its hello). A real node
+# holds one for a round trip; every node behind one connector shares its address (127.0.0.1), so the share is not one.
+MAX_WAITING_PER_ADDRESS = 8
+MAX_WAITING = 32
 STALE_PROBE_SECS = 3.0  # a new connection with a key already linked: the old link must answer a ping within this
 MAX_MIRROR_BYTES_PER_NODE = 4 << 30  # every mirror of one node together; past it, entries are counted, not written
 DISCOVER_TIMEOUT_SECS = 25.0  # a node lists its sessions (each account's `claude agents --json`) or joins one in this
@@ -172,6 +176,32 @@ class NodesRegistry:
         self.hub_id = data.get("hub_id") if isinstance(data.get("hub_id"), str) else secrets.token_hex(8)
         if not broken:  # a broken file is not saved over: the next pairing or revoke writes a new one
             self.save()
+        else:
+            self._read = self._on_disk()
+
+    def _on_disk(self) -> tuple | None:
+        try:
+            st = self.path.stat()
+        except OSError:
+            return None
+        return st.st_ino, st.st_mtime_ns, st.st_size
+
+    def refresh(self) -> None:
+        """nodes.json changed under the daemon (`pointe pair rotate` or `off` emptied it): only the machines it lists now
+        are paired. Before every lookup and change, so a signed-out machine is refused at once and a later save cannot
+        bring it back. Unreadable or gone: none is."""
+        if self._on_disk() == self._read:
+            return
+        self._read = self._on_disk()
+        try:
+            data = json.loads(self.path.read_text())
+        except (OSError, ValueError):
+            data = {}
+        data = data if isinstance(data, dict) else {}
+        self.nodes = {n["id"]: n for n in data.get("nodes", [])
+                      if isinstance(n, dict) and isinstance(n.get("id"), str) and n.get("key")}
+        if isinstance(data.get("hub_id"), str):
+            self.hub_id = data["hub_id"]
 
     def _set_aside(self, error: Exception) -> str | None:
         """Move an unreadable nodes.json to nodes.json.broken-<time> for repair by hand; its hub id if one is legible
@@ -205,14 +235,18 @@ class NodesRegistry:
 
     def save(self) -> None:
         _write_private(self.path, json.dumps({"hub_id": self.hub_id, "nodes": list(self.nodes.values())}) + "\n")
+        self._read = self._on_disk()
 
     def get(self, node_id) -> dict | None:
+        self.refresh()
         return self.nodes.get(node_id) if isinstance(node_id, str) else None
 
     def by_name(self, name: str) -> dict | None:
+        self.refresh()
         return next((n for n in self.nodes.values() if n["name"].lower() == name.lower()), None)
 
     def add(self, name: str, os_name: str) -> dict:
+        self.refresh()
         prefixes = {n["id"][:6] for n in self.nodes.values()}
         node_id = secrets.token_hex(8)
         while node_id[:6] in prefixes:  # hub session ids carry the first six: they must tell nodes apart
@@ -223,6 +257,7 @@ class NodesRegistry:
         return node
 
     def remove(self, node_id: str) -> None:
+        self.refresh()
         if self.nodes.pop(node_id, None):
             self.save()
 
@@ -502,6 +537,7 @@ class Hub:
         self.invites = Invites(monotonic)
         self.mirrors = Mirrors(state_dir / "harness" / "remote")
         self.links = nodelink.Links()
+        self._waiting: dict[str, int] = {}  # address: sockets there still before their hello (serve)
         self.live: dict[str, Node] = {}
         for paired in self.nodes.nodes.values():
             self._track(paired)
@@ -568,6 +604,7 @@ class Hub:
         """A machine's own sessions do not count: one revoked and paired again (a rotated certificate) still has its
         old sessions listed, named "shop devbox" by the machine suffix, until the next liveness check reaps them."""
         others = [s for s in self.registry.sessions.values() if (s.machine or "").lower() != name.lower()]
+        self.nodes.refresh()
         return name_problem(name, [n["name"] for n in self.nodes.nodes.values()], others, _here(self.state_dir))
 
     # ---------- hub to node ----------
@@ -677,6 +714,13 @@ class Hub:
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
 
+    async def drop_unpaired(self) -> None:
+        """Machines whose keys left nodes.json under the daemon (`pointe pair rotate` or `off`): their links close now,
+        as a revoke closes one."""
+        self.nodes.refresh()
+        for node in [n for n in self.live.values() if self.nodes.get(n.id) is None]:
+            await self._forget(node, "revoked")
+
     async def revoke(self, name: str) -> bool:
         paired = self.nodes.by_name(name)
         if paired is None:
@@ -730,6 +774,22 @@ class Hub:
 
     async def serve(self, ws) -> None:
         """The /voice/node WebSocket: a nonce, the node's HMAC over it, then frames until the link drops."""
+        address = _peer(ws)
+        if sum(self._waiting.values()) >= MAX_WAITING or self._waiting.get(address, 0) >= MAX_WAITING_PER_ADDRESS:
+            logger.warning(f"node link from {address or 'loopback'} refused before its hello: too many are waiting")
+            return await _close(ws, 1013, "too many connections waiting")  # before accept: the node backs off, retries
+        self._waiting[address] = self._waiting.get(address, 0) + 1
+        try:
+            proven = await self._hello(ws)
+        finally:
+            self._waiting[address] -= 1
+            if not self._waiting[address]:
+                del self._waiting[address]
+        if proven is not None:
+            await self._linked(ws, address, *proven)
+
+    async def _hello(self, ws) -> tuple[dict, dict] | None:
+        """The challenge and the node's answer: (its pairing, its hello), or None once the socket is closed."""
         await ws.accept()
         nonce = nodelink.new_nonce()
         await ws.send_text(encode("challenge", nonce=nonce, hub={"id": self.nodes.hub_id, "name": _here(self.state_dir)}))
@@ -746,7 +806,10 @@ class Hub:
         if paired is None or not nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
             logger.warning(f"node link refused: {hello['node']['name']!r} is not paired, or its key is wrong")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not paired with this hub")
-        address = _peer(ws)
+        return paired, hello
+
+    async def _linked(self, ws, address: str, paired: dict, hello: dict) -> None:
+        """A proven node: one link per key, then frames until it drops."""
         if not self.links.claim(paired["id"], ws) and not await self._replace_stale(paired, ws, address):
             logger.warning(f"node {paired['name']}: a second connection with its key refused")
             return await _close(ws, nodelink.CLOSE_ALREADY_CONNECTED, "already connected")

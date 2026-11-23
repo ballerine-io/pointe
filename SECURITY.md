@@ -18,7 +18,15 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
 - That cookie lives on a private name, `<hash>.localhost`. Cookies ignore ports, so one set on plain `localhost` would reach any
   server you open on another port.
 - `Origin` must match `Host` exactly, for HTTP and for WebSocket. This stops other web pages and DNS rebinding.
+- Every POST must say `Content-Type: application/json`, on this port and on the phone's listener, or it gets 415. A page
+  on another origin can send a POST without asking first only as text, a form or an empty body, so none reaches a
+  route. The check runs after the secret check.
 - Only the same origin can frame the page, which blocks clickjacking.
+- The page runs only the scripts it was served with. Its `Content-Security-Policy` lists the SHA-256 of each inline
+  script and event handler, computed from the page when it is served (`guards.page_csp`), on both listeners; a script
+  or handler that reaches the page later matches none and does not run. Plugins and `<base>` are refused. The page
+  builds session names, machine names and the QR code as nodes, never by parsing HTML. Browsers older than about 2022
+  (Safari before 15.4) do not support hashed handlers and would refuse the page's buttons.
 - An empty secret opens nothing.
 
 ## What a spoken word can do
@@ -285,13 +293,16 @@ The Mac with the call (the hub) keeps every rule above for them.
   the code is compared, so one address cannot try enough to cancel the invite. After 20 wrong codes from all addresses
   together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
   A guesser behind the same connector as your machine can delay it by a minute, not lock it out. Making it from the
-  app needs Face ID.
-  The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. The hub
+  app needs Face ID there; the daemon makes one for any holder of the phone key (see Phone access).
+  The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. It
+  writes the hub's answer only if every field has the form the hub makes (the hub and node ids 16 hex digits, the key 64,
+  plain names), so a hub cannot name a file outside `node_keys/`. The hub
   then shows the node's name, address and key fingerprint, so you can see that the machine that paired is yours.
 - **The link.** The node dials the hub's TLS listener (the phone's) and proves its 256-bit key with an HMAC over a fresh
-  challenge from the hub; the key itself never crosses. One connection per key: a copy of a node cannot connect while
+  challenge from the hub; the key itself never crosses. Before that proof, at most 8 sockets from one address and 32 in
+  all may wait for it (10 seconds each), and the listener takes no WebSocket message over 1 MB. One connection per key: a copy of a node cannot connect while
   the node is connected. `pointe hub revoke <name>`, Settings → Machines on the page (two clicks) or in the app (a
-  confirm, then Face ID) ends it.
+  confirm, then Face ID) ends it; `pointe pair rotate` or `off` ends every machine's at once.
 - **What crosses.** To the hub: each session's transcript and permission requests, with credentials masked on the node
   (`readout.mask`), names, folder paths and up to 40 file names; and, only when you look for sessions to add, each
   listed session's name, folder, agent, age, title, keywords and first and last request (160 characters each), never
@@ -350,7 +361,13 @@ no rule above and adds no listener.
 
 `bin/voice-remote` adds an HTTPS listener for a phone on a private network. Remote requests need the configured name and a
 pairing cookie. The listener is decided by the port that accepted the connection, never by `Host` or forwarded headers.
-Limits: the pairing link is a lasting secret with no rotate command, despite the word "link", so treat it as a password. `bin/voice-remote off` leaves the connector and its tokens in place. And `bin/voice-connector` pulls
+A request from a web page, HTTP or WebSocket, must carry exactly this listener's origin, `https://<name>:7443`: scheme,
+name and port. Cookies ignore ports, so a page on another port of the same name (a dev server, `tailscale serve`) would
+otherwise get the pairing cookie and open a call.
+Limits: the pairing link is a lasting secret, despite the word "link", so treat it as a password; `pointe pair rotate`
+replaces it. The page it opens keeps a key derived from it in its address (`/voice?k=…`), because "Add to Home Screen"
+saves the address and a Home Screen app does not share Safari's cookies: that key reaches the browser's history, synced
+tabs and screenshots, and opens the page to anyone who can also reach the listener, until `pointe pair rotate`. `pointe pair off` (and `bin/voice-remote off`) leaves the connector and its tokens in place. And `bin/voice-connector` pulls
 `twingate/connector:1`, a moving tag. Call audio over this path is one TCP connection.
 
 ### The iPhone app
@@ -380,22 +397,44 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   CA-signed or not. iOS's App Transport Security can't be scoped to a name you pick (a Twingate or VPN name), and it
   refuses a self-signed certificate before the app's own check runs, so it is off for this app. The pin is the stronger
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
-- **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
-  heard), approve, the brain dump (`/voice/dump`, `/voice/listen`), switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
-  enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
-  the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), the dictionary (`/voice/dictionary`: list, add, edit, delete), drive mode (`/voice/drive`: on, off), and the conflict alarm (`/voice/conflicts`: dismiss,
-  or ask one side: the card's question, sent to that session as a conflict check, never as the user's words, and it approves nothing). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
+- **What the phone key opens**, and nothing else (`guards._PHONE_PATHS`):
+  - the call (`/voice/phone`), status (`/voice/status`: the sessions, each pending request with its id, the last turns
+    of the conversation, the words being heard) and approve (`/voice/approve`);
+  - driving the sessions: `/voice/switch`, `/voice/disconnect`, `/voice/hung-up`, `/voice/rename`, `/voice/mode`,
+    typed words (`/voice/say`, `/voice/correct`, `/voice/polish`), a new session in a folder the Mac allows
+    (`/voice/new-session`), the night shift (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the
+    challenge (`/voice/challenge`), drive mode (`/voice/drive`), alerts (`/voice/attention`) and the conflict alarm
+    (`/voice/conflicts`: dismiss, or ask one side: the card's question, sent to that session as a conflict check,
+    never as the user's words, and it approves nothing);
+  - meetings and notes: `/voice/meeting`, `/voice/meeting/transcript`, `/voice/notes`;
+  - settings: `/voice/prefs` (every setting except the voice lock, which has its own route, and the folders new
+    sessions may start in, which only the Mac changes), the voice lock (`/voice/voiceprint`: enrol, delete, level), the
+    dictionary (`/voice/dictionary`), and briefings (`/voice/briefings`, `/voice/briefings/latest`,
+    `/voice/briefings/schedule`);
+  - Show while it says (`/voice/artifact`), once `show.on_phone` is on;
+  - machines: `/voice/hub/invite`, `/voice/hub/nodes`, `/voice/hub/revoke`.
+
+  Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
+  uses.
+- **Face ID is a check in the app, not in the daemon.** The app asks for Face ID or the passcode before it approves,
+  turns on Show while it says or Approve from notifications, lowers or deletes the voice lock, or makes a machine
+  invite. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
+  key can do all of the above without it: approve any pending request (status carries its id), turn on
+  `show.on_phone` and read what the voice showed, turn on `alerts.watch_approve`, and pair a machine of its own, which
+  stays paired after the phone is unpaired. If a phone key may have leaked, Unpair it, run `pointe pair rotate` (it
+  signs out every machine too), and check Settings → Machines.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
   `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it
-  on). Once on, a leaked phone key can read what the voice showed: the last ten reports' files, inside each session's
+  on, but the daemon takes the setting from any holder of the phone key). Once on, a leaked phone key can read what the
+  voice showed: the last ten reports' files, inside each session's
   folder only. Either way the daemon never takes a path from the caller, shows only tools that ran (never a tool still
   waiting for approval), refuses files outside the session's folder after resolving symlinks, hidden files and
   secret-looking names (`.env*`, `*.pem`, `*secret*`, `*key*`, `id_*`, `*credential*`, ...), binary files and files over
   512 kB, and masks secret-looking values (known token shapes, private keys, `name = "..."` and unquoted `name: value` for secret-like names, URL
   passwords, and the values of this machine's own key variables) in file lines, diffs, test output and commands.
   Diffs read `HEAD` with `git cat-file`, never `git diff`, so a repository's filters and diff drivers do not run.
-- **Approve needs Face ID** or the passcode; deny never does. One opt-in exception: with "Approve from notifications"
+- **Approve needs Face ID** or the passcode in the app; deny never does. One opt-in exception: with "Approve from notifications"
   on (`alerts.watch_approve`, off by default; the app asks for Face ID to turn it on), a notification's Approve needs an
   unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
   read out, bound to that request's id (`alerts.py`).
@@ -405,4 +444,9 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 - **Revoke:** Unpair in Settings → Phone. The phone paired from the terminal can also be revoked by deleting
   `~/.claude-voice/phone_key`; it takes effect at the next request. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
+- **Revoke everything at once** (a lost phone, a QR code, link or invite someone else saw): `pointe pair rotate` makes a
+  new certificate and a new browser pairing secret, and signs out every phone (`phones.json`, `phone_key`), every
+  browser and every machine (`nodes.json` keeps only the hub's id). `pointe pair off` signs out the same and stops
+  listening. A running daemon refuses the old keys at their next request, because it reads these files at each check;
+  within about five seconds it restarts the listener on what is on disk and closes the calls and links that were up.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.

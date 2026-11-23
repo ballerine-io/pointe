@@ -1234,3 +1234,73 @@ def test_a_prompt_re_offered_on_a_new_link_is_asked_again_but_a_duplicate_on_one
         await again.drop()
 
     run(go())
+
+
+def test_a_machine_signed_out_on_disk_is_refused_and_its_live_link_closes(world):
+    """`pointe pair rotate` or `off` in a terminal empties nodes.json under the running daemon."""
+    hub, host, registry, *_ = world
+    node, other = paired(hub), hub.nodes.add("laptop", "macos")
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        hub.nodes.path.write_text(json.dumps({"hub_id": hub.nodes.hub_id, "nodes": []}))
+        await hub.drop_unpaired()
+        assert (await fake.recv("unpaired"))["t"] == "unpaired"
+        assert await fake.recv() is None
+        assert not registry.sessions[nodelink.hub_session_id(node["id"], "s1")].alive()
+        assert node["id"] not in hub.live and "devbox" not in sessions.MACHINES
+        late = FakeNode(hub, other)
+        assert await late.connect() is None and late.pipe.closed[0] == nodelink.CLOSE_UNAUTHORIZED
+
+    run(go())
+
+
+# ---------- before the HMAC: what a stranger on the network can hold ----------
+
+class AddressedPipe(Pipe):
+    def __init__(self, host):
+        super().__init__()
+        self.client = type("Client", (), {"host": host})()
+        self.accepted = False
+
+    async def accept(self):
+        self.accepted = True
+
+
+def test_sockets_waiting_for_a_hello_are_capped_per_address_and_in_all(world, monkeypatch):
+    """/voice/node is open before any proof and waits HELLO_WAIT_SECS for the hello: a stranger must not hold an
+    unbounded number of those. Past the cap a socket is refused before it is accepted; a node retries with backoff."""
+    hub, *_ = world
+    monkeypatch.setattr(hub_nodes, "MAX_WAITING_PER_ADDRESS", 2, raising=False)
+    monkeypatch.setattr(hub_nodes, "MAX_WAITING", 3, raising=False)
+    node = paired(hub)
+
+    async def go():
+        silent = [AddressedPipe("100.64.0.9") for _ in range(2)]
+        tasks = [asyncio.create_task(hub.serve(p)) for p in silent]
+        await settle()
+        assert all(p.accepted and p.closed is None for p in silent)  # each holds a challenge, waiting for a hello
+        third = AddressedPipe("100.64.0.9")
+        await asyncio.wait_for(hub.serve(third), 1)
+        assert not third.accepted and third.closed is not None  # its address holds its share
+        other = AddressedPipe("100.64.0.10")
+        tasks.append(asyncio.create_task(hub.serve(other)))
+        await settle()
+        assert other.accepted and other.closed is None
+        fourth = AddressedPipe("100.64.0.11")
+        await asyncio.wait_for(hub.serve(fourth), 1)
+        assert not fourth.accepted and fourth.closed is not None  # all of them together hold the rest
+        await silent[0].to_hub.put(None)  # one gives up: its place is free again
+        await settle()
+        fake = FakeNode(hub, node)
+        assert (await fake.connect())["t"] == "welcome"
+        await fake.drop()
+        assert hub._waiting == {"100.64.0.9": 1, "100.64.0.10": 1}  # a welcomed link no longer counts as waiting
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        assert hub._waiting == {}
+
+    run(go())

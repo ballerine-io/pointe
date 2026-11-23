@@ -49,15 +49,33 @@ class Phones:
 
     def __init__(self, state_dir: Path, clock: Callable[[], float] = time.time):
         self.state_dir, self.path, self._clock = state_dir, state_dir / "phones.json", clock
+        self._load()
+
+    def _on_disk(self) -> tuple | None:
+        try:
+            st = self.path.stat()
+        except OSError:
+            return None
+        return st.st_ino, st.st_mtime_ns, st.st_size
+
+    def _load(self) -> None:
+        self._read = self._on_disk()
         try:
             data = json.loads(self.path.read_text())
         except (OSError, ValueError):
             data = {}
+        data = data if isinstance(data, dict) else {}
         self.paired: list[dict] = [p for p in data.get("paired") or []
                                    if isinstance(p, dict) and isinstance(p.get("hash"), str) and p.get("id")]
         self.legacy_name: str | None = data.get("legacy_name")
         self.seen: dict[str, float] = {k: v for k, v in (data.get("seen") or {}).items() if isinstance(v, (int, float))}
         self._written = max(self.seen.values(), default=0.0)
+
+    def refresh(self) -> None:
+        """phones.json changed under the daemon (`pointe pair rotate` or `off` deleted it): what it says now. Before every
+        check and every change, so a signed-out phone is refused at once and a later save cannot bring it back."""
+        if self._on_disk() != self._read:
+            self._load()
 
     def _save(self) -> None:
         old = os.umask(0o077)
@@ -67,6 +85,7 @@ class Phones:
             os.umask(old)
         self.path.chmod(0o600)
         self._written = max(self.seen.values(), default=0.0)
+        self._read = self._on_disk()
 
     def _legacy_key(self) -> str | None:
         try:
@@ -77,6 +96,7 @@ class Phones:
     def allowed(self, authorization: str | None) -> str | None:
         """LocalAuth's phone check: which phone holds this key, or None. Every key is compared, each in constant time,
         with no early exit. Marks that phone seen."""
+        self.refresh()
         if not authorization or not authorization.startswith("Bearer ") or not authorization[7:].strip():
             return None
         offered = authorization[7:]
@@ -96,6 +116,7 @@ class Phones:
 
     def mint(self, name: str, device_id: str, address: str) -> str:
         """A new phone's key, returned once. Pairing the same phone again (its id) replaces its entry and old key."""
+        self.refresh()
         for p in [p for p in self.paired if device_id and p.get("device") == device_id]:
             self.seen.pop(p["id"], None)
         self.paired = [p for p in self.paired if not (device_id and p.get("device") == device_id)]
@@ -107,12 +128,14 @@ class Phones:
 
     def report(self, phone_id: str | None, name: str | None) -> None:
         """The app said its name: names the legacy phone, once. A phone paired here keeps the name it paired with."""
+        self.refresh()
         name = _clean(name, MAX_DEVICE_CHARS)
         if phone_id == LEGACY and name and not self.legacy_name:
             self.legacy_name = name
             self._save()
 
     def unpair(self, phone_id: str) -> bool:
+        self.refresh()
         if phone_id == LEGACY:
             if self._legacy_key() is None:
                 return False
@@ -126,12 +149,21 @@ class Phones:
         return True
 
     def unpair_all(self) -> None:
+        self.refresh()
         (self.state_dir / "phone_key").unlink(missing_ok=True)
         self.paired, self.legacy_name, self.seen = [], None, {}
         self._save()
 
+    def holds(self, phone_id: str | None) -> bool:
+        """Is this phone (an id `allowed` gave) still paired?"""
+        self.refresh()
+        if phone_id == LEGACY:
+            return self._legacy_key() is not None
+        return any(p["id"] == phone_id for p in self.paired)
+
     def status(self) -> dict:
         """For /voice/status: ids, names and times only."""
+        self.refresh()
         now = self._clock()
 
         def entry(phone_id: str, name: str, paired_at, legacy: bool) -> dict:

@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 from fastapi import Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
 
+import nodelink
 from guards import is_local_request
 
 TLS_PORT = int(os.environ.get("CLAUDE_VOICE_TLS_PORT", "7443"))  # a second daemon (tests) needs its own
@@ -26,11 +27,13 @@ class Remote:
     def __init__(self, state_dir: Path):
         self.state_dir = state_dir
         self._app, self._task, self._servers = None, None, []
+        self._restarting: asyncio.Lock | None = None
         self.load()
 
     def load(self) -> None:
         """Read remote.json, remote_token and the certificate: at start, and when Settings → Phone picks a route."""
         state_dir = self.state_dir
+        self._seen = self._on_disk()  # before reading: a change while it reads shows as a change next time
         config = state_dir / "remote.json"
         settings = json.loads(config.read_text()) if config.exists() else {}
         self.host = settings["host"].lower() if settings.get("host") else None
@@ -39,6 +42,21 @@ class Remote:
         token = state_dir / "remote_token"
         self.token = token.read_text().strip() if token.exists() else None
         self.cert, self.key = state_dir / "tls" / "cert.pem", state_dir / "tls" / "key.pem"
+
+    def _on_disk(self) -> list:
+        found = []
+        for path in (self.state_dir / "remote.json", self.state_dir / "remote_token",
+                     self.state_dir / "tls" / "cert.pem", self.state_dir / "tls" / "key.pem"):
+            try:
+                st = path.stat()
+                found.append((st.st_ino, st.st_mtime_ns, st.st_size))
+            except OSError:
+                found.append(None)
+        return found
+
+    def changed(self) -> bool:
+        """The route, the pairing secret or the certificate changed since load(): `pointe pair` ran in a terminal."""
+        return self._on_disk() != self._seen
 
     @property
     def enabled(self) -> bool:
@@ -50,8 +68,16 @@ class Remote:
             return False
         if (urlparse(f"//{request.headers.get('host', '')}").hostname or "").lower() != self.host:
             return False
-        origin = request.headers.get("origin")
-        return origin is None or (urlparse(origin).hostname or "").lower() == self.host
+        return self._own_origin(request.headers.get("origin"))
+
+    def _own_origin(self, origin: str | None) -> bool:
+        """No Origin (the app, a script), or exactly this listener's: scheme, name and port. Cookies and SameSite ignore
+        ports, so a page on another port of this name (a dev server, `tailscale serve`) is same-site and gets the
+        pairing cookie; WebSockets have no same-origin rule, so this compare is all that keeps such a page out."""
+        if origin is None:
+            return True
+        own = {f"https://{self.host}:{TLS_PORT}"} | ({f"https://{self.host}"} if TLS_PORT == 443 else set())
+        return origin.lower() in own
 
     @property
     def app_key(self) -> str:
@@ -72,7 +98,7 @@ class Remote:
     def websocket_allowed(self, connection) -> bool:
         origin = connection.headers.get("origin")
         return (self.enabled and hmac.compare_digest(connection.cookies.get(COOKIE, "").encode(), self.token.encode())
-                and (origin is None or (urlparse(origin).hostname or "").lower() == self.host))
+                and self._own_origin(origin))
 
     async def guard(self, request: Request, call_next):
         state = request.scope.get("state", {})
@@ -117,7 +143,9 @@ class Remote:
 
         # lifespan off: the main server already ran the app's startup, and running it again would recurse here
         servers = [Quiet(uvicorn.Config(app, host=address, port=TLS_PORT, log_level="warning", lifespan="off",
-                                        proxy_headers=False, ssl_certfile=str(self.cert), ssl_keyfile=str(self.key)))
+                                        proxy_headers=False, ssl_certfile=str(self.cert), ssl_keyfile=str(self.key),
+                                        # buffered whole before any handler; /voice/node reads one before any proof
+                                        ws_max_size=nodelink.MAX_FRAME_BYTES))
                    for address in self.listen]
         self._servers = servers
 
@@ -146,8 +174,16 @@ class Remote:
                 self._task.cancel()
         self._task, self._servers = None, []
 
-    async def restart(self) -> str | None:
-        """Serve what remote.json says now, without a daemon restart. None once every address listens, else why not."""
+    async def restart(self, only_if_changed: bool = False) -> str | None:
+        """Serve what remote.json says now, without a daemon restart. None once every address listens, else why not.
+        One at a time: the page choosing a route and the daemon following `pointe pair` must not both bind the port."""
+        self._restarting = self._restarting or asyncio.Lock()
+        async with self._restarting:
+            if only_if_changed and not self.changed():
+                return None
+            return await self._restart()
+
+    async def _restart(self) -> str | None:
         await self.stop()
         self.load()
         if self._app is None or not self.enabled:

@@ -90,7 +90,9 @@ from echo import AudioClock, EchoGuard, LevelGate, lone_stop, spoken_form, words
 import phone
 from readout import mask
 from guards import (relays_approval, remote_readable, 
+    JsonPosts,
     LocalAuth,
+    page_csp,
     permission_answer,
     quote_intent,
     close_request,
@@ -6585,6 +6587,7 @@ TOOLS = ToolsSchema(standard_tools=[
 # ---------- HTTP: registration, permission relay, status ----------
 
 app = FastAPI()
+app.add_middleware(JsonPosts)  # first, so innermost: the guards below answer a caller without a secret before it
 REMOTE = remote.Remote(STATE_DIR)
 remote.install(REMOTE, app)  # localhost as before; a paired phone over HTTPS through the private network
 PHONES = phone_pairing.Phones(STATE_DIR)  # each phone's key (hashed), name and last seen (Settings → Phone)
@@ -8332,9 +8335,10 @@ async def font(name: str):
 @app.get("/voice", response_class=HTMLResponse)
 async def page():
     here = Path(__file__).parent
-    return ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
+    html = ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
             .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
             .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text()))
+    return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 
 async def _add_worker(session: Session) -> None:
@@ -8358,8 +8362,21 @@ async def _liveness() -> None:
         await _reap_dead()
         _follow_titles()
         await _watch_machines()
+        await _follow_pairing()
         _notify_call()  # also catches a change of the approvals setting in config.json
         await KEEP_AWAKE.update(state.call_from_elsewhere)  # unplugged mid-call: released within one round
+
+
+async def _follow_pairing() -> None:
+    """`pointe pair` ran in a terminal: the phone listener serves what is on disk now (a new certificate after rotate,
+    nothing after off), and the call or link of a phone or machine signed out there ends. Each key check already reads
+    the files; this closes what was already connected."""
+    if REMOTE.changed():
+        problem = await REMOTE.restart(only_if_changed=True)
+        logger.info(f"phone listener follows the pairing on disk{f': {problem}' if problem else ''}")
+    if state.phone_socket is not None and state.phone_socket_id and not PHONES.holds(state.phone_socket_id):
+        await _end_phone_call(None)
+    await HUB.drop_unpaired()
 
 
 def _follow_titles() -> None:

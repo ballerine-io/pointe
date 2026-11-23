@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from guards import LOCAL_COOKIE, LocalAuth, page_host, permission_answer  # noqa: E402
 from remote import COOKIE, Remote, TLS_PORT  # noqa: E402
 
@@ -73,8 +74,9 @@ def app(tmp_path):
         return {"connected": True}
 
     @app.websocket("/ws")
-    async def ws(socket):
+    async def ws(socket: WebSocket):
         await socket.accept()
+        await socket.send_text("in")
         await socket.close()
 
     app.add_middleware(LocalAuth, token="daemon-token", page_key="page-key", remote=remote)
@@ -172,6 +174,34 @@ def test_a_paired_phone_still_works(app):
     client = tls(app)
     client.cookies.set(COOKIE, "s3cret-token")
     assert client.get("/voice/status").status_code == 200
+
+
+# Cookies and SameSite ignore ports and (in some browsers) the scheme: a page on another port of the paired name, or a
+# plain http:// page on it, is same-site and gets the pairing cookie. Only this listener's own origin may use it.
+_NOT_THIS_LISTENER = [f"https://{HOST}:8443", f"http://{HOST}:{TLS_PORT}", f"http://{HOST}", f"https://{HOST}:{TLS_PORT}.evil",
+                      f"wss://{HOST}:{TLS_PORT}", "null"] + ([f"https://{HOST}"] if TLS_PORT != 443 else [])
+
+
+@pytest.mark.parametrize("origin", _NOT_THIS_LISTENER)
+def test_the_tls_listener_refuses_a_page_from_another_port_or_scheme_over_http(app, origin):
+    client = tls(app)
+    client.cookies.set(COOKIE, "s3cret-token")
+    assert client.get("/voice/status", headers={"Origin": origin}).status_code == 403
+    assert client.post("/api/offer", headers={"Origin": origin}, json={}).status_code == 403
+    assert client.get("/voice/status", headers={"Origin": f"https://{HOST}:{TLS_PORT}"}).status_code == 200  # control
+
+
+def _tls_socket_in(app, origin: str | None) -> bool:
+    client = tls(app)
+    client.cookies.set(COOKIE, "s3cret-token")
+    return _phone_gets_in(client, "/ws", **({"origin": origin} if origin else {}))
+
+
+@pytest.mark.parametrize("origin", _NOT_THIS_LISTENER)
+def test_the_tls_listener_refuses_a_page_from_another_port_or_scheme_over_websocket(app, origin):
+    assert not _tls_socket_in(app, origin)
+    assert _tls_socket_in(app, f"https://{HOST}:{TLS_PORT}")  # control: the page's own origin
+    assert _tls_socket_in(app, None)  # control: no page at all (the cookie is still needed)
 
 
 @pytest.fixture
@@ -480,3 +510,70 @@ def test_the_phone_key_still_cannot_pair_a_node_or_open_the_node_socket(hub_app)
     node = hub.nodes.add("devbox", "linux")
     assert _node_close_code(tls(hub_app), "", node["id"], **key) == 4401  # the HMAC, never the phone key
     assert _pair(tls(hub_app), "AAAA-AAAA").status_code == 403  # no invite: the phone key opens no pairing
+
+
+# ---------- every POST is JSON (guards.JsonPosts): the page's own requests say so ----------
+
+def _fetch_calls(text: str):
+    """Each fetch(...) call's whole text, brackets balanced."""
+    at = 0
+    while (start := text.find("fetch(", at)) != -1:
+        depth, i = 0, start + len("fetch")
+        while True:
+            depth += {"(": 1, ")": -1}.get(text[i], 0)
+            i += 1
+            if depth == 0:
+                break
+        yield text[start:i]
+        at = i
+
+
+@pytest.mark.parametrize("page", ["ui.html", "ui_dictionary.html", "ui_whisper.html"])
+def test_every_post_the_page_makes_says_it_is_json(page):
+    text = (Path(__file__).resolve().parents[1] / page).read_text()
+    assert "sendBeacon" not in text  # it sends text/plain, which the daemon refuses
+    posts = [c for c in _fetch_calls(text) if "'POST'" in c or "\"POST\"" in c]
+    assert posts or page != "ui.html"
+    for call in posts:
+        assert "'content-type': 'application/json'" in call, call
+
+
+# ---------- the page's script policy (guards.page_csp): only the scripts and handlers it was served with run ----------
+
+def _policy_hashes(policy: str) -> set[str]:
+    import re
+    return set(re.findall(r"'sha256-([A-Za-z0-9+/=]+)'", policy))
+
+
+def _sha(text: str) -> str:
+    import base64
+    import hashlib
+    return base64.b64encode(hashlib.sha256(text.encode()).digest()).decode()
+
+
+def test_the_page_policy_allows_only_hashed_inline_scripts():
+    from guards import page_csp
+    from page_rig import page_html
+
+    policy = page_csp(page_html())
+    directives = {d.split()[0]: d.split()[1:] for d in (p.strip() for p in policy.split(";")) if d}
+    assert directives["object-src"] == ["'none'"] and directives["base-uri"] == ["'none'"]
+    script = directives["script-src"]
+    assert set(script) - {f"'sha256-{h}'" for h in _policy_hashes(policy)} == {"'unsafe-hashes'", "blob:"}
+    assert len(_policy_hashes(policy)) > 100  # each inline script and handler of the page
+    for injected in ("alert(1)", "fetch('/voice/approve')", "window.__pwned = 1"):
+        assert _sha(injected) not in _policy_hashes(policy)
+    for handler in ("foldShow()", "event.preventDefault(); phoneRoutes($('ph-host').value)"):
+        assert _sha(handler) in _policy_hashes(policy)  # read the way the browser hashes: the attribute's decoded value
+
+
+def test_security_md_names_every_route_the_phone_key_opens_and_no_other():
+    """SECURITY.md's list is what a leaked phone key can reach: it must be guards._PHONE_PATHS exactly."""
+    import re
+
+    from guards import _PHONE_PATHS
+
+    text = (Path(__file__).resolve().parents[1] / "SECURITY.md").read_text()
+    start = text.index("- **What the phone key opens")
+    bullet = text[start:text.index("\n- **", start + 1)]
+    assert set(re.findall(r"`(/voice/[a-z/-]+)`", bullet)) == _PHONE_PATHS

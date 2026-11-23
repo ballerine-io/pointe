@@ -545,7 +545,7 @@ def test_no_call_and_no_meeting_needed_for_the_card_but_asking_needs_a_call(d, m
     card = client_for(d).get("/voice/status").json()["conflicts"][0]
     assert client_for(d).post("/voice/conflicts", json={"action": "ask", "id": card["id"], "side": "b"}).status_code == 409
     assert client_for(d).post("/voice/conflicts", json={"action": "shout"}).status_code == 400
-    assert client_for(d).post("/voice/conflicts", content=b"[]").status_code == 400
+    assert client_for(d).post("/voice/conflicts", content=b"[]", headers={"content-type": "application/json"}).status_code == 400
 
 
 @pytest.fixture(autouse=True)

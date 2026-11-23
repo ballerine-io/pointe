@@ -111,6 +111,7 @@ The hub treats a node's transcripts like its own: they go to the hub's reader an
 | hub | `pointe hub nodes` | each node: name, OS, online or offline since, sessions, round trip, key fingerprint |
 | hub | `pointe hub invite [--name devbox]` | a one-time code, as above |
 | hub | `pointe hub revoke <name>` | unpairs it: its sessions leave the voice, and it needs a new code to come back. Also on the page (Settings → Machines, two clicks) and in the app (Face ID, then a confirm) |
+| hub | `pointe pair rotate` | a new certificate, and every machine, phone and browser paired with this Mac signed out: each needs a new code. `pointe pair off` signs out the same and stops listening |
 | node | `pointe node status` | the hub, the link, round trip, the hub's vendors, sessions here, key fingerprint |
 | node | `pointe node leave` | unpairs this machine from its side |
 

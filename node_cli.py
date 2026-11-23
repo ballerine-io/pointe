@@ -22,6 +22,7 @@ from pathlib import Path
 
 import aiohttp
 
+import guards
 from node import (DAEMON_HERE, PORT, ROOT, STATE, _daemon_here, _netloc, _os, _read_json, _version, _write_private,
                   forget, nodelink, pairing)
 
@@ -86,8 +87,8 @@ def join(invite: str, name: str | None, state: Path = STATE, port: int = PORT, s
                          "certificate (pointe pair rotate), ask for a new invite.")
     name = name or socket.gethostname().split(".")[0].lower()
     body = {"code": invited["code"], "name": name, "os": _os(), "arch": platform.machine(), "version": _version()}
-    got = asyncio.run(_pair_request(invited, body))
-    name = str(got.get("name") or name)  # the hub's invite may have named this machine: that is the name it knows
+    got = _checked(asyncio.run(_pair_request(invited, body)), name)
+    name = got["name"]  # the hub's invite may have named this machine: that is the name it knows
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     hub = got["hub"]
     _write_private(state / "node_keys" / str(hub["id"]), got["node_key"])
@@ -118,10 +119,26 @@ async def _pair_request(invited: dict, body: dict) -> dict:
                          "certificate (pointe pair rotate), ask for a new invite.")
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
         raise SystemExit(f"pairing failed: {type(e).__name__}")
-    if not (isinstance(got, dict) and re.fullmatch(r"[0-9a-f]{64}", str(got.get("node_key")))
-            and isinstance(got.get("hub"), dict) and got.get("node_id")):
-        raise SystemExit("the hub's answer is not a pairing")
     return got
+
+
+_HEX16, _HEX64 = re.compile(r"[0-9a-f]{16}"), re.compile(r"[0-9a-f]{64}")
+_HUB_NAME = re.compile(r'[^\x00-\x1f\x7f"\\{}]{1,64}')  # node.json is read with sed by bin/voice-node and bin/voice-open
+
+
+def _checked(got, name: str) -> dict:
+    """The hub's pairing answer, every field in the form the hub mints it (hub_nodes.NodesRegistry), before anything is
+    written: the hub id names a file under node_keys/, so a hub that answers "../../.ssh/authorized_keys" must not get
+    to write there."""
+    if not isinstance(got, dict) or not isinstance(hub := got.get("hub"), dict):
+        raise SystemExit("the hub's answer is not a pairing")
+    name = got.get("name") or name
+    if not (isinstance(hub.get("id"), str) and _HEX16.fullmatch(hub["id"]) and isinstance(hub.get("name"), str)
+            and _HUB_NAME.fullmatch(hub["name"]) and isinstance(got.get("node_key"), str)
+            and _HEX64.fullmatch(got["node_key"]) and isinstance(got.get("node_id"), str)
+            and _HEX16.fullmatch(got["node_id"]) and isinstance(name, str) and guards.valid_name(name)):
+        raise SystemExit("the hub's answer is not a pairing")
+    return {**got, "name": name}
 
 
 def status(state: Path = STATE, port: int = PORT) -> None:

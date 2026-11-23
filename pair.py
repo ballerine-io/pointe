@@ -5,8 +5,8 @@
   pointe pair host <name>    a name you route yourself (Twingate, Cloudflare Tunnel with Access); listens on 127.0.0.1
   pointe pair show           the QR code again
   pointe pair link           the address that pairs a phone's browser page (what bin/voice-remote link printed)
-  pointe pair rotate         a new certificate: the phone and every machine paired with this Mac must pair again
-  pointe pair off            stop listening: removes the certificate, remote.json and remote_token
+  pointe pair rotate         a new certificate and pairing link; signs out every phone, browser and machine (pair again)
+  pointe pair off            stop listening, and sign out every phone, browser and machine
 
 The QR code holds a secret that opens a call into your sessions: show it only to your own phone. The app pins this
 listener's certificate by its fingerprint, so nothing has to be installed on the phone.
@@ -257,19 +257,50 @@ def link() -> None:
     print("Open it once on the phone's browser. It holds a secret: send it only to your own phone.")
 
 
+def _write_private(path: Path, text: str) -> None:
+    old = os.umask(0o077)
+    try:
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(text)
+        tmp.replace(path)
+    finally:
+        os.umask(old)
+
+
+def _sign_everyone_out() -> None:
+    """Every credential the listener honours, gone: each phone's key (`phones.json`, the shared `phone_key`) and each
+    machine's (`nodes.json` keeps only the hub's id, so a machine pairs again with a new code and nothing else). A
+    running daemon reads these files at each check and closes the calls and links they held within seconds."""
+    for name in ("phone_key", "phones.json"):
+        (STATE / name).unlink(missing_ok=True)
+    nodes = STATE / "nodes.json"
+    try:
+        hub_id = json.loads(nodes.read_text()).get("hub_id")
+    except (OSError, ValueError, AttributeError):
+        hub_id = None
+    if nodes.exists():
+        _write_private(nodes, json.dumps({"hub_id": hub_id, "nodes": []} if isinstance(hub_id, str) else {"nodes": []}) + "\n")
+
+
 def rotate() -> None:
+    """For a lost phone or a pairing QR, link or invite seen by someone else: a new certificate and a new browser
+    pairing secret, and every phone, browser and machine signed out."""
     _certificate(_config()["host"])
-    print(f"New certificate {fingerprint()[:16]}... for the next daemon start (`pointe stop`, then /pointe:voice).")
-    print("The phone app and every node paired with this Mac must pair again: `pointe pair show` for the phone, "
-          "`pointe hub invite` for each node. A browser that trusted the old certificate must trust this one.")
+    _sign_everyone_out()
+    _write_private(STATE / "remote_token", os.urandom(32).hex())
+    print(f"New certificate {fingerprint()[:16]}... Every phone, browser and machine paired with this Mac is signed out "
+          "now; a running daemon serves the new certificate within a few seconds.")
+    print("Pair each again: Settings → Phone on the page (or `pointe pair show`) for a phone, `pointe pair link` for a "
+          "phone's browser, which must also trust the new certificate, and `pointe hub invite` for each machine, then `pointe node join` on it.")
 
 
 def off() -> None:
     shutil.rmtree(STATE / "tls", ignore_errors=True)
     for name in ("remote.json", "remote_token"):
         (STATE / name).unlink(missing_ok=True)
-    print("The phone listener is off once the daemon restarts. A network connector (bin/voice-connector) and its tokens "
-          "are left as they are.")
+    _sign_everyone_out()
+    print("The phone listener stops within a few seconds, and every phone, browser and machine paired with this Mac is "
+          "signed out. A network connector (bin/voice-connector) and its tokens are left as they are.")
 
 
 def show() -> None:
@@ -303,7 +334,7 @@ def main(argv: list[str]) -> None:
     else:
         raise SystemExit(__doc__.strip())
     setup(host, listen)
-    print(f"Listening for the phone on {listen}:{TLS_PORT} once the daemon restarts (`pointe stop`, then /pointe:voice).")
+    print(f"Listening for the phone on {listen}:{TLS_PORT} within a few seconds if the daemon runs, else at its next start.")
     show()
 
 
