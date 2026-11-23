@@ -98,10 +98,10 @@ Mac. Offer:
   the same account on both, then run `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair tailscale`.
 - Their company VPN, such as Twingate, if it routes to this Mac: run `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair host <name>`.
 - Same Wi-Fi only: `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair wifi`.
-Then `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair link` prints an address that holds a secret: they open it once in the phone's browser (send
-it to their own phone only, by AirDrop or Notes). The iPhone app is not in the App Store or on TestFlight yet; if they
-build it (below), pairing shows a QR code to scan in the app. If the QR code does not show here, save it with
-`${CLAUDE_PLUGIN_ROOT}/bin/pointe pair show` and open what it prints.
+Then `${CLAUDE_PLUGIN_ROOT}/bin/pointe pair link` opens a QR code on the Mac: they scan it once with the phone's Camera, which opens it
+in the phone's browser. It holds a secret, so it never prints here; never open, read or describe the pictures yourself.
+The iPhone app is not in the App Store or on TestFlight yet; if they build it (below), the page's Settings → Phone
+shows a one-time QR code to scan inside the app (`${CLAUDE_PLUGIN_ROOT}/bin/pointe pair show` opens the lasting one again).
 
 **The Mac app and the iPhone app.** Pointe has a Mac app (the call in the menu bar, no browser tab) and an iPhone app.
 Neither has a download yet: each is built on this Mac with Xcode, by one command. Check Xcode first:

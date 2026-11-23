@@ -117,8 +117,9 @@ def test_an_invite_needs_a_paired_address_first(pair):
         pair.invite_link("K7PQ-2MXD")
 
 
-def test_link_prints_the_browser_pairing_address(pair, tmp_path, capsys):
+def test_link_prints_the_browser_pairing_address(pair, tmp_path, capsys, monkeypatch):
     pair.setup("pointe.example.internal", "127.0.0.1")
+    monkeypatch.setattr(pair, "_to_terminal", lambda: True)  # a person's terminal
     pair.main(["link"])
     out = capsys.readouterr().out
     assert f"https://pointe.example.internal:7443/voice?pair={(tmp_path / 'remote_token').read_text()}" in out
@@ -241,13 +242,15 @@ def test_after_rotate_a_new_pairing_does_not_bring_the_old_ones_back(pair, tmp_p
     assert list(hub_nodes.NodesRegistry(tmp_path / "nodes.json").nodes) == [again["id"]]
 
 
-def test_rotate_gives_the_browser_a_new_pairing_link(pair, tmp_path, capsys):
+def test_rotate_gives_the_browser_a_new_pairing_link(pair, tmp_path, capsys, monkeypatch):
     pair.setup("pointe.example.internal", "127.0.0.1")
     old = (tmp_path / "remote_token").read_text()
     pair.main(["rotate"])
     capsys.readouterr()
+    monkeypatch.setattr(pair, "_to_terminal", lambda: True)
     pair.main(["link"])
-    assert old not in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert old not in out and (tmp_path / "remote_token").read_text() in out
 
 
 def test_the_running_daemon_restarts_the_listener_and_ends_a_signed_out_phones_call(d, monkeypatch):
@@ -281,3 +284,27 @@ def test_the_running_daemon_restarts_the_listener_and_ends_a_signed_out_phones_c
     daemon.state.phone_socket_id = "gone"
     asyncio.run(daemon._follow_pairing())
     assert closed == [4401]
+
+
+@pytest.mark.parametrize("platform", ["darwin", "linux"])
+def test_no_secret_is_printed_where_an_agent_reads_the_output(pair, tmp_path, capsys, monkeypatch, platform):
+    """/pointe:setup phone has the agent run these: its Bash output goes into the session transcript. Under a pipe the
+    lasting phone key and the browser pairing secret only reach a picture opened on the Mac, never stdout."""
+    opened = []
+    monkeypatch.setattr(pair.subprocess, "run", lambda argv, **k: opened.append(argv))  # no picture opens
+    monkeypatch.setattr(pair.sys, "platform", platform)
+    pair.main(["host", "pointe.example.internal"])
+    pair.main(["show"])
+    pair.main(["link"])
+    got = capsys.readouterr()
+    out = got.out + got.err
+    token, key = (tmp_path / "remote_token").read_text().strip(), (tmp_path / "phone_key").read_text().strip()
+    assert token not in out and key not in out and "pair=" not in out and "key=" not in out
+    assert not set("█▀▄") & set(out)  # no terminal QR code: it is the phone key, drawn
+    assert pair.fingerprint()[:16] in out  # what to compare stays
+    if platform == "darwin":
+        assert [a[0] for a in opened] == ["open"] * 3
+        for picture in {Path(a[1]) for a in opened}:
+            assert stat.S_IMODE(picture.stat().st_mode) == 0o600
+    else:
+        assert not opened and "terminal" in out

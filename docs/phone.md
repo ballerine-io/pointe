@@ -59,7 +59,8 @@ buttons.
 ### From the terminal
 
 `pointe pair` sets up the route and prints a QR code for the app. It also opens the code as a picture, because a chat
-window cannot show the terminal's.
+window cannot show the terminal's. Run by an agent (its output is not a terminal), `pair show` and `pair link` print no
+secret: the codes open only as pictures on the Mac, so the phone key and the pairing secret stay out of the transcript.
 
 | Command | Does |
 |---|---|
