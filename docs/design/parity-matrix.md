@@ -147,7 +147,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Pair with the Mac: scan, paste or open the code; unpair this phone <br>`pair.read` | n/a | yes `apple/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a |
 | Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1410` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:156` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:156` |
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1417` | yes `apple/PointeKit/Sources/PointeUI/About.swift:14` | yes `apple/PointeKit/Sources/PointeUI/About.swift:14` |
-| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1073` | yes `apple/PointeKit/Sources/PointeUI/Brand.swift:480` | yes `macos/PointeMac/AppModel.swift:234` |
+| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1073` | yes `apple/PointeKit/Sources/PointeUI/Brand.swift:481` | yes `macos/PointeMac/AppModel.swift:234` |
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1330` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:46` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:46` |
 | The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (37 topics)` | yes `product_help.json (36 topics)` | yes `product_help.json (36 topics)` |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apple/PointeKit/Sources/PointeUI/Demo.swift:7` |
