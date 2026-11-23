@@ -25,6 +25,26 @@ final class PairPasteUITests: XCTestCase {
         app.buttons["Pair"].tap()
     }
 
+    /// At the accessibility sizes the screen scrolls from the top: the title stays under the clock, the demo link is
+    /// whole, and the security note is reached by a swipe. Centred, the stack drew the title over the clock.
+    func testAtTheLargestTypeThePairingScreenScrollsAndCutsNothing() {
+        let app = XCUIApplication()
+        app.launchEnvironment["POINTE_FORGET"] = "1"
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        let title = app.staticTexts["Pointe"].firstMatch
+        XCTAssertTrue(app.buttons["tryDemo"].waitForExistence(timeout: 15), "the pairing screen")
+        let header = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "Pointe")).firstMatch
+        XCTAssertGreaterThanOrEqual((title.exists ? title : header).frame.minY, 44, "the title is under the status bar")
+        let note = app.staticTexts["pairSecurityNote"]
+        for _ in 0..<4 where !note.isHittable { app.swipeUp() }
+        XCTAssertTrue(note.isHittable, "the security note can be reached")
+        XCTAssertLessThanOrEqual(note.frame.maxY, app.windows.firstMatch.frame.maxY + 0.5)
+        let demo = app.buttons["tryDemo"]
+        XCTAssertTrue(demo.isHittable)
+        XCTAssertGreaterThan(demo.frame.height, 60, "the demo link wraps to its whole words instead of ending in an ellipsis")
+    }
+
     func testALinkThatIsNotPointesIsRefusedAndNothingIsPaired() {
         let app = unpaired()
         XCTAssertFalse(app.buttons["Pair"].isEnabled, "nothing to pair yet")

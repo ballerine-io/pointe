@@ -9,10 +9,25 @@ struct PairView: View {
     @State private var link = ""
     @State private var problem: String?
     @State private var scanning = true
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        // At the accessibility sizes the screen is taller than the phone: then it scrolls, from the top, with the camera
+        // at its smallest. A stack that did not fit was centred, which drew the title over the clock and cut the rest.
+        // (Not ViewThatFits: it keeps both copies of the link field, and a tap then focused the hidden one.)
+        Group {
+            if typeSize.isAccessibilitySize {
+                ScrollView { content }.scrollBounceBehavior(.basedOnSize)
+            } else {
+                content
+            }
+        }
+        .background(Brand.background)
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
-            BrandHeader()
+            BrandHeader().dynamicTypeSize(...DynamicTypeSize.accessibility2)  // the call screen's header stops there too
             Text("On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone. Scan the code it shows here, or with the Camera app.")
                 .font(.brand(.callout)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
             if scanning {
@@ -43,15 +58,16 @@ struct PairView: View {
             Button(action: tryDemo) {
                 Label("No Mac yet? Try a demo", systemImage: "play.circle")
                     .font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.muted)
+                    .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("tryDemo")
             Text("The code holds a secret that opens a call into your coding sessions. Scan only your own.")
-                .font(.brand(.footnote)).foregroundStyle(Brand.muted)
+                .font(.brand(.footnote)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("pairSecurityNote")
         }
         .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 16)
-        .background(Brand.background)
     }
 
     private func use() {
