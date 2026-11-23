@@ -66,6 +66,24 @@ def replace_reruns(rows: list) -> list:
     return out
 
 
+def finals(results: Path = HERE / "results") -> dict:
+    """(run, item, arm, run index) -> whether the agent left any task file changed, from results/<run>/final.jsonl."""
+    out = {}
+    for path in sorted(results.glob("hlk-*/final.jsonl")):
+        for f in map(json.loads, path.read_text().splitlines()):
+            out[(f["run_id"], f["item"], f["adapter"], f["run_index"])] = any(f["files"].values())
+    return out
+
+
+def underspecified(rows: list) -> str:
+    """spelled-out seed 2 spells a dunder name letter by letter without its case; the hidden test wants lower case."""
+    item = [r for r in rows if r["item"] == "spelled-out-2" and r.get("outcome") not in ("invalid_out_of_tree", "unsupported")]
+    cells = ", ".join(f"{LABEL[a]} {sum(bool(r['success']) for r in item if r['adapter'] == a)} of "
+                      f"{sum(1 for r in item if r['adapter'] == a)}" for a in ARMS if any(r["adapter"] == a for r in item))
+    return ("One item does not say all that it scores: spelled-out seed 2 spells a dunder name letter by letter and does "
+            "not say its case, and the hidden test wants lower case. It stays as frozen. Passes on it: " + cells + ".")
+
+
 def pct(k, n):
     return f"{100 * k / n:.0f}%" if n else "n/a"
 
@@ -186,7 +204,17 @@ def sections(rows, unpub, frozen) -> list:
         "a tap; the scripted user cannot tap, so after two spoken yeses that did not take it says no, as Pointe offers. "
         "The count is in the table below. A person at the machine would tap instead.",
         "Other benchmark processes shared the machine during the runs; the load average is in every row. Times are "
-        "wall-clock times of one laptop and one network."]))
+        "wall-clock times of one laptop and one network.",
+        "The scripted user asks its next line after about four seconds of quiet. Pointe says an agent's question aloud "
+        "a few seconds after the agent asks it, so in some of Pointe's failed runs the user asked its last question "
+        "before Pointe had said the agent's question, and that question went unanswered (seen in the runs' trace logs, "
+        "which are not committed). This counts against Pointe; the typed arms read the terminal and cannot hit it."]
+        + ([underspecified(rows)] if rows else [])
+        + ([f"The first-run rows ran on the benchmark at commit "
+            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if not r.get('rerun_of')}))}. A fault of that runner "
+            "(an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by "
+            "the rule below, at commit "
+            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if r.get('rerun_of')})) or 'n/a'}."] if rows else [])))
     if not a:
         B.append(("p", "No published run yet."))
         return B
@@ -251,10 +279,17 @@ def sections(rows, unpub, frozen) -> list:
         pf = [r for r in prow if not r["success"]]
         pf_no = sum(1 for r in pf if r.get("approvals_no_after_refused_yes"))
         pp_no = sum(1 for r in prow if r["success"] and r.get("approvals_no_after_refused_yes"))
+        touched = finals()
+        pf_no_rows = [r for r in pf if r.get("approvals_no_after_refused_yes")]
+        pf_edit = sum(1 for r in pf_no_rows if touched.get((r["run_id"], r["item"], r["adapter"], r["run_index"])))
         B.append(("p", f"Where Pointe lost runs: in {pf_no} of its {len(pf)} failed runs at least one spoken yes did not "
-                       "take (Pointe asked for a tap) and the scripted user said no, so the agent could not run the command "
-                       f"it asked for. {pp_no} runs passed despite such a refusal. The other arms "
-                       "act on a spoken yes for any command: they have no such guard."))
+                       "take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. "
+                       f"In {pf_no - pf_edit} of those {pf_no} the agent changed no file, so the work stopped at the "
+                       f"refusal or after it. In the other {pf_edit} the agent had already changed files and the hidden "
+                       "tests still failed: there the instruction as Pointe passed it on was often wrong (in "
+                       "twin-symbols, \"a value that ends in s\" reached the agent as ending in \"S\", and its code "
+                       f"checks for a capital S). {pp_no} runs passed despite such a refusal. The other arms act on a "
+                       "spoken yes for any command: they have no such guard."))
     reruns = ", ".join(f"{LABEL[k]} {v}" for k, v in sorted(RERUNS.items())) or "none"
     B.append(("p", "Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the "
                    "runner credited an answer to the wrong request, or the agent made no step for 8 minutes was rerun "
@@ -310,7 +345,8 @@ def sections(rows, unpub, frozen) -> list:
                    "run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better "
                    "router prompt is welcome as a pull request. Family authors so far: the Pointe team."))
     B.append(("p", f"Spend: ${spent:.2f} for HLK in all (smoke and debugging included; cap $55), computed from usage and "
-                   "list prices in bench/conversational/prices.json. Raw rows: bench/conversational/results/. Text and "
+                   "list prices in bench/conversational/prices.json. Raw rows and the final files of every published run "
+                   "(run.py verify re-scores them): bench/conversational/results/. Text and "
                    "tasks CC BY 4.0, code MIT."))
     return B
 

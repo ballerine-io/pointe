@@ -6,6 +6,7 @@
     uv run --locked python bench/conversational/run.py verify                  # offline: items, checks, detector, results
     uv run --locked python bench/conversational/run.py freeze                  # write FROZEN.json before paid runs
     uv run --locked python bench/conversational/run.py report                  # rows -> docs and site page
+    uv run --locked python bench/conversational/run.py finals --rerun-faults RUN   # final files of a run, for re-scoring
 
 Options: --adapter keyboard,null,naive,llm-router,pointe  --budget-usd N  --port-base N (never 7860 or 7443)
 --workers N  --smoke (2 items, never published)  --dry-run (the plan and its estimated cost, spends nothing)
@@ -238,6 +239,44 @@ def cmd_faults(args) -> int:
     return 0
 
 
+def cmd_finals(args) -> int:
+    """Write results/<run>/final.jsonl: for every published row of RUN_ID, the files of its final repositories that
+    differ from the generated instance (None: deleted), read from /tmp/pccb/<run>/. Unpublished rows are left out.
+    `run.py verify` re-scores every row from these files, so the scores can be checked without the machine that ran."""
+    run_id = args.rerun_faults
+    out = HERE / "results" / run_id
+    insts = {i.id: i for i in hlk.public()}
+    lines = []
+    for line in (out / "rows.jsonl").read_text().splitlines():
+        r = json.loads(line)
+        if r["kind"] != "paid":
+            continue
+        inst = insts[r["item"]]
+        slot = Path(f"/tmp/pccb/{run_id}/{r['item']}-{r['adapter']}-{r['run_index']}")
+        files = {}
+        for name, tree in inst.repos.items():
+            repo, changed = slot / name, {}
+            on_disk = {str(p.relative_to(repo)) for p in repo.rglob("*") if p.is_file()
+                       and not {".git", "__pycache__", ".pytest_cache"} & set(p.relative_to(repo).parts)}
+            for rel in sorted(on_disk | set(tree)):
+                p = repo / rel
+                if not p.is_file():
+                    changed[rel] = None
+                    continue
+                try:
+                    text = p.read_text()
+                except UnicodeDecodeError:
+                    continue
+                if tree.get(rel) != text:
+                    changed[rel] = text
+            files[name] = changed
+        lines.append(json.dumps({"run_id": run_id, "item": r["item"], "adapter": r["adapter"],
+                                 "run_index": r["run_index"], "files": files}, sort_keys=True))
+    (out / "final.jsonl").write_text("\n".join(lines) + "\n")
+    print(f"{len(lines)} final states in {(out / 'final.jsonl').relative_to(ROOT)}")
+    return 0
+
+
 def cmd_verify(args) -> int:
     from core import verify
     return verify.main(args)
@@ -250,7 +289,7 @@ def cmd_report(args) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["hlk", "all", "corpus", "verify", "freeze", "report", "faults"])
+    ap.add_argument("command", choices=["hlk", "all", "corpus", "verify", "freeze", "report", "faults", "finals"])
     ap.add_argument("--adapter")
     ap.add_argument("--budget-usd", type=float, default=55.0)
     ap.add_argument("--port-base", type=int, default=7900)
@@ -260,7 +299,8 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--items")
     ap.add_argument("--runs", type=int, default=2)
-    ap.add_argument("--rerun-faults", metavar="RUN_ID", help="rerun once the rows of RUN_ID that hit a harness fault")
+    ap.add_argument("--rerun-faults", metavar="RUN_ID", help="rerun once the rows of RUN_ID that hit a harness fault "
+                    "(faults and finals: the run to read)")
     ap.add_argument("--unpublished", default=os.environ.get("HLK_UNPUBLISHED_SEEDS"))
     ap.add_argument("--pointe", default=os.environ.get("HLK_POINTE_CHECKOUT"), help="the Pointe checkout under test")
     ap.add_argument("--fast", action="store_true", help="verify: skip the Kokoro and Whisper detector check")
@@ -268,7 +308,7 @@ def main() -> int:
     if args.command in ("hlk", "all"):
         return cmd_hlk(args)
     return {"corpus": cmd_corpus, "verify": cmd_verify, "freeze": cmd_freeze, "report": cmd_report,
-            "faults": cmd_faults}[args.command](args)
+            "faults": cmd_faults, "finals": cmd_finals}[args.command](args)
 
 
 if __name__ == "__main__":

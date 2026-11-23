@@ -526,3 +526,8 @@
 {"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-20261123-085104", "t": "2026-11-23T08:51:58+0200", "usd": 0.00087712}
 {"adapter": "keyboard-transcript", "benchmark": "hlk", "item": "read-then-decide-2", "kind": "paid", "run_id": "hlk-20261123-085104", "run_index": 1, "t": "2026-11-23T08:53:16+0200", "usd": 0.00568}
 {"adapter": "llm-router", "benchmark": "hlk", "item": "two-repo-handoff-0", "kind": "paid", "run_id": "hlk-20261123-085104", "run_index": 0, "t": "2026-11-23T08:56:54+0200", "usd": 0.01297}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-093704", "t": "2026-11-23T09:37:31+0200", "usd": 0.000854775}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "twin-symbols-0", "kind": "debug", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "t": "2026-11-23T09:38:26+0200", "usd": 0.00445}
+{"adapter": "pointe", "benchmark": "hlk", "item": "twin-symbols-0", "kind": "debug", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "t": "2026-11-23T09:41:30+0200", "usd": 0.13481}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "self-correction-0", "kind": "debug", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "t": "2026-11-23T09:42:40+0200", "usd": 0.00344}
+{"adapter": "pointe", "benchmark": "hlk", "item": "self-correction-0", "kind": "debug", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "t": "2026-11-23T09:44:49+0200", "usd": 0.07931}

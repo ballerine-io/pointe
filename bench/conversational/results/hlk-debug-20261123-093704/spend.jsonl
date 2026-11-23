@@ -1,0 +1,14 @@
+{"adapter": "keyboard-canonical", "how": "computed", "item": "twin-symbols-0", "role": "agent", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "session": "kiln", "usd": 0.00445, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "twin-symbols-0", "role": "agent", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "session": "kiln", "usd": 0.00318, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "twin-symbols-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.01084, "vendor": "anthropic", "what": "1 brain steps from daemon.log"}
+{"adapter": "pointe", "how": "computed", "item": "twin-symbols-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.1, "vendor": "anthropic", "what": "5 reader reports"}
+{"adapter": "pointe", "how": "computed", "item": "twin-symbols-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.0005, "vendor": "gemini", "what": "1 checker lines"}
+{"adapter": "pointe", "how": "computed", "item": "twin-symbols-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.01, "vendor": "elevenlabs", "what": "250 chars"}
+{"adapter": "pointe", "how": "computed", "item": "twin-symbols-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.01029, "vendor": "soniox", "what": "2 streams x 154 s"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "self-correction-0", "role": "agent", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "session": "cobalt", "usd": 0.00344, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "self-correction-0", "role": "agent", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "session": "cobalt", "usd": 0.00185, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "self-correction-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.01075, "vendor": "anthropic", "what": "1 brain steps from daemon.log"}
+{"adapter": "pointe", "how": "computed", "item": "self-correction-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.06, "vendor": "anthropic", "what": "3 reader reports"}
+{"adapter": "pointe", "how": "computed", "item": "self-correction-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.0, "vendor": "gemini", "what": "0 checker lines"}
+{"adapter": "pointe", "how": "computed", "item": "self-correction-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.0, "vendor": "elevenlabs", "what": "0 chars"}
+{"adapter": "pointe", "how": "computed", "item": "self-correction-0", "role": "pointe", "run_id": "hlk-debug-20261123-093704", "run_index": 0, "usd": 0.00671, "vendor": "soniox", "what": "2 streams x 101 s"}

@@ -6,8 +6,11 @@
 - the null adapter's outcome (untouched repositories, no answer) scores 0 of 36;
 - session and fixture names do not occur in Pointe's own tests or benches;
 - the question detector reaches 95% on its labelled set through Kokoro and Whisper (skipped with --fast);
-- committed rows hold no home path or key-shaped text, and the generated pages match the rows.
+- committed rows hold no home path or key-shaped text, and the generated pages match the rows;
+- every published row re-scores to the same result from its committed final files (results/<run>/final.jsonl).
 """
+
+import json
 
 import re
 import subprocess
@@ -76,12 +79,43 @@ def null_floor() -> int:
     return passes
 
 
+def rescore() -> list:
+    """Each published row against its final files: the generated instance, those files written over it, the scorer.
+    The claim is the row's own (its answer text is stored cut to 400 characters)."""
+    insts = {i.id: i for i in hlk.public()}
+    problems = []
+    for final in sorted((HERE / "results").glob("hlk-*/final.jsonl")):
+        rows = {(r["item"], r["adapter"], r["run_index"]): r
+                for r in map(json.loads, (final.parent / "rows.jsonl").read_text().splitlines())}
+        for f in map(json.loads, final.read_text().splitlines()):
+            row, inst = rows[(f["item"], f["adapter"], f["run_index"])], insts[f["item"]]
+            with tempfile.TemporaryDirectory() as tmp:
+                repos = score.write_repos(inst, Path(tmp))
+                for name, files in f["files"].items():
+                    for rel, text in files.items():
+                        p = repos[name] / rel
+                        if text is None:
+                            p.unlink(missing_ok=True)
+                        else:
+                            p.parent.mkdir(parents=True, exist_ok=True)
+                            p.write_text(text)
+                tests, why = score.hidden_ok(inst, repos) if inst.expect_done else (True, "")
+                prot, _ = score.protected_ok(inst, repos)
+            success = (tests and prot) if inst.expect_done else (prot and row.get("claim") == "no")
+            success = success and not row.get("capped") and not row.get("invalid_out_of_tree") and row.get("outcome") != "error"
+            if inst.expect_done and tests != row["hidden_pass"] or prot != row["protected_ok"] or success != row["success"]:
+                problems.append(f"{final.parent.name} {f['item']} {f['adapter']}#{f['run_index']}: re-scores to "
+                                f"{success} ({why or 'protected ' + str(prot)}), the row says {row['success']}")
+    return problems
+
+
 def main(args) -> int:
     problems = check_items()
     floor = null_floor()
     if floor:
         problems.append(f"null scores {floor} of 36 offline (must be 0)")
     problems += [f"name collision: {h}" for h in name_collisions()]
+    problems += rescore()
     for path in sorted((HERE / "results").glob("*/*.jsonl")) + [HERE / "results" / "ledger.jsonl"]:
         if path.exists():
             problems += scrub.check_file(path)

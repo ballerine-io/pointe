@@ -56,6 +56,9 @@
     <li>The keyword-rules arm is ours and is built to fail the adversarial items; no headline number compares Pointe with it.</li>
     <li>Voice only means voice only. Pointe takes no spoken yes for a permission request it cannot read out and asks for a tap; the scripted user cannot tap, so after two spoken yeses that did not take it says no, as Pointe offers. The count is in the table below. A person at the machine would tap instead.</li>
     <li>Other benchmark processes shared the machine during the runs; the load average is in every row. Times are wall-clock times of one laptop and one network.</li>
+    <li>The scripted user asks its next line after about four seconds of quiet. Pointe says an agent&#x27;s question aloud a few seconds after the agent asks it, so in some of Pointe&#x27;s failed runs the user asked its last question before Pointe had said the agent&#x27;s question, and that question went unanswered (seen in the runs&#x27; trace logs, which are not committed). This counts against Pointe; the typed arms read the terminal and cannot hit it.</li>
+    <li>One item does not say all that it scores: spelled-out seed 2 spells a dunder name letter by letter and does not say its case, and the hidden test wants lower case. It stays as frozen. Passes on it: keyboard, canonical 2 of 2, keyboard, transcript 0 of 2, Pointe 0 of 2, LLM router 2 of 2, keyword rules, ours 0 of 2, null (does nothing) 0 of 1.</li>
+    <li>The first-run rows ran on the benchmark at commit 5d92037. A fault of that runner (an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by the rule below, at commit 84fb244.</li>
   </ul>
   <p>Runs: hlk-20261123-040919, hlk-20261123-085104. Dates: 2026-11-23. Agent: claude-haiku-5-5 in Claude Code 2.1.330. Pointe commit 6544cdc403af (frozen before the first paid row, 2026-11-23). Router brain: anthropic:claude-sonnet-5-5. Spoken output of every arm is read by one pinned local Whisper (large-v3-turbo).</p>
   <p>Every planned run finished inside the cap; nothing was trimmed.</p>
@@ -116,7 +119,7 @@
     </tbody>
   </table></div>
   <p>pass^2: instances whose two runs both passed. Flips: instances whose two runs disagree. A clarification is a question the item foresaw, answered (no penalty); a corrective turn is a repeated instruction. Capped runs (12 user turns, 10 minutes, or $0.60) count as failures. Invalid runs named a path outside the item&#x27;s folder in a tool call and are excluded from the passes. Errors are runs the harness could not finish; they count as failures.</p>
-  <p>Where Pointe lost runs: in 33 of its 38 failed runs at least one spoken yes did not take (Pointe asked for a tap) and the scripted user said no, so the agent could not run the command it asked for. 20 runs passed despite such a refusal. The other arms act on a spoken yes for any command: they have no such guard.</p>
+  <p>Where Pointe lost runs: in 33 of its 38 failed runs at least one spoken yes did not take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. In 24 of those 33 the agent changed no file, so the work stopped at the refusal or after it. In the other 9 the agent had already changed files and the hidden tests still failed: there the instruction as Pointe passed it on was often wrong (in twin-symbols, &quot;a value that ends in s&quot; reached the agent as ending in &quot;S&quot;, and its code checks for a capital S). 20 runs passed despite such a refusal. The other arms act on a spoken yes for any command: they have no such guard.</p>
   <p>Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the runner credited an answer to the wrong request, or the agent made no step for 8 minutes was rerun once with the same voice and run index, by that rule and in every arm. Reruns: keyboard, transcript 1, LLM router 1. The first rows stay in the raw data.</p>
   <div class="pg-section-head"><h2 class="pg-h2">Passes by stressor group (synthetic speech)</h2></div>
   <div class="bm-scroll"><table class="bm-table">
@@ -150,7 +153,7 @@
 uv run --locked python bench/conversational/run.py verify
 uv run --locked python bench/conversational/run.py hlk --budget-usd 55 --port-base 9300 --workers 3</code></pre>
   <p>An adapter implements start, say, type, key, events, speech, versions, spend and stop (bench/conversational/core/adapter.py); a missing capability shows as coverage, never as a failure. A family is a generator in bench/conversational/hlk/families/; hlk/CONTRIBUTING.md says how, and run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better router prompt is welcome as a pull request. Family authors so far: the Pointe team.</p>
-  <p>Spend: $24.13 for HLK in all (smoke and debugging included; cap $55), computed from usage and list prices in bench/conversational/prices.json. Raw rows: bench/conversational/results/. Text and tasks CC BY 4.0, code MIT.</p>
+  <p>Spend: $24.35 for HLK in all (smoke and debugging included; cap $55), computed from usage and list prices in bench/conversational/prices.json. Raw rows and the final files of every published run (run.py verify re-scores them): bench/conversational/results/. Text and tasks CC BY 4.0, code MIT.</p>
 </main>
 <footer class="pg-wrap"><p>Pointe <span data-version>1.20.2</span>. Written by bench/conversational/run.py report from the committed rows.</p></footer>
 </body>

@@ -35,8 +35,9 @@ own. Nothing here prints, logs or commits a key; `core/scrub.py` refuses a row w
 - `adapters/`: `keyboard` (canonical and transcript), `null`, `naive` ("keyword rules, ours"), `llm_router` with its
   published prompt, `pointe`, `echo` (offline tests only).
 - `hlk/`: the twelve families, the scorer, `CONTRIBUTING.md`, `audio.lock`.
-- `results/<run-id>/`: `rows.jsonl`, `events.jsonl`, `spend.jsonl`, `run.json`; `results/ledger.jsonl` holds every
-  paid launch, smoke and debug included.
+- `results/<run-id>/`: `rows.jsonl`, `events.jsonl`, `spend.jsonl`, `run.json`, and for a published run `final.jsonl`
+  (the files each run left changed, written by `run.py finals --rerun-faults <run-id>`; `run.py verify` re-scores every
+  row from them); `results/ledger.jsonl` holds every paid launch, smoke and debug included.
 
 ## Add an adapter
 
