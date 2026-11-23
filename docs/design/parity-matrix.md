@@ -59,10 +59,10 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | Sessions, grouped by machine, with each one's agent and state <br>`sessions.list` | yes `ui.html:1055` | yes `apple/PointeKit/Sources/PointeUI/Sessions.swift:160` | yes `apple/PointeKit/Sources/PointeUI/Sessions.swift:160` |
-| Focus on a session <br>`sessions.switch` | yes `ui.html:2847` | yes `apple/PointeKit/Sources/PointeUI/API.swift:533` | yes `apple/PointeKit/Sources/PointeUI/API.swift:533` |
-| Orchestrator or Session mode <br>`sessions.mode` | yes `ui.html:1062` | yes `apple/PointeKit/Sources/PointeUI/API.swift:551` | yes `apple/PointeKit/Sources/PointeUI/API.swift:551` |
-| Rename a session <br>`sessions.rename` | yes `ui.html:2831` | yes `apple/PointeKit/Sources/PointeUI/API.swift:539` | yes `apple/PointeKit/Sources/PointeUI/API.swift:539` |
-| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3043` | yes `apple/PointeKit/Sources/PointeUI/API.swift:536` | yes `apple/PointeKit/Sources/PointeUI/API.swift:536` |
+| Focus on a session <br>`sessions.switch` | yes `ui.html:2847` | yes `apple/PointeKit/Sources/PointeUI/API.swift:534` | yes `apple/PointeKit/Sources/PointeUI/API.swift:534` |
+| Orchestrator or Session mode <br>`sessions.mode` | yes `ui.html:1062` | yes `apple/PointeKit/Sources/PointeUI/API.swift:552` | yes `apple/PointeKit/Sources/PointeUI/API.swift:552` |
+| Rename a session <br>`sessions.rename` | yes `ui.html:2831` | yes `apple/PointeKit/Sources/PointeUI/API.swift:540` | yes `apple/PointeKit/Sources/PointeUI/API.swift:540` |
+| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3043` | yes `apple/PointeKit/Sources/PointeUI/API.swift:537` | yes `apple/PointeKit/Sources/PointeUI/API.swift:537` |
 | Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1070` | yes `apple/PointeKit/Sources/PointeUI/Sessions.swift:549` | yes `apple/PointeKit/Sources/PointeUI/Sessions.swift:549` |
 | Start a new session: agent, folder, machine, name, first prompt <br>`sessions.new` | yes `ui.html:1440` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:12` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:12` |
 | The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1597` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:154` | yes `apple/PointeKit/Sources/PointeUI/NewSession.swift:154` |
@@ -81,7 +81,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | How many more requests wait <br>`approve.more` | yes `ui.html:2347` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:671` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:671` |
 | A request whose machine went offline says it is back in its terminal <br>`approve.offline` | yes `ui.html:1790` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:1692` | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:1692` |
 | A notification when a session needs you and you are not looking <br>`alerts.notify` | yes `ui.html:4448` | yes `apple/PointeKit/Sources/PointeUI/Alerts.swift:167` | yes `apple/PointeKit/Sources/PointeUI/Alerts.swift:167` |
-| Approve from notifications, as a setting <br>`alerts.approve` | yes `ui.html:1383` | yes `apple/PointeKit/Sources/PointeUI/API.swift:400` | yes `apple/PointeKit/Sources/PointeUI/API.swift:400` |
+| Approve from notifications, as a setting <br>`alerts.approve` | yes `ui.html:1383` | yes `apple/PointeKit/Sources/PointeUI/API.swift:401` | yes `apple/PointeKit/Sources/PointeUI/API.swift:401` |
 | Deny and Approve on the notification itself <br>`alerts.actions` | n/a | yes `apple/PointeKit/Sources/PointeUI/Alerts.swift:209` | yes `apple/PointeKit/Sources/PointeUI/Alerts.swift:209` |
 | Alerts keep arriving while the app is in the background <br>`alerts.background` | n/a | yes `ios/Pointe/PointeApp.swift:13` | yes `macos/PointeMac/PointeMacApp.swift:16` |
 

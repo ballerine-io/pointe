@@ -2483,11 +2483,11 @@ def test_o84_a_model_failure_is_said_not_swallowed(monkeypatch):
     b, spoken = _brain([])
 
     async def down(*_a):
-        raise RuntimeError("500")
+        raise RuntimeError("connection reset by peer")
 
     monkeypatch.setattr(vendors, "step", down)
     asyncio.run(b.turn("hello"))
-    assert "Say that again" in spoken[0]
+    assert "Say that again" in spoken[0]  # a vendor's own server error is named instead: tests/test_vendor_faults.py
 
 
 def test_o85_tools_run_before_speech_in_one_step_and_history_stays_valid(monkeypatch):
