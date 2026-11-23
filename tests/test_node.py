@@ -125,7 +125,7 @@ def _certificate(tmp: Path) -> tuple[Path, Path, str]:
 class FakeHub:
     """What the hub does on /voice/node, and nothing more: challenge, HMAC check, welcome, then frames both ways."""
 
-    HUB = {"id": "hub0123456789", "name": "studio"}
+    HUB = {"id": "0123456789abcdef", "name": "studio"}  # the form the hub mints (hub_nodes.NodesRegistry)
     named: str | None = None  # the name the hub's invite gave the machine (pointe hub invite --name)
 
     def __init__(self, tmp: Path, resume: dict | None = None, call_up: bool = True, approvals_terminal: bool = False,
@@ -133,7 +133,7 @@ class FakeHub:
         self.cert, self.keyfile, self.fp = _certificate(tmp)
         if wrong_cert:
             self.fp = "00" * 32
-        self.node_id = "abc123" + "0" * 26
+        self.node_id = "abc123" + "0" * 10
         self.key = nodelink.new_key()
         self.resume, self.call_up, self.approvals_terminal = resume or {}, call_up, approvals_terminal
         self.ws: web.WebSocketResponse | None = None
@@ -388,7 +388,7 @@ def test_transcript_lines_ship_with_offsets_masked_and_complete_only(tmp_path):
 def test_the_hubs_resume_offset_is_where_shipping_starts(tmp_path):
     lines = [json.dumps({"n": i}) + "\n" for i in range(3)]
     start = len("".join(lines[:2]).encode())
-    hub_id = nodelink.hub_session_id("abc123" + "0" * 26, "sess-1")
+    hub_id = nodelink.hub_session_id("abc123" + "0" * 10, "sess-1")
     state = tmp_path / "state"
     state.mkdir()
     (state / "node_tails.json").write_text(json.dumps({"sess-1": {"path": str(tmp_path / "sess-1.jsonl"), "gen": 4}}))
@@ -1187,3 +1187,54 @@ def test_leave_tells_the_owner_to_revoke_on_the_hub_when_the_hub_was_not_told(tm
     node_cli.leave(state, 0)
     out = capsys.readouterr().out
     assert "Left studio" in out and "pointe hub revoke devbox" in out
+
+
+# ---------- join: what the hub's pairing answer may name (node_cli.join) ----------
+
+FP = "ab" * 32
+GOOD = {"node_id": "0123456789abcdef", "node_key": "cd" * 32, "name": "devbox",
+        "hub": {"id": "fedcba9876543210", "name": "studio"}, "vendors": []}
+
+
+def _join_with(monkeypatch, tmp_path, answer: dict):
+    """node_cli.join against a hub whose certificate matches the invite and whose pairing answer is `answer`."""
+    async def pair_request(invited, body):
+        return answer
+
+    monkeypatch.setattr(node_cli, "peer_fingerprint", lambda host, port, timeout=10: FP)
+    monkeypatch.setattr(node_cli, "_daemon_here", lambda port: False)
+    monkeypatch.setattr(node_cli, "can_tell_who_listens", lambda: True)
+    monkeypatch.setattr(node_cli, "_pair_request", pair_request)
+    state = tmp_path / "home" / ".claude-voice"
+    node_cli.join(f"pointe://hub?v={nodelink.INVITE_VERSION}&host=studio.example.internal&port=7443&fp={FP}&code=K7PQ-2MXD",
+                  None, state=state, port=0, start=False)
+    return state
+
+
+def test_join_writes_the_pairing_a_hub_answers(tmp_path, monkeypatch):
+    state = _join_with(monkeypatch, tmp_path, GOOD)
+    assert (state / "node_keys" / "fedcba9876543210").read_text() == "cd" * 32
+    assert json.loads((state / "node.json").read_text())["hub"]["id"] == "fedcba9876543210"
+
+
+@pytest.mark.parametrize("bad", [
+    {"hub": {"id": "../../.ssh/authorized_keys", "name": "studio"}},
+    {"hub": {"id": "../../../../tmp/x", "name": "studio"}},
+    {"hub": {"id": "/etc/passwd", "name": "studio"}},
+    {"hub": {"id": "fedcba987654321", "name": "studio"}},  # one short
+    {"hub": {"id": 1234, "name": "studio"}},
+    {"hub": {"id": "fedcba9876543210", "name": "a\"b"}},  # bin/voice-node reads node.json with sed
+    {"hub": {"id": "fedcba9876543210", "name": "x\n"}},
+    {"hub": {"id": "fedcba9876543210"}},
+    {"node_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample"},
+    {"node_id": "../node"},
+    {"node_id": "0123456789abcde"},
+    {"name": "../../evil"},
+    {"name": "x" * 200},
+])
+def test_join_refuses_a_hub_answer_that_names_a_path_or_breaks_a_format_and_writes_nothing(tmp_path, monkeypatch, bad):
+    with pytest.raises(SystemExit):
+        _join_with(monkeypatch, tmp_path, {**GOOD, **bad})
+    assert not (tmp_path / "home" / ".ssh").exists()
+    written = [p for p in tmp_path.rglob("*") if p.is_file()]
+    assert written == [], written

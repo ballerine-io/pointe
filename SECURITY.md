@@ -280,7 +280,9 @@ The Mac with the call (the hub) keeps every rule above for them.
   together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
   A guesser behind the same connector as your machine can delay it by a minute, not lock it out. Making it from the
   app needs Face ID.
-  The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. The hub
+  The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. It
+  writes the hub's answer only if every field has the form the hub makes (the hub and node ids 16 hex digits, the key 64,
+  plain names), so a hub cannot name a file outside `node_keys/`. The hub
   then shows the node's name, address and key fingerprint, so you can see that the machine that paired is yours.
 - **The link.** The node dials the hub's TLS listener (the phone's) and proves its 256-bit key with an HMAC over a fresh
   challenge from the hub; the key itself never crosses. One connection per key: a copy of a node cannot connect while
