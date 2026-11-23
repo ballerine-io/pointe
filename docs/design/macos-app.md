@@ -32,7 +32,7 @@ lifecycle, distribution and the security rules.
                      CallLink: one WebSocket, ws://127.0.0.1:<port>/voice/call
                        up: 16-bit PCM 16 kHz, 20 ms chunks      down: 16-bit PCM 24 kHz
                        text: hello (protocol 4), ping/pong, its own keep-alive, ptt, interrupt
-                                  │ loopback only, the page's key as its cookie
+                                  │ loopback only, a proof of the page's key on each request
                      daemon.py on 127.0.0.1:7860 (unchanged)
 ```
 
@@ -47,21 +47,31 @@ does not run).
 
 ### Authentication
 
-Nothing in the daemon changes. `guards.LocalAuth` accepts, on the loopback listener, the cookie `pointe_local=<page
-key>` or `Authorization: Bearer <token>`; `Host` must be a local name and an `Origin`, when sent, must equal it. The
-page gets its cookie from `bin/voice-open`, which reads `~/.claude-voice/page_key` (0600). The app does the same:
+`guards.LocalAuth` accepts, on the loopback listener, the cookie `pointe_local=<page key>` (the browser page, which
+gets it from `bin/voice-open`), `Authorization: Bearer <token>` (scripts and hooks), or the app's proof; `Host` must be
+a local name and an `Origin`, when sent, must equal it.
 
-- It reads `page_key` from the state directory (`CLAUDE_VOICE_STATE`, else `~/.claude-voice`) at each connect, and
-  sends it as the `pointe_local` cookie with `Host: 127.0.0.1:<port>` and no `Origin`. The key is held in memory only:
-  never in UserDefaults, the app's Keychain, a log line, an error message or a URL (the page's `?key=` form is not used).
-- It uses the page key and not the token because the token is made new at every daemon start and is for scripts and
-  hooks; the page key is the identity of "a person's screen on this Mac", which is what the app is.
+- **The app proves it holds the page key and never sends it** (`LocalProof.swift`, `local_proof.py`). It reads
+  `page_key` and `token` from the state directory (`CLAUDE_VOICE_STATE`, else `~/.claude-voice`) at each connect, and
+  puts on every request and on the call's socket `X-Pointe-Proof: v1.<time>.<nonce>.<body SHA-256>.<HMAC>`: an HMAC,
+  keyed by HMAC(page key, the token), over the time, a random 128-bit nonce, the method, the path, the query and the
+  body's SHA-256. The daemon checks it before it reads the body, accepts it once (the nonce), for 120 seconds either way,
+  and only with this start's token, which `bin/voice-daemon` writes anew at every start. A proof then opens what the
+  page's cookie opens, the routes only the page on this Mac may use included. With `Host: 127.0.0.1:<port>` and no
+  `Origin`. The key and the token are held in memory only: never in UserDefaults, the app's Keychain, a log line, an
+  error message, a header or a URL.
+- Why a proof and not the key: the app checks the listener when it connects, but the daemon can stop and another
+  program can take the port before the app looks again, and the next poll would have handed it the key. A proof it
+  catches is spent, stale within two minutes, good for that one request, and bound to a daemon start that is over.
+  The page key, not the token alone, keys it: the page key is the identity of "a person's screen on this Mac", which
+  is what the app is, and the token is also in the hands of scripts and sessions.
 - **Before the key is sent, the app checks who listens.** `bin/voice-daemon` refuses to hand the key to a squatter on
   the port ("answering is not enough"); the app keeps the same rule. `DaemonLocator` reads `daemon.pid`, asks `lsof`
   which process listens on the port, and connects only when the listener is that process or its child. Otherwise it
   says "Another program is answering on port N" and sends nothing.
-- A 403 means the key file changed under the app (the file was deleted to rotate it): the app reads it again once, then
-  says the page's `notPaired` line in the Mac's words.
+- A 403 means the key file changed under the app (the file was deleted to rotate it) or the daemon restarted with a new
+  token: the app finds and checks the daemon again and reads both files again, then says the page's `notPaired` line
+  in the Mac's words.
 - The URL session is ephemeral, with cookies and caches off, and connects to `127.0.0.1` only. App Transport Security
   stays on; the one exception is `NSAllowsLocalNetworking` (loopback HTTP).
 
@@ -269,8 +279,8 @@ was rejected: it needs Input Monitoring and sees every key.
   answers 409 for a request no longer pending); a notification's Approve is offered and accepted only for what the
   daemon can read out; a spoken yes is judged by the daemon alone. Typed words never approve. The app shows the
   `request` text of status as the page does (the exact request; for a session on another machine, the masked preview).
-- **Keys never leave the Keychain.** Vendor keys are not read by the app. The page key is read from a 0600 file into
-  memory and sent to the verified local daemon only.
+- **Keys never leave the Keychain.** Vendor keys are not read by the app. The page key and the token are read from 0600
+  files into memory and never sent: each request carries a proof made with them.
 - **Logs.** `os.Logger` (subsystem `io.ballerine.pointe.mac`). Session names, transcripts, requests and anything from
   the daemon's status are logged with `privacy: .private` or not at all; keys and cookies are never passed to a logger.
 - **Trust boundary, unchanged:** code running as the user can already read the page key and the token

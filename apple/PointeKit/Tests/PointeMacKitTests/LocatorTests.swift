@@ -106,10 +106,11 @@ struct Sandbox {
         let box = try Sandbox(); defer { box.remove() }
         try box.write("4100", to: ".claude-voice/daemon.pid")
         try box.write("the-page-key\n", to: ".claude-voice/page_key")
+        try box.write("this-starts-token\n", to: ".claude-voice/token")
         let runner = FakeRunner()
         runner.listening = "4100\n"
         let endpoint = try await box.locator(runner, environment: ["CLAUDE_VOICE_DAEMON_PORT": "7999"]).endpoint()
-        #expect(endpoint == DaemonEndpoint(port: 7999, credential: .pageKey("the-page-key")))
+        #expect(endpoint == DaemonEndpoint(port: 7999, credential: .pageKey("the-page-key", token: "this-starts-token")))
         #expect(endpoint.base.host == "127.0.0.1")
     }
 
@@ -120,6 +121,8 @@ struct Sandbox {
         runner.listening = "4100\n"
         await #expect(throws: LocatorError.noKey) { try await box.locator(runner).endpoint() }
         try box.write("  \n", to: ".claude-voice/page_key")
+        await #expect(throws: LocatorError.noKey) { try await box.locator(runner).endpoint() }
+        try box.write("the-page-key\n", to: ".claude-voice/page_key")  // a key, and no token of this start: no proof
         await #expect(throws: LocatorError.noKey) { try await box.locator(runner).endpoint() }
     }
 

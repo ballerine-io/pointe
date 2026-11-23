@@ -196,6 +196,8 @@ def install(app, link: PhoneLink, page_key: str, listener,
         """The page on this Mac and nothing else: LocalAuth has checked its headers; its cookie is checked here."""
         if Remote.on_tls_listener(request.scope) or request.scope.get("state", {}).get("pointe_phone"):
             return False
+        if request.scope.get("state", {}).get("pointe_page"):  # the Mac app's proof, checked by LocalAuth (local_proof.py)
+            return True
         return bool(page_key) and hmac.compare_digest(request.cookies.get(LOCAL_COOKIE, "").encode(), page_key.encode())
 
     async def body_of(request: Request) -> dict:

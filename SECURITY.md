@@ -321,11 +321,18 @@ The Mac with the call (the hub) keeps every rule above for them.
 The Mac app (`macos/`, [docs/mac-app.md](docs/mac-app.md)) is another client of the daemon on the same Mac. It changes
 no rule above and adds no listener.
 
-- **It is the page, to the daemon.** It connects to `127.0.0.1` only and sends the page's key as the page's cookie,
-  read from `~/.claude-voice/page_key` (0600) into memory at each connect: never stored, logged or put in a URL.
-- **It checks who listens first.** Before the key is sent, the listener on the port must be the process the daemon's
-  pid file names, or its child, as `bin/voice-daemon` checks; another program on the port gets nothing. A request that
-  cannot connect drops the verified address, and the check runs again before the key is sent anywhere.
+- **It is the page, to the daemon, and never sends the page's key.** It connects to `127.0.0.1` only. It reads
+  `~/.claude-voice/page_key` and `~/.claude-voice/token` (both 0600) into memory at each connect, and puts on every
+  request and on the call's socket a proof instead (`X-Pointe-Proof`, `local_proof.py`): an HMAC keyed by both, over
+  the time, a random nonce, the method, the path, the query and the body's SHA-256. The daemon checks it before it
+  reads the body and accepts it once, within 120 seconds, and only with the token of its own start, which
+  `bin/voice-daemon` writes anew at every start. A proof opens what the page's cookie opens.
+- **It checks who listens first.** Before it sends anything, the listener on the port must be the process the daemon's
+  pid file names, or its child, as `bin/voice-daemon` checks. A request that cannot connect drops the verified address,
+  and the check runs again before anything else is sent; a refused one has the check run again too. The daemon can still stop, and another program take the port, between
+  two checks: that program gets proofs, not the key. Each is spent on a replay, good for its one request only, and
+  refused by the next daemon start. `lsof` cannot see another user's listener, so the app takes that port as "not
+  running" and does not connect.
 - **Approve asks who is there.** A click on Approve in the window asks for Touch ID, an Apple Watch or the account
   password (the page on the Mac asks for nothing); Deny never asks. The daemon still takes the click only for the
   request that is pending. A notification's Approve follows the same daemon rule as the phone's.
@@ -335,7 +342,9 @@ no rule above and adds no listener.
   Input Monitoring permission and sees no other key. While a press is open it reads that one key's up or down state.
 - **One entitlement**, the microphone, under the hardened runtime. Not sandboxed: it starts the plugin's
   `voice-daemon ensure` and reads the state folder. It makes no outbound connection and looks for no updates.
-- **Known limit, as above:** code running as you can read the page key the app reads.
+- **Known limits:** code running as you can read the page key the app reads. The browser page still sends the page key
+  as its cookie, so a program that holds the port while the daemon is down gets the key from an open page's next
+  request.
 
 ## Phone access (experimental, off by default)
 

@@ -27,8 +27,8 @@ struct LiveDaemonTests {
         let (code, status) = try await ask(endpoint.request("voice/status"))
         #expect(code == 200 && status["version"] != nil)
         #expect(try await ask(endpoint.request("voice/prefs")).0 == 200)
-        // Without the key the same listener answers 403: the cookie is what opened it.
-        let bare = DaemonEndpoint(port: locator.paths.port, credential: .pageKey("not-the-key"))
+        // Without the key the same listener answers 403: the proof is what opened it.
+        let bare = DaemonEndpoint(port: locator.paths.port, credential: .pageKey("not-the-key", token: "not-the-token"))
         #expect(try await ask(bare.request("voice/status")).0 == 403)
     }
 

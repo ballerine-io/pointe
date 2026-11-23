@@ -23,18 +23,31 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertEqual(link.place, "studio.example.ts.net:7443")
     }
 
-    func testTheMacsRequestCarriesThePageCookieOnLoopbackAndNeverTheKeyInAURL() throws {
-        let link = DaemonLink(local: LocalDaemon(endpoint: { DaemonEndpoint(port: 7999, credential: .pageKey("k3y")) }))
+    /// The proof covers the method, the address with its query and the body, so it is made after all three are set.
+    private func proves(_ r: URLRequest) -> Bool {
+        guard let value = r.value(forHTTPHeaderField: LocalProof.header), let url = r.url else { return false }
+        let parts = value.split(separator: ".").map(String.init)
+        guard parts.count == 5, let ts = TimeInterval(parts[1]) else { return false }
+        return value == LocalProof.value(pageKey: "k3y", token: "t0k", method: r.httpMethod ?? "GET", url: url, body: r.httpBody,
+                                         time: Date(timeIntervalSince1970: ts), nonce: parts[2])
+    }
+
+    func testTheMacsRequestCarriesAProofOnLoopbackAndNeverTheKey() throws {
+        let link = DaemonLink(local: LocalDaemon(endpoint: { DaemonEndpoint(port: 7999, credential: .pageKey("k3y", token: "t0k")) }))
         let r = link.request("voice/dictionary", query: [URLQueryItem(name: "term", value: "Quillfeather")])
         XCTAssertEqual(r.url?.absoluteString, "http://127.0.0.1:7999/voice/dictionary?term=Quillfeather")
-        XCTAssertEqual(r.value(forHTTPHeaderField: "Cookie"), "pointe_local=k3y")
+        XCTAssertTrue(proves(r))
+        XCTAssertNil(r.value(forHTTPHeaderField: "Cookie"))
+        XCTAssertFalse((r.allHTTPHeaderFields ?? [:]).values.contains { $0.contains("k3y") || $0.contains("t0k") })
+        XCTAssertTrue(proves(link.request("voice/approve", method: "POST", body: ["session": "docs", "decision": "allow"])))
         XCTAssertNil(r.value(forHTTPHeaderField: "Authorization"))
         XCTAssertNil(r.value(forHTTPHeaderField: "Origin"))
         XCTAssertNil(r.value(forHTTPHeaderField: "X-Pointe-Device"))
         XCTAssertFalse(r.httpShouldHandleCookies)
         let call = try XCTUnwrap(link.callRequest)
         XCTAssertEqual(call.url?.absoluteString, "ws://127.0.0.1:7999/voice/call")
-        XCTAssertEqual(call.value(forHTTPHeaderField: "Cookie"), "pointe_local=k3y")
+        XCTAssertTrue(proves(call))
+        XCTAssertNil(call.value(forHTTPHeaderField: "Cookie"))
         XCTAssertEqual(link.device, "Mac")
     }
 
@@ -45,6 +58,7 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertNil(link.callRequest)
         let r = link.request("voice/status")
         XCTAssertNil(r.value(forHTTPHeaderField: "Cookie"))
+        XCTAssertNil(r.value(forHTTPHeaderField: LocalProof.header))
         XCTAssertNotEqual(r.url?.scheme, "http")
         let api = API(link: link, session: link.session(onOpen: {}))
         do {
@@ -66,7 +80,7 @@ final class DaemonLinkTests: XCTestCase {
         final class Flag: @unchecked Sendable { var lost = false }
         let flag = Flag()
         // the discard port: nothing answers HTTP there
-        let link = DaemonLink(local: LocalDaemon(endpoint: { DaemonEndpoint(port: 9, credential: .pageKey("made-up")) }, lost: { flag.lost = true }))
+        let link = DaemonLink(local: LocalDaemon(endpoint: { DaemonEndpoint(port: 9, credential: .pageKey("made-up", token: "made-up")) }, lost: { flag.lost = true }))
         do {
             _ = try await API(link: link, session: link.session(onOpen: {})).status()
             XCTFail("nothing listens there")

@@ -6,6 +6,7 @@ import json
 import re
 import unicodedata
 
+import local_proof
 import readout
 from urllib.parse import parse_qs, urlparse
 
@@ -737,6 +738,7 @@ class LocalAuth:
 
     def __init__(self, app, token: str, page_key: str, remote=None, phone=None):
         self.app, self.token, self.page_key, self.remote, self.phone = app, token, page_key, remote, phone
+        self.proofs = local_proof.Proofs(page_key, token)
 
     def _authorized(self, connection: HTTPConnection) -> bool:
         cookie = connection.cookies.get(LOCAL_COOKIE, "")
@@ -744,6 +746,23 @@ class LocalAuth:
         return bool(self.page_key and self.token) and (
             hmac.compare_digest(cookie.encode(), self.page_key.encode())
             or hmac.compare_digest(bearer.encode(), f"Bearer {self.token}".encode()))
+
+    async def _proven(self, scope, receive, send, proof: str) -> None:
+        """The Mac app: a proof for this one request, never the key (local_proof.py). Checked before the body is read."""
+        method = scope.get("method", "GET") if scope["type"] == "http" else "GET"
+        body_hash = self.proofs.check(proof, method, scope["path"], scope.get("query_string", b"").decode("latin-1"))
+        if body_hash is None:
+            return await self._refuse(scope, receive, send)
+        body = b""
+        if scope["type"] == "http":
+            read = await local_proof.read_body(receive)
+            if read is None:
+                return await self._refuse(scope, receive, send)
+            body, receive = read
+        if not hmac.compare_digest(hashlib.sha256(body).hexdigest(), body_hash):
+            return await self._refuse(scope, receive, send)
+        scope.setdefault("state", {})["pointe_page"] = True  # phone_pairing's owner-only routes honour it
+        await self.app(scope, receive, send)
 
     async def _refuse(self, scope, receive, send, text: str = "forbidden") -> None:
         if scope["type"] == "websocket":
@@ -800,6 +819,8 @@ class LocalAuth:
             response = RedirectResponse("/voice", status_code=303)  # the key leaves the address bar
             response.set_cookie(LOCAL_COOKIE, self.page_key, max_age=365 * 86400, httponly=True, samesite="strict")
             return await response(scope, receive, send)
+        if (proof := connection.headers.get(local_proof.HEADER)) is not None:
+            return await self._proven(scope, receive, framed, proof)
         if not self._authorized(connection):
             return await self._refuse(scope, receive, send, _NEEDS_KEY if path == "/voice" else "forbidden")
         await self.app(scope, receive, framed)

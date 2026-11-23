@@ -44,12 +44,23 @@ import Testing
 }
 
 @Suite struct ClientTests {
-    let endpoint = DaemonEndpoint(port: 7999, credential: .pageKey("k3y"))
+    let endpoint = DaemonEndpoint(port: 7999, credential: .pageKey("k3y", token: "t0k"))
 
-    @Test func aRequestCarriesThePageCookieOnLoopbackAndNoOrigin() throws {
+    /// The proof a request carries is the one `LocalProof` makes for that method, address and body.
+    static func proves(_ r: URLRequest, key: String = "k3y", token: String = "t0k") -> Bool {
+        guard let value = r.value(forHTTPHeaderField: LocalProof.header), let url = r.url else { return false }
+        let parts = value.split(separator: ".").map(String.init)
+        guard parts.count == 5, let ts = TimeInterval(parts[1]) else { return false }
+        return value == LocalProof.value(pageKey: key, token: token, method: r.httpMethod ?? "GET", url: url, body: r.httpBody,
+                                         time: Date(timeIntervalSince1970: ts), nonce: parts[2])
+    }
+
+    @Test func aRequestCarriesAProofOnLoopbackAndNoCookieOrOrigin() throws {
         let r = endpoint.request("voice/approve", method: "POST", body: ["session": "docs", "decision": "allow"])
         #expect(r.url?.absoluteString == "http://127.0.0.1:7999/voice/approve")
-        #expect(r.value(forHTTPHeaderField: "Cookie") == "pointe_local=k3y")
+        #expect(Self.proves(r))
+        #expect(!Self.proves(r, token: "the-last-start"))
+        #expect(r.value(forHTTPHeaderField: "Cookie") == nil)
         #expect(r.value(forHTTPHeaderField: "Origin") == nil && r.value(forHTTPHeaderField: "Authorization") == nil)
         #expect(!r.httpShouldHandleCookies)
         let data = try #require(r.httpBody)
@@ -62,7 +73,31 @@ import Testing
             #expect(!url.absoluteString.contains("k3y"))
         }
         #expect(endpoint.callURL.absoluteString == "ws://127.0.0.1:7999/voice/call")
-        #expect(endpoint.callRequest.value(forHTTPHeaderField: "Cookie") == "pointe_local=k3y")
+        #expect(Self.proves(endpoint.callRequest) && endpoint.callRequest.value(forHTTPHeaderField: "Cookie") == nil)
+    }
+
+    /// SECURITY.md, "The Mac app": whoever holds the port gets no key, on a request or on the call's socket.
+    @Test func thePageKeyIsInNoHeader() {
+        for r in [endpoint.request("voice/status"), endpoint.request("voice/approve", method: "POST", body: ["decision": "allow"]),
+                  endpoint.callRequest] {
+            #expect(!(r.allHTTPHeaderFields ?? [:]).values.contains { $0.contains("k3y") }, "\(r.allHTTPHeaderFields ?? [:])")
+        }
+    }
+
+    @Test func eachRequestHasItsOwnNonce() {
+        let a = endpoint.request("voice/status").value(forHTTPHeaderField: LocalProof.header)?.split(separator: ".")[2]
+        let b = endpoint.request("voice/status").value(forHTTPHeaderField: LocalProof.header)?.split(separator: ".")[2]
+        #expect(a != nil && a != b)
+    }
+
+    /// The same inputs as tests/test_local_proof.py's test_the_swift_builder_and_this_check_agree: one wire format.
+    @Test func theProofMatchesTheDaemons() throws {
+        let url = try #require(URL(string: "http://127.0.0.1:7999/voice/approve?term=Quillfeather"))
+        let value = LocalProof.value(pageKey: "k3y", token: "t0k", method: "POST", url: url, body: Data(#"{"decision":"allow"}"#.utf8),
+                                     time: Date(timeIntervalSince1970: 1_800_000_000), nonce: "00112233445566778899aabbccddeeff")
+        #expect(value == "v1.1800000000.00112233445566778899aabbccddeeff."
+                + "6b838faadcc5ae20ac196a2be7bdcf932f9589a14d7ecbcd9d61e5b94c80d03a."
+                + "dd260863ec4e79d883e572ec444bb0263a82bda16d05f73f35b41415fc3984ff")
     }
 
     @Test func aTokenGoesAsABearer() {

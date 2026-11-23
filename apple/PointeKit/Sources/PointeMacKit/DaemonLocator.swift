@@ -22,6 +22,8 @@ public struct DaemonPaths: Sendable, Equatable {
 
     public var isDefault: Bool { port == Self.defaultPort && stateDir.lastPathComponent == ".claude-voice" }
     var pageKey: URL { stateDir.appendingPathComponent("page_key") }
+    /// Written anew at each daemon start (`bin/voice-daemon`): a proof made for one start is refused by the next.
+    var token: URL { stateDir.appendingPathComponent("token") }
     var pid: URL { stateDir.appendingPathComponent("daemon.pid") }
     var node: URL { stateDir.appendingPathComponent("node.json") }
     public var log: URL { stateDir.appendingPathComponent("daemon.log") }
@@ -117,20 +119,21 @@ public struct DaemonLocator: Sendable {
         return listening.isSubset(of: family) ? .running(pid: pid) : .squatter
     }
 
-    /// The page's key, from the 0600 file the daemon wrote. In memory only: the caller must not log or store it.
-    func pageKey() throws -> String {
-        guard let key = try? String(contentsOf: paths.pageKey, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-              !key.isEmpty else { throw LocatorError.noKey }
-        return key
+    /// The page's key and this daemon start's token, from the 0600 files the daemon wrote. In memory only: the caller
+    /// must not log or store them, and neither is ever sent (`LocalProof`).
+    func secret(_ file: URL) throws -> String {
+        guard let value = try? String(contentsOf: file, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else { throw LocatorError.noKey }
+        return value
     }
 
-    /// Where to connect, once the listener is known to be the daemon. Throws rather than hand the key to anything else.
+    /// Where to connect, once the listener is known to be the daemon. Throws rather than talk to anything else.
     public func endpoint() async throws -> DaemonEndpoint {
         switch await state() {
         case .node: throw LocatorError.node
         case .stopped: throw LocatorError.stopped
         case .squatter: throw LocatorError.squatter
-        case .running: return DaemonEndpoint(port: paths.port, credential: .pageKey(try pageKey()))
+        case .running: return DaemonEndpoint(port: paths.port, credential: .pageKey(try secret(paths.pageKey), token: try secret(paths.token)))
         }
     }
 
