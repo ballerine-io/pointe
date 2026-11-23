@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-CONV = ROOT / "bench" / "conversational"
+CONV = ROOT / "bench" / "conversational" / "bargein"
 sys.path.insert(0, str(CONV))
 
 from bargein import check, facts  # noqa: E402

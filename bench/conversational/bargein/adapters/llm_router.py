@@ -11,7 +11,7 @@ from core.adapter import Event, SpendRow, now
 from adapters.spoken import SpokenRef
 
 PROMPT = (Path(__file__).parent / "llm_router_prompt.txt").read_text()
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 
 def default_brain() -> str:

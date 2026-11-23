@@ -1,9 +1,9 @@
 """Pointe Conversational Coding Benchmarks: the one command.
 
-  uv run --locked --extra local python bench/conversational/run.py bargein --budget-usd 14 [--adapter ...] [--smoke] [--dry-run]
-  uv run --locked --extra local python bench/conversational/run.py corpus      # render the audio only, $0
-  uv run --locked --extra local python bench/conversational/run.py factcheck   # the fact matcher on Whisper, all four voices, $0
-  uv run --locked --extra local python bench/conversational/run.py report <run-id>
+  uv run --locked --extra local python bench/conversational/bargein/run.py bargein --budget-usd 14 [--adapter ...] [--smoke] [--dry-run]
+  uv run --locked --extra local python bench/conversational/bargein/run.py corpus      # render the audio only, $0
+  uv run --locked --extra local python bench/conversational/bargein/run.py factcheck   # the fact matcher on Whisper, all four voices, $0
+  uv run --locked --extra local python bench/conversational/bargein/run.py report <run-id>
 
 This branch builds `bargein`; the other four benchmarks of the design live on their own branches.
 """

@@ -12,7 +12,7 @@ from . import scrub
 from .adapter import now
 
 HERE = Path(__file__).resolve().parents[1]
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 FORBIDDEN_PORTS = (7860, 7443)
 LOAD_FLAG = 12.0  # 1-minute load average above which a row is flagged: two thirds of this 18-core machine's threads
 

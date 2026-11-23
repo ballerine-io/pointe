@@ -17,7 +17,7 @@ import numpy as np
 from . import audio, keys
 from .adapter import now
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 import vendors  # noqa: E402  (SONIOX_RT_MODEL: the model Pointe's ears use)
 
 FRAME = 320  # 20 ms at 16 kHz

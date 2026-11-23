@@ -55,7 +55,7 @@ ALLOW = ["Bash(./long_job.sh:*)", "Bash(./long_job.sh)", "Bash(bash long_job.sh:
 
 
 def deny() -> list[str]:
-    suite = str(HERE.parent)
+    suite = str(HERE.parents[1])  # all of bench/conversational
     return [f"Read({suite}/**)", f"Bash(cat {suite}:*)", "Bash(rm -rf /:*)", "Bash(rm -rf ~:*)"]
 
 
@@ -495,5 +495,5 @@ def main(args) -> int:
     meta["finished"] = datetime.now().astimezone().isoformat(timespec="seconds")
     meta["spent_usd_benchmark_total"] = ledger.spent(BENCH)
     results.write("run.json", meta)
-    print(f"bargein: ledger total ${ledger.spent(BENCH):.2f} of ${CAP_USD:.2f}; results in {results.dir.relative_to(HERE.parents[2])}")
+    print(f"bargein: ledger total ${ledger.spent(BENCH):.2f} of ${CAP_USD:.2f}; results in {results.dir.relative_to(HERE.parents[3])}")
     return 0

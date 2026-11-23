@@ -24,7 +24,7 @@ from core import audio, ledger
 from core.adapter import Event, SpendRow, now
 from adapters.base import PtyArm
 
-ROOT = Path(__file__).resolve().parents[3]  # this checkout: the bench code
+ROOT = Path(__file__).resolve().parents[4]  # this checkout: the bench code
 FRAME = 320  # 20 ms at 16 kHz, the page's send rate
 OUT_RATE = 24000  # what the daemon sends the page
 

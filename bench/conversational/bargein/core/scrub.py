@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 HOME = str(Path.home())
-CHECKOUT = str(Path(__file__).resolve().parents[3])
+CHECKOUT = str(Path(__file__).resolve().parents[4])
 
 
 @functools.cache

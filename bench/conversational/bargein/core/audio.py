@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT))
 import no_telemetry  # noqa: E402,F401  (mlx-audio's dependencies may load onnxruntime)
 
