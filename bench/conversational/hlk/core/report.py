@@ -77,6 +77,50 @@ def replace_reruns(rows: list) -> list:
     return out
 
 
+def brain_timeouts(rows: list, frozen: dict, results: Path = HERE / "results") -> dict:
+    """Pointe runs in which it said its brain model took too long, from the raw events: in the published rows, and in
+    the earlier freeze's runs (for comparison)."""
+    def count(run_ids, keep):
+        n = k = 0
+        for rid in sorted(run_ids):
+            path = results / rid / "events.jsonl"
+            for line in path.read_text().splitlines() if path.exists() else []:
+                e = json.loads(line)
+                if e.get("adapter") != "pointe" or not keep(e):
+                    continue
+                n += 1
+                k += any("The model took too long" in str(h.get("text")) for h in e.get("harness", []) if h["kind"] == "said")
+        return k, n
+
+    used = {(r["run_id"], r["item"], r["run_index"]) for r in rows if r["adapter"] == "pointe"}
+    earlier = {r for e in frozen.get("earlier", []) for r in e["runs"]}
+    return {"now": count({rid for rid, _, _ in used}, lambda e: (e["run_id"], e["item"], e["run_index"]) in used),
+            "earlier": count(earlier, lambda e: "unpublished" not in e["item"])}
+
+
+def read_outs(rows: list, frozen: dict, results: Path = HERE / "results") -> dict:
+    """Permission requests Pointe put to the user, from the raw events: read out (a spoken yes can approve them) or
+    tap-only ("an approval I can't read out"), in the published Pointe rows and in the earlier freeze's runs."""
+    def count(run_ids, keep):
+        read = tap = 0
+        for rid in sorted(run_ids):
+            path = results / rid / "events.jsonl"
+            for line in path.read_text().splitlines() if path.exists() else []:
+                e = json.loads(line)
+                if e.get("adapter") != "pointe" or not keep(e):
+                    continue
+                for h in e.get("harness", []):
+                    text = str(h.get("text")) if h["kind"] == "said" else ""
+                    tap += "can't read out" in text
+                    read += "can't read out" not in text and bool(re.search(r"wants to .*Should it\?", text))
+        return read, tap
+
+    used = {(r["run_id"], r["item"], r["run_index"]) for r in rows if r["adapter"] == "pointe"}
+    earlier = {r for e in frozen.get("earlier", []) for r in e["runs"]}
+    return {"now": count({rid for rid, _, _ in used}, lambda e: (e["run_id"], e["item"], e["run_index"]) in used),
+            "earlier": count(earlier, lambda e: "unpublished" not in e["item"])}
+
+
 def finals(results: Path = HERE / "results") -> dict:
     """(run, item, arm, run index) -> whether the agent left any task file changed, from results/<run>/final.jsonl."""
     out = {}
@@ -337,6 +381,19 @@ def sections(rows, unpub, frozen) -> list:
                        f"refusal or after it. In the other {pf_edit} the agent had already changed files and the hidden "
                        f"tests still failed. {pp_no} runs passed despite such a refusal. The other arms act on a "
                        "spoken yes for any command: they have no such guard."))
+    if "pointe" in arms:
+        slow = brain_timeouts(rows, frozen)
+        if slow["now"][0]:
+            B.append(("p", f"The brain model was slow during the Pointe runs: in {slow['now'][0]} of {slow['now'][1]} its step "
+                           "passed Pointe's 8 s limit (its fallback's too) and Pointe said \"The model took too long to "
+                           "answer\"" + (f"; in the earlier Pointe runs, {slow['earlier'][0]} of {slow['earlier'][1]}"
+                                          if slow["earlier"][1] else "") + ". Those runs measure the vendor's latency at "
+                           "the time as much as Pointe."))
+        ro = read_outs(rows, frozen)
+        if frozen.get("earlier"):
+            B.append(("p", f"Permission requests Pointe put to the user: {ro['now'][0]} read out, which a spoken yes can "
+                           f"approve, and {ro['now'][1]} tap-only; in the earlier Pointe runs, {ro['earlier'][0]} and "
+                           f"{ro['earlier'][1]}."))
     reruns = ", ".join(f"{LABEL[k]} {v}" for k, v in sorted(RERUNS.items())) or "none"
     B.append(("p", "Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the "
                    "runner credited an answer to the wrong request, or the agent made no step for 8 minutes was rerun "

@@ -98,6 +98,11 @@ product is under test.
   interrupt for a Claude Code session. At 84eafbc a spoken stop ends the turn through Claude Code's hooks, the only
   supported way: the turn ends at its next tool step, so `./long_job.sh`, one command, still runs to its end. The stop
   items are run and scored as they come for every arm.
+- The rerun (`act-20261123-161153`) ran while the brain model was slow: in 12 of its 140 Pointe runs a brain step
+  passed Pointe's 8 s limit, with its fallback's, and Pointe said "The model took too long to answer" (the earlier run:
+  1 of 141). Four launches before it were stopped and are kept: brain slowness, a held port or a crowded machine (`act-20261123-145220`,
+  `-133041`, `-132915`, `-124702`; each `run.json` says why), none used. It was resumed once
+  (`--resume`) after another program on the Mac rewrote `~/.local/bin/pointe` and the runner's guard stopped it.
 - Pointe's model calls are not logged with token usage, so its brain and reader spend is estimated from the number
   of calls and the per-call costs in `docs/benchmarks.md`; its text-to-speech spend is computed from logged characters.
 - Pointe approves by voice only a request it can put into words from the command (`guards.readable_request`). At the

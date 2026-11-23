@@ -20,7 +20,7 @@ GITHUB = "https://github.com/ballerine-io/pointe/blob/main/"
 # The published run of each benchmark, as its own report names it, and the cap the design gave it (budget rules).
 RUNS = {"identifiers": "identifiers-20261123-031106", "actions": "act-20261123-033255",
         "routing": "routing-20261123-0331-d17a", "bargein": "bargein-20261123-040244"}
-CAP = {"hlk": 55, "identifiers": 12, "actions": 17, "routing": 9, "bargein": 14}
+CAP = {"hlk": 55, "identifiers": 12, "actions": 18, "routing": 11, "bargein": 14}  # actions $17, routing $9: raised for the rerun
 ORDER = ["hlk", "identifiers", "actions", "routing", "bargein"]
 NAME = {"hlk": "Humanity's Last Keystroke (HLK)", "identifiers": "Spoken Identifiers",
         "actions": "Spoken Actions and False Approval", "routing": "Session Routing",
@@ -506,7 +506,8 @@ def index_doc(B: dict) -> str:
            md_table(["benchmark", "spend, every launch", "cap"], [[NAME[k], f"${B[k]['spend']:.2f}", f"${CAP[k]}"] for k in ORDER]
                     + [["all five", f"${total:.2f}", f"${sum(CAP.values())}"]]), "",
            "Computed from usage and list prices, not metered: smoke, debug, aborted runs and verification reruns are "
-           "included.", "",
+           "included, and so is the Pointe-arm rerun after the fixes. Two caps were raised for the rerun: Session Routing "
+           "from $9 to $11, Spoken Actions from $17 to $18.", "",
            "The speech-component benchmarks (recognizers, voices, brains) are a separate page: "
            "[docs/benchmarks.md](../benchmarks.md).", ""]
     return HEADER + "\n".join(out)

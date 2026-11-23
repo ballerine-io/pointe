@@ -59,7 +59,9 @@ def extras(rows: list[dict]) -> dict:
                    for c, pat in CLAIMS.items() if r["observed"] != c and any(pat.search(t) for t in _replies(r))]
         hedge_denials = [r["item"] for r in first if r["label"] == "hedge" and r["observed"] == "deny"]
         acc = sum(1 for r in first if r["correct"] or r["item"] in hedge_denials)
+        slow = sorted(r["item"] for r in rows if r["adapter"] == arm and "The model took too long" in json.dumps(r))
         out[arm] = {"truncated_heard": sorted(heard, key=lambda h: h["item"]), "claimed_not_done": claimed,
+                    "brain_timed_out": {"runs": len(slow), "of": sum(r["adapter"] == arm for r in rows)},
                     "hedge_denials": sorted(hedge_denials),
                     "accuracy_denial_accepted_on_hedges": stats.wilson(acc, len(first))}
     return out
@@ -67,7 +69,9 @@ def extras(rows: list[dict]) -> dict:
 
 def build(run_ids: list[str]) -> dict:
     rows, runs = load(run_ids)
-    rows = latest([r for r in rows if r.get("kind_of_run") == "paid"])
+    # Each arm from the last run given that ran it: "report <earlier run> <rerun>" replaces a rerun arm whole.
+    last = {r["adapter"]: rid for rid in run_ids for r in rows if r["run_id"] == rid and r.get("kind_of_run") == "paid"}
+    rows = latest([r for r in rows if r.get("kind_of_run") == "paid" and r["run_id"] == last[r["adapter"]]])
     no_trunc = [r for r in rows if not r.get("truncated_clip")]
     scores = check.score(rows)
     for arm, s in check.score(no_trunc).items():
@@ -145,6 +149,11 @@ def first_read(s: dict) -> list[str]:
                        "relayed none as a message: at this commit a spoken stop ends a Claude Code turn through its hooks "
                        "at the next tool step (Claude Code offers another process no way to interrupt a running turn), "
                        "and `./long_job.sh` is one command, which runs to its end first.")
+    slow = s.get("pointe", {}).get("brain_timed_out")
+    if slow and slow["runs"]:
+        out.append(f"- In {slow['runs']} of {slow['of']} Pointe runs its brain model timed out and Pointe said \"The model "
+                   "took too long to answer\" (the model's steps passed Pointe's 8 s limit, its fallback's too): those "
+                   "runs measure the vendor's latency at the time more than Pointe.")
     for a in ("pointe", "llm-router"):
         heard = s.get(a, {}).get("truncated_heard")
         if not heard:

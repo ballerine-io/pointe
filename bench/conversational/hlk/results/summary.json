@@ -5,7 +5,8 @@
  "unit": "family",
  "runs": [
   "hlk-20261123-040919",
-  "hlk-20261123-085104"
+  "hlk-20261123-085104",
+  "hlk-20261123-161156"
  ],
  "dates": [
   "2026-11-23"
@@ -17,7 +18,7 @@
   "2.1.330"
  ],
  "permission_mode": "acceptEdits",
- "pointe_commit": "6544cdc403af",
+ "pointe_commit": "84eafbccc24a",
  "router_brain": [
   "anthropic:claude-sonnet-5-5"
  ],
@@ -53,7 +54,7 @@
    72
   ],
   "pointe": [
-   34,
+   27,
    72
   ],
   "llm-router": [
@@ -192,7 +193,7 @@
     6
    ],
    "self-correction": [
-    4,
+    3,
     6
    ],
    "long-dictation": [
@@ -200,7 +201,7 @@
     6
    ],
    "read-then-decide": [
-    0,
+    1,
     6
    ],
    "deny-the-decoy": [
@@ -208,15 +209,15 @@
     6
    ],
    "mid-task-redirect": [
-    3,
+    1,
     6
    ],
    "two-repo-handoff": [
-    3,
+    1,
     6
    ],
    "impossible-as-stated": [
-    6,
+    3,
     6
    ]
   },
@@ -373,9 +374,9 @@
  },
  "gaps": {
   "keyboard-canonical minus pointe": [
-   0.5,
-   0.3055555555555556,
-   0.6944444444444444
+   0.5972222222222222,
+   0.4305555555555556,
+   0.75
   ],
   "keyboard-canonical minus llm-router": [
    0.11111111111111105,
@@ -383,9 +384,9 @@
    0.3055555555555556
   ],
   "pointe minus llm-router": [
-   -0.38888888888888895,
-   -0.625,
-   -0.15277777777777768
+   -0.48611111111111116,
+   -0.6527777777777778,
+   -0.3055555555555556
   ]
  },
  "flips": {
@@ -398,7 +399,7 @@
    36
   ],
   "pointe": [
-   8,
+   13,
    36
   ],
   "llm-router": [
@@ -420,13 +421,13 @@
    12
   ],
   "pointe": [
-   4,
+   6,
    12
   ]
  },
- "pointe_failed": 38,
- "pointe_failed_refused_yes": 33,
+ "pointe_failed": 45,
+ "pointe_failed_refused_yes": 31,
  "pointe_failed_refused_yes_files_changed": 9,
- "spend_usd": 24.35,
+ "spend_usd": 43.11,
  "cap_usd": 55
 }
