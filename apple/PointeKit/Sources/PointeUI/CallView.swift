@@ -1715,6 +1715,7 @@ struct RequestCard: View {
             }
         }
         .padding(16)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)  // past this a long name and the hint pushed Deny and Approve out of the dock
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))

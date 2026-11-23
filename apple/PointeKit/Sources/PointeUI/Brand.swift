@@ -83,7 +83,8 @@ enum Brand {
     static func install() {
         #if canImport(UIKit)
         // Scaled by the text size the phone had at launch, up to what a bar and a segment hold: at 17 and 13 points
-        // fixed, a sheet's title and the Orchestrator/Session switch stayed small beside large body text.
+        // fixed, a sheet's title and the Orchestrator/Session switch stayed small beside large body text. The segment's
+        // ceiling is low: the mic switch over the bar uses it too, and must not crowd the cards above it.
         let title = UIFontMetrics(forTextStyle: .headline)
             .scaledFont(for: UIFont(name: displayRegular, size: 17) ?? .systemFont(ofSize: 17), maximumPointSize: 26)
         let large = UIFontMetrics(forTextStyle: .largeTitle)
@@ -91,7 +92,7 @@ enum Brand {
         UINavigationBar.appearance().titleTextAttributes = [.font: title]
         UINavigationBar.appearance().largeTitleTextAttributes = [.font: large]
         let segment = UIFontMetrics(forTextStyle: .footnote)
-            .scaledFont(for: UIFont(name: textFace(.medium), size: 13) ?? .systemFont(ofSize: 13, weight: .medium), maximumPointSize: 22)
+            .scaledFont(for: UIFont(name: textFace(.medium), size: 13) ?? .systemFont(ofSize: 13, weight: .medium), maximumPointSize: 16)
         UISegmentedControl.appearance().setTitleTextAttributes([.font: segment, .foregroundColor: UIColor(text)], for: .normal)
         UISegmentedControl.appearance().backgroundColor = UIColor(raised)
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(card)
