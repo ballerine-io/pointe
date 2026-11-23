@@ -2360,7 +2360,8 @@
                                : !x.voice_can_approve ? 'Too complex to read out: check it, then tap.'
                                : x.name === s.active ? 'Say yes or no, or tap.' : 'Say its name and yes or no, or tap.'));
     const row = el('div', 'answer');
-    for (const [label, decision] of x.request_truncated ? [['Deny', 'deny']] : [['Deny', 'deny'], ['Approve', 'allow']]) {
+    for (const [label, decision] of [['Deny', 'deny'], ['Approve', 'allow']]) {
+      if (decision === 'allow' && x.request_truncated) continue;  // cut short: approved only in its terminal
       const button = el('button', decision, label);
       button.onclick = e => { e.stopPropagation(); answer(x, decision, button); };
       row.append(button);
