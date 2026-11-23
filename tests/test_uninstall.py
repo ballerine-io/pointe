@@ -222,3 +222,25 @@ def test_the_mac_apps_settings_are_listed_and_removed_through_defaults(mac, caps
 
 def test_the_uv_hint_names_every_folder_uv_installs():
     assert "~/.local/share/uv" in (ROOT / "uninstall.py").read_text().split("Kept: uv", 1)[1][:200]
+
+
+def test_without_a_claude_command_the_plugin_is_never_called_removed(mac):
+    """QA round 2: with claude not on the PATH (a desktop-app install, or an alias), "Pointe is removed." was said while
+    the plugin, its 530 MB Python and both hooks stayed."""
+    (mac.home / ".claude" / "plugins" / "cache" / "pointe").mkdir(parents=True)
+    env = {**mac.env, "PATH": f"{Path(mac.env['PATH'].split(':')[0])}-none:/usr/bin:/bin"}
+    (Path(mac.env["PATH"].split(":")[0]) / "claude").unlink()
+    got = subprocess.run([sys.executable, "-I", str(ROOT / "uninstall.py"), "--yes"], env=env, capture_output=True,
+                         text=True, timeout=60)
+    assert "Pointe is removed." not in got.stdout
+    assert "/plugin uninstall pointe@pointe" in got.stdout and got.stdout.count("still installed") == 2
+
+
+def test_a_claude_installed_where_claude_codes_installer_puts_it_is_used(mac):
+    fake = Path(mac.env["PATH"].split(":")[0])
+    local = mac.home / ".claude" / "local"
+    local.mkdir(parents=True)
+    (fake / "claude").rename(local / "claude")
+    got = run(mac, "--yes")
+    assert got.returncode == 0 and "Pointe is removed." in got.stdout
+    assert mac.claude() == "plugin uninstall pointe@pointe\nplugin marketplace remove pointe\n"

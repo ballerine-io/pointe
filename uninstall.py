@@ -67,6 +67,28 @@ def _hf_models() -> list[str]:
     return re.findall(r'^\s+"([^"]+/[^"]+)":', block[:block.index("\n}")], re.M)
 
 
+def _claude() -> str | None:
+    """The claude CLI: on the PATH, else where Claude Code's own installers put it. A desktop-app install or a shell
+    alias has none on the PATH, and the plugin was then never listed, yet "Pointe is removed" was said."""
+    found = shutil.which("claude")
+    if found:
+        return found
+    for path in (home() / ".claude" / "local" / "claude", home() / ".local" / "bin" / "claude"):
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
+    return None
+
+
+def plugin_left() -> bool:
+    """The plugin is installed and no claude CLI can remove it here."""
+    return _claude() is None and ((home() / ".claude" / "plugins" / "cache" / "pointe").exists()
+                                  or "/.claude/plugins/" in str(ROOT))
+
+
+PLUGIN_BY_HAND = ("The Claude Code plugin is still installed, with its two hooks and its Python: no claude command was "
+                  "found. In Claude Code, run /plugin uninstall pointe@pointe, then /plugin marketplace remove pointe.")
+
+
 def plan() -> dict[str, list[Item]]:
     own: list[Item] = [Item("Stop Pointe (the voice daemon and, in fully local mode, its text model)",
                             command=(str(ROOT / "bin" / "voice-daemon"), "stop"))]
@@ -88,7 +110,7 @@ def plan() -> dict[str, list[Item]]:
     kokoro = home() / ".cache" / "pipecat" / "kokoro-onnx"
     if kokoro.exists():
         own.append(Item(f"{kokoro} ({_size(kokoro)}: the local voice)", path=kokoro))
-    claude = shutil.which("claude")
+    claude = _claude()
     if claude:
         own.append(Item("The Claude Code plugin pointe@pointe, with its two hooks and its Python (claude plugin uninstall)",
                         command=(claude, "plugin", "uninstall", "pointe@pointe")))
@@ -143,6 +165,8 @@ def main(argv: list[str]) -> int:
         if items:
             print(f"{titles[name]}:")
             print("\n".join(f"  - {i.what}" for i in items) + "\n")
+    if plugin_left():
+        print(f"{PLUGIN_BY_HAND}\n")
     print("Kept: uv, which other tools use (remove it with: uv cache clean, then rm -r ~/.local/bin/uv ~/.local/bin/uvx "
           "~/.local/share/uv).\n")
     if "--dry-run" in argv:
@@ -170,6 +194,8 @@ def main(argv: list[str]) -> int:
         print(f"  {result:9} {item.what}")
     if failed:
         print("\nSome items were not removed: see above.")
+    elif plugin_left():
+        print(f"\nRemoved what you chose. {PLUGIN_BY_HAND}")
     elif groups["own"] and not set(map(id, groups["own"])) <= set(map(id, chosen)):
         print("\nRemoved what you chose. Pointe itself is still installed: pointe uninstall again removes it.")
     else:
