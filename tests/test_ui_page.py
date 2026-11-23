@@ -421,3 +421,17 @@ def test_mac_not_reachable_on_the_wifi_route_asks_about_the_wifi():
     assert got[0] == got[1].replace("studio.local", "192.168.1.20") == \
         "Can't reach your Mac at 192.168.1.20:7443. Is this phone on the same Wi-Fi as the Mac? Is the Mac awake?", got
     assert got[2] == "Can't reach your Mac at studio.example:7443. Is Twingate or Tailscale on? Is the Mac awake?", got  # the app's words
+
+
+@needs_chrome
+def test_the_machine_invite_copies_its_join_line():
+    got = asyncio.run(_render("""(async () => {
+        window.__copied = null; navigator.clipboard.writeText = async t => { window.__copied = t; };
+        window.__status = {...window.__status, can_invite: true, machines: [{id: 'studio', name: 'studio', here: true, os: 'macos', online: true, sessions: 1}],
+                           invite: {code: 'K7Q-2PX', expires_in: 300, link: 'pointe-join://studio.example:7443/K7Q-2PX'}};
+        await refresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
+        const b = document.getElementById('mach-copy');
+        const shown = !!b && !b.hidden; if (b) b.click(); await new Promise(r => setTimeout(r, 100));
+        return {shown, copied: window.__copied, label: b && b.textContent, line: document.getElementById('mach-link').textContent};
+    })()"""))
+    assert got["shown"] and got["copied"] == got["line"] == "pointe node join 'pointe-join://studio.example:7443/K7Q-2PX'" and got["label"] == "Copied", got
