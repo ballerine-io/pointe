@@ -203,6 +203,11 @@ What sessions report is data for the voice model, not instructions to it:
   `gemini-api-key`, ...) after its own, so a key saved then keeps working. Another tool may keep an item under such a
   name: Pointe then uses that key for the same vendor, and `pointe key <vendor>` saves one of Pointe's own, which wins.
   With `openai_url` set, only `pointe.openai-api-key` is read, so another tool's OpenAI key never goes to that host.
+- **Any program running as you can read them.** Pointe saves and reads the Keychain items through macOS's own
+  `/usr/bin/security`, so the item's access list names that tool, not Pointe: a program running as you can run
+  `security find-generic-password -s pointe.<vendor>-api-key -w` and get the key, without a prompt. Pressing Always
+  Allow when macOS asks (`/pointe:setup`, step 3) also allows `security`. This is the known limit below, code running as
+  you is trusted; the Keychain keeps the keys off disk in plain text and out of other users' reach.
 - They are not in command lines: scripts pass the token to `curl` through `--config`.
 - The page shows vendor errors with key values replaced. Logs hold an error's text as the vendor wrote it, and a
   traceback without the values of its variables: the daemon and the node turn loguru's `diagnose` off, which would
