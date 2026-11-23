@@ -265,7 +265,8 @@ def test_committed_rows_hold_no_home_path_or_key_and_the_page_matches_the_rows()
     md = ROOT / "bench" / "conversational" / "routing" / "RESULTS.md"
     runs = sorted({json.loads(l)["run_id"] for p in results.glob("*/rows.jsonl") for l in p.read_text().splitlines()
                    if not json.loads(l).get("smoke")
-                   and not json.loads((p.parent / "run.json").read_text()).get("aborted")})
+                   and not json.loads((p.parent / "run.json").read_text()).get("aborted")
+                   and not json.loads((p.parent / "run.json").read_text()).get("verification")})
     if md.exists() and runs:
         from conversational.routing import report
 

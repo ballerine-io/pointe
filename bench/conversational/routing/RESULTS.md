@@ -51,6 +51,8 @@ From the arm's own delivery events. A turn counts once, under the first cause th
 | naive (keyword rules, ours) | 33 of 60 | 0 | 14 | 12 | 7 |
 | keyboard-canonical (typed, no routing) | 1 of 20 | 0 | 0 | 0 | 1 |
 
+Pointe's forwarded-request failures, read from its committed daemon logs: in 9 failed turns the brain called send with this turn's word, and the text delivered lacked it (7 of them right after Pointe had asked which session). In 9 of them the brain's call also named the intended session(s). At the frozen commit, when the user's words name a session, the send layer can replace the brain's message with an earlier request's text (the previous send, taken as being corrected, or a request held while it asked) if the two share at least half their content words (`_corrects_last_send`, `_mostly_same` in daemon.py). Every request in this dataset uses the same sentence frame with one different word, so this heuristic fires here far more often than varied speech would make it. It is a real Pointe defect; its rate here is inflated by the template. Not measured, an upper bound only: had those 9 calls gone out as the brain wrote them, Pointe could reach at most 50/60 = 83%, still below llm-router.
+
 ## Run to run and spend (synthetic speech)
 
 | Arm | Flip rate on repeated turns | Outcomes | Turns with a read into a sibling repo | Spend (USD, computed) |

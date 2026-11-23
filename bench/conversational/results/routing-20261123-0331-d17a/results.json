@@ -88,7 +88,13 @@
     "wrong session on a clear turn": 1,
     "other": 0
    },
-   "spend_usd": 3.8393
+   "spend_usd": 3.8393,
+   "send_replaced": {
+    "failed_turns": 9,
+    "brain_right": 9,
+    "after_asking": 7,
+    "upper_bound_correct": 50
+   }
   },
   "llm-router": {
    "turns": 60,

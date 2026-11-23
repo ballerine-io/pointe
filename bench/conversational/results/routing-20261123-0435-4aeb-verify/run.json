@@ -1,0 +1,27 @@
+{
+ "run_id": "routing-20261123-0435-4aeb-verify",
+ "benchmark": "routing",
+ "purpose": "adversarial verification re-run of c06 and c12 through pointe and llm-router, same harness and frozen commit; not used in any table",
+ "started": "2026-11-23T04:35:28+0200",
+ "repo_commit": "192ef203ccf9f0a8b51be9cd08869a5c57107325",
+ "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "claude_code_version": "2.1.330 (Claude Code)",
+ "agent_model": "claude-haiku-5-5",
+ "pointe_setup": {
+  "brain": "anthropic:claude-sonnet-5-5",
+  "reader": "anthropic:claude-sonnet-5-5",
+  "checker": "gemini:gemini-3.5-flash-lite",
+  "ears": "soniox",
+  "mouth": "elevenlabs:eleven_v4_turbo"
+ },
+ "router_model": "claude-sonnet-5-5",
+ "router_effort": "low",
+ "conversations": [
+  "c06",
+  "c12"
+ ],
+ "audio_matches_lock": true,
+ "finished": "2026-11-23T04:41:16+0200",
+ "leftover_processes": [],
+ "verification": true
+}

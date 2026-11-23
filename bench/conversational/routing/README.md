@@ -104,4 +104,32 @@ conversations; intervals are wide and close systems cannot be ranked. The ambigu
 construction (two sessions share the product word or the role); a reader may judge some of them differently. One
 laptop under load from other work (load average in every row). Haiku as the fixed agent.
 
+Found in an adversarial check of the first published run, stated here so the numbers are read correctly:
+
+- **The sentence template amplifies Pointe's main failure.** Every request is "add a line with the word X to the notes
+  file" with one word changed. At the frozen commit Pointe's send layer, when the user's words name a session, can
+  replace the brain's message with an earlier request's text if the two share at least half their content words
+  (`_corrects_last_send`, `_mostly_same`). With this template every pair of requests qualifies, so the swap fired in 9
+  of Pointe's 19 failed turns, 7 of them right after it asked which session; in all 9 the brain's own call carried the
+  right word and session (RESULTS.md, read from the committed daemon logs). The defect is real, but varied speech would
+  trigger it far less often, so the Pointe minus llm-router gap here overstates the gap to expect in use.
+- **The llm-router prompt was written by people who knew the dataset**, and it states the dataset's own ambiguity rule
+  ("names that share a word are different sessions"; "if two or more sessions fit ... ask"). Pointe's brain prompt was
+  not written for this benchmark. The router sees only the four session names, not the repos.
+- **10 of the 14 ambiguous turns have the same form**, "in the tariff one" or "in the depot one", where one session
+  carries exactly that name. A reader may judge that form as naming that session. llm-router lost 4 such turns by
+  picking that session without asking, Pointe 6 (of its 7 guesses).
+- **A context turn after an ambiguous turn can be penalised twice.** "Same one again" after an unasked ambiguous turn
+  is scored against the session the user meant, not the one the arm announced (c09, turn 4: both pointe and llm-router).
+- **The flip rate is not like for like.** The baselines' transcripts are cached per clip, so the llm-router repeat has
+  no recognizer variance; Pointe hears every repeat live.
+- **The scripted user answers questions only.** When Pointe said "Please say it again" (an instruction, c01 turn 5), it
+  did not repeat, and the turn was missed.
+- **Three earlier paid runs were stopped after one conversation (c12)** for harness defects that applied to every arm
+  (`routing-20261123-0257-c83e`, `-0312-e0ec`, `-0324-0e67`; the reason is in each `run.json`). Their rows are committed
+  and used in no table. Total spend on this benchmark, smoke and stopped runs included, is in `results/ledger.jsonl`.
+- **A sample re-run** (`routing-20261123-0435-4aeb-verify`, `rerun_sample.py c06,c12`, same frozen commit): pointe 8/10,
+  llm-router 10/10, against 7/10 and 10/10 for the same conversations in the published run. This time Pointe guessed on
+  both ambiguous turns of c06 instead of asking, and no send was replaced: the swap follows a question. Used in no table.
+
 Licenses: text CC BY 4.0, code MIT, audio rendered by Kokoro-82M (Apache-2.0). Canary: `../CANARY`.

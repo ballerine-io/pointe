@@ -1,6 +1,8 @@
 """Rows -> routing/RESULTS.md and results/<run-id>/results.json. Every number comes from committed rows."""
 
+import ast
 import json
+import re
 from pathlib import Path
 
 from ..core import stats
@@ -29,12 +31,56 @@ def audit_rows(rows: list[dict], events: list[dict]) -> None:
         r["sent_other_request"] = any(r["word"] not in x.get("text", "").lower() for x in sends)
 
 
+SEND_LINE = re.compile(r" -> (.+?): (.*) \(routing: [^)]*\)\s*$")
+
+
+def brain_sends(log: Path) -> list[dict]:
+    """Each send_to_claude_code call in a committed Pointe log: what the brain asked to send, and to which session,
+    beside the text Pointe's send layer actually delivered (its `-> session: text` lines just before the record)."""
+    out, delivered = [], []
+    for line in log.read_text(errors="ignore").splitlines():
+        m = SEND_LINE.search(line)
+        if m:
+            try:
+                delivered.append(ast.literal_eval(m.group(2)))
+            except (ValueError, SyntaxError):
+                delivered.append(m.group(2))
+            continue
+        if "tool send_to_claude_code(" in line:
+            try:
+                args, _ = json.JSONDecoder().raw_decode(line.split("tool send_to_claude_code(", 1)[1])
+            except ValueError:
+                delivered = []
+                continue
+            out.append({"message": args.get("message", ""), "session": (args.get("session") or "").split("/")[0],
+                        "delivered": delivered})
+            delivered = []
+    return out
+
+
+def swap_rows(rows: list[dict], logs: Path) -> None:
+    """Per Pointe turn: did the brain call send with this turn's word while the text delivered lacked it? From the
+    committed daemon log, so the cause of a forwarded-request failure is read, not assumed."""
+    for r in rows:
+        if r["adapter"] != "pointe":
+            continue
+        log = logs / f"{r['conversation']}-r{r['run_index']}.log"
+        if not log.exists():
+            continue
+        word = re.compile(rf"\b{re.escape(r['word'])}\b", re.I)
+        calls = [c for c in brain_sends(log) if word.search(c["message"]) and c["delivered"]]
+        swapped = [c for c in calls if not any(word.search(t) for t in c["delivered"])]
+        r["send_replaced"] = bool(swapped)
+        r["brain_sessions"] = sorted({c["session"] for c in calls})
+
+
 def load(run_ids: list[str]) -> tuple[list[dict], list[dict], list[dict]]:
     rows, spend, runs = [], [], []
     for rid in run_ids:
         d = RESULTS / rid
         part = [json.loads(l) for l in (d / "rows.jsonl").read_text().splitlines()]
         audit_rows(part, [json.loads(l) for l in (d / "events.jsonl").read_text().splitlines()])
+        swap_rows(part, d / "pointe-logs")
         rows += part
         if (d / "spend.jsonl").exists():
             spend += [json.loads(l) for l in (d / "spend.jsonl").read_text().splitlines()]
@@ -111,6 +157,13 @@ def summarize(rows: list[dict], spend: list[dict]) -> dict:
                 "other": 0},
             "spend_usd": round(sum(s["usd"] for s in spend if s["adapter"] == arm), 4),
         }
+        if arm == "pointe":
+            swapped = [r for r in main if not r["correct"] and r.get("send_replaced")]
+            aimed = [r for r in swapped if r.get("brain_sessions") == r["intended"]
+                     and (r["type"] != "ambiguous" or r["asked_first"])]
+            out[arm]["send_replaced"] = {"failed_turns": len(swapped), "brain_right": len(aimed),
+                                         "after_asking": sum(r["asked_first"] for r in swapped),
+                                         "upper_bound_correct": out[arm]["correct"] + len(aimed)}
     out["_excluded_out_of_tree"] = sum(1 for r in rows if r.get("invalid_out_of_tree") and not r.get("smoke"))
     key = {}
     for r in valid:
@@ -195,6 +248,21 @@ def markdown(s: dict, runs: list[dict]) -> str:
         causes = dict(a["failed_causes"])
         causes["other"] = failed - sum(v for k, v in causes.items() if k != "other")
         lines.append(f"| {LABEL.get(arm, arm)} | {failed} of {a['turns']} | " + " | ".join(str(v) for v in causes.values()) + " |")
+    sr = s.get("pointe", {}).get("send_replaced")
+    if sr:
+        n = s["pointe"]["turns"]
+        lines += ["", f"Pointe's forwarded-request failures, read from its committed daemon logs: in {sr['failed_turns']} "
+                  f"failed turns the brain called send with this turn's word, and the text delivered lacked it "
+                  f"({sr['after_asking']} of them right after Pointe had asked which session). In {sr['brain_right']} of "
+                  "them the brain's call also named the intended session(s). At the frozen commit, when the user's words name a "
+                  "session, the send layer can replace the brain's message with an earlier request's text (the previous "
+                  "send, taken as being corrected, or a request held while it asked) if the two share at least half their "
+                  "content words (`_corrects_last_send`, `_mostly_same` in daemon.py). Every request in this dataset "
+                  "uses the same sentence frame with one different word, so this heuristic fires here far more often "
+                  "than varied speech would make it. It is a real Pointe defect; its rate here is inflated by the "
+                  f"template. Not measured, an upper bound only: had those {sr['brain_right']} calls gone out as the "
+                  f"brain wrote them, Pointe could reach at most {sr['upper_bound_correct']}/{n} = "
+                  f"{sr['upper_bound_correct'] / n:.0%}, still below llm-router."]
     lines += ["", "## Run to run and spend (synthetic speech)", "",
               "| Arm | Flip rate on repeated turns | Outcomes | Turns with a read into a sibling repo | Spend (USD, computed) |",
               "|---|---|---|---|---|"]
