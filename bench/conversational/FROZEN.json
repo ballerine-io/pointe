@@ -1,6 +1,6 @@
 {
  "benchmark": "bargein",
- "pointe_commit": "cdfba3ded2d1208d62ca5165f0d9877c665b7f2a",
+ "pointe_commit": "7113efa273cbe96ede9e385da44eff1970039274",
  "router_prompt_commit": "cdfba3ded2d1208d62ca5165f0d9877c665b7f2a",
  "unpublished_seed_manifest_sha256": null,
  "item_order_seed": 20261123,
