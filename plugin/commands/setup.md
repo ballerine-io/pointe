@@ -1,6 +1,6 @@
 ---
 description: Set Pointe up on this Mac, start to finish, for someone who does not use a terminal
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-daemon:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run:*), Bash(command -v:*), Bash(ls:*), Bash(sw_vers:*), Bash(open:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/install-uv:*), Bash(echo:*), Bash(mkdir -p ~/.claude-voice:*), Bash(touch ~/.claude-voice/setup-done:*)
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe setup:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe key:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps mac:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps ios:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/install-uv:*), Bash(ls /Applications:*), Bash(sw_vers:*), Bash(mkdir -p ~/.claude-voice), Bash(touch ~/.claude-voice/setup-done)
 ---
 
 Set Pointe up for the user, start to finish: about 5 minutes, free with one Google key. They may not be a developer.

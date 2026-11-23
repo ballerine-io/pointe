@@ -3,6 +3,14 @@
 # its channel adds voice permission relay that /pointe:voice (attach) mode lacks.
 # Usage: [CLAUDE_VOICE_FRONT=brain|gemini|openai] [CLAUDE_VOICE_EARS=soniox|gemini|openai|elevenlabs] claude-voice [claude args...]
 set -euo pipefail
+# Never a session that skips its permission prompts, whoever asked: the words harnesses/base.py refuse_bypass refuses,
+# checked before anything starts.
+for arg in "$@"; do
+  case "$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')" in
+    *dangerously*|*skip-permissions*|*bypasspermissions*|*danger-full-access*|*dangerfullaccess*)
+      echo "claude-voice: not started: Pointe never starts a session that skips its permission prompts." >&2; exit 2 ;;
+  esac
+done
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

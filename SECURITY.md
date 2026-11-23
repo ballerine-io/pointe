@@ -59,7 +59,12 @@ that creates a process, so it is fenced on every side, in code with tests (`test
   opened over the network, so the list grows only at the Mac.
 - **How.** Never with permission prompts skipped: Claude Code gets `--permission-mode default`, Codex and OpenCode no
   override, and a Codex thread that would run with no approvals and no sandbox is archived and refused
-  (`harnesses.base.refuse_bypass`, `harnesses.codex.bypasses`).
+  (`harnesses.base.refuse_bypass`, `harnesses.codex.bypasses`). `pointe start` (`bin/claude-voice`) refuses the same
+  flags and settings before it starts anything.
+- **Plugin commands.** A command file's `allowed-tools` lets the model run those commands without a prompt for that
+  turn, in a session that may have read a stranger's text. Each rule names one command the file tells the model to run
+  (`pointe setup`, `pointe key`, `pointe apps doctor`, ...), never `pointe` itself, `open` or `echo`; `pointe start`,
+  `pair`, `hub`, `join` and `uninstall` always ask (`tests/test_plugin_permissions.py`).
 - **Who.** By voice, always a read-back of the agent, folder, machine and name, taken from the user's own words, then a
   plain yes within 60 seconds: not the read-back heard back, not typed words, and with the voice lock on only the
   owner's voice. That yes never approves a waiting request. On the iPhone and the Mac app, Start asks for Face ID or
