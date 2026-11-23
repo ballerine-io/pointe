@@ -145,6 +145,11 @@ five things from the agent, and each harness adapter in <code>harnesses/</code> 
 <td>answer "by the way" from a copy, never touching the live session</td>
 <td><code>side_question(session, question)</code></td>
 </tr>
+<tr>
+<td>Stop</td>
+<td>end the running turn when the user says "stop", "cancel that" or "hold on"</td>
+<td><code>interrupts</code>, <code>interrupt(session)</code></td>
+</tr>
 </tbody>
 </table></div>
 <p>To be added from outside ("connect to the session about the pentest", <a href="../features/add-sessions/">features/add-sessions.md</a>),
@@ -153,7 +158,8 @@ the register body a session would send itself (<code>attach_body(found)</code>),
 start_id)</code>; by default the same as joining). Design: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/attach-by-voice.md">design/attach-by-voice.md</a>.</p>
 <p>Each adapter also declares what it can do, and <code>/voice/status</code> shows it per session (<code>capabilities</code>), so the brain and
 the screens never promise a missing feature: <code>approvals</code>, <code>side_questions</code>, <code>attach</code> (joins a session the user already
-runs), <code>spawn</code> (drives only sessions Pointe starts). An adapter with <code>starts</code> can also start a new session in a
+runs), <code>spawn</code> (drives only sessions Pointe starts), <code>interrupt</code> (<code>now</code>: the harness cuts the turn, a running command
+included; <code>next_step</code>: the turn ends after the tool call that runs; null: no supported way, and the voice says so). An adapter with <code>starts</code> can also start a new session in a
 folder (<code>start(cwd, name, start_id)</code>, below, and <a href="../features/new-session/">features/new-session.md</a>). Plus <code>label</code> (how the feed names it: <code>claude-code</code>, <code>opencode</code>, <code>codex</code>),
 <code>agent</code> (what the voice calls it: "Claude", "OpenCode"), <code>joins_mid_turn</code>, and <code>permission_deadline</code>.</p>
 <p>Everything else (the brain, consent rules, the read-out allowlist, Face ID taps, reports, notes, routing, the apps)
@@ -235,6 +241,10 @@ session are answered by the transcript reader, as for a harness that cannot fork
 <td>Start's terminal window with <code>claude --resume &lt;id&gt; --permission-mode default</code>, its <code>SessionStart</code> hook on matcher <code>resume</code>, in the session's folder and account. Mac only.</td>
 </tr>
 <tr>
+<td>Stop</td>
+<td>No supported way exists for another process to interrupt a running turn: an inbox message is read between tool calls, Escape is a key in its terminal, and <code>claude stop</code> stops a background session whole. The plugin's <code>PreToolUse</code> and <code>PostToolUse</code> hook, <code>bin/voice-stop-hook</code>, returns <code>"continue": false</code>, which the hooks reference documents as ending the turn after the hook runs. The daemon leaves a file named by the session id in <code>&lt;state&gt;/stop/</code>; the hook takes it, so the turn ends at its next tool step. A command that already runs finishes first. Without a stop waiting the hook reads nothing and prints nothing. Like approvals, it works only where the plugin's hooks run in that session.</td>
+</tr>
+<tr>
 <td>A prompt in its terminal</td>
 <td><code>claude agents --json</code> (Claude Code's supported way to read session state), read when a session's tool call has gone quiet: <code>status: waiting</code> with its <code>waitingFor</code> (<code>permission prompt</code>, <code>input needed</code>, <code>sandbox request</code>, <code>dialog open</code>)</td>
 </tr>
@@ -284,6 +294,10 @@ the same session the user is typing in.</p>
 <td><code>POST /api/session/{id}/prompt</code> with <code>delivery: "steer"</code></td>
 </tr>
 <tr>
+<td>Stop</td>
+<td><code>POST /api/session/{id}/interrupt</code> (the service's <code>session.interrupt</code>, v2.3): it cuts the running execution, a running command included, and says whether one ran</td>
+</tr>
+<tr>
 <td>Approvals</td>
 <td><code>permission.asked</code> (or a pending request listed by <code>/api/session/{id}/permission</code>) goes through <code>hold_permission</code>; the answer is <code>POST …/permission/{id}/reply</code> with <code>once</code> or <code>reject</code>. If the user answers in OpenCode first, the voice lets go.</td>
 </tr>
@@ -331,6 +345,10 @@ command above). Protocol: JSON-RPC over a WebSocket on the Unix socket <code>~/.
 <tr>
 <td>Send</td>
 <td><code>turn/start</code> when idle; <code>turn/steer {expectedTurnId}</code> during a turn (a steer to a turn that just ended falls back to <code>turn/start</code>)</td>
+</tr>
+<tr>
+<td>Stop</td>
+<td><code>turn/interrupt {threadId, turnId}</code> on the running turn (app-server protocol v2, checked against <code>codex app-server generate-json-schema</code> of 0.160)</td>
 </tr>
 <tr>
 <td>Approvals</td>
