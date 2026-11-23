@@ -236,9 +236,10 @@ Security reviews, run every minor release and monthly, are published with each f
   from the model's description); it was the last thing the bot said; you said a plain yes and nothing else, begun after
   the read-out ended, within 120 seconds, on the active session. "Okay, tell me more", "yes, and run the linter", silence,
   and a yes to any other question approve nothing. An echo of the bot's own voice never counts.
-- **A tap** on the exact request, on the page or in the iPhone app (Face ID). A request the daemon cannot read out
-  whole (unknown programs or flags, `$`, globs, subshells, several lines, `sudo`, more than 25 words) is approved only
-  this way. In our own Claude Code history, about 13% of shell commands can be read out.
+- **A tap** on the exact request, on the page or in the iPhone app (Face ID). The card leads with what runs, never
+  the model's description. A request the daemon cannot read out whole (unknown programs or flags, a quoted flag or
+  path, `$`, globs, subshells, several lines, `sudo`, more than 25 words) is approved only this way; one that arrived
+  cut short is approved only in its terminal. In our own Claude Code history, about 13% of shell commands can be read out.
 - **The terminal**, as always. Your Claude Code deny rules still apply. Set `"approvals": "terminal"` in
   `~/.claude-voice/config.json` to keep every prompt there.
 - **A notification's Approve**, only if you turn it on, and only for a request that could be read out.

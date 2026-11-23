@@ -39,14 +39,22 @@ With the default brain, a permission prompt is approved only when all of these h
 - The daemon read the request out itself, from what will run and not from the description the session's model wrote.
   `readout.py` says a shell command only when every part of it is on an allowlist: known programs (`git`, `rm`, `cp`,
   `grep`, `curl`, `npm test`, `pytest`, ...), each with a table of known flags, in plain pipelines. It says every program,
-  every file written, every URL's host, every git remote, and the flags that change what can be lost. Anything else
+  every file written, every URL's host, every git remote, and the flags that change what can be lost. A quoted
+  argument is said as it is when it is a plain word or path, and as "some text" only when it is a `grep` or `rg`
+  pattern or what `echo` prints; a quoted flag, or any other quoted argument, makes the request unreadable, as does a
+  flag whose value is missing (`git commit -m ; rm x`). A path whose real location (through a symlink) leaves the
+  project is said in full. Anything else
   (unknown programs or flags, `$`, backticks, globs, braces, subshells, heredocs, several lines, wrappers such as `sudo`
   or `env`, `VAR=` other than a few harmless ones, more than 25 words, or a credential-like value such as a key, a
   token or `password=`: `readout.redact`) is not read out. Two adversarial reviews found 24
   ways around earlier versions; each is now a test. File tools are read as their path. The line ends in "Should it?",
   with no consent word, so it cannot come back through the speakers as a yes.
 - A request that is not read out is approved by a tap, never by voice: the page, and the phone app, show the exact
-  request with Approve and Deny. A tap counts only for the request still pending. The terminal can answer it too.
+  request with Approve and Deny. The card leads with what runs (the tool and its input); the description the session's
+  model wrote is a separate line, at most 200 characters, marked as the agent's note on the page. Format and control
+  characters (bidi overrides, zero-width spaces) are shown as `\uXXXX`. A request that reached Pointe cut short (a
+  preview that does not parse) is marked so, and a tap can only deny it: approve it in its terminal. A tap counts only
+  for the request still pending. The terminal can answer it too.
 - It was the last thing the bot said. No model wording can open this window, and any other speech closes it. So can being
   cut off, or a change of the active session (a click, or the active session leaving). The request is then read out
   again.
@@ -141,7 +149,9 @@ or the idle timer; after 5 minutes when the link drops and does not come back). 
 request only when, on top of every rule above:
 
 - the read-out allowlist can say it whole (a credential-like value is never read out: such a request waits for a tap);
-- it loses nothing (`drive.road_safe`, its own allowlist): read-only programs, tests, `mkdir`, `touch`, `git status`,
+- it loses nothing (`drive.road_safe`, its own allowlist, of programs and of each program's flags: a flag the read-out
+  does not know for that program waits, as do git's `--upload-pack`, `--receive-pack`, `--exec` and `-c`, curl's data
+  and config flags, and `uniq` with an output file): read-only programs, tests, `mkdir`, `touch`, `git status`,
   `diff`, `log`, `show`, `fetch`, `pull`, `add`, `commit`, `push` (no force, delete, mirror, `+ref` or `:ref`, no
   `--amend`, `--no-verify`, `--rebase` or `--prune`, no `add -f`, which adds what `.gitignore` keeps out), plain `curl` GETs, and edits inside the project. `rm`, `mv`,
   `cp`, redirects into files, `git reset`, `clean`, `rebase`, `checkout`, `stash`, `npm run`, `make`, `gh` and edits
@@ -167,7 +177,9 @@ and their words are not shown or kept).
   room). With a voiceprint, a turn that strongly matches it binds the owner. Without one, a label is all Pointe has, so
   only the speaker of the words that started the meeting, or a tap on "That was me", becomes the owner; "Pointe, that's
   me" by voice never takes the seat, empty or held, before or after the room's stream reconnects. Left open: the
-  speech vendor can file a guest's turn under the owner's label, and with no voiceprint nothing catches that.
+  speech vendor can file a guest's turn under the owner's label, and with no voiceprint nothing catches that. When the
+  owner asks Pointe for its view, the room's words reach that turn as data; the brain may look up a session only if the
+  owner's own question names it, and a copy's answer passes `readout.mask` before the room or the notes get it.
 - **It is not authentication.** It is a check against the bystander (a spouse, a colleague, a TV), not an attacker: a
   recording of your voice can pass it, and a short "yes" is weakly scored (it counts on its own only after a strong
   match within a minute, on the same device's voiceprint). Measured on synthetic voices only: see

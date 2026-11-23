@@ -29,7 +29,9 @@ A spoken yes approves only when every normal rule holds (the daemon's own read-o
 120 s, nothing else said, never typed, never the bot's echo, never aimed at another session), and also:
 
 1. the read-out allowlist can say the request whole (a credential-like value is never read out);
-2. the request loses nothing (`drive.road_safe`, a second allowlist): read-only programs, tests, `mkdir`, `touch`,
+2. the request loses nothing (`drive.road_safe`, a second allowlist, of programs and of each program's flags: a flag
+   the read-out does not know for that program waits, as do git's `--upload-pack`, `--receive-pack`, `--exec` and `-c`,
+   curl's data and config flags, and `uniq` with an output file): read-only programs, tests, `mkdir`, `touch`,
    `git status`, `diff`, `log`, `show`, `fetch`, `pull`, `add`, `commit`, and `push` without force, delete, mirror,
    `+ref` or `:ref`; no `--amend`, `--no-verify`, `--rebase`, `--prune`, or `add -f`; plain `curl` GETs; and edits inside
    the project. `rm`, `mv`, `cp`, redirects into files, `git reset`, `clean`, `rebase`, `checkout`, `stash`, `npm run`,
