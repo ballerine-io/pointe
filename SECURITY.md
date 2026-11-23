@@ -328,6 +328,8 @@ The Mac with the call (the hub) keeps every rule above for them.
   accepted only while it is outstanding. Each address may try 5 codes at once, then about one a minute, checked before
   the code is compared, so one address cannot try enough to cancel the invite. After 20 wrong codes from all addresses
   together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
+  `/voice/node/pair` and `/voice/phone/pair` take no secret, so they answer 403 before reading a byte of the body
+  when no code is out, and read at most 4 kB of it when one is (413 past that).
   A guesser behind the same connector as your machine can delay it by a minute, not lock it out. Making it from the
   app needs Face ID there; the daemon makes one for any holder of the phone key (see Phone access).
   The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. It

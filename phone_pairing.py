@@ -241,7 +241,12 @@ def install(app, link: PhoneLink, page_key: str, listener,
 
     @app.post("/voice/phone/pair")
     async def phone_pair(request: Request):
-        status, answer = link.redeem(await body_of(request), request.client.host if request.client else "")
+        if not link.invites.outstanding:  # answered before a byte of the body is read
+            return PlainTextResponse(link.redeem({}, "")[1], status_code=403)
+        body = await hub_nodes.pairing_body(request)
+        if body is None:
+            return PlainTextResponse("too large", status_code=413)
+        status, answer = link.redeem(body, request.client.host if request.client else "")
         return JSONResponse(answer) if status == 200 else PlainTextResponse(answer, status_code=status)
 
     @app.get("/voice/phone/routes")
