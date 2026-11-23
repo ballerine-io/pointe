@@ -337,8 +337,11 @@ def test_results_and_pages_regenerate_from_the_rows():
     published = sorted((BENCH / "results").glob("*/results.json"))
     if not published:
         pytest.skip("no published results yet")
+    earlier = {r for e in json.loads((BENCH / "FROZEN.json").read_text()).get("earlier", []) for r in e["runs"]}
     for path in published:
         results = json.loads(path.read_text())
+        if set(results["meta"]["run_ids"]) <= earlier:
+            continue  # the result of an earlier freeze stays as it was published; its rows are still checked below
         again = report.build(results["meta"]["run_ids"])
         assert json.loads(json.dumps(again, sort_keys=True)) == results, f"{path} differs from its rows"
     latest = json.loads(published[-1].read_text())

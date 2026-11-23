@@ -54,5 +54,12 @@
   "claude_code_version": "2.1.330",
   "login_files": [],
   "usd": 0.0008783700000000001
- }
+ },
+ "leftover_at_end": {
+  "swept": 0,
+  "daemons_killed": 0,
+  "still_listening_in_range": 0
+ },
+ "finished": "2026-11-23T18:42:34+02:00",
+ "spent_usd_benchmark_total": 6.022126
 }

@@ -81,6 +81,8 @@ is invented and no recording of a person is used.
 
 ## Limits
 
+Where the time to a correct answer goes, read from the Pointe daemon logs of Part B (medians): before the fixes, the user's words to the send 2.1 s, the send to the report the voice was given 10.0 s (the agent's turn, often spent running checks the voice model had added, then the reading model), and that report to its first spoken words 4.8 s. After the fixes (`bargein-20261123-161151`): 2.5 s, 1.7 s (the question goes as asked, and a short answer skips the reading model), and 11.1 s, which is now most of it: the answer waits for the voice's own acknowledgement ("I asked quarry ...") to finish playing, and the voice model's step was slow at the time. Speaking a short answer without that acknowledgement is not done yet.
+
 Synthetic speech (four clean Kokoro voices) is an upper bound for every arm, and Kokoro is also Pointe's local voice.
 The reference arms are written by Pointe's team. Spend is computed from token usage and list prices, not metered.
 Samples are small; the intervals say how small. See RESULTS.md for the limits of the published run.

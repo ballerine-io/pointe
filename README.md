@@ -149,6 +149,10 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
 - **One voice over many sessions.** Say a session's name to talk to it or switch to it. Background sessions stay quiet
   except for "finished" or "needs approval". Ask "by the way" questions: they are answered from a read-only copy, so the
   live session is never interrupted.
+- **Stop by voice.** "Stop", "cancel that" or "hold on" ends the turn a session is working on, and "stop, and do X
+  instead" ends it and sends X. Codex and OpenCode stop at once; Claude Code offers no supported way to interrupt a
+  running turn from outside, so Pointe ends it at its next tool step and a command that is already running finishes
+  first. A stop is never taken as a yes. [docs/harnesses.md](docs/harnesses.md).
 - **Session notes.** A reading model keeps each session's goal, state, decisions, what was ruled out and what is open,
   and turns each final message into what you need to hear. [How it works](docs/how-it-works.md).
 - **Live transcript.** The page shows the conversation as it happens, the exact text of every pending request with
@@ -349,8 +353,10 @@ Not measured for any setup: a real human voice on a real call.
 **Conversational engineering benchmarks.** Five benchmarks of what talking costs a coding agent, led by Humanity's Last
 Keystroke (small coding tasks finished by voice only), with one fixed agent and synthetic speech:
 [docs/benchmarks/](docs/benchmarks/README.md), and on the [site](https://eng.ballerine.com/pointe/benchmarks/). In the
-first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most; the pages
-show by how much and why.
+first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most. Pointe
+fixed the defects it found and its arm was run again: it gained on routing (41 to 49 of 60 turns), identifiers (40 to
+42 of 48) and spoken answers (18 to 23 of 27), stayed below the baseline on most, and lost on HLK (34 to 27 of 72), a
+rerun during which the brain model was often slow. The pages show both runs, by how much and why.
 
 ## Architecture
 

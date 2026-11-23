@@ -61,8 +61,9 @@
     <li>The scripted user asks its next line after about four seconds of quiet. Pointe says an agent&#x27;s question aloud a few seconds after the agent asks it, so in some of Pointe&#x27;s failed runs the user asked its last question before Pointe had said the agent&#x27;s question, and that question went unanswered (seen in the runs&#x27; trace logs, which are not committed). This counts against Pointe; the typed arms read the terminal and cannot hit it.</li>
     <li>One item does not say all that it scores: spelled-out seed 2 spells a dunder name letter by letter and does not say its case, and the hidden test wants lower case. It stays as frozen. Passes on it: keyboard, canonical 2 of 2, keyboard, transcript 0 of 2, Pointe 0 of 2, LLM router 2 of 2, keyword rules, ours 0 of 2, null (does nothing) 0 of 1.</li>
     <li>The first-run rows ran on the benchmark at commit 5d92037. A fault of that runner (an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by the rule below, at commit 84fb244.</li>
+    <li>The Pointe arm was run again after Pointe fixed what this suite found: Pointe 84eafbc, the same agent, instances, voices, seeds and settings. The reference arms run no Pointe code; their rows come from the earlier runs (hlk-20261123-040919, hlk-20261123-085104, Pointe 6544cdc). The earlier page is kept as published in docs/benchmarks/earlier/.</li>
   </ul>
-  <p>Runs: hlk-20261123-040919, hlk-20261123-085104. Dates: 2026-11-23. Agent: claude-haiku-5-5 in Claude Code 2.1.330. Pointe commit 6544cdc403af (frozen before the first paid row, 2026-11-23). Router brain: anthropic:claude-sonnet-5-5. Spoken output of every arm is read by one pinned local Whisper (large-v3-turbo).</p>
+  <p>Runs: hlk-20261123-040919, hlk-20261123-085104, hlk-20261123-161156. Dates: 2026-11-23. Agent: claude-haiku-5-5 in Claude Code 2.1.330. Pointe commit 84eafbccc24a (frozen before its first paid row, 2026-11-23). Router brain: anthropic:claude-sonnet-5-5. Spoken output of every arm is read by one pinned local Whisper (large-v3-turbo).</p>
   <p>Every planned run finished inside the cap; nothing was trimmed.</p>
   <div class="pg-section-head"><h2 class="pg-h2">Passes per family (synthetic speech)</h2></div>
   <p>Cells are passes over runs: each paid arm ran each of the 3 instances of a family twice (6 runs); null ran once (3). A pass is: the hidden tests pass and the protected files are unchanged; for impossible-as-stated, the files are unchanged and the answer to the last question is an explicit no.</p>
@@ -74,14 +75,14 @@
       <tr><td>dictated-literals</td><td>naming</td><td>6/6</td><td>6/6</td><td>5/6</td><td>6/6</td><td>6/6</td><td>0/3</td></tr>
       <tr><td>spelled-out</td><td>naming</td><td>6/6</td><td>4/6</td><td>4/6</td><td>6/6</td><td>3/6</td><td>0/3</td></tr>
       <tr><td>noisy-paths</td><td>naming</td><td>6/6</td><td>6/6</td><td>0/6</td><td>5/6</td><td>4/6</td><td>0/3</td></tr>
-      <tr><td>self-correction</td><td>language</td><td>6/6</td><td>6/6</td><td>4/6</td><td>6/6</td><td>3/6</td><td>0/3</td></tr>
+      <tr><td>self-correction</td><td>language</td><td>6/6</td><td>6/6</td><td>3/6</td><td>6/6</td><td>3/6</td><td>0/3</td></tr>
       <tr><td>long-dictation</td><td>language</td><td>6/6</td><td>6/6</td><td>3/6</td><td>6/6</td><td>2/6</td><td>0/3</td></tr>
-      <tr><td>read-then-decide</td><td>language</td><td>6/6</td><td>6/6</td><td>0/6</td><td>6/6</td><td>6/6</td><td>0/3</td></tr>
+      <tr><td>read-then-decide</td><td>language</td><td>6/6</td><td>6/6</td><td>1/6</td><td>6/6</td><td>6/6</td><td>0/3</td></tr>
       <tr><td>deny-the-decoy</td><td>control</td><td>6/6</td><td>6/6</td><td>5/6</td><td>6/6</td><td>6/6</td><td>0/3</td></tr>
-      <tr><td>mid-task-redirect</td><td>control</td><td>6/6</td><td>5/6</td><td>3/6</td><td>0/6</td><td>0/6</td><td>0/3</td></tr>
-      <tr><td>two-repo-handoff</td><td>control</td><td>6/6</td><td>6/6</td><td>3/6</td><td>4/6</td><td>5/6</td><td>0/3</td></tr>
-      <tr><td>impossible-as-stated</td><td>control</td><td>5/6</td><td>4/6</td><td>6/6</td><td>6/6</td><td>5/6</td><td>0/3</td></tr>
-      <tr><td>all 12 families</td><td></td><td>70/72</td><td>65/72</td><td>34/72</td><td>62/72</td><td>47/72</td><td>0/36</td></tr>
+      <tr><td>mid-task-redirect</td><td>control</td><td>6/6</td><td>5/6</td><td>1/6</td><td>0/6</td><td>0/6</td><td>0/3</td></tr>
+      <tr><td>two-repo-handoff</td><td>control</td><td>6/6</td><td>6/6</td><td>1/6</td><td>4/6</td><td>5/6</td><td>0/3</td></tr>
+      <tr><td>impossible-as-stated</td><td>control</td><td>5/6</td><td>4/6</td><td>3/6</td><td>6/6</td><td>5/6</td><td>0/3</td></tr>
+      <tr><td>all 12 families</td><td></td><td>70/72</td><td>65/72</td><td>27/72</td><td>62/72</td><td>47/72</td><td>0/36</td></tr>
     </tbody>
   </table></div>
   <div class="pg-section-head"><h2 class="pg-h2">The voice gap (synthetic speech)</h2></div>
@@ -89,12 +90,12 @@
   <div class="bm-scroll"><table class="bm-table">
     <thead><tr><th>spoken arm</th><th>keyboard, canonical minus it</th><th>keyboard, transcript minus it</th></tr></thead>
     <tbody>
-      <tr><td>Pointe</td><td>+50 points (95% CI +31 to +69)</td><td>+43 points (95% CI +21 to +64)</td></tr>
+      <tr><td>Pointe</td><td>+60 points (95% CI +43 to +75)</td><td>+53 points (95% CI +35 to +69)</td></tr>
       <tr><td>LLM router</td><td>+11 points (95% CI -1 to +31)</td><td>+4 points (95% CI -11 to +22)</td></tr>
     </tbody>
   </table></div>
-  <p>Pointe minus the LLM router, paired by family: -39 points (95% CI -62 to -15).</p>
-  <p>Overall pass rates (runs, not independent; for orientation only): keyboard, canonical 70 of 72, 97% (95% CI 90 to 99%); keyboard, transcript 65 of 72, 90% (95% CI 81 to 95%); Pointe 34 of 72, 47% (95% CI 36 to 59%); LLM router 62 of 72, 86% (95% CI 76 to 92%); keyword rules, ours 47 of 72, 65% (95% CI 54 to 75%); null (does nothing) 0 of 36 (95% upper bound 10%).</p>
+  <p>Pointe minus the LLM router, paired by family: -49 points (95% CI -65 to -31).</p>
+  <p>Overall pass rates (runs, not independent; for orientation only): keyboard, canonical 70 of 72, 97% (95% CI 90 to 99%); keyboard, transcript 65 of 72, 90% (95% CI 81 to 95%); Pointe 27 of 72, 38% (95% CI 27 to 49%); LLM router 62 of 72, 86% (95% CI 76 to 92%); keyword rules, ours 47 of 72, 65% (95% CI 54 to 75%); null (does nothing) 0 of 36 (95% upper bound 10%).</p>
   <div class="pg-section-head"><h2 class="pg-h2">Claims at the end of the task, paired (synthetic speech)</h2></div>
   <p>Every task ends with &quot;Is it done, and do the tests pass? Yes or no.&quot; False done is a yes on a run that failed, over the failed runs; false not done is a no on a run that passed, over the passed runs. The denominators are small, so this is not a robust number. An answer that cannot be read is no claim.</p>
   <div class="bm-scroll"><table class="bm-table">
@@ -102,7 +103,7 @@
     <tbody>
       <tr><td>keyboard, canonical</td><td>2 of 2, 100% (95% CI 34 to 100%)</td><td>9 of 70, 13% (95% CI 7 to 23%)</td><td>0</td></tr>
       <tr><td>keyboard, transcript</td><td>6 of 7, 86% (95% CI 49 to 97%)</td><td>10 of 65, 15% (95% CI 9 to 26%)</td><td>0</td></tr>
-      <tr><td>Pointe</td><td>10 of 38, 26% (95% CI 15 to 42%)</td><td>14 of 34, 41% (95% CI 26 to 58%)</td><td>5</td></tr>
+      <tr><td>Pointe</td><td>3 of 45, 7% (95% CI 2 to 18%)</td><td>11 of 27, 41% (95% CI 25 to 59%)</td><td>29</td></tr>
       <tr><td>LLM router</td><td>8 of 10, 80% (95% CI 49 to 94%)</td><td>14 of 62, 23% (95% CI 14 to 34%)</td><td>2</td></tr>
       <tr><td>keyword rules, ours</td><td>20 of 25, 80% (95% CI 61 to 91%)</td><td>13 of 47, 28% (95% CI 17 to 42%)</td><td>1</td></tr>
       <tr><td>null (does nothing)</td><td>0 of 36 (95% upper bound 10%)</td><td>n = 0</td><td>36</td></tr>
@@ -114,14 +115,16 @@
     <tbody>
       <tr><td>keyboard, canonical</td><td>34/36</td><td>2/36</td><td>0.03</td><td>0.00</td><td>32 s / 54 s</td><td>$0.003</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
       <tr><td>keyboard, transcript</td><td>31/36</td><td>3/36</td><td>0.06</td><td>0.00</td><td>33 s / 54 s</td><td>$0.003</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-      <tr><td>Pointe</td><td>13/36</td><td>8/36</td><td>0.10</td><td>0.04</td><td>149 s / 220 s</td><td>$0.236</td><td>0</td><td>0</td><td>0</td><td>66</td></tr>
+      <tr><td>Pointe</td><td>7/36</td><td>13/36</td><td>0.08</td><td>0.47</td><td>178 s / 256 s</td><td>$0.199</td><td>0</td><td>0</td><td>0</td><td>48</td></tr>
       <tr><td>LLM router</td><td>30/36</td><td>2/36</td><td>0.03</td><td>0.03</td><td>171 s / 314 s</td><td>$0.013</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
       <tr><td>keyword rules, ours</td><td>21/36</td><td>5/36</td><td>0.08</td><td>0.08</td><td>171 s / 264 s</td><td>$0.004</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
       <tr><td>null (does nothing)</td><td>n/a</td><td>n/a</td><td>0.00</td><td>0.92</td><td>27 s / 32 s</td><td>$0.000</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
     </tbody>
   </table></div>
   <p>pass^2: instances whose two runs both passed. Flips: instances whose two runs disagree. A clarification is a question the item foresaw, answered (no penalty); a corrective turn is a repeated instruction. Capped runs (12 user turns, 10 minutes, or $0.60) count as failures. Invalid runs named a path outside the item&#x27;s folder in a tool call and are excluded from the passes. Errors are runs the harness could not finish; they count as failures.</p>
-  <p>Where Pointe lost runs: in 33 of its 38 failed runs at least one spoken yes did not take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. In 24 of those 33 the agent changed no file, so the work stopped at the refusal or after it. In the other 9 the agent had already changed files and the hidden tests still failed: there the instruction as Pointe passed it on was often wrong (in twin-symbols, &quot;a value that ends in s&quot; reached the agent as ending in &quot;S&quot;, and its code checks for a capital S). 20 runs passed despite such a refusal. The other arms act on a spoken yes for any command: they have no such guard.</p>
+  <p>Where Pointe lost runs: in 31 of its 45 failed runs at least one spoken yes did not take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. In 22 of those 31 the agent changed no file, so the work stopped at the refusal or after it. In the other 9 the agent had already changed files and the hidden tests still failed. 13 runs passed despite such a refusal. The other arms act on a spoken yes for any command: they have no such guard.</p>
+  <p>The brain model was slow during the Pointe runs: in 26 of 72 its step passed Pointe&#x27;s 8 s limit (its fallback&#x27;s too) and Pointe said &quot;The model took too long to answer&quot;; in the earlier Pointe runs, 3 of 72. Those runs measure the vendor&#x27;s latency at the time as much as Pointe.</p>
+  <p>Permission requests Pointe put to the user: 28 read out, which a spoken yes can approve, and 44 tap-only; in the earlier Pointe runs, 9 and 61.</p>
   <p>Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the runner credited an answer to the wrong request, or the agent made no step for 8 minutes was rerun once with the same voice and run index, by that rule and in every arm. Reruns: keyboard, transcript 1, LLM router 1. The first rows stay in the raw data.</p>
   <div class="pg-section-head"><h2 class="pg-h2">Passes by stressor group (synthetic speech)</h2></div>
   <div class="bm-scroll"><table class="bm-table">
@@ -129,7 +132,7 @@
     <tbody>
       <tr><td>naming</td><td>29/30</td><td>26/30</td><td>10/30</td><td>28/30</td><td>20/30</td><td>0/15</td></tr>
       <tr><td>language</td><td>18/18</td><td>18/18</td><td>7/18</td><td>18/18</td><td>11/18</td><td>0/9</td></tr>
-      <tr><td>control</td><td>23/24</td><td>21/24</td><td>17/24</td><td>16/24</td><td>16/24</td><td>0/12</td></tr>
+      <tr><td>control</td><td>23/24</td><td>21/24</td><td>10/24</td><td>16/24</td><td>16/24</td><td>0/12</td></tr>
     </tbody>
   </table></div>
   <div class="pg-section-head"><h2 class="pg-h2">Unpublished seeds, an overfit check (synthetic speech)</h2></div>
@@ -138,7 +141,7 @@
     <thead><tr><th>arm</th><th>passes</th></tr></thead>
     <tbody>
       <tr><td>keyboard, canonical</td><td>12 of 12, 100% (95% CI 76 to 100%)</td></tr>
-      <tr><td>Pointe</td><td>4 of 12, 33% (95% CI 14 to 61%)</td></tr>
+      <tr><td>Pointe</td><td>6 of 12, 50% (95% CI 25 to 75%)</td></tr>
     </tbody>
   </table></div>
   <div class="pg-section-head"><h2 class="pg-h2">How it was measured</h2></div>
@@ -155,7 +158,7 @@
 uv run --locked --extra local python bench/conversational/hlk/run.py verify
 uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3</code></pre>
   <p>An adapter implements start, say, type, key, events, speech, versions, spend and stop (bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better router prompt is welcome as a pull request. Family authors so far: the Pointe team.</p>
-  <p>Spend: $24.35 for HLK in all (smoke and debugging included; cap $55), computed from usage and list prices in bench/conversational/hlk/prices.json. Raw rows and the final files of every published run (run.py verify re-scores them): bench/conversational/hlk/results/. Text and tasks CC BY 4.0, code MIT.</p>
+  <p>Spend: $43.11 for HLK in all (smoke and debugging included; cap $55), computed from usage and list prices in bench/conversational/hlk/prices.json. Raw rows and the final files of every published run (run.py verify re-scores them): bench/conversational/hlk/results/. Text and tasks CC BY 4.0, code MIT.</p>
 </main>
 <footer class="pg-wrap"><p>Pointe <span data-version>1.21.3</span>. Written by bench/conversational/hlk/run.py report from the committed rows.</p></footer>
 </body>
