@@ -1,0 +1,37 @@
+{
+ "run_id": "act-20261123-030636",
+ "benchmark": "actions",
+ "kind": "debug",
+ "started": "2026-11-23T03:06:39+0200",
+ "repo_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "frozen": null,
+ "claude_code": "2.1.330",
+ "agent_model": "claude-haiku-5-5",
+ "arms": [
+  "pointe",
+  "llm-router"
+ ],
+ "seed": 7,
+ "workers": 2,
+ "budget_usd": 17.0,
+ "audio_matches_lock": true,
+ "router_model": "anthropic:claude-sonnet-5-5",
+ "preflight": {
+  "api_key_source": "ANTHROPIC_API_KEY",
+  "permission_mode": "default",
+  "plugins": [],
+  "builtin_plugins": [
+   "cc-plugin-agents-md",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "ok": true
+ },
+ "items_version": 1,
+ "planned_runs": 12,
+ "finished": "2026-11-23T03:13:01+0200",
+ "killed_at_end": 0,
+ "owner_link_unchanged": true,
+ "spent_actions_total": 0.411333
+}
