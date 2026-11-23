@@ -21,7 +21,7 @@ or any server that speaks OpenAI's API over https. The key stays in the Keychain
 
    `CLAUDE_VOICE_OPENAI_URL` does the same as `openai_url` for one shell. For Azure OpenAI the address is your
    resource's v1 address, and the name after `openai:` is the deployment name, not the model's.
-3. `pointe key check openai` makes one tiny call to the checker you named. `bin/voice-doctor` shows the host.
+3. `pointe key check openai` makes one tiny call to the checker you named. `pointe doctor` shows the host.
 
 `pointe setup <id>` writes the roles of the setup you choose, so it replaces `brain`, `reader` and `checker`; set them
 again after switching setups.

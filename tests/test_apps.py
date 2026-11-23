@@ -451,3 +451,17 @@ def test_people_build_the_apps_with_the_installed_pointe_and_only_contributors_w
     wrong = [f"{p.relative_to(ROOT)}:{n}" for p in paths for n, line in enumerate(p.read_text().splitlines(), 1)
              if re.search(r"(?<![\w/{}$])bin/pointe apps", line) and "ontributors" not in line]
     assert not wrong, "say `pointe apps` (the installed command), or address the line to contributors:\n" + "\n".join(wrong)
+
+
+def test_the_docs_give_an_installed_user_the_pointe_command_not_a_clones_bin():
+    """Setup puts `pointe` on the PATH; `bin/…` exists only in a clone. A line may name `bin/pointe` or `bin/voice-doctor`
+    only where it says it is for a clone."""
+    import re
+    bare = []
+    for rel in ("README.md", "docs/phone.md", "docs/mac-app.md", "docs/install.md", "docs/features/openai-url.md",
+                "site/pointe/index.html", "site/pointe/features/index.html"):
+        for n, line in enumerate((ROOT / rel).read_text().splitlines(), 1):
+            if re.search(r"(?<![\w./~])bin/(pointe|voice-doctor)\b(?!-)", line) and "clone" not in line and "plugin's" not in line:
+                bare.append(f"{rel}:{n}: {line.strip()[:100]}")
+    assert bare == []
+

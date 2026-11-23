@@ -155,6 +155,17 @@ def test_the_install_docs_and_the_readme_say_what_it_does_to_your_mac():
         assert re.search(r"pointe\.<vendor>-api-key|pointe\.gemini-api-key", box), doc
 
 
+def test_the_install_docs_describe_the_pointe_script_and_the_uv_paths_as_they_are(tmp_path, mac):
+    home = tmp_path / "linkhome"
+    subprocess.run([str(LINK)], env={"HOME": str(home), "PATH": "/usr/bin:/bin"}, capture_output=True, text=True)
+    lines = len((home / ".local" / "bin" / "pointe").read_text().splitlines())
+    install = " ".join((ROOT / "docs" / "install.md").read_text().split())
+    assert f"a {['zero', 'one', 'two', 'three', 'four'][lines]}-line script" in install
+    hint = next(line for line in run(mac, "--dry-run").stdout.splitlines() if line.startswith("Kept: uv"))
+    for path in ("~/.local/bin/uv", "~/.local/bin/uvx", "~/.local/share/uv"):
+        assert path in hint and path in install, path
+
+
 @pytest.mark.skipif(not Path("/usr/bin/python3").exists(), reason="macOS's own python3")
 def test_uninstall_runs_on_the_python_macos_ships(mac):
     """bin/pointe runs it with the python3 on the PATH, which on a new Mac is Apple's 3.9: the clean-install run found

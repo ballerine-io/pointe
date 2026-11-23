@@ -138,7 +138,7 @@ name no free credit.
 - Your keys, in the macOS Keychain only, as `pointe.gemini-api-key`, `pointe.anthropic-api-key` and so on
   (`pointe key <vendor>` opens the window again). A key saved before 1.20.0 keeps its plain name (`gemini-api-key`)
   and still works.
-- `~/.local/bin/pointe`, a two-line script that runs the plugin's `bin/pointe`, so `pointe` is a command in a new
+- `~/.local/bin/pointe`, a three-line script that runs the plugin's `bin/pointe`, so `pointe` is a command in a new
   terminal. Each start of Pointe points it at the plugin's current version. One you made yourself is never replaced.
 - Only if you choose a local setup: local libraries (about 290 MB to download, 1.1 GB on disk) in the plugin's folder,
   and models in `~/.cache/huggingface`. "Voice stays on your Mac" adds 2 GB of models. "Fully local" adds 17.7 GB, and

@@ -219,7 +219,7 @@ With `openai_url` set, the OpenAI text models are served by a host you choose (A
 receives what the brain, reader and gate vendors would, over https only, and the OpenAI key is sent there and never to
 OpenAI, so OpenAI's audio services are refused. See [docs/features/openai-url.md](docs/features/openai-url.md).
 
-Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
+Choose vendors you are allowed to send that content to. `pointe doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
 
 **No telemetry from its libraries either.** onnxruntime, which runs the voice detector, the voice lock and kokoro-onnx,

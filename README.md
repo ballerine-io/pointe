@@ -304,7 +304,7 @@ wins). A role you do not set takes the first vendor with a key.
 
 The defaults are the first vendor with a key; a chosen setup (`pointe setup <id>`) uses only its own vendors. Each
 setup's measured result, speed, cost and where your words go, with the file and row of every number:
-[docs/setups.md](docs/setups.md). `bin/voice-doctor` tells you which setup you are on.
+[docs/setups.md](docs/setups.md). `pointe doctor` tells you which setup you are on.
 
 **Fully local:** `pointe local` downloads and starts Whisper (ears), Kokoro (mouth) and Gemma 4 26B A4B (brain,
 reader and gate) on this Mac, and reads no key. On an M5 Pro with 64 GB, the brain passed 76.9% of 78 cases (Sonnet
