@@ -1,0 +1,19 @@
+{"adapter": "pointe", "how": "computed", "item": "deny-the-decoy-2", "role": "agent", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "session": "depot", "usd": 0.00264, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "deny-the-decoy-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.06803, "vendor": "anthropic", "what": "7 brain steps from daemon.log"}
+{"adapter": "pointe", "how": "computed", "item": "deny-the-decoy-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.04, "vendor": "anthropic", "what": "4 reader reports"}
+{"adapter": "pointe", "how": "computed", "item": "deny-the-decoy-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.0005, "vendor": "gemini", "what": "1 checker lines"}
+{"adapter": "pointe", "how": "computed", "item": "deny-the-decoy-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.01496, "vendor": "elevenlabs", "what": "374 chars"}
+{"adapter": "pointe", "how": "computed", "item": "deny-the-decoy-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.04142, "vendor": "soniox", "what": "2 streams x 621 s"}
+{"adapter": "pointe", "how": "computed", "item": "mid-task-redirect-2", "role": "agent", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "session": "saffron", "usd": 0.00335, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "mid-task-redirect-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.0869, "vendor": "anthropic", "what": "9 brain steps from daemon.log"}
+{"adapter": "pointe", "how": "computed", "item": "mid-task-redirect-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.05, "vendor": "anthropic", "what": "5 reader reports"}
+{"adapter": "pointe", "how": "computed", "item": "mid-task-redirect-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.0005, "vendor": "gemini", "what": "1 checker lines"}
+{"adapter": "pointe", "how": "computed", "item": "mid-task-redirect-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.00624, "vendor": "elevenlabs", "what": "156 chars"}
+{"adapter": "pointe", "how": "computed", "item": "mid-task-redirect-2", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.04167, "vendor": "soniox", "what": "2 streams x 625 s"}
+{"adapter": "pointe", "how": "computed", "item": "two-repo-handoff-1", "role": "agent", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "session": "kiln", "usd": 0.00342, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "two-repo-handoff-1", "role": "agent", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "session": "cobalt", "usd": 0.0019, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "two-repo-handoff-1", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.06502, "vendor": "anthropic", "what": "6 brain steps from daemon.log"}
+{"adapter": "pointe", "how": "computed", "item": "two-repo-handoff-1", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.06, "vendor": "anthropic", "what": "6 reader reports"}
+{"adapter": "pointe", "how": "computed", "item": "two-repo-handoff-1", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.0005, "vendor": "gemini", "what": "1 checker lines"}
+{"adapter": "pointe", "how": "computed", "item": "two-repo-handoff-1", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.01028, "vendor": "elevenlabs", "what": "257 chars"}
+{"adapter": "pointe", "how": "computed", "item": "two-repo-handoff-1", "role": "pointe", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "usd": 0.0425, "vendor": "soniox", "what": "2 streams x 638 s"}

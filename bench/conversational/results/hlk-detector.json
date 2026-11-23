@@ -1,0 +1,345 @@
+{
+ "lines": 48,
+ "correct": 48,
+ "accuracy": 1.0,
+ "rows": [
+  {
+   "text": "Which file did you mean, cache dot py or cash dot py?",
+   "question": true,
+   "voice": "af_heart",
+   "heard": "Which file did you mean? Cache.py or cache.py?",
+   "predicted": true
+  },
+  {
+   "text": "Should I run the tests now?",
+   "question": true,
+   "voice": "am_michael",
+   "heard": "Should I run the tests now?",
+   "predicted": true
+  },
+  {
+   "text": "Do you want me to update the imports too?",
+   "question": true,
+   "voice": "bf_emma",
+   "heard": "Do you want me to update the imports too?",
+   "predicted": true
+  },
+  {
+   "text": "Would you like me to fix the other two as well?",
+   "question": true,
+   "voice": "bm_george",
+   "heard": "Would you like me to fix the other two as well?",
+   "predicted": true
+  },
+  {
+   "text": "I couldn't find gauge v two dot py. Did you mean gauge dot py?",
+   "question": true,
+   "voice": "af_heart",
+   "heard": "I couldn't find gauge V2 dot pi. Did you mean gauge dot pi?",
+   "predicted": true
+  },
+  {
+   "text": "Which session should get this, tariff or depot?",
+   "question": true,
+   "voice": "am_michael",
+   "heard": "Which session should get this, tariff or depot?",
+   "predicted": true
+  },
+  {
+   "text": "Can you confirm the new name?",
+   "question": true,
+   "voice": "bf_emma",
+   "heard": "Can you confirm the new name?",
+   "predicted": true
+  },
+  {
+   "text": "Is that the snake case one or the camel case one?",
+   "question": true,
+   "voice": "bm_george",
+   "heard": "Is that the snake case one or the camel case one?",
+   "predicted": true
+  },
+  {
+   "text": "What should the timeout be in milliseconds?",
+   "question": true,
+   "voice": "af_heart",
+   "heard": "What should the timeout be in milliseconds?",
+   "predicted": true
+  },
+  {
+   "text": "How many decimal places do you want for the mean?",
+   "question": true,
+   "voice": "am_michael",
+   "heard": "How many decimal places do you want for the mean?",
+   "predicted": true
+  },
+  {
+   "text": "Shall I go ahead and rename it everywhere?",
+   "question": true,
+   "voice": "bf_emma",
+   "heard": "Shall I go ahead and rename it everywhere?",
+   "predicted": true
+  },
+  {
+   "text": "Do you mean compute charge or compute levy?",
+   "question": true,
+   "voice": "bm_george",
+   "heard": "Do you mean compute charge or compute levy?",
+   "predicted": true
+  },
+  {
+   "text": "Where should the new package go?",
+   "question": true,
+   "voice": "af_heart",
+   "heard": "Where should the new package go?",
+   "predicted": true
+  },
+  {
+   "text": "Should this change only the api package?",
+   "question": true,
+   "voice": "am_michael",
+   "heard": "Should this change only the API package?",
+   "predicted": true
+  },
+  {
+   "text": "The test file contradicts itself. Do you want me to change it?",
+   "question": true,
+   "voice": "bf_emma",
+   "heard": "The test file contradicts itself, do you want me to change it?",
+   "predicted": true
+  },
+  {
+   "text": "Want me to run cleanup dot s h now?",
+   "question": true,
+   "voice": "bm_george",
+   "heard": "Want me to run cleanup.sh now?",
+   "predicted": true
+  },
+  {
+   "text": "Okay. Which one of the three tests should I fix?",
+   "question": true,
+   "voice": "af_heart",
+   "heard": "Okay, which one of the three tests should I fix?",
+   "predicted": true
+  },
+  {
+   "text": "Tariff wants to run python three dash m unittest. Should it?",
+   "question": true,
+   "voice": "am_michael",
+   "heard": "Tariff wants to run Python 3-MUnitist. Should it?",
+   "predicted": true
+  },
+  {
+   "text": "I found two functions with that name. Which one did you mean?",
+   "question": true,
+   "voice": "bf_emma",
+   "heard": "I found two functions with that name. Which one did you mean?",
+   "predicted": true
+  },
+  {
+   "text": "Are you sure you want to delete the data folder?",
+   "question": true,
+   "voice": "bm_george",
+   "heard": "Are you sure you want to delete the data folder?",
+   "predicted": true
+  },
+  {
+   "text": "Did you want the version as three point twelve point zero?",
+   "question": true,
+   "voice": "af_heart",
+   "heard": "Did you want the version as 3.12.0?",
+   "predicted": true
+  },
+  {
+   "text": "There is no function called nimbus total. What would you like me to do?",
+   "question": true,
+   "voice": "am_michael",
+   "heard": "There is no function called Nimbus Total. What would you like me to do?",
+   "predicted": true
+  },
+  {
+   "text": "Could you spell the name again?",
+   "question": true,
+   "voice": "bf_emma",
+   "heard": "Could you spell the name again?",
+   "predicted": true
+  },
+  {
+   "text": "Before I start, do you want me to keep the old name as well?",
+   "question": true,
+   "voice": "bm_george",
+   "heard": "Before I start, do you want me to keep the old name as well?",
+   "predicted": true
+  },
+  {
+   "text": "Done. All the tests pass.",
+   "question": false,
+   "voice": "af_heart",
+   "heard": "Done, all the tests pass.",
+   "predicted": false
+  },
+  {
+   "text": "I renamed the function in the api package.",
+   "question": false,
+   "voice": "am_michael",
+   "heard": "I rename the function in the API package.",
+   "predicted": false
+  },
+  {
+   "text": "The limit in cash dot py is now twenty five.",
+   "question": false,
+   "voice": "bf_emma",
+   "heard": "The limit in cash.py is now 25.",
+   "predicted": false
+  },
+  {
+   "text": "Three tests are failing: units, timing and words.",
+   "question": false,
+   "voice": "bm_george",
+   "heard": "Three tests are failing, units, timing and words.",
+   "predicted": false
+  },
+  {
+   "text": "I moved the module and fixed every import.",
+   "question": false,
+   "voice": "af_heart",
+   "heard": "I moved the module and fixed every import.",
+   "predicted": false
+  },
+  {
+   "text": "I stopped the rename and added a wrapper in utils dot py.",
+   "question": false,
+   "voice": "am_michael",
+   "heard": "I stopped the rename and added a wrapper in utils.py.",
+   "predicted": false
+  },
+  {
+   "text": "There is no function called nimbus total, so I changed nothing.",
+   "question": false,
+   "voice": "bf_emma",
+   "heard": "There is no function called Nimbus Total, so I changed nothing.",
+   "predicted": false
+  },
+  {
+   "text": "The tests in test ratio dot py contradict each other, so this cannot be done as stated.",
+   "question": false,
+   "voice": "bm_george",
+   "heard": "The tests in test ratio dot pi contradict each other, so this cannot be done as stated.",
+   "predicted": false
+  },
+  {
+   "text": "Tariff finished its turn.",
+   "question": false,
+   "voice": "af_heart",
+   "heard": "Tara finished its turn.",
+   "predicted": false
+  },
+  {
+   "text": "I sent that to depot.",
+   "question": false,
+   "voice": "am_michael",
+   "heard": "I sent that to depot.",
+   "predicted": false
+  },
+  {
+   "text": "Okay, I'll fix only the one about counting words.",
+   "question": false,
+   "voice": "bf_emma",
+   "heard": "Okay, I'll fix only the one about counting words.",
+   "predicted": false
+  },
+  {
+   "text": "The cleanup script was not run.",
+   "question": false,
+   "voice": "bm_george",
+   "heard": "The cleanup script was not run.",
+   "predicted": false
+  },
+  {
+   "text": "Got it, working on it now.",
+   "question": false,
+   "voice": "af_heart",
+   "heard": "Got it working on it now.",
+   "predicted": false
+  },
+  {
+   "text": "No, it is not done yet.",
+   "question": false,
+   "voice": "am_michael",
+   "heard": "No, it is not done yet.",
+   "predicted": false
+  },
+  {
+   "text": "Yes, it is done and the tests pass.",
+   "question": false,
+   "voice": "bf_emma",
+   "heard": "Yes, it is done and the tests pass.",
+   "predicted": false
+  },
+  {
+   "text": "I updated config dot py with the three values.",
+   "question": false,
+   "voice": "bm_george",
+   "heard": "I updated config.py with the three values.",
+   "predicted": false
+  },
+  {
+   "text": "The new constant is set to seven.",
+   "question": false,
+   "voice": "af_heart",
+   "heard": "The new constant is set to 7.",
+   "predicted": false
+  },
+  {
+   "text": "Let me know if you need anything else.",
+   "question": false,
+   "voice": "am_michael",
+   "heard": "Let me know if you need anything else.",
+   "predicted": false
+  },
+  {
+   "text": "All set. The field is now customer id in both repositories.",
+   "question": false,
+   "voice": "bf_emma",
+   "heard": "All set, the field is now customer ID in both repositories.",
+   "predicted": false
+  },
+  {
+   "text": "I added the function stack summary with all six requirements.",
+   "question": false,
+   "voice": "bm_george",
+   "heard": "I added the function stack summary with all six requirements.",
+   "predicted": false
+  },
+  {
+   "text": "The camel case version in compat dot py is unchanged.",
+   "question": false,
+   "voice": "af_heart",
+   "heard": "The CamelCase version in Compat.py is unchanged.",
+   "predicted": false
+  },
+  {
+   "text": "Running the tests now.",
+   "question": false,
+   "voice": "am_michael",
+   "heard": "Running the tests now.",
+   "predicted": false
+  },
+  {
+   "text": "Sure, I'll leave the batch package alone.",
+   "question": false,
+   "voice": "bf_emma",
+   "heard": "Sure, I'll leave the batch package alone.",
+   "predicted": false
+  },
+  {
+   "text": "Everything is in place and nothing else was changed.",
+   "question": false,
+   "voice": "bm_george",
+   "heard": "Everything is in place and nothing else was changed.",
+   "predicted": false
+  }
+ ],
+ "recognizer": "mlx-community/whisper-large-v3-turbo (assets.py pin)",
+ "tts": "Kokoro-82M v1.0"
+}

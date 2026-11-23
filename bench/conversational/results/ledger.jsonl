@@ -1,0 +1,104 @@
+{"adapter": "echo", "benchmark": "hlk", "item": "twin-symbols-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:45:23+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "twin-symbols-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:45:31+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "twin-symbols-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:45:38+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "homophone-files-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:45:45+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "homophone-files-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:45:52+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "homophone-files-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:45:59+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:06+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "dictated-literals-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:14+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "dictated-literals-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:21+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "spelled-out-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:28+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "spelled-out-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:35+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "spelled-out-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:42+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "noisy-paths-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:49+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "noisy-paths-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:46:56+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "noisy-paths-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:04+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "self-correction-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:11+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "self-correction-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:18+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "self-correction-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:25+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "long-dictation-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:32+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "long-dictation-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:39+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "long-dictation-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:46+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "read-then-decide-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:47:57+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "read-then-decide-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:48:07+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "read-then-decide-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:48:17+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "deny-the-decoy-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:48:24+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "deny-the-decoy-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:48:31+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "deny-the-decoy-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:48:39+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "mid-task-redirect-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:48:48+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "mid-task-redirect-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:48:57+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "mid-task-redirect-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:49:06+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "two-repo-handoff-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:49:06+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:49:06+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "two-repo-handoff-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:49:06+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "impossible-as-stated-0", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:49:13+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "impossible-as-stated-1", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:49:21+0200", "usd": 0}
+{"adapter": "echo", "benchmark": "hlk", "item": "impossible-as-stated-2", "kind": "debug", "run_id": "hlk-test-echo", "run_index": 0, "t": "2026-11-23T02:49:28+0200", "usd": 0}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-024958", "t": "2026-11-23T02:50:03+0200", "usd": 0.000878245}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-024958", "run_index": 0, "t": "2026-11-23T02:50:37+0200", "usd": 0.00219}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-025055", "t": "2026-11-23T02:50:59+0200", "usd": 0.000878245}
+{"adapter": "null", "benchmark": "hlk", "item": "impossible-as-stated-2", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:51:24+0200", "usd": 0}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "deny-the-decoy-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:51:33+0200", "usd": 0.00262}
+{"adapter": "null", "benchmark": "hlk", "item": "deny-the-decoy-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:51:47+0200", "usd": 0}
+{"adapter": "null", "benchmark": "hlk", "item": "noisy-paths-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:52:10+0200", "usd": 0}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "noisy-paths-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:52:17+0200", "usd": 0.00434}
+{"adapter": "null", "benchmark": "hlk", "item": "read-then-decide-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:52:44+0200", "usd": 0}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "read-then-decide-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:52:55+0200", "usd": 0.00399}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "impossible-as-stated-2", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:53:05+0200", "usd": 0.00139}
+{"adapter": "null", "benchmark": "hlk", "item": "mid-task-redirect-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:53:23+0200", "usd": 0}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "mid-task-redirect-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:53:27+0200", "usd": 0.00394}
+{"adapter": "null", "benchmark": "hlk", "item": "two-repo-handoff-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:54:02+0200", "usd": 0}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "two-repo-handoff-0", "kind": "debug", "run_id": "hlk-debug-20261123-025055", "run_index": 0, "t": "2026-11-23T02:54:05+0200", "usd": 0.00501}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-025602", "t": "2026-11-23T02:56:08+0200", "usd": 0.000878245}
+{"adapter": "naive", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-025602", "run_index": 0, "t": "2026-11-23T02:56:21+0200", "usd": 0.0}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-025602", "run_index": 0, "t": "2026-11-23T02:56:21+0200", "usd": 0.0}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-025630", "t": "2026-11-23T02:56:35+0200", "usd": 0.000878245}
+{"adapter": "naive", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-025630", "run_index": 0, "t": "2026-11-23T03:06:49+0200", "usd": 0.00253}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-025630", "run_index": 0, "t": "2026-11-23T03:07:00+0200", "usd": 0.0043}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-030804", "t": "2026-11-23T03:08:09+0200", "usd": 0.000878245}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-030804", "run_index": 0, "t": "2026-11-23T03:08:35+0200", "usd": 0.00202}
+{"adapter": "naive", "benchmark": "hlk", "item": "deny-the-decoy-1", "kind": "debug", "run_id": "hlk-debug-20261123-030804", "run_index": 0, "t": "2026-11-23T03:09:52+0200", "usd": 0.00442}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "deny-the-decoy-1", "kind": "debug", "run_id": "hlk-debug-20261123-030804", "run_index": 0, "t": "2026-11-23T03:12:19+0200", "usd": 0.01334}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "deny-the-decoy-1", "kind": "debug", "run_id": "hlk-debug-20261123-030804", "run_index": 0, "t": "2026-11-23T03:12:55+0200", "usd": 0.00391}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-030804", "run_index": 0, "t": "2026-11-23T03:18:24+0200", "usd": 0.0046}
+{"adapter": "naive", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-030804", "run_index": 0, "t": "2026-11-23T03:18:24+0200", "usd": 0.00235}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-031855", "t": "2026-11-23T03:19:00+0200", "usd": 0.000878245}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-032244", "t": "2026-11-23T03:22:48+0200", "usd": 0.000878245}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-032244", "run_index": 0, "t": "2026-11-23T03:23:15+0200", "usd": 0.00215}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-032244", "run_index": 0, "t": "2026-11-23T03:24:26+0200", "usd": 0.00669}
+{"adapter": "naive", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-032244", "run_index": 0, "t": "2026-11-23T03:24:29+0200", "usd": 0.00279}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "mid-task-redirect-1", "kind": "debug", "run_id": "hlk-debug-20261123-032244", "run_index": 0, "t": "2026-11-23T03:25:13+0200", "usd": 0.00467}
+{"adapter": "naive", "benchmark": "hlk", "item": "mid-task-redirect-1", "kind": "debug", "run_id": "hlk-debug-20261123-032244", "run_index": 0, "t": "2026-11-23T03:27:36+0200", "usd": 0.00597}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "mid-task-redirect-1", "kind": "debug", "run_id": "hlk-debug-20261123-032244", "run_index": 0, "t": "2026-11-23T03:28:31+0200", "usd": 0.01978}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-032905", "t": "2026-11-23T03:29:10+0200", "usd": 0.000878245}
+{"adapter": "pointe", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-032905", "run_index": 0, "t": "2026-11-23T03:31:07+0200", "usd": 0.06044}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-033158", "t": "2026-11-23T03:32:02+0200", "usd": 0.000878245}
+{"adapter": "pointe", "benchmark": "hlk", "item": "deny-the-decoy-2", "kind": "debug", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "t": "2026-11-23T03:42:40+0200", "usd": 0.16754}
+{"adapter": "pointe", "benchmark": "hlk", "item": "mid-task-redirect-2", "kind": "debug", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "t": "2026-11-23T03:42:45+0200", "usd": 0.18867}
+{"adapter": "pointe", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "debug", "run_id": "hlk-debug-20261123-033158", "run_index": 0, "t": "2026-11-23T03:43:09+0200", "usd": 0.18362}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-034520", "t": "2026-11-23T03:45:24+0200", "usd": 0.000878245}
+{"adapter": "pointe", "benchmark": "hlk", "item": "deny-the-decoy-2", "kind": "debug", "run_id": "hlk-debug-20261123-034520", "run_index": 0, "t": "2026-11-23T03:47:54+0200", "usd": 0.18363}
+{"adapter": "pointe", "benchmark": "hlk", "item": "mid-task-redirect-2", "kind": "debug", "run_id": "hlk-debug-20261123-034520", "run_index": 0, "t": "2026-11-23T03:48:22+0200", "usd": 0.20459}
+{"adapter": "pointe", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "debug", "run_id": "hlk-debug-20261123-034520", "run_index": 0, "t": "2026-11-23T03:48:46+0200", "usd": 0.24582}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-smoke-20261123-034932", "t": "2026-11-23T03:49:36+0200", "usd": 0.0008786200000000001}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:50:01+0200", "usd": 0.00203}
+{"adapter": "null", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:50:03+0200", "usd": 0}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:51:42+0200", "usd": 0.0067}
+{"adapter": "naive", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:52:33+0200", "usd": 0.00309}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:53:24+0200", "usd": 0.00493}
+{"adapter": "pointe", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:53:24+0200", "usd": 0.16421}
+{"adapter": "null", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:54:07+0200", "usd": 0}
+{"adapter": "keyboard-transcript", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:54:25+0200", "usd": 0.00657}
+{"adapter": "llm-router", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:56:55+0200", "usd": 0.0102}
+{"adapter": "naive", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:58:05+0200", "usd": 0.00727}
+{"adapter": "keyboard-transcript", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T03:59:50+0200", "usd": 0.00155}
+{"adapter": "pointe", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "smoke", "run_id": "hlk-smoke-20261123-034932", "run_index": 0, "t": "2026-11-23T04:01:09+0200", "usd": 0.32776}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-040112", "t": "2026-11-23T04:01:19+0200", "usd": 0.000878245}
+{"adapter": "keyboard-transcript", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "t": "2026-11-23T04:01:53+0200", "usd": 0.00231}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "dictated-literals-0", "kind": "debug", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "t": "2026-11-23T04:01:54+0200", "usd": 0.00238}
+{"adapter": "keyboard-transcript", "benchmark": "hlk", "item": "impossible-as-stated-1", "kind": "debug", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "t": "2026-11-23T04:01:56+0200", "usd": 0.00232}
+{"adapter": "keyboard-canonical", "benchmark": "hlk", "item": "impossible-as-stated-1", "kind": "debug", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "t": "2026-11-23T04:02:23+0200", "usd": 0.00239}
+{"benchmark": "hlk", "kind": "preflight", "run_id": "hlk-debug-20261123-040343", "t": "2026-11-23T04:03:50+0200", "usd": 0.000878245}
+{"adapter": "pointe", "benchmark": "hlk", "item": "impossible-as-stated-0", "kind": "debug", "run_id": "hlk-debug-20261123-040343", "run_index": 0, "t": "2026-11-23T04:06:24+0200", "usd": 0.19533}
+{"adapter": "pointe", "benchmark": "hlk", "item": "read-then-decide-1", "kind": "debug", "run_id": "hlk-debug-20261123-040343", "run_index": 0, "t": "2026-11-23T04:06:41+0200", "usd": 0.20845}
+{"adapter": "pointe", "benchmark": "hlk", "item": "two-repo-handoff-1", "kind": "debug", "run_id": "hlk-debug-20261123-040343", "run_index": 0, "t": "2026-11-23T04:07:43+0200", "usd": 0.38801}

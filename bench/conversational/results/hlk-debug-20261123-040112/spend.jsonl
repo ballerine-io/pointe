@@ -1,0 +1,4 @@
+{"adapter": "keyboard-transcript", "how": "computed", "item": "dictated-literals-0", "role": "agent", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "session": "willow", "usd": 0.00231, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "dictated-literals-0", "role": "agent", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "session": "willow", "usd": 0.00238, "vendor": "anthropic"}
+{"adapter": "keyboard-transcript", "how": "computed", "item": "impossible-as-stated-1", "role": "agent", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "session": "tariff", "usd": 0.00232, "vendor": "anthropic"}
+{"adapter": "keyboard-canonical", "how": "computed", "item": "impossible-as-stated-1", "role": "agent", "run_id": "hlk-debug-20261123-040112", "run_index": 0, "session": "tariff", "usd": 0.00239, "vendor": "anthropic"}

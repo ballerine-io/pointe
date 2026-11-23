@@ -1,0 +1,6 @@
+{"adapter": "pointe", "how": "computed", "item": "dictated-literals-0", "role": "agent", "run_id": "hlk-debug-20261123-032905", "run_index": 0, "session": "willow", "usd": 0.00335, "vendor": "anthropic"}
+{"adapter": "pointe", "how": "computed", "item": "dictated-literals-0", "role": "pointe", "run_id": "hlk-debug-20261123-032905", "run_index": 0, "usd": 0.03288, "vendor": "anthropic", "what": "4 brain steps from daemon.log"}
+{"adapter": "pointe", "how": "computed", "item": "dictated-literals-0", "role": "pointe", "run_id": "hlk-debug-20261123-032905", "run_index": 0, "usd": 0.0, "vendor": "anthropic", "what": "0 reader reports"}
+{"adapter": "pointe", "how": "computed", "item": "dictated-literals-0", "role": "pointe", "run_id": "hlk-debug-20261123-032905", "run_index": 0, "usd": 0.001, "vendor": "gemini", "what": "2 checker lines"}
+{"adapter": "pointe", "how": "computed", "item": "dictated-literals-0", "role": "pointe", "run_id": "hlk-debug-20261123-032905", "run_index": 0, "usd": 0.01672, "vendor": "elevenlabs", "what": "418 chars"}
+{"adapter": "pointe", "how": "computed", "item": "dictated-literals-0", "role": "pointe", "run_id": "hlk-debug-20261123-032905", "run_index": 0, "usd": 0.00649, "vendor": "soniox", "what": "2 streams x 97 s"}

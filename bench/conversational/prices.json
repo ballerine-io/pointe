@@ -1,0 +1,18 @@
+{
+ "_read": "2026-11-23",
+ "_sources": ["https://platform.claude.com/docs/en/about-claude/pricing (Anthropic models, also bench/brain_bench.py PRICES read 2026-11-06)",
+              "https://soniox.com/pricing (docs/benchmarks.md, read 2026-11-19)",
+              "https://elevenlabs.io/pricing (docs/benchmarks.md mouth table, $0.04 per 1,000 characters)",
+              "https://aistudio.google.com/docs/pricing (gemini-3.5-flash-lite, bench/brain_bench.py)"],
+ "_unit": "USD per million tokens: input, cache read, cache write (5 minutes), output",
+ "tokens": {
+  "claude-haiku-5-5": [0.10, 0.01, 0.125, 0.50],
+  "claude-sonnet-5-5": [2.00, 0.10, 2.50, 10.00],
+  "gemini-3.5-flash-lite": [0.30, 0.03, 0.30, 2.50]
+ },
+ "soniox_stream_hour": 0.12,
+ "elevenlabs_per_1k_chars": 0.04,
+ "pointe_reader_report": 0.02,
+ "pointe_checker_call": 0.0005,
+ "pointe_brain_output_tokens_per_step": 400
+}
