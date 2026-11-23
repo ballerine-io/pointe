@@ -147,6 +147,19 @@ def _hidden(text: str) -> bool:
                for c in text)
 
 
+def visible(value):
+    """Text, or a tool input's strings, with every format and control character but a line break and a tab written as
+    \\uXXXX: a bidi override or a zero-width space on an approval card shows what runs reordered or as a look-alike."""
+    if isinstance(value, str):
+        return "".join(c if c in "\n\t" or not unicodedata.category(c).startswith("C") else f"\\u{ord(c):04x}"
+                       for c in value)
+    if isinstance(value, dict):
+        return {visible(k): visible(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [visible(v) for v in value]
+    return value
+
+
 def place(path: str, cwd: str | None) -> str:
     """Plainly inside the project: its name. Anywhere else, through a hidden folder, or through a symlink that leaves the
     project: the whole path."""

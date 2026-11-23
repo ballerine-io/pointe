@@ -89,6 +89,7 @@ from brief import (
 from brief import parse as parse_reply
 from echo import AudioClock, EchoGuard, LevelGate, lone_stop, spoken_form, words as echo_words
 import phone
+import readout
 from readout import mask
 from guards import (relays_approval, remote_readable, 
     JsonPosts,
@@ -379,6 +380,7 @@ EARLY_YES_PROMPTS = 2  # yeses refused for coming too early, per request, that t
 KEEP_WINDOW = "keep-window"  # a line about the request that neither reads it out nor takes the user away from it
 UPDATE_POLL_SECS = 0.1  # how often queued updates look for a gap in the conversation
 PERMISSION_VOICE_CHARS = 500
+REQUEST_NOTE_CHARS = 200  # the agent's note on an approval card: one line, this long at most
 CHECK_TIMEOUT_SECS = 5.0  # a stuck Flash-Lite call must not freeze the voice
 REPLY_WAIT_SECS = 4.0  # how long a reply the bot was asked for may take to start before held speech goes anyway
 NUDGE_CONNECT_GRACE_SECS = 30.0
@@ -6848,7 +6850,7 @@ def remote_resolved(session: Session, request_id: str, how: str) -> None:
     if session.permission_id != request_id:
         return
     if how == "timeout" and current_mode().holds_news:  # as _hold_one says a local one's, at the hand-off
-        what = mask((session.permission_full or "").split("\n")[0])[:120]  # said aloud later: the one credential rule
+        what = mask(" ".join(x for x in ((session.permission_full or "").split("\n")[0], session.permission_note) if x))[:120]  # said aloud later: the one credential rule
         state.monologue_held.append((f"[{session.name}: its approval request waited during the user's brain dump, "
                                      f"then went back to its terminal] {what}", True))
     session.permission_id, session.permission_since = None, None
@@ -6950,7 +6952,7 @@ async def _hold_one(session: Session, tool_name: str, tool_input: dict, preview:
     answer = asyncio.get_running_loop().create_future()
     session.permission_answer = answer
     request_id = secrets.token_hex(4)
-    await _put_permission(session, request_id, tool_name, str(tool_input.get("description") or "use this tool"), preview)
+    await _put_permission(session, request_id, tool_name, str(tool_input.get("description") or ""), preview)
     try:
         while time.time() < deadline and not answer.done():
             await asyncio.wait([answer], timeout=1.0)
@@ -6999,8 +7001,17 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     session.permission_since = time.time()
     session.permission_cut = not session.permission_spoken  # a yes must not approve what was never read out
     cut = " [cannot be read out exactly: a yes will not count here; it waits for a tap on the page or phone, or the terminal]" if session.permission_cut else ""
-    session.permission_text = f"[permission request] {tool_name}: {description}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
-    session.permission_full = f"{tool_name}: {description}\n{preview}"
+    session.permission_text = f"[permission request] {tool_name}: {description or 'use this tool'}\n{preview[:PERMISSION_VOICE_CHARS]}{cut}"
+    # The card (page, apps, night ledger): what runs first and alone, so the session model's description can never stand
+    # in for it or push it out of view; that description is a capped line apart, shown as the agent's note. Hidden
+    # characters are written as escapes. A preview that does not parse was cut: a tap may deny it, never approve it.
+    # Escaped inside the input, not in its JSON: an app decodes the JSON, and "\u202e" there is U+202E again.
+    session.permission_truncated = not isinstance(tool_input, dict)
+    runs = (readout.visible(preview) if session.permission_truncated else
+            json.dumps(readout.visible({k: v for k, v in tool_input.items() if k != "description"}), ensure_ascii=False))
+    session.permission_full = f"{readout.visible(tool_name)}\n{runs}"
+    note = " ".join(str(description or "").split())
+    session.permission_note = readout.visible(note if len(note) <= REQUEST_NOTE_CHARS else note[:REQUEST_NOTE_CHARS] + "…")
     alerts.note_request(session.id, request_id, tool_name, readable)
     state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine))
     REGISTRY.save()
@@ -7150,6 +7161,8 @@ async def approve(request: Request):
         raise HTTPException(status_code=409, detail="that request is no longer pending")
     if not online(session):
         raise HTTPException(status_code=409, detail=f"{session.machine} is offline: answer it in its terminal")
+    if decision == "allow" and session.permission_truncated:  # what runs is not all on the card: approve where it is
+        raise HTTPException(status_code=409, detail="this request came cut short: approve it in its terminal, or deny it here")
     notified = p.get("via") == "notification"  # an action on a notification: the phone could not ask for Face ID
     if notified and decision == "allow" and not (PREFS.get("alerts.watch_approve") and alerts.approvable(session.id, session.permission_id)):
         raise HTTPException(status_code=403, detail="approve this one in the app or on the page")
@@ -7903,6 +7916,8 @@ async def status(request: Request):
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": _working(s), "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
+                          "request_note": s.permission_note if s.permission_id else None,  # the agent's own words: never what runs
+                          "request_truncated": bool(s.permission_id and s.permission_truncated),
                           "request_id": s.permission_id,
                           "voice_can_approve": bool(s.permission_id and not s.permission_cut and online(s)),
                           # A prompt in its terminal is a need too: both screens show "needs you" and these words.

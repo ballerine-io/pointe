@@ -494,6 +494,8 @@
   .ask .answer .allow { background: var(--primary); color: var(--on-primary); }
   .ask .answer .deny { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); }
   .ask .more { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .ask .need.note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+  .ask .need.cut, .ask .scrollcue { color: var(--accent); font-weight: 600; }
   /* conflict alarm: two sessions that disagree */
   #conflicts { display: flex; flex-direction: column; gap: 8px; padding: 0 var(--gutter) 8px; }
   #conflicts:empty { display: none; }
@@ -1813,7 +1815,7 @@
       tools.append(pen, cut, more);
       const nm = el('span', 'nm', short(x.name));
       b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
-      if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n')[0] : x.needs));
+      if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n').slice(0, 2).join(' ') : x.needs));
       b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
                           : focused ? (pinned ? ' (focused)' : ' — click to focus on it') : ' — click to talk to it next');
       b.onclick = () => switchTo(x.name);  // offline too: the voice can still say what its notes hold
@@ -2341,17 +2343,24 @@
     const what = el('div', 'what', whoLabel(x, machineView(s)) + ' ');
     if (agentBadges) what.append(el('span', 'agent', agentOf(x)), ' ');
     what.append(el('span', '', 'needs approval'));
-    b.append(what, el('div', 'need exact', x.request || ''));  // never clamped: this is what a tap approves
+    const exact = el('div', 'need exact', x.request || '');  // what runs, first and whole: this is what a tap approves
+    b.append(what, exact);
+    // A long request scrolls inside its box: say so, so nothing a tap approves sits out of view without a cue.
+    requestAnimationFrame(() => { if (exact.isConnected && exact.scrollHeight > exact.clientHeight + 1)
+      exact.after(el('div', 'more scrollcue', 'More below: scroll the box to read all of it before you approve.')); });
+    if (x.request_note) b.append(el('div', 'need note', "Agent's note (not what runs): " + x.request_note));
+    if (x.request_truncated) b.append(el('div', 'need cut', 'Cut short: not all of what runs is here. Approve it in its terminal, or deny it here.'));
     if (x.online === false) {  // its machine dropped: the prompt went back to that terminal, and an answer would be stale
       b.append(el('div', 'need offline', 'offline: answer it in its terminal'));
       if (more > 0) b.append(el('div', 'more', `${more} more waiting`));
       return b;
     }
     b.append(el('div', 'need', meetOn ? 'In a meeting, nothing is approved by voice: click to answer.'
+                               : x.request_truncated ? 'A tap can only deny this one.'
                                : !x.voice_can_approve ? 'Too complex to read out: check it, then tap.'
                                : x.name === s.active ? 'Say yes or no, or tap.' : 'Say its name and yes or no, or tap.'));
     const row = el('div', 'answer');
-    for (const [label, decision] of [['Deny', 'deny'], ['Approve', 'allow']]) {
+    for (const [label, decision] of x.request_truncated ? [['Deny', 'deny']] : [['Deny', 'deny'], ['Approve', 'allow']]) {
       const button = el('button', decision, label);
       button.onclick = e => { e.stopPropagation(); answer(x, decision, button); };
       row.append(button);
