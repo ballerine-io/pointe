@@ -17,7 +17,7 @@ from core.ledger import PRICES, tokens_usd
 HERE = Path(__file__).resolve().parent
 PROMPT = (HERE / "llm_router_prompt.txt").read_text()
 MAX_TOKENS = 8000
-sys.path.insert(0, str(HERE.parents[2]))
+sys.path.insert(0, str(HERE.parents[3]))
 
 
 def brain_model() -> str:

@@ -1,12 +1,12 @@
 """Pointe Conversational Coding Benchmarks: the one command (design 4.1). This build carries `identifiers`.
 
-    uv run --locked python bench/conversational/run.py identifiers --budget-usd 12 [--adapter a,b] [--smoke] [--dry-run]
-    uv run --locked python bench/conversational/run.py corpus [identifiers]     render the audio, $0
-    uv run --locked python bench/conversational/run.py verify                   offline: items, checks, decoys
-    uv run --locked python bench/conversational/run.py report <run-id> [arm=<run-id>] [--why ...]
+    uv run --locked python bench/conversational/identifiers/run.py identifiers --budget-usd 12 [--adapter a,b] [--smoke] [--dry-run]
+    uv run --locked python bench/conversational/identifiers/run.py corpus [identifiers]     render the audio, $0
+    uv run --locked python bench/conversational/identifiers/run.py verify                   offline: items, checks, decoys
+    uv run --locked python bench/conversational/identifiers/run.py report <run-id> [arm=<run-id>] [--why ...]
                                                                                 rows -> summary.json and summary.md
-    uv run --locked python bench/conversational/run.py freeze                   write FROZEN.json (before paid rows)
-    uv run --locked python bench/conversational/run.py rescore <run-id>         current check, committed final files
+    uv run --locked python bench/conversational/identifiers/run.py freeze                   write FROZEN.json (before paid rows)
+    uv run --locked python bench/conversational/identifiers/run.py rescore <run-id>         current check, committed final files
 
 Options: --adapter keyboard-canonical,keyboard-transcript,null,naive,llm-router,pointe,pointe-text (default: all),
 --budget-usd N, --port-base N (default 9400; never 7860 or 7443), --workers N (default 3), --resume <run-id>,

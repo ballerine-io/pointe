@@ -1,6 +1,6 @@
 """The synthetic speech corpus (design 4.5): Kokoro-82M v1.0 voices, noise made in code, an audio.lock of hashes.
 
-Audio is built, not stored: `run.py corpus` renders into bench/conversational/.audio/ (ignored by git). Every clip is
+Audio is built, not stored: `run.py corpus` renders into bench/conversational/identifiers/.audio/ (ignored by git). Every clip is
 16 kHz mono int16 PCM, the bytes every audio adapter receives. A rebuild that differs from audio.lock is allowed and
 the run records audio_matches_lock: false.
 
@@ -32,7 +32,7 @@ FILLER = (
 
 
 def _kokoro():
-    sys.path.insert(0, str(HERE.parents[1]))
+    sys.path.insert(0, str(HERE.parents[2]))
     import no_telemetry  # noqa: F401  (before kokoro-onnx loads onnxruntime)
     import assets
     from kokoro_onnx import Kokoro

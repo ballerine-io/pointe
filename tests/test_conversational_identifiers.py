@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-BENCH = ROOT / "bench" / "conversational"
+BENCH = ROOT / "bench" / "conversational" / "identifiers"
 sys.path.insert(0, str(BENCH))
 
 from adapters.echo import Echo  # noqa: E402

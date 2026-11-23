@@ -1,6 +1,6 @@
 """Spoken Identifiers: the check. Reads a final repository and says which fixture symbols it touched.
 
-    python bench/conversational/identifiers/check.py <repo> <target-id>     one JSON line
+    python bench/conversational/identifiers/identifiers/check.py <repo> <target-id>     one JSON line
 
 A symbol is touched when a comment line whose text starts with the word "marked" is added directly above its anchor
 line (blank lines between are allowed), or when its anchor line itself is changed or removed. `marker_exact` says

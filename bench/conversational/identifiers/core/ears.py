@@ -10,7 +10,7 @@ from pathlib import Path
 
 import websockets
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 import vendors  # noqa: E402
 
 URL = "wss://stt-rt.soniox.com/transcribe-websocket"

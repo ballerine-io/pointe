@@ -19,7 +19,7 @@ from pathlib import Path
 from . import ledger, scrub
 
 HERE = Path(__file__).resolve().parents[1]
-REPO_ROOT = HERE.parents[1]
+REPO_ROOT = HERE.parents[2]
 TMP = Path("/tmp/pccb")
 FORBIDDEN_PORTS = {7860, 7443}
 
