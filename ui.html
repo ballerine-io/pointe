@@ -4015,6 +4015,12 @@
     if (!r.ok) {  // the hub's routes answer a refusal as plain text ("no machine called x is paired")
       const text = (await r.text().catch(() => '')).trim();
       let said = text; try { said = JSON.parse(text).detail || text; } catch (e) {}
+      if (r.headers.get('x-pointe-fix') === 'phone') {  // no address yet: the words name CLI commands; the page has its own way
+        const go = el('button', 'pill', 'Set it up under Phone'); go.type = 'button';
+        go.onclick = () => { $('mach-err').textContent = ''; settingsJump('phone'); phoneConnect(); };
+        $('mach-err').replaceChildren(el('div', '', 'Another machine needs an address to reach this Mac. Set one up under Phone (one address serves both), then invite again.'), go);
+        return null;
+      }
       $('mach-err').textContent = said || 'The Mac did not do it.';
       return null;
     }

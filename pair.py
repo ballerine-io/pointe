@@ -240,12 +240,12 @@ def routes(typed: str | None = None) -> dict:
             "advice": None if any(r["usable"] for r in found) else INSTALL_ADVICE}
 
 
-_NOT_SET_UP = "Not set up yet: run `pointe pair tailscale`, `pointe pair wifi`, or `pointe pair host <name>`."
+NOT_SET_UP = "Not set up yet: run `pointe pair tailscale`, `pointe pair wifi`, or `pointe pair host <name>`."
 
 
 def _config() -> dict:
     if not (STATE / "remote.json").exists():
-        raise SystemExit(_NOT_SET_UP)
+        raise SystemExit(NOT_SET_UP)
     return json.loads((STATE / "remote.json").read_text())
 
 

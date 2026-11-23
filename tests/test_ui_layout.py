@@ -509,3 +509,12 @@ def test_a_first_open_offers_no_phone_errand_and_a_later_one_says_the_phone_is_o
     (a,), (b,) = (_run([(1440, "", phone)], s) for s in (first, later))
     assert a[0] is False, a
     assert b[0] is True and b[1].startswith("Optional:"), b
+
+
+def test_an_invite_with_no_address_offers_the_pages_own_phone_step():
+    fail = """const f = window.fetch; window.fetch = async (u, o) => String(u).startsWith('/voice/hub/invite') && o && o.method === 'POST'
+      ? new Response('Not set up yet: run `pointe pair wifi`.', {status: 409, headers: {'x-pointe-fix': 'phone'}}) : f(u, o);
+      openSettings(); await inviteMachine(); window.fetch = f;"""
+    said = "(() => { const e = document.getElementById('mach-err'); return [e.textContent, !!e.querySelector('button')]; })()"
+    (r,) = _run([(1440, fail, said)], fixture(sessions=2, machines=2, connected=True))
+    assert "`" not in r[0] and "pointe pair" not in r[0] and "Phone" in r[0] and r[1], r

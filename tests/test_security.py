@@ -480,3 +480,17 @@ def test_the_phone_key_still_cannot_pair_a_node_or_open_the_node_socket(hub_app)
     node = hub.nodes.add("devbox", "linux")
     assert _node_close_code(tls(hub_app), "", node["id"], **key) == 4401  # the HMAC, never the phone key
     assert _pair(tls(hub_app), "AAAA-AAAA").status_code == 403  # no invite: the phone key opens no pairing
+
+
+def test_an_invite_with_no_address_says_where_to_set_one_up(hub_app):
+    """No route paired yet: the CLI keeps its commands, and the answer is marked so the page offers its own Phone step."""
+    import pair
+
+    def unpaired(code):
+        raise SystemExit(pair.NOT_SET_UP)
+    hub_nodes = __import__("hub_nodes")
+    app = FastAPI()
+    hub_nodes.install(app, hub_app.state.hub, link=unpaired)
+    got = TestClient(app).post("/voice/hub/invite", json={})
+    assert got.status_code == 409 and got.text == pair.NOT_SET_UP and got.headers.get("x-pointe-fix") == "phone"
+    assert hub_app.state.hub.invites.status() is None  # the code made for it is cancelled

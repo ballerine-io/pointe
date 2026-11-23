@@ -1022,7 +1022,9 @@ def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
             line = link(code)
         except SystemExit as e:
             hub.invites.cancel()
-            return PlainTextResponse(str(e), status_code=409)
+            from pair import NOT_SET_UP
+            # The words are the CLI's (pointe hub invite prints them); the header lets the page offer its own Phone step.
+            return PlainTextResponse(str(e), status_code=409, headers={"x-pointe-fix": "phone"} if str(e) == NOT_SET_UP else None)
         return {"code": code, "expires_in": INVITE_SECS, "link": line}
 
     @app.get("/voice/hub/invite")
