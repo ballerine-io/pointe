@@ -51,7 +51,7 @@ final class NightShiftUITests: XCTestCase {
         XCTAssertTrue(start.waitForExistence(timeout: 15), "the start sheet")
         XCTAssertEqual(start.label, "Start shift")
         XCTAssertFalse(start.isEnabled, "no task yet: nothing to start")
-        XCTAssertTrue(text("Give your sessions work for while you are away.").exists, "the lede")
+        XCTAssertTrue(text("Give your sessions work to do while you are away.").exists, "the lede")
         let session = any("nightShiftSession.0"), task = any("nightShiftTask.0")
         XCTAssertTrue(session.waitForExistence(timeout: 5) && task.exists)
         XCTAssertTrue(session.label.contains("billing") || (session.value as? String ?? "").contains("billing"), "the first session on the voice is picked")

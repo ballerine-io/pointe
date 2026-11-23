@@ -449,3 +449,17 @@ def test_the_page_has_a_title_heading_named_fields_and_the_night_sheet_takes_foc
     })()"""))
     assert got["h1"] == "Pointe" and got["typed"] == "Type to the voice" and got["folders"] == "Folders a new session may start in", got
     assert got["focusInSheet"], got
+
+
+def test_copy_polish_round_4():
+    """Words a reader stumbled on: 'work for while', a bare ': No longer available.', 'Press G' on a phone."""
+    assert "work for while" not in PAGE and PAGE.count("Give your sessions work to do while you are away") == 2
+    assert "`${v.name || ''}: ${v.problem}`" not in PAGE and "v.name ? `${v.name}: ${v.problem}` : v.problem" in PAGE
+    assert '<div class="hint keyonly">Press G to let it speak. Anyone talking over it stops it.</div>' in PAGE
+    assert "@media (hover: none) { .keyonly { display: none; } }" in PAGE
+
+
+@needs_chrome
+def test_the_new_session_selects_carry_the_chevron():
+    got = asyncio.run(_render("""(() => ['new-agent', 'new-machine', 'new-folder'].map(id => getComputedStyle(document.getElementById(id)).backgroundImage))()"""))
+    assert all(g.startswith("url(") for g in got), got

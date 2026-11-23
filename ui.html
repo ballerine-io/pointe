@@ -172,6 +172,7 @@
   .logo { width: 24px; height: 24px; flex: none; color: var(--text); }  /* the Chorus mark's compact drawing (docs/brand/logo.md) */
   .brand .name { font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); margin: 0; }
   #night-h:focus { outline: none; }
+  @media (hover: none) { .keyonly { display: none; } }  /* a key hint means nothing on a touch screen */
   .brand .serif { font-size: 12.5px; color: var(--dim); white-space: nowrap; margin-top: 2px; }
   .brand .ver { font: 500 10.5px var(--font); font-style: normal; color: var(--dim); letter-spacing: .02em; }
   .brand .ver:empty { display: none; }
@@ -210,7 +211,7 @@
   #m-new:hover { background: var(--raised); }
   #newsheet select, #newsheet input { background-color: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; min-height: 44px;
                                       padding: 0 12px; font: 14px var(--font); outline: none; }
-  #newsheet select { padding-right: 32px; }  /* background-color only, and room on the right: the select's chevron stays */
+  #newsheet select { padding-right: 32px; }  /* the chevron every select carries: background-color keeps its image */
   #newsheet select:focus, #newsheet input:focus { border-color: var(--orange-line); }
   #newsheet .path { font: 12px var(--mono); color: var(--dim); overflow-wrap: anywhere; }
   #newsheet .note { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
@@ -407,7 +408,7 @@
   [data-state=broken] .state { color: var(--danger-text); }
   .pill { border: 1px solid var(--line); background: var(--raised); color: var(--text); font: 500 12.5px var(--font);
           padding: 4px 10px; border-radius: 999px; cursor: pointer; }
-  #fixkey { margin-top: 6px; border-color: var(--danger); color: var(--danger-text); }
+  #fixkey { margin-top: 8px; min-height: 36px; padding: 0 16px; font-size: 13.5px; border-color: var(--danger); background: var(--danger); color: #fff; }
   #fixkey[hidden] { display: none; }
   /* Before Pointe has answered anyone on this Mac (status.first_call): Connect, the mic, Type, Settings and Sessions only. */
   body.firstrun #listen, body.firstrun #meetbtn, body.firstrun #briefbtn, body.firstrun .micmode, body.firstrun #chlbtn,
@@ -500,6 +501,7 @@
   .ask .what span:not(.agent) { color: var(--accent); font-weight: 600; white-space: nowrap; }
   .ask .what .agent { margin-left: 0; }
   .ask .need { color: var(--muted); margin-top: 4px; font-size: 13px; }
+  .ask .need.exact.prose { font-family: var(--font); font-size: 14px; }
   .ask .need.exact { display: block; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto;
                      font: 12.5px/1.5 var(--mono); background: var(--raised); border-radius: 12px; padding: 8px 10px; margin-top: 8px; }
   .ask .answer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -594,6 +596,8 @@
   [data-state=off] #mic, [data-state=connecting] #mic, [data-state=reconnecting] #mic { background: var(--raised); color: var(--dim); box-shadow: inset 0 0 0 1px var(--line); cursor: default; }
   [data-state=off] #mic:hover, [data-state=connecting] #mic:hover, [data-state=reconnecting] #mic:hover { transform: none; }
   [data-state=off] #miclabel, [data-state=connecting] #miclabel, [data-state=reconnecting] #miclabel { color: var(--dim); }
+  /* a refused key: the mic hears nothing useful, so it does not look live; the way out is Fix the key in the top bar */
+  [data-state=broken] #mic { background: var(--raised); color: var(--danger-text); box-shadow: inset 0 0 0 2px var(--danger); }
   [data-state=bot] #mic::after { animation: speak 1.1s ease-in-out infinite; }
   [data-state=user] #mic { box-shadow: 0 0 0 6px var(--tint); }
   [data-state=connecting] #mic, [data-state=reconnecting] #mic { opacity: .7; }
@@ -1107,7 +1111,7 @@
     <div id="renameproblem" role="alert"></div>
     <button id="m-new" type="button" onclick="openNewSession()" title="Start a coding agent in a folder you already work in">New session</button>
     <button id="m-add" type="button" onclick="openAddSessions()" title="Join sessions you already run, or reopen one from this week">Add sessions</button>
-    <button id="m-night" type="button" onclick="openNightShift()" title="Give your sessions work for while you are away">Night shift</button>
+    <button id="m-night" type="button" onclick="openNightShift()" title="Give your sessions work to do while you are away">Night shift</button>
   </section>
 
   <section class="routing">
@@ -1593,7 +1597,7 @@
           <button onclick="handDecision('type')">Type it instead</button>
           <button onclick="handDecision('later')">Not now</button>
         </div>
-        <div class="hint">Press G to let it speak. Anyone talking over it stops it.</div>
+        <div class="hint keyonly">Press G to let it speak. Anyone talking over it stops it.</div>
       </div>
       <div class="filters" role="group" aria-label="Show">
         <button data-f="all" class="on">All</button><button data-f="thought">Thoughts</button><button data-f="question">Questions</button>
@@ -2201,7 +2205,7 @@
   // runs the shift; the page starts one, shows how it goes, stops it and shows its ledger. Nothing here approves.
   const NIGHT_SHIFT_COPY = {
     title: 'Night shift',
-    lede: 'Give your sessions work for while you are away. Pointe keeps them moving, and the morning briefing leads with what was decided and what waits on you.',
+    lede: 'Give your sessions work to do while you are away. Pointe keeps them moving, and the morning briefing leads with what was decided and what waits on you.',
     rule: 'Pointe approves nothing: a session that needs approval waits for you.',
     session: 'Session',
     task: 'Task',
@@ -2259,7 +2263,7 @@
     shiftAskShown = pkey;
     if (!p) { $('shiftask').replaceChildren(); return; }
     const b = el('div', 'ask'), row = el('div', 'answer');
-    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact prose', p.line));  // word for word, but prose
     for (const [label, cls, action] of [[c.cancel, 'deny', 'cancel'], [c.start, 'allow', 'confirm']]) {
       const button = el('button', cls, label);
       button.onclick = async () => {
