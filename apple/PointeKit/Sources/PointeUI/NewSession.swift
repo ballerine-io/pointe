@@ -165,7 +165,7 @@ struct StartCard: View {
                 Button { act(false) } label: { Text(NewSessionCopy.cancel).frame(maxWidth: .infinity) }
                     .buttonStyle(.brandQuiet).controlSize(.large)
                     .accessibilityIdentifier("startCancel")
-                Button { act(true) } label: { Label(NewSessionCopy.start, systemImage: "faceid").frame(maxWidth: .infinity) }
+                Button { act(true) } label: { Label(NewSessionCopy.start, systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
                     .buttonStyle(.brandPrimary).controlSize(.large)
                     .accessibilityIdentifier("startConfirm")
             }

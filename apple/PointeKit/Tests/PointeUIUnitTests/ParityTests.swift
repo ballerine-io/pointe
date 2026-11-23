@@ -219,3 +219,15 @@ final class SpeakerTurnsTests: XCTestCase {
         XCTAssertEqual(MeetingCopy.turns(0), "0 turns")
     }
 }
+
+final class OwnerSymbolTests: XCTestCase {
+    /// A control that asks for the owner shows the device's own sensor (Touch ID on a Mac): one symbol, from Surface.
+    func testOnlySurfaceNamesTheOwnerCheckSymbol() throws {
+        let sources = try FileManager.default.contentsOfDirectory(atPath: Repo.root.appendingPathComponent("apple/PointeKit/Sources/PointeUI").path)
+        for name in sources where name.hasSuffix(".swift") && name != "Platform.swift" {
+            let text = try Repo.source(name)
+            XCTAssertFalse(text.contains("systemImage: \"faceid\"") || text.contains("systemImage: \"touchid\""),
+                           "\(name) names the sensor itself: use Surface.ownerSymbol")
+        }
+    }
+}

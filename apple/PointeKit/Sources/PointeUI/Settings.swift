@@ -125,7 +125,7 @@ struct MachinesSheet: View {
             Button {
                 Task { await makeInvite() }
             } label: {
-                Label(status?.invite != nil ? "Show the code" : MachinesCopy.invite, systemImage: "faceid")
+                Label(status?.invite != nil ? "Show the code" : MachinesCopy.invite, systemImage: Surface.ownerSymbol)
             }
             .disabled(busy)
             .accessibilityIdentifier("inviteMachine")
