@@ -123,7 +123,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Whisper: short quiet replies, with the notes it held back <br>`whisper` | yes `ui.html:1708` | yes `apple/PointeKit/Sources/PointeUI/Whisper.swift:61` | yes `apple/PointeKit/Sources/PointeUI/Whisper.swift:61` |
 | Drive mode on screen: the one line, the request, Stop <br>`drive.screen` | yes `ui.html:1658` | yes `apple/PointeKit/Sources/PointeUI/Drive.swift:87` | yes `apple/PointeKit/Sources/PointeUI/Drive.swift:87` |
 | Turn drive mode on from the screen <br>`drive.start` | n/a | yes `apple/PointeKit/Sources/PointeUI/CallView.swift:491` | n/a |
-| Offer drive mode when the phone is in a car <br>`drive.suggest` | n/a | yes `apple/PointeKit/Sources/PointeUI/Drive.swift:221` | n/a |
+| Offer drive mode when the phone is in a car <br>`drive.suggest` | n/a | yes `apple/PointeKit/Sources/PointeUI/Drive.swift:227` | n/a |
 
 ## Voice lock, dictionary, conflicts, show
 
@@ -170,7 +170,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | An AirPods press talks or mutes <br>`ios.airpods` | n/a | yes `apple/PointeKit/Sources/PointeUI/Call.swift:247` | n/a |
-| Drive mode on the lock screen <br>`ios.nowplaying` | n/a | yes `apple/PointeKit/Sources/PointeUI/Drive.swift:271` | n/a |
+| Drive mode on the lock screen <br>`ios.nowplaying` | n/a | yes `apple/PointeKit/Sources/PointeUI/Drive.swift:277` | n/a |
 
 ## Bound to a platform
 
