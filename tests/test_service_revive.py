@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 from pipecat.services.stt_service import STTService
+from pipecat.services.tts_service import TTSService
 
 from test_orchestrator import d  # noqa: F401
 
@@ -133,3 +134,54 @@ def test_a_websocket_that_did_not_open_is_not_called_back(d, quick):
 
     asyncio.run(call())
     assert ears.tries == 3 and quick[-1] == "I can hear you again." and len(quick) == 2
+
+
+class Voice(TTSService):
+    """A websocket voice whose socket did not open, and opens after `fails` tries."""
+    is_usable = property(lambda self: self._usable)
+
+    @classmethod
+    def make(cls, fails: int) -> "Voice":
+        voice = cls.__new__(cls)
+        voice._name, voice._usable, voice.fails, voice.tries = "GeminiTTSService#0", False, fails, 0
+        return voice
+
+    async def set_usable(self, value):
+        self._usable = value
+
+    async def _reconnect_websocket(self, attempt):
+        self.tries += 1
+        if self.tries <= self.fails:
+            raise TimeoutError("timed out during opening handshake")
+
+    async def run_tts(self, text, *args, **kwargs):
+        yield None
+
+
+def test_one_failed_voice_handshake_is_tried_again_and_the_page_shows_words(d, quick):
+    """Final review, round 5, Free start under load: Gemini's speech socket timed out on open, Pipecat gave up at once,
+    nothing was tried again, and the page showed "GeminiTTSService#0 error: TTS context <uuid> completed with no audio"."""
+    note(d, "GeminiTTSService#0 error: TTS context 5b0e2c4a-7d1f-4c3e-9a8b-2f6d1e0c9b7a completed with no audio",
+         name="pipecat.services.google.tts")
+    note(d, "voice: GeminiTTSService#0 can no longer do its job", name="pipecat.pipeline.worker")
+    voice = Voice.make(fails=2)
+
+    async def call():
+        await d._service_lost(voice)
+        shown = d.current_problem()
+        for _ in range(300):
+            if d.state.lost is None:
+                break
+            await asyncio.sleep(0.01)
+        return shown
+
+    shown = asyncio.run(call())
+    assert shown and shown.startswith("The voice stopped") and "Service#" not in shown and "TTS context" not in shown, shown
+    assert voice.tries == 3 and voice.is_usable
+    assert d.state.lost is None and d.current_problem() is None
+
+
+def test_the_waits_between_tries_grow():
+    import daemon
+    waits = list(daemon.REVIVE_WAITS)
+    assert len(waits) > 1 and waits == sorted(waits) and waits[0] < waits[-1]
