@@ -226,19 +226,18 @@ struct Sandbox {
     }
 
     @Test func theChoiceIsKeptAndNoneStaysNone() throws {
-        let suite = "pointe-shortcut-\(UUID().uuidString)"
+        // One fixed domain, emptied before and after: a new name each run left a preferences file per run, and macOS
+        // writes the emptied domain back even after its file is deleted.
+        let suite = "io.ballerine.pointe.tests.shortcut"
         let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
         #expect(Shortcut.stored(in: defaults) == .standard)
         let chosen = Shortcut(keyCode: 40, modifiers: Shortcut.control | Shortcut.shift)
         Shortcut.store(chosen, in: defaults)
         #expect(Shortcut.stored(in: defaults) == chosen && chosen.display == "⌃⇧K")
         Shortcut.store(nil, in: defaults)
         #expect(Shortcut.stored(in: defaults) == nil)
-        // Emptying the domain still leaves its file: each run left a plist in ~/Library/Preferences.
-        defaults.removePersistentDomain(forName: suite)
-        let file = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0].appendingPathComponent("Preferences/\(suite).plist")
-        try? FileManager.default.removeItem(at: file)
-        #expect(!FileManager.default.fileExists(atPath: file.path), "the test leaves no preferences file behind")
     }
 }
 @Suite struct ReleaseWatchTests {
