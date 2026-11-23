@@ -1,0 +1,700 @@
+{
+ "benchmark": "bargein",
+ "item_version": "0.1",
+ "run_ids": [
+  "bargein-20261123-040244"
+ ],
+ "dates": "2026-11-23 to 2026-11-23",
+ "agent_model": "claude-haiku-5-5",
+ "claude_code": "2.1.330",
+ "pointe_commit": "7113efa273cbe96ede9e385da44eff1970039274",
+ "pointe_setup": "(default)",
+ "logs": {
+  "pointe_roles": "brain=anthropic:claude-sonnet-5-5, reader=anthropic:claude-sonnet-5-5, checker=gemini:gemini-3.5-flash-lite, ears=soniox, mouth=elevenlabs:eleven_v4_turbo, notes=[]",
+  "pointe_a_runs": 27,
+  "pointe_a_forwarded_as_message": 21,
+  "pointe_a_forwarded_and_job_ran_on": 21,
+  "keyboard_redirect_runs": 6,
+  "keyboard_redirect_agent_asked": 4
+ },
+ "ledger_usd": 3.409379,
+ "spend_usd": 2.9302,
+ "rows": 252,
+ "superseded_error_rows": 6,
+ "part_a": {
+  "pointe": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 0,
+   "load_flagged": 5,
+   "halt": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "missed_stop": {
+    "k": 18,
+    "n": 18,
+    "rate": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 0,
+    "observed": 0,
+    "censored": 0,
+    "median": null,
+    "p90": null
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 0,
+    "censored": 8,
+    "median": null,
+    "p90": null
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 0,
+    "n": 4,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "stayed_stopped": {
+    "k": 0,
+    "n": 12,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.2425
+    ]
+   },
+   "restarted_in_root": 0,
+   "clarifications": 2,
+   "spend_usd": 0.724
+  },
+  "llm-router": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 0,
+   "load_flagged": 5,
+   "halt": {
+    "k": 18,
+    "n": 18,
+    "rate": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "missed_stop": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 18,
+    "observed": 18,
+    "censored": 0,
+    "median": 1.5,
+    "p90": 2
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 8,
+    "censored": 0,
+    "median": 3.19,
+    "p90": 4.84
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 2,
+    "n": 4,
+    "rate": 0.5,
+    "ci95": [
+     0.15,
+     0.85
+    ]
+   },
+   "stayed_stopped": {
+    "k": 12,
+    "n": 12,
+    "rate": 1.0,
+    "ci95": [
+     0.7575,
+     1.0
+    ]
+   },
+   "restarted_in_root": 4,
+   "clarifications": 6,
+   "spend_usd": 0.105
+  },
+  "naive": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 0,
+   "load_flagged": 5,
+   "halt": {
+    "k": 11,
+    "n": 18,
+    "rate": 0.6111111111111112,
+    "ci95": [
+     0.3862,
+     0.797
+    ]
+   },
+   "missed_stop": {
+    "k": 7,
+    "n": 18,
+    "rate": 0.3888888888888889,
+    "ci95": [
+     0.203,
+     0.6138
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 11,
+    "observed": 11,
+    "censored": 0,
+    "median": 0,
+    "p90": 1
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 7,
+    "censored": 1,
+    "median": 1.269,
+    "p90": 2.624
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 0,
+    "n": 4,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "stayed_stopped": {
+    "k": 11,
+    "n": 12,
+    "rate": 0.9166666666666666,
+    "ci95": [
+     0.6461,
+     0.9851
+    ]
+   },
+   "restarted_in_root": 0,
+   "clarifications": 0,
+   "spend_usd": 0.0367
+  },
+  "keyboard": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 1,
+   "load_flagged": 2,
+   "halt": {
+    "k": 18,
+    "n": 18,
+    "rate": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "missed_stop": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 18,
+    "observed": 18,
+    "censored": 0,
+    "median": 0.0,
+    "p90": 0
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 8,
+    "censored": 0,
+    "median": 0.0,
+    "p90": 0.0
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 4,
+    "n": 4,
+    "rate": 1.0,
+    "ci95": [
+     0.5101,
+     1.0
+    ]
+   },
+   "stayed_stopped": {
+    "k": 12,
+    "n": 12,
+    "rate": 1.0,
+    "ci95": [
+     0.7575,
+     1.0
+    ]
+   },
+   "restarted_in_root": 1,
+   "clarifications": 0,
+   "spend_usd": 0.0353
+  },
+  "null": {
+   "runs": 8,
+   "scored": 8,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 0,
+   "load_flagged": 3,
+   "halt": {
+    "k": 0,
+    "n": 5,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4345
+    ]
+   },
+   "missed_stop": {
+    "k": 5,
+    "n": 5,
+    "rate": 1.0,
+    "ci95": [
+     0.5655,
+     1.0
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 3,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.5615
+    ]
+   },
+   "overshoot_files": {
+    "n": 0,
+    "observed": 0,
+    "censored": 0,
+    "median": null,
+    "p90": null
+   },
+   "time_to_halt_stop_items": {
+    "n": 2,
+    "observed": 0,
+    "censored": 2,
+    "median": null,
+    "p90": null
+   },
+   "redirect": {
+    "k": 0,
+    "n": 1,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.7935
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 0,
+    "n": 2,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.6576
+    ]
+   },
+   "stayed_stopped": {
+    "k": 0,
+    "n": 4,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "restarted_in_root": 0,
+   "clarifications": 0,
+   "spend_usd": 0.0102
+  }
+ },
+ "part_b": {
+  "pointe": {
+   "runs": 30,
+   "scored": 30,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 6,
+   "measure": "audio",
+   "correct": {
+    "k": 19,
+    "n": 30,
+    "rate": 0.6333333333333333,
+    "ci95": [
+     0.4551,
+     0.7813
+    ]
+   },
+   "first_audio": {
+    "n": 30,
+    "observed": 29,
+    "censored": 1,
+    "median": 4.378,
+    "p90": 6.68
+   },
+   "ttca": {
+    "n": 30,
+    "observed": 19,
+    "censored": 11,
+    "median": 27.278,
+    "p90": 37.698
+   },
+   "within_10s": {
+    "k": 1,
+    "n": 30,
+    "rate": 0.03333333333333333,
+    "ci95": [
+     0.0059,
+     0.1667
+    ]
+   },
+   "within_30s": {
+    "k": 13,
+    "n": 30,
+    "rate": 0.43333333333333335,
+    "ci95": [
+     0.2738,
+     0.608
+    ]
+   },
+   "clarifications": 3,
+   "spend_usd": 1.2768
+  },
+  "llm-router": {
+   "runs": 30,
+   "scored": 30,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 2,
+   "measure": "audio",
+   "correct": {
+    "k": 28,
+    "n": 30,
+    "rate": 0.9333333333333333,
+    "ci95": [
+     0.7868,
+     0.9815
+    ]
+   },
+   "first_audio": {
+    "n": 30,
+    "observed": 30,
+    "censored": 0,
+    "median": 5.752,
+    "p90": 8.263
+   },
+   "ttca": {
+    "n": 30,
+    "observed": 28,
+    "censored": 2,
+    "median": 10.415,
+    "p90": 14.573
+   },
+   "within_10s": {
+    "k": 13,
+    "n": 30,
+    "rate": 0.43333333333333335,
+    "ci95": [
+     0.2738,
+     0.608
+    ]
+   },
+   "within_30s": {
+    "k": 27,
+    "n": 30,
+    "rate": 0.9,
+    "ci95": [
+     0.7438,
+     0.9654
+    ]
+   },
+   "clarifications": 0,
+   "spend_usd": 0.1011
+  },
+  "naive": {
+   "runs": 30,
+   "scored": 30,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 3,
+   "measure": "audio",
+   "correct": {
+    "k": 28,
+    "n": 30,
+    "rate": 0.9333333333333333,
+    "ci95": [
+     0.7868,
+     0.9815
+    ]
+   },
+   "first_audio": {
+    "n": 30,
+    "observed": 30,
+    "censored": 0,
+    "median": 4.064,
+    "p90": 6.677
+   },
+   "ttca": {
+    "n": 30,
+    "observed": 28,
+    "censored": 2,
+    "median": 9.732,
+    "p90": 14.239
+   },
+   "within_10s": {
+    "k": 16,
+    "n": 30,
+    "rate": 0.5333333333333333,
+    "ci95": [
+     0.3614,
+     0.6977
+    ]
+   },
+   "within_30s": {
+    "k": 26,
+    "n": 30,
+    "rate": 0.8666666666666667,
+    "ci95": [
+     0.7032,
+     0.9469
+    ]
+   },
+   "clarifications": 0,
+   "spend_usd": 0.0552
+  },
+  "keyboard": {
+   "runs": 30,
+   "scored": 30,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 1,
+   "measure": "time to correct text on the terminal",
+   "correct": {
+    "k": 30,
+    "n": 30,
+    "rate": 1.0,
+    "ci95": [
+     0.8865,
+     1.0
+    ]
+   },
+   "first_audio": null,
+   "ttca": {
+    "n": 30,
+    "observed": 30,
+    "censored": 0,
+    "median": 1.157,
+    "p90": 3.09
+   },
+   "within_10s": {
+    "k": 28,
+    "n": 30,
+    "rate": 0.9333333333333333,
+    "ci95": [
+     0.7868,
+     0.9815
+    ]
+   },
+   "within_30s": {
+    "k": 30,
+    "n": 30,
+    "rate": 1.0,
+    "ci95": [
+     0.8865,
+     1.0
+    ]
+   },
+   "clarifications": 0,
+   "spend_usd": 0.0478
+  }
+ },
+ "repeats": {
+  "a:pointe": {
+   "n": 6,
+   "flips": 0,
+   "flip_rate": 0.0,
+   "pass2": 0.16666666666666666
+  },
+  "a:llm-router": {
+   "n": 6,
+   "flips": 0,
+   "flip_rate": 0.0,
+   "pass2": 0.5
+  },
+  "b:pointe": {
+   "n": 8,
+   "flips": 5,
+   "flip_rate": 0.625,
+   "pass2": 0.25
+  },
+  "b:llm-router": {
+   "n": 8,
+   "flips": 0,
+   "flip_rate": 0.0,
+   "pass2": 1.0
+  }
+ },
+ "paired": {
+  "a": {
+   "items": 24,
+   "pointe": 6,
+   "llm_router": 16,
+   "delta": -0.4167,
+   "ci95": [
+    -0.625,
+    -0.2083
+   ]
+  },
+  "b": {
+   "items": 30,
+   "pointe": 19,
+   "llm_router": 28,
+   "delta": -0.3,
+   "ci95": [
+    -0.4667,
+    -0.1333
+   ]
+  }
+ },
+ "limits": [
+  "Synthetic speech only (four Kokoro voices, no noise): an upper bound for every arm. Kokoro is also Pointe's local voice.",
+  "The reference arms (`naive`, `llm-router`, `keyboard`) were written by the team that builds Pointe. No outside product is tested.",
+  "Spend is computed from token usage and list prices (Claude Code session usage; Pointe's daemon log with an assumed 300 output tokens a brain step and a flat allowance for its reader and checker), not metered by the vendors. Claude Code's own background calls (session titles) are not in its transcript.",
+  "The machine ran other workloads, including other benchmark agents, during the runs; the runner waited up to 45 s (Part A) or 2 minutes (Part B, the latency result) for the 1-minute load average to fall under 12 before each run and flags rows that started above it. Latency rows with a flag are less reliable.",
+  "Small samples: 18 stop-type items and 6 backchannels per arm in Part A, 30 questions in Part B. Intervals are wide; the tables do not rank arms whose intervals overlap.",
+  "Part B's facts were read into the agent's context by a typed setup turn before the question (the same in every arm), so the time measures the voice path, not the agent's search.",
+  "The agent's settings file allows the job's shell commands and a hook allows commands that stay inside the item repo, the same in every arm, so no permission prompt stands between the user and the outcome. The hook refuses any command with `..`, even one that stays inside the repo: such a run waits at a prompt and ends as capped.",
+  "The scripted user answers a spoken question back (question detector, slot answers); it does not answer a question the agent asks in text on the keyboard arm.",
+  "The run was resumed twice: once to shorten the load wait for Part A (from 2 minutes to 45 s, after 49 runs), once to run again the 6 Pointe runs that had failed to start because an earlier isolated daemon still held the port. The failed rows stay in rows.jsonl; the later row for the same run is the one counted. Each row carries the bench commit it ran at; Pointe's commit is the same in every row."
+ ]
+}

@@ -252,12 +252,9 @@ class Pointe(PtyArm):
             return ""
 
     def roles(self) -> dict:
-        found = {}
-        for role in ("brain", "reader", "checker", "ears", "mouth"):
-            m = re.search(rf"\b{role}[:=] ?([a-z0-9_.:\-]+)", self.log())
-            if m:
-                found[role] = m.group(1)
-        return found
+        """The roles in use, from the daemon's own `setup: Setup(brain='...', ...)` line."""
+        m = re.search(r"setup: Setup\(([^)]*)\)", self.log())
+        return dict(re.findall(r"(\w+)='([^']*)'", m.group(1))) if m else {}
 
     def versions(self):
         return {**super().versions(), "pointe_commit": getattr(self, "commit", ""),

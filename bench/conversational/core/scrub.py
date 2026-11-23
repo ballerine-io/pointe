@@ -39,6 +39,7 @@ def clean(text: str) -> str:
     text = text.replace(CHECKOUT, "<pointe-checkout>").replace(HOME, "~")
     text = KEY_SHAPES.sub("<redacted>", text)
     text = HOME_SHAPES.sub("~", text)
+    text = re.sub(r"~/[^\s\"'\\]+", "<home-path>", text)
     for name in owner_names():
         text = re.sub(rf"(?<!\w){re.escape(name)}(?!\w)", "<owner>", text, flags=re.I)
     return text

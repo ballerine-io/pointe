@@ -7,7 +7,7 @@ from datetime import date
 from pathlib import Path
 
 from core import agent as agent_mod
-from core import runner, stats
+from core import ledger, runner, stats
 from bargein import bench
 
 HERE = Path(__file__).resolve().parent
@@ -151,6 +151,41 @@ def paired(rows: list[dict], part: str) -> dict | None:
             "delta": round(sum(d[0] for d in diffs.values()) / len(both), 4), "ci95": [round(boots[50], 4), round(boots[1949], 4)]}
 
 
+def from_logs(run_ids: list[str], rows: list[dict]) -> dict:
+    """Counts read from the committed raw logs (events.jsonl), by code: what Pointe did with a spoken stop, and what the
+    typed reference's agent did with a redirect."""
+    import re
+
+    standing = {(r["run_id"], r["item"], r["adapter"], r["run_index"]): r for r in rows}
+    out = {"pointe_roles": None, "pointe_a_runs": 0, "pointe_a_forwarded_as_message": 0, "pointe_a_forwarded_and_job_ran_on": 0,
+           "keyboard_redirect_runs": 0, "keyboard_redirect_agent_asked": 0}
+    for rid in run_ids:
+        for line in (RESULTS / rid / "events.jsonl").read_text().splitlines():
+            e = json.loads(line)
+            row = standing.get((rid, e["item"], e["adapter"], e["k"]))
+            if row is None or row.get("status") not in ("ok", "capped"):
+                continue
+            log = {k: v for x in e["log"] for k, v in x.items()}
+            if e["adapter"] == "pointe":
+                daemon = log.get("daemon_log_tail", "")
+                found = re.search(r"setup: Setup\(([^)]*)\)", daemon)
+                if found and not out["pointe_roles"]:
+                    out["pointe_roles"] = found.group(1).replace("'", "")
+                if e["item"].startswith("a") and row.get("kind") != "backchannel":
+                    out["pointe_a_runs"] += 1
+                    said = daemon.split("user said:", 1)
+                    sent = len(said) > 1 and re.search(r"-> kiln: ", said[1]) is not None
+                    out["pointe_a_forwarded_as_message"] += sent
+                    out["pointe_a_forwarded_and_job_ran_on"] += sent and not row.get("halted")
+            if e["adapter"] == "keyboard" and row.get("kind") == "redirect" and e["k"] == 0:
+                out["keyboard_redirect_runs"] += 1
+                texts = [t for _, t in log.get("agent_text", [])]
+                asks = re.compile(r"\?|need to know|should i|tell me|let me know|which (one|option)|do you want", re.I)
+                out["keyboard_redirect_agent_asked"] += bool(texts) and not log.get("tool_uses", [])[1:] and \
+                    bool(asks.search(texts[-1]))
+    return out
+
+
 def markdown(res: dict) -> str:
     a, b = res["part_a"], res["part_b"]
     lines = [f"# bargein: Barge-in and Time to a Correct Answer (synthetic speech), v{res['item_version']}", "",
@@ -159,8 +194,9 @@ def markdown(res: dict) -> str:
              "committed rows.", "",
              f"Runs: {', '.join(res['run_ids'])}. Dates: {res['dates']}. Agent: `{res['agent_model']}` in Claude Code "
              f"{res['claude_code']}, `--permission-mode acceptEdits`, one worker. Pointe commit `{res['pointe_commit'][:12]}`, "
-             f"setup {res['pointe_setup']}, roles {res['pointe_roles']}. Ledger: ${res['spend_usd']:.2f} of $14.00 "
-             f"(computed from token usage and list prices, not metered).", "",
+             f"setup {res['pointe_setup']} ({res['logs']['pointe_roles']}). Spend: ${res['spend_usd']:.2f} in these rows; "
+             f"${res['ledger_usd']:.2f} for bargein in the ledger with adapter debugging and preflight probes, of a $14.00 "
+             f"cap (computed from token usage and list prices, not metered).", "",
              "## Part A: stopping a working agent (synthetic speech, 24 items, one Kokoro voice each)", "",
              "| Arm | Halt (stop, undo, redirect) | Missed stop | False stop on backchannels | Overshoot, files (median / p90) "
              "| Time to halt, stop items (median / p90) | Redirect | Undo | Stayed stopped (stop, undo) | Setup failed / errors / capped | Load-flagged |",
@@ -201,7 +237,19 @@ def markdown(res: dict) -> str:
         if p:
             lines.append(f"- {label}: Pointe {p['pointe']}/{p['items']}, llm-router {p['llm_router']}/{p['items']}, "
                          f"difference {p['delta']:+.0%} [95% bootstrap over items {p['ci95'][0]:+.0%}, {p['ci95'][1]:+.0%}].")
-    lines += ["", "## Run-to-run (synthetic speech)", ""]
+    lg = res["logs"]
+    lines += ["", "## What the raw logs show (counted by `run.py report` from events.jsonl)", "",
+              f"- Pointe, Part A stop, undo and redirect runs (repeats included): in {lg['pointe_a_forwarded_as_message']} "
+              f"of {lg['pointe_a_runs']} the daemon log shows the spoken request sent to the session as a message "
+              f"(`-> kiln:`), and in {lg['pointe_a_forwarded_and_job_ran_on']} of those the job still ran to its end. "
+              "The voice model's tools at this commit (`daemon.py`, `TOOLS`) have no action that interrupts a working "
+              "agent; a message waits while the agent's shell command runs.",
+              f"- Keyboard reference, redirect items: in {lg['keyboard_redirect_agent_asked']} of "
+              f"{lg['keyboard_redirect_runs']} runs the agent ran nothing after Escape and the typed redirect and its "
+              "last reply asked how to redirect (or which option to take). The keyboard arm has no scripted answer to questions, so the redirect "
+              "column measures the agent and this scripted user more than the voice path; it does not separate the arms.",
+              ""]
+    lines += ["## Run-to-run (synthetic speech)", ""]
     for key, f in res["repeats"].items():
         lines.append(f"- {key}: {f['n']} repeated items, flips {f['flips']}, pass^2 {f['pass2']:.0%}.")
     lines += ["", "## Limits", ""] + [f"- {x}" for x in res["limits"]] + [""]
@@ -224,7 +272,14 @@ LIMITS = [
     "Part B's facts were read into the agent's context by a typed setup turn before the question (the same in every "
     "arm), so the time measures the voice path, not the agent's search.",
     "The agent's settings file allows the job's shell commands and a hook allows commands that stay inside the item "
-    "repo, the same in every arm, so no permission prompt stands between the user and the outcome.",
+    "repo, the same in every arm, so no permission prompt stands between the user and the outcome. The hook refuses "
+    "any command with `..`, even one that stays inside the repo: such a run waits at a prompt and ends as capped.",
+    "The scripted user answers a spoken question back (question detector, slot answers); it does not answer a "
+    "question the agent asks in text on the keyboard arm.",
+    "The run was resumed twice: once to shorten the load wait for Part A (from 2 minutes to 45 s, after 49 runs), "
+    "once to run again the 6 Pointe runs that had failed to start because an earlier isolated daemon still held the "
+    "port. The failed rows stay in rows.jsonl; the later row for the same run is the one counted. Each row carries "
+    "the bench commit it ran at; Pointe's commit is the same in every row.",
 ]
 
 
@@ -247,7 +302,7 @@ def main(run_id: str | None) -> int:
            "agent_model": agent_mod.MODEL, "claude_code": freeze_data["claude_code_version"],
            "pointe_commit": freeze_data["pointe_commit"],
            "pointe_setup": pointe_rows[0]["versions"].get("pointe_setup") if pointe_rows else "",
-           "pointe_roles": pointe_rows[0]["versions"].get("pointe_roles") if pointe_rows else "",
+           "logs": from_logs(ids, rows), "ledger_usd": ledger.spent("bargein"),
            "spend_usd": round(sum(r.get("spend_usd", 0) for r in every), 4), "rows": len(rows),
            "superseded_error_rows": superseded,
            "part_a": part_a(rows), "part_b": part_b(rows), "repeats": repeats(rows),
