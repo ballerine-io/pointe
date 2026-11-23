@@ -162,6 +162,11 @@ final class TalkStyleTests: XCTestCase {
     func testStoredPerDeviceAndHoldByDefault() {
         let defaults = UserDefaults(suiteName: "TalkStyleTests")!
         defaults.removePersistentDomain(forName: "TalkStyleTests")
+        defer {  // emptying the domain leaves its file: remove that too
+            defaults.removePersistentDomain(forName: "TalkStyleTests")
+            let library = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
+            try? FileManager.default.removeItem(at: library.appendingPathComponent("Preferences/TalkStyleTests.plist"))
+        }
         XCTAssertEqual(TalkStyle.stored(in: defaults), .hold)
         defaults.set("tap", forKey: TalkStyle.key)
         XCTAssertEqual(TalkStyle.stored(in: defaults), .tap)

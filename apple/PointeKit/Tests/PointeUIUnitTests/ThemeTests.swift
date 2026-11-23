@@ -37,6 +37,29 @@ final class ThemeTests: XCTestCase {
         XCTAssertEqual(Brand.textFace(.heavy), "InstrumentSans-SemiBold")
     }
 
+    /// The Chorus mark draws in the header on both platforms and in both appearances: a name the asset catalog does
+    /// not resolve leaves a blank slot and no error.
+    @MainActor
+    func testTheChorusMarkDraws() throws {
+        for scheme in [ColorScheme.light, .dark] {
+            let mark = Image("ChorusMark", bundle: PointeBoot.bundle).resizable().frame(width: 24, height: 24)
+                .environment(\.colorScheme, scheme)
+            let renderer = ImageRenderer(content: mark)
+            renderer.scale = 2
+            let image = try XCTUnwrap(renderer.cgImage, "\(scheme)")
+            XCTAssertGreaterThan(Self.inkedPixels(image), 50, "the mark drew nothing in \(scheme)")
+        }
+    }
+
+    private static func inkedPixels(_ image: CGImage) -> Int {
+        let (w, h) = (image.width, image.height)
+        var data = [UInt8](repeating: 0, count: w * h * 4)
+        let context = CGContext(data: &data, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        context?.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return stride(from: 3, to: data.count, by: 4).filter { data[$0] > 0 }.count
+    }
+
     func testAColourFollowsTheAppearance() {
         func hex(_ color: Color, _ style: ColorScheme) -> String {
             var environment = EnvironmentValues()

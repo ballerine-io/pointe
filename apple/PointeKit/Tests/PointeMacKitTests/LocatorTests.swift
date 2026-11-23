@@ -226,13 +226,19 @@ struct Sandbox {
     }
 
     @Test func theChoiceIsKeptAndNoneStaysNone() throws {
-        let defaults = try #require(UserDefaults(suiteName: "pointe-shortcut-\(UUID().uuidString)"))
+        let suite = "pointe-shortcut-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
         #expect(Shortcut.stored(in: defaults) == .standard)
         let chosen = Shortcut(keyCode: 40, modifiers: Shortcut.control | Shortcut.shift)
         Shortcut.store(chosen, in: defaults)
         #expect(Shortcut.stored(in: defaults) == chosen && chosen.display == "⌃⇧K")
         Shortcut.store(nil, in: defaults)
         #expect(Shortcut.stored(in: defaults) == nil)
+        // Emptying the domain still leaves its file: each run left a plist in ~/Library/Preferences.
+        defaults.removePersistentDomain(forName: suite)
+        let file = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0].appendingPathComponent("Preferences/\(suite).plist")
+        try? FileManager.default.removeItem(at: file)
+        #expect(!FileManager.default.fileExists(atPath: file.path), "the test leaves no preferences file behind")
     }
 }
 @Suite struct ReleaseWatchTests {
