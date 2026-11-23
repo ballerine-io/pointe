@@ -157,8 +157,17 @@ class Registry:
     def set_active(self, session_id: str) -> None:
         if self.active_id and self.active_id != session_id:
             self.recent = [i for i in self.recent if i != self.active_id] + [self.active_id]
+        if self.active_id != session_id:
+            self._close_yes_windows()
         self.active_id = session_id
         self.save()
+
+    def _close_yes_windows(self) -> None:
+        """The active session changed: a yes now may answer something said about another session, so no read-out's
+        window stays open. Each pending request is read out again before a yes can approve it."""
+        for s in self.sessions.values():
+            if s.permission_id:
+                s.permission_delivered_at = float("inf")
 
     def save(self) -> None:
         if self.path is None:
@@ -295,6 +304,7 @@ class Registry:
         self.recent = [i for i in self.recent if i in self.sessions]
         if self.active_id == session_id:  # back to the one used last, not the first registered
             self.active_id = self.recent.pop() if self.recent else next(iter(self.sessions), None)
+            self._close_yes_windows()
         self.save()
         return session
 

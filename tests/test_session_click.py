@@ -175,3 +175,25 @@ def test_the_page_stub_switches_as_the_daemon_does(d):
             await stub.stop()
 
     assert asyncio.run(stub_after_switch()) == (real["mode"], True)
+
+
+def test_a_yes_window_does_not_survive_a_switch_away_and_back(call, monkeypatch):
+    """Mythos review AV-4. Alpha's request is read out and left unanswered; the user clicks beta, which is announced;
+    beta then leaves, and alpha is active again without a word. The user's "yes" (to beta's question) must not approve
+    alpha's request: the window closed when the active session changed, and alpha's request is read out again."""
+    from test_orchestrator import record_channel, verdicts
+    d = call.d
+    posts = record_channel(d, monkeypatch)
+    with_permission(call.alpha, "p1", delivered_at=1.0)  # read out, the last thing the bot said
+    call.alpha.permission_spoken, call.alpha.permission_cut = "run: rm -rf build", False
+    call.conn.injector.bot_started_at = 2.0
+    click(call, "beta/main")
+    assert d.REGISTRY.active is call.beta
+
+    async def beta_leaves_then_yes():
+        await d.disconnect(call.beta, "it left")
+        assert d.REGISTRY.active is call.alpha
+        await d.on_user_utterance("yes")
+
+    asyncio.run(beta_leaves_then_yes())
+    assert verdicts(posts) == [] and call.alpha.permission_id == "p1", "a yes to beta's question approved alpha's request"

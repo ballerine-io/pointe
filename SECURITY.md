@@ -37,7 +37,8 @@ With the default brain, a permission prompt is approved only when all of these h
 - A request that is not read out is approved by a tap, never by voice: the page, and the phone app, show the exact
   request with Approve and Deny. A tap counts only for the request still pending. The terminal can answer it too.
 - It was the last thing the bot said. No model wording can open this window, and any other speech closes it. So can being
-  cut off. The request is then read out again.
+  cut off, or a change of the active session (a click, or the active session leaving). The request is then read out
+  again.
 - You said a yes and nothing else, begun after the read-out ended. "Okay, tell me more", "yes, and run the linter", "okay
   so", and "no worries" do not count.
 - The yes came within 120 seconds of the read-out, on the active session.
