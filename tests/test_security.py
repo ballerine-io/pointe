@@ -565,3 +565,15 @@ def test_the_page_policy_allows_only_hashed_inline_scripts():
         assert _sha(injected) not in _policy_hashes(policy)
     for handler in ("foldShow()", "event.preventDefault(); phoneRoutes($('ph-host').value)"):
         assert _sha(handler) in _policy_hashes(policy)  # read the way the browser hashes: the attribute's decoded value
+
+
+def test_security_md_names_every_route_the_phone_key_opens_and_no_other():
+    """SECURITY.md's list is what a leaked phone key can reach: it must be guards._PHONE_PATHS exactly."""
+    import re
+
+    from guards import _PHONE_PATHS
+
+    text = (Path(__file__).resolve().parents[1] / "SECURITY.md").read_text()
+    start = text.index("- **What the phone key opens")
+    bullet = text[start:text.index("\n- **", start + 1)]
+    assert set(re.findall(r"`(/voice/[a-z/-]+)`", bullet)) == _PHONE_PATHS

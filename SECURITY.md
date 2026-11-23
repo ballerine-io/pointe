@@ -284,7 +284,7 @@ The Mac with the call (the hub) keeps every rule above for them.
   the code is compared, so one address cannot try enough to cancel the invite. After 20 wrong codes from all addresses
   together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
   A guesser behind the same connector as your machine can delay it by a minute, not lock it out. Making it from the
-  app needs Face ID.
+  app needs Face ID there; the daemon makes one for any holder of the phone key (see Phone access).
   The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. It
   writes the hub's answer only if every field has the form the hub makes (the hub and node ids 16 hex digits, the key 64,
   plain names), so a hub cannot name a file outside `node_keys/`. The hub
@@ -386,22 +386,43 @@ replaces it. `pointe pair off` (and `bin/voice-remote off`) leaves the connector
   CA-signed or not. iOS's App Transport Security can't be scoped to a name you pick (a Twingate or VPN name), and it
   refuses a self-signed certificate before the app's own check runs, so it is off for this app. The pin is the stronger
   check: ATS trusts any CA-issued certificate for the name, and the pin trusts one certificate.
-- **What the phone key opens:** the call socket, status (sessions, the last turns of the conversation, the words being
-  heard), approve, the brain dump (`/voice/dump`, `/voice/listen`), switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
-  enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
-  the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), the dictionary (`/voice/dictionary`: list, add, edit, delete), drive mode (`/voice/drive`: on, off), and the conflict alarm (`/voice/conflicts`: dismiss,
-  or ask one side as typed words, which never approve). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
+- **What the phone key opens**, and nothing else (`guards._PHONE_PATHS`):
+  - the call (`/voice/phone`), status (`/voice/status`: the sessions, each pending request with its id, the last turns
+    of the conversation, the words being heard) and approve (`/voice/approve`);
+  - driving the sessions: `/voice/switch`, `/voice/disconnect`, `/voice/hung-up`, `/voice/rename`, `/voice/mode`,
+    typed words (`/voice/say`, `/voice/correct`, `/voice/polish`), a new session in a folder the Mac allows
+    (`/voice/new-session`), the night shift (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the
+    challenge (`/voice/challenge`), drive mode (`/voice/drive`), alerts (`/voice/attention`) and the conflict alarm
+    (`/voice/conflicts`: dismiss, or ask one side as typed words, which never approve);
+  - meetings and notes: `/voice/meeting`, `/voice/meeting/transcript`, `/voice/notes`;
+  - settings: `/voice/prefs` (every setting except the voice lock, which has its own route, and the folders new
+    sessions may start in, which only the Mac changes), the voice lock (`/voice/voiceprint`: enrol, delete, level), the
+    dictionary (`/voice/dictionary`), and briefings (`/voice/briefings`, `/voice/briefings/latest`,
+    `/voice/briefings/schedule`);
+  - Show while it says (`/voice/artifact`), once `show.on_phone` is on;
+  - machines: `/voice/hub/invite`, `/voice/hub/nodes`, `/voice/hub/revoke`.
+
+  Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
+  uses.
+- **Face ID is a check in the app, not in the daemon.** The app asks for Face ID or the passcode before it approves,
+  turns on Show while it says or Approve from notifications, lowers or deletes the voice lock, or makes a machine
+  invite. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
+  key can do all of the above without it: approve any pending request (status carries its id), turn on
+  `show.on_phone` and read what the voice showed, turn on `alerts.watch_approve`, and pair a machine of its own, which
+  stays paired after the phone is unpaired. If a phone key may have leaked, Unpair it, run `pointe pair rotate` (it
+  signs out every machine too), and check Settings → Machines.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
   `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it
-  on). Once on, a leaked phone key can read what the voice showed: the last ten reports' files, inside each session's
+  on, but the daemon takes the setting from any holder of the phone key). Once on, a leaked phone key can read what the
+  voice showed: the last ten reports' files, inside each session's
   folder only. Either way the daemon never takes a path from the caller, shows only tools that ran (never a tool still
   waiting for approval), refuses files outside the session's folder after resolving symlinks, hidden files and
   secret-looking names (`.env*`, `*.pem`, `*secret*`, `*key*`, `id_*`, `*credential*`, ...), binary files and files over
   512 kB, and masks secret-looking values (known token shapes, private keys, `name = "..."` and unquoted `name: value` for secret-like names, URL
   passwords, and the values of this machine's own key variables) in file lines, diffs, test output and commands.
   Diffs read `HEAD` with `git cat-file`, never `git diff`, so a repository's filters and diff drivers do not run.
-- **Approve needs Face ID** or the passcode; deny never does. One opt-in exception: with "Approve from notifications"
+- **Approve needs Face ID** or the passcode in the app; deny never does. One opt-in exception: with "Approve from notifications"
   on (`alerts.watch_approve`, off by default; the app asks for Face ID to turn it on), a notification's Approve needs an
   unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
   read out, bound to that request's id (`alerts.py`).
