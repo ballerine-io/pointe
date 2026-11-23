@@ -50,7 +50,7 @@ final class WordsOfEachDeviceTests: XCTestCase {
             XCTAssertTrue(ConnectCopy.notPairedHere.hasPrefix("Pointe on this Mac refused this app."))
             XCTAssertTrue(ConnectCopy.micDeniedHere.contains("System Settings"))
             XCTAssertTrue(ConnectCopy.idleHangupHere.hasSuffix("Press Connect to talk again."))
-            XCTAssertEqual(ConnectCopy.unreachableHere("anything"), "Pointe on this Mac is not running. Start it here, or run /pointe:voice in a Claude Code session.")
+            XCTAssertEqual(ConnectCopy.unreachableHere("anything"), "Pointe on this Mac is not running. Start it here, or run pointe open in a terminal.")
             XCTAssertEqual(AlertCopy.phoneHere, "Alerts on this Mac")
             XCTAssertTrue(AlertCopy.helpHere.contains("Touch ID") && !AlertCopy.helpHere.contains("Face ID"))
             XCTAssertEqual(CallView.ownerReason("Approve what docs wants to run"), "approve what docs wants to run", "macOS says: Pointe is trying to …")
