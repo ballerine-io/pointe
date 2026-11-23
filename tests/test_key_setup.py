@@ -333,6 +333,13 @@ def test_the_doctor_the_page_the_mac_app_and_the_help_say_it_too():
     assert help_entry["how"] == f"{vendors.WHAT_YOU_NEED} {vendors.WHY_KEYS} Switch setups with pointe setup on the Mac."
 
 
+def test_why_its_own_keys_names_every_vendor_that_runs_a_setup_alone():
+    import setups
+    alone = {s.keys[0] for s in setups.SETUPS if len(s.keys) == 1 and not s.local}
+    assert alone == {"gemini", "openai"}
+    assert all(setups.NAMES[v] in vendors.WHY_KEYS for v in alone), vendors.WHY_KEYS
+
+
 def test_the_mac_app_fills_roles_in_the_daemons_order():
     swift_roles = dict(re.findall(r'\("(\w+)", \[([^\]]+)\]\)', SWIFT))
     for role, order in vendors.ROLE_ORDERS.items():
