@@ -1777,11 +1777,21 @@
 
   let status = null, fails = 0, denied = false, inflight = false, again = false;
   // A meeting's error or notice: shown with the page's other problems, for a while, so the next poll does not wipe it.
-  let meetProblem = '', meetProblemUntil = 0;
+  let pageProblem = '', pageProblemUntil = 0;
   // A request that never reached the Mac throws the browser's own words ("Failed to fetch", "Load failed"): said plainly.
   const NOT_REACHED = 'The Mac did not answer, so nothing changed. Check that Pointe is running there, then try again.';
   const plain = e => /^(Failed to fetch|NetworkError|Load failed)/.test((e && e.message) || '') ? NOT_REACHED : (e && e.message) || String(e);
-  function meetError(text, secs = 12) { meetProblem = text; meetProblemUntil = Date.now() + secs * 1000; $('problem').textContent = text; }
+  // A refusal, an error or a notice of the page's own: held on the problem line for a while, so the refresh that follows
+  // a click does not wipe it before anyone has read it.
+  function sayProblem(text, secs = 12) { pageProblem = text; pageProblemUntil = Date.now() + secs * 1000; $('problem').textContent = text; }
+  // A POST that never throws: a Mac that did not answer comes back as a refusal with no status, so a button it disabled
+  // is given back and the click is never silently lost.
+  async function postSafe(path, body) {
+    try {
+      const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+      return {ok: r.ok, status: r.status, detail: r.ok ? '' : String((await r.json().catch(() => ({}))).detail || '')};
+    } catch (e) { return {ok: false, status: 0, detail: ''}; }
+  }
   // One at a time: overlapping polls can come back out of order, and an older answer would undo a newer one
   // (a turn that appeared, then vanished for seconds). A refresh asked for meanwhile runs right after.
   let polled = 0;
@@ -2111,8 +2121,8 @@
       const button = el('button', cls, label);
       button.onclick = async () => {
         button.disabled = true;
-        const r = await fetch('/voice/new-session', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-        if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Not started';
+        const r = await postSafe('/voice/new-session', body);
+        if (!r.ok) { button.disabled = false; sayProblem(r.status ? r.detail || 'Not started.' : NOT_REACHED); }
         refresh();
       };
       row.append(button);
@@ -2249,7 +2259,7 @@
     button.disabled = true; $('add-err').textContent = '';
     const r = await fetch('/voice/add-sessions', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)}).catch(() => null);
     const got = r ? await r.json().catch(() => ({})) : {};
-    if (r && r.ok) { closeSheet('addsheet'); if (got.problems && got.problems.length) $('problem').textContent = got.problems.join(' '); }
+    if (r && r.ok) { closeSheet('addsheet'); if (got.problems && got.problems.length) sayProblem(got.problems.join(' ')); }
     else { $('add-err').textContent = got.detail || 'Not added: the Mac did not answer.'; button.disabled = false; }
     refresh();
   }
@@ -2269,7 +2279,7 @@
       button.onclick = async () => {
         button.disabled = true;
         const r = await fetch('/voice/add-sessions', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-        if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Not added';
+        if (!r.ok) sayProblem((await r.json().catch(() => ({}))).detail || 'Not added');
         refresh();
       };
       row.append(button);
@@ -2347,7 +2357,7 @@
       const button = el('button', cls, label);
       button.onclick = async () => {
         button.disabled = true;
-        try { await nightPost({action, id: p.id}); } catch (e) { $('problem').textContent = plain(e); }
+        try { await nightPost({action, id: p.id}); } catch (e) { sayProblem(plain(e)); }
         refresh();
       };
       row.append(button);
@@ -2467,7 +2477,7 @@
     refresh();
   }
   async function stopShift() {
-    try { await nightPost({action: 'stop'}); } catch (e) { $('night-lerr').textContent = plain(e); $('problem').textContent = plain(e); }
+    try { await nightPost({action: 'stop'}); } catch (e) { $('night-lerr').textContent = plain(e); sayProblem(plain(e)); }
     await refresh();
     if ($('nightsheet').classList.contains('open')) openNightShift();
   }
@@ -2687,7 +2697,7 @@
     $('dump-note').textContent = ''; $('dump-err').textContent = '';
     const now = Date.now() / 1000;
     if (action === 'start') want('dump', s => { s.brain_dump = {id: 'want', state: 'dumping', since: now, thoughts: [], prompt: null}; s.monologue = {since: now, said: ''}; },
-                                 dumpPost({action}).then(() => (refresh(), true), e => ($('problem').textContent = plain(e), false)));
+                                 dumpPost({action}).then(() => (refresh(), true), e => (sayProblem(plain(e)), false)));
     else if (action === 'done') want('dump', s => { if (s.brain_dump) s.brain_dump.state = 'structuring'; },
                                      dumpPost({action}).then(() => (refresh(), true), e => ($('dump-note').textContent = plain(e), false)));
     else {
@@ -2881,7 +2891,7 @@
     // The empty stage carries the reason there is no call, next to the button that fixes it; with a conversation on
     // screen the top bar says it.
     const issue = connectIssue(), panel = connectLi.isConnected && !document.body.matches('.meeting, .meetend');
-    text('problem', (panel ? '' : issue) || (Date.now() < meetProblemUntil ? meetProblem : '') || (s && s.problem ? s.problem : ''));
+    text('problem', (panel ? '' : issue) || (Date.now() < pageProblemUntil ? pageProblem : '') || (s && s.problem ? s.problem : ''));
     if (denied) [st, title] = ['off', CONNECT_COPY.notPairedTitle];
     else if (fails >= 3) [st, title] = ['reconnecting', remotePage ? 'Mac not reachable' : 'Pointe is not answering'];
     else if (wantCall && !mine) [st, title] = ['reconnecting', 'Reconnecting…'];
@@ -2948,15 +2958,15 @@
   async function fixKey() {  // the refused key: on this Mac, its own key window; elsewhere, where to fix it
     const vendor = status && status.key_refused && status.key_refused.vendor;
     if (!vendor) return;
-    if (remotePage) { $('problem').textContent = CONNECT_COPY.fixOnMac(vendor); return; }
-    const r = await fetch('/voice/key', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({vendor})});
-    $('problem').textContent = r.ok ? CONNECT_COPY.keyWindow : (await r.json().catch(() => ({}))).detail || 'The key window did not open.';
+    if (remotePage) { sayProblem(CONNECT_COPY.fixOnMac(vendor)); return; }
+    const r = await postSafe('/voice/key', {vendor});
+    sayProblem(r.ok ? CONNECT_COPY.keyWindow : r.status ? r.detail || 'The key window did not open.' : NOT_REACHED);
   }
   async function setMicMode(mode) {  // the dock's switch and Settings → Microphone set the same preference
     $('pref-mic').value = mode;
     want('micmode', s => { if (s.ptt) s.ptt.mode = mode; }, (async () => {  // the switch moves now; the Mac confirms on the next poll
-      const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({microphone: mode})});
-      if (!r.ok) $('problem').textContent = 'The microphone mode did not change: the voice is not reachable.';
+      const r = await postSafe('/voice/prefs', {microphone: mode});
+      if (!r.ok) sayProblem('The microphone mode did not change: the voice is not reachable.');
       refresh();
       return r.ok;
     })());
@@ -3169,7 +3179,7 @@
     if (!text) return;
     box.value = '';
     if (meetOn) {  // in a meeting the box asks Pointe: a note in listening, spoken to the room in participating
-      try { await meetPost({action: 'ask', text}); } catch (e) { box.value = text; meetError(plain(e)); }
+      try { await meetPost({action: 'ask', text}); } catch (e) { box.value = text; sayProblem(plain(e)); }
       refresh(); return;
     }
     let why = null;
@@ -3505,14 +3515,14 @@
     } catch (e) { $('meeterr2').textContent = plain(e); $('meetstart').disabled = !$('meetconsent').checked || !meetCanStart; }
     refresh();
   }
-  async function meetingMode(mode) { try { await meetPost({action: 'mode', mode}); } catch (e) { meetError(plain(e)); } refresh(); }
+  async function meetingMode(mode) { try { await meetPost({action: 'mode', mode}); } catch (e) { sayProblem(plain(e)); } refresh(); }
   // A hand is known by its alert id (hand:<meeting id>:<n>), so a second click never decides the hand raised after it.
   let handShown = null, handBusy = null;
   const handIdOf = (s, hand) => ((s.attention || []).find(a => a.kind === 'hand') || {}).id || `at:${hand.at}`;
   async function handDecision(decision) {
     if (!handShown || handBusy === handShown) return;
     handBusy = handShown; showHandButtons(meetingOf(status));
-    try { await meetPost({action: 'hand', decision}); } catch (e) { handBusy = null; meetError(plain(e)); }
+    try { await meetPost({action: 'hand', decision}); } catch (e) { handBusy = null; sayProblem(plain(e)); }
     refresh();
   }
   function showHandButtons(m) {
@@ -3523,8 +3533,8 @@
     $('meetredial').disabled = true;
     try {
       await meetPost({action: 'reconnect'});
-      meetError('Reconnecting the room’s audio. Speakers are labelled afresh: say “Pointe, that’s me” again so it knows your voice.', 30);
-    } catch (e) { meetError(plain(e)); }
+      sayProblem('Reconnecting the room’s audio. Speakers are labelled afresh: say “Pointe, that’s me” again so it knows your voice.', 30);
+    } catch (e) { sayProblem(plain(e)); }
     $('meetredial').disabled = false;
     refresh();
   }
@@ -3538,7 +3548,7 @@
       return;
     }
     endSure = 0; $('meetend').textContent = endLabel();
-    try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { meetError(plain(e)); }
+    try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { sayProblem(plain(e)); }
     refresh();
   }
   // An action item as a line: what, then who and by when, each only when the notes say it ("not stated" says nothing),
@@ -3640,8 +3650,8 @@
   async function noteState(id, body) {
     const r = await fetch('/voice/notes', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({id, ...body})})
       .catch(() => null);
-    if (!r) meetError('Pointe did not answer. Try again.');
-    else if (!r.ok) meetError(r.status === 404 ? 'That note is gone.' : meetRefusal(r.status, ((await r.json().catch(() => ({}))).detail) || ''));
+    if (!r) sayProblem('Pointe did not answer. Try again.');
+    else if (!r.ok) sayProblem(r.status === 404 ? 'That note is gone.' : meetRefusal(r.status, ((await r.json().catch(() => ({}))).detail) || ''));
     refresh();
   }
   function noteItem(n, m) {
@@ -3660,7 +3670,7 @@
         if (lookingUp.has(n.id)) acts.append(el('span', 'busy', `Looking it up in ${where}…`));
         else add(`Look it up in ${where}`, async () => {
           lookingUp.add(n.id); renderNotes();
-          try { await meetPost({action: 'lookup', note_id: n.id}); } catch (e) { lookingUp.delete(n.id); meetError(plain(e)); renderNotes(); } }, true);
+          try { await meetPost({action: 'lookup', note_id: n.id}); } catch (e) { lookingUp.delete(n.id); sayProblem(plain(e)); renderNotes(); } }, true);
       }
       if (n.kind === 'speaker' && m && m.on) { add('Use this name', () => noteState(n.id, {accept: true}), true); add('Ignore', () => noteState(n.id, {state: 'dismissed'})); }
       else if (n.kind === 'action') add('Done', () => noteState(n.id, {state: 'done'}));
@@ -3687,7 +3697,7 @@
         x.append(el('span', 'who', names.get(t.speaker) || t.who || `Speaker ${t.speaker}`), t.text); li.append(x);
         if (m && m.on && names.get(t.speaker) !== 'You') {
           const acts = el('div', 'acts'); const b = el('button', '', 'That was me');
-          b.onclick = async () => { try { await meetPost({action: 'owner', turn_id: t.id}); } catch (e) { meetError(plain(e)); } transcriptAt = 0; refresh(); };
+          b.onclick = async () => { try { await meetPost({action: 'owner', turn_id: t.id}); } catch (e) { sayProblem(plain(e)); } transcriptAt = 0; refresh(); };
           acts.append(b); li.append(acts);
         }
         return li;
@@ -3737,10 +3747,10 @@
     }
     if (s && !m && $('endsheet').classList.contains('open')) {  // the daemon no longer has it: export and send would fail
       closeSheet('endsheet');
-      meetError('The meeting is gone because Pointe restarted. Its notes were not saved.', 60);
+      sayProblem('The meeting is gone because Pointe restarted. Its notes were not saved.', 60);
     }
     if (wasOn && !meetOn && !ended) {  // it vanished without an end: the daemon restarted
-      meetError('The meeting stopped because Pointe restarted. Its notes were not saved.', 60);
+      sayProblem('The meeting stopped because Pointe restarted. Its notes were not saved.', 60);
       notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes();
     }
     document.body.classList.toggle('meeting', meetOn);
@@ -4581,7 +4591,7 @@
   }
   async function hearBriefing(id) {
     if (!(status && status.connected)) { brfHearWhenLive = true; startCall(); return; }  // no call anywhere: this tab dials
-    try { await brfPost('/voice/briefings', {action: 'start'}); } catch (e) { meetError(plain(e)); }
+    try { await brfPost('/voice/briefings', {action: 'start'}); } catch (e) { sayProblem(plain(e)); }
     refresh();
   }
   async function dismissBriefing(id) { await brfPost('/voice/attention', {id}).catch(() => {}); refresh(); }
@@ -4748,8 +4758,8 @@
     unreadable: 'Can’t be read out: it waits until you stop. Say no to deny it.',
   };
   async function setDrive(on) {
-    const r = await fetch('/voice/drive', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
-    if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Drive mode did not change.';
+    const r = await postSafe('/voice/drive', {on});
+    if (!r.ok) sayProblem(r.status ? r.detail || 'Drive mode did not change.' : NOT_REACHED);
     refresh();
   }
   function driveLine(s) {
@@ -4792,7 +4802,7 @@
       const r = await fetch('/voice/challenge', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({action})});
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.detail || `failed (${r.status})`);
-    } catch (e) { $('chl-err').textContent = plain(e); meetError(plain(e), 8); }
+    } catch (e) { $('chl-err').textContent = plain(e); sayProblem(plain(e), 8); }
     refresh();
   }
   function challengeButton() { challengeAction(status && status.challenge && status.challenge.on ? 'end' : 'start'); }

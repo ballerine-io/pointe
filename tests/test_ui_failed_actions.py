@@ -102,3 +102,36 @@ def test_typed_words_that_were_not_sent_stay_in_the_box_with_the_reason():
     (problem, _, box), (problem2, _, box2) = _run(script)
     assert box == "tell billing to raise the timeout" and "Not sent" in problem  # a 409 reads as "Connect first."
     assert box2 == "and docs too" and "did not answer" in problem2
+
+
+def test_a_refused_drive_key_or_microphone_change_says_why_after_the_refresh():
+    """QA round 3: these wrote their refusal on the problem line and the refresh that followed the click wiped it."""
+    async def script(stub, page):
+        out = []
+        for path, call in (("/voice/drive", "setDrive(true)"), ("/voice/prefs", "setMicMode('ptt')"), ("/voice/key", "fixKey()")):
+            stub.refuse = {path: (409, f"refused at {path}")}
+            if path == "/voice/key":
+                await page.eval("status.key_refused = {vendor: 'gemini'}")
+            await page.eval(f"(async () => {{ await {call}; return true; }})()")
+            await asyncio.sleep(1.5)
+            out.append(await page.eval("document.getElementById('problem').textContent"))
+        return out
+    drive, mic, key = _run(script)
+    assert "refused at /voice/drive" in drive, drive
+    assert "microphone mode did not change" in mic, mic
+    assert "refused at /voice/key" in key, key
+
+
+def test_a_start_that_never_reached_the_mac_gives_its_button_back():
+    async def script(stub, page):
+        stub.status["start_pending"] = {"id": "p1", "line": "Start a Codex session in shop? Say yes or tap.", "expires_in": 40}
+        await page.eval("(async () => { await refresh(); return true; })()")
+        await asyncio.sleep(0.4)
+        await _offline(page, True)
+        await page.eval("document.querySelector('#startask .allow').click()")
+        await asyncio.sleep(1.0)
+        got = await page.eval("[document.querySelector('#startask .allow').disabled, document.getElementById('problem').textContent]")
+        await _offline(page, False)
+        return got
+    disabled, problem = _run(script)
+    assert disabled is False and ("did not answer" in problem or "not answering" in problem), (disabled, problem)  # the poll may say it first
