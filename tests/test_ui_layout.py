@@ -466,17 +466,6 @@ def test_the_context_panel_keeps_the_keyboard_inside_and_gives_it_back():
     assert back == "ctx", back
 
 
-def test_the_sessions_list_is_never_a_small_box_inside_the_column():
-    """Nine sessions on three machines: the list shows whole and the column scrolls as one, so no row or machine header
-    is cut by an inner scroll box of four rows; Settings stays at the column's foot."""
-    probe = """(() => { const l = document.getElementById('list'), side = document.getElementById('side').getBoundingClientRect(),
-      f = document.querySelector('#side footer').getBoundingClientRect();
-      return {inner: l.scrollHeight - l.clientHeight, footer: f.bottom <= side.bottom + 1 && f.bottom >= side.bottom - 24}; })()"""
-    status = fixture(sessions=9, machines=3, talk=4, approval=True, connected=True)
-    for r in _run([(1440, LIVE, probe), (390, "toggleSessions(true);", probe)], status):
-        assert r["inner"] <= 1 and r["footer"], r
-
-
 KEYS = {"line": "Setup: Free start. Every role is filled.", "setup": "free",
         "keys": {"gemini": "in use", "openai": "optional", "anthropic": "optional", "soniox": "optional", "elevenlabs": "optional"},
         "uses": {"gemini": ["brain", "reader", "checker", "ears", "mouth"]},
@@ -702,3 +691,22 @@ def test_the_newest_turn_is_in_view_when_the_page_opens_with_a_card_up():
         return out
     for gap, card in asyncio.run(run()):
         assert card and gap <= 2, (gap, card)
+
+
+COLUMN = """(() => { const r = e => e.getBoundingClientRect(), list = document.getElementById('list'), box = r(list), more = document.getElementById('list-hot');
+  const hot = [...list.querySelectorAll('.s')].filter(x => x.querySelector('.tag.hot'));
+  const out = hot.filter(x => r(x).bottom > box.bottom + 1 || r(x).top < box.top - 1);
+  return {room: Math.round(box.height), hidden: out.length, names: out.map(x => x.querySelector('.nm').textContent), more: more.hidden ? '' : more.textContent, fades: list.classList.contains('below')}; })()"""
+
+
+def test_a_long_sessions_column_gives_the_list_the_room_and_names_who_needs_you_below_the_cut():
+    """Twelve sessions on three machines at 1440x720 (here 1440x800): Recent requests kept a third of the column, the list got 169 px,
+    both sessions waiting on an approval were under the cut, and the cut sliced a row with no fade."""
+    status = fixture(sessions=12, machines=3, talk=4, approval=True, connected=True)
+    status["sessions"][1], status["sessions"][10] = status["sessions"][10], status["sessions"][1]
+    status["sessions"][9].update(needs="which branch should it target?", working=False)
+    got = _run([(1440, LIVE, COLUMN), (1440, "document.getElementById('list-hot').click();", COLUMN)], status)
+    assert got[0]["room"] >= 240 and got[0]["fades"], got[0]
+    n = got[0]["hidden"]
+    assert n and got[0]["more"] == f"{n} more {'needs' if n == 1 else 'need'} you ↓", got[0]
+    assert got[0]["names"][0] not in got[1]["names"], got  # the tap brings it into view
