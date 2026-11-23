@@ -1,0 +1,12 @@
+{"at": "2026-11-23T02:41:54+0200", "benchmark": "routing", "run_id": "routing-20261123-0241-8026-smoke", "arm": "preflight", "usd": 0.000880775, "kind": "smoke", "how": "metered"}
+{"at": "2026-11-23T02:44:41+0200", "benchmark": "routing", "run_id": "routing-20261123-0241-8026-smoke", "arm": "null", "conversation": "c12", "run_index": 0, "usd": 0, "kind": "smoke", "how": "computed"}
+{"at": "2026-11-23T02:44:43+0200", "benchmark": "routing", "run_id": "routing-20261123-0241-8026-smoke", "arm": "naive", "conversation": "c12", "run_index": 0, "usd": 0.007676, "kind": "smoke", "how": "computed"}
+{"at": "2026-11-23T02:46:48+0200", "benchmark": "routing", "run_id": "routing-20261123-0246-30db-smoke", "arm": "preflight", "usd": 0.000880775, "kind": "smoke", "how": "metered"}
+{"at": "2026-11-23T02:47:44+0200", "benchmark": "routing", "run_id": "routing-20261123-0246-30db-smoke", "arm": "llm-router", "conversation": "c12", "run_index": 0, "usd": 0.013442, "kind": "smoke", "how": "computed"}
+{"at": "2026-11-23T02:47:46+0200", "benchmark": "routing", "run_id": "routing-20261123-0246-30db-smoke", "arm": "naive", "conversation": "c12", "run_index": 0, "usd": 0.004319, "kind": "smoke", "how": "computed"}
+{"at": "2026-11-23T02:48:04+0200", "benchmark": "routing", "run_id": "routing-20261123-0248-2d68-smoke", "arm": "preflight", "usd": 0.00088115, "kind": "smoke", "how": "metered"}
+{"at": "2026-11-23T02:49:47+0200", "benchmark": "routing", "run_id": "routing-20261123-0248-2d68-smoke", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.061033, "kind": "smoke", "how": "computed"}
+{"at": "2026-11-23T02:50:29+0200", "benchmark": "routing", "run_id": "routing-20261123-0250-8f07-smoke", "arm": "preflight", "usd": 0.00088115, "kind": "smoke", "how": "metered"}
+{"at": "2026-11-23T02:52:12+0200", "benchmark": "routing", "run_id": "routing-20261123-0250-8f07-smoke", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.103432, "kind": "smoke", "how": "computed"}
+{"at": "2026-11-23T02:52:44+0200", "benchmark": "routing", "run_id": "routing-20261123-0252-de12-smoke", "arm": "preflight", "usd": 0.000880775, "kind": "smoke", "how": "metered"}
+{"at": "2026-11-23T02:54:30+0200", "benchmark": "routing", "run_id": "routing-20261123-0252-de12-smoke", "arm": "pointe", "conversation": "c12", "run_index": 0, "usd": 0.13389, "kind": "smoke", "how": "computed"}

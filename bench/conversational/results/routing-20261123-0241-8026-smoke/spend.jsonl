@@ -1,0 +1,2 @@
+{"run_id": "routing-20261123-0241-8026-smoke", "adapter": "naive", "conversation": "c12", "run_index": 0, "vendor": "anthropic", "what": "agent:depot-docs", "model": "claude-haiku-5-5", "usd": 0.007209, "how": "computed", "tokens": {"input_tokens": 10, "output_tokens": 1222, "cache_read_input_tokens": 157558, "cache_creation_input_tokens": 40171}}
+{"run_id": "routing-20261123-0241-8026-smoke", "adapter": "naive", "conversation": "c12", "run_index": 0, "vendor": "soniox", "what": "ears", "model": "stt-rt-v6", "how": "computed", "usd": 0.000467, "seconds": 14.0}

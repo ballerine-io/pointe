@@ -1,0 +1,43 @@
+{
+ "run_id": "routing-20261123-0252-de12-smoke",
+ "benchmark": "routing",
+ "started": "2026-11-23T02:52:45+0200",
+ "repo_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "claude_code_version": "2.1.330 (Claude Code)",
+ "agent_model": "claude-haiku-5-5",
+ "permission_mode": "acceptEdits",
+ "pointe_setup": {
+  "brain": "anthropic:claude-sonnet-5-5",
+  "reader": "anthropic:claude-sonnet-5-5",
+  "checker": "gemini:gemini-3.5-flash-lite",
+  "ears": "soniox",
+  "mouth": "elevenlabs:eleven_v4_turbo"
+ },
+ "router_model": "claude-sonnet-5-5",
+ "router_effort": "low",
+ "ears_model": "soniox:stt-rt-v6",
+ "voice_engine": "Kokoro-82M (mlx-community/Kokoro-82M-bf16, Apache-2.0)",
+ "seed": 20261123,
+ "smoke": true,
+ "frozen": null,
+ "preflight": {
+  "ok": true,
+  "apiKeySource": "apiKeyHelper",
+  "model": "claude-haiku-5-5",
+  "credentials_files": [],
+  "oauth_account": false,
+  "usd": 0.000880775
+ },
+ "dataset_version": "routing-0.1",
+ "arms": [
+  "pointe"
+ ],
+ "budget_usd": 9.0,
+ "trimmed": [],
+ "audio_matches_lock": true,
+ "finished": "2026-11-23T02:54:32+0200",
+ "leftover_processes": [],
+ "installed_pointe_link_unchanged": true,
+ "spent_usd": 0.3282
+}
