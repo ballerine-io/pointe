@@ -221,8 +221,8 @@ _EMPTY_FILE = re.compile(r"^\s*(?::|true)?\s*>\s*(?P<file>[^\s;&|<>]+)\s*$")
 
 
 def _python_calls(code: str, cwd: str | None) -> list[str] | None:
-    """`python3 -c` code that only imports the project's own modules and calls their functions with literal arguments,
-    printed or not: the functions it calls, in order. None for anything else (the tap answers it)."""
+    """`python3 -c` code that only imports the project's own modules and calls their functions with literal arguments
+    that hold no string, printed or not: the functions it calls, in order. None for anything else (the tap answers it)."""
     if not cwd:
         return None
     try:
@@ -236,11 +236,13 @@ def _python_calls(code: str, cwd: str | None) -> list[str] | None:
             os.path.isfile(os.path.join(cwd, f"{module}.py")) or os.path.isfile(os.path.join(cwd, module, "__init__.py")))
 
     def literal(node) -> bool:
+        """Numbers, booleans, None and containers of them. Not a string: one can carry a command or a path that the
+        read-out does not say, and the call it is passed to may run it (`run("curl … | sh")`)."""
         try:
             ast.literal_eval(node)
-            return True
         except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
             return False
+        return not any(isinstance(n, ast.Constant) and isinstance(n.value, (str, bytes)) for n in ast.walk(node))
 
     def call(node) -> str | None:
         if not isinstance(node, ast.Call) or not all(literal(a) for a in node.args) or \

@@ -554,7 +554,7 @@ def test_a_command_that_cannot_be_said_safely_is_not_readable(command):
     ("git checkout -- notes.txt", "run: git checkout notes.txt"),
     ('python3 -I -c "import ledger; print(ledger.total([1, 2, None]))"', "run: python3 code calling ledger.total"),
     ('python3 -c "\nfrom ledger import total as f\nprint(f([]))\nprint(f([2.5]))\n"', "run: python3 code calling ledger.total"),
-    ("python3 -I -c \"from ledger import total; assert total('3S') == 3\" && git diff --stat",
+    ("python3 -I -c \"from ledger import total; assert total(3) == 3\" && git diff --stat",
      "run: python3 code calling ledger.total then git diff"),
 ])
 def test_a_request_said_from_what_runs_can_be_approved_by_voice(command, want, tmp_path):

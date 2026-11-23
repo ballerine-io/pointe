@@ -419,6 +419,12 @@ with each finding's status, are published in [docs/security/reviews/](docs/secur
   the machine can read a command line with `ps`, on macOS as on Linux.
 - **While the voice holds a prompt, the terminal also shows it**, and either can answer. It waits up to 280 seconds. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).
 - **Two pages with the key can both be in a call.** Keep it to one.
+- **A read-back's yes can come a moment early.** A yes to the read-back of a start, a close, a night shift or a meeting's
+  action items counts from when the line is queued, not from its first sound, so a stray "okay" in the half second
+  before it plays can confirm it. A permission prompt's yes waits for the read-out's audio. (Low; to be closed.)
+- **The voice lock scores more than the yes.** It scores the voiced audio since the last thing it scored, so your cough
+  or hum just before a bystander's "yes" can count toward a match. It still fails closed when unsure. (Low, not
+  measured; to be closed.)
 
 ## The Mac app
 

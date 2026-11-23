@@ -643,6 +643,16 @@ with each finding's status, are published in <a href="https://github.com/balleri
 <p><strong>While the voice holds a prompt, the terminal also shows it</strong>, and either can answer. It waits up to 280 seconds. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).</p>
 </li>
 <li><strong>Two pages with the key can both be in a call.</strong> Keep it to one.</li>
+<li>
+<p><strong>A read-back's yes can come a moment early.</strong> A yes to the read-back of a start, a close, a night shift or a meeting's
+  action items counts from when the line is queued, not from its first sound, so a stray "okay" in the half second
+  before it plays can confirm it. A permission prompt's yes waits for the read-out's audio. (Low; to be closed.)</p>
+</li>
+<li>
+<p><strong>The voice lock scores more than the yes.</strong> It scores the voiced audio since the last thing it scored, so your cough
+  or hum just before a bystander's "yes" can count toward a match. It still fails closed when unsure. (Low, not
+  measured; to be closed.)</p>
+</li>
 </ul>
 <h2 id="the-mac-app">The Mac app</h2>
 <p>The Mac app (<code>macos/</code>, <a href="../mac-app/">docs/mac-app.md</a>) is another client of the daemon on the same Mac. It changes
