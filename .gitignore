@@ -16,3 +16,4 @@ ios/build/
 .build/
 macos/build/
 ios/.bundle-id
+bench/conversational/.audio/

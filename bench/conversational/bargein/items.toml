@@ -1,0 +1,312 @@
+# bargein items, v0.1. Text CC BY 4.0, written for this suite; every name is invented. Audio: Kokoro-82M (Apache-2.0),
+# rendered by `run.py corpus`, one panel voice per item by seeded draw.
+canary = "6de7a81b-ffab-48bd-a219-9fc048dd2eed"
+version = "0.1"
+capabilities = ["audio_in", "text_in", "interrupt", "speech_out"]
+
+[part_a]
+session = "kiln"
+fixture = "fixture/longjob"
+job = "Run ./long_job.sh with the Bash tool, in the foreground (not in the background). Run nothing else and use no other tool."
+trigger_file = "step_03.txt"
+
+# kind: stop | undo | redirect | backchannel. keyboard: the typed reference at the same trigger.
+[[part_a.items]]
+id = "a01"
+kind = "stop"
+text = "Stop."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a02"
+kind = "stop"
+text = "Stop, stop."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a03"
+kind = "stop"
+text = "Hold on, stop that."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a04"
+kind = "stop"
+text = "Cancel that."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a05"
+kind = "stop"
+text = "Wait, stop the job."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a06"
+kind = "stop"
+text = "Stop it now, please."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a07"
+kind = "stop"
+text = "Okay, stop, that's enough."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a08"
+kind = "stop"
+text = "Halt the script."
+keyboard = { keys = ["escape"], text = "" }
+
+[[part_a.items]]
+id = "a09"
+kind = "undo"
+text = "Stop and delete the step files."
+keyboard = { keys = ["escape"], text = "Delete the step files." }
+
+[[part_a.items]]
+id = "a10"
+kind = "undo"
+text = "Stop, and remove the files it made."
+keyboard = { keys = ["escape"], text = "Remove the files it made." }
+
+[[part_a.items]]
+id = "a11"
+kind = "undo"
+text = "Cancel that and clean up the step files."
+keyboard = { keys = ["escape"], text = "Clean up the step files." }
+
+[[part_a.items]]
+id = "a12"
+kind = "undo"
+text = "Stop, and undo it. Delete those files."
+keyboard = { keys = ["escape"], text = "Undo it. Delete those files." }
+
+[[part_a.items]]
+id = "a13"
+kind = "redirect"
+text = "No wait, put them in out."
+keyboard = { keys = ["escape"], text = "No wait, put them in out/." }
+
+[[part_a.items]]
+id = "a14"
+kind = "redirect"
+text = "No wait, put the files in the out folder instead."
+keyboard = { keys = ["escape"], text = "No wait, put the files in the out/ folder instead." }
+
+[[part_a.items]]
+id = "a15"
+kind = "redirect"
+text = "Actually, no. The step files should go in the out folder."
+keyboard = { keys = ["escape"], text = "Actually, no. The step files should go in the out/ folder." }
+
+[[part_a.items]]
+id = "a16"
+kind = "redirect"
+text = "Wait, write the rest into a folder called out."
+keyboard = { keys = ["escape"], text = "Wait, write the rest into a folder called out/." }
+
+[[part_a.items]]
+id = "a17"
+kind = "redirect"
+text = "No, no, I want them in out, not here."
+keyboard = { keys = ["escape"], text = "No, no, I want them in out/, not here." }
+
+[[part_a.items]]
+id = "a18"
+kind = "redirect"
+text = "Hang on, change of plan: the files go in out."
+keyboard = { keys = ["escape"], text = "Hang on, change of plan: the files go in out/." }
+
+[[part_a.items]]
+id = "a19"
+kind = "backchannel"
+text = "Mm-hm, okay."
+keyboard = { keys = [], text = "Mm-hm, okay." }
+
+[[part_a.items]]
+id = "a20"
+kind = "backchannel"
+text = "Uh-huh."
+keyboard = { keys = [], text = "Uh-huh." }
+
+[[part_a.items]]
+id = "a21"
+kind = "backchannel"
+text = "Okay, cool."
+keyboard = { keys = [], text = "Okay, cool." }
+
+[[part_a.items]]
+id = "a22"
+kind = "backchannel"
+text = "Right, sounds good."
+keyboard = { keys = [], text = "Right, sounds good." }
+
+[[part_a.items]]
+id = "a23"
+kind = "backchannel"
+text = "Yeah, okay, go on."
+keyboard = { keys = [], text = "Yeah, okay, go on." }
+
+[[part_a.items]]
+id = "a24"
+kind = "backchannel"
+text = "Nice, keep going."
+keyboard = { keys = [], text = "Nice, keep going." }
+
+[part_b]
+session = "quarry"
+fixture = "fixture/status"
+setup = "Read STATUS.md with the Read tool. Then reply with only the word ready."
+
+# fact: a key of facts.FACTS. The answer must be heard (or, for the keyboard arm, read) to count.
+[[part_b.items]]
+id = "b01"
+fact = "tests_failed"
+text = "How many tests failed?"
+
+[[part_b.items]]
+id = "b02"
+fact = "tests_failed"
+text = "In the last test run, how many tests failed?"
+
+[[part_b.items]]
+id = "b03"
+fact = "tests_failed"
+text = "What's the number of failing tests right now?"
+
+[[part_b.items]]
+id = "b04"
+fact = "tests_total"
+text = "How many tests are there in total?"
+
+[[part_b.items]]
+id = "b05"
+fact = "tests_total"
+text = "What was the total test count in the last run?"
+
+[[part_b.items]]
+id = "b06"
+fact = "tests_total"
+text = "How many tests ran altogether?"
+
+[[part_b.items]]
+id = "b07"
+fact = "worst_file"
+text = "Which test file has the most failures?"
+
+[[part_b.items]]
+id = "b08"
+fact = "worst_file"
+text = "Where are most of the failing tests?"
+
+[[part_b.items]]
+id = "b09"
+fact = "worst_file"
+text = "Which test file is failing the most?"
+
+[[part_b.items]]
+id = "b10"
+fact = "build_failed"
+text = "Did the build pass?"
+
+[[part_b.items]]
+id = "b11"
+fact = "build_failed"
+text = "Is the build green?"
+
+[[part_b.items]]
+id = "b12"
+fact = "build_failed"
+text = "Did the last build go through?"
+
+[[part_b.items]]
+id = "b13"
+fact = "lint_errors"
+text = "How many lint errors are there?"
+
+[[part_b.items]]
+id = "b14"
+fact = "lint_errors"
+text = "What's the lint error count?"
+
+[[part_b.items]]
+id = "b15"
+fact = "lint_errors"
+text = "How many errors did the linter find?"
+
+[[part_b.items]]
+id = "b16"
+fact = "coverage"
+text = "What's the test coverage?"
+
+[[part_b.items]]
+id = "b17"
+fact = "coverage"
+text = "How much of the code is covered by tests?"
+
+[[part_b.items]]
+id = "b18"
+fact = "coverage"
+text = "What percent coverage do we have?"
+
+[[part_b.items]]
+id = "b19"
+fact = "waiting_service"
+text = "Which service is waiting for review?"
+
+[[part_b.items]]
+id = "b20"
+fact = "waiting_service"
+text = "What's waiting on a review from me?"
+
+[[part_b.items]]
+id = "b21"
+fact = "waiting_service"
+text = "Which service needs my review?"
+
+[[part_b.items]]
+id = "b22"
+fact = "port"
+text = "What port does the dev server use?"
+
+[[part_b.items]]
+id = "b23"
+fact = "port"
+text = "Which port is the dev server on?"
+
+[[part_b.items]]
+id = "b24"
+fact = "port"
+text = "What's the dev server's port number?"
+
+[[part_b.items]]
+id = "b25"
+fact = "branch"
+text = "Which branch is checked out?"
+
+[[part_b.items]]
+id = "b26"
+fact = "branch"
+text = "What branch are we on?"
+
+[[part_b.items]]
+id = "b27"
+fact = "branch"
+text = "What's the name of the current branch?"
+
+[[part_b.items]]
+id = "b28"
+fact = "deploy_day"
+text = "When was the last deploy?"
+
+[[part_b.items]]
+id = "b29"
+fact = "deploy_day"
+text = "What day did we last deploy?"
+
+[[part_b.items]]
+id = "b30"
+fact = "deploy_day"
+text = "Which day was the most recent deploy?"

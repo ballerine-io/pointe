@@ -1,0 +1,21 @@
+# The voice panel: Kokoro-82M v1.0 (Apache-2.0, hexgrad), the mlx-community/Kokoro-82M-bf16 weights pinned in assets.py.
+# Synthetic speech only; no cloud voice, no recording of a person.
+[[voice]]
+id = "af_heart"
+accent = "US"
+gender = "female"
+
+[[voice]]
+id = "am_michael"
+accent = "US"
+gender = "male"
+
+[[voice]]
+id = "bf_emma"
+accent = "British"
+gender = "female"
+
+[[voice]]
+id = "bm_george"
+accent = "British"
+gender = "male"
