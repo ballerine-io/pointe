@@ -74,6 +74,21 @@ final class BriefingUITests: XCTestCase {
         XCTAssertTrue(text("Part 2 of 3").waitForExistence(timeout: 5))
     }
 
+    /// At the accessibility sizes the strip on the call screen puts Go on and Stop under its line: beside it, "Paused"
+    /// and "Stop" broke inside the word.
+    func testAtTheLargestTypeThePausedStripBreaksNoWord() throws {
+        app = XCUIApplication()
+        app.launchArguments = ["-demo", "briefingPaused", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        let line = app.staticTexts["Paused: part 1 of 3"]
+        XCTAssertTrue(line.waitForExistence(timeout: 15), "the strip")
+        let (goOn, stop) = (app.buttons["Go on"], app.buttons["Stop"])
+        XCTAssertTrue(goOn.exists && stop.exists, "its buttons")
+        XCTAssertGreaterThanOrEqual(goOn.frame.minY, line.frame.maxY - 1, "Go on is under the line")
+        XCTAssertGreaterThanOrEqual(stop.frame.minY, line.frame.maxY - 1, "Stop is under the line")
+        XCTAssertGreaterThan(stop.frame.width, stop.frame.height, "Stop is one word on one line")
+    }
+
     func testTheHistoryShowsEachSessionWithItsState() throws {
         launch("briefing")
         openFromMenu("Briefing", title: "Briefing")

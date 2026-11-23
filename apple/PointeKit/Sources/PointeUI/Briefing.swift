@@ -412,19 +412,37 @@ struct BriefingNowBar: View {
     let act: ([String: any Sendable]) async -> String?
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "sun.horizon.fill").foregroundStyle(Brand.accent)
-            Text(BriefingCopy.progress(status) ?? "").font(.brand(.subheadline, .semibold))
-            Spacer(minLength: 4)
-            if status.isOn {
-                Button(status.isPaused ? "Go on" : "Skip") { Task { _ = await act(["action": status.isPaused ? "continue" : "skip"]) } }
-                    .buttonStyle(.brandQuiet)
-                Button("Stop") { Task { _ = await act(["action": "stop"]) } }.buttonStyle(.brandQuiet)
+        // One row while it fits; with large type the buttons go under the line, so no word breaks inside itself.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                line
+                Spacer(minLength: 4)
+                buttons
             }
+            VStack(alignment: .leading, spacing: 8) {
+                line
+                HStack(spacing: 10) { buttons }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .controlSize(.small)
         .padding(.horizontal, 14).padding(.vertical, 10)
         .brandCard()
         .accessibilityIdentifier("briefingNow")
+    }
+
+    private var line: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sun.horizon.fill").foregroundStyle(Brand.accent)
+            Text(BriefingCopy.progress(status) ?? "").font(.brand(.subheadline, .semibold)).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private var buttons: some View {
+        if status.isOn {
+            Button(status.isPaused ? "Go on" : "Skip") { Task { _ = await act(["action": status.isPaused ? "continue" : "skip"]) } }
+                .buttonStyle(.brandQuiet).fixedSize()
+            Button("Stop") { Task { _ = await act(["action": "stop"]) } }.buttonStyle(.brandQuiet).fixedSize()
+        }
     }
 }
