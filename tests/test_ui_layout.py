@@ -475,3 +475,28 @@ def test_the_sessions_list_is_never_a_small_box_inside_the_column():
     status = fixture(sessions=9, machines=3, talk=4, approval=True, connected=True)
     for r in _run([(1440, LIVE, probe), (390, "toggleSessions(true);", probe)], status):
         assert r["inner"] <= 1 and r["footer"], r
+
+
+KEYS = {"line": "Setup: Free start. Every role is filled.", "setup": "free",
+        "keys": {"gemini": "in use", "openai": "optional", "anthropic": "optional", "soniox": "optional", "elevenlabs": "optional"},
+        "uses": {"gemini": ["brain", "reader", "checker", "ears", "mouth"]},
+        "setups": [{"id": "free", "name": "Free start", "short": "One Gemini key.", "pick_for": "trying Pointe at no cost",
+                    "cost": "$0 until the free quota ends; about $0.70 to $0.95 with billing on"},
+                   {"id": "openai", "name": "One OpenAI key", "short": "One OpenAI key.", "pick_for": "people who already pay for OpenAI",
+                    "cost": "about $0.95"}]}
+KEYROWS = """(() => { const x = e => Math.round(e.getBoundingClientRect().left), lh = e => parseFloat(getComputedStyle(e).lineHeight) || 20;
+  const rows = [...document.querySelectorAll('#pref-keys .r')], heads = [...document.querySelectorAll('#pref-setups .shead2 b')];
+  const use = [...document.querySelectorAll('#pref-setups .r button')], help = [...document.querySelectorAll('#pref-setups .help')];
+  return {states: new Set(rows.map(r => x(r.querySelector('.kstate')))).size,
+          names: heads.map(b => Math.round(b.getBoundingClientRect().height / lh(b))),
+          helpIndent: help.map((h, i) => x(h) + parseFloat(getComputedStyle(h).paddingLeft) - x(heads[i])),
+          use: use.map(b => Math.round(b.getBoundingClientRect().height))}; })()"""
+
+
+def test_model_keys_states_line_up_and_a_setup_reads_as_a_choice():
+    """The state column starts at one x; a setup's name keeps one line beside a long cost; its description lines up with
+    its name; Use this setup is a button a finger hits, not a thin bar that reads as a divider."""
+    status = {**fixture(sessions=2, connected=True), "keys": KEYS}
+    for r in _run([(1440, "openSettings();", KEYROWS), (390, "", KEYROWS)], status):
+        assert r["states"] == 1 and r["names"] == [1, 1] and all(abs(d) <= 1 for d in r["helpIndent"]), r
+        assert r["use"] and all(h >= 36 for h in r["use"]), r

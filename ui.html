@@ -853,7 +853,13 @@
   .settings #ph-done { padding: 12px 14px; margin: 0; }
   .settings #pref-local, .settings #pref-keys-line { font-size: 14px; color: var(--text); }
   .settings #pref-keys .r + .r, .settings #pref-setups .r + .r { border-top: 1px solid var(--line); }
-  .settings #pref-setups .shead2 { display: flex; justify-content: space-between; gap: 10px; }
+  .settings #pref-setups .shead2 { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; }
+  .settings #pref-setups .shead2 b { flex: none; }  /* a long cost goes under the name, never squeezes it */
+  .settings #pref-setups .shead2 .kstate { flex: 1 1 auto; text-align: right; color: var(--muted); }
+  .settings #pref-setups .r.col .help { padding: 0; }  /* the description starts where its name does */
+  .settings #pref-setups .r.col > button { align-self: flex-start; min-height: 36px; padding: 0 16px; font-size: 13.5px; }
+  /* a column for the state: name, state, button */
+  .settings #pref-keys .r { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) auto; }
   .settings #pref-setups code:empty { display: none; }
   .settings #pref-keys .kstate { color: var(--muted); } .settings #pref-keys .kstate.inUse { color: var(--text); }
   .settings #mach-invite { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
