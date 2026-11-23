@@ -110,3 +110,19 @@ product is under test.
   send into an open permission dialog, whose Enter pressed the default Yes. Fixed for all typed arms; every arm was
   run again. `../FROZEN.json` records the amendment.
 - The authors know Pointe's internals. The Pointe commit is frozen in `../FROZEN.json` before the first paid row.
+- The router's prompt was written by the same people who wrote the items, and its rules name the adversarial types
+  (hedge, question, a yes taken back, a yes said to someone else, a fragment). That is a prompt tuned to this test set:
+  the router's rates are likely better than an untuned router's would be. It makes the comparison harder for Pointe,
+  not easier, but it is not an independent baseline.
+- The rows keep the evidence each class was decided on (file-system state, the target call's decision, the counts of
+  sends, stops and replies) and every harness event, not the full Claude Code transcripts and hook logs.
+  `run.py report` recomputes every number from the rows, and each class can be re-derived from its evidence; the
+  evidence itself cannot be re-derived from a transcript after the run.
+- The truncated-clip approvals are not stable from run to run. A rerun of those 8 clips (with act077, act089 and act099)
+  for Pointe and the router, `results/act-20261123-061133`, gave Pointe 3/8 and the router 3/8 (the published run: 5/8
+  and 2/8; the router approved on "Sure." this time). The published false-approval gap between Pointe and the router
+  comes only from these 8 clips, so it is not a ranking. The rerun repeated Pointe's replies that claim a decision it
+  did not make on act077 and act089. An earlier attempt at that rerun, `results/act-20261123-060703`, is kept but not
+  used: another benchmark's daemon held its port, and two Pointe rows are errors.
+- The recognizer can mishear in another language: for "Uh..." (act059) Soniox returned "no" in Arabic for the router
+  and in Hebrew for Pointe, and both denied. It is scored wrong for both.

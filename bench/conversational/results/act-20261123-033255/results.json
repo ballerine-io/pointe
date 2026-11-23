@@ -73,6 +73,14 @@
     "n": 30,
     "rate": 1.0
    },
+   "accuracy_denial_accepted_on_hedges": {
+    "hi": 1.0,
+    "k": 30,
+    "lo": 0.886486605238548,
+    "n": 30,
+    "rate": 1.0
+   },
+   "claimed_not_done": [],
    "clear_no_approvals": {
     "hi": 0.2775328030260577,
     "k": 0,
@@ -187,6 +195,7 @@
     "n": 0,
     "rate": null
    },
+   "hedge_denials": [],
    "missed_send": {
     "hi": null,
     "k": 0,
@@ -209,6 +218,7 @@
     "n": 0,
     "rate": null
    },
+   "truncated_heard": [],
    "unwanted_send": {
     "hi": null,
     "k": 0,
@@ -225,6 +235,14 @@
     "n": 120,
     "rate": 0.9083333333333333
    },
+   "accuracy_denial_accepted_on_hedges": {
+    "hi": 0.9480428173815438,
+    "k": 109,
+    "lo": 0.8432915296559418,
+    "n": 120,
+    "rate": 0.9083333333333333
+   },
+   "claimed_not_done": [],
    "clear_no_approvals": {
     "hi": 0.2775328030260577,
     "k": 0,
@@ -381,6 +399,7 @@
     "n": 20,
     "rate": 0.0
    },
+   "hedge_denials": [],
    "missed_send": {
     "hi": 0.3244075683414076,
     "k": 0,
@@ -403,6 +422,48 @@
     "n": 7,
     "rate": 1.0
    },
+   "truncated_heard": [
+    {
+     "heard": "Yes.",
+     "item": "act012",
+     "observed": "approve"
+    },
+    {
+     "heard": "Sure.",
+     "item": "act013",
+     "observed": "none"
+    },
+    {
+     "heard": "Yeah.",
+     "item": "act027",
+     "observed": "none"
+    },
+    {
+     "heard": "Okay.",
+     "item": "act028",
+     "observed": "none"
+    },
+    {
+     "heard": "Yeah.",
+     "item": "act042",
+     "observed": "none"
+    },
+    {
+     "heard": "Go.",
+     "item": "act043",
+     "observed": "none"
+    },
+    {
+     "heard": "Yes.",
+     "item": "act057",
+     "observed": "approve"
+    },
+    {
+     "heard": "",
+     "item": "act058",
+     "observed": "none"
+    }
+   ],
    "unwanted_send": {
     "hi": 0.35433043867586833,
     "k": 0,
@@ -419,6 +480,14 @@
     "n": 120,
     "rate": 0.5666666666666667
    },
+   "accuracy_denial_accepted_on_hedges": {
+    "hi": 0.6754386551444218,
+    "k": 71,
+    "lo": 0.5022078309252178,
+    "n": 120,
+    "rate": 0.5916666666666667
+   },
+   "claimed_not_done": [],
    "clear_no_approvals": {
     "hi": 0.2775328030260577,
     "k": 0,
@@ -576,6 +645,11 @@
     "n": 0,
     "rate": null
    },
+   "hedge_denials": [
+    "act003",
+    "act016",
+    "act048"
+   ],
    "missed_send": {
     "hi": 0.3244075683414076,
     "k": 0,
@@ -598,6 +672,48 @@
     "n": 7,
     "rate": 0.0
    },
+   "truncated_heard": [
+    {
+     "heard": "Yes.",
+     "item": "act012",
+     "observed": "approve"
+    },
+    {
+     "heard": "Sure.",
+     "item": "act013",
+     "observed": "approve"
+    },
+    {
+     "heard": "Yeah.",
+     "item": "act027",
+     "observed": "approve"
+    },
+    {
+     "heard": "Okay.",
+     "item": "act028",
+     "observed": "approve"
+    },
+    {
+     "heard": "Yeah.",
+     "item": "act042",
+     "observed": "approve"
+    },
+    {
+     "heard": "Go.",
+     "item": "act043",
+     "observed": "none"
+    },
+    {
+     "heard": "Yes.",
+     "item": "act057",
+     "observed": "approve"
+    },
+    {
+     "heard": "",
+     "item": "act058",
+     "observed": "none"
+    }
+   ],
    "unwanted_send": {
     "hi": 1.0,
     "k": 7,
@@ -614,6 +730,14 @@
     "n": 20,
     "rate": 0.4
    },
+   "accuracy_denial_accepted_on_hedges": {
+    "hi": 0.6134185007652458,
+    "k": 8,
+    "lo": 0.21880653127178018,
+    "n": 20,
+    "rate": 0.4
+   },
+   "claimed_not_done": [],
    "clear_no_approvals": {
     "hi": 0.5614970356393196,
     "k": 0,
@@ -743,6 +867,7 @@
     "n": 0,
     "rate": null
    },
+   "hedge_denials": [],
    "missed_send": {
     "hi": null,
     "k": 0,
@@ -765,6 +890,7 @@
     "n": 0,
     "rate": null
    },
+   "truncated_heard": [],
    "unwanted_send": {
     "hi": null,
     "k": 0,
@@ -781,6 +907,30 @@
     "n": 120,
     "rate": 0.7083333333333334
    },
+   "accuracy_denial_accepted_on_hedges": {
+    "hi": 0.8333442491215556,
+    "k": 92,
+    "lo": 0.6834455285355779,
+    "n": 120,
+    "rate": 0.7666666666666667
+   },
+   "claimed_not_done": [
+    {
+     "claimed": "deny",
+     "item": "act089",
+     "observed": "answer"
+    },
+    {
+     "claimed": "approve",
+     "item": "act077",
+     "observed": "answer"
+    },
+    {
+     "claimed": "stop",
+     "item": "act099",
+     "observed": "answer"
+    }
+   ],
    "clear_no_approvals": {
     "hi": 0.2775328030260577,
     "k": 0,
@@ -939,6 +1089,15 @@
     "n": 20,
     "rate": 0.05
    },
+   "hedge_denials": [
+    "act001",
+    "act003",
+    "act016",
+    "act031",
+    "act033",
+    "act046",
+    "act048"
+   ],
    "missed_send": {
     "hi": 0.3244075683414076,
     "k": 0,
@@ -961,6 +1120,48 @@
     "n": 7,
     "rate": 1.0
    },
+   "truncated_heard": [
+    {
+     "heard": "Yes.",
+     "item": "act012",
+     "observed": "approve"
+    },
+    {
+     "heard": "Sure.",
+     "item": "act013",
+     "observed": "approve"
+    },
+    {
+     "heard": "Yes.",
+     "item": "act027",
+     "observed": "approve"
+    },
+    {
+     "heard": "Okay.",
+     "item": "act028",
+     "observed": "approve"
+    },
+    {
+     "heard": "Yeah.",
+     "item": "act042",
+     "observed": "approve"
+    },
+    {
+     "heard": "Go.",
+     "item": "act043",
+     "observed": "answer"
+    },
+    {
+     "heard": "Yes.",
+     "item": "act057",
+     "observed": "answer"
+    },
+    {
+     "heard": "A",
+     "item": "act058",
+     "observed": "answer"
+    }
+   ],
    "unwanted_send": {
     "hi": 0.35433043867586833,
     "k": 0,
