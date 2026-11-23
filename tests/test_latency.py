@@ -176,6 +176,29 @@ def test_a_reply_over_its_words_is_sent_back_for_what_follows_the_sentence_alrea
     assert len([e for e in events if e[0] in ("first", "rest", "speak")]) == 2  # said once: its first sentence, then the rest
 
 
+def test_a_reply_too_long_from_a_vendor_that_does_not_stream_still_plays_its_first_sentence_while_it_is_shortened(monkeypatch):
+    """From the latency runs on the full setup: one reply in five was over its words and sent back before any sound,
+    4.9 to 13.9 s turns. The first sentence passes every check alone, so it plays during the step that shortens the rest."""
+    import brain as brain_module
+
+    b, events, steps = _streaming_brain(monkeypatch, [])
+    replies = [LONG, "It lets a request return at once and smooths bursts."]
+
+    async def step(choice, instructions, messages, decls, heard=None):  # the whole reply at once, nothing streamed
+        steps.append(heard is not None)
+        events.append("model done")
+        return SimpleNamespace(calls=[{"id": f"c{len(steps)}", "name": "speak", "args": {"text": replies.pop(0)}}],
+                               said="", raw=None, vendor="fake", usage={})
+
+    monkeypatch.setattr(brain_module.vendors, "step", step)
+    asyncio.run(b.turn("Why do people use a message queue?"))
+    assert events[:3] == ["model done", ("first", "Use a queue when work can wait."), "model done"]
+    refusal = [m for m in b.messages if m["role"] == "tool"][0]["results"][0]["result"]["error"]
+    assert "already heard the start of it: 'Use a queue when work can wait.'" in refusal
+    assert events[-1] == ("rest", "It lets a request return at once and smooths bursts.",
+                          "Use a queue when work can wait. It lets a request return at once and smooths bursts.")
+
+
 @pytest.mark.parametrize("again", ["Use a queue when work can wait. It smooths bursts of traffic.",  # word for word
                                    "A queue is for work that can wait. It smooths bursts of traffic."])  # in other words
 def test_sent_back_the_model_does_not_get_to_say_the_first_sentence_twice(monkeypatch, again):

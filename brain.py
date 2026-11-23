@@ -639,6 +639,15 @@ class Brain:
                     problem, shortened = conversation.retry_problem(without_closer(said), limit), True
                     if problem and early and not self._room_after(early, limit):
                         problem = None  # what was said ahead fills the limit: nothing to shorten the rest into, so it is cut
+                    if problem and not early and own_words and self.speak_first and self.speak_rest \
+                            and self.may_speak_early() and generation == self._generation:
+                        # Too long, and nothing said yet (a vendor that does not stream, or a reply that came at once):
+                        # its first sentence plays while the model shortens the rest, instead of silence for a step.
+                        first = conversation.opening(said, EARLY_MIN_WORDS)
+                        if first and self._may_say_first(first, sent, refused, trigger):
+                            self.stage("checked")
+                            await self.speak_first(first)
+                            early = first
                 if problem:
                     retries += 1
                     logger.info(f"speech refused: {said!r}: {problem[:160]}")
@@ -753,10 +762,20 @@ class Brain:
         if not first or live.over or generation != self._generation:
             return ""  # one sentence, or all of it is here already: the whole reply is checked and said as ever
         read = time.time()
+        if not self._may_say_first(first, sent, refused, trigger):
+            return ""
+        self.stage("first_sentence", read)
+        self.stage("checked")
+        await self.speak_first(first)
+        return first
+
+    def _may_say_first(self, first: str, sent: bool, refused: bool, trigger: str | None) -> bool:
+        """Every check a whole reply passes, put to its first sentence alone, and that sentence short enough to leave
+        room for the rest."""
         asked = self._asked()
         limit = self.limit(trigger, asked)
         if limit is None or self.may_stay_silent() or conversation.count_words(first) > limit.words * EARLY_MAX_SHARE:
-            return ""
+            return False
         now = time.time()
         recent = [x for t, x in self._recent_spoken if now - t < REPEAT_WINDOW_SECS]
         whole = self._resuming or (not self._answered_user and status_intent(asked))
@@ -764,11 +783,8 @@ class Brain:
                 or conversation.trim(first, limit) != first
                 or not (whole or without_recent_repeats(first, recent, asked) == first)):
             logger.info("first sentence not said ahead: it waits for the whole reply's checks")
-            return ""
-        self.stage("first_sentence", read)
-        self.stage("checked")
-        await self.speak_first(first)
-        return first
+            return False
+        return True
 
     async def _step(self, decls: list[dict], filled: bool, live: Reply | None = None,
                     on_sent: Callable[[float], None] | None = None) -> tuple[vendors.Step, bool]:
