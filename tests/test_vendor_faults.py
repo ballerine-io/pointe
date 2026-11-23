@@ -168,6 +168,16 @@ def test_ears_that_gave_up_reconnecting_say_so_and_stay_cannot_hear_until_a_new_
     assert len(said) == 1  # once
 
 
-def test_a_service_still_reconnecting_changes_nothing(d):
+def test_the_quota_line_ends_when_the_brain_answers_again(d, monkeypatch):
+    monkeypatch.setattr(d, "_problem", (0.0, ""))
+    monkeypatch.setattr(d, "_fault", (0.0, "", ""))
+    note(d, f"brain failed: ClientError: {QUOTA}")
+    assert d.vendor_fault()["kind"] == "quota"
+    d._brain_answered()
+    assert d.vendor_fault() is None and d.current_problem() is None
+
+
+def test_a_service_still_reconnecting_changes_nothing(d, monkeypatch):
+    monkeypatch.setattr(d, "_fault", (0.0, "", ""))
     asyncio.run(d._service_lost(SimpleNamespace(is_usable=True)))
     assert d.state.lost is None and d.vendor_fault() is None

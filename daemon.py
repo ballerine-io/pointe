@@ -267,6 +267,16 @@ def _note_problem(message) -> None:
     _problem = (time.time(), text[:200])
 
 
+def _brain_answered() -> None:
+    """The brain's vendor answered: a quota, rate or outage line about it is over, not shown for its remaining 90 s."""
+    global _fault, _problem
+    brain_vendor = (setup().brain or "").split(":")[0]
+    if _fault[1] and _fault[2] == brain_vendor:
+        if _problem[1] == vendors.fault_help(_fault[1], _fault[2]):
+            _problem = (0.0, "")
+        _fault = (0.0, "", "")
+
+
 def current_problem() -> str | None:
     lost = state.lost
     if lost is not None and vendors.refused_key(_problem[1]) is None:
@@ -1255,6 +1265,7 @@ def _log_timing(turn: latency.Turn) -> None:
 
 def make_brain(speak, filler=None) -> Brain:
     def usage(u: dict) -> None:
+        _brain_answered()
         if state.timing is not None and not state.timing.logged:
             state.timing.steps += 1
             state.timing.info.update(context=u.get("context", 0), cached=u.get("cached", 0))
