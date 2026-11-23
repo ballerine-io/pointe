@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.23
 
+- **1.23.1** (2026-11-23): Security fixes from a Claude Mythos review, published in docs/security/reviews: a pointe:// link no longer pairs the iPhone (scan the code inside the app; replacing a pairing needs Face ID), a quoted flag, a cd that may not happen or a hidden path is never read out for a spoken yes, pointe pair rotate and off sign out every phone, browser and machine, vendor keys reach no program Pointe starts, and the daemon takes requests only from its own origin, as JSON, on both loopback addresses
 - **1.23.0** (2026-11-23): Pointe installs without Claude Code: one installer for Codex and OpenCode, checked against the release's SHA-256, then pointe setup in the terminal (Codex's shared app-server, /voice in OpenCode) and pointe update; with the plugin on the same Mac there is one Pointe, the newer one, and pointe doctor says which runs
 
 ## 1.22
