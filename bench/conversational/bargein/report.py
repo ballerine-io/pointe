@@ -216,8 +216,8 @@ LIMITS = [
     "Spend is computed from token usage and list prices (Claude Code session usage; Pointe's daemon log with an assumed "
     "300 output tokens a brain step and a flat allowance for its reader and checker), not metered by the vendors. Claude "
     "Code's own background calls (session titles) are not in its transcript.",
-    "The machine ran other workloads, including other benchmark agents, during the runs; the runner waited up to 2 "
-    "minutes for the 1-minute load average to fall under 12 before each run and flags rows that started above it. "
+    "The machine ran other workloads, including other benchmark agents, during the runs; the runner waited up to 45 s "
+    "(Part A) or 2 minutes (Part B, the latency result) for the 1-minute load average to fall under 12 before each run and flags rows that started above it. "
     "Latency rows with a flag are less reliable.",
     "Small samples: 18 stop-type items and 6 backchannels per arm in Part A, 30 questions in Part B. Intervals are wide; "
     "the tables do not rank arms whose intervals overlap.",

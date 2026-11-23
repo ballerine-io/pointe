@@ -42,6 +42,7 @@ EST = {("a", "pointe"): 0.11, ("a", "llm-router"): 0.07, ("a", "naive"): 0.065, 
        ("b", "keyboard"): 0.035}
 EST_REPEAT = {"a": 1.1 / 12, "b": 0.6 / 16}
 NULL_A, REPEAT_A, REPEAT_B = 8, 6, 8
+LOAD_WAIT = {"a": 45.0, "b": 120.0}  # seconds to wait for the load to fall: Part B's times are the latency result
 # The agent's settings file, the same in every arm: the job's commands and the file moves a stop, undo or redirect
 # needs, so no permission prompt stands between the user and the outcome. Reads of this suite are denied.
 ALLOW = ["Bash(./long_job.sh:*)", "Bash(./long_job.sh)", "Bash(bash long_job.sh:*)", "Bash(bash ./long_job.sh:*)",
@@ -483,7 +484,7 @@ def main(args) -> int:
             print(f"stopped at the cap: {e}")
             meta["stopped_at_cap"] = n
             break
-        waited = wait_for_load()
+        waited = wait_for_load(LOAD_WAIT[r["part"]])
         row = run_one(r, pcm, args, results, run_id, kind, audio_ok, waited=waited)
         brief = {k: row.get(k) for k in ("status", "halted", "overshoot", "time_to_halt", "redirected", "false_stop",
                                           "correct", "first_output", "ttca", "spend_usd", "load_start", "error")
