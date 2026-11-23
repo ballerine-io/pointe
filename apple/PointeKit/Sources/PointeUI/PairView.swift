@@ -30,7 +30,7 @@ struct PairView: View {
         .clipped()  // what scrolls up never draws under the clock
         .background(Brand.background)
         .alert(flow.offer?.title ?? "", isPresented: Binding(get: { flow.offer != nil }, set: { _ in }), presenting: flow.offer) { offer in
-            Button(offer.action) { flow.confirmTapped() }.accessibilityIdentifier("confirmPairing")
+            Button(offer.action) { flow.confirmTapped(offer) }.accessibilityIdentifier("confirmPairing")
             Button("Cancel", role: .cancel) { flow.cancel() }
         } message: { offer in
             Text(offer.message)

@@ -29,7 +29,7 @@ brf-deflen brf-connect brf-skipempty dict-open voicelock vl-h vl-intro vl-proble
 vl-cancel vl-devices vl-needcall vl-actions vl-enrolbtn vl-deleteall vl-confirm vl-levels vl-levelhelp vl-err machines mach-h mach-list
 mach-invite mach-code mach-link mach-left mach-invitebtn mach-cancel mach-err phone ph-h ph-list ph-pick ph-routes ph-hostform ph-host
 ph-check ph-advice ph-cert ph-show ph-qr ph-svg ph-link ph-left ph-cancel ph-done ph-actions ph-connect ph-unpair ph-rule ph-err
-ph-copy ph-foot topconnect connectempty connectbtn connectbtn-label connect-title connect-why connect-hint connect-phone
+ph-copy ph-foot ph-fp topconnect connectempty connectbtn connectbtn-label connect-title connect-why connect-hint connect-phone
 mic hangup listen listen-label meetbtn meet-label briefbtn chlbtn chl-label whisperbtn whisper-label typebtn sessbtn keyhint
 state sub problem vlproblem vlignored polish talk newpill compose typed typed-send caption caption-text attention conflicts briefalert
 whispercard drivebar drive-line drive-stop dump dump-h dump-list dump-hearing dump-note dump-done dump-discard dump-hint dumpsheet dumprev-h
@@ -463,3 +463,12 @@ def test_copy_polish_round_4():
 def test_the_new_session_selects_carry_the_chevron():
     got = asyncio.run(_render("""(() => ['new-agent', 'new-machine', 'new-folder'].map(id => getComputedStyle(document.getElementById(id)).backgroundImage))()"""))
     assert all(g.startswith("url(") for g in got), got
+
+
+def test_beside_the_phone_code_the_page_shows_the_certificate_the_iphone_confirm_shows():
+    """The iPhone's confirm names the certificate's first 16 hex characters: the page shows the same, to compare."""
+    show = PAGE[PAGE.index("async function phoneCode()"):PAGE.index("async function phoneCopyLink()")]
+    assert "/[?&]fp=([0-9a-f]{16})/.exec(made.link)" in show and "$('ph-fp').textContent" in show
+    assert "`Your iPhone should show certificate ${fp[1]}…`" in show
+    qr = PAGE[PAGE.index('<div id="ph-qr"'):PAGE.index('id="ph-actions"')]
+    assert 'id="ph-fp"' in qr

@@ -59,7 +59,8 @@ buttons.
 ### From the terminal
 
 `pointe pair` sets up the route and prints a QR code for the app. It also opens the code as a picture, because a chat
-window cannot show the terminal's.
+window cannot show the terminal's. Run by an agent (its output is not a terminal), `pair show` and `pair link` print no
+secret: the codes open only as pictures on the Mac, so the phone key and the pairing secret stay out of the transcript.
 
 | Command | Does |
 |---|---|
@@ -78,7 +79,8 @@ listener within a few seconds (otherwise at its next start).
 ### Rotate and unpair
 
 - **Unpair one phone:** Settings → Phone on the page or in the Mac app, **Unpair** beside the phone, then click it again
-  to confirm. Or, on the iPhone, the menu's **Unpair this phone**. That phone's call ends, and it needs a new code to
+  to confirm. Or, on the iPhone, the menu's **Unpair this phone**, which asks first and then for Face ID or the passcode. That
+  phone's call ends, and it needs a new code to
   come back.
 - **Unpair all:** signs out every phone, including a phone browser paired with `pointe pair link`. That link stops
   working; `pointe pair link` prints the new one.

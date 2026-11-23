@@ -258,11 +258,37 @@ def invite_link(code: str) -> str:
                                         "fp": fingerprint(), "code": code})
 
 
+def _to_terminal() -> bool:
+    """A person reads stdout. Not so under a pipe: /pointe:setup has an agent run these, and what they print goes into
+    the session's transcript, so a pairing secret then only reaches a picture opened on this Mac."""
+    return sys.stdout.isatty()
+
+
+def _open_picture(text: str, name: str) -> Path | None:
+    """`text` as a QR code in a 0600 picture in the state folder, opened on this Mac (None where `open` is not)."""
+    import segno
+
+    if sys.platform != "darwin":
+        return None
+    image = STATE / name
+    image.touch(mode=0o600)
+    segno.make(text, error="m").save(str(image), scale=10)
+    subprocess.run(["open", str(image)], check=False, env=childenv.child_env())
+    return image
+
+
 def link() -> None:
     host = _config()["host"]
     token = (STATE / "remote_token").read_text().strip()
-    print(f"https://{host}:{TLS_PORT}/voice?pair={token}")
-    print("Open it once on the phone's browser. It holds a secret: send it only to your own phone.")
+    address = f"https://{host}:{TLS_PORT}/voice?pair={token}"
+    if _to_terminal():
+        print(address)
+        print("Open it once on the phone's browser. It holds a secret: send it only to your own phone.")
+    elif _open_picture(address, "pair-link-qr.png"):
+        print(f"Opened a QR code on this Mac: scan it with the phone's Camera, which opens it in the phone's browser, once. "
+              f"It holds a secret, so it is not printed here. The phone checks certificate {fingerprint()[:16]}...")
+    else:
+        print("The address holds a secret, so it is printed only in a terminal: run `pointe pair link` there.")
 
 
 def _write_private(path: Path, text: str) -> None:
@@ -341,13 +367,10 @@ def show() -> None:
     import segno
 
     config = _config()
-    code = segno.make(pairing_link(), error="m")
-    code.terminal(compact=True)
-    image = STATE / "pair-qr.png"  # a chat window cannot show the terminal code: open it as a picture instead
-    image.touch(mode=0o600)
-    code.save(str(image), scale=10)
-    if sys.platform == "darwin":
-        subprocess.run(["open", str(image)], check=False, env=childenv.child_env())
+    if _to_terminal():
+        segno.make(pairing_link(), error="m").terminal(compact=True)
+    if not _open_picture(pairing_link(), "pair-qr.png") and not _to_terminal():
+        print("The QR code holds this phone's lasting key, so it is drawn only in a terminal: run `pointe pair show` there.")
     print(f"Scan it inside the Pointe app, not with the Camera app: it holds this phone's lasting key, and a link the Camera "
           f"opens can reach another app. It connects to {config['host']}:{TLS_PORT} and checks certificate {fingerprint()[:16]}...")
     print(f"To revoke it, Unpair the phone in Settings → Phone, or delete {_home_path(STATE / 'phone_key')}. The page's "

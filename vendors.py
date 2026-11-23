@@ -196,8 +196,14 @@ def warm(choices: list[str]) -> None:
             logger.info(f"warming {vendor} skipped: {type(e).__name__}")
 
 
+_local_refused: str | None = None  # why Pointe's own text-model port is not to be used now (local.recheck), else None
+
+
 def _local():
     from openai import AsyncOpenAI
+
+    if _local_refused:
+        raise ConnectionError(_local_refused)
 
     url = os.environ.get("CLAUDE_VOICE_LOCAL_URL") or config().get("local_url") or LOCAL_URL
     return _clients.setdefault(LOCAL, AsyncOpenAI(base_url=url,

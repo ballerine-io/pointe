@@ -75,6 +75,7 @@ struct CallSettingsSheet: View, Equatable {
     @Environment(\.dismiss) private var dismiss
     @State private var polishWanted: Bool?  // a switch moves at the tap; the Mac's word replaces it on the next status
     @State private var whisperWanted: Bool?
+    @State private var unpairAsked = false
     #if os(macOS)
     @Environment(\.macSettings) private var macSections
     #endif
@@ -169,7 +170,13 @@ struct CallSettingsSheet: View, Equatable {
                     if model.demo {
                         Button(DemoBadge.exit, systemImage: "xmark.circle") { dismiss(); act.unpair() }
                     } else {
-                        Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { dismiss(); act.unpair() }
+                        Button("Unpair this phone", systemImage: "iphone.slash", role: .destructive) { unpairAsked = true }
+                            // Then Face ID or the passcode (PairingFlow.unpair): a first pairing asks for neither.
+                            .confirmationDialog("Unpair this phone?", isPresented: $unpairAsked, titleVisibility: .visible) {
+                                Button("Unpair", role: .destructive) { dismiss(); act.unpair() }
+                            } message: {
+                                Text("It stops talking to your Mac until you scan its code again.")
+                            }
                     }
                 }
                 #endif

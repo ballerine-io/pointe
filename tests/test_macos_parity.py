@@ -115,7 +115,8 @@ def test_the_phone_sheet_says_the_pages_words():
     """Pair a phone from the Mac app: Settings → Phone, as on the page (ui.html)."""
     copy = swift_enum(UI / "PhoneSheet.swift", "PhoneCopy")
     for key in ("none", "connect", "connectAnother", "unpair", "unpairAll", "unpairAllSure", "how", "looking", "hostHint", "check", "show",
-                "cancel", "scan", "copyLink", "copied", "expired", "noAnswer", "newCertificate", "recommended", "setUpNow", "allUnpaired"):
+                "cancel", "scan", "copyLink", "copied", "expired", "noAnswer", "newCertificate", "recommended", "setUpNow", "allUnpaired",
+                "certificate"):
         assert copy[key].replace("'", "\\'") in PAGE or copy[key] in PAGE, f"{key}: the page does not say {copy[key]!r}"
     rule = re.search(r"const PHONE_RULE = '([^']*)' \+\s*'([^']*)';", PAGE)
     assert copy["rule"] == rule.group(1) + rule.group(2)

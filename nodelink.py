@@ -88,11 +88,15 @@ _line = lambda v: isinstance(v, str) and v.endswith("\n")  # noqa: E731: only co
 _resume = lambda v: isinstance(v, dict) and all(  # noqa: E731
     _str(k) and _has(gen=_count, offset=_count)(at) for k, at in v.items())
 _session = _has(id=_str, name=_str, cwd=_str, harness=_str)
+HELLO_CHARS = 200  # each string in a hello: it comes before any proof, from anyone who can reach the listener
+_short = lambda v: _str(v) and len(v) <= HELLO_CHARS  # noqa: E731
+_token = lambda v: _str(v) and len(v) <= 128  # noqa: E731: an id (16 hex) or an HMAC (64 hex)
 
 # Field name -> check. A name ending in "?" is optional. Extra fields are kept and ignored.
 NODE_FRAMES: dict[str, dict[str, Check]] = {
-    "hello": {"protocol": _int, "auth": _str, "now": _num,
-              "node": _has(id=_str, name=_str, os=_str, arch=_str, version=_str, harnesses=_list_of(_str))},
+    "hello": {"protocol": _int, "auth": _token, "now": _num,
+              "node": _has(id=_token, name=_short, os=_short, arch=_short, version=_short,
+                           harnesses=_list_of(_short, MAX_FILES))},
     "sessions": {"sessions": _list_of(_session)},
     "session.joined": {"id": _str},
     "session.left": {"id": _str, "why": _one_of("exited", "disconnected")},

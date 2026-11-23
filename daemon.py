@@ -8803,6 +8803,8 @@ async def _liveness() -> None:
         _follow_titles()
         await _watch_machines()
         await _follow_pairing()
+        if vendors.local_only():
+            await asyncio.to_thread(local.recheck)
         _notify_call()  # also catches a change of the approvals setting in config.json
         await KEEP_AWAKE.update(state.call_from_elsewhere)  # unplugged mid-call: released within one round
 
@@ -9378,7 +9380,8 @@ def main() -> None:
                          f"holds one of them, and a browser could reach it instead. Use another port: "
                          f"CLAUDE_VOICE_DAEMON_PORT=7870")
     logger.info(f"listening on 127.0.0.1:{port}" + (f" and [::1]:{port}" if len(sockets) > 1 else ", no IPv6 loopback here"))
-    SERVER = uvicorn.Server(uvicorn.Config(app, port=port, log_level="info"))
+    # proxy_headers off: uvicorn trusts X-Forwarded-For from loopback, where another account can send it
+    SERVER = uvicorn.Server(uvicorn.Config(app, port=port, log_level="info", proxy_headers=False, access_log=False))
     SERVER.run(sockets=sockets)
 
 

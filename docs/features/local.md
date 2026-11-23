@@ -54,7 +54,9 @@ in `config.json` or the environment is refused at start, with the command that t
 Answering on `127.0.0.1:7869` is not enough to be trusted with your transcripts: with the server stopped, another
 account on the Mac could take the port and answer in its place. Pointe uses the server only when the program
 listening there is the one it started (`local/server.pid`) or its child (`local.ours`, through `bin/voice-listeners`);
-otherwise `pointe local start` and the daemon's start refuse, and say what to do. A server you set up yourself and
+otherwise `pointe local start` and the daemon's start refuse, and say what to do. The running daemon checks again every
+5 seconds (`local.recheck`) and sends no text there until it is that server again; a port taken within those seconds is
+the gap. A server you set up yourself and
 point `local_url` at (Ollama, say) is yours to vouch for, and is not checked.
 
 What still goes out: model downloads, once, from Hugging Face and GitHub; your coding agents' own traffic, as always.

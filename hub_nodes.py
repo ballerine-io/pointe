@@ -50,6 +50,7 @@ HELLO_WAIT_SECS = 10.0
 # holds one for a round trip; every node behind one connector shares its address (127.0.0.1), so the share is not one.
 MAX_WAITING_PER_ADDRESS = 8
 MAX_WAITING = 32
+REFUSED_LOG_SECS = 60.0  # a refused link is logged once per address in this: refusing takes no secret, so no bound
 STALE_PROBE_SECS = 3.0  # a new connection with a key already linked: the old link must answer a ping within this
 MAX_MIRROR_BYTES_PER_NODE = 4 << 30  # every mirror of one node together; past it, entries are counted, not written
 DISCOVER_TIMEOUT_SECS = 25.0  # a node lists its sessions (each account's `claude agents --json`) or joins one in this
@@ -304,6 +305,7 @@ class Invites:
         self._until = 0.0
         self.paired: dict | None = None  # the last pairing: name, source address, key fingerprint
         self._buckets: dict[str, tuple[float, float]] = {}  # address -> (tokens, when counted)
+        self._told_over_rate: set[str] = set()  # addresses whose 429 is in the log for this invite
         self.wrong = 0  # wrong codes against this invite
         self.guessers: dict[str, int] = {}  # address -> wrong codes from it, against this invite
         self.ended: str | None = None  # why the last invite ended early, for the owner
@@ -313,7 +315,7 @@ class Invites:
         letters = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LETTERS))
         self.code, self._hash, self.name = f"{letters[:4]}-{letters[4:]}", _digest(letters), name
         self._until, self.paired, self.wrong, self.ended, self.link = self._clock() + self._secs, None, 0, None, None
-        self._buckets, self.guessers = {}, {}
+        self._buckets, self.guessers, self._told_over_rate = {}, {}, set()
         return self.code
 
     def cancel(self) -> None:
@@ -347,6 +349,16 @@ class Invites:
         self.ended = f"the invite was cancelled after {self.wrong} wrong codes, from {self._from()}"
         self.cancel()
         return 403, self.ended
+
+    def worth_logging(self, refused: tuple[int, str], address: str) -> bool:
+        """A compared code is logged each time (PAIR_WRONG_PER_INVITE at most); a 429 once per address an invite, as
+        nothing bounds how many a caller can earn."""
+        if refused[0] != 429:
+            return True
+        if address in self._told_over_rate:
+            return False
+        self._told_over_rate.add(address)
+        return True
 
     def _take(self, address: str) -> bool:
         now = self._clock()
@@ -562,6 +574,7 @@ class Hub:
         self.mirrors = Mirrors(state_dir / "harness" / "remote")
         self.links = nodelink.Links()
         self._waiting: dict[str, int] = {}  # address: sockets there still before their hello (serve)
+        self._refusals_told: dict[str, float] = {}  # address: when a refused link from it was last logged
         self.live: dict[str, Node] = {}
         for paired in self.nodes.nodes.values():
             self._track(paired)
@@ -777,7 +790,8 @@ class Hub:
         body = body if isinstance(body, dict) else {}
         refused = invites.check(body.get("code", ""), address)
         if refused:
-            logger.warning(f"node pairing from {address}: {refused[1]}")
+            if invites.worth_logging(refused, address):
+                logger.warning(f"node pairing from {address}: {refused[1]}")
             return refused if refused[0] == 429 else (403, NO_SUCH_INVITE)
         name = " ".join(str(invites.name or body.get("name") or "").split())
         problem = self.name_problem(name)
@@ -798,11 +812,12 @@ class Hub:
         """The /voice/node WebSocket: a nonce, the node's HMAC over it, then frames until the link drops."""
         address = _peer(ws)
         if sum(self._waiting.values()) >= MAX_WAITING or self._waiting.get(address, 0) >= MAX_WAITING_PER_ADDRESS:
-            logger.warning(f"node link from {address or 'loopback'} refused before its hello: too many are waiting")
+            if self._tell_refusal(address):
+                logger.warning(f"node link from {address or 'loopback'} refused before its hello: too many are waiting")
             return await _close(ws, 1013, "too many connections waiting")  # before accept: the node backs off, retries
         self._waiting[address] = self._waiting.get(address, 0) + 1
         try:
-            proven = await self._hello(ws)
+            proven = await self._hello(ws, address)
         finally:
             self._waiting[address] -= 1
             if not self._waiting[address]:
@@ -810,7 +825,16 @@ class Hub:
         if proven is not None:
             await self._linked(ws, address, *proven)
 
-    async def _hello(self, ws) -> tuple[dict, dict] | None:
+    def _tell_refusal(self, address: str) -> bool:
+        now = self._mono()
+        if now - self._refusals_told.get(address, now - REFUSED_LOG_SECS) < REFUSED_LOG_SECS:
+            return False
+        if len(self._refusals_told) >= 4096:  # many addresses: forget the old ones rather than grow
+            self._refusals_told = {a: t for a, t in self._refusals_told.items() if now - t < REFUSED_LOG_SECS}
+        self._refusals_told[address] = now
+        return True
+
+    async def _hello(self, ws, address: str) -> tuple[dict, dict] | None:
         """The challenge and the node's answer: (its pairing, its hello), or None once the socket is closed."""
         await ws.accept()
         nonce = nodelink.new_nonce()
@@ -826,7 +850,9 @@ class Hub:
                                 f"this hub needs protocol {nodelink.MIN_PROTOCOL}: update Pointe on this machine")
         paired = self.nodes.get(hello["node"]["id"])
         if paired is None or not nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
-            logger.warning(f"node link refused: {hello['node']['name']!r} is not paired, or its key is wrong")
+            if self._tell_refusal(address):
+                logger.warning(f"node link from {address or 'loopback'} refused: "
+                               f"{_cut(hello['node']['name'], MAX_LABEL_CHARS)!r} is not paired, or its key is wrong")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not paired with this hub")
         return paired, hello
 

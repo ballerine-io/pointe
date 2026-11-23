@@ -201,7 +201,8 @@ makes a new certificate, and the page says so first: every phone and machine pai
 buttons.</p>
 <h3 id="from-the-terminal">From the terminal</h3>
 <p><code>pointe pair</code> sets up the route and prints a QR code for the app. It also opens the code as a picture, because a chat
-window cannot show the terminal's.</p>
+window cannot show the terminal's. Run by an agent (its output is not a terminal), <code>pair show</code> and <code>pair link</code> print no
+secret: the codes open only as pictures on the Mac, so the phone key and the pairing secret stay out of the transcript.</p>
 <div class="dx-table"><table>
 <thead>
 <tr>
@@ -247,7 +248,8 @@ listener within a few seconds (otherwise at its next start).</p>
 <ul>
 <li>
 <p><strong>Unpair one phone:</strong> Settings → Phone on the page or in the Mac app, <strong>Unpair</strong> beside the phone, then click it again
-  to confirm. Or, on the iPhone, the menu's <strong>Unpair this phone</strong>. That phone's call ends, and it needs a new code to
+  to confirm. Or, on the iPhone, the menu's <strong>Unpair this phone</strong>, which asks first and then for Face ID or the passcode. That
+  phone's call ends, and it needs a new code to
   come back.</p>
 </li>
 <li>

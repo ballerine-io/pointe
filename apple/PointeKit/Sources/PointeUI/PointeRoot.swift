@@ -50,7 +50,7 @@ public struct PointeRoot: View {
             } else if let tried {
                 CallView(pairing: Demo.pairing, unpair: { self.tried = nil }, demo: tried)
             } else if let pairing = flow.pairing {
-                CallView(pairing: pairing, unpair: { flow.unpair() })
+                CallView(pairing: pairing, unpair: { Task { await flow.unpair() } })
                     .id(pairing)  // a new pairing is a new call: the old one pins the old certificate
             } else {
                 PairView(flow: flow, tryDemo: { tried = Demo.tryIt })
