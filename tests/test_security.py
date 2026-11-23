@@ -73,8 +73,9 @@ def app(tmp_path):
         return {"connected": True}
 
     @app.websocket("/ws")
-    async def ws(socket):
+    async def ws(socket: WebSocket):
         await socket.accept()
+        await socket.send_text("in")
         await socket.close()
 
     app.add_middleware(LocalAuth, token="daemon-token", page_key="page-key", remote=remote)
@@ -172,6 +173,34 @@ def test_a_paired_phone_still_works(app):
     client = tls(app)
     client.cookies.set(COOKIE, "s3cret-token")
     assert client.get("/voice/status").status_code == 200
+
+
+# Cookies and SameSite ignore ports and (in some browsers) the scheme: a page on another port of the paired name, or a
+# plain http:// page on it, is same-site and gets the pairing cookie. Only this listener's own origin may use it.
+_NOT_THIS_LISTENER = [f"https://{HOST}:8443", f"http://{HOST}:{TLS_PORT}", f"http://{HOST}", f"https://{HOST}:{TLS_PORT}.evil",
+                      f"wss://{HOST}:{TLS_PORT}", "null"] + ([f"https://{HOST}"] if TLS_PORT != 443 else [])
+
+
+@pytest.mark.parametrize("origin", _NOT_THIS_LISTENER)
+def test_the_tls_listener_refuses_a_page_from_another_port_or_scheme_over_http(app, origin):
+    client = tls(app)
+    client.cookies.set(COOKIE, "s3cret-token")
+    assert client.get("/voice/status", headers={"Origin": origin}).status_code == 403
+    assert client.post("/api/offer", headers={"Origin": origin}, json={}).status_code == 403
+    assert client.get("/voice/status", headers={"Origin": f"https://{HOST}:{TLS_PORT}"}).status_code == 200  # control
+
+
+def _tls_socket_in(app, origin: str | None) -> bool:
+    client = tls(app)
+    client.cookies.set(COOKIE, "s3cret-token")
+    return _phone_gets_in(client, "/ws", **({"origin": origin} if origin else {}))
+
+
+@pytest.mark.parametrize("origin", _NOT_THIS_LISTENER)
+def test_the_tls_listener_refuses_a_page_from_another_port_or_scheme_over_websocket(app, origin):
+    assert not _tls_socket_in(app, origin)
+    assert _tls_socket_in(app, f"https://{HOST}:{TLS_PORT}")  # control: the page's own origin
+    assert _tls_socket_in(app, None)  # control: no page at all (the cookie is still needed)
 
 
 @pytest.fixture

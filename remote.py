@@ -50,8 +50,16 @@ class Remote:
             return False
         if (urlparse(f"//{request.headers.get('host', '')}").hostname or "").lower() != self.host:
             return False
-        origin = request.headers.get("origin")
-        return origin is None or (urlparse(origin).hostname or "").lower() == self.host
+        return self._own_origin(request.headers.get("origin"))
+
+    def _own_origin(self, origin: str | None) -> bool:
+        """No Origin (the app, a script), or exactly this listener's: scheme, name and port. Cookies and SameSite ignore
+        ports, so a page on another port of this name (a dev server, `tailscale serve`) is same-site and gets the
+        pairing cookie; WebSockets have no same-origin rule, so this compare is all that keeps such a page out."""
+        if origin is None:
+            return True
+        own = {f"https://{self.host}:{TLS_PORT}"} | ({f"https://{self.host}"} if TLS_PORT == 443 else set())
+        return origin.lower() in own
 
     @property
     def app_key(self) -> str:
@@ -72,7 +80,7 @@ class Remote:
     def websocket_allowed(self, connection) -> bool:
         origin = connection.headers.get("origin")
         return (self.enabled and hmac.compare_digest(connection.cookies.get(COOKIE, "").encode(), self.token.encode())
-                and (origin is None or (urlparse(origin).hostname or "").lower() == self.host))
+                and self._own_origin(origin))
 
     async def guard(self, request: Request, call_next):
         state = request.scope.get("state", {})

@@ -341,6 +341,9 @@ no rule above and adds no listener.
 
 `bin/voice-remote` adds an HTTPS listener for a phone on a private network. Remote requests need the configured name and a
 pairing cookie. The listener is decided by the port that accepted the connection, never by `Host` or forwarded headers.
+A request from a web page, HTTP or WebSocket, must carry exactly this listener's origin, `https://<name>:7443`: scheme,
+name and port. Cookies ignore ports, so a page on another port of the same name (a dev server, `tailscale serve`) would
+otherwise get the pairing cookie and open a call.
 Limits: the pairing link is a lasting secret with no rotate command, despite the word "link", so treat it as a password. `bin/voice-remote off` leaves the connector and its tokens in place. And `bin/voice-connector` pulls
 `twingate/connector:1`, a moving tag. Call audio over this path is one TCP connection.
 
