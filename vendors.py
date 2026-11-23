@@ -82,6 +82,16 @@ def refuse_cloud_audio(what: str) -> None:
 def key(vendor: str) -> str | None:
     if local_only() or (vendor in AUDIO_ONLY and voice_local()):
         return None
+    return _stored(vendor)
+
+
+def saved(vendor: str) -> bool:
+    """Whether the key is in the environment or the Keychain, whatever the setup in use reads: a switch away from Fully
+    local, which reads none, still finds the Anthropic key saved before."""
+    return _stored(vendor, keep=False) is not None
+
+
+def _stored(vendor: str, keep: bool = True) -> str | None:
     env, item = KEYS[vendor]
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
@@ -93,6 +103,8 @@ def key(vendor: str) -> str | None:
         except (OSError, subprocess.TimeoutExpired):
             return None
         if not got.returncode and got.stdout.strip():
+            if not keep:
+                return got.stdout.strip()
             os.environ[env] = got.stdout.strip()
             return os.environ[env]
     return None

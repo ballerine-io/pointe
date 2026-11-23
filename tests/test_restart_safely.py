@@ -45,10 +45,10 @@ def test_a_restart_onto_a_setup_that_can_start_restarts(tmp_path):
 
 def test_pointe_setup_says_a_missing_key_before_the_restart(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("CLAUDE_VOICE_STATE", str(tmp_path))
-    monkeypatch.setattr(vendors, "key", lambda v: None)
+    monkeypatch.setattr(vendors, "saved", lambda v: False)
     assert setups.main(["openai"]) == 0
     out = capsys.readouterr().out
     assert "Not saved yet: the OpenAI key" in out and "pointe key openai" in out and "keeps it running" in out
-    monkeypatch.setattr(vendors, "key", lambda v: "made-up")
+    monkeypatch.setattr(vendors, "saved", lambda v: True)
     setups.main(["openai"])
     assert "Not saved yet" not in capsys.readouterr().out

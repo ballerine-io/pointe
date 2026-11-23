@@ -317,7 +317,7 @@ def voice_refused() -> str | None:
     """Why this Mac cannot have its voice stay local, before anything is downloaded."""
     if why := supported_voice():
         return why
-    if not any(vendors.key(v) for v in ("anthropic", "gemini", "openai")):
+    if not any(vendors.saved(v) for v in ("anthropic", "gemini", "openai")):  # not key(): Fully local reads none
         return (f"{vendors.VOICE_LOCAL} keeps the brain in the cloud, so it needs one text key, best Anthropic's: "
                 "pointe key anthropic (a Gemini key also works: pointe key gemini). Then run pointe local voice again.")
     return None

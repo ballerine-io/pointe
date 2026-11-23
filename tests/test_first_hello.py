@@ -159,6 +159,7 @@ def client(d, monkeypatch):
 
     ran = []
     monkeypatch.setattr(d, "_run_on_the_mac", lambda *commands: ran.append(commands))
+    monkeypatch.setattr(d.vendors, "saved", lambda vendor: True)  # every setup's keys saved: tests/test_setup_switch.py
     return TestClient(d.app, base_url="http://127.0.0.1:7860", cookies={"pointe_local": d.PAGE_KEY}), ran
 
 

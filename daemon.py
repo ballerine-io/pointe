@@ -7834,6 +7834,20 @@ async def add_key(request: Request):
     return {"ok": True}
 
 
+def _setup_refused(chosen: str) -> str | None:
+    """Why a switch to this setup cannot start, checked before anything changes: the page's switch runs detached, and a
+    missing key used to leave the page on "Switching" while the restart was refused."""
+    if chosen == "voice-local":
+        why = local.voice_refused()
+    elif chosen == "local":
+        why = local.supported(local.TEXT_MODEL)
+    else:
+        missing = setups._missing_keys(setups.BY_ID[chosen])
+        why = None if not missing else (f"{setups.BY_ID[chosen].name} needs the {' and the '.join(setups.NAMES[v] for v in missing)} key, "
+                           f"and it is not saved: Add… beside it, then Use this setup again.")
+    return f"Not switched, Pointe keeps running as it is. {why}" if why else None
+
+
 @app.post("/voice/setup")
 async def use_setup(request: Request):
     """Settings → Setups, Use this setup, on the page on this Mac: `pointe setup <id>` (the local ones download their
@@ -7844,6 +7858,9 @@ async def use_setup(request: Request):
     chosen = body.get("id") if isinstance(body, dict) else None
     if chosen not in setups.BY_ID:
         raise HTTPException(status_code=400, detail=f"id must be one of {', '.join(setups.BY_ID)}")
+    if why := await asyncio.to_thread(_setup_refused, chosen):
+        logger.info(f"setup {chosen} refused on the page: {why}")
+        raise HTTPException(status_code=409, detail=why)
     _run_on_the_mac([str(POINTE_CLI), "setup", chosen], [str(POINTE_CLI), "restart"])
     logger.info(f"setup {chosen} chosen on the page")
     return {"ok": True}

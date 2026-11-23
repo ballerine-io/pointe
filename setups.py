@@ -239,7 +239,7 @@ def _missing_keys(s: Setup) -> list[str]:
         import vendors
     except ImportError:
         return []
-    return [v for v in s.keys if not vendors.key(v)]
+    return [v for v in s.keys if not vendors.saved(v)]
 
 
 if __name__ == "__main__":
