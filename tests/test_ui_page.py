@@ -249,7 +249,7 @@ CONNECT_STATES = """(async () => {
                          button: q('connectbtn')?.hidden === false ? t('connectbtn-label') : null, busy: !!q('connectbtn')?.classList.contains('busy'),
                          pill: q('topconnect').hidden ? null : t('topconnect'), problem: t('problem'),
                          mic: [q('mic').getAttribute('aria-label'), q('mic').title, q('mic').getAttribute('aria-disabled'), t('keyhint')],
-                         hint: t('connect-hint'), phone: q('connect-phone')?.hidden === false});
+                         hint: t('connect-hint'), phone: q('connect-phone')?.hidden === false, sub: t('sub')});
     const out = {};
     out.idle = snap();
     // the mic with no call: it does not dial, it points at Connect
@@ -300,9 +300,12 @@ def test_connect_is_its_own_control_and_says_why_it_failed():
     assert un["why"].startswith("Pointe on this Mac is not answering") and "pointe doctor" in un["why"]
     assert un["problem"] == "", un  # the panel carries it, not the top bar as well
     npd = got["notPaired"]
-    assert npd["title"] == "Not paired" and npd["state"] == "off" and npd["button"] == "Try again"
+    # nothing on screen that cannot work: no Try again (the key stays refused), no sessions or "press Connect" from the
+    # last status this page was allowed to read
+    assert npd["title"] == "Not paired" and npd["state"] == "off" and npd["button"] is None and npd["pill"] is None, npd
+    assert npd["sub"] == "" and npd["hint"] == "", npd
     assert npd["why"] == "This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open."
-    assert got["back"]["title"] == "Not connected" and got["back"]["button"] == "Connect"
+    assert got["back"]["title"] == "Not connected" and got["back"]["button"] == "Connect" and "press connect" in got["back"]["sub"].lower(), got["back"]
     assert got["micDenied"]["why"].startswith("The browser blocked the microphone") and got["micDenied"]["button"] == "Try again"
     assert got["failed"]["why"] == "The call did not connect." and got["failed"]["button"] == "Try again"
     live = got["live"]
@@ -311,3 +314,10 @@ def test_connect_is_its_own_control_and_says_why_it_failed():
     dropped = got["dropped"]
     assert not dropped["panelShown"] and dropped["pill"] == "Try again" and dropped["problem"] == "The call did not connect."
     assert "hang" not in dropped["pillClass"]
+
+
+def test_a_phone_page_that_is_not_paired_says_how_to_pair_it_again():
+    """On the phone's browser /pointe:open is no help: the phone is paired again with a new link from the Mac."""
+    block = PAGE[PAGE.index("const CONNECT_COPY = {"):]
+    assert "notPairedBrowser: 'This phone is no longer paired with this Mac. On the Mac, run pointe pair link and open the new address here.'" in block
+    assert "if (denied) return remotePage ? CONNECT_COPY.notPairedBrowser : CONNECT_COPY.notPaired;" in PAGE

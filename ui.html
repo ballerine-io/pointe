@@ -2440,6 +2440,7 @@
     daemonDown: () => 'Pointe on this Mac is not answering. Is it running? In a terminal: pointe doctor',  // the page's host is an internal name
     // (b) the key this page or phone holds is refused
     notPaired: 'This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open.',
+    notPairedBrowser: 'This phone is no longer paired with this Mac. On the Mac, run pointe pair link and open the new address here.',
     // (c) the Mac has no listener for the phone yet
     noListener: 'Optional: talk from your phone too. Settings → Phone.',
     // (d) no microphone to start the call on
@@ -2706,12 +2707,12 @@
     text('connect-why', issue ? issue : live ? '' : redial ? 'The call dropped. It comes back by itself; Cancel stops the redials.'
       : elsewhere ? CONNECT_COPY.elsewhereWhy : CONNECT_COPY.does(remotePage ? 'device' : 'Mac'));
     $('connect-why').classList.toggle('bad', !!issue);
-    const b = $('connectbtn');
-    if (b.hidden !== live) b.hidden = live;
+    const b = $('connectbtn'), none = live || denied;  // not paired: a dial would be refused the same way
+    if (b.hidden !== none) b.hidden = none;
     b.classList.toggle('busy', dialling); b.classList.toggle('quiet', dialling);
     text('connectbtn-label', dialling ? CONNECT_COPY.cancel : issue ? CONNECT_COPY.tryAgain : CONNECT_COPY.connect);
     const folded = !$('compose').offsetHeight;
-    text('connect-hint', live ? (folded ? CONNECT_COPY.typeTooTap : CONNECT_COPY.typeToo) : folded ? CONNECT_COPY.typeLaterTap : CONNECT_COPY.typeLater);
+    text('connect-hint', denied ? '' : live ? (folded ? CONNECT_COPY.typeTooTap : CONNECT_COPY.typeToo) : folded ? CONNECT_COPY.typeLaterTap : CONNECT_COPY.typeLater);
     const noListener = !live && !!s && s.phone_listener === false;  // (c): a Mac without the phone's listener; older Macs send nothing
     if ($('connect-phone').hidden === noListener) $('connect-phone').hidden = !noListener;
   }
@@ -2747,7 +2748,7 @@
   // Why there is no call, in plain words, or '' when nothing is wrong: the key refused first (the poll's 403 is certain),
   // then the Mac not answering, then this page's own microphone or link trouble.
   function connectIssue() {
-    if (denied) return CONNECT_COPY.notPaired;
+    if (denied) return remotePage ? CONNECT_COPY.notPairedBrowser : CONNECT_COPY.notPaired;
     if (fails >= 3) return remotePage ? CONNECT_COPY.unreachable(location.host) : CONNECT_COPY.daemonDown();
     return micError || callNote;
   }
@@ -2792,7 +2793,8 @@
     // the link itself, from the call's heartbeat, so "connected" is never a guess
     const quiet = mine && call.heard ? (Date.now() - call.heard) / 1000 : 0;
     const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : call.rtt != null ? ` · ${call.rtt} ms` : '';
-    const sub = st === 'off' && !(s && s.connected) ? (where ? where + ' · press Connect to talk' : 'Press Connect to start talking')
+    // not paired: the last status this page could read is stale, and Connect cannot help
+    const sub = denied ? '' : st === 'off' && !(s && s.connected) ? (where ? where + ' · press Connect to talk' : 'Press Connect to start talking')
       : title === TURNS_COPY.holding ? TURNS_COPY.holdingHow : where + health;
     if (sub !== subShown) { subShown = sub; $('sub').innerHTML = sub; }
     const live = !!(s && s.connected && mine);
@@ -2815,7 +2817,7 @@
     const pill = $('topconnect'), pillLabel = mine ? CONNECT_COPY.hangUp : dialling ? CONNECT_COPY.cancel : issue ? CONNECT_COPY.tryAgain : CONNECT_COPY.connect;
     text('topconnect', pillLabel);
     pill.classList.toggle('hang', mine); pill.classList.toggle('quiet', !mine && dialling);
-    pill.hidden = panel && !mine;
+    pill.hidden = (panel || denied) && !mine;
     showConnect();
     const micMode = pttMode() ? 'ptt' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
     for (const m of ['always', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }
