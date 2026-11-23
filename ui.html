@@ -190,6 +190,8 @@
   #list > * { flex: none; }  /* the list scrolls; a row never gives up height (a two-line name ran into the line under it) */
   .s:hover { background: var(--raised); }
   .s:focus-visible, .mh:focus-visible { outline-offset: -2px; }  /* inside the row: the list clips a ring drawn outside it */
+  .s .nm:focus-visible { outline: none; }  /* the ring goes round the whole row */
+  .s:has(> .nm:focus-visible) { outline: 2px solid var(--orange); outline-offset: -2px; }
   .s.on { background: var(--tint); box-shadow: inset 2px 0 0 var(--orange); }
   .s.dim .nm { color: var(--muted); }  /* not the focused one: quieter, still readable (an opacity fails AA) */
   .s .nm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; line-height: 1.3; }
@@ -1849,28 +1851,33 @@
     const row = x => {
       const pinned = focused && x.name === s.active, away = x.online === false;
       const b = el('div', 's' + (pinned ? ' on' : '') + (focused && !pinned ? ' dim' : '') + (away ? ' away' : ''));
-      b.tabIndex = 0; b.setAttribute('role', 'button');
       const hot = needsYou(x) && !away;
       const tools = el('span', 'tools');
       tools.append(el('span', 'tag' + (hot ? ' hot' : ''), away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'));
-      const pen = el('span', 'edit', '✎'); pen.title = 'Rename';
+      const pen = el('span', 'edit', '✎'); pen.title = 'Rename'; pen.setAttribute('aria-hidden', 'true');  // a pointer's shortcut: ⋯ has both
       pen.onclick = ev => { ev.stopPropagation(); startRename(b, x.name); };
       const sure = asking === x.name;
       const cut = el('span', 'edit' + (sure ? ' sure' : ''), sure ? 'disconnect?' : '×');
-      cut.title = 'Disconnect from the voice (it keeps running in its terminal)';
+      cut.title = 'Disconnect from the voice (it keeps running in its terminal)'; cut.setAttribute('aria-hidden', 'true');
       cut.onclick = ev => { ev.stopPropagation(); disconnect(x.name); };
       const more = el('button', 'more', '⋯'); more.type = 'button';
       more.setAttribute('aria-label', `Rename or disconnect ${x.name}`); more.setAttribute('aria-haspopup', 'dialog');
       more.onclick = ev => { ev.stopPropagation(); openRowSheet(x.name); };
       more.onkeydown = ev => ev.stopPropagation();  // Enter on ⋯ opens the sheet, not the row's switch
       tools.append(pen, cut, more);
+      // The name is the row's button for a keyboard and a screen reader, named in words; the row takes the pointer's click.
+      const state = away ? 'offline' : x.waiting ? 'needs approval' : x.needs ? 'needs you' : x.working ? 'working' : 'idle';
+      const reason = hot ? (x.waiting ? (x.request || '').split('\n')[0] : x.needs) : '';
       const nm = el('span', 'nm', short(x.name));
+      nm.tabIndex = 0; nm.setAttribute('role', 'button');
+      nm.setAttribute('aria-label', `${x.name}, ${agentOf(x)}, ${state}${reason ? ': ' + reason : ''}`);
+      if (pinned) nm.setAttribute('aria-current', 'true');
+      nm.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchTo(x.name); } };  // a button: Space too
       b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
       if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n')[0] : x.needs));
       b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
                           : focused ? (pinned ? ' (focused)' : ' — click to focus on it') : ' — click to talk to it next');
       b.onclick = () => switchTo(x.name);  // offline too: the voice can still say what its notes hold
-      b.onkeydown = e => { if (e.target === b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); switchTo(x.name); } };  // a button: Space too
       return b;
     };
     const header = g => {  // name, this Mac or its OS, offline since or round trip, how many need you; a click folds it
@@ -1974,7 +1981,7 @@
       else if (item.sig !== sig) {
         const fresh = make(), focused = item.el.contains(document.activeElement);
         item.el.replaceWith(fresh); item.el = fresh; item.sig = sig;
-        if (focused) fresh.focus();
+        if (focused) (fresh.matches('[tabindex]') ? fresh : fresh.querySelector('[tabindex="0"]') || fresh).focus();
       }
       keyOf.set(item.el, key);
       // Into place with the fewest moves: an element sitting here that belongs further down than this one is from its
@@ -2423,8 +2430,8 @@
 
   function approvalCard(x, s, more) {
     if (s.drive && s.drive.on && window.driveCard) return driveCard(x, s, more);  // no buttons while driving
-    const b = el('div', 'ask');
-    const what = el('div', 'what', whoLabel(x, machineView(s)) + ' ');
+    const b = el('div', 'ask'), what = el('div', 'what', whoLabel(x, machineView(s)) + ' ');
+    what.id = 'ask-what'; b.setAttribute('role', 'group'); b.setAttribute('aria-labelledby', 'ask-what');
     if (agentBadges) what.append(el('span', 'agent', agentOf(x)), ' ');
     what.append(el('span', '', 'needs approval'));
     b.append(what, el('div', 'need exact', x.request || ''));  // never clamped: this is what a tap approves
@@ -2870,6 +2877,10 @@
     if ($('mic').title !== micTitle) $('mic').title = micTitle;
     if ($('mic').ariaLabel !== micLabel) $('mic').ariaLabel = micLabel;
     if ($('mic').getAttribute('aria-disabled') !== String(micOff)) $('mic').setAttribute('aria-disabled', micOff);
+    // Mute is a toggle: a screen reader hears "Mute, pressed" while muted. Hold to talk and Connect first are not toggles.
+    const pressed = micOff || pttMode() ? null : String(!!muted);
+    if ($('mic').getAttribute('aria-pressed') !== pressed) pressed === null ? $('mic').removeAttribute('aria-pressed') : $('mic').setAttribute('aria-pressed', pressed);
+    if (pressed !== null && $('mic').ariaLabel !== 'Mute') $('mic').ariaLabel = 'Mute';
     text('miclabel', micLabel);
     text('keyhint', micOff ? (st === 'connecting' || st === 'reconnecting' ? title : CONNECT_COPY.connectFirst)
       : pttMode() ? (pttTap() ? `Tap ${keyName(ptt.key)} to talk, again to send · Caps Lock toggles` : `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles`)
@@ -3069,8 +3080,9 @@
     else if (added) $('newpill').hidden = false;
   }
   function turnItem(t, polish) {
-    if (t.who !== 'user') return el('li', 'bot', t.text);
+    if (t.who !== 'user') { const b = el('li', 'bot'); b.append(el('span', 'sr', 'Pointe: '), t.text); return b; }
     const li = el('li', 'you fixable'); li.dir = 'auto';
+    li.append(el('span', 'sr', 'You: '));
     li.dataset.id = t.id; li.dataset.text = t.text;
     li.title = 'Click to fix what it heard';
     if (polish && t.understood && t.understood !== t.text) li.append(el('span', 'raw', t.text), el('span', 'meant', t.understood));

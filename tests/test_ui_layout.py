@@ -95,7 +95,7 @@ def test_nothing_runs_off_a_phone_screen():
         assert r["page"] <= 0 and not r["off"], r
 
 
-# A control's target is what a finger hits: the element, something inside it, or the label that wraps it. Probed 21 px
+# A control's target is what a finger hits: the element, something inside it, or the label (or session row) that wraps it. Probed 21 px
 # each way from its middle, so a small mark with room around it (a chip, a close button) counts for the room it takes.
 TARGETS = """(() => { const small = [];
   const sel = 'button, [role=button], select, input:not([type=hidden]), textarea, summary';
@@ -104,7 +104,8 @@ TARGETS = """(() => { const small = [];
     if (!r.width || !r.height || cs.visibility === 'hidden' || e.disabled || e.closest('[hidden]')) continue;
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const top = document.elementFromPoint(cx, cy);
-    const mine = t => !!t && (e.contains(t) || t.contains(e) && !!t.closest('label') || (e.closest('label') || e).contains(t));
+    const wrap = e.matches('.s > .nm') ? e.parentElement : e.closest('label');  // a session's name is its row's button: the row takes the tap
+    const mine = t => !!t && (e.contains(t) || t.contains(e) && !!t.closest('label') || (wrap || e).contains(t));
     if (!mine(top)) continue;  // under a sheet, or scrolled out of its list
     const box = (e.closest('.snav, #speakers, .filters, .arts, #list, #recent, .spanel, .sheetbox, #talk, #notelist') || document.body).getBoundingClientRect();
     for (const [dx, dy] of [[-21, 0], [21, 0], [0, -21], [0, 21]]) {
@@ -745,3 +746,32 @@ def test_the_context_panel_keeps_the_keyboard_inside_and_gives_it_back():
     assert modal == "true" and stops[0][1], stops[0]
     assert all(inside for _, inside in stops), [s for s in stops if not s[1]]
     assert back == "ctx", back
+
+
+A11Y = """(() => { const rows = [...document.querySelectorAll('#list .s')];
+  const nested = rows.filter(r => r.matches('[role=button]') && r.querySelector('button, [role=button]')).length;
+  const names = rows.map(r => r.querySelector('[role=button]').getAttribute('aria-label'));
+  const card = document.querySelector('#attention .ask'), att = document.getElementById('attention');
+  return {nested, names, card: card && [card.getAttribute('role'), document.getElementById(card.getAttribute('aria-labelledby')).textContent],
+          live: att.getAttribute('aria-live'), state: document.getElementById('statesay').getAttribute('role'),
+          speakers: [...document.querySelectorAll('#talk li')].slice(0, 2).map(li => li.querySelector('.sr').textContent),
+          mic: document.getElementById('mic').getAttribute('aria-pressed')}; })()"""
+
+
+def test_a_screen_reader_hears_the_card_the_call_the_rows_and_who_spoke():
+    """Found by a DOM audit (QA round 5): the approval card had no role and no live region, the call state none, a row
+    was a role=button holding a button with its name run together ('billing/mainCapprove✎×⋯git push...'), bubbles had
+    no speaker, the mic no pressed state, and Space did nothing on a row."""
+    status = fixture(sessions=3, talk=4, approval=True, connected=True)
+    got = _run([(1280, LIVE, A11Y),
+                (1280, "muted = true; render(); document.querySelectorAll('#list .s .nm')[2].focus();",
+                 "[document.getElementById('mic').getAttribute('aria-pressed'), document.activeElement.getAttribute('aria-label').split(',')[0]]"),
+                (1280, "document.activeElement.dispatchEvent(new KeyboardEvent('keydown', {key: ' ', bubbles: true}));", "status.active")],
+               status)
+    a = got[0]
+    assert a["nested"] == 0 and a["names"][0] == "s1-api, Claude, needs approval: Bash(rm -rf build && make test)", a
+    assert all(n and "✎" not in n and "×" not in n for n in a["names"]), a
+    assert a["card"] == ["group", "s1-api needs approval"] and a["live"] == "polite" and a["state"] == "status", a
+    assert a["speakers"] == ["You: ", "Pointe: "] and a["mic"] == "false", a
+    assert got[1][0] == "true" and got[1][1] != "s0-shop", got  # not the active one
+    assert got[2] == got[1][1], got  # Space switched to the focused row
