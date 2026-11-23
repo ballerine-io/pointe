@@ -43,7 +43,27 @@ def load(results: Path = HERE / "results") -> tuple[list, list, dict]:
             if row["time"] < frozen["frozen_at"]:
                 raise ReportRefused(f"{row['run_id']} {row['item']}: older than the freeze")
             (published if row["kind"] == "paid" else unpublished).append(row)
-    return published, unpublished, frozen
+    return replace_reruns(published), replace_reruns(unpublished), frozen
+
+
+RERUNS: dict = {}
+
+
+def replace_reruns(rows: list) -> list:
+    """A row rerun after a harness fault (core.runner.harness_fault) takes the place of the first row of the same item,
+    arm and run index; the first rows stay in the raw data and are counted on the page."""
+    reruns = {(r["rerun_of"], r["item"], r["adapter"], r["run_index"]): r for r in rows if r.get("rerun_of")}
+    out = []
+    for r in rows:
+        if r.get("rerun_of"):
+            continue
+        key = (r["run_id"], r["item"], r["adapter"], r["run_index"])
+        if key in reruns:
+            RERUNS[r["adapter"]] = RERUNS.get(r["adapter"], 0) + 1
+            out.append(reruns[key])
+        else:
+            out.append(r)
+    return out
 
 
 def pct(k, n):
@@ -226,6 +246,20 @@ def sections(rows, unpub, frozen) -> list:
                    "Capped runs (12 user turns, 10 minutes, or $0.60) count as failures. Invalid runs named a path outside "
                    "the item's folder in a tool call and are excluded from the passes. Errors are runs the harness could "
                    "not finish; they count as failures."))
+    if "pointe" in arms:
+        prow = [r for r in rows if r["adapter"] == "pointe" and r.get("outcome") not in ("invalid_out_of_tree", "unsupported")]
+        pf = [r for r in prow if not r["success"]]
+        pf_no = sum(1 for r in pf if r.get("approvals_no_after_refused_yes"))
+        pp_no = sum(1 for r in prow if r["success"] and r.get("approvals_no_after_refused_yes"))
+        B.append(("p", f"Where Pointe lost runs: in {pf_no} of its {len(pf)} failed runs at least one spoken yes did not "
+                       "take (Pointe asked for a tap) and the scripted user said no, so the agent could not run the command "
+                       f"it asked for. {pp_no} runs passed despite such a refusal. The other arms "
+                       "act on a spoken yes for any command: they have no such guard."))
+    reruns = ", ".join(f"{LABEL[k]} {v}" for k, v in sorted(RERUNS.items())) or "none"
+    B.append(("p", "Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the "
+                   "runner credited an answer to the wrong request, or the agent made no step for 8 minutes was rerun "
+                   f"once with the same voice and run index, by that rule and in every arm. Reruns: {reruns}. The first "
+                   "rows stay in the raw data."))
     B.append(("h2", "Passes by stressor group (synthetic speech)"))
     gr = [[g] + [f"{a['groups'][(x, g)][0]}/{a['groups'][(x, g)][1]}" for x in arms] for g in ("naming", "language", "control")]
     B.append(("table", (["group"] + [LABEL[x] for x in arms], gr)))
