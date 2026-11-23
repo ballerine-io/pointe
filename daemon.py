@@ -2062,6 +2062,7 @@ class State:
     meeting_task: object = None
     meeting_starting: bool = False  # the meeting stream is connecting: the room's audio already stays out of the call
     meeting_may_speak_until: float = 0.0  # in participating, the room hears the bot only inside this window
+    meeting_asked: tuple[float, str] = (0.0, "")  # (when, words): the owner's last question to Pointe in a meeting
     # (when, text): what the bot said lately, in a meeting or just before one (its echo lands in the next meeting's stream)
     bot_spoke: deque = field(default_factory=lambda: deque(maxlen=8))
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
@@ -4309,6 +4310,7 @@ async def _meeting_lookup(note_id: int, session_name: str, question: str) -> Non
     if not answer:
         NOTES.add("answer", f"Could not look it up in {target.name}.", session=target.name, dedup=False, meeting=meeting)
         return
+    answer = mask(answer)
     NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta={"question_id": note_id}, dedup=False,
               meeting=meeting)
     if note is not None:
@@ -4323,6 +4325,8 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
         return
     cmd, args = meetings.command(words)
     logger.info(f"meeting command: {cmd}")  # the owner's command kind only
+    if cmd in ("think", "ask", "finish"):
+        state.meeting_asked = (time.time(), words)  # a look-up the reply makes must name a session in these words
     if cmd == "end":
         await end_meeting()
     elif cmd == "mode":
@@ -4416,6 +4420,7 @@ async def _meeting_session_question(m, target, question: str, aloud: bool) -> No
     if not answer:
         NOTES.add("answer", f"Could not look it up in {target.name}.", session=target.name, dedup=False, meeting=m.id)
         return
+    answer = mask(answer)  # said to the room and written down: as _ask_copy's
     NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta={"question": question[:300]},
               dedup=False, meeting=m.id)
     if aloud and state.meeting is m and m.mode == "participating":
@@ -6408,6 +6413,12 @@ async def ask_about_session(params: FunctionCallParams):
     if target is None:
         await params.result_callback({"error": error})
         return
+    if state.meeting is not None:  # the room's words reach this turn as data: only the owner's own may pick the session
+        when, words = state.meeting_asked
+        if time.time() - when > MEETING_REPLY_SECS or target not in named_sessions(words, list(REGISTRY.sessions.values())):
+            await params.result_callback({"error": f"In a meeting, look up a session only when the owner's own question "
+                                                   f"names it; they did not name {target.name}."})
+            return
     state.thread = (target.id, time.time())  # asking about a session is talking about it
     question = params.arguments.get("question", "")
     if COPY_SESSIONS and _capabilities(target)["side_questions"] and not quote_intent(question) and not quote_intent(state.last_utterance):
@@ -6433,6 +6444,7 @@ async def _ask_copy(target: Session, question: str) -> None:
     if answer is None:  # a session in the middle of a tool call may not resume: the record is the fallback
         answer = (await _from_record(target, question)).get("answer") or "I could not get an answer."
     if state.meeting is not None:  # in a meeting the answer is written; said only in participating, where the owner asked
+        answer = mask(answer)  # the room, the mouth vendor and the notes: a copy can read files, so its answer is masked
         NOTES.add("answer", f"{target.name}: {answer}", session=target.name, dedup=False)
         if state.meeting.mode == "participating":
             await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; "
