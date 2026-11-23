@@ -9,6 +9,7 @@ The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private 
 
 ## 1.21
 
+- **1.21.1** (2026-11-23): Fixes from five launch QA rounds: `pointe <command> --help` says what the command does and runs nothing, and `pointe --version` works; Fully local loads its model on a fresh Mac; ears or a voice that drop or fail to connect are tried again with growing waits, and a refused key, an empty quota or a failing vendor is said once in plain words instead of Listening; Pointe starts without internet from uv's cache; the iPhone and Mac apps keep Approve and Deny on the screen for a long command at any text size, and drive mode, the pairing screen and the night shift sheet are no longer cut off; the page's call bar is the apps', labelled, with one Hang up; the Mac app gets keys for Approve, Deny and Mute, Settings and About on its setup guide, and a working Help; and many smaller fixes to the page, the apps, the CLI and the docs
 - **1.21.0** (2026-11-23): Add sessions by voice: "connect to the session about the pentest", "connect to all open Claude Code sessions" and "reopen yesterday's session about billing" find sessions here and on paired machines, read back what was found, and join on a yes, with an Add sessions sheet on the page and in the apps
 
 ## 1.20
