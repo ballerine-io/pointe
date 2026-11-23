@@ -25,19 +25,38 @@ struct Pairing: Codable, Hashable {
         var q: [String: String] = [:]
         for item in url.queryItems ?? [] { q[item.name] = item.value }
         guard q["v"].flatMap(Int.init) == version,
-              let host = q["host"], !host.isEmpty, host.range(of: #"^[A-Za-z0-9.\-:]+$"#, options: .regularExpression) != nil,
+              let host = q["host"], Pairing.isHost(host),
               let port = q["port"].flatMap(Int.init), (1...65535).contains(port),
               let fp = q["fp"]?.lowercased(), fp.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil
         else { return nil }
         return (q, host, port, fp)
     }
 
+    /// A name or an IPv4 address, nothing else: a colon makes no URL, and a pairing that makes none would crash the app
+    /// at every launch from the Keychain, which outlives a reinstall.
+    static func isHost(_ host: String) -> Bool {
+        host.range(of: #"^[A-Za-z0-9.\-]{1,253}$"#, options: .regularExpression) != nil
+            && URL(string: "https://\(host):1") != nil
+    }
+
     init(host: String, port: Int, fingerprint: String, key: String) {
         self.host = host; self.port = port; self.fingerprint = fingerprint; self.key = key
     }
 
-    var base: URL { URL(string: "https://\(host):\(port)")! }
-    var callURL: URL { URL(string: "wss://\(host):\(port)/voice/phone")! }
+    private enum CodingKeys: String, CodingKey { case host, port, fingerprint, key }
+
+    /// From the Keychain: a pairing an older version saved with a host that makes no URL is not used.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let host = try c.decode(String.self, forKey: .host)
+        guard Pairing.isHost(host) else { throw DecodingError.dataCorruptedError(forKey: .host, in: c, debugDescription: "not a host") }
+        self.init(host: host, port: try c.decode(Int.self, forKey: .port), fingerprint: try c.decode(String.self, forKey: .fingerprint),
+                  key: try c.decode(String.self, forKey: .key))
+    }
+
+    // Never forced: a URL that cannot be made goes nowhere instead of crashing the app.
+    var base: URL { URL(string: "https://\(host):\(port)") ?? URL(fileURLWithPath: "/") }
+    var callURL: URL { URL(string: "wss://\(host):\(port)/voice/phone") ?? URL(fileURLWithPath: "/") }
 }
 
 /// What the page's QR holds (Settings → Phone): where the Mac listens, its certificate, and a one-time code. No lasting
@@ -62,7 +81,7 @@ struct PairingInvite: Hashable {
         self.host = host; self.port = port; self.fingerprint = fingerprint; self.code = code
     }
 
-    var pairURL: URL { URL(string: "https://\(host):\(port)/voice/phone/pair")! }
+    var pairURL: URL { URL(string: "https://\(host):\(port)/voice/phone/pair") ?? URL(fileURLWithPath: "/") }
 
     func request(device: String, id: String) -> URLRequest {
         var r = URLRequest(url: pairURL)
