@@ -674,6 +674,43 @@ def ack_only(text: str) -> bool:
     return bool(_ACK.match(_lower(text).strip()))
 
 
+_STOP_VERB = re.compile(r"^(?:stop|cancel|abort|halt|kill|hold on|hang on|עצור|תעצור|תפסיק|הפסק|בטל|תבטל)$")
+_STOP_LEAD = ("ok", "okay", "no", "please", "hey", "um", "uh", "oh", "so", "just", "wait", "actually", "לא", "רגע")
+# Words that only point at what runs: "stop it now, please", "cancel that job", "halt the script".
+_STOP_OBJECT = {"it", "that", "this", "now", "please", "the", "job", "script", "task", "run", "build", "work", "what",
+                "it's", "its", "doing", "everything", "all", "right", "away", "immediately", "that's", "enough", "ok",
+                "okay", "no", "just", "wait", "there", "thing", "command", "את", "זה", "הכל", "עכשיו", "בבקשה", "די"}
+_REDIRECT_LEAD = re.compile(r"^\W*(?:no,?\s+wait|wait|hang on|hold on|actually,?\s+no|רגע|לא רגע)\b[\s,.!:;-]*(?P<rest>.*)$")
+_ABOUT_THE_VOICE = re.compile(r"\b(?:stop|quit)\s+(?:asking|talking|reminding|repeating|saying|reading|nagging|interrupting|"
+                              r"telling|bugging)\b")
+_QUESTION_WORD = re.compile(r"^(?:what|why|how|when|where|who|which|is|are|was|were|did|does|do|can|could|should|will|would|has|have)\b")
+
+
+def stop_intent(text: str) -> str | None:
+    """"stop", "cancel that", "hold on, stop that": end the running turn ("stop"). The same with more after it ("stop and
+    delete the step files", "no wait, put them in out"): end it, and the rest is a new request ("redirect"). None for
+    anything else: a stop inside a task for a session ("tell billing to stop retrying") is that session's work, and "wait,
+    what is it?" is a question. Never a yes: a pending request hears these as a no or as nothing (permission_answer)."""
+    lowered = _lower(text).strip()
+    words = re.findall(r"[\w']+", lowered)
+    if not words or len(words) > 24 or _HOLD.search(lowered) and len(words) > 2 or _ABOUT_THE_VOICE.search(lowered):
+        return None  # "hold on, let me think" holds the send; "stop asking" is about the voice, not the work
+    lead = 0
+    while lead < len(words) - 1 and words[lead] in _STOP_LEAD:
+        lead += 1
+    pair = " ".join(words[lead:lead + 2])
+    first = pair if _STOP_VERB.match(pair) else words[lead]
+    if not _STOP_VERB.match(first) and not (lead and _STOP_VERB.match(words[lead - 1] + " " + words[lead])):
+        redirect = _REDIRECT_LEAD.match(lowered)
+        rest = (redirect.group("rest") if redirect else "").strip()
+        if not rest or "?" in rest or _QUESTION_WORD.match(rest) or len(re.findall(r"[\w']+", rest)) < 2:
+            return None
+        return "redirect"
+    if _words(lowered) - _STOP_OBJECT <= {w for w in words if _STOP_VERB.match(w)} | {"hold", "hang", "on"} | set(_STOP_LEAD):
+        return "stop"
+    return None if "?" in lowered else "redirect"
+
+
 def hold_intent(text: str) -> bool:
     """The user is still deciding ("not yet", "hold off, I want to think"): nothing goes until they say so."""
     return bool(_HOLD.search(_lower(text).strip()))

@@ -150,6 +150,7 @@ class OpenCode(Harness):
     label = "opencode"
     agent = "OpenCode"
     approvals = True
+    interrupts = "now"  # POST /api/session/{id}/interrupt
     side_questions = True
     attach = True
     starts = True
@@ -400,6 +401,16 @@ class OpenCode(Harness):
         except Exception as e:
             logger.error(f"OpenCode prompt to {session.name} failed: {type(e).__name__}")
             return False
+
+    async def interrupt(self, session) -> bool:
+        """POST /api/session/{id}/interrupt: the service cuts the running execution and says whether one ran."""
+        try:
+            got = await self.service.call("POST", f"/api/session/{session.id}/interrupt", {})
+        except Exception as e:
+            logger.error(f"OpenCode interrupt of {session.name} failed: {type(e).__name__}")
+            return False
+        got = got or {}
+        return bool((got.get("data") if isinstance(got.get("data"), dict) else got).get("interrupted"))
 
     async def side_question(self, session, question: str) -> str | None:
         """A fork answers, so the live session is never touched; the fork is deleted after."""

@@ -45,6 +45,10 @@ class ClaudeCode(Harness):
     starts = True
     joins_mid_turn = True  # /pointe:voice runs inside one of its turns
     permission_deadline = 280.0  # under the hook's own timeout, in hooks/hooks.json
+    # Claude Code has no supported way for another process to interrupt a running turn (docs/harnesses.md): its inbox
+    # delivers between tool calls, and Escape is a key in its terminal. A hook that returns "continue": false ends the
+    # turn after the hook runs, so the stop lands at the next tool step; a command already running finishes first.
+    interrupts = "next_step"
 
     def __init__(self) -> None:
         self._gone: dict[int, bool] = {}  # pid -> the last probe found it a zombie (or unknown to ps)
@@ -214,6 +218,29 @@ class ClaudeCode(Harness):
             return await HOST.post_channel(session, "/utterance", {"text": voice_message(text)})
         return await post_inbox(session, text, receipt=await asyncio.to_thread(may_hold, session))
 
+    async def interrupt(self, session) -> bool:
+        """Leaves a stop for bin/voice-stop-hook, the plugin's PreToolUse and PostToolUse hook, under the Claude Code
+        session id the hook will be called with (the current transcript's name: it changes on /clear and /resume)."""
+        path = stop_flag(session, self.transcript_path(session))
+        if path is None:
+            return False
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path.write_text(f"{time.time()}\n")
+        return True
+
+    def stop_landed(self, session) -> bool:
+        path = stop_flag(session, self.transcript_path(session))
+        taken = path.with_name(path.name + ".taken") if path else None
+        if taken is None or not taken.exists():
+            return False
+        taken.unlink(missing_ok=True)
+        return True
+
+    def drop_stop(self, session) -> None:
+        path = stop_flag(session, self.transcript_path(session))
+        for p in (path, path.with_name(path.name + ".taken")) if path else ():
+            p.unlink(missing_ok=True)
+
     def transcript_path(self, session) -> str:
         """Claude Code's record of the process wins: the id a hook reported can name a file that never appears (launch
         mode), and /clear or /resume moves a running session to a new file."""
@@ -267,6 +294,17 @@ class ClaudeCode(Harness):
 
 START_KEEP_SECS = 24 * 3600  # a start's script and settings: Claude Code reads the settings while it runs
 PORT_ENV = "CLAUDE_VOICE_DAEMON_PORT"
+
+
+STOP_DIR = "stop"  # under the state folder; bin/voice-stop-hook reads the same name
+
+
+def stop_flag(session, transcript: str) -> Path | None:
+    """Where a stop for this session waits for its hook: one file named by its Claude Code session id."""
+    sid = Path(transcript or "").stem or session.id
+    if not HOST.state_dir or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", sid):
+        return None
+    return Path(HOST.state_dir) / STOP_DIR / sid
 
 
 def start_argv(name: str, settings: Path, resume: str = "") -> list[str]:

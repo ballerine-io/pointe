@@ -23,7 +23,8 @@ class RemoteHarness(Harness):
         self.joins_mid_turn, self.permission_deadline = inner.joins_mid_turn, inner.permission_deadline
 
     def capabilities(self) -> dict:
-        return {**self.inner.capabilities(), "side_questions": False}  # no fork on the node: the reader answers
+        # No fork on the node (the reader answers), and no stop: the link carries no interrupt yet.
+        return {**self.inner.capabilities(), "side_questions": False, "interrupt": None}
 
     def alive(self, session: Session) -> bool:
         return self.hub.alive(session)

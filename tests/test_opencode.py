@@ -33,6 +33,7 @@ class FakeOpenCode:
         self.replies: list[tuple[str, dict]] = []
         self.prompts: list[tuple[str, dict]] = []
         self.deleted: list[str] = []
+        self.interrupts: list[str] = []
         self.events: asyncio.Queue = asyncio.Queue()
         self.connections = 0
         self.drop_first = False
@@ -51,6 +52,7 @@ class FakeOpenCode:
         r.add_post("/api/session/{sid}/permission/{rid}/reply", self.reply)
         r.add_post("/api/session/{sid}/prompt", self.prompt)
         r.add_post("/api/session/{sid}/fork", self.fork)
+        r.add_post("/api/session/{sid}/interrupt", self.interrupt)
         r.add_delete("/api/session/{sid}", self.delete)
         r.add_get("/api/session/{sid}", self.get_session)
         r.add_get("/api/event", self.event_stream)
@@ -76,6 +78,10 @@ class FakeOpenCode:
     async def prompt(self, request):
         self.prompts.append((request.match_info["sid"], await request.json()))
         return web.json_response({"data": {}})
+
+    async def interrupt(self, request):
+        self.interrupts.append(request.match_info["sid"])
+        return web.json_response({"data": {"interrupted": True}})
 
     async def delete(self, request):
         self.deleted.append(request.match_info["sid"])
@@ -242,6 +248,18 @@ def test_a_request_is_sent_as_a_steer_with_the_voice_tag(fake, tmp_path):
     assert asyncio.run(scenario()) is True
     sid, body = fake.prompts[0]
     assert sid == "ses_live" and body["delivery"] == "steer" and body["text"].startswith(VOICE_PREFIX)
+
+
+def test_a_stop_interrupts_the_sessions_execution(fake, tmp_path):
+    async def scenario():
+        runner, oc = await _serve(fake)
+        ok = await oc.interrupt(_session(tmp_path))
+        await oc.service.close()
+        await runner.cleanup()
+        return ok
+
+    assert asyncio.run(scenario()) is True
+    assert fake.interrupts == ["ses_live"]
 
 
 def test_a_side_question_is_answered_by_a_fork_that_is_then_deleted(fake, tmp_path, monkeypatch):

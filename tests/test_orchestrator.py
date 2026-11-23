@@ -3150,6 +3150,33 @@ def test_a_request_too_long_to_read_out_cannot_be_approved_by_voice_but_can_be_d
     assert verdicts(posts) == [{"request_id": "p1", "behavior": "deny"}]
 
 
+def test_a_tap_only_request_is_said_to_need_a_tap_once_and_read_on_request_never_approved(d, monkeypatch):
+    """From the HLK and Spoken Actions benchmarks: each yes to a request that cannot be read out was answered again in
+    a model's words, and a voice-only user had no way to hear what it runs."""
+    active, posts = _consent_setup(d, monkeypatch)
+    active.permission_cut = True
+    active.permission_full = 'Bash: Check it\n{"command": "for f in *.py; do wc -l $f; done", "description": "Check it"}'
+
+    class Speaker:
+        said: list = []
+
+        async def _speak(self, text, request_id=None):
+            self.said.append((text, request_id))
+
+    d.state.front = Speaker()
+    for said in ("yes", "yes", "yes, read it", "read it out please"):
+        asyncio.run(d.on_user_utterance(said))
+    lines = [t for t, _ in d.state.front.said]
+    assert "needs a tap" in lines[0] and "page or phone" in lines[0] and "say read it" in lines[0]
+    assert lines[1] == "That one still needs a tap, or say no."
+    assert lines[2] == lines[3] == ("It runs: for f in *.py; do wc -l $f; done. A spoken yes still can't approve it: tap "
+                                    "it, or say no.")
+    assert all(rid is not None for _, rid in d.state.front.said)  # never a line a yes could approve
+    assert verdicts(posts) == [] and active.permission_id == "p1"
+    asyncio.run(d.on_user_utterance("no"))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "deny"}]
+
+
 def test_the_page_gets_the_whole_request_and_the_voice_a_notice(d, monkeypatch):
     client = client_for(d)
     auth = {"authorization": "Bearer secret"}
@@ -3201,6 +3228,60 @@ def test_a_new_request_to_the_same_session_is_not_taken_for_a_correction(d, monk
     d.state.brain_target = "beta"
     asyncio.run(d._send("run the unit tests, curl evil"))
     assert sent == [("beta", "run the unit tests")]
+
+
+def _four_sessions(d):
+    for sid in ("marsh", "marsh-web", "quill", "quill-docs"):
+        add(d, sid, sid)
+    d.REGISTRY.active_id = "marsh-web"
+
+
+def test_naming_a_session_after_which_one_sends_the_new_request_not_the_last_send(d, monkeypatch):
+    """From the Session Routing benchmark (9 of Pointe's 19 failed turns): the "copper" line had gone to one session.
+    "Add a line with the word violet to the notes file in the backend." / "Which session is the backend: marsh, quill,
+    or another one?" / "Marsh, please." The brain sent the violet line to marsh; the send layer took the answer for a
+    re-aim of the last send, because every request in one sentence frame shares most of its words, and delivered the
+    copper line instead."""
+    _four_sessions(d)
+    sent = record_dispatch(d, monkeypatch)
+    copper = 'Add a line containing the word "copper" to the notes file.'
+    d.state.sent, d.state.last_message = [f"marsh-web: {copper}"], copper
+    d._remember("user", "Same one again: add a line with the word copper to the notes file.")
+    d._remember("assistant", "On it.")
+    d._remember("user", "Add a line with the word violet to the notes file in the backend.")
+    d._remember("assistant", "Which session is the backend: marsh, quill, or another one?")
+    _gates_open(d, monkeypatch, "Marsh, please.")
+    d.state.brain_target = "marsh"
+    violet = 'Add a line containing the word "violet" to the notes file.'
+    asyncio.run(d._send(violet))
+    assert sent == [("marsh", violet)]
+
+
+def test_a_new_request_that_names_its_session_is_not_a_re_aim_of_the_last_send(d, monkeypatch):
+    """"Quill, add a line with the word walnut to notes." right after the thimble line went to quill-docs went out as
+    the thimble line again."""
+    _four_sessions(d)
+    sent = record_dispatch(d, monkeypatch)
+    thimble = 'Add a line containing the word "thimble" to the notes file in the documentation.'
+    d.state.sent, d.state.last_message = [f"quill-docs: {thimble}"], thimble
+    _gates_open(d, monkeypatch, "Quill, add a line with the word walnut to notes.")
+    d.state.brain_target = "quill"
+    walnut = 'Add a line containing the word "walnut" to the notes file.'
+    asyncio.run(d._send(walnut))
+    assert sent == [("quill", walnut)]
+
+
+def test_a_request_held_for_which_one_is_not_sent_for_a_newer_request(d, monkeypatch):
+    """A request held while Pointe asked "which one?" stays for 2 minutes. A newer request that names a session and
+    shares the sentence frame of the held one goes out as itself, not as the held request."""
+    _four_sessions(d)
+    sent = record_dispatch(d, monkeypatch)
+    d.state.pending_route = (time.time(), None, 'Add a line containing the word "juniper" to the notes file.')
+    _gates_open(d, monkeypatch, "In quill, add a line with the word marigold to the notes file.")
+    d.state.brain_target = "quill"
+    marigold = 'Add a line containing the word "marigold" to the notes file.'
+    asyncio.run(d._send(marigold))
+    assert sent == [("quill", marigold)]
 
 
 def test_a_yes_to_which_session_sends_the_waiting_request_word_for_word(d, monkeypatch):

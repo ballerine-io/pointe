@@ -631,7 +631,7 @@ def test_a_remote_session_takes_its_labels_from_the_inner_adapter_and_has_no_for
     assert isinstance(adapter, RemoteHarness)
     assert (adapter.label, adapter.agent, adapter.name, adapter.permission_deadline) == \
         (inner.label, inner.agent, inner.name, inner.permission_deadline)
-    assert adapter.capabilities() == {**inner.capabilities(), "side_questions": False}
+    assert adapter.capabilities() == {**inner.capabilities(), "side_questions": False, "interrupt": None}  # no stop over the link
     assert adapter.noise("hello") == inner.noise("hello")
     assert run(adapter.side_question(s, "what is it doing")) is None
 

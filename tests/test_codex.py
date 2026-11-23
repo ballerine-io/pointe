@@ -177,6 +177,27 @@ def test_a_message_starts_a_turn_when_idle_and_steers_a_running_one(fake, tmp_pa
     assert sends[1][0] == "turn/steer" and sends[1][1]["expectedTurnId"] == "turn5"
 
 
+def test_a_stop_interrupts_the_running_turn_and_nothing_when_idle(fake, tmp_path):
+    async def scenario():
+        await fake.start()
+        cx = Codex(Connection(fake.path))
+        session = _session(tmp_path)
+        task = asyncio.create_task(cx.watch(session, lambda *a: asyncio.sleep(0))[0])
+        await asyncio.sleep(0.4)
+        idle = await cx.interrupt(session)
+        await fake.push("turn/started", {"threadId": THREAD, "turn": {"id": "turn5"}})
+        await asyncio.sleep(0.2)
+        running = await cx.interrupt(session)
+        task.cancel()
+        await cx.link.close()
+        await fake.stop()
+        return idle, running
+
+    assert asyncio.run(scenario()) == (False, True)
+    assert [p for m, p in fake.calls if m == "turn/interrupt"] == [{"threadId": THREAD, "turnId": "turn5"}]
+    assert Codex().capabilities()["interrupt"] == "now"
+
+
 @pytest.mark.parametrize("verdict,expected", [("allow", "accept"), ("deny", "cancel")])
 def test_an_approval_goes_through_the_daemons_flow_and_the_answer_goes_back(fake, tmp_path, monkeypatch, verdict, expected):
     asked = []

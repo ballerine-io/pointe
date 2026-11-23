@@ -69,6 +69,7 @@ class Session:
     # held for approval in its terminal, or refused by its settings. None when not, or no longer.
     held_at: float | None = None
     refused_at: float | None = None
+    stop_asked_at: float | None = None  # the user said stop and the harness ends the turn at its next step: not yet ended
     # Idle tracking for orchestrator nudges: set at turn end, cleared when it works again.
     idle_since: float | None = None
     needs: dict | None = None  # {"need": what it waits for, "unblock": what the user could say}

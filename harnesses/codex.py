@@ -192,6 +192,7 @@ class Codex(Harness):
     label = "codex"
     agent = "Codex"
     approvals = True
+    interrupts = "now"  # turn/interrupt
     side_questions = True
     attach = True
     starts = True
@@ -494,6 +495,19 @@ class Codex(Harness):
             return True
         except Exception as e:
             logger.error(f"Codex message to {session.name} failed: {type(e).__name__}: {e}")
+            return False
+
+    async def interrupt(self, session) -> bool:
+        """turn/interrupt on the running turn: Codex cuts it, a running command included."""
+        turn = self._active_turn.get(session.id)
+        if not turn:
+            return False
+        try:
+            await self.link.ensure()
+            await self.link.request("turn/interrupt", {"threadId": session.id, "turnId": turn})
+            return True
+        except Exception as e:
+            logger.error(f"Codex interrupt of {session.name} failed: {type(e).__name__}: {e}")
             return False
 
     async def side_question(self, session, question: str) -> str | None:
