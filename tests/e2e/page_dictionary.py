@@ -236,7 +236,7 @@ async def main() -> None:
     call("/voice/register", {"id": session_id, "cwd": str(work), "pid": os.getpid(), "name": "river-lantern", "name_given": True,
                              "transcript": str(work / "transcript.jsonl")})
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
                                "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required",
                                "--window-size=1400,900", "--no-first-run", "about:blank"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

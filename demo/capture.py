@@ -298,7 +298,7 @@ async def run(out: Path, phone: bool) -> None:
 
     profile = tempfile.mkdtemp(prefix="pointe-demo-chrome-")
     url = f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
                                "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
                                "--autoplay-policy=no-user-gesture-required", f"--window-size={PAGE_W},{PAGE_H}",
                                "--hide-scrollbars", "--no-first-run", "about:blank"],

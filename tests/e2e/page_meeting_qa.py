@@ -105,7 +105,7 @@ async def main() -> None:
     browser = Browser(echo_gain=0.5)
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
     url = f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
                                "--window-size=1400,900", "--no-first-run", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         await browser.connect()

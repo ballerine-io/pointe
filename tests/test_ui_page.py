@@ -105,7 +105,7 @@ async def _render(checks: str, sizes: tuple[int, ...] = ()):
     work = Path(tempfile.mkdtemp(prefix="pointe-page-test-"))
     (work / "page.html").write_text(html)
     port = _free_port()
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={port}", f"--user-data-dir={work / 'profile'}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={port}", f"--user-data-dir={work / 'profile'}",
                                "--no-first-run", "--window-size=1440,900", "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         import urllib.request

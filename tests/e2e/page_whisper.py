@@ -54,7 +54,7 @@ async def main() -> None:
                              "name_given": True, "transcript": str(work / "transcript.jsonl")})
     hush = (np.random.default_rng(1).standard_normal(RATE * 4) * 20).astype(np.int16)  # a quiet room, no words
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
                                "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required",
                                "--window-size=1400,900", "--no-first-run",
                                f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"],
