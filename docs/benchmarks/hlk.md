@@ -120,9 +120,9 @@ One extra seed per family, kept out of the repository (its manifest SHA-256 is i
 ## Run it, add to it
 
 ```
-uv run --locked python bench/conversational/hlk/run.py corpus
-uv run --locked python bench/conversational/hlk/run.py verify
-uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3
+uv run --locked --extra local python bench/conversational/hlk/run.py corpus
+uv run --locked --extra local python bench/conversational/hlk/run.py verify
+uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3
 ```
 
 An adapter implements start, say, type, key, events, speech, versions, spend and stop (bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better router prompt is welcome as a pull request. Family authors so far: the Pointe team.

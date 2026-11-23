@@ -150,9 +150,9 @@
     <li>Speech: Kokoro-82M v1.0 (Apache-2.0), four voices (US and British, female and male), one seeded voice per instance for both runs; noise made in code (babble from the three other voices at 6 dB for the noisy-paths instruction, pink noise at 12 dB for the rest of that item).</li>
   </ul>
   <div class="pg-section-head"><h2 class="pg-h2">Run it, add to it</h2></div>
-  <pre class="pg-term"><code>uv run --locked python bench/conversational/hlk/run.py corpus
-uv run --locked python bench/conversational/hlk/run.py verify
-uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3</code></pre>
+  <pre class="pg-term"><code>uv run --locked --extra local python bench/conversational/hlk/run.py corpus
+uv run --locked --extra local python bench/conversational/hlk/run.py verify
+uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3</code></pre>
   <p>An adapter implements start, say, type, key, events, speech, versions, spend and stop (bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better router prompt is welcome as a pull request. Family authors so far: the Pointe team.</p>
   <p>Spend: $24.35 for HLK in all (smoke and debugging included; cap $55), computed from usage and list prices in bench/conversational/hlk/prices.json. Raw rows and the final files of every published run (run.py verify re-scores them): bench/conversational/hlk/results/. Text and tasks CC BY 4.0, code MIT.</p>
 </main>

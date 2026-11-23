@@ -12,11 +12,11 @@ benchmark, v0.1, synthetic speech, n = 36 in 12 families. See `hlk/README.md` an
 
 ```
 uv sync --locked --extra local                                           # Kokoro and Whisper, already pinned in assets.py
-uv run --locked python bench/conversational/hlk/run.py corpus                # render the synthetic speech, $0
-uv run --locked python bench/conversational/hlk/run.py verify                # offline checks, $0, no keys
+uv run --locked --extra local python bench/conversational/hlk/run.py corpus  # render the synthetic speech, $0
+uv run --locked --extra local python bench/conversational/hlk/run.py verify  # offline checks, $0, no keys
 HLK_POINTE_CHECKOUT=<a Pointe checkout at the commit under test> \
-uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3
-uv run --locked python bench/conversational/hlk/run.py report                # rows -> docs and site page
+uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3
+uv run --locked --extra local python bench/conversational/hlk/run.py report  # rows -> docs and site page
 ```
 
 `--dry-run` prints the plan and its planning estimate and spends nothing. `--smoke` runs 2 items, never published.

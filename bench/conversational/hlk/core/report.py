@@ -367,9 +367,9 @@ def sections(rows, unpub, frozen) -> list:
         "instance for both runs; noise made in code (babble from the three other voices at 6 dB for the noisy-paths "
         "instruction, pink noise at 12 dB for the rest of that item)."]))
     B.append(("h2", "Run it, add to it"))
-    B.append(("code", "uv run --locked python bench/conversational/hlk/run.py corpus\n"
-                      "uv run --locked python bench/conversational/hlk/run.py verify\n"
-                      "uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3"))
+    B.append(("code", "uv run --locked --extra local python bench/conversational/hlk/run.py corpus\n"
+                      "uv run --locked --extra local python bench/conversational/hlk/run.py verify\n"
+                      "uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3"))
     B.append(("p", "An adapter implements start, say, type, key, events, speech, versions, spend and stop "
                    "(bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. "
                    "A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and "
