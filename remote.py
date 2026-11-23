@@ -99,7 +99,8 @@ class Remote:
 
     @property
     def app_key(self) -> str:
-        """For the Home Screen app's saved address: derived, so the pairing secret itself never sits in a URL."""
+        """For the Home Screen app's saved address: derived, so the pairing secret itself never sits in a URL. It still
+        sets the pairing cookie, so an address with it is as strong as the secret (SECURITY.md)."""
         return hmac.new(self.token.encode(), b"pointe home screen app", hashlib.sha256).hexdigest()[:32]
 
     def _set_cookie(self, response) -> None:
