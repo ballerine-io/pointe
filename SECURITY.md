@@ -441,7 +441,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   opens the app from outside (the Camera, another app, a web page) pairs nothing, whatever it holds: any app or page can
   open one, and another app can register the same scheme. It only opens a sheet that says to scan the code inside
   Pointe. The app still registers the scheme for that sheet; without it, an app that claims `pointe://` would be the
-  only one iOS could hand a Camera-scanned code to.
+  only one iOS could hand a Camera-scanned code to. The UI tests' launch settings that pair or forget a pairing
+  (`POINTE_PAIR`, `POINTE_FORGET`) are compiled into Debug builds only.
 - **A code scanned outside the app can still reach another app.** If a person scans the page's code with the Camera and
   another installed app has claimed `pointe://`, iOS may hand that app the link. With the page's code, that app can
   trade the one-time code for a phone key of its own within the 5 minutes; the page then shows "Connected:" with the
