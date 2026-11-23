@@ -1,0 +1,27 @@
+# The voice panel (design 4.5): Kokoro-82M v1.0, Apache-2.0 (hexgrad/Kokoro-82M; ONNX export by kokoro-onnx),
+# the model and voices files pinned by SHA-256 in assets.py. $0, no key, rebuilt with one command.
+# Confirmed against the pinned voices-v1.0.bin on 2026-11-23: all four names are in it.
+
+[[voice]]
+id = "af_heart"
+label = "US English, female"
+lang = "en-us"
+license = "Apache-2.0"
+
+[[voice]]
+id = "am_michael"
+label = "US English, male"
+lang = "en-us"
+license = "Apache-2.0"
+
+[[voice]]
+id = "bf_emma"
+label = "British English, female"
+lang = "en-gb"
+license = "Apache-2.0"
+
+[[voice]]
+id = "bm_george"
+label = "British English, male"
+lang = "en-gb"
+license = "Apache-2.0"
