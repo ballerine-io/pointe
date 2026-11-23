@@ -75,7 +75,8 @@ SETUPS = (
                   "bench/results/brain_substance.md, gpt-6-sol (v7openai)"),),
           cost="about $0.95", privacy="Speech and session text go to OpenAI.",
           pick_for="people who already pay for OpenAI",
-          short="One OpenAI key. Headphones; weakest audio result."),
+          needs="headphones; English speech only",  # its ears misheard mixed Hebrew and English, with or without a language set
+          short="One OpenAI key. Headphones, English speech only; weakest audio result."),
     Setup("two", "Two keys", ("soniox", "anthropic"),
           {"anthropic": ("brain", "reader", "checker"), "soniox": ("ears", "mouth")},
           measured=(("30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work",

@@ -171,6 +171,14 @@ def test_the_mac_apps_setup_menu_is_this_table():
         [(s.id, s.name, s.keys, s.optional, s.local, s.short, s.pick_for) for s in setups.SETUPS]
 
 
+def test_the_openai_setup_says_its_ears_take_english_only():
+    """OpenAI's realtime ears misheard mixed Hebrew and English ("The speedlyvavakasha, ...") with or without a language
+    set, where Soniox's took both. The page, the apps and the docs must say so before someone picks it."""
+    s = setups.BY_ID["openai"]
+    assert "English speech only" in s.short and "English speech only" in s.needs
+    assert "Needs headphones; English speech only" in setups.table()
+
+
 def test_the_page_lists_the_setups_from_the_daemon():
     page = (ROOT / "ui.html").read_text()
     assert "k.setups" in page and "pointe setup " in page and 'id="pref-setups"' in page
