@@ -463,6 +463,7 @@ TEMPLATE = """<!doctype html>
   <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
     <a href="../../features/">Features</a>
+    <a href="../../docs/">Docs</a>
     <a href="../" aria-current="true">Benchmarks</a>
     <a href="../../roadmap/">Roadmap</a>
     <a href="../../contribute/">Contribute</a>

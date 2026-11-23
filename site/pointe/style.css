@@ -597,3 +597,8 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .site-header nav, .copy, .skip { display: none !important; }
 }
+
+/* The apps' App Store status: a plain line in a pill, no store artwork and no link, until there is a listing */
+.store-soon { display: inline-flex; align-items: center; gap: 7px; margin: 2px 0; padding: 1px 10px; border: 1px solid var(--line-strong);
+              border-radius: 999px; font: 500 12.5px/20px var(--font-sans); color: var(--text); white-space: normal; }
+.store-soon::before { content: ""; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--orange); }

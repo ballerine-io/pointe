@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Releasing · Pointe docs</title>
+<meta name="description" content="A release is a version commit on main, an annotated tag on it, and a GitHub Release with notes a person can read. Claude Code installs the plugin from main,…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Releasing">
+<meta property="og:description" content="A release is a version commit on main, an annotated tag on it, and a GitHub Release with notes a person can read. Claude Code installs the plugin from main,…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/releasing/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/releasing/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="./" aria-current="page">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="releasing">Releasing</h1>
+<p>A release is a version commit on <code>main</code>, an annotated tag on it, and a GitHub Release with notes a person can read.
+Claude Code installs the plugin from <code>main</code>, and keeps one copy per version: a change to anything a user runs
+(the Python, <code>bin/</code>, <code>hooks/</code>, <code>plugin/</code>, the page, the app) reaches them only with a new version number. A change to
+docs, tests or <code>bench/</code> alone needs no version.</p>
+<h2 id="1-the-version-commit">1. The version commit</h2>
+<p>Patch for a fix, minor for something a user can newly do, major for a change that breaks a setup. Move every place
+together:</p>
+<ul>
+<li><code>.claude-plugin/plugin.json</code>: <code>"version"</code></li>
+<li><code>pyproject.toml</code>: <code>version</code>, then <code>uv lock --offline</code> (it changes only Pointe's own version in <code>uv.lock</code>)</li>
+<li><code>ios/Pointe.xcodeproj/project.pbxproj</code>: <code>MARKETING_VERSION</code> (both places), and <code>CURRENT_PROJECT_VERSION</code> one higher</li>
+<li>
+<p><code>macos/tools/make_project.py</code>: <code>VERSION</code>, and <code>BUILD</code> one higher, then <code>python3 macos/tools/make_project.py</code> (it
+  writes <code>macos/PointeMac.xcodeproj</code>)</p>
+</li>
+<li>
+<p><code>CHANGELOG.md</code>: one line on top, the same words as the commit subject</p>
+</li>
+<li><code>python3 tools/site_version.py</code>: writes the version into the site's pages (<code>site/deploy.sh</code> runs it too)</li>
+</ul>
+<p>Commit as <code>Version X.Y.Z: &lt;what changed, in the words a user would use&gt;</code>, with <code>git commit -s</code>.
+<code>tests/test_version.py</code> fails when the manifest, <code>pyproject.toml</code>, <code>uv.lock</code>, the two apps and the changelog disagree.
+<code>tests/test_site.py</code> fails while a page of the site shows another version.</p>
+<h2 id="2-checks">2. Checks</h2>
+<div class="dx-code"><pre><code>uv run --locked pytest -q tests/ --ignore=tests/e2e     # the offline suite, about four minutes, no keys
+python3 tools/check_action_pins.py                       # each GitHub Action is still the commit its tag names</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>CI must be green on the version commit. For a minor version, or when the install path or setup changed, follow
+<code>docs/install.md</code> again on a clean environment and add the run on top of
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/install-verification.md">docs/install-verification.md</a>. The paid end-to-end suites (<code>tests/e2e/run_all.sh</code>) run
+when the call path changed; say in the notes whether they ran.</p>
+<h2 id="3-the-tag">3. The tag</h2>
+<div class="dx-code"><pre><code>git tag -a vX.Y.Z -m &quot;Pointe X.Y.Z&quot; &lt;the version commit, or a later docs-only commit&gt;
+git push origin vX.Y.Z</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The tag's name is <code>v</code> plus the version in <code>.claude-plugin/plugin.json</code> at that commit. Never move a pushed tag: a
+mistake gets a new patch version.</p>
+<h2 id="4-the-github-release">4. The GitHub Release</h2>
+<div class="dx-code"><pre><code>gh release create vX.Y.Z --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Write the notes for someone who has never seen Pointe, in this order:</p>
+<ol>
+<li>What Pointe is, in two sentences (the README's first paragraph).</li>
+<li>
+<p>What is in this version: the changelog lines since the last release, grouped, in plain words. Name people who
+   reported or fixed something.</p>
+</li>
+<li>
+<p>Install and update. Install is the one command in the README. To update: <code>claude plugin marketplace update pointe</code>,
+   then <code>claude plugin update pointe@pointe</code>, then <code>/pointe:stop</code> and <code>/pointe:voice</code> so the daemon restarts on the new
+   code.</p>
+</li>
+<li>
+<p>Limits that matter to a new user (the README's "Limits"), and anything this version is known not to fix.</p>
+</li>
+</ol>
+<p>No claim the README does not make, no "first" or "only", and numbers only with their source. The release has no
+attached files: the plugin installs from the repository.</p>
+<h2 id="5-after">5. After</h2>
+<ul>
+<li>The iPhone app follows its own path to TestFlight and the App Store: <code>docs/ios/app-store.md</code>.</li>
+<li>
+<p>The Mac app is built from source until there is a Developer ID: <code>docs/mac-app.md</code> has the notarization steps.
+  Until either app has a download, people build them with <code>pointe apps mac</code> and <code>pointe apps ios</code>.</p>
+</li>
+<li>
+<p>The repository page: the description and topics are set through <code>gh repo edit</code>. The social preview image cannot be
+  set through the API: upload <code>docs/social-preview.png</code> by hand in Settings, General, Social preview, after any change
+  to it.</p>
+</li>
+</ul>
+<h2 id="the-site">The site</h2>
+<p><code>site/</code> is one Cloudflare Pages project (<code>pointe-site</code>, Ballerine account) served at eng.ballerine.com: <code>site/index.html</code>
+is the Ballerine Engineering hub at <code>/</code>, and <code>site/pointe/</code> is Pointe's page at <code>/pointe/</code>. If <code>site/</code> changed:</p>
+<ol>
+<li><code>site/deploy.sh v2</code> (any branch name) publishes a preview at <code>&lt;branch&gt;.pointe-site-9tz.pages.dev</code>. Look at it.</li>
+<li><code>site/deploy.sh</code> publishes production (branch <code>main</code>), after the owner has seen the preview.</li>
+</ol>
+<p><strong>The roadmap.</strong> <code>ROADMAP.md</code> and <code>site/pointe/roadmap/</code> are written by <code>tools/roadmap.py</code> from the issues labelled
+<code>roadmap</code>: their <code>horizon/now</code>, <code>horizon/next</code> or <code>horizon/later</code> label, and their 👍 count at that moment. The page is a
+snapshot and fetches nothing. To publish fresh votes, <code>site/deploy.sh --roadmap</code> (then a branch name for a preview) runs
+the generator before the upload; it needs <code>gh</code> signed in. Commit the two regenerated files after a production deploy;
+<code>tests/test_roadmap.py</code> fails if they disagree or are out of shape. Do it at each release, and when an item moves.</p>
+<p><code>site/pointe/contribute/</code> is written by hand: keep it in step with <code>CONTRIBUTING.md</code>.</p>
+<p>The old address, pointe.ballerine.com, is still a custom domain of the same project. Pages cannot redirect by host, so
+each page carries a one-line script that sends a visitor on that host to <code>https://eng.ballerine.com/pointe/</code>. Link
+previews (<code>og:url</code>, <code>og:image</code>) name eng.ballerine.com. Both hosts are CNAMEs to <code>pointe-site-9tz.pages.dev</code> in Route 53.</p>
+<p>The product images on the page are screenshots: the Mac page comes from <code>ui.html</code> in the page rig (<code>tests/page_rig.py</code>)
+with invented sessions, the iPhone images are crops of <code>docs/ios/screenshots/</code>. Retake them when either surface changes.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/RELEASING.md">RELEASING.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../contributing/"><span class="pg-small">Previous</span>Contributing</a><a class="dx-next" href="../security/"><span class="pg-small">Next</span>Security</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#1-the-version-commit">1. The version commit</a></li>
+<li class="dx-l2"><a href="#2-checks">2. Checks</a></li>
+<li class="dx-l2"><a href="#3-the-tag">3. The tag</a></li>
+<li class="dx-l2"><a href="#4-the-github-release">4. The GitHub Release</a></li>
+<li class="dx-l2"><a href="#5-after">5. After</a></li>
+<li class="dx-l2"><a href="#the-site">The site</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

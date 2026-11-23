@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting mode · Pointe docs</title>
+<meta name="description" content="Open the laptop, or put the phone on the table, in a meeting. Pointe is linked to one or more sessions that hold the context (the agenda, the design doc,…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Meeting mode">
+<meta property="og:description" content="Open the laptop, or put the phone on the table, in a meeting. Pointe is linked to one or more sessions that hold the context (the agenda, the design doc,…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/meeting-mode/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/meeting-mode/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="./" aria-current="page">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="meeting-mode">Meeting mode</h1>
+<p>Open the laptop, or put the phone on the table, in a meeting. Pointe is linked to one or more sessions that hold the
+context (the agenda, the design doc, yesterday's decisions). It takes part in the meeting without answering every
+sentence:</p>
+<ul>
+<li>
+<p><strong>Listening:</strong> it never speaks. It writes what matters into your notes: open questions (and, if you allow it, the
+  answer it found in a session), decisions, and action items with an owner.</p>
+</li>
+<li>
+<p><strong>Participating:</strong> it speaks only when you ask it ("Pointe, what do you think?"). Otherwise, when it has something
+  worth saying, it <strong>raises a hand</strong>: a one-line summary you can let it speak, put off, or turn into a note.</p>
+</li>
+</ul>
+<p>At the end: a summary, decisions, action items and open questions, exported or sent to a session only when you ask.</p>
+<p>The rules live in <code>meeting.py</code>; the meeting reuses the notes stream (<code>notes.py</code>) and the job runner (<code>jobs.py</code>).</p>
+<h2 id="start">Start</h2>
+<p><strong>Meeting</strong> in the dock (page) or the app opens a sheet: Listening or Participating, the context (paste or type an
+agenda), the sessions it may look things up in, and "Auto lookups" (answer open questions from those sessions without
+asking first). Then a consent step: "The room's audio leaves this Mac while the meeting runs. Nothing is stored unless
+you export it." and a tick for "Everyone in the room knows this is being transcribed and sent to the speech vendor".
+A recording indicator stays on screen while the meeting runs.</p>
+<p>By voice, "Meeting mode, listening" (or "<span lang="he" dir="rtl">מצב פגישה</span>, <span lang="he" dir="rtl">השתתפות</span>") starts one once the consent step was accepted on this
+Mac. It links the sessions its words name ("meeting mode with billing, join in"), else every joined session.</p>
+<p>Where:</p>
+<ul>
+<li><strong>Voice:</strong> "Meeting mode, listening" or "meeting mode, participating", as above; then the commands below.</li>
+<li>
+<p><strong>Page:</strong> Meeting in the dock opens the sheet. Settings → Meetings holds the defaults (mode, Auto lookups, notes
+  language) and asks for consent again before the next meeting.</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> Start a meeting (the group icon at the top), or Settings (••• at the top) → Start a meeting. Settings →
+  Meeting settings holds the defaults. After the end, Settings → The meeting that ended opens its sheet again.</p>
+</li>
+<li>
+<p><strong>Mac app:</strong> the iPhone app's screens: Start a meeting at the top, Settings (••• at the top, or ⌘,) → Start a meeting
+  and Meeting settings, or Call → Start a Meeting (⇧⌘M) in the menu bar.</p>
+</li>
+</ul>
+<p>Meeting mode needs a Soniox key: its ears are a separate Soniox stream with speaker separation.</p>
+<h2 id="who-said-what">Who said what</h2>
+<p>The room's audio goes to a dedicated Soniox stream that separates speakers. The conversation's own ears get no audio at
+all during a meeting, which keeps a "yes" said in the room away from the approval code.</p>
+<p>You are identified in one of two ways:</p>
+<ul>
+<li>
+<p><strong>By the words that started it:</strong> a voice start replays the last 5 s of audio into the meeting stream, so whoever
+  said "meeting mode" is you. After a tap start, say "Pointe, that's me", or tap "That was me" on one of your turns.</p>
+</li>
+<li>
+<p><strong>By the <a href="../voice-lock/">voice lock</a>,</strong> when a voiceprint is stored and the lock is on: a turn in your voice binds
+  you, and a "that's me" in another voice is refused.</p>
+</li>
+</ul>
+<p>Other speakers are "Speaker 2", "Speaker 3". The note-taker may suggest a name from an introduction; a name is applied
+only when you accept it or say "Pointe, speaker two is Dana".</p>
+<h2 id="voice-commands">Voice commands</h2>
+<p>Only your addressed words act ("Pointe, …", Hebrew "<span lang="he" dir="rtl">פוינט</span>, …", "<span lang="he" dir="rtl">היי פוינט</span>"): <code>that's me</code>, <code>speaker two is Dana</code>, <code>the
+agenda is …</code>, <code>join in</code> or <code>participate</code> (to Participating; "Pointe, meeting mode, participating" too), <code>just listen</code> or
+<code>go back to listening</code> (to Listening), <code>go ahead</code> (let a raised hand speak), <code>look that up</code>, <code>anything waiting?</code>, <code>what
+do you think?</code> or any question (a spoken answer in Participating, a note in Listening), and <code>end the meeting</code>. The end
+and mode commands must be the whole sentence: "Pointe, should we close the meeting?" and "Pointe, should you join in?"
+are questions. Joining is acknowledged in two words ("I'm in"); going back to listening is silent.</p>
+<p>A question that names a session ("Pointe, what does billing's session say about the retry limit?") is looked up in a
+read-only copy of that session, any session of yours, linked or not: in Participating Pointe says the answer to the
+room in two sentences at most, and in both modes it is written as an answer note. The live session gets nothing. Another speaker's commands are ignored, except
+"that's me", which only moves the owner label (no voice action in a meeting sends or approves).</p>
+<h2 id="what-it-does-and-when">What it does, and when</h2>
+<ul>
+<li>
+<p>A note-taker (the reading model) reads the room after 60 s of new speech, 8 new turns, or a 12 s pause with something
+  new, whichever comes first, never per sentence.</p>
+</li>
+<li>
+<p><strong>Lookups:</strong> an open question that a linked session could answer is looked up in a read-only copy of that session
+  (the live session is never touched), automatically with Auto lookups, else on "Look it up" or "Pointe, look that up".</p>
+</li>
+<li>
+<p><strong>Hands:</strong> one at a time, at most one per 2 minutes unless urgent; Let it speak, Not now, or Type it instead. In
+  Listening, a hand becomes a note.</p>
+</li>
+<li>
+<p><strong>Speaking:</strong> in Participating, the room hears only the one reply you asked for. Any speaker talking over it stops it.</p>
+</li>
+<li><strong>Session reports</strong> are held as collapsed notes and delivered after the meeting.</li>
+</ul>
+<h2 id="safety">Safety</h2>
+<ul>
+<li><strong>No sends during a meeting.</strong> Sends are refused in code; the only session access is read-only lookups.</li>
+<li>
+<p><strong>No voice approvals during a meeting.</strong> A permission request is not read out; it becomes a card (and an alert), and
+  only a tap approves.</p>
+</li>
+<li>
+<p><strong>Room words are data.</strong> They reach only the note-taker's prompt, labelled as meeting content, never as
+  instructions.</p>
+</li>
+<li>
+<p><strong>Challenges, briefings and conflict alarms</strong> are not spoken during a meeting.</p>
+</li>
+</ul>
+<h2 id="privacy">Privacy</h2>
+<ul>
+<li>
+<p>Room audio goes to Soniox. Speaker-tagged transcript windows go to the reading-model vendor for notes. Your addressed
+  commands go to the brain vendor, and Pointe's spoken replies to the mouth vendor. The sheet shows which vendors these
+  are before you start (<code>POST /voice/meeting {action: "vendors"}</code>).</p>
+</li>
+<li>
+<p>The transcript lives in memory only, with turns older than 2 hours dropped (a running summary keeps their gist). It
+  reaches disk only if you export it.</p>
+</li>
+<li>
+<p>The daemon log and the journal keep no words from the room or from the bot during a meeting.</p>
+</li>
+<li><strong>Export</strong> writes Markdown at 0600 under <code>~/.claude-voice/meetings/</code> (0700), with the transcript only if you ask.
+  <strong>Discard</strong> forgets the meeting, its transcript and its notes.</li>
+</ul>
+<h2 id="end">End</h2>
+<p>"Pointe, end the meeting" or End meeting. A final pass writes the summary, decisions, action items and open questions.
+Then: Export, Send the action items to a session (after a second tap, word for word as the sheet lists them), or
+Discard. Nothing happens by default.</p>
+<p>By voice, after the end: "send the action items to billing" is read back ("Send 2 action items to billing: …. Send
+them?") and sent on your next plain yes, word for word as read back (never rewritten by the model), as Send does; a no or anything else sends nothing, the read-back heard back is
+not a yes, and with the voice lock on only your voice's yes counts. The end sheet on the page and in the apps shows the
+read-back while it waits, and where the action items went.</p>
+<p>If the call drops for 5 minutes the meeting ends, and held news reaches the next call. If the speech stream drops, it
+reconnects by itself (1 s backoff doubling to 30 s); speakers are relabelled and you say "Pointe, that's me" again.</p>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>
+<p>It hears the room through the microphone. Remote participants heard through headphones are not captured; through
+  the laptop speakers they are heard like anyone else.</p>
+</li>
+<li>
+<p>Speaker labels are anonymous and can drift early in a stream; a short interjection may be credited to a neighbour.</p>
+</li>
+<li>Not built: a global hotkey for "go ahead", a Live Activity on the iPhone, a cost estimate in the banner.</li>
+</ul>
+<h2 id="api">API</h2>
+<p>Every route is reachable with the page cookie, the bearer token and the phone key.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Body</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /voice/meeting</code> <code>start</code></td>
+<td><code>{mode: "listening"\|"participating", consent: true, brief?, sessions?: [name], auto_lookups?}</code></td>
+<td><code>{meeting: &lt;status&gt;}</code>; 400 without <code>consent: true</code> or on a bad body; 409 with the reason (no call, no Soniox key, already on, a realtime front, native ears)</td>
+</tr>
+<tr>
+<td><code>vendors</code></td>
+<td></td>
+<td><code>{vendors: {room_audio, notes, speech, commands}, soniox}</code></td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td><code>{mode}</code></td>
+<td>switches listening/participating</td>
+</tr>
+<tr>
+<td><code>hand</code></td>
+<td><code>{decision: "speak"\|"type"\|"later"}</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>speaker</code></td>
+<td><code>{label, name}</code></td>
+<td>names a speaker</td>
+</tr>
+<tr>
+<td><code>owner</code></td>
+<td><code>{turn_id}</code></td>
+<td>binds you to the speaker of that turn</td>
+</tr>
+<tr>
+<td><code>brief</code></td>
+<td><code>{text}</code></td>
+<td>replaces the brief</td>
+</tr>
+<tr>
+<td><code>lookup</code></td>
+<td><code>{note_id}</code></td>
+<td>looks up an answerable question note</td>
+</tr>
+<tr>
+<td><code>ask</code></td>
+<td><code>{text}</code></td>
+<td>a typed "Pointe, …"</td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td></td>
+<td><code>{ended, summary, decisions, action_items, open_questions}</code>; 409 while an end runs</td>
+</tr>
+<tr>
+<td><code>reconnect</code></td>
+<td></td>
+<td><code>{reconnecting: true}</code></td>
+</tr>
+<tr>
+<td><code>export</code></td>
+<td><code>{transcript?: bool}</code></td>
+<td><code>{exported: path}</code></td>
+</tr>
+<tr>
+<td><code>send_actions</code></td>
+<td><code>{session}</code></td>
+<td>after the end only; <code>{asked: true}</code> at once, the items go as listed; a spoken read-back waiting is dropped</td>
+</tr>
+<tr>
+<td><code>discard</code></td>
+<td></td>
+<td>forgets the ended meeting; 409 while it is on</td>
+</tr>
+<tr>
+<td><code>GET /voice/meeting/transcript</code></td>
+<td></td>
+<td><code>{turns: [{id, who, speaker, at, lang, text}]}</code></td>
+</tr>
+<tr>
+<td><code>GET /voice/notes</code></td>
+<td><code>?since=&lt;id&gt;&amp;kinds=a,b&amp;changed_since=&lt;version&gt;&amp;meeting=&lt;id&gt;</code></td>
+<td><code>{version, meeting_id, notes: [...]}</code></td>
+</tr>
+<tr>
+<td><code>POST /voice/notes</code></td>
+<td><code>{id, state?: open\|done\|dismissed, accept?: true}</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET/POST /voice/prefs</code></td>
+<td><code>meeting.default_mode</code>, <code>meeting.auto_lookups</code>, <code>meeting.notes_language</code>, <code>meeting.consented</code></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>Status: <code>mode_state</code>, <code>meeting</code> (<code>{on, id, ending, mode, since, speakers, owner_known, hand, speaking, paused, vendors,
+recording, sessions, auto_lookups, turns}</code> while on; <code>{on: false, ended, result, send_pending: {session, line,
+expires_in} | null, sent_to}</code> after the end), <code>notes: {version, last_id}</code>, <code>attention</code>, <code>jobs</code>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">docs/features/meeting-mode.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../conflict-alarm/"><span class="pg-small">Previous</span>Conflict alarm</a><a class="dx-next" href="../new-session/"><span class="pg-small">Next</span>Start a new session</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#start">Start</a></li>
+<li class="dx-l2"><a href="#who-said-what">Who said what</a></li>
+<li class="dx-l2"><a href="#voice-commands">Voice commands</a></li>
+<li class="dx-l2"><a href="#what-it-does-and-when">What it does, and when</a></li>
+<li class="dx-l2"><a href="#safety">Safety</a></li>
+<li class="dx-l2"><a href="#privacy">Privacy</a></li>
+<li class="dx-l2"><a href="#end">End</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

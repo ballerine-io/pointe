@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conflict alarm · Pointe docs</title>
+<meta name="description" content="One session reports &quot;the migration passed&quot;; twelve minutes later another reports &quot;the test using the new column failed&quot;. Pointe says so at once, with both…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Conflict alarm">
+<meta property="og:description" content="One session reports &quot;the migration passed&quot;; twelve minutes later another reports &quot;the test using the new column failed&quot;. Pointe says so at once, with both…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/conflict-alarm/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/conflict-alarm/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="./" aria-current="page">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="conflict-alarm">Conflict alarm</h1>
+<p>One session reports "the migration passed"; twelve minutes later another reports "the test using the new column
+failed". Pointe says so at once, with both claims, and offers to put a question to either session. It never asks a
+session on its own.</p>
+<p>It works for sessions of every harness. The rules live in <code>conflicts.py</code>; the daemon starts a check after each session
+report and delivers what it accepts.</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li>
+<p>The voice says it, and a card shows the two claims with Ask (either side) and Dismiss. One card at a time, the
+  newest, with "N more disagreements" under it. The app plays a warning haptic when a card appears.</p>
+</li>
+<li>
+<p><strong>Ask</strong> sends your typed words <code>Send &lt;name&gt; this question: &lt;question&gt;</code> through the normal path, so every send gate
+  applies, and typed words can never approve.</p>
+</li>
+<li>
+<p><strong>Dismiss</strong> (a tap, or "I know" / "later" within 5 minutes of the spoken alarm) keeps that pair quiet for the rest of
+  the call.</p>
+</li>
+<li>
+<p>Settings: <code>conflicts.on</code> (default on; off means no check at all) and <code>conflicts.spoken</code> (default on; off is "Card
+  only").</p>
+</li>
+</ul>
+<p>Where:</p>
+<ul>
+<li>
+<p><strong>Voice:</strong> the alarm is spoken unless the setting is Card only; "I know" or "later" dismisses it, as above. No phrase
+  turns the check on or off.</p>
+</li>
+<li>
+<p><strong>Page:</strong> the card under the conversation; Settings → Conflict alarm → "Check sessions against each other" and Alarm
+  (Spoken or Card only).</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> the same card, with the haptic; Settings (••• at the top) → Conflict alarm, with the same two settings.</p>
+</li>
+<li><strong>Mac app:</strong> the same card; Settings (••• at the top, or ⌘,) → Conflict alarm.</li>
+</ul>
+<h2 id="what-is-checked-in-code">What is checked, in code</h2>
+<ul>
+<li>
+<p><strong>Pairs.</strong> Another registered session whose last report is under 4 hours old, and that shares a git root or folder,
+  or shares two or more names and edited files with this one, or is named in its new message. Only edits count as
+  touching a file; reads never do, and common names (<code>index</code>, <code>main</code>, <code>README</code>, …) are ignored.</p>
+</li>
+<li>
+<p><strong>Accepted only if</strong> the reading model says the claims conflict and are still current; each claim's outcome words
+  and numbers appear in its own session's message (and at least half its content words); and the two claims do not say
+  the same thing.</p>
+</li>
+<li>
+<p><strong>Limits.</strong> One alarm per pair per 30 minutes, the same claims never twice. Sessions on different branches are never
+  urgent.</p>
+</li>
+<li>
+<p><strong>Speech.</strong> An urgent conflict jumps the queue; a normal one waits its turn. It waits while a push-to-talk press is
+  open and while a read-out's yes window is open, so it never takes a yes away from a request or talks over you. It
+  never touches a permission. During a meeting it is never spoken, not even after: the card and the note stay.</p>
+</li>
+<li>
+<p><strong>Secrets.</strong> The reading model's input and every field of an accepted conflict pass the credential mask, so status,
+  notes, the phone and the voice never carry a session's credential.</p>
+</li>
+<li>
+<p><strong>Reading model down:</strong> no alarm, and a journal line <code>conflict check skipped: ...</code>.</p>
+</li>
+</ul>
+<h2 id="alerts">Alerts</h2>
+<p>Each open conflict is an attention item titled "Two sessions disagree", with the two session names only (the claims
+quote the sessions' messages and stay in the app and the page). It reaches iPhone notifications, mirrored to the watch
+with no actions, and the page's desktop alerts. See <a href="../alerts/">alerts</a>.</p>
+<h2 id="limits">Limits</h2>
+<p>Offline tests cover mixed harnesses on each adapter's real record format. There is no live end-to-end run with real
+OpenCode or Codex sessions, and no measured precision.</p>
+<h2 id="api">API</h2>
+<p><code>POST /voice/conflicts</code> (page cookie, bearer token, phone key):</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Body</th>
+<th>Does</th>
+<th>Errors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{action: "dismiss", id}</code></td>
+<td>closes the card and its note; the pair stays quiet for the call</td>
+<td>404 unknown or closed id</td>
+</tr>
+<tr>
+<td><code>{action: "ask", id, side: "a"\|"b"}</code></td>
+<td>sends the typed question through the normal send path</td>
+<td>400 bad side; 404; 409 no call, or a meeting on</td>
+</tr>
+</tbody>
+</table></div>
+<p>Status <code>conflicts: [{id, a, b, agent_a, agent_b, claim_a, claim_b, at_a, at_b, at, why, severity: high|normal,
+questions: {a, b}, branches: {a, b}|null, asked, state}]</code>, open ones only; <code>a</code> is the earlier report. Notes get kind
+<code>conflict</code>. Prefs <code>conflicts.on</code>, <code>conflicts.spoken</code> in <code>GET/POST /voice/prefs</code>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/conflict-alarm.md">docs/features/conflict-alarm.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../whisper-mode/"><span class="pg-small">Previous</span>Whisper mode</a><a class="dx-next" href="../meeting-mode/"><span class="pg-small">Next</span>Meeting mode</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-is-checked-in-code">What is checked, in code</a></li>
+<li class="dx-l2"><a href="#alerts">Alerts</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

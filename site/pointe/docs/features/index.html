@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Features · Pointe docs</title>
+<meta name="description" content="How each feature behaves now. The daemon holds the state and enforces the rules, so the page, the iPhone app and the Mac app never disagree. Most features…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Features">
+<meta property="og:description" content="How each feature behaves now. The daemon holds the state and enforces the rules, so the page, the iPhone app and the Mac app never disagree. Most features…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="./" aria-current="page">Features</a></li>
+<li><a href="voice-lock/">Voice lock</a></li>
+<li><a href="vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="push-to-talk/">Push to talk</a></li>
+<li><a href="briefings/">Audio briefings</a></li>
+<li><a href="brain-dump/">Brain dump</a></li>
+<li><a href="challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="show-while-it-says/">Show while it says</a></li>
+<li><a href="whisper-mode/">Whisper mode</a></li>
+<li><a href="conflict-alarm/">Conflict alarm</a></li>
+<li><a href="meeting-mode/">Meeting mode</a></li>
+<li><a href="new-session/">Start a new session</a></li>
+<li><a href="add-sessions/">Add sessions</a></li>
+<li><a href="night-shift/">Night shift</a></li>
+<li><a href="clean-up-my-words/">Clean up my words</a></li>
+<li><a href="voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="local/">Fully local</a></li>
+<li><a href="openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="features">Features</h1>
+<p>How each feature behaves now. The daemon holds the state and enforces the rules, so the page, the iPhone app and the
+Mac app never disagree. Most features work in all four ways in: by voice, on the page, in the iPhone app and in the Mac
+app. The second table says where one does not, and each page says why.</p>
+<p>Two rules hold for all of them: a mode or feature can only narrow what a spoken word may do, never widen it; and a no
+from any voice denies a pending request, in every mode.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>In one line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="voice-lock/">Voice lock</a></td>
+<td>Only your voice counts, for approvals or for everything; checked on this Mac</td>
+</tr>
+<tr>
+<td><a href="vocabulary/">Self-learning vocabulary</a></td>
+<td>Fix a misheard name once, and the next call hears it right</td>
+</tr>
+<tr>
+<td><a href="drive-mode/">Drive &amp; walk mode</a></td>
+<td>Short answers, nothing to look at, and only safe requests approved by voice</td>
+</tr>
+<tr>
+<td><a href="push-to-talk/">Push to talk</a></td>
+<td>Nothing leaves the Mac unless you hold the key or the button</td>
+</tr>
+<tr>
+<td><a href="briefings/">Audio briefings</a></td>
+<td>"Brief me on the night": what each session did, failed and waits on</td>
+</tr>
+<tr>
+<td><a href="brain-dump/">Brain dump</a></td>
+<td>Dump your thoughts; Pointe structures them into a prompt in your words, and sends it only when you say</td>
+</tr>
+<tr>
+<td><a href="challenge/">Challenge me</a></td>
+<td>The voice argues against your plan, grounded in your sessions, and cannot send</td>
+</tr>
+<tr>
+<td><a href="alerts/">Wrist approvals and desktop alerts</a></td>
+<td>A session needs you: the watch taps, the desktop notifies</td>
+</tr>
+<tr>
+<td><a href="show-while-it-says/">Show while it says</a></td>
+<td>The file, diff or failing test appears on screen as the voice mentions it</td>
+</tr>
+<tr>
+<td><a href="whisper-mode/">Whisper mode</a></td>
+<td>Quiet replies, a raised microphone, the same approval rules</td>
+</tr>
+<tr>
+<td><a href="conflict-alarm/">Conflict alarm</a></td>
+<td>Two sessions claim opposite things about the same work: you hear it at once</td>
+</tr>
+<tr>
+<td><a href="meeting-mode/">Meeting mode</a></td>
+<td>Notes, lookups and a raised hand in a meeting, with consent and no sends</td>
+</tr>
+<tr>
+<td><a href="new-session/">Start a new session</a></td>
+<td>"Start a Codex session in shop": read back, started on your yes, only in folders you already work in</td>
+</tr>
+<tr>
+<td><a href="add-sessions/">Add sessions</a></td>
+<td>"Connect to the session about the pentest", "reopen yesterday's session about billing": found, read back, joined on your yes; no typing in the session</td>
+</tr>
+<tr>
+<td><a href="night-shift/">Night shift</a></td>
+<td>"Tonight: billing fixes the retry tests": the sessions work while you sleep, nothing is approved for you, and the morning briefing leads with it</td>
+</tr>
+<tr>
+<td><a href="clean-up-my-words/">Clean up my words</a></td>
+<td>Under each thing you say, a clean version of what the voice understood</td>
+</tr>
+<tr>
+<td><a href="voice-stays-local/">Voice stays on your Mac</a></td>
+<td>Ears and mouth on your Mac, no audio to any vendor; the cloud brain gets text only</td>
+</tr>
+<tr>
+<td><a href="local/">Fully local</a></td>
+<td>Every model on your Mac, no keys, nothing sent out; slower and less accurate, by measure</td>
+</tr>
+<tr>
+<td><a href="openai-url/">OpenAI models from another host</a></td>
+<td>Azure OpenAI or another OpenAI-compatible host for the text models, with the key in the Keychain; not measured</td>
+</tr>
+</tbody>
+</table></div>
+<p>Where each one works, and how to reach it:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Voice</th>
+<th>Page</th>
+<th>iPhone</th>
+<th>Mac</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="voice-lock/#use-it">Voice lock</a></td>
+<td>no phrase; enrolment listens to you read lines on the call</td>
+<td>Settings → Voice lock</td>
+<td>Settings → Voice lock</td>
+<td>Settings → Voice lock</td>
+</tr>
+<tr>
+<td><a href="vocabulary/#use-it">Self-learning vocabulary</a></td>
+<td>no: a fix is typed</td>
+<td>click a line you said; Settings → Dictionary</td>
+<td>tap a line you said; Settings → Dictionary</td>
+<td>click a line you said; Settings → Dictionary</td>
+</tr>
+<tr>
+<td><a href="drive-mode/#use-it">Drive &amp; walk mode</a></td>
+<td>"drive mode", "I've stopped"</td>
+<td>no Drive button (for a phone in a car); shows it, "I've stopped"</td>
+<td>Drive (the car) at the top</td>
+<td>no Drive button, as on the page; shows it, "I've stopped"</td>
+</tr>
+<tr>
+<td><a href="push-to-talk/#use-it">Push to talk</a></td>
+<td>no: a setting</td>
+<td>the switch above the mic; Space</td>
+<td>the switch above the mic; the Action button</td>
+<td>the switch above the mic; the talk shortcut</td>
+</tr>
+<tr>
+<td><a href="briefings/#use-it">Audio briefings</a></td>
+<td>"brief me on the night"</td>
+<td>Briefing in the dock</td>
+<td>Settings → Briefing</td>
+<td>Settings → Briefing; Call → Briefing</td>
+</tr>
+<tr>
+<td><a href="brain-dump/#use-it">Brain dump</a></td>
+<td>"brain dump", then "done"</td>
+<td>Brain dump in the dock</td>
+<td>Brain dump in the bottom bar</td>
+<td>Brain dump in the bottom bar; Call → Brain Dump</td>
+</tr>
+<tr>
+<td><a href="challenge/#use-it">Challenge me</a></td>
+<td>"challenge me", then "verdict"</td>
+<td>Challenge in the dock</td>
+<td>Settings → Challenge</td>
+<td>Settings → Challenge</td>
+</tr>
+<tr>
+<td><a href="alerts/#use-it">Wrist approvals and desktop alerts</a></td>
+<td>no: a setting</td>
+<td>Settings → Alerts</td>
+<td>Settings → Alerts</td>
+<td>Settings → Alerts</td>
+</tr>
+<tr>
+<td><a href="show-while-it-says/#use-it">Show while it says</a></td>
+<td>nothing to say: it follows the voice</td>
+<td>the Showing pane, always on</td>
+<td>the Showing card, after Settings → Show while it says</td>
+<td>the Showing card, always on</td>
+</tr>
+<tr>
+<td><a href="whisper-mode/#use-it">Whisper mode</a></td>
+<td>"whisper mode", "back to normal"</td>
+<td>Whisper in the dock</td>
+<td>Settings → Whisper</td>
+<td>Settings → Whisper</td>
+</tr>
+<tr>
+<td><a href="conflict-alarm/#use-it">Conflict alarm</a></td>
+<td>the alarm is spoken; "I know" dismisses it</td>
+<td>the card; Settings → Conflict alarm</td>
+<td>the card; Settings → Conflict alarm</td>
+<td>the card; Settings → Conflict alarm</td>
+</tr>
+<tr>
+<td><a href="meeting-mode/#start">Meeting mode</a></td>
+<td>"meeting mode, listening", once consent was given</td>
+<td>Meeting in the dock</td>
+<td>Start a meeting at the top</td>
+<td>Start a meeting at the top; Call → Start a Meeting</td>
+</tr>
+<tr>
+<td><a href="new-session/#use-it">Start a new session</a></td>
+<td>"start a new Codex session in shop"</td>
+<td>New session under the sessions</td>
+<td>Sessions → New session</td>
+<td>New session under the sessions; File → New Session</td>
+</tr>
+<tr>
+<td><a href="add-sessions/#use-it">Add sessions</a></td>
+<td>"connect to the session about the pentest"</td>
+<td>Add sessions under the sessions</td>
+<td>Sessions → Add sessions</td>
+<td>Add sessions under the sessions; File → Add Sessions</td>
+</tr>
+<tr>
+<td><a href="night-shift/#use-it">Night shift</a></td>
+<td>"tonight: billing fixes the retry tests"</td>
+<td>Night shift under the sessions</td>
+<td>Settings → Night shift</td>
+<td>Settings → Night shift; Call → Night Shift</td>
+</tr>
+<tr>
+<td><a href="clean-up-my-words/#use-it">Clean up my words</a></td>
+<td>no: a switch</td>
+<td>Clean up my words at the top</td>
+<td>Settings → Clean up my words</td>
+<td>Settings → Clean up my words</td>
+</tr>
+<tr>
+<td><a href="voice-stays-local/#use-it">Voice stays on your Mac</a></td>
+<td>no</td>
+<td>Settings → Model keys → Use this setup, on the Mac</td>
+<td>no: chosen on the Mac; Settings shows it</td>
+<td>Settings → Model keys → Setup</td>
+</tr>
+<tr>
+<td><a href="local/#use-it">Fully local</a></td>
+<td>no</td>
+<td>Settings → Model keys → Use this setup, on the Mac</td>
+<td>no: chosen on the Mac; Settings shows it</td>
+<td>Settings → Model keys → Setup</td>
+</tr>
+<tr>
+<td><a href="openai-url/#turn-it-on">OpenAI models from another host</a></td>
+<td>no</td>
+<td>no: set in <code>config.json</code></td>
+<td>no</td>
+<td>no</td>
+</tr>
+</tbody>
+</table></div>
+<p>Settings in the apps is the ••• button at the top (on the Mac also ⌘,). Call and File are menus in the Mac's menu bar.
+On a narrow page, the sessions and Settings are behind the Sessions button.</p>
+<h2 id="core">Core</h2>
+<p>Always on, and described elsewhere:</p>
+<ul>
+<li>
+<p><strong>Several sessions, one voice.</strong> Say a session's name to talk to it, ask "by the way" questions, choose Orchestrator or
+  Session: <a href="https://github.com/ballerine-io/pointe/blob/main/README.md#what-it-does">What it does</a>, and the targeting rule in
+  <a href="../how-it-works/#rules-enforced-in-code">How it works</a>.</p>
+</li>
+<li>
+<p><strong>Approvals.</strong> A spoken yes approves only right after the daemon's own read-out; a tap always works:
+  <a href="../how-it-works/#approvals-exactly">Approvals, exactly</a>.</p>
+</li>
+<li>
+<p><strong>The live transcript, typing and correcting.</strong> The conversation as it happens, Type instead of talking, and a fix to
+  what was heard: <a href="https://github.com/ballerine-io/pointe/blob/main/README.md#what-it-does">What it does</a>; what a fix teaches is in
+  <a href="vocabulary/">Self-learning vocabulary</a>.</p>
+</li>
+<li>
+<p><strong>Turn taking.</strong> "Don't interrupt me" holds the voice until "go ahead"; Settings → Wait before answering sets how long a
+  pause ends your sentence: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/turn-taking.md">design/turn-taking.md</a>.</p>
+</li>
+<li>
+<p><strong>Machines.</strong> Sessions on your other Macs and Linux machines on the same voice: <a href="../multi-machine/">Machines</a>.</p>
+</li>
+<li><strong>Harnesses.</strong> Claude Code, OpenCode and Codex, and how to add another: <a href="../harnesses/">Harnesses</a>.</li>
+</ul>
+<p>The rest of the core, which these build on:</p>
+<ul>
+<li><a href="../how-it-works/">How it works</a>: the pipeline, the rules enforced in code, echo handling.</li>
+<li><a href="../phone/">Connect your phone</a>: routes and pairing; <a href="../iphone-app/">The iPhone app</a>: building it, alerts and the Apple Watch.</li>
+<li><a href="../mac-app/">The Mac app</a>: the menu bar item, the window, the menus and their keys.</li>
+<li><a href="../security/">Security</a>: the threat model and what each route and key can do.</li>
+</ul>
+<p>The original plan these were built from, with its reasoning and the alternatives it weighed, is in
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/2026-11-feature-plan.md">docs/design/2026-11-feature-plan.md</a>. Where the two differ, these pages describe the
+behavior.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/README.md">docs/features/README.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../cloud-sessions/"><span class="pg-small">Previous</span>Cloud sessions: what Pointe can and cannot control</a><a class="dx-next" href="voice-lock/"><span class="pg-small">Next</span>Voice lock</a></nav>
+</main>
+
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

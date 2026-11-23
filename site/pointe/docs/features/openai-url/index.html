@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenAI models from another host · Pointe docs</title>
+<meta name="description" content="Run the brain, the reader and the checker on OpenAI models that are served somewhere other than OpenAI: Azure OpenAI, or any server that speaks OpenAI&#x27;s API…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="OpenAI models from another host">
+<meta property="og:description" content="Run the brain, the reader and the checker on OpenAI models that are served somewhere other than OpenAI: Azure OpenAI, or any server that speaks OpenAI&#x27;s API…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/openai-url/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/openai-url/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="./" aria-current="page">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="openai-models-from-another-host">OpenAI models from another host</h1>
+<p>Run the brain, the reader and the checker on OpenAI models that are served somewhere other than OpenAI: Azure OpenAI,
+or any server that speaks OpenAI's API over https. The key stays in the Keychain, like every other key.</p>
+<p><strong>Not measured.</strong> None of Pointe's benchmark results cover this setup. What you get depends on the model you deployed.</p>
+<h2 id="turn-it-on">Turn it on</h2>
+<ol>
+<li>Save the host's key as the OpenAI key: <code>pointe key openai</code> (it goes to the Keychain item <code>pointe.openai-api-key</code>).</li>
+<li>
+<p>In <code>~/.claude-voice/config.json</code>, set the address and name your own deployments for the three text roles:</p>
+<div class="dx-code"><pre><code class="language-json">{
+  &quot;openai_url&quot;: &quot;https://YOUR-RESOURCE.openai.azure.com/openai/v1/&quot;,
+  &quot;brain&quot;: &quot;openai:YOUR-DEPLOYMENT&quot;,
+  &quot;reader&quot;: &quot;openai:YOUR-DEPLOYMENT&quot;,
+  &quot;checker&quot;: &quot;openai:YOUR-SMALL-DEPLOYMENT&quot;
+}</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><code>CLAUDE_VOICE_OPENAI_URL</code> does the same as <code>openai_url</code> for one shell. For Azure OpenAI the address is your
+ resource's v1 address, and the name after <code>openai:</code> is the deployment name, not the model's.</p>
+</li>
+<li>
+<p><code>pointe key check openai</code> makes one tiny call to the checker you named. <code>pointe doctor</code> shows the host.</p>
+</li>
+</ol>
+<p><code>pointe setup &lt;id&gt;</code> writes the roles of the setup you choose, so it replaces <code>brain</code>, <code>reader</code> and <code>checker</code>; set them
+again after switching setups.</p>
+<p>It is set only in <code>config.json</code> or the environment. There is no phrase for it, and no switch on the page, in the iPhone
+app or in the Mac app. Choosing a setup on the page or in the Mac app (Settings → Model keys) runs <code>pointe setup</code>, so
+it replaces the three roles too.</p>
+<h2 id="what-changes">What changes</h2>
+<ul>
+<li>
+<p><strong>Text models only.</strong> With <code>openai_url</code> set, the OpenAI key belongs to that host, so Pointe never sends it to OpenAI:
+  OpenAI's ears, mouth and realtime front are refused, and ears and mouth never fall back to OpenAI. Use another vendor
+  for the voice (Soniox, ElevenLabs, Gemini) or the local voice (<code>pointe local voice</code>).</p>
+</li>
+<li>
+<p><strong>https only.</strong> An address that does not start with <code>https://</code> is refused, because the key is sent there.</p>
+</li>
+<li>
+<p><strong>Where your words go.</strong> Your sessions' content and what you say, as text, go to the host you set. Pointe does not
+  list that host in <code>docs/security/egress-allowlist.txt</code>: you choose it.</p>
+</li>
+<li>
+<p>The brain uses OpenAI's Responses API and the reader and the checker use Chat Completions, so the host must serve both.</p>
+</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/openai-url.md">docs/features/openai-url.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../local/"><span class="pg-small">Previous</span>Fully local</a><a class="dx-next" href="../../contributing/"><span class="pg-small">Next</span>Contributing</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#turn-it-on">Turn it on</a></li>
+<li class="dx-l2"><a href="#what-changes">What changes</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

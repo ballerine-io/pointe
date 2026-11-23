@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Push to talk · Pointe docs</title>
+<meta name="description" content="Press a key or a button to be heard. Otherwise nothing is heard, transcribed or sent to any vendor. For open offices, noisy rooms, meetings, and anyone who…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Push to talk">
+<meta property="og:description" content="Press a key or a button to be heard. Otherwise nothing is heard, transcribed or sent to any vendor. For open offices, noisy rooms, meetings, and anyone who…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/push-to-talk/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/push-to-talk/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="./" aria-current="page">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="push-to-talk">Push to talk</h1>
+<p>Press a key or a button to be heard. Otherwise nothing is heard, transcribed or sent to any vendor. For open offices,
+noisy rooms, meetings, and anyone who does not want an open microphone.</p>
+<p>The state lives in <code>ptt.py</code>; the gate (<code>PttGate</code>) is in <code>daemon.py</code>. The two ways to press are designed in
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/push-to-talk-modes.md">docs/design/push-to-talk-modes.md</a>.</p>
+<h2 id="use-it">Use it</h2>
+<p>The switch above the mic ("Always on" or "Hold to talk", which reads "Tap to talk" when that is the talk button), on
+the page, in the iPhone app and in the Mac app; or Settings → Microphone ("Always on" or "Push to talk"). In the apps,
+Settings is the ••• button at the top (on the Mac also ⌘,). It is one daemon setting, so every client agrees. No
+spoken phrase switches it: a press is what opens the microphone. Then <strong>Talk button</strong>, each device's own choice: <strong>Hold to talk</strong> (the default: press and hold, let go to
+send) or <strong>Tap to talk</strong> (tap to start, the microphone stays open, tap again to send).</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th>Page</th>
+<th>iPhone app</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The button</td>
+<td>the mic ring with the mouse; <strong>Space</strong>, or another key you choose (stored per browser)</td>
+<td>the mic ring (it acts on touch down); the conversation area after a 0.35 s press (so scrolling still works)</td>
+</tr>
+<tr>
+<td>Hold to talk</td>
+<td>press opens, release sends</td>
+<td>the same</td>
+</tr>
+<tr>
+<td>Tap to talk</td>
+<td>press opens, the next press sends; the release is nothing</td>
+<td>the same</td>
+</tr>
+<tr>
+<td>Toggle, in both</td>
+<td><strong>Caps Lock</strong>: press to open, press to close</td>
+<td>AirPods stem press</td>
+</tr>
+<tr>
+<td>From any app</td>
+<td>a system-wide shortcut running <code>pointe talk</code> (below)</td>
+<td>the Action button, Back Tap or Siri: "Talk to Pointe" (below)</td>
+</tr>
+<tr>
+<td>Shows</td>
+<td>"Hold to talk" or "Tap to talk"; "Talking" ("Talking · tap to send"); "Sent" for a moment after a send</td>
+<td>the same, with a haptic at the press and the send</td>
+</tr>
+<tr>
+<td>Your words</td>
+<td>in the caption, dashed and labelled "Draft · not sent yet", then "Sending" after the release</td>
+<td>the live bubble, with the same label</td>
+</tr>
+</tbody>
+</table></div>
+<p>The Mac app draws the iPhone app's screens, so the mic ring, the switch, the two talk buttons and the draft are the
+same there. Its own ways to press: <strong>Space</strong> while the window is in front, and the <strong>talk shortcut</strong> from any app
+(Settings → This Mac → Talk shortcut; ⌃⌥Space until you record another). The shortcut is a real hold: macOS tells the
+app when the key goes down and when it comes up, with no Accessibility or Input Monitoring permission. In Always on,
+Space and the shortcut mute; with no call up, the shortcut brings Pointe forward. The talk mode and the shortcut are
+named at the top of the window and in the call bubble. An AirPods press does not reach the Mac app: macOS gives it to
+the app that owns the media keys.</p>
+<p>A press is one message, like a voice message: nothing you say while the button is open is a turn. Pause as long as you
+like, start over, say "hold on" or "brain dump" mid-thought: none of it is acted on until you let go (Hold to talk) or tap
+again (Tap to talk). Then all of it goes to Pointe as one turn, at once, without the "Wait before answering" delay,
+since the release already says you are done. A press with nothing heard sends nothing. Always on is unchanged: there a
+pause after a sentence still ends the turn (<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/turn-taking.md">turn taking</a>).</p>
+<p>On the page, a headset or AirPods button press reaches it as a media key (play/pause) and toggles talking, or mutes in
+Always on. The system sends play/pause by itself too: when the call connects or media starts, on an audio route change
+(a headset joins or leaves, an AirPod comes out), often several in a second. The page takes a media key as a press only
+when it comes alone (nothing else within 0.3 s, so a press acts 0.3 s late) and not within 1.5 s of any of those; an
+ignored one extends the 1.5 s. Each is logged as a page event, ignored or not.</p>
+<p>A press under 0.25 s in Hold mode heard no word; the line says "Hold to talk · or choose Tap to talk in Settings" for
+two seconds. A tap forgotten open closes after 90 s by the daemon's rule below; the line says "Talk closed after 90 s:
+tap again".</p>
+<h2 id="talk-from-any-app">Talk from any app</h2>
+<p>The page's keys work only while its tab is focused: a browser gets no key events otherwise. To talk from whatever app
+you are in, bind a system-wide shortcut to the daemon's CLI; the page or the phone app stays in the background with
+the call up.</p>
+<ol>
+<li>
+<p>Settings → Microphone on the page shows the command and copies it: <code>~/.claude-voice/bin/pointe talk</code>. That
+   launcher is written by the daemon at each start and runs the Pointe it runs from, so the shortcut survives a
+   plugin update (the plugin cache path changes with each version).</p>
+</li>
+<li>
+<p>In the Shortcuts app: new shortcut → action <strong>Run Shell Script</strong> → paste the command.</p>
+</li>
+<li>Open the shortcut's details (ⓘ) → <strong>Add Keyboard Shortcut</strong>, for example ⌃⌥Space. Shortcuts' keyboard shortcuts are
+   system-wide; nothing else to install, no permission to grant.</li>
+</ol>
+<p>Press once to talk, again to stop: the shortcut is a <strong>toggle</strong>, not a hold. Seeing a key held from any app needs an
+event tap (Input Monitoring or Accessibility permission, a keylogger-class grant), which Pointe does not ask for. The
+daemon's own limits still apply: a press forgotten open closes after 90 s, as Caps Lock does. For a real hold from any
+app, a tool that sees key down and key up (Raycast, Hammerspoon, BetterTouchTool) runs <code>pointe talk on</code> on the press
+and <code>pointe talk off</code> on the release.</p>
+<p>The CLI prints one line and exits 0, or 1 with the reason: "Microphone is Always on: set it to Push to talk in
+Settings", "No call is up: press Connect on the page or in the app first", "Pointe is not running on this Mac".</p>
+<p>On the iPhone the same thing is the <strong>"Talk"</strong> App Intent ("Talk to Pointe"): bind it to the Action button (Settings →
+Action Button → Shortcut), to Back Tap, or say it to Siri. It toggles the app's own press on the call that is up, in the
+background too (the call keeps the audio session); with no call up it opens the app and says so.</p>
+<p>Either way the gate on the Mac is pressed, so the rules below hold, and the client that holds the call is told to send
+its audio (it sends only while a press holds, its own or the shortcut's).</p>
+<h2 id="what-the-daemon-enforces">What the daemon enforces</h2>
+<ul>
+<li>
+<p>The gate sits first after the transport, before the voice detector, the ears and any realtime model. Closed, it drops
+  the microphone audio. Whatever a client sends, no audio passes it.</p>
+</li>
+<li>
+<p>While a press is open (and until it is sent) every final transcript is kept, not answered: no settle time, no hold
+  phrase, no command, no reply, and no news spoken over it. Interim words and kept finals show as the draft.</p>
+</li>
+<li>
+<p>On release it keeps 0.4 s more, plus 0.2 s of link slack, so your last word is not cut, then asks the ears to finish
+  the utterance. Soniox answers with the last words and a <code>&lt;fin&gt;</code> marker; once that marker is in, everything said in the
+  press is one turn. Ears that give no marker get 2 s (<code>FINAL_WAIT_SECS</code>), then what was heard is sent.</p>
+</li>
+<li>
+<p>A second press before the first was sent (within that second or so) continues the same message.</p>
+</li>
+<li>
+<p>A press closes by itself after 90 s, or after 2 s with no audio (a lost release). The 90 s limit applies to toggles
+  (Caps Lock, AirPods) as well as holds, because the daemon cannot tell them apart. When a press closes by itself, the
+  clients drop the hold and say why: <code>held too long</code>, <code>no audio</code>.</p>
+</li>
+<li>
+<p>A new call starts closed.</p>
+</li>
+<li>
+<p>A press while the bot speaks interrupts it and cuts any read-out. For the approval rules, your utterance begins at the
+  press.</p>
+</li>
+<li>
+<p>A press counts as activity for the idle hang-up.</p>
+</li>
+</ul>
+<h2 id="during-a-meeting">During a meeting</h2>
+<p>A <a href="../meeting-mode/">meeting</a> you started (it asks for consent and shows a recording indicator) sends the room's audio
+to the meeting's speech stream without a press. Talking to Pointe outside the meeting stream still needs one. The status
+says so (<code>ptt.room_heard: true</code>).</p>
+<h2 id="on-the-iphone">On the iPhone</h2>
+<p>In a voice-chat audio session, iOS delivers an AirPods stem press as an input mute, not as play/pause. In push to talk,
+the app takes that mute as the toggle and unmutes the input again. It also handles play/pause in case iOS sends it.</p>
+<p>The microphone runs for the whole call, in push to talk too; the app sends nothing while the gate is closed and keeps
+only the last 1.5 s in memory. A press sends at once, right after its press message, the audio from 0.1 s before its
+touch-down, then the live audio: the first word is not lost to the time the touch took to reach the gate, or to the wait
+for the microphone's next buffer (<code>TalkSender.swift</code>). Nothing older than that 0.1 s ever leaves the phone. Measured on
+the simulator with <code>ios/e2e/ptt_latency.py</code> (the real app and microphone, a stand-in Mac running <code>ptt.Ptt</code>): the first
+chunk left 83 to 94 ms after the touch (it was 108 to 191 ms), and a press's audio now starts 100 ms before the touch
+(it started 0 to 84 ms after it, so that much of the first word was lost).</p>
+<h2 id="api">API</h2>
+<ul>
+<li>Setting: <code>"microphone": "always" | "ptt"</code> in <code>GET/POST /voice/prefs</code> (default <code>always</code>).</li>
+<li>
+<p>Control, client text on the call socket: <code>{"type": "ptt", "open": true|false, "at": &lt;client ms&gt;}</code>. Ignored unless the
+  setting is <code>ptt</code>.</p>
+</li>
+<li>
+<p>From outside the call: <code>POST /voice/talk</code> <code>{"action": "on" | "off" | "toggle"}</code> (default <code>toggle</code>), with the page's
+  key or the CLI token (<code>$STATE/token</code>), never a phone key. 409 with a plain-words <code>detail</code> when the microphone is Always
+  on or no call is up; otherwise the gate is pressed as a client's message would press it, the client gets
+  <code>{"type": "ptt", "open": bool, "by": "shortcut"}</code> on the call socket and sends accordingly, and the reply is
+  <code>{"open": bool, "mode": "ptt"}</code>. <code>GET /voice/status</code> carries <code>talk_command</code> (the command to bind) on this Mac only.</p>
+</li>
+<li>
+<p>Status <code>ptt: {mode, open, opened_at, closed_at, closed_why, sent_bytes, room_heard, room_bytes, draft}</code>. <code>draft: true</code>
+  while a press's words are kept and not sent yet; <code>hearing</code> is then all of them so far, however long the pause. <code>closed_why</code>:
+  <code>released</code>, <code>held too long</code>, <code>no audio</code>, <code>switched to push to talk</code>. <code>sent_bytes</code> counts audio that passed the gate in
+  this call. Clients show <code>open</code> as the truth.</p>
+</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/push-to-talk.md">docs/features/push-to-talk.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../drive-mode/"><span class="pg-small">Previous</span>Drive &amp; walk mode</a><a class="dx-next" href="../briefings/"><span class="pg-small">Next</span>Audio briefings</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#talk-from-any-app">Talk from any app</a></li>
+<li class="dx-l2"><a href="#what-the-daemon-enforces">What the daemon enforces</a></li>
+<li class="dx-l2"><a href="#during-a-meeting">During a meeting</a></li>
+<li class="dx-l2"><a href="#on-the-iphone">On the iPhone</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

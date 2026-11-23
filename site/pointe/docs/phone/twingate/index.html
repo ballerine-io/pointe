@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect over Twingate · Pointe docs</title>
+<meta name="description" content="Twingate gives the phone a private name for the Mac, wherever the phone has internet. A Twingate connector runs on the Mac, in Docker, and forwards that…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Connect over Twingate">
+<meta property="og:description" content="Twingate gives the phone a private name for the Mac, wherever the phone has internet. A Twingate connector runs on the Mac, in Docker, and forwards that…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/phone/twingate/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/phone/twingate/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../">Connect your phone</a></li>
+<li><a href="../wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../tailscale/">Connect over Tailscale</a></li>
+<li><a href="./" aria-current="page">Connect over Twingate</a></li>
+<li><a href="../cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../../features/">Features</a></li>
+<li><a href="../../features/voice-lock/">Voice lock</a></li>
+<li><a href="../../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../../features/briefings/">Audio briefings</a></li>
+<li><a href="../../features/brain-dump/">Brain dump</a></li>
+<li><a href="../../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../../features/new-session/">Start a new session</a></li>
+<li><a href="../../features/add-sessions/">Add sessions</a></li>
+<li><a href="../../features/night-shift/">Night shift</a></li>
+<li><a href="../../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../../features/local/">Fully local</a></li>
+<li><a href="../../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="connect-over-twingate">Connect over Twingate</h1>
+<p><a href="https://www.twingate.com">Twingate</a> gives the phone a private name for the Mac, wherever the phone has internet. A
+Twingate connector runs on the Mac, in Docker, and forwards that name to Pointe's listener on <code>127.0.0.1</code>. Nothing is
+open on the Wi-Fi or the internet. The iPhone app was tested on a real iPhone over this route.</p>
+<p>You need a Twingate network you can administer, Docker on the Mac (this guide uses Colima), and
+the Twingate client on the iPhone, signed in.</p>
+<h2 id="set-it-up">Set it up</h2>
+<h3 id="1-docker-on-the-mac">1. Docker on the Mac</h3>
+<p>With Homebrew:</p>
+<div class="dx-code"><pre><code>brew install colima docker
+colima start</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Colima does not start by itself after a reboot. To start it now and at every login instead, use
+<code>brew services start colima</code>. Docker Desktop works too.</p>
+<h3 id="2-the-connector">2. The connector</h3>
+<ol>
+<li>
+<p>In the Twingate admin console, add a remote network for the Mac, then a connector in it, and choose Docker. The
+   console shows a <code>docker run</code> command with the connector's tokens.</p>
+</li>
+<li>
+<p>Copy that command, then run Pointe's <code>voice-connector</code>. It reads the command from the clipboard, keeps the tokens in
+   a file only you can read (<code>~/.claude-voice/twingate-connector.env</code>), and starts the container with
+   <code>--restart=unless-stopped</code>. The tokens never reach a command line or your shell history.</p>
+<p><code>voice-connector</code> is in the <code>bin</code> folder of the plugin: the last line of <code>~/.local/bin/pointe</code> names that folder.
+ In a clone, it is <code>bin/voice-connector</code>.</p>
+</li>
+<li>
+<p>In the console, the connector shows as connected after a few seconds. On the Mac, <code>docker ps</code> lists it.</p>
+</li>
+</ol>
+<h3 id="3-the-resource">3. The resource</h3>
+<p>In the Twingate console, add a resource in the same remote network:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Address</td>
+<td><code>host.docker.internal</code></td>
+<td>The Mac itself, as the connector's container sees it</td>
+</tr>
+<tr>
+<td>Alias</td>
+<td>a name of your own, such as <code>pointe.example.internal</code></td>
+<td>The name the phone uses, and the name the certificate is made for</td>
+</tr>
+<tr>
+<td>Ports</td>
+<td>TCP 7443 only</td>
+<td>Pointe's phone listener, and nothing else on the Mac</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>only you</td>
+<td>Anyone with access can reach the listener; pairing still guards it</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-pair">4. Pair</h3>
+<ol>
+<li>On the iPhone, open the Twingate client and sign in.</li>
+<li>
+<p>On the Mac, open Pointe's page: <strong>Settings → Phone → Connect your phone</strong>. In "Or a name you set up (Twingate, a
+   VPN)", type the alias and press <strong>Check</strong>, then choose it and <strong>Show the code</strong>. In a terminal instead:
+   <code>pointe pair host pointe.example.internal</code>, then <code>pointe restart</code>.</p>
+</li>
+<li>
+<p>On the iPhone, scan the code with the Camera and tap "Open in Pointe", or scan it in the app.</p>
+</li>
+</ol>
+<p>The page may say "This Mac can't look it up, so Pointe can't check it." That is expected: a Twingate alias often
+resolves only on the phone. Use it anyway.</p>
+<p>For the phone's browser instead of the app, run <code>pointe pair link</code> after step 2 and open the address once on the phone.
+To avoid the certificate warning, make the phone trust this one name:
+<a href="../#a-certificate-the-phone-trusts">A certificate the phone trusts</a>.</p>
+<h2 id="how-it-works">How it works</h2>
+<p><code>pointe pair host &lt;alias&gt;</code> makes a certificate for the alias and listens on <code>127.0.0.1</code>, port 7443 (<code>pair.py</code>). The
+phone's Twingate client resolves the alias and sends the connection to the connector on the Mac, which forwards it to
+the listener. The app trusts the Mac's certificate by its fingerprint, end to end: Twingate carries the connection and
+does not decrypt it.</p>
+<h2 id="when-it-stops-working">When it stops working</h2>
+<p>The app says "Mac not reachable": "Can't reach your Mac at &lt;alias&gt;. Is Twingate or Tailscale on? Is the Mac awake?"
+Check in this order.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Why</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Docker runs on the Mac: <code>colima status</code> (or <code>docker ps</code> answers)</td>
+<td>Colima stops when the Mac restarts, and the connector with it. The phone cannot connect until it runs again.</td>
+<td><code>colima start</code>. The connector comes back by itself (<code>--restart=unless-stopped</code>). To avoid this after the next reboot: <code>brew services start colima</code>.</td>
+</tr>
+<tr>
+<td>The connector container runs: <code>docker ps</code> lists it</td>
+<td>It was stopped, or its tokens were revoked in the console</td>
+<td>Start it again with <code>voice-connector</code>; for new tokens, copy a new command from the console first</td>
+</tr>
+<tr>
+<td>The console shows the connector as connected</td>
+<td>The Mac has no internet, or the connector cannot reach Twingate</td>
+<td>Fix the Mac's network; read <code>docker logs &lt;the connector's name&gt;</code></td>
+</tr>
+<tr>
+<td>The phone's Twingate client is on and signed in</td>
+<td>The alias resolves only through the client</td>
+<td>Turn the client on</td>
+</tr>
+<tr>
+<td>The alias resolves on the phone</td>
+<td>A new alias sometimes does not resolve until the client restarts</td>
+<td>Quit and reopen the Twingate client on the phone, or sign out and in</td>
+</tr>
+<tr>
+<td>The resource allows TCP 7443, for you</td>
+<td>Another port, or no access, blocks the connection</td>
+<td>Edit the resource in the console</td>
+</tr>
+<tr>
+<td>The listener answers: open <code>https://&lt;alias&gt;:7443/voice/status</code> in Safari on the phone</td>
+<td>A certificate warning, then "This browser is no longer paired with the Mac…" or "forbidden", means Twingate works</td>
+<td>If Safari reaches it and the app does not, pair the app again. If Safari can't reach it either, the problem is in the rows above.</td>
+</tr>
+<tr>
+<td>Pointe runs on the Mac, with the phone listener on</td>
+<td>The listener starts with Pointe</td>
+<td>On the page, Settings → Phone: the alias is "in use". Or run <code>pointe pair host &lt;alias&gt;</code>, then <code>pointe restart</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>pointe pair off</code> stops Pointe's listener and leaves the connector running. To remove the connector too, stop and
+delete its container (<code>docker rm -f &lt;the connector's name&gt;</code>), delete <code>~/.claude-voice/twingate-connector.env</code>, and
+remove the connector in the console.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone/twingate.md">docs/phone/twingate.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../tailscale/"><span class="pg-small">Previous</span>Connect over Tailscale</a><a class="dx-next" href="../cloudflare/"><span class="pg-small">Next</span>Connect over Cloudflare Tunnel with Access</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#set-it-up">Set it up</a></li>
+<li class="dx-l3"><a href="#1-docker-on-the-mac">1. Docker on the Mac</a></li>
+<li class="dx-l3"><a href="#2-the-connector">2. The connector</a></li>
+<li class="dx-l3"><a href="#3-the-resource">3. The resource</a></li>
+<li class="dx-l3"><a href="#4-pair">4. Pair</a></li>
+<li class="dx-l2"><a href="#how-it-works">How it works</a></li>
+<li class="dx-l2"><a href="#when-it-stops-working">When it stops working</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>
