@@ -2783,8 +2783,9 @@
     const folded = !$('compose').offsetHeight;
     text('connect-hint', denied ? '' : live ? (folded ? CONNECT_COPY.typeTooTap : CONNECT_COPY.typeToo) : folded ? CONNECT_COPY.typeLaterTap : CONNECT_COPY.typeLater);
     // (c): a Mac without the phone's listener (older Macs send nothing), said only once a phone is paired: a newcomer's
-    // first view is about this Mac's call, not a phone they never set up
-    const noListener = !live && !!s && s.phone_listener === false && !!(s.phones && (s.phones.paired || []).length);
+    // first view is about this Mac's call, not a phone they never set up. Never while dialling, or while the Mac is not
+    // answering: the last status it sent is stale, and this page's own call is the problem in view.
+    const noListener = !live && !dialling && !issue && !fails && !!s && s.phone_listener === false && !!(s.phones && (s.phones.paired || []).length);
     if ($('connect-phone').hidden === noListener) $('connect-phone').hidden = !noListener;
   }
   // A call can die without a close: a VPN drops, the laptop sleeps. Six seconds with nothing from the Mac means dead.

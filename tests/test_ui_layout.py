@@ -786,3 +786,17 @@ def test_a_phone_page_before_the_first_hello_offers_no_empty_more():
     assert got[0][1] == 0 and got[0][0] == "none", got
     later = _run([(390, "", shown)], fixture(sessions=1, talk=2, connected=True))
     assert later[0][0] != "none" and later[0][1] > 0, later
+
+
+def test_the_phone_hint_is_not_shown_on_a_first_open_or_while_the_mac_is_away():
+    """The Mac's own page said 'Your phone cannot reach this Mac yet' on its first open, and under Reconnecting after
+    Pointe crashed (QA round 5): it is for a paired phone and a Mac that answers, nothing else."""
+    status = fixture(sessions=1, talk=0, connected=False)
+    status["phone_listener"] = False
+    hint = "!document.getElementById('connect-phone').hidden"
+    assert _run([(1280, "", hint)], status) == [False]  # no phone paired: a newcomer's first open
+    status["phones"] = {"paired": [{"name": "phone"}]}
+    down = ("const f = window.fetch; window.fetch = (u, o) => String(u).startsWith('/voice/status') ? Promise.reject(new Error('down')) : f(u, o);"
+            " await refresh(); await refresh();")
+    got = _run([(1280, "", hint), (1280, "wantCall = true; render();", hint), (1280, "wantCall = false; " + down, hint)], status)
+    assert got == [True, False, False], got
