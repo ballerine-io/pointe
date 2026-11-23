@@ -1,6 +1,6 @@
 # bargein: Barge-in and Time to a Correct Answer
 
-Part of the Pointe Conversational Coding Benchmarks (design revision 2, section 5.5). A reproducible
+Part of the Pointe Conversational Engineering Benchmarks (design revision 2, section 5.5). A reproducible
 self-evaluation on **synthetic speech**, not a leaderboard. Results: [RESULTS.md](RESULTS.md).
 
 **Measures.** (A) whether speech can stop or redirect a coding agent in the middle of a task, judged by the final

@@ -4,7 +4,7 @@
 
 *a pilot voice-only coding benchmark, v0.1, synthetic speech, n = 36 in 12 families*
 
-Part of the Pointe Conversational Coding Benchmarks: a reproducible self-evaluation harness with an adapter interface. One system under test (Pointe) and reference arms written by the same team, on synthetic speech. The authors know Pointe's internals. This is not a ranking of products.
+Part of the Pointe Conversational Engineering Benchmarks: a reproducible self-evaluation harness with an adapter interface. One system under test (Pointe) and reference arms written by the same team, on synthetic speech. The authors know Pointe's internals. This is not a ranking of products.
 
 HLK asks whether a small scripted multi-step coding task is finished by voice only, graded by hidden tests on the final state of the repository, compared with the keyboard on the same terminal. The coding agent is held fixed (claude-haiku-5-5 in Claude Code, permission mode acceptEdits), so the score is the loss the voice interface adds, not the strength of the agent. The tasks are small Python standard-library edits sized for that agent.
 

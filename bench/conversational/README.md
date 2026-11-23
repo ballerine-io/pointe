@@ -1,4 +1,4 @@
-# Pointe Conversational Coding Benchmarks
+# Pointe Conversational Engineering Benchmarks
 
 Five benchmarks of what a voice layer costs a coding agent. The agent is held fixed (`claude-haiku-5-5` in Claude Code)
 and the same tasks reach it typed or spoken, so a score is the loss the voice interface adds. Pointe is the system under

@@ -1,4 +1,4 @@
-"""Pointe Conversational Coding Benchmarks: the one command. This build carries the `actions` benchmark.
+"""Pointe Conversational Engineering Benchmarks: the one command. This build carries the `actions` benchmark.
 
     uv run --locked --extra local python bench/conversational/actions/run.py corpus              # render audio, $0
     uv run --locked --extra local python bench/conversational/actions/run.py verify              # offline checks, $0

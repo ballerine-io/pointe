@@ -4,7 +4,7 @@
 
 *Does speech become the right harness action, and how often does something that is not a yes approve a destructive prompt?*
 
-Part of the [Pointe Conversational Coding Benchmarks](README.md): a self-evaluation with an adapter interface, on synthetic speech. Every reference arm was written by Pointe's team. Every number on this page is computed from the committed results; the Limits section is the benchmark's own README.
+Part of the [Pointe Conversational Engineering Benchmarks](README.md): a self-evaluation with an adapter interface, on synthetic speech. Every reference arm was written by Pointe's team. Every number on this page is computed from the committed results; the Limits section is the benchmark's own README.
 
 ## Setup
 

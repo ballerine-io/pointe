@@ -9,8 +9,8 @@
 
 A conversational layer for your coding agents. Built and open-sourced by Ballerine Engineering.
 
-Talk to all your coding-agent sessions by voice. Ask what each one did, switch by saying its name, and answer
-permission prompts out loud, from across the room, under rules enforced in code.
+Convo coding (conversational engineering): talk to all your coding-agent sessions by voice. Ask what each one did,
+switch by saying its name, and answer permission prompts out loud, from across the room, under rules enforced in code.
 
 Pointe is one voice that knows every session you join to it. The sessions do the work and keep their context; Pointe
 listens, reports, routes your requests, and reads approvals out. It works with Claude Code, OpenCode and Codex. It runs
@@ -338,7 +338,7 @@ The defaults come from benchmarks in `bench/`, all on synthetic data; re-run the
 
 Not measured for any setup: a real human voice on a real call.
 
-**Conversational coding benchmarks.** Five benchmarks of what talking costs a coding agent, led by Humanity's Last
+**Conversational engineering benchmarks.** Five benchmarks of what talking costs a coding agent, led by Humanity's Last
 Keystroke (small coding tasks finished by voice only), with one fixed agent and synthetic speech:
 [docs/benchmarks/](docs/benchmarks/README.md), and on the [site](https://eng.ballerine.com/pointe/benchmarks/). In the
 first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most; the pages

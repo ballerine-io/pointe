@@ -1,8 +1,8 @@
 <!-- Written by bench/conversational/publish.py from the committed results. Do not edit by hand. -->
 
-# Pointe Conversational Coding Benchmarks
+# Pointe Conversational Engineering Benchmarks
 
-Five benchmarks of what a voice layer costs a coding agent. The agent is held fixed (claude-haiku-5-5 in Claude Code), and the same tasks reach it typed or spoken, so a score is the loss the voice interface adds, not the strength of the agent. Pointe is the system under test.
+Five benchmarks of conversational engineering, measuring what a voice layer costs a coding agent. The agent is held fixed (claude-haiku-5-5 in Claude Code), and the same tasks reach it typed or spoken, so a score is the loss the voice interface adds, not the strength of the agent. Pointe is the system under test.
 
 This is a reproducible self-evaluation with an adapter interface, not a leaderboard:
 

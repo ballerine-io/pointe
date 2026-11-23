@@ -4,7 +4,7 @@
 
 *When a symbol in the repository is spoken, does the agent change the right one and nothing else?*
 
-Part of the [Pointe Conversational Coding Benchmarks](README.md): a self-evaluation with an adapter interface, on synthetic speech. Every reference arm was written by Pointe's team. Every number on this page is computed from the committed results; the Limits section is the benchmark's own README.
+Part of the [Pointe Conversational Engineering Benchmarks](README.md): a self-evaluation with an adapter interface, on synthetic speech. Every reference arm was written by Pointe's team. Every number on this page is computed from the committed results; the Limits section is the benchmark's own README.
 
 ## Setup
 

@@ -368,7 +368,7 @@ HEADER = "<!-- Written by bench/conversational/publish.py from the committed res
 
 def doc_page(key: str, b: dict) -> str:
     out = [f"# {NAME[key]}", "", f"*{QUESTION[key]}*", "",
-           "Part of the [Pointe Conversational Coding Benchmarks](README.md): a self-evaluation with an adapter interface, on "
+           "Part of the [Pointe Conversational Engineering Benchmarks](README.md): a self-evaluation with an adapter interface, on "
            "synthetic speech. Every reference arm was written by Pointe's team. Every number on this page is computed "
            "from the committed results; the Limits section is the benchmark's own README.", "",
            "## Setup", "", f"- Independent unit: {b['unit']}. Sample: {b['n']}."]
@@ -397,10 +397,10 @@ def index_doc(B: dict) -> str:
     rows = [[f"[{NAME[k]}]({k}.md)", QUESTION[k], B[k]["unit"], B[k]["glance"]["pointe"], B[k]["glance"]["llm-router"],
              B[k]["glance"]["keyboard"]] for k in ORDER]
     paired = [[label, B[k]["unit"], delta(d, lo, hi)] for k in ORDER for (label, d, lo, hi) in B[k]["paired"]]
-    out = ["# Pointe Conversational Coding Benchmarks", "",
-           "Five benchmarks of what a voice layer costs a coding agent. The agent is held fixed (claude-haiku-5-5 in "
-           "Claude Code), and the same tasks reach it typed or spoken, so a score is the loss the voice interface adds, "
-           "not the strength of the agent. Pointe is the system under test.", "",
+    out = ["# Pointe Conversational Engineering Benchmarks", "",
+           "Five benchmarks of conversational engineering, measuring what a voice layer costs a coding agent. The agent "
+           "is held fixed (claude-haiku-5-5 in Claude Code), and the same tasks reach it typed or spoken, so a score is "
+           "the loss the voice interface adds, not the strength of the agent. Pointe is the system under test.", "",
            "This is a reproducible self-evaluation with an adapter interface, not a leaderboard:", "",
            "- **Synthetic speech.** Four clean Kokoro voices, also Pointe's local voice: an upper bound for every arm.",
            "- **Every reference arm is ours.** The LLM router, the keyword rules and the keyboard arms were written by "
@@ -608,11 +608,11 @@ def site_page(B: dict, version: str) -> str:
     body = f"""
   <section class="pg-hero">
     <p class="pg-kicker">Benchmarks</p>
-    <h1 class="pg-h1">Pointe Conversational Coding Benchmarks</h1>
-    <p class="pg-lead">Five benchmarks of what a voice layer costs a coding agent. The agent is held fixed, and the same
-      tasks reach it typed or spoken, so a score is the loss the voice interface adds, not the strength of the agent.
-      Pointe is the system under test. The flagship is Humanity's Last Keystroke: small coding tasks, finished by voice
-      only.</p>
+    <h1 class="pg-h1">Pointe Conversational Engineering Benchmarks</h1>
+    <p class="pg-lead">Five benchmarks of conversational engineering, measuring what a voice layer costs a coding agent.
+      The agent is held fixed, and the same tasks reach it typed or spoken, so a score is the loss the voice interface
+      adds, not the strength of the agent. Pointe is the system under test. The flagship is Humanity's Last Keystroke:
+      small coding tasks, finished by voice only.</p>
     <p class="pg-small">First run 2026-11-23. Agent claude-haiku-5-5 in Claude Code 2.1.330. Synthetic speech in four
       Kokoro voices. Every number on this page is computed from raw rows committed in the repository.</p>
   </section>
@@ -682,14 +682,14 @@ TEMPLATE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pointe Conversational Coding Benchmarks</title>
-<meta name="description" content="Five benchmarks of what a voice layer costs a coding agent, with Humanity's Last Keystroke: a pilot voice-only coding benchmark. Synthetic speech, small samples, every number computed from committed rows.">
+<title>Pointe Conversational Engineering Benchmarks</title>
+<meta name="description" content="Five benchmarks of conversational engineering, measuring what a voice layer costs a coding agent, with Humanity's Last Keystroke: a pilot voice-only coding benchmark. Synthetic speech, small samples, every number computed from committed rows.">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="Pointe Conversational Coding Benchmarks">
-<meta property="og:description" content="What a voice layer costs a coding agent: five benchmarks on synthetic speech, with Humanity's Last Keystroke.">
+<meta property="og:title" content="Pointe Conversational Engineering Benchmarks">
+<meta property="og:description" content="Conversational engineering: what a voice layer costs a coding agent, in five benchmarks on synthetic speech, with Humanity's Last Keystroke.">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/benchmarks/">
 <meta name="twitter:card" content="summary_large_image">

@@ -1,4 +1,4 @@
-"""Pointe Conversational Coding Benchmarks: the one command (design 4.1). This build carries `identifiers`.
+"""Pointe Conversational Engineering Benchmarks: the one command (design 4.1). This build carries `identifiers`.
 
     uv run --locked python bench/conversational/identifiers/run.py identifiers --budget-usd 12 [--adapter a,b] [--smoke] [--dry-run]
     uv run --locked python bench/conversational/identifiers/run.py corpus [identifiers]     render the audio, $0

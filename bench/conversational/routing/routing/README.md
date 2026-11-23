@@ -3,7 +3,7 @@
 **Question:** with four live Claude Code sessions, does a spoken request reach the right one, and does an ambiguous
 request cause a question instead of a guess? We found no published benchmark for this.
 
-Part of the Pointe Conversational Coding Benchmarks (design: section 5.4). Synthetic speech only. Every arm,
+Part of the Pointe Conversational Engineering Benchmarks (design: section 5.4). Synthetic speech only. Every arm,
 baselines included, was written by the team whose product is under test.
 
 ## Run

@@ -1,4 +1,4 @@
-"""Pointe Conversational Coding Benchmarks: the one command. This build carries the `routing` benchmark.
+"""Pointe Conversational Engineering Benchmarks: the one command. This build carries the `routing` benchmark.
 
   uv run --locked python bench/conversational/routing/run.py routing --budget-usd 9 [--adapter ...] [--smoke] [--dry-run]
   uv run --locked python bench/conversational/routing/run.py corpus          # render the audio only, $0

@@ -210,7 +210,7 @@ def sections(rows, unpub, frozen) -> list:
     B = []
     B.append(("h1", "Humanity's Last Keystroke (HLK)"))
     B.append(("sub", SUBTITLE))
-    B.append(("p", "Part of the Pointe Conversational Coding Benchmarks: a reproducible self-evaluation harness with an "
+    B.append(("p", "Part of the Pointe Conversational Engineering Benchmarks: a reproducible self-evaluation harness with an "
                    "adapter interface. One system under test (Pointe) and reference arms written by the same team, on "
                    "synthetic speech. The authors know Pointe's internals. This is not a ranking of products."))
     B.append(("p", "HLK asks whether a small scripted multi-step coding task is finished by voice only, graded by "

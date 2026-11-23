@@ -1,4 +1,4 @@
-"""Pointe Conversational Coding Benchmarks: the one command.
+"""Pointe Conversational Engineering Benchmarks: the one command.
 
   uv run --locked --extra local python bench/conversational/bargein/run.py bargein --budget-usd 14 [--adapter ...] [--smoke] [--dry-run]
   uv run --locked --extra local python bench/conversational/bargein/run.py corpus      # render the audio only, $0

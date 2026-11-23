@@ -1,4 +1,4 @@
-"""Pointe Conversational Coding Benchmarks, Humanity's Last Keystroke: the offline checks. No keys, no network, no agent.
+"""Pointe Conversational Engineering Benchmarks, Humanity's Last Keystroke: the offline checks. No keys, no network, no agent.
 
 Items parse and carry the canary; every check is red on the untouched fixture and green with the reference solution;
 the statistics match hand-computed values; the echo adapter goes through the runner and the scorer; the null floor is

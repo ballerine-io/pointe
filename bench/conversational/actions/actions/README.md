@@ -1,6 +1,6 @@
 # Spoken Actions and False Approval (`actions`)
 
-Part of the Pointe Conversational Coding Benchmarks (design: revision 2, sections 4 and 5.3). A reproducible
+Part of the Pointe Conversational Engineering Benchmarks (design: revision 2, sections 4 and 5.3). A reproducible
 self-evaluation harness with an adapter interface, on synthetic speech. Not a leaderboard.
 
 **Measures:** whether speech becomes the right harness action (approve, deny, send, stop, answer, none), and how often
