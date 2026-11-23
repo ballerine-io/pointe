@@ -230,8 +230,8 @@ def test_a_changed_label_makes_the_file_stale(tmp_path):
     view.write_text(view.read_text().replace('row("The meeting that ended"', 'row("Last meeting"'))
     assert gen.dumps(gen.build(root)) != (ROOT / gen.OUT).read_text()
     page = root / "ui.html"
-    page.write_text(page.read_text().replace(">More</span>", ">Extras</span>"))
-    assert "Extras" in json.dumps(gen.build(root)["ui"]["page"]["dock"])
+    page.write_text(page.read_text().replace('aria-label="More"', 'aria-label="Extras"'))
+    assert "Extras" in json.dumps(gen.build(root)["ui"]["page"]["top"])
 
 
 @pytest.mark.parametrize("file,old,new", [

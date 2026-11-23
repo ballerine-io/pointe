@@ -278,8 +278,7 @@ DOCK = """(() => { const r = e => e.getBoundingClientRect();
 
 def test_the_dock_keeps_its_labels_where_they_fit():
     """Measured, not guessed: at 1024 px beside the sessions column (and from 1000 px, and from 761 px with no column)
-    every dock button keeps its label on one row, the longest ones too; beside the column under 1000 px they are
-    tooltips. A phone's dock has four buttons, labelled as the iPhone app's are."""
+    every dock button keeps its label on one row, the longest ones too; at 999 px they are tooltips."""
     status = fixture(sessions=3, talk=4, connected=True)
     long = {**status, "whisper": {"on": True, "held": None, "suggest_ptt": False, "lock_note": None},
             "challenge": {"id": "c1", "on": True, "plan": "Ship it.", "items": [], "verdict": None}}
@@ -290,17 +289,7 @@ def test_the_dock_keeps_its_labels_where_they_fit():
     assert [s["labels"] for s in got[0]] == [["Brain dump", "Meeting", "Briefing"], ["Challenge", "Whisper", "Type"]]
     assert [s["labels"] for s in longs[0]][1] == ["End challenge", "Whispering", "Type"]
     assert all(s["rows"] == 1 and set(s["labels"]) == {None} for s in got[3]), got[3]
-    assert [s["labels"] for s in got[4]] == [["More", "Type"], ["Sessions", "Hang up"]], got[4]
-
-
-def test_a_phones_dock_is_two_and_two_around_the_mic():
-    """Two buttons each side, the same distance out, as the iPhone app's dock (QA round 1: one left, three right)."""
-    probe = """(() => { const c = e => { const r = (e.querySelector('.ic') || e).getBoundingClientRect(); return r.left + r.width / 2; };
-      const mic = c(document.getElementById('mic')), side = s => [...document.querySelector('.dock-side.' + s).children]
-        .filter(b => b.offsetParent && getComputedStyle(b).visibility !== 'hidden').map(b => Math.round(Math.abs(c(b) - mic)));
-      return [side('left').reverse(), side('right')]; })()"""
-    for left, right in _run([(390, LIVE, probe), (360, "", probe)], fixture(sessions=3, talk=4, connected=True)):
-        assert len(left) == len(right) == 2 and all(abs(a - b) <= 4 for a, b in zip(left, right)), (left, right)
+    assert [s["labels"] for s in got[4]] == [["Brain dump", "Type"], ["Sessions", "Hang up"]]  # a phone: the app's four, labelled
 
 
 OVERLAPS = """(() => { const btns = [...document.querySelectorAll('.dock button')].filter(b => b.offsetParent && getComputedStyle(b).visibility !== 'hidden');
@@ -592,3 +581,53 @@ def test_the_folders_field_lines_up_with_the_other_settings_rows():
       return [Math.round(text.getBoundingClientRect().left), inset(row), Math.round(t.getBoundingClientRect().left) - Math.round(f.getBoundingClientRect().left)]; })()"""
     for label, row, box in _run([(1440, "openSettings();", probe), (390, "", probe)], fixture(sessions=2, connected=True)):
         assert abs(label - row) <= 1 and box >= 13, (label, row, box)
+
+
+BAR = """(() => { const r = e => e.getBoundingClientRect(), dock = r(document.querySelector('.dock')), mic = r(document.getElementById('mic'));
+  const btns = [...document.querySelectorAll('.dock .btn')].filter(b => getComputedStyle(b).display !== 'none' && !b.hidden && r(b).width);
+  const shown = btns.filter(b => getComputedStyle(b).visibility !== 'hidden');
+  const overlaps = [];
+  for (const a of shown) for (const b of [...shown, document.getElementById('mic')]) { if (a === b) continue;
+    const x = r(a).getBoundingClientRect ? r(a) : r(a), y = r(b);
+    if (x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1) overlaps.push(a.id + '/' + b.id); }
+  const left = Math.min(...btns.map(b => r(b).left)), right = Math.max(...btns.map(b => r(b).right));
+  return {order: btns.sort((a, b) => r(a).left - r(b).left).map(b => b.querySelector('.lb').textContent.trim()),
+          labels: shown.map(b => { const l = b.querySelector('.lb'); return r(l).width > 2 && r(l).height < 20 ? l.textContent.trim() : null; }),
+          rows: new Set(btns.map(b => Math.round((r(b).top + r(b).bottom) / 2 / 8))).size, overlaps,
+          micOff: Math.round(Math.abs((mic.left + mic.right) / 2 - (dock.left + dock.right) / 2)),
+          margins: [Math.round(left - dock.left), Math.round(dock.right - right)],
+          more: !!document.querySelector('.top #morebtn') && !document.getElementById('morebtn').hidden}; })()"""
+
+
+def test_the_phone_bar_is_the_apps_five_labelled_controls_in_one_row():
+    """One component on every surface (apple/PointeKit/Sources/PointeUI/BottomBar.swift): Brain dump and Type, the mic in
+    the exact middle, Sessions and Hang up, each with its label, on one row from a 320 px phone up; More is the app's •••
+    in the top bar. With no call Hang up keeps its slot, as the app's does, so the mic never moves."""
+    status = fixture(sessions=4, talk=4, connected=True)
+    off = "call.state = 'off'; render();"
+    widths = [320, 344, 360, 390, 430, 560, 700]
+    got = _run([(w, LIVE, BAR) for w in widths] + [(w, off, BAR) for w in (320, 390)], status)
+    for w, r in zip(widths + [320, 390], got):
+        assert r["order"] == ["Brain dump", "Type", "Sessions", "Hang up"], (w, r)
+        assert r["rows"] == 1 and not r["overlaps"] and r["micOff"] <= 2 and r["more"], (w, r)
+        assert abs(r["margins"][0] - r["margins"][1]) <= 6, (w, r)
+        assert None not in r["labels"], (w, r)
+
+
+HANG = """(() => { const r = e => e.getBoundingClientRect(), h = r(document.getElementById('hangup'));
+  return [...document.querySelectorAll('.dock-side .btn')].filter(b => b.offsetParent && r(b).width)
+    .map(b => ({id: b.id, gap: Math.round(Math.max(r(b).left - h.right, h.left - r(b).right))})).filter(g => g.gap < 8); })()"""
+
+
+def test_hang_up_never_lies_over_a_dock_button_on_a_desktop():
+    """The first call hides the mode switch, so the middle column is the mic's width; Hang up beside it ran 16-20 px over
+    Type. With the Showing pane open it sat flush against Challenge."""
+    first = fixture(sessions=3, talk=0, connected=True)
+    first["first_call"] = True
+    for got in _run([(w, LIVE, HANG) for w in (1440, 1280, 1024, 800)], first):
+        assert got == [], got
+    showing = fixture(sessions=3, talk=4, connected=True)
+    showing["showing"] = {"id": "sh1", "session": "s0-shop", "summary": "the coupon fix", "current": "a1", "at": 1.0,
+                          "artifacts": [{"id": "a1", "kind": "edit", "name": "checkout.py", "path": "shop/checkout.py"}]}
+    for got in _run([(w, LIVE, HANG) for w in (1440, 1280, 1024)], showing):
+        assert got == [], got

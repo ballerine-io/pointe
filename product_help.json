@@ -1133,14 +1133,14 @@
    ]
   },
   {
-   "id": "page-dock-more",
+   "id": "page-top-more",
    "title": "More",
    "ask": [
     "more"
    ],
    "how": "",
    "page": [
-    "More button at the bottom"
+    "More at the top"
    ]
   },
   {
@@ -1434,8 +1434,7 @@
     "Challenge",
     "Whisper",
     "Type",
-    "Sessions",
-    "More"
+    "Sessions"
    ],
    "mic": [
     "Microphone"
@@ -1457,7 +1456,8 @@
    ],
    "top": [
     "Clean up my words",
-    "Connect"
+    "Connect",
+    "More"
    ],
    "row": [
     "Rename",

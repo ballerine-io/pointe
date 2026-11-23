@@ -224,7 +224,8 @@ class Page:
     def top(self) -> list[str]:
         top = _between(self.html, '<div class="top">', '<div id="meetbar"')
         return list(dict.fromkeys([_text(t) for t in re.findall(r'<label class="toggle"[^>]*><input[^>]*>([^<]+)</label>', top)]
-                                  + re.findall(r'id="topconnect"[^>]*>([^<]+)<', top)))
+                                  + re.findall(r'id="topconnect"[^>]*>([^<]+)<', top)
+                                  + re.findall(r'id="morebtn"[^>]*aria-label="([^"]+)"', top)))
 
     def row(self) -> list[str]:
         """A session row's actions: the marks shown on hover (their titles), the ⋯ sheet on touch."""
@@ -620,7 +621,7 @@ def build(root: Path = ROOT) -> dict:
             entry["tool"] = t.tool
         entries.append(entry)
     # Every menu item, Settings section and button no topic covers still gets an entry: its label and where it is.
-    for surface, kinds in (("iphone", ("menu", "header")), ("page", ("settings", "dock")), ("mac", ("menu", "header"))):
+    for surface, kinds in (("iphone", ("menu", "header")), ("page", ("settings", "dock", "top")), ("mac", ("menu", "header"))):
         for kind in kinds:
             for label in inv[surface][kind]:
                 if label in used[surface]:
