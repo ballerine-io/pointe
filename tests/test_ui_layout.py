@@ -364,3 +364,18 @@ def test_the_newest_turn_is_in_view_when_the_page_opens_with_a_card_up():
         return out
     for gap, card in asyncio.run(run()):
         assert card and gap <= 2, (gap, card)
+
+
+MACH = """(() => { const row = document.getElementById('mach-invitebtn').parentElement;
+  return {revoke: [...document.querySelectorAll('#mach-list button')].filter(b => b.offsetParent).map(b => b.textContent),
+          emptyRow: !!row.offsetParent && ![...row.children].some(c => c.offsetParent)}; })()"""
+
+
+def test_a_page_that_may_not_change_machines_offers_neither_revoke_nor_an_empty_row():
+    """A phone's browser over the TLS listener is refused every machine change (hub_nodes.owner): it shows the machines,
+    no Revoke that always fails with "forbidden", and no empty row where Invite would be."""
+    owner = fixture(sessions=3, machines=2, connected=True)
+    remote = {**owner, "can_invite": False}
+    (mine,), (theirs,) = (_run([(390, "openSettings();", MACH)], s) for s in (owner, remote))
+    assert mine == {"revoke": ["Revoke"], "emptyRow": False}, mine
+    assert theirs == {"revoke": [], "emptyRow": False}, theirs

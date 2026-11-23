@@ -3952,7 +3952,7 @@
     // made says null too, so a code made here is kept for a moment
     else if (st === null && !(invite && Date.now() - (invite.made || 0) < 3000)) invite = null;
     const asking = revoking && Date.now() < revoking.until ? revoking.name : '';
-    const sig = JSON.stringify([s.machines, asking]);
+    const sig = JSON.stringify([s.machines, asking, canInvite]);
     if (sig !== machinesShown) {
       machinesShown = sig;
       $('mach-list').replaceChildren(...[...s.machines].sort((a, b) => b.here - a.here).map(m => {
@@ -3962,7 +3962,7 @@
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
         if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
-        if (!m.here) {
+        if (!m.here && canInvite) {  // the same owner check as an invite: elsewhere the Mac refuses a revoke
           const sure = asking === m.name, b = el('button', sure ? 'sure' : '', sure ? `Revoke ${m.name}?` : 'Revoke');
           b.title = 'Unpair it: its sessions leave the voice, and it needs a new code to come back';
           b.onclick = () => revokeMachine(m.name);
@@ -3979,6 +3979,7 @@
     $('mach-invite').hidden = !live;
     $('mach-cancel').hidden = !live;
     $('mach-invitebtn').hidden = live || !canInvite;
+    $('mach-invitebtn').parentElement.hidden = !live && !canInvite;  // no empty bordered row
     if (!live) return;
     $('mach-code').textContent = invite.code;
     $('mach-link').textContent = invite.link ? `pointe node join '${invite.link}'` : '';
