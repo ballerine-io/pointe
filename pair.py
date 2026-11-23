@@ -4,7 +4,7 @@
   pointe pair wifi           this Mac's address on the current Wi-Fi (pair again if it changes)
   pointe pair host <name>    a name you route yourself (Twingate, Cloudflare Tunnel with Access); listens on 127.0.0.1
   pointe pair show           the QR code again
-  pointe pair link           the address that pairs a phone's browser page (what bin/voice-remote link printed)
+  pointe pair link           the address that pairs a phone's browser page
   pointe pair rotate         a new certificate: the phone and every machine paired with this Mac must pair again
   pointe pair off            stop listening: removes the certificate, remote.json and remote_token
 
@@ -128,6 +128,7 @@ def setup(host: str, listen: str) -> None:
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not _covers(host):
         _certificate(host)
+        _say_nodes_pair_again()
     old = os.umask(0o077)
     try:
         if not (STATE / "remote_token").exists():
@@ -263,18 +264,45 @@ def link() -> None:
     print("Open it once on the phone's browser. It holds a secret: send it only to your own phone.")
 
 
+RESTART = "once Pointe restarts (pointe restart)"
+
+
+def _paired_nodes() -> list[str]:
+    """The names of the machines paired with this hub, read from nodes.json without changing it."""
+    try:
+        nodes = json.loads((STATE / "nodes.json").read_text()).get("nodes") or []
+    except (OSError, ValueError, AttributeError):
+        return []
+    return [str(n["name"]) for n in nodes if isinstance(n, dict) and n.get("name")]
+
+
+def _say_nodes_pair_again() -> None:
+    """A new certificate unpairs every node, and `pointe hub invite` alone fails while the old pairing is on both sides
+    (QA round 2: "already paired", then "leave studio first"): the steps that work, per machine."""
+    for name in _paired_nodes():
+        print(f"{name} must pair again: here, pointe hub revoke {name}, then pointe hub invite --name {name}; on {name}, "
+              f"pointe node leave, then pointe node join '<the invite>'.")
+
+
+def _home_path(path: Path) -> str:
+    return str(path).replace(str(Path.home()), "~", 1)
+
+
 def rotate() -> None:
     _certificate(_config()["host"])
-    print(f"New certificate {fingerprint()[:16]}... for the next daemon start (`pointe stop`, then /pointe:voice).")
-    print("The phone app and every node paired with this Mac must pair again: `pointe pair show` for the phone, "
-          "`pointe hub invite` for each node. A browser that trusted the old certificate must trust this one.")
+    print(f"New certificate {fingerprint()[:16]}..., used {RESTART}.")
+    print("The phone app must pair again (pointe pair show), and a browser that trusted the old certificate must trust "
+          "this one.")
+    if not _paired_nodes():
+        print("No node (another machine) is paired with this Mac, so none has to pair again.")
+    _say_nodes_pair_again()
 
 
 def off() -> None:
     shutil.rmtree(STATE / "tls", ignore_errors=True)
     for name in ("remote.json", "remote_token"):
         (STATE / name).unlink(missing_ok=True)
-    print("The phone listener is off once the daemon restarts. A network connector (bin/voice-connector) and its tokens "
+    print(f"The phone listener is off {RESTART}. A network connector (bin/voice-connector) and its tokens "
           "are left as they are.")
 
 
@@ -290,7 +318,7 @@ def show() -> None:
     if sys.platform == "darwin":
         subprocess.run(["open", str(image)], check=False)
     print(f"Scan with the Pointe app. It connects to {config['host']}:{TLS_PORT} and checks certificate {fingerprint()[:16]}...")
-    print("This code holds a secret. To revoke it, Unpair the phone in Settings → Phone, or delete ~/.claude-voice/phone_key.")
+    print(f"This code holds a secret. To revoke it, Unpair the phone in Settings → Phone, or delete {_home_path(STATE / 'phone_key')}.")
 
 
 def main(argv: list[str]) -> None:
@@ -312,7 +340,7 @@ def main(argv: list[str]) -> None:
     else:
         raise SystemExit(__doc__.strip())
     setup(host, listen)
-    print(f"Listening for the phone on {listen}:{TLS_PORT} once the daemon restarts (`pointe stop`, then /pointe:voice).")
+    print(f"Listening for the phone on {listen}:{TLS_PORT} {RESTART}.")
     show()
 
 
