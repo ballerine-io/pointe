@@ -31,9 +31,8 @@ struct NightShiftSheet: View {
     var body: some View {
         NavigationStack {
             BrandForm {
-                Section {
-                    Text(NightShiftCopy.lede).brandFootnote()
-                        .listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+                Section {} header: {  // a header keeps the form's text inset: a zero-inset row clipped the first letters
+                    Text(NightShiftCopy.lede).brandFootnote().accessibilityIdentifier("nightShiftLede")
                 }
                 if let options { fields(options) }
                 if let problem {

@@ -22,9 +22,8 @@ struct NewSessionSheet: View {
     var body: some View {
         NavigationStack {
             BrandForm {
-                Section {
-                    Text(NewSessionCopy.lede).brandFootnote()
-                        .listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+                Section {} header: {  // a header keeps the form's text inset: a zero-inset row clipped the first letters
+                    Text(NewSessionCopy.lede).brandFootnote().accessibilityIdentifier("newSessionLede")
                 }
                 if let options { fields(options) }
                 if let problem {
