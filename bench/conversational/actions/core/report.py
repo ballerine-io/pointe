@@ -107,6 +107,10 @@ def voice_readable(commit: str) -> list[str]:
     import sys
     import tempfile
 
+    cache = RESULTS / "voice_readable.json"  # committed: a shallow checkout (CI) has no older commit to read
+    known = json.loads(cache.read_text()) if cache.exists() else {}
+    if commit in known:
+        return known[commit]
     root = HERE.parents[2]
     with tempfile.TemporaryDirectory(prefix="pccb-guards-") as tmp:
         for name in ("guards.py", "readout.py"):
@@ -119,7 +123,9 @@ def voice_readable(commit: str) -> list[str]:
         out = subprocess.run([sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {tmp!r}); " + code,
                               json.dumps(commands)], capture_output=True, text=True, check=True, cwd=tmp,
                              env={"PATH": "/usr/bin:/bin", "CLAUDE_VOICE_STATE": "/tmp/pccb/vendors-state"}).stdout
-    return json.loads(out)
+    known[commit] = json.loads(out)
+    cache.write_text(json.dumps(known, indent=1, sort_keys=True) + "\n")
+    return known[commit]
 
 
 def first_read(s: dict) -> list[str]:
