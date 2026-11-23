@@ -111,6 +111,7 @@ struct ChallengePanel: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .defaultScrollAnchor(.bottom)
+                .scrollIndicatorsFlash(onAppear: true)  // scrolled to the newest objection: the cue that the plan is above
                 .onChange(of: challenge.items?.count) { withAnimation(.smooth) { scroller.scrollTo("end", anchor: .bottom) } }
             }
             if let problem {

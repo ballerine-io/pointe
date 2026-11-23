@@ -232,15 +232,22 @@ struct BrainDumpReview: View {
                         Label(BrainDumpCopy.fallback, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                             .accessibilityIdentifier("dump.fallback")
                     }
-                    TextEditor(text: $text)
-                        .font(.brand(.body))
-                        .frame(minHeight: 220)
-                        .scrollContentBackground(.hidden)
-                        .padding(10)
-                        .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
-                        .focused($editing)
-                        .onChange(of: editing) { if !editing { Task { await saveEdit() } } }
-                        .accessibilityIdentifier("dump.text")
+                    // The box grows with the text (an invisible copy sets its height), so no heading is sliced by a
+                    // fixed-height box inside a screen that already scrolls.
+                    ZStack(alignment: .topLeading) {
+                        Text(text + "\n").font(.brand(.body)).padding(.horizontal, 5).padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading).hidden().accessibilityHidden(true)
+                        TextEditor(text: $text)
+                            .font(.brand(.body))
+                            .scrollDisabled(true)
+                            .scrollContentBackground(.hidden)
+                            .focused($editing)
+                            .onChange(of: editing) { if !editing { Task { await saveEdit() } } }
+                            .accessibilityIdentifier("dump.text")
+                    }
+                    .frame(minHeight: 220)
+                    .padding(10)
+                    .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
                     // To: a field, like Mail's, so it never reads as a second button; Send is the one primary action.
                     Menu {
                         Picker("Send to", selection: Binding(get: { target ?? .orchestrator }, set: { picked = $0; sure = false })) {
