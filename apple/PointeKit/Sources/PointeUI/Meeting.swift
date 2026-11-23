@@ -469,6 +469,7 @@ struct NotesFeed: View {
                     }
                 }
             }
+            .edgeFade()
             if filter == .transcript {
                 transcriptView
             } else if shown.isEmpty {

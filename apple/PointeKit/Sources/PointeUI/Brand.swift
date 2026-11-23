@@ -163,23 +163,22 @@ enum Theme: String, CaseIterable, Identifiable {
     static func stored(_ raw: String?) -> Theme { raw.flatMap(Theme.init(rawValue:)) ?? fallback }
 }
 
+/// The agent's tile, as on the page: its name is the label and the tooltip, not text in the row, so the session's
+/// name gets the width.
 struct HarnessMark: View {
     let harness: String?
-    var named = false
 
     var body: some View {
         let mark = Harness.mark(harness)
-        HStack(spacing: 4) {
-            Text(mark.glyph).font(.brand(size: 9.5, .semibold))
-                .frame(width: 15, height: 15)
-                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Brand.lineStrong))
-            if named { Text(mark.name).font(.brand(.caption2, .semibold)) }
-        }
-        .foregroundStyle(Brand.muted)
-        .environment(\.layoutDirection, .leftToRight)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("runs on \(mark.name)")
-        .accessibilityIdentifier("harnessMark.\((harness ?? "").isEmpty ? "claude-code" : harness!)")
+        Text(mark.glyph).font(.brand(size: 9.5, .semibold))
+            .frame(width: 15, height: 15)
+            .overlay(RoundedRectangle(cornerRadius: 3).stroke(Brand.lineStrong))
+            .foregroundStyle(Brand.muted)
+            .help(mark.name)
+            .environment(\.layoutDirection, .leftToRight)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("runs on \(mark.name)")
+            .accessibilityIdentifier("harnessMark.\((harness ?? "").isEmpty ? "claude-code" : harness!)")
     }
 }
 
@@ -266,6 +265,32 @@ struct FitScroll<Content: View>: View {
         .scrollIndicatorsFlash(trigger: height > limit)  // the cue that there is more: shown when it starts to scroll
         .frame(height: min(height, max(0, limit)))
     }
+}
+
+/// A row of chips that scrolls sideways fades out at an edge with more beyond it: a chip cut hard at the window's edge
+/// gave no sign that the row scrolls.
+struct EdgeFade: ViewModifier {
+    @State private var before = false
+    @State private var after = false
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: [Bool].self) { g in
+                [g.contentOffset.x > 1, g.contentOffset.x + g.containerSize.width < g.contentSize.width - 1]
+            } action: { _, now in (before, after) = (now[0], now[1]) }
+            .mask {
+                HStack(spacing: 0) {
+                    LinearGradient(colors: [.black.opacity(before ? 0 : 1), .black], startPoint: .leading, endPoint: .trailing).frame(width: 28)
+                    Color.black
+                    LinearGradient(colors: [.black, .black.opacity(after ? 0 : 1)], startPoint: .leading, endPoint: .trailing).frame(width: 28)
+                }
+                .padding(.vertical, -12)  // the chips' strokes and touch areas reach past the row's bounds
+            }
+    }
+}
+
+extension View {
+    func edgeFade() -> some View { modifier(EdgeFade()) }
 }
 
 /// A section under a kicker.

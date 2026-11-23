@@ -143,6 +143,7 @@ struct SessionChips: View {
         }
         .padding(.vertical, -5)  // and the strip laid out at what the chips draw, as before
         .scrollClipDisabled()
+        .edgeFade()
         .confirmDisconnect($leaving, disconnect)
         .alert("Rename \(renaming ?? "")", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Name", text: $newName)
@@ -173,6 +174,7 @@ struct SessionsSheet: View {
     /// The Mac's wide window: this list is the window's left column (the page's), always there, not a sheet.
     var docked: Docked? = nil
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var leaving: String?
     @State private var showNewSession = false
     @State private var showAddSessions = false
@@ -325,19 +327,19 @@ struct SessionsSheet: View {
     private func rows(_ sessions: [API.Session]) -> some View {
         ForEach(byAttention(sessions)) { s in
             Button { switchTo(s.name); if docked == nil { dismiss() } } label: {
-                HStack {
-                    Circle().fill(dot(s)).frame(width: 9, height: 9)
-                    Text(s.name).foregroundStyle(.primary)
-                    HarnessMark(harness: s.harness, named: (status?.sessions ?? []).mixesAgents)
-                    Spacer()
-                    if s.isOffline {
-                        Text("offline since \(MachinesCopy.since(machines.info(machines.of(s))?.since))")
-                            .font(.brand(.caption)).foregroundStyle(Brand.muted)
-                    } else if status?.mode == "session" && s.name == status?.active {
-                        Text("focused").font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
-                    } else {
-                        Text(state(s)).font(.brand(.caption)).foregroundStyle(Brand.muted)
+                // One line while it fits; in a narrow column (the Mac's sidebar) the state goes under the name, and a
+                // name longer than the column loses its middle, never breaking inside a word.
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        name(s)
+                        Spacer()
+                        rowState(s)
                     }
+                    VStack(alignment: .leading, spacing: 2) {
+                        name(s)
+                        rowState(s).padding(.leading, 17)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .contentShape(Rectangle())
             }
@@ -353,6 +355,26 @@ struct SessionsSheet: View {
                 Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
             }
             .opacity(s.isOffline ? 0.5 : 1)
+        }
+    }
+
+    private func name(_ s: API.Session) -> some View {
+        HStack {
+            Circle().fill(dot(s)).frame(width: 9, height: 9)
+            Text(s.name).foregroundStyle(.primary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1).truncationMode(.middle).help(s.name)
+            HarnessMark(harness: s.harness)
+        }
+    }
+
+    @ViewBuilder
+    private func rowState(_ s: API.Session) -> some View {
+        if s.isOffline {
+            Text("offline since \(MachinesCopy.since(machines.info(machines.of(s))?.since))")
+                .font(.brand(.caption)).foregroundStyle(Brand.muted)
+        } else if status?.mode == "session" && s.name == status?.active {
+            Text("focused").font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
+        } else {
+            Text(state(s)).font(.brand(.caption)).foregroundStyle(Brand.muted)
         }
     }
 
