@@ -22,7 +22,7 @@ you export it." and a tick for "Everyone in the room knows this is being transcr
 A recording indicator stays on screen while the meeting runs.
 
 By voice, "Meeting mode, listening" (or "מצב פגישה, השתתפות") starts one once the consent step was accepted on this
-Mac.
+Mac. It links the sessions its words name ("meeting mode with billing, join in"), else every joined session.
 
 Meeting mode needs a Soniox key: its ears are a separate Soniox stream with speaker separation.
 
