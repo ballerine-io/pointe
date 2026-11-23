@@ -11,6 +11,7 @@ import asyncio
 from collections import deque
 import hashlib
 import hmac
+import contextlib
 from contextlib import asynccontextmanager
 import json
 import logging
@@ -247,6 +248,7 @@ def _note_problem(message) -> None:
     global _problem, _fault
     text = message.record["message"].split("\n")[0]
     shown = current_problem()
+    ours = not str(message.record.get("name") or "").startswith("pipecat")
     if (vendor := vendors.refused_key(text)) is not None:
         if not vendor and shown and vendors.refused_key(shown):
             return  # the same refusal, said without its vendor: keep the line that names it
@@ -260,6 +262,10 @@ def _note_problem(message) -> None:
         _fault = (time.time(), kind, vendor)
         text = vendors.fault_help(kind, vendor)
     elif shown and vendor_fault():
+        return
+    elif not ours:
+        # A library's own error ("SonioxTTSService#0 exception (/Users/.../websocket_service.py:260): ...") is no line for
+        # a person, and status carries the line to paired phones: what it means reaches them through _service_lost.
         return
     for env in vendors.KEY_ENVS:
         if os.environ.get(env):
@@ -8845,15 +8851,20 @@ async def run_call(transport) -> None:
         logger.info("call ended")
 
 
-LOST_LINES = {"ears": "I can't hear you anymore: the connection to {name} dropped. Hang up and call again; typing still works.",
-              "mouth": "The voice stopped: the connection to {name} dropped. Replies show as text; hang up and call again "
-                       "for the voice."}
+LOST_LINES = {"ears": "I can't hear you: the connection to {name} dropped. I'm reconnecting; typing still works.",
+              "mouth": "The voice stopped: the connection to {name} dropped. Replies show as text while I reconnect."}
+LOST_AS = {"ears": "I can't hear you: ", "mouth": "The voice stopped, replies show as text: "}  # before a vendor fault's line
+BACK_LINE = "I can hear you again."
+LOST_SETTLE_SECS = 0.5  # the error that names the cause is logged around the "can no longer do its job" that ends retries
+REVIVE_WAITS = (2.0, 4.0, 8.0, 15.0, 30.0)  # seconds between tries to bring a service back; then every 30 s
+REVIVE_SETTLE_SECS = 3.0  # a reconnect that holds this long is back; one that fails gives up again within it
 
 
 async def _service_lost(processor) -> None:
-    """Pipecat stops reconnecting a service after its retries ("can no longer do its job") and, by its default policy,
-    keeps the call running: without this the ears stay deaf for the rest of the call while every surface says Listening.
-    The call says so, aloud while the voice works, and status keeps a lasting Cannot hear you until a new call."""
+    """Pipecat stops reconnecting a service after its retries ("can no longer do its job"), all within milliseconds of a
+    dropped link, and by its default policy keeps the call running: the ears stayed deaf for the rest of the call, even
+    after a 2-second blip. The call says so in words, then brings the service back once its vendor answers (_revive).
+    A refused key is not a dropped link: its own line stays, and no reconnect can fix it."""
     from pipecat.services.stt_service import STTService
     from pipecat.services.tts_service import TTSService
 
@@ -8863,11 +8874,63 @@ async def _service_lost(processor) -> None:
     if role is None:
         return
     vendor = (getattr(setup(), role) or "").split(":")[0]
-    line = LOST_LINES[role].format(name=vendors.NAMES.get(vendor, "the speech service"))
-    state.lost = {"vendor": vendor, "ears": role == "ears", "kind": "lost", "line": line}
-    logger.warning(f"{role} lost for the rest of this call: {processor} gave up reconnecting")
+    state.lost = {"vendor": vendor, "ears": role == "ears", "kind": "lost", "line": ""}  # claimed: one loss at a time
+    await asyncio.sleep(LOST_SETTLE_SECS)
+    if vendors.refused_key(_problem[1]) is not None:
+        state.lost = None
+        logger.warning(f"{role} stopped: its key was refused")
+        return
+    when, kind, fault_vendor = _fault
+    if kind and fault_vendor in (vendor, "") and time.time() - when < PROBLEM_SHOWN_SECS:
+        line = LOST_AS[role] + vendors.fault_help(kind, vendor)  # a 500 or a quota, not "the connection dropped"
+    else:
+        kind, line = "lost", LOST_LINES[role].format(name=vendors.NAMES.get(vendor, "the speech service"))
+    state.lost = {"vendor": vendor, "ears": role == "ears", "kind": kind, "line": line}
+    logger.warning(f"{role} stopped ({kind}): {processor} gave up reconnecting; trying to bring it back")
+    conn = state.conn
+    asyncio.create_task(_revive(processor, role, conn))
     if role == "ears":
         await _say_exactly(line, "the ears are gone")
+
+
+async def _revive(processor, role: str, conn) -> None:
+    """Bring a service that gave up back, with growing waits, for as long as this call lasts (Pipecat: set_usable(True)
+    "once a provider that has come back up"). Typing works meanwhile; the ears' return is said aloud."""
+    global _problem
+    attempt = 0
+    while True:
+        await asyncio.sleep(REVIVE_WAITS[min(attempt, len(REVIVE_WAITS) - 1)])
+        attempt += 1
+        if state.conn is not conn or state.lost is None or vendors.refused_key(_problem[1]) is not None:
+            return
+        try:
+            if hasattr(processor, "_consecutive_failures"):
+                processor._consecutive_failures = 0  # Gemini's ears give up at a count that only a long-lived link resets
+            await processor.set_usable(True)
+            if hasattr(processor, "_do_reconnect"):  # the ears: a new connection, then the audio buffered meanwhile
+                await processor._do_reconnect()
+                # A websocket service's connect logs a failure and leaves its retry loop to it: ask the socket itself.
+                if hasattr(processor, "_verify_connection") and not await processor._verify_connection():
+                    raise ConnectionError("not connected")
+            elif hasattr(processor, "_reconnect_websocket"):  # a websocket voice; an HTTP voice needs only to be usable
+                await processor._reconnect_websocket(attempt)
+        except Exception as e:
+            logger.info(f"{role} still unreachable ({type(e).__name__}), try {attempt}")
+            with contextlib.suppress(Exception):
+                await processor.set_usable(False)
+            continue
+        await asyncio.sleep(REVIVE_SETTLE_SECS)
+        if state.conn is not conn:
+            return
+        if not processor.is_usable:
+            continue  # it gave up again
+        if vendors.refused_key(_problem[1]) is None:
+            _problem = (0.0, "")
+        state.lost = None
+        logger.info(f"{role} back after {attempt} tries: {processor}")
+        if role == "ears":
+            await _say_exactly(BACK_LINE, "the ears are back")
+        return
 
 
 # What harness adapters borrow from the daemon (harnesses/base.py).

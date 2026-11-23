@@ -149,6 +149,8 @@ def test_ears_that_gave_up_reconnecting_say_so_and_stay_cannot_hear_until_a_new_
 
     monkeypatch.setattr(d, "_say_exactly", say_exactly)
     monkeypatch.setattr(d, "_problem", (0.0, ""))
+    monkeypatch.setattr(d, "_fault", (0.0, "", ""))
+    monkeypatch.setattr(d, "LOST_SETTLE_SECS", 0.0)
     class GaveUp(STTService):
         is_usable = False
 
@@ -159,7 +161,7 @@ def test_ears_that_gave_up_reconnecting_say_so_and_stay_cannot_hear_until_a_new_
     ears._name = "SonioxSTTService#0"
     asyncio.run(d._service_lost(ears))
     note(d, "voice: SonioxSTTService#0 can no longer do its job")
-    assert said == ["I can't hear you anymore: the connection to Soniox dropped. Hang up and call again; typing still works."]
+    assert said == ["I can't hear you: the connection to Soniox dropped. I'm reconnecting; typing still works."]
     assert d.vendor_fault() == {"vendor": "soniox", "ears": True, "kind": "lost"}
     assert d.current_problem() == said[0]
     monkeypatch.setattr(d, "PROBLEM_SHOWN_SECS", 0.0)  # it lasts past the 90 s of an ordinary line
