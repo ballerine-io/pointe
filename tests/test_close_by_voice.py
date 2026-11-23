@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from guards import close_request, disconnect_intent  # noqa: E402
 from sessions import Session  # noqa: E402
-from test_orchestrator import (Params, _consent_setup, add, d, fake_conn, verdicts,  # noqa: E402,F401
+from test_orchestrator import (Params, _consent_setup, add, d, fake_conn, model_says, verdicts,  # noqa: E402,F401
                                with_permission)
 
 KEEP = ["harbor-research", "voice-addon", "kestrel-sandbox"]
@@ -119,13 +119,16 @@ def _setup(d, names=KEEP + CLOSE):
     d.REGISTRY.set_active(names[0])
 
 
-async def _close(d, said: str | None, name: str = "atlas-feature", heard_own_words: bool = False) -> dict:
+async def _close(d, said: str | None, name: str = "atlas-feature", heard_own_words: bool = False,
+                 spoken: bool = True) -> dict:
     """The user said `said` (None: nothing new since the last call), then the model called disconnect_session."""
     if said is not None:
         await d.on_user_utterance(said)
         d.state.heard_own_words = heard_own_words
     p = Params(name=name)
     await d.disconnect_session(p)
+    if spoken and "confirm_first" in p.results[0]:
+        await model_says(d)  # the read-back is said, as the model's reply would say it on a call
     return p.results[0]
 
 
@@ -151,7 +154,7 @@ def test_all_except_three_is_read_back_then_closed_on_yes(d):
 
     first, repeats, still, done = asyncio.run(scenario())
     say = first["confirm_first"]
-    assert say.startswith("Closing ") and say.endswith("Go ahead?"), say
+    assert say.startswith("Closing ") and say.endswith("Close them?"), say
     closing, keeping = say.split("Keeping")
     assert all(n in closing for n in CLOSE) and all(n in keeping for n in KEEP), say
     assert all("error" in r for r in repeats) and still == set(KEEP + CLOSE)  # nothing closed before the yes
@@ -288,12 +291,12 @@ def test_no_rename_to_a_name_the_user_did_not_say(d):
 
 
 def test_the_read_back_is_said_word_for_word_whatever_the_model_writes(d):
-    """From live runs: the model said "Closing shop-tests. Keeping billing and shop." and dropped "Go ahead?", twice out
+    """From live runs: the model said "Closing shop-tests. Keeping billing and shop." and dropped its question, twice out
     of two, so the user heard no question. The read-back is the daemon's: it goes out exactly, and only once."""
     from types import SimpleNamespace
 
     _setup(d)
-    first = asyncio.run(_close(d, ALL_BUT_THREE, name="orchard-bank"))
+    first = asyncio.run(_close(d, ALL_BUT_THREE, name="orchard-bank", spoken=False))
     line = first["confirm_first"]
     spoken = []
 
@@ -305,3 +308,32 @@ def test_the_read_back_is_said_word_for_word_whatever_the_model_writes(d):
     asyncio.run(d.BrainFront._speak(front, "Closing orchard-bank, atlas-feature and two more. Keeping the rest."))
     asyncio.run(d.BrainFront._speak(front, "Anything else?"))
     assert spoken[0] == d._spoken_names(line) and spoken[1] == "Anything else?"
+
+
+# ---------- the yes to a read-back keeps a permission prompt's rules (Mythos review AV-3, AV-5) ----------
+
+def test_a_yes_with_a_condition_closes_nothing(d):
+    _setup(d)
+
+    async def scenario():
+        await _close(d, ALL_BUT_THREE)
+        return await _close(d, "okay, except the last one")
+
+    result = asyncio.run(scenario())
+    assert "error" in result and set(d.REGISTRY.sessions) == set(KEEP + CLOSE), result
+
+
+def test_a_typed_yes_closes_nothing(d):
+    from test_orchestrator import client_for
+    _setup(d)
+    d.state.conn = fake_conn()
+
+    async def push(frame, direction=None):
+        pass
+
+    d.state.conn.injector.push_frame = push
+    asyncio.run(_close(d, ALL_BUT_THREE))
+    assert client_for(d).post("/voice/say", json={"text": "yes"}).status_code == 200
+    p = Params(name="orchard-bank")
+    asyncio.run(d.disconnect_session(p))
+    assert "error" in p.results[0] and set(d.REGISTRY.sessions) == set(KEEP + CLOSE), p.results

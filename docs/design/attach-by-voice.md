@@ -30,7 +30,7 @@ So the rules come first, and each is in code with a test (`discovery.py`, `match
    receives session names, folders and recent lines for routing (`_classify_target`), so no new host or vendor is
    added. In fully local mode (`pointe local`) it is the local model.
 5. **Reopen opens a terminal, so it is read back as such.** "Reopen billing-migration, the Claude Code session in
-   billing from yesterday, in a new terminal window on studio? Say yes or tap." Claude Code reopens in its default
+   billing from yesterday, in a new terminal window on studio?" Claude Code reopens in its default
    permission mode, never with a skip flag (`refuse_bypass`), Mac only (as Start).
 6. **Meeting and Challenge me cannot add sessions** (`modes.READ_ONLY_TOOLS` leaves the tool out).
 
@@ -116,13 +116,13 @@ dropped.
 
 Word for word, from `daemon._attach_line`:
 
-- One open: "Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap."
-- One open whose approvals stay in its terminal: "... on studio? Its approvals stay in its terminal. Say yes or tap."
-- All: "Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs? Say yes or tap." (one: "Join the
+- One open: "Join pentest-recon, the Claude Code session in pentest-notes on studio?"
+- One open whose approvals stay in its terminal: "... on studio? Its approvals stay in its terminal. Join?"
+- All: "Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs?" (one: "Join the
   one open Claude Code session on studio, pentest-recon? ...")
 - Reopen Claude Code: "Reopen billing-migration, the Claude Code session in billing from yesterday, in a new terminal
-  window on studio? Say yes or tap."
-- Reopen Codex: "Reopen invoices, the Codex session in billing from yesterday, on studio? Say yes or tap."
+  window on studio?"
+- Reopen Codex: "Reopen invoices, the Codex session in billing from yesterday, on studio?"
 - Several fit: "Two sessions fit: one, pentest-recon in pentest-notes, open; two, recon in scanner, from yesterday.
   Which one?" The answer ("the first", "number two", "recon", "both", "neither") is bound to that list.
 

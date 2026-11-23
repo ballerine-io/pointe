@@ -27,7 +27,7 @@ from guards import start_intent, start_request  # noqa: E402
 from harnesses.base import StartError, refuse_bypass  # noqa: E402
 from harnesses.codex import Codex, bypasses  # noqa: E402
 from harnesses.opencode import OpenCode  # noqa: E402
-from test_orchestrator import (Params, _consent_setup, add, client_for, d, fake_conn, verdicts)  # noqa: E402,F401
+from test_orchestrator import (Params, _consent_setup, add, client_for, d, fake_conn, model_says, verdicts)  # noqa: E402,F401
 
 ROOT = Path(__file__).resolve().parents[1]
 PLACES = [("shop", "/w/shop"), ("billing", "/w/billing"), ("codex-tools", "/w/codex-tools"), ("pricing", "/w/shop")]
@@ -351,13 +351,16 @@ def home(d, tmp_path, monkeypatch):
     return SimpleNamespace(d=d, shop=shop, billing=billing, started=started, sent=sent, tmp=tmp_path)
 
 
-async def _ask(d, said: str | None, heard_own_words: bool = False) -> dict:
-    """The user said `said` (None: nothing new), then the model called start_session."""
+async def _ask(d, said: str | None, heard_own_words: bool = False, spoken: bool = True) -> dict:
+    """The user said `said` (None: nothing new), then the model called start_session; a read-back it set is then said
+    (unless `spoken` is False), as the model's reply would say it on a call."""
     if said is not None:
         await d.on_user_utterance(said)
         d.state.heard_own_words = heard_own_words
     p = Params(folder="whatever the model wrote")
     await d.start_session(p)
+    if spoken and "confirm_first" in p.results[0]:
+        await model_says(d)
     return p.results[0]
 
 
@@ -370,13 +373,13 @@ async def _settle(d, secs: float = 0.5) -> None:
 
 def test_a_request_is_read_back_exactly_and_nothing_starts(home):
     result = asyncio.run(_ask(home.d, "Start a new Codex session in shop."))
-    assert result["confirm_first"] == "Start a Codex session in shop on studio, named shop-2? Say yes or tap.", result
+    assert result["confirm_first"] == "Start a Codex session in shop on studio, named shop-2?", result
     assert home.started == [] and not home.d.STARTS
 
 
 def test_no_agent_said_means_claude_code_and_the_read_back_says_so(home):
     result = asyncio.run(_ask(home.d, "open a new session in billing called invoices"))
-    assert result["confirm_first"] == "Start a Claude Code session in billing on studio, named invoices? Say yes or tap."
+    assert result["confirm_first"] == "Start a Claude Code session in billing on studio, named invoices?"
 
 
 def test_a_name_that_differs_only_by_a_branch_counts_as_taken(home):
@@ -450,10 +453,10 @@ def test_a_yes_after_the_read_back_expired_hears_it_again_and_starts_nothing(hom
     d = home.d
 
     async def scenario():
-        first = await _ask(d, "Start a new Codex session in shop.")
+        first = await _ask(d, "Start a new Codex session in shop.", spoken=False)
         d._remember("assistant", first["confirm_first"] + " ")  # as the voice keeps what it said
         d.state.pending_start = (d.state.pending_start[0] - newsession.CONFIRM_SECS - 1, d.state.pending_start[1])
-        again = await _ask(d, "Yes.")
+        again = await _ask(d, "Yes.", spoken=False)
         return first, again
 
     first, again = asyncio.run(scenario())
@@ -542,7 +545,7 @@ def test_a_yes_long_after_the_read_back_starts_nothing(home):
     d = home.d
 
     async def scenario():
-        await _ask(d, "Start a new Codex session in shop.")
+        await _ask(d, "Start a new Codex session in shop.", spoken=False)
         d.state.pending_start = (d.state.pending_start[0] - newsession.CONFIRM_SECS - 1, d.state.pending_start[1])
         return await _ask(d, "yes")
 
@@ -840,3 +843,80 @@ def test_the_phone_key_reaches_the_new_session_route():
     from guards import _PHONE_PATHS
 
     assert "/voice/new-session" in _PHONE_PATHS
+
+
+# ---------- the yes to a read-back keeps a permission prompt's rules (Mythos review AV-3, AV-5) ----------
+
+@pytest.mark.parametrize("answer", ["okay, except in billing", "yes, but call it invoices"])
+def test_a_yes_with_a_condition_starts_nothing(home, answer):
+    """A yes that adds a condition is not a yes to what was read back: the read-back would start it without the
+    condition."""
+    async def scenario():
+        await _ask(home.d, "Start a new Codex session in shop.")
+        return await _ask(home.d, answer)
+
+    result = asyncio.run(scenario())
+    assert "error" in result and home.started == [], result
+
+
+def test_a_yes_after_the_bot_said_something_else_starts_nothing(home):
+    """The read-back, then a question of the user's, answered by the bot with a question of its own: the next yes
+    answers that question, not the read-back."""
+    d = home.d
+
+    async def scenario():
+        await _ask(d, "Start a new Codex session in shop.")
+        await d.on_user_utterance("What is billing doing?")
+        await model_says(d, "Billing is running its tests. Want me to check shop too?")
+        return await _ask(d, "yes")
+
+    result = asyncio.run(scenario())
+    assert "error" in result and home.started == [], result
+
+
+def test_a_yes_said_over_the_read_back_starts_nothing(home, monkeypatch):
+    d = home.d
+
+    async def scenario():
+        await _ask(d, "Start a new Codex session in shop.")
+        monkeypatch.setattr(d.ECHO, "speaking", True)  # the read-back is still playing
+        return await _ask(d, "yes")
+
+    result = asyncio.run(scenario())
+    assert "error" in result and home.started == [], result
+
+
+def _typing_call(d):
+    d.state.conn = fake_conn()
+
+    async def push(frame, direction=None):
+        pass
+
+    d.state.conn.injector.push_frame = push
+
+
+def test_a_typed_yes_on_the_page_starts_nothing(home):
+    """Typed words are never a yes to a read-back: the page's Start button (and Face ID in the apps) is the screen's
+    way. The brain answers the typed "yes" with the tool, after /voice/say has returned."""
+    d = home.d
+    _typing_call(d)
+    asyncio.run(_ask(d, "Start a new Codex session in shop."))
+    assert client_for(d).post("/voice/say", json={"text": "yes"}).status_code == 200
+    p = Params(folder="shop")
+    asyncio.run(d.start_session(p))
+    assert "error" in p.results[0] and home.started == [], p.results
+
+
+def test_a_transcript_corrected_to_yes_starts_nothing(home):
+    d = home.d
+    _typing_call(d)
+
+    async def scenario():
+        await _ask(d, "Start a new Codex session in shop.")
+        await d.on_user_utterance("guess")
+    asyncio.run(scenario())
+    turn = d.state.conversation_base + max(i for i, (who, _) in enumerate(d.state.conversation) if who == "user")
+    assert client_for(d).post("/voice/correct", json={"id": turn, "text": "yes"}).status_code == 200
+    p = Params(folder="shop")
+    asyncio.run(d.start_session(p))
+    assert "error" in p.results[0] and home.started == [], p.results

@@ -11,10 +11,10 @@ The rules live in `discovery.py` (what is listed), `matching.py` (which sessions
 
 | Say | Pointe says | On yes |
 |---|---|---|
-| "Hey Pointe, connect to the session about the recent pentest" | "Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap." | it joins |
-| "Connect to all open Claude Code sessions" | "Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs? Say yes or tap." | they all join |
-| "Reopen yesterday's session about the billing migration" | "Reopen billing-migration, the Claude Code session in billing from yesterday, in a new terminal window on studio? Say yes or tap." | a terminal window opens with `claude --resume`, and it joins |
-| "Join the codex thread about the changelog" | "Join docs, the Codex session in docs on studio? Say yes or tap." | it joins |
+| "Hey Pointe, connect to the session about the recent pentest" | "Join pentest-recon, the Claude Code session in pentest-notes on studio?" | it joins |
+| "Connect to all open Claude Code sessions" | "Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs?" | they all join |
+| "Reopen yesterday's session about the billing migration" | "Reopen billing-migration, the Claude Code session in billing from yesterday, in a new terminal window on studio?" | a terminal window opens with `claude --resume`, and it joins |
+| "Join the codex thread about the changelog" | "Join docs, the Codex session in docs on studio?" | it joins |
 | "Connect to a session" (several fit) | "Three sessions fit: one, …; two, …; three, …. Which one?" | "the second one", "both", or a name |
 | "Leave the pentest session", "disconnect from the pentest session" | (no read-back for one named session) | it leaves the voice and keeps running |
 
@@ -48,8 +48,9 @@ stay in its terminal", and the voice tells you when that session waits there.
 ## What it will not do
 
 - **Join anything you did not confirm.** A description only finds and reads back. A yes, a pick from the list read
-  back, or a tap joins; the read-back heard back, typed words, and (with the voice lock on) another voice do not, and
-  that yes never also approves a waiting prompt.
+  back, or a tap joins. The yes and the pick keep a permission prompt's rules: a yes and nothing else, begun after the
+  read-back ended, with the read-back the last thing Pointe said. The read-back heard back, typed or corrected words,
+  and (with the voice lock on) another voice do not, and that yes never also approves a waiting prompt.
 - **Read another user's sessions.** Only this OS user's config dirs, processes and sockets.
 - **Send your sessions to a vendor.** Matching is done on this Mac. When the words fit a few sessions about as well,
   their titles, folder names, ages and a few keywords (never transcripts) go to the routing model to order them, which

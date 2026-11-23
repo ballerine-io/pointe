@@ -62,8 +62,10 @@ that creates a process, so it is fenced on every side, in code with tests (`test
   override, and a Codex thread that would run with no approvals and no sandbox is archived and refused
   (`harnesses.base.refuse_bypass`, `harnesses.codex.bypasses`).
 - **Who.** By voice, always a read-back of the agent, folder, machine and name, taken from the user's own words, then a
-  plain yes within 60 seconds: not the read-back heard back, not typed words, and with the voice lock on only the
-  owner's voice. That yes never approves a waiting request. On the iPhone and the Mac app, Start asks for Face ID or
+  plain yes within 60 seconds, under the rules of a yes to a permission prompt (`daemon._readback_answer`): a yes and
+  nothing else, begun after the read-back ended, with the read-back the last thing the bot said; not the read-back
+  heard back, not typed or corrected words, and with the voice lock on only the owner's voice. The read-back ends in a
+  question with no consent word in it. A realtime front words the read-back itself, so there it takes a tap. That yes never approves a waiting request. On the iPhone and the Mac app, Start asks for Face ID or
   Touch ID. Meeting mode and Challenge me cannot start anything.
 - **Left open.** Code running as you can register a session from any folder (it could before), which makes that folder
   "recent". A paired phone can start a session with a first prompt in an allowed folder; it could already send requests
@@ -77,7 +79,8 @@ allows) its approvals, so it is fenced the same way as a start, in code with tes
 
 - **Who.** By voice, nothing joins on the first sentence: Pointe reads back what it found, from the user's own words,
   and joins on a plain yes within 60 seconds, or on a pick from the list it read back ("the second one", "both"), bound
-  to exactly those sessions. Not the read-back heard back, not typed words, and with the voice lock on only the owner's
+  to exactly those sessions, both under a start's rules (the read-back the last thing said, begun after it). Not the
+  read-back heard back, not typed words, and with the voice lock on only the owner's
   voice; that yes never approves a waiting request. On a screen, a tap sends back a key from the Mac's own listing
   (never a path), and on the iPhone and the Mac app Join and Reopen ask for Face ID or Touch ID. Meeting mode and
   Challenge me cannot add sessions.

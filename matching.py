@@ -210,26 +210,26 @@ def _where(found: Found, here: str) -> str:
 
 
 def line_one(found: Found, here: str, now: float | None = None, speak=lambda s: s) -> str:
-    """"Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap." For a recent one, the
-    reopen and where it opens."""
+    """"Join pentest-recon, the Claude Code session in pentest-notes on studio?" For a recent one, the reopen and where
+    it opens. No consent word ("Say yes"): heard back through the speakers, it would be a yes."""
     now = time.time() if now is None else now
     folder = speak(Path(found.cwd).name or found.cwd)
     if found.state == "open":
         line = (f"Join {speak(found.name)}, the {_agent(found)} session in {folder} on {_where(found, here)}?")
         if not found.approvals:
-            line += " Its approvals stay in its terminal."
-        return line + " Say yes or tap."
+            line += " Its approvals stay in its terminal. Join?"
+        return line
     window = " in a new terminal window" if found.harness == "claude-code" else ""
     when = ago(found.when, now)
     when = when if when.startswith("from ") else "from " + ("a moment ago" if when == "just now" else when)
     line = f"Reopen {speak(found.name)}, the {_agent(found)} session in {folder} {when},{window} on {_where(found, here)}?"
     if not found.approvals:
-        line += " Its approvals will stay in its terminal."
-    return line + " Say yes or tap."
+        line += " Its approvals will stay in its terminal. Reopen?"
+    return line
 
 
 def line_all(items: list[Found], here: str, harness: str | None, speak=lambda s: s) -> str:
-    """"Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs? Say yes or tap." """
+    """"Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs?" """
     agent = TITLES.get(harness or "", "")
     machines = sorted({_where(f, here) for f in items})
     where = " and ".join(machines) if len(machines) <= 2 else f"{len(machines)} machines"
@@ -241,8 +241,9 @@ def line_all(items: list[Found], here: str, harness: str | None, speak=lambda s:
         line = f"Join {len(items)} {kind}s on {where}: {names}?"
     stay = [speak(f.name) for f in items if not f.approvals]
     if stay:
-        line += f" Approvals of {said_list(stay)} stay in {'its' if len(stay) == 1 else 'their'} terminal."
-    return line + " Say yes or tap."
+        line += (f" Approvals of {said_list(stay)} stay in {'its' if len(stay) == 1 else 'their'} terminal. "
+                 + ("Join?" if len(items) == 1 else "Join them?"))
+    return line
 
 
 _COUNT = {2: "Two", 3: "Three"}

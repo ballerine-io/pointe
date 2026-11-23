@@ -6,6 +6,7 @@ uv run --locked pytest -q tests/test_meeting_voice.py
 """
 
 import asyncio
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -157,13 +158,13 @@ def test_a_question_from_another_speaker_looks_nothing_up(d, monkeypatch):
 
 # ---------- after the end: the action items, sent by voice on a yes ----------
 
-def _ended_meeting(d, monkeypatch):
+def _ended_meeting(d, monkeypatch, items=None):
     _meeting_ready(d, monkeypatch)
     add(d, "b", "billing/main"), add(d, "o", "docs/main")
     _start(d, "participating")
 
     async def end_pass(*a, **k):
-        return {"summary": "Retries fail at night.", "action_items": [
+        return {"summary": "Retries fail at night.", "action_items": items or [
             {"what": "Raise the retry limit to eight attempts", "owner": "Sam", "due": "Friday"},
             {"what": "Update the on-call runbook", "owner": "Dana"}]}
 
@@ -310,3 +311,20 @@ def test_recent_audio_is_whole_samples(d, secs):
     gate = d.MicGate()
     gate.ring.append(b"\x01\x02" * 100_000)
     assert len(gate.recent_audio(secs)) % 2 == 0
+
+
+def test_a_yes_with_a_condition_sends_no_action_items(d, monkeypatch):
+    """Mythos review AV-3: "yes, but not the runbook one" would send both items read back."""
+    said, asked = _ended_meeting(d, monkeypatch)
+    asyncio.run(d._meeting_actions_words("Send the action items to billing."))
+    asyncio.run(d._meeting_actions_words("Yes, but only the first one."))
+    assert asked == []
+
+
+def test_a_yes_after_the_bot_said_something_else_sends_no_action_items(d, monkeypatch):
+    said, asked = _ended_meeting(d, monkeypatch)
+    asyncio.run(d._meeting_actions_words("Send the action items to billing."))
+    d._bot_says("Billing is idle. Want me to check docs too?")  # the bot answered something else meanwhile
+    asyncio.run(d._meeting_actions_words("Yes."))
+    assert asked == []
+

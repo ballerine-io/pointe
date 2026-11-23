@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harnesses  # noqa: E402
 import newsession  # noqa: E402
 from discovery import Found  # noqa: E402
-from test_orchestrator import Params, _consent_setup, add, client_for, d, fake_conn, verdicts  # noqa: E402,F401
+from test_orchestrator import Params, _consent_setup, add, client_for, d, fake_conn, model_says, verdicts  # noqa: E402,F401
 
 NOW = time.time()
 
@@ -93,12 +93,14 @@ def world(d, tmp_path, monkeypatch, sockets):
     return SimpleNamespace(d=d, folders=folders, reopened=reopened, sockets=sockets)
 
 
-async def _ask(d, said: str | None, heard_own_words: bool = False) -> dict:
+async def _ask(d, said: str | None, heard_own_words: bool = False, spoken: bool = True) -> dict:
     if said is not None:
         await d.on_user_utterance(said)
         d.state.heard_own_words = heard_own_words
     p = Params()
     await d.add_sessions(p)
+    if spoken and "confirm_first" in p.results[0]:
+        await model_says(d)  # the read-back is said, as the model's reply would say it on a call
     return p.results[0]
 
 
@@ -119,8 +121,7 @@ def _names(d):
 
 def test_a_description_is_read_back_exactly_and_nothing_joins(world):
     result = run((world.d, "Hey Pointe, connect to the session about the recent pentest"))
-    assert result["confirm_first"] == ("Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or "
-                                       "tap."), result
+    assert result["confirm_first"] == "Join pentest-recon, the Claude Code session in pentest-notes on studio?", result
     assert _names(world.d) == ["shop"]
 
 
@@ -141,7 +142,7 @@ def test_all_open_claude_code_sessions_are_read_back_by_count_and_name_and_join_
     d = world.d
     first = run((d, "connect to all open Claude Code sessions"))
     assert first["confirm_first"] == ("Join 2 open Claude Code sessions on studio: billing and pentest-recon? Approvals "
-                                      "of billing stay in its terminal. Say yes or tap."), first
+                                      "of billing stay in its terminal. Join them?"), first
     done = run((d, "yes"))
     assert sorted(done["joined"]) == ["billing", "pentest-recon"] and _names(d) == ["billing", "pentest-recon", "shop"]
 
@@ -160,7 +161,7 @@ def test_reopen_is_read_back_with_the_terminal_and_starts_a_resume_on_yes(world)
     d = world.d
     first = run((d, "reopen yesterday's session about the billing migration"))
     assert first["confirm_first"] == ("Reopen billing-migration, the Claude Code session in billing from yesterday, in a "
-                                      "new terminal window on studio? Say yes or tap."), first
+                                      "new terminal window on studio?"), first
 
     async def scenario():
         done = await _ask(d, "yes")
@@ -374,7 +375,7 @@ def test_meeting_and_challenge_cannot_add_sessions(d):
 # ---------- the answer taken before the brain (a slow brain cannot lose the yes) ----------
 
 def _read_back(d, said: str, spoken: bool = True) -> None:
-    run((d, said))
+    asyncio.run(_ask(d, said, spoken=spoken))
     if spoken:
         d.state.conn.injector.bot_started_at = time.time() + 0.01  # the read-back is being said
 
@@ -429,7 +430,7 @@ def test_the_bots_own_read_back_heard_back_is_not_taken(world):
 def test_the_request_is_found_and_read_back_by_the_daemon_word_for_word(world):
     d = world.d
     assert asyncio.run(d._attach_words("Hey Pointe, connect to the session about the recent pentest.")) is True
-    line = "Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap."
+    line = "Join pentest-recon, the Claude Code session in pentest-notes on studio?"
     assert d.state.pending_attach[1]["line"] == line and line in _injected(d) and _names(d) == ["shop"]
 
 
@@ -451,3 +452,45 @@ def test_a_mode_that_cannot_act_leaves_the_request_to_the_brain(world, monkeypat
     monkeypatch.setattr(d, "current_mode", lambda: d.modes.MEETING_LISTENING)
     assert asyncio.run(d._attach_words("connect to the session about the recent pentest")) is False
     assert d.state.pending_attach is None
+
+
+# ---------- the yes or pick keeps a permission prompt's rules (Mythos review AV-3, AV-5) ----------
+
+def test_a_yes_after_the_bot_said_something_else_is_not_taken(world):
+    d = world.d
+    _read_back(d, "connect to the session about the recent pentest")
+    asyncio.run(model_says(d, "Shop is idle. Want me to check billing?"))
+    assert asyncio.run(d._attach_words("Yes.")) is False and _names(d) == ["shop"]
+    result = asyncio.run(_ask(d, "Yes."))  # the brain, given the words, calls the tool
+    assert "joined" not in result and _names(d) == ["shop"], result
+
+
+def test_a_pick_after_the_bot_said_something_else_is_not_taken(world):
+    d = world.d
+    _read_back(d, "connect to a session")
+    asyncio.run(model_says(d, "Shop is idle. Want me to check billing?"))
+    assert asyncio.run(d._attach_words("The third one.")) is False and _names(d) == ["shop"]
+    result = asyncio.run(_ask(d, "The third one."))
+    assert "joined" not in result and _names(d) == ["shop"], result
+
+
+def test_a_yes_with_a_condition_joins_nothing(world):
+    d = world.d
+    _read_back(d, "connect to the session about the recent pentest")
+    if not asyncio.run(d._attach_words("Okay, but only for today.")):
+        asyncio.run(_ask(d, "Okay, but only for today."))
+    assert _names(d) == ["shop"]
+
+
+def test_a_typed_yes_joins_nothing(world):
+    d = world.d
+
+    async def push(frame, direction=None):
+        pass
+
+    d.state.conn.injector.push_frame = push
+    run((d, "connect to the session about the recent pentest"))
+    assert client_for(d).post("/voice/say", json={"text": "yes"}).status_code == 200
+    p = Params()
+    asyncio.run(d.add_sessions(p))
+    assert "joined" not in p.results[0] and _names(d) == ["shop"], p.results

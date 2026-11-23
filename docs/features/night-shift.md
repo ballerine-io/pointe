@@ -13,7 +13,7 @@ caps, the ledger, the morning report); `daemon.py` runs the shift, holds the app
 - **Voice:** "Tonight: billing finishes the retry work and opens a PR; docs updates the changelog; start a Codex session
   in shop to fix the flaky test." Each session gets the words you said after its name. Pointe reads the plan back
   ("Night shift. billing: finishes the retry work and opens a PR. … Up to 8 hours and 40 messages. I approve nothing: a
-  session that needs approval waits for you. Start? Say yes or tap.") and starts on your yes. Say no, or anything else,
+  session that needs approval waits for you. Start?") and starts on your yes, or a tap on Start shift. Say no, or anything else,
   and nothing starts.
 - **Page:** Night shift under the sessions on the left. One row per task: the session (or New session, with its agent
   and folder) and what it should get done. Set the hours, the message budget and whether blockers may alert you
@@ -62,8 +62,10 @@ Four buckets, kept in `~/.claude-voice/night-shifts.json` (0600) for the last se
   to 12 hours and waits for you; you can also answer it in the session's own terminal.
 - **Widen what a session may do.** No permission mode is changed and no rule is added. A new session on the plan starts
   as New session starts one: in a folder you already work in, never with prompts skipped.
-- **Start without your yes.** The read-back heard back, typed words and, with the voice lock on, another voice do not
-  count, and that yes never also approves a waiting request.
+- **Start without your yes.** The yes keeps a permission prompt's rules: a yes and nothing else ("yes, but skip the
+  deploy" starts nothing), begun after the read-back ended, with the read-back the last thing Pointe said. The read-back
+  heard back, typed or corrected words and, with the voice lock on, another voice do not count, and that yes never also
+  approves a waiting request.
 - **Run past its caps.** 8 hours and 40 messages unless you set otherwise (at most 12 hours, 200 messages). The
   sheet is where you set them: what a shift started with there is what the next one starts with, by voice too. Past a cap it sends nothing more.
 - **Wake you.** A shift's blockers raise no alert on the phone, the watch or the desktop unless you turn on "Alert me
