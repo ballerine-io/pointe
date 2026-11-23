@@ -775,3 +775,14 @@ def test_a_screen_reader_hears_the_card_the_call_the_rows_and_who_spoke():
     assert a["speakers"] == ["You: ", "Pointe: "] and a["mic"] == "false", a
     assert got[1][0] == "true" and got[1][1] != "s0-shop", got  # not the active one
     assert got[2] == got[1][1], got  # Space switched to the focused row
+
+
+def test_a_phone_page_before_the_first_hello_offers_no_empty_more():
+    """Before the first hello everything More holds is hidden (body.firstrun), and More opened an empty sheet (W6)."""
+    first = fixture(sessions=1, talk=0, connected=False)
+    first["first_call"] = True
+    shown = "[getComputedStyle(document.getElementById('morebtn')).display, [...document.getElementById('more-list').children].filter(c => getComputedStyle(c).display !== 'none').length]"
+    got = _run([(390, "", shown)], first)
+    assert got[0][1] == 0 and got[0][0] == "none", got
+    later = _run([(390, "", shown)], fixture(sessions=1, talk=2, connected=True))
+    assert later[0][0] != "none" and later[0][1] > 0, later
