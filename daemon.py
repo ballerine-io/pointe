@@ -6375,6 +6375,21 @@ def _just_started() -> Session | None:
     return REGISTRY.sessions.get(joined[0])
 
 
+def _unnamed_rename_target(asked: str) -> Session | None:
+    """The session "rename it" means: the one that just started, the only one, the one in focus when the words say
+    "this" or session mode pins it, else the one the conversation is about. Never the active one by default: after a
+    start that did not happen, "rename it to shop-tests" renamed billing, which no one had named (QA round 2)."""
+    if started := _just_started():
+        return started
+    sessions = list(REGISTRY.sessions.values())
+    if len(sessions) == 1:
+        return sessions[0]
+    if REGISTRY.mode == "session" or re.search(r"\b(?:this|current|active)\b|(?<![֐-׿])(?:הזה|הזאת|הנוכחי)(?![֐-׿])",
+                                                asked, re.I):
+        return REGISTRY.active
+    return _thread()
+
+
 async def rename_session(params: FunctionCallParams):
     new_name = str(params.arguments.get("new_name", "")).strip()
     # "Rename that session." ... "You infer it from the context.": the ask can be a turn earlier.
@@ -6394,7 +6409,11 @@ async def rename_session(params: FunctionCallParams):
         options = ", ".join(s.name for g in groups for s in g)
         await params.result_callback({"error": f"Not renamed. Ask which session to rename: {options}."})
         return
-    target = groups[0][0] if groups else _just_started() or REGISTRY.active
+    target = groups[0][0] if groups else _unnamed_rename_target(asked)
+    if target is None and len(REGISTRY.sessions) > 1:
+        await params.result_callback({"error": f"Not renamed: no session is named, and none is in the conversation for "
+                                      f"\"it\" to mean. Ask which session to rename: {_names()}."})
+        return
     if target is None:
         await params.result_callback({"error": "No session to rename."})
         return
