@@ -102,14 +102,19 @@ class AgentArm(Arm):
         return {n: s.stops() for n, s in self.sessions.items()}
 
     async def tick(self) -> None:
-        """A permission dialog left open for 8 s is declined with Escape, the same in every arm (recorded)."""
+        """A permission dialog left open for 5 s is answered as a person at the keyboard would, the same in every arm
+        (recorded): yes when every path it names is inside the session's own repo, Escape otherwise."""
         now = time.time()
         for n, s in self.sessions.items():
             if s.prompt_pending():
                 s.prompt_since = s.prompt_since or now
-                if now - s.prompt_since > 8:
-                    s.decline()
-                    self.emit("prompt_declined", session=n)
+                if now - s.prompt_since > 5:
+                    if s.prompt_stays_in_repo():
+                        s.approve()
+                        self.emit("prompt_approved", session=n)
+                    else:
+                        s.decline()
+                        self.emit("prompt_declined", session=n)
             else:
                 s.prompt_since = None
 

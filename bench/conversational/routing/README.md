@@ -77,8 +77,9 @@ answered; after a delivery, only on a two-session turn delivered in part. A perm
 most two replies per turn. It waits for Pointe's speech to finish before it talks.
 
 Every session's settings (the same file in every arm) deny Read, Edit and Write on the other three repos, and a
-permission dialog left open for 8 s is declined with Escape and recorded (`prompt_declined`), as a person at the
-keyboard who does not approve. Without this, a misrouted agent that reached into a sibling repo held its dialog open
+permission dialog left open for 5 s is answered as a person at the keyboard would, and recorded: approved
+(`prompt_approved`) when every path it names is inside the session's own repo, declined with Escape
+(`prompt_declined`) otherwise. Without this, a misrouted agent that reached into a sibling repo held its dialog open
 until the turn's cap and swallowed the next request.
 
 ## Deviations from the design, stated

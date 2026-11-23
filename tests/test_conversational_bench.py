@@ -359,3 +359,17 @@ def test_permission_dialog_detection_on_a_captured_screen():
     assert not s.prompt_pending()
     s.screen += " Do you want me to commit this? I added the line.\n"
     assert not s.prompt_pending()
+
+
+def test_a_dialog_is_approved_only_when_it_stays_in_the_session_repo():
+    from conversational.core.agent import AgentSession
+
+    repo = Path("/tmp/pccb/run/pointe/c12-r0/repos/depot")
+    s = AgentSession("depot", repo, Path("/tmp/x-home"), "m", "acceptEdits")
+    s.screen = (f"Bash command\n  pwd; git -C /private{repo} ls-files | head; find {repo} -iname 'notes*'\n"
+                " Do you want to proceed?\n > 1. Yes\n   2. No\n Esc to cancel\n")
+    assert s.prompt_pending() and s.prompt_stays_in_repo()
+    s.screen += f"Bash command\n  cat {repo.parent}/tariff-web/NOTES.md\n Do you want to proceed?\n > 1. Yes\n Esc to cancel\n"
+    assert s.prompt_pending() and not s.prompt_stays_in_repo()
+    s.screen += "Bash command\n  cat ~/.ssh/config\n Do you want to proceed?\n > 1. Yes\n Esc to cancel\n"
+    assert not s.prompt_stays_in_repo()

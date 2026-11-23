@@ -136,6 +136,23 @@ class AgentSession:
         i = flat.rfind("doyouwant")
         return i >= 0 and "esctocancel" in flat[i:] and not self.busy()
 
+    def prompt_stays_in_repo(self) -> bool:
+        """Every path the open dialog names is inside this session's own repo (or is /dev/...)."""
+        flat = re.sub(r"\s+", "", self.screen[self.declined_upto:][-6000:])
+        i = flat.lower().rfind("doyouwant")
+        segment = flat[max(0, i - 2500):]
+        own = [p.lower() for p in (str(self.repo), os.path.realpath(self.repo))]
+        for m in re.finditer(r"(/(?:private/)?tmp/|/users/|/home/|/volumes/|~/)", segment, re.I):
+            if not any(segment[m.start():].lower().startswith(o) for o in own):
+                return False
+        return True
+
+    def approve(self) -> None:
+        """Enter on the highlighted first option, "Yes", once."""
+        os.write(self.fd, b"\r")
+        self.declined_upto = len(self.screen)
+        self.prompt_since = None
+
     def decline(self) -> None:
         """Escape, as a person at the keyboard who does not approve."""
         os.write(self.fd, b"\x1b")
