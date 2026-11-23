@@ -3562,7 +3562,7 @@
     $('meetredial').hidden = !!m.ending;
     $('meetsub').replaceChildren([m.ending ? 'Ending: writing the summary…' : '', `${n} speaker${n === 1 ? '' : 's'}`, clock(Date.now() / 1000 - m.since),
       `audio to ${VENDOR[(m.vendors || {}).room_audio] || 'Soniox'}`, m.speaking ? 'speaking to the room' : '',
-      m.owner_known ? '' : 'say “Pointe, that’s me” so it knows your voice'].filter(Boolean).join(' · '));
+      m.owner_known ? '' : 'tap “That was me” on one of your lines so it knows which voice is yours'].filter(Boolean).join(' · '));
     if (!s.connected) $('meetsub').append(' · ', el('span', 'warn', 'The call dropped: reconnect to keep listening. Nothing is heard until then.'));
     for (const mode of ['listening', 'participating']) { $('mm-' + mode).className = m.mode === mode ? 'on' : ''; $('mm-' + mode).setAttribute('aria-pressed', m.mode === mode); }
     if (naming === null) $('speakers').replaceChildren(...(m.speakers || []).map(sp => {

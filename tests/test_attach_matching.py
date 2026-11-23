@@ -190,29 +190,29 @@ def test_words_that_do_not_answer_pick_nothing(said):
 
 def test_one_open_session_is_read_back_as_a_join():
     assert matching.line_one(SESSIONS[0], "studio", NOW) == \
-        "Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap."
+        "Join pentest-recon, the Claude Code session in pentest-notes on studio?"
 
 
 def test_approvals_that_stay_in_the_terminal_are_said():
     f = F("pentest-recon", "pentest-notes", approvals=False)
     assert matching.line_one(f, "studio", NOW) == ("Join pentest-recon, the Claude Code session in pentest-notes on "
-                                                    "studio? Its approvals stay in its terminal. Say yes or tap.")
+                                                    "studio? Its approvals stay in its terminal. Join?")
 
 
 def test_a_reopen_says_the_terminal_window_for_claude_code_only():
     assert matching.line_one(SESSIONS[3], "studio", NOW) == ("Reopen billing-migration, the Claude Code session in billing "
-                                                             "from yesterday, in a new terminal window on studio? Say yes or tap.")
+                                                             "from yesterday, in a new terminal window on studio?")
     codex = F("invoices", "billing", state="recent", when=NOW - 86400, harness="codex")
     assert matching.line_one(codex, "studio", NOW) == \
-        "Reopen invoices, the Codex session in billing from yesterday, on studio? Say yes or tap."
+        "Reopen invoices, the Codex session in billing from yesterday, on studio?"
 
 
 def test_all_is_read_back_with_the_count_and_the_names():
     items = [F("pentest-recon", "p"), F("billing", "b"), F("docs", "d")]
     assert matching.line_all(items, "studio", "claude-code") == \
-        "Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs? Say yes or tap."
+        "Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs?"
     assert matching.line_all(items[:1], "studio", "claude-code") == \
-        "Join the one open Claude Code session on studio, pentest-recon? Say yes or tap."
+        "Join the one open Claude Code session on studio, pentest-recon?"
     many = [F(f"s{i}", "x") for i in range(9)]
     assert "and 3 more?" in matching.line_all(many, "studio", None)
 

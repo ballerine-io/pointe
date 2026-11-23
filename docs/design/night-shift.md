@@ -69,7 +69,7 @@ rules come first, each one in code with a test (`nightshift.py`, `daemon.py`, `t
 
 The read-back (`nightshift.read_back`) is fixed words: "Night shift. billing: finish the retry work and open a PR.
 docs: update the changelog. A new Codex session in shop, named shop-2: fix the flaky test. Up to 8 hours and 40
-messages. I approve nothing: a session that needs approval waits for you. Start? Say yes or tap."
+messages. I approve nothing: a session that needs approval waits for you. Start?"
 
 A plan and the yes or no after its read-back are taken in code (`daemon._night_words`, in the ears, before the model):
 the daemon speaks the read-back itself, so the line the user hears is the line a yes starts. In the first live run the

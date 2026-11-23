@@ -26,7 +26,7 @@ and each one is in code with a test (`newsession.py`, `guards.start_request`, `t
 4. **Pointe's approval rules apply as for a joined session.** A started session is an ordinary session of its
    harness: the same adapter, the same read-out, the same bound yes, the same taps.
 5. **A read-back, bound to the user's own words.** By voice nothing starts on the first sentence. The daemon reads
-   back exactly what it will start ("Start a Claude Code session in shop on studio, named shop-2? Say yes or tap.")
+   back exactly what it will start ("Start a Claude Code session in shop on studio, named shop-2?")
    and starts it on the user's next plain yes within 60 seconds, as close-by-voice does (`disconnect_session`). The
    harness, folder, machine and name come from the user's words (`guards.start_request`), never from the model's
    arguments. The bot's own read-back heard back is not a yes; typed words are not a yes; with the voice lock on, only

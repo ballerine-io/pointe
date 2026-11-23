@@ -560,10 +560,54 @@ def _read_out_cut_off() -> None:
     """The user talked over the bot: they may not have heard the request. Not when it was the early-yes line they cut:
     the request itself was heard (the split answer's second half cuts that line, and must not bring the request again)."""
     session = REGISTRY.active
+    state.said_readback = None  # a read-back cut off may not have been heard either: its yes waits for it again
     if state.last_line_id == KEEP_WINDOW:
         return
     if session and session.permission_id and session.permission_delivered_at != float("inf"):
         session.permission_delivered_at, state.sidetracked = float("inf"), session.permission_id
+
+
+@dataclass
+class Heard:
+    """How the latest words reached Pointe, recorded when they arrived: a tool that runs later (start, close, add, the
+    night shift) judges a yes by these, not by what the bot has said since."""
+    text: str
+    typed: bool  # typed or corrected on a screen (/voice/say, /voice/correct), not spoken
+    after: str | None  # the read-back that was the last thing the bot said when they arrived, if one was
+    early: bool  # begun over the bot, or too soon after it stopped (YES_AFTER_BOT_SECS)
+
+
+def _heard_now(text: str, typed: bool) -> Heard:
+    began = state.words_began_at or state.user_started_at
+    early = ECHO.speaking or time.time() - ECHO.stopped_at < YES_AFTER_BOT_SECS or bool(began and began < ECHO.stopped_at)
+    said = state.said_readback
+    return Heard(text, typed, said[0] if said and said[1] == state.bot_lines else None, early)
+
+
+def _said_readback(line: str) -> None:
+    """A read-back (a start, a close, sessions to add, a night's plan, the meeting's action items) has just been said by
+    the daemon, word for word: a yes may answer it until anything else is said."""
+    state.said_readback = (line, state.bot_lines)
+
+
+def _readback_answer(said: str, line: str, now: bool = False) -> str | None:
+    """The answer to a read-back, under a permission prompt's rules: "allow" only for a yes and nothing else
+    (guards.permission_answer), spoken and not typed, not the bot heard back, with the read-back the last thing the bot
+    said when the words arrived and the words begun after it ended; "deny" for a no; None for anything else. `now`: the
+    words are being taken as they arrive (before the brain), not by a tool later."""
+    heard = _heard_now(said, typed=False) if now else state.heard
+    if heard is None or heard.text != said or heard.typed or state.heard_own_words or ECHO.repeats_bot(said):
+        return None
+    verdict = permission_answer(said)
+    return None if verdict == "allow" and (heard.early or heard.after != line) else verdict
+
+
+def _readback_pick(said: str, line: str, now: bool = False) -> bool:
+    """A pick from a list read back ("the second one", "both") may answer it: under the same rules as its yes, but for
+    the words themselves."""
+    heard = _heard_now(said, typed=False) if now else state.heard
+    return heard is not None and heard.text == said and not heard.typed and not heard.early and heard.after == line \
+        and not state.heard_own_words and not ECHO.repeats_bot(said)
 
 
 USER_GAP_SECS = 1.2  # this long after the user's last word, news may start
@@ -1252,6 +1296,7 @@ def _bot_says(text: str, request_id: str | None = None) -> None:
     """Words on their way to the mouth, told to everything that follows the bot's speech."""
     # The whole text, up front: the echo guard can match all of it, and memory keeps real words (TTS sends word by word).
     ECHO.bot_said(text)
+    state.bot_lines += 1  # any line after a read-back means a yes may answer that line instead (_readback_answer)
     state.floor.said(text, time.time())
     _note_bot_speech(text, request_id)
     last = state.conversation[-1] if state.conversation else None
@@ -1283,9 +1328,11 @@ class BrainFront(FrameProcessor):
                 and state.readback is None)
 
     async def _speak(self, text: str, request_id: str | None = None) -> None:
+        readback = None
         if request_id is None and state.readback is not None:
-            # A start's or a close's read-back is the daemon's words: the model has dropped its question ("Go ahead?").
+            # A start's or a close's read-back is the daemon's words: the model has dropped its question ("Close them?").
             text, state.readback = state.readback, None
+            readback = text
         if current_mode().speech == "never" and request_id is None:
             logger.info("speech held: the mode is silent")  # listening and brainstorm never talk; the words are not logged
             return
@@ -1300,6 +1347,8 @@ class BrainFront(FrameProcessor):
         # in a meeting the bot's words can quote the room, which the log never keeps
         logger.info(f"speak: ({len(text)} chars, meeting)" if state.meeting else f"speak: {text!r}")
         _bot_says(text, request_id)
+        if readback is not None:
+            _said_readback(readback)
         await self.push_frame(TTSSpeakFrame(text))
 
     async def _speak_first(self, first: str) -> None:
@@ -2049,6 +2098,9 @@ class State:
     # (when, session id, the action items, the read-back): "send the action items to billing", sent on the next yes
     pending_actions: tuple[float, str, str, str] | None = None
     readback: str | None = None  # a start's or a close's read-back, said word for word by the next reply (BrainFront._speak)
+    bot_lines: int = 0  # lines the bot has said on this run (_bot_says): a read-back is the last one while this stays
+    said_readback: tuple[str, int] | None = None  # (the read-back, bot_lines after it was said), until anything else is said
+    heard: "Heard | None" = None  # how the latest words arrived, kept until a tool reads them (_readback_answer)
     started_joined: tuple[str, float] | None = None  # (session id, when): the session a start the user asked for, on joining
     last_start_at: float = 0.0
     # A night shift read back and not started yet: (when, {id, line, items, hours, messages, notify}). Starts on the next yes.
@@ -3096,17 +3148,17 @@ def _shift_ask(asked: str) -> dict:
     say_secs = len(line.split()) / nightshift.WORDS_PER_SEC if state.conn is not None else 0.0
     state.pending_shift = (time.time(), {"id": secrets.token_hex(8), "line": line, "checked": checked, "caps": caps,
                                          "say_secs": say_secs})
+    state.readback = line  # said word for word, whatever the model's reply (BrainFront._speak)
     logger.info(f"night shift read back: {line}")
     return {"confirm_first": line, "note": "Nothing is started yet. Say this line once, as it is, and wait. When the "
                                            "user answers, call night_shift again."}
 
 
-async def _shift_answer(pending: tuple[float, dict], said: str) -> dict | None:
+async def _shift_answer(pending: tuple[float, dict], said: str, now: bool = False) -> dict | None:
     """The user's words after the read-back. A plain yes of the owner's starts the shift; a no, or anything that is not
     a new plan, drops it. None: the words are a new plan (asked again), and nothing was decided here."""
     state.pending_shift = None
-    echo = state.heard_own_words or ECHO.repeats_bot(said)
-    verdict = None if echo else consent(said)
+    verdict = _readback_answer(said, pending[1]["line"], now)
     asks_again = nightshift.shift_intent(said) is not None
     if verdict == "allow" and not asks_again:
         state.last_shift_at = time.time()
@@ -3152,10 +3204,10 @@ async def _night_words(heard: str) -> bool:
     from the model is due. The rules are the tool's (night_shift): the same two functions decide."""
     pending = _shift_pending()
     if pending is not None and nightshift.shift_intent(heard) is None:
-        if consent(heard) is None:
+        if _readback_answer(heard, pending[1]["line"], now=True) is None:
             return False  # a question, or something else: the model answers it, and the tool's rules drop the plan
         state.last_utterance = heard  # its language; a yes to the plan is never fresh speech for a send
-        answer = await _shift_answer(pending, heard)
+        answer = await _shift_answer(pending, heard, now=True)
         _remember("user", heard)
         state.last_shift_at = time.time()
         if answer and answer.get("started"):
@@ -3178,6 +3230,7 @@ async def _night_words(heard: str) -> bool:
         await state.conn.injector.inject(f"[read out to the user, by the daemon: tonight's plan, not started yet. Their "
                                          f"next yes or no answers it; the daemon takes it] {line}", False)
         await state.front._speak(line, None)
+        _said_readback(line)
     elif line:
         await say(f"[night shift read back] Say this line once, exactly as it is, and wait for the answer: {line}")
     else:
@@ -4051,8 +4104,9 @@ async def _on_meeting_reconnect() -> None:
         await _on_meeting_turn(m, turn)
     if not heard:
         return  # nobody had spoken on the old stream: no label is lost, and a note would open the meeting with a riddle
-    NOTES.add("thought", "The meeting's audio stream reconnected, so speakers are labelled afresh. Say “Pointe, that's me” "
-                         "to be the owner again.", dedup=False)
+    again = "tap “That was me” on one of your lines" if _meeting_voiceless() else "say “Pointe, that's me”"
+    NOTES.add("thought", f"The meeting's audio stream reconnected, so speakers are labelled afresh. To be the owner again, "
+                         f"{again}.", dedup=False)
 
 
 MEETING_ECHO_SECS = 30.0  # what the bot said this long ago can still be closing as a meeting turn
@@ -4137,6 +4191,14 @@ async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
                 return
             continue
         cmd, _ = meetings.command(words)
+        if cmd == "me" and _meeting_voiceless():
+            # No voiceprint: a label is all there is, and anyone in the room can say "that's me". The seat is the entry
+            # command's speaker's, or a tap's; a voice never takes it, empty or held, before or after a reconnect.
+            if turn.speaker == m.bot and turn.speaker != "?":  # its words passed the echo check: the label is a person's
+                m.bot = None
+            logger.info("meeting: \"that's me\" with no voiceprint (ignored: only a tap binds the owner)")
+            NOTES.add("thought", OWNER_BY_TAP, dedup=False)
+            continue
         if cmd == "me" and turn.speaker == "?":  # every unlabelled turn shares "?": it is nobody in particular
             logger.info("meeting: \"that's me\" from an unlabelled speaker (ignored)")
             NOTES.add("thought", "I couldn't tell who said “that's me”. Say it again.", dedup=False)
@@ -4156,11 +4218,20 @@ async def _on_meeting_turn(m, turn, hold: bool = True) -> None:
             logger.info(f"meeting: addressed by a non-owner (ignored: {cmd})")  # the kind only, never the words
 
 
+OWNER_BY_TAP = ("With no voiceprint I can't tell voices apart, so nobody becomes the owner by saying so. Tap “That was "
+                "me” on one of your lines.")
+
+
+def _meeting_voiceless() -> bool:
+    """No voiceprint to tell the owner by (the lock is off, or nothing is enrolled): _meeting_voice gives no verdict."""
+    return lock_level() == "off" or not VOICE.profiles.items
+
+
 async def _meeting_voice(turn):
     """The voiceprint's verdict on a meeting turn, or None when the lock is off or there is no voiceprint (then the
     label binding alone decides, as before). A turn without audio is a verdict too: not scored, so not the owner.
     The whole turn is scored, not its newest fragment: "Pointe, that's me" alone is often under speaker.MIN_SECS."""
-    if lock_level() == "off" or not VOICE.profiles.items:
+    if _meeting_voiceless():
         return None
     ears = state.meeting_ears
     span = turn.span_ms or turn.audio_ms
@@ -4244,8 +4315,8 @@ async def _meeting_command(words: str, typed: bool = False) -> None:
     elif cmd == "mode":
         await _meeting_mode_by_voice(m, args["mode"], words, typed)
     elif cmd == "me":
-        NOTES.add("thought", "You're bound as the owner." if m.owner else "Say “Pointe, that's me” aloud to bind your voice.",
-                  dedup=False)
+        NOTES.add("thought", "You're bound as the owner." if m.owner else OWNER_BY_TAP if _meeting_voiceless()
+                  else "Say “Pointe, that's me” aloud to bind your voice.", dedup=False)
     elif cmd == "name":
         m.name_speaker(args["label"], args["name"])
     elif cmd == "agenda":
@@ -4411,22 +4482,33 @@ def _actions_pending_view() -> dict | None:
                                         "expires_in": round(newsession.CONFIRM_SECS - (time.time() - pending[0]))}
 
 
-async def _say_exactly(line: str, tag: str) -> None:
-    """Fixed words, said as they are: a read-back the yes then answers."""
+async def _say_exactly(line: str, tag: str, readback: bool = False) -> None:
+    """Fixed words, said as they are: a read-back the yes then answers. Only the brain front says the daemon's own
+    words; a realtime model words them itself, so a read-back it says takes a tap, never a spoken yes."""
     if state.conn is None:
         return
     if FRONT == "brain" and state.front is not None:
         await state.conn.injector.inject(f"[{tag}; said to the user, by the daemon] {line} Do not say it again.", False)
         await state.front._speak(line)
+        if readback:
+            _said_readback(line)
     else:
         await state.conn.injector.inject(f"[{tag}] Say exactly this, nothing else: {_spoken_names(line)}", True)
 
 
+MAX_READ_ACTIONS = 5  # more action items than this are not read out: the end sheet sends them, after a look
+
+
+def _action_said(item: dict) -> str:
+    """One action item as read back: everything meetings.action_items_text sends for it (what, owner, due)."""
+    return (str(item["what"]).strip().rstrip(".") + (f", for {item['owner']}" if item.get("owner") else "")
+            + (f", due {item['due']}" if item.get("due") else ""))
+
+
 def _actions_line(target, items: list[dict]) -> str:
-    said = [str(a["what"]).strip().rstrip(".") for a in items[:3]]
-    more = f", and {len(items) - 3} more" if len(items) > 3 else ""
-    return (f"Send {len(items)} action item{'s' if len(items) != 1 else ''} to {target.name}: {'; '.join(said)}{more}. "
-            f"Send {'them' if len(items) != 1 else 'it'}?")
+    """Every item a yes will send, in full: the room's words reach the session only as the owner heard them."""
+    return (f"Send {len(items)} action item{'s' if len(items) != 1 else ''} to {target.name}: "
+            f"{'; '.join(_action_said(a) for a in items)}. Send {'them' if len(items) != 1 else 'it'}?")
 
 
 async def _send_meeting_actions(target, items: str) -> bool:
@@ -4453,7 +4535,7 @@ async def _meeting_actions_words(text: str) -> bool:
     pending, state.pending_actions = _actions_pending(), None
     asked = meetings.send_actions_intent(text)
     if pending and asked is None:
-        verdict = None if state.heard_own_words or ECHO.repeats_bot(text) else consent(text)
+        verdict = _readback_answer(text, pending[3], now=True)
         if verdict is None:
             return False  # other words: the read-back is dropped, and they are the brain's
         _remember("user", text)
@@ -4488,10 +4570,15 @@ async def _meeting_actions_words(text: str) -> bool:
                   f"names {'no session' if not found else 'more than one session'}. Ask which, in one short sentence: "
                   f"{_names()}. Do not call any tool.")
         return True
+    if len(items) > MAX_READ_ACTIONS:
+        await say(f"[action items not read back] There are {len(items)} action items, too many to read out, and only "
+                  f"what was read out is sent by voice. Tell the user in one short sentence to send them from the end "
+                  f"sheet, on the page or in the app. Do not call any tool.")
+        return True
     line = _actions_line(found[0], items)
     state.pending_actions = (time.time(), found[0].id, meetings.action_items_text(done, NOTES), line)
     logger.info(f"action items read back: {len(items)} for {found[0].name}")
-    await _say_exactly(line, "action items read back")
+    await _say_exactly(line, "action items read back", readback=True)
     return True
 
 
@@ -4534,7 +4621,8 @@ async def _tone(up: bool) -> None:
     await front.push_frame(OutputAudioRawFrame(audio=pcm.astype(np.int16).tobytes(), sample_rate=rate, num_channels=1))
 
 
-async def on_user_utterance(text: str) -> None:
+async def on_user_utterance(text: str, typed: bool = False) -> None:
+    state.heard = _heard_now(text, typed)  # before anything below can speak: what the words answer is fixed now
     _journal_bot_turn()  # what the bot said comes before the reply to it
     logger.info(f"user said: {text!r}")
     state.timing = latency.Turn()
@@ -4569,7 +4657,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         return
     pending = _close_pending() or _start_pending() or _shift_pending() or _attach_pending()
     if pending and sum(at > pending[0] for at, _ in state.recent_said) == 1:
-        return  # the first words after "Closing A and B. Go ahead?" (or "Start ...?") answer that, never a prompt
+        return  # the first words after "Closing A and B. Close them?" (or "Start ...?") answer that, never a prompt
     if not online(session):  # its node handed the prompt back to its terminal when the link dropped
         if permission_answer(text) is not None:
             state.utterance_spent = True
@@ -5480,8 +5568,7 @@ async def disconnect_session(params: FunctionCallParams):
         return
     if pending:
         state.pending_close = None
-        echo = state.heard_own_words or ECHO.repeats_bot(said)
-        verdict = None if echo else consent(said)
+        verdict = _readback_answer(said, pending[2])
         if verdict == "allow" and not name_groups(said, sessions):
             state.last_close_at = time.time()
             await params.result_callback(await _close_all(pending[1]))
@@ -5515,7 +5602,8 @@ async def disconnect_session(params: FunctionCallParams):
         await params.result_callback(await disconnect(ask.close[0], "by voice"))
         return
     kept = [s for s in sessions if s not in ask.close]
-    readback = f"Closing {_said_list(ask.close)}." + (f" Keeping {_said_list(kept)}." if kept else "") + " Go ahead?"
+    readback = f"Closing {_said_list(ask.close)}." + (f" Keeping {_said_list(kept)}." if kept else "") \
+        + (" Close it?" if len(ask.close) == 1 else " Close them?")  # no consent word: heard back, it is no yes
     state.pending_close = (time.time(), [s.id for s in ask.close], readback)
     state.readback = readback
     logger.info(f"close read back: {readback}")
@@ -5698,8 +5786,7 @@ def _start_pending() -> tuple[float, dict] | None:
 def _start_line(what: dict) -> str:
     """The read-back: exactly what a yes will start."""
     return (f"Start {'an' if _harness_title(what['harness'])[0] in 'AEIOU' else 'a'} {_harness_title(what['harness'])} "
-            f"session in {_spoken_names(what['said_folder'])} on {_here()}, named {_spoken_names(what['name'])}? "
-            f"Say yes or tap.")
+            f"session in {_spoken_names(what['said_folder'])} on {_here()}, named {_spoken_names(what['name'])}?")
 
 
 def _start_owner_refusal(refused: str = "Not started", tap: str = "Start") -> str | None:
@@ -5723,8 +5810,7 @@ async def start_session(params: FunctionCallParams):
         return
     if pending:
         state.pending_start = None
-        echo = state.heard_own_words or ECHO.repeats_bot(said)
-        verdict = None if echo else consent(said)
+        verdict = _readback_answer(said, pending[1]["line"])
         asks_again = start_request(said, []) is not None
         if verdict == "allow" and not asks_again:
             state.last_start_at = time.time()
@@ -6031,14 +6117,15 @@ async def _attach_words(text: str) -> bool:
         state.last_utterance = text
         state.recent_said.append((time.time(), text))
         line, nothing = await _read_back_found(ask)
-        await _say_exactly(line or nothing, "add read back" if line else "nothing to add")
+        await _say_exactly(line or nothing, "add read back" if line else "nothing to add", readback=bool(line))
         return True
     pending = _attach_pending()
     if pending is None or state.conn.injector.bot_started_at < pending[0]:
         return False
-    what, verdict = pending[1], consent(text)
+    what = pending[1]
+    verdict = _readback_answer(text, what["line"], now=True)
     if what["choose"]:
-        chosen = matching.choice(text, what["items"])
+        chosen = matching.choice(text, what["items"]) if _readback_pick(text, what["line"], now=True) else None
     else:
         chosen = list(what["items"]) if verdict == "allow" else [] if verdict == "deny" else None
     if chosen is None:
@@ -6072,16 +6159,15 @@ async def add_sessions(params: FunctionCallParams):
     if pending:
         state.pending_attach = None
         what, chosen = pending[1], None
-        if not (state.heard_own_words or ECHO.repeats_bot(said)):
-            verdict = consent(said)
-            if what["choose"]:
-                chosen = matching.choice(said, what["items"])
-                if chosen is None and verdict == "allow" and len(what["items"]) == 1:
-                    chosen = list(what["items"])
-            elif verdict == "allow" and attach_request(said) is None:
+        verdict = _readback_answer(said, what["line"])
+        if what["choose"]:
+            chosen = matching.choice(said, what["items"]) if _readback_pick(said, what["line"]) else None
+            if chosen is None and verdict == "allow" and len(what["items"]) == 1:
                 chosen = list(what["items"])
-            elif verdict == "deny":
-                chosen = []
+        elif verdict == "allow" and attach_request(said) is None:
+            chosen = list(what["items"])
+        elif verdict == "deny":
+            chosen = []
         if chosen:
             state.last_attach_at = time.time()
             refusal = _start_owner_refusal("Not joined", "Join")
@@ -7505,7 +7591,7 @@ async def _user_text(text: str) -> None:
     if await _dump_words(text):
         return
     state.heard_own_words, state.last_speaker = True, None
-    await on_user_utterance(text)
+    await on_user_utterance(text, typed=True)  # state.heard keeps it typed after the flag is cleared: no yes to a read-back
     state.heard_own_words = False
     if state.conn is not None:
         await state.conn.injector.push_frame(InputTextRawFrame(text=text))
@@ -7550,6 +7636,7 @@ async def correct_a_turn(request: Request):
             f"words, say what you did and fix it; otherwise answer what they meant.")
     state.heard_own_words = True
     state.last_utterance, state.last_user_speech_at = text, time.time()  # a send is checked against what they meant
+    state.heard = Heard(text, typed=True, after=None, early=False)  # a corrected "yes" is typed: it confirms nothing
     await state.conn.injector.push_frame(InputTextRawFrame(text=note))
     state.heard_own_words = False
     return {"ok": True, "learned": learned}
@@ -7923,8 +8010,9 @@ async def note_state(request: Request):
 
 @app.post("/voice/conflicts")
 async def conflict_action(request: Request):
-    """Dismiss a conflict card (the pair stays quiet for this call), or ask one side its question: the user's own typed
-    words through the same path as /voice/say, so the brain sends them through the normal gates and they never approve."""
+    """Dismiss a conflict card (the pair stays quiet for this call), or ask one side its question: sent by the daemon to
+    that session, as the card shows it, framed as a conflict check. Never the user's words: it reaches no brain turn, no
+    send check and no parser of the user's speech, and it approves nothing."""
     body = await _body(request)
     action = body.get("action")
     if action not in ("dismiss", "ask"):
@@ -7943,10 +8031,24 @@ async def conflict_action(request: Request):
     if state.meeting is not None:
         raise HTTPException(status_code=409, detail="nothing goes to a session during a meeting")
     name, question, claim = (c.a_name, c.question_a, c.claim_a) if side == "a" else (c.b_name, c.question_b, c.claim_b)
-    # "Send ... this question", not "ask": the brain reads a bare "ask X" as a side question to a read-only copy, which
-    # cannot check what the live session did.
-    await _user_text(f"Send {name} this question: {question or f'is this still true: {claim}?'}")
-    state.typed.add(state.conversation_base + len(state.conversation) - 1)
+    target = next((s for s in REGISTRY.sessions.values() if s.name == name), None)
+    if target is None:
+        raise HTTPException(status_code=409, detail=f"{name} is no longer on the voice")
+    # The question is a reading model's, written over two sessions' reports: it is sent as the card shows it, framed as
+    # a check, and never becomes the user's words (state.last_utterance), which the send check and the start, close and
+    # add parsers read as speech. Sent to the live session, not asked of a read-only copy: only it knows what it did.
+    text = (f"A conflict check, sent by the user from Pointe's conflict card (your report and another session's seem to "
+            f"disagree; the question was written by Pointe, not typed by the user; answer it, and change nothing on its "
+            f"account alone):\n{question or f'Is this still true: {claim}?'}")
+    ok = await _dispatch(target, text)
+    logger.info(f"-> {target.name}: a conflict check ({len(text)} chars, by tap)" if ok
+                else f"the conflict check did not reach {target.name}")
+    _record(text, [target.name] if ok else [], "a conflict check, sent by a tap on its card" if ok
+            else "the conflict check did not reach the session")
+    if not ok:
+        raise HTTPException(status_code=502, detail=f"the question did not reach {name}")
+    await state.conn.injector.inject(f"[conflict check sent by a tap, not by you] {name} was asked whether its report "
+                                     f"still holds. Say nothing about it unless the user asks.", False)
     if side not in c.asked:
         c.asked.append(side)
     return {"asked": True, "conflicts": ALARM.open()}

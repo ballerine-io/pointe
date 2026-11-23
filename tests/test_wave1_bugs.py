@@ -228,7 +228,8 @@ def test_that_s_me_from_an_unlabelled_speaker_is_refused_out_loud(d, monkeypatch
     for t in m.hear([{"is_final": True, "text": " Pointe, that's me.", "speaker": None}], m.since + 1) + m.tick(m.since + 5):
         asyncio.run(d._on_meeting_turn(m, t))
     assert m.owner is None
-    assert any("say it again" in n.text.lower() for n in d.NOTES.items), [n.text for n in d.NOTES.items]
+    # With no voiceprint a voice cannot claim the seat at all: the note says to tap a line instead (Mythos review AV-2).
+    assert any("tap" in n.text.lower() for n in d.NOTES.items), [n.text for n in d.NOTES.items]
 
 
 # ---------- 6. meeting: a Hebrew "tell me what you think" is a think command ----------
@@ -337,12 +338,13 @@ def test_after_a_reconnect_another_voice_on_the_echos_label_does_not_take_the_se
     assert m.owner is None and m.bot == "1:1"
 
 
-def test_without_a_voiceprint_that_s_me_on_the_label_the_echo_took_binds_the_owner(d, monkeypatch):
+def test_without_a_voiceprint_that_s_me_after_a_reconnect_does_not_take_the_seat(d, monkeypatch):
     """The same reconnect with the lock off (no voiceprint: labels decide). The claim passed the echo check, so its label
-    is a person's; bind_owner refused it silently because the echo had taken it first (e2e meeting.py, flaky re-bind)."""
+    is a person's, not the bot's. It used to bind the owner; but the reconnect left the seat empty, and with no voiceprint
+    the next "that's me" won it, whoever said it (Mythos review AV-2). A tap on the page or in the app binds it again."""
     monkeypatch.setattr(d, "PREFS", d.Prefs(Path(d.STATE_DIR) / "prefs-nolock.json"))
     m = _echo_then_claim(d, monkeypatch, OTHER_HZ)
-    assert m.owner == "1:1" and m.bot is None
+    assert m.owner is None and m.bot is None
 
 
 # ---------- 10. logs during a meeting: "repeat cut" is withheld ----------

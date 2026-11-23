@@ -79,6 +79,15 @@ def fake_conn(bot_started_at: float = 0.0, workers=None, request_job=None):
                            workers=workers if workers is not None else {})
 
 
+async def model_says(d, words: str = "Okay.") -> None:
+    """The brain's reply reaches the mouth (BrainFront._speak, the real code): a read-back the daemon set is said in its
+    place, word for word, as on a call."""
+    async def push(frame, direction=None):
+        pass
+
+    await d.BrainFront._speak(SimpleNamespace(push_frame=push), words)
+
+
 class Params:
     """A FunctionCallParams with only what the tool handlers use."""
 

@@ -316,8 +316,7 @@ def read_back(items: list[dict], hours: float, messages: int) -> str:
     for it in items:
         who = (f"A new {it['agent']} session in {it['folder']}, named {it['session']}" if it.get("new") else it["session"])
         lines.append(f"{who}: {it['task'].rstrip('.')}.")
-    return (f"Night shift. {' '.join(lines)} Up to {said_hours(hours)} and {messages} messages. {RULE} Start? "
-            f"Say yes or tap.")
+    return f"Night shift. {' '.join(lines)} Up to {said_hours(hours)} and {messages} messages. {RULE} Start?"
 
 
 # ---------- what a session's report says ----------

@@ -10,7 +10,7 @@ The rules live in `newsession.py` (where a session may start, names), `guards.st
 
 - **Voice:** "start a new Claude Code session in shop", "open a codex session in billing called invoices", "start
   another agent here". Pointe reads back exactly what it will start ("Start a Codex session in billing on studio, named
-  invoices? Say yes or tap.") and starts it on your yes. Say no, or anything else, and nothing starts. With no agent
+  invoices?") and starts it on your yes, or a tap on Start. Say no, or anything else, and nothing starts. With no agent
   named it is Claude Code.
 - **Page:** New session under the sessions on the left. Pick the agent and the folder, give it a name and a first
   prompt if you like, press Start.
@@ -40,8 +40,10 @@ The first time Claude Code runs in a folder it asks whether you trust it, in its
   own default. A Codex configuration that runs with no approvals and no sandbox is refused. A started session's
   prompts are read out and answered as any session's.
 - **Start on a guess.** Two folders with the same name, or a name it did not catch: it asks which. The yes must be
-  yours: the read-back heard back, typed words, and (with the voice lock on) another voice do not count, and that yes
-  never also approves a waiting request.
+  yours, under the rules of a yes to a permission prompt: a yes and nothing else ("okay, except in billing" is not one),
+  begun after the read-back ended, with the read-back the last thing Pointe said. The read-back heard back, typed or
+  corrected words, and (with the voice lock on) another voice do not count, and that yes never also approves a waiting
+  request.
 - **Start in a meeting or in Challenge me.** Those modes cannot act.
 - **Start on another machine.** This version starts sessions on the Mac Pointe runs on. On a node, start it there and
   join it.

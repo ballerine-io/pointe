@@ -28,7 +28,7 @@ import harnesses  # noqa: E402
 import nightshift as ns  # noqa: E402
 from sessions import Session  # noqa: E402
 from test_new_session import _folder, home  # noqa: E402,F401
-from test_orchestrator import Params, add, client_for, d, fake_conn, record_channel, verdicts  # noqa: E402,F401
+from test_orchestrator import Params, add, client_for, d, fake_conn, model_says, record_channel, verdicts  # noqa: E402,F401
 
 ROOT = Path(__file__).resolve().parents[1]
 BILLING = Session(id="b", name="billing", cwd="/w/billing")
@@ -134,7 +134,7 @@ def test_the_read_back_says_the_plan_the_caps_and_the_approval_rule():
                         8, 40)
     assert line == ("Night shift. billing: fix the retry tests. A new Codex session in shop, named shop-2: fix the flaky "
                     "test. Up to 8 hours and 40 messages. I approve nothing: a session that needs approval waits for you. "
-                    "Start? Say yes or tap.")
+                    "Start?")
 
 
 @pytest.mark.parametrize("said", ["stop the night shift", "Pointe, cancel the night shift please.", "end the shift",
@@ -580,13 +580,16 @@ def night(home, monkeypatch):  # noqa: F811
     return home
 
 
-async def _say(d, said: str | None, heard_own_words: bool = False) -> dict:  # noqa: F811
-    """The user said `said` (None: nothing new), then the model called night_shift."""
+async def _say(d, said: str | None, heard_own_words: bool = False, spoken: bool = True) -> dict:  # noqa: F811
+    """The user said `said` (None: nothing new), then the model called night_shift; a read-back is then said (unless
+    `spoken` is False), as the model's reply would say it on a call."""
     if said is not None:
         await d.on_user_utterance(said)
         d.state.heard_own_words = heard_own_words
     p = Params(tasks="whatever the model wrote")
     await d.night_shift(p)
+    if spoken and "confirm_first" in p.results[0]:
+        await model_says(d)
     return p.results[0]
 
 
@@ -599,7 +602,7 @@ async def _settle(d, secs: float = 0.5) -> None:  # noqa: F811
 
 TWO = "Tonight: billing finishes the retry work and opens a PR; docs updates the changelog."
 TWO_LINE = ("Night shift. billing: finishes the retry work and opens a PR. docs: updates the changelog. Up to 8 hours and "
-            "40 messages. I approve nothing: a session that needs approval waits for you. Start? Say yes or tap.")
+            "40 messages. I approve nothing: a session that needs approval waits for you. Start?")
 
 
 def test_the_plan_is_read_back_exactly_and_nothing_is_sent(night):
@@ -1236,3 +1239,68 @@ def test_the_spoken_report_cuts_a_long_answer_and_the_ledger_keeps_all_of_it():
     for part in ns.morning(shift)[1:]:
         assert "w59" not in part["text"] and len(part["text"].split()) < 3 * ns.SAID_WORDS + 20, part["kind"]
     assert "w59" in shift.ledger()["decided"][0]["choice"] and "w59" in shift.ledger()["done"][0]["proof"]
+
+
+# ----- the yes to the plan keeps a permission prompt's rules (Mythos review AV-3, AV-5) -----
+
+async def _answer(d, words: str) -> None:  # noqa: F811
+    """The words after the read-back: taken in code, or, when not, given to the model, which calls night_shift."""
+    if not await d._night_words(words):
+        await _say(d, words)
+
+
+@pytest.mark.parametrize("answer", ["yes, but skip the deploy", "okay, except billing"])
+def test_a_yes_with_a_condition_starts_no_shift(night, monkeypatch, answer):
+    """The plan read back has billing's deploy in it: "yes, but skip the deploy" would start all of it."""
+    d = night.d  # noqa: F811
+    _on_a_call(d, monkeypatch)
+
+    async def scenario():
+        await d._night_words(TWO)
+        await _answer(d, answer)
+
+    asyncio.run(scenario())
+    assert night.sent == [] and d.NIGHT.current is None
+
+
+def test_a_yes_after_the_bot_said_something_else_starts_no_shift(night, monkeypatch):
+    d = night.d  # noqa: F811
+    _on_a_call(d, monkeypatch)
+
+    async def scenario():
+        await d._night_words(TWO)
+        assert await d._night_words("what is billing doing?") is False
+        await d.on_user_utterance("what is billing doing?")
+        await model_says(d, "Billing is running its tests. Want me to check docs too?")
+        await _answer(d, "yes")
+
+    asyncio.run(scenario())
+    assert night.sent == [] and d.NIGHT.current is None
+
+
+def test_a_yes_said_over_the_read_back_starts_no_shift(night, monkeypatch):
+    d = night.d  # noqa: F811
+    _on_a_call(d, monkeypatch)
+
+    async def scenario():
+        await d._night_words(TWO)
+        monkeypatch.setattr(d.ECHO, "speaking", True)  # the read-back is still playing
+        await _answer(d, "yes")
+
+    asyncio.run(scenario())
+    assert night.sent == [] and d.NIGHT.current is None
+
+
+def test_a_typed_yes_starts_no_shift(night, monkeypatch):
+    d = night.d  # noqa: F811
+    _on_a_call(d, monkeypatch)
+
+    async def push(frame, direction=None):
+        pass
+
+    d.state.conn.injector.push_frame = push
+    asyncio.run(d._night_words(TWO))
+    assert client_for(d).post("/voice/say", json={"text": "yes"}).status_code == 200
+    p = Params(tasks="whatever the model wrote")
+    asyncio.run(d.night_shift(p))  # the brain answers the typed words with the tool
+    assert "error" in p.results[0] and night.sent == [] and d.NIGHT.current is None, p.results

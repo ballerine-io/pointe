@@ -37,7 +37,8 @@ With the default brain, a permission prompt is approved only when all of these h
 - A request that is not read out is approved by a tap, never by voice: the page, and the phone app, show the exact
   request with Approve and Deny. A tap counts only for the request still pending. The terminal can answer it too.
 - It was the last thing the bot said. No model wording can open this window, and any other speech closes it. So can being
-  cut off. The request is then read out again.
+  cut off, or a change of the active session (a click, or the active session leaving). The request is then read out
+  again.
 - You said a yes and nothing else, begun after the read-out ended. "Okay, tell me more", "yes, and run the linter", "okay
   so", and "no worries" do not count.
 - The yes came within 120 seconds of the read-out, on the active session.
@@ -61,8 +62,10 @@ that creates a process, so it is fenced on every side, in code with tests (`test
   override, and a Codex thread that would run with no approvals and no sandbox is archived and refused
   (`harnesses.base.refuse_bypass`, `harnesses.codex.bypasses`).
 - **Who.** By voice, always a read-back of the agent, folder, machine and name, taken from the user's own words, then a
-  plain yes within 60 seconds: not the read-back heard back, not typed words, and with the voice lock on only the
-  owner's voice. That yes never approves a waiting request. On the iPhone and the Mac app, Start asks for Face ID or
+  plain yes within 60 seconds, under the rules of a yes to a permission prompt (`daemon._readback_answer`): a yes and
+  nothing else, begun after the read-back ended, with the read-back the last thing the bot said; not the read-back
+  heard back, not typed or corrected words, and with the voice lock on only the owner's voice. The read-back ends in a
+  question with no consent word in it. A realtime front words the read-back itself, so there it takes a tap. That yes never approves a waiting request. On the iPhone and the Mac app, Start asks for Face ID or
   Touch ID. Meeting mode and Challenge me cannot start anything.
 - **Left open.** Code running as you can register a session from any folder (it could before), which makes that folder
   "recent". A paired phone can start a session with a first prompt in an allowed folder; it could already send requests
@@ -76,7 +79,8 @@ allows) its approvals, so it is fenced the same way as a start, in code with tes
 
 - **Who.** By voice, nothing joins on the first sentence: Pointe reads back what it found, from the user's own words,
   and joins on a plain yes within 60 seconds, or on a pick from the list it read back ("the second one", "both"), bound
-  to exactly those sessions. Not the read-back heard back, not typed words, and with the voice lock on only the owner's
+  to exactly those sessions, both under a start's rules (the read-back the last thing said, begun after it). Not the
+  read-back heard back, not typed words, and with the voice lock on only the owner's
   voice; that yes never approves a waiting request. On a screen, a tap sends back a key from the Mac's own listing
   (never a path), and on the iPhone and the Mac app Join and Reopen ask for Face ID or Touch ID. Meeting mode and
   Challenge me cannot add sessions.
@@ -143,6 +147,11 @@ and their words are not shown or kept).
 - **It fails closed.** When it cannot tell (no model yet, a model error or a score slower than 0.6 s, under 0.3 s of
   audio, a damaged voiceprint), the speech counts as not yours for what the level guards. A tap, Face ID, the terminal
   and typed text still work, so this costs convenience, never control. Deleting the voiceprint turns the lock off.
+- **Meetings.** The meeting's owner is the one whose addressed words act (end the meeting, ask a session, speak to the
+  room). With a voiceprint, a turn that strongly matches it binds the owner. Without one, a label is all Pointe has, so
+  only the speaker of the words that started the meeting, or a tap on "That was me", becomes the owner; "Pointe, that's
+  me" by voice never takes the seat, empty or held, before or after the room's stream reconnects. Left open: the
+  speech vendor can file a guest's turn under the owner's label, and with no voiceprint nothing catches that.
 - **It is not authentication.** It is a check against the bystander (a spouse, a colleague, a TV), not an attacker: a
   recording of your voice can pass it, and a short "yes" is weakly scored (it counts on its own only after a strong
   match within a minute, on the same device's voiceprint). Measured on synthetic voices only: see
@@ -375,7 +384,7 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   heard), approve, the brain dump (`/voice/dump`, `/voice/listen`), switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
   enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
   the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), the dictionary (`/voice/dictionary`: list, add, edit, delete), drive mode (`/voice/drive`: on, off), and the conflict alarm (`/voice/conflicts`: dismiss,
-  or ask one side as typed words, which never approve). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
+  or ask one side: the card's question, sent to that session as a conflict check, never as the user's words, and it approves nothing). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
   `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it
