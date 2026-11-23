@@ -1,0 +1,12 @@
+{
+ "benchmark": "bargein",
+ "pointe_commit": "cdfba3ded2d1208d62ca5165f0d9877c665b7f2a",
+ "router_prompt_commit": "cdfba3ded2d1208d62ca5165f0d9877c665b7f2a",
+ "unpublished_seed_manifest_sha256": null,
+ "item_order_seed": 20261123,
+ "claude_code_version": "2.1.330",
+ "agent_model": "claude-haiku-5-5",
+ "items_sha256": "95cf1f3775fb67e3ce6a2383a34b14b9947b34c17728497907364e37dabc347c",
+ "audio_lock_sha256": "b37b0db03d4b59df37d9e937f72821a9744504417994d4a9fb10a6f3a6093e45",
+ "frozen_on": "2026-11-23"
+}
