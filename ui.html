@@ -507,7 +507,8 @@
   .ask .what span:not(.agent) { color: var(--accent); font-weight: 600; white-space: nowrap; }
   .ask .what .agent { margin-left: 0; }
   .ask .need { color: var(--muted); margin-top: 4px; font-size: 13px; }
-  .ask .need.exact.prose { font-family: var(--font); font-size: 14px; }
+  /* a read-back (a new session's, a night shift's) is a sentence to read, as the app's StartCard shows it: no code box */
+  .ask .need.readback { color: var(--text); font-size: 14px; line-height: 1.45; margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto; }
   .ask .need.exact { display: block; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto;
                      font: 12.5px/1.5 var(--mono); background: var(--raised); border-radius: 12px; padding: 8px 10px; margin-top: 8px; }
   .ask .answer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -2068,7 +2069,7 @@
     startAskShown = key;
     if (!p) { $('startask').replaceChildren(); return; }
     const c = NEW_SESSION_COPY, b = el('div', 'ask'), row = el('div', 'answer');
-    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need readback', p.line));
     for (const [label, cls, body] of [[c.cancel, 'deny', {cancel: p.id}], [c.start, 'allow', {confirm: p.id}]]) {
       const button = el('button', cls, label);
       button.onclick = async () => {
@@ -2302,7 +2303,7 @@
     shiftAskShown = pkey;
     if (!p) { $('shiftask').replaceChildren(); return; }
     const b = el('div', 'ask'), row = el('div', 'answer');
-    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact prose', p.line));  // word for word, but prose
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need readback', p.line));  // word for word, but prose
     for (const [label, cls, action] of [[c.cancel, 'deny', 'cancel'], [c.start, 'allow', 'confirm']]) {
       const button = el('button', cls, label);
       button.onclick = async () => {

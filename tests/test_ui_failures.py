@@ -107,13 +107,15 @@ def test_a_typed_line_that_was_not_sent_stays_in_the_box_with_the_reason():
 
 KEY = """(() => { const m = getComputedStyle(document.getElementById('mic')), f = document.getElementById('fixkey').getBoundingClientRect();
   return {state: document.body.dataset.state, micBg: m.backgroundColor, fix: [Math.round(f.width), Math.round(f.height)],
-          shiftFont: (document.querySelector('#shiftask .need.exact') ? getComputedStyle(document.querySelector('#shiftask .need.exact')).fontFamily : '')}; })()"""
+          readbacks: ['#shiftask', '#startask'].map(id => { const e = document.querySelector(id + ' .ask > .need'), cs = e && getComputedStyle(e);
+            return cs ? [cs.fontFamily.toLowerCase().includes('mono') || cs.fontFamily.toLowerCase().includes('menlo'), cs.backgroundColor] : null; })}; })()"""
 
 
 def test_a_refused_key_does_not_look_like_a_live_mic_and_its_fix_is_a_button_and_a_read_back_is_prose():
     status = fixture(sessions=2, talk=2, connected=True)
     status["key_refused"] = {"vendor": "gemini", "ears": True}
     status["shift_pending"] = {"id": "p9", "expires_in": 50, "items": [], "line": "Night shift. docs: update the changelog. Start? Say yes or tap."}
+    status["start_pending"] = {"id": "n3", "line": "Claude Code in shop, on studio. Start it? Say yes or tap."}
 
     async def run():
         stub, browser, page = await _page(status)
@@ -126,4 +128,5 @@ def test_a_refused_key_does_not_look_like_a_live_mic_and_its_fix_is_a_button_and
     assert got["state"] == "broken", got
     assert got["micBg"] not in ("rgb(255, 90, 1)",), got  # the live orange
     assert got["fix"][1] >= 36, got
-    assert "mono" not in got["shiftFont"].lower() and "menlo" not in got["shiftFont"].lower(), got
+    # both read-backs are sentences, alike, as the app's StartCard: no monospace, no code box (QA round 5)
+    assert got["readbacks"] == [[False, "rgba(0, 0, 0, 0)"]] * 2, got
