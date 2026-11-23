@@ -25,3 +25,12 @@ harnesses.claude_code.MANAGED_SETTINGS = _STATE / "managed-settings.json"
 import mac  # noqa: E402
 
 mac.SYSTEM = False  # nor this Mac's idle time, power or sleep
+
+
+def pytest_runtest_setup(item):
+    """A conversational benchmark's tests run with its own harness importable (tests/conv_suite.py)."""
+    key = getattr(getattr(item, "module", None), "CONV_SUITE", None)
+    if key:
+        import conv_suite
+
+        conv_suite.enter(key)

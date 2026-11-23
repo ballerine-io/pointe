@@ -10,15 +10,16 @@ key-shaped text; the generated pages match the rows; the Pointe adapter refuses 
 import asyncio
 import json
 import math
-import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 
+import conv_suite
+
 ROOT = Path(__file__).resolve().parents[1]
-BENCH = ROOT / "bench" / "conversational" / "hlk"
-sys.path.insert(0, str(BENCH))
+CONV_SUITE = "hlk"
+BENCH = conv_suite.enter(CONV_SUITE)
 
 import hlk  # noqa: E402
 from core import audit, ledger, scrub, stats, verify  # noqa: E402

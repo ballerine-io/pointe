@@ -7,14 +7,15 @@ statistics, the budget gate, the audit, the scrubber and the port guard do what 
 
 import json
 import shutil
-import sys
 from pathlib import Path
 
 import pytest
 
+import conv_suite
+
 ROOT = Path(__file__).resolve().parents[1]
-BENCH = ROOT / "bench" / "conversational" / "identifiers"
-sys.path.insert(0, str(BENCH))
+CONV_SUITE = "identifiers"
+BENCH = conv_suite.enter(CONV_SUITE)
 
 from adapters.echo import Echo  # noqa: E402
 from core import audit, ledger, runner, scrub, stats, user  # noqa: E402

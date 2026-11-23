@@ -14,9 +14,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import conv_suite
+
 ROOT = Path(__file__).resolve().parents[1]
-BENCH = ROOT / "bench" / "conversational" / "actions"
-sys.path.insert(0, str(BENCH))
+CONV_SUITE = "actions"
+BENCH = conv_suite.enter(CONV_SUITE)
 
 from actions import check, fixture, protocol  # noqa: E402
 from adapters.naive import rule  # noqa: E402

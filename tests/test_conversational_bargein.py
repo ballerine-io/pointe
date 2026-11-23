@@ -3,7 +3,6 @@ adapter's latency, the budget gate, isolation guards, and the committed rows. No
 
 import json
 import subprocess
-import sys
 import tomllib
 import types
 from pathlib import Path
@@ -11,9 +10,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import conv_suite
+
 ROOT = Path(__file__).resolve().parents[1]
-CONV = ROOT / "bench" / "conversational" / "bargein"
-sys.path.insert(0, str(CONV))
+CONV_SUITE = "bargein"
+CONV = conv_suite.enter(CONV_SUITE)
 
 from bargein import check, facts  # noqa: E402
 from core import ledger, runner, scrub, stats, user  # noqa: E402
