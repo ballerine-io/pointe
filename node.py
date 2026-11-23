@@ -186,6 +186,17 @@ def _config(state: Path) -> dict:
 
 # ---------- the node ----------
 
+def _unreachable(e: Exception) -> str:
+    """Why the hub cannot be reached, in words: "ClientConnectorError" told a person nothing (QA round 2)."""
+    if isinstance(e, asyncio.TimeoutError):
+        return "it did not answer in time"
+    if isinstance(e, aiohttp.ClientConnectorError):
+        return "nothing answers there (is it on, and on this network?)"
+    if isinstance(e, aiohttp.WSServerHandshakeError):
+        return f"it refused the link (HTTP {e.status})"
+    return "the connection failed"
+
+
 @dataclass
 class Tail:
     path: str
@@ -499,7 +510,7 @@ class Node:
             self.link_error = ("the hub's certificate is not the one paired. If the hub re-paired or rotated its "
                                "certificate (pointe pair rotate), pair again: pointe node leave, then a new invite")
         except (aiohttp.ClientError, OSError, asyncio.TimeoutError, ValueError) as e:
-            self.link_error = f"cannot reach {hub.get('name')} at {hub['host']}: {type(e).__name__}"
+            self.link_error = f"cannot reach {hub.get('name')} at {hub['host']}: {_unreachable(e)}"
         finally:
             self._unlinked()
         if self.link_error:
@@ -582,6 +593,7 @@ class Node:
         self.ws = None
         self.linked.clear()
         self.call_up = False
+        self.rtt_ms = None  # a link that is down has no round trip: the last one measured is no longer true
         for tail in self.tails.values():
             tail.offset = None  # the hub says where to resume
         now = asyncio.get_running_loop().time()
