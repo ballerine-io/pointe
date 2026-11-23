@@ -4163,3 +4163,11 @@ def test_a_report_the_user_talked_over_is_given_again_whole_not_cut_as_a_repeat(
     asyncio.run(b.turn("[resume] You were cut off while reporting a session's result. They heard only this much: "
                        "'cv repo: Pricing is two'. Say you are coming back to it, then give the rest."))
     assert spoken == [comeback]
+
+
+def test_a_refused_route_is_recorded_in_plain_words(d):
+    """Recent requests shows why a request was not sent; "off-thread" and "ambiguous" are the router's own words."""
+    notes = {how: d._unrouted_note(how) for how in ("off-thread", "ambiguous", "closed", "session mode", "active")}
+    assert all(n.startswith("blocked: ") for n in notes.values()), notes
+    assert not [n for n in notes.values() if "off-thread" in n or "ambiguous" in n or n.endswith((": active", ": session mode"))], notes
+    assert notes["off-thread"] == "blocked: sounded like another session; asked which"

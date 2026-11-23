@@ -408,7 +408,7 @@
   /* Before Pointe has answered anyone on this Mac (status.first_call): Connect, the mic, Type, Settings and Sessions only. */
   body.firstrun #listen, body.firstrun #meetbtn, body.firstrun #briefbtn, body.firstrun .micmode, body.firstrun #chlbtn,
   body.firstrun #whisperbtn, body.firstrun #polishrow, body.firstrun #ctx, body.firstrun #modesec,
-  body.firstrun #m-night, body.firstrun #m-add, body.firstrun #morebtn { display: none !important; }  /* More would hold only what is hidden */
+  body.firstrun #m-night, body.firstrun #m-add, body.firstrun #morebtn, body.firstrun #connect-phone { display: none !important; }  /* More would hold only what is hidden */
   [data-state=connecting] .top .dot, [data-state=reconnecting] .top .dot { background: var(--orange); animation: breathe 1s infinite; }
   .state { font: 400 20px/1.2 var(--display); letter-spacing: -.015em; }
   [data-state=muted] .state { color: var(--accent); }
@@ -2428,7 +2428,7 @@
     // (b) the key this page or phone holds is refused
     notPaired: 'This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open.',
     // (c) the Mac has no listener for the phone yet
-    noListener: 'Your phone cannot reach this Mac yet: Settings → Phone → Connect your phone.',
+    noListener: 'Optional: talk from your phone too. Settings → Phone.',
     // (d) no microphone to start the call on
     micDenied: 'The browser blocked the microphone. Allow it for this page, then press Connect.',
     noMic: 'No microphone found. Plug one in, then press Connect.',

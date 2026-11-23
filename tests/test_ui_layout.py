@@ -500,3 +500,12 @@ def test_model_keys_states_line_up_and_a_setup_reads_as_a_choice():
     for r in _run([(1440, "openSettings();", KEYROWS), (390, "", KEYROWS)], status):
         assert r["states"] == 1 and r["names"] == [1, 1] and all(abs(d) <= 1 for d in r["helpIndent"]), r
         assert r["use"] and all(h >= 36 for h in r["use"]), r
+
+
+def test_a_first_open_offers_no_phone_errand_and_a_later_one_says_the_phone_is_optional():
+    phone = "(() => { const b = document.getElementById('connect-phone'); return [!!b.offsetParent, b.textContent]; })()"
+    first = {**fixture(sessions=2), "first_call": True, "phone_listener": False}
+    later = {**first, "first_call": False}
+    (a,), (b,) = (_run([(1440, "", phone)], s) for s in (first, later))
+    assert a[0] is False, a
+    assert b[0] is True and b[1].startswith("Optional:"), b

@@ -4950,6 +4950,15 @@ def _unrouted(how: str, said: str) -> str:
     return "No session to send to."
 
 
+UNROUTED_NOTES = {"off-thread": "sounded like another session; asked which", "ambiguous": "fits more than one session; asked which",
+                  "closed": "that session closed", "session mode": "no session in focus", "active": "no session to send to"}
+
+
+def _unrouted_note(how: str) -> str:
+    """Recent requests' line for a request the router sent nowhere, in the user's words rather than the router's."""
+    return f"blocked: {UNROUTED_NOTES.get(how, how)}"
+
+
 def _ask_which(said: str, tied: list[Session]) -> str:
     """"Go to devbox" with two sessions there: ask which on devbox."""
     on = machines_named(said, tied) if tied else []
@@ -5218,7 +5227,7 @@ async def _send_now(message: str) -> dict:
     if not targets:
         picked = next((s.id for s in REGISTRY.sessions.values() if state.off_thread and s.name == state.off_thread[1]), None)
         state.pending_route = (time.time(), picked if how == "off-thread" else None, message)
-        _record(message, [], f"blocked: {how}")
+        _record(message, [], _unrouted_note(how))
         return {"error": _unrouted(how, said)}
     offline = [t for t in targets if not online(t)]
     if offline and len(offline) == len(targets):
