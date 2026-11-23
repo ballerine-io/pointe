@@ -248,3 +248,18 @@ def test_a_hello_or_a_mic_check_is_only_a_hello(d, words):
 @pytest.mark.parametrize("words", ["Rename birch to payments.", "What is billing doing?", "Hello, what is billing doing?"])
 def test_a_request_is_not_only_a_hello(d, words):
     assert not d._only_a_hello(words)
+
+
+def test_a_new_call_or_a_later_report_is_its_own_bubble(d, monkeypatch):
+    """QA round 5: after a reconnect the greeting was glued to the last call's answer ('Red. Connected. Run slash...'),
+    and a send's 'Sent.' and its report 15 s later read as one bubble, so the send looked done at once. Words of one
+    reply still join: they arrive a word or a sentence at a time while it plays."""
+    monkeypatch.setattr(d.state, "conversation", [])
+    d._bot_says("Red.")
+    d._call_ended()
+    d._bot_says("Connected.")
+    assert [text.strip() for _, text in d.state.conversation] == ["Red.", "Connected."]
+    d._bot_says("Sent to billing.")
+    d.state.assistant_at -= 15  # the report comes 15 s later
+    d._bot_says("Billing finished: the tests pass.")
+    assert [text.strip() for _, text in d.state.conversation] == ["Red.", "Connected. Sent to billing.", "Billing finished: the tests pass."]

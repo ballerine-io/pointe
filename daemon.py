@@ -1896,10 +1896,17 @@ def _remember(who: str, text: str) -> None:
         DICTIONARY.heard(text)
     else:
         SHOWS.heard(text)
-    if state.conversation and state.conversation[-1][0] == who == "assistant":
+    # The words of one reply arrive a word or a sentence at a time while it plays, and join one turn. A new call, or a
+    # pause this long (a send's "Sent." and its report later), starts a turn of its own.
+    now = time.monotonic()
+    if (state.conversation and state.conversation[-1][0] == who == "assistant" and not state.call_break
+            and now - state.assistant_at < 4.0):
         state.conversation[-1] = (who, state.conversation[-1][1] + text)
     else:
         state.conversation.append((who, text))
+    state.call_break = False
+    if who == "assistant":
+        state.assistant_at = now
     if len(state.conversation) > 24:
         dropped = len(state.conversation) - 24
         del state.conversation[:dropped]
@@ -2028,6 +2035,8 @@ class State:
     sent: list[str] = field(default_factory=list)
     conversation: list[tuple[str, str]] = field(default_factory=list)  # (who, words), newest last
     bot_logged: tuple | None = None  # the bot turn last written to the journal
+    call_break: bool = False  # a call ended since the bot last spoke: the next call's first words start their own turn
+    assistant_at: float = 0.0  # time.monotonic() of the bot's last words in `conversation`
     dispatches: list[dict] = field(default_factory=list)  # shown in the voice tab, newest last
     liveness: asyncio.Task | None = None
     nudger: asyncio.Task | None = None
@@ -2779,6 +2788,7 @@ async def _briefing_scheduler() -> None:
 
 def _call_ended() -> None:
     """"The night" starts here; a briefing does not outlive its call."""
+    state.call_break = True
     BRIEFINGS.call_ended(time.time())
     _notify_call()  # the nodes stop forwarding prompts: they stay in their terminals
     state.briefing_play = None
