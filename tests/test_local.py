@@ -216,6 +216,7 @@ def test_the_text_model_server_starts_offline(state, monkeypatch, tmp_path):
     monkeypatch.setattr(local, "answering", lambda *a: bool(seen))
     monkeypatch.setattr(local, "_warm", lambda m: True)
     monkeypatch.setenv("GOOGLE_API_KEY", "x")
+    _pinned_cache(tmp_path, monkeypatch)
     (state / "local").mkdir()
     assert local.start(quiet=True)
     assert seen["HF_HUB_OFFLINE"] == "1" and "GOOGLE_API_KEY" not in seen
@@ -323,3 +324,75 @@ def test_status_carries_the_local_summary_without_reading_the_disk_on_every_poll
     for _ in range(3):
         assert client.get("/voice/status").json()["local"] == {"mode": "off", "models": None, "line": "Local mode: off"}
     assert len(calls) == 1
+
+
+def _pinned_cache(tmp_path, monkeypatch, repo=local.TEXT_MODEL):
+    """A Hugging Face cache as `assets.snapshot` leaves it on a fresh Mac: the pinned commit's folder and no refs/main."""
+    import assets
+
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "hub"))
+    snapshot = tmp_path / "hub" / f"models--{repo.replace('/', '--')}" / "snapshots" / assets.revision(repo)
+    snapshot.mkdir(parents=True)
+    (snapshot / "config.json").write_text("{}")
+    return snapshot
+
+
+def _fake_server(monkeypatch, tmp_path, seen, *, warm):
+    class Proc:
+        pid = 1
+
+        def poll(self):
+            return None
+
+    def popen(args, **kwargs):
+        seen.update(args=args, cwd=kwargs.get("cwd"))
+        return Proc()
+
+    bin_ = tmp_path / "server"
+    bin_.write_text("")
+    monkeypatch.setattr(local, "server_bin", lambda: bin_)
+    monkeypatch.setattr(local.subprocess, "Popen", popen)
+    monkeypatch.setattr(local, "answering", lambda *a: bool(seen))
+    monkeypatch.setattr(local, "_warm", warm)
+    monkeypatch.setattr(local.time, "sleep", lambda s: None)
+    stopped = []
+    monkeypatch.setattr(local, "stop", lambda: stopped.append(True))
+    return stopped
+
+
+def test_the_server_loads_the_pinned_download_on_a_fresh_cache_with_no_refs_main(state, monkeypatch, tmp_path):
+    """mlx-lm reads a model name that is not a path at `main`; offline, with no refs/main, it cannot load it at all. The
+    server runs where the model's name is a path to the pinned snapshot, for its --model and each request's name."""
+    snapshot = _pinned_cache(tmp_path, monkeypatch)
+    seen = {}
+    _fake_server(monkeypatch, tmp_path, seen, warm=lambda m: True)
+    (state / "local").mkdir()
+    assert local.start(quiet=True)
+    model = seen["args"][seen["args"].index("--model") + 1]
+    assert model == local.TEXT_MODEL
+    assert (Path(seen["cwd"]) / model).resolve() == snapshot.resolve()
+
+
+def test_a_server_that_answers_but_cannot_load_the_model_fails_at_once_not_after_ten_minutes(state, monkeypatch, tmp_path,
+                                                                                            capsys):
+    _pinned_cache(tmp_path, monkeypatch)
+    seen, warmed = {}, []
+    stopped = _fake_server(monkeypatch, tmp_path, seen, warm=lambda m: warmed.append(m) or False)
+    (state / "local").mkdir()
+    assert not local.start(quiet=True)
+    assert len(warmed) == local.WARM_TRIES and stopped
+    assert "could not load" in capsys.readouterr().err
+
+
+def test_a_failed_start_leaves_the_previous_setup_in_place(state, monkeypatch, tmp_path):
+    import types
+
+    monkeypatch.setitem(sys.modules, "huggingface_hub", types.ModuleType("huggingface_hub"))
+    (state / "config.json").write_text(json.dumps({"setup": "free"}))
+    monkeypatch.setattr(local, "supported", lambda m: None)
+    monkeypatch.setattr(local, "cached_bytes", lambda repo: 1)
+    monkeypatch.setattr(local, "kokoro_bytes", lambda: 1)
+    monkeypatch.setattr(local, "server_bin", lambda: tmp_path)
+    monkeypatch.setattr(local, "start", lambda m: False)
+    assert local.install() == 1
+    assert json.loads((state / "config.json").read_text()) == {"setup": "free"} and not local.on()
