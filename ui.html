@@ -170,7 +170,8 @@
                font: 400 20px/1 var(--font); cursor: pointer; place-items: center; flex: none; padding: 0; position: relative; }
   #sideclose:hover { background: var(--raised2); color: var(--text); }
   .logo { width: 24px; height: 24px; flex: none; color: var(--text); }  /* the Chorus mark's compact drawing (docs/brand/logo.md) */
-  .brand .name { margin: 0; font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); }
+  .brand .name { font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); margin: 0; }
+  #night-h:focus { outline: none; }
   .brand .serif { font-size: 12.5px; color: var(--dim); white-space: nowrap; margin-top: 2px; }
   .brand .ver { font: 500 10.5px var(--font); font-style: normal; color: var(--dim); letter-spacing: .02em; }
   .brand .ver:empty { display: none; }
@@ -1398,7 +1399,7 @@
         <section class="group" id="g-newsessions">
           <h3>New sessions</h3>
           <div class="card">
-            <div class="field wide">Folders<textarea id="pref-folders" spellcheck="false" placeholder="/Users/you/work/shop"></textarea></div>
+            <div class="field wide">Folders<textarea id="pref-folders" spellcheck="false" placeholder="/Users/you/work/shop" aria-label="Folders a new session may start in"></textarea></div>
           </div>
           <div class="note foot" id="pref-folders-help"></div>
         </section>
@@ -1500,7 +1501,7 @@
 </div>
 <div class="sheetbg" id="nightsheet" onclick="if (event.target === this) closeSheet('nightsheet')">
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="night-h">
-    <h2 id="night-h"><span id="night-title"></span><button class="x" onclick="closeSheet('nightsheet')" aria-label="Close">×</button></h2>
+    <h2 id="night-h" tabindex="-1"><span id="night-title"></span><button class="x" onclick="closeSheet('nightsheet')" aria-label="Close">×</button></h2>
     <div id="night-form" hidden>
       <div class="lede" id="night-lede"></div>
       <div id="night-rows"></div>
@@ -1640,7 +1641,7 @@
   <div id="briefalert"></div>
   <div id="whispercard"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
-  <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" aria-label="Message to the voice" placeholder="Type to the voice…" autocomplete="off" disabled>
+  <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" placeholder="Type to the voice…" aria-label="Type to the voice" autocomplete="off" disabled>
     <button id="typed-send" disabled>Send</button></form>
   <div id="typed-err" role="alert"></div>
   <nav class="dock" aria-label="Call controls">
@@ -2278,7 +2279,7 @@
                                   ['night-cancel', c.cancel], ['night-start', c.start], ['night-stop', c.stop], ['night-new', c.start],
                                   ['night-history-h', c.history]]) text(where, words);
     $('night-err').textContent = ''; $('night-lerr').textContent = '';
-    if (!$('nightsheet').classList.contains('open')) openSheet('nightsheet', 'night-title');
+    if (!$('nightsheet').classList.contains('open')) openSheet('nightsheet', 'night-h');  // a heading takes focus only with a tabindex: the span left it on the opener
     nightData = await fetch('/voice/night-shift' + (id ? `?id=${encodeURIComponent(id)}` : '')).then(r => r.ok ? r.json() : null).catch(() => null);
     if (!nightData) { nightForm(); $('night-err').textContent = 'Pointe on this Mac does not offer this yet: update it.'; return; }
     if (nightData.shift) nightLedger(); else nightForm();

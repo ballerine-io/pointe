@@ -435,3 +435,17 @@ def test_the_machine_invite_copies_its_join_line():
         return {shown, copied: window.__copied, label: b && b.textContent, line: document.getElementById('mach-link').textContent};
     })()"""))
     assert got["shown"] and got["copied"] == got["line"] == "pointe node join 'pointe-join://studio.example:7443/K7Q-2PX'" and got["label"] == "Copied", got
+
+
+@needs_chrome
+def test_the_page_has_a_title_heading_named_fields_and_the_night_sheet_takes_focus():
+    got = asyncio.run(_render("""(async () => {
+        const h1 = document.querySelector('h1');
+        const named = id => { const e = document.getElementById(id); return e.getAttribute('aria-label') || (e.labels && e.labels[0] && e.labels[0].textContent.trim()) || ''; };
+        document.getElementById('m-night').focus();
+        await openNightShift(); await new Promise(r => setTimeout(r, 200));
+        return {h1: h1 && h1.textContent.trim(), typed: named('typed'), folders: named('pref-folders'),
+                focusInSheet: document.getElementById('nightsheet').contains(document.activeElement)};
+    })()"""))
+    assert got["h1"] == "Pointe" and got["typed"] == "Type to the voice" and got["folders"] == "Folders a new session may start in", got
+    assert got["focusInSheet"], got
