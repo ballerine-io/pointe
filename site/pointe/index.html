@@ -159,6 +159,51 @@
         <p class="lead">From typing at your agents to talking with them: one day, from the first call in the morning
           to the briefing the next one.</p>
       </div>
+      <article class="scene" data-play data-total="28.59" aria-labelledby="sc-desk-h">
+        <header class="scene-head">
+          <p class="kicker">At the desk</p>
+          <h3 id="sc-desk-h" class="h2">Five agents, one conversation, no tab switching.</h3>
+        </header>
+        <div class="scene-panel">
+          <figure class="scene-clip">
+            <img src="day/switch.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: at her desk she leans back from the keyboard and talks.">
+            <video muted loop playsinline preload="none" poster="day/switch.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+              <source src="day/switch.webm" type="video/webm"><source src="day/switch.mp4" type="video/mp4"></video>
+            <span class="ai">AI-generated footage</span>
+          </figure>
+          <div class="scene-talk">
+            <p class="kicker">What is said</p>
+            <ol class="scene-lines" aria-label="The conversation">
+            <li class="you" data-t="1.05" data-end="2.73"><b>You</b><span>What's going on everywhere?</span></li>
+            <li class="pointe" data-t="3.63" data-end="11.47"><b>Pointe</b><span>Billing finished the retry fix, and its tests pass. Docs is idle. Shop, api and ingest are working.</span></li>
+            <li class="you" data-t="12.17" data-end="16.73"><b>You</b><span>Billing, open the pull request. And docs, update the changelog.</span></li>
+            <li class="pointe" data-t="17.63" data-end="20.11"><b>Pointe</b><span>Sent to billing. Sent to docs.</span></li>
+            <li class="pointe" data-t="23.31" data-end="27.39"><b>Pointe</b><span>Docs updated the changelog. Billing opened the pull request.</span></li>
+            </ol>
+          </div>
+          <div class="scene-agents">
+            <p class="kicker">What the sessions do</p>
+            <ul class="scene-rows" aria-label="Her five sessions">
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>billing</b><span class="sc-ag">Claude Code · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0" data-state="done">retry fix done · tests pass</i><i data-at="18.91" data-state="working">opening the pull request</i><i data-at="22.41" data-state="done">pull request opened</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">O</span><b>docs</b><span class="sc-ag">OpenCode · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0" data-state="idle">nothing to do</i><i data-at="20.11" data-state="working">updating the changelog</i><i data-at="21.41" data-state="done">changelog updated</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">X</span><b>shop</b><span class="sc-ag">Codex · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0" data-state="working">fixing the flaky test</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>api</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0" data-state="working">adding the retry budget</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>ingest</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0" data-state="working">running its tests</i><i data-at="16.73" data-state="done">tests pass</i></span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="scene-foot">
+          <div class="scene-controls">
+            <button type="button" class="btn" data-sound hidden>Play with sound</button>
+            <span class="scene-bar" aria-hidden="true"><i></i></span>
+            <audio preload="none" src="scenes/desk.mp3"></audio>
+          </div>
+          <p class="scene-out"><b class="figure">0 tabs</b><span class="body">opened. She asked once, sent two requests by name, and heard both reports, without looking at a session.</span></p>
+        </div>
+        <p class="small note">The voices are synthesized: Pointe's is the product's default voice, hers is a stock voice. The wait
+          between a request and its report is shortened. The sessions are invented, and their rows are drawn in the
+          product's look; the footage is AI-generated.</p>
+      </article>
       <div class="story-grid" data-day>
         <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> By voice</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-pair"><span class="when">11:20</span> Away</a><a href="#beat-meeting"><span class="when">14:00</span> Meeting</a><a href="#beat-drive"><span class="when">18:10</span> Drive</a><a href="#beat-night"><span class="when">22:40</span> Night</a><a href="#beat-morning"><span class="when">07:40</span> Morning</a></nav>
         <ol class="beats">
@@ -765,6 +810,46 @@
       setTimeout(() => { b.textContent = 'Copy'; }, 1800);
     });
   }
+  // A scene: its lines appear in time, and the session rows change with them. It runs silently when it comes into view
+  // and loops; "Play with sound" runs it once from the audio's own clock. With reduced motion everything shows at once.
+  for (const scene of document.querySelectorAll("article[data-play]")) {
+    const total = +scene.dataset.total, lines = [...scene.querySelectorAll('.scene-lines li')], rows = [...scene.querySelectorAll('[data-row]')];
+    const audio = scene.querySelector('audio'), button = scene.querySelector('[data-sound]'), bar = scene.querySelector('.scene-bar i'), film = scene.querySelector('video');
+    const calm = matchMedia('(prefers-reduced-motion: reduce)');
+    const draw = now => {
+      for (const li of lines) { li.classList.toggle('on', now >= +li.dataset.t); li.classList.toggle('now', now >= +li.dataset.t && now < +li.dataset.end); }
+      for (const row of rows) {
+        const states = [...row.querySelectorAll('.sc-states i')].filter(s => +s.dataset.at <= now), s = states[states.length - 1];
+        if (s && row.dataset.state + row.querySelector('.sc-what').textContent !== s.dataset.state + s.textContent) {
+          row.dataset.state = s.dataset.state; row.querySelector('.sc-tag').textContent = s.dataset.state; row.querySelector('.sc-what').textContent = s.textContent;
+          if (now > 0.2) { row.classList.remove('changed'); void row.offsetWidth; row.classList.add('changed'); }
+        }
+      }
+      bar.style.width = Math.min(100, 100 * now / total) + '%';
+    };
+    let from = 0, raf = 0, sound = false, seen = false;
+    const tick = () => {
+      const now = sound ? audio.currentTime : (performance.now() - from) / 1000;
+      draw(now);
+      if (sound && audio.ended) { sound = false; button.textContent = 'Play again with sound'; from = performance.now() - total * 1000; }
+      if (!sound && now > total + 2.5) from = performance.now();
+      raf = seen || sound ? requestAnimationFrame(tick) : 0;
+    };
+    const run = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    if (calm.matches) { draw(total); continue; }
+    draw(0);
+    button.hidden = false;
+    button.onclick = () => {
+      if (sound) { audio.pause(); sound = false; button.textContent = 'Play with sound'; from = performance.now(); return; }
+      audio.currentTime = 0; audio.play().then(() => { sound = true; button.textContent = 'Stop the sound'; run(); }).catch(() => {});
+    };
+    new IntersectionObserver(([e]) => {
+      seen = e.isIntersecting;
+      if (seen) { if (!sound) from = performance.now(); film.hidden = false; film.play().catch(() => {}); run(); }
+      else { film.pause(); if (sound) { audio.pause(); sound = false; button.textContent = 'Play with sound'; } }
+    }, { threshold: 0.35 }).observe(scene);
+  }
+
   // The day story. On a wide screen the beats share one sticky stage and the beat at the middle of the window shows; on
   // a narrow one they are stacked. A clip plays once when its beat shows, and holds its last frame. With reduced motion
   // or data saver the stills stay. The page scrolls as any page does: nothing here moves it.

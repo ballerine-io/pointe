@@ -275,6 +275,47 @@ details.more-detail > div { padding: 8px 0 28px; }
 .term .c { color: #958D88; }
 .term + .small { margin-top: 12px; }
 
+/* A scene: one panel in three parts that move together: the moment, what is said, and what the sessions do. */
+.scene { margin-top: 40px; }
+.scene-head .h2 { margin-top: 8px; max-width: 24ch; }
+.scene-panel { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 4fr); margin-top: 24px; border: 1px solid var(--line-strong);
+               border-radius: 12px; overflow: hidden; background: var(--card); }
+.scene-panel > * + * { border-left: 1px solid var(--line); }
+.scene-clip { position: relative; background: #0A0400; min-height: 100%; }
+.scene-clip img, .scene-clip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scene-talk, .scene-agents { padding: 20px 22px 22px; min-height: 384px; }
+.scene-lines { margin-top: 14px; display: grid; gap: 12px; }
+.scene-lines li { display: grid; gap: 1px; opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .5s var(--ease); }
+.scene-lines li.on { opacity: .62; transform: none; }
+.scene-lines li.now { opacity: 1; }
+.scene-lines b { font-size: 11px; line-height: 16px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.scene-lines .pointe b { color: var(--accent); }
+.scene-lines span { font-size: 18px; line-height: 26px; color: var(--text); }
+.scene-rows { margin-top: 10px; }
+.scene-rows li { display: grid; grid-template-columns: 10px 16px minmax(0, 1fr) auto; column-gap: 9px; align-items: center; padding: 10px 0 11px;
+                 border-bottom: 1px solid var(--line); }
+.scene-rows li:last-child { border-bottom: 0; }
+.sc-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+[data-state=working] .sc-dot { background: var(--orange); }
+[data-state=done] .sc-dot { background: var(--ok); }
+.sc-g { display: grid; place-items: center; width: 16px; height: 16px; border: 1px solid var(--line-strong); border-radius: 3px; font: 600 10px/1 var(--font-sans); color: var(--muted); }
+.scene-rows b { font-weight: 600; }
+.sc-ag { grid-column: 3; grid-row: 2; font-size: 12.5px; line-height: 18px; color: var(--dim); }
+.sc-tag { grid-column: 4; grid-row: 1; font-size: 12.5px; line-height: 18px; color: var(--dim); }
+[data-state=working] .sc-tag { color: var(--accent); }
+[data-state=done] .sc-tag { color: var(--ok); }
+.sc-what { grid-column: 3 / -1; grid-row: 3; color: var(--body); }
+.scene-rows li.changed { animation: sc-changed 1.6s var(--ease); }
+@keyframes sc-changed { from { background: var(--raised); } to { background: transparent; } }
+.scene-foot { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); gap: 16px 0; align-items: center; margin-top: 18px; }
+button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor: pointer; white-space: nowrap; }
+.scene-controls { display: flex; align-items: center; gap: 16px; padding-right: 22px; }
+.scene-bar { flex: 1; height: 2px; background: var(--line); }
+.scene-bar i { display: block; height: 100%; width: 0; background: var(--orange); }
+.scene-out { display: flex; align-items: baseline; gap: 14px; padding-left: 22px; }
+.scene-out .figure { font-size: clamp(32px, 3.4vw, 44px); white-space: nowrap; color: var(--text); }
+.scene + .story-grid { margin-top: 72px; }
+
 /* The day story. Each beat is its copy and its picture: footage, with a screenshot of the page laid over one corner.
    Stacked by default. On a wide screen, with the script, the pictures share one sticky stage (.is-stage) and the
    copy scrolls past it: the list items become `display: contents` so that every picture sits in the same grid area. */
@@ -372,6 +413,12 @@ details.more-detail > div { padding: 8px 0 28px; }
   .cells > div:nth-child(3) { padding-left: 0; border-left: 0; }
   .cells > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .beat { grid-template-columns: minmax(0, 1fr); }
+  .scene-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .scene-clip { grid-column: 1 / -1; aspect-ratio: 16 / 9; min-height: 0; }
+  .scene-panel > .scene-talk { border-left: 0; border-top: 1px solid var(--line); }
+  .scene-panel > .scene-agents { border-top: 1px solid var(--line); }
+  .scene-foot { grid-template-columns: minmax(0, 1fr); }
+  .scene-out { padding-left: 0; }
   .beat-media { order: -1; padding-bottom: 0; display: flex; flex-direction: column; }
   .beat-ui { position: relative; margin-top: -14%; }
   .beat-ui--mac { right: 16px; align-self: flex-end; }
@@ -410,6 +457,13 @@ details.more-detail > div { padding: 8px 0 28px; }
   [data-cmd] pre { padding: 13px 16px 50px; }
   .copy { top: auto; bottom: 8px; right: 8px; }
   .beats { gap: 26px; }
+  .scene-panel { grid-template-columns: minmax(0, 1fr); }
+  .scene-panel > .scene-agents { border-left: 0; }
+  .scene-talk, .scene-agents { padding: 16px 16px 18px; min-height: 0; }
+  .scene-talk { min-height: 392px; }
+  .scene-lines span { font-size: 16px; line-height: 24px; }
+  .scene-out { flex-direction: column; gap: 4px; }
+  .scene-controls { padding-right: 0; }
   .beat-frame { border-radius: 10px; }
   .beat-ui { margin-top: -19%; }
   .story { padding: 44px 0; }
