@@ -1169,6 +1169,15 @@ def first_call() -> bool:
     return not FIRST_HELLO.exists()
 
 
+_HELLO_WORDS = set("hello hi hey hiya pointe there can you hear me yes yeah ok okay testing test one two three good morning "
+                   "afternoon evening it's its is this on שלום היי הלו פוינט אתה שומע אותי כן".split())
+
+
+def _only_a_hello(text: str) -> bool:
+    """The first words are a hello or a mic check ("Hello, can you hear me?"), not a request."""
+    return set(re.findall(r"[^\W_]+", text.lower().replace("’", "'"))) <= _HELLO_WORDS
+
+
 def first_hello_reply() -> str:
     """The answer to the first words ever heard here: that they were heard, and which sessions are joined. Fixed, so the
     first success does not wait on a model, or on notes of a session that has just joined."""
@@ -1395,8 +1404,14 @@ class BrainFront(FrameProcessor):
                 if first_call() and state.meeting is None:
                     reply = first_hello_reply()
                     _first_hello_done()
-                    self.brain.append(f"{frame.text}\n[you already answered this: {reply!r}. Do not answer it again.]")
+                    if _only_a_hello(frame.text):
+                        self.brain.append(f"{frame.text}\n[you already answered this: {reply!r}. Do not answer it again.]")
+                        await self._speak(reply)
+                        return
+                    # The first words asked for something ("rename birch to payments"): heard, said so, and done.
                     await self._speak(reply)
+                    self._start(f"{frame.text}\n[you already told the user: {reply!r}. Do not say it again, and do not "
+                                "greet: do what these words ask.]")
                     return
             self._start(frame.text)
             return

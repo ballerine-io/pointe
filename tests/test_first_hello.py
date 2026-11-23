@@ -218,3 +218,32 @@ def test_before_the_first_hello_the_page_shows_only_connect_the_mic_type_setting
     for kept in ("#mic", "#typebtn", "#sessbtn", "#m-new", "#topconnect"):
         assert kept not in rule, kept
     assert "document.body.classList.toggle('firstrun', !!(s && s.first_call));" in PAGE
+
+
+def test_a_request_said_as_the_first_words_is_heard_and_then_done(first):
+    """From a live run, twice: "Rename birch to payments." as the first words got the fixed hello reply and nothing was
+    done; the model was told "Do not answer it again"."""
+    d, asked = first
+    add(d, "s1", "billing")
+    d.REGISTRY.active_id = "s1"
+    front, spoken, tasks = _front(d)
+
+    async def run():
+        await front.process_frame(LLMRunFrame(), FrameDirection.DOWNSTREAM)
+        await front.process_frame(InputTextRawFrame(text="Rename billing to payments."), FrameDirection.DOWNSTREAM)
+        await asyncio.gather(*tasks)
+
+    asyncio.run(run())
+    assert spoken[1] == "I can hear you, and billing is joined. Ask me what it is doing."
+    assert asked and spoken[2:] == ["A model reply."], "the request reached the model after the fixed reply"
+    assert not d.first_call()
+
+
+@pytest.mark.parametrize("words", ["Hello", "Hello, can you hear me?", "Hi Pointe.", "Testing, one two three.", "שלום"])
+def test_a_hello_or_a_mic_check_is_only_a_hello(d, words):
+    assert d._only_a_hello(words)
+
+
+@pytest.mark.parametrize("words", ["Rename birch to payments.", "What is billing doing?", "Hello, what is billing doing?"])
+def test_a_request_is_not_only_a_hello(d, words):
+    assert not d._only_a_hello(words)
