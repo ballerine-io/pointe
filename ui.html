@@ -168,7 +168,7 @@
                font: 400 20px/1 var(--font); cursor: pointer; place-items: center; flex: none; padding: 0; position: relative; }
   #sideclose:hover { background: var(--raised2); color: var(--text); }
   .logo { width: 24px; height: 24px; flex: none; color: var(--text); }  /* the Chorus mark's compact drawing (docs/brand/logo.md) */
-  .brand .name { font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); }
+  .brand .name { margin: 0; font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); }
   .brand .serif { font-size: 12.5px; color: var(--dim); white-space: nowrap; margin-top: 2px; }
   .brand .ver { font: 500 10.5px var(--font); font-style: normal; color: var(--dim); letter-spacing: .02em; }
   .brand .ver:empty { display: none; }
@@ -1070,14 +1070,14 @@
 </head>
 <body data-state="off">
 <aside id="side">
-  <div class="brand">{{LOGO}}<div><div class="name">Pointe</div><div class="serif"><span class="ver" id="ver"></span></div></div>
+  <div class="brand">{{LOGO}}<div><h1 class="name">Pointe</h1><div class="serif"><span class="ver" id="ver"></span></div></div>
     <button type="button" id="sideclose" onclick="toggleSessions()" aria-label="Close sessions">×</button></div>
 
   <section id="modesec">
     <h3 class="label">Mode</h3>
-    <div class="seg" role="tablist">
-      <button id="m-orchestrator" onclick="setMode('orchestrator')">Orchestrator</button>
-      <button id="m-session" onclick="setMode('session')">Session</button>
+    <div class="seg" role="radiogroup" aria-label="Mode">
+      <button type="button" role="radio" aria-checked="true" id="m-orchestrator" onclick="setMode('orchestrator')">Orchestrator</button>
+      <button type="button" role="radio" aria-checked="false" id="m-session" onclick="setMode('session')">Session</button>
     </div>
     <div class="modehelp" id="modehelp"></div>
   </section>
@@ -1778,7 +1778,7 @@
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
     text('ctx', s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context');
-    for (const m of ['orchestrator', 'session']) $('m-' + m).classList.toggle('on', s.mode === m);
+    for (const m of ['orchestrator', 'session']) { $('m-' + m).classList.toggle('on', s.mode === m); $('m-' + m).setAttribute('aria-checked', s.mode === m); }
     text('modehelp', MODE_HELP[s.mode] || '');
 
     // One approval card at a time, pinned above the bar, as in the app; the rest are counted.
@@ -3938,6 +3938,7 @@
       if (on && !b.classList.contains('on') && nav.scrollWidth > nav.clientWidth)  // the strip on a narrow screen: the mark stays in view
         nav.scrollTo({left: b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2, behavior: 'smooth'});
       b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
     }
   }
   // The last sections cannot scroll to the top of the panel, so the scroll position alone would mark the one above: the

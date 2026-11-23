@@ -571,3 +571,15 @@ def test_space_on_a_session_row_switches_as_enter_does():
             await stub.stop()
     switched, muted = asyncio.run(run())
     assert switched == [{"name": "s2-mobile"}] and muted is False, (switched, muted)
+
+
+def test_mode_settings_nav_and_the_page_title_carry_their_roles():
+    """The Mode switch is a radio group whose choice is checked; the Settings section in view is aria-current; the page
+    has one h1."""
+    probe = """(() => ({group: document.querySelector('#modesec .seg').getAttribute('role'),
+      modes: [...document.querySelectorAll('#modesec .seg button')].map(b => [b.getAttribute('role'), b.getAttribute('aria-checked')]),
+      current: [...document.querySelectorAll('#set-nav button')].filter(b => b.getAttribute('aria-current') === 'true').map(b => b.textContent),
+      h1: [...document.querySelectorAll('h1')].map(h => h.textContent.trim())}))()"""
+    (r,) = _run([(1440, "openSettings(); settingsJump('machines');", probe)], fixture(sessions=2, machines=2, connected=True))
+    assert r["group"] == "radiogroup" and r["modes"] == [["radio", "true"], ["radio", "false"]], r
+    assert r["current"] == ["Machines"] and r["h1"] == ["Pointe"], r
