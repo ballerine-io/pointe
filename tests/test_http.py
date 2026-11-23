@@ -250,3 +250,10 @@ def test_the_page_carries_its_script_policy_on_both_listeners(tmp_path, monkeypa
         assert r.status_code == 200
         policies = r.headers.get_list("content-security-policy")
         assert guards.page_csp(r.text) in policies and "frame-ancestors 'self'" in policies
+
+
+def test_no_api_docs_are_served(tmp_path):
+    """Swagger UI loads scripts from a CDN into the page's origin, where they could call every route with the cookie."""
+    _, client = _client(tmp_path)
+    for path in ("/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"):
+        assert client.get(path).status_code == 404, path

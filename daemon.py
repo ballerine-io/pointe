@@ -6596,7 +6596,7 @@ TOOLS = ToolsSchema(standard_tools=[
 
 # ---------- HTTP: registration, permission relay, status ----------
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)  # Swagger UI would load a CDN script into the page's origin
 app.add_middleware(JsonPosts)  # first, so innermost: the guards below answer a caller without a secret before it
 REMOTE = remote.Remote(STATE_DIR)
 remote.install(REMOTE, app)  # localhost as before; a paired phone over HTTPS through the private network
