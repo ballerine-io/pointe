@@ -92,9 +92,13 @@ room in two sentences at most, and in both modes it is written as an answer note
 Then: Export, Send the action items to a session (after a second tap, word for word as the sheet lists them), or
 Discard. Nothing happens by default.
 
-By voice, after the end: "send the action items to billing" is read back ("Send 2 action items to billing: …. Send
-them?") and sent on your next plain yes, word for word as read back (never rewritten by the model), as Send does; a no or anything else sends nothing, the read-back heard back is
-not a yes, and with the voice lock on only your voice's yes counts. The end sheet on the page and in the apps shows the
+By voice, after the end: "send the action items to billing" is read back in full, every item with its owner and due
+date ("Send 2 action items to billing: Raise the retry limit, for Sam, due Friday; Update the runbook, for Dana. Send
+them?"), and sent on your next plain yes, word for word as read back (never rewritten by the model), as Send does. Only
+what was read back is sent: more than 5 items are not read out, and Pointe says to send them from the end sheet. A no or
+anything else sends nothing; the yes keeps a permission prompt's rules (a yes and nothing else, begun after the
+read-back ended, the read-back the last thing Pointe said), the read-back heard back and typed words are not a yes, and
+with the voice lock on only your voice's yes counts. The end sheet on the page and in the apps shows the
 read-back while it waits, and where the action items went.
 
 If the call drops for 5 minutes the meeting ends, and held news reaches the next call. If the speech stream drops, it

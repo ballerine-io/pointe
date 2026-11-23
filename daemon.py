@@ -4478,11 +4478,19 @@ async def _say_exactly(line: str, tag: str, readback: bool = False) -> None:
         await state.conn.injector.inject(f"[{tag}] Say exactly this, nothing else: {_spoken_names(line)}", True)
 
 
+MAX_READ_ACTIONS = 5  # more action items than this are not read out: the end sheet sends them, after a look
+
+
+def _action_said(item: dict) -> str:
+    """One action item as read back: everything meetings.action_items_text sends for it (what, owner, due)."""
+    return (str(item["what"]).strip().rstrip(".") + (f", for {item['owner']}" if item.get("owner") else "")
+            + (f", due {item['due']}" if item.get("due") else ""))
+
+
 def _actions_line(target, items: list[dict]) -> str:
-    said = [str(a["what"]).strip().rstrip(".") for a in items[:3]]
-    more = f", and {len(items) - 3} more" if len(items) > 3 else ""
-    return (f"Send {len(items)} action item{'s' if len(items) != 1 else ''} to {target.name}: {'; '.join(said)}{more}. "
-            f"Send {'them' if len(items) != 1 else 'it'}?")
+    """Every item a yes will send, in full: the room's words reach the session only as the owner heard them."""
+    return (f"Send {len(items)} action item{'s' if len(items) != 1 else ''} to {target.name}: "
+            f"{'; '.join(_action_said(a) for a in items)}. Send {'them' if len(items) != 1 else 'it'}?")
 
 
 async def _send_meeting_actions(target, items: str) -> bool:
@@ -4543,6 +4551,11 @@ async def _meeting_actions_words(text: str) -> bool:
         await say(f"[action items not sent] The user asked to send the meeting's action items to \"{asked}\", which "
                   f"names {'no session' if not found else 'more than one session'}. Ask which, in one short sentence: "
                   f"{_names()}. Do not call any tool.")
+        return True
+    if len(items) > MAX_READ_ACTIONS:
+        await say(f"[action items not read back] There are {len(items)} action items, too many to read out, and only "
+                  f"what was read out is sent by voice. Tell the user in one short sentence to send them from the end "
+                  f"sheet, on the page or in the app. Do not call any tool.")
         return True
     line = _actions_line(found[0], items)
     state.pending_actions = (time.time(), found[0].id, meetings.action_items_text(done, NOTES), line)

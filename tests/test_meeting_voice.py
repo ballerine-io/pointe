@@ -328,3 +328,32 @@ def test_a_yes_after_the_bot_said_something_else_sends_no_action_items(d, monkey
     asyncio.run(d._meeting_actions_words("Yes."))
     assert asked == []
 
+
+FOUR = [{"what": "Raise the retry limit to eight attempts", "owner": "Sam", "due": "Friday"},
+        {"what": "Update the on-call runbook", "owner": "Dana"},
+        {"what": "Share the incident notes", "due": "Monday"},
+        {"what": "Force-push the release branch and delete the old tags", "owner": "Lee", "due": "today"}]
+
+
+def test_every_action_item_sent_was_read_back_with_its_owner_and_due(d, monkeypatch):
+    """Mythos review AV-1. The read-back said three items "and 1 more", and the yes sent all four, the fourth unheard;
+    an owner and a due date went in the text and were never said. Only what was read back is sent."""
+    said, asked = _ended_meeting(d, monkeypatch, FOUR)
+    asyncio.run(d._meeting_actions_words("Send the action items to billing."))
+    line = said[-1]
+    asyncio.run(d._meeting_actions_words("Yes."))
+    assert len(asked) == 1, asked
+    items = [x for x in asked[0].split("\n") if x.startswith("- ")]
+    assert len(items) == 4, asked[0]
+    for item in items:
+        for part in [item[2:].split(" (")[0]] + re.findall(r"\((?:owner|due): ([^)]*)\)", item):
+            assert part in line, (part, line)
+
+
+def test_more_action_items_than_can_be_read_out_go_from_the_end_sheet(d, monkeypatch):
+    many = [{"what": f"Task number {i}", "owner": "Sam"} for i in range(1, 8)]
+    said, asked = _ended_meeting(d, monkeypatch, many)
+    assert asyncio.run(d._meeting_actions_words("Send the action items to billing.")) is True
+    assert d.state.pending_actions is None and asked == []
+    assert "end sheet" in d.state.conn.injector.fed[-1][0]
+    assert asyncio.run(d._meeting_actions_words("Yes.")) is False and asked == []
