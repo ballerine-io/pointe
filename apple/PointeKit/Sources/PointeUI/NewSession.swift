@@ -156,11 +156,12 @@ struct StartCard: View {
     @State private var busy = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AnswersInView {
             Label { Text(NewSessionCopy.confirmTitle) } icon: { Image(systemName: "plus.circle.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
             Text(Surface.shown(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("startLine")
+        } answers: {
             HStack(spacing: 10) {
                 Button { act(false) } label: { Text(NewSessionCopy.cancel).frame(maxWidth: .infinity) }
                     .buttonStyle(.brandQuiet).controlSize(.large)
@@ -171,7 +172,6 @@ struct StartCard: View {
             }
             .disabled(busy)
         }
-        .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: pending.id)

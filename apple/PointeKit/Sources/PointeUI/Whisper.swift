@@ -77,6 +77,7 @@ struct WhisperCard: View {
                 ViewThatFits(in: .horizontal) {  // the title and the toggle on one line: the short title if the long one will not fit
                     titleRow(WhisperCopy.title)
                     titleRow(WhisperCopy.folded)
+                    titleRow(WhisperCopy.folded, iconOnly: true)  // the largest text sizes: the icon names it, Show notes stays whole
                 }
             } else {
                 title(WhisperCopy.title)
@@ -113,9 +114,13 @@ struct WhisperCard: View {
         Label(words, systemImage: "waveform.badge.minus").font(.brand(.subheadline, .semibold))
     }
 
-    private func titleRow(_ words: String) -> some View {
+    private func titleRow(_ words: String, iconOnly: Bool = false) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            title(words).lineLimit(1).fixedSize()
+            if iconOnly {
+                title(words).labelStyle(.iconOnly).accessibilityLabel(words)
+            } else {
+                title(words).lineLimit(1).fixedSize()
+            }
             Spacer(minLength: 0)
             Button(asked ? WhisperCopy.hideNotes : WhisperCopy.showNotes) { withAnimation(.snappy) { asked.toggle() } }
                 .font(.brand(.footnote, .semibold)).foregroundStyle(Brand.accent)

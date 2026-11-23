@@ -78,7 +78,7 @@ final class PairPasteUITests: XCTestCase {
 
         let note = app.descendants(matching: .any)["pairing-note"].firstMatch
         XCTAssertTrue(note.waitForExistence(timeout: 10), "the app says how the pairing went")
-        XCTAssertEqual(note.label, "Paired with your Mac. Tap Connect to call.")
+        XCTAssertEqual(note.label, "Paired with your Mac.")
 
         let title = app.staticTexts["connectTitle"]
         XCTAssertTrue(NSPredicate(format: "label == %@", "Mac not reachable").wait(for: title, timeout: 20),

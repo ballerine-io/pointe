@@ -17,7 +17,7 @@ final class PairByLinkUITests: XCTestCase {
         open(url)
         let note = app.staticTexts["pairing-note"]
         XCTAssertTrue(note.waitForExistence(timeout: 20), "the app says what became of the link")
-        XCTAssertTrue(says(note, "Paired with \(mac). Tap Connect to call.", within: 20), "it says it paired: \(note.label)")
+        XCTAssertTrue(says(note, "Paired with \(mac).", within: 20), "it says it paired: \(note.label)")
         XCTAssertTrue(app.buttons["Connect"].waitForExistence(timeout: 10), "paired: the call screen shows Connect")
         attach(app, "2-paired")
 

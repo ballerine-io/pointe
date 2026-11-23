@@ -414,7 +414,8 @@ struct CallView: View {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.brand(.footnote)).foregroundStyle(Brand.accent).padding(.bottom, 8)
                     }
-                    Color.clear.frame(height: 1).id("end")
+                    // The dock's fade reaches 16 points up over the conversation (brandDock): the newest line ends above it.
+                    Color.clear.frame(height: 17).id("end")
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
@@ -458,7 +459,12 @@ struct CallView: View {
                 }
             }
             .animation(.snappy, value: follow.pillShown)
-            .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // A dock that grows (a card, the switch, the type bar) covered the newest line: follow it while pinned.
+                bottom.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { _ in
+                    if follow.stillFollowing { scroller.scrollTo("end", anchor: .bottom) }
+                }
+            }
           }
         }
     }

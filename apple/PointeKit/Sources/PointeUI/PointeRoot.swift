@@ -77,7 +77,7 @@ public struct PointeRoot: View {
         switch PairingLink(link) {
         case .ready(let p)?:
             PairingStore.save(p); pairing = p
-            note = PairingNote(text: "Paired with your Mac. Tap Connect to call.", state: .done)
+            note = PairingNote(text: "Paired with your Mac.", state: .done)
         case .invite(let invite)?:
             note = PairingNote(text: "Pairing with your Mac…", state: .working)
             Task { @MainActor in
@@ -85,7 +85,7 @@ public struct PointeRoot: View {
                     let (p, mac) = try await invite.redeem(device: UIDevice.current.name,
                                                            id: UIDevice.current.identifierForVendor?.uuidString ?? "")
                     PairingStore.save(p); pairing = p
-                    note = PairingNote(text: "Paired with \(mac). Tap Connect to call.", state: .done)
+                    note = PairingNote(text: "Paired with \(mac).", state: .done)
                 } catch PairingInvite.Failure.said(let why) {
                     note = PairingNote(text: why, state: .failed)
                 } catch {

@@ -88,7 +88,7 @@ struct ConflictCard: View {
     @State private var error: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        AnswersInView(spacing: 10) {
             Label { Text(ConflictCopy.title) } icon: {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.accent)
             }
@@ -106,6 +106,7 @@ struct ConflictCard: View {
             } else if !live {
                 Text(ConflictCopy.connect).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
+        } answers: {
             // A session's name is never cut: one row when all three fit, else the two questions over Dismiss, else a column.
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) { ask("a"); ask("b"); dismissButton }
@@ -117,7 +118,6 @@ struct ConflictCard: View {
                 Text(error).font(.brand(.caption)).foregroundStyle(Brand.accent).accessibilityIdentifier("conflictError")
             }
         }
-        .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: conflict.id)

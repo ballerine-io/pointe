@@ -189,10 +189,11 @@ extension View {
 }
 
 extension ToolbarItemPlacement {
-    /// The leading edge of a sheet's bar. On the Mac a sheet's buttons sit at the bottom: the cancel side.
+    /// The leading edge of a sheet's bar. On the Mac a sheet's buttons sit at the bottom, and this is their leading side
+    /// without the cancel role: a cancellation action takes Escape, so Escape opened New session instead of closing.
     static var sheetLeading: ToolbarItemPlacement {
         #if os(macOS)
-        .cancellationAction
+        .destructiveAction
         #else
         .topBarLeading
         #endif
