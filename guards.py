@@ -119,7 +119,7 @@ _ASKS_THE_USER = {"AskUserQuestion", "ExitPlanMode"}  # an answer, not an approv
 _FILE_VERBS = {"Edit": "edit", "MultiEdit": "edit", "NotebookEdit": "edit", "Write": "write", "Read": "read"}
 
 
-def readable_request(tool: str, tool_input: dict, cwd: str | None = None) -> str | None:
+def readable_request(tool: str, tool_input: dict, cwd: str | None = None, run_in: str | None = None) -> str | None:
     """The words a yes approves, built here from what will run and never from the description the session's model
     wrote (readout.py says how). None when they cannot be said safely: such a request is approved only in the terminal,
     and the page and the phone show the exact text either way."""
@@ -130,7 +130,7 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None) -> str
         return None
     path = tool_input.get("file_path") or tool_input.get("notebook_path")
     if tool == "Bash":
-        command = readout.spoken(str(tool_input.get("command") or ""), cwd)
+        command = readout.spoken(str(tool_input.get("command") or ""), cwd, run_in)
         what = f"run: {command}" if command else ""
     elif tool in _FILE_VERBS and isinstance(path, str) and not readout._hidden(path):
         what = f"{_FILE_VERBS[tool]} {readout.place(path, cwd)}"

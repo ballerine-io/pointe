@@ -46,7 +46,14 @@ With the default brain, a permission prompt is approved only when all of these h
 - The daemon read the request out itself, from what will run and not from the description the session's model wrote.
   `readout.py` says a shell command only when every part of it is on an allowlist: known programs (`git`, `rm`, `cp`,
   `grep`, `curl`, `npm test`, `pytest`, ...), each with a table of known flags, in plain pipelines. It says every program,
-  every file written, every URL's host, every git remote, and the flags that change what can be lost. A quoted
+  every file written, every URL's host and path, every git remote whole (a URL path over 60 characters makes the request
+  unreadable), and the flags that change what can be lost. A `cd` counts only when `&&` follows it: `cd x ;`, `cd x ||`,
+  a pipe into or out of a `cd`, an `||` before one, or a `;` or `||` anywhere after one makes the request unreadable,
+  because what follows can run where the session started. A command that Claude Code's hook or Codex reports running in
+  another folder than the session's (an earlier `cd` persists in Claude Code's shell; Codex picks a folder per command)
+  starts with "in" and that folder, and its paths are said from there; for a session on this Mac the card shows the
+  folder too. Launch mode's channel and OpenCode do not report the folder: there, paths are said from the session's
+  folder. A quoted
   argument is said as it is when it is a plain word or path, and as "some text" only when it is a `grep` or `rg`
   pattern or what `echo` prints; a quoted flag, or any other quoted argument, makes the request unreadable, as does a
   flag whose value is missing (`git commit -m ; rm x`). A path whose real location (through a symlink) leaves the

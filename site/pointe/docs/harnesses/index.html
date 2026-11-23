@@ -352,7 +352,7 @@ command above; <code>pointe setup codex</code> starts the app-server and offers 
 </tr>
 <tr>
 <td>Approvals</td>
-<td>the server's <code>item/commandExecution/requestApproval</code> and <code>item/fileChange/requestApproval</code> go through <code>hold_permission</code>, with the command unwrapped from Codex's <code>/bin/zsh -lc '…'</code> so the read-out applies. The answer is a decision Codex offered: <code>accept</code>; <code>decline</code> if offered, else <code>cancel</code>. <code>serverRequest/resolved</code> means the TUI answered first, and the voice lets go. Permission-grant requests (<code>item/permissions/requestApproval</code>) stay with the TUI.</td>
+<td>the server's <code>item/commandExecution/requestApproval</code> and <code>item/fileChange/requestApproval</code> go through <code>hold_permission</code>, with the command unwrapped from Codex's <code>/bin/zsh -lc '…'</code> so the read-out applies, and read from the folder Codex runs it in (<code>cwd</code>). The answer is a decision Codex offered: <code>accept</code>; <code>decline</code> if offered, else <code>cancel</code>. <code>serverRequest/resolved</code> means the TUI answered first, and the voice lets go. Permission-grant requests (<code>item/permissions/requestApproval</code>) stay with the TUI.</td>
 </tr>
 <tr>
 <td>Side questions</td>

@@ -469,7 +469,8 @@ class Codex(Harness):
             return request_id in self._resolved
 
         try:
-            verdict = await HOST.hold_permission(session, tool_name, tool_input, gone)
+            run_in = params.get("cwd") if tool_name == "Bash" and isinstance(params.get("cwd"), str) else None
+            verdict = await HOST.hold_permission(session, tool_name, tool_input, gone, run_in=run_in)  # its own folder
             if verdict is None or request_id in self._resolved:
                 return  # answered in the TUI, or the voice let go
             chosen = decision(verdict, params.get("availableDecisions") or [])

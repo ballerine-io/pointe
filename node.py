@@ -398,7 +398,8 @@ class Node:
         session = self.registry.sessions.get(payload.get("session_id"))
         if session is None:
             return {}
-        verdict = await self.hold(session, str(payload.get("tool_name")), payload.get("tool_input") or {}, gone)
+        run_in = payload.get("cwd") if isinstance(payload.get("cwd"), str) else None  # the shell's folder now
+        verdict = await self.hold(session, str(payload.get("tool_name")), payload.get("tool_input") or {}, gone, run_in=run_in)
         if verdict is None:
             return {}
         decision = {"behavior": verdict, **({"message": "The user denied this."} if verdict == "deny" else {})}
@@ -917,7 +918,7 @@ class Node:
                 and self.call_up and not self.approvals_terminal)
 
     async def hold(self, session: Session, tool_name: str, tool_input: dict, gone=None,
-                   deadline_secs: float | None = None) -> str | None:
+                   deadline_secs: float | None = None, run_in: str | None = None) -> str | None:
         """harnesses.base.HOST.hold_permission on a node: forward the prompt to the hub and wait for a verdict that
         passes the re-check. "allow", "deny", or None (back to the harness's own prompt)."""
         if not self._forwarding():
@@ -930,15 +931,16 @@ class Node:
         except asyncio.TimeoutError:
             return None
         try:
-            return await self._hold_one(session, tool_name, tool_input, gone, deadline)
+            return await self._hold_one(session, tool_name, tool_input, gone, deadline, run_in)
         finally:
             lock.release()
 
-    async def _hold_one(self, session: Session, tool_name: str, tool_input: dict, gone, deadline: float) -> str | None:
+    async def _hold_one(self, session: Session, tool_name: str, tool_input: dict, gone, deadline: float,
+                        run_in: str | None = None) -> str | None:
         if (gone is not None and await gone()) or not self._forwarding():
             return None
         loop = asyncio.get_running_loop()
-        readable = guards.readable_request(tool_name, tool_input, session.cwd)  # from the unmasked input
+        readable = guards.readable_request(tool_name, tool_input, session.cwd, run_in)  # from the unmasked input
         request_id = nodelink.new_id()
         frame = {"t": "permission.request", "id": session.id, "request_id": request_id, "tool": tool_name,
                  "description": precise_mask(str(tool_input.get("description") or "use this tool")),
