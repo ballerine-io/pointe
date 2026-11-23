@@ -117,7 +117,7 @@ class User:
                 return self.log
             approval = self.arm.presented_approval()
             if approval is not None:
-                session, command, attempt = approval
+                session, command, attempt, request = approval
                 decision = self.inst.decision(command)
                 if attempt >= 2 and decision == "approve":  # two spoken yeses did not take: say no, as the harness offers
                     decision = "deny"
@@ -125,7 +125,7 @@ class User:
                 self.log.approvals += 1
                 await self.act("approval", decision, APPROVE_LINE if decision == "approve" else DENY_LINE,
                                decision, session)
-                self.arm.answered_approval(session, decision, self.last_user_end)
+                self.arm.answered_approval(request, self.last_user_end)
                 await asyncio.sleep(2)
                 continue
             pending = [t for t in turns if t.id not in self.fired]

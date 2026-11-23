@@ -63,6 +63,23 @@ def unpublished(path: str | None) -> tuple[list, str | None]:
     return insts, hashlib.sha256(data).hexdigest()
 
 
+def rerun_jobs(run_id: str, insts: list) -> list:
+    """The rows of run_id that hit a harness fault (core.runner.prompt_without_hook, recorded in the row or, for a run
+    made before the row carried it, in faults.json), as jobs to run once more with the same voice and run index."""
+    out = HERE / "results" / run_id
+    faults = set(json.loads((out / "faults.json").read_text())["slots"]) if (out / "faults.json").exists() else set()
+    by_id = {(i.id if i.seed in hlk.PUBLIC_SEEDS else f"{i.family}-unpublished"): i for i in insts}
+    jobs = []
+    for line in (out / "rows.jsonl").read_text().splitlines():
+        r = json.loads(line)
+        slot = f"{r['item']}-{r['adapter']}-{r['run_index']}"
+        if r.get("harness_fault") or slot in faults:
+            inst = by_id[r["item"]]
+            jobs.append(runner.Job(inst, r["adapter"], r["run_index"], r["kind"],
+                                   runner.voice_for(inst, ORDER_SEED if r["kind"] == "paid" else ORDER_SEED + 1), run_id))
+    return jobs
+
+
 def ctx_for(args, run_id: str, out: Path) -> dict:
     pointe = Path(args.pointe).resolve() if args.pointe else ROOT
     api_key = runner.key("ANTHROPIC_API_KEY", "anthropic-api-key")
@@ -97,6 +114,9 @@ def cmd_hlk(args) -> int:
         runs = {a: 1 for a in arms}
     jobs = runner.plan(insts, arms, ORDER_SEED, kind, runs)
     extra, manifest_sha = unpublished(args.unpublished)
+    if args.rerun_faults:
+        jobs = rerun_jobs(args.rerun_faults, insts + extra)
+        extra = []
     if extra:
         jobs += runner.plan(extra, [a for a in arms if a in ("keyboard-canonical", "pointe")], ORDER_SEED + 1,
                             "unpublished", {"keyboard-canonical": 1, "pointe": 1})
@@ -192,6 +212,32 @@ def cmd_freeze(args) -> int:
     return 0
 
 
+def cmd_faults(args) -> int:
+    """Apply the harness-fault rules (core.runner.harness_fault) to a finished run whose rows predate the field, from
+    the agents' hook logs left in /tmp/pccb/<run>/, and write results/<run>/faults.json."""
+    from datetime import datetime
+    run_id = args.rerun_faults
+    out = HERE / "results" / run_id
+    slots, reasons = [], {}
+    for line in (out / "rows.jsonl").read_text().splitlines():
+        r = json.loads(line)
+        slot_name = f"{r['item']}-{r['adapter']}-{r['run_index']}"
+        disk = Path(f"/tmp/pccb/{run_id}")
+        found = [p for p in disk.glob(f"*-{r['adapter']}-{r['run_index']}") if p.name == slot_name or
+                 (r["kind"] == "unpublished" and p.name.startswith(r["family"] + "-") and not p.name[len(r["family"]) + 1:].split("-")[0] in ("0", "1", "2"))]
+        if not found:
+            continue
+        ended = datetime.strptime(r["time"], "%Y-%m-%dT%H:%M:%S%z").timestamp() + (r.get("wall_secs") or 0)
+        why = runner.harness_fault(found[0], ended, r.get("approvals"))
+        if why:
+            slots.append(slot_name)
+            reasons[slot_name] = why
+    (out / "faults.json").write_text(json.dumps({"rule": "core.runner.harness_fault", "slots": sorted(slots),
+                                                 "reasons": reasons}, indent=1, sort_keys=True) + "\n")
+    print(f"{len(slots)} rows hit a harness fault: {reasons}")
+    return 0
+
+
 def cmd_verify(args) -> int:
     from core import verify
     return verify.main(args)
@@ -204,7 +250,7 @@ def cmd_report(args) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["hlk", "all", "corpus", "verify", "freeze", "report"])
+    ap.add_argument("command", choices=["hlk", "all", "corpus", "verify", "freeze", "report", "faults"])
     ap.add_argument("--adapter")
     ap.add_argument("--budget-usd", type=float, default=55.0)
     ap.add_argument("--port-base", type=int, default=7900)
@@ -214,13 +260,15 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--items")
     ap.add_argument("--runs", type=int, default=2)
+    ap.add_argument("--rerun-faults", metavar="RUN_ID", help="rerun once the rows of RUN_ID that hit a harness fault")
     ap.add_argument("--unpublished", default=os.environ.get("HLK_UNPUBLISHED_SEEDS"))
     ap.add_argument("--pointe", default=os.environ.get("HLK_POINTE_CHECKOUT"), help="the Pointe checkout under test")
     ap.add_argument("--fast", action="store_true", help="verify: skip the Kokoro and Whisper detector check")
     args = ap.parse_args()
     if args.command in ("hlk", "all"):
         return cmd_hlk(args)
-    return {"corpus": cmd_corpus, "verify": cmd_verify, "freeze": cmd_freeze, "report": cmd_report}[args.command](args)
+    return {"corpus": cmd_corpus, "verify": cmd_verify, "freeze": cmd_freeze, "report": cmd_report,
+            "faults": cmd_faults}[args.command](args)
 
 
 if __name__ == "__main__":

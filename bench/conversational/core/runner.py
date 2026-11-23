@@ -58,6 +58,7 @@ class Job:
     run_index: int
     kind: str  # paid | smoke | unpublished | debug
     voice: str
+    rerun_of: str | None = None  # the run whose row hit a harness fault
 
 
 def voice_for(inst, seed: int) -> str:
@@ -164,23 +165,23 @@ class Arm:
                 continue
             if self.kind == "typed":
                 if count == 0 and ("doyouwant" in agent.flat()[-3000:] or now - ap["_t"] > 3):
-                    return name, command, 0
+                    return name, command, 0, ap["_t"]
                 continue
             spans = self.adapter.speech()
             after = max(ap["_t"] - 1, last_end + 0.5)
             spoke = [sp for sp in spans if sp[0] >= after]
             quiet = now - self.last_speech_end() > 1.5 and not self.adapter.thinking()
             if count == 0 and spoke and quiet:
-                return name, command, 0
+                return name, command, 0, ap["_t"]
             if count >= 1 and spoke and quiet and now - last_end > 8:
-                return name, command, count
+                return name, command, count, ap["_t"]
         return None
 
-    def answered_approval(self, session, decision, end):
-        ap = self.agents[session].pending_approval()
-        if ap:
-            count, _ = self.answers.get(ap["_t"], (0, 0.0))
-            self.answers[ap["_t"]] = (count + 1, end)
+    def answered_approval(self, request: float, end: float):
+        """Counts the answer against the request that was presented, by its time: the agent may already have moved on
+        to the next request, which must not inherit this answer."""
+        count, _ = self.answers.get(request, (0, 0.0))
+        self.answers[request] = (count + 1, end)
 
     def changed_files(self) -> int:
         now = self.tree()
@@ -385,11 +386,11 @@ async def run_job(job: Job, ctx: dict, port: int) -> dict:
     env = RunEnv(run_id, slot, stage, ctx["api_key"], port, ctx["pointe"], ctx["keys"])
     adapter = make_adapter(job.arm, port, ctx["brain"], ctx["soniox_model"], inst)
     row = {"run_id": run_id, "time": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "benchmark": "hlk", "item_version": VERSION,
-           "kind": job.kind, "item": inst.id, "family": inst.family, "seed": inst.seed if job.kind != "unpublished" else None,
+           "kind": job.kind, "item": inst.id if job.kind != "unpublished" else f"{inst.family}-unpublished", "family": inst.family, "seed": inst.seed if job.kind != "unpublished" else None,
            "group": inst.group, "adapter": job.arm, "run_index": job.run_index, "voice": job.voice if adapter.kind == "spoken" else None,
            "noise": (inst.noise or next((t.noise for t in inst.turns if t.noise), None)) if adapter.kind == "spoken" else None,
            "agent_model": AGENT_MODEL, "permission_mode": PERMISSION_MODE, "claude_code_version": ctx["claude_version"],
-           "repo_commit": ctx["repo_commit"], "pointe_commit": ctx["pointe_commit"], "instance_sha256": inst.digest(),
+           "repo_commit": ctx["repo_commit"], "pointe_commit": ctx["pointe_commit"], "instance_sha256": inst.digest() if job.kind != "unpublished" else None,
            "load_avg": round(os.getloadavg()[0], 2)}
     missing = [c for c in inst.needs if c not in adapter.capabilities]
     if missing:
@@ -448,11 +449,49 @@ async def run_job(job: Job, ctx: dict, port: int) -> dict:
             pass
         if job.arm == "pointe" and getattr(adapter, "state", None):
             kill_tree(adapter.state)
+    row["harness_fault"] = harness_fault(slot, time.time(), log.approvals if log else None)
+    if job.rerun_of:
+        row["rerun_of"] = job.rerun_of
     row["wall_secs"] = round(time.time() - t0, 1)
     row["spend_usd"] = round(sum(r["usd"] for r in spend), 5)
     row["spend"] = [{**r, "usd": round(r["usd"], 5)} for r in spend]
     actions = log.actions if log else []
     return finish(row, actions, events, ctx)
+
+
+STALL_SECS = 480
+
+
+def harness_fault(slot: Path, ended: float | None = None, approvals_answered: int | None = None) -> str | None:
+    """A fault of the machinery, not of the arm, found by rule in the agents' hook logs. Runs that hit one are rerun
+    once, in every arm, with the same voice and run index; the first row stays committed and is counted.
+    - "prompt without hook": Claude Code showed a permission prompt without firing its PermissionRequest hook (a
+      permission_prompt notification right after an unfinished PreToolUse), so neither the runner nor Pointe saw it;
+    - "agent stalled": after a step of the agent, no further hook event for 8 minutes up to the end of the run;
+    - "request skipped": a permission request still open at the end, and fewer approval answers from the user than
+      requests (the runner credited an answer to the next request: fixed in the runner, kept as a rule)."""
+    requests, open_at_end = 0, False
+    for f in slot.glob(".cfg-*/hook-events.jsonl"):
+        last, last_t = None, None
+        for line in f.read_text().splitlines():
+            try:
+                e = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            name = e.get("hook_event_name")
+            if name == "Notification" and e.get("notification_type") == "permission_prompt" and last == "PreToolUse":
+                return "prompt without hook"
+            if name == "PermissionRequest":
+                requests += 1
+            if name != "Notification":
+                last, last_t = name, e.get("_t")
+        open_at_end = open_at_end or last == "PermissionRequest"
+        end = ended or f.stat().st_mtime
+        if last in ("UserPromptSubmit", "PreToolUse", "PostToolUse") and last_t and end - last_t > STALL_SECS:
+            return "agent stalled"
+    if approvals_answered is not None and open_at_end and approvals_answered < requests:
+        return "request skipped"
+    return None
 
 
 class PreflightFailed(RuntimeError):
@@ -461,6 +500,9 @@ class PreflightFailed(RuntimeError):
 
 def finish(row: dict, actions: list, events: list, ctx: dict) -> dict:
     out = ctx["out"]
+    if row.get("kind") == "unpublished":  # scores only: nothing that names the instance or lets its seed be found
+        row = {k: v for k, v in row.items() if k not in ("answer_text", "out_of_tree", "changed_protected", "reason")}
+        actions, events = [], []
     row = json.loads(scrub.clean(json.dumps(row)))
     scrub.check(row)
     with open(out / "rows.jsonl", "a") as f:

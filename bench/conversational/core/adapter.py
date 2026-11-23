@@ -281,20 +281,28 @@ class AgentSession:
             return fresh and self.last_output > self.interrupted_at + 2.5
         if name == "Stop":
             return fresh and self.last_output > t + 2.0
-        if name == "PermissionRequest":
+        if name == "PermissionRequest" or self.pending_approval() is not None:
             return False  # waiting on the user, not working: the runner tracks the open request on its own
         return now - t < 600
 
     def pending_approval(self) -> dict | None:
-        """The open permission request, from the PermissionRequest hook, until any later step of the session."""
+        """The open permission request, from the PermissionRequest hook, until any later step of the session. Claude
+        Code sometimes shows a prompt without firing that hook; then the permission_prompt notification after an
+        unfinished PreToolUse stands for it, with that PreToolUse's tool input."""
         ev = self.hooks()
         for i in range(len(ev) - 1, -1, -1):
             name = ev[i].get("hook_event_name")
+            if name == "Notification" and ev[i].get("notification_type") == "permission_prompt":
+                before = [e for e in ev[:i] if e.get("hook_event_name") != "Notification"]
+                if before and before[-1].get("hook_event_name") == "PreToolUse":
+                    req = dict(before[-1], hook_event_name="PermissionRequest")
+                    return None if self.interrupted_at > req["_t"] else req
+                continue
             if name == "PermissionRequest":
                 later = [e for e in ev[i + 1:] if e.get("hook_event_name") in ("PostToolUse", "Stop", "UserPromptSubmit",
                                                                                "PreToolUse")]
                 return None if later or self.interrupted_at > ev[i]["_t"] else ev[i]
-            if name in ("PostToolUse", "Stop", "UserPromptSubmit"):
+            if name in ("PostToolUse", "Stop", "UserPromptSubmit", "PreToolUse"):
                 return None
         return None
 
