@@ -3,6 +3,34 @@
 A record of the documented install path, followed word for word in an environment with nothing of Pointe's in it.
 Repeat it before a release and add a section on top ([RELEASING.md](../RELEASING.md)).
 
+## 2026-11-23, version 1.23.0: the standalone install
+
+**Machine.** Apple-silicon Mac, macOS 27.0. No Claude Code in the run.
+
+**How clean.** One shell with an empty environment (`env -i`), a new empty `HOME`, `PATH` set to
+`/usr/bin:/bin:/usr/sbin:/sbin`: no uv, no uv cache, no Python of uv's, no `~/.pointe`, no `~/.claude-voice`. A fake
+`security` that answers "not found" stood in for the Keychain, so no Keychain item was read. Port 7995.
+
+**The repository is still private.** An anonymous download of the release asset answers 404, so `install.sh` was run on
+the asset as published (downloaded with `gh release download v1.23.0`) through `--url file://…`; it then read the
+release's own `pointe-1.23.0.tar.gz.sha256` beside it. The pinned-hash path from github.com, and `pointe update`'s
+`/releases/latest` lookup, need the repository public (see "Not covered").
+
+| # | Step | Result | Time |
+|---|---|---|---|
+| 1 | `install.sh` served by the site preview, compared with the repository's | the same bytes; `content-type: application/x-sh`; it pins 1.23.0 and `3e2b700d…0ff5` | |
+| 2 | `bash install.sh --yes --url file://…/pointe-1.23.0.tar.gz` | the plan printed first; "SHA-256 matches"; uv 0.12.21 installed with both of its checks; `~/.local/bin/pointe` written; Python 3.12 and the packages downloaded; "Next: ~/.local/bin/pointe setup" | 225 s (uv, Python and the packages over the network) |
+| 3 | `pointe version`, `bin/pointe-installs list` | "Pointe 1.23.0"; one line, `standalone 1.23.0 ~/.pointe/1.23.0` | |
+| 4 | `pointe setup` with no terminal | the setups table, as before | |
+| 5 | `pointe update --yes` | "could not reach github.com to find the newest release" (the 404 above); nothing changed | |
+| 6 | `pointe uninstall --dry-run`, then `--yes` | lists `~/.local/bin/pointe` and `~/.pointe` (453 MB); removes both: "Pointe is removed."; uv kept | |
+
+**Not covered.** The download from github.com by a stranger, and `pointe update` against it, until the repository is
+public. `pointe setup` at a terminal past its first question, its key window and the first call (they reach the
+Keychain and open Chrome, which this run kept out). The `codex` alias and `/voice` in a real Codex and OpenCode. The
+tampered-tarball refusal, the update between two versions, and the plugin beside the standalone install ran in
+`tests/test_install.py` against test releases, not here.
+
 ## 2026-11-23, version 1.20.0
 
 **Machine.** Apple-silicon Mac, macOS 27.0, Claude Code 2.1.330, Chrome installed.
