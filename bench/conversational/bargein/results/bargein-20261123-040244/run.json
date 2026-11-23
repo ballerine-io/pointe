@@ -1,0 +1,54 @@
+{
+ "run_id": "bargein-20261123-040244",
+ "benchmark": "bargein",
+ "cap_usd": 14.0,
+ "seed": 20261123,
+ "kind": "paid",
+ "workers": 1,
+ "trimmed": [],
+ "planned": 252,
+ "estimated_usd": 5.236,
+ "design_estimate_usd": 13.7,
+ "measured_cost_per_run_x2": {
+  "keyboard": 0.003122655172413793,
+  "llm-router": 0.007450944444444444,
+  "naive": 0.003401137931034483,
+  "pointe": 0.06406614285714285,
+  "null": 0.0025505
+ },
+ "load_flag": 12.0,
+ "window_b_s": 45.0,
+ "claude_code": "2.1.330",
+ "agent_model": "claude-haiku-5-5",
+ "permission_mode": "acceptEdits",
+ "frozen": {
+  "benchmark": "bargein",
+  "pointe_commit": "7113efa273cbe96ede9e385da44eff1970039274",
+  "router_prompt_commit": "cdfba3ded2d1208d62ca5165f0d9877c665b7f2a",
+  "unpublished_seed_manifest_sha256": null,
+  "item_order_seed": 20261123,
+  "claude_code_version": "2.1.330",
+  "agent_model": "claude-haiku-5-5",
+  "items_sha256": "95cf1f3775fb67e3ce6a2383a34b14b9947b34c17728497907364e37dabc347c",
+  "audio_lock_sha256": "b37b0db03d4b59df37d9e937f72821a9744504417994d4a9fb10a6f3a6093e45",
+  "frozen_on": "2026-11-23",
+  "freeze_commit": "867fe59f5da626b23248f6e39a398638ad45a0d6"
+ },
+ "started": "2026-11-23T08:17:58+02:00",
+ "audio_matches_lock": true,
+ "preflight": {
+  "apiKeySource": "ANTHROPIC_API_KEY",
+  "model": "claude-haiku-5-5",
+  "permissionMode": "acceptEdits",
+  "claude_code_version": "2.1.330",
+  "login_files": [],
+  "usd": 0.0008783700000000001
+ },
+ "leftover_at_end": {
+  "swept": 0,
+  "daemons_killed": 0,
+  "still_listening_in_range": 0
+ },
+ "finished": "2026-11-23T08:26:24+02:00",
+ "spent_usd_benchmark_total": 3.409379
+}
