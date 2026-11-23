@@ -163,6 +163,10 @@ and their words are not shown or kept).
 - **It fails closed.** When it cannot tell (no model yet, a model error or a score slower than 0.6 s, under 0.3 s of
   audio, a damaged voiceprint), the speech counts as not yours for what the level guards. A tap, Face ID, the terminal
   and typed text still work, so this costs convenience, never control. Deleting the voiceprint turns the lock off.
+- **Only the owner adds a voiceprint.** The first one can be enrolled from anywhere. Once one is stored (damaged
+  counts), the phone key and a page opened over the TLS listener can start another only within a minute of a strong
+  match to it on the call, at any level: with the lock off a voiceprint still guards drive mode's yes, and it counts
+  as soon as the lock goes up. The page on this Mac is not limited. The apps also ask for Face ID first.
 - **Meetings.** The meeting's owner is the one whose addressed words act (end the meeting, ask a session, speak to the
   room). With a voiceprint, a turn that strongly matches it binds the owner. Without one, a label is all Pointe has, so
   only the speaker of the words that started the meeting, or a tap on "That was me", becomes the owner; "Pointe, that's
@@ -492,9 +496,10 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
   uses.
 - **Face ID is a check in the app, not in the daemon.** The app asks for Face ID or the passcode before it approves,
-  turns on Show while it says or Approve from notifications, lowers or deletes the voice lock, or makes a machine
-  invite. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
-  key can do all of the above without it: approve any pending request (status carries its id), turn on
+  turns on Show while it says or Approve from notifications, lowers or deletes the voice lock, adds a voiceprint beside
+  a stored one, or makes a machine invite. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
+  key can do all of the above without it (a voiceprint beside a stored one only within a minute of the owner's voice
+  matching on the call, which the daemon checks): approve any pending request (status carries its id), turn on
   `show.on_phone` and read what the voice showed, turn on `alerts.watch_approve`, and pair a machine of its own, which
   stays paired after the phone is unpaired. If a phone key may have leaked, Unpair it, run `pointe pair rotate` (it
   signs out every machine too), and check Settings → Machines.
@@ -514,8 +519,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
   read out, bound to that request's id (`alerts.py`).
 - **What Face ID protects, and what it does not.** Every Face ID or passcode check in the app (Approve; starting,
-  adding or joining sessions; night shift; a machine invite or revoke; lowering the voice lock or deleting a
-  voiceprint; turning on show while it says or approve from notifications; replacing the pairing) runs in the app,
+  adding or joining sessions; night shift; a machine invite or revoke; lowering the voice lock, deleting a voiceprint
+  or adding one beside a stored one; turning on show while it says or approve from notifications; replacing the pairing) runs in the app,
   before it sends an ordinary request with the phone key. It stops a person who holds your unlocked iPhone. It does not
   bind the key: the daemon cannot tell whether Face ID ran. Whoever has the phone key itself (a `pointe pair` code that
   was copied or photographed, an app that redeemed a code scanned outside Pointe, the Keychain of a jailbroken phone)

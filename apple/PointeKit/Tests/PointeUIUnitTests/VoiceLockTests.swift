@@ -50,6 +50,20 @@ final class VoiceLockTests: XCTestCase {
         }
     }
 
+    /// Whoever holds the unlocked phone must not file their own voice beside the owner's: a further voiceprint asks
+    /// for Face ID, as lowering the lock does. The first one asks for nothing (there is no lock to get around yet).
+    @MainActor func testAddingAVoiceprintWhenOneIsStoredNeedsTheOwner() async throws {
+        for (enrolled, owner, checked, sent) in [(false, false, false, true), (true, false, true, false), (true, true, true, true)] {
+            let lock = try XCTUnwrap(try status(#"{"connected": true, "sessions": [], "voice_lock": {"level": "approvals", "enrolled": \#(enrolled)}}"#).voice_lock)
+            var asked = false, bodies: [String] = []
+            let sheet = VoiceLockSheet(lock: lock, callUp: true, send: { body in bodies.append(body["action"] as? String ?? ""); return nil },
+                                       ownerCheck: { _ in asked = true; return owner })
+            await sheet.enrol()
+            XCTAssertEqual(asked, checked, "enrolled: \(enrolled)")
+            XCTAssertEqual(bodies, sent ? ["enrol"] : [], "enrolled: \(enrolled), owner: \(owner)")
+        }
+    }
+
     func testTheDeviceLabel() {
         XCTAssertEqual(VoiceLockCopy.deviceLabel(builtIn: true, route: "iPhone Microphone"), "iPhone")
         XCTAssertEqual(VoiceLockCopy.deviceLabel(builtIn: false, route: "AirPods Pro"), "iPhone · AirPods Pro")

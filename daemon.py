@@ -8146,6 +8146,12 @@ async def prefs_set(request: Request):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def _owner_heard_recently() -> bool:
+    """A strong match to a stored voiceprint on this call, within the minute a short "yes" may lean on it."""
+    v = VOICE.last_strong
+    return speaker.strong(v) and 0 <= time.time() - v.at < speaker.CONTINUITY_SECS
+
+
 @app.post("/voice/voiceprint")
 async def voiceprint_action(request: Request):
     """The owner-voice lock: enrol on the live call, cancel, delete a device's voiceprint (or all), set the level.
@@ -8159,6 +8165,11 @@ async def voiceprint_action(request: Request):
             raise HTTPException(status_code=409, detail="Not during a meeting: the room's audio does not reach the lock.")
         if EARS == "native":
             raise HTTPException(status_code=409, detail="The voice lock needs Pointe's own ears (CLAUDE_VOICE_EARS=auto).")
+        if _off_the_mac(request) and _has_voiceprint() and not _owner_heard_recently():
+            # Whoever holds the phone could file their voice as the owner's; Face ID is only in the app. At any level: a
+            # voiceprint guards drive mode's yes with the lock off, and counts as soon as the lock goes up.
+            raise HTTPException(status_code=403, detail="A voiceprint is stored: add another on the Mac, or first say a "
+                                                        "sentence with the voice lock on, then add it within a minute.")
         VOICE.start_enrolment(str(body.get("device") or "This device"))
         VOICE.load_soon()
         logger.info("voice lock: enrolment started")

@@ -154,7 +154,7 @@ struct VoiceLockSheet: View {
     }
 
     @ViewBuilder private func enrolButton(_ title: String) -> some View {
-        Button(title) { Task { await run(["action": "enrol", "device": VoiceLockCopy.thisDevice]) } }
+        Button(title) { Task { await enrol() } }
             .disabled(!callUp)
         if !callUp {
             Text(VoiceLockCopy.connectFirst).font(.brand(.footnote)).foregroundStyle(Brand.muted)
@@ -191,6 +191,13 @@ struct VoiceLockSheet: View {
         guard level != current else { return }
         if VoiceLockLevel.isLowering(from: current, to: level), !(await ownerCheck("Lower the voice lock to \(level.label)")) { return }
         await run(["action": "level", "level": level.rawValue])
+    }
+
+    /// A further voiceprint is behind Face ID, as a lowering is: whoever holds the phone would otherwise file their own
+    /// voice as the owner's. The first needs none. The Mac also refuses one off the Mac without a recent owner match.
+    func enrol() async {
+        if lock.isEnrolled, !(await ownerCheck("Add a voiceprint")) { return }
+        await run(["action": "enrol", "device": VoiceLockCopy.thisDevice])
     }
 
     /// One device's voiceprint, or every one (nil). Always behind Face ID.
