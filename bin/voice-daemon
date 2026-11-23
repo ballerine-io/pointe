@@ -77,7 +77,7 @@ else
   EXTRA=()
 fi
 [ -d "$ROOT/.venv" ] || echo "voice-daemon: first run, downloading about 180 MB..." >&2
-uv sync --locked --quiet --project "$ROOT" ${EXTRA[@]+"${EXTRA[@]}"}
+"$ROOT/bin/uv-sync" --quiet --project "$ROOT" ${EXTRA[@]+"${EXTRA[@]}"}  # offline first: see bin/uv-sync
 # Fully local mode: its text-model server is started here, and loaded, before the first call needs it.
 if [ -f "$STATE/config.json" ] && grep -qE '"local_only": *true' "$STATE/config.json"; then
   uv run --no-sync --project "$ROOT" python -I "$ROOT/local.py" ensure >&2 || true  # preflight explains a failure

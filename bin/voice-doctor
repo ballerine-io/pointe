@@ -6,4 +6,5 @@ PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started
 command -v uv >/dev/null 2>&1 && echo "ok       uv" || { echo "MISSING  uv"; echo "Install uv first: https://docs.astral.sh/uv/"; exit 1; }
 command -v node >/dev/null 2>&1 && echo "ok       node" || echo "optional node     only for pointe start; /pointe:voice does not need it"
 [ -d "$ROOT/.venv" ] || echo "First run: downloading Pointe's Python packages, about 180 MB..." >&2
-exec uv run --locked --project "$ROOT" python "$ROOT/doctor.py" "$@"
+"$ROOT/bin/uv-sync" --inexact --quiet --project "$ROOT" || exit 1
+exec uv run --no-sync --project "$ROOT" python "$ROOT/doctor.py" "$@"
