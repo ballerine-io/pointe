@@ -271,7 +271,7 @@ def test_lookups_answer_from_a_linked_session_only_with_auto_lookups_or_a_tap(d,
 def test_a_spoken_entry_needs_the_consent_step_once(d, monkeypatch):
     _meeting_ready(d, monkeypatch)
     said = []
-    monkeypatch.setattr(d, "say", lambda text: _record(said, text))
+    monkeypatch.setattr(d, "_say_exactly", lambda text, tag: _record(said, text))
     asyncio.run(d._start_meeting_by_voice("Meeting mode, listening.", "listening"))
     assert d.state.meeting is None and "consent" in said[0]
     d.PREFS.update({"meeting.consented": True})

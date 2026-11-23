@@ -171,6 +171,7 @@ TEMPLATE = """<!doctype html>
   <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
     <a href="../features/">Features</a>
+    <a href="../docs/">Docs</a>
     <a href="../benchmarks/">Benchmarks</a>
     <a href="./" aria-current="page">Roadmap</a>
     <a href="../contribute/">Contribute</a>
@@ -200,6 +201,7 @@ TEMPLATE = """<!doctype html>
       Community-supported, best effort, no SLA.</p>
     <nav aria-label="Project links" class="pg-footer-links">
       <a href="../">Pointe</a>
+      <a href="../docs/">Docs</a>
       <a href="https://github.com/ballerine-io/pointe/blob/main/ROADMAP.md">ROADMAP.md</a>
       <a href="https://github.com/ballerine-io/pointe">Source</a>
       <a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Security</a>

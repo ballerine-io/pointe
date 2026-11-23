@@ -7,8 +7,19 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.23
+
+- **1.23.0** (2026-11-23): Pointe installs without Claude Code: one installer for Codex and OpenCode, checked against the release's SHA-256, then pointe setup in the terminal (Codex's shared app-server, /voice in OpenCode) and pointe update; with the plugin on the same Mac there is one Pointe, the newer one, and pointe doctor says which runs
+
+## 1.22
+
+- **1.22.0** (2026-11-23): Say "stop" and Pointe ends what a session is working on (Codex and OpenCode at once, Claude Code at its next step); after "which session?" Pointe sends the request you were asked about, not the one before; more permission requests can be approved by voice, and one that needs a tap says so once and is read on request; misheard names reach the agent as heard; and a short answer to your question comes without waiting for the reading model
+
 ## 1.21
 
+- **1.21.3** (2026-11-23): On the page, the night shift's ledger reads as the iPhone app's: each session and its task, then the question, the choice and its cost, with the commit and PR on a line of their own; a refused or unreached Start, key window, drive or microphone change says why and stays on screen, and Start is given back; and a short phone in a meeting gives the notes the room of the mic switch
+- **1.21.2** (2026-11-23): On the page, a session row renames with F2 and disconnects with Delete, a setup names a key it lacks before you click and shows a refusal beside it, meeting notes drop "not stated" and never nest brackets, high-contrast modes keep the controls' edges, and a phone browser that is no longer paired is told in words how to pair again
+- **1.21.1** (2026-11-23): Fixes from five launch QA rounds: `pointe <command> --help` says what the command does and runs nothing, and `pointe --version` works; Fully local loads its model on a fresh Mac; ears or a voice that drop or fail to connect are tried again with growing waits, and a refused key, an empty quota or a failing vendor is said once in plain words instead of Listening; Pointe starts without internet from uv's cache; the iPhone and Mac apps keep Approve and Deny on the screen for a long command at any text size, and drive mode, the pairing screen and the night shift sheet are no longer cut off; the page's call bar is the apps', labelled, with one Hang up; the Mac app gets keys for Approve, Deny and Mute, Settings and About on its setup guide, and a working Help; and many smaller fixes to the page, the apps, the CLI and the docs
 - **1.21.0** (2026-11-23): Add sessions by voice: "connect to the session about the pentest", "connect to all open Claude Code sessions" and "reopen yesterday's session about billing" find sessions here and on paired machines, read back what was found, and join on a yes, with an Add sessions sheet on the page and in the apps
 
 ## 1.20

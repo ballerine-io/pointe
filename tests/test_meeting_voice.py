@@ -357,3 +357,32 @@ def test_more_action_items_than_can_be_read_out_go_from_the_end_sheet(d, monkeyp
     assert d.state.pending_actions is None and asked == []
     assert "end sheet" in d.state.conn.injector.fed[-1][0]
     assert asyncio.run(d._meeting_actions_words("Yes.")) is False and asked == []
+def test_a_meeting_started_by_voice_links_the_joined_sessions(d, monkeypatch):
+    """From a live run: "Meeting mode, join in." linked no session, so "Pointe, look that up" always answered "Nothing to
+    look up yet". The page and the apps let the user tick sessions; by voice, every joined one is linked."""
+    _meeting_ready(d, monkeypatch)
+    add(d, "s1", "pricing")
+    add(d, "s2", "billing/main")
+    d.PREFS.update({"meeting.consented": True})
+    asyncio.run(d._start_meeting_by_voice("Pointe, meeting mode, join in.", "participating"))
+    assert sorted(d.state.meeting.sessions) == ["billing/main", "pricing"]
+
+
+def test_a_meeting_started_by_voice_that_names_a_session_links_that_one(d):
+    add(d, "s1", "pricing")
+    add(d, "s2", "billing/main")
+    assert d._meeting_sessions_heard("Pointe, meeting mode with billing, join in.") == ["billing/main"]
+
+
+def test_meeting_mode_by_voice_before_consent_says_the_fixed_line(d, monkeypatch):
+    """From a live run: "Meeting mode, join in." before the consent step got "pricing is joined and idle... What would
+    you like it to do?" from the model."""
+    said = []
+
+    async def say_exactly(line, tag):
+        said.append(line)
+
+    monkeypatch.setattr(d, "_say_exactly", say_exactly)
+    d.PREFS.update({"meeting.consented": False})
+    asyncio.run(d._start_meeting_by_voice("Meeting mode, join in.", "participating"))
+    assert said == [d.MEETING_CONSENT_FIRST] and d.state.meeting is None

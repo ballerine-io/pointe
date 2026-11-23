@@ -156,7 +156,7 @@ def status(state: Path = STATE, port: int = PORT) -> None:
         print("The node is not running here: bin/voice-node ensure (or /pointe:voice in a session) starts it.")
         return
     link = "up" if live["link"] == "up" else f"down ({live.get('link_error') or 'connecting'})"
-    print(f"Link: {link}" + (f", round trip {live['rtt_ms']} ms" if live.get("rtt_ms") is not None else ""))
+    print(f"Link: {link}" + (f", round trip {live['rtt_ms']} ms" if live["link"] == "up" and live.get("rtt_ms") is not None else ""))
     print(f"Call on {hub['name']}: {'up' if live.get('connected') else 'not up'}. Remote taps: "
           f"{'only for requests that can be read out' if live.get('remote_taps') == 'readable_only' else 'trusted'}.")
     vendors = ", ".join(live.get("vendors") or []) or "none known yet"

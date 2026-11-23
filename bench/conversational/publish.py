@@ -18,9 +18,9 @@ PAGE = ROOT / "site" / "pointe" / "benchmarks" / "index.html"
 GITHUB = "https://github.com/ballerine-io/pointe/blob/main/"
 
 # The published run of each benchmark, as its own report names it, and the cap the design gave it (budget rules).
-RUNS = {"identifiers": "identifiers-20261123-031106", "actions": "act-20261123-033255",
-        "routing": "routing-20261123-0331-d17a", "bargein": "bargein-20261123-040244"}
-CAP = {"hlk": 55, "identifiers": 12, "actions": 17, "routing": 9, "bargein": 14}
+RUNS = {"identifiers": "identifiers-20261123-125649", "actions": "act-20261123-161153",
+        "routing": "routing-20261123-1246-a9f2", "bargein": "bargein-20261123-161151"}
+CAP = {"hlk": 55, "identifiers": 12, "actions": 18, "routing": 11, "bargein": 14}  # actions $17, routing $9: raised for the rerun
 ORDER = ["hlk", "identifiers", "actions", "routing", "bargein"]
 NAME = {"hlk": "Humanity's Last Keystroke (HLK)", "identifiers": "Spoken Identifiers",
         "actions": "Spoken Actions and False Approval", "routing": "Session Routing",
@@ -45,6 +45,67 @@ REGISTER = {"hlk": "core/runner.py: make_adapter", "identifiers": "identifiers/b
 LABEL = {"keyboard-canonical": "keyboard, canonical", "keyboard-transcript": "keyboard, transcript", "keyboard": "keyboard",
          "pointe": "Pointe", "pointe-text": "Pointe, typed text", "llm-router": "LLM router", "naive": "keyword rules, ours",
          "null": "null (does nothing)"}
+
+
+# The run published before Pointe fixed what this suite found, kept as it was: its pages in docs/benchmarks/earlier/,
+# its results in the files below. The rerun replaced only the Pointe arm.
+EARLIER_DATE = "2026-11-23"
+EARLIER = {"hlk": ("hlk/results/summary-2026-11-23-pointe-6544cdc.json", "6544cdc"),
+           "identifiers": ("identifiers/results/identifiers-20261123-031106/summary.json", "6544cdc"),
+           "actions": ("actions/results/act-20261123-033255/results.json", "6544cdc"),
+           "routing": ("routing/results/routing-20261123-0331-d17a/results.json", "6544cdc"),
+           "bargein": ("bargein/results/bargein-20261123-040244/results.json", "7113efa")}
+
+
+SLOW = "The reruns of HLK and Spoken Actions ran while the brain model answered slowly: Pointe's 8 s limit on a brain step cut 26 of 72 HLK runs and 12 of 140 Spoken Actions runs, against 3 of 72 and 1 of 141 in the first run (Barge-in: 2 of 68, against 1 of 74). Their before and after differ in the vendor's latency as well as in Pointe. Launches that ran while it was slower still were stopped and are kept, not used."
+
+
+def load_earlier() -> dict:
+    return {k: json.loads((HERE / path).read_text()) for k, (path, _) in EARLIER.items()}
+
+
+def wilson(k: int, n: int) -> tuple[float, float]:
+    if not n:
+        return 0.0, 1.0
+    z, p_ = 1.959964, k / n
+    mid, half = (p_ + z * z / (2 * n)), z * ((p_ * (1 - p_) + z * z / (4 * n)) / n) ** 0.5
+    return (mid - half) / (1 + z * z / n), (mid + half) / (1 + z * z / n)
+
+
+def pointe_measures(key: str, s: dict) -> list[tuple[str, int, int, float, float]]:
+    """The Pointe arm's headline counts of one benchmark's results: (measure, k, n, low, high), 95% Wilson."""
+    if key == "hlk":
+        k, n = s["passes"]["pointe"]
+        return [("tasks passed", k, n, *wilson(k, n))]
+    if key == "identifiers":
+        v = s["arms"]["pointe"]["right_symbol"]
+        return [("right symbol", v["k"], v["n"], *v["wilson95"])]
+    if key == "actions":
+        P = s["scores"]["pointe"]
+        return [(label, P[m]["k"], P[m]["n"], P[m]["lo"], P[m]["hi"]) for label, m in
+                (("action accuracy", "accuracy"), ("false approval (lower is better)", "false_approval"),
+                 ("false denial (lower is better)", "false_denial"), ("missed stop (lower is better)", "missed_stop"))]
+    if key == "routing":
+        P = s["summary"]["pointe"]
+        return [("turns routed right", P["correct"], P["turns"], *P["correct_wilson"])]
+    A, B = s["part_a"]["pointe"], s["part_b"]["pointe"]
+    return [("A: job halted when told to stop", A["halt"]["k"], A["halt"]["n"], *A["halt"]["ci95"]),
+            ("B: correct answer within 45 s", B["correct"]["k"], B["correct"]["n"], *B["correct"]["ci95"])]
+
+
+def before_after(now: dict) -> list[list[str]]:
+    then = load_earlier()
+    rows = []
+    for k in ORDER:
+        old, new = pointe_measures(k, then[k]), pointe_measures(k, now[k])
+        for (label, k0, n0, lo0, hi0), (_, k1, n1, lo1, hi1) in zip(old, new):
+            rows.append([NAME[k], label, prop(k0, n0, lo0, hi0), prop(k1, n1, lo1, hi1)])
+        if k == "bargein":
+            t0, t1 = then[k]["part_b"]["pointe"]["ttca"], now[k]["part_b"]["pointe"]["ttca"]
+            rows.append([NAME[k], "B: time to the correct answer, median / p90",
+                         f"{t0['median']:.1f} s / {t0['p90']:.1f} s ({t0['censored']} censored)",
+                         f"{t1['median']:.1f} s / {t1['p90']:.1f} s ({t1['censored']} censored)"])
+    return rows
 
 
 def load() -> dict:
@@ -141,9 +202,10 @@ def identifiers(s: dict) -> dict:
 
     return {
         "unit": "target symbol", "n": f"{A['keyboard-canonical']['n_targets']} targets, each spoken in a clean and a 12 dB babble clip",
-        "setup": [f"Runs {', '.join(c['run_ids'])} (the LLM router arm rerun in full after a harness fix), {', '.join(c['dates'])}",
+        "setup": [f"Runs {', '.join(c['run_ids'])}: the Pointe arms from the last, run after the fixes; the LLM router "
+                  f"from the second (rerun in full after a harness fix); the other arms from the first. {', '.join(c['dates'])}",
                   f"Agent {c['agent_model']} in Claude Code {', '.join(c['claude_code'])}, {c['permission_mode']}",
-                  f"Pointe {c['pointe_commits'][0][:7]}; one recognizer for every speech arm ({', '.join(c['recognizers'])})",
+                  f"Pointe {c['pointe_commits'][-1][:7]}; one recognizer for every speech arm ({', '.join(c['recognizers'])})",
                   f"LLM router {', '.join(c['router_models'])}; voices {', '.join(c['voices'])}"],
         "table": (["arm", "right symbol", "wrong symbol (harmful)", "no action"], rows),
         "table_title": f"Outcomes per arm (synthetic speech). The LLM router has {A['llm-router']['n_runs']} valid runs: "
@@ -157,8 +219,12 @@ def identifiers(s: dict) -> dict:
             "(the clean and babble clips use different voices).",
             f"Flip rate on repeated clips: Pointe {rep['pointe']['flips']}/{rep['pointe']['n_pairs']}, "
             f"LLM router {rep['llm-router']['flips']}/{rep['llm-router']['n_pairs']}.",
-            "Main failures: the write/right homophone in every speech arm, and misheard words that Pointe and the LLM "
-            "router rewrote as code names the agent could not find, where keyword rules passed the words as heard."],
+            "The write/right homophone (t08) is still wrong for Pointe: the recognizer hears the name as \"right column\" "
+            "and the agent picks right_column although Pointe now says what the hint means. Code names built from "
+            "misheard words now go to the agent with the words as heard; no Pointe row failed that way in this run.",
+            "Two of Pointe's three no-action rows are one target (t07) whose speech never reached Pointe: the recognizer's "
+            "connection dropped on a loaded machine (load average up to 517 during the run). They are counted as they "
+            "came."],
         "chart": ("Right symbol, with 95% Wilson intervals, synthetic speech",
                   [(LABEL[a], A[a]["right_symbol"]["k"], A[a]["right_symbol"]["n"], *A[a]["right_symbol"]["wilson95"], a == "pointe")
                    for a in order]),
@@ -167,7 +233,7 @@ def identifiers(s: dict) -> dict:
         "glance": {"pointe": f"{A['pointe']['right_symbol']['k']}/{A['pointe']['right_symbol']['n']} right",
                    "llm-router": f"{A['llm-router']['right_symbol']['k']}/{A['llm-router']['right_symbol']['n']}",
                    "keyboard": f"{A['keyboard-canonical']['right_symbol']['k']}/{A['keyboard-canonical']['right_symbol']['n']}"},
-        "pointe_commit": c["pointe_commits"][0][:7],
+        "pointe_commit": c["pointe_commits"][-1][:7],
     }
 
 
@@ -185,7 +251,9 @@ def actions(s: dict) -> dict:
         "unit": "utterance", "n": f"{P['n_items']} utterances; 60 adversarial non-yes on destructive prompts, 20 clear yes",
         "setup": [f"Run {', '.join(m['run_ids'])}, {', '.join(m['dates'])}, {m['rows']} rows",
                   f"Agent {', '.join(m['agent_model'])} in Claude Code {', '.join(m['claude_code'])}, permission mode default",
-                  f"Pointe {', '.join(m['pointe_commit'])}, default setup",
+                  f"Pointe {m['pointe_commit'][-1][:7]}, default setup"
+                  + (" (the Pointe arm from the last run, after the fixes; the other arms from the first)"
+                     if len(m["pointe_commit"]) > 1 else ""),
                   f"LLM router {', '.join(m['router_model'])}, with a prompt we wrote that names the adversarial types"],
         "table": (["arm", "false approval", "false denial", "action accuracy", "missed stop"], rows),
         "table_title": "Harmful rates beside their opposites (synthetic speech, 95% Wilson intervals)",
@@ -195,10 +263,14 @@ def actions(s: dict) -> dict:
             f"{R['false_approval_without_truncated']['k']}/{R['false_approval_without_truncated']['n']} non-yes utterances. "
             "Every approval of either came from a clip cut after its first, yes-like word, and a rerun of those clips "
             "gave different counts: no false-approval ranking between them is claimed.",
-            f"Pointe's false denials: {P['false_denial_voice_readable']['k']}/{P['false_denial_voice_readable']['n']} on "
-            f"voice-readable prompts; the rest are commands Pointe never approves by voice and asks a tap for.",
-            f"Missed stop: Pointe {P['missed_stop']['k']}/{P['missed_stop']['n']}: at this commit it has no interrupt for "
-            "Claude Code.",
+            (f"Pointe's false denials: {P['false_denial_voice_readable']['k']}/{P['false_denial_voice_readable']['n']} on "
+             f"voice-readable prompts; the rest are commands Pointe never approves by voice and asks a tap for."
+             if m.get("tap_only_kinds") else
+             "Every command of this benchmark is voice-readable at this Pointe commit: its false denials are yeses it "
+             "did not take as a yes (it takes only a plain yes) or did not hear."),
+            f"Missed stop: Pointe {P['missed_stop']['k']}/{P['missed_stop']['n']}. A spoken stop ends a Claude Code turn "
+            "at its next tool step, through Claude Code's hooks: Claude Code offers another process no supported way to "
+            "interrupt a running turn, and the job here is one command, which runs to its end first.",
             f"Pointe's accuracy is {P['accuracy_denial_accepted_on_hedges']['k']}/{P['accuracy_denial_accepted_on_hedges']['n']} "
             "if denying a hedge counted as correct.",
             f"In {len(P['claimed_not_done'])} runs Pointe's spoken reply claimed an approval, rejection or stop that did "
@@ -214,7 +286,7 @@ def actions(s: dict) -> dict:
                              f"{P['false_approval']['k']}/{P['false_approval']['n']}",
                    "llm-router": f"{R['accuracy']['k']}/{R['accuracy']['n']}; {R['false_approval']['k']}/{R['false_approval']['n']}",
                    "keyboard": f"accuracy {S['keyboard']['accuracy']['k']}/{S['keyboard']['accuracy']['n']}"},
-        "pointe_commit": m["pointe_commit"][0][:7],
+        "pointe_commit": m["pointe_commit"][-1][:7],
     }
 
 
@@ -244,12 +316,9 @@ def routing(s: dict, run: dict) -> dict:
         "table_title": "Routing per turn (synthetic speech, 95% Wilson intervals)",
         "findings": [
             f"Pointe minus LLM router, paired by turn: {delta(d['delta'], *d['bootstrap'])} (bootstrap by conversation).",
-            f"In {sr['failed_turns']} of Pointe's {P['turns'] - P['correct']} failed turns its brain chose the right session "
-            f"and words, and its send layer delivered an earlier request's text instead ({sr['after_asking']} right after it "
-            "asked which session). This is a real bug; the benchmark's one-template sentences trigger it far more often "
-            "than varied speech would, so the gap is overstated.",
-            f"Had those sends gone out as the brain wrote them, Pointe would reach at most {sr['upper_bound_correct']}/"
-            f"{P['turns']}: an upper bound, not measured, still below the LLM router.",
+            f"No send delivered an earlier request's text ({sr['failed_turns']} of Pointe's {P['turns'] - P['correct']} failed "
+            "turns; the earlier run lost 9 turns that way). Pointe's remaining failures are ambiguous turns where it "
+            f"guessed instead of asking: it asked first on {P['ask_ambiguous'][0]} of {P['ask_ambiguous'][1]}.",
             f"Flip rate on 3 repeated conversations: Pointe {P['flip'][0]}/{P['flip'][1]}, LLM router "
             f"{S['llm-router']['flip'][0]}/{S['llm-router']['flip'][1]} (not like for like: the router reuses cached "
             "transcripts)."],
@@ -294,9 +363,10 @@ def bargein(s: dict) -> dict:
         "table2_title": "Part B: status questions (synthetic speech). The keyboard row times correct text on the terminal, "
                         "a different quantity.",
         "findings": [
-            f"Part A, Pointe minus LLM router paired by item: {delta(pa['delta'], *pa['ci95'])}. At this commit Pointe passes a "
-            f"spoken stop to the agent as a message and has no action that interrupts it ({lg['pointe_a_forwarded_as_message']} "
-            f"of {lg['pointe_a_runs']} logs).",
+            f"Part A, Pointe minus LLM router paired by item: {delta(pa['delta'], *pa['ci95'])}. A spoken stop now ends a "
+            f"Claude Code turn through its hooks ({lg.get('pointe_a_stop_taken', 0)} of {lg['pointe_a_runs']} logs show the "
+            "stop taken), at the next tool step: Claude Code offers another process no supported way to cut a running "
+            "turn, so the job, one shell command, runs to its end first.",
             f"Part B, Pointe minus LLM router: {delta(pb['delta'], *pb['ci95'])}.",
             f"Redirect was 0/{A['keyboard']['redirect']['n']} in every arm, the keyboard included: the column does not "
             "separate the arms.",
@@ -324,6 +394,10 @@ def build_all() -> dict:
     d = load()
     out = {"hlk": hlk(d["hlk"]), "identifiers": identifiers(d["identifiers"]), "actions": actions(d["actions"]),
            "routing": routing(d["routing"], d["routing_run"]), "bargein": bargein(d["bargein"])}
+    rows = before_after(d)
+    out["_before_after"] = rows
+    for k in ORDER:
+        out[k]["before_after"] = [r for r in rows if r[0] == NAME[k]]
     money = spend()
     for k in ORDER:
         out[k]["spend"] = money[k]
@@ -377,6 +451,9 @@ def doc_page(key: str, b: dict) -> str:
     if "table2" in b:
         out += [f"{b['table2_title']}", "", md_table(*b["table2"]), ""]
     out += [f"- {x}" for x in b["findings"]]
+    out += [f"- Before the fixes, in the run of {EARLIER_DATE} (Pointe {EARLIER[key][1]}, kept as published in "
+            f"[earlier/{EARLIER_DATE}/{key}.md](earlier/{EARLIER_DATE}/{key}.md)): "
+            + "; ".join(f"{m} {b0}, now {b1}" for _, m, b0, b1 in b["before_after"]) + "."]
     out += ["", f"Full results: [{FULL[key].split('/')[-1]}](../../{FULL[key]}). Raw rows, events and spend: "
                 f"`bench/conversational/{key}/results/`. Spend on this benchmark, every launch included: ${b['spend']:.2f} "
                 f"of a ${CAP[key]} cap, computed from usage and list prices, not a vendor bill.", "",
@@ -411,6 +488,15 @@ def index_doc(B: dict) -> str:
            "affiliated with it.", "",
            "## At a glance (synthetic speech)", "", md_table(["benchmark", "question", "unit", "Pointe", "LLM router",
                                                               "keyboard reference"], rows), "",
+           "## Before and after the fixes (Pointe arm, synthetic speech)", "",
+           f"The run of {EARLIER_DATE} found five defects in Pointe: a send that delivered an earlier request after "
+           "\"which session?\", no way to stop a running turn, permission requests only a tap could approve, misheard "
+           "words rewritten into code names, and slow spoken answers. Pointe "
+           f"{B['routing']['pointe_commit']} fixes them, and the Pointe arm of every benchmark was run again with the same "
+           "agent model, items, seeds and settings. The reference arms run no Pointe code and keep their rows from the "
+           f"earlier run. That run's pages are kept as published: [earlier/{EARLIER_DATE}/](earlier/{EARLIER_DATE}/README.md).",
+           "", SLOW,
+           "", md_table(["benchmark", "measure", f"before ({EARLIER_DATE})", "after"], B["_before_after"]), "",
            "## Pointe minus the LLM router, paired (synthetic speech)", "",
            "The LLM router is the baseline: the same recognizer as Pointe's default setup and one call per utterance to "
            "the same brain model. Differences in percentage points with 95% bootstrap intervals over each benchmark's "
@@ -431,7 +517,8 @@ def index_doc(B: dict) -> str:
            md_table(["benchmark", "spend, every launch", "cap"], [[NAME[k], f"${B[k]['spend']:.2f}", f"${CAP[k]}"] for k in ORDER]
                     + [["all five", f"${total:.2f}", f"${sum(CAP.values())}"]]), "",
            "Computed from usage and list prices, not metered: smoke, debug, aborted runs and verification reruns are "
-           "included.", "",
+           "included, and so is the Pointe-arm rerun after the fixes. Two caps were raised for the rerun: Session Routing "
+           "from $9 to $11, Spoken Actions from $17 to $18.", "",
            "The speech-component benchmarks (recognizers, voices, brains) are a separate page: "
            "[docs/benchmarks.md](../benchmarks.md).", ""]
     return HEADER + "\n".join(out)
@@ -613,7 +700,7 @@ def site_page(B: dict, version: str) -> str:
       The agent is held fixed, and the same tasks reach it typed or spoken, so a score is the loss the voice interface
       adds, not the strength of the agent. Pointe is the system under test. The flagship is Humanity's Last Keystroke:
       small coding tasks, finished by voice only.</p>
-    <p class="pg-small">First run 2026-11-23. Agent claude-haiku-5-5 in Claude Code 2.1.330. Synthetic speech in four
+    <p class="pg-small">First run 2026-11-23; the Pointe arm run again the same day after the fixes of what it found. Agent claude-haiku-5-5 in Claude Code 2.1.330. Synthetic speech in four
       Kokoro voices. Every number on this page is computed from raw rows committed in the repository.</p>
   </section>
   <ul class="pg-how" aria-label="How to read these results">
@@ -631,10 +718,19 @@ def site_page(B: dict, version: str) -> str:
              "Headline counts per benchmark, synthetic speech. The LLM router is the baseline: the same recognizer and "
              "brain model as Pointe's default setup, one call per utterance.", num=False)}
   </section>
+  <section class="pg-section" id="fixes" aria-labelledby="h-fixes">
+    <div class="pg-section-head"><h2 class="pg-h2" id="h-fixes">Before and after the fixes</h2></div>
+    <p class="pg-body" style="max-width:72ch">The first run, {EARLIER_DATE}, found five defects in Pointe. Pointe
+      {B['routing']['pointe_commit']} fixes them, and the Pointe arm of every benchmark was run again with the same agent,
+      items, seeds and settings; the reference arms run no Pointe code and keep their earlier rows. The earlier pages are
+      kept <a href="{GITHUB}docs/benchmarks/earlier/{EARLIER_DATE}/README.md">as published</a>. {SLOW}</p>
+    {h_table(["Benchmark", "Measure", f"Before ({EARLIER_DATE})", "After"], B["_before_after"],
+             "Pointe arm only, synthetic speech, 95% Wilson intervals.", num=False)}
+  </section>
   <section class="pg-section" id="paired" aria-labelledby="h-paired">
     <div class="pg-section-head"><h2 class="pg-h2" id="h-paired">Pointe against the LLM router</h2></div>
-    <p class="pg-body" style="max-width:72ch">In this first run Pointe scored below the LLM router wherever an interval
-      excludes zero. The findings under each benchmark say what drove the gap, including the parts that are bugs in
+    <p class="pg-body" style="max-width:72ch">After the fixes Pointe still scores below the LLM router wherever an
+      interval excludes zero. The findings under each benchmark say what drove the gap, including the parts that are bugs in
       Pointe and the parts that are biases of the benchmark. Spoken Actions has no paired row: its false-approval counts
       are too small and unstable to rank.</p>
     {forest(B)}
@@ -710,6 +806,7 @@ TEMPLATE = """<!doctype html>
   <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
     <a href="../features/">Features</a>
+    <a href="../docs/">Docs</a>
     <a href="./" aria-current="page">Benchmarks</a>
     <a href="../roadmap/">Roadmap</a>
     <a href="../contribute/">Contribute</a>
@@ -724,6 +821,7 @@ TEMPLATE = """<!doctype html>
     <p class="pg-small">Built and open-sourced by <a href="../../">Ballerine Engineering</a>. MIT licensed. Pointe <span data-version>{VERSION}</span>.</p>
     <nav aria-label="Project links" class="pg-footer-links">
       <a href="../">Pointe</a>
+      <a href="../docs/">Docs</a>
       <a href="hlk/">Humanity's Last Keystroke</a>
       <a href="actions/">Spoken Actions</a>
       <a href="https://github.com/ballerine-io/pointe/tree/main/bench/conversational">Source</a>

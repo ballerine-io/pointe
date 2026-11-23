@@ -28,7 +28,6 @@ from urllib.parse import urlencode
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
 import childenv  # noqa: E402
 import nodelink  # noqa: E402
-from phone import phone_key  # noqa: E402
 from remote import TLS_PORT  # noqa: E402
 
 STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
@@ -130,6 +129,7 @@ def setup(host: str, listen: str) -> None:
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not _covers(host):
         _certificate(host)
+        _say_nodes_pair_again(_paired_nodes(), revoke=True)
     old = os.umask(0o077)
     try:
         if not (STATE / "remote_token").exists():
@@ -139,8 +139,15 @@ def setup(host: str, listen: str) -> None:
         os.umask(old)
 
 
+UNUSED = "phone_key.unused"  # a phone_key made here for a QR no phone has used yet: not listed as a paired phone
+
+
 def pairing_link() -> str:
+    from phone import phone_key  # not at the top: phone.py imports Pipecat, which logs a banner
+
     config = json.loads((STATE / "remote.json").read_text())
+    if not (STATE / "phone_key").exists():
+        (STATE / UNUSED).touch(mode=0o600)
     return "pointe://pair?" + urlencode({"v": PAIRING_VERSION, "host": config["host"], "port": TLS_PORT,
                                          "fp": fingerprint(), "key": phone_key(STATE)})
 
@@ -235,12 +242,12 @@ def routes(typed: str | None = None) -> dict:
             "advice": None if any(r["usable"] for r in found) else INSTALL_ADVICE}
 
 
-_NOT_SET_UP = "Not set up yet: run `pointe pair tailscale`, `pointe pair wifi`, or `pointe pair host <name>`."
+NOT_SET_UP = "Not set up yet: run `pointe pair tailscale`, `pointe pair wifi`, or `pointe pair host <name>`."
 
 
 def _config() -> dict:
     if not (STATE / "remote.json").exists():
-        raise SystemExit(_NOT_SET_UP)
+        raise SystemExit(NOT_SET_UP)
     return json.loads((STATE / "remote.json").read_text())
 
 
@@ -283,16 +290,42 @@ def _sign_everyone_out() -> None:
         _write_private(nodes, json.dumps({"hub_id": hub_id, "nodes": []} if isinstance(hub_id, str) else {"nodes": []}) + "\n")
 
 
+def _paired_nodes() -> list[str]:
+    """The names of the machines paired with this hub, read from nodes.json without changing it."""
+    try:
+        nodes = json.loads((STATE / "nodes.json").read_text()).get("nodes") or []
+    except (OSError, ValueError, AttributeError):
+        return []
+    return [str(n["name"]) for n in nodes if isinstance(n, dict) and n.get("name")]
+
+
+def _say_nodes_pair_again(names: list[str], revoke: bool = False) -> None:
+    """A new certificate unpairs every node, and `pointe hub invite` alone fails while the old pairing is on both sides
+    (QA round 2: "already paired", then "leave studio first"): the steps that work, per machine. `revoke` when this
+    Mac still holds the machine's key (a new route); rotate has already signed it out here."""
+    for name in names:
+        here = f"pointe hub revoke {name}, then pointe hub invite --name {name}" if revoke else f"pointe hub invite --name {name}"
+        print(f"{name} must pair again: here, {here}; on {name}, pointe node leave, then pointe node join '<the invite>'.")
+
+
+def _home_path(path: Path) -> str:
+    return str(path).replace(str(Path.home()), "~", 1)
+
+
 def rotate() -> None:
     """For a lost phone or a pairing QR, link or invite seen by someone else: a new certificate and a new browser
     pairing secret, and every phone, browser and machine signed out."""
     _certificate(_config()["host"])
+    nodes = _paired_nodes()
     _sign_everyone_out()
     _write_private(STATE / "remote_token", os.urandom(32).hex())
     print(f"New certificate {fingerprint()[:16]}... Every phone, browser and machine paired with this Mac is signed out "
           "now; a running daemon serves the new certificate within a few seconds.")
-    print("Pair each again: Settings → Phone on the page (or `pointe pair show`) for a phone, `pointe pair link` for a "
-          "phone's browser, which must also trust the new certificate, and `pointe hub invite` for each machine, then `pointe node join` on it.")
+    print("Pair each again: Settings → Phone on the page (or `pointe pair show`) for a phone, and `pointe pair link` for a "
+          "phone's browser, which must also trust the new certificate.")
+    if not nodes:
+        print("No node (another machine) is paired with this Mac, so none has to pair again.")
+    _say_nodes_pair_again(nodes)
 
 
 def off() -> None:
@@ -317,8 +350,8 @@ def show() -> None:
         subprocess.run(["open", str(image)], check=False, env=childenv.child_env())
     print(f"Scan it inside the Pointe app, not with the Camera app: it holds this phone's lasting key, and a link the Camera "
           f"opens can reach another app. It connects to {config['host']}:{TLS_PORT} and checks certificate {fingerprint()[:16]}...")
-    print("To revoke it, Unpair the phone in Settings → Phone, or delete ~/.claude-voice/phone_key. The page's Settings → Phone "
-          "shows a one-time code instead, with no lasting key in it.")
+    print(f"To revoke it, Unpair the phone in Settings → Phone, or delete {_home_path(STATE / 'phone_key')}. The page's "
+          "Settings → Phone shows a one-time code instead, with no lasting key in it.")
 
 
 def main(argv: list[str]) -> None:
@@ -333,7 +366,10 @@ def main(argv: list[str]) -> None:
     elif argv[0] == "wifi":
         host, listen = _wifi()
     elif argv[0] == "host" and len(argv) > 1:
-        host, listen = argv[1].lower(), "127.0.0.1"
+        host, listen = argv[1].strip().lower(), "127.0.0.1"
+        if not _HOST_NAME.fullmatch(host):  # checked before anything changes: a new certificate unpairs every phone and node
+            raise SystemExit(f"{argv[1]!r} is not a host name: letters, digits, hyphens and dots only, such as "
+                             "mac.example.internal. Nothing was changed.")
     else:
         raise SystemExit(__doc__.strip())
     setup(host, listen)
@@ -342,4 +378,7 @@ def main(argv: list[str]) -> None:
 
 
 if __name__ == "__main__":
+    from loguru import logger
+
+    logger.remove()  # Pipecat logs a banner when imported (pointe pair show): this is a command for people, not a log
     main(sys.argv[1:])

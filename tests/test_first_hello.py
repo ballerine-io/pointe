@@ -129,7 +129,8 @@ def test_the_page_never_says_listening_over_a_refused_key():
     state = PAGE[PAGE.index("function showState()"):PAGE.index("let subShown")]
     refused = state.index("s.key_refused")
     assert refused < state.index("['live', 'Listening']") and refused < state.index("[st, title] = ['bot', 'Speaking']")
-    assert "['broken', s.key_refused.ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer]" in state
+    assert ("['broken', (s.key_refused || s.vendor_fault).ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer]"
+            in state)  # a vendor out of quota, failing, or gone for the call: the same red state (tests/test_vendor_faults.py)
     assert "[data-state=broken] .top .dot { background: var(--danger); }" in PAGE
     assert 'id="fixkey"' in PAGE and "Fix the key" in PAGE
 
@@ -158,6 +159,7 @@ def client(d, monkeypatch):
 
     ran = []
     monkeypatch.setattr(d, "_run_on_the_mac", lambda *commands: ran.append(commands))
+    monkeypatch.setattr(d.vendors, "saved", lambda vendor: True)  # every setup's keys saved: tests/test_setup_switch.py
     return TestClient(d.app, base_url="http://127.0.0.1:7860", cookies={"pointe_local": d.PAGE_KEY}), ran
 
 
@@ -217,3 +219,47 @@ def test_before_the_first_hello_the_page_shows_only_connect_the_mic_type_setting
     for kept in ("#mic", "#typebtn", "#sessbtn", "#m-new", "#topconnect"):
         assert kept not in rule, kept
     assert "document.body.classList.toggle('firstrun', !!(s && s.first_call));" in PAGE
+
+
+def test_a_request_said_as_the_first_words_is_heard_and_then_done(first):
+    """From a live run, twice: "Rename birch to payments." as the first words got the fixed hello reply and nothing was
+    done; the model was told "Do not answer it again"."""
+    d, asked = first
+    add(d, "s1", "billing")
+    d.REGISTRY.active_id = "s1"
+    front, spoken, tasks = _front(d)
+
+    async def run():
+        await front.process_frame(LLMRunFrame(), FrameDirection.DOWNSTREAM)
+        await front.process_frame(InputTextRawFrame(text="Rename billing to payments."), FrameDirection.DOWNSTREAM)
+        await asyncio.gather(*tasks)
+
+    asyncio.run(run())
+    assert spoken[1] == "I can hear you, and billing is joined. Ask me what it is doing."
+    assert asked and spoken[2:] == ["A model reply."], "the request reached the model after the fixed reply"
+    assert not d.first_call()
+
+
+@pytest.mark.parametrize("words", ["Hello", "Hello, can you hear me?", "Hi Pointe.", "Testing, one two three.", "שלום"])
+def test_a_hello_or_a_mic_check_is_only_a_hello(d, words):
+    assert d._only_a_hello(words)
+
+
+@pytest.mark.parametrize("words", ["Rename birch to payments.", "What is billing doing?", "Hello, what is billing doing?"])
+def test_a_request_is_not_only_a_hello(d, words):
+    assert not d._only_a_hello(words)
+
+
+def test_a_new_call_or_a_later_report_is_its_own_bubble(d, monkeypatch):
+    """QA round 5: after a reconnect the greeting was glued to the last call's answer ('Red. Connected. Run slash...'),
+    and a send's 'Sent.' and its report 15 s later read as one bubble, so the send looked done at once. Words of one
+    reply still join: they arrive a word or a sentence at a time while it plays."""
+    monkeypatch.setattr(d.state, "conversation", [])
+    d._bot_says("Red.")
+    d._call_ended()
+    d._bot_says("Connected.")
+    assert [text.strip() for _, text in d.state.conversation] == ["Red.", "Connected."]
+    d._bot_says("Sent to billing.")
+    d.state.assistant_at -= 15  # the report comes 15 s later
+    d._bot_says("Billing finished: the tests pass.")
+    assert [text.strip() for _, text in d.state.conversation] == ["Red.", "Connected. Sent to billing.", "Billing finished: the tests pass."]

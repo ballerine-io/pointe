@@ -50,7 +50,7 @@ final class WordsOfEachDeviceTests: XCTestCase {
             XCTAssertTrue(ConnectCopy.notPairedHere.hasPrefix("Pointe on this Mac refused this app."))
             XCTAssertTrue(ConnectCopy.micDeniedHere.contains("System Settings"))
             XCTAssertTrue(ConnectCopy.idleHangupHere.hasSuffix("Press Connect to talk again."))
-            XCTAssertEqual(ConnectCopy.unreachableHere("anything"), "Pointe on this Mac is not running. Start it here, or run /pointe:voice in a Claude Code session.")
+            XCTAssertEqual(ConnectCopy.unreachableHere("anything"), "Pointe on this Mac is not running. Start it here, or run pointe open in a terminal.")
             XCTAssertEqual(AlertCopy.phoneHere, "Alerts on this Mac")
             XCTAssertTrue(AlertCopy.helpHere.contains("Touch ID") && !AlertCopy.helpHere.contains("Face ID"))
             XCTAssertEqual(CallView.ownerReason("Approve what docs wants to run"), "approve what docs wants to run", "macOS says: Pointe is trying to …")
@@ -98,8 +98,19 @@ final class ConnectCopyTests: XCTestCase {
         XCTAssertTrue(ConnectCopy.unreachable("h").contains("Settings → Phone → Connect your phone"))  // the listener may be off
         XCTAssertTrue(ConnectCopy.notPaired.contains("Settings → Phone → Connect your phone"))
         XCTAssertEqual(ConnectCopy.idleHangup, "The Mac hung up after 30 minutes of quiet. Tap Connect to talk again.")
-        XCTAssertTrue(ConnectCopy.micDenied.hasSuffix("then tap Connect."))
+        // the button under it says Try again when the microphone was refused: the words name that button (QA round 2)
+        XCTAssertTrue(ConnectCopy.micDenied.hasSuffix("then tap Try again."))
         XCTAssertEqual(ConnectCopy.connecting("studio"), "Connecting to studio…")
+    }
+
+    func testARefusedMicrophoneOffersTheSettingsThatAllowIt() {
+        let denied = ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: ConnectCopy.micDeniedHere, macOnACall: false)
+        XCTAssertEqual(denied.button, ConnectCopy.tryAgain)
+        XCTAssertTrue(denied.why.contains(ConnectCopy.tryAgain) || Surface.isMac, "the line names the button it sits over")
+        XCTAssertTrue(denied.opensSettings, "nothing opened Settings: the person had to find the switch alone")
+        let other = ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: "The call did not connect.", macOnACall: false)
+        XCTAssertFalse(other.opensSettings)
+        XCTAssertFalse(ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: nil, macOnACall: false).opensSettings)
     }
 
     func testTheFaceSaysWhatATapDoesOrWhyTheLastOneFailed() {
@@ -217,5 +228,35 @@ final class SpeakerTurnsTests: XCTestCase {
         XCTAssertEqual(MeetingCopy.turns(9), "9 turns")
         XCTAssertEqual(MeetingCopy.turns(1), "1 turn")
         XCTAssertEqual(MeetingCopy.turns(0), "0 turns")
+    }
+}
+
+final class OwnerSymbolTests: XCTestCase {
+    /// A control that asks for the owner shows the device's own sensor (Touch ID on a Mac): one symbol, from Surface.
+    func testOnlySurfaceNamesTheOwnerCheckSymbol() throws {
+        let sources = try FileManager.default.contentsOfDirectory(atPath: Repo.root.appendingPathComponent("apple/PointeKit/Sources/PointeUI").path)
+        for name in sources where name.hasSuffix(".swift") && name != "Platform.swift" {
+            let text = try Repo.source(name)
+            XCTAssertFalse(text.contains("systemImage: \"faceid\"") || text.contains("systemImage: \"touchid\""),
+                           "\(name) names the sensor itself: use Surface.ownerSymbol")
+        }
+    }
+}
+
+/// A Mac has no finger: the lines it shows say click and right-click where the phone's say tap and long-press. The
+/// daemon's read-back ("Say yes or tap.") is one line for every device, so the Mac app words it for itself on screen.
+final class TouchWordsTests: XCTestCase {
+    func testTheMacSaysClickWhereThePhoneSaysTap() {
+        let readBack = "Start a Claude Code session in shop on studio, named shop-2? Say yes or tap."
+        if Surface.isMac {
+            XCTAssertEqual(Surface.shown(readBack), "Start a Claude Code session in shop on studio, named shop-2? Say yes or click.")
+            XCTAssertEqual(BrainDumpCopy.hintHere, "When you're done: click Done, or say “done” or “over to you”.")
+            XCTAssertTrue(MeetingCopy.notYouHere.hasPrefix("Not you? Right-click a line in the Transcript"))
+        } else {
+            XCTAssertEqual(Surface.shown(readBack), readBack)
+            XCTAssertEqual(BrainDumpCopy.hintHere, BrainDumpCopy.hint)
+            XCTAssertTrue(MeetingCopy.notYouHere.hasPrefix("Not you? Long-press a line in the Transcript"))
+        }
+        XCTAssertEqual(Surface.shown("Nothing to change here."), "Nothing to change here.")
     }
 }

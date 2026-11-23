@@ -82,11 +82,17 @@ enum Brand {
     /// no appearance proxy: on the Mac a sheet's title is drawn by the sheet (`sheetChrome`), in the family.
     static func install() {
         #if canImport(UIKit)
-        let title = UIFont(name: displayRegular, size: 17) ?? .systemFont(ofSize: 17)
-        let large = UIFont(name: displayLight, size: 34) ?? .systemFont(ofSize: 34, weight: .light)
+        // Scaled by the text size the phone had at launch, up to what a bar and a segment hold: at 17 and 13 points
+        // fixed, a sheet's title and the Orchestrator/Session switch stayed small beside large body text. The segment's
+        // ceiling is low: the mic switch over the bar uses it too, and must not crowd the cards above it.
+        let title = UIFontMetrics(forTextStyle: .headline)
+            .scaledFont(for: UIFont(name: displayRegular, size: 17) ?? .systemFont(ofSize: 17), maximumPointSize: 26)
+        let large = UIFontMetrics(forTextStyle: .largeTitle)
+            .scaledFont(for: UIFont(name: displayLight, size: 34) ?? .systemFont(ofSize: 34, weight: .light), maximumPointSize: 48)
         UINavigationBar.appearance().titleTextAttributes = [.font: title]
         UINavigationBar.appearance().largeTitleTextAttributes = [.font: large]
-        let segment = UIFont(name: textFace(.medium), size: 13) ?? .systemFont(ofSize: 13, weight: .medium)
+        let segment = UIFontMetrics(forTextStyle: .footnote)
+            .scaledFont(for: UIFont(name: textFace(.medium), size: 13) ?? .systemFont(ofSize: 13, weight: .medium), maximumPointSize: 16)
         UISegmentedControl.appearance().setTitleTextAttributes([.font: segment, .foregroundColor: UIColor(text)], for: .normal)
         UISegmentedControl.appearance().backgroundColor = UIColor(raised)
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(card)
@@ -158,23 +164,22 @@ enum Theme: String, CaseIterable, Identifiable {
     static func stored(_ raw: String?) -> Theme { raw.flatMap(Theme.init(rawValue:)) ?? fallback }
 }
 
+/// The agent's tile, as on the page: its name is the label and the tooltip, not text in the row, so the session's
+/// name gets the width.
 struct HarnessMark: View {
     let harness: String?
-    var named = false
 
     var body: some View {
         let mark = Harness.mark(harness)
-        HStack(spacing: 4) {
-            Text(mark.glyph).font(.brand(size: 9.5, .semibold))
-                .frame(width: 15, height: 15)
-                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Brand.lineStrong))
-            if named { Text(mark.name).font(.brand(.caption2, .semibold)) }
-        }
-        .foregroundStyle(Brand.muted)
-        .environment(\.layoutDirection, .leftToRight)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("runs on \(mark.name)")
-        .accessibilityIdentifier("harnessMark.\((harness ?? "").isEmpty ? "claude-code" : harness!)")
+        Text(mark.glyph).font(.brand(size: 9.5, .semibold))
+            .frame(width: 15, height: 15)
+            .overlay(RoundedRectangle(cornerRadius: 3).stroke(Brand.lineStrong))
+            .foregroundStyle(Brand.muted)
+            .help(mark.name)
+            .environment(\.layoutDirection, .leftToRight)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("runs on \(mark.name)")
+            .accessibilityIdentifier("harnessMark.\((harness ?? "").isEmpty ? "claude-code" : harness!)")
     }
 }
 
@@ -247,9 +252,12 @@ struct BrandRowButtonStyle: ButtonStyle {
 }
 
 /// What a card holds when it may be long (a command, the cards over the bar): its own height up to a limit, and past that
-/// it scrolls in place, so what is under it (Approve, the mic) stays on screen.
+/// it scrolls in place, so what is under it (Approve, the mic) stays on screen. An edge with more past it fades, so a box
+/// cut short reads as one to scroll.
 struct FitScroll<Content: View>: View {
     let limit: CGFloat
+    /// Where it rests when it must scroll. The cards over the bar rest on their bottom: the answer buttons are there.
+    var anchor: UnitPoint = .top
     @ViewBuilder var content: Content
     @State private var height: CGFloat = 0
 
@@ -258,7 +266,100 @@ struct FitScroll<Content: View>: View {
             content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
+        .defaultScrollAnchor(anchor)
+        .scrollCue()
         .frame(height: min(height, max(0, limit)))
+    }
+}
+
+/// Scrolling content fades out at an edge with more beyond it: a chip cut hard at the window's edge, or a line cut
+/// through its letters at a box's bottom, gave no sign that there was more.
+struct EdgeFade: ViewModifier {
+    var axis: Axis = .horizontal
+    @State private var before = false
+    @State private var after = false
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: [Bool].self) { g in
+                axis == .horizontal
+                    ? [g.contentOffset.x > 1, g.contentOffset.x + g.containerSize.width < g.contentSize.width - 1]
+                    : [g.contentOffset.y + g.contentInsets.top > 1,
+                       g.contentOffset.y + g.containerSize.height < g.contentSize.height + g.contentInsets.bottom - 1]
+            } action: { _, now in (before, after) = (now[0], now[1]) }
+            .mask {
+                let start: UnitPoint = axis == .horizontal ? .leading : .top
+                let end: UnitPoint = axis == .horizontal ? .trailing : .bottom
+                let layout = axis == .horizontal ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
+                layout {
+                    LinearGradient(colors: [.black.opacity(before ? 0 : 1), .black], startPoint: start, endPoint: end)
+                        .frame(width: axis == .horizontal ? 28 : nil, height: axis == .vertical ? 28 : nil)
+                    Color.black
+                    LinearGradient(colors: [.black, .black.opacity(after ? 0 : 1)], startPoint: start, endPoint: end)
+                        .frame(width: axis == .horizontal ? 28 : nil, height: axis == .vertical ? 28 : nil)
+                }
+                // the chips' and cards' strokes and touch areas reach past the scroll's bounds on the other axis
+                .padding(axis == .horizontal ? .vertical : .horizontal, -12)
+            }
+    }
+}
+
+extension View {
+    func edgeFade(_ axis: Axis = .horizontal) -> some View { modifier(EdgeFade(axis: axis)) }
+}
+
+extension View {
+    /// On a ScrollView: an edge with more past it fades, and the indicators flash when that changes, so a box cut short
+    /// reads as one to scroll (a Mac hides its scroll bars until you scroll).
+    func scrollCue() -> some View { modifier(ScrollCue()) }
+}
+
+struct ScrollCue: ViewModifier {
+    @State private var more = ScrollMore()
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: ScrollMore.self) { ScrollMore(visible: $0.visibleRect, content: $0.contentSize) } action: { _, now in more = now }
+            .mask(ScrollMore.fade(more))
+            .scrollIndicatorsFlash(trigger: more)
+    }
+}
+
+/// Whether a scrolled box hides content above or below what shows.
+struct ScrollMore: Equatable {
+    var above = false
+    var below = false
+
+    init(above: Bool = false, below: Bool = false) { self.above = above; self.below = below }
+
+    init(visible: CGRect, content: CGSize) {
+        above = visible.minY > 1
+        below = visible.maxY < content.height - 1
+    }
+
+    /// Opaque where nothing is hidden; a hidden side fades out over its last points.
+    static func fade(_ more: ScrollMore, length: CGFloat = 22) -> some View {
+        VStack(spacing: 0) {
+            LinearGradient(colors: [.black.opacity(more.above ? 0.1 : 1), .black], startPoint: .top, endPoint: .bottom).frame(height: length)
+            Rectangle()
+            LinearGradient(colors: [.black, .black.opacity(more.below ? 0.1 : 1)], startPoint: .top, endPoint: .bottom).frame(height: length)
+        }
+    }
+}
+
+/// A panel between the header and the controls (drive mode): centred in the room it is given, and scrolled when that is
+/// less than it needs, so it never pushes the header under the status bar or the controls off the screen.
+struct StageScroll<Content: View>: View {
+    @ViewBuilder var content: Content
+    @State private var room: CGFloat = 0
+
+    var body: some View {
+        ScrollView {
+            content.frame(maxWidth: .infinity, minHeight: room)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollCue()
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { room = $0 }
     }
 }
 
@@ -342,8 +443,10 @@ struct MacSections<Content: View>: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .edgeFade(.vertical)
         .toggleStyle(SpreadToggle())
         .labeledContentStyle(SpreadLabeled())
+        .labelStyle(RowLabel())
         .background(Brand.group)
     }
 }
@@ -355,6 +458,17 @@ private struct SpreadLabeled: LabeledContentStyle {
             configuration.label
             Spacer(minLength: 8)
             configuration.content
+        }
+    }
+}
+
+/// A row's icon in a column of its own width, as a grouped list on the phone has it: each symbol is as wide as it is
+/// drawn, so the labels after them started at a different place on every row.
+struct RowLabel: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 10) {
+            configuration.icon.frame(width: 24)
+            configuration.title
         }
     }
 }
@@ -452,6 +566,12 @@ struct BrandHeader: View {
 
 /// The version, always on screen but quiet: "1.2.0", or "1.2.0 · Mac 1.1.0" when the Mac runs another build, so an
 /// update that landed on one side only is visible at a glance.
+extension String {
+    /// A slash command kept whole on screen: a line may break after "/", which left "/" at a line's end and
+    /// "pointe:voice" on the next. The word joiner is invisible and is not read out.
+    public var unbrokenCommands: String { replacingOccurrences(of: "/pointe:", with: "/\u{2060}pointe:") }
+}
+
 enum AppVersion {
     static var app: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"

@@ -9,9 +9,9 @@ Part of the [Pointe Conversational Engineering Benchmarks](README.md): a self-ev
 ## Setup
 
 - Independent unit: target symbol. Sample: 24 targets, each spoken in a clean and a 12 dB babble clip.
-- Runs identifiers-20261123-031106, identifiers-20261123-040357 (the LLM router arm rerun in full after a harness fix), 2026-11-23.
+- Runs identifiers-20261123-031106, identifiers-20261123-040357, identifiers-20261123-125649: the Pointe arms from the last, run after the fixes; the LLM router from the second (rerun in full after a harness fix); the other arms from the first. 2026-11-23.
 - Agent claude-haiku-5-5 in Claude Code 2.1.330, acceptEdits.
-- Pointe 6544cdc; one recognizer for every speech arm (soniox:stt-rt-v6).
+- Pointe 84eafbc; one recognizer for every speech arm (soniox:stt-rt-v6).
 - LLM router claude-sonnet-5-5; voices af_heart, am_michael, bf_emma, bm_george.
 
 ## Results
@@ -22,22 +22,32 @@ Outcomes per arm (synthetic speech). The LLM router has 45 valid runs: 3 were ex
 |---|---|---|---|
 | keyboard, canonical | 24/24 = 100% (86-100%) | 0/24 (upper bound 14%) | 0/24 (upper bound 14%) |
 | keyboard, transcript | 22/24 = 92% (74-98%) | 1/24 = 4% (1-20%) | 0/24 (upper bound 14%) |
-| Pointe | 40/48 = 83% (70-91%) | 2/48 = 4% (1-14%) | 5/48 = 10% (5-22%) |
-| Pointe, typed text | 24/24 = 100% (86-100%) | 0/24 (upper bound 14%) | 0/24 (upper bound 14%) |
+| Pointe | 42/48 = 88% (75-94%) | 2/48 = 4% (1-14%) | 3/48 = 6% (2-17%) |
+| Pointe, typed text | 23/24 = 96% (80-99%) | 0/24 (upper bound 14%) | 0/24 (upper bound 14%) |
 | LLM router | 39/45 = 87% (74-94%) | 2/45 = 4% (1-15%) | 2/45 = 4% (1-15%) |
 | keyword rules, ours | 43/48 = 90% (78-95%) | 2/48 = 4% (1-14%) | 0/48 (upper bound 7%) |
 | null (does nothing) | 0/48 (upper bound 7%) | 0/48 (upper bound 7%) | 48/48 = 100% (93-100%) |
 
-- Pointe minus LLM router: -2 points (-10 to +6); Pointe minus keyword rules: -6 points (-17 to +2). No speech arm is measurably better than another.
-- Pointe minus keyboard, canonical: -17 points (-29 to -6); Pointe typed minus Pointe spoken: +17 points (+6 to +29). Speech costs Pointe something; its text path does not.
-- Pointe right on 22/24 clean clips and 18/24 under 12 dB babble (the clean and babble clips use different voices).
-- Flip rate on repeated clips: Pointe 1/12, LLM router 3/12.
-- Main failures: the write/right homophone in every speech arm, and misheard words that Pointe and the LLM router rewrote as code names the agent could not find, where keyword rules passed the words as heard.
+- Pointe minus LLM router: +2 points (-12 to +15); Pointe minus keyword rules: -2 points (-10 to +4). No speech arm is measurably better than another.
+- Pointe minus keyboard, canonical: -12 points (-25 to -2); Pointe typed minus Pointe spoken: +8 points (-6 to +23). Speech costs Pointe something; its text path does not.
+- Pointe right on 20/24 clean clips and 22/24 under 12 dB babble (the clean and babble clips use different voices).
+- Flip rate on repeated clips: Pointe 0/12, LLM router 3/12.
+- The write/right homophone (t08) is still wrong for Pointe: the recognizer hears the name as "right column" and the agent picks right_column although Pointe now says what the hint means. Code names built from misheard words now go to the agent with the words as heard; no Pointe row failed that way in this run.
+- Two of Pointe's three no-action rows are one target (t07) whose speech never reached Pointe: the recognizer's connection dropped on a loaded machine (load average up to 517 during the run). They are counted as they came.
+- Before the fixes, in the run of 2026-11-23 (Pointe 6544cdc, kept as published in [earlier/2026-11-23/identifiers.md](earlier/2026-11-23/identifiers.md)): right symbol 40/48 = 83% (70-91%), now 42/48 = 88% (75-94%).
 
-Full results: [summary.md](../../bench/conversational/identifiers/results/identifiers-20261123-031106/summary.md). Raw rows, events and spend: `bench/conversational/identifiers/results/`. Spend on this benchmark, every launch included: $4.88 of a $12 cap, computed from usage and list prices, not a vendor bill.
+Full results: [summary.md](../../bench/conversational/identifiers/results/identifiers-20261123-125649/summary.md). Raw rows, events and spend: `bench/conversational/identifiers/results/`. Spend on this benchmark, every launch included: $8.09 of a $12 cap, computed from usage and list prices, not a vendor bill.
 
 ## Limits
 
+- **The Pointe arms were run again after the fixes** (`identifiers-20261123-125649`, Pointe 84eafbc, the same clips,
+  voices and settings; `run.py report identifiers-20261123-125649 <arm>=<earlier run> ...` takes the other arms from
+  the earlier runs). At 84eafbc a code name the brain builds from the user's words goes to the agent with the words as
+  heard, and "X, as in Y" for a homophone is resolved in code (`relay.py`). The bullets below on code names, the marker
+  text, noise and timing describe the earlier run (`identifiers-20261123-031106`, its own `summary.md`). In the rerun,
+  Pointe's no-action rows are t07 twice (the recognizer's connection dropped on a loaded machine, load average up to
+  517, so no words reached Pointe) and t21 once (the recognizer gave Pointe only the last words, "Time zone."); t08,
+  the homophone, is still wrong twice: the name itself is heard as "right column".
 - **Small.** 24 targets in one invented repository, one agent model (`claude-haiku-5-5`). A difference under about
   ten points between two speech arms is not resolved: every speech-arm interval overlaps.
 - **One recognizer.** `pointe`, `llm-router` and `naive` all hear through Soniox `stt-rt-v6`, and on the same clip they

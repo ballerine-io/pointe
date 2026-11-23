@@ -20,6 +20,8 @@ phrases); `daemon.py` builds and plays it.
   Settings → Briefings holds the schedule. A ready briefing shows a card ("Hear it" / "Dismiss").
 - **iPhone app:** "Briefing" and "Briefing settings" in the Settings (⋯) menu, the same sheet and copy, the same ready
   banner, Part N of M with controls while one plays, and a weekly local notification at the scheduled time.
+- **Mac app:** the iPhone app's screens: Settings (••• at the top, or ⌘,) → Briefing and Briefing settings, or Call →
+  Briefing (⇧⌘B) in the menu bar.
 
 ## After a night shift
 

@@ -1041,7 +1041,7 @@
     "מפתחות",
     "מנוי"
    ],
-   "how": "Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour. Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
+   "how": "Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour. Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
    "iphone_note": "The keys live in the Mac's Keychain: see them in the page's or the Mac app's Settings, Model keys.",
    "page": [
     "Settings → Model keys"
@@ -1133,14 +1133,14 @@
    ]
   },
   {
-   "id": "page-dock-more",
+   "id": "page-top-more",
    "title": "More",
    "ask": [
     "more"
    ],
    "how": "",
    "page": [
-    "More button at the bottom"
+    "More at the top"
    ]
   },
   {
@@ -1348,6 +1348,7 @@
      "Lock level"
     ],
     "Machines": [
+     "Copy command",
      "Invite a machine",
      "Cancel the code"
     ],
@@ -1434,8 +1435,7 @@
     "Challenge",
     "Whisper",
     "Type",
-    "Sessions",
-    "More"
+    "Sessions"
    ],
    "mic": [
     "Microphone"
@@ -1457,7 +1457,8 @@
    ],
    "top": [
     "Clean up my words",
-    "Connect"
+    "Connect",
+    "More"
    ],
    "row": [
     "Rename",

@@ -43,7 +43,7 @@ def test_the_page_header_mark_is_the_compact_drawing_in_the_text_colour_with_the
     assert [c[:3] for c in page] == [c[:3] for c in source], "the same geometry as docs/brand/logo-small.svg"
     assert [c[3] for c in page] == ["currentColor"] * COMPACT + [ORANGE]
     assert 'class="logo"' in (ROOT / "assets" / "logo.svg").read_text() and 'aria-hidden="true"' in (ROOT / "assets" / "logo.svg").read_text()
-    assert '<div class="brand">{{LOGO}}<div><div class="name">Pointe</div>' in (ROOT / "ui.html").read_text()
+    assert '<div class="brand">{{LOGO}}<div><h1 class="name">Pointe</h1>' in (ROOT / "ui.html").read_text()
 
 
 def marks_in(text: str) -> list[int]:

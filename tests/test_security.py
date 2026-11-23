@@ -577,3 +577,25 @@ def test_security_md_names_every_route_the_phone_key_opens_and_no_other():
     start = text.index("- **What the phone key opens")
     bullet = text[start:text.index("\n- **", start + 1)]
     assert set(re.findall(r"`(/voice/[a-z/-]+)`", bullet)) == _PHONE_PATHS
+def test_an_invite_with_no_address_says_where_to_set_one_up(hub_app):
+    """No route paired yet: the CLI keeps its commands, and the answer is marked so the page offers its own Phone step."""
+    import pair
+
+    def unpaired(code):
+        raise SystemExit(pair.NOT_SET_UP)
+    hub_nodes = __import__("hub_nodes")
+    app = FastAPI()
+    hub_nodes.install(app, hub_app.state.hub, link=unpaired)
+    got = TestClient(app).post("/voice/hub/invite", json={})
+    assert got.status_code == 409 and got.text == pair.NOT_SET_UP and got.headers.get("x-pointe-fix") == "phone"
+    assert hub_app.state.hub.invites.status() is None  # the code made for it is cancelled
+
+
+def test_an_invite_made_in_a_terminal_reaches_the_page_with_its_join_line(hub_app):
+    """QA round 2: `pointe hub invite` in a terminal showed on the page as a bare code, and `pointe node join <code>`
+    answered "not a Pointe hub invite": the status carried the code without its line."""
+    made = local(hub_app).post("/voice/hub/invite", json={}, headers={"authorization": "Bearer daemon-token"}).json()
+    status = hub_app.state.hub.invites.status()
+    assert status["code"] == made["code"] and status["link"] == made["link"]
+    hub_app.state.hub.invites.cancel()
+    assert hub_app.state.hub.invites.status() is None and hub_app.state.hub.invites.link is None

@@ -47,7 +47,7 @@ public enum MacCopy {
     public static let appName = "Pointe"
     public static let micDenied = "Pointe needs the microphone: allow it in System Settings → Privacy & Security → Microphone, then press Connect."
     public static let noEchoCancelling = "This audio device gave no echo cancellation, so the bot may hear itself: use headphones."
-    public static let daemonDown = "Pointe on this Mac is not running. Start it here, or run /pointe:voice in a Claude Code session."
+    public static let daemonDown = "Pointe on this Mac is not running. Start it here, or run pointe open in a terminal."
     public static let keyRefused = "Pointe on this Mac refused this app. Restart Pointe: Settings → Pointe on this Mac → Restart."
     public static let squatter = "Another program is answering on Pointe's port, so this app sent it nothing."
     public static let node = "This Mac is a node: the call is on its hub. Open Pointe there, or use the phone app."
@@ -68,7 +68,7 @@ public enum MacCopy {
     public static func needYou(_ n: Int) -> String { n == 1 ? "1 session needs you" : "\(n) sessions need you" }
     public static func unreachable(_ place: String) -> String { "Pointe on this Mac is not answering at \(place)." }
     public static func versions(daemon: String, app: String) -> String { "Pointe on this Mac is \(daemon); this app is \(app)." }
-    public static let updatePlugin = "Update the plugin: claude plugin marketplace update pointe, then claude plugin update pointe@pointe, then Restart."
+    public static let updatePlugin = "Update Pointe: pointe update in a terminal (for the Claude Code plugin: claude plugin marketplace update pointe, then claude plugin update pointe@pointe), then Restart."
     public static let updateApp = "Update this app from the release page on GitHub."
 }
 

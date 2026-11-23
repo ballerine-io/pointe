@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent
 MIN_RAM_GB = 32  # the text model took 17 GB while it ran (footprint), plus the daemon and macOS
 # Thinking off: with it on, a reply waits for hundreds of hidden tokens.
 SERVER_ARGS = ["--chat-template-args", json.dumps({"enable_thinking": False})]
+WARM_TRIES = 3  # a loaded model answers the first request; a server that cannot load it refuses each one at once
 LOCAL_KEYS = ("brain", "reader", "checker", "ears", "mouth", "local_only", "local_url", "voice_local")
 VOICE_MOUTH = vendors.LOCAL_MOUTH
 VOICE_MODEL = "mlx-community/Kokoro-82M-bf16"  # Kokoro on MLX, for VOICE_MOUTH; kokoro_mlx.MODEL
@@ -132,14 +133,18 @@ def cached_bytes(repo: str) -> int:
     try:
         import huggingface_hub  # noqa: F401
     except ImportError:  # the local extra is gone (pointe local off, then a daemon start): read the cache folder itself
-        hub = os.environ.get("HF_HUB_CACHE") or os.path.join(os.environ.get("HF_HOME") or Path.home() / ".cache" / "huggingface", "hub")
-        snapshots = Path(hub) / f"models--{repo.replace('/', '--')}" / "snapshots"  # finished files only, as links
+        snapshots = _hub_repo(repo) / "snapshots"  # finished files only, as links
         return sum(f.stat().st_size for f in snapshots.rglob("*") if f.is_file()) if snapshots.is_dir() else 0
     try:
         folder = Path(assets.snapshot(repo, local_files_only=True))  # the pinned commit: another revision does not count
     except Exception:
         return 0
     return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file())
+
+
+def _hub_repo(repo: str) -> Path:
+    hub = os.environ.get("HF_HUB_CACHE") or os.path.join(os.environ.get("HF_HOME") or Path.home() / ".cache" / "huggingface", "hub")
+    return Path(hub) / f"models--{repo.replace('/', '--')}"
 
 
 def voice_on() -> bool:
@@ -210,28 +215,58 @@ def start(text_model: str | None = None, quiet: bool = False) -> bool:
     if not server_bin().exists():
         print("The local text-model server is not installed. Run: pointe local", file=sys.stderr)
         return False
+    try:
+        models = _model_folder(text_model)
+    except Exception:
+        print(f"The text model {text_model} is not downloaded. Run: pointe local", file=sys.stderr)
+        return False
     log = home() / "server.log"
     with log.open("w") as out:
         proc = subprocess.Popen([str(server_bin()), "--model", text_model, "--host", "127.0.0.1", "--port", str(port()),
                                  *SERVER_ARGS], stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                start_new_session=True,  # outlives the shell that started it, as the daemon does
+                                cwd=models, start_new_session=True,  # outlives the shell that started it, as the daemon does
                                 # Offline: the model is on disk, and loading it by name would ask the Hub about it.
                                 env=childenv.child_env(HF_HUB_OFFLINE="1"))
     (home() / "server.pid").write_text(str(proc.pid))
     if not quiet:
         print(f"Starting the text model on {url()} (loading about {gb(cached_bytes(text_model))} into memory)...", flush=True)
-    began = time.time()
+    began, refused = time.time(), 0
     while time.time() - began < 600:
         if proc.poll() is not None:
             print(f"The text-model server stopped. Its log: {log}", file=sys.stderr)
             return False
-        if answering(url()) and _warm(text_model):
-            if not quiet:
-                print(f"Text model ready in {time.time() - began:.0f} s.", flush=True)
-            return True
+        if answering(url()):
+            if _warm(text_model):
+                if not quiet:
+                    print(f"Text model ready in {time.time() - began:.0f} s.", flush=True)
+                return True
+            refused += 1
+            if refused >= WARM_TRIES:  # it lists its models but cannot load one: waiting will not change that
+                stop()
+                print(f"The text-model server is up but could not load {text_model}. Its log: {log}", file=sys.stderr)
+                return False
         time.sleep(1)
+    stop()
     print(f"The text-model server did not answer in 10 minutes. Its log: {log}", file=sys.stderr)
     return False
+
+
+def _model_folder(text_model: str) -> Path:
+    """A folder where `text_model`, as a relative path, is its downloaded snapshot (at the pinned commit). mlx-lm loads a
+    name that is an existing path from disk, and any other name from the Hub at `main`: the server runs in this folder,
+    so both its --model and each request's model name are the pinned files, offline, with no `refs/main` needed (a
+    download at a pinned commit writes none). Raises when the model is not downloaded."""
+    revision = assets.revision(text_model) or (_hub_repo(text_model) / "refs" / "main").read_text().strip()
+    snapshot = _hub_repo(text_model) / "snapshots" / revision
+    if not any(snapshot.iterdir()):
+        raise FileNotFoundError(snapshot)
+    folder = home() / "models"
+    link = folder / text_model
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if not link.is_symlink() or link.resolve() != snapshot.resolve():
+        link.unlink(missing_ok=True)
+        link.symlink_to(snapshot, target_is_directory=True)
+    return folder
 
 
 def _warm(text_model: str) -> bool:
@@ -284,7 +319,7 @@ def voice_refused() -> str | None:
     """Why this Mac cannot have its voice stay local, before anything is downloaded."""
     if why := supported_voice():
         return why
-    if not any(vendors.key(v) for v in ("anthropic", "gemini", "openai")):
+    if not any(vendors.saved(v) for v in ("anthropic", "gemini", "openai")):  # not key(): Fully local reads none
         return (f"{vendors.VOICE_LOCAL} keeps the brain in the cloud, so it needs one text key, best Anthropic's: "
                 "pointe key anthropic (a Gemini key also works: pointe key gemini). Then run pointe local voice again.")
     return None
@@ -387,6 +422,8 @@ def install(text_model: str = TEXT_MODEL) -> int:
         assets.ensure_kokoro()  # by hash, not Pipecat's own unverified download
     write_config(text_model)
     if not start(text_model):
+        restore_config()  # status, doctor and the daemon must not report a local mode that cannot answer
+        print("Fully local mode is not on: your previous setup is kept. Try again: pointe local")
         return 1
     print("\nFully local mode is on. Every model runs on this Mac and no key is read."
           "\nRestart the voice to use it: /pointe:stop, then /pointe:voice. Back to your vendors: pointe local off.")
@@ -433,6 +470,12 @@ def summary() -> dict:
 
 
 def main(argv: list[str]) -> int:
+    if argv and argv[0] in ("-h", "--help", "help"):
+        print(__doc__)
+        return 0
+    if argv and argv[0].startswith("-") and argv[0] != "--model":  # an unknown flag never starts a 19 GB download
+        print(__doc__)
+        return 2
     command = argv[0] if argv and not argv[0].startswith("-") else "install"
     text_model = argv[argv.index("--model") + 1] if "--model" in argv else TEXT_MODEL
     if command == "install":

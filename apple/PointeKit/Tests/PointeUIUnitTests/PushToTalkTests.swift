@@ -162,6 +162,7 @@ final class TalkStyleTests: XCTestCase {
     func testStoredPerDeviceAndHoldByDefault() {
         let defaults = UserDefaults(suiteName: "TalkStyleTests")!
         defaults.removePersistentDomain(forName: "TalkStyleTests")
+        defer { defaults.removePersistentDomain(forName: "TalkStyleTests") }
         XCTAssertEqual(TalkStyle.stored(in: defaults), .hold)
         defaults.set("tap", forKey: TalkStyle.key)
         XCTAssertEqual(TalkStyle.stored(in: defaults), .tap)

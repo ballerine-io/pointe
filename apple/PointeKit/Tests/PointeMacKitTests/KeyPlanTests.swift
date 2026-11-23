@@ -8,7 +8,7 @@ import Testing
         let plan = KeyPlan(present: keys)
         #expect(plan.ready && plan.fix == nil)
         #expect(Vendor.allCases.filter { !keys.contains($0) }.allSatisfy { plan.state($0) == .optional })
-        #expect(plan.line == "\(KeyCopy.allFilled) \(KeyCopy.othersOptional)")
+        #expect(plan.line == "\(KeyCopy.noSetupHead)\(KeyCopy.allFilled) \(KeyCopy.othersOptional)")
     }
 
     @Test func noKeyAsksForGemini() {
@@ -33,7 +33,15 @@ import Testing
     @Test func aKeyThatNoRoleReachesIsSavedNotUsed() {
         let plan = KeyPlan(present: [.anthropic, .soniox, .elevenlabs, .gemini, .openai])
         #expect(plan.state(.openai) == .notUsed && plan.state(.gemini) == .inUse)
-        #expect(plan.line == KeyCopy.allFilled)
+        #expect(plan.line == KeyCopy.noSetupHead + KeyCopy.allFilled)
+    }
+
+    /// The setup guide drew a green "Every role is filled." over "Setup: None chosen": with no setup chosen the line
+    /// says so, and whose keys fill the roles.
+    @Test func noSetupChosenIsSaidBeforeEveryRoleIsFilled() {
+        let plan = KeyPlan(present: [.gemini])
+        #expect(plan.setup == nil && plan.ready)
+        #expect(plan.line.hasPrefix("Setup: \(KeyCopy.noSetup), so Pointe uses the keys you have. "))
     }
 
     @Test func aChosenSetupNeedsItsOwnKeysAndNoOthers() {

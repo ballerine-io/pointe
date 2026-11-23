@@ -10,6 +10,7 @@ five things from the agent, and each harness adapter in `harnesses/` provides th
 | Send | type the user's request into the running session | `send(session, text)` |
 | Approvals | see a permission request, put it to the user, answer it | calls `HOST.hold_permission(session, tool, input, gone, deadline)` |
 | Side questions | answer "by the way" from a copy, never touching the live session | `side_question(session, question)` |
+| Stop | end the running turn when the user says "stop", "cancel that" or "hold on" | `interrupts`, `interrupt(session)` |
 
 To be added from outside ("connect to the session about the pentest", [features/add-sessions.md](features/add-sessions.md)),
 an adapter also lists what its harness runs and ran (`discover(since, cap)`, returning `discovery.Found` records), builds
@@ -18,7 +19,8 @@ start_id)`; by default the same as joining). Design: [design/attach-by-voice.md]
 
 Each adapter also declares what it can do, and `/voice/status` shows it per session (`capabilities`), so the brain and
 the screens never promise a missing feature: `approvals`, `side_questions`, `attach` (joins a session the user already
-runs), `spawn` (drives only sessions Pointe starts). An adapter with `starts` can also start a new session in a
+runs), `spawn` (drives only sessions Pointe starts), `interrupt` (`now`: the harness cuts the turn, a running command
+included; `next_step`: the turn ends after the tool call that runs; null: no supported way, and the voice says so). An adapter with `starts` can also start a new session in a
 folder (`start(cwd, name, start_id)`, below, and [features/new-session.md](features/new-session.md)). Plus `label` (how the feed names it: `claude-code`, `opencode`, `codex`),
 `agent` (what the voice calls it: "Claude", "OpenCode"), `joins_mid_turn`, and `permission_deadline`.
 
@@ -64,6 +66,7 @@ session are answered by the transcript reader, as for a harness that cannot fork
 | Discover | open: `claude agents --json` for each account Pointe knows (`pid`, `cwd`, `kind`, `sessionId`, `name`, `status`), with the inbox socket from Claude Code's own record of the process (`sessions/<pid>.json`, `messagingSocketPath`: not a documented interface, checked against the roster and the socket's owner); recent: transcripts under `projects/` from the last 7 days, head and tail only |
 | Attach | the same body `/pointe:voice` registers (id, folder, pid, transcript, config dir, inbox socket), from outside. Approvals reach the voice only where the plugin's hook runs in that session (enabled in its settings when it started, or `--plugin-dir`): otherwise the read-back says they stay in its terminal |
 | Reopen | Start's terminal window with `claude --resume <id> --permission-mode default`, its `SessionStart` hook on matcher `resume`, in the session's folder and account. Mac only. |
+| Stop | No supported way exists for another process to interrupt a running turn: an inbox message is read between tool calls, Escape is a key in its terminal, and `claude stop` stops a background session whole. The plugin's `PreToolUse` and `PostToolUse` hook, `bin/voice-stop-hook`, returns `"continue": false`, which the hooks reference documents as ending the turn after the hook runs. The daemon leaves a file named by the session id in `<state>/stop/`; the hook takes it, so the turn ends at its next tool step. A command that already runs finishes first. Without a stop waiting the hook reads nothing and prints nothing. Like approvals, it works only where the plugin's hooks run in that session. |
 | A prompt in its terminal | `claude agents --json` (Claude Code's supported way to read session state), read when a session's tool call has gone quiet: `status: waiting` with its `waitingFor` (`permission prompt`, `input needed`, `sandbox request`, `dialog open`) |
 
 A prompt the voice does not hold (no call was up, the hold ran out, approvals are left to the terminal, a question, a
@@ -98,6 +101,7 @@ the same session the user is typing in.
 | Join | `pointe join opencode` in the session's folder picks its running (or latest) session; `--session ses_…` picks one; `pointe leave opencode` takes it off. `pointe join opencode --install-command` adds `/voice` to OpenCode (restart OpenCode after installing; not yet loaded in a real OpenCode). |
 | Watch | one SSE connection to `/api/event`; an event naming the session triggers a re-read of `/api/session/{id}/message` (the stream has no replay), plus a 5-second poll. New, finished messages go to a mirror transcript under `~/.claude-voice/harness/opencode/`. With no call up, the daemon's liveness loop probes `/api/session/{id}`: a deleted session drops off, and its OpenCode title is followed. |
 | Send | `POST /api/session/{id}/prompt` with `delivery: "steer"` |
+| Stop | `POST /api/session/{id}/interrupt` (the service's `session.interrupt`, v2.3): it cuts the running execution, a running command included, and says whether one ran |
 | Approvals | `permission.asked` (or a pending request listed by `/api/session/{id}/permission`) goes through `hold_permission`; the answer is `POST …/permission/{id}/reply` with `once` or `reject`. If the user answers in OpenCode first, the voice lets go. |
 | Side questions | `POST /api/session/{id}/fork`, a prompt to the fork, its answer, then the fork is deleted |
 | Start | `POST /api/session {location: {directory}, title}`; no agent, model or permission rules are sent |
@@ -112,13 +116,14 @@ call with a real OpenCode model (a prompt, a spoken report, a voice approval) ha
 Codex 0.160+ runs a shared app-server daemon. A TUI started with `codex --remote unix:// -C "$PWD"` is a client of
 it, so the voice drives the thread the user is typing in. A plain `codex` runs its app-server inside its own process
 and holds the thread's writer lock: it cannot be joined, and Pointe says how to start it instead (alias `codex` to the
-command above). Protocol: JSON-RPC over a WebSocket on the Unix socket `~/.codex/app-server-control/app-server-control.sock`.
+command above; `pointe setup codex` starts the app-server and offers the alias, [install.md](install.md#codex)). Protocol: JSON-RPC over a WebSocket on the Unix socket `~/.codex/app-server-control/app-server-control.sock`.
 
 | Capability | How |
 |---|---|
 | Join | `pointe join codex` in the folder picks the newest thread there that the daemon has loaded (`thread/list {cwd}` and `thread/loaded/list`); `--thread <id>` picks one; `pointe leave codex` takes it off. Then `thread/resume {excludeTurns}` subscribes. It fails with "no rollout found" before the thread's first turn (retried) and "active writer" for a plain TUI (told to the user). |
 | Watch | `turn/started`, `turn/completed`, `thread/closed`, `thread/name/updated` for the thread; on each turn end, `thread/turns/list {itemsView: full}` is read, and finished turns go to a mirror transcript under `~/.claude-voice/harness/codex/` (user message, commands as `Bash` tool uses, file changes as `Edit` with their paths, the final answer as the end of the turn). |
 | Send | `turn/start` when idle; `turn/steer {expectedTurnId}` during a turn (a steer to a turn that just ended falls back to `turn/start`) |
+| Stop | `turn/interrupt {threadId, turnId}` on the running turn (app-server protocol v2, checked against `codex app-server generate-json-schema` of 0.160) |
 | Approvals | the server's `item/commandExecution/requestApproval` and `item/fileChange/requestApproval` go through `hold_permission`, with the command unwrapped from Codex's `/bin/zsh -lc '…'` so the read-out applies. The answer is a decision Codex offered: `accept`; `decline` if offered, else `cancel`. `serverRequest/resolved` means the TUI answered first, and the voice lets go. Permission-grant requests (`item/permissions/requestApproval`) stay with the TUI. |
 | Side questions | `thread/fork {ephemeral, sandbox: read-only, approvalPolicy: never}`, a turn on the fork, its final answer; nothing is kept |
 | Start | `thread/start {cwd}` and `thread/name/set`; no approval policy or sandbox is sent, and an answer with approvals `never` and sandbox `dangerFullAccess` is archived and refused |

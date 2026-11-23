@@ -150,15 +150,21 @@ def product(commit: str) -> Path:
     return target
 
 
-def free_ports(ports) -> int:
-    """Kills a Pointe daemon of ours (run from /tmp/pccb) still listening on the run's ports: a start that timed out
-    on a loaded machine can leave one behind. Never touches another process."""
+def ours(pid: str, run_folder: Path) -> bool:
+    """The process is this run's: its folder in its command line or environment. Another benchmark's daemon under
+    /tmp/pccb on a port in this range is not ours to kill (the actions runner's rule)."""
+    cmd = subprocess.run(["ps", "eww", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout
+    return bool(str(run_folder)) and str(run_folder) in cmd
+
+
+def free_ports(ports, run_folder: Path) -> int:
+    """Kills a Pointe daemon of this run still listening on its ports: a start that timed out on a loaded machine can
+    leave one behind. Never touches another process, another benchmark's Pointe included."""
     killed = 0
     for port in ports:
         pids = subprocess.run(["lsof", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"], capture_output=True, text=True).stdout.split()
         for pid in pids:
-            cmd = subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout
-            if "/tmp/pccb/" in cmd:
+            if ours(pid, run_folder):
                 subprocess.run(["kill", "-9", pid])
                 killed += 1
     if killed:
@@ -180,7 +186,7 @@ class Pointe(PtyArm):
         assert str(state).startswith("/tmp/") and ".claude-voice" not in str(state), "an isolated state folder only"
         state.mkdir(parents=True, exist_ok=True)
         (env.root / "linkbin").mkdir(exist_ok=True)
-        self.state, self.port = state, port
+        self.state, self.port, self.run_folder = state, port, env.root.parent
         self.daemon_env = {"CLAUDE_VOICE_STATE": str(state), "CLAUDE_VOICE_DAEMON_PORT": str(port),
                            "CLAUDE_VOICE_TLS_PORT": str(port + 1), "CLAUDE_VOICE_NO_BROWSER": "1",
                            "POINTE_LINK_DIR": str(env.root / "linkbin")}  # never rewrite the owner's ~/.local/bin/pointe
@@ -194,7 +200,7 @@ class Pointe(PtyArm):
         self.commit = runner.product_commit()
         self.dir = product(self.commit)
         self.extra_args = ("--plugin-dir", str(self.dir))
-        self.freed = free_ports((port, port + 1))
+        self.freed = free_ports((port, port + 1), env.root.parent)
         for attempt in range(2):  # the launcher waits 60 s for health; a loaded machine can miss that once
             out = subprocess.run([str(self.dir / "bin" / "voice-daemon"), "ensure"], env=agent_mod.clean_env(self.daemon_env),
                                  capture_output=True, text=True, timeout=240)
@@ -202,7 +208,7 @@ class Pointe(PtyArm):
                 break
             subprocess.run([str(self.dir / "bin" / "voice-daemon"), "stop"], env=agent_mod.clean_env(self.daemon_env),
                            capture_output=True, timeout=60)
-            self.freed += free_ports((port, port + 1))
+            self.freed += free_ports((port, port + 1), env.root.parent)
         if out.returncode != 0:
             raise RuntimeError(f"the isolated daemon did not start: {out.stderr[-400:]}")
         self.call = Call(f"ws://127.0.0.1:{port}/voice/call", (state / "token").read_text().strip())
@@ -288,4 +294,4 @@ class Pointe(PtyArm):
         if getattr(self, "daemon_env", None):
             subprocess.run([str(self.dir / "bin" / "voice-daemon"), "stop"], env=agent_mod.clean_env(self.daemon_env),
                            capture_output=True, timeout=60)
-            free_ports((self.port, self.port + 1))
+            free_ports((self.port, self.port + 1), self.run_folder)

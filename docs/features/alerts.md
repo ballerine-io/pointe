@@ -15,8 +15,14 @@ an Approve that comes from a notification.
 - **iPhone:** Menu → Alerts → "Alerts on this iPhone" (off until you turn it on). The app posts a local notification
   when a session needs you and the app is not on screen, and withdraws it when the item is answered. iOS mirrors it to
   a watch on your wrist while the iPhone is locked.
-- **"Approve from notifications"** (one setting for both clients, off by default; the app asks for Face ID to turn it
-  on) adds Approve to a notification.
+- **Mac app:** Settings (••• at the top, or ⌘,) → Alerts → "Alerts on this Mac". A notification when a session needs
+  you and the window is not in front, with Deny on it. The app keeps checking from the menu bar, so alerts arrive with
+  the window closed. A click opens the window.
+- **"Approve from notifications"** (one setting for every client, off by default; the iPhone app asks for Face ID and the
+  Mac app for Touch ID or your password to turn it on) adds Approve to a notification. On the Mac, a locked Mac asks to
+  be unlocked first.
+- **Voice:** no phrase; these are settings. On a call the voice itself reads a request out, and tells you when a
+  session waits at a prompt in its terminal (below).
 
 What raises an alert: a permission request, a Claude Code session stopped for 15 seconds at a prompt of its own in its
 terminal (a permission prompt, a question, a sandbox request: the ones the voice does not hold, for example with no call
@@ -51,7 +57,7 @@ up), a session that ended its turn waiting on you, a raised hand in a
 - **No push server.** The phone learns about a request from its own status checks. This works while the app is alive:
   open, or in the background with a call up. With the call down and the app in the background, iOS checks only when it
   grants a Background App Refresh: rarely, never in Low Power Mode, never after you swipe the app away.
-- Checked by hand on a real iPhone and watch (the simulator has no watch); the steps are in [phone.md](../phone.md).
+- Checked by hand on a real iPhone and watch (the simulator has no watch); the steps are in [The iPhone app](../iphone-app.md#alerts-and-the-apple-watch).
 - Not built: per-event switches, sound and lock-screen preview settings (iOS's own settings cover them), Touch ID on the
   page, and the Time Sensitive entitlement.
 

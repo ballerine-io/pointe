@@ -27,10 +27,13 @@ struct BottomBar: View {
                      on: dump != nil, action: listen)
                     .disabled(!live)
                     .accessibilityIdentifier("dumpButton")
+                Spacer(minLength: 0)
                 if !driving {
-                    Spacer(minLength: 0)
                     side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
+                        .disabled(!live && !typing)  // typing needs the call (Connect says so): a field it could not send from took text
                         .accessibilityIdentifier("typeButton")
+                } else {  // its slot stays, empty, so Brain dump is where the thumb knows it
+                    side("Type", "keyboard", action: {}).hidden().accessibilityHidden(true)
                 }
                 Spacer(minLength: 0)
             }
@@ -40,11 +43,10 @@ struct BottomBar: View {
                 Spacer(minLength: 0)
                 side("Sessions", "rectangle.stack", action: sessions).accessibilityIdentifier("sessionsButton")
                 Spacer(minLength: 0)
-                if live {
-                    side("Hang up", "phone.down.fill", tint: Brand.dangerText, action: hangUp).accessibilityIdentifier("hangUp")
-                } else {
-                    side("Hang up", "phone.down.fill", action: {}).hidden().accessibilityHidden(true)
-                }
+                // With no call Hang up shows, dimmed, as the mic does: hidden, it left the bar lopsided beside Brain dump and Type.
+                side("Hang up", "phone.down.fill", tint: live ? Brand.dangerText : .primary, action: hangUp)
+                    .disabled(!live)
+                    .accessibilityIdentifier(live ? "hangUp" : "hangUpOff")  // the UI tests read "hangUp" as the call being up
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
@@ -134,13 +136,15 @@ extension EnvironmentValues {
 
 struct Dock<Cards: View, Bar: View>: View {
     var limit: CGFloat = .infinity
+    /// Where the cards rest when they must scroll: on their bottom, where a card's answer buttons are.
+    var anchor: UnitPoint = .bottom
     @ViewBuilder var cards: Cards
     @ViewBuilder var bar: Bar
     @State private var barHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 10) {
-            FitScroll(limit: limit - barHeight - 10) {
+            FitScroll(limit: limit - barHeight - 10, anchor: anchor) {
                 VStack(spacing: 10) { cards }.padding(1)  // a card's hairline is on its edge: keep it inside what is clipped
                     .environment(\.dockRoom, limit - barHeight - 10)
             }
@@ -148,6 +152,34 @@ struct Dock<Cards: View, Bar: View>: View {
             VStack(spacing: 10) { bar }
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
         }
+    }
+}
+
+/// A card in the dock whose answer must stay on screen (Start shift, Start, Ask and Dismiss): what is above the buttons
+/// scrolls inside the card when the dock is short (a small window, a small phone, large type), as the approval card's does.
+/// The buttons' own height is measured apart from what scrolls, so the limit never feeds back on itself.
+struct AnswersInView<Above: View, Answers: View>: View {
+    var spacing: CGFloat = 12
+    var padding: CGFloat = 16
+    @ViewBuilder var above: Above
+    @ViewBuilder var answers: Answers
+    @Environment(\.dockRoom) private var room
+    @State private var answersHeight: CGFloat = 0
+
+    private var aboveRoom: CGFloat {
+        guard room.isFinite, answersHeight > 0 else { return .infinity }
+        return max(56, room - answersHeight - spacing - padding * 2 - 2)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: spacing) {
+            FitScroll(limit: aboveRoom) {
+                VStack(alignment: .leading, spacing: spacing) { above }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            VStack(alignment: .leading, spacing: spacing) { answers }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { answersHeight = $0 }
+        }
+        .padding(padding)
     }
 }
 
@@ -168,6 +200,7 @@ struct TypeBar: View {
                 .accessibilityIdentifier("typeField")
                 .submitLabel(.send)
                 .onSubmit(submit)
+                .onKeyPress(.escape) { close(); return .handled }  // a hardware keyboard's Esc closes it, as Return sends
                 .onChange(of: text) {  // a multi-line field takes Return as a new line: Return sends, as the key says
                     if text.hasSuffix("\n") { text.removeLast(); submit() }
                 }

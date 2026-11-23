@@ -148,3 +148,22 @@ def test_words_in_another_script_are_checked_as_before():
     """The words that mark the work are English: a Hebrew question or answer cannot be read for them."""
     assert unsupported_in("ההשקה ב-23 במרץ, אחרי בדיקת התשלומים.", "", "מתי ההשקה של התשלומים?") == ["23"]
     assert unsupported_in("The launch is on the 23rd, after בדיקה of the checkout.", "", KILOBYTE_Q) == ["23"]
+
+
+def test_a_short_sentence_that_takes_up_the_world_question_passes():
+    """From a latency run, 3 of 3: the docstring's own case, said as a short first sentence, was refused."""
+    said = "1,000 bytes in the SI definition. Binary units count 1,024 bytes per kilobyte."
+    assert unsupported_in(said, f"{KILOBYTE_Q} {KNOWN}", KILOBYTE_Q, {"lantern", "billing"}) == []
+
+
+@pytest.mark.parametrize("said,made_up", [
+    ("It took forty minutes and twelve failed.", ["forty", "twelve"]),
+    ("Payments has a thousand rows.", ["thousand"]),
+])
+def test_spelled_out_figures_are_checked_like_digits(said, made_up):
+    assert unsupported_in(said, KNOWN, None, {"payments"}) == made_up
+
+
+def test_a_spelled_figure_the_voice_was_told_passes():
+    assert unsupported_in("Payments has twelve failures.", f"{KNOWN} 12 tests failed.", None, {"payments"}) == []
+    assert unsupported_in("Payments has three sessions open.", KNOWN, None, {"payments"}) == []  # a small count

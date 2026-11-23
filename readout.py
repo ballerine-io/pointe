@@ -6,6 +6,7 @@ Said: every program, every file written, every redirect target, every URL, and t
 Dropped: flags that only change output, and paths shortened to their name when they sit plainly inside the project.
 """
 
+import ast
 import os
 import re
 from urllib.parse import urlparse
@@ -39,6 +40,7 @@ _PROGRAMS: dict[str, tuple[set, set, set, set]] = {
     "which": (set(), set(), set(), set()),
     "make": (set(), set(), set(), set()),
     "pytest": (set("-q -x -v -s --tb=short --tb=no -vv".split()), set(), set(), set("-k -m".split())),
+    "unittest": (set("-q -v -f -b -c --locals --quiet --verbose --failfast --buffer".split()), set(), set(), set("-k".split())),
     "go": (set("-v -race".split()), set(), set(), set("-run".split())),
     "cargo": (set("--release -q".split()), set(), set(), set()),
     "sleep": (set(), set(), set(), set()),
@@ -188,8 +190,8 @@ def _flag(program: str, sub: str | None, token: str, at) -> tuple[str, str | Non
     """(what to say, what to do with the next word: "drop", "say" or None) for a known flag; None for an unknown one."""
     name, _, value = token.partition("=")
     if program == "git":
-        if token in _GIT_QUIET or sub == "log" and re.fullmatch(r"-\d+", token):
-            return "", None
+        if token in _GIT_QUIET or sub == "log" and re.fullmatch(r"-\d+", token) or token == "--":
+            return "", None  # "--" only ends the options: "git checkout -- notes.txt" is said "git checkout notes.txt"
         if name in _GIT_QUIET_BY_SUB.get(sub or "", ()):
             return "", None if value else "drop"
         if token in _GIT_SAID_BY_SUB.get(sub or "", ()):
@@ -213,9 +215,84 @@ def _flag(program: str, sub: str | None, token: str, at) -> tuple[str, str | Non
     return None
 
 
-def spoken(command: str, cwd: str | None) -> str | None:
-    if not command.strip() or _hidden(command) or "\n" in command.strip() or "\r" in command:
+_QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
+_EMPTY_FILE = re.compile(r"^\s*(?::|true)?\s*>\s*(?P<file>[^\s;&|<>]+)\s*$")
+
+
+def _python_calls(code: str, cwd: str | None) -> list[str] | None:
+    """`python3 -c` code that only imports the project's own modules and calls their functions with literal arguments,
+    printed or not: the functions it calls, in order. None for anything else (the tap answers it)."""
+    if not cwd:
         return None
+    try:
+        tree = ast.parse(code)
+    except (SyntaxError, ValueError):
+        return None
+    local, calls = {}, []
+
+    def project(module: str) -> bool:
+        return bool(re.fullmatch(r"[A-Za-z_]\w*", module)) and not module.startswith("_") and (
+            os.path.isfile(os.path.join(cwd, f"{module}.py")) or os.path.isfile(os.path.join(cwd, module, "__init__.py")))
+
+    def literal(node) -> bool:
+        try:
+            ast.literal_eval(node)
+            return True
+        except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+            return False
+
+    def call(node) -> str | None:
+        if not isinstance(node, ast.Call) or not all(literal(a) for a in node.args) or \
+                not all(k.arg and literal(k.value) for k in node.keywords):
+            return None
+        f = node.func
+        if isinstance(f, ast.Name) and local.get(f.id, ("", ""))[0] == "name":
+            return local[f.id][1]
+        if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and local.get(f.value.id, ("", ""))[0] == "module" \
+                and not f.attr.startswith("_"):
+            return f"{local[f.value.id][1]}.{f.attr}"
+        return None
+
+    for stmt in tree.body:
+        if isinstance(stmt, ast.Import):
+            for a in stmt.names:
+                if not project(a.name) or a.asname and not re.fullmatch(r"[A-Za-z]\w*", a.asname):
+                    return None
+                local[a.asname or a.name] = ("module", a.name)
+        elif isinstance(stmt, ast.ImportFrom):
+            if stmt.level or not stmt.module or not project(stmt.module):
+                return None
+            for a in stmt.names:
+                if a.name == "*" or a.name.startswith("_"):
+                    return None
+                local[a.asname or a.name] = ("name", f"{stmt.module}.{a.name}")
+        elif isinstance(stmt, ast.Assert) and stmt.msg is None and isinstance(stmt.test, ast.Compare) \
+                and len(stmt.test.ops) == 1 and isinstance(stmt.test.ops[0], (ast.Eq, ast.NotEq, ast.Is, ast.IsNot)) \
+                and call(stmt.test.left) and literal(stmt.test.comparators[0]):
+            calls.append(call(stmt.test.left))  # "assert f('300S') == 300": a check of one call against a literal
+        elif isinstance(stmt, ast.Expr):
+            node = stmt.value
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print" \
+                    and "print" not in local and not node.keywords:
+                inner = [call(a) or ("" if literal(a) else None) for a in node.args]
+            else:
+                inner = [call(node)]
+            if None in inner:
+                return None
+            calls += [c for c in inner if c]
+        else:
+            return None
+    return calls or None
+
+
+def spoken(command: str, cwd: str | None) -> str | None:
+    if not command.strip() or _hidden(command.replace("\n", "").replace("\t", "")) or "\r" in command:
+        return None  # a newline is a line of code below; anywhere else it is refused further down
+    emptied = _EMPTY_FILE.match(command)
+    if emptied:  # ": > data.csv" empties a file: said as that, the file in full outside the project
+        return f"empty {place(emptied['file'], cwd)}" if _WORD.fullmatch(emptied["file"]) else None
+    if "\n" in _QUOTED.sub("", command.strip()):
+        return None  # a newline outside quotes is a second command; inside, a line of python -c code (checked below)
     command = _TRIM.sub("", _QUIET.sub(" ", command))
     lexer = shlex.shlex(command, posix=True, punctuation_chars="|&;<>")
     lexer.whitespace_split, lexer.commenters = True, ""
@@ -308,15 +385,27 @@ def spoken(command: str, cwd: str | None) -> str | None:
             words.append(token)
             continue
         if program in ("python", "python3") and sub is None:
-            if token != "-m":
+            if token == "-I" and not was_quoted:
+                continue  # isolated mode: less is loaded, nothing more runs
+            if token not in ("-m", "-c") or was_quoted:
                 return None
-            sub = "-m"
+            sub = token
             continue
-        if program in ("python", "python3") and sub == "-m":
-            if token != "pytest":
+        if program in ("python", "python3") and sub == "-c":  # never read out: which project functions it calls
+            calls = _python_calls(token, cwd) if was_quoted and here == cwd else None
+            if not calls:
                 return None
-            program, sub = "pytest", None
-            words.append("pytest")
+            named = list(dict.fromkeys(calls))
+            words.append(f"code calling {', '.join(named[:4])}" + (f" and {len(named) - 4} more" if len(named) > 4 else ""))
+            sub = "code"
+            continue
+        if program in ("python", "python3") and sub == "code":
+            return None  # arguments to the code: sys.argv can steer it
+        if program in ("python", "python3") and sub == "-m":
+            if token not in ("pytest", "unittest"):
+                return None
+            program, sub = token, None
+            words.append(token)
             continue
         if program is None and not was_quoted and re.fullmatch(r"[A-Za-z_]\w*=[\w.:/-]*", token):
             variable = token.split("=", 1)[0]

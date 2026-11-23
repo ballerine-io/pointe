@@ -338,14 +338,6 @@ struct CallView: View {
         }
         .onChange(of: status?.dictionary) { showLearned(learnedToasts.fresh(status?.dictionary)) }
         .onChange(of: status?.whisper, initial: true) { if whisperFollow.follow(status?.whisper) { withAnimation(.snappy) { typing = true } } }
-        .overlay(alignment: .bottom) {
-            if let toast {
-                LearnedToast(terms: toast) { undoLearned(toast) }
-                    .padding(.bottom, 130)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.snappy, value: toast)
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
                 IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).sheetSurface()
@@ -422,14 +414,16 @@ struct CallView: View {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
                             .font(.brand(.footnote)).foregroundStyle(Brand.accent).padding(.bottom, 8)
                     }
-                    Color.clear.frame(height: 1).id("end")
+                    // The dock's fade reaches 16 points up over the conversation (brandDock): the newest line ends above it.
+                    Color.clear.frame(height: 17).id("end")
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
             }
             .accessibilityIdentifier("conversation")  // before the overlay: after it, it covered the stage's own identifiers
             .overlay {  // the empty stage: Connect in the middle, where the conversation will be
-                if panelShown { ConnectPanel(title: title, face: face, tap: connectTap).transition(.opacity) }
+                // In a scroll of its own: taller than the stage (large type, a long reason), it was drawn over the header.
+                if panelShown { StageScroll { ConnectPanel(title: title, face: face, tap: connectTap) }.transition(.opacity) }
             }
             .animation(.easeInOut(duration: 0.2), value: panelShown)
             .scrollDismissesKeyboard(.interactively)
@@ -466,7 +460,12 @@ struct CallView: View {
                 }
             }
             .animation(.snappy, value: follow.pillShown)
-            .safeAreaInset(edge: .bottom, spacing: 0) { bottom }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // A dock that grows (a card, the switch, the type bar) covered the newest line: follow it while pinned.
+                bottom.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { _ in
+                    if follow.stillFollowing { scroller.scrollTo("end", anchor: .bottom) }
+                }
+            }
           }
         }
     }
@@ -519,7 +518,7 @@ struct CallView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     // The empty stage says the same title and why in the middle of the screen: once is enough.
-                    if !panelShown { StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking, broken: status?.key_refused != nil) }
+                    if !panelShown { StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking, broken: status?.key_refused != nil || status?.vendor_fault != nil) }
                     #if os(iOS)  // the Mac keeps itself awake only for a call from another device: on the Mac there is nothing to say
                     if let awake = API.KeepAwake.shown(status, live: phase == .live) {
                         Text(awake).font(.brand(.caption)).foregroundStyle(Brand.dim).lineLimit(1)
@@ -601,6 +600,9 @@ struct CallView: View {
         case .machines: showMachines = true
         case .phone: if demo == nil { showPhone = true }
         case .nightShift: showNightShift = true
+        case .approve, .deny:  // the first card's buttons, from the Call menu: Approve asks for the owner as its button does
+            guard let request = waiting.first, !request.isOffline, !driving else { return }
+            Task { if let why = await answer(request, command == .approve) { problem = why } }
         }
     }
 
@@ -627,7 +629,8 @@ struct CallView: View {
     }
 
     private var bottom: some View {
-        Dock(limit: dockLimit) {
+        Dock(limit: dockLimit, anchor: driving ? .top : .bottom) {  // driving, no card has a button: it reads from its top
+            learnedToast
             // What needs you sits by your thumb, never scrolled away under the conversation.
             conflictCard(inMeeting: false)
             if let b = status?.briefing, b.isOn || b.building == true, !showBriefing {  // the sheet has the same controls
@@ -694,6 +697,17 @@ struct CallView: View {
         .padding(.bottom, 4)
         .brandDock()
         .animation(.snappy, value: waiting.first?.request_id)
+        .animation(.snappy, value: toast)
+    }
+
+    /// "Learned: …" with Undo, in the dock over the cards: laid over the screen at a fixed height it covered the mic-mode
+    /// switch and the newest line's "edited".
+    @ViewBuilder
+    private var learnedToast: some View {
+        if let toast {
+            LearnedToast(terms: toast) { undoLearned(toast) }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     /// The newest disagreement between two sessions; the others wait behind it, counted.
@@ -879,6 +893,7 @@ struct CallView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Dock(limit: dockLimit) {
+                learnedToast
                 if let hand = meeting.hand {
                     HandCard(hand: hand, participating: meeting.participating) { decision in
                         await act { try await call.api.hand(decision) }
@@ -1530,16 +1545,20 @@ struct CallView: View {
     }
 
     /// Approving needs Face ID (or the passcode): the phone may be unlocked in someone else's hand. Denying never does.
-    private func answer(_ s: API.Session, _ allow: Bool) async {
+    /// Nil when it went to the Mac or the person cancelled the check; otherwise why nothing happened.
+    private func answer(_ s: API.Session, _ allow: Bool) async -> String? {
         if allow {
             let context = LAContext()
             do {
                 guard try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: Self.ownerReason("Approve what \(s.name) wants to run"))
-                else { return }
-            } catch { return }
+                else { return OwnerCopy.notChecked }
+            } catch {
+                return OwnerCopy.refusal((error as? LAError)?.code)
+            }
         }
-        if demo != nil { demoAnswered.insert(s.request_id ?? ""); return }
-        await act { try await call.api.answer(s, allow: allow) }
+        if demo != nil { demoAnswered.insert(s.request_id ?? ""); return nil }
+        _ = await act { try await call.api.answer(s, allow: allow) }  // a refusal from the Mac is the screen's problem line
+        return nil
     }
 }
 
@@ -1649,7 +1668,7 @@ struct StatusLine: View {
                     .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
                 Text(title).font(.brand(.title3)).contentTransition(.opacity)
             }
-            Text(subtitle).font(.brand(.subheadline)).foregroundStyle(Brand.muted).lineLimit(2)
+            Text(subtitle.unbrokenCommands).font(.brand(.subheadline)).foregroundStyle(Brand.muted).lineLimit(2)
                 .padding(.leading, 18)
         }
         .animation(.easeInOut(duration: 0.2), value: title)
@@ -1663,10 +1682,15 @@ struct RequestCard: View {
     /// "shop · devbox" when its machine needs saying.
     var who: String? = nil
     var showAgent = false
-    let answer: (API.Session, Bool) async -> Void
+    /// Nil when it was sent (or the owner check was cancelled); otherwise why not, shown under the buttons.
+    let answer: (API.Session, Bool) async -> String?
     @State private var busy = false
+    @State private var refusal: String?
     @State private var answered = 0
+    @State private var cardHeight: CGFloat = 0
+    @State private var boxHeight: CGFloat = 0
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.dockRoom) private var room
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1675,15 +1699,17 @@ struct RequestCard: View {
             head {
                 Label { Text("\(who ?? session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent) }
                     .font(.brand(.headline))
-                if showAgent { AgentBadge(session: session) }
+                if showAgent { AgentBadge(session: session).accessibilityIdentifier("requestAgent") }
             }
             if let what = parsed.what { Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted) }
-            FitScroll(limit: 150) {  // a long command scrolls in its box: Deny and Approve never leave the screen
+            // A long command scrolls in its box, which gives up height to the rest of the card when the dock is short.
+            FitScroll(limit: Self.commandLimit(room: room, chrome: cardHeight - boxHeight)) {
                 Text(parsed.exact)  // word for word: this is what Approve runs
                     .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { boxHeight = $0 }
             .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
             .accessibilityIdentifier("requestCommand")
             if session.isOffline {  // its machine dropped: the prompt is back in its terminal, and an answer would be stale
@@ -1693,20 +1719,40 @@ struct RequestCard: View {
             } else {
                 Text(session.voice_can_approve == true ? "Say yes or no, or \(Surface.tap)." : "Too complex to read out: check it, then \(Surface.tap).")
                     .font(.brand(.caption)).foregroundStyle(Brand.muted)
-                HStack(spacing: 10) {
-                    Button { act(false) } label: { Text("Deny").frame(maxWidth: .infinity) }
-                        .buttonStyle(.brandQuiet).controlSize(.large).accessibilityIdentifier("requestDeny")
-                    Button { act(true) } label: { Label("Approve", systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
-                        .buttonStyle(.brandPrimary).controlSize(.large).accessibilityIdentifier("requestApprove")
+                ViewThatFits(in: .horizontal) {  // side by side while both words fit whole, else one over the other
+                    HStack(spacing: 10) { deny; approve }
+                    VStack(spacing: 10) { approve; deny }
                 }
                 .disabled(busy)
+                if let refusal {
+                    Text(refusal).font(.brand(.caption)).foregroundStyle(Brand.accent).fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("requestRefusal")
+                }
             }
         }
         .padding(16)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: session.request_id)
         .sensoryFeedback(.success, trigger: answered)
+    }
+
+    private var deny: some View {
+        Button { act(false) } label: { Text("Deny").lineLimit(1).fixedSize().frame(maxWidth: .infinity) }
+            .buttonStyle(.brandQuiet).controlSize(.large).accessibilityIdentifier("requestDeny")
+    }
+
+    private var approve: some View {
+        Button { act(true) } label: { Label("Approve", systemImage: Surface.ownerSymbol).lineLimit(1).fixedSize().frame(maxWidth: .infinity) }
+            .buttonStyle(.brandPrimary).controlSize(.large).accessibilityIdentifier("requestApprove")
+    }
+
+    /// The command box's height: up to 150 points, less when the dock leaves the card less than its whole height (the
+    /// rest of the card is `chrome`), and never under two lines, so the command is always there to read.
+    static func commandLimit(room: CGFloat, chrome: CGFloat) -> CGFloat {
+        guard room.isFinite, chrome > 0 else { return 150 }
+        return min(150, max(56, room - chrome))
     }
 
     /// The daemon sends "Tool: description" and then the tool's input as JSON. A shell command is shown alone, exactly; any
@@ -1723,9 +1769,15 @@ struct RequestCard: View {
 
     private func act(_ allow: Bool) {
         busy = true
-        Task { await answer(session, allow); busy = false; answered += 1 }
+        refusal = nil
+        Task {
+            refusal = await answer(session, allow)
+            busy = false
+            if refusal == nil { answered += 1 }
+        }
     }
 }
 
 /// A machine's name, as a sheet item.
+
 struct MachineName: Identifiable, Equatable { let id: String }

@@ -343,6 +343,22 @@ def test_unpair_all_signs_out_every_phone_and_the_legacy_key(world):
     assert not (world.state / "phone_key").exists()
 
 
+def test_unpair_all_also_signs_out_a_phone_browser_paired_by_the_pairing_link(world):
+    browser = tls(world)
+    token = (world.state / "remote_token").read_text().strip()
+    landed = browser.get(f"/voice?pair={token}")
+    assert landed.status_code == 303
+    home_screen = landed.headers["location"]
+    assert browser.get("/voice/status").status_code == 200
+    restarts = world.listener.restarts
+    assert page(world).post("/voice/phone/unpair", json={"all": True}).json() == {"ok": True}
+    assert world.listener.restarts == restarts + 1  # open connections, a browser's call among them, end now
+    assert browser.get("/voice/status").status_code == 403  # the cookie
+    assert tls(world).get(home_screen).status_code == 403  # the Home Screen app's saved address
+    assert tls(world).get(f"/voice?pair={token}").status_code == 403  # the old link
+    assert (world.state / "remote_token").stat().st_mode & 0o077 == 0
+
+
 def test_the_shared_key_from_before_is_one_legacy_phone_until_it_reports_its_name(world):
     legacy = key_of(world)  # `pointe pair` made it before the upgrade: the owner's iPhone holds it
     [entry] = world.phones.status()["paired"]
@@ -550,3 +566,25 @@ def test_the_daemon_ends_only_the_unpaired_phones_call(d, monkeypatch):
     asyncio.run(d._end_phone_call({"aaa"}))
     asyncio.run(d._end_phone_call(None))
     assert closed == [4401, 4401]
+
+
+def test_a_key_made_for_the_terminal_qr_is_not_a_paired_phone_until_a_phone_uses_it(world):
+    """`pointe pair wifi` shows a QR with the shared key; until a phone scans it, Settings lists no phone."""
+    link = world.pair.pairing_link()
+    assert world.phones.status() == {"paired": []}
+    key = parse_qs(urlparse(link).query)["key"][0]
+    assert status_with(world, key) == 200
+    assert [p["id"] for p in world.phones.status()["paired"]] == ["legacy"]
+    assert page(world).post("/voice/phone/unpair", json={"all": True}).json() == {"ok": True}
+    world.pair.pairing_link()  # `pointe pair show` again after Unpair all: still no phantom
+    assert world.phones.status() == {"paired": []}
+
+
+def test_pointe_pair_host_refuses_a_bad_name_before_changing_anything(world, capsys):
+    before = {p.name: p.read_bytes() for p in (world.state / "tls").iterdir()}
+    remote = (world.state / "remote.json").read_text()
+    with pytest.raises(SystemExit) as refused:
+        world.pair.main(["host", "Bad Name!"])
+    assert "not a host name" in str(refused.value) and "Nothing was changed" in str(refused.value)
+    assert (world.state / "remote.json").read_text() == remote
+    assert {p.name: p.read_bytes() for p in (world.state / "tls").iterdir()} == before

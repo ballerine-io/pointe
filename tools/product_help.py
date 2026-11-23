@@ -224,7 +224,8 @@ class Page:
     def top(self) -> list[str]:
         top = _between(self.html, '<div class="top">', '<div id="meetbar"')
         return list(dict.fromkeys([_text(t) for t in re.findall(r'<label class="toggle"[^>]*><input[^>]*>([^<]+)</label>', top)]
-                                  + re.findall(r'id="topconnect"[^>]*>([^<]+)<', top)))
+                                  + re.findall(r'id="topconnect"[^>]*>([^<]+)<', top)
+                                  + re.findall(r'id="morebtn"[^>]*aria-label="([^"]+)"', top)))
 
     def row(self) -> list[str]:
         """A session row's actions: the marks shown on hover (their titles), the ⋯ sheet on touch."""
@@ -564,8 +565,8 @@ TOPICS = (
           "Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy "
           "hour. Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, "
           "the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps "
-          "can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is "
-          "billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
+          "can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An "
+          "API key is billed per use: about $1 for a busy hour of talk. Switch setups with pointe setup on the Mac.",
           page=(("settings", "Model keys"),), mac=(),
           page_note="It shows the setup in use, each key as In use, Saved, not used, Needed or Optional, and the setups. "
                     "On the Mac's own page, Add… or Replace… opens the vendor's key page and a window for the key, which "
@@ -620,7 +621,7 @@ def build(root: Path = ROOT) -> dict:
             entry["tool"] = t.tool
         entries.append(entry)
     # Every menu item, Settings section and button no topic covers still gets an entry: its label and where it is.
-    for surface, kinds in (("iphone", ("menu", "header")), ("page", ("settings", "dock")), ("mac", ("menu", "header"))):
+    for surface, kinds in (("iphone", ("menu", "header")), ("page", ("settings", "dock", "top")), ("mac", ("menu", "header"))):
         for kind in kinds:
             for label in inv[surface][kind]:
                 if label in used[surface]:

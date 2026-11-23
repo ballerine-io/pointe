@@ -1,6 +1,6 @@
 {
- "frozen_at": "2026-11-23T03:10:58+0200",
- "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "frozen_at": "2026-11-23T12:45:20+0200",
+ "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
  "llm_router_prompt_commit": "a49a5819e1000b5b3cdc5068a8dd6b05f0d0492b",
  "llm_router_prompt_sha256": "17fabdf991d29aebf621e321c15911b2e2bf8248ae1ccd7af414a1db3ee7835f",
  "unpublished_seed_manifest_sha256": null,
@@ -8,5 +8,17 @@
  "claude_code": "2.1.330",
  "agent_model": "claude-haiku-5-5",
  "identifiers_items_sha256": "0db93074d31cd355b888a9e48b30852db4392ede965668631a3dddd6262083be",
- "identifiers_audio_lock_sha256": "f3d4d47c6464bf6993b17e540d59b67b69417c42a1864b3af1fa3e1ea9dbfc97"
+ "identifiers_audio_lock_sha256": "f3d4d47c6464bf6993b17e540d59b67b69417c42a1864b3af1fa3e1ea9dbfc97",
+ "earlier": [
+  {
+   "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+   "frozen_at": "2026-11-23T03:10:58+0200",
+   "runs": [
+    "identifiers-20261123-031106",
+    "identifiers-20261123-040357"
+   ],
+   "why": "the published run before the fixes of the benchmark findings; its reference arms still stand"
+  }
+ ],
+ "rerun": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run."
 }

@@ -142,7 +142,7 @@ async def run(page: Page, legacy: str) -> None:
            and all(r["words"] for r in shown), shown=shown)
     old_route = next((r for r in shown if r["title"].startswith(OLD)), {})
     _check("the route set up before is offered, recommended and picked", old_route.get("on")
-           and "Recommended" in old_route.get("title", "") and "set up now" in old_route.get("title", ""), route=old_route)
+           and "Recommended" in old_route.get("title", "") and "in use" in old_route.get("title", ""), route=old_route)
     await page.shot("phone-3-routes")
 
     await page.js(f"document.getElementById('ph-host').value = {json.dumps(NAME)}; "
@@ -253,7 +253,7 @@ async def main() -> None:
     legacy = phone_key(STATE)
     assert subprocess.run([str(ROOT / "bin" / "voice-daemon"), "ensure"], capture_output=True, env=dict(os.environ)).returncode == 0
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
                                "--window-size=1400,1000", "--no-first-run", "about:blank"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:

@@ -1027,6 +1027,30 @@ def test_updates_queued_when_the_call_ends_are_dropped_with_it(call):
     asyncio.run(run())
 
 
+def test_news_of_a_join_is_dropped_when_the_session_left_before_it_was_said(call):
+    """From a live run: "rowan rejoined as available" was said 45 s after rowan was closed; the news had waited for a gap."""
+    d = call.d  # noqa: F811
+
+    async def run():
+        injector = call.start()
+        add(d, "s1", "alder")
+        add(d, "s2", "rowan")
+        add(d, "s3", "birch")
+        d.state.floor.user_started(time.time())  # the user is talking: the news waits
+        await injector.inject("[session joined] rowan is now available. Mention it in a few words.", True)
+        await injector.inject("[session joined] birch is now available. Mention it in a few words.", True)
+        del d.REGISTRY.sessions["s2"]  # closed by voice meanwhile
+        d.state.floor.user_stopped(time.time())
+        for _ in range(100):
+            if call.asked:
+                break
+            await asyncio.sleep(0.02)
+        said = " ".join(text for _, text in call.asked)
+        assert "birch" in said and "rowan" not in said
+
+    asyncio.run(run())
+
+
 def test_the_floor_is_fed_by_the_call(d, monkeypatch):  # noqa: F811
     """The user's turn closes Pointe's question, and Pointe's own words open one."""
     async def run():

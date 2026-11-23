@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Mac app · Pointe docs</title>
+<meta name="description" content="Pointe in the menu bar, with a native window that has everything the page and the iPhone app have: the call and its transcript, approvals, sessions by…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="The Mac app">
+<meta property="og:description" content="Pointe in the menu bar, with a native window that has everything the page and the iPhone app have: the call and its transcript, approvals, sessions by…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/mac-app/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/mac-app/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="./" aria-current="page">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="the-mac-app">The Mac app</h1>
+<p>Pointe in the menu bar, with a native window that has everything the page and the iPhone app have: the call and its
+transcript, approvals, sessions by machine, the brain dump, challenge, meetings, briefings, whisper, the voice lock, the
+dictionary, the conflict alarm, show while it says, machines, pairing a phone, and Settings. The window draws the
+iPhone app's own screens, so the two apps look and behave the same; a wide window adds the page's sessions column. It
+talks to the same Pointe on this Mac that the page does, so the two can be used side by side (one call at a time).
+What each surface has, and why the few differences exist: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/parity.md">design/parity.md</a>. The Mac's own parts
+(the protocol, the audio, the shortcut, security): <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/macos-app.md">design/macos-app.md</a>.</p>
+<h2 id="getting-it">Getting it</h2>
+<p><strong>Coming to the App Store: in review with Apple.</strong> Until it is there, there is no download: you build it on your Mac,
+from the plugin you installed. In Claude
+Code, <code>/pointe:setup apps</code> does it for you. In a terminal, one command builds it, signs it, and puts it in
+<code>~/Applications</code>:</p>
+<div class="dx-code"><pre><code>pointe apps mac</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>You need Xcode 16 or newer (free in the App Store) and macOS 15 or newer. You do not need an Apple Account.
+<code>pointe apps doctor</code> checks the Mac first and prints the fix for anything missing. The plugin must be installed too
+(see the <a href="https://github.com/ballerine-io/pointe/blob/main/README.md#install">README</a>): the app starts and talks to the plugin's daemon and has no engine of its own,
+and <code>pointe</code> is the command setup puts on your PATH. Contributors building from a clone run <code>bin/pointe apps mac</code> there.</p>
+<p><strong>What the command does, and why</strong></p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Checks Xcode</td>
+<td>The build needs the full Xcode, selected and with its license accepted; the command line tools alone cannot build an app.</td>
+</tr>
+<tr>
+<td>Chooses how to sign</td>
+<td>With an Apple Development certificate in your keychain (a free Apple Account is enough, <a href="../iphone-app/#getting-the-app">how</a>) it signs as your team. Without one it signs ad hoc, which Xcode calls "Sign to Run Locally". If signing as your team fails, it says why and signs ad hoc instead.</td>
+</tr>
+<tr>
+<td>Builds Release</td>
+<td>The optimized build, into <code>~/.claude-voice/apps/build</code> (in a clone, <code>macos/build/apps</code>, which git ignores). The first build took 44 s on an Apple-silicon Mac in the clean-install run.</td>
+</tr>
+<tr>
+<td>Quits a running Pointe and replaces <code>~/Applications/Pointe.app</code></td>
+<td>So there is one copy, where Spotlight and Login Items find it. Only the copy at that path is quit; if it was running, the new one is opened.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Both ways of signing give an app that runs on this Mac. The difference is the microphone permission: macOS ties it to
+the signature. Signed as your team, the permission is kept across rebuilds. Signed ad hoc, macOS asks again after each
+rebuild. With a team, the app's bundle ID is your own (the saved iPhone bundle ID plus <code>.mac</code>), for the same reason as on the
+iPhone: <code>io.ballerine.pointe.mac</code> belongs to the team that publishes Pointe.</p>
+<p><strong>Gatekeeper</strong> does not stop it. Gatekeeper checks files that were downloaded (macOS marks them as quarantined), and an
+app built on this Mac carries no such mark. A copy of your build sent to another Mac is refused there: build on each Mac.</p>
+<p><strong>Start at login:</strong> in the app, Settings, General, "Open Pointe at login". macOS lists it under System Settings,
+General, Login Items, where you can remove it.</p>
+<p>Options: <code>--open</code> opens the app when it is installed, <code>--adhoc</code> signs to run locally even with a team, <code>--dest &lt;folder&gt;</code>
+installs somewhere other than <code>~/Applications</code>, <code>--dry-run</code> shows the Xcode command without running it. Run the command
+again to update. If the build fails, the command prints the cause and the fix; the table in
+<a href="../iphone-app/#getting-the-app">The iPhone app</a> covers the Xcode license, <code>xcode-select</code> and signing errors, and the full output
+is in <code>build.log</code> in the build folder.</p>
+<p>For work on the app itself, <code>macos/build.sh --open</code> makes a Debug build in <code>macos/build/dd</code> and installs nothing.</p>
+<h2 id="using-it">Using it</h2>
+<ul>
+<li>
+<p><strong>The menu bar item</strong> is the Chorus mark, dimmed with no call, with the number of sessions that wait beside it. Its
+  menu has Connect, who needs you, Brain dump, Open Pointe, New Session, the call bubble and Settings.</p>
+</li>
+<li>
+<p><strong>The window</strong> (Open Pointe, ⌘O). Wide, it has the sessions on the left, grouped by machine, with Orchestrator or
+  Session over them and New session and Settings under them; click a session to make it the one the voice talks to,
+  right-click it to rename it or take it off the voice. Narrow, the sessions are a strip over the conversation, as on
+  the phone. The conversation is on the right; click something you said to fix it. A request shows its exact text with
+  Deny and Approve. Approve asks for Touch ID or your password; Deny does not.</p>
+</li>
+<li>
+<p><strong>Opening the app</strong> from Finder, Spotlight or the Dock opens the window, even when the menu bar item is hidden behind
+  the notch. Opened at login, it stays in the menu bar.</p>
+</li>
+<li>
+<p><strong>Connect</strong> (⌘↩): the first time, macOS asks for the microphone. A call that does not start opens the window, where
+  Connect says why and what to do.</p>
+</li>
+<li>
+<p><strong>The talk mode</strong> is named at the top of the window and in the bubble: Always on, or in push to talk the shortcut,
+  as in "Hold ⌃⌥Space".</p>
+</li>
+<li>
+<p><strong>Talking.</strong> The switch over the mic chooses Always on or push to talk. In push to talk, hold the mic, or hold Space
+  while the window is in front, or hold the shortcut from any app (Settings → This Mac → Talk shortcut). Choose Tap to
+  talk in Settings to press once to start and again to send. With Always on, the mic, Space and the shortcut mute.</p>
+</li>
+<li>
+<p><strong>Type</strong> (⌘T) to send words instead of speaking; typed words never approve.</p>
+</li>
+<li>
+<p><strong>Brain dump</strong> (⌘B on a call): talk freely, press Done, then edit the structured prompt, choose where it goes, and
+  press Send twice.</p>
+</li>
+<li>
+<p><strong>New Session</strong> (⌘N): start a Claude Code, OpenCode or Codex session in a folder you already work in. Start asks for
+  Touch ID or your password. A start the voice read back shows as a card with Cancel and Start.
+  <a href="../features/new-session/">features/new-session.md</a>.</p>
+</li>
+<li>
+<p><strong>Settings</strong> (⌘, or the ••• button): the same list as the iPhone app's (the microphone, the talk button, how long to
+  wait before answering, Clean up my words, whisper, the dictionary, sessions and mode, machines, Phone, meetings,
+  briefings, challenge, alerts, the voice lock, the conflict alarm, show while it says, appearance, About), then this
+  Mac's own: the talk shortcut, the call bubble, open at login, Pointe on this Mac (running or not, its version, Start
+  and Restart), the folders a new session may start in, and the model keys: the Setup menu (<code>pointe setup &lt;id&gt;</code>, the
+  rows of <a href="../setups/">setups.md</a>), one line on whether every role is filled,
+  and each key as In use, Saved, not used, Needed (the one key an empty role needs) or Optional, never "missing" when
+  no role needs it (<code>KeyPlan</code>, the daemon's <code>vendors.key_status</code>). Add… opens Pointe's own key window, then
+  <code>pointe key check</code> tries the key with one tiny live call; the app never sees a key.</p>
+</li>
+<li>
+<p><strong>Phone</strong> (Settings, or Call → Pair a Phone…): the paired phones, and Connect your phone, which shows the code the
+  iPhone scans, as the page's Settings → Phone does.</p>
+</li>
+<li>
+<p><strong>The Call menu</strong> has a key for each: Mute (⇧⌘A, in Always on), Approve Request (⌘Y, with Touch ID or the password, as
+  the card's button) and Deny Request (⌘D) for the first card that waits, Sessions and Mode (⇧⌘S), Start a Meeting
+  (⇧⌘M), Briefing (⇧⌘B), Open the page (⇧⌘P). While a sheet is open the commands for the window wait for it to close.
+  Esc closes a sheet and the Type bar. Help, Pointe Help (⌘?) opens this page.</p>
+</li>
+<li>
+<p><strong>Before Pointe runs</strong>, the window is the setup guide; Settings… (⌘,) opens this Mac's own settings over it, and About
+  Pointe opens About.</p>
+</li>
+<li>
+<p><strong>The call bubble</strong> (menu or Settings): a small panel over other apps while a call is up, with the state, the talk
+  mode and a talk button; if a call did not start, it says why. Click it to open the window; drag it anywhere, and it
+  keeps the place. − makes it a small pill that opens out when the pointer is over it; × hides it ("Show Call Bubble
+  During Calls" in the menu, or Settings, brings it back). Right-click it for Keep on Screen with No Call, Reset
+  Position and the rest.</p>
+</li>
+<li>
+<p><strong>Alerts</strong> (Settings → Alerts): a notification when a session needs you and the window is not in front. Approve on a
+  notification appears only for a request Pointe can read out and only with "Approve from notifications" on.</p>
+</li>
+<li>
+<p><strong>No Pointe on this Mac yet?</strong> The window is a setup guide then, with what is missing and the one thing to do about
+  each, and Try a demo: invented sessions to look around, with nothing sent anywhere.</p>
+</li>
+</ul>
+<p>Drive mode starts on the phone or by voice; the Mac shows it and can stop it, as the page does.</p>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>
+<p>Built from source (<a href="#getting-it">one command</a>), signed for your own Mac, not notarized. Another Mac will refuse to
+  open a copy of your build.</p>
+</li>
+<li>
+<p>One call at a time: hang up on the page or the phone to talk here.</p>
+</li>
+<li>
+<p>Echo cancellation is macOS's own. If the audio device gives none, the call still starts and the window says to use
+  headphones.</p>
+</li>
+<li>
+<p>The microphone is the system's default one: there is no picker yet.</p>
+</li>
+<li>While your words show, the caption's wave animates and takes about a tenth of a processor core.</li>
+<li>The app looks for no updates. When it and the plugin are at different versions, it says which side to update.</li>
+</ul>
+<h2 id="tests">Tests</h2>
+<p><code>macos/test.sh unit</code>, <code>smoke</code> and <code>ui</code>, and the live test against a real daemon:
+<a href="../contributing/#the-apps">Running the tests, The apps</a>.</p>
+<h2 id="a-notarized-build-when-there-is-a-developer-id">A notarized build (when there is a Developer ID)</h2>
+<p>Not done yet: it needs a Developer ID Application certificate. The steps, for whoever holds one:</p>
+<ol>
+<li>
+<p><code>xcodebuild archive -project macos/PointeMac.xcodeproj -scheme PointeMac -configuration Release -archivePath
+   build/Pointe.xcarchive DEVELOPMENT_TEAM=&lt;team&gt; CODE_SIGN_IDENTITY="Developer ID Application"</code>, then export with
+   <code>method: developer-id</code>. The hardened runtime is already on, with one entitlement (the microphone).</p>
+</li>
+<li>
+<p><code>ditto -c -k --keepParent Pointe.app Pointe.zip</code>, <code>xcrun notarytool submit Pointe.zip --keychain-profile &lt;profile&gt;
+   --wait</code>, <code>xcrun stapler staple Pointe.app</code>.</p>
+</li>
+<li>
+<p>A disk image (<code>hdiutil create -volname Pointe -srcfolder Pointe.app -ov -format UDZO Pointe.dmg</code>), notarized and
+   stapled the same way, attached to the GitHub release; then a Homebrew cask pointing at it with its SHA-256.</p>
+</li>
+</ol>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md">docs/mac-app.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../install/"><span class="pg-small">Previous</span>Install Pointe</a><a class="dx-next" href="../phone/"><span class="pg-small">Next</span>Connect your phone</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#getting-it">Getting it</a></li>
+<li class="dx-l2"><a href="#using-it">Using it</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#tests">Tests</a></li>
+<li class="dx-l2"><a href="#a-notarized-build-when-there-is-a-developer-id">A notarized build (when there is a Developer ID)</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

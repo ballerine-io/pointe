@@ -59,6 +59,7 @@ enum BrainDumpCopy {
     static let lede = "Talk freely. Nothing is sent until you say so."
     static let empty = "Start talking. Every thought lands here."
     static let hint = "When you're done: tap Done, or say “done” or “over to you”."
+    static var hintHere: String { Surface.shown(hint.replacingOccurrences(of: "tap Done", with: "\(Surface.tap) Done")) }
     static let structuring = "Structuring your thoughts…"
     static let reviewTitle = "Your brain dump, structured"
     static let reviewLede = "In your words. Edit it, add more, or send it."
@@ -164,9 +165,10 @@ struct BrainDumpPanel: View {
                     .animation(.easeOut(duration: 0.15), value: dump.thoughts.count)
                 }
                 .defaultScrollAnchor(.bottom)
+                .edgeFade(.vertical)  // the earlier thoughts fade out above instead of being cut through a line
                 .onChange(of: dump.thoughts.count) { scroller.scrollTo("end", anchor: .bottom) }
             }
-            Text(BrainDumpCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted)
+            Text(BrainDumpCopy.hintHere).font(.brand(.footnote)).foregroundStyle(Brand.muted)
             if let note = problem ?? dump.problem ?? (dump.resumed == true ? BrainDumpCopy.resumed : nil) {
                 Label(note, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                     .accessibilityIdentifier("dump.note")
@@ -232,15 +234,22 @@ struct BrainDumpReview: View {
                         Label(BrainDumpCopy.fallback, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                             .accessibilityIdentifier("dump.fallback")
                     }
-                    TextEditor(text: $text)
-                        .font(.brand(.body))
-                        .frame(minHeight: 220)
-                        .scrollContentBackground(.hidden)
-                        .padding(10)
-                        .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
-                        .focused($editing)
-                        .onChange(of: editing) { if !editing { Task { await saveEdit() } } }
-                        .accessibilityIdentifier("dump.text")
+                    // The box grows with the text (an invisible copy sets its height), so no heading is sliced by a
+                    // fixed-height box inside a screen that already scrolls.
+                    ZStack(alignment: .topLeading) {
+                        Text(text + "\n").font(.brand(.body)).padding(.horizontal, 5).padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading).hidden().accessibilityHidden(true)
+                        TextEditor(text: $text)
+                            .font(.brand(.body))
+                            .scrollDisabled(true)
+                            .scrollContentBackground(.hidden)
+                            .focused($editing)
+                            .onChange(of: editing) { if !editing { Task { await saveEdit() } } }
+                            .accessibilityIdentifier("dump.text")
+                    }
+                    .frame(minHeight: 220)
+                    .padding(10)
+                    .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
                     // To: a field, like Mail's, so it never reads as a second button; Send is the one primary action.
                     Menu {
                         Picker("Send to", selection: Binding(get: { target ?? .orchestrator }, set: { picked = $0; sure = false })) {
@@ -253,11 +262,13 @@ struct BrainDumpReview: View {
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.up.chevron.down").font(.brand(.footnote, .semibold)).foregroundStyle(Brand.muted)
                         }
-                        .padding(.horizontal, 14).frame(minHeight: 46)
+                        .padding(.horizontal, 14).frame(maxWidth: .infinity, minHeight: 46)
                         .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.line))
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .tint(.primary)  // a field, not an accent: the orange is Send's
+                    .fieldMenu()
                     .accessibilityLabel("\(BrainDumpCopy.to) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.session")
                     if let note = BrainDumpCopy.goneNote(dump, target: target) {
@@ -278,14 +289,14 @@ struct BrainDumpReview: View {
                             busy = false
                         }
                     } label: {
-                        Text(sure ? BrainDumpCopy.sendSure : BrainDumpCopy.send)
+                        Text(sure ? Surface.pointer(BrainDumpCopy.sendSure) : BrainDumpCopy.send)
                             .font(.brand(.headline)).frame(maxWidth: .infinity).padding(.vertical, 6)
                     }
                     .buttonStyle(.brandPrimary).controlSize(.large)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orange, lineWidth: 2).padding(-4).opacity(sure ? 1 : 0))
                     .animation(.easeOut(duration: 0.15), value: sure)
                     .disabled(target == nil || busy)
-                    .accessibilityLabel(sure ? BrainDumpCopy.sendSure : "\(BrainDumpCopy.sendTo) \(target?.label ?? "")")
+                    .accessibilityLabel(sure ? Surface.pointer(BrainDumpCopy.sendSure) : "\(BrainDumpCopy.sendTo) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.send")
                     HStack(spacing: 8) {
                         quiet(BrainDumpCopy.addMore, id: "dump.more") { await more() }
@@ -311,6 +322,7 @@ struct BrainDumpReview: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("dump.review")
             }
+            .scrollCue()  // the actions under the prompt were cut by the sheet's bar with nothing to say there were more
             .sheetTitle(BrainDumpCopy.reviewTitle)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close", action: close).accessibilityIdentifier("dump.close") } }
         }

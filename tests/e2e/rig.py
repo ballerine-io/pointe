@@ -31,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CACHE = ROOT / "tests" / "e2e" / ".cache"
 
 STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
+os.environ.setdefault("POINTE_LINK_DIR", str(STATE / "link"))  # the daemons a suite starts leave ~/.local/bin/pointe alone
 LOG = STATE / "daemon.log"
 DAEMON = f"http://127.0.0.1:{os.environ.get('CLAUDE_VOICE_DAEMON_PORT', '7860')}"
 RATE = 48000

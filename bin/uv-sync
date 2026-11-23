@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# `uv sync --locked`, from uv's cache first. With network, uv asks GitHub again about the spaCy model wheel (a direct URL
+# in the lockfile) on most syncs, so a plain sync fails offline even when every package is already here: an installed
+# Pointe must start without internet. Only a sync the cache cannot satisfy (first run, a new version) goes out, with the
+# same lockfile and hashes. Usage: uv-sync <uv sync arguments>; then run with `uv run --no-sync`.
+set -euo pipefail
+uv sync --locked --offline "$@" 2>/dev/null || exec uv sync --locked "$@"

@@ -6,7 +6,7 @@ import Foundation
 public enum KeyCopy {
     public static let whatYouNeedTitle = "What do I need?"
     public static let whatYouNeed = "Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour."
-    public static let whyKeys = "Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk."
+    public static let whyKeys = "Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk."
     public static let allFilled = "Every role is filled."
     public static let othersOptional = "The other keys are optional: not needed with your current keys."
     public static let noKey = "No model key yet."
@@ -16,6 +16,9 @@ public enum KeyCopy {
     public static let optional = "Optional"
     public static let setupLabel = "Setup"
     public static let noSetup = "None chosen"
+    public static let noSetupHow = "None chosen, so each role takes the first vendor with a key."
+    /// Before "Every role is filled." with no setup chosen: the picker beside it says None chosen.
+    public static let noSetupHead = "Setup: \(noSetup), so Pointe uses the keys you have. "
 }
 
 /// One row of `setups.SETUPS`, as the Mac app's menu shows it; tests/test_setups.py holds this list to it.
@@ -31,7 +34,7 @@ public struct SetupChoice: Identifiable, Equatable, Sendable {
 
     public static let all: [SetupChoice] = [
         SetupChoice(id: "free", name: "Free start", keys: [.gemini], optional: [], local: "", short: "One Gemini key. Free to try; slower replies, headphones.", pickFor: "trying Pointe at no cost"),
-        SetupChoice(id: "openai", name: "One OpenAI key", keys: [.openai], optional: [], local: "", short: "One OpenAI key. Headphones; weakest audio result.", pickFor: "people who already pay for OpenAI"),
+        SetupChoice(id: "openai", name: "One OpenAI key", keys: [.openai], optional: [], local: "", short: "One OpenAI key. Headphones, English speech only; weakest audio result.", pickFor: "people who already pay for OpenAI"),
         SetupChoice(id: "two", name: "Two keys", keys: [.soniox, .anthropic], optional: [], local: "", short: "Soniox and Anthropic. Best ears, works on speakers.", pickFor: "the best ears with two accounts, on laptop speakers"),
         SetupChoice(id: "full", name: "Fastest and most accurate voice", keys: [.anthropic, .soniox, .elevenlabs, .gemini], optional: [], local: "", short: "Anthropic, Soniox, ElevenLabs, Gemini. Fastest replies, best ears and voice.", pickFor: "daily use"),
         SetupChoice(id: "voice-local", name: "Voice stays on your Mac", keys: [.anthropic], optional: [.gemini], local: "voice", short: "One Anthropic key; ears and voice on the Mac. No audio leaves it.", pickFor: "confidential work where text may leave the Mac but your voice may not"),
@@ -103,7 +106,7 @@ public struct KeyPlan: Equatable, Sendable {
 
     /// The one line above the keys: all filled, nothing yet, or what is missing and the key that fixes it.
     public var line: String {
-        let head = setup.map { "Setup: \($0.name). " } ?? ""
+        let head = setup.map { "Setup: \($0.name). " } ?? (ready ? KeyCopy.noSetupHead : "")
         if setup != nil, !needed.isEmpty {
             return head + "It needs \(Self.join(needed.map { Self.article($0.shortName) }, "and")) key: pointe key \(needed[0].rawValue)."
         }

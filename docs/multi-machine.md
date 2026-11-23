@@ -115,6 +115,10 @@ The hub treats a node's transcripts like its own: they go to the hub's reader an
 | node | `pointe node status` | the hub, the link, round trip, the hub's vendors, sessions here, key fingerprint |
 | node | `pointe node leave` | unpairs this machine from its side |
 
+**Names.** The hub's name is `"machine"` in its `~/.claude-voice/config.json` (else its short host name). Rename the hub
+there and restart it: each node takes the new name at its next link. A node's name is set when it pairs
+(`pointe hub invite --name devbox`); to change it, pair again.
+
 ## Limits
 
 - **One hub per node.** To move a node to another hub, `pointe node leave`, then join the new one.

@@ -96,7 +96,7 @@ struct SessionChips: View {
                     .accessibilityIdentifier("startingChip.\(row.name)")
                 }
                 if sessions.isEmpty && starting.isEmpty && known {
-                    Text("No sessions · /pointe:voice or pointe join").font(.brand(.subheadline)).foregroundStyle(Brand.muted)
+                    Text("No sessions yet").font(.brand(.subheadline)).foregroundStyle(Brand.muted)  // how to join is the line under it: said once
                 }
                 ForEach(groups, id: \.machine) { group in
                   if let name = group.machine { divider(name) }
@@ -143,6 +143,7 @@ struct SessionChips: View {
         }
         .padding(.vertical, -5)  // and the strip laid out at what the chips draw, as before
         .scrollClipDisabled()
+        .edgeFade()
         .confirmDisconnect($leaving, disconnect)
         .alert("Rename \(renaming ?? "")", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Name", text: $newName)
@@ -173,6 +174,7 @@ struct SessionsSheet: View {
     /// The Mac's wide window: this list is the window's left column (the page's), always there, not a sheet.
     var docked: Docked? = nil
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var leaving: String?
     @State private var showNewSession = false
     @State private var showAddSessions = false
@@ -186,22 +188,35 @@ struct SessionsSheet: View {
 
     private var machines: MachineView { MachineView(status) }
 
+    private func foot<Style: LabelStyle>(_ docked: Docked, _ style: Style) -> some View {
+        HStack(spacing: 8) {
+            if starter != nil {
+                Button { showNewSession = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
+                    .buttonStyle(.brandQuiet).controlSize(.small).help(NewSessionCopy.title).accessibilityIdentifier("newSession")
+            }
+            if adder != nil {
+                Button { showAddSessions = true } label: { Label(AddSessionsCopy.title, systemImage: "rectangle.stack.badge.plus") }
+                    .buttonStyle(.brandQuiet).controlSize(.small).help(AddSessionsCopy.title).accessibilityIdentifier("addSessions")
+            }
+            Spacer(minLength: 0)
+            Button(action: docked.settings) { Label("Settings", systemImage: "gearshape") }
+                .buttonStyle(.brandQuiet).controlSize(.small).help("Settings").accessibilityIdentifier("sideSettings")
+        }
+        .labelStyle(style)
+        .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
     var body: some View {
         if let docked {
             VStack(spacing: 0) {
                 list.accessibilityElement(children: .contain).accessibilityIdentifier("sessionsColumn")
-                HStack(spacing: 8) {  // the page's foot of the column: New session and Settings
-                    if starter != nil {
-                        Button { showNewSession = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
-                            .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("newSession")
-                    }
-                    if adder != nil {
-                        Button { showAddSessions = true } label: { Label(AddSessionsCopy.title, systemImage: "rectangle.stack.badge.plus") }
-                            .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("addSessions")
-                    }
-                    Spacer(minLength: 0)
-                    Button(action: docked.settings) { Label("Settings", systemImage: "gearshape") }
-                        .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("sideSettings")
+                // The page's foot of the column: New session, Add sessions and Settings, with their words while the
+                // column has room for them on one line, else as their symbols (named on hover): a narrow column broke
+                // the words inside themselves ("sessi/on").
+                ViewThatFits(in: .horizontal) {
+                    foot(docked, .titleAndIcon)
+                    foot(docked, .iconOnly)
                 }
                 .padding(12)
                 .overlay(alignment: .top) { Rectangle().fill(Brand.line).frame(height: 1) }
@@ -241,7 +256,7 @@ struct SessionsSheet: View {
                         Button(AddSessionsCopy.title) { showAddSessions = true }.accessibilityIdentifier("addSessions")
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .sheetDone) { Button("Done") { dismiss() } }
             }
             .sheet(isPresented: $showNewSession) {
                 if let starter {
@@ -306,7 +321,7 @@ struct SessionsSheet: View {
                 } else {
                     KickerSection("On the voice") {
                         if (status?.sessions ?? []).isEmpty {
-                            Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.").foregroundStyle(Brand.muted)
+                            Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.".unbrokenCommands).foregroundStyle(Brand.muted)
                         }
                         rows(status?.sessions ?? [])
                         startingRows
@@ -325,19 +340,19 @@ struct SessionsSheet: View {
     private func rows(_ sessions: [API.Session]) -> some View {
         ForEach(byAttention(sessions)) { s in
             Button { switchTo(s.name); if docked == nil { dismiss() } } label: {
-                HStack {
-                    Circle().fill(dot(s)).frame(width: 9, height: 9)
-                    Text(s.name).foregroundStyle(.primary)
-                    HarnessMark(harness: s.harness, named: (status?.sessions ?? []).mixesAgents)
-                    Spacer()
-                    if s.isOffline {
-                        Text("offline since \(MachinesCopy.since(machines.info(machines.of(s))?.since))")
-                            .font(.brand(.caption)).foregroundStyle(Brand.muted)
-                    } else if status?.mode == "session" && s.name == status?.active {
-                        Text("focused").font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
-                    } else {
-                        Text(state(s)).font(.brand(.caption)).foregroundStyle(Brand.muted)
+                // One line while it fits; in a narrow column (the Mac's sidebar) the state goes under the name, and a
+                // name longer than the column loses its middle, never breaking inside a word.
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        name(s)
+                        Spacer()
+                        rowState(s)
                     }
+                    VStack(alignment: .leading, spacing: 2) {
+                        name(s)
+                        rowState(s).padding(.leading, 17)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .contentShape(Rectangle())
             }
@@ -353,6 +368,26 @@ struct SessionsSheet: View {
                 Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
             }
             .opacity(s.isOffline ? 0.5 : 1)
+        }
+    }
+
+    private func name(_ s: API.Session) -> some View {
+        HStack {
+            Circle().fill(dot(s)).frame(width: 9, height: 9)
+            Text(s.name).foregroundStyle(.primary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1).truncationMode(.middle).help(s.name)
+            HarnessMark(harness: s.harness)
+        }
+    }
+
+    @ViewBuilder
+    private func rowState(_ s: API.Session) -> some View {
+        if s.isOffline {
+            Text("offline since \(MachinesCopy.since(machines.info(machines.of(s))?.since))")
+                .font(.brand(.caption)).foregroundStyle(Brand.muted)
+        } else if status?.mode == "session" && s.name == status?.active {
+            Text("focused").font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
+        } else {
+            Text(state(s)).font(.brand(.caption)).foregroundStyle(Brand.muted)
         }
     }
 
@@ -381,7 +416,7 @@ struct SessionsSheet: View {
         Section {
         } footer: {
             Group {
-                Text("\(Surface.isMac ? "Right-click" : "Swipe") a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.")
+                Text("\(Surface.isMac ? "Right-click" : "Swipe") a session to take it off the voice. It keeps running in its terminal; /pointe:voice (or pointe join) there joins it again.".unbrokenCommands)
             }.brandFootnote()
         }
     }

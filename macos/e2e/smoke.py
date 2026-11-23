@@ -10,6 +10,7 @@ screen. The app's own settings are untouched: a demo keeps nothing. Never the in
 """
 
 import os
+import plistlib
 import subprocess
 import sys
 import tempfile
@@ -81,8 +82,20 @@ SCREENS = {  # -demo <screen>: an identifier that screen shows
 }
 
 
+def shared_bundle_ids(app: Path) -> list[str]:
+    """The resource bundles inside `app` that carry the app's own identifier. PRODUCT_BUNDLE_IDENTIFIER on the
+    xcodebuild command line sets it on every target, PointeUI's resource bundle too, and then the Chorus mark does not
+    load from that bundle's asset catalog: the header shows no mark."""
+    def ident(info: Path) -> str | None:
+        return plistlib.loads(info.read_bytes()).get("CFBundleIdentifier") if info.is_file() else None
+    own = ident(app / "Contents" / "Info.plist")
+    return sorted(b.name for b in (app / "Contents" / "Resources").glob("*.bundle")
+                  if own and own in (ident(b / "Contents" / "Info.plist"), ident(b / "Info.plist")))
+
+
 def main() -> int:
-    # POINTE_SMOKE_APP: an app already built, e.g. under its own bundle id so it shares no settings with an installed one.
+    # POINTE_SMOKE_APP: an app already built (macos/build.sh's, or another plain build). A demo keeps nothing, so it needs
+    # no bundle ID of its own; never pass PRODUCT_BUNDLE_IDENTIFIER to xcodebuild for it (shared_bundle_ids).
     given = os.environ.get("POINTE_SMOKE_APP")
     built = subprocess.CompletedProcess([], 0, given, "") if given else \
         subprocess.run([str(ROOT / "macos" / "build.sh")], capture_output=True, text=True, stdin=subprocess.DEVNULL)
@@ -95,6 +108,12 @@ def main() -> int:
     bundle = Path(built.stdout.strip().splitlines()[-1])
     assert "/build/" in str(bundle), "the app under test is the one in the build folder, never an installed one"
     binary = bundle / "Contents" / "MacOS" / "Pointe"
+    shared = shared_bundle_ids(bundle)
+    check("the app's resource bundles keep their own identifiers, so the Chorus mark loads", not shared,
+          f"{', '.join(shared)} carry the app's identifier: build without PRODUCT_BUNDLE_IDENTIFIER on the command line"
+          if shared else "")
+    if shared:
+        return 1
 
     def start(*args: str, look: str = "dark", env: dict | None = None) -> App:
         return App(binary, driver, *args, look=look, env=env)
@@ -206,6 +225,13 @@ def main() -> int:
         check("with no daemon the window is the setup guide", app.wait("setup", 10) and not app.has("conversation"))
         check("and with no call there is no bubble saying Not connected", not app.has("bubble.state") and not app.has("bubble.small"))
         app.shot("setup", "dark")
+        check("on the setup guide the Settings… menu command opens Settings, with the keys",
+              app.ax("menu", "Settings…").returncode == 0 and app.wait("settings.key.gemini"))
+        app.ax("button", "Done")
+        app.wait("settings.key.gemini", 4, gone=True)
+        check("and About Pointe opens About", app.ax("menu", "About Pointe").returncode == 0 and app.wait("aboutBody"))
+        app.ax("button", "Done")
+        app.wait("aboutBody", 4, gone=True)
         check("Try a demo shows the call screen with a request", app.press("tryDemo") and app.wait("requestCommand", 8) and app.has("demoBadge"))
     finally:
         app.quit()

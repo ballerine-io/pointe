@@ -176,6 +176,29 @@ def test_a_reply_over_its_words_is_sent_back_for_what_follows_the_sentence_alrea
     assert len([e for e in events if e[0] in ("first", "rest", "speak")]) == 2  # said once: its first sentence, then the rest
 
 
+def test_a_reply_too_long_from_a_vendor_that_does_not_stream_still_plays_its_first_sentence_while_it_is_shortened(monkeypatch):
+    """From the latency runs on the full setup: one reply in five was over its words and sent back before any sound,
+    4.9 to 13.9 s turns. The first sentence passes every check alone, so it plays during the step that shortens the rest."""
+    import brain as brain_module
+
+    b, events, steps = _streaming_brain(monkeypatch, [])
+    replies = [LONG, "It lets a request return at once and smooths bursts."]
+
+    async def step(choice, instructions, messages, decls, heard=None):  # the whole reply at once, nothing streamed
+        steps.append(heard is not None)
+        events.append("model done")
+        return SimpleNamespace(calls=[{"id": f"c{len(steps)}", "name": "speak", "args": {"text": replies.pop(0)}}],
+                               said="", raw=None, vendor="fake", usage={})
+
+    monkeypatch.setattr(brain_module.vendors, "step", step)
+    asyncio.run(b.turn("Why do people use a message queue?"))
+    assert events[:3] == ["model done", ("first", "Use a queue when work can wait."), "model done"]
+    refusal = [m for m in b.messages if m["role"] == "tool"][0]["results"][0]["result"]["error"]
+    assert "already heard the start of it: 'Use a queue when work can wait.'" in refusal
+    assert events[-1] == ("rest", "It lets a request return at once and smooths bursts.",
+                          "Use a queue when work can wait. It lets a request return at once and smooths bursts.")
+
+
 @pytest.mark.parametrize("again", ["Use a queue when work can wait. It smooths bursts of traffic.",  # word for word
                                    "A queue is for work that can wait. It smooths bursts of traffic."])  # in other words
 def test_sent_back_the_model_does_not_get_to_say_the_first_sentence_twice(monkeypatch, again):
@@ -269,9 +292,18 @@ def test_a_first_sentence_that_takes_most_of_the_limit_waits_and_the_whole_reply
     short = "A mutex has one owner who must unlock it. A semaphore is a counter any thread can signal."
     assert cv.count_words(mutex) > cv.REPLY.words * 2 / 3 and cv.retry_problem(long, cv.REPLY) and not cv.length_problem(short, cv.REPLY)
     b, events, steps = _streaming_brain(monkeypatch, [long, short])
-    asyncio.run(b.turn("What is the difference between a mutex and a semaphore?"))
+    asyncio.run(b.turn("What is a mutex, and what is a semaphore?"))
     assert ("first", mutex) not in events and len(steps) == 2
     assert events[-1][0] == "rest" and events[-1][-1] == short  # both halves, inside the limit
+
+
+def test_a_comparison_has_room_for_both_halves_with_no_second_step(monkeypatch):
+    """QA round 2: at 30 words the comparison lost its second half 3 of 3 times; a comparison's limit holds both."""
+    mutex = "A mutex is a lock with an owner: only the thread that locked it can unlock it, so one thread at a time."
+    long = f"{mutex} A semaphore is a counter allowing up to N holders, and any thread can signal it."
+    b, events, steps = _streaming_brain(monkeypatch, [long])
+    asyncio.run(b.turn("What is the difference between a mutex and a semaphore?"))
+    assert len(steps) == 1 and " ".join(e[1] for e in events if isinstance(e, tuple)).count("semaphore") >= 1
 
 
 def test_the_opening_of_a_reply_being_written_is_whole_sentences_with_enough_words():
@@ -645,3 +677,22 @@ def test_the_ears_have_the_brain_read_a_whole_sentence_while_it_settles_and_forg
     asyncio.run(run())
     assert [t for t, _ in taken] == ["Is it better to rebase or to merge? I mean for a team of forty people.", "Yes."]
     assert len(read) == 3
+
+
+def test_the_latency_suite_times_a_filler_turn_by_the_reply_not_the_filler(monkeypatch):
+    """From the latency runs: a turn that began with "One sec." was printed as "no reply timed", so the slowest turns
+    fell out of the numbers. The reply's sound is the first span at or after the daemon's first_sound stamp."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    e2e = Path(__file__).parent / "e2e"
+    monkeypatch.setattr(sys, "argv", ["latency.py"])
+    monkeypatch.syspath_prepend(str(e2e))
+    spec = importlib.util.spec_from_file_location("e2e_latency", e2e / "latency.py")
+    suite = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(suite)
+    filler, reply = (104.5, 105.1), (107.9, 110.0)
+    assert suite.reply_onset([filler, reply], 107.85) == (107.9, True)
+    assert suite.reply_onset([reply], 107.85) == (107.9, False)
+    assert suite.reply_onset([filler], None) == (104.5, False)

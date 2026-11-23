@@ -196,6 +196,17 @@ def _config(state: Path) -> dict:
 
 # ---------- the node ----------
 
+def _unreachable(e: Exception) -> str:
+    """Why the hub cannot be reached, in words: "ClientConnectorError" told a person nothing (QA round 2)."""
+    if isinstance(e, asyncio.TimeoutError):
+        return "it did not answer in time"
+    if isinstance(e, aiohttp.ClientConnectorError):
+        return "nothing answers there (is it on, and on this network?)"
+    if isinstance(e, aiohttp.WSServerHandshakeError):
+        return f"it refused the link (HTTP {e.status})"
+    return "the connection failed"
+
+
 @dataclass
 class Tail:
     path: str
@@ -491,6 +502,7 @@ class Node:
                     self._closed(ws)
                     return False
                 welcomed = True
+                self._hub_named(config, challenge["hub"].get("name"))
                 await self._welcomed(ws, welcome)
                 watchdog = asyncio.create_task(self._watchdog(ws))
                 try:
@@ -508,12 +520,25 @@ class Node:
             self.link_error = ("the hub's certificate is not the one paired. If the hub re-paired or rotated its "
                                "certificate (pointe pair rotate), pair again: pointe node leave, then a new invite")
         except (aiohttp.ClientError, OSError, asyncio.TimeoutError, ValueError) as e:
-            self.link_error = f"cannot reach {hub.get('name')} at {hub['host']}: {type(e).__name__}"
+            self.link_error = f"cannot reach {hub.get('name')} at {hub['host']}: {_unreachable(e)}"
         finally:
             self._unlinked()
         if self.link_error:
             logger.info(f"link: {self.link_error}")
         return welcomed
+
+    def _hub_named(self, config: dict, name) -> None:
+        """The hub says its name at each link (its certificate checked first): a renamed hub is called by its new name
+        here too, in pointe node status, pointe open and node leave. node.json was written once, at the join."""
+        name = " ".join(str(name or "").split())[:80]
+        if not name or name == config["hub"].get("name"):
+            return
+        logger.info(f"link: the hub {config['hub'].get('name')} is now called {name}")
+        config["hub"]["name"] = name
+        current = _read_json(self.state / "node.json")
+        if (current.get("hub") or {}).get("id") == config["hub"].get("id"):
+            current["hub"]["name"] = name
+            _write_private(self.state / "node.json", json.dumps(current) + "\n")  # one line, as node_cli writes it
 
     @staticmethod
     async def _receive(ws, timeout: float) -> dict | None:
@@ -578,6 +603,7 @@ class Node:
         self.ws = None
         self.linked.clear()
         self.call_up = False
+        self.rtt_ms = None  # a link that is down has no round trip: the last one measured is no longer true
         for tail in self.tails.values():
             tail.offset = None  # the hub says where to resume
         now = asyncio.get_running_loop().time()

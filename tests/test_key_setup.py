@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import daemon  # noqa: E402  (at import: it reads the state dir conftest set, never a test's own)
 import doctor  # noqa: E402
+import setups  # noqa: E402
 import vendors  # noqa: E402
 
 ENVS = {vendor: env for vendor, (env, _) in vendors.KEYS.items()}
@@ -140,6 +141,22 @@ def test_voice_on_the_mac_needs_only_a_text_key():
     assert not s["empty"] and s["roles"]["ears"] == vendors.LOCAL
 
 
+def test_with_the_voice_on_the_mac_an_audio_key_is_not_read_never_optional():
+    """Voice stays on your Mac never reads a Soniox or ElevenLabs key (the doctor says "not read"): the page must not
+    offer to add one."""
+    setup = next(x for x in setups.SETUPS if x.id == "voice-local")
+    for present in ({"anthropic"}, {"anthropic", "gemini"}, {"anthropic", "soniox"}):
+        keys = vendors.key_status(present, voice_on_mac=True, setup=setup)["keys"]
+        assert keys["soniox"] == keys["elevenlabs"] == "not read", keys
+    assert vendors.key_status({"anthropic"})["keys"]["soniox"] != "not read"
+
+
+def test_the_page_offers_no_add_for_a_key_that_is_not_read():
+    assert _page("notRead") == "Not read: the voice stays on this Mac"
+    assert "'not read': 'notRead'" in PAGE
+    assert "st !== 'not read'" in PAGE[PAGE.index("function showKeys()"):][:1600]
+
+
 # ---------- the doctor ----------
 
 def _doctor(capsys, monkeypatch, *argv):
@@ -195,6 +212,35 @@ def test_the_daemons_key_status_marks_unneeded_keys_optional(keys, monkeypatch):
     assert not any("synthetic" in json.dumps(v) for v in got.values()), "presence only, never a value"
 
 
+def test_each_setup_in_the_key_status_lists_its_keys(keys, monkeypatch):
+    """Settings names a setup's missing key before the click (QA round 3): the page reads which keys each setup needs."""
+    keys("gemini")
+    monkeypatch.setattr(daemon, "_setup", None)
+    monkeypatch.setattr(daemon, "_keys_cache", None)
+    rows = {row["id"]: row for row in daemon._keys_status()["setups"]}
+    assert rows["free"]["keys"] == ["gemini"] and rows["openai"]["keys"] == ["openai"]
+    assert set(rows["two"]["keys"]) == {"soniox", "anthropic"}
+
+
+def test_the_daemons_key_status_with_the_voice_on_the_mac_says_not_read(keys, monkeypatch):
+    keys("anthropic", "soniox")
+    monkeypatch.setenv("CLAUDE_VOICE_VOICE_LOCAL", "1")
+    monkeypatch.setattr(daemon, "_setup", None)
+    monkeypatch.setattr(daemon, "_keys_cache", None)
+    got = daemon._keys_status()["keys"]
+    assert got["soniox"] == got["elevenlabs"] == "not read" and got["anthropic"] == "in use", got
+def test_with_the_voice_on_this_mac_the_audio_only_keys_are_not_read(keys, monkeypatch):
+    """As the doctor says (doctor.py: "not read ... audio only"): with the voice on this Mac a Soniox or ElevenLabs key
+    is never read, so Settings must not offer it as Optional with Add."""
+    keys("gemini")
+    monkeypatch.setenv("CLAUDE_VOICE_VOICE_LOCAL", "1")
+    monkeypatch.setattr(daemon, "_setup", None)
+    monkeypatch.setattr(daemon, "_keys_cache", None)
+    got = daemon._keys_status()
+    assert got["keys"]["soniox"] == "not read" and got["keys"]["elevenlabs"] == "not read", got["keys"]
+    assert got["keys"]["gemini"] == "in use"
+
+
 @pytest.mark.skipif(not os.path.exists(__import__("page_rig").CHROME), reason="headless Chrome is not installed here")
 def test_the_page_shows_optional_not_missing():
     from page_rig import Browser, StubMac, fixture, free_port
@@ -203,7 +249,7 @@ def test_the_page_shows_optional_not_missing():
         stub = await StubMac(free_port()).start()
         stub.status = {**fixture(sessions=1), "keys": {
             "line": "Every role is filled. The other keys are optional: not needed with your current keys.",
-            "keys": {"gemini": "in use", "openai": "optional", "anthropic": "optional", "soniox": "optional", "elevenlabs": "optional"},
+            "keys": {"gemini": "in use", "openai": "optional", "anthropic": "optional", "soniox": "optional", "elevenlabs": "not read"},
             "uses": {"gemini": ["brain", "reader", "checker", "ears", "mouth"]}}}
         try:
             async with Browser() as browser:
@@ -213,14 +259,53 @@ def test_the_page_shows_optional_not_missing():
                 await page.eval("(async () => { await openSettings(); settingsJump('g-keys'); return true; })()")
                 await asyncio.sleep(0.4)
                 return await page.eval("""(() => ({rows: [...document.querySelectorAll('#pref-keys .r')].map(r => r.innerText),
+                  x: [...document.querySelectorAll('#pref-keys .kstate')].map(k => Math.round(k.getBoundingClientRect().left)),
                   line: document.getElementById('pref-keys-line').textContent,
                   need: document.getElementById('pref-keys-need').textContent}))()""")
         finally:
             await stub.stop()
     got = asyncio.run(run())
     assert got["rows"][0].split("\n") == ["Google Gemini", "In use: brain, reader, checker, ears, mouth", "Replace…"], got
-    assert all(r.endswith("Optional\nAdd…") for r in got["rows"][1:]) and len(got["rows"]) == 5, got
+    assert all(r.endswith("Optional\nAdd…") for r in got["rows"][1:4]) and len(got["rows"]) == 5, got
+    assert got["rows"][4].split("\n") == ["ElevenLabs", "Not read: the voice stays on this Mac"], got  # nothing to add
+    assert len(set(got["x"])) == 1, got  # each state starts at the same x
     assert got["need"] == vendors.WHAT_YOU_NEED and "Missing" not in json.dumps(got)
+
+
+@pytest.mark.skipif(not os.path.exists(__import__("page_rig").CHROME), reason="headless Chrome is not installed here")
+def test_an_open_settings_sheet_follows_a_setup_switch():
+    """Use this setup restarts Pointe on the other setup. A sheet left open said "Switching. Pointe restarts in a
+    moment." and marked the old setup In use for minutes, until it was closed and opened again."""
+    from page_rig import Browser, StubMac, fixture, free_port
+
+    setups = [{"id": i, "name": n, "short": f"{n}.", "pick_for": "testing", "cost": "about $1"}
+              for i, n in (("two", "Two keys"), ("openai", "One OpenAI key"))]
+    def keys(chosen):
+        return {"line": "Every role is filled.", "setup": chosen, "setups": setups, "uses": {},
+                "keys": {"openai": "in use" if chosen == "openai" else "not used", "anthropic": "in use", "soniox": "in use"}}
+
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = {**fixture(sessions=1), "keys": keys("two")}
+        state = """(() => ({line: document.getElementById('pref-keys-line').textContent,
+          rows: [...document.querySelectorAll('#pref-setups .r')].map(r => [r.querySelector('.shead2').innerText.replace(/\\s+/g, ' '),
+                                                                         r.querySelector('.cost').textContent])}))()"""
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.eval("(async () => { await openSettings(); settingsJump('g-keys'); return true; })()")
+                await page.eval("(async () => { [...document.querySelectorAll('#pref-setups .r button')][0].click(); return true; })()")
+                await asyncio.sleep(0.4)
+                switching = await page.eval(state)
+                stub.status = {**stub.status, "keys": keys("openai")}  # Pointe came back on the other setup
+                await page.eval("(async () => { await refresh(); return true; })()")
+                return switching, await page.eval(state)
+        finally:
+            await stub.stop()
+    switching, after = asyncio.run(run())
+    assert switching["line"] == "Switching. Pointe restarts in a moment.", switching
+    assert after["line"] == "Every role is filled.", after
+    assert after["rows"] == [["Two keys", "about $1"], ["One OpenAI key In use", "about $1"]], after  # the setup in use keeps its cost
 
 
 # ---------- one answer on every surface ----------
@@ -258,6 +343,13 @@ def test_the_doctor_the_page_the_mac_app_and_the_help_say_it_too():
     assert help_entry["how"] == f"{vendors.WHAT_YOU_NEED} {vendors.WHY_KEYS} Switch setups with pointe setup on the Mac."
 
 
+def test_why_its_own_keys_names_every_vendor_that_runs_a_setup_alone():
+    import setups
+    alone = {s.keys[0] for s in setups.SETUPS if len(s.keys) == 1 and not s.local}
+    assert alone == {"gemini", "openai"}
+    assert all(setups.NAMES[v] in vendors.WHY_KEYS for v in alone), vendors.WHY_KEYS
+
+
 def test_the_mac_app_fills_roles_in_the_daemons_order():
     swift_roles = dict(re.findall(r'\("(\w+)", \[([^\]]+)\]\)', SWIFT))
     for role, order in vendors.ROLE_ORDERS.items():
@@ -270,6 +362,12 @@ def test_the_mac_app_fills_roles_in_the_daemons_order():
     assert _swift("noKey") + " " + vendors.WHAT_YOU_NEED == vendors.key_status(set())["line"]
     names = dict(re.findall(r'case \.(\w+): "(\w+)"', SWIFT[SWIFT.index("shortName"):]))
     assert names == vendors.NAMES
+
+
+def test_with_no_setup_chosen_the_mac_says_what_fills_the_roles():
+    # Beside "Every role is filled", the setup guide's "None chosen" alone read as a contradiction: it says what the
+    # doctor says.
+    assert f"Setup: {_swift('noSetupHow')[0].lower()}{_swift('noSetupHow')[1:]}" in (ROOT / "doctor.py").read_text()
 
 
 def test_no_surface_calls_an_unneeded_key_missing():

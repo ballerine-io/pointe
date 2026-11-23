@@ -5,10 +5,14 @@ in words there, and the tab never opens on a call that cannot hear."""
 import asyncio
 import contextlib
 import io
+import json
 import os
+import shutil
 import socket
 import sys
 import textwrap
+import urllib.request
+from pathlib import Path
 
 import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
 import childenv
@@ -46,8 +50,9 @@ VOICE_LOCAL_MEASURED = ("30 of 35 audio checks passed (Anthropic and Gemini keys
 TEXT_VENDORS, AUDIO_VENDORS = {"anthropic", "gemini", "openai"}, {"soniox", "gemini", "openai", "elevenlabs"}
 
 
-def advice(present: set[str], used: set[str]) -> list[str]:
-    """What this setup measured, and the one key that would improve it most."""
+def advice(present: set[str], used: set[str], setup=None) -> list[str]:
+    """What this setup measured, and the one key that would improve it most. With a setup chosen, Pointe uses exactly
+    its vendors, so a key alone changes nothing: the advice names the setup that would use it."""
     if not present & TEXT_VENDORS and not present & AUDIO_VENDORS:
         return ["Start with one Gemini key: the cheapest single key, and its ears and brain score above OpenAI's."]
     if not present & TEXT_VENDORS:
@@ -57,6 +62,15 @@ def advice(present: set[str], used: set[str]) -> list[str]:
     measured = MEASURED.get(frozenset(used))
     lines = [f"This setup: {measured[0]}. Cost: {measured[1]}." if measured
              else "This setup: not run through the audio suite yet."]
+    if setup is not None and setup.id != "full":
+        best = setups.BY_ID["full"]
+        missing = [v for v in best.keys if v not in present]
+        why = next((w for v, w in NEXT_KEY if v in missing or (not missing and v not in setup.keys)), "")
+        if not missing:
+            return lines + [f"Next: pointe setup full, the {best.name.lower()}: your keys already fill it, and {why}."]
+        return lines + [f"Next: the {best.name.lower()} (pointe setup full) needs the "
+                        f"{' and the '.join(setups.NAMES[v] for v in missing)} key{'s' if len(missing) > 1 else ''}. With "
+                        f"it, {why}. Pointe uses only the {setup.name} setup's keys until you switch."]
     for vendor, why in NEXT_KEY:
         if vendor not in present:
             return lines + [f"Next key: {vendor}. With it, {why}."]
@@ -158,15 +172,101 @@ def harnesses_here() -> list[str]:
     return lines
 
 
-def verdict(problems: int, status: dict, setup, refused: list[str]) -> list[str]:
-    """The first lines: ready or not, and the one fix."""
+def install_lines() -> list[str]:
+    """Which copies of Pointe are installed (bin/pointe-installs: the Claude Code plugin, the standalone install), which
+    one `pointe` and every start use (the newest), and which one the running daemon came from."""
+    import subprocess
+
+    root = Path(__file__).resolve().parent
+    names = {"plugin": "Claude Code plugin", "standalone": "standalone install"}
+    try:
+        got = subprocess.run([str(root / "bin" / "pointe-installs"), "list"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        got = ""
+    rows = [line.split("\t") for line in got.splitlines() if line.count("\t") == 2]
+    lines = [f"  {names[kind]:18} {version:8} {path}" + ("   (the newest: pointe and each start use it)" if not i else "")
+             for i, (kind, version, path) in enumerate(rows)]
+    if not rows:
+        lines.append(f"  none: this copy runs from a folder ({root})")
+    try:
+        os.kill(int((state_dir() / "daemon.pid").read_text()), 0)
+        ran = Path((state_dir() / "daemon.root").read_text().strip()).resolve()
+    except (OSError, ValueError):
+        return lines
+    which = next(((kind, version) for kind, version, path in rows if Path(path).resolve() == ran), None)
+    lines.append(f"  running: {f'the {names[which[0]]}, {which[1]}' if which else ran}")
+    if rows and Path(rows[0][2]).resolve() != ran:
+        lines.append(f"  The {names[rows[0][0]]} is newer ({rows[0][1]}): pointe restart runs it.")
+    return lines
+
+
+def state_dir() -> Path:
+    return Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
+
+
+def running_status() -> dict | None:
+    """/voice/status of the Pointe running on this Mac, by its token, or None when none answers: what the call is
+    seeing now (a key refused, a vendor out of quota) that the checks here cannot."""
+    port = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
+    try:
+        os.kill(int((state_dir() / "daemon.pid").read_text()), 0)  # this state dir's own daemon or node, nothing else
+        token = (state_dir() / "token").read_text().strip()
+        request = urllib.request.Request(f"http://127.0.0.1:{port}/voice/status", headers={"Authorization": f"Bearer {token}"})
+        got = json.loads(urllib.request.urlopen(request, timeout=3).read())
+    except (OSError, ValueError):
+        return None
+    return got if isinstance(got, dict) else None
+
+
+def node_lines() -> list[str] | None:
+    """On a node (node.json from `pointe node join`): the verdict for a node, which has no models and no keys. None
+    elsewhere."""
+    try:
+        config = json.loads((state_dir() / "node.json").read_text())
+    except (OSError, ValueError):
+        return None
+    hub = config.get("hub") or {}
+    if not hub.get("host") or not (state_dir() / "node_keys" / str(hub.get("id"))).exists():
+        return None
+    name = hub.get("name") or hub["host"]
+    live = running_status()
+    if live is None or not live.get("node"):
+        return [f"Pointe is not running here. This machine is a node of {name}: it needs no keys and no models.",
+                "Fix: bin/voice-node ensure (or /pointe:voice in a session here) starts it. Details: pointe node status"]
+    if live.get("link") != "up":
+        return [f"Pointe is not ready: this node's link to {name} is down ({live.get('link_error') or 'connecting'}).",
+                f"Fix: check that {name} is running and reachable at {hub['host']}. Details: pointe node status"]
+    taps = "only for requests that can be read out" if live.get("remote_taps") == "readable_only" else "trusted"
+    return [f"Pointe is ready as a node of {name}: no keys and no models here; {name}'s call hears these sessions.",
+            f"Taps on prompts from {name}: {taps}. Details: pointe node status"]
+
+
+def _refused(vendor: str) -> bool:
+    if os.environ.get("CLAUDE_VOICE_SKIP_KEY_CHECK") == "1":
+        return False
+    import keys
+
+    return keys.check(vendor)[0] is False
+
+
+def verdict(problems: int, status: dict, setup, refused: list[str], faults: list[tuple[str, str]] = ()) -> list[str]:
+    """The first lines: ready or not, and the one fix. `faults`: (kind, vendor) from vendors.fault, a key that works but
+    cannot be used now (out of quota, the vendor failing)."""
     name = f" Setup: {setup.name}." if setup else ""
-    if not problems and not status["needed"] and not refused:
-        return [f"Pointe is ready.{name} Start a call: /pointe:voice in Claude Code."]
+    if not problems and not status["needed"] and not refused and not faults:
+        start = ("/pointe:voice in Claude Code" if shutil.which("claude") else
+                 "pointe open, then pointe join codex or pointe join opencode in a session's folder")
+        return [f"Pointe is ready.{name} Start a call: {start}."]
     if refused:
         vendor = refused[0]
         return [f"Pointe is not ready: the {NAMES.get(vendor, vendor)} key was refused.",
                 f"Fix: pointe key {vendor}   (opens {vendor}'s key page and a Mac window, checks the new key)"]
+    if faults:
+        kind, vendor = faults[0]
+        if kind == "lost":
+            return [f"Pointe is not ready: the call's connection to {setups.NAMES.get(vendor, 'a vendor')} dropped; Pointe is "
+                    "reconnecting. Check this Mac's network."]
+        return ["Pointe is not ready: " + vendors.fault_help(kind, vendor)]
     if status["fix"]:
         vendor = status["fix"]
         where = f" (get one: {keys_where(vendor)})" if keys_where(vendor) else ""
@@ -185,16 +285,21 @@ def keys_where(vendor: str) -> str:
 def main() -> int:
     if "--preflight" in sys.argv:
         return preflight()
+    if (node := node_lines()) is not None:
+        print("\n".join(node))
+        return 0 if node[0].startswith("Pointe is ready") else 1
     details = io.StringIO()
     with contextlib.redirect_stdout(details):
-        problems, status, setup, refused = _details()
-    print("\n".join(verdict(problems, status, setup, refused)))
+        problems, status, setup, refused, faults = _details()
+    print("\n".join(verdict(problems, status, setup, refused, faults)))
     print("\nDetails:" + details.getvalue().rstrip("\n"))
-    return 1 if problems or status["needed"] or refused else 0
+    return 1 if problems or status["needed"] or refused or faults else 0
 
 
 def _details() -> tuple:
-    live, problems, refused = "--live" in sys.argv, 0, []
+    live, problems, refused, faults = "--live" in sys.argv, 0, [], []
+    print("\nInstalled:")
+    print("\n".join(install_lines()))
     print("\nCoding agents:")
     print("\n".join(harnesses_here()))
     present = {v for v in vendors.KEYS if vendors.has(v)}
@@ -214,7 +319,9 @@ def _details() -> tuple:
         if vendor in vendors.AUDIO_ONLY and vendors.voice_local() and not vendors.local_only():
             print(f"  not read {vendor} (audio only: the voice stays on this Mac)")
         elif vendor in present:
-            print(f"  found    {vendor} ({', '.join(uses) if uses else 'not used: another key fills its roles'})")
+            unused = (f"not used: the {setup.name} setup does not use it" if setup and vendor not in setup.keys
+                      + setup.optional else "not used: another key fills its roles")
+            print(f"  found    {vendor} ({', '.join(uses) if uses else unused})")
         elif status["keys"][vendor] == "needed":
             print(f"  needed   {vendor} (" + (f"the setup uses it: pointe key {vendor}" if setup else
                                             f"the one key that fills {', '.join(status['empty'])}") + ")")
@@ -237,8 +344,8 @@ def _details() -> tuple:
             print(f"  {role:7} needs a key" if keyless else f"  {role:7} NOT AVAILABLE: {failed[role]}")
     if problems and keyless:
         print(f"\n{NO_KEY_ABOUT}\n\n{NO_KEY_ELSEWHERE}")  # the fix itself is the verdict's, said once
-    if chosen.get("ears") and chosen["ears"] != "soniox":
-        print("\nNo Soniox ears: the echo guard has no mirror stream. Use headphones.")
+    if chosen.get("ears") and chosen["ears"] != "soniox" and not vendors.voice_local():
+        print("\nUse headphones: on speakers Pointe can hear itself.")
     if vendors.voice_local() and not vendors.local_only():
         text = sorted({NAMES.get(v, v) for v in (chosen[r].split(":")[0] for r in ("brain", "reader", "checker") if r in chosen)})
         print(f"\nThis setup: {vendors.VOICE_LOCAL}. Your voice is heard and spoken on this Mac, and no audio goes to any "
@@ -247,11 +354,24 @@ def _details() -> tuple:
     elif vendors.local_only():
         print(f"\nThis setup: fully local, no key read. {LOCAL_MEASURED} Back to vendors: pointe local off.")
     else:
-        print("\n" + "\n".join(advice(present, {c.split(":")[0] for c in chosen.values()})))
+        print("\n" + "\n".join(advice(present, {c.split(":")[0] for c in chosen.values()}, setup)))
     port = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
     with socket.socket() as s:
         in_use = s.connect_ex(("127.0.0.1", port)) == 0
     print(f"\nPort {port}: {'in use (Pointe, or another program: pointe status tells which)' if in_use else 'free'}")
+    running = running_status() if in_use else None
+    if running is not None:  # what the running call sees: a key refused after the start check, a quota that ran out
+        if (seen := running.get("key_refused")) and seen.get("vendor"):
+            refused.append(seen["vendor"])
+        elif (seen := running.get("vendor_fault")) and seen.get("kind") in ("quota", "rate", "down", "lost"):
+            faults.append((seen["kind"], seen.get("vendor") or ""))
+        print(f"Running Pointe {running.get('version') or ''}".rstrip() + ": "
+              + (running.get("problem") or "no problem reported"))
+    elif not live and not vendors.local_only() and chosen:
+        # Not running: the start's own check, one tiny call per key, so a refused key is not "ready" while the start
+        # refuses it. Offline or a vendor not answering stays unknown, as at the start.
+        with contextlib.redirect_stdout(io.StringIO()):
+            refused += [v for v in sorted({c.split(":")[0] for c in chosen.values()} & set(vendors.KEYS)) if _refused(v)]
     if live:
         print("\nLive check, one short call per text model:")
         for role in ("brain", "reader", "checker"):
@@ -263,13 +383,18 @@ def _details() -> tuple:
                 except Exception as e:
                     problems += 1
                     vendor = chosen[role].split(":")[0]
+                    fault = vendors.fault(e)
                     if vendors.refused_key(f"{type(e).__name__} {e}") is not None:
                         refused.append(vendor)
-                    why = (vendors.refused_help(vendor) if vendors.refused_key(f"{type(e).__name__} {e}") is not None
-                           else "Check the key and that it can use this model.")
+                        why = vendors.refused_help(vendor)
+                    elif fault is not None:
+                        faults.append((fault[0], vendor))
+                        why = vendors.fault_help(fault[0], vendor)
+                    else:
+                        why = "Check the key and that it can use this model."
                     print(f"  FAILED  {role} {chosen[role]}: {type(e).__name__}. {why}")
     print("\nChange the setup: pointe setup. One role by hand: CLAUDE_VOICE_<ROLE>=vendor:model, or ~/.claude-voice/config.json.")
-    return problems, status, setup, refused
+    return problems, status, setup, refused, faults
 
 
 if __name__ == "__main__":

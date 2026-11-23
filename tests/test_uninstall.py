@@ -86,7 +86,7 @@ def test_link_pointe_leaves_a_pointe_it_did_not_write(tmp_path):
 def test_setup_and_each_start_link_pointe():
     install_uv = (ROOT / "bin" / "install-uv").read_text()
     assert install_uv.count('exec "$(dirname "${BASH_SOURCE[0]}")/link-pointe"') == 2, "both when uv is there and after installing it"
-    assert '"$ROOT/bin/link-pointe" --quiet' in (ROOT / "bin" / "voice-daemon").read_text()
+    assert '"$ROOT/bin/link-pointe" --at-start' in (ROOT / "bin" / "voice-daemon").read_text()
     assert "~/.local/bin/pointe" in (ROOT / "plugin" / "commands" / "setup.md").read_text()
 
 
@@ -133,7 +133,7 @@ def test_each_group_has_its_own_question(mac, monkeypatch):
     monkeypatch.setattr(uninstall.sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(uninstall, "_ask", lambda q: asked.append(q) or next(answers) == "y")
     assert uninstall.main([]) == 0
-    assert asked == ["Remove Pointe's own files and the plugin?", "Delete Pointe's keys from the Keychain?",
+    assert asked == ["Remove Pointe's own files, the plugin and the standalone install?", "Delete Pointe's keys from the Keychain?",
                      "Also remove the shared items listed above?"]
     assert (mac.keychain / "pointe.gemini-api-key").exists() and not (mac.keychain / "soniox-api-key").exists()
     assert not mac.hub.exists() and not mac.state.exists()
@@ -155,6 +155,17 @@ def test_the_install_docs_and_the_readme_say_what_it_does_to_your_mac():
         assert re.search(r"pointe\.<vendor>-api-key|pointe\.gemini-api-key", box), doc
 
 
+def test_the_install_docs_describe_the_pointe_script_and_the_uv_paths_as_they_are(tmp_path, mac):
+    home = tmp_path / "linkhome"
+    subprocess.run([str(LINK)], env={"HOME": str(home), "PATH": "/usr/bin:/bin"}, capture_output=True, text=True)
+    lines = len((home / ".local" / "bin" / "pointe").read_text().splitlines())
+    install = " ".join((ROOT / "docs" / "install.md").read_text().split())
+    assert f"a {['zero', 'one', 'two', 'three', 'four'][lines]}-line script" in install
+    hint = next(line for line in run(mac, "--dry-run").stdout.splitlines() if line.startswith("Kept: uv"))
+    for path in ("~/.local/bin/uv", "~/.local/bin/uvx", "~/.local/share/uv"):
+        assert path in hint and path in install, path
+
+
 @pytest.mark.skipif(not Path("/usr/bin/python3").exists(), reason="macOS's own python3")
 def test_uninstall_runs_on_the_python_macos_ships(mac):
     """bin/pointe runs it with the python3 on the PATH, which on a new Mac is Apple's 3.9: the clean-install run found
@@ -162,3 +173,92 @@ def test_uninstall_runs_on_the_python_macos_ships(mac):
     got = subprocess.run(["/usr/bin/python3", "-I", str(ROOT / "uninstall.py"), "--dry-run"], env=mac.env,
                          capture_output=True, text=True, timeout=60)
     assert got.returncode == 0 and "Dry run: nothing removed." in got.stdout, got.stderr
+
+
+def _linked_to(home: Path) -> str:
+    return (home / ".local" / "bin" / "pointe").read_text()
+
+
+def test_a_start_from_a_checkout_leaves_a_working_pointe_command_alone(tmp_path):
+    """A daemon started from a clone or a worktree used to take ~/.local/bin/pointe over; once that checkout was deleted
+    every `pointe`, uninstall included, failed with rc 126."""
+    home = tmp_path / "home"
+    plugin = tmp_path / "home" / ".claude" / "plugins" / "cache" / "pointe" / "pointe" / "1.20.0" / "bin"
+    plugin.mkdir(parents=True)
+    for name in ("link-pointe", "pointe"):
+        (plugin / name).write_text((ROOT / "bin" / name).read_text())
+        (plugin / name).chmod(0o755)
+    env = {"HOME": str(home), "PATH": "/usr/bin:/bin"}
+    subprocess.run([str(plugin / "link-pointe"), "--at-start"], env=env, check=True)
+    assert f"exec {plugin / 'pointe'}" in _linked_to(home)
+    subprocess.run([str(LINK), "--at-start"], env=env, check=True)  # this checkout's daemon starts
+    assert f"exec {plugin / 'pointe'}" in _linked_to(home)
+
+
+def test_a_checkout_repairs_a_pointe_command_whose_copy_is_gone(tmp_path):
+    home = tmp_path / "home"
+    gone = tmp_path / "deleted-worktree" / "bin"
+    gone.mkdir(parents=True)
+    (gone / "link-pointe").write_text(LINK.read_text())
+    (gone / "link-pointe").chmod(0o755)
+    env = {"HOME": str(home), "PATH": "/usr/bin:/bin"}
+    subprocess.run([str(gone / "link-pointe"), "--quiet"], env=env, check=True)
+    subprocess.run(["rm", "-rf", str(gone.parent)], check=True)
+    subprocess.run([str(LINK), "--at-start"], env=env, check=True)
+    assert f"exec {ROOT / 'bin' / 'pointe'}" in _linked_to(home)
+
+
+def test_keeping_pointes_own_files_is_not_called_removed(mac, monkeypatch, capsys):
+    answers = iter(["n", "y", "n"])
+    monkeypatch.setattr(uninstall.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(uninstall, "_ask", lambda q: next(answers) == "y")
+    assert uninstall.main([]) == 0
+    out = capsys.readouterr().out
+    assert "Pointe is removed." not in out and "Pointe itself is still installed" in out
+    assert mac.state.exists() and not (mac.keychain / "pointe.gemini-api-key").exists()
+
+
+def test_the_mac_apps_settings_are_listed_and_removed_through_defaults(mac, capsys):
+    prefs = mac.home / "Library" / "Preferences" / f"{uninstall.MAC_APP_ID}.plist"
+    prefs.parent.mkdir(parents=True)
+    prefs.write_text("<plist/>")
+    fake = Path(mac.env["PATH"].split(":")[0])
+    (fake / "defaults").write_text(f'#!/bin/sh\necho "$@" >> "{fake}/defaults-calls"\n')
+    (fake / "defaults").chmod(0o755)
+    assert run(mac, "--dry-run").stdout.count(f"{prefs} (the Mac app's settings)") == 1
+    assert run(mac, "--yes").returncode == 0
+    assert (fake / "defaults-calls").read_text() == f"delete {uninstall.MAC_APP_ID}\n"
+    assert uninstall.MAC_APP_ID in (ROOT / "macos" / "tools" / "make_project.py").read_text()
+
+
+def test_the_uv_hint_names_every_folder_uv_installs():
+    assert "~/.local/share/uv" in (ROOT / "uninstall.py").read_text().split("Kept: uv", 1)[1][:200]
+
+
+def test_without_a_claude_command_the_plugin_is_never_called_removed(mac):
+    """QA round 2: with claude not on the PATH (a desktop-app install, or an alias), "Pointe is removed." was said while
+    the plugin, its 530 MB Python and both hooks stayed."""
+    (mac.home / ".claude" / "plugins" / "cache" / "pointe").mkdir(parents=True)
+    env = {**mac.env, "PATH": f"{Path(mac.env['PATH'].split(':')[0])}-none:/usr/bin:/bin"}
+    (Path(mac.env["PATH"].split(":")[0]) / "claude").unlink()
+    got = subprocess.run([sys.executable, "-I", str(ROOT / "uninstall.py"), "--yes"], env=env, capture_output=True,
+                         text=True, timeout=60)
+    assert "Pointe is removed." not in got.stdout
+    assert "/plugin uninstall pointe@pointe" in got.stdout and got.stdout.count("still installed") == 2
+
+
+def test_a_claude_installed_where_claude_codes_installer_puts_it_is_used(mac):
+    fake = Path(mac.env["PATH"].split(":")[0])
+    local = mac.home / ".claude" / "local"
+    local.mkdir(parents=True)
+    (fake / "claude").rename(local / "claude")
+    got = run(mac, "--yes")
+    assert got.returncode == 0 and "Pointe is removed." in got.stdout
+    assert mac.claude() == "plugin uninstall pointe@pointe\nplugin marketplace remove pointe\n"
+
+
+def test_the_install_doc_counts_the_lines_link_pointe_writes(tmp_path):
+    subprocess.run([str(LINK), "--quiet"], env={"POINTE_LINK_DIR": str(tmp_path), "PATH": "/usr/bin:/bin"}, check=True)
+    lines = len((tmp_path / "pointe").read_text().splitlines())
+    word = {2: "two", 3: "three", 4: "four"}[lines]
+    assert f"`~/.local/bin/pointe`, a {word}-line script" in (ROOT / "docs" / "install.md").read_text()

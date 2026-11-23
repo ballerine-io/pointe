@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Models and setups · Pointe docs</title>
+<meta name="description" content="Pointe runs its own models next to your coding agents. Each model has one job, called a role. A setup is a set of vendors that fills every role. You choose…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Models and setups">
+<meta property="og:description" content="Pointe runs its own models next to your coding agents. Each model has one job, called a role. A setup is a set of vendors that fills every role. You choose…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/models/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/models/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="./" aria-current="page">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="models-and-setups">Models and setups</h1>
+<p>Pointe runs its own models next to your coding agents. Each model has one job, called a <strong>role</strong>. A <strong>setup</strong> is a set of
+vendors that fills every role. You choose a setup, add its keys, and can change any role by hand.</p>
+<h2 id="the-roles">The roles</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Does</th>
+<th>In plain words</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>brain</strong></td>
+<td>Understands what you said and decides what to do: answer, send to a session, switch, approve</td>
+<td>The one you talk to</td>
+</tr>
+<tr>
+<td><strong>reader</strong></td>
+<td>Reads whole sessions: keeps notes on each one, turns each final message into a short report, writes briefings</td>
+<td>The one who reads everything so you don't</td>
+</tr>
+<tr>
+<td><strong>checker</strong></td>
+<td>Checks each send against what you just said, before it reaches a session (also called the gate)</td>
+<td>A second pair of eyes on every send</td>
+</tr>
+<tr>
+<td><strong>ears</strong></td>
+<td>Speech to text</td>
+<td>Hears you</td>
+</tr>
+<tr>
+<td><strong>mouth</strong></td>
+<td>Text to speech</td>
+<td>Speaks to you</td>
+</tr>
+</tbody>
+</table></div>
+<p>The brain does not speak on its own. Speech is a tool call that code checks before you hear it, and approvals follow
+rules in code, not in the brain's prompt (<a href="../how-it-works/">How it works</a>).</p>
+<p><strong>The realtime front</strong> is an experimental alternative to the brain, ears and mouth: one speech-to-speech model (Gemini
+Live or OpenAI Realtime) that hears, decides and speaks. Set <code>CLAUDE_VOICE_FRONT=gemini</code> or <code>openai</code> in the daemon's
+environment; the default is <code>brain</code>. With a realtime front, Pointe cannot bind your yes to a read-out it wrote itself,
+so no request is approved by voice: every one waits for a tap. Meeting mode and challenge mode need the brain, and
+"Voice stays on your Mac" refuses a realtime front (<code>daemon.py</code>, <code>vendors.resolve</code>). Gemini Live, measured as a whole
+for hearing, is in <a href="../benchmarks/">Benchmarks</a>.</p>
+<h2 id="the-setups">The setups</h2>
+<p>There are six setups. Each one names the vendor for every role, what was measured, what a busy hour costs, and where
+your words go. The table, with the file and row of every number: <a href="../setups/">Setups</a>. In short:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Setup</th>
+<th>Command</th>
+<th>Keys</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Free start</td>
+<td><code>pointe setup free</code></td>
+<td>Gemini</td>
+</tr>
+<tr>
+<td>One OpenAI key</td>
+<td><code>pointe setup openai</code></td>
+<td>OpenAI</td>
+</tr>
+<tr>
+<td>Two keys</td>
+<td><code>pointe setup two</code></td>
+<td>Soniox + Anthropic</td>
+</tr>
+<tr>
+<td>Fastest and most accurate voice</td>
+<td><code>pointe setup full</code></td>
+<td>Anthropic + Soniox + ElevenLabs + Gemini</td>
+</tr>
+<tr>
+<td>Voice stays on your Mac</td>
+<td><code>pointe setup voice-local</code></td>
+<td>Anthropic (Gemini optional)</td>
+</tr>
+<tr>
+<td>Fully local</td>
+<td><code>pointe setup local</code></td>
+<td>none</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>pointe setup</code> lists them, with the one in use. <code>pointe setup &lt;id&gt;</code> switches; from then on Pointe uses exactly that
+setup's vendors, whatever other keys the Keychain holds. Then <code>pointe restart</code>. The two local setups download their
+models first (<code>pointe local voice</code>, <code>pointe local</code>).</p>
+<p>On the page, Settings → Model keys does the same with buttons: <strong>Use this setup</strong> for a setup, <strong>Add…</strong> or <strong>Replace…</strong>
+for a key, each key marked In use, Needed or Optional. The Mac app has the same.</p>
+<p>How each default was chosen, and the per-role results: <a href="../benchmarks/">Benchmarks</a>.</p>
+<h2 id="keys">Keys</h2>
+<p>Pointe needs its own API keys, billed per use by each vendor. A Claude subscription (Pro or Max) runs Claude Code, but
+it has no interface that other programs can use, so it is not a key Pointe can use. For Anthropic models, Pointe needs
+an API key from console.anthropic.com. One Gemini key, or one OpenAI key, is enough to start.</p>
+<div class="dx-code"><pre><code>pointe key gemini          # opens the vendor&#x27;s key page and a Mac window for the key; checks it; restarts Pointe
+pointe key check gemini    # one tiny live call with the saved key: works, refused, or unreachable</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The vendors are <code>gemini</code>, <code>openai</code>, <code>anthropic</code>, <code>soniox</code> and <code>elevenlabs</code>. <code>--no-open</code> skips the vendor's page, and
+<code>--no-restart</code> saves the key without restarting Pointe.</p>
+<p>Pointe reads each key from its environment variable first, then from the macOS Keychain:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Vendor</th>
+<th>Environment variable</th>
+<th>Keychain item</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gemini</td>
+<td><code>GOOGLE_API_KEY</code> (or <code>GEMINI_API_KEY</code>)</td>
+<td><code>pointe.gemini-api-key</code></td>
+</tr>
+<tr>
+<td>OpenAI</td>
+<td><code>OPENAI_API_KEY</code></td>
+<td><code>pointe.openai-api-key</code></td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td><code>pointe.anthropic-api-key</code></td>
+</tr>
+<tr>
+<td>Soniox</td>
+<td><code>SONIOX_API_KEY</code></td>
+<td><code>pointe.soniox-api-key</code></td>
+</tr>
+<tr>
+<td>ElevenLabs</td>
+<td><code>ELEVENLABS_API_KEY</code></td>
+<td><code>pointe.elevenlabs-api-key</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>A key saved before Pointe 1.20.0 under its plain name (<code>gemini-api-key</code>) is still read. To save a key without the
+window, let <code>security</code> prompt for it, so it never reaches a command line or your shell history:</p>
+<div class="dx-code"><pre><code>security add-generic-password -U -s pointe.gemini-api-key -a &quot;$USER&quot; -w</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Keys reach only the daemon, and only when a role in use needs them. Never put a key in a file, in a command's
+arguments, or in a chat with an agent. What leaves your Mac, by role: <a href="../security/#what-leaves-your-machine">SECURITY.md</a>.</p>
+<h2 id="choosing-models-by-hand">Choosing models by hand</h2>
+<p>Each role can be set on its own, in <code>~/.claude-voice/config.json</code> or with an environment variable. The environment
+wins. A role you do not set takes the first vendor in its order that has a key (<code>vendors.py</code>).</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Setting</th>
+<th>Environment</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>brain</td>
+<td><code>"brain"</code></td>
+<td><code>CLAUDE_VOICE_BRAIN</code></td>
+<td><code>vendor:model</code>, such as <code>anthropic:claude-sonnet-5-5</code></td>
+</tr>
+<tr>
+<td>reader</td>
+<td><code>"reader"</code></td>
+<td><code>CLAUDE_VOICE_READER</code></td>
+<td><code>vendor:model</code></td>
+</tr>
+<tr>
+<td>checker</td>
+<td><code>"checker"</code></td>
+<td><code>CLAUDE_VOICE_CHECKER</code></td>
+<td><code>vendor:model</code>, such as <code>gemini:gemini-3.5-flash-lite</code></td>
+</tr>
+<tr>
+<td>ears</td>
+<td><code>"ears"</code></td>
+<td><code>CLAUDE_VOICE_EARS</code></td>
+<td>a vendor: <code>soniox</code>, <code>gemini</code>, <code>openai</code>, <code>elevenlabs</code> or <code>local</code></td>
+</tr>
+<tr>
+<td>mouth</td>
+<td><code>"mouth"</code></td>
+<td><code>CLAUDE_VOICE_MOUTH</code></td>
+<td><code>vendor:model[:voice]</code>, such as <code>elevenlabs:eleven_v4_turbo</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>For example:</p>
+<div class="dx-code"><pre><code class="language-json">{
+  &quot;brain&quot;: &quot;anthropic:claude-sonnet-5-5&quot;,
+  &quot;reader&quot;: &quot;gemini:gemini-3.8-flash&quot;,
+  &quot;checker&quot;: &quot;gemini:gemini-3.5-flash-lite&quot;,
+  &quot;ears&quot;: &quot;soniox&quot;,
+  &quot;mouth&quot;: &quot;elevenlabs:eleven_v4_turbo&quot;
+}</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Restart after a change (<code>pointe restart</code>). <code>pointe doctor</code> shows what runs in each role. <code>pointe setup &lt;id&gt;</code> writes the
+roles of the setup you choose, so it replaces roles you set by hand.</p>
+<p>Only Soniox ears have the echo guard, which lets you use laptop speakers. With any other ears, use headphones.</p>
+<h2 id="azure-openai-and-other-openai-compatible-hosts">Azure OpenAI and other OpenAI-compatible hosts</h2>
+<p><code>openai_url</code> in <code>config.json</code> (or <code>CLAUDE_VOICE_OPENAI_URL</code>) points the OpenAI text models (brain, reader, checker) at
+another host, such as your Azure OpenAI resource. The OpenAI key then belongs to that host, so OpenAI's own ears, mouth
+and realtime front are refused. The address must start with <code>https://</code>. Not measured. Setup and details:
+<a href="../features/openai-url/">OpenAI models from another host</a>.</p>
+<h2 id="local-models">Local models</h2>
+<p>Two setups run models on your Mac:</p>
+<ul>
+<li>
+<p><strong>Voice stays on your Mac</strong> (<code>pointe local voice</code>): Whisper hears and Kokoro speaks on the Mac, so no audio reaches a
+  vendor. The brain, reader and checker stay in the cloud and get text. About 2 GB of models; any Apple-silicon Mac.
+  <a href="../features/voice-stays-local/">Voice stays on your Mac</a>.</p>
+</li>
+<li>
+<p><strong>Fully local</strong> (<code>pointe local</code>): the ears, the mouth, and one text model (Gemma 4 26B A4B) for the brain, reader and
+  checker. No key is read and nothing leaves the Mac. Needs an Apple-silicon Mac with 32 GB of memory and about 19 GB
+  of disk; slower and less accurate, by measure. <a href="../features/local/">Fully local</a>.</p>
+</li>
+</ul>
+<p><code>pointe local status</code> shows what is on disk and whether the model answers; <code>pointe local off</code> goes back to your
+vendors. Any OpenAI-compatible server can serve the text roles instead: set them to <code>local:&lt;model&gt;</code> and <code>local_url</code> (or
+<code>CLAUDE_VOICE_LOCAL_URL</code>) to its address, such as Ollama's <code>http://localhost:11434/v1</code>. Not measured
+(<a href="../features/local/#other-machines-and-servers">Other machines and servers</a>).</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/models.md">docs/models.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../iphone-app/"><span class="pg-small">Previous</span>The iPhone app</a><a class="dx-next" href="../setups/"><span class="pg-small">Next</span>Setups: which keys Pointe needs, and for what</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#the-roles">The roles</a></li>
+<li class="dx-l2"><a href="#the-setups">The setups</a></li>
+<li class="dx-l2"><a href="#keys">Keys</a></li>
+<li class="dx-l2"><a href="#choosing-models-by-hand">Choosing models by hand</a></li>
+<li class="dx-l2"><a href="#azure-openai-and-other-openai-compatible-hosts">Azure OpenAI and other OpenAI-compatible hosts</a></li>
+<li class="dx-l2"><a href="#local-models">Local models</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

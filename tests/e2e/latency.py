@@ -73,6 +73,14 @@ def p90(values: list[float]) -> float:
     return ordered[min(len(ordered) - 1, int(round(0.9 * (len(ordered) - 1))))]
 
 
+def reply_onset(spans: list[tuple[float, float]], first_sound: float | None) -> tuple[float, bool]:
+    """When the reply's own sound reached this client, and whether a filler ("One sec.") came before it: the first
+    sound span that starts at the daemon's first_sound stamp or after it, not the filler's."""
+    reply = [s for s in spans if first_sound is None or s[0] >= first_sound - 0.05]
+    onset = (reply or spans)[0][0]
+    return onset, onset > spans[0][0]
+
+
 def timings() -> list[dict]:
     return [json.loads(line.split("turn timing: ", 1)[1]) for line in log_lines("turn timing: ")]
 
@@ -118,8 +126,11 @@ async def main() -> None:
             deadline = heard + 15
             while time.time() < deadline and not browser.speaker.speech_spans(since=heard):
                 await asyncio.sleep(0.05)
-            spans = browser.speaker.speech_spans(since=heard)
+            # A slow turn says "One sec." first: its timing line comes with the reply's own sound, seconds later.
+            while time.time() < heard + 30 and not timings()[n:]:
+                await asyncio.sleep(0.1)
             await asyncio.sleep(0.5)
+            spans = browser.speaker.speech_spans(since=heard)
             lines = timings()[n:]
             if not spans or not lines:
                 print(f"no reply timed: {question!r}", flush=True)
@@ -128,9 +139,11 @@ async def main() -> None:
             t = lines[0]
             zero = t["t0"]
             at = {t["from"]: zero, **{k: zero + v / 1000 for k, v in t.items() if type(v) is int and k not in ("steps", "context", "cached")}}
-            at.update(heard=heard, audible=spans[0][0])
+            audible, filler = reply_onset(spans, at.get("first_sound"))
+            at.update(heard=heard, audible=audible)
             spoke = log_lines(r" speak: ")
             row = {"question": question, "at": {k: round(v - heard, 3) for k, v in at.items()}, "steps": t.get("steps"),
+                   "filler": filler,
                    "context": t.get("context"), "cached": t.get("cached"), "early": t.get("early", False),
                    "words": len(spoke[-1].split("speak: ", 1)[1].split()) if spoke else 0}
             rows.append(row)
@@ -171,4 +184,5 @@ async def main() -> None:
     print(f"\n{sum(r['ok'] for r in results)}/{len(results)} passed (latency)")
 
 
-asyncio.run(main())
+if __name__ == "__main__":  # importing it (tests/test_latency.py) starts nothing
+    asyncio.run(main())

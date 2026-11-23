@@ -22,9 +22,8 @@ struct NewSessionSheet: View {
     var body: some View {
         NavigationStack {
             BrandForm {
-                Section {
-                    Text(NewSessionCopy.lede).brandFootnote()
-                        .listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+                Section {} header: {  // a header keeps the form's text inset: a zero-inset row clipped the first letters
+                    Text(NewSessionCopy.lede).brandFootnote().accessibilityIdentifier("newSessionLede")
                 }
                 if let options { fields(options) }
                 if let problem {
@@ -157,22 +156,22 @@ struct StartCard: View {
     @State private var busy = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AnswersInView {
             Label { Text(NewSessionCopy.confirmTitle) } icon: { Image(systemName: "plus.circle.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
-            Text(pending.line).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
+            Text(Surface.pointer(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("startLine")
+        } answers: {
             HStack(spacing: 10) {
                 Button { act(false) } label: { Text(NewSessionCopy.cancel).frame(maxWidth: .infinity) }
                     .buttonStyle(.brandQuiet).controlSize(.large)
                     .accessibilityIdentifier("startCancel")
-                Button { act(true) } label: { Label(NewSessionCopy.start, systemImage: "faceid").frame(maxWidth: .infinity) }
+                Button { act(true) } label: { Label(NewSessionCopy.start, systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
                     .buttonStyle(.brandPrimary).controlSize(.large)
                     .accessibilityIdentifier("startConfirm")
             }
             .disabled(busy)
         }
-        .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: pending.id)

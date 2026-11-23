@@ -86,8 +86,16 @@ final class AppModel {
         if session.isDemo { daemon = .running }  // a demo given at launch: nothing is looked for on this Mac
     }
 
-    /// The call screen shows: Pointe runs on this Mac, or a demo is on. Otherwise the window is the setup guide.
-    var ready: Bool { daemon == .running || session.isDemo || session.live }
+    /// Restart, from Settings: the daemon is down for a moment, by the person's own hand.
+    private(set) var restarting = false
+
+    /// The call screen shows: Pointe runs on this Mac (or is being restarted from here), or a demo is on. Otherwise the
+    /// window is the setup guide. A restart that swapped in the whole checklist read as if setup had been lost.
+    var ready: Bool { Self.showsCall(daemon: daemon, restarting: restarting, demo: session.isDemo, live: session.live) }
+
+    static func showsCall(daemon: DaemonPhase, restarting: Bool, demo: Bool, live: Bool) -> Bool {
+        daemon == .running || demo || live || (restarting && (daemon == .starting || daemon == .stopped || daemon == .checking))
+    }
 
     // MARK: launch
 
@@ -199,6 +207,8 @@ final class AppModel {
 
     func restartDaemon() async {
         guard let plugin, daemon != .starting else { return }
+        restarting = true
+        defer { restarting = false }
         session.hangUp()
         daemon = .starting
         box.set(nil)
@@ -288,14 +298,23 @@ final class AppModel {
         settleDial()
     }
 
+    /// Settings or About while the window is the setup guide: it hosts them itself, as it has no call screen.
+    var setupSheet: MacSetupSheet?
+
     /// From a menu or a key: the sheet is the window's, so the window comes first.
     func ask(_ command: MacSession.Command) {
         windows.showMain()
-        session.ask(command)
+        if ready { session.ask(command) } else { setupSheet = MacSetupSheet(command) }
     }
 
+    /// A sheet is over the main window (`Windows`): the menus' commands for the window wait until it closes.
+    var sheetUp = false
+
+    /// The setup guide has no call screen to open a sheet from: Settings and About open over the guide instead.
+    static func setupAnswers(_ command: MacSession.Command) -> Bool { MacSetupSheet(command) != nil }
+
     func openMicrophoneSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") { NSWorkspace.shared.open(url) }
+        SystemSettings.openMicrophone()
     }
 
     // MARK: the shortcut

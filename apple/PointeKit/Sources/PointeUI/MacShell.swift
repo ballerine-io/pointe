@@ -11,7 +11,7 @@ public final class MacSession: CallShell {
     public enum Phase: Sendable { case off, connecting, live, reconnecting }
     /// What the menu bar item shows beside the mark: never by colour alone.
     public enum Glyph: Sendable { case down, off, live, talking, speaking, needsYou }
-    public enum Command: Sendable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift }
+    public enum Command: Sendable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift, approve, deny }
 
     /// A session that waits for an answer, for the menu.
     public struct Waiting: Identifiable, Equatable, Sendable {
@@ -199,6 +199,8 @@ public final class MacSession: CallShell {
         case .machines: .machines
         case .phone: .phone
         case .nightShift: .nightShift
+        case .approve: .approve
+        case .deny: .deny
         }
         request = ShellRequest(id: requests, command: wanted)
     }
@@ -289,9 +291,69 @@ extension EnvironmentValues {
     @Entry var macSettings: AnyView? = nil
 }
 
+/// What the setup guide opens itself: before Pointe runs on this Mac there is no call screen to host Settings and About,
+/// and the guide's own words send people to Settings, Model keys. Every other command waits for the call screen.
+public enum MacSetupSheet: String, Identifiable, Sendable {
+    case settings, about
+
+    public var id: String { rawValue }
+
+    public init?(_ command: MacSession.Command) {
+        switch command {
+        case .settings: self = .settings
+        case .about: self = .about
+        default: return nil
+        }
+    }
+}
+
+/// The setup guide's Settings (Appearance and this Mac's own sections, its keys among them) and About.
+public struct MacSetupSheetView: View {
+    let sheet: MacSetupSheet
+    let version: String?
+    let sections: AnyView
+    @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue
+    @Environment(\.dismiss) private var dismiss
+
+    public init<Sections: View>(sheet: MacSetupSheet, version: String?, @ViewBuilder sections: () -> Sections) {
+        self.sheet = sheet
+        self.version = version
+        self.sections = AnyView(sections())
+    }
+
+    public var body: some View {
+        Group {
+            switch sheet {
+            case .about: AboutSheet(mac: version)
+            case .settings:
+                NavigationStack {
+                    BrandForm {
+                        Section {
+                            Picker(selection: $theme) {
+                                ForEach(Theme.allCases) { Text($0.label).tag($0.rawValue) }
+                            } label: { Label(Theme.setting, systemImage: "circle.lefthalf.filled") }
+                                .pickerStyle(.menu)
+                                .accessibilityIdentifier("appearanceSetting")
+                        }
+                        sections
+                    }
+                    .sheetTitle("Settings")
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+                }
+            }
+        }
+        .preferredColorScheme(Theme.stored(theme).scheme)
+        .font(.brand(.body))
+        .foregroundStyle(Brand.text)
+        .sheetSurface()
+    }
+}
+
 /// The brand's colours and type, for what the Mac app draws itself (the bubble, the setup panel, its own settings).
 public enum PointeLook {
     public static var bg: Color { Brand.bg }
+    /// The brand's mark, as the call screen's header draws it.
+    public static var mark: Image { Image("ChorusMark", bundle: .module) }
     public static var card: Color { Brand.card }
     public static var raised: Color { Brand.raised }
     public static var group: Color { Brand.group }
@@ -308,6 +370,10 @@ public enum PointeLook {
     public static var onPrimary: Color { Brand.onPrimary }
     public static func font(_ style: Font.TextStyle = .body, _ weight: Font.Weight = .regular) -> Font { .brand(style, weight) }
     public static func display(_ size: CGFloat) -> Font { .display(size) }
+    /// The Chorus mark, for the Mac target's own screens (the setup guide), as the call screen's header draws it.
+    public static func mark(_ size: CGFloat) -> some View {
+        Image("ChorusMark", bundle: .module).resizable().frame(width: size, height: size).accessibilityHidden(true)
+    }
     /// The key Appearance is stored under ("system", "light", "dark"), so the app's own windows follow it.
     public static let themeKey = Theme.key
 }

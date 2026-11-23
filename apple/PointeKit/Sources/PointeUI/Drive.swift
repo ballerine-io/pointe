@@ -95,6 +95,24 @@ struct DriveScreen: View {
     }
 
     var body: some View {
+        // The words scroll when the room is short (a small phone, large type); I've stopped stays under them, on the
+        // screen: inside the scroll it went below the screen at the largest type.
+        VStack(spacing: 0) {
+            StageScroll { lines }
+            Button(action: stop) {
+                Text(DriveCopy.stop).font(.brand(.title3, .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)
+            }
+            .buttonStyle(.brandQuiet).controlSize(.large)
+            .accessibilityIdentifier("driveStop")
+            .padding(.horizontal, 10).padding(.bottom, 12).padding(.top, 4)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, lineWidth: 1))
+        .padding(.horizontal, 14).padding(.vertical, 8)
+    }
+
+    private var lines: some View {
         VStack(spacing: 18) {
             Spacer(minLength: 0)
             Label(DriveCopy.title, systemImage: "car.fill")
@@ -109,17 +127,10 @@ struct DriveScreen: View {
                     .accessibilityIdentifier("driveCaption")
             }
             Text(DriveCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted).multilineTextAlignment(.center)
-            Button(action: stop) {
-                Text(DriveCopy.stop).font(.brand(.title3, .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)
-            }
-            .buttonStyle(.brandQuiet).controlSize(.large)
-            .accessibilityIdentifier("driveStop")
             Spacer(minLength: 0)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 10).padding(.top, 16).padding(.bottom, 8)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // already the largest type in the app, set to be read at a glance
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine, lineWidth: 1).padding(.horizontal, 14).padding(.vertical, 8))
     }
 }
 
@@ -143,6 +154,7 @@ struct DriveRequestCard: View {
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: session.request_id)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // as the drive screen over it: larger, it left the screen no room
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("driveRequest")
     }

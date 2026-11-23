@@ -11,6 +11,7 @@ import asyncio
 from collections import deque
 import hashlib
 import hmac
+import contextlib
 from contextlib import asynccontextmanager
 import json
 import logging
@@ -44,6 +45,7 @@ import matching
 import drive as drives
 import remote
 import harnesses
+import relay
 import howto
 import latency
 import mac
@@ -96,6 +98,7 @@ from guards import (relays_approval, remote_readable,
     LocalAuth,
     page_csp,
     permission_answer,
+    stop_intent,
     quote_intent,
     close_request,
     disconnect_intent,
@@ -250,27 +253,67 @@ HAD_CALLS = JOURNAL.exists()  # before this start writes to it: a Mac used befor
 
 PROBLEM_SHOWN_SECS = 90.0
 _problem: tuple[float, str] = (0.0, "")
+_fault: tuple[float, str, str] = (0.0, "", "")  # when, kind, vendor: the vendor fault behind the line shown
 
 
 def _note_problem(message) -> None:
-    """A wrong key or a vendor outage otherwise shows only in a log, while the page says Listening. A refused key is said
-    in words, and stays over the errors it causes next ("can no longer do its job", "completed with no audio")."""
-    global _problem
+    """A wrong key or a vendor outage otherwise shows only in a log, while the page says Listening. A refused key, or a
+    vendor out of quota or failing, is said in words, and stays over the errors it causes next ("can no longer do its
+    job", "completed with no audio")."""
+    global _problem, _fault
     text = message.record["message"].split("\n")[0]
     shown = current_problem()
+    ours = not str(message.record.get("name") or "").startswith("pipecat")
     if (vendor := vendors.refused_key(text)) is not None:
         if not vendor and shown and vendors.refused_key(shown):
             return  # the same refusal, said without its vendor: keep the line that names it
         text = vendors.refused_help(vendor)
     elif shown and vendors.refused_key(shown) is not None:
         return
+    elif (found := vendors.fault(text)) is not None:
+        kind, vendor = found
+        if not vendor and text.startswith("brain failed"):
+            vendor = (setup().brain or "").split(":")[0]
+        _fault = (time.time(), kind, vendor)
+        text = vendors.fault_help(kind, vendor)
+    elif shown and vendor_fault():
+        return
+    elif not ours:
+        # A library's own error ("SonioxTTSService#0 exception (/Users/.../websocket_service.py:260): ...") is no line for
+        # a person, and status carries the line to paired phones: what it means reaches them through _service_lost.
+        return
     for value in vendors.known_keys():
         text = text.replace(value, "[key]")
     _problem = (time.time(), text[:200])
 
 
+def _brain_answered() -> None:
+    """The brain's vendor answered: a quota, rate or outage line about it is over, not shown for its remaining 90 s."""
+    global _fault, _problem
+    brain_vendor = (setup().brain or "").split(":")[0]
+    if _fault[1] and _fault[2] == brain_vendor:
+        if _problem[1] == vendors.fault_help(_fault[1], _fault[2]):
+            _problem = (0.0, "")
+        _fault = (0.0, "", "")
+
+
 def current_problem() -> str | None:
+    lost = state.lost
+    if lost is not None and vendors.refused_key(_problem[1]) is None:
+        return lost["line"]
     return _problem[1] if time.time() - _problem[0] < PROBLEM_SHOWN_SECS else None
+
+
+def vendor_fault() -> dict | None:
+    """A vendor that cannot do its part now, while its line is shown: out of quota, failing, or a service that gave up
+    reconnecting for the rest of the call (state.lost). The page then says Cannot hear you or Cannot answer you, with a
+    red dot, never Listening with a green one. A refused key is key_refused's."""
+    if state.lost is not None:
+        return {k: state.lost[k] for k in ("vendor", "ears", "kind")}
+    when, kind, vendor = _fault
+    if kind and time.time() - when < PROBLEM_SHOWN_SECS:
+        return {"vendor": vendor, "ears": bool(vendor) and vendor == (setup().ears or "").split(":")[0], "kind": kind}
+    return None
 
 
 def key_refused() -> dict | None:
@@ -447,8 +490,10 @@ depends on code you have not seen, say so and offer to ask Claude; if they ask y
 you have not sent ("I'll pause it" means calling send_to_claude_code and seeing sent_to). If you sent something wrong or \
 to the wrong place, say so plainly and offer the correction.
 - Say only what you know. Never guess a reason, a decision or a status. A "why" or "what exactly" about the past that \
-your notes do not answer goes to ask_about_session before you answer. If you still do not know, say so in a few words \
-and offer to ask Claude. Never soften bad news or drop a caveat.
+your notes do not answer goes to ask_about_session before you answer. A question about the state of a session's work \
+that only its agent can answer ("how many tests failed?", "which port?") goes to it at once with send_to_claude_code, \
+as the question the user asked: add no task they did not ask for (to run, check, count or measure something). Say in \
+a few words that you asked, and stop. Never soften bad news or drop a caveat.
 - "Should we", "are we shipping": commit to one recommendation with its reason, then name the decision. Do not hand the \
 question back. Before saying nothing needs the user, or when asked who needs them, call list_sessions: needs_from_user \
 is the truth.
@@ -538,6 +583,8 @@ then exactly what to deliver and anything left open. Resolve every reference ("t
 it means. Clean up spoken filler and false starts. Never add scope, steps, opinions, dates or decisions the user did not express: \
 digest, do not invent. If "that" or "the rollback" could mean more than one thing, or you do not know what it means, \
 ask one short question instead of sending a guess. While the user is still discussing or has said not yet, send nothing. For big or parallel work in a Claude Code session, tell it to use subagents.
+- A name the user spoke (a function, a file, a flag) goes in the brief as they said it. Never turn words you are not \
+sure of into a code name: the daemon adds what the recognizer heard, and the agent finds the real name.
 - After delegating, say in a few words that it is on it, then stop. Results arrive in the feed later.
 - When Claude Code asks the user questions, say how many, ask them one at a time and collect every answer first. \
 Send nothing until all are answered (or the user says to send what you have), then send one message with \
@@ -662,6 +709,19 @@ def _report_of(text: str) -> str | None:
     labels = "|".join(re.escape(label) for label in harnesses.labels())
     found = re.match(rf"\[([^\]:]+?)(?::)? ?(?:(?:{labels}) )?{re.escape(FINISHED_MARK[:-1])}", text)
     return found.group(1).strip() if found else None
+
+
+_JOINED = re.compile(r"^\[session joined\] (.+?)(?:,| is now )")
+
+
+def _gone_since(text: str) -> bool:
+    """News that a session joined, held for a gap, about a session that left the voice meanwhile: saying it then is
+    stale ("cedar rejoined" 45 s after cedar was closed)."""
+    joined = _JOINED.match(text)
+    if joined and not any(s.name == joined.group(1) for s in REGISTRY.sessions.values()):
+        logger.info(f"update dropped: {joined.group(1)} left the voice before it was said")
+        return True
+    return False
 
 
 class FeedInjector(FrameProcessor):
@@ -810,7 +870,7 @@ class FeedInjector(FrameProcessor):
     async def _deliver_if_free(self) -> bool:
         if self._bot_speaking or self._held or time.time() - self._asked_at < REPLY_WAIT_SECS or _floor_blocked() is not None:
             return False
-        items = [text for text in self._updates.take() if not self._parked(text)]
+        items = [text for text in self._updates.take() if not self._parked(text) and not _gone_since(text)]
         if not items:
             return True
         alone = next((text for text in items if flow.said_alone(text)), None)
@@ -1216,6 +1276,15 @@ def first_call() -> bool:
     return not FIRST_HELLO.exists()
 
 
+_HELLO_WORDS = set("hello hi hey hiya pointe there can you hear me yes yeah ok okay testing test one two three good morning "
+                   "afternoon evening it's its is this on שלום היי הלו פוינט אתה שומע אותי כן".split())
+
+
+def _only_a_hello(text: str) -> bool:
+    """The first words are a hello or a mic check ("Hello, can you hear me?"), not a request."""
+    return set(re.findall(r"[^\W_]+", text.lower().replace("’", "'"))) <= _HELLO_WORDS
+
+
 def first_hello_reply() -> str:
     """The answer to the first words ever heard here: that they were heard, and which sessions are joined. Fixed, so the
     first success does not wait on a model, or on notes of a session that has just joined."""
@@ -1280,6 +1349,7 @@ def _log_timing(turn: latency.Turn) -> None:
 
 def make_brain(speak, filler=None) -> Brain:
     def usage(u: dict) -> None:
+        _brain_answered()
         if state.timing is not None and not state.timing.logged:
             state.timing.steps += 1
             state.timing.info.update(context=u.get("context", 0), cached=u.get("cached", 0))
@@ -1447,8 +1517,14 @@ class BrainFront(FrameProcessor):
                 if first_call() and state.meeting is None:
                     reply = first_hello_reply()
                     _first_hello_done()
-                    self.brain.append(f"{frame.text}\n[you already answered this: {reply!r}. Do not answer it again.]")
+                    if _only_a_hello(frame.text):
+                        self.brain.append(f"{frame.text}\n[you already answered this: {reply!r}. Do not answer it again.]")
+                        await self._speak(reply)
+                        return
+                    # The first words asked for something ("rename birch to payments"): heard, said so, and done.
                     await self._speak(reply)
+                    self._start(f"{frame.text}\n[you already told the user: {reply!r}. Do not say it again, and do not "
+                                "greet: do what these words ask.]")
                     return
             self._start(frame.text)
             return
@@ -1903,10 +1979,17 @@ def _remember(who: str, text: str) -> None:
         DICTIONARY.heard(text)
     else:
         SHOWS.heard(text)
-    if state.conversation and state.conversation[-1][0] == who == "assistant":
+    # The words of one reply arrive a word or a sentence at a time while it plays, and join one turn. A new call, or a
+    # pause this long (a send's "Sent." and its report later), starts a turn of its own.
+    now = time.monotonic()
+    if (state.conversation and state.conversation[-1][0] == who == "assistant" and not state.call_break
+            and now - state.assistant_at < 4.0):
         state.conversation[-1] = (who, state.conversation[-1][1] + text)
     else:
         state.conversation.append((who, text))
+    state.call_break = False
+    if who == "assistant":
+        state.assistant_at = now
     if len(state.conversation) > 24:
         dropped = len(state.conversation) - 24
         del state.conversation[:dropped]
@@ -2024,6 +2107,7 @@ class Connection:
 @dataclass
 class State:
     conn: Connection | None = None
+    lost: dict | None = None  # this call's ears or voice gave up reconnecting (_service_lost); a new call clears it
     http: aiohttp.ClientSession | None = None
     last_utterance: str = ""
     last_user_speech_at: float = 0.0
@@ -2034,6 +2118,8 @@ class State:
     sent: list[str] = field(default_factory=list)
     conversation: list[tuple[str, str]] = field(default_factory=list)  # (who, words), newest last
     bot_logged: tuple | None = None  # the bot turn last written to the journal
+    call_break: bool = False  # a call ended since the bot last spoke: the next call's first words start their own turn
+    assistant_at: float = 0.0  # time.monotonic() of the bot's last words in `conversation`
     dispatches: list[dict] = field(default_factory=list)  # shown in the voice tab, newest last
     liveness: asyncio.Task | None = None
     nudger: asyncio.Task | None = None
@@ -2086,6 +2172,7 @@ class State:
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
+    tap_told: str | None = None  # the request a yes could not approve that the user was told needs a tap (said once)
     last_line_id: str | None = None  # the request id the bot's latest line was spoken for (KEEP_WINDOW: the early-yes line)
     dump: object = None  # braindump.Dump while the user dumps thoughts or reviews the prompt; None otherwise
     orchestrated_turn: str = ""  # a brain dump sent to the orchestrator: routed as in orchestrator mode while it is the last utterance
@@ -2175,6 +2262,16 @@ async def feed(session: Session, text: str, respond: bool) -> None:
         asyncio.create_task(_refresh_brief(session))
         return
     if FINISHED_MARK in text:
+        _clear_stop(session)
+        quick = _quick_answer(session, text)
+        if quick is not None:
+            # The user is waiting on a short answer to their question: said from Claude's own words now, while the
+            # reader digests the turn for the notes in the background (about 3 s less to the answer).
+            asyncio.create_task(_digest_quietly(session, text))
+            state.thread = (session.id, time.time())
+            logger.info(f"feed +respond (a short answer, before the reader): {quick[:MAX_REPORT_CHARS]!r}")
+            await state.conn.injector.inject(quick[:MAX_FEED_CHARS], True)
+            return
         state.digesting += 1
         try:
             report = await _digest_turn(session, text)
@@ -2231,6 +2328,40 @@ async def feed(session: Session, text: str, respond: bool) -> None:
         state.thread = (session.id, time.time())
     logger.info(f"feed{' +respond' if respond else ''}: {text[:MAX_REPORT_CHARS]!r}")
     await state.conn.injector.inject(text[:MAX_FEED_CHARS], respond)
+
+
+QUICK_ANSWER_CHARS = 700  # a final message this short, answering the user's question, is said without the reader
+
+
+def _quick_answer(session: Session, text: str) -> str | None:
+    """Claude answered the question the voice just put to it, in a few lines: what the brain is told to say, or None
+    for every other finished turn (they go through the reader, which weighs the whole message)."""
+    final = text.split(FINAL_MARK, 1)[-1].strip()
+    asked = (state.unconfirmed.get(session.id) or [""])[-1]
+    if (state.conn is None or session is not REGISTRY.active or current_mode() is not modes.CONVERSATION
+            or "?" not in asked or not final or len(final) > QUICK_ANSWER_CHARS or session.permission_id
+            or any(s.permission_id for s in REGISTRY.sessions.values())):
+        return None
+    lang = "Hebrew" if re.search(r"[\u0590-\u05ff]", state.last_utterance) else "English"
+    return (f"[{_tag(session)}{harnesses.of(session).label} {FINISHED_MARK} It answered the question you sent it. Tell "
+            f"the user its answer in {lang}, in one or two short sentences, the answer first, keeping every number and "
+            f"caveat and adding nothing:\n{final}")
+
+
+async def _digest_quietly(session: Session, text: str) -> None:
+    """The reader's pass over a turn already said: notes, waits and the night shift, and nothing spoken."""
+    state.digesting += 1
+    try:
+        report = await _digest_turn(session, text)
+    except Exception as e:
+        logger.error(f"report for {session.name} failed in the background: {type(e).__name__}")
+        return
+    finally:
+        state.digesting -= 1
+    try:
+        await _night_report(session, report)
+    except Exception as e:
+        logger.error(f"night shift: the report of {session.name} was not handled: {type(e).__name__}: {e}")
 
 
 def _on_screen(session: Session) -> str:
@@ -2722,7 +2853,7 @@ def _keys_status() -> dict:
     global _keys_cache
     if _keys_cache is None:
         chosen = setups.chosen(vendors.config())
-        rows = [{"id": x.id, "name": x.name, "short": x.short, "pick_for": x.pick_for, "cost": x.cost}
+        rows = [{"id": x.id, "name": x.name, "short": x.short, "pick_for": x.pick_for, "cost": x.cost, "keys": list(x.keys)}
                 for x in setups.SETUPS]
         if vendors.local_only():
             return {"line": "Fully local mode: no key is read.", "keys": {}, "setup": "local", "setups": rows}
@@ -2731,8 +2862,10 @@ def _keys_status() -> dict:
         s = setup()
         running = {"brain": s.brain, "reader": s.reader, "checker": s.checker, "ears": s.ears, "mouth": s.mouth}
         uses = {v: [role for role, choice in running.items() if choice and choice.split(":")[0] == v] for v in vendors.KEYS}
+        unread = vendors.AUDIO_ONLY if vendors.voice_local() else ()  # as the doctor says: never read, so nothing to add
         _keys_cache = {"line": found["line"], "uses": uses, "setup": chosen.id if chosen else None, "setups": rows,
-                       "keys": {v: ("in use" if uses[v] else "not used") if v in present else found["keys"][v] for v in vendors.KEYS}}
+                       "keys": {v: "not read" if v in unread else ("in use" if uses[v] else "not used") if v in present
+                                else found["keys"][v] for v in vendors.KEYS}}
     return _keys_cache
 
 
@@ -2787,6 +2920,7 @@ async def _briefing_scheduler() -> None:
 
 def _call_ended() -> None:
     """"The night" starts here; a briefing does not outlive its call."""
+    state.call_break = True
     BRIEFINGS.call_ended(time.time())
     _notify_call()  # the nodes stop forwarding prompts: they stay in their terminals
     state.briefing_play = None
@@ -4029,14 +4163,28 @@ class PttGate(FrameProcessor):
             await self.tick(time.time())
 
 
+MEETING_CONSENT_FIRST = ("Meeting mode needs its consent step once: start the first meeting from the page or the phone, "
+                         "where it shows who receives the room's audio.")
+
+
 async def _start_meeting_by_voice(heard: str, mode: str) -> None:
+    """Fixed words when it does not start: asked to explain, the model once answered with the sessions' status instead."""
+    _remember("user", heard)
     if not PREFS.get("meeting.consented"):
-        await say("[meeting mode] It needs the consent step once: tell the user in one line to start it from the page or "
-                  "the phone the first time, where it shows who receives the room's audio.")
+        await _say_exactly(MEETING_CONSENT_FIRST, "meeting mode not started")
         return
-    error = await start_meeting(mode, entry_words=heard)
+    error = await start_meeting(mode, sessions=_meeting_sessions_heard(heard), entry_words=heard)
     if error:
-        await say(f"[meeting mode not started] {error} Say it in one line.")
+        await _say_exactly(f"Meeting mode did not start. {error}", "meeting mode not started")
+
+
+def _meeting_sessions_heard(heard: str) -> list[str]:
+    """The sessions a meeting started by voice links: the ones its words name, else every joined one. With none linked,
+    "Pointe, look that up" has nothing to look in (the page and the apps let the user tick them)."""
+    names = [s.name for s in REGISTRY.sessions.values()]
+    words = set(re.findall(r"[a-z0-9]+", heard.lower()))
+    named = [n for n in names if set(re.findall(r"[a-z0-9]+", n.split("/")[0].lower())) <= words]
+    return named or names
 
 
 def _meeting_vendors() -> dict:
@@ -4422,6 +4570,21 @@ def _asked_about(question: str):
     return found[0] if len(found) == 1 else None
 
 
+def _answer_note(target: Session, answer: str, question: str, meeting: str | None) -> None:
+    """The answer to the owner's question in a meeting, written under the open question it answers, which is then done:
+    the feed showed the room's question still open beside Pointe's spoken answer, and the end notes listed it as open."""
+    asked = content_words(question)
+    open_ = [n for n in NOTES.items if n.kind == "question" and n.state == "open" and n.meeting == meeting]
+    scored = [(len(asked & content_words(n.text)), n.id) for n in open_]
+    best = max(scored, default=(0, None))
+    meta = {"question": question[:300]}
+    if best[0] >= 2:
+        meta["question_id"] = best[1]
+    NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta=meta, dedup=False, meeting=meeting)
+    if "question_id" in meta:
+        NOTES.set_state(meta["question_id"], "done")
+
+
 async def _meeting_session_question(m, target, question: str, aloud: bool) -> None:
     """The owner asked about a session: a read-only copy of it answers (never the live session, never a send). In
     participating, said to the room in two sentences at most; in listening, and always, written as an answer note."""
@@ -4436,8 +4599,7 @@ async def _meeting_session_question(m, target, question: str, aloud: bool) -> No
         NOTES.add("answer", f"Could not look it up in {target.name}.", session=target.name, dedup=False, meeting=m.id)
         return
     answer = mask(answer)  # said to the room and written down: as _ask_copy's
-    NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta={"question": question[:300]},
-              dedup=False, meeting=m.id)
+    _answer_note(target, answer, question, m.id)
     if aloud and state.meeting is m and m.mode == "participating":
         state.last_utterance = question  # the reply's language follows the question
         await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; the "
@@ -4678,8 +4840,87 @@ async def on_user_utterance(text: str, typed: bool = False) -> None:
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
     await _answer_permission(text)
+    await _stop_by_voice(text)
     if state.challenge is not None and not state.utterance_spent:  # a yes or no to a permission is not a rebuttal
         _challenge_note("rebuttal", text)
+
+
+STOP_SETTLE_SECS = 90.0  # a send after "stop, and do X" waits this long for a next-step stop to land
+
+
+async def _stop_by_voice(text: str) -> None:
+    """"Stop", "cancel that", "hold on": the turn the user means is ended through its harness (harness.interrupt), never
+    by a message it would read after the turn. "Stop, and delete the files" or "no wait, put them in out" ends it too,
+    and the brain sends the rest. A no to a pending request was already applied above: a stop is never a yes."""
+    kind = stop_intent(text)
+    if kind is None or state.conn is None or not current_mode().sends:
+        return
+    sessions = list(REGISTRY.sessions.values())
+    named = named_sessions(text, sessions)
+    working = [s for s in (named or sessions) if s.busy]
+    if not named and len(working) > 1:
+        focus = _thread() or REGISTRY.active
+        working = [focus] if focus in working else working
+    if not working:
+        return  # nothing runs: "stop" is about the voice, or a word for the brain
+    spent_already = state.utterance_spent
+    if kind == "stop":
+        state.utterance_spent = True
+        state.last_delegation_at = time.time()  # a stop carries no request: nothing may be sent on it
+    if len(working) > 1:
+        names = ", ".join(_spoken_names(s.name) for s in working)
+        await say(f"[stop asked, several sessions are working: {names}] Ask the user which one to stop, in a few words. "
+                  f"Send nothing.")
+        return
+    target = working[0]
+    harness = harnesses.of(target)
+    name = _spoken_names(target.name)
+    took = bool(harness.interrupts) and await harness.interrupt(target)
+    logger.info(f"stop by voice: {target.name} ({harness.interrupts or 'no interrupt'}): {'taken' if took else 'not taken'}")
+    if took and harness.interrupts == "next_step":
+        target.stop_asked_at = time.time()
+        asyncio.create_task(_watch_stop(target, target.stop_asked_at))
+        line = f"Stopping {name} after the step it's on."
+    elif took:
+        line = f"Stopped {name}."
+    else:
+        line = f"I can't stop {name} from here. Stop it in its terminal."
+    if kind == "redirect":
+        await state.conn.injector.inject(
+            f"[the daemon handled the user's stop: {line}] The rest of what they said is a new request for {target.name}: "
+            f"send it with send_to_claude_code. Do not tell it to stop.", False)
+        return
+    if not spent_already:
+        await _say_fixed(line)
+
+
+async def _say_fixed(line: str) -> None:
+    """Fixed words, spoken by the daemon itself: the brain is told it said them."""
+    if FRONT != "brain" or state.front is None:
+        await say(f"[say exactly this, nothing else] {line}")
+        return
+    await state.conn.injector.inject(f"[said to the user, by the daemon] {line}", False)
+    await state.front._speak(line, KEEP_WINDOW)
+
+
+async def _watch_stop(session: Session, asked: float) -> None:
+    """A next-step stop (Claude Code's hook) lands when the hook takes its file; the turn's own end settles it too."""
+    harness = harnesses.of(session)
+    while session.stop_asked_at == asked:
+        if harness.stop_landed(session):
+            session.stop_asked_at = None
+            sessions_module._turn_ended(session)
+            await feed(session, f"[{harnesses.of(session).label} stopped: the user's stop ended its turn]", False)
+            return
+        await asyncio.sleep(0.3)
+
+
+def _clear_stop(session: Session) -> None:
+    """The turn ended on its own: a stop that did not land must not end the next one."""
+    if session.stop_asked_at is None:
+        return
+    session.stop_asked_at = None
+    harnesses.of(session).drop_stop(session)
 
 
 async def _answer_permission(text: str, deny_only: bool = False) -> None:
@@ -4704,6 +4945,10 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         return
     if verdict == "deny" and time.time() - session.permission_read_at < PERMISSION_ANSWER_SECS:
         window_open = True  # a no is safe even if the bot has said something since: the worst case is that Claude asks again
+    if verdict is None and session.permission_cut and _read_it_intent(text):
+        state.utterance_spent = True
+        await _say_fixed(_tap_only_text(session))
+        return
     if verdict is None:
         if window_open:  # a question first: a later yes may answer the bot's reply, not the permission
             session.permission_delivered_at = float("inf")
@@ -4718,8 +4963,14 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         await _read_out(session)  # its drive form: it waits until the user stops, and a no still counts
         return
     if verdict == "allow" and session.permission_cut:
-        await say(f"[permission not readable] {session.name}'s request cannot be read out exactly. Tell the user in one line that it "
-                  f"waits for a tap on the page or phone, or in the terminal. A no by voice still works.")
+        state.utterance_spent = True
+        name = _spoken_names(session.name)
+        if state.tap_told == session.permission_id:
+            await _say_fixed("That one still needs a tap, or say no.")
+            return
+        state.tap_told = session.permission_id
+        await _say_fixed(f"{name}'s request needs a tap: I can't say exactly what it runs, so a spoken yes can't approve "
+                         f"it. Tap it on the page or phone, or in the terminal. Or say no, or say read it.")
         return
     began = state.words_began_at or state.user_started_at
     begun_over_the_bot = began and began < ECHO.stopped_at
@@ -4757,6 +5008,28 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     state.utterance_spent = True
     state.last_delegation_at = time.time()  # this answer is spent: it cannot also authorize a new request
     await _apply_answer(session, session.permission_id, verdict, f"user said: {text!r}")
+
+
+_READ_IT = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|please|yes|yeah)\W+)*(?:read (?:it|it out|it to me|me (?:it|the command))|"
+                      r"what (?:is it|does it (?:run|do|want))|which command)\W*(?:please\W*)?$|^\W*תקריא(?: את זה)?\W*$", re.I)
+
+
+def _read_it_intent(text: str) -> bool:
+    """"Read it": the user wants to hear a request a yes cannot approve. A yes inside it never counts as approval."""
+    return bool(_READ_IT.match(text.strip()))
+
+
+def _tap_only_text(session: Session) -> str:
+    """What a tap-only request runs, read for the user to decide on: never a line a yes can approve."""
+    preview = session.permission_full.split("\n", 1)[-1]
+    try:
+        args = json.loads(preview)
+        what = args.get("command") or args.get("file_path") or args.get("notebook_path") or preview
+    except (ValueError, AttributeError):
+        what = preview
+    what = re.sub(r"\s+", " ", mask(str(what))).strip()
+    cut = len(what) > 300
+    return (f"It runs: {what[:300]}{', and more' if cut else ''}. A spoken yes still can't approve it: tap it, or say no.")
 
 
 async def _apply_answer(session: Session, request_id: str, verdict: str, how: str) -> bool:
@@ -4889,6 +5162,24 @@ def _clause_for(message: str) -> int | None:
     return tied[0]
 
 
+def _unnamed_part(message: str) -> str | None:
+    """The sentence or clause of the latest words that carries this message, when it names no session and another part
+    does. "Billing adds a marker file. Dox checks the versions.": a send of the versions check belongs to the second
+    sentence, and billing, named only in the first, is no target for it (QA round 2: it went to billing)."""
+    sessions = list(REGISTRY.sessions.values())
+    parts = [c for sentence in re.split(r"(?<=[.!?])\s+", state.last_utterance) for c in clauses(sentence) if c.strip()]
+    if len(parts) < 2:
+        return None
+    named = [bool(named_sessions(p, sessions)) for p in parts]
+    if not any(named):
+        return None
+    overlap = [len(content_words(message) & content_words(p)) for p in parts]
+    top = max(overlap)
+    if not top or overlap.count(top) > 1 or named[overlap.index(top)]:
+        return None
+    return parts[overlap.index(top)]
+
+
 def _used_clauses() -> set[int]:
     if state.clauses_at != state.last_user_speech_at:
         state.clauses_at, state.clauses_used = state.last_user_speech_at, set()
@@ -4988,7 +5279,19 @@ def _unrouted(how: str, said: str) -> str:
         thread, picked = state.off_thread
         return (f"Not sent: you were talking about {thread}, but this sounds like it is for {picked}. Ask the user "
                 f"which session it is for.")
+    if how == "unnamed":
+        return (f"Not sent: the user named no session for this part ({said!r}), and the session the other part names is "
+                f"not it. Open sessions: {_names()}. Ask which session it is for.")
     return "No session to send to."
+
+
+UNROUTED_NOTES = {"unnamed": "no session named for that part; asked which", "off-thread": "sounded like another session; asked which", "ambiguous": "fits more than one session; asked which",
+                  "closed": "that session closed", "session mode": "no session in focus", "active": "no session to send to"}
+
+
+def _unrouted_note(how: str) -> str:
+    """Recent requests' line for a request the router sent nowhere, in the user's words rather than the router's."""
+    return f"blocked: {UNROUTED_NOTES.get(how, how)}"
 
 
 def _ask_which(said: str, tied: list[Session]) -> str:
@@ -5195,7 +5498,8 @@ async def _send_now(message: str) -> dict:
                  and len(state.last_utterance.split()) <= 2 and content_words(message) & content_words(state.pending_route[2]) else None)
     # Naming a session answers "which one?" for the request that was waiting, and only for that request.
     answering = confirmed or (live_pending and name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
-                              and _mostly_same(message, state.pending_route[2]))
+                              and _mostly_same(message, state.pending_route[2])
+                              and not _brings_new_words(message, state.pending_route[2]))
     if _routing_mode() == "session" and (pinned := _pinned_refusal(state.last_utterance)):
         _record(message, [], "blocked: session mode, another session named")
         return {"error": pinned}  # before the relevance check: the true reason, not a wrong one
@@ -5251,21 +5555,26 @@ async def _send_now(message: str) -> dict:
     if refusal:
         _record(message, [], "blocked: session mode, another session named")
         return {"error": refusal}
-    named = _brain_named(said)
+    unnamed = _unnamed_part(message) if clause is None and _routing_mode() != "session" else None
+    said = unnamed or said
+    named = _brain_named(said, alone=bool(unnamed))
     if named and named.on_hold and not named_sessions(state.last_utterance, [named]):
         _record(message, [], "blocked: that session is on hold")
         return {"error": f"Not sent: the user said to hold {named.name}. Say so, and ask if they want to lift that."}
     targets, how = ([confirmed], "confirmed") if confirmed else ([named], "brain") if named else await _route(message, said)
+    if unnamed and how != "brain" and any(named_sessions(state.last_utterance, [t]) for t in targets):
+        targets, how = [], "unnamed"  # the session another sentence names is the one place this part surely is not for
     if not targets:
         picked = next((s.id for s in REGISTRY.sessions.values() if state.off_thread and s.name == state.off_thread[1]), None)
         state.pending_route = (time.time(), picked if how == "off-thread" else None, message)
-        _record(message, [], f"blocked: {how}")
+        _record(message, [], _unrouted_note(how))
         return {"error": _unrouted(how, said)}
     offline = [t for t in targets if not online(t)]
     if offline and len(offline) == len(targets):
         _record(message, [], "blocked: its machine is offline")
         return {"error": f"Not sent: {'; '.join(_offline_line(t) for t in offline)}. Tell the user in one line."}
     targets = [t for t in targets if online(t)]
+    message = relay.as_heard(message, said, _vocabulary_for(targets[0]))
     sent_to, failed, set_aside = [], [], []
     for target in targets:
         logger.info(f"-> {target.name}: {message!r} (routing: {how})")
@@ -5331,7 +5640,7 @@ def _corrects_last_send(message: str) -> bool:
     if task - content_words(state.last_message):
         return False
     named = name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
-    return bool(named) and _mostly_same(message, state.last_message)
+    return bool(named) and _mostly_same(message, state.last_message) and not _brings_new_words(message, state.last_message)
 
 
 def _update_holds(text: str) -> None:
@@ -5349,6 +5658,15 @@ def _update_holds(text: str) -> None:
     state.holding = hold_intent(text) or (state.holding and not SEND_WORDS.search(lowered))
 
 
+def _brings_new_words(message: str, earlier: str) -> bool:
+    """The message carries a word the user said lately that `earlier` lacks, so it is a new request, not `earlier` aimed
+    again. Requests in one sentence frame ("add a line with the word X to the notes file") share most of their words,
+    and "Tariff, please." after "which session?" re-sent the previous request instead of the one asked about."""
+    said = " ".join([text for who, text in state.conversation[-6:] if who == "user"] + [state.last_utterance])
+    names = set().union(*(content_words(s.name.replace("-", " ").replace("/", " ")) for s in REGISTRY.sessions.values()))
+    return bool((content_words(message) - content_words(earlier) - names) & content_words(said))
+
+
 def _mostly_same(message: str, earlier: str) -> bool:
     """Most of its words were already there: a repeat cannot carry a new instruction in with it."""
     words = content_words(message)
@@ -5361,9 +5679,13 @@ def _asked_of_several(said: str) -> bool:
             or bool(re.search(r"\b(?:both|each|two)\b|שניהם|שתיהן", said.lower())))
 
 
-def _brain_named(said: str) -> Session | None:
+def _brain_named(said: str, alone: bool = False) -> Session | None:
     """The session the brain chose, by exact name. It read the whole sentence and the call; "tell Claude" or a word in
-    another session's name does not fool it the way name matching can. Session mode stays pinned, and "all" stays a broadcast."""
+    another session's name does not fool it the way name matching can. Session mode stays pinned, and "all" stays a broadcast.
+
+    alone: `said` is the one part of the latest words that carries the message, it names no session, and other parts
+    name others ("Dox checks the versions" beside "Billing adds a file"). The brain's choice holds there, unless it is
+    a session those other parts name: the ears misheard a name the brain still recognised."""
     wanted = (state.brain_target or "").strip().lower()
     if _routing_mode() == "session" or not wanted or broadcast_intent(said):
         return None
@@ -5372,6 +5694,8 @@ def _brain_named(said: str) -> Session | None:
         return None
     if named_sessions(said, [chosen]):
         return chosen
+    if alone:
+        return None if named_sessions(state.last_utterance, [chosen]) else chosen
     # Or the answer to the bot's clarifying question about a request that named it: "Ask orchard to run two commands." /
     # "Which two?" / "Touch x, then echo y." The name is in the sentence before, and only that one.
     talk = state.conversation
@@ -5426,6 +5750,9 @@ def _set_aside(target: Session, since: float) -> str:
 
 async def _dispatch(target: Session, message: str) -> bool:
     """Delivered, or not: a bus job only queues the request, so it cannot say whether it arrived."""
+    asked = target.stop_asked_at
+    while asked is not None and target.stop_asked_at == asked and time.time() - asked < STOP_SETTLE_SECS:
+        await asyncio.sleep(0.2)  # "stop, and do X": X goes after the stop landed, or Claude reads it inside that turn
     if not await deliver(target, message):
         return False
     target.busy = True
@@ -5817,9 +6144,17 @@ def _start_pending() -> tuple[float, dict] | None:
 
 
 def _start_line(what: dict) -> str:
-    """The read-back: exactly what a yes will start."""
+    """The read-back: exactly what a yes will start. Which machine only when there is more than one: a default host
+    name holds the owner's first name, said aloud and printed on the card for nothing (QA round 2)."""
+    where = "" if _one_machine() else f" on {_here()}"
     return (f"Start {'an' if _harness_title(what['harness'])[0] in 'AEIOU' else 'a'} {_harness_title(what['harness'])} "
-            f"session in {_spoken_names(what['said_folder'])} on {_here()}, named {_spoken_names(what['name'])}?")
+            f"session in {_spoken_names(what['said_folder'])}{where}, named {_spoken_names(what['name'])}?")
+
+
+def _one_machine() -> bool:
+    """No machine is paired with this one, and every session runs here."""
+    here = _here()
+    return not HUB.nodes.nodes and all(not s.machine or s.machine == here for s in REGISTRY.sessions.values())
 
 
 def _start_owner_refusal(refused: str = "Not started", tap: str = "Start") -> str | None:
@@ -6354,6 +6689,21 @@ def _just_started() -> Session | None:
     return REGISTRY.sessions.get(joined[0])
 
 
+def _unnamed_rename_target(asked: str) -> Session | None:
+    """The session "rename it" means: the one that just started, the only one, the one in focus when the words say
+    "this" or session mode pins it, else the one the conversation is about. Never the active one by default: after a
+    start that did not happen, "rename it to shop-tests" renamed billing, which no one had named (QA round 2)."""
+    if started := _just_started():
+        return started
+    sessions = list(REGISTRY.sessions.values())
+    if len(sessions) == 1:
+        return sessions[0]
+    if REGISTRY.mode == "session" or re.search(r"\b(?:this|current|active)\b|(?<![֐-׿])(?:הזה|הזאת|הנוכחי)(?![֐-׿])",
+                                                asked, re.I):
+        return REGISTRY.active
+    return _thread()
+
+
 async def rename_session(params: FunctionCallParams):
     new_name = str(params.arguments.get("new_name", "")).strip()
     # "Rename that session." ... "You infer it from the context.": the ask can be a turn earlier.
@@ -6373,7 +6723,11 @@ async def rename_session(params: FunctionCallParams):
         options = ", ".join(s.name for g in groups for s in g)
         await params.result_callback({"error": f"Not renamed. Ask which session to rename: {options}."})
         return
-    target = groups[0][0] if groups else _just_started() or REGISTRY.active
+    target = groups[0][0] if groups else _unnamed_rename_target(asked)
+    if target is None and len(REGISTRY.sessions) > 1:
+        await params.result_callback({"error": f"Not renamed: no session is named, and none is in the conversation for "
+                                      f"\"it\" to mean. Ask which session to rename: {_names()}."})
+        return
     if target is None:
         await params.result_callback({"error": "No session to rename."})
         return
@@ -6460,7 +6814,7 @@ async def _ask_copy(target: Session, question: str) -> None:
         answer = (await _from_record(target, question)).get("answer") or "I could not get an answer."
     if state.meeting is not None:  # in a meeting the answer is written; said only in participating, where the owner asked
         answer = mask(answer)  # the room, the mouth vendor and the notes: a copy can read files, so its answer is masked
-        NOTES.add("answer", f"{target.name}: {answer}", session=target.name, dedup=False)
+        _answer_note(target, answer, question, state.meeting.id)
         if state.meeting.mode == "participating":
             await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; "
                                  f"the room hears you; at most two sentences; say only the answer] {answer}")
@@ -7707,6 +8061,12 @@ def _learn(was: str, meant: str, typed: bool) -> list[str]:
     return learned
 
 
+def _vocabulary_for(session: Session) -> set[str]:
+    """The names this session's own words use: its notes' names and the user's dictionary."""
+    terms = {str(e.get("term")) for e in DICTIONARY.entries if isinstance(e, dict) and e.get("term")}
+    return terms | set(_brief_names().get(session.name, []))
+
+
 def _brief_names() -> dict[str, list[str]]:
     out = {}
     for s in REGISTRY.sessions.values():
@@ -7852,6 +8212,20 @@ async def add_key(request: Request):
     return {"ok": True}
 
 
+def _setup_refused(chosen: str) -> str | None:
+    """Why a switch to this setup cannot start, checked before anything changes: the page's switch runs detached, and a
+    missing key used to leave the page on "Switching" while the restart was refused."""
+    if chosen == "voice-local":
+        why = local.voice_refused()
+    elif chosen == "local":
+        why = local.supported(local.TEXT_MODEL)
+    else:
+        missing = setups._missing_keys(setups.BY_ID[chosen])
+        why = None if not missing else (f"{setups.BY_ID[chosen].name} needs the {' and the '.join(setups.NAMES[v] for v in missing)} key, "
+                           f"and it is not saved: Add… beside it, then Use this setup again.")
+    return f"Not switched, Pointe keeps running as it is. {why}" if why else None
+
+
 @app.post("/voice/setup")
 async def use_setup(request: Request):
     """Settings → Setups, Use this setup, on the page on this Mac: `pointe setup <id>` (the local ones download their
@@ -7862,6 +8236,9 @@ async def use_setup(request: Request):
     chosen = body.get("id") if isinstance(body, dict) else None
     if chosen not in setups.BY_ID:
         raise HTTPException(status_code=400, detail=f"id must be one of {', '.join(setups.BY_ID)}")
+    if why := await asyncio.to_thread(_setup_refused, chosen):
+        logger.info(f"setup {chosen} refused on the page: {why}")
+        raise HTTPException(status_code=409, detail=why)
     _run_on_the_mac([str(POINTE_CLI), "setup", chosen], [str(POINTE_CLI), "restart"])
     logger.info(f"setup {chosen} chosen on the page")
     return {"ok": True}
@@ -7882,6 +8259,7 @@ async def status(request: Request):
             "connected": state.conn is not None,
             "problem": current_problem(),
             "key_refused": key_refused(),
+            "vendor_fault": vendor_fault(),
             "first_call": first_call(),  # the page keeps its advanced controls out of the way until Pointe answered once
             "idle_hangup": state.idle_hangup,
             "monologue": state.dump.compat() if _dumping() else None,  # an older app reads this
@@ -8849,6 +9227,11 @@ async def run_call(transport) -> None:
     # A quiet call is normal (sessions work, the user listens); hang up only a call forgotten for half an hour.
     voice = PipelineWorker(pipeline, name="voice", params=VOICE_PARAMS,
                            idle_timeout_secs=IDLE_HANGUP_SECS)
+    state.lost = None  # new ears and a new voice
+
+    @voice.event_handler("on_pipeline_error")
+    async def on_pipeline_error(_worker, frame):
+        await _service_lost(frame.processor)
     runner = WorkerRunner(handle_sigint=False)  # uvicorn owns Ctrl-C
     await runner.add_workers(voice)
 
@@ -8880,6 +9263,88 @@ async def run_call(transport) -> None:
         if state.meeting is not None:
             asyncio.create_task(_end_meeting_without_call())
         logger.info("call ended")
+
+
+LOST_LINES = {"ears": "I can't hear you: the connection to {name} dropped. I'm reconnecting; typing still works.",
+              "mouth": "The voice stopped: the connection to {name} dropped. Replies show as text while I reconnect."}
+LOST_AS = {"ears": "I can't hear you: ", "mouth": "The voice stopped, replies show as text: "}  # before a vendor fault's line
+BACK_LINE = "I can hear you again."
+LOST_SETTLE_SECS = 0.5  # the error that names the cause is logged around the "can no longer do its job" that ends retries
+REVIVE_WAITS = (2.0, 4.0, 8.0, 15.0, 30.0)  # seconds between tries to bring a service back; then every 30 s
+REVIVE_SETTLE_SECS = 3.0  # a reconnect that holds this long is back; one that fails gives up again within it
+
+
+async def _service_lost(processor) -> None:
+    """Pipecat stops reconnecting a service after its retries ("can no longer do its job"), all within milliseconds of a
+    dropped link, and by its default policy keeps the call running: the ears stayed deaf for the rest of the call, even
+    after a 2-second blip. The call says so in words, then brings the service back once its vendor answers (_revive).
+    A refused key is not a dropped link: its own line stays, and no reconnect can fix it."""
+    from pipecat.services.stt_service import STTService
+    from pipecat.services.tts_service import TTSService
+
+    if processor is None or processor.is_usable or state.lost is not None:
+        return
+    role = "ears" if isinstance(processor, STTService) else "mouth" if isinstance(processor, TTSService) else None
+    if role is None:
+        return
+    vendor = (getattr(setup(), role) or "").split(":")[0]
+    state.lost = {"vendor": vendor, "ears": role == "ears", "kind": "lost", "line": ""}  # claimed: one loss at a time
+    await asyncio.sleep(LOST_SETTLE_SECS)
+    if vendors.refused_key(_problem[1]) is not None:
+        state.lost = None
+        logger.warning(f"{role} stopped: its key was refused")
+        return
+    when, kind, fault_vendor = _fault
+    if kind and fault_vendor in (vendor, "") and time.time() - when < PROBLEM_SHOWN_SECS:
+        line = LOST_AS[role] + vendors.fault_help(kind, vendor)  # a 500 or a quota, not "the connection dropped"
+    else:
+        kind, line = "lost", LOST_LINES[role].format(name=vendors.NAMES.get(vendor, "the speech service"))
+    state.lost = {"vendor": vendor, "ears": role == "ears", "kind": kind, "line": line}
+    logger.warning(f"{role} stopped ({kind}): {processor} gave up reconnecting; trying to bring it back")
+    conn = state.conn
+    asyncio.create_task(_revive(processor, role, conn))
+    if role == "ears":
+        await _say_exactly(line, "the ears are gone")
+
+
+async def _revive(processor, role: str, conn) -> None:
+    """Bring a service that gave up back, with growing waits, for as long as this call lasts (Pipecat: set_usable(True)
+    "once a provider that has come back up"). Typing works meanwhile; the ears' return is said aloud."""
+    global _problem
+    attempt = 0
+    while True:
+        await asyncio.sleep(REVIVE_WAITS[min(attempt, len(REVIVE_WAITS) - 1)])
+        attempt += 1
+        if state.conn is not conn or state.lost is None or vendors.refused_key(_problem[1]) is not None:
+            return
+        try:
+            if hasattr(processor, "_consecutive_failures"):
+                processor._consecutive_failures = 0  # Gemini's ears give up at a count that only a long-lived link resets
+            await processor.set_usable(True)
+            if hasattr(processor, "_do_reconnect"):  # the ears: a new connection, then the audio buffered meanwhile
+                await processor._do_reconnect()
+                # A websocket service's connect logs a failure and leaves its retry loop to it: ask the socket itself.
+                if hasattr(processor, "_verify_connection") and not await processor._verify_connection():
+                    raise ConnectionError("not connected")
+            elif hasattr(processor, "_reconnect_websocket"):  # a websocket voice; an HTTP voice needs only to be usable
+                await processor._reconnect_websocket(attempt)
+        except Exception as e:
+            logger.info(f"{role} still unreachable ({type(e).__name__}), try {attempt}")
+            with contextlib.suppress(Exception):
+                await processor.set_usable(False)
+            continue
+        await asyncio.sleep(REVIVE_SETTLE_SECS)
+        if state.conn is not conn:
+            return
+        if not processor.is_usable:
+            continue  # it gave up again
+        if vendors.refused_key(_problem[1]) is None:
+            _problem = (0.0, "")
+        state.lost = None
+        logger.info(f"{role} back after {attempt} tries: {processor}")
+        if role == "ears":
+            await _say_exactly(BACK_LINE, "the ears are back")
+        return
 
 
 # What harness adapters borrow from the daemon (harnesses/base.py).

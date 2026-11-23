@@ -10,12 +10,14 @@ The rules live in `newsession.py` (where a session may start, names), `guards.st
 
 - **Voice:** "start a new Claude Code session in shop", "open a codex session in billing called invoices", "start
   another agent here". Pointe reads back exactly what it will start ("Start a Codex session in billing on studio, named
-  invoices?") and starts it on your yes, or a tap on Start. Say no, or anything else, and nothing starts. With no agent
+  invoices?"; the machine is named only when another one is paired) and starts it on your yes, or a tap on Start. Say no, or anything else, and nothing starts. With no agent
   named it is Claude Code.
 - **Page:** New session under the sessions on the left. Pick the agent and the folder, give it a name and a first
   prompt if you like, press Start.
 - **iPhone app:** Sessions, then New session. Start asks for Face ID, as Approve does.
-- **Mac app:** New session in the window's sessions list. Start asks for Touch ID or your password.
+- **Mac app:** New session in the window's sessions list (in a narrow window, under Sessions), New Session in the File
+  menu (⌘N), or New Session in the menu bar item's menu. Start asks for Touch ID or your password. Settings → New
+  sessions lists the folders you added, with Add a folder… and Remove.
 
 The new session shows under your sessions as "starting" until it joins, then it is a session like any other. If it
 cannot start, the row says why for two minutes (the agent is not installed, its service is not running, the folder is

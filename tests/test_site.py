@@ -38,10 +38,20 @@ def test_the_tool_writes_the_manifest_version_into_a_stale_page(tmp_path, monkey
 
 def test_the_site_is_in_english_only():
     """No Hebrew in any page: not in the copy, and not in the words an image's alt text reads out of a screenshot.
-    The screenshots come from the apps' `-demoEnglish` data and the page rig's English fixtures (docs/design/parity.md)."""
+    The screenshots come from the apps' `-demoEnglish` data and the page rig's English fixtures (docs/design/parity.md).
+
+    One exception, and a narrow one: the documentation (site/pointe/docs/, rendered from docs/ by tools/build_docs.py)
+    quotes the Hebrew phrases Pointe answers to, because they are what a reader must say. There, and only there, Hebrew
+    may stand inside a `<span lang="he" dir="rtl">` that the generator writes around each run; any other Hebrew on a docs
+    page still fails."""
     hebrew = re.compile(r"[֐-׿יִ-ﭏ]")
+    marked = re.compile(r'<span lang="he" dir="rtl">[^<]*</span>')
+    docs = SITE / "pointe" / "docs"
     for page in site_version.pages():
-        found = hebrew.search(page.read_text())
+        text = page.read_text()
+        if docs in page.parents:
+            text = marked.sub("", text)
+        found = hebrew.search(text)
         assert not found, f"{page.relative_to(ROOT)}: Hebrew text at offset {found.start()}"
 
 

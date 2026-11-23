@@ -143,7 +143,7 @@ struct AttachCard: View {
                     .buttonStyle(.brandQuiet).controlSize(.large)
                     .accessibilityIdentifier("attachCancel")
                 if !pending.choose {
-                    Button { act(true) } label: { Label(pending.button, systemImage: "faceid").frame(maxWidth: .infinity) }
+                    Button { act(true) } label: { Label(pending.button, systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
                         .buttonStyle(.brandPrimary).controlSize(.large)
                         .accessibilityIdentifier("attachConfirm")
                 }

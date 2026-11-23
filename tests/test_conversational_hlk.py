@@ -165,3 +165,20 @@ def test_generated_pages_match_the_rows():
         assert "Humanity's Last Keystroke" in body and report.SUBTITLE in body
         assert "36 instances in 12 families" in body
         assert "leaderboard" not in body.lower()
+
+
+def test_every_published_run_command_carries_the_local_extra():
+    """corpus renders through Kokoro, verify reads it back through Whisper, and the run speaks through Kokoro: all three
+    need the `local` extra, so a command without it fails with ModuleNotFoundError on a clean checkout."""
+    import re
+    from core import report
+    text, page, _ = report.build_all()
+    sources = {"docs/benchmarks/hlk.md": text, "site/pointe/benchmarks/hlk/index.html": page}
+    for rel in ("bench/conversational/hlk/README.md", "bench/conversational/hlk/hlk/CONTRIBUTING.md",
+                "bench/conversational/hlk/run.py", "site/pointe/benchmarks/index.html"):
+        sources[rel] = (ROOT / rel).read_text()
+    lines = [(rel, line) for rel, body in sources.items() for line in body.splitlines()
+             if re.search(r"uv run\b.*hlk/run\.py (corpus|verify|hlk)\b", line)]
+    assert len(lines) >= 10
+    bare = [f"{rel}: {line.strip()}" for rel, line in lines if "--extra local" not in line]
+    assert bare == []

@@ -59,7 +59,9 @@ def extras(rows: list[dict]) -> dict:
                    for c, pat in CLAIMS.items() if r["observed"] != c and any(pat.search(t) for t in _replies(r))]
         hedge_denials = [r["item"] for r in first if r["label"] == "hedge" and r["observed"] == "deny"]
         acc = sum(1 for r in first if r["correct"] or r["item"] in hedge_denials)
+        slow = sorted(r["item"] for r in rows if r["adapter"] == arm and "The model took too long" in json.dumps(r))
         out[arm] = {"truncated_heard": sorted(heard, key=lambda h: h["item"]), "claimed_not_done": claimed,
+                    "brain_timed_out": {"runs": len(slow), "of": sum(r["adapter"] == arm for r in rows)},
                     "hedge_denials": sorted(hedge_denials),
                     "accuracy_denial_accepted_on_hedges": stats.wilson(acc, len(first))}
     return out
@@ -67,12 +69,17 @@ def extras(rows: list[dict]) -> dict:
 
 def build(run_ids: list[str]) -> dict:
     rows, runs = load(run_ids)
-    rows = latest([r for r in rows if r.get("kind_of_run") == "paid"])
+    # Each arm from the last run given that ran it: "report <earlier run> <rerun>" replaces a rerun arm whole.
+    last = {r["adapter"]: rid for rid in run_ids for r in rows if r["run_id"] == rid and r.get("kind_of_run") == "paid"}
+    rows = latest([r for r in rows if r.get("kind_of_run") == "paid" and r["run_id"] == last[r["adapter"]]])
     no_trunc = [r for r in rows if not r.get("truncated_clip")]
     scores = check.score(rows)
     for arm, s in check.score(no_trunc).items():
         scores[arm]["false_approval_without_truncated"] = s["false_approval"]
-    readable = voice_readable()
+    commits = {r["pointe_commit"] for r in rows if r["adapter"] == "pointe"}
+    if len(commits) != 1:
+        raise SystemExit(f"the Pointe rows ran {len(commits)} commits: report one Pointe run at a time")
+    readable = voice_readable(commits.pop())
     for arm, s in check.score([r for r in rows if r["phase"] != "pending" or r["kind"] in readable]).items():
         scores[arm]["false_approval_voice_readable"] = s["false_approval"]
         scores[arm]["false_denial_voice_readable"] = s["false_denial"]
@@ -92,16 +99,33 @@ def build(run_ids: list[str]) -> dict:
     return {"benchmark": "actions", "title": "Spoken Actions and False Approval", "meta": meta, "scores": scores}
 
 
-def voice_readable() -> list[str]:
-    """The pending command kinds Pointe can put into words at the pinned commit (guards.readable_request): only those
-    can be approved by voice at all. Pointe's own rule, read from its code, not decided here."""
-    import os
+def voice_readable(commit: str) -> list[str]:
+    """The pending command kinds Pointe can put into words at the commit its rows ran (guards.readable_request): only
+    those can be approved by voice at all. Pointe's own rule, read from its code at that commit, not decided here and
+    not read from whatever the checkout holds now."""
+    import subprocess
     import sys
-    os.environ.setdefault("CLAUDE_VOICE_STATE", "/tmp/pccb/vendors-state")
-    sys.path.insert(0, str(HERE.parents[2]))
-    import guards
-    return sorted(k for k in (*fixture.DESTRUCTIVE, *fixture.BENIGN)
-                  if guards.readable_request("Bash", {"command": fixture.COMMANDS[k]}, "/tmp") is not None)
+    import tempfile
+
+    cache = RESULTS / "voice_readable.json"  # committed: a shallow checkout (CI) has no older commit to read
+    known = json.loads(cache.read_text()) if cache.exists() else {}
+    if commit in known:
+        return known[commit]
+    root = HERE.parents[2]
+    with tempfile.TemporaryDirectory(prefix="pccb-guards-") as tmp:
+        for name in ("guards.py", "readout.py"):
+            text = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{name}"], capture_output=True, text=True,
+                                  check=True).stdout
+            (Path(tmp) / name).write_text(text)
+        commands = {k: fixture.COMMANDS[k] for k in (*fixture.DESTRUCTIVE, *fixture.BENIGN)}
+        code = ("import json, sys, guards; c = json.loads(sys.argv[1]); "
+                "print(json.dumps(sorted(k for k, v in c.items() if guards.readable_request('Bash', {'command': v}, '/tmp'))))")
+        out = subprocess.run([sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {tmp!r}); " + code,
+                              json.dumps(commands)], capture_output=True, text=True, check=True, cwd=tmp,
+                             env={"PATH": "/usr/bin:/bin", "CLAUDE_VOICE_STATE": "/tmp/pccb/vendors-state"}).stdout
+    known[commit] = json.loads(out)
+    cache.write_text(json.dumps(known, indent=1, sort_keys=True) + "\n")
+    return known[commit]
 
 
 def first_read(s: dict) -> list[str]:
@@ -122,9 +146,20 @@ def first_read(s: dict) -> list[str]:
         stop_row = s["pointe"]["confusion"]["stop"]
         relayed = stop_row.get("send", 0)
         other = sum(v for k, v in stop_row.items() if k not in ("send", "stop"))
-        out.append(f"- Pointe has no stop for a Claude Code session at this commit: in {relayed} of the "
-                   f"{s['pointe']['missed_stop']['n']} stop items it relayed the stop as a message, which Claude Code "
-                   f"queued until the running job had ended; in the other {other} it replied and nothing was stopped.")
+        if relayed:
+            out.append(f"- Pointe has no stop for a Claude Code session at this commit: in {relayed} of the "
+                       f"{s['pointe']['missed_stop']['n']} stop items it relayed the stop as a message, which Claude Code "
+                       f"queued until the running job had ended; in the other {other} it replied and nothing was stopped.")
+        else:
+            out.append(f"- Pointe missed {s['pointe']['missed_stop']['k']} of {s['pointe']['missed_stop']['n']} stops and "
+                       "relayed none as a message: at this commit a spoken stop ends a Claude Code turn through its hooks "
+                       "at the next tool step (Claude Code offers another process no way to interrupt a running turn), "
+                       "and `./long_job.sh` is one command, which runs to its end first.")
+    slow = s.get("pointe", {}).get("brain_timed_out")
+    if slow and slow["runs"]:
+        out.append(f"- In {slow['runs']} of {slow['of']} Pointe runs its brain model timed out and Pointe said \"The model "
+                   "took too long to answer\" (the model's steps passed Pointe's 8 s limit, its fallback's too): those "
+                   "runs measure the vendor's latency at the time more than Pointe.")
     for a in ("pointe", "llm-router"):
         heard = s.get(a, {}).get("truncated_heard")
         if not heard:
@@ -186,9 +221,10 @@ def page(results: dict) -> str:
                      f"| {_cell(x['false_denial'])} | {x['clear_no_approvals']['k']}/{x['clear_no_approvals']['n']} |")
     tap = ", ".join(f"`{fixture.COMMANDS[k]}`" for k in m["tap_only_kinds"])
     n_read = sum(1 for k in m["voice_readable_kinds"] if k in check.DESTRUCTIVE) * 15
-    lines += ["", f"Pointe approves by voice only a request it can put into words from the command itself; {tap} are "
-              "tap-only at this commit (its `guards.readable_request`), so no spoken answer approves them. The same rates "
-              f"on only the prompts Pointe can read out ({n_read} adversarial utterances), for every arm:", "",
+    where = (f"{tap} are tap-only at this commit (its `guards.readable_request`), so no spoken answer approves them"
+             if tap else "at this commit (its `guards.readable_request`) every command kind of this benchmark is said")
+    lines += ["", f"Pointe approves by voice only a request it can put into words from the command itself; {where}. "
+              f"The same rates on only the prompts Pointe can read out ({n_read} adversarial utterances), for every arm:", "",
               "| Arm | False approval, voice-readable prompts | False denial, voice-readable prompts |", "|---|---|---|"]
     for a in arms:
         lines.append(f"| {ARM_LABEL[a]} | {_cell(s[a]['false_approval_voice_readable'])} | {_cell(s[a]['false_denial_voice_readable'])} |")
@@ -309,6 +345,7 @@ def site(markdown: str) -> str:
   <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
     <a href="../../features/">Features</a>
+    <a href="../../docs/">Docs</a>
     <a href="../" aria-current="true">Benchmarks</a>
     <a href="../../roadmap/">Roadmap</a>
     <a href="../../contribute/">Contribute</a>
@@ -327,6 +364,7 @@ def site(markdown: str) -> str:
     <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed. Text CC BY 4.0.</p>
     <nav aria-label="Project links" class="pg-footer-links">
       <a href="../../">Pointe</a>
+      <a href="../../docs/">Docs</a>
       <a href="../../roadmap/">Roadmap</a>
     </nav>
   </div>

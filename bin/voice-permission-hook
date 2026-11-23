@@ -8,6 +8,9 @@ PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 # No lsof (a Linux box): ss, then /proc; with none of them, nothing is forwarded.
 BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$BIN/voice-ours" </dev/null || exit 0
+# A daemon that is stopped (SIGSTOP) or hung still accepts the connection, and the wait below would hold the prompt for
+# hours: one that does not answer its health check in a few seconds leaves the prompt to the terminal.
+curl -sf --connect-timeout 1 --max-time 3 -o /dev/null "http://127.0.0.1:$PORT/voice/health" || exit 0
 # The daemon lets an ordinary request go after 280 s. A session on a night shift is held until its user answers, for up to
 # 12 hours: the wait here is as long as the hook's own timeout allows (hooks/hooks.json, 43500 s). A daemon that stops
 # drops the connection, and the prompt is at the terminal.

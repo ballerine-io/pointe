@@ -9,9 +9,9 @@ Part of the [Pointe Conversational Engineering Benchmarks](README.md): a self-ev
 ## Setup
 
 - Independent unit: item. Sample: Part A: 18 stop, undo or redirect items and 6 backchannels; Part B: 27 status questions.
-- Run bargein-20261123-040244, 2026-11-23.
+- Run bargein-20261123-040244, bargein-20261123-161151, 2026-11-23.
 - Agent claude-haiku-5-5 in Claude Code 2.1.330, acceptEdits, one worker.
-- Pointe 7113efa: brain=anthropic:claude-sonnet-5-5, reader=anthropic:claude-sonnet-5-5, checker=gemini:gemini-3.5-flash-lite, ears=soniox, mouth=elevenlabs:eleven_v4_turbo.
+- Pointe 84eafbc: brain=anthropic:claude-sonnet-5-5, reader=anthropic:claude-sonnet-5-5, checker=gemini:gemini-3.5-flash-lite, ears=soniox, mouth=elevenlabs:eleven_v4_turbo.
 - LLM router: the same brain model as Pointe, Soniox ears.
 
 ## Results
@@ -30,20 +30,23 @@ Part B: status questions (synthetic speech). The keyboard row times correct text
 
 | arm | correct answer within 45 s | time to the correct answer, median / p90 | correct within 10 s |
 |---|---|---|---|
-| Pointe | 18/27 = 67% (48-81%) | 27.9 s / 37.7 s (9 censored) | 0/27 |
+| Pointe | 23/27 = 85% (68-94%) | 26.7 s / 36.1 s (4 censored) | 0/27 |
 | LLM router | 27/27 = 100% (88-100%) | 10.1 s / 14.6 s (0 censored) | 13/27 |
 | keyword rules, ours | 27/27 = 100% (88-100%) | 9.7 s / 14.2 s (0 censored) | 16/27 |
 | keyboard | 27/27 = 100% (88-100%) | 1.1 s / 1.7 s (0 censored) | 26/27 |
 
-- Part A, Pointe minus LLM router paired by item: -42 points (-62 to -21). At this commit Pointe passes a spoken stop to the agent as a message and has no action that interrupts it (21 of 23 logs).
-- Part B, Pointe minus LLM router: -33 points (-52 to -15).
+- Part A, Pointe minus LLM router paired by item: -42 points (-62 to -21). A spoken stop now ends a Claude Code turn through its hooks (20 of 23 logs show the stop taken), at the next tool step: Claude Code offers another process no supported way to cut a running turn, so the job, one shell command, runs to its end first.
+- Part B, Pointe minus LLM router: -15 points (-30 to -4).
 - Redirect was 0/6 in every arm, the keyboard included: the column does not separate the arms.
-- 3 branch questions (12 runs) are not scored because of a label error.
+- 3 branch questions (9 runs) are not scored because of a label error.
 - The reference arms speak through local Kokoro; Pointe through ElevenLabs over the network. The Part B times include that difference.
+- Before the fixes, in the run of 2026-11-23 (Pointe 7113efa, kept as published in [earlier/2026-11-23/bargein.md](earlier/2026-11-23/bargein.md)): A: job halted when told to stop 0/18 (upper bound 18%), now 0/18 (upper bound 18%); B: correct answer within 45 s 18/27 = 67% (48-81%), now 23/27 = 85% (68-94%); B: time to the correct answer, median / p90 27.9 s / 37.7 s (9 censored), now 26.7 s / 36.1 s (4 censored).
 
-Full results: [RESULTS.md](../../bench/conversational/bargein/bargein/RESULTS.md). Raw rows, events and spend: `bench/conversational/bargein/results/`. Spend on this benchmark, every launch included: $3.41 of a $14 cap, computed from usage and list prices, not a vendor bill.
+Full results: [RESULTS.md](../../bench/conversational/bargein/bargein/RESULTS.md). Raw rows, events and spend: `bench/conversational/bargein/results/`. Spend on this benchmark, every launch included: $6.02 of a $14 cap, computed from usage and list prices, not a vendor bill.
 
 ## Limits
+
+Where the time to a correct answer goes, read from the Pointe daemon logs of Part B (medians): before the fixes, the user's words to the send 2.1 s, the send to the report the voice was given 10.0 s (the agent's turn, often spent running checks the voice model had added, then the reading model), and that report to its first spoken words 4.8 s. After the fixes (`bargein-20261123-161151`): 2.5 s, 1.7 s (the question goes as asked, and a short answer skips the reading model), and 11.1 s, which is now most of it: the answer waits for the voice's own acknowledgement ("I asked quarry ...") to finish playing, and the voice model's step was slow at the time. Speaking a short answer without that acknowledgement is not done yet.
 
 Synthetic speech (four clean Kokoro voices) is an upper bound for every arm, and Kokoro is also Pointe's local voice.
 The reference arms are written by Pointe's team. Spend is computed from token usage and list prices, not metered.
@@ -63,6 +66,7 @@ The published run:
 - The agent's settings file allows the job's shell commands and a hook allows commands that stay inside the item repo, the same in every arm, so the job's own commands never wait at a prompt; a command outside the item repo still does, and the scripted user answers no prompt. The hook refuses any command with `..`, even one that stays inside the repo: such a run waits at a prompt and ends as capped.
 - The scripted user answers a spoken question back (question detector, slot answers); it does not answer a question the agent asks in text on the keyboard arm.
 - The run was resumed twice: once to shorten the load wait for Part A (from 2 minutes to 45 s, after 49 runs), once to run again the 6 Pointe runs that had failed to start because a Pointe daemon started from /tmp still held the port (once visibly another benchmark's, run on the same machine and ports). The failed rows stay in rows.jsonl; the later row for the same run is the one counted. Each row carries the bench commit it ran at; Pointe's commit is the same in every row.
+- The Pointe arm was run again after Pointe fixed what this suite found (bargein-20261123-161151, Pointe 84eafbc, the same items, voices, seeds and settings); each arm's rows come from the last run given that ran it, so the reference arms keep their rows from bargein-20261123-040244. The statements above about resumes and Pointe's commit describe that earlier run. The branch questions are left out for every arm, so both runs score the same items.
 
 ## Run it on your harness
 

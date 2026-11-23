@@ -163,8 +163,9 @@ keyboard path.
 - **Menu bar extra** (`MenuBarExtra`, menu style). The icon is the Chorus mark as a template image: at 18 points it is
   the brand's favicon drawing (`docs/brand/logo.md`), in the menu bar's one ink, never redrawn. The state is said beside
   it and in its label, never by colour alone: the mark dimmed with no call, a microphone while talking, and the number
-  of sessions that wait. The menu: the state line; Connect or Hang up; "N need you" with one item per
-  request that opens the window on it; Brain dump; Open Pointe (⌘O); Show call bubble during calls; Settings… (⌘,); Quit.
+  of sessions that wait. The menu: the state line; Connect or Hang Up; "N need you" with one item per
+  request that opens the window on it; Brain Dump; Open Pointe (⌘O); Show Call Bubble During Calls; Settings… (⌘,); Quit.
+  Menu items are in title case, as every Mac menu is; Help → Pointe Help (⌘?) opens docs/mac-app.md.
 - **The call window** (`Window`, one instance, 760 × 560 by default, remembers its frame). A sidebar lists sessions
   grouped by machine (this Mac first; a machine's header shows offline), each with its agent mark and state (working,
   approve, needs you, idle, offline); selecting one switches the active session (`/voice/switch`). The detail column is

@@ -378,13 +378,13 @@ async def _settle(d, secs: float = 0.5) -> None:
 
 def test_a_request_is_read_back_exactly_and_nothing_starts(home):
     result = asyncio.run(_ask(home.d, "Start a new Codex session in shop."))
-    assert result["confirm_first"] == "Start a Codex session in shop on studio, named shop-2?", result
+    assert result["confirm_first"] == "Start a Codex session in shop, named shop-2?", result
     assert home.started == [] and not home.d.STARTS
 
 
 def test_no_agent_said_means_claude_code_and_the_read_back_says_so(home):
     result = asyncio.run(_ask(home.d, "open a new session in billing called invoices"))
-    assert result["confirm_first"] == "Start a Claude Code session in billing on studio, named invoices?"
+    assert result["confirm_first"] == "Start a Claude Code session in billing, named invoices?"
 
 
 def test_a_name_that_differs_only_by_a_branch_counts_as_taken(home):
@@ -404,7 +404,7 @@ def test_a_name_that_differs_only_by_a_branch_counts_as_taken(home):
 
 def test_an_open_code_session_takes_an(home):
     result = asyncio.run(_ask(home.d, "start an open code session in billing"))
-    assert result["confirm_first"].startswith("Start an OpenCode session in billing on studio, named billing-2?")
+    assert result["confirm_first"].startswith("Start an OpenCode session in billing, named billing-2?")
 
 
 @pytest.mark.parametrize("yes", ["Yes.", "go ahead", "כן"])
@@ -925,3 +925,8 @@ def test_a_transcript_corrected_to_yes_starts_nothing(home):
     p = Params(folder="shop")
     asyncio.run(d.start_session(p))
     assert "error" in p.results[0] and home.started == [], p.results
+def test_the_read_back_names_the_machine_only_when_there_is_more_than_one(home, monkeypatch):
+    """QA round 2: on a one-machine setup the read-back said the Mac's host name aloud, often the owner's first name."""
+    monkeypatch.setitem(home.d.HUB.nodes.nodes, "n1", {"id": "n1", "name": "devbox", "key": "k"})
+    result = asyncio.run(_ask(home.d, "Start a new Codex session in shop."))
+    assert result["confirm_first"] == "Start a Codex session in shop on studio, named shop-2?", result

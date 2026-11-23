@@ -25,17 +25,40 @@ final class NightShiftUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", fragment)).firstMatch
     }
 
+    /// Whether anything is drawn in the image's first two columns of points: text that starts at its frame's edge and is
+    /// clipped there; words set inside a margin leave those columns the background's colour.
+    static func inkAtLeftEdge(_ image: UIImage) -> Bool {
+        guard let cg = image.cgImage else { return false }
+        let (w, h) = (cg.width, cg.height)
+        var px = [UInt8](repeating: 0, count: w * h * 4)
+        let ctx = CGContext(data: &px, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        ctx?.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        let ground = Array(px[0..<3])
+        let columns = Int(2 * image.scale)
+        for y in 0..<h {
+            for x in 0..<columns {
+                let i = (y * w + x) * 4
+                if zip(px[i..<(i + 3)], ground).contains(where: { abs(Int($0) - Int($1)) > 40 }) { return true }
+            }
+        }
+        return false
+    }
+
     func testTheStartSheetHasItsFieldsAndStartNeedsATask() {
         launch("nightShiftStart")
         let start = app.buttons["nightShiftStart"]
         XCTAssertTrue(start.waitForExistence(timeout: 15), "the start sheet")
         XCTAssertEqual(start.label, "Start shift")
         XCTAssertFalse(start.isEnabled, "no task yet: nothing to start")
-        XCTAssertTrue(text("Give your sessions work for while you are away.").exists, "the lede")
+        XCTAssertTrue(text("Give your sessions work to do while you are away.").exists, "the lede")
         let session = any("nightShiftSession.0"), task = any("nightShiftTask.0")
         XCTAssertTrue(session.waitForExistence(timeout: 5) && task.exists)
         XCTAssertTrue(session.label.contains("billing") || (session.value as? String ?? "").contains("billing"), "the first session on the voice is picked")
         XCTAssertEqual(task.placeholderValue, "What it should get done tonight")
+        // In a zero-inset row the lede's first letters were clipped at the row's edge: its words start inside the frame.
+        let lede = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Give your sessions work")).firstMatch
+        XCTAssertFalse(Self.inkAtLeftEdge(lede.screenshot().image), "the lede's first letters are not cut at the edge")
         shot("night-shift-start")
 
         task.tap()

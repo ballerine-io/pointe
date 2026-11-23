@@ -34,7 +34,7 @@ case "${1:-ensure}" in
       kill -9 $KIDS "$PID" 2>/dev/null || true
       for _ in $(seq 1 20); do "$LISTENERS" taken "$PORT" || break; sleep 0.25; done
     fi
-    rm -f "$PIDFILE"
+    rm -f "$PIDFILE" "$STATE/daemon.root"
     # The local text model holds about 17 GB of memory: stopping the voice frees it.
     [ -f "$STATE/local/server.pid" ] && uv run --no-sync --project "$ROOT" python -I "$ROOT/local.py" stop
     echo "stopped"; exit 0 ;;
@@ -42,12 +42,42 @@ case "${1:-ensure}" in
   *) echo "usage: voice-daemon ensure|stop|status" >&2; exit 2 ;;
 esac
 
+# One daemon, the newest installed copy's: with the plugin and the standalone install both here, a start from the
+# older one hands over (bin/pointe-installs). A clone or a worktree starts itself.
+if [ "$("$ROOT/bin/pointe-installs" kind)" != clone ]; then
+  NEWEST="$("$ROOT/bin/pointe-installs" newest || true)"
+  [ -n "$NEWEST" ] && [ "$NEWEST" != "$(cd "$ROOT" && pwd -P)" ] && exec "$NEWEST/bin/voice-daemon" ensure
+fi
+
+# One start at a time: two sessions running /pointe:voice together each started a daemon, the pidfile named the one
+# that lost the port, and the winner ran on where status and stop could not see it. The lock is a directory (macOS has
+# no flock); a holder that died leaves it behind, and the next start takes it over.
+LOCK="$STATE/start.lock"
+take_lock() {
+  local holder empty=0
+  for _ in $(seq 1 4800); do  # 20 minutes: a first start downloads, a fully local one loads a 17 GB model
+    if mkdir "$LOCK" 2>/dev/null; then
+      echo $$ >"$LOCK/pid"; trap 'rm -rf "$LOCK"' EXIT; return 0
+    fi
+    holder="$(cat "$LOCK/pid" 2>/dev/null || true)"
+    if [ -n "$holder" ]; then
+      kill -0 "$holder" 2>/dev/null || rm -rf "$LOCK"
+    elif [ $((empty += 1)) -gt 40 ]; then
+      rm -rf "$LOCK"  # made, and its holder died before it wrote its pid
+    fi
+    sleep 0.25
+  done
+  echo "voice-daemon: another start is still running ($LOCK)" >&2; exit 1
+}
+take_lock
+
 # Answering is not enough: a squatter on the port would then be handed the token and the page key.
 ours() {
-  local pid pids rc=0; pid="$(cat "$PIDFILE")"
+  local pid pids kids rc=0; pid="$(cat "$PIDFILE")"
   pids="$("$LISTENERS" pids "$PORT")" || rc=$?
   [ "$rc" -eq 3 ] && return 0  # nothing here can tell who listens
-  [ -n "$pids" ] && grep -qxE "$pid|$(pgrep -P "$pid" | paste -sd'|' -)" <<<"$pids"
+  kids="$(pgrep -P "$pid" | paste -sd'|' - || true)"
+  [ -n "$pids" ] && grep -qxE "$pid${kids:+|$kids}" <<<"$pids"  # never "pid|": BSD grep refuses an empty branch
 }
 healthy() { curl -sf -m 2 -o /dev/null "$URL/voice/health" && ours; }
 wait_healthy() {
@@ -67,7 +97,7 @@ if "$LISTENERS" taken "$PORT"; then
   echo "voice-daemon: port $PORT is taken by another process ($("$LISTENERS" pids "$PORT" | head -1 | xargs ps -o comm= -p 2>/dev/null)). Use another: CLAUDE_VOICE_DAEMON_PORT=7870" >&2; exit 1
 fi
 
-"$ROOT/bin/link-pointe" --quiet || true  # ~/.local/bin/pointe follows this copy after a plugin update
+"$ROOT/bin/link-pointe" --at-start || true  # ~/.local/bin/pointe follows the plugin after an update
 # First run downloads the dependencies; done here so that time does not count against the start below.
 command -v uv >/dev/null 2>&1 || { echo "voice-daemon: uv is missing. Install it: https://docs.astral.sh/uv/" >&2; exit 1; }
 # Local ears and mouth are large and optional: installed only when asked for.
@@ -77,7 +107,7 @@ else
   EXTRA=()
 fi
 [ -d "$ROOT/.venv" ] || echo "voice-daemon: first run, downloading about 180 MB..." >&2
-uv sync --locked --quiet --project "$ROOT" ${EXTRA[@]+"${EXTRA[@]}"}
+"$ROOT/bin/uv-sync" --quiet --project "$ROOT" ${EXTRA[@]+"${EXTRA[@]}"}  # offline first: see bin/uv-sync
 # Fully local mode: its text-model server is started here, and loaded, before the first call needs it.
 if [ -f "$STATE/config.json" ] && grep -qE '"local_only": *true' "$STATE/config.json"; then
   uv run --no-sync --project "$ROOT" python -I "$ROOT/local.py" ensure >&2 || true  # preflight explains a failure
@@ -98,6 +128,7 @@ for var in $(env | sed -n 's/^\(CLAUDE_CODE_[A-Z_]*\)=.*/\1/p'); do UNSET+=(-u "
 env "${UNSET[@]}" CLAUDE_VOICE_STATE="$STATE" nohup uv run --no-sync --project "$ROOT" python "$ROOT/daemon.py" --port "$PORT" \
   >"$STATE/daemon.log" 2>&1 </dev/null &
 echo $! >"$PIDFILE"
+echo "$ROOT" >"$STATE/daemon.root"  # which copy runs: pointe doctor says it
 disown || true
 
 wait_healthy

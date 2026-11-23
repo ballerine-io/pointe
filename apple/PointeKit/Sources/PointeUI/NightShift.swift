@@ -32,8 +32,9 @@ struct NightShiftSheet: View {
         NavigationStack {
             BrandForm {
                 Section {
-                    Text(NightShiftCopy.lede).brandFootnote()
-                        .listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+                    Text(NightShiftCopy.lede).brandFootnote().accessibilityIdentifier("nightShiftLede").fixedSize(horizontal: false, vertical: true)
+                        // In line with the section titles below. With no inset the row's clip cut its first letters ("ive").
+                        .listRowBackground(Color.clear).listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 4, trailing: 20))
                 }
                 if let options { fields(options) }
                 if let problem {
@@ -171,31 +172,42 @@ struct NightShiftStrip: View {
     @State private var busy = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            Button(action: open) {
-                HStack(spacing: 10) {
-                    Image(systemName: "moon.stars.fill").foregroundStyle(Brand.accent)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(NightShiftCopy.title).font(.brand(.subheadline, .semibold))
-                        Text(shift.statusLine).font(.brand(.caption)).foregroundStyle(Brand.muted)
-                    }
-                    Spacer(minLength: 4)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("nightShiftStrip")
-            Button(NightShiftCopy.stop) {
-                busy = true
-                Task { await stop(); busy = false }
-            }
-            .buttonStyle(.brandQuiet).controlSize(.small)
-            .disabled(busy)
-            .accessibilityIdentifier("nightShiftStop")
+        // One row while it fits; with large type Stop shift goes under the line, which then keeps the card's width
+        // instead of stacking into a narrow column beside the button.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) { line; stopButton }
+            VStack(alignment: .leading, spacing: 8) { line; stopButton }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .brandCard()
+    }
+
+    private var line: some View {
+        Button(action: open) {
+            HStack(spacing: 10) {
+                Image(systemName: "moon.stars.fill").foregroundStyle(Brand.accent)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(NightShiftCopy.title).font(.brand(.subheadline, .semibold))
+                    Text(shift.statusLine).font(.brand(.caption)).foregroundStyle(Brand.muted)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("nightShiftStrip")
+    }
+
+    private var stopButton: some View {
+        Button(NightShiftCopy.stop) {
+            busy = true
+            Task { await stop(); busy = false }
+        }
+        .buttonStyle(.brandQuiet).controlSize(.small).fixedSize()
+        .disabled(busy)
+        .accessibilityIdentifier("nightShiftStop")
     }
 }
 
@@ -207,11 +219,12 @@ struct ShiftCard: View {
     @State private var busy = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AnswersInView {
             Label { Text(NightShiftCopy.confirmTitle) } icon: { Image(systemName: "moon.stars.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
-            Text(pending.line).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
+            Text(Surface.pointer(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("nightShiftLine")
+        } answers: {
             HStack(spacing: 10) {
                 Button { act(false) } label: { Text(NightShiftCopy.cancel).frame(maxWidth: .infinity) }
                     .buttonStyle(.brandQuiet).controlSize(.large)
@@ -222,7 +235,6 @@ struct ShiftCard: View {
             }
             .disabled(busy)
         }
-        .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .accessibilityElement(children: .contain)

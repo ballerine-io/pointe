@@ -141,6 +141,10 @@ struct SetupPicker: View {
             }
             if let chosen = SetupChoice.named(model.setupID) {
                 Text(chosen.short).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
+            } else {
+                // Beside "Every role is filled", "None chosen" alone reads as a contradiction.
+                Text(KeyCopy.noSetupHow).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
+                    .accessibilityIdentifier("settings.setup.none")
             }
         }
     }

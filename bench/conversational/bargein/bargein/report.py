@@ -188,6 +188,7 @@ def from_logs(standing: list[tuple[dict, dict]]) -> dict:
     import re
 
     out = {"pointe_roles": None, "pointe_a_runs": 0, "pointe_a_forwarded_as_message": 0, "pointe_a_forwarded_and_job_ran_on": 0,
+           "pointe_a_stop_taken": 0,
            "keyboard_redirect_runs": 0, "keyboard_redirect_agent_asked": 0, "pointe_b_runs": 0, "pointe_b_permission_request": 0}
     for row, e in standing:
         if row.get("status") not in ("ok", "capped"):
@@ -204,6 +205,7 @@ def from_logs(standing: list[tuple[dict, dict]]) -> dict:
                 sent = len(said) > 1 and re.search(r"-> kiln: ", said[1]) is not None
                 out["pointe_a_forwarded_as_message"] += sent
                 out["pointe_a_forwarded_and_job_ran_on"] += sent and not row.get("halted")
+                out["pointe_a_stop_taken"] += bool(re.search(r"stop by voice: \S+ \([a-z_]+\): taken", daemon))
             if row["part"] == "b" and not label_error(row):
                 out["pointe_b_runs"] += 1
                 out["pointe_b_permission_request"] += "[permission request]" in daemon.split("user said:", 1)[-1]
@@ -277,8 +279,12 @@ def markdown(res: dict) -> str:
               f"- Pointe, Part A stop, undo and redirect runs (repeats included): in {lg['pointe_a_forwarded_as_message']} "
               f"of {lg['pointe_a_runs']} the daemon log shows the spoken request sent to the session as a message "
               f"(`-> kiln:`), and in {lg['pointe_a_forwarded_and_job_ran_on']} of those the job still ran to its end. "
-              "The voice model's tools at this commit (`daemon.py`, `TOOLS`) have no action that interrupts a working "
-              "agent; a message waits while the agent's shell command runs.",
+              + (f"In {lg['pointe_a_stop_taken']} of them the daemon log shows the spoken stop taken by the harness "
+                 "(`stop by voice: ... taken`): Claude Code ends the turn at its next tool step, through its hooks, so the "
+                 "job, one shell command, runs to its end first. Claude Code offers no supported way for another process "
+                 "to cut a running turn." if lg.get("pointe_a_stop_taken") else
+                 "The voice model's tools at this commit (`daemon.py`, `TOOLS`) have no action that interrupts a working "
+                 "agent; a message waits while the agent's shell command runs."),
               f"- Keyboard reference, redirect items: in {lg['keyboard_redirect_agent_asked']} of "
               f"{lg['keyboard_redirect_runs']} runs the agent ran nothing after Escape and the typed redirect and its "
               "last reply asked how to redirect (or which option to take). The keyboard arm has no scripted answer to questions, so the redirect "
@@ -332,20 +338,30 @@ LIMITS = [
 ]
 
 
-def main(run_id: str | None) -> int:
-    ids = [run_id] if run_id else sorted(p.name for p in RESULTS.iterdir() if p.is_dir() and p.name.startswith("bargein-")
-                                         and not p.name.endswith("smoke"))
+def main(run_ids: list[str] | str | None) -> int:
+    """`report <run>`, or `report <earlier run> <rerun>`: each arm's rows come from the last run given that ran it, so a
+    Pointe-only rerun after Pointe changed replaces the Pointe arm and the reference arms keep their earlier rows."""
+    ids = [run_ids] if isinstance(run_ids, str) else list(run_ids or [])
+    ids = ids or sorted(p.name for p in RESULTS.iterdir() if p.is_dir() and p.name.startswith("bargein-")
+                        and not p.name.endswith("smoke"))
     paid = [(r, e) for r, e in load_runs(ids) if r.get("kind_of_run") == "paid"]
+    last_run = {r["adapter"]: r["run_id"] for rid in ids for r, _ in paid if r["run_id"] == rid}
+    paid = [(r, e) for r, e in paid if r["run_id"] == last_run[r["adapter"]]]
     every = [r for r, _ in paid]
     last = {}
     for r, e in paid:  # a resumed run repeats an errored run: the later row stands, the superseded ones are counted
         last[(r["run_id"], r["part"], r["item"], r["adapter"], r["run_index"])] = (r, e)
     standing = list(last.values())
     excluded = [r for r, _ in standing if label_error(r)]
-    rows = [r for r, _ in standing if not label_error(r)]
+    dropped = {r["item"] for r in excluded} if len(ids) > 1 else set()  # one item set for every arm across runs
+    rows = [r for r, _ in standing if not label_error(r) and r["item"] not in dropped]
     superseded = len(every) - len(standing)
     freeze_data = json.loads((HERE.parent / "FROZEN.json").read_text())
-    bad = [r for r in rows if r["pointe_commit"] != freeze_data["pointe_commit"]]
+    # The Pointe arm runs the frozen commit. A reference arm runs no Pointe code: its rows may come from the run at the
+    # earlier freeze (FROZEN.json "earlier"), and no other.
+    allowed = {freeze_data["pointe_commit"]} | {e["pointe_commit"] for e in freeze_data.get("earlier", [])}
+    bad = [r for r in rows if r["pointe_commit"] != freeze_data["pointe_commit"] and (
+        r["adapter"] == "pointe" or r["pointe_commit"] not in allowed)]
     if bad:
         raise SystemExit(f"{len(bad)} rows carry another Pointe commit than FROZEN.json")
     pointe_rows = [r for r in rows if r["adapter"] == "pointe" and isinstance(r.get("versions"), dict)]
@@ -364,7 +380,14 @@ def main(run_id: str | None) -> int:
            "part_b_items": len({r["item"] for r in rows if r["part"] == "b"}), "repeats": repeats(rows),
            "paired": {p: paired(rows, p) for p in ("a", "b")}}
     res["limits"] = [x.format(b=res["part_b_items"]) for x in LIMITS]
-    out = RESULTS / ids[-1] if len(ids) == 1 else RESULTS
+    if len(ids) > 1:
+        res["limits"].append(
+            f"The Pointe arm was run again after Pointe fixed what this suite found ({ids[-1]}, Pointe "
+            f"{freeze_data['pointe_commit'][:7]}, the same items, voices, seeds and settings); each arm's rows come from the "
+            f"last run given that ran it, so the reference arms keep their rows from {', '.join(ids[:-1])}. The statements "
+            "above about resumes and Pointe's commit describe that earlier run. The branch questions are left out for every "
+            "arm, so both runs score the same items.")
+    out = RESULTS / ids[-1]
     (out / "results.json").write_text(json.dumps(res, indent=1) + "\n")
     (HERE / "RESULTS.md").write_text(markdown(res))
     print(markdown(res))

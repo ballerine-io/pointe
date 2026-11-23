@@ -15,6 +15,17 @@ pointe local status   # what is on disk, whether the model answers, and its memo
 pointe local off      # back to the vendors you used before
 ```
 
+Or from a screen:
+
+- **Voice:** no phrase: it changes which models run, so it is chosen on the Mac and Pointe restarts on it.
+- **Page:** on the Mac's own page, Settings → Model keys → "Fully local" → Use this setup. It runs `pointe setup local`
+  (the same as `pointe local`: the models download first), then restarts Pointe. A Mac with less than 32 GB is refused
+  there, with the reason. A page opened on the phone shows the command only. Settings → Local mode then reads "Fully
+  local: on".
+- **iPhone app:** no switch: the setup is chosen on the Mac. Settings shows one read-only line while it is on.
+- **Mac app:** Settings (••• at the top, or ⌘,) → Model keys → Setup → "Fully local", then Restart under Pointe on this
+  Mac.
+
 `/pointe:setup` offers it as "Fully local". `/pointe:doctor` shows the local status in every run.
 
 Needs an Apple-silicon Mac with 32 GB of memory or more, and about 19 GB of disk. Nothing is installed system-wide and

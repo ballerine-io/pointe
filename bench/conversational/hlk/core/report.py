@@ -32,15 +32,26 @@ def load(results: Path = HERE / "results") -> tuple[list, list, dict]:
     frozen = json.loads((HERE / "FROZEN.json").read_text())
     published, unpublished = [], []
     for path in sorted(results.glob("hlk-*/rows.jsonl")):
+        meta = path.parent / "run.json"
+        if meta.exists() and json.loads(meta.read_text()).get("stopped"):
+            continue  # a run stopped by the operator and not used (its run.json says why)
         for line in path.read_text().splitlines():
             if not line.strip():
                 continue
             row = json.loads(line)
             if row.get("kind") not in ("paid", "unpublished"):
                 continue
-            if row["pointe_commit"] != frozen["pointe_commit"]:
+            earlier = next((e for e in frozen.get("earlier", []) if row["run_id"] in e["runs"]), None)
+            if earlier is not None:
+                # A run at an earlier freeze: its reference arms run no Pointe code and stand; its Pointe rows are the
+                # earlier result, replaced by the rerun at the frozen commit.
+                if row["adapter"] == "pointe":
+                    continue
+                if row["pointe_commit"] != earlier["pointe_commit"] or row["time"] < earlier["frozen_at"]:
+                    raise ReportRefused(f"{row['run_id']} {row['item']}: not the earlier freeze it is listed under")
+            elif row["pointe_commit"] != frozen["pointe_commit"]:
                 raise ReportRefused(f"{row['run_id']} {row['item']}: Pointe commit {row['pointe_commit'][:10]} is not the frozen one")
-            if row["time"] < frozen["frozen_at"]:
+            elif row["time"] < frozen["frozen_at"]:
                 raise ReportRefused(f"{row['run_id']} {row['item']}: older than the freeze")
             (published if row["kind"] == "paid" else unpublished).append(row)
     return replace_reruns(published), replace_reruns(unpublished), frozen
@@ -64,6 +75,50 @@ def replace_reruns(rows: list) -> list:
         else:
             out.append(r)
     return out
+
+
+def brain_timeouts(rows: list, frozen: dict, results: Path = HERE / "results") -> dict:
+    """Pointe runs in which it said its brain model took too long, from the raw events: in the published rows, and in
+    the earlier freeze's runs (for comparison)."""
+    def count(run_ids, keep):
+        n = k = 0
+        for rid in sorted(run_ids):
+            path = results / rid / "events.jsonl"
+            for line in path.read_text().splitlines() if path.exists() else []:
+                e = json.loads(line)
+                if e.get("adapter") != "pointe" or not keep(e):
+                    continue
+                n += 1
+                k += any("The model took too long" in str(h.get("text")) for h in e.get("harness", []) if h["kind"] == "said")
+        return k, n
+
+    used = {(r["run_id"], r["item"], r["run_index"]) for r in rows if r["adapter"] == "pointe"}
+    earlier = {r for e in frozen.get("earlier", []) for r in e["runs"]}
+    return {"now": count({rid for rid, _, _ in used}, lambda e: (e["run_id"], e["item"], e["run_index"]) in used),
+            "earlier": count(earlier, lambda e: "unpublished" not in e["item"])}
+
+
+def read_outs(rows: list, frozen: dict, results: Path = HERE / "results") -> dict:
+    """Permission requests Pointe put to the user, from the raw events: read out (a spoken yes can approve them) or
+    tap-only ("an approval I can't read out"), in the published Pointe rows and in the earlier freeze's runs."""
+    def count(run_ids, keep):
+        read = tap = 0
+        for rid in sorted(run_ids):
+            path = results / rid / "events.jsonl"
+            for line in path.read_text().splitlines() if path.exists() else []:
+                e = json.loads(line)
+                if e.get("adapter") != "pointe" or not keep(e):
+                    continue
+                for h in e.get("harness", []):
+                    text = str(h.get("text")) if h["kind"] == "said" else ""
+                    tap += "can't read out" in text
+                    read += "can't read out" not in text and bool(re.search(r"wants to .*Should it\?", text))
+        return read, tap
+
+    used = {(r["run_id"], r["item"], r["run_index"]) for r in rows if r["adapter"] == "pointe"}
+    earlier = {r for e in frozen.get("earlier", []) for r in e["runs"]}
+    return {"now": count({rid for rid, _, _ in used}, lambda e: (e["run_id"], e["item"], e["run_index"]) in used),
+            "earlier": count(earlier, lambda e: "unpublished" not in e["item"])}
 
 
 def finals(results: Path = HERE / "results") -> dict:
@@ -224,6 +279,7 @@ def sections(rows, unpub, frozen) -> list:
                    "12, the families, and the intervals are wide. The suite can show a large gap; it cannot rank two "
                    "close systems."))
     B.append(("h2", "Limits, plainly"))
+    earlier_runs = {r for e in frozen.get("earlier", []) for r in e["runs"]}
     B.append(("ul", [
         "Synthetic speech favours Pointe and is an upper bound for everyone: Kokoro, the text-to-speech here, is also "
         "Pointe's local voice, and four clean US and British voices are easier than people. Every table title says "
@@ -248,17 +304,23 @@ def sections(rows, unpub, frozen) -> list:
         "which are not committed). This counts against Pointe; the typed arms read the terminal and cannot hit it."]
         + ([underspecified(rows)] if rows else [])
         + ([f"The first-run rows ran on the benchmark at commit "
-            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if not r.get('rerun_of')}))}. A fault of that runner "
+            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if not r.get('rerun_of') and r['run_id'] in earlier_runs}))}"
+            ". A fault of that runner "
             "(an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by "
             "the rule below, at commit "
-            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if r.get('rerun_of')})) or 'n/a'}."] if rows else [])))
+            f"{', '.join(sorted({r['repo_commit'][:7] for r in rows if r.get('rerun_of')})) or 'n/a'}."] if rows else [])
+        + ([f"The Pointe arm was run again after Pointe fixed what this suite found: Pointe {frozen['pointe_commit'][:7]}, "
+            "the same agent, instances, voices, seeds and settings. The reference arms run no Pointe code; their rows come "
+            f"from the earlier runs ({', '.join(sorted(earlier_runs))}, Pointe "
+            f"{', '.join(sorted({e['pointe_commit'][:7] for e in frozen.get('earlier', [])}))}). The earlier page is "
+            "kept as published in docs/benchmarks/earlier/."] if frozen.get("earlier") else [])))
     if not a:
         B.append(("p", "No published run yet."))
         return B
     m = a["meta"]
     B.append(("p", f"Runs: {', '.join(m['runs'])}. Dates: {', '.join(m['dates'])}. Agent: {', '.join(m['models'])} in "
                    f"Claude Code {', '.join(m['claude'])}. Pointe commit {frozen['pointe_commit'][:12]} (frozen before "
-                   f"the first paid row, {frozen['frozen_at'][:10]}). Router brain: {', '.join(m['brain']) or 'n/a'}. "
+                   f"its first paid row, {frozen['frozen_at'][:10]}). Router brain: {', '.join(m['brain']) or 'n/a'}. "
                    f"Spoken output of every arm is read by one pinned local Whisper (large-v3-turbo)."))
     stops = []
     for rid in m["runs"]:
@@ -317,10 +379,21 @@ def sections(rows, unpub, frozen) -> list:
                        "take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. "
                        f"In {pf_no - pf_edit} of those {pf_no} the agent changed no file, so the work stopped at the "
                        f"refusal or after it. In the other {pf_edit} the agent had already changed files and the hidden "
-                       "tests still failed: there the instruction as Pointe passed it on was often wrong (in "
-                       "twin-symbols, \"a value that ends in s\" reached the agent as ending in \"S\", and its code "
-                       f"checks for a capital S). {pp_no} runs passed despite such a refusal. The other arms act on a "
+                       f"tests still failed. {pp_no} runs passed despite such a refusal. The other arms act on a "
                        "spoken yes for any command: they have no such guard."))
+    if "pointe" in arms:
+        slow = brain_timeouts(rows, frozen)
+        if slow["now"][0]:
+            B.append(("p", f"The brain model was slow during the Pointe runs: in {slow['now'][0]} of {slow['now'][1]} its step "
+                           "passed Pointe's 8 s limit (its fallback's too) and Pointe said \"The model took too long to "
+                           "answer\"" + (f"; in the earlier Pointe runs, {slow['earlier'][0]} of {slow['earlier'][1]}"
+                                          if slow["earlier"][1] else "") + ". Those runs measure the vendor's latency at "
+                           "the time as much as Pointe."))
+        ro = read_outs(rows, frozen)
+        if frozen.get("earlier"):
+            B.append(("p", f"Permission requests Pointe put to the user: {ro['now'][0]} read out, which a spoken yes can "
+                           f"approve, and {ro['now'][1]} tap-only; in the earlier Pointe runs, {ro['earlier'][0]} and "
+                           f"{ro['earlier'][1]}."))
     reruns = ", ".join(f"{LABEL[k]} {v}" for k, v in sorted(RERUNS.items())) or "none"
     B.append(("p", "Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the "
                    "runner credited an answer to the wrong request, or the agent made no step for 8 minutes was rerun "
@@ -367,9 +440,9 @@ def sections(rows, unpub, frozen) -> list:
         "instance for both runs; noise made in code (babble from the three other voices at 6 dB for the noisy-paths "
         "instruction, pink noise at 12 dB for the rest of that item)."]))
     B.append(("h2", "Run it, add to it"))
-    B.append(("code", "uv run --locked python bench/conversational/hlk/run.py corpus\n"
-                      "uv run --locked python bench/conversational/hlk/run.py verify\n"
-                      "uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3"))
+    B.append(("code", "uv run --locked --extra local python bench/conversational/hlk/run.py corpus\n"
+                      "uv run --locked --extra local python bench/conversational/hlk/run.py verify\n"
+                      "uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3"))
     B.append(("p", "An adapter implements start, say, type, key, events, speech, versions, spend and stop "
                    "(bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. "
                    "A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and "
@@ -463,6 +536,7 @@ TEMPLATE = """<!doctype html>
   <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
     <a href="../../features/">Features</a>
+    <a href="../../docs/">Docs</a>
     <a href="../" aria-current="true">Benchmarks</a>
     <a href="../../roadmap/">Roadmap</a>
     <a href="../../contribute/">Contribute</a>

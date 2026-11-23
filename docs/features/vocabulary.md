@@ -14,8 +14,15 @@ ears, from the voice model's context, and from the clean-up rewrite.
 - **The Dictionary sheet**: Settings → Dictionary on the page, Settings menu → Dictionary in the app (same sheet, same
   copy; a unit test checks the copy matches word for word). It lists each term with its language and where it came
   from, lets you add, edit and delete, and offers names found in your sessions to add or ignore.
-- **Learning off**: the pref `dictionary.learn` (both clients). It stops learning and suggestions. Names from session
-  notes still reach the ears as hints.
+- **Learning off**: the pref `dictionary.learn` (both clients), "Learn from my fixes" in the sheet. It stops learning
+  and suggestions. Names from session notes still reach the ears as hints.
+
+Where:
+
+- **Voice:** no phrase. A fix is typed, and a typed turn teaches nothing (below).
+- **Page:** click a line you said to fix it; Settings → Dictionary → Dictionary… for the sheet.
+- **iPhone app:** tap a line you said to fix it; Settings (••• at the top) → Dictionary.
+- **Mac app:** click a line you said to fix it; Settings (••• at the top, or ⌘,) → Dictionary.
 
 A new term applies from the next call. Restarting recognition mid-call was tried: the restart came one utterance late,
 so it was not shipped.

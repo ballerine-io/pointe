@@ -274,6 +274,14 @@ details.more-detail > div { padding: 8px 0 28px; }
 .term .p { color: #958D88; user-select: none; }
 .term .c { color: #958D88; }
 .term + .small { margin-top: 12px; }
+.tablist { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.tablist [role=tab] { font: inherit; font-weight: 500; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+                      border: 1px solid var(--line-strong); background: transparent; color: var(--body); }
+.tablist [role=tab][aria-selected=true] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.tablist [role=tab]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tabpanel + .tabpanel { margin-top: 32px; }
+.tabpanel[hidden] { display: none; }
+.tabs + .small { margin-top: 24px; }
 
 /* A scene: one panel in three parts that move together: the moment, what is said, and what the sessions do. */
 .scene { margin-top: 40px; }
@@ -282,7 +290,13 @@ details.more-detail > div { padding: 8px 0 28px; }
                border-radius: 12px; overflow: hidden; background: var(--card); }
 .scene-panel > * + * { border-left: 1px solid var(--line); }
 .scene-clip { position: relative; background: #0A0400; min-height: 100%; }
-.scene-clip img, .scene-clip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scene-clip img, .scene-clip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 58% 50%; }
+/* The one control: on the clip, so it is seen with the scene. A triangle to play, a square while the sound runs. */
+.scene-play { position: absolute; left: 14px; bottom: 14px; z-index: 1; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px 0 14px;
+              border: 0; border-radius: 99px; background: #F7F2F0; color: #0A0400; font: 600 15px/1 var(--font-sans); cursor: pointer; white-space: nowrap;
+              box-shadow: 0 6px 20px rgba(10, 5, 0, .35); }
+.scene-play i { width: 0; height: 0; border-left: 12px solid currentColor; border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+.scene-play.is-playing i { width: 12px; height: 12px; border: 0; background: currentColor; border-radius: 2px; }
 .scene-talk, .scene-agents { padding: 20px 22px 22px; }
 .scene-lines { margin-top: 14px; display: grid; gap: 10px; align-content: start; height: 410px; overflow: hidden; position: relative; scroll-behavior: smooth; }
 .is-whole .scene-lines { height: auto; }
@@ -324,7 +338,7 @@ details.more-detail > div { padding: 8px 0 28px; }
 @keyframes sc-changed { from { background: var(--raised); } to { background: transparent; } }
 .scene-foot { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); gap: 16px 0; align-items: center; margin-top: 18px; }
 button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor: pointer; white-space: nowrap; }
-.scene-controls { display: flex; align-items: center; gap: 16px; padding-right: 22px; }
+.scene-controls { display: flex; align-items: center; padding-right: 22px; }
 .scene-bar { flex: 1; height: 2px; background: var(--line); }
 .scene-bar i { display: block; height: 100%; width: 0; background: var(--orange); }
 .scene-out { display: flex; align-items: baseline; gap: 14px; padding-left: 22px; }
@@ -395,6 +409,53 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
 .partners .link { text-decoration: none; }
 .partners .link:hover { text-decoration: underline; }
 #working-group { padding: 36px 0; }
+.wg-logos { flex-basis: 100%; display: grid; grid-template-columns: max-content minmax(0, 1fr) auto;
+  grid-template-areas: "label logos pause"; align-items: center; gap: 12px 28px; margin-top: 12px; }
+.wg-label { grid-area: label; margin: 0; }
+.wg-viewport { grid-area: logos; }
+/* WCAG 2.2.2: the loop moves for more than five seconds, so it has a pause. A fixed size, so nothing shifts. */
+.wg-pause { grid-area: pause; position: relative; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line-strong);
+  border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
+.wg-pause:hover { color: var(--text); }
+.wg-pause:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wg-pause::before { content: ""; position: absolute; inset: 0; margin: auto; width: 8px; height: 10px;
+  border-left: 3px solid currentColor; border-right: 3px solid currentColor; }
+.wg-pause[aria-pressed="true"]::before { width: 0; height: 0; border-style: solid; border-color: transparent;
+  border-width: 5px 0 5px 9px; border-left-color: currentColor; margin-left: 10px; }
+.wg-logos.is-paused .wg-track { animation-play-state: paused; }
+/* Ten logos to a viewport on a wide screen, four on a phone; the height is fixed, so nothing shifts as logos load. */
+.wg-viewport { container-type: inline-size; overflow: hidden; }
+.wg-track { display: flex; }
+.wg-list { display: flex; margin: 0; padding: 0; list-style: none; }
+.wg-list li { flex: 0 0 10cqi; min-width: 0; height: 44px; display: flex; align-items: center; justify-content: center;
+  padding: 0 1.2cqi; }
+@container (max-width: 640px) { .wg-list li { flex-basis: 25cqi; padding: 0 4cqi; } }
+.wg-list a { display: flex; max-width: 100%; height: 100%; align-items: center; }
+/* Width and height come from tools/working_group.py: the same area for every logo. */
+.wg-logo { display: block; max-width: 100%; margin: 0 auto; background: var(--muted); opacity: .85;
+  -webkit-mask: var(--logo) center / contain no-repeat; mask: var(--logo) center / contain no-repeat; }
+.wg-list a:hover .wg-logo, .wg-list a:focus-visible .wg-logo { background: var(--text); opacity: 1; }
+/* Fewer than six: the label and the logos as one centered row, each logo in a cell of its own width. */
+.wg-logos--static { display: flex; flex-wrap: wrap; justify-content: center; }
+.wg-static { container-type: normal; }
+.wg-static .wg-list { flex-wrap: wrap; justify-content: center; }
+.wg-static .wg-list li { flex: 0 0 auto; padding: 0 16px; }
+/* The list is there twice; moving the track by half its width puts the copy exactly where the first one started. */
+.wg-marquee { -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.wg-marquee .wg-track { width: max-content; animation: wg-scroll calc(var(--n) * 3s) linear infinite; }
+.wg-marquee:hover .wg-track, .wg-marquee:focus-within .wg-track { animation-play-state: paused; }
+@keyframes wg-scroll { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .wg-marquee { -webkit-mask: none; mask: none; }
+  .wg-marquee .wg-track { width: auto; animation: none; }
+  .wg-marquee .wg-list { flex-wrap: wrap; justify-content: center; width: 100%; }
+  .wg-marquee .wg-list[aria-hidden] { display: none; }
+  .wg-pause { display: none; }
+}
+@media (max-width: 640px) {
+  .wg-logos { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label pause" "logos logos"; }
+}
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }
@@ -416,6 +477,11 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
 .project img { border-radius: 8px; box-shadow: var(--shadow); }
 
 @media (max-width: 1080px) {
+  /* Anything a thumb presses is at least 44 px tall. */
+  .site-header nav a.gh, .copy, .o-pause { min-height: 44px; }
+  .copy { height: 44px; }
+  .footer-links a, .tiles-more .link, .partners .link, .wg a.link, a.link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+  .footer-links { gap: 0 22px; }
   .site-header nav a:not(.gh) { display: none; }
   .hero { padding: 48px 32px 36px; grid-template-columns: minmax(0, 1fr); }
   .daemon { grid-template-columns: minmax(0, 1fr); }
@@ -430,7 +496,8 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
   .cells > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .beat { grid-template-columns: minmax(0, 1fr); }
   .scene-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .scene-clip { grid-column: 1 / -1; aspect-ratio: 16 / 9; min-height: 0; }
+  .scene-clip { grid-column: 1 / -1; aspect-ratio: 5 / 2; min-height: 0; }
+  .scene-lines { height: 320px; }
   .scene-panel > .scene-talk { border-left: 0; border-top: 1px solid var(--line); }
   .scene-panel > .scene-agents { border-top: 1px solid var(--line); }
   .scene-foot { grid-template-columns: minmax(0, 1fr); }
@@ -472,14 +539,43 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
   .talk dt { padding-top: 0; }
   [data-cmd] pre { padding: 13px 16px 50px; }
   .copy { top: auto; bottom: 8px; right: 8px; }
-  .beats { gap: 26px; }
-  .scene-panel { grid-template-columns: minmax(0, 1fr); }
+  /* On a phone the whole scene, with its play button, fits one screen of a standard phone (about 390 by 660 inside
+     Safari's bars): the clip with the button on it, the two newest lines, and the sessions as a grid of two columns.
+     The pull request's card takes the grid's place when it comes. */
+  .scene { margin-top: 28px; }
+  .scene-head .h2 { font-size: 22px; line-height: 27px; margin-top: 4px; }
+  .scene-panel { grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
+  .scene-clip { aspect-ratio: 2 / 1; }
+  .scene-play { left: 10px; bottom: 10px; }
   .scene-panel > .scene-agents { border-left: 0; }
-  .scene-talk, .scene-agents { padding: 16px 16px 18px; min-height: 0; }
-  .scene-lines { height: 300px; }
-  .scene-lines span { font-size: 16px; line-height: 24px; }
+  .scene-talk { padding: 10px 14px 8px; min-height: 0; }
+  .scene-agents { padding: 8px 14px 12px; min-height: 0; position: relative; }
+  .scene-talk > .kicker, .scene-agents > .kicker { display: none; }
+  .scene-lines { height: 98px; margin-top: 0; gap: 6px; }
+  .scene-lines span { font-size: 15px; line-height: 21px; }
+  .scene-lines li.move { margin-top: 2px; padding-top: 6px; }
+  .sc-mode { margin-top: 0; }
+  .sc-mode span { font-size: 13px; line-height: 20px; padding: 2px 9px; }
+  .scene-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 4px; min-height: 102px; }
+  .scene-rows li { grid-template-columns: 8px auto minmax(0, 1fr); column-gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .scene-rows li:last-child { border-bottom: 1px solid var(--line); }
+  .sc-g, .sc-ag, .sc-tag { display: none; }
+  .scene-rows b { grid-column: 2; font-size: 14px; }
+  .sc-what { grid-column: 3; grid-row: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  .sc-pr { position: absolute; left: 14px; right: 14px; bottom: 12px; margin: 0; padding: 7px 10px 8px; background: var(--card); }
+  .sc-pr .title { font-size: 13px; line-height: 18px; }
+  .sc-pr dl { margin-top: 2px; gap: 0; }
+  .sc-pr dl div { grid-template-columns: 62px minmax(0, 1fr); }
+  .sc-pr dt, .sc-pr dd { font-size: 12.5px; line-height: 17px; }
+  .scene-foot { margin-top: 10px; }
   .scene-out { flex-direction: column; gap: 4px; }
   .scene-controls { padding-right: 0; }
+  /* The day's beats are cards to swipe through, one at a time: each is its clip, its screen and a few lines. */
+  .beats { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -18px; padding: 0 18px 10px; overscroll-behavior-x: contain; }
+  .beat { flex: 0 0 86%; scroll-snap-align: center; align-content: start; gap: 14px; }
+  .beat-copy .small { display: none; }
+  .beat-copy .h2 { font-size: 22px; line-height: 27px; margin-top: 6px; }
+  .beat-copy .body { margin-top: 8px; }
   .beat-frame { border-radius: 10px; }
   .beat-ui { margin-top: -19%; }
   .story { padding: 44px 0; }
@@ -509,3 +605,8 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .site-header nav, .copy, .skip { display: none !important; }
 }
+
+/* The apps' App Store status: a plain line in a pill, no store artwork and no link, until there is a listing */
+.store-soon { display: inline-flex; align-items: center; gap: 7px; margin: 2px 0; padding: 1px 10px; border: 1px solid var(--line-strong);
+              border-radius: 999px; font: 500 12.5px/20px var(--font-sans); color: var(--text); white-space: normal; }
+.store-soon::before { content: ""; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--orange); }

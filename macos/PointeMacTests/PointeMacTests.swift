@@ -71,17 +71,75 @@ final class PointeMacTests: XCTestCase {
         XCTAssertEqual(session.needCount, 0)
     }
 
+    /// Before Pointe runs, the window is the setup guide and has no call screen: Settings and About open on the guide
+    /// itself (its words send people to Settings, Model keys); the other commands wait for the call screen.
+    func testTheSetupGuideOpensSettingsAndAbout() {
+        XCTAssertFalse(AppModel.shared.ready, "a test host finds no Pointe on this Mac")
+        XCTAssertEqual(MacSetupSheet(.settings), .settings)
+        XCTAssertEqual(MacSetupSheet(.about), .about)
+        for command in [MacSession.Command.sessions, .newSession, .brainDump, .meeting, .type, .briefing, .machines, .phone, .nightShift] {
+            XCTAssertNil(MacSetupSheet(command), "\(command)")
+        }
+    }
+
+    /// A restart from Settings keeps the call screen; a daemon found stopped shows the guide, with Start.
+    func testARestartKeepsTheCallScreen() {
+        XCTAssertTrue(AppModel.showsCall(daemon: .starting, restarting: true, demo: false, live: false))
+        XCTAssertTrue(AppModel.showsCall(daemon: .stopped, restarting: true, demo: false, live: false))
+        XCTAssertFalse(AppModel.showsCall(daemon: .stopped, restarting: false, demo: false, live: false))
+        XCTAssertFalse(AppModel.showsCall(daemon: .failed("no"), restarting: true, demo: false, live: false), "a failed start says why on the guide")
+        XCTAssertTrue(AppModel.showsCall(daemon: .running, restarting: false, demo: false, live: false))
+    }
+
+    /// The setup guide's slash commands never wrap after their slash.
+    func testASlashCommandStaysWhole() {
+        let line = SetupPanel.unbroken("Start it here, or run /pointe:voice in a session. See docs/setups.md.")
+        XCTAssertEqual(line, "Start it here, or run /\u{2060}pointe:voice in a session. See docs/setups.md.")
+        XCTAssertEqual(SetupPanel.unbroken("/pointe:stop"), "/\u{2060}pointe:stop")
+    }
+
     /// Every menu command has a key, and no two share one (docs/design/parity.md, "Keys").
     func testTheMenusWordsAreTheSheetsTitles() {
         XCTAssertEqual(MacMenu.newSession, "New Session")
         XCTAssertEqual(MacMenu.sessions, "Sessions and Mode")
         XCTAssertEqual(MacMenu.meeting, "Start a Meeting")
-        XCTAssertEqual(MacMenu.nightShift, NightShiftCopy.title, "the ledger's own title, as on the page and the phone")
+        XCTAssertEqual(MacMenu.nightShift, "Night Shift", "the ledger's own title, in a menu's title case")
+    }
+
+    /// A menu item is in title case (the Mac's own menus are): "Hang up" next to "Start a Meeting" read as a mistake.
+    func testMenuItemsAreInTitleCase() {
+        XCTAssertEqual(MacMenu.title("Hang up"), "Hang Up")
+        XCTAssertEqual(MacMenu.title("Brain dump"), "Brain Dump")
+        XCTAssertEqual(MacMenu.title("Open the page"), "Open the Page")
+        XCTAssertEqual(MacMenu.title("Show call bubble during calls"), "Show Call Bubble During Calls")
+        XCTAssertEqual(MacMenu.title("Type instead of talking"), "Type Instead of Talking")
+        XCTAssertEqual(MacMenu.title("Pair a phone…"), "Pair a Phone…")
+        XCTAssertEqual(MacMenu.title("a new session"), "A New Session", "the first word always")
+        XCTAssertEqual(MacMenu.title("Review"), "Review")
+        XCTAssertEqual(MacMenu.help, "Pointe Help")
+        XCTAssertEqual(MacMenu.helpURL.host, "github.com", "the docs, on a host the egress allowlist names")
     }
 
     // MARK: the call bubble
 
     /// The bubble is the call's: while one is up or being placed, and with none only when pinned. Off is off.
+    /// On the setup guide (no Pointe running) Settings… and About Pointe did nothing: there was no call screen to open
+    /// their sheets. Those two open over the guide; the rest need Pointe and wait for it.
+    func testSettingsAndAboutOpenOnTheSetupGuide() {
+        XCTAssertTrue(AppModel.setupAnswers(.settings))
+        XCTAssertTrue(AppModel.setupAnswers(.about))
+        for command in [MacSession.Command.sessions, .newSession, .brainDump, .meeting, .type, .briefing, .machines, .phone, .nightShift,
+                        .approve, .deny] {
+            XCTAssertFalse(AppModel.setupAnswers(command), "\(command)")
+        }
+    }
+
+    /// Help opens Pointe's Mac page; macOS's own item looked for a help book the app does not have.
+    func testHelpOpensTheMacAppsPage() {
+        XCTAssertEqual(MacMenu.help, "Pointe Help")
+        XCTAssertEqual(MacMenu.helpURL.absoluteString, "https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md")
+    }
+
     func testTheBubbleShowsOnACallOrWhenPinned() {
         XCTAssertFalse(BubbleRule.shows(on: true, pinned: false, phase: .off), "no call: no bubble saying Not connected")
         for phase in [MacSession.Phase.connecting, .live, .reconnecting] { XCTAssertTrue(BubbleRule.shows(on: true, pinned: false, phase: phase)) }
@@ -113,6 +171,13 @@ final class PointeMacTests: XCTestCase {
         XCTAssertEqual(heard.text, "run the checkout tests", "on a call an old reason is gone")
         XCTAssertTrue(heard.keepsEnd)
         XCTAssertEqual(BubbleRule.detail(problem: nil, phase: .off, hearing: "", session: nil).text, MacCopy.appName)
+    }
+
+    /// Heard words that do not fit lose whole words from their start, never half of one.
+    func testHeardWordsAreCutAtAWord() {
+        XCTAssertEqual(BubbleRule.tails("ask river lantern whether"), ["ask river lantern whether", "…river lantern whether", "…lantern whether", "…whether"])
+        XCTAssertEqual(BubbleRule.tails("retry"), ["retry"])
+        XCTAssertEqual(BubbleRule.tails(""), [""])
     }
 
     /// A call the person placed that ended with a reason opens the window, where Connect says the reason and its fix;

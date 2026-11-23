@@ -75,12 +75,115 @@ final class LayoutUITests: XCTestCase {
         for (a, b) in zip(controls, controls.dropFirst()) {
             XCTAssertLessThanOrEqual(a.maxX, b.minX + 0.5, "the bar's controls do not run into each other")
         }
-        // The card is taller than the room left: it scrolls above the bar instead of pushing the header off the screen.
-        XCTAssertTrue(app.buttons["Approve"].exists && app.buttons["Deny"].exists, "the request is there")
-        text(app, "needs approval").swipeUp()
-        XCTAssertTrue(app.buttons["Approve"].isHittable, "and one swipe on the card brings Approve up")
-        XCTAssertLessThanOrEqual(app.buttons["Approve"].frame.maxY, app.buttons["micRing"].frame.minY, "above the bar")
-        onScreen(app, app.buttons["Settings"], "the menu, after the swipe")
+        // The card is taller than the room left: it scrolls above the bar, resting on its buttons, and never pushes the
+        // header off the screen. A swipe to find Approve was QA round 5's finding 1.
+        answerInReach(app)
+        onScreen(app, app.buttons["Settings"], "the menu")
+    }
+
+    private func answerInReach(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        for name in ["Approve", "Deny"] {
+            XCTAssertTrue(app.buttons[name].waitForExistence(timeout: 5), "\(name) is there", file: file, line: line)
+            onScreen(app, app.buttons[name], name, file: file, line: line)
+            XCTAssertTrue(app.buttons[name].isHittable, "\(name) takes a tap without a swipe", file: file, line: line)
+            XCTAssertLessThanOrEqual(app.buttons[name].frame.maxY, app.buttons["micRing"].frame.minY, "\(name) is above the bar",
+                                     file: file, line: line)
+        }
+    }
+
+    /// At accessibility XL every card that answers keeps its buttons in reach: the request, a long one, and a conflict.
+    func testTheAnswerButtonsNeedNoSwipeAtAccessibilityXL() {
+        for screen in ["request", "longRequest", "longNames"] {
+            let app = launch(screen, ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"])
+            answerInReach(app)
+            onScreen(app, app.buttons["Settings"], "the menu, on \(screen)")
+        }
+        let app = launch("conflict", ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"])
+        let dismiss = app.buttons["Dismiss"]
+        XCTAssertTrue(dismiss.waitForExistence(timeout: 5))
+        onScreen(app, dismiss, "the conflict's Dismiss")
+        XCTAssertTrue(dismiss.isHittable, "Dismiss takes a tap without a swipe")
+    }
+
+    /// Drive mode at the largest type: the header stays under the status bar and the bar stays on the screen. Before,
+    /// Hang up was at y=787 on a 667-point screen and no swipe reached it.
+    func testDriveModeKeepsTheHeaderAndTheBarOnTheScreenAtLargeType() {
+        for size in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXL", "UICTContentSizeCategoryAccessibilityXXXL"] {
+            let app = launch("drive", ["-UIPreferredContentSizeCategoryName", size])
+            XCTAssertTrue(app.descendants(matching: .any)["driveLine"].firstMatch.waitForExistence(timeout: 10))
+            onScreen(app, app.buttons["Settings"], "the menu at \(size)")
+            onScreen(app, app.buttons["driveButton"], "the Drive switch at \(size)")
+            for name in ["hangUp", "micRing", "Sessions"] {
+                onScreen(app, app.buttons[name], "\(name) at \(size)")
+                XCTAssertTrue(app.buttons[name].isHittable, "\(name) takes a tap at \(size)")
+            }
+        }
+    }
+
+    /// The empty stage at accessibility XL with the Mac unreachable: drawn in the stage, not over the header, and Try
+    /// again in reach.
+    func testMacNotReachableStaysInTheStageAtAccessibilityXL() {
+        let app = XCUIApplication()
+        app.launchEnvironment["POINTE_PAIR"] = "pointe://pair?v=1&host=127.0.0.1&port=1&fp=\(String(repeating: "ab", count: 32))&key=\(String(repeating: "k", count: 40))"
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        let button = app.buttons["connectButton"]
+        XCTAssertTrue(NSPredicate(format: "label == %@", "Try again").wait(for: button, timeout: 20))
+        onScreen(app, button, "Try again")
+        XCTAssertTrue(button.isHittable, "Try again takes a tap")
+        onScreen(app, app.buttons["Settings"], "the menu")
+        let line = app.descendants(matching: .any)["statusLine"].firstMatch
+        if line.exists, app.staticTexts["connectTitle"].isHittable {
+            XCTAssertGreaterThanOrEqual(app.staticTexts["connectTitle"].frame.minY, app.buttons["Settings"].frame.maxY, "the title is under the header")
+        }
+        XCTAssertFalse(app.buttons["Type"].isEnabled, "with no call, Type waits for one")
+    }
+
+    /// The pairing screen at the largest type scrolls: Pair and Try a demo were below the screen, out of reach, and the
+    /// demo is App Review's only way in.
+    func testThePairingScreenScrollsToItsButtonsAtTheLargestType() {
+        let app = XCUIApplication()
+        app.launchEnvironment["POINTE_FORGET"] = "1"
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        let demo = app.buttons["tryDemo"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 15), "the pairing screen")
+        let bottom = app.windows.firstMatch.frame.maxY
+        for _ in 0..<6 where !(demo.isHittable && demo.frame.maxY <= bottom) { app.swipeUp(velocity: .slow) }
+        XCTAssertTrue(demo.isHittable, "Try a demo is reached by scrolling")
+        onScreen(app, demo, "Try a demo")
+        XCTAssertTrue(app.buttons["Pair"].exists)
+        demo.tap()
+        XCTAssertTrue(app.buttons["micRing"].waitForExistence(timeout: 10), "and it opens the demo call")
+    }
+
+    /// At large type the command's box gives up its height first: Deny and Approve are on the screen without a scroll.
+    /// (On a 4.7-inch phone the card's own words outgrow the dock at these sizes: there the card scrolls, as above.)
+    func testAtLargeTypeDenyAndApproveNeedNoScroll() throws {
+        for screen in ["request", "longRequest"] {
+            let app = launch(screen, ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"])
+            if app.windows.firstMatch.frame.height < 700 { throw XCTSkip("a 4.7-inch phone: the card scrolls") }
+            for name in ["Deny", "Approve"] {
+                XCTAssertTrue(app.buttons[name].waitForExistence(timeout: 5), "\(screen): \(name)")
+                XCTAssertTrue(app.buttons[name].isHittable, "\(screen): \(name) can be tapped without scrolling")
+                XCTAssertLessThanOrEqual(app.buttons[name].frame.maxY, app.buttons["micRing"].frame.minY, "\(screen): \(name) is above the bar")
+            }
+            XCTAssertLessThan(app.buttons["Approve"].frame.height, 90, "\(screen): Approve is one line, not broken inside the word")
+            app.terminate()
+        }
+    }
+
+    /// Fix it at large text shows every word of what was heard: cut to one line, the text the person is there to check
+    /// ended in an ellipsis.
+    func testFixItShowsAllOfWhatWasHeardAtLargeType() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-demo", "edit", "-demoEnglish", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        let heard = app.staticTexts["fixHeard"], kicker = app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "heard")).firstMatch
+        XCTAssertTrue(heard.waitForExistence(timeout: 20), "the Fix it sheet")
+        XCTAssertGreaterThan(heard.frame.height, kicker.frame.height * 1.8, "the heard words wrap instead of being cut to one line")
+        let title = app.navigationBars["Fix it"].staticTexts["Fix it"]
+        XCTAssertGreaterThan(title.frame.height, 22, "the sheet's title grows with the text too, not fixed at 17 points")
     }
 
     /// A command of nine lines scrolls in its own box: Deny and Approve stay where the thumb is.
@@ -148,9 +251,23 @@ final class LayoutUITests: XCTestCase {
     func testALongNameOnTheRequestCardHasTheCardsWidthAtTheLargestType() {
         let app = launch("longNames", ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
         let name = text(app, "idempotency-keys-for-refunds needs approval")
-        let badge = app.descendants(matching: .any)["runs on Codex"].firstMatch
+        // the card's own badge: the session strip's agent mark has the same label
+        let badge = app.descendants(matching: .any)["requestAgent"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 10) && badge.exists, "the card and its badge")
         XCTAssertGreaterThanOrEqual(badge.frame.minY, name.frame.maxY - 1, "the badge is under the name, not beside it")
+    }
+
+    /// A long session name at the largest sizes made the card taller than the dock even with the command at two lines:
+    /// only the tops of Deny and Approve showed. Now what is above them scrolls inside the card, and they stay whole.
+    func testALongNameAtTheLargestTypeLeavesDenyAndApproveWhole() {
+        let app = launch("longNames", ["-demoEnglish", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"])
+        for name in ["Deny", "Approve"] {
+            let button = app.buttons[name]
+            XCTAssertTrue(button.waitForExistence(timeout: 10), name)
+            XCTAssertTrue(button.isHittable, "\(name) can be tapped without scrolling")
+            XCTAssertGreaterThan(button.frame.height, 40, "\(name) is whole, not its top edge")
+            XCTAssertLessThanOrEqual(button.frame.maxY, app.buttons["micRing"].frame.minY, "\(name) is above the bar")
+        }
     }
 
     /// The header's round buttons are drawn at 36 points and take a 44-point touch: a tap just off the circle still lands.

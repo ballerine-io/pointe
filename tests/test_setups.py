@@ -138,6 +138,15 @@ def test_every_number_is_in_the_file_it_cites(s):
         assert number in costs, f"{s.id}: ${number} is not in docs/benchmarks.md"
 
 
+def test_a_voice_start_time_from_the_voice_benchmark_says_it_is_the_voice_alone():
+    """tts_bench times the voice by itself: 213 ms. In a call the voice's first audio waits on the network and the
+    machine, and came later, so the table may not read as if a caller hears it that soon."""
+    timed = [(s.id, claim) for s in setups.SETUPS for claim, source in s.speed if "mouth table" in source]
+    assert timed
+    for setup_id, claim in timed:
+        assert "voice benchmark" in claim and "the voice alone, not a call" in claim, f"{setup_id}: {claim}"
+
+
 def test_no_setup_is_called_best_and_the_brain_tie_is_said():
     for s in setups.SETUPS:
         assert "best" not in s.name.lower()
@@ -162,6 +171,28 @@ def test_the_mac_apps_setup_menu_is_this_table():
         [(s.id, s.name, s.keys, s.optional, s.local, s.short, s.pick_for) for s in setups.SETUPS]
 
 
+def test_the_openai_setup_says_its_ears_take_english_only():
+    """OpenAI's realtime ears misheard mixed Hebrew and English ("The speedlyvavakasha, ...") with or without a language
+    set, where Soniox's took both. The page, the apps and the docs must say so before someone picks it."""
+    s = setups.BY_ID["openai"]
+    assert "English speech only" in s.short and "English speech only" in s.needs
+    assert "Needs headphones; English speech only" in setups.table()
+
+
+def test_the_local_setups_disk_figures_count_the_libraries_too():
+    """`pointe setup voice-local` installs the local libraries (bin/pointe: 1.1 GB on disk) and then 2.0 GB of models."""
+    install = " ".join((ROOT / "docs" / "install.md").read_text().split())
+    libs = float(re.search(r"the libraries below are ([\d.]+) GB on disk", (ROOT / "bin" / "pointe").read_text())[1])
+    voice = float(re.search(r'"Voice stays on your Mac" adds ([\d.]+) GB of models', install)[1])
+    full = float(re.search(r'"Fully local" adds ([\d.]+) GB, and a ([\d.]+) GB text-model server', install)[1])
+    server = float(re.search(r'"Fully local" adds [\d.]+ GB, and a ([\d.]+) GB text-model server', install)[1])
+    want = f"about {round(libs + voice)} GB of disk"
+    assert want in setups.BY_ID["voice-local"].needs
+    assert want in " ".join((ROOT / "docs" / "features" / "voice-stays-local.md").read_text().split())
+    assert f"| Voice stays on your Mac | an Apple-silicon Mac, {want}," in install
+    assert f"about {round(libs + full + server)} GB of disk" in setups.BY_ID["local"].needs
+
+
 def test_the_page_lists_the_setups_from_the_daemon():
     page = (ROOT / "ui.html").read_text()
     assert "k.setups" in page and "pointe setup " in page and 'id="pref-setups"' in page
@@ -182,6 +213,20 @@ def test_setup_asks_one_yes_or_no_and_shows_the_setups_only_when_asked():
         assert f"Step {n} of 4: {name}." in text
     assert "Step 5" not in text and "of 7" not in text
     assert setups.DEFAULT == "free"
+
+
+def test_the_doctor_step_reads_back_the_verdict_not_the_first_line():
+    """bin/voice-doctor prints "ok uv", the node line and, on a first run, about 40 lines of download before the
+    doctor's verdict, so "its first line" read back "ok uv"."""
+    import doctor
+    text = " ".join((ROOT / "plugin" / "commands" / "setup.md").read_text().split())
+    step = text[text.index("Step 2 of 4"):text.index("Step 3 of 4")]
+    assert "first line" not in step
+    ready = doctor.verdict(0, {"needed": [], "fix": None}, None, [])[0]
+    not_ready = doctor.verdict(1, {"needed": ["gemini"], "fix": "gemini"}, None, [])
+    assert ready.startswith("Pointe is ready") and not_ready[0].startswith("Pointe is not ready")
+    assert not_ready[1].startswith("Fix:")
+    assert '"Pointe is ready" or "Pointe is not ready"' in step and '"Fix:"' in step
 
 
 def test_the_key_step_is_one_command_that_opens_checks_asks_again_and_restarts():

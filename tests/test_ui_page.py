@@ -11,6 +11,7 @@ import re
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -105,7 +106,7 @@ async def _render(checks: str, sizes: tuple[int, ...] = ()):
     work = Path(tempfile.mkdtemp(prefix="pointe-page-test-"))
     (work / "page.html").write_text(html)
     port = _free_port()
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={port}", f"--user-data-dir={work / 'profile'}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={port}", f"--user-data-dir={work / 'profile'}",
                                "--no-first-run", "--window-size=1440,900", "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         import urllib.request
@@ -231,10 +232,10 @@ def test_dock_keeps_the_mic_centred_and_fits_at_every_width():
         assert r["centred"] and r["fits"] and r["hangupHidden"], (w, r)
     assert got[1440]["inMore"] == [] and not got[1440]["more"] and got[1440]["labelsShown"]
     assert got[1024]["labelsShown"]  # they fit there (tests/test_ui_layout.py measures it)
-    assert not got[760]["labelsShown"] and not got[390]["labelsShown"]
+    assert got[760]["labelsShown"] and got[390]["labelsShown"]  # the app's four, labelled (tests/test_ui_layout.py)
     for w in (760, 390):
-        assert got[w]["more"] and got[w]["inMore"] == ["listen", "meetbtn", "briefbtn", "chlbtn", "whisperbtn", "polishrow"], (w, got[w])  # and Clean up my words, with its label
-        assert "sessbtn" in got[w]["inDock"] and "typebtn" in got[w]["inDock"] and "mic" in got[w]["inDock"]
+        assert got[w]["more"] and got[w]["inMore"] == ["meetbtn", "briefbtn", "chlbtn", "whisperbtn", "polishrow"], (w, got[w])  # and Clean up my words, with its label
+        assert [i for i in got[w]["inDock"] if not i.startswith("micmode")] == ["listen", "typebtn", "mic", "sessbtn", "hangup"], (w, got[w])
     wide = [i for i in got[1440]["inDock"] if i]
     assert wide.index("listen") < wide.index("mic") < wide.index("chlbtn") < wide.index("sessbtn")
 
@@ -249,7 +250,7 @@ CONNECT_STATES = """(async () => {
                          button: q('connectbtn')?.hidden === false ? t('connectbtn-label') : null, busy: !!q('connectbtn')?.classList.contains('busy'),
                          pill: q('topconnect').hidden ? null : t('topconnect'), problem: t('problem'),
                          mic: [q('mic').getAttribute('aria-label'), q('mic').title, q('mic').getAttribute('aria-disabled'), t('keyhint')],
-                         hint: t('connect-hint'), phone: q('connect-phone')?.hidden === false});
+                         hint: t('connect-hint'), phone: q('connect-phone')?.hidden === false, sub: t('sub')});
     const out = {};
     out.idle = snap();
     // the mic with no call: it does not dial, it points at Connect
@@ -257,7 +258,10 @@ CONNECT_STATES = """(async () => {
     ringTap({detail: 1}); out.ringNoCall = {dialled, nudged: q('connectbtn').classList.contains('nudge'), focused: document.activeElement.id};
     connectTap(); out.connectDials = dialled; startCall = realStart;
     // a Mac without the phone's listener: the panel says so
-    window.__status = {...window.__status, phone_listener: false}; await refresh(); out.noListener = snap();
+    window.__status = {...window.__status, phone_listener: false}; await refresh(); out.noListenerNoPhone = snap();
+    window.__status = {...window.__status, phones: {paired: [{id: 'p1', name: 'Test iPhone', online: false, paired_at: 1, last_seen: 2}]}};
+    await refresh(); out.noListener = snap();
+    window.__status = {...window.__status, phones: {paired: []}};
     window.__status = {...window.__status, phone_listener: true}; await refresh();
     call.state = 'connecting'; showState(); out.connecting = snap(); call.state = 'off';
     // (a) the Mac stops answering
@@ -270,7 +274,7 @@ CONNECT_STATES = """(async () => {
     micError = 'The browser blocked the microphone. Allow it for this page, then press Connect.'; showState(); out.micDenied = snap(); micError = '';
     // a first dial that never opened
     callNote = 'The call did not connect.'; showState(); out.failed = snap(); callNote = '';
-    // live: the panel loses its button, the pill hangs up, the mic is a mic
+    // live: the panel loses its button, the pill steps aside for the dock's Hang up, the mic is a mic
     window.__status = {...window.__status, connected: true}; call.state = 'live'; call.heard = Date.now(); await refresh(); out.live = snap();
     // with a conversation on screen the top bar carries the reason and the pill is the way back
     call.state = 'off'; window.__status = {...window.__status, connected: false, talk: [{id: 1, who: 'user', text: 'hello'}, {id: 2, who: 'assistant', text: 'hi'}]};
@@ -293,21 +297,169 @@ def test_connect_is_its_own_control_and_says_why_it_failed():
     assert got["ringNoCall"] == {"dialled": 0, "nudged": True, "focused": "connectbtn"}
     assert got["connectDials"] == 1
     assert got["noListener"]["phone"] is True
+    assert got["noListenerNoPhone"]["phone"] is False  # a newcomer with no phone paired is not told about one
     assert got["connecting"]["title"] == "Connecting to studio…" and got["connecting"]["button"] == "Cancel" and got["connecting"]["busy"]
     assert got["connecting"]["state"] == "connecting" and got["connecting"]["mic"][3] == "Connecting to studio…"
     un = got["unreachable"]
     assert un["title"] == "Pointe is not answering" and un["button"] == "Try again" and un["bad"]
-    assert un["why"].startswith("Pointe on this Mac is not answering") and "pointe doctor" in un["why"]
+    # a newcomer's words: no hashed host name, no terminal; the Mac app's way to start it (MacCopy.daemonDown)
+    assert un["why"] == "Pointe on this Mac is not answering. Start it again: /pointe:voice in a Claude Code session, or open the Pointe app.", un
     assert un["problem"] == "", un  # the panel carries it, not the top bar as well
     npd = got["notPaired"]
-    assert npd["title"] == "Not paired" and npd["state"] == "off" and npd["button"] == "Try again"
+    # nothing on screen that cannot work: no Try again (the key stays refused), no sessions or "press Connect" from the
+    # last status this page was allowed to read
+    assert npd["title"] == "Not paired" and npd["state"] == "off" and npd["button"] is None and npd["pill"] is None, npd
+    assert npd["sub"] == "" and npd["hint"] == "", npd
     assert npd["why"] == "This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open."
-    assert got["back"]["title"] == "Not connected" and got["back"]["button"] == "Connect"
+    assert got["back"]["title"] == "Not connected" and got["back"]["button"] == "Connect" and "press connect" in got["back"]["sub"].lower(), got["back"]
     assert got["micDenied"]["why"].startswith("The browser blocked the microphone") and got["micDenied"]["button"] == "Try again"
     assert got["failed"]["why"] == "The call did not connect." and got["failed"]["button"] == "Try again"
     live = got["live"]
-    assert live["state"] == "live" and live["button"] is None and live["pill"] == "Hang up"
+    assert live["state"] == "live" and live["button"] is None and live["pill"] is None  # one Hang up: the dock's, as in the apps
     assert live["mic"] == ["Mute", "Mute", "false", "Space or AirPods to mute"] and live["hint"] == "Or type below · Press Space to mute"
     dropped = got["dropped"]
     assert not dropped["panelShown"] and dropped["pill"] == "Try again" and dropped["problem"] == "The call did not connect."
     assert "hang" not in dropped["pillClass"]
+
+
+def test_a_phone_page_that_is_not_paired_says_how_to_pair_it_again():
+    """On the phone's browser /pointe:open is no help: the phone is paired again with a new link from the Mac."""
+    block = PAGE[PAGE.index("const CONNECT_COPY = {"):]
+    assert "notPairedBrowser: 'This phone is no longer paired with this Mac. On the Mac, run pointe pair link and open the new address here.'" in block
+    assert "if (denied) return remotePage ? CONNECT_COPY.notPairedBrowser : CONNECT_COPY.notPaired;" in PAGE
+
+
+@needs_chrome
+def test_machines_where_this_page_cannot_invite_shows_no_empty_row():
+    """Over the phone's listener the Mac refuses invites and revokes (hub_nodes.owner): the button row with Invite
+    hidden was an empty bordered strip."""
+    got = asyncio.run(_render("""(async () => {
+        window.__status = {...window.__status, can_invite: false, machines: [{id: 'studio', name: 'studio', here: true, os: 'macos', online: true, sessions: 1},
+          {id: 'devbox', name: 'devbox', here: false, os: 'linux', online: true, sessions: 2, rtt_ms: 30}]};
+        await refresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
+        const row = document.getElementById('mach-invitebtn').parentElement;
+        return {row: row.getBoundingClientRect().height, display: getComputedStyle(row).display};
+    })()"""))
+    assert got["display"] == "none" or got["row"] == 0, got
+
+
+def test_a_page_over_the_phones_listener_offers_no_revoke():
+    """The Mac answers a revoke from there with a bare 403: the page does not offer one, and says where it is done."""
+    assert "if (!m.here && canInvite && !remotePage) {" in PAGE
+    assert "Invite or revoke a machine on the Mac's own page or in the app." in PAGE
+
+
+def test_connect_your_phone_names_the_browser_way_until_the_app_ships():
+    """The QR is the app's (pointe://pair); docs/phone.md sends people to the phone's browser first, so Settings → Phone says how."""
+    phone = PAGE[PAGE.index('<section id="phone"'):]
+    phone = phone[:phone.index("</section>")]
+    assert "No app on the phone yet? Use its browser: in a terminal on this Mac, <b>pointe pair link</b> prints an address to open there." in phone
+
+
+@needs_chrome
+def test_a_keyboard_and_a_screen_reader_can_tell_what_is_selected_and_where_focus_is():
+    got = asyncio.run(_render("""(async () => {
+        const a = id => document.getElementById(id).getAttribute('aria-pressed');
+        window.__status = {...window.__status, mode: 'session'}; await refresh();
+        const mode = [a('m-orchestrator'), a('m-session')], role = document.getElementById('m-session').parentElement.getAttribute('role');
+        openSettings(); await new Promise(r => setTimeout(r, 300)); settingsJump('phone'); await new Promise(r => setTimeout(r, 900));
+        const current = [...document.querySelectorAll('#set-nav button[aria-current]')].map(b => b.dataset.section);
+        return {mode, role, current};
+    })()"""))
+    assert got["mode"] == ["false", "true"] and got["role"] == "group", got  # two buttons, not tabs with no panels
+    assert got["current"] == ["phone"], got
+
+
+@needs_chrome
+def test_the_text_box_shows_a_focus_ring():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from page_rig import Browser, StubMac, fixture, free_port
+
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=2, connected=True)
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
+                return await page.eval("(() => { const t = document.getElementById('typed'); t.disabled = false; t.focus();"
+                                       " return getComputedStyle(t).outlineStyle; })()")
+        finally:
+            await stub.stop()
+    assert asyncio.run(run()) == "solid"
+
+
+def test_the_mac_page_shows_no_bare_latency_and_a_phone_page_labels_it():
+    """On the Mac's own page the call's round trip is a loopback (· 0 ms): noise. Over the phone's listener it says
+    what the number is."""
+    assert "const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : remotePage && call.rtt != null ? ` · round trip ${call.rtt} ms` : '';" in PAGE
+
+
+@needs_chrome
+def test_the_route_in_use_reads_in_use_and_carries_no_alarm():
+    """A Twingate name served on loopback is the route phones pair through: 'set up now' read as an instruction, and the
+    orange 'points at this Mac itself' sat under the Recommended route that works."""
+    got = asyncio.run(_render("""(async () => {
+        openSettings(); await new Promise(r => setTimeout(r, 300));
+        document.getElementById('ph-pick').hidden = false;
+        showRoutes({current: 'pointe.example.test', advice: '', routes: [
+          {kind: 'host', host: 'pointe.example.test', label: 'pointe.example.test', usable: true, recommended: true, current: true,
+           words: 'the private network name you set up', problem: 'It points at this Mac itself (127.0.0.1): your phone needs its own way to it.'},
+          {kind: 'wifi', host: '192.168.1.20', label: 'Wi-Fi', usable: true, recommended: false, current: false, words: 'the same Wi-Fi only',
+           problem: 'Only while the phone is on this Wi-Fi.'}]}, '');
+        return [...document.querySelectorAll('#ph-routes label')].map(l => ({title: l.querySelector('.pl').textContent,
+                                                                             problem: l.querySelector('.pp')?.textContent ?? null}));
+    })()"""))
+    assert got[0] == {"title": "pointe.example.testRecommendedin use", "problem": None}, got
+    assert got[1]["problem"] == "Only while the phone is on this Wi-Fi.", got
+
+
+@needs_chrome
+def test_mac_not_reachable_on_the_wifi_route_asks_about_the_wifi():
+    got = asyncio.run(_render("""(() => [CONNECT_COPY.unreachable('192.168.1.20:7443'), CONNECT_COPY.unreachable('studio.local:7443'),
+                                        CONNECT_COPY.unreachable('studio.example:7443')])()"""))
+    assert got[0] == got[1].replace("studio.local", "192.168.1.20") == \
+        "Can't reach your Mac at 192.168.1.20:7443. Is this phone on the same Wi-Fi as the Mac? Is the Mac awake?", got
+    assert got[2] == "Can't reach your Mac at studio.example:7443. Is Twingate or Tailscale on? Is the Mac awake?", got  # the app's words
+
+
+@needs_chrome
+def test_the_machine_invite_copies_its_join_line():
+    got = asyncio.run(_render("""(async () => {
+        window.__copied = null; navigator.clipboard.writeText = async t => { window.__copied = t; };
+        window.__status = {...window.__status, can_invite: true, machines: [{id: 'studio', name: 'studio', here: true, os: 'macos', online: true, sessions: 1}],
+                           invite: {code: 'K7Q-2PX', expires_in: 300, link: 'pointe-join://studio.example:7443/K7Q-2PX'}};
+        await refresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
+        const b = document.getElementById('mach-copy');
+        const shown = !!b && !b.hidden; if (b) b.click(); await new Promise(r => setTimeout(r, 100));
+        return {shown, copied: window.__copied, label: b && b.textContent, line: document.getElementById('mach-link').textContent};
+    })()"""))
+    assert got["shown"] and got["copied"] == got["line"] == "pointe node join 'pointe-join://studio.example:7443/K7Q-2PX'" and got["label"] == "Copied", got
+
+
+@needs_chrome
+def test_the_page_has_a_title_heading_named_fields_and_the_night_sheet_takes_focus():
+    got = asyncio.run(_render("""(async () => {
+        const h1 = document.querySelector('h1');
+        const named = id => { const e = document.getElementById(id); return e.getAttribute('aria-label') || (e.labels && e.labels[0] && e.labels[0].textContent.trim()) || ''; };
+        document.getElementById('m-night').focus();
+        await openNightShift(); await new Promise(r => setTimeout(r, 200));
+        return {h1: h1 && h1.textContent.trim(), typed: named('typed'), folders: named('pref-folders'),
+                focusInSheet: document.getElementById('nightsheet').contains(document.activeElement)};
+    })()"""))
+    assert got["h1"] == "Pointe" and got["typed"] == "Type to the voice" and got["folders"] == "Folders a new session may start in", got
+    assert got["focusInSheet"], got
+
+
+def test_copy_polish_round_4():
+    """Words a reader stumbled on: 'work for while', a bare ': No longer available.', 'Press G' on a phone."""
+    assert "work for while" not in PAGE and PAGE.count("Give your sessions work to do while you are away") == 2
+    assert "`${v.name || ''}: ${v.problem}`" not in PAGE and "name ? `${name}: ${v.problem}` : v.problem" in PAGE
+    assert '<div class="hint keyonly">Press G to let it speak. Anyone talking over it stops it.</div>' in PAGE
+    assert "@media (hover: none) { .keyonly { display: none; } }" in PAGE
+
+
+@needs_chrome
+def test_the_new_session_selects_carry_the_chevron():
+    got = asyncio.run(_render("""(() => ['new-agent', 'new-machine', 'new-folder'].map(id => getComputedStyle(document.getElementById(id)).backgroundImage))()"""))
+    assert all(g.startswith("url(") for g in got), got

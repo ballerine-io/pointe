@@ -91,8 +91,12 @@ def summarize(run_id: str, frozen: dict | None, arm_from: dict | None = None, wh
     for a, other in arm_from.items():
         allr += [r for r in rows(other) if r["arm"] == a]
     bad = lambda r: r.get("smoke") or r["outcome"] in ("invalid_out_of_tree", "error")  # noqa: E731
+    # The Pointe arms run the frozen commit. The other arms run no Pointe code: their rows may come from a run at an
+    # earlier freeze (FROZEN.json "earlier"), when only the Pointe arms were run again after Pointe changed.
+    earlier = {e["pointe_commit"] for e in (frozen or {}).get("earlier", [])}
     pub = [r for r in allr if not bad(r) and r["run_index"] == 0
-           and (not frozen or r["pointe_commit"] == frozen["pointe_commit"])]
+           and (not frozen or r["pointe_commit"] == frozen["pointe_commit"]
+                or r["arm"] not in ("pointe", "pointe-text") and r["pointe_commit"] in earlier)]
     arms = [a for a in ORDER if any(r["arm"] == a for r in allr)]
     summary = {"title": TITLE, "run_id": run_id, "frozen": frozen, "unit": "target (n = 24)",
                "excluded": {a: {"invalid_out_of_tree": sum(r["arm"] == a and r["outcome"] == "invalid_out_of_tree"
@@ -189,7 +193,8 @@ def markdown(s: dict) -> str:
             cells.append("n/a" if not v else f"{fmt(v['right_symbol'])}; wrong {fmt(v['wrong_symbol'])}")
         out.append(f"| {k} | " + " | ".join(cells) + " |")
     for a, v in s.get("superseded", {}).items():
-        out += ["", f"**{a}: {v['rows']} rows of this run superseded** by run `{v['replaced_by_run']}`: {v['why']}"]
+        out += ["", f"**{a}: {v['rows']} rows of this run superseded** by run `{v['replaced_by_run']}`: {v['why']}"
+                if v["rows"] else f"**{a}: rows from run `{v['replaced_by_run']}`**: {v['why']}"]
     out += ["", "## Excluded rows", "", "| Arm | invalid_out_of_tree | error |", "|---|---|---|"]
     for a, v in s["excluded"].items():
         out.append(f"| {a} | {v['invalid_out_of_tree']} | {v['error']} |")

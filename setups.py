@@ -27,8 +27,8 @@ NAMES = {"gemini": "Gemini", "openai": "OpenAI", "anthropic": "Anthropic", "soni
 
 WHY_KEYS = ("Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, "
             "the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other "
-            "apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API "
-            "key is billed per use: about $1 for a busy hour of talk.")
+            "apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI "
+            "key. An API key is billed per use: about $1 for a busy hour of talk.")
 
 BUSY_HOUR = ("A busy hour: 60 spoken replies, 10 session reports and the call open for the hour, by arithmetic from "
              "measured and list prices (docs/benchmarks.md, \"Cost arithmetic\"), not a metered bill.")
@@ -75,13 +75,15 @@ SETUPS = (
                   "bench/results/brain_substance.md, gpt-6-sol (v7openai)"),),
           cost="about $0.95", privacy="Speech and session text go to OpenAI.",
           pick_for="people who already pay for OpenAI",
-          short="One OpenAI key. Headphones; weakest audio result."),
+          needs="headphones; English speech only",  # its ears misheard mixed Hebrew and English, with or without a language set
+          short="One OpenAI key. Headphones, English speech only; weakest audio result."),
     Setup("two", "Two keys", ("soniox", "anthropic"),
           {"anthropic": ("brain", "reader", "checker"), "soniox": ("ears", "mouth")},
           measured=(("30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work",
                      "bench/results/combinations.md, \"Anthropic, Soniox\""),
                     ("ears 95.9% of intents, the highest measured", "docs/benchmarks.md, ears table, Soniox v6")),
-          speed=(("whole replies not measured; the brain answers in 1.8 s at the median, the voice starts in 301 ms",
+          speed=(("whole replies not measured; the brain answers in 1.8 s at the median; in the voice benchmark the voice "
+                  "starts in 301 ms (the voice alone, not a call)",
                   "docs/benchmarks.md, \"Brain and reader\" and the mouth table"),),
           cost="about $1.20", privacy="Speech goes to Soniox; session text to Anthropic.",
           pick_for="the best ears with two accounts, on laptop speakers",
@@ -96,7 +98,8 @@ SETUPS = (
                      "docs/benchmarks.md, \"Brain and reader\"")),
           speed=(("replies in 2.4 s at the median (2.0 to 2.6), the fastest measured",
                   "docs/features/voice-stays-local.md, \"Measured\""),
-                 ("the voice starts in 213 ms", "docs/benchmarks.md, mouth table")),
+                 ("in the voice benchmark the voice starts in 213 ms (the voice alone, not a call)",
+                  "docs/benchmarks.md, mouth table")),
           cost="about $1",
           privacy="Speech goes to Soniox; session text to Anthropic and Gemini (paid tier); the replies' text to "
                   "ElevenLabs.",
@@ -113,7 +116,7 @@ SETUPS = (
           cost="about $0.40 (Anthropic and Gemini)",
           privacy="No audio leaves the Mac. Your words, as text, and session text go to Anthropic (and Gemini, if set).",
           pick_for="confidential work where text may leave the Mac but your voice may not",
-          needs="an Apple-silicon Mac, about 2 GB of disk, headphones", local="voice",
+          needs="an Apple-silicon Mac, about 3 GB of disk, headphones", local="voice",
           short="One Anthropic key; ears and voice on the Mac. No audio leaves it."),
     Setup("local", "Fully local", (), {"this Mac": ("brain", "reader", "checker", "ears", "mouth")},
           measured=(("10 of 19 one-session audio checks, every approval check among them", "bench/results/combinations.md, "
@@ -220,8 +223,24 @@ def main(argv: list[str]) -> int:
           f"{' and the models on this Mac' if s.local else ''}, and no other vendor.")
     for vendor in s.keys:
         print(f"  Its {NAMES[vendor]} key: pointe key {vendor} opens the key page and a Mac window, and checks the key.")
-    print("If Pointe is running, restart it to use the setup: pointe restart.")
+    missing = _missing_keys(s)
+    if missing:
+        print(f"Not saved yet: the {' and the '.join(NAMES[v] for v in missing)} key. Save "
+              f"{'it' if len(missing) == 1 else 'them'} first ({'; '.join(f'pointe key {v}' for v in missing)}): until then "
+              "Pointe cannot start on this setup, and pointe restart keeps it running as it is.")
+    else:
+        print("If Pointe is running, restart it to use the setup: pointe restart.")
     return 0
+
+
+def _missing_keys(s: Setup) -> list[str]:
+    """The setup's keys that are neither in the environment nor in the Keychain. Empty when this cannot be told (run
+    without the project's packages, as tools/setups.py does)."""
+    try:
+        import vendors
+    except ImportError:
+        return []
+    return [v for v in s.keys if not vendors.saved(v)]
 
 
 if __name__ == "__main__":

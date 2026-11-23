@@ -8,7 +8,7 @@ if grep -qs '"hub"' "$STATE/node.json"; then  # a node (pointe node join): the p
   echo "This machine is a node: the call is on ${HUB:-the hub}. Open Pointe there, or use the phone app."
   exit 0
 fi
-[ -r "$STATE/page_key" ] || { echo "voice-open: the daemon has not started yet; run /pointe:voice in a Claude Code session" >&2; exit 1; }
+[ -r "$STATE/page_key" ] || { echo "voice-open: Pointe is not running: pointe open starts it (or /pointe:voice in Claude Code)" >&2; exit 1; }
 # The key goes only to the daemon itself: with it down, another program on the port would get it.
 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || { echo "voice-open: Pointe is not running on port $PORT" >&2; exit 1; }
 URL="http://localhost:$PORT/voice?key=$(cat "$STATE/page_key")"

@@ -7,6 +7,10 @@ import SwiftUI
 
 /// The window: the call screen once Pointe runs on this Mac (or a demo is on), the setup guide until then.
 struct MainWindow: View {
+    /// The smallest window that keeps every primary button in it: Deny and Approve, Start shift, Connect, I've stopped.
+    /// Below 560 high the cards over the bar had no room left for their buttons.
+    static let minSize = NSSize(width: 420, height: 560)
+
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -18,23 +22,25 @@ struct MainWindow: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
+            if model.ready, let note = model.versionNote {
+                Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
+                    .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
+                    .padding(.vertical, 6)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier("versionNote")
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 18)
+            }
+        }
+        .overlay(alignment: .topTrailing) {  // in the title bar's row, beside nothing: a row of its own floated over the header
             if model.ready {
-                VStack(alignment: .leading, spacing: 0) {
-                    if let note = model.versionNote {
-                        Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
-                            .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
-                            .padding(.vertical, 6)
-                            .textSelection(.enabled)
-                            .accessibilityIdentifier("versionNote")
-                    }
-                    Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
-                        .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
-                        .padding(.vertical, 4)
-                        .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
-                        .accessibilityIdentifier("talkMode")
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.horizontal, 18)
+                Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
+                    .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
+                    .frame(height: 28)
+                    .padding(.horizontal, 14)
+                    .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
+                    .accessibilityIdentifier("talkMode")
+                    .ignoresSafeArea(edges: .top)
             }
         }
         .background(PointeLook.bg)
@@ -51,7 +57,10 @@ struct SetupPanel: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Set up Pointe").font(PointeLook.display(28)).foregroundStyle(PointeLook.text).accessibilityAddTraits(.isHeader)
+                HStack(spacing: 12) {
+                    PointeLook.mark(36)
+                    Text("Set up Pointe").font(PointeLook.display(28)).foregroundStyle(PointeLook.text).accessibilityAddTraits(.isHeader)
+                }
                 step(done: model.plugin != nil, title: "The Pointe plugin",
                      detail: model.plugin.map { "Found version \($0.version)." } ?? "Install it in a terminal, then come back:") {
                     if model.plugin == nil {
@@ -97,6 +106,14 @@ struct SetupPanel: View {
         }
         .onAppear { model.refreshKeys() }
         .accessibilityIdentifier("setup")
+        .sheet(item: Binding(get: { model.setupSheet }, set: { model.setupSheet = $0 })) { sheet in
+            MacSetupSheetView(sheet: sheet, version: model.session.daemonVersion) { MacSettingsSections().environment(model) }
+        }
+    }
+
+    /// A slash command stays on one line: a word joiner after its slash, so "/pointe:voice" never wraps after the "/".
+    static func unbroken(_ text: String) -> String {
+        text.replacingOccurrences(of: #"(^|\s)/(?=\w)"#, with: "$1/\u{2060}", options: .regularExpression)
     }
 
     private func step<Action: View>(done: Bool, title: String, detail: String, @ViewBuilder action: () -> Action) -> some View {
@@ -106,10 +123,11 @@ struct SetupPanel: View {
                 .accessibilityLabel(done ? "Done" : "To do")
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(PointeLook.font(.headline)).foregroundStyle(PointeLook.text)
-                Text(detail).font(PointeLook.font(.callout)).foregroundStyle(PointeLook.muted).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                Text(Self.unbroken(detail)).font(PointeLook.font(.callout)).foregroundStyle(PointeLook.muted).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                 action()
             }
         }
         .accessibilityElement(children: .contain)
     }
 }
+

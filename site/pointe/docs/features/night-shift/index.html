@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night shift · Pointe docs</title>
+<meta name="description" content="In the evening you give Pointe tasks for your sessions. It reads the plan back, starts on your yes, keeps the sessions moving while you sleep, and the…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Night shift">
+<meta property="og:description" content="In the evening you give Pointe tasks for your sessions. It reads the plan back, starts on your yes, keeps the sessions moving while you sleep, and the…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/night-shift/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/night-shift/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="./" aria-current="page">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="night-shift">Night shift</h1>
+<p>In the evening you give Pointe tasks for your sessions. It reads the plan back, starts on your yes, keeps the sessions
+moving while you sleep, and the morning briefing leads with what was decided without you and what waits on you. Pointe
+approves nothing at night: a session that needs approval waits for you. Design and reasons:
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/night-shift.md">docs/design/night-shift.md</a>.</p>
+<p>The rules live in <code>nightshift.py</code> (what your words ask for, the only messages a shift sends, what a report means, the
+caps, the ledger, the morning report); <code>daemon.py</code> runs the shift, holds the approvals and builds the briefing.</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li>
+<p><strong>Voice:</strong> "Tonight: billing finishes the retry work and opens a PR; docs updates the changelog; start a Codex session
+  in shop to fix the flaky test." Each session gets the words you said after its name. Pointe reads the plan back
+  ("Night shift. billing: finishes the retry work and opens a PR. … Up to 8 hours and 40 messages. I approve nothing: a
+  session that needs approval waits for you. Start? Say yes or tap.") and starts on your yes. Say no, or anything else,
+  and nothing starts.</p>
+</li>
+<li>
+<p><strong>Page:</strong> Night shift under the sessions on the left. One row per task: the session (or New session, with its agent
+  and folder) and what it should get done. Set the hours, the message budget and whether blockers may alert you
+  overnight, then Start shift.</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> Settings (••• at the top) → Night shift, the same sheet. Start shift asks for Face ID, as Approve does.</p>
+</li>
+<li>
+<p><strong>Mac app:</strong> Settings (••• at the top, or ⌘,) → Night shift, or Call → Night Shift (⇧⌘N) in the menu bar. Start shift
+  asks for Touch ID or your password, as Approve does.</p>
+</li>
+<li>
+<p><strong>While it runs:</strong> a strip shows tasks done, the blocked count and Stop shift; Ledger opens the night's record.</p>
+</li>
+<li>
+<p><strong>Stop:</strong> "stop the night shift" ("<span lang="he" dir="rtl">עצור את משמרת הלילה</span>"), or Stop shift on any screen. Pointe sends nothing more. A turn already running in a
+  session finishes by itself.</p>
+</li>
+<li>
+<p><strong>Morning:</strong> "brief me on the night" (or the scheduled briefing) starts with the night shift: decisions made without
+  you, questions waiting on you, then done and blocked. "Approve billing's push" makes billing the active session and
+  reads its exact request out; your yes after that, or a tap, answers it. "Tell docs to use the old format" is an
+  ordinary request, and answers docs' question on the ledger.</p>
+</li>
+</ul>
+<h2 id="what-happens-overnight">What happens overnight</h2>
+<p>Each session gets its task inside a fixed night brief: keep going on what is not blocked, do not stop to ask (choose the
+most defensible answer and write it down), do nothing destructive or outward-facing beyond the task, leave anything
+that needs your approval, and end with a short report (<code>STATUS</code>, <code>DONE</code>, <code>BLOCKED</code>, <code>DECIDED</code>).</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>The session</th>
+<th>Pointe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>reports done</td>
+<td>records it with the proof line, and any commit or pull request found in the message; sends its next task</td>
+</tr>
+<tr>
+<td>reports blocked</td>
+<td>records what it waits on; moves it to its next task</td>
+</tr>
+<tr>
+<td>asks a question</td>
+<td>records the question; tells it to decide itself and write down the choice and what changes otherwise</td>
+</tr>
+<tr>
+<td>stops with no report</td>
+<td>asks for one</td>
+</tr>
+<tr>
+<td>goes quiet for 10 minutes while idle</td>
+<td>asks for its status, once</td>
+</tr>
+<tr>
+<td>asks for a permission</td>
+<td>holds the request, unanswered, and records it word for word as Blocked</td>
+</tr>
+<tr>
+<td>closes</td>
+<td>records it; its remaining tasks are not started</td>
+</tr>
+</tbody>
+</table></div>
+<p>A task gets at most 3 follow-ups; after that it is recorded as Blocked and the session moves on. Every message Pointe
+sends at night is one of five fixed texts around your own task; no model writes one.</p>
+<h2 id="the-ledger">The ledger</h2>
+<p>Four buckets, kept in <code>~/.claude-voice/night-shifts.json</code> (0600) for the last seven shifts, with credentials masked:</p>
+<ul>
+<li><strong>Done</strong>: what was finished, the session's own proof line, the commit or pull request when it named one.</li>
+<li><strong>In flight</strong>: what is still being worked on.</li>
+<li><strong>Blocked</strong>: what waits and on whom; for an approval, the exact request.</li>
+<li><strong>Decided / asked</strong>: the question, what was chosen, and what changes if you choose otherwise.</li>
+</ul>
+<h2 id="what-it-will-not-do">What it will not do</h2>
+<ul>
+<li>
+<p><strong>Approve, or deny.</strong> A permission request from a session on the shift is never answered by Pointe. It is held for up
+  to 12 hours and waits for you; you can also answer it in the session's own terminal.</p>
+</li>
+<li>
+<p><strong>Widen what a session may do.</strong> No permission mode is changed and no rule is added. A new session on the plan starts
+  as New session starts one: in a folder you already work in, never with prompts skipped.</p>
+</li>
+<li>
+<p><strong>Start without your yes.</strong> The read-back heard back, typed words and, with the voice lock on, another voice do not
+  count, and that yes never also approves a waiting request.</p>
+</li>
+<li>
+<p><strong>Run past its caps.</strong> 8 hours and 40 messages unless you set otherwise (at most 12 hours, 200 messages). The
+  sheet is where you set them: what a shift started with there is what the next one starts with, by voice too. Past a cap it sends nothing more.</p>
+</li>
+<li>
+<p><strong>Wake you.</strong> A shift's blockers raise no alert on the phone, the watch or the desktop unless you turn on "Alert me
+  about blockers overnight". They alert as usual once you are back.</p>
+</li>
+<li>
+<p><strong>Run in a meeting, in Challenge me or during a brain dump</strong>, or two shifts at once.</p>
+</li>
+<li><strong>Drive a session on another machine.</strong> This version runs sessions on the Mac Pointe runs on.</li>
+</ul>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>Stop ends the sending; it does not interrupt a turn that is already running.</li>
+<li>The budget counts messages, not tokens or money: Pointe does not see what a session spends.</li>
+<li>
+<p>A request Claude Code shows only in its terminal (a launch-mode prompt, or <code>approvals: terminal</code> in the config) is
+  recorded as "a permission prompt in its terminal", without its text.</p>
+</li>
+<li>
+<p>A session's report is read by its labels. A session that ignores the format is asked again, then recorded as Blocked
+  with its last line.</p>
+</li>
+</ul>
+<h2 id="api">API</h2>
+<p>All reachable with the page cookie, the bearer token and the phone key.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Body</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /voice/night-shift</code></td>
+<td><code>?id=</code> for one of the last seven</td>
+<td><code>{shift, history, caps, limits, rule, pending, sessions}</code></td>
+</tr>
+<tr>
+<td><code>POST /voice/night-shift</code></td>
+<td><code>{action: start, items: [{session, task} \| {start: {harness, folder, name?}, task}], hours?, messages?, notify?}</code></td>
+<td><code>{started, shift}</code>; 409 while one runs, in a meeting or a challenge; 400 or 403 with the reason in <code>detail</code></td>
+</tr>
+<tr>
+<td><code>POST /voice/night-shift</code></td>
+<td><code>{action: confirm \| cancel, id}</code></td>
+<td>starts or drops what was read back</td>
+</tr>
+<tr>
+<td><code>POST /voice/night-shift</code></td>
+<td><code>{action: stop}</code></td>
+<td><code>{stopped, shift}</code>; 409 when none runs</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>/voice/status</code> carries <code>night_shift</code> (the running or last shift in short) and <code>shift_pending</code> (a read-back that waits).
+Settings: <code>nightshift.hours</code>, <code>nightshift.messages</code>, <code>nightshift.notify</code>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/night-shift.md">docs/features/night-shift.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../add-sessions/"><span class="pg-small">Previous</span>Add sessions</a><a class="dx-next" href="../clean-up-my-words/"><span class="pg-small">Next</span>Clean up my words</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-happens-overnight">What happens overnight</a></li>
+<li class="dx-l2"><a href="#the-ledger">The ledger</a></li>
+<li class="dx-l2"><a href="#what-it-will-not-do">What it will not do</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add sessions · Pointe docs</title>
+<meta name="description" content="Pointe can join sessions you already run, or bring back one you ran this week, without anyone typing /pointe:voice in them. Describe them, and Pointe finds…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Add sessions">
+<meta property="og:description" content="Pointe can join sessions you already run, or bring back one you ran this week, without anyone typing /pointe:voice in them. Describe them, and Pointe finds…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/add-sessions/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/add-sessions/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="./" aria-current="page">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="add-sessions">Add sessions</h1>
+<p>Pointe can join sessions you already run, or bring back one you ran this week, without anyone typing <code>/pointe:voice</code> in
+them. Describe them, and Pointe finds them, reads back what it found, and joins them on your yes. Design and reasons:
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/attach-by-voice.md">docs/design/attach-by-voice.md</a>.</p>
+<p>The rules live in <code>discovery.py</code> (what is listed), <code>matching.py</code> (which sessions your words mean, and the read-backs),
+<code>guards.attach_request</code> (what your words ask for) and <code>daemon.add_sessions</code> (the read-back and the yes).</p>
+<h2 id="use-it">Use it</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Say</th>
+<th>Pointe says</th>
+<th>On yes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Hey Pointe, connect to the session about the recent pentest"</td>
+<td>"Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap."</td>
+<td>it joins</td>
+</tr>
+<tr>
+<td>"Connect to all open Claude Code sessions"</td>
+<td>"Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs? Say yes or tap."</td>
+<td>they all join</td>
+</tr>
+<tr>
+<td>"Reopen yesterday's session about the billing migration"</td>
+<td>"Reopen billing-migration, the Claude Code session in billing from yesterday, in a new terminal window on studio? Say yes or tap."</td>
+<td>a terminal window opens with <code>claude --resume</code>, and it joins</td>
+</tr>
+<tr>
+<td>"Join the codex thread about the changelog"</td>
+<td>"Join docs, the Codex session in docs on studio? Say yes or tap."</td>
+<td>it joins</td>
+</tr>
+<tr>
+<td>"Connect to a session" (several fit)</td>
+<td>"Three sessions fit: one, …; two, …; three, …. Which one?"</td>
+<td>"the second one", "both", or a name</td>
+</tr>
+<tr>
+<td>"Leave the pentest session", "disconnect from the pentest session"</td>
+<td>(no read-back for one named session)</td>
+<td>it leaves the voice and keeps running</td>
+</tr>
+</tbody>
+</table></div>
+<p>Also: "join the pentest session on devbox", "resume the codex thread from this morning", "bring back the last session",
+"listen to the docs agent", "add all opencode sessions".</p>
+<ul>
+<li>
+<p><strong>Page:</strong> Add sessions under the sessions on the left. Open sessions are ticked and joined together; a session from
+  this week has Reopen. Search by name, folder or what you asked it.</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> Sessions, then Add sessions. Join and Reopen ask for Face ID, as Approve does.</p>
+</li>
+<li><strong>Mac app:</strong> Add sessions in the window's sessions list (in a narrow window, under Sessions), or Add Sessions in the
+  File menu (⇧⌘J). Join and Reopen ask
+  for Touch ID or your password.</li>
+</ul>
+<h2 id="what-it-finds">What it finds</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Open now</th>
+<th>This week</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude Code</td>
+<td>every live session <code>claude agents --json</code> lists, in each Claude account Pointe knows</td>
+<td>closed transcripts, reopened with <code>claude --resume</code> in a new terminal window (Mac only)</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td>threads loaded by Codex's shared daemon (a TUI started with <code>codex --remote unix://</code>)</td>
+<td>other threads, loaded again on the shared daemon</td>
+</tr>
+<tr>
+<td>OpenCode</td>
+<td>sessions running a turn, or touched in the last two hours</td>
+<td>older sessions on OpenCode's service; joining one is the same as joining an open one</td>
+</tr>
+</tbody>
+</table></div>
+<p>Sessions on your other machines are listed too, through their Pointe node. A Claude Code session on another machine is
+not reopened from here: resume it there and join it.</p>
+<h2 id="approvals">Approvals</h2>
+<p>Codex and OpenCode prompts reach the voice through their services, as for any joined session. A Claude Code session
+sends its prompts to the voice only if Pointe's plugin was on when it started (the plugin's <code>PermissionRequest</code> hook).
+Pointe checks the settings it can see; where the hook does not apply, the read-back and the screens say "Its approvals
+stay in its terminal", and the voice tells you when that session waits there.</p>
+<h2 id="what-it-will-not-do">What it will not do</h2>
+<ul>
+<li>
+<p><strong>Join anything you did not confirm.</strong> A description only finds and reads back. A yes, a pick from the list read
+  back, or a tap joins; the read-back heard back, typed words, and (with the voice lock on) another voice do not, and
+  that yes never also approves a waiting prompt.</p>
+</li>
+<li>
+<p><strong>Read another user's sessions.</strong> Only this OS user's config dirs, processes and sockets.</p>
+</li>
+<li>
+<p><strong>Send your sessions to a vendor.</strong> Matching is done on this Mac. When the words fit a few sessions about as well,
+  their titles, folder names, ages and a few keywords (never transcripts) go to the routing model to order them, which
+  already sees session names for routing. In fully local mode that is the local model.</p>
+</li>
+<li>
+<p><strong>Add sessions in a meeting or in Challenge me.</strong> Those modes cannot act.</p>
+</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/add-sessions.md">docs/features/add-sessions.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../new-session/"><span class="pg-small">Previous</span>Start a new session</a><a class="dx-next" href="../night-shift/"><span class="pg-small">Next</span>Night shift</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-it-finds">What it finds</a></li>
+<li class="dx-l2"><a href="#approvals">Approvals</a></li>
+<li class="dx-l2"><a href="#what-it-will-not-do">What it will not do</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

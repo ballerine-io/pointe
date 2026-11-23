@@ -57,10 +57,13 @@ class Harness:
     starts = False  # Pointe can start a new session of it in a folder (docs/design/new-session.md)
     joins_mid_turn = False  # joining runs inside one of its own turns (Claude Code's /pointe:voice): that turn is not news
     permission_deadline = 280.0  # how long the voice may hold one of its prompts before the harness's own prompt answers
+    # How a spoken "stop" ends a running turn: "now" (the harness cuts it, a running command included), "next_step"
+    # (it ends after the tool call that runs, which finishes), "" (no supported way: the voice says so).
+    interrupts = ""
 
     def capabilities(self) -> dict:
         return {"approvals": self.approvals, "side_questions": self.side_questions, "attach": self.attach,
-                "spawn": self.spawn}
+                "spawn": self.spawn, "interrupt": self.interrupts or None}
 
     def alive(self, session: Session) -> bool:
         """Still running. Called every few seconds from the event loop: it must not block."""
@@ -77,6 +80,17 @@ class Harness:
     async def send(self, session: Session, text: str) -> bool:
         """Deliver the user's request into the running session. True when it arrived."""
         return False
+
+    async def interrupt(self, session: Session) -> bool:
+        """Stop the session's running turn, the way `interrupts` says. True when the harness took the stop."""
+        return False
+
+    def stop_landed(self, session: Session) -> bool:
+        """A "next_step" stop has ended the turn (read once: True only the first time it is seen)."""
+        return False
+
+    def drop_stop(self, session: Session) -> None:
+        """The turn ended on its own: a "next_step" stop still waiting must not end the next turn."""
 
     async def side_question(self, session: Session, question: str) -> str | None:
         """Answer a "by the way" question from a copy of the session, or None to use the transcript reader."""

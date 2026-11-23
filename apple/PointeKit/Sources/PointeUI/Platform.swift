@@ -1,3 +1,4 @@
+import LocalAuthentication
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
@@ -25,6 +26,37 @@ enum Surface {
     static let Tap = isMac ? "Click" : "Tap"
     /// The symbol on Approve: what the device asks with (Face ID; Touch ID or the password on the Mac).
     static let ownerSymbol = isMac ? "touchid" : "faceid"
+
+    /// A line the Mac (the daemon) wrote for every device, as this one shows it: its read-back ends "Say yes or tap.",
+    /// which on the Mac is a click.
+    static func shown(_ line: String) -> String {
+        isMac ? line.replacingOccurrences(of: "Say yes or tap.", with: "Say yes or click.") : line
+    }
+
+    /// A line written for the phone (the page's words, or the Mac's own read-backs: "Say yes or tap."), as the Mac says
+    /// it: a pointer clicks.
+    static func pointer(_ line: String) -> String {
+        guard isMac else { return line }
+        return line.replacing(/\btap\b/, with: "click").replacing(/\bTap\b/, with: "Click")
+    }
+}
+
+/// What Approve says when the owner check did not let it through: before, it did nothing at all.
+enum OwnerCopy {
+    static let notChecked = "Not approved: Pointe could not check that it is you. Try again."
+    static let noPasscode = Surface.isMac ? "Not approved: this Mac has no password to check that it is you."
+                                          : "Not approved: this phone has no passcode, so Pointe cannot check that it is you. Set one in Settings."
+    static let noMatch = "Not approved: that did not match. Try again."
+
+    /// Nil when the person cancelled: they know why nothing happened.
+    static func refusal(_ code: LAError.Code?) -> String? {
+        switch code {
+        case .userCancel, .appCancel, .systemCancel, .userFallback: nil
+        case .passcodeNotSet: noPasscode
+        case .authenticationFailed: noMatch
+        default: notChecked
+        }
+    }
 }
 
 enum Clipboard {
@@ -54,11 +86,32 @@ enum Clipboard {
     #endif
 }
 
+/// The system's own switch for the microphone: iOS opens Pointe's page in Settings, macOS its Privacy pane.
+public enum SystemSettings {
+    @MainActor public static func openMicrophone() {
+        #if os(macOS)
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") { NSWorkspace.shared.open(url) }
+        #else
+        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+        #endif
+    }
+}
+
 extension View {
-    /// A sheet's title, in the bar's own line on both platforms.
+    /// A sheet's title: in the bar on the iPhone, over the content on the Mac.
     @ViewBuilder func sheetTitle(_ title: String) -> some View {
         #if os(macOS)
-        navigationTitle(title)  // macOS draws it in the sheet's own bar
+        // Over the content, in line with the section headings: in the sheet's bar macOS keeps an empty slot for window
+        // buttons a sheet does not have, and the title sat about 48 points in from everything under it.
+        navigationTitle(title)
+            .toolbar(removing: .title)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Text(title).font(.brand(.headline, .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 4)
+                    .background(Brand.group)
+                    .accessibilityAddTraits(.isHeader)
+            }
         #else
         navigationTitle(title).navigationBarTitleDisplayMode(.inline)
         #endif
@@ -75,6 +128,16 @@ extension View {
             .modifier(EscCloses())
         #else
         presentationBackground(Brand.group)
+        #endif
+    }
+
+    /// A menu whose label draws itself as a field (brain dump's To:): macOS otherwise lays its own pop-up bezel and a
+    /// second arrow under the label, two controls drawn over each other.
+    @ViewBuilder func fieldMenu() -> some View {
+        #if os(macOS)
+        menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
+        #else
+        self
         #endif
     }
 
@@ -169,12 +232,22 @@ extension View {
 }
 
 extension ToolbarItemPlacement {
-    /// The leading edge of a sheet's bar. On the Mac a sheet's buttons sit at the bottom: the cancel side.
+    /// The leading edge of a sheet's bar. On the Mac a sheet's buttons sit at the bottom, and its leading side is the
+    /// destructive one's place: the cancel side would make the button the sheet's Esc (Esc on Sessions opened New session).
     static var sheetLeading: ToolbarItemPlacement {
+        #if os(macOS)
+        .destructiveAction
+        #else
+        .topBarLeading
+        #endif
+    }
+
+    /// Done on a sheet whose only way out it is: on the Mac the cancel side, so Esc closes the sheet.
+    static var sheetDone: ToolbarItemPlacement {
         #if os(macOS)
         .cancellationAction
         #else
-        .topBarLeading
+        .confirmationAction
         #endif
     }
 }

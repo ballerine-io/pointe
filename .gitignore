@@ -18,3 +18,5 @@ macos/build/
 ios/.bundle-id
 bench/conversational/*/.audio/
 .security-reviews/
+dist/
+site/pointe/install.sh

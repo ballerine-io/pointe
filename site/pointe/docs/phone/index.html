@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect your phone · Pointe docs</title>
+<meta name="description" content="You can join the call from your phone in two ways: the iPhone app, or Pointe&#x27;s page in the phone&#x27;s browser. Both reach the daemon on your Mac through a…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Connect your phone">
+<meta property="og:description" content="You can join the call from your phone in two ways: the iPhone app, or Pointe&#x27;s page in the phone&#x27;s browser. Both reach the daemon on your Mac through a…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/phone/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/phone/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="./" aria-current="page">Connect your phone</a></li>
+<li><a href="wifi/">Connect over Wi-Fi</a></li>
+<li><a href="tailscale/">Connect over Tailscale</a></li>
+<li><a href="twingate/">Connect over Twingate</a></li>
+<li><a href="cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="connect-your-phone">Connect your phone</h1>
+<p>You can join the call from your phone in two ways: the iPhone app, or Pointe's page in the phone's browser. Both reach
+the daemon on your Mac through a second listener, on port 7443, that uses HTTPS. Your phone needs a private way to
+reach that port. This page helps you choose one, pair the phone, and fix what goes wrong.</p>
+<p>The iPhone app is <strong>coming to the App Store: in review with Apple.</strong> Until it is there, you build it from source
+(<a href="../iphone-app/#getting-the-app">The iPhone app</a>), or use the page in the phone's browser, which needs nothing on the
+phone.</p>
+<h2 id="which-one-should-i-use">Which one should I use</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Works when</th>
+<th>You install</th>
+<th>iPhone app</th>
+<th>Phone browser</th>
+<th>Guide</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wi-Fi</strong></td>
+<td>The phone and the Mac are on the same Wi-Fi, or the Mac is on the iPhone's hotspot. Only while both stay on it.</td>
+<td>Nothing</td>
+<td>Yes</td>
+<td>Yes, after a certificate warning</td>
+<td><a href="wifi/">Wi-Fi</a></td>
+</tr>
+<tr>
+<td><strong>Tailscale</strong></td>
+<td>Anywhere both have internet</td>
+<td>Tailscale on the Mac and the phone, one account</td>
+<td>Yes</td>
+<td>Yes, after a certificate warning</td>
+<td><a href="tailscale/">Tailscale</a></td>
+</tr>
+<tr>
+<td><strong>Twingate</strong></td>
+<td>Anywhere the phone's Twingate client is on</td>
+<td>A Twingate network, a connector in Docker on the Mac (Colima works), the Twingate client on the phone</td>
+<td>Yes</td>
+<td>Yes, after a certificate warning, or with <a href="#a-certificate-the-phone-trusts">a certificate the phone trusts</a></td>
+<td><a href="twingate/">Twingate</a></td>
+</tr>
+<tr>
+<td><strong>Cloudflare Tunnel with Access</strong></td>
+<td>Anywhere, through a public name that only you can open</td>
+<td>A Cloudflare account with a domain, <code>cloudflared</code> on the Mac</td>
+<td>No</td>
+<td>Yes</td>
+<td><a href="cloudflare/">Cloudflare</a></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p><strong>Start with Tailscale</strong> if you have no preference. It works away from home, needs no server, and is what the page
+  recommends when it finds it (<code>pair.routes</code> in <code>pair.py</code> orders the route in use, then Tailscale, then a name you set
+  up, then the Wi-Fi).</p>
+</li>
+<li>
+<p><strong>Wi-Fi</strong> is the quickest to try, at home or with the Mac on the iPhone's hotspot. When either device leaves that
+  network, or the Mac's address changes, pair again.</p>
+</li>
+<li>
+<p><strong>Twingate</strong> suits a team that already runs it. It is the route the iPhone app was tested on with a real iPhone.</p>
+</li>
+<li><strong>Cloudflare Tunnel</strong> is for the phone's browser only. The iPhone app trusts only the Mac's own certificate, and a
+  Cloudflare tunnel shows Cloudflare's certificate instead (see <a href="cloudflare/#why-not-the-iphone-app">why</a>).</li>
+</ul>
+<p>Each route keeps the same rule: the phone listener answers only HTTPS requests for the name you paired, and only from a
+paired phone. The threat model for this path is in <a href="../security/#phone-access-experimental-off-by-default">SECURITY.md</a>.</p>
+<h2 id="pairing">Pairing</h2>
+<p>Pairing tells the phone where the Mac is and which certificate to trust, and gives the phone its own key. Choose the
+route first (the guides above), then pair in one of these places.</p>
+<h3 id="from-the-page">From the page</h3>
+<p>On the Mac, open Pointe's page: <strong>Settings → Phone → Connect your phone</strong>. The page lists the ways your phone can reach
+this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), marks one <strong>Recommended</strong>, and has a
+field, "Or a name you set up (Twingate, a VPN)", with <strong>Check</strong>. Choose a route, then <strong>Show the code</strong>.</p>
+<p>On the iPhone, point the Camera at the code and tap "Open in Pointe", or scan it in the app's pairing screen. "Can't
+scan? Copy the link" copies the same <code>pointe://pair</code> link, which you can paste in the app ("or paste the pointe://
+link"). The page turns to "Connected: &lt;phone&gt;" when the app has paired.</p>
+<p>The code works once, for 5 minutes, and holds no lasting secret: the app checks the Mac's certificate first, then
+trades the code for its own key (<code>phone_pairing.py</code>). Choosing a route that the current certificate does not cover
+makes a new certificate, and the page says so first: every phone and machine paired before must pair again.</p>
+<h3 id="from-the-mac-app">From the Mac app</h3>
+<p>In the Mac app: <strong>Call → Pair a Phone…</strong>. It opens the same Phone sheet as the page, with the same routes, code and
+buttons.</p>
+<h3 id="from-the-terminal">From the terminal</h3>
+<p><code>pointe pair</code> sets up the route and prints a QR code for the app. It also opens the code as a picture, because a chat
+window cannot show the terminal's.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pointe pair tailscale</code></td>
+<td>Listens on this Mac's Tailscale address, under its Tailscale name</td>
+</tr>
+<tr>
+<td><code>pointe pair wifi</code></td>
+<td>Listens on this Mac's address on the current Wi-Fi</td>
+</tr>
+<tr>
+<td><code>pointe pair host &lt;name&gt;</code></td>
+<td>Listens on <code>127.0.0.1</code> for a name you route yourself (Twingate, Cloudflare Tunnel)</td>
+</tr>
+<tr>
+<td><code>pointe pair show</code></td>
+<td>Shows the QR code again</td>
+</tr>
+<tr>
+<td><code>pointe pair link</code></td>
+<td>Prints the address that pairs a phone's browser</td>
+</tr>
+<tr>
+<td><code>pointe pair rotate</code></td>
+<td>Makes a new certificate (see below)</td>
+</tr>
+<tr>
+<td><code>pointe pair off</code></td>
+<td>Stops the phone listener</td>
+</tr>
+</tbody>
+</table></div>
+<p>The terminal's QR code carries the phone key itself, not a one-time code: show it only to your own phone. After
+<code>pointe pair tailscale</code>, <code>wifi</code> or <code>host</code>, the listener starts once Pointe restarts (<code>pointe restart</code>). The page and
+the Mac app restart the listener for you.</p>
+<h3 id="rotate-and-unpair">Rotate and unpair</h3>
+<ul>
+<li>
+<p><strong>Unpair one phone:</strong> Settings → Phone on the page or in the Mac app, <strong>Unpair</strong> beside the phone, then click it again
+  to confirm. Or, on the iPhone, the menu's <strong>Unpair this phone</strong>. That phone's call ends, and it needs a new code to
+  come back.</p>
+</li>
+<li>
+<p><strong>Unpair all:</strong> signs out every phone, including a phone browser paired with <code>pointe pair link</code>. That link stops
+  working; <code>pointe pair link</code> prints the new one.</p>
+</li>
+<li>
+<p><strong>A new certificate:</strong> <code>pointe pair rotate</code>. Every phone and every machine paired with this Mac must pair again, and
+  a browser that trusted the old certificate must trust the new one. The command prints the steps for each paired
+  machine.</p>
+</li>
+<li>
+<p><strong>Stop the listener:</strong> <code>pointe pair off</code> removes the certificate and the pairing secret. A Twingate connector started
+  with <code>voice-connector</code> keeps running; stop it in Docker.</p>
+</li>
+</ul>
+<h2 id="in-the-phones-browser">In the phone's browser</h2>
+<p>The page works in the phone's browser like on the Mac, with nothing installed on the phone.</p>
+<ol>
+<li>Set up a route (the guides above). In Claude Code, <code>/pointe:setup phone</code> walks you through it.</li>
+<li>Run <code>pointe pair link</code> in your own terminal. It prints an address that holds a secret: send it only to your own
+   phone (AirDrop or Notes), and open it once in the phone's browser. The browser keeps a pairing cookie, and the
+   address it lands on can be added to the Home Screen.</li>
+</ol>
+<p>The listener's certificate is made on your Mac, so the phone's browser warns about it on the first visit, except
+through Cloudflare, which shows its own certificate. To make the phone trust this one name instead, see
+<a href="#a-certificate-the-phone-trusts">A certificate the phone trusts</a>. Not measured: how each phone browser treats the
+certificate on a first visit.</p>
+<h3 id="a-certificate-the-phone-trusts">A certificate the phone trusts</h3>
+<p>For a name routed to this Mac's loopback, such as a Twingate alias. Call audio is one WebSocket on the same HTTPS port,
+so no UDP route is needed.</p>
+<ol>
+<li>Set up the route (<a href="twingate/">Twingate</a>), with an alias such as <code>phone.example.internal</code>.</li>
+<li>
+<p>Run <code>voice-remote setup phone.example.internal</code> from Pointe's <code>bin</code> folder (in a clone, <code>bin/voice-remote</code>). It makes a
+   certificate authority that can vouch only for that one name, signs the listener's certificate with it, and destroys
+   the authority's key.</p>
+</li>
+<li>
+<p>AirDrop <code>~/.claude-voice/tls/pointe-ca.crt</code> to the phone, install it, and turn it on in Settings, General, About,
+   Certificate Trust Settings.</p>
+</li>
+<li>
+<p>Restart Pointe (<code>pointe restart</code>), then open the address from <code>pointe pair link</code> on the phone once.</p>
+</li>
+</ol>
+<p>The certificate is new, so a paired iPhone app must pair again, as after <code>pointe pair rotate</code>.</p>
+<p>Remote requests need HTTPS, the configured name and the pairing cookie; anything else gets 403.</p>
+<h2 id="getting-the-app">Getting the app</h2>
+<p>The iPhone app is coming to the App Store: in review with Apple. Until then, build it from source with one command,
+<code>pointe apps ios</code>. The steps, the free Apple Account and what to do when a build fails:
+<a href="../iphone-app/#getting-the-app">The iPhone app</a>.</p>
+<h2 id="the-mac-stays-awake-during-a-call">The Mac stays awake during a call</h2>
+<p>While a call from the phone (or from the page on another device) is up and the Mac is on AC power, the daemon runs
+<code>caffeinate -i -w &lt;its pid&gt;</code>, so the Mac does not idle-sleep and drop the call. It stops when the call ends or the Mac
+goes to battery (checked every 5 seconds), and never runs on battery or when the power source cannot be read. Only idle
+sleep is held off: the display may still sleep, and closing a laptop's lid still sleeps it. <code>/voice/status</code> says which,
+in <code>keep_awake: {on, why}</code>.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>Start with the route's own guide, which has the checks for that network. These hold for every route.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Why</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The app says "Mac not reachable": "Can't reach your Mac at &lt;name&gt;. Is Twingate or Tailscale on? Is the Mac awake?"</td>
+<td>The phone has no path to port 7443, the Mac sleeps, or the phone listener is off</td>
+<td>Turn on the phone's Tailscale or Twingate, or join the Wi-Fi. Wake the Mac. Then check the listener: open <code>https://&lt;name&gt;:7443/voice/status</code> in the phone's browser. A certificate warning, then "This browser is no longer paired with the Mac…" or "forbidden", means the path works: pair the app again. No answer means the path is down: see the route's guide.</td>
+</tr>
+<tr>
+<td>"Not paired": "This phone is no longer paired."</td>
+<td>The phone was unpaired, or the certificate changed (<code>pointe pair rotate</code>, or another route was chosen)</td>
+<td>Pair again: Settings → Phone → Connect your phone</td>
+</tr>
+<tr>
+<td>"This code has expired or was already used."</td>
+<td>The page's code lasts 5 minutes and works once</td>
+<td>Press Connect your phone again and scan the new code</td>
+</tr>
+<tr>
+<td>"Too many tries. Wait a minute, then scan the code again."</td>
+<td>Too many wrong codes from this address</td>
+<td>Wait a minute, then scan</td>
+</tr>
+<tr>
+<td>"That code is not a Pointe pairing code."</td>
+<td>The camera read another QR code</td>
+<td>Scan the code on Pointe's Phone screen</td>
+</tr>
+<tr>
+<td>The app worked yesterday on Wi-Fi, and not today</td>
+<td>The Mac's Wi-Fi address changed, or one device left that network</td>
+<td>Join the same network, then pair again with the Wi-Fi route</td>
+</tr>
+<tr>
+<td>On Wi-Fi only, the app cannot reach the Mac</td>
+<td>The app's Local Network access is off (iOS asks once, the first time)</td>
+<td>iPhone: Settings, Privacy &amp; Security, Local Network, turn Pointe on</td>
+</tr>
+<tr>
+<td>The phone's browser shows "This browser is no longer paired with the Mac. On the Mac, run: pointe pair link…"</td>
+<td>The browser has no pairing cookie, or Unpair all replaced the pairing secret</td>
+<td>Run <code>pointe pair link</code> and open the new address once</td>
+</tr>
+<tr>
+<td>The phone's browser shows "forbidden"</td>
+<td>The address's name is not the one paired, or the request was not HTTPS</td>
+<td>Open the exact address <code>pointe pair link</code> prints</td>
+</tr>
+<tr>
+<td>The page says "Your phone cannot reach this Mac yet: Settings → Phone → Connect your phone."</td>
+<td>No phone listener is set up</td>
+<td>Set up a route, then pair</td>
+</tr>
+<tr>
+<td>The page lists no route and says what to install</td>
+<td>Neither Tailscale nor a Wi-Fi address was found, and no name was set</td>
+<td>Install Tailscale on both, or join a Wi-Fi, or type a name you set up and press Check</td>
+</tr>
+<tr>
+<td>The call drops when the Mac sleeps</td>
+<td>On battery, or the lid closed</td>
+<td>Use AC power and keep the lid open (<a href="#the-mac-stays-awake-during-a-call">above</a>)</td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md">docs/phone.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../mac-app/"><span class="pg-small">Previous</span>The Mac app</a><a class="dx-next" href="wifi/"><span class="pg-small">Next</span>Connect over Wi-Fi</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#which-one-should-i-use">Which one should I use</a></li>
+<li class="dx-l2"><a href="#pairing">Pairing</a></li>
+<li class="dx-l3"><a href="#from-the-page">From the page</a></li>
+<li class="dx-l3"><a href="#from-the-mac-app">From the Mac app</a></li>
+<li class="dx-l3"><a href="#from-the-terminal">From the terminal</a></li>
+<li class="dx-l3"><a href="#rotate-and-unpair">Rotate and unpair</a></li>
+<li class="dx-l2"><a href="#in-the-phones-browser">In the phone&#x27;s browser</a></li>
+<li class="dx-l3"><a href="#a-certificate-the-phone-trusts">A certificate the phone trusts</a></li>
+<li class="dx-l2"><a href="#getting-the-app">Getting the app</a></li>
+<li class="dx-l2"><a href="#the-mac-stays-awake-during-a-call">The Mac stays awake during a call</a></li>
+<li class="dx-l2"><a href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

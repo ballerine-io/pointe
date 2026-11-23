@@ -141,7 +141,7 @@ async def main() -> None:
     call("/voice/register", {"id": f"page-show-{os.getpid()}", "cwd": str(root), "pid": os.getpid(), "name": "orchard",
                              "name_given": True, "transcript": str(transcript)})
     profile = tempfile.mkdtemp(prefix="pointe-chrome-")
-    chrome = subprocess.Popen([CHROME, "--headless=new", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={DEBUG_PORT}", f"--user-data-dir={profile}",
                                "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
                                "--autoplay-policy=no-user-gesture-required", "--window-size=1500,900", "--no-first-run",
                                f"{DAEMON}/voice?key={(STATE / 'page_key').read_text().strip()}"],

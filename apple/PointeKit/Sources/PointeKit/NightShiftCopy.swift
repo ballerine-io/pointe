@@ -5,7 +5,7 @@ import Foundation
 /// The parity tests read this file: keep each string on one line, in the page's order.
 public enum NightShiftCopy {
     public static let title = "Night shift"
-    public static let lede = "Give your sessions work for while you are away. Pointe keeps them moving, and the morning briefing leads with what was decided and what waits on you."
+    public static let lede = "Give your sessions work to do while you are away. Pointe keeps them moving, and the morning briefing leads with what was decided and what waits on you."
     public static let rule = "Pointe approves nothing: a session that needs approval waits for you."
     public static let session = "Session"
     public static let task = "Task"

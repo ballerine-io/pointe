@@ -99,6 +99,16 @@ def refuse_cloud_audio(what: str) -> None:
 def key(vendor: str) -> str | None:
     if local_only() or (vendor in AUDIO_ONLY and voice_local()):
         return None
+    return _stored(vendor)
+
+
+def saved(vendor: str) -> bool:
+    """Whether the key is in the environment or the Keychain, whatever the setup in use reads: a switch away from Fully
+    local, which reads none, still finds the Anthropic key saved before."""
+    return _stored(vendor, keep=False) is not None
+
+
+def _stored(vendor: str, keep: bool = True) -> str | None:
     env, item = KEYS[vendor]
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
@@ -113,6 +123,8 @@ def key(vendor: str) -> str | None:
         except (OSError, subprocess.TimeoutExpired):
             return None
         if not got.returncode and got.stdout.strip():
+            if not keep:
+                return got.stdout.strip()
             _found[vendor] = (name, got.stdout.strip())
             return _found[vendor][1]
     return None
@@ -271,7 +283,7 @@ def resolve(front: str = "brain") -> Setup:
         s.mouth = pick("CLAUDE_VOICE_MOUTH", MOUTH_ORDER)
     s.ears = pick("CLAUDE_VOICE_EARS", EARS_ORDER)
     if s.ears != "soniox":
-        s.notes.append("Without Soniox the echo guard has no mirror stream: use headphones or browser echo cancellation.")
+        s.notes.append("Use headphones: on speakers Pointe can hear itself.")  # no Soniox, so no echo guard (docs/benchmarks.md)
     if voice_local() and not local_only():
         s.notes.append(f"{VOICE_LOCAL}: ears and mouth run on this Mac; the text models get text only.")
     return s
@@ -331,7 +343,8 @@ def key_status(present: set[str], voice_on_mac: bool = False, setup: "setups.Set
     else:
         needed = []
     uses = {v: [r for r, x in roles.items() if x == v] for v in KEYS}
-    keys = {v: ("in use" if uses[v] else "not used") if v in present else "needed" if v in needed else "optional" for v in KEYS}
+    keys = {v: "not read" if voice_on_mac and v in AUDIO_ONLY else ("in use" if uses[v] else "not used") if v in present
+            else "needed" if v in needed else "optional" for v in KEYS}  # "not read": nothing to add, the doctor's words
     head = f"Setup: {setup.name}. " if setup is not None else ""
     if setup is not None and needed:
         line = head + f"It needs {_words([_a(NAMES[v]) for v in needed], 'and')} key: pointe key {needed[0]}."
@@ -370,8 +383,49 @@ def refused_key(text: str) -> str | None:
     low = text.lower()
     if not any(sign in low for sign in _REFUSED):
         return None
+    return _named(low)
+
+
+_QUOTA = ("resource_exhausted", "quota", "insufficient_quota", "billing", "credit balance")
+_RATE = ("429", "rate_limit", "ratelimit", "rate limit", "too many requests")
+_DOWN = re.compile(r"\b50[0234]\b|internal server error|internal error|service unavailable|bad gateway|overloaded|servererror")
+
+
+def _named(low: str) -> str:
     named = [(low.find(name), vendor) for name, vendor in _VENDOR_NAMES.items() if name in low]
     return min(named)[1] if named else ""
+
+
+def fault(error) -> tuple[str, str] | None:
+    """A vendor failing in a way a retry of the same words will not fix: ("quota" | "rate" | "down", the vendor named in
+    the error or ""). None for anything else (a refused key is refused_key's; a timeout or a dropped link is not this)."""
+    text = f"{type(error).__name__} {error}" if isinstance(error, BaseException) else str(error)
+    low = text.lower()
+    if any(sign in low for sign in _QUOTA):
+        kind = "quota"
+    elif any(sign in low for sign in _RATE):
+        kind = "rate"
+    elif _DOWN.search(low):
+        kind = "down"
+    else:
+        return None
+    return kind, _named(low)
+
+
+def fault_help(kind: str, vendor: str) -> str:
+    """The page's line for a vendor fault: what happened and what to do, in words, never the library's text."""
+    name = NAMES.get(vendor, "The model")
+    return {"quota": f"{name}'s quota for this key is used up: turn on billing for the key, or wait until the quota "
+                     f"resets. Check it with pointe key check {vendor or '<vendor>'}.",
+            "rate": f"{name} is limiting how often this key may call it: wait a minute, then talk again.",
+            "down": f"{name} is not answering (an error on its side). Talk again in a minute."}[kind]
+
+
+def fault_spoken(kind: str, vendor: str, default: str = "") -> str:
+    name = NAMES.get(vendor or default, "the model")
+    return {"quota": f"My {name} quota is used up. Turn on billing for the key, or wait for it to reset.",
+            "rate": f"{name} is limiting my key for a moment. Try again in a minute.",
+            "down": f"{name} is not answering right now. Try again in a minute."}[kind]
 
 
 def refused_help(vendor: str) -> str:
@@ -692,8 +746,12 @@ DEFAULT_ELEVENLABS_VOICE = "cjVigY5qzO86Huf0OWal"  # Eric
 DEFAULT_GEMINI_VOICE = "Charon"
 
 
+GEMINI_PHRASES = 100  # adaptation phrases sent to Gemini's ears: the session names and the dictionary come first
+
+
 def build_ears(vendor: str, terms: list[str]):
-    """A speech-to-text service in the pipeline. Only Soniox takes vocabulary hints."""
+    """A speech-to-text service in the pipeline. Soniox and Gemini take the vocabulary hints (session names, the user's
+    dictionary): without them Free start heard "docs" as "Dox" and "shop" as "Sharp" (QA round 2)."""
     from pipecat.transcriptions.language import Language
 
     if vendor != LOCAL and voice_local():
@@ -714,7 +772,8 @@ def build_ears(vendor: str, terms: list[str]):
     if vendor == "gemini":
         from pipecat.services.google.gemini_live.stt import GeminiSTTService
 
-        return GeminiSTTService(api_key=key("gemini"))
+        return GeminiSTTService(api_key=key("gemini"),
+                                settings=GeminiSTTService.Settings(adaptation_phrases=list(terms)[:GEMINI_PHRASES] or None))
     if vendor == "openai":
         refuse_openai_audio("CLAUDE_VOICE_EARS=openai")
         from pipecat.services.openai.stt import OpenAIRealtimeSTTService

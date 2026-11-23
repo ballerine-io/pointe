@@ -319,3 +319,38 @@ def test_log_counts_read_each_log_with_its_own_row_and_skip_superseded_attempts(
                    and r["status"] in ("ok", "capped") for r, _ in last.values())
     assert logs["pointe_a_runs"] == expected == 23
 
+
+
+def test_cleanup_kills_only_this_runs_listener_never_another_benchmarks_daemon(tmp_path):
+    """The bargein runner used to kill any Pointe daemon from /tmp/pccb on its ports: another benchmark's, run on the
+    same machine, included. Now only a process with this run's folder in its command line or environment (the actions
+    runner's rule)."""
+    import os
+    import socket
+    import sys
+    import time
+
+    from adapters.pointe import free_ports
+
+    def listener(folder):
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        code = f"import socket,time;s=socket.socket();s.bind(('127.0.0.1',{port}));s.listen();time.sleep(60)"
+        proc = subprocess.Popen([sys.executable, "-c", code], env={**os.environ, "CLAUDE_VOICE_STATE": f"{folder}/ps"})
+        for _ in range(50):
+            if subprocess.run(["lsof", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"], capture_output=True, text=True).stdout:
+                break
+            time.sleep(0.1)
+        return proc, port
+
+    other, other_port = listener("/tmp/pccb/actions-other-run")
+    mine, my_port = listener("/tmp/pccb/bargein-this-run")
+    try:
+        assert free_ports((other_port, my_port), Path("/tmp/pccb/bargein-this-run")) == 1
+        assert mine.wait(timeout=5) is not None
+        assert other.poll() is None
+    finally:
+        for p in (other, mine):
+            p.kill()
+            p.wait()

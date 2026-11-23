@@ -84,7 +84,8 @@ _OPENER = re.compile(
     r"(?:(?:for\s+|on\s+)?(?:the\s+)?(?:night\s*shift)(?:\s+(?:tonight|plan|is|for\s+tonight))*"
     r"|(?:start|run|begin|do|set\s+up)\s+(?:a|the|tonight'?s)\s+night\s*shift(?:\s+(?:tonight|with|where))?"
     r"|(?:for\s+)?tonight|overnight|over\s+the\s+night|while\s+i\s+sleep"
-    r"|הלילה|משמרת\s+לילה|למשמרת\s+הלילה)(?![\w'])\W*", re.I)
+    # "tonightBilling adds ...": the ears sometimes glue the opener to the next word, its capital the only seam
+    r"|הלילה|משמרת\s+לילה|למשמרת\s+הלילה)(?:(?![\w'])|(?-i:(?<=[a-z])(?=[A-Z])))\W*", re.I)
 _STOP = re.compile(
     r"^\W*(?:(?:ok(?:ay)?|hey|so|pointe|please|no)\W+)*(?:stop|end|cancel|abort|halt|kill|call\s+off)\s+"
     r"(?:the\s+|tonight'?s\s+|this\s+)?(?:night\s*shift|shift)\W*(?:please|now)?\W*$"
@@ -329,6 +330,28 @@ _PR_NUM = re.compile(r"\b(?:PR|pull request)\s*#?\s*(\d{1,6})\b", re.I)
 _ARROW = re.compile(r"\s*(?:->|→|=>|—>)\s*")
 
 
+_OTHERWISE = re.compile(r"[;,.]\s*(?:if\s+(?:you|the\s+user)\b[^.;]*?\b(?:wants?|prefers?|meant|chooses?)\b[^,.;]*|otherwise)"
+                        r"[,:]?\s*(.+)$", re.I)
+
+
+def _decision(value: str) -> tuple[str, str, str]:
+    """(question, choice, what changes otherwise) from a DECIDED line. With the arrows the prompt asks for, split on them;
+    a session that wrote a sentence instead ("Treated the changelog's version as its newest heading, since ...") made a
+    choice, not a question: the briefing said "What it chose wasn't said" (QA round 2)."""
+    parts = [p.strip() for p in _ARROW.split(value, maxsplit=2)]
+    if len(parts) > 1:
+        return (parts + ["", ""])[0], (parts + ["", ""])[1], (parts + ["", ""])[2]
+    otherwise = ""
+    if m := _OTHERWISE.search(value):
+        otherwise, value = m.group(1).strip(), value[:m.start()].strip()
+    if "?" in value:
+        question, _, choice = value.partition("?")
+        return question.strip() + "?", choice.strip(" :-–—"), otherwise
+    if m := re.match(r"^(.{3,120}?)\s*[:—–]\s+(.+)$", value):
+        return m.group(1), m.group(2), otherwise
+    return "", value, otherwise
+
+
 @dataclass
 class Outcome:
     status: str = "unclear"  # done | blocked | working | asks | unclear
@@ -368,8 +391,7 @@ def read_report(final: str, digest: dict | None = None) -> Outcome:
         elif current == "BLOCKED":
             out.blocked.append(value[:400])
         elif current == "DECIDED":
-            parts = [p.strip() for p in _ARROW.split(value, maxsplit=2)] + ["", ""]
-            out.decided.append((parts[0][:300], parts[1][:300], parts[2][:300]))
+            out.decided.append(tuple(p[:300] for p in _decision(value)))
     if marker >= 0 or status:
         out.status = status or ("blocked" if out.blocked and not out.done else "done" if out.done else "unclear")
     if out.status == "unclear":
@@ -573,6 +595,9 @@ class Shift:
         for what in outcome.blocked:
             self._add("blocked", front, now, text=what, waits_on=what)
         if outcome.status == "done":
+            for e in self.open_entries(front.session, ("blocked",)):  # logged on the way, and got past: not blocked now
+                if e.task == task.text:
+                    e.resolved, e.resolved_at = "done after all", now
             self._add("done", front, now, text="; ".join(outcome.done) or outcome.last_line,
                       proof="; ".join(outcome.done) or outcome.last_line, commit=outcome.commit, pr=outcome.pr)
             task.state = "done"
@@ -731,14 +756,16 @@ def morning(shift: Shift, now: float | None = None) -> list[dict]:
     asked = [e for e in shift.entries if e.kind == "asked" and not e.resolved]
     done = [e for e in shift.entries if e.kind == "done"]
     blocked = [e for e in shift.entries if e.kind == "blocked" and not e.resolved]
-    flight = shift.ledger()["in_flight"]
+    stuck = {e.session for e in blocked}
+    flight = [x for x in shift.ledger()["in_flight"] if x["session"] not in stuck]  # said once, under Blocked
     waiting = shift.ledger()["not_started"]
     head = (f"Night shift, {_clock(shift.at)} {until}: {s['done']} of {_n(s['tasks'], 'task')} done, {len(blocked)} blocked; "
             f"{_ENDS.get(shift.why, shift.why)}. {_n(len(decided), 'decision')} made without you, "
             f"{_n(len(asked), 'question')} waiting on you.")
     parts = [{"kind": "headline", "title": "Night shift", "text": head}]
     if decided:
-        lines = [f"{e.session}: {_end(e.question or e.text)} It chose: {_end(e.choice or 'not said')}"
+        lines = [(f"{e.session}: {_end(e.question or e.text)} It chose: {_end(e.choice or 'not said')}" if e.question or not e.choice
+                  else f"{e.session}: {_end(e.choice)}")
                  + (f" If you want otherwise: {_end(e.otherwise)}" if e.otherwise else "") for e in decided]
         parts.append({"kind": "decided", "title": "Decisions made without you", "text":
                       "Decisions made without you. " + " ".join(lines)})

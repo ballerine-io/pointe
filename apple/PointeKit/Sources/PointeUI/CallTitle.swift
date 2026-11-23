@@ -11,7 +11,7 @@ enum CallTitle {
         case .connecting: return ConnectCopy.connecting(macName)
         case .reconnecting: return "Reconnecting…"
         case .live:
-            if let refused = status?.key_refused { return refused.ears ? ConnectCopy.cannotHear : ConnectCopy.cannotAnswer }
+            if let refused = status?.key_refused ?? status?.vendor_fault { return refused.ears ? ConnectCopy.cannotHear : ConnectCopy.cannotAnswer }
             if status?.challenge?.on == true { return ChallengeCopy.state }
             if dumping { return BrainDumpCopy.state }
             if status?.hold != nil { return TurnsCopy.holding }
@@ -37,7 +37,7 @@ protocol CallShell: AnyObject {
 
 /// One thing a menu or a shortcut asked the call screen for. `id` makes the same command twice two requests.
 struct ShellRequest: Equatable {
-    enum Command: Equatable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift }
+    enum Command: Equatable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift, approve, deny }
     let id: Int
     let command: Command
 }

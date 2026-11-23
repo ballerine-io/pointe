@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice lock · Pointe docs</title>
+<meta name="description" content="Only your voice commands Pointe. Someone else in the room (a colleague, a TV) is heard by the microphone but does not count. Pointe already requires a bound…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Voice lock">
+<meta property="og:description" content="Only your voice commands Pointe. Someone else in the room (a colleague, a TV) is heard by the microphone but does not count. Pointe already requires a bound…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/voice-lock/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/voice-lock/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="./" aria-current="page">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="voice-lock">Voice lock</h1>
+<p>Only your voice commands Pointe. Someone else in the room (a colleague, a TV) is heard by the microphone but does not
+count. Pointe already requires a bound yes for approvals; the voice lock adds "and it was you".</p>
+<p>The rules live in <code>speaker.py</code>. The daemon asks it on each final utterance (<code>SonioxEars._owner_gate</code>) and on each yes
+(<code>on_user_utterance</code>).</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li><strong>Voice:</strong> no phrase turns it on or sets a level. Enrolment listens on the call: you read the lines it shows aloud.</li>
+<li><strong>Page:</strong> Settings → Voice lock → Enrol my voice, then the level.</li>
+<li><strong>iPhone app:</strong> Settings (••• at the top) → Voice lock.</li>
+<li><strong>Mac app:</strong> Settings (••• at the top, or ⌘,) → Voice lock.</li>
+</ul>
+<p>Enrol during a call: Pointe asks you to read a few lines, and learns those utterances instead of answering them. Each
+device (the Mac's microphone, the iPhone) gets its own voiceprint; scoring compares against every voiceprint and the
+best one wins.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Level</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Off</strong></td>
+<td>No check.</td>
+</tr>
+<tr>
+<td><strong>Approvals</strong></td>
+<td>A spoken yes counts only in your voice. A no counts from anyone. The default after the first enrolment.</td>
+</tr>
+<tr>
+<td><strong>Commands</strong></td>
+<td>Other voices never reach the voice model. They are listed as ignored, with their words, in memory only.</td>
+</tr>
+<tr>
+<td><strong>Everything</strong></td>
+<td>The same, and their words are not shown or kept. Live captions stay empty until the final words pass the check.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Deleting the last voiceprint turns the lock off. The iPhone app asks for Face ID, and the Mac app for Touch ID or your
+password, before it lowers the level or deletes a voiceprint.</p>
+<h2 id="rules">Rules</h2>
+<ul>
+<li>
+<p><strong>It only narrows.</strong> A match is never consent. Every approval rule still has to hold for your yes; the lock adds "and
+  it was your voice" and removes nothing.</p>
+</li>
+<li>
+<p><strong>It fails closed.</strong> No model yet, a model error, a score that takes longer than 0.6 s, under 0.3 s of audio, or a
+  damaged voiceprint file: the speech counts as not yours for what the level guards. The page and the app say why. A
+  tap, Face ID, the terminal and typed text still work, so a failure costs convenience, never control. The lock is not
+  silently lowered when it cannot score: you turned it on, and a silent downgrade would lift it without your knowing.</p>
+</li>
+<li>
+<p><strong>Short words.</strong> A "yes" is too short to score well. It counts on its own only after a strong match (score ≥ 0.55
+  with ≥ 1 s of speech) within the last minute, on the same device's voiceprint. Continuity never chains from another
+  weak match.</p>
+</li>
+<li>
+<p><strong>Commands and Everything gate at intake</strong>, before the voice model hears the words. Typed text is authenticated by the
+  page key or the phone key and is not gated.</p>
+</li>
+<li>
+<p><strong>Barge-in.</strong> Anyone can still cut the bot off at once (scoring needs about a second of audio). When the lock keeps
+  that voice's words out, the interrupted report comes back at once.</p>
+</li>
+<li>
+<p><strong>Push to talk.</strong> Only speech is scored, never the silence between a press and your first word.</p>
+</li>
+<li>
+<p><strong>Meetings.</strong> With a voiceprint and the lock on, a meeting turn in your voice marks you as the owner of that speaker
+  label, and a "that's me" in another voice is refused. With the lock off, meetings use the label heuristic.</p>
+</li>
+<li>
+<p><strong>Drive mode</strong> uses the voiceprint whenever one is stored, at any level: see <a href="../drive-mode/">drive mode</a>.</p>
+</li>
+<li><strong>Whisper mode</strong> never lowers the lock: see <a href="../whisper-mode/">whisper mode</a>.</li>
+</ul>
+<h2 id="privacy">Privacy</h2>
+<p>The voiceprint is biometric data. It is computed and kept only on this Mac, in <code>~/.claude-voice/voiceprint/</code> (0700, one
+file per device, 0600), and deleted from Settings → Voice lock. No vendor sees the audio for this check or the
+voiceprint. The journal records an ignored utterance's length and score, never its words.</p>
+<p>The model is 3D-Speaker ERes2Net base (Apache-2.0, 40 MB), run by <code>sherpa-onnx</code>. It is downloaded on first use from the
+sherpa-onnx GitHub release into <code>~/.claude-voice/models/</code>, checked against a pinned SHA-256. See
+<a href="https://github.com/ballerine-io/pointe/blob/main/THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+<h2 id="it-is-not-authentication">It is not authentication</h2>
+<p>It is a check against the bystander, not an attacker. A recording of your voice can pass it.</p>
+<h2 id="measured">Measured</h2>
+<p><code>bench/speaker_bench.py</code>, report in <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/speaker.md"><code>bench/results/speaker.md</code></a>: 19 synthetic macOS
+voices, each the owner once and an impostor for the others. Equal error rate 1.9% on 2 to 4 s sentences, 2.7% on short
+answers ("yes", "go ahead"). A CAM++ model scored about 32% on sentences on the same bench, so ERes2Net was chosen.</p>
+<p>The thresholds (<code>T_HIGH = 0.55</code>, <code>T_LOW = 0.35</code>) come from synthetic voices only. Synthetic voices are steadier than
+people. A bench on recorded people (several microphones, a cold, real impostors) has not been run, so Approvals is the
+level to use; Commands and Everything are not yet recommended on that evidence.</p>
+<h2 id="not-built">Not built</h2>
+<p>A profile for the bot's own voice as an impostor (the echo guard covers echo), adapting the voiceprint over time, a
+reminder to enrol, and a "you sound different today" prompt.</p>
+<h2 id="api">API</h2>
+<p><code>POST /voice/voiceprint</code> (page cookie, bearer token, phone key), returns <code>{voice_lock: &lt;status&gt;}</code>:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Body</th>
+<th>Does</th>
+<th>Errors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{action: "enrol", device}</code></td>
+<td>arms enrolment on the live call</td>
+<td>409: no call, a meeting on, native ears</td>
+</tr>
+<tr>
+<td><code>{action: "cancel"}</code></td>
+<td>drops an unfinished enrolment</td>
+<td></td>
+</tr>
+<tr>
+<td><code>{action: "delete", device?}</code></td>
+<td>deletes one device's voiceprint, or all</td>
+<td></td>
+</tr>
+<tr>
+<td><code>{action: "level", level}</code></td>
+<td><code>off</code>, <code>approvals</code>, <code>commands</code>, <code>everything</code></td>
+<td>400 bad level; 409 without a voiceprint</td>
+</tr>
+</tbody>
+</table></div>
+<p>The level is the pref <code>voice_lock</code>, readable at <code>GET /voice/prefs</code>. <code>POST /voice/prefs</code> refuses it, so there is one
+write path, where the voiceprint is checked.</p>
+<p>Status <code>voice_lock</code>: <code>{level, enrolled, devices: [{device, seconds, segments, enrolled_at}], enrolling, lines, model:
+missing|downloading|ready|failed, problem, ignored: {count, last_at, recent: [{at, secs, text?}]}, speaker: null |
+{owner, score, at}, unsure_streak}</code>. <code>text</code> in <code>ignored.recent</code> appears only at Commands.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-lock.md">docs/features/voice-lock.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../"><span class="pg-small">Previous</span>Features</a><a class="dx-next" href="../vocabulary/"><span class="pg-small">Next</span>Self-learning vocabulary</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#rules">Rules</a></li>
+<li class="dx-l2"><a href="#privacy">Privacy</a></li>
+<li class="dx-l2"><a href="#it-is-not-authentication">It is not authentication</a></li>
+<li class="dx-l2"><a href="#measured">Measured</a></li>
+<li class="dx-l2"><a href="#not-built">Not built</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

@@ -153,6 +153,7 @@ class OpenCode(Harness):
     label = "opencode"
     agent = "OpenCode"
     approvals = True
+    interrupts = "now"  # POST /api/session/{id}/interrupt
     side_questions = True
     attach = True
     starts = True
@@ -404,6 +405,16 @@ class OpenCode(Harness):
             logger.error(f"OpenCode prompt to {session.name} failed: {type(e).__name__}")
             return False
 
+    async def interrupt(self, session) -> bool:
+        """POST /api/session/{id}/interrupt: the service cuts the running execution and says whether one ran."""
+        try:
+            got = await self.service.call("POST", f"/api/session/{session.id}/interrupt", {})
+        except Exception as e:
+            logger.error(f"OpenCode interrupt of {session.name} failed: {type(e).__name__}")
+            return False
+        got = got or {}
+        return bool((got.get("data") if isinstance(got.get("data"), dict) else got).get("interrupted"))
+
     async def side_question(self, session, question: str) -> str | None:
         """A fork answers, so the live session is never touched; the fork is deleted after."""
         fork = (await self.service.call("POST", f"/api/session/{session.id}/fork", {}) or {}).get("data") or {}
@@ -459,9 +470,22 @@ def pick_session(cwd: str, wanted: str | None) -> dict:
     return max(found, key=lambda s: (s["id"] in running, (s.get("time") or {}).get("updated") or 0))
 
 
+def pointe_command() -> Path:
+    """The `pointe` a command written into another program runs: ~/.local/bin/pointe when Pointe wrote it, which follows
+    updates and the newer of the plugin and the standalone install (bin/link-pointe); else this copy's, whose folder an
+    update deletes."""
+    link = Path.home() / ".local" / "bin" / "pointe"
+    try:
+        if "# Written by Pointe (bin/link-pointe)" in link.read_text(errors="replace"):  # uninstall.LINK_MARK
+            return link
+    except OSError:
+        pass
+    return ROOT / "bin" / "pointe"
+
+
 def install_command() -> None:
     """An OpenCode v2 plugin with a /voice command: it joins the session it is typed in."""
-    pointe = ROOT / "bin" / "pointe"
+    pointe = pointe_command()
     PLUGIN.parent.mkdir(parents=True, exist_ok=True)
     PLUGIN.write_text(f'''// Pointe: /voice joins this OpenCode session to the shared voice. Written by `pointe join opencode --install-command`.
 import {{ execFile }} from "node:child_process"

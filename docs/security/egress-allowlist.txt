@@ -1,8 +1,10 @@
 # Every host the software can contact, one per line: host, whitespace, why. `*.` at the start matches any subdomain.
 # A line that starts with `link` names a host that appears in the source only as text shown to a person (where to get a
 # key, an XML namespace) and is never contacted. tests/test_supply_chain.py fails when a URL literal in the source names
-# a host that is not here, so a dependency bump or a pull request cannot add an egress silently. The human-readable
-# table, with when each is reached, is docs/security/supply-chain.md.
+# a host that is not here, so a dependency bump or a pull request cannot add an egress silently. Some hosts are named by
+# a server at runtime, not by any literal (hf-xet is told its CAS server and CDN by Hugging Face): those were recorded
+# from the dependency's own log in tests/fixtures/dependency_hosts.txt, and the same test checks each is here. The
+# human-readable table, with when each is reached, is docs/security/supply-chain.md.
 
 # loopback: the daemon, the node, the local text-model server, Ollama
 127.0.0.1                  the daemon and the node (bin/*, channel, hooks, the page)
@@ -22,14 +24,12 @@ stt-rt.soniox.com          Soniox ears, meeting ears (daemon.py, meeting.py, ben
 tts-rt.soniox.com          Soniox mouth (pipecat; bench)
 api.soniox.com             pointe key check soniox: one GET of the models list, to tell a working key from a refused one; a redirect is not followed, so the key goes nowhere else (keys.py)
 
-# models, at the commits and hashes pinned in assets.py
+# models, at the commits and hashes pinned in assets.py. Hugging Face and GitHub pick the hosts a download is redirected
+# to; tests/e2e/egress_redirects.py fetches through a recording proxy and fails on a host that is not here.
 huggingface.co             model repositories (huggingface_hub, mlx-whisper, mlx-audio, faster-whisper; bench)
-cdn-lfs.huggingface.co     model files (huggingface_hub)
-cdn-lfs-us-1.huggingface.co   model files (huggingface_hub)
-cas-bridge.xethub.hf.co    model files (hf-xet)
-transfer.xethub.hf.co      model files (hf-xet)
-github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); links in the page and the site
-objects.githubusercontent.com        where github.com release downloads redirect
+us.aws.cdn.hf.co           model files: where huggingface.co redirects a file download (huggingface_hub, hf-xet)
+cas-server.xethub.hf.co    model files: the Xet storage that hf-xet reads a file's chunks from (hf-xet)
+github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); Pointe's own release tarball, its .sha256 and the /releases/latest redirect (install.sh, pointe update); links in the page and the site
 release-assets.githubusercontent.com where github.com release downloads redirect
 
 # maintainers' tools, never the plugin
@@ -61,7 +61,7 @@ link code.claude.com       where to get Claude Code (doctor.py, site)
 link tailscale.com         where to get Tailscale (pair.py)
 link ballerine.com         the makers' site, linked from About (ui.html, apple/PointeKit/Sources/PointeUI/About.swift, site)
 link happy.engineering     a compared tool's voice docs (site)
-link eng.ballerine.com     the site's own address, for link previews and the redirect from the old one (site)
+link eng.ballerine.com     the site's own address, for link previews and the redirect from the old one (site); where a person downloads install.sh (its usage line, the docs)
 link pointe.ballerine.com  the site's old address: a visitor there is sent to eng.ballerine.com/pointe/ (site)
 link arxiv.org             a cited study, speech against typing (site)
 link doi.org               cited studies: typing speed, interrupted work (site)
@@ -69,3 +69,11 @@ link learn.chatgpt.com     a compared tool's voice docs (site)
 link scripts.sil.org       the font licences' own address (site/fonts)
 link www.w3.org            XML namespace of inline SVG icons (ui.html, site)
 link www.apple.com         the property-list DTD named in a plist's header, never fetched (ios/release.sh, Info.plist)
+link developercertificate.org  the DCO text, linked from the contributing guide (site/pointe/docs, CONTRIBUTING.md)
+link openai.com            a vendor's pages, linked from the docs (site/pointe/docs)
+link soniox.com            a vendor's pricing and models pages, linked from the docs (site/pointe/docs)
+link www.anthropic.com     a vendor's pages, linked from the docs (site/pointe/docs)
+link *.openai.azure.com    the placeholder Azure OpenAI address in an example (site/pointe/docs, docs/features/openai-url.md)
+link developers.cloudflare.com  Cloudflare Tunnel and Access docs, linked from the phone guide (site/pointe/docs, docs/phone/cloudflare.md)
+link www.twingate.com      Twingate's site and docs, linked from the phone guide (site/pointe/docs, docs/phone/twingate.md)
+link *.example.com         placeholder addresses in the docs' examples (site/pointe/docs)

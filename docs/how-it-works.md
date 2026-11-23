@@ -120,17 +120,5 @@ it: `bin/voice-log --call` (the latest call, with everything the model was given
 
 ## Tests
 
-Tests run against an isolated daemon so they never touch a voice you are using:
-
-```
-uv run --locked pytest -q tests/ --ignore=tests/e2e   # offline, no keys
-export CLAUDE_VOICE_STATE=/tmp/cv-state CLAUDE_VOICE_DAEMON_PORT=7861
-uv run --locked python -I tests/e2e/scenarios.py brain       # one session, about 15 min
-uv run --locked python -I tests/e2e/multi_session.py         # two sessions: routing, switching, permissions
-ECHO_GAIN=0.9 uv run --locked python -I tests/e2e/echo.py     # speakers leaking into the mic, no echo cancel
-```
-
-`evals/sim.py` runs a whole call on the real voice model without audio; see `evals/README.md`.
-
-The end-to-end suites drive real Claude Code sessions through a fake browser that speaks synthesized
-utterances over the call WebSocket and transcribes the replies (`tests/e2e/rig.py`).
+The offline suite, the end-to-end suites that drive real Claude Code sessions through a fake browser speaking
+synthesized utterances (`tests/e2e/rig.py`), and the voice evals: [Running the tests](../CONTRIBUTING.md#running-the-tests).

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Claude Code's PreToolUse and PostToolUse hook: a "stop" the user said to the voice ends this session's turn here.
+# The daemon leaves a file named by the session id in $STATE/stop; Claude Code has no supported way to cut a running
+# turn from outside, and "continue": false is the documented way for a hook to end it (code.claude.com/docs/en/hooks).
+# With no stop waiting, it reads nothing and prints nothing: one glob per tool call.
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+set -- "$STATE"/stop/*
+[ -e "$1" ] || exit 0
+INPUT="$(cat)"
+ID="$(printf '%s' "$INPUT" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([A-Za-z0-9_-]*\)".*/\1/p' | head -n 1)"
+[ -n "$ID" ] && [ -f "$STATE/stop/$ID" ] || exit 0
+# Taken: the daemon sees the file go and tells the user the turn ended. Only one hook takes it.
+mv -f "$STATE/stop/$ID" "$STATE/stop/$ID.taken" 2>/dev/null || exit 0
+REASON="Stopped: the user said stop to the voice."
+case "$INPUT" in
+  *'"hook_event_name"'*'"PreToolUse"'*)
+    printf '{"continue": false, "stopReason": "%s", "hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "%s"}}\n' "$REASON" "$REASON" ;;
+  *)
+    printf '{"continue": false, "stopReason": "%s"}\n' "$REASON" ;;
+esac
+exit 0

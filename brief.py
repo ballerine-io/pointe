@@ -189,17 +189,32 @@ _PLAIN = set("what what's whats which who how when where why is are was were do 
              "around".split())
 
 
-def _about_work(text: str, work: set[str], asking: bool = False) -> bool:
+def _own_words(text: str) -> set[str]:
+    words = set(re.findall(r"[^\W_]+", text.lower().replace("’", "'")))
+    return {w for w in words if len(w) > 2 and not w.isdigit()} - _PLAIN - set(_CLAIMS[9:])
+
+
+def _about_work(text: str, work: set[str], asking: bool = False, asked: set[str] = frozenset()) -> bool:
     """A sentence names the work, a session or a person, or has too little of its own to be about the world. A question
-    also when it points back into the call ("how long will it take?") or has too little of its own ("how many?")."""
+    also when it points back into the call ("how long will it take?") or has too little of its own ("how many?").
+    `asked`: the world question's own words; a short sentence that takes one up answers that question ("1,000 bytes in
+    the SI definition." for "how many bytes are in a kilobyte?")."""
     lowered = text.lower().replace("’", "'")
     words = set(re.findall(r"[^\W_]+", lowered))
     if not lowered.isascii() or _WORK.search(lowered) or words & work:  # the words of the work are English ones
         return True
-    own = {w for w in words if len(w) > 2 and not w.isdigit()} - _PLAIN - set(_CLAIMS[9:])
+    own = _own_words(text)
     if asking:
         return bool(_POINTING.search(lowered)) or len(own) < 2
-    return len(own) < 3  # "On March 3rd." answers something said before; a fact about the world names what it is about
+    # "On March 3rd." answers something said before; a fact about the world names what it is about
+    return len(own) < 3 and not own & asked
+
+
+# Figures spelled out are figures too: refused as "1,000", a reply came back as "A thousand bytes". Ten and up only: a
+# small count ("three sessions") is usually counted from what the voice was told, not taken from it.
+SPELLED = {**dict(zip("ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split(), range(10, 20))),
+           **dict(zip("twenty thirty forty fifty sixty seventy eighty ninety".split(), range(20, 100, 10))),
+           "dozen": 12, "hundred": 100, "thousand": 1000, "million": 10**6, "billion": 10**9}
 
 
 def unsupported_in(said: str, known: str, world: str | None = None, work: set[str] = frozenset()) -> list[str]:
@@ -212,15 +227,18 @@ def unsupported_in(said: str, known: str, world: str | None = None, work: set[st
     sentence of its answer checked, and so does `world` None, as for every turn on session news."""
     source = known.lower()
     months = set(_CLAIMS[9:])
+    figures = {d.replace(",", "") for d in re.findall(r"\d[\d,.]*\d|\d", source)}
 
     def made_up(text: str) -> set[str]:
         words = re.findall(r"\d[\d,.]*\d|\d|[a-z]+", text.lower())
-        return {w for w in words if (w in months and w != "may" or (w[0].isdigit() and len(w) > 1)) and w not in source}
+        return {w for w in words if (w in months and w != "may" or (w[0].isdigit() and len(w) > 1)
+                                     or (w in SPELLED and str(SPELLED[w]) not in figures)) and w not in source}
 
     if world is None or _about_work(world, work, asking=True):
         return sorted(made_up(said))
     sentences = re.split(r"(?<=[.!?;])\s+", said)
-    return sorted(set().union(*(made_up(s) for s in sentences if _about_work(s, work))))
+    asked = _own_words(world)
+    return sorted(set().union(*(made_up(s) for s in sentences if _about_work(s, work, asked=asked))))
 
 
 def render_brief(name: str, brief: dict) -> str:

@@ -11,6 +11,43 @@ enum AboutCopy {
     static let version = "Version"
 }
 
+/// About's rows, for the sheet here and for the Mac's setup guide, which has no call screen to open the sheet from.
+public struct PointeAboutRows: View {
+    public static let title = AboutCopy.title
+    var mac: String?
+
+    public init(mac: String? = nil) { self.mac = mac }
+
+    public var body: some View {
+        Section {
+            HStack(spacing: 12) {
+                Image("ChorusMark", bundle: .module).resizable().frame(width: 40, height: 40).accessibilityHidden(true)
+                Text("Pointe").font(.brand(.title2))
+            }
+            Text(AboutCopy.body).accessibilityIdentifier("aboutBody")
+            // In the accent with the arrow that says it leaves the app: in the form's ink they read as two more lines of text.
+            link(AboutCopy.repo, AboutCopy.repoURL).accessibilityIdentifier("aboutRepo")
+            link(AboutCopy.maker, AboutCopy.makerURL).accessibilityIdentifier("aboutMaker")
+            LabeledContent(AboutCopy.version, value: AppVersion.line(app: AppVersion.app, mac: mac))
+                .accessibilityIdentifier("aboutVersion")
+        }
+    }
+
+    private func link(_ title: String, _ url: String) -> some View {
+        Link(destination: URL(string: url)!) {
+            HStack {
+                Text(title)
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.up.right").font(.brand(.footnote, .semibold))
+            }
+            .foregroundStyle(Brand.accent)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+}
+
 struct AboutSheet: View {
     var mac: String? = nil
     @Environment(\.dismiss) private var dismiss
@@ -18,13 +55,7 @@ struct AboutSheet: View {
     var body: some View {
         NavigationStack {
             BrandForm {
-                Section {
-                    Text(AboutCopy.body).accessibilityIdentifier("aboutBody")
-                    Link(AboutCopy.repo, destination: URL(string: AboutCopy.repoURL)!).accessibilityIdentifier("aboutRepo")
-                    Link(AboutCopy.maker, destination: URL(string: AboutCopy.makerURL)!).accessibilityIdentifier("aboutMaker")
-                    LabeledContent(AboutCopy.version, value: AppVersion.line(app: AppVersion.app, mac: mac))
-                        .accessibilityIdentifier("aboutVersion")
-                }
+                PointeAboutRows(mac: mac)
             }
             .sheetTitle(AboutCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }

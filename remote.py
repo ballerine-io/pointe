@@ -125,8 +125,8 @@ class Remote:
             self._set_cookie(response)
             return response
         if not self._paired(request):
-            return PlainTextResponse("not paired: open the pairing link from `pointe pair link` once",
-                                     status_code=403)
+            return PlainTextResponse("This browser is no longer paired with the Mac. On the Mac, run: pointe pair link. "
+                                     "Then open the link it prints once on this phone.", status_code=403)
         return await call_next(request)
 
     async def serve(self, app, fatal: bool = True) -> None:

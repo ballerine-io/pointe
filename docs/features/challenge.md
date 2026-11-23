@@ -17,7 +17,12 @@ verdict); `daemon.py` starts, ends and records it.
   reaches the voice model as a turn, and never approves.
 - **Page:** a Challenge button in the dock ("End challenge" while on), "Challenge it" in the brain dump's review, and a
   Challenge panel with the plan, then Objection / You / Verdict in order.
-- **iPhone app:** starts it, shows the exchange, and ends it.
+- **iPhone app:** Settings (••• at the top) → Challenge ("End challenge" while on), or "Challenge it" in the brain
+  dump's review. The Challenge panel shows the plan and the exchange.
+- **Mac app:** the iPhone app's screens: Settings (••• at the top, or ⌘,) → Challenge, or "Challenge it" in the brain
+  dump's review.
+- In the apps, Settings → Challenge can be chosen only with a call up, and not in a meeting, while you dump thoughts, or
+  in drive mode.
 
 ## What grounds it
 

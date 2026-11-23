@@ -1,56 +1,108 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|setup|join|leave|local|apps|restart|stop|uninstall [args]
+# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|key|setup|join|leave|local|apps|restart|stop|update|uninstall [args]
 set -euo pipefail
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started before it ran does not have it on PATH
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
+# `pointe <command> --help` says what the command does and does nothing else: before this, `local --help` started the
+# 19 GB fully local install and `stop --help` ended the call. pair and node read their own --help.
+usage() {
+  case "$1" in
+    start)     echo "pointe start: start a new Claude Code session that joins the voice." ;;
+    attach)    echo "pointe attach: join this Claude Code session to the voice (/pointe:voice runs it)." ;;
+    open)      echo "pointe open: open the Pointe page in the browser, starting Pointe if it is not running." ;;
+    talk)      echo "pointe talk: push to talk from any app; bind it to a system-wide shortcut." ;;
+    doctor)    echo "pointe doctor [--live]: what is ready, and the one thing to fix. --live also makes one tiny call per key." ;;
+    status)    echo "pointe status: whether Pointe is running, and its address." ;;
+    log)       echo "pointe log: the last lines of what Pointe heard, said and did." ;;
+    context)   echo "pointe context: what Pointe knows about a session." ;;
+    stop)      echo "pointe stop: end the call and stop Pointe." ;;
+    restart)   echo "pointe restart: start Pointe again, on new keys or a new setup. A running Pointe is stopped only once the new setup can start." ;;
+    uninstall) echo "pointe uninstall: remove Pointe, asking about your keys and settings first." ;;
+    update)    echo "pointe update [--yes]: the standalone install: the newest release, checked against its SHA-256. The Claude Code plugin updates through Claude Code." ;;
+    hub)       echo "pointe hub invite [--name NAME] | nodes | revoke NAME: the machines that join this one." ;;
+    key)       echo "pointe key <vendor> [--no-restart] | key check <vendor>: save a key in the Keychain, checked first." ;;
+    setup)     echo "pointe setup [<id> | codex | opencode]: in a terminal, the guided first setup (one question, your key, your first call); <id> chooses a setup; codex and opencode set those up for the voice. Without a terminal, or once set up, it lists the setups." ;;
+    join)      echo "pointe join <agent>: add an OpenCode or Codex session to the voice." ;;
+    leave)     echo "pointe leave <agent>: take it off the voice." ;;
+    local)     echo "pointe local [voice | status | off]: download the local models (about 19 GB, or 2 GB for voice) and switch to the Fully local setup (voice: Voice stays on your Mac); status shows them; off goes back to your vendors." ;;
+    apps)      echo "pointe apps doctor | mac | ios: build the iPhone and Mac apps from source." ;;
+    *)         return 1 ;;
+  esac
+}
+for arg in "$@"; do
+  case "$arg" in -h|--help) case "$cmd" in pair|node|help|-h|--help) ;; *) usage "$cmd" && exit 0 ;; esac ;; esac
+done
 case "$cmd" in
   start)   exec "$BIN/claude-voice" "$@" ;;        # a new session, with Claude Code's channel
   attach)  exec "$BIN/claude-voice-attach" "$@" ;; # from inside a session; /pointe:voice runs this
-  open)    exec "$BIN/voice-open" "$@" ;;
+  open)    "$BIN/voice-daemon" ensure >/dev/null && exec "$BIN/voice-open" "$@" ;;
   talk)    exec "$BIN/voice-talk" "$@" ;;        # push to talk from any app: bind it to a system-wide shortcut
   doctor)  exec "$BIN/voice-doctor" "$@" ;;
   status)  exec "$BIN/voice-daemon" status ;;
   log)     exec "$BIN/voice-log" "$@" ;;
   context) exec "$BIN/voice-context" "$@" ;;
   stop)    exec "$BIN/voice-daemon" stop ;;
-  restart) "$BIN/voice-daemon" stop >/dev/null; exec "$BIN/voice-daemon" ensure ;;  # after a key or setup change
+  restart) # after a key or setup change. A running Pointe is stopped only once the new setup can start: a missing or
+           # refused key keeps the call up, and the words say what to fix.
+           if "$BIN/voice-daemon" status | grep -q '^running'; then
+             "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." || exit 1
+             uv run --no-sync --project "$BIN/.." python "$BIN/../doctor.py" --preflight >&2 || {
+               echo "Not restarted: Pointe keeps running as it was. Fix the above, then pointe restart again." >&2; exit 1; }
+           fi
+           "$BIN/voice-daemon" stop >/dev/null; exec "$BIN/voice-daemon" ensure ;;
   uninstall) exec python3 -I "$BIN/../uninstall.py" "$@" ;;  # standard library only: runs whatever state uv is in
-  pair)    cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I pair.py "$@" ;;
+  pair)    cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pair.py "$@" ;;
   node)    ROOT="$BIN/.."; STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"  # this machine as a node: no Pipecat, no keys
            exec env UV_PROJECT_ENVIRONMENT="$STATE/node-env" uv run -q --locked --only-group node --project "$ROOT" python "$ROOT/node_cli.py" "$@" ;;
-  hub)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I hub_nodes.py "$@" ;;  # machines: invite, nodes, revoke
-  key)     cd "$BIN/.." && exec uv run --locked --project "$BIN/.." python -I keys.py "$@" ;;
+  hub)     cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I hub_nodes.py "$@" ;;  # machines: invite, nodes, revoke
+  key)     cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I keys.py "$@" ;;
   setup)   case "${1:-}" in  # which vendors Pointe uses (setups.py); the two local setups download their models first
              voice-local) exec "$0" local voice ;;
              local)       exec "$0" local ;;
+             codex|opencode|--no-open) TERMINAL=1 ;;
+             "") # a person at a terminal who has not set up yet gets the guided flow; Claude's Bash tool gets the list
+                 [ -t 0 ] && [ -t 1 ] && [ "$("$BIN/voice-first-run" --needed)" = needed ] && TERMINAL=1 ;;
            esac
-           exec uv run --locked --project "$BIN/.." python -I "$BIN/../setups.py" "$@" ;;
+           if [ -n "${TERMINAL:-}" ]; then
+             "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I "$BIN/../terminal_setup.py" "$@"
+           fi
+           "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I "$BIN/../setups.py" "$@" ;;
   local)   case "${1:-}" in
              off|stop|status) ;;  # nothing to install
              *) # The Mac and the key first: the libraries below are 1.1 GB on disk, for nothing on a Mac that cannot use them.
-                uv run --locked --project "$BIN/.." python -I "$BIN/../local.py" check "$@" || exit 1
+                "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && uv run --no-sync --project "$BIN/.." python -I "$BIN/../local.py" check "$@" || exit 1
                 compgen -G "$BIN/../.venv/lib/python*/site-packages/kokoro_onnx" >/dev/null \
                   || echo "Installing the local libraries once: about 290 MB to download, 1.1 GB on disk..." >&2
-                uv sync --locked --quiet --extra local --project "$BIN/.." ;;  # Whisper and Kokoro run inside the daemon
+                "$BIN/uv-sync" --quiet --extra local --project "$BIN/.." ;;  # Whisper and Kokoro run inside the daemon
            esac
-           exec uv run --locked --project "$BIN/.." python -I "$BIN/../local.py" "$@" ;;  # fully local: no keys
+           "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I "$BIN/../local.py" "$@" ;;  # fully local: no keys
   apps)    exec "$BIN/pointe-apps" "$@" ;;       # the iPhone and Mac apps, built from source: doctor, mac, ios
-  join)    exec uv run --locked --project "$BIN/.." python -I "$BIN/../harnesses/join.py" "$@" ;;  # another harness: pointe join opencode
-  leave)   exec uv run --locked --project "$BIN/.." python -I -c "import sys; sys.path.insert(0, \"$BIN/../harnesses\"); import join; join.main(sys.argv[1:], leave=True)" "$@" ;;
+  join)    "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I "$BIN/../harnesses/join.py" "$@" ;;  # another harness: pointe join opencode
+  leave)   "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I -c "import sys; sys.path.insert(0, \"$BIN/../harnesses\"); import join; join.main(sys.argv[1:], leave=True)" "$@" ;;
+  update)  # the standalone install updates itself (install.sh --update); the plugin through Claude Code, as always
+           INSTALLED="$("$BIN/pointe-installs" list)"
+           STANDALONE="$(awk -F '\t' '$1 == "standalone" { print $3; exit }' <<<"$INSTALLED")"
+           if grep -q '^plugin' <<<"$INSTALLED"; then
+             echo "The Claude Code plugin updates through Claude Code: claude plugin marketplace update pointe, then claude plugin update pointe@pointe, then pointe restart."
+           fi
+           [ -n "$STANDALONE" ] && exec "$STANDALONE/install.sh" --update "$@"
+           [ -n "$INSTALLED" ] || echo "This Pointe is not installed but run from a folder ($(cd "$BIN/.." && pwd)): update it with git pull."
+           exit 0 ;;
+  version|--version|-V) echo "Pointe $(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$BIN/../.claude-plugin/plugin.json")" ;;
   help|-h|--help) cat <<'HELP'
-Pointe: one voice over your coding agents.
+Pointe: a conversational layer for your coding agents.
 
 Start here   pointe doctor          what is ready, and the one thing to fix
-             pointe setup           choose which models Pointe uses
+             pointe setup           the guided first setup; later, choose which models Pointe uses
              pointe key <vendor>    save a key in the Keychain, checked first
 Sessions     pointe join <agent>    add an OpenCode or Codex session (Claude Code: /pointe:voice)
              pointe leave <agent>   take it off
              pointe open            open the page
              pointe restart         start Pointe again, on new keys or a new setup
              pointe stop            end the call and stop Pointe
-More         pair · apps · local · hub · node · talk · log · context · status · uninstall
+More         pair · apps · local · hub · node · talk · log · context · status · version · update · uninstall
 In Claude Code: /pointe:setup, /pointe:voice, /pointe:stop
 HELP
            exit 0 ;;

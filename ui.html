@@ -118,6 +118,8 @@
   button { font-family: inherit; }
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role=button]:focus-visible {
     outline: 2px solid var(--orange); outline-offset: 2px; }
+  /* a text field's own rule clears the outline for its quiet look: a keyboard user still sees where they are */
+  :is(input, textarea, select):focus-visible { outline: 2px solid var(--orange) !important; outline-offset: 1px; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
   /* ---- controls: the iOS set. A setting is a switch, a choice is a select or a segmented control, days are chips. ---- */
@@ -158,7 +160,7 @@
   .sheetbox input[type=checkbox]:not(.tick input) { accent-color: var(--orange); }
 
   /* ---- sessions column ---- */
-  #side { display: flex; flex-direction: column; gap: 20px; padding: 20px 16px 12px; border-right: 1px solid var(--line);
+  #side { display: flex; flex-direction: column; gap: 20px; padding: 20px 16px 0; border-right: 1px solid var(--line);
           background: var(--surface); overflow: hidden; min-width: 0; }
   body.nosessions #side { padding: 0; border: 0; }
   .brand { display: flex; align-items: center; gap: 12px; color: var(--muted); padding: 0 2px; }
@@ -166,7 +168,9 @@
                font: 400 20px/1 var(--font); cursor: pointer; place-items: center; flex: none; padding: 0; position: relative; }
   #sideclose:hover { background: var(--raised2); color: var(--text); }
   .logo { width: 24px; height: 24px; flex: none; color: var(--text); }  /* the Chorus mark's compact drawing (docs/brand/logo.md) */
-  .brand .name { font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); }
+  .brand .name { font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); margin: 0; }
+  #night-h:focus, .sheetbox h2[tabindex]:focus, .sheetbox:focus { outline: none; }  /* focus parked on a title or the sheet: nothing to ring */
+  @media (hover: none) { .keyonly { display: none; } }  /* a key hint means nothing on a touch screen */
   .brand .serif { font-size: 12.5px; color: var(--dim); white-space: nowrap; margin-top: 2px; }
   .brand .ver { font: 500 10.5px var(--font); font-style: normal; color: var(--dim); letter-spacing: .02em; }
   .brand .ver:empty { display: none; }
@@ -175,12 +179,19 @@
   .modehelp { color: var(--muted); font-size: 12.5px; margin: 8px 4px 0; line-height: 1.45; }
 
   #list { display: flex; flex-direction: column; gap: 0; overflow-y: auto; min-height: 0; padding: 2px; margin: -2px; }
+  /* more below the cut: the last row fades instead of being sliced through */
+  #list.below { -webkit-mask: linear-gradient(180deg, #000 calc(100% - 36px), transparent); mask: linear-gradient(180deg, #000 calc(100% - 36px), transparent); }
+  #list-hot { align-self: flex-start; margin-top: 6px; border: 1px solid var(--orange-line); background: var(--tint); color: var(--accent);
+              font: 600 12px var(--font); border-radius: 999px; min-height: 30px; padding: 0 12px; cursor: pointer; }
+  #list-hot[hidden] { display: none; }
   .s { display: grid; grid-template-columns: 10px minmax(0, max-content) max-content 1fr; align-items: center; column-gap: 10px; row-gap: 1px;
        width: 100%; min-height: 46px; padding: 8px 10px; border-radius: 0; cursor: pointer; border: 0; border-bottom: 1px solid var(--line);
        background: transparent; color: var(--text); font: 500 14px var(--font); text-align: left; transition: background .15s; }
   #list > * { flex: none; }  /* the list scrolls; a row never gives up height (a two-line name ran into the line under it) */
   .s:hover { background: var(--raised); }
   .s:focus-visible, .mh:focus-visible { outline-offset: -2px; }  /* inside the row: the list clips a ring drawn outside it */
+  .s .nm:focus-visible { outline: none; }  /* the ring goes round the whole row */
+  .s:has(> .nm:focus-visible) { outline: 2px solid var(--orange); outline-offset: -2px; }
   .s.on { background: var(--tint); box-shadow: inset 2px 0 0 var(--orange); }
   .s.dim .nm { color: var(--muted); }  /* not the focused one: quieter, still readable (an opacity fails AA) */
   .s .nm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; line-height: 1.3; }
@@ -203,8 +214,9 @@
   #m-new { margin-top: 10px; align-self: flex-start; border: 0; border-radius: 12px; min-height: 36px; padding: 0 14px; background: transparent;
            box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--text); font: 600 13px var(--font); cursor: pointer; flex: none; }
   #m-new:hover { background: var(--raised); }
-  #newsheet select, #newsheet input { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; min-height: 44px;
+  #newsheet select, #newsheet input { background-color: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; min-height: 44px;
                                       padding: 0 12px; font: 14px var(--font); outline: none; }
+  #newsheet select { padding-right: 32px; }  /* the chevron every select carries: background-color keeps its image */
   #newsheet select:focus, #newsheet input:focus { border-color: var(--orange-line); }
   #newsheet .path { font: 12px var(--mono); color: var(--dim); overflow-wrap: anywhere; }
   #newsheet .note { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
@@ -242,6 +254,12 @@
                    box-shadow: inset 0 0 0 1px var(--line-strong); font: 600 12.5px var(--font); cursor: pointer; }
   #addsheet .err { color: var(--accent); font-size: 13px; } #addsheet .err:empty, #addsheet .note:empty { display: none; }
   #addsheet .note { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  /* a row that scrolls sideways fades at the edge where more is hidden, so a cut chip reads as "more this way" */
+  .fade-r { -webkit-mask: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+  .fade-l { -webkit-mask: linear-gradient(90deg, transparent, #000 28px); mask: linear-gradient(90deg, transparent, #000 28px); }
+  .fade-l.fade-r { -webkit-mask: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+                   mask: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+  .night-strip .acts { display: flex; gap: 8px; margin-left: auto; } .night-strip button { white-space: nowrap; }
   #m-night { margin-top: 4px; align-self: flex-start; border: 0; border-radius: 12px; min-height: 36px; padding: 0 14px; background: transparent;
              color: var(--muted); font: 600 13px var(--font); cursor: pointer; }
   #m-night:hover { background: var(--raised); color: var(--text); }
@@ -259,7 +277,9 @@
   #night-sections { display: flex; flex-direction: column; gap: 12px; }
   #night-sections h3 { margin: 0 0 6px; } #night-sections ul, #night-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   #night-sections li { background: var(--card); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
-  #night-sections li b { margin-right: 6px; } #night-sections li .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  #night-sections li b { display: block; } #night-sections li .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  #night-sections li .says { margin-top: 4px; } #night-sections li .choice { font-weight: 600; margin-top: 2px; }
+  #night-sections li .refs { font: 12px var(--mono); color: var(--muted); margin-top: 4px; } #night-sections li .refs a { color: var(--accent); }
   #night-sections li pre { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.45 var(--mono, ui-monospace, Menlo, monospace);
                            background: var(--raised); border-radius: 8px; padding: 8px 10px; max-height: 30vh; overflow-y: auto; }
   #night-history li { font-size: 13px; color: var(--muted); } #night-history button { border: 0; background: transparent; color: var(--text);
@@ -301,6 +321,7 @@
   #mach-code { font: 600 30px var(--mono); letter-spacing: .14em; user-select: all; padding: 4px 0; }
   #mach-link { font: 12px var(--mono); color: var(--muted); overflow-wrap: anywhere; user-select: all; }
   #mach-link:empty { display: none; }
+  #mach-copy { align-self: flex-start; margin-top: 6px; }
   /* Settings → Phone (phone_pairing.py) */
   .proutes { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
   .proutes label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; background: var(--raised);
@@ -366,7 +387,8 @@
   #renameproblem { color: var(--accent); font-size: 12px; }
   #renameproblem:empty { display: none; }
 
-  .routing { flex: 1; min-height: 104px; display: flex; flex-direction: column; }  /* a long sessions list scrolls; this keeps a request and a half */
+  /* The sessions list has the room first: Recent requests takes what is left (none, when the list is long). */
+  .routing { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
   #recent { margin: 0; padding: 0 4px; list-style: none; overflow-y: auto; }
   #recent li { padding: 9px 0; border-bottom: 1px solid var(--line); }
   #recent li:last-child { border-bottom: 0; }
@@ -375,7 +397,8 @@
   .t { font: 11px var(--mono); }
   .to { color: var(--muted); font-weight: 600; }
   .blocked { color: var(--accent); }
-  footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  footer { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line);
+           position: sticky; bottom: 0; z-index: 1; background: var(--surface); }  /* Settings stays at the foot */
   footer button { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line);
                   background: var(--card); color: var(--muted); font: 600 12px var(--font); cursor: pointer; white-space: nowrap; min-width: 0; }
   footer button:hover { color: var(--text); background: var(--raised); }
@@ -399,12 +422,12 @@
   [data-state=broken] .state { color: var(--danger-text); }
   .pill { border: 1px solid var(--line); background: var(--raised); color: var(--text); font: 500 12.5px var(--font);
           padding: 4px 10px; border-radius: 999px; cursor: pointer; }
-  #fixkey { margin-top: 6px; border-color: var(--danger); color: var(--danger-text); }
+  #fixkey { margin-top: 8px; min-height: 36px; padding: 0 16px; font-size: 13.5px; border-color: var(--danger); background: var(--danger); color: #fff; }
   #fixkey[hidden] { display: none; }
   /* Before Pointe has answered anyone on this Mac (status.first_call): Connect, the mic, Type, Settings and Sessions only. */
   body.firstrun #listen, body.firstrun #meetbtn, body.firstrun #briefbtn, body.firstrun .micmode, body.firstrun #chlbtn,
   body.firstrun #whisperbtn, body.firstrun #polishrow, body.firstrun #ctx, body.firstrun #modesec,
-  body.firstrun #m-night, body.firstrun #m-add { display: none !important; }
+  body.firstrun #m-night, body.firstrun #m-add, body.firstrun #morebtn, body.firstrun #connect-phone { display: none !important; }  /* More would hold only what is hidden */
   [data-state=connecting] .top .dot, [data-state=reconnecting] .top .dot { background: var(--orange); animation: breathe 1s infinite; }
   .state { font: 400 20px/1.2 var(--display); letter-spacing: -.015em; }
   [data-state=muted] .state { color: var(--accent); }
@@ -416,7 +439,13 @@
   #problem { color: var(--accent); font-size: 13px; overflow-wrap: anywhere; }
   #problem:empty { display: none; }
 
-  .stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
+  .stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  /* A wide screen: the call keeps a column of about 1,100 px in the middle (a 750 px Approve, a 2,000 px text box read
+     badly); the top bar keeps the whole width. A percentage here is of each element's own container: main, or the stage. */
+  @media (min-width: 1500px) { main { --gutter: max(24px, calc((100% - 1100px) / 2)); } .top, #meetbar { --gutter: 24px; } }  /* a squeezed stage never paints over a card */
+  @media (max-height: 560px) {  /* a phone held sideways, a laptop at 200 %: the call scrolls, and the conversation keeps a few lines */
+    main { overflow-y: auto; } main > * { flex-shrink: 0; } main > .stage { flex-shrink: 1; min-height: 120px; }
+  }
   .stage::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
                    background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 16.667%); opacity: .5;
                    -webkit-mask: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent); mask: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent); }
@@ -482,11 +511,15 @@
   /* approval cards, pinned above the bar like the app */
   #attention { display: flex; flex-direction: column; gap: 8px; padding: 0 var(--gutter); }
   #attention:empty { display: none; }
+  .ask .need.err { color: var(--danger-text); }
+  #night-sections a { color: var(--accent); text-underline-offset: 2px; }
   .ask { border: 1px solid var(--orange-line); border-radius: 12px; padding: 14px 16px; background: var(--card); color: var(--text); text-align: left; }
   .ask .what { font-weight: 600; font-size: 14px; }
   .ask .what span:not(.agent) { color: var(--accent); font-weight: 600; white-space: nowrap; }
   .ask .what .agent { margin-left: 0; }
   .ask .need { color: var(--muted); margin-top: 4px; font-size: 13px; }
+  /* a read-back (a new session's, a night shift's) is a sentence to read, as the app's StartCard shows it: no code box */
+  .ask .need.readback { color: var(--text); font-size: 14px; line-height: 1.45; margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto; }
   .ask .need.exact { display: block; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto;
                      font: 12.5px/1.5 var(--mono); background: var(--raised); border-radius: 12px; padding: 8px 10px; margin-top: 8px; }
   .ask .answer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -528,9 +561,11 @@
   /* typing */
   #compose { display: flex; gap: 8px; padding: 10px var(--gutter) 0; }
   #compose input { flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; min-height: 44px;
-                   color: var(--text); font: 15px var(--font); outline: none; }
+                   color: var(--text); font: 15px var(--font); }  /* the page's focus ring, as every field has */
   #compose input:focus { border-color: var(--orange-line); }
   #compose input:disabled { opacity: .5; }
+  #typed-err { padding: 4px var(--gutter) 0; font: 12.5px var(--font); color: var(--danger-text); }
+  #typed-err:empty, #compose.folded + #typed-err { display: none; }
   #compose button { border: 0; border-radius: 12px; padding: 0 18px; min-height: 44px; background: var(--primary); color: var(--on-primary);
                     font: 600 14px var(--font); cursor: pointer; }
   #compose button:disabled { opacity: .35; cursor: default; }
@@ -554,7 +589,7 @@
   .dock .btn .lb { white-space: nowrap; }
   .dock-center { display: flex; flex-direction: column; align-items: center; gap: 7px; }
   .micmode button { padding: 4px 12px; font-size: 12px; min-width: 92px; }
-  .microw { position: relative; display: flex; justify-content: center; }
+  .microw { position: relative; display: flex; justify-content: center; padding: 0 60px; }  /* Hang up's room, both sides: 12 + 48 */
   #mic { width: 68px; height: 68px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
          background: var(--orange); color: var(--on-orange); transition: transform .15s, background .2s, box-shadow .2s;
          touch-action: none; user-select: none; -webkit-user-select: none; position: relative; isolation: isolate; }
@@ -566,17 +601,25 @@
   #miclabel { font: 600 12px var(--font); color: var(--text); line-height: 1; }
   #keyhint { font: 11px var(--font); color: var(--dim); line-height: 1; white-space: nowrap; }
   #hangup { position: absolute; left: calc(50% + 34px + 12px); top: 50%; transform: translateY(-50%); min-width: 0; padding: 0; color: var(--danger-text); }
-  #hangup .ic { width: 48px; height: 48px; background: var(--danger); color: #fff; }
-  #hangup:hover .ic { filter: brightness(1.1); }
-  #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* as the apps' bar (BottomBar.swift): a quiet disc with a red glyph, one of the bar's controls, not a second solid button */
+  #hangup .ic { width: 48px; height: 48px; background: var(--raised); color: var(--danger-text); }
+  #hangup:hover .ic { background: var(--raised2); }
+  /* labelled as every dock button is; the label hangs under the disc, so the disc stays level with the mic */
+  #hangup .lb { position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%); white-space: nowrap; line-height: 1; }
   #hangup:disabled { visibility: hidden; }
   #sessbtn { display: none; }  /* shown where the sessions column is a sheet (narrow, or beside the Showing pane) */
+  #morebtn { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--raised);
+             color: var(--text); cursor: pointer; }
+  #morebtn[hidden] { display: none; }
+  #morebtn svg { width: 20px; height: 20px; }
   [data-state=muted] #mic { background: var(--raised); color: var(--accent); box-shadow: inset 0 0 0 2px var(--orange); }
   [data-state=muted] #mic .on { display: none; } [data-state=muted] #mic .off { display: block; }
   /* no call: the mic is a mic only, and reads as off until Connect has done its work */
   [data-state=off] #mic, [data-state=connecting] #mic, [data-state=reconnecting] #mic { background: var(--raised); color: var(--dim); box-shadow: inset 0 0 0 1px var(--line); cursor: default; }
   [data-state=off] #mic:hover, [data-state=connecting] #mic:hover, [data-state=reconnecting] #mic:hover { transform: none; }
   [data-state=off] #miclabel, [data-state=connecting] #miclabel, [data-state=reconnecting] #miclabel { color: var(--dim); }
+  /* a refused key: the mic hears nothing useful, so it does not look live; the way out is Fix the key in the top bar */
+  [data-state=broken] #mic { background: var(--raised); color: var(--danger-text); box-shadow: inset 0 0 0 2px var(--danger); }
   [data-state=bot] #mic::after { animation: speak 1.1s ease-in-out infinite; }
   [data-state=user] #mic { box-shadow: 0 0 0 6px var(--tint); }
   [data-state=connecting] #mic, [data-state=reconnecting] #mic { opacity: .7; }
@@ -593,7 +636,7 @@
     body.showing .dock { gap: 0 8px; padding: 8px 10px 10px; }
     body.showing .dock-side { gap: 2px; }
     body.showing .dock .btn { min-width: 44px; }
-    body.showing .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    body.showing .dock .btn .lb, body.showing #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     body.showing .micmode button { min-width: 80px; padding-left: 9px; padding-right: 9px; }
   }
   #more-list { display: flex; flex-direction: column; gap: 2px; }
@@ -672,6 +715,8 @@
               flex-direction: column; gap: 16px; padding: 20px; background: var(--surface); border-left: 1px solid var(--line);
               box-shadow: -24px 0 56px -24px var(--scrim); overflow-y: auto; padding-top: calc(20px + env(safe-area-inset-top)); }
   #ctxpanel.open { display: flex; }
+  #ctxscrim { display: none; position: fixed; inset: 0; z-index: 29; background: var(--scrim); }
+  body.ctxopen #ctxscrim { display: block; }
   #ctxpanel h2 { margin: 0; font-size: 16px; display: flex; align-items: center; }
   #ctxpanel h2 button, #ctxmodal h2 button { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--raised);
                                              color: var(--muted); font: 400 20px/1 var(--font); cursor: pointer; display: grid; place-items: center; }
@@ -816,7 +861,7 @@
   .settings .r, .settings .tick, .settings .field { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px;
                                                      padding: 8px 14px; font-size: 14.5px; color: var(--text); margin: 0; }
   .settings .field { flex-direction: row; }
-  .settings .field.wide { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 0; }
+  .settings .field.wide { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; }  /* inset as every row is */
   .settings .r.col { flex-direction: column; align-items: stretch; gap: 10px; padding-top: 12px; padding-bottom: 12px; }
   .settings .r.col > .seg { width: 100%; }
   .settings .tick:hover, .settings .r.nav:hover { background: var(--raised); }
@@ -845,8 +890,17 @@
   .settings #ph-done { padding: 12px 14px; margin: 0; }
   .settings #pref-local, .settings #pref-keys-line { font-size: 14px; color: var(--text); }
   .settings #pref-keys .r + .r, .settings #pref-setups .r + .r { border-top: 1px solid var(--line); }
-  .settings #pref-setups .shead2 { display: flex; justify-content: space-between; gap: 10px; }
+  .settings #pref-setups .shead2 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+  .settings #pref-setups .kstate { font-size: 12px; color: var(--success-text); }
+  .settings #pref-setups .r.col { gap: 6px; }
+  .settings #pref-setups .cost { font-size: 13px; color: var(--text); }
+  .settings #pref-setups .help { padding: 0; }  /* under the name, not indented past it */
+  .settings #pref-setups .pill { align-self: flex-start; min-height: 36px; padding: 0 16px; margin-top: 6px; }
+  .settings #pref-keys .pill { min-width: 6.5em; }
+  .settings .note.foot + .note.foot { margin-top: -4px; }
   .settings #pref-setups code:empty { display: none; }
+  .settings #pref-setups .snote { font-size: 13px; color: var(--accent); } .settings #pref-setups .snote:empty { display: none; }
+  .settings #pref-keys .r { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; }  /* every state at one x */
   .settings #pref-keys .kstate { color: var(--muted); } .settings #pref-keys .kstate.inUse { color: var(--text); }
   .settings #mach-invite { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
   .settings #mach-invite .note { padding: 0; }
@@ -941,15 +995,16 @@
 
   @media (max-width: 1100px) {  /* a tighter dock: each button as wide as its label */
     .dock { padding-left: 12px; padding-right: 12px; gap: 0 10px; }
+    .microw { padding: 0 52px; } #hangup { left: calc(50% + 34px + 8px); } #hangup .ic { width: 44px; height: 44px; }  /* 8 + 44 */
     .dock-side { gap: 2px; }
     .dock .btn { min-width: 46px; }
     .micmode button { min-width: 80px; padding-left: 9px; padding-right: 9px; }
   }
   /* Where the labels do not fit on one row, they become tooltips: beside the sessions column under 1000 px, and on a
-     phone or a small tablet (the rest is in More). Measured: at 1024 px the labels leave 55 px a side, the longest ones
+     phone or a small tablet the bar is the app's four (the rest is in More) and keeps them. Measured: at 1024 px the labels leave 55 px a side, the longest ones
      ("End challenge", "Whispering") 22 px; at 1000 and 761 px, 10 px (tests/test_ui_layout.py). */
-  @media (max-width: 760px), (min-width: 901px) and (max-width: 999px) {
-    .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  @media (min-width: 901px) and (max-width: 999px) {
+    .dock .btn .lb, #hangup .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   }
   @media (min-width: 901px) and (max-width: 1339px) {  /* a small laptop with the Showing pane open: the sessions column steps aside, as on a narrow screen */
     body.showing:not(.showfold), body.showing.nosessions:not(.showfold) { grid-template-columns: minmax(0, 1fr) minmax(340px, 34vw); }
@@ -970,6 +1025,10 @@
     body.sheet::before { content: ''; position: fixed; inset: 0; z-index: 19; background: var(--scrim); }
     #sessbtn { display: flex; } #sideclose { display: grid; }
     body.nosessions #side { transform: translateX(-102%); }
+    /* a sheet scrolls as one: a list scrolling inside it took a third of a phone and cut a row mid-height */
+    #side { overflow-y: auto; overscroll-behavior: contain; }
+    #side > section, .routing { flex: none; min-height: 0 !important; }
+    #list, #recent { overflow: visible; }
     .dock { gap: 0 8px; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
     #compose.folded { display: none; }
     body.showing, body.showing.showfold, body.showing.nosessions, body.showing.showfold.nosessions { grid-template-columns: 1fr; }
@@ -992,8 +1051,14 @@
     .settings .snav button.on { box-shadow: inset 0 0 0 1px var(--orange-line); }
     .settings .spanel { padding: 16px 14px calc(30px + env(safe-area-inset-bottom)); gap: 22px; }
     .micmode button { min-width: 0; padding: 4px 12px; font-size: 12px; min-height: 32px; }
+    /* the app's bar (BottomBar.swift): Brain dump and Type, the mic, Sessions and Hang up, each labelled, each side half
+       of what the mic leaves; Hang up is a side button that keeps its slot with no call, so the mic never moves */
     .dock .btn { min-width: 46px; }
-    #hangup { left: calc(50% + 34px + 8px); } #hangup .ic { width: 44px; height: 44px; }
+    .dock-side, .dock-side.left, .dock-side.right { flex-wrap: nowrap; justify-content: space-evenly; }
+    .microw { padding: 0; }
+    #hangup { position: static; transform: none; min-width: 46px; padding: 4px 2px; }
+    #hangup .ic { width: 44px; height: 44px; }
+    #hangup .lb { position: static; width: auto; height: auto; overflow: visible; clip-path: none; transform: none; line-height: normal; }
     /* Clean up my words moves to More (layoutDock): a bare switch in the top bar says nothing about what it does */
     #more-list .toggle { flex-direction: row-reverse; justify-content: space-between; min-height: 54px; padding: 6px 10px 6px 64px; font-size: 15px; color: var(--text);
                          white-space: normal; border-top: 1px solid var(--line); margin-top: 6px; }
@@ -1033,20 +1098,31 @@
     .dock { grid-template-rows: auto auto auto; gap: 6px 4px; padding: 8px 4px calc(10px + env(safe-area-inset-bottom)); }
     .dock-center { display: contents; }
     .micmode { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
-    .microw { grid-column: 2; grid-row: 2; padding: 0 48px; }  /* the same room both sides: Hang up sits in the right one */
+    .microw { grid-column: 2; grid-row: 2; }
     #miclabel { grid-column: 1 / -1; grid-row: 3; justify-self: center; margin-top: 2px; }
     #keyhint { display: none; }
     .dock-side { grid-row: 2; align-self: center; gap: 2px; }
-    .dock .btn { min-width: 44px; padding: 4px 0; } .dock .btn .ic { width: 44px; height: 44px; }
-    #hangup { left: calc(50% + 34px + 4px); } #hangup .ic { width: 44px; height: 44px; }
+    .dock .btn, #hangup { min-width: 44px; padding: 4px 0; } .dock .btn .ic { width: 44px; height: 44px; }
     #topconnect.hang { display: none; }  /* Hang up is the red button beside the mic, under the thumb: the bar keeps its room for the state */
     #dictsheet ul li { flex-wrap: wrap; } #dictsheet ul li .term { flex: 1 1 100%; } #dictsheet ul li .src { margin-right: auto; }  /* the name has its own line */
     #talk li.empty .hint { max-width: 300px; }
   }
-  @media (max-width: 389px) {  /* a small phone: a smaller mic keeps two 44 px controls each side of it */
+  @media (max-width: 389px) {  /* a small phone: a smaller mic keeps two labelled controls each side of it */
     #mic { width: 60px; height: 60px; } #mic svg { width: 26px; height: 26px; }
-    .microw { padding: 0 46px; }
-    #hangup { left: calc(50% + 30px + 2px); }
+    .dock .btn .lb { font-size: 11px; }
+  }
+  @media (max-width: 560px) and (max-height: 700px) {  /* a short phone in a meeting: the notes keep the room the mic switch took */
+    body.meeting .micmode { display: none !important; }
+  }
+  @media (forced-colors: active) {  /* Windows High Contrast and the like: the system colours, with the marks drawn again */
+    button, .pill, #mic, .dock .btn .ic, .ask .answer button, .seg, #compose input { border: 1px solid ButtonText; }
+    .seg button.on, .seg button[aria-pressed=true], .seg button[aria-checked=true], .micmode button.on, .ask .answer .allow { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .st, .top .dot, .ml, .toggle input[type=checkbox], .tick input[type=checkbox], .toggle input[type=checkbox]::after,
+    .tick input[type=checkbox]::after { forced-color-adjust: none; border: 1px solid CanvasText; }
+    .st.working, .st.wait, [data-state] .top .dot, .toggle input[type=checkbox]:checked, .tick input[type=checkbox]:checked,
+    .toggle input[type=checkbox]::after, .tick input[type=checkbox]::after { background: CanvasText; }
+    .toggle input[type=checkbox]:checked::after, .tick input[type=checkbox]:checked::after { background: Canvas; }
+    [data-state=off] .top .dot { background: Canvas; }  /* no call: hollow */
   }
   @media (prefers-reduced-motion: reduce) {  /* the breathing dots, the wave and the slides stop for a person who asked for less motion */
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
@@ -1055,14 +1131,14 @@
 </head>
 <body data-state="off">
 <aside id="side">
-  <div class="brand">{{LOGO}}<div><div class="name">Pointe</div><div class="serif"><span class="ver" id="ver"></span></div></div>
+  <div class="brand">{{LOGO}}<div><h1 class="name">Pointe</h1><div class="serif"><span class="ver" id="ver"></span></div></div>
     <button type="button" id="sideclose" onclick="toggleSessions()" aria-label="Close sessions">×</button></div>
 
   <section id="modesec">
     <h3 class="label">Mode</h3>
-    <div class="seg" role="tablist">
-      <button id="m-orchestrator" onclick="setMode('orchestrator')">Orchestrator</button>
-      <button id="m-session" onclick="setMode('session')">Session</button>
+    <div class="seg" role="group" aria-label="Mode">
+      <button id="m-orchestrator" type="button" aria-pressed="true" onclick="setMode('orchestrator')">Orchestrator</button>
+      <button id="m-session" type="button" aria-pressed="false" onclick="setMode('session')">Session</button>
     </div>
     <div class="modehelp" id="modehelp"></div>
   </section>
@@ -1071,10 +1147,11 @@
     <h3 class="label">Sessions</h3>
     <div id="mchips" role="group" aria-label="Show sessions on"></div>
     <div id="list"></div>
+    <button type="button" id="list-hot" hidden onclick="showHotRow()"></button>
     <div id="renameproblem" role="alert"></div>
     <button id="m-new" type="button" onclick="openNewSession()" title="Start a coding agent in a folder you already work in">New session</button>
     <button id="m-add" type="button" onclick="openAddSessions()" title="Join sessions you already run, or reopen one from this week">Add sessions</button>
-    <button id="m-night" type="button" onclick="openNightShift()" title="Give your sessions work for while you are away">Night shift</button>
+    <button id="m-night" type="button" onclick="openNightShift()" title="Give your sessions work to do while you are away">Night shift</button>
   </section>
 
   <section class="routing">
@@ -1087,7 +1164,8 @@
     <button id="ctx" onclick="openCtx()" title="What the voice model holds"></button>
   </footer>
 </aside>
-<div id="ctxpanel" role="dialog" aria-label="What the voice holds">
+<div id="ctxscrim" onclick="closeCtx()"></div>
+<div id="ctxpanel" role="dialog" aria-modal="true" aria-label="What the voice holds">
   <h2>What the voice holds <button onclick="closeCtx()" aria-label="Close">×</button></h2>
   <div id="ctx-total"></div>
   <section><h3 class="label">Where it goes</h3><div id="ctx-rows"></div>
@@ -1234,12 +1312,14 @@
               <div class="note">On the other machine, run <b>pointe node join</b> with this code. It works once.</div>
               <div id="mach-code" dir="ltr"></div>
               <div id="mach-link" dir="ltr"></div>
+              <button type="button" class="pill" id="mach-copy" onclick="copyJoinLine()" hidden>Copy command</button>
               <div class="note" id="mach-left" role="timer"></div>
             </div>
-            <div class="row" style="justify-content:flex-start">
+            <div class="row" id="mach-row" style="justify-content:flex-start">
               <button type="button" id="mach-invitebtn" onclick="inviteMachine()">Invite a machine</button>
               <button type="button" id="mach-cancel" onclick="cancelInvite()" hidden>Cancel the code</button>
             </div>
+            <div class="note" id="mach-elsewhere" hidden>Invite or revoke a machine on the Mac's own page or in the app.</div>
             <div class="err" id="mach-ended" role="status" hidden></div>
             <div class="err" id="mach-err" role="alert"></div>
           </div>
@@ -1283,7 +1363,7 @@
             <div class="err" id="ph-err" role="alert"></div>
           </div>
           <div class="note foot" id="ph-foot" hidden>The code works once and expires in 5 minutes; the phone's key never leaves this Mac.</div>
-          <div class="note foot">The Pointe iPhone app calls into your sessions wherever your phone can reach this Mac.</div>
+          <div class="note foot">The Pointe iPhone app calls into your sessions wherever your phone can reach this Mac. No app on the phone yet? Use its browser: in a terminal on this Mac, <b>pointe pair link</b> prints an address to open there.</div>
         </section>
         <section class="group" id="g-dictionary">
           <h3>Dictionary</h3>
@@ -1321,8 +1401,9 @@
           <div class="card"><div class="note" id="pref-keys-line"></div><div id="pref-keys"></div></div>
           <div class="note foot" id="pref-setups-h"></div>
           <div class="card"><div id="pref-setups"></div></div>
-          <div class="note foot"><b id="pref-keys-title"></b> <span id="pref-keys-need"></span> <span id="pref-keys-sub"></span>
-            <span id="pref-keys-how"></span></div>
+          <div class="note foot"><b id="pref-keys-title"></b> <span id="pref-keys-need"></span></div>
+          <div class="note foot" id="pref-keys-sub"></div>
+          <div class="note foot" id="pref-keys-how"></div>
         </section>
         <section class="group" id="g-show">
           <h3>Show while it says</h3>
@@ -1364,7 +1445,7 @@
         <section class="group" id="g-newsessions">
           <h3>New sessions</h3>
           <div class="card">
-            <div class="field wide">Folders<textarea id="pref-folders" spellcheck="false" placeholder="/Users/you/work/shop"></textarea></div>
+            <div class="field wide">Folders<textarea id="pref-folders" spellcheck="false" placeholder="/Users/you/work/shop" aria-label="Folders a new session may start in"></textarea></div>
           </div>
           <div class="note foot" id="pref-folders-help"></div>
         </section>
@@ -1428,7 +1509,7 @@
       <button id="brf-stop" onclick="briefingAction('stop')" hidden>Stop</button>
     </div>
     <div class="ok" id="brf-state" role="status"></div><div class="err" id="brf-err" role="alert"></div>
-    <h3>Last 7 briefings</h3>
+    <h3 id="brf-list-h">Last 7 briefings</h3>
     <ul id="brf-list" aria-label="Last 7 briefings"></ul>
   </div>
 </div>
@@ -1466,7 +1547,7 @@
 </div>
 <div class="sheetbg" id="nightsheet" onclick="if (event.target === this) closeSheet('nightsheet')">
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="night-h">
-    <h2 id="night-h"><span id="night-title"></span><button class="x" onclick="closeSheet('nightsheet')" aria-label="Close">×</button></h2>
+    <h2 id="night-h" tabindex="-1"><span id="night-title"></span><button class="x" onclick="closeSheet('nightsheet')" aria-label="Close">×</button></h2>
     <div id="night-form" hidden>
       <div class="lede" id="night-lede"></div>
       <div id="night-rows"></div>
@@ -1509,6 +1590,7 @@
     <span class="dot"></span>
     <div class="grow">
       <div class="state" id="state">Not connected</div>
+      <div class="sr" id="statesay" role="status"></div>
       <div class="sub" id="sub">Press the mic to start talking</div>
       <div id="problem" role="alert" dir="auto"></div>
       <button class="pill" id="fixkey" hidden onclick="fixKey()">Fix the key</button>
@@ -1517,6 +1599,8 @@
     </div>
     <label class="toggle" id="polishrow" title="Under each thing you say, a clean version of what the voice understood"><input type="checkbox" id="polish" onchange="setPolish(this.checked)"> Clean up my words</label>
     <button type="button" id="topconnect" onclick="topConnect()" hidden>Connect</button>
+    <button type="button" id="morebtn" onclick="openSheet('moresheet')" title="More" aria-label="More" hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
   </div>
   <div id="meetbar" role="region" aria-label="Meeting, recording">
     <span class="rec" aria-hidden="true"></span>
@@ -1555,7 +1639,7 @@
           <button onclick="handDecision('type')">Type it instead</button>
           <button onclick="handDecision('later')">Not now</button>
         </div>
-        <div class="hint">Press G to let it speak. Anyone talking over it stops it.</div>
+        <div class="hint keyonly">Press G to let it speak. Anyone talking over it stops it.</div>
       </div>
       <div class="filters" role="group" aria-label="Show">
         <button data-f="all" class="on">All</button><button data-f="thought">Thoughts</button><button data-f="question">Questions</button>
@@ -1595,7 +1679,7 @@
     <div class="dhint">Short answers. Pointe approves by voice only what it can read out and is safe from the road.</div>
     <button id="drive-stop" onclick="setDrive(false)">I've stopped</button>
   </div>
-  <div id="attention"></div>
+  <div id="attention" role="region" aria-label="Needs you" aria-live="polite"></div>
   <div id="startask"></div>
   <div id="attachask"></div>
   <div id="shiftask"></div>
@@ -1603,8 +1687,9 @@
   <div id="briefalert"></div>
   <div id="whispercard"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
-  <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" placeholder="Type to the voice…" autocomplete="off" disabled>
+  <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" placeholder="Type to the voice…" aria-label="Type to the voice" autocomplete="off" disabled>
     <button id="typed-send" disabled>Send</button></form>
+  <div id="typed-err" role="alert"></div>
   <nav class="dock" aria-label="Call controls">
     <div class="dock-side left">
       <button class="btn" id="listen" onclick="dumpButton()" disabled title="Dump your thoughts; Pointe stays quiet, then structures them for you to send">
@@ -1647,9 +1732,6 @@
       <button class="btn" id="sessbtn" onclick="toggleSessions()" title="Sessions and mode">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M6 4h12M8 1.5h8"/></svg></span>
         <span class="lb">Sessions</span></button>
-      <button class="btn" id="morebtn" onclick="openSheet('moresheet')" title="More" hidden>
-        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
-        <span class="lb">More</span></button>
     </div>
   </nav>
 </main>
@@ -1697,8 +1779,21 @@
 
   let status = null, fails = 0, denied = false, inflight = false, again = false;
   // A meeting's error or notice: shown with the page's other problems, for a while, so the next poll does not wipe it.
-  let meetProblem = '', meetProblemUntil = 0;
-  function meetError(text, secs = 12) { meetProblem = text; meetProblemUntil = Date.now() + secs * 1000; $('problem').textContent = text; }
+  let pageProblem = '', pageProblemUntil = 0;
+  // A request that never reached the Mac throws the browser's own words ("Failed to fetch", "Load failed"): said plainly.
+  const NOT_REACHED = 'The Mac did not answer, so nothing changed. Check that Pointe is running there, then try again.';
+  const plain = e => /^(Failed to fetch|NetworkError|Load failed)/.test((e && e.message) || '') ? NOT_REACHED : (e && e.message) || String(e);
+  // A refusal, an error or a notice of the page's own: held on the problem line for a while, so the refresh that follows
+  // a click does not wipe it before anyone has read it.
+  function sayProblem(text, secs = 12) { pageProblem = text; pageProblemUntil = Date.now() + secs * 1000; $('problem').textContent = text; }
+  // A POST that never throws: a Mac that did not answer comes back as a refusal with no status, so a button it disabled
+  // is given back and the click is never silently lost.
+  async function postSafe(path, body) {
+    try {
+      const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+      return {ok: r.ok, status: r.status, detail: r.ok ? '' : String((await r.json().catch(() => ({}))).detail || '')};
+    } catch (e) { return {ok: false, status: 0, detail: ''}; }
+  }
   // One at a time: overlapping polls can come back out of order, and an older answer would undo a newer one
   // (a turn that appeared, then vanished for seconds). A refresh asked for meanwhile runs right after.
   let polled = 0;
@@ -1757,12 +1852,13 @@
     if (window.showDrive) showDrive(status);
     if (window.showChallenge) showChallenge(status);
     showShowing(status);
+    followKeys(status);
     if (window.dictionaryFollow) dictionaryFollow(status);
     if (window.whisperFollow) whisperFollow(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
     text('ctx', s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context');
-    for (const m of ['orchestrator', 'session']) $('m-' + m).classList.toggle('on', s.mode === m);
+    for (const m of ['orchestrator', 'session']) { $('m-' + m).classList.toggle('on', s.mode === m); $('m-' + m).setAttribute('aria-pressed', s.mode === m); }
     text('modehelp', MODE_HELP[s.mode] || '');
 
     // One approval card at a time, pinned above the bar, as in the app; the rest are counted.
@@ -1798,28 +1894,40 @@
     const row = x => {
       const pinned = focused && x.name === s.active, away = x.online === false;
       const b = el('div', 's' + (pinned ? ' on' : '') + (focused && !pinned ? ' dim' : '') + (away ? ' away' : ''));
-      b.tabIndex = 0; b.setAttribute('role', 'button');
       const hot = needsYou(x) && !away;
       const tools = el('span', 'tools');
       tools.append(el('span', 'tag' + (hot ? ' hot' : ''), away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'));
-      const pen = el('span', 'edit', '✎'); pen.title = 'Rename';
+      const pen = el('span', 'edit', '✎'); pen.title = 'Rename (F2)'; pen.setAttribute('aria-hidden', 'true');  // a pointer's shortcut: ⋯ has both
       pen.onclick = ev => { ev.stopPropagation(); startRename(b, x.name); };
       const sure = asking === x.name;
       const cut = el('span', 'edit' + (sure ? ' sure' : ''), sure ? 'disconnect?' : '×');
-      cut.title = 'Disconnect from the voice (it keeps running in its terminal)';
+      cut.title = 'Disconnect from the voice (Delete); it keeps running in its terminal'; cut.setAttribute('aria-hidden', 'true');
       cut.onclick = ev => { ev.stopPropagation(); disconnect(x.name); };
       const more = el('button', 'more', '⋯'); more.type = 'button';
       more.setAttribute('aria-label', `Rename or disconnect ${x.name}`); more.setAttribute('aria-haspopup', 'dialog');
       more.onclick = ev => { ev.stopPropagation(); openRowSheet(x.name); };
       more.onkeydown = ev => ev.stopPropagation();  // Enter on ⋯ opens the sheet, not the row's switch
       tools.append(pen, cut, more);
+      // The name is the row's button for a keyboard and a screen reader, named in words; the row takes the pointer's click.
+      const state = away ? 'offline' : x.waiting ? 'needs approval' : x.needs ? 'needs you' : x.working ? 'working' : 'idle';
+      const reason = hot ? (x.waiting ? (x.request || '').split('\n')[0] : x.needs) : '';
       const nm = el('span', 'nm', short(x.name));
+      nm.tabIndex = 0; nm.setAttribute('role', 'button');
+      nm.setAttribute('aria-label', `${x.name}, ${agentOf(x)}, ${state}${reason ? ': ' + reason : ''}`);
+      if (pinned) nm.setAttribute('aria-current', 'true');
+      // A button: Space too. Its Rename and Disconnect are marks under the pointer, not stops in the tab order: the
+      // keyboard has F2 and Delete, Delete twice as a second click is.
+      nm.setAttribute('aria-keyshortcuts', 'F2 Delete');
+      nm.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchTo(x.name); }
+        else if (e.key === 'F2') { e.preventDefault(); startRename(b, x.name); }
+        else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); disconnect(x.name); }
+      };
       b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
       if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n').slice(0, 2).join(' ') : x.needs));
       b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
                           : focused ? (pinned ? ' (focused)' : ' — click to focus on it') : ' — click to talk to it next');
       b.onclick = () => switchTo(x.name);  // offline too: the voice can still say what its notes hold
-      b.onkeydown = e => { if (e.key === 'Enter') switchTo(x.name); };
       return b;
     };
     const header = g => {  // name, this Mac or its OS, offline since or round trip, how many need you; a click folds it
@@ -1850,6 +1958,7 @@
       : mv.groups.flatMap(g => [['@' + g.m.name, headerSig(g), () => header(g)],
                                 ...(foldedNames.includes(g.m.name) ? [] : byUrgency(g.sessions).map(keyed))])).concat(starts);
     reconcile($('list'), listShown, wanted);
+    listEdges();
     showStartAsk(s);
     showAttachAsk(s);
     showNightShift(s);
@@ -1872,6 +1981,26 @@
       li.append(said, meta); return li;
     }) : [el('li', 'empty', 'Each request shows here with where it went.')]));
   }
+  // A list longer than its room: the cut fades, and a session that needs you out of view is named under it, one tap away.
+  const hotRows = () => [...$('list').querySelectorAll('.s')].filter(r => r.querySelector('.tag.hot'));
+  function hiddenHot() {
+    const box = $('list').getBoundingClientRect();
+    return hotRows().filter(r => { const b = r.getBoundingClientRect(); return b.top < box.top - 1 || b.bottom > box.bottom + 1; });
+  }
+  function listEdges() {
+    const l = $('list'), scrolls = l.scrollHeight > l.clientHeight + 1 && getComputedStyle(l).overflowY !== 'visible';
+    l.classList.toggle('below', scrolls && l.scrollTop + l.clientHeight < l.scrollHeight - 2);
+    const out = scrolls ? hiddenHot() : [];
+    const label = out.length ? `${out.length} more ${out.length === 1 ? 'needs' : 'need'} you ${out[0].getBoundingClientRect().top < l.getBoundingClientRect().top ? '↑' : '↓'}` : '';
+    if ($('list-hot').textContent !== label) $('list-hot').textContent = label;
+    $('list-hot').hidden = !out.length;
+  }
+  function showHotRow() {
+    const r = hiddenHot()[0];
+    if (r) { r.focus({preventScroll: true}); r.scrollIntoView({block: 'center'}); }
+  }
+  $('list').addEventListener('scroll', listEdges, {passive: true});
+  addEventListener('resize', listEdges);
   let attentionShown = '', chipsShown = '', recentShown = '', agentBadges = false, agentOf = x => x.harness;
   // Which coding agent runs a session. The vendors' own logos are not used: their terms do not allow a third party to
   // show them recoloured without permission (docs/design/brand-v6.md), so the mark is a neutral letter tile. The agent's
@@ -1902,7 +2031,7 @@
       else if (item.sig !== sig) {
         const fresh = make(), focused = item.el.contains(document.activeElement);
         item.el.replaceWith(fresh); item.el = fresh; item.sig = sig;
-        if (focused) fresh.focus();
+        if (focused) (fresh.matches('[tabindex]') ? fresh : fresh.querySelector('[tabindex="0"]') || fresh).focus();
       }
       keyOf.set(item.el, key);
       // Into place with the fewest moves: an element sitting here that belongs further down than this one is from its
@@ -1989,13 +2118,13 @@
     startAskShown = key;
     if (!p) { $('startask').replaceChildren(); return; }
     const c = NEW_SESSION_COPY, b = el('div', 'ask'), row = el('div', 'answer');
-    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need readback', p.line));
     for (const [label, cls, body] of [[c.cancel, 'deny', {cancel: p.id}], [c.start, 'allow', {confirm: p.id}]]) {
       const button = el('button', cls, label);
       button.onclick = async () => {
         button.disabled = true;
-        const r = await fetch('/voice/new-session', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-        if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Not started';
+        const r = await postSafe('/voice/new-session', body);
+        if (!r.ok) { button.disabled = false; sayProblem(r.status ? r.detail || 'Not started.' : NOT_REACHED); }
         refresh();
       };
       row.append(button);
@@ -2132,7 +2261,7 @@
     button.disabled = true; $('add-err').textContent = '';
     const r = await fetch('/voice/add-sessions', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)}).catch(() => null);
     const got = r ? await r.json().catch(() => ({})) : {};
-    if (r && r.ok) { closeSheet('addsheet'); if (got.problems && got.problems.length) $('problem').textContent = got.problems.join(' '); }
+    if (r && r.ok) { closeSheet('addsheet'); if (got.problems && got.problems.length) sayProblem(got.problems.join(' ')); }
     else { $('add-err').textContent = got.detail || 'Not added: the Mac did not answer.'; button.disabled = false; }
     refresh();
   }
@@ -2152,7 +2281,7 @@
       button.onclick = async () => {
         button.disabled = true;
         const r = await fetch('/voice/add-sessions', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-        if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Not added';
+        if (!r.ok) sayProblem((await r.json().catch(() => ({}))).detail || 'Not added');
         refresh();
       };
       row.append(button);
@@ -2165,7 +2294,7 @@
   // runs the shift; the page starts one, shows how it goes, stops it and shows its ledger. Nothing here approves.
   const NIGHT_SHIFT_COPY = {
     title: 'Night shift',
-    lede: 'Give your sessions work for while you are away. Pointe keeps them moving, and the morning briefing leads with what was decided and what waits on you.',
+    lede: 'Give your sessions work to do while you are away. Pointe keeps them moving, and the morning briefing leads with what was decided and what waits on you.',
     rule: 'Pointe approves nothing: a session that needs approval waits for you.',
     session: 'Session',
     task: 'Task',
@@ -2212,7 +2341,9 @@
       else {
         const b = el('div', 'night-strip'), ledger = el('button', '', c.ledger), stop = el('button', '', c.stop);
         ledger.onclick = () => openNightShift(); stop.onclick = () => stopShift();
-        b.append(el('b', '', c.title), el('span', 'how', nightLine(n)), ledger, stop);
+        const acts = el('span', 'acts');  // the two buttons keep one row, at the right, whatever the line does
+        acts.append(ledger, stop);
+        b.append(el('b', '', c.title), el('span', 'how', nightLine(n)), acts);
         $('nightstrip').replaceChildren(b);
       }
       if ($('nightsheet').classList.contains('open') && !$('night-ledger').hidden) openNightShift();
@@ -2223,12 +2354,12 @@
     shiftAskShown = pkey;
     if (!p) { $('shiftask').replaceChildren(); return; }
     const b = el('div', 'ask'), row = el('div', 'answer');
-    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need readback', p.line));  // word for word, but prose
     for (const [label, cls, action] of [[c.cancel, 'deny', 'cancel'], [c.start, 'allow', 'confirm']]) {
       const button = el('button', cls, label);
       button.onclick = async () => {
         button.disabled = true;
-        try { await nightPost({action, id: p.id}); } catch (e) { $('problem').textContent = e.message; }
+        try { await nightPost({action, id: p.id}); } catch (e) { sayProblem(plain(e)); }
         refresh();
       };
       row.append(button);
@@ -2243,7 +2374,7 @@
                                   ['night-cancel', c.cancel], ['night-start', c.start], ['night-stop', c.stop], ['night-new', c.start],
                                   ['night-history-h', c.history]]) text(where, words);
     $('night-err').textContent = ''; $('night-lerr').textContent = '';
-    if (!$('nightsheet').classList.contains('open')) openSheet('nightsheet', 'night-title');
+    if (!$('nightsheet').classList.contains('open')) openSheet('nightsheet', 'night-h');  // a heading takes focus only with a tabindex: the span left it on the opener
     nightData = await fetch('/voice/night-shift' + (id ? `?id=${encodeURIComponent(id)}` : '')).then(r => r.ok ? r.json() : null).catch(() => null);
     if (!nightData) { nightForm(); $('night-err').textContent = 'Pointe on this Mac does not offer this yet: update it.'; return; }
     if (nightData.shift) nightLedger(); else nightForm();
@@ -2256,18 +2387,26 @@
       const sec = el('section'), list = el('ul');
       sec.append(el('h3', 'label', c[title]), list);
       for (const e of shift.ledger[key]) {
+        // As the iPhone app's NightShiftEntryRow: the session and its task, then what this part shows.
         const li = el('li'); li.dir = 'auto';
+        li.append(el('b', '', e.session));
+        if (e.task) li.append(el('div', 'sub', e.task));
+        const words = t => { if (t) li.append(el('div', 'says', t)); };
         if (key === 'decided') {
-          li.append(el('b', '', e.session), e.question || e.text);
-          li.append(el('div', 'sub', `→ ${e.choice || '—'}` + (e.otherwise ? ` → ${e.otherwise}` : '')));
-        } else if (key === 'asked') li.append(el('b', '', e.session), e.question || e.text);
-        else if (key === 'in_flight' || key === 'not_started') li.append(el('b', '', e.session), e.task);
-        else {
-          li.append(el('b', '', e.session), key === 'done' ? (e.proof || e.text) : e.text);
-          if (e.task) li.append(el('div', 'sub', e.task));
-          if (key === 'done' && (e.commit || e.pr)) li.append(el('div', 'sub', [e.commit && `commit ${e.commit}`, e.pr].filter(Boolean).join(' · ')));
-          if (key === 'blocked' && e.request) { li.append(el('div', 'sub', c.exact), el('pre', '', e.request)); }
-        }
+          words(e.question || e.text);
+          if (e.choice) li.append(el('div', 'choice', `→ ${e.choice}`));
+          if (e.otherwise) li.append(el('div', 'sub', e.otherwise));
+        } else if (key === 'done') {
+          words(e.proof || e.text);
+          if (e.commit || e.pr) {
+            const refs = el('div', 'refs', e.commit || '');
+            if (e.pr) refs.append(e.commit ? ' · ' : '', prRef(e.pr));
+            li.append(refs);
+          }
+        } else if (key === 'blocked') {
+          words(e.text || e.waits_on);
+          if (e.request) li.append(el('div', 'sub', c.exact), el('pre', '', e.request));
+        } else if (key !== 'in_flight' && key !== 'not_started') words(e.question || e.text);
         if (e.resolved) li.append(el('div', 'sub', e.resolved));
         list.append(li);
       }
@@ -2322,25 +2461,33 @@
     const items = nightItems();
     $('night-start').disabled = !items.length || !items.every(i => i.task && (i.session || (i.start && i.start.harness && i.start.folder)));
   }
+  // A pull request the ledger names: a link called by its number (#12) when it is a web address, as on the iPhone; any
+  // other text as it was written. Only http(s): the ledger's words come from a session.
+  function prRef(pr) {
+    if (!/^https?:\/\/\S+$/.test(pr)) return pr;
+    const a = el('a', '', (pr.match(/\/pull\/(\d+)/) || [])[1] ? '#' + pr.match(/\/pull\/(\d+)/)[1] : pr);
+    a.href = pr; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.title = pr;
+    return a;
+  }
   async function startShift() {
     $('night-start').disabled = true; $('night-err').textContent = '';
     try {
       await nightPost({action: 'start', items: nightItems(), hours: Number($('night-hours').value), messages: Math.round(Number($('night-messages').value)),
                        notify: $('night-notify').checked});
       await openNightShift();
-    } catch (e) { $('night-err').textContent = e.message; nightSync(); }
+    } catch (e) { $('night-err').textContent = plain(e); nightSync(); }
     refresh();
   }
   async function stopShift() {
-    try { await nightPost({action: 'stop'}); } catch (e) { $('night-lerr').textContent = e.message; $('problem').textContent = e.message; }
+    try { await nightPost({action: 'stop'}); } catch (e) { $('night-lerr').textContent = plain(e); sayProblem(plain(e)); }
     await refresh();
     if ($('nightsheet').classList.contains('open')) openNightShift();
   }
 
   function approvalCard(x, s, more) {
     if (s.drive && s.drive.on && window.driveCard) return driveCard(x, s, more);  // no buttons while driving
-    const b = el('div', 'ask');
-    const what = el('div', 'what', whoLabel(x, machineView(s)) + ' ');
+    const b = el('div', 'ask'), what = el('div', 'what', whoLabel(x, machineView(s)) + ' ');
+    what.id = 'ask-what'; b.setAttribute('role', 'group'); b.setAttribute('aria-labelledby', 'ask-what');
     if (agentBadges) what.append(el('span', 'agent', agentOf(x)), ' ');
     what.append(el('span', '', 'needs approval'));
     const exact = el('div', 'need exact', x.request || '');  // what runs, first and whole: this is what a tap approves
@@ -2359,6 +2506,9 @@
                                : x.request_truncated ? 'A tap can only deny this one.'
                                : !x.voice_can_approve ? 'Too complex to read out: check it, then tap.'
                                : x.name === s.active ? 'Say yes or no, or tap.' : 'Say its name and yes or no, or tap.'));
+    const err = el('div', 'need err', answerProblems.get(x.request_id) || '');
+    err.setAttribute('role', 'alert'); err.hidden = !answerProblems.has(x.request_id);
+    b.append(err);
     const row = el('div', 'answer');
     for (const [label, decision] of [['Deny', 'deny'], ['Approve', 'allow']]) {
       if (decision === 'allow' && x.request_truncated) continue;  // cut short: approved only in its terminal
@@ -2416,10 +2566,13 @@
     connecting: where => `Connecting to ${where}…`,
     reconnecting: n => `Reconnecting… attempt ${n}`,
     // (a) the Mac is not reachable at its address; on the Mac itself that means Pointe is not running
-    unreachable: host => `Can't reach your Mac at ${host}. Is Twingate or Tailscale on? Is the Mac awake?`,
-    daemonDown: host => `Pointe on this Mac is not answering${host ? ' at ' + host : ''}. Is it running? In a terminal: pointe doctor`,
+    // the Wi-Fi route (a private address or a .local name) asks about the Wi-Fi; any other is a VPN's or a tunnel's
+    unreachable: host => `Can't reach your Mac at ${host}. ${/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)|\.local(:\d+)?$/.test(host)
+      ? 'Is this phone on the same Wi-Fi as the Mac?' : 'Is Twingate or Tailscale on?'} Is the Mac awake?`,
+    daemonDown: 'Pointe on this Mac is not answering. Start it again: /pointe:voice in a Claude Code session, or open the Pointe app.',
     // (b) the key this page or phone holds is refused
     notPaired: 'This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open.',
+    notPairedBrowser: 'This phone is no longer paired with this Mac. On the Mac, run pointe pair link and open the new address here.',
     // (c) the Mac has no listener for the phone yet
     noListener: 'Your phone cannot reach this Mac yet: Settings → Phone → Connect your phone.',
     // (d) no microphone to start the call on
@@ -2554,12 +2707,12 @@
     $('dump-note').textContent = ''; $('dump-err').textContent = '';
     const now = Date.now() / 1000;
     if (action === 'start') want('dump', s => { s.brain_dump = {id: 'want', state: 'dumping', since: now, thoughts: [], prompt: null}; s.monologue = {since: now, said: ''}; },
-                                 dumpPost({action}).then(() => (refresh(), true), e => ($('problem').textContent = e.message, false)));
+                                 dumpPost({action}).then(() => (refresh(), true), e => (sayProblem(plain(e)), false)));
     else if (action === 'done') want('dump', s => { if (s.brain_dump) s.brain_dump.state = 'structuring'; },
-                                     dumpPost({action}).then(() => (refresh(), true), e => ($('dump-note').textContent = e.message, false)));
+                                     dumpPost({action}).then(() => (refresh(), true), e => ($('dump-note').textContent = plain(e), false)));
     else {
       try { await dumpPost({action}); if (action === 'more') closeSheet('dumpsheet'); refresh(); }
-      catch (e) { $('dump-err').textContent = e.message; }
+      catch (e) { $('dump-err').textContent = plain(e); }
     }
   }
   function dumpDiscard(id) {  // two clicks: the first asks
@@ -2574,7 +2727,7 @@
     const d = dumpOf(status);
     const text = $('dump-text').value.trim();
     if (!d || !d.prompt || text === (d.prompt.text || '') || !text) return;
-    try { await dumpPost({action: 'edit', text}); refresh(); } catch (e) { $('dump-err').textContent = e.message; }
+    try { await dumpPost({action: 'edit', text}); refresh(); } catch (e) { $('dump-err').textContent = plain(e); }
   }
   async function dumpSend() {  // two clicks, no dialog: the first names where it goes, the second sends
     const session = $('dump-session').value;
@@ -2586,7 +2739,7 @@
       await dumpPost(session ? {action: 'send', session} : {action: 'send', to: 'orchestrator'});
       $('dump-ok').textContent = `${DUMP_COPY.sent} ${dumpToName(session)}.`;
       setTimeout(() => { closeSheet('dumpsheet'); $('dump-ok').textContent = ''; }, 1200);
-    } catch (e) { $('dump-err').textContent = e.message; }
+    } catch (e) { $('dump-err').textContent = plain(e); }
     $('dump-send').disabled = false;
     refresh();
   }
@@ -2686,13 +2839,16 @@
     text('connect-why', issue ? issue : live ? '' : redial ? 'The call dropped. It comes back by itself; Cancel stops the redials.'
       : elsewhere ? CONNECT_COPY.elsewhereWhy : CONNECT_COPY.does(remotePage ? 'device' : 'Mac'));
     $('connect-why').classList.toggle('bad', !!issue);
-    const b = $('connectbtn');
-    if (b.hidden !== live) b.hidden = live;
+    const b = $('connectbtn'), none = live || denied;  // not paired: a dial would be refused the same way
+    if (b.hidden !== none) b.hidden = none;
     b.classList.toggle('busy', dialling); b.classList.toggle('quiet', dialling);
     text('connectbtn-label', dialling ? CONNECT_COPY.cancel : issue ? CONNECT_COPY.tryAgain : CONNECT_COPY.connect);
     const folded = !$('compose').offsetHeight;
-    text('connect-hint', live ? (folded ? CONNECT_COPY.typeTooTap : CONNECT_COPY.typeToo) : folded ? CONNECT_COPY.typeLaterTap : CONNECT_COPY.typeLater);
-    const noListener = !live && !!s && s.phone_listener === false;  // (c): a Mac without the phone's listener; older Macs send nothing
+    text('connect-hint', denied ? '' : live ? (folded ? CONNECT_COPY.typeTooTap : CONNECT_COPY.typeToo) : folded ? CONNECT_COPY.typeLaterTap : CONNECT_COPY.typeLater);
+    // (c): a Mac without the phone's listener (older Macs send nothing), said only once a phone is paired: a newcomer's
+    // first view is about this Mac's call, not a phone they never set up. Never while dialling, or while the Mac is not
+    // answering: the last status it sent is stale, and this page's own call is the problem in view.
+    const noListener = !live && !dialling && !issue && !fails && !!s && s.phone_listener === false && !!(s.phones && (s.phones.paired || []).length);
     if ($('connect-phone').hidden === noListener) $('connect-phone').hidden = !noListener;
   }
   // A call can die without a close: a VPN drops, the laptop sleeps. Six seconds with nothing from the Mac means dead.
@@ -2727,11 +2883,12 @@
   // Why there is no call, in plain words, or '' when nothing is wrong: the key refused first (the poll's 403 is certain),
   // then the Mac not answering, then this page's own microphone or link trouble.
   function connectIssue() {
-    if (denied) return CONNECT_COPY.notPaired;
-    if (fails >= 3) return remotePage ? CONNECT_COPY.unreachable(location.host) : CONNECT_COPY.daemonDown(location.host);
+    if (denied) return remotePage ? CONNECT_COPY.notPairedBrowser : CONNECT_COPY.notPaired;
+    if (fails >= 3) return remotePage ? CONNECT_COPY.unreachable(location.host) : CONNECT_COPY.daemonDown;
     return micError || callNote;
   }
   setInterval(checkMic, 2000);
+  let saidState = 'off';
   function showState() {
     const mine = call.state === 'live';  // this page's own call, not the daemon's: the call may be on the phone
     let st, title;
@@ -2739,21 +2896,22 @@
     // The line under the state, as parts: a string is text, {b} is bold. Built as nodes, never parsed as HTML: it carries
     // session and machine names.
     const on = machineFilter ? ` on ${machineFilter}` : '';  // the machine filter narrows this line too
-    const where = !s ? [] : !(s.sessions || []).length ? ['No sessions yet: /pointe:voice in Claude Code, or pointe join opencode']
+    // a Mac not answering: the last count it sent is stale, so none is shown
+    const where = !s || fails >= 3 ? [] : !(s.sessions || []).length ? ['No sessions yet: /pointe:voice in Claude Code, or pointe join opencode']
       : s.mode === 'session' ? ['Focused on ', {b: short(s.active || '')}]
       : [`Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}${on}`,
          ...(need ? [' · ', {b: `${need} need${need === 1 ? 's' : ''} you`}] : [])];
     // The empty stage carries the reason there is no call, next to the button that fixes it; with a conversation on
     // screen the top bar says it.
     const issue = connectIssue(), panel = connectLi.isConnected && !document.body.matches('.meeting, .meetend');
-    text('problem', (panel ? '' : issue) || (Date.now() < meetProblemUntil ? meetProblem : '') || (s && s.problem ? s.problem : ''));
+    text('problem', (panel ? '' : issue) || (Date.now() < pageProblemUntil ? pageProblem : '') || (s && s.problem ? s.problem : ''));
     if (denied) [st, title] = ['off', CONNECT_COPY.notPairedTitle];
     else if (fails >= 3) [st, title] = ['reconnecting', remotePage ? 'Mac not reachable' : 'Pointe is not answering'];
     else if (wantCall && !mine) [st, title] = ['reconnecting', 'Reconnecting…'];
     else if (call.state === 'connecting') [st, title] = ['connecting', CONNECT_COPY.connecting(macName())];
     else if (!s || !s.connected || !mine) [st, title] = ['off', s && s.connected ? CONNECT_COPY.elsewhere : CONNECT_COPY.notConnected];
     else if (micError) [st, title] = ['off', 'Cannot hear you'];
-    else if (s.key_refused) [st, title] = ['broken', s.key_refused.ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer];
+    else if (s.key_refused || s.vendor_fault) [st, title] = ['broken', (s.key_refused || s.vendor_fault).ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer];
     else if (pttMode() && pttOpen()) [st, title] = ['talking', pttTap() ? 'Talking · tap to send' : 'Talking'];
     else if (dumping(s)) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', DUMP_COPY.state];
     else if (s.hold) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', TURNS_COPY.holding];
@@ -2765,12 +2923,17 @@
                                        : roomHeard() ? `Meeting: room is heard · ${pttStyleLabel().toLowerCase()}` : pttStyleLabel()];
     else [st, title] = ['live', 'Listening'];
     document.body.dataset.state = st; text('state', title);
+    // Read out when the call itself changes (connected, dropped, muted, refused), not each turn's Speaking and Listening:
+    // those would talk over the voice.
+    const callIs = ['live', 'bot', 'user', 'ptt', 'talking'].includes(st) ? 'on' : st;
+    if (callIs !== saidState) { saidState = callIs; if (callIs !== 'off' || $('statesay').textContent) text('statesay', title); }
     document.body.classList.toggle('firstrun', !!(s && s.first_call));
-    $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor);
+    $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor) || denied || fails >= 3 || (s.connected && !mine);  // its own problem only
     // the link itself, from the call's heartbeat, so "connected" is never a guess
     const quiet = mine && call.heard ? (Date.now() - call.heard) / 1000 : 0;
-    const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : call.rtt != null ? ` · ${call.rtt} ms` : '';
-    const sub = st === 'off' && !(s && s.connected) ? (where.length ? [...where, ' · press Connect to talk'] : ['Press Connect to start talking'])
+    const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : remotePage && call.rtt != null ? ` · round trip ${call.rtt} ms` : '';
+    // not paired: the last status this page could read is stale, and Connect cannot help
+    const sub = denied ? [] : st === 'off' && !(s && s.connected) ? (where.length ? [...where, ' · press Connect to talk'] : ['Press Connect to start talking'])
       : title === TURNS_COPY.holding ? [TURNS_COPY.holdingHow] : [...where, health];
     const subKey = JSON.stringify(sub);
     if (subKey !== subShown) {
@@ -2790,6 +2953,10 @@
     if ($('mic').title !== micTitle) $('mic').title = micTitle;
     if ($('mic').ariaLabel !== micLabel) $('mic').ariaLabel = micLabel;
     if ($('mic').getAttribute('aria-disabled') !== String(micOff)) $('mic').setAttribute('aria-disabled', micOff);
+    // Mute is a toggle: a screen reader hears "Mute, pressed" while muted. Hold to talk and Connect first are not toggles.
+    const pressed = micOff || pttMode() ? null : String(!!muted);
+    if ($('mic').getAttribute('aria-pressed') !== pressed) pressed === null ? $('mic').removeAttribute('aria-pressed') : $('mic').setAttribute('aria-pressed', pressed);
+    if (pressed !== null && $('mic').ariaLabel !== 'Mute') $('mic').ariaLabel = 'Mute';
     text('miclabel', micLabel);
     text('keyhint', micOff ? (st === 'connecting' || st === 'reconnecting' ? title : CONNECT_COPY.connectFirst)
       : pttMode() ? (pttTap() ? `Tap ${keyName(ptt.key)} to talk, again to send · Caps Lock toggles` : `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles`)
@@ -2800,7 +2967,7 @@
     const pill = $('topconnect'), pillLabel = mine ? CONNECT_COPY.hangUp : dialling ? CONNECT_COPY.cancel : issue ? CONNECT_COPY.tryAgain : CONNECT_COPY.connect;
     text('topconnect', pillLabel);
     pill.classList.toggle('hang', mine); pill.classList.toggle('quiet', !mine && dialling);
-    pill.hidden = panel && !mine;
+    pill.hidden = ((panel || denied) && !mine) || live;  // on a live call Hang up is the dock's, beside the mic, as in the apps
     showConnect();
     const micMode = pttMode() ? 'ptt' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
     for (const m of ['always', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }
@@ -2811,24 +2978,37 @@
   async function fixKey() {  // the refused key: on this Mac, its own key window; elsewhere, where to fix it
     const vendor = status && status.key_refused && status.key_refused.vendor;
     if (!vendor) return;
-    if (remotePage) { $('problem').textContent = CONNECT_COPY.fixOnMac(vendor); return; }
-    const r = await fetch('/voice/key', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({vendor})});
-    $('problem').textContent = r.ok ? CONNECT_COPY.keyWindow : (await r.json().catch(() => ({}))).detail || 'The key window did not open.';
+    if (remotePage) { sayProblem(CONNECT_COPY.fixOnMac(vendor)); return; }
+    const r = await postSafe('/voice/key', {vendor});
+    sayProblem(r.ok ? CONNECT_COPY.keyWindow : r.status ? r.detail || 'The key window did not open.' : NOT_REACHED);
   }
   async function setMicMode(mode) {  // the dock's switch and Settings → Microphone set the same preference
     $('pref-mic').value = mode;
     want('micmode', s => { if (s.ptt) s.ptt.mode = mode; }, (async () => {  // the switch moves now; the Mac confirms on the next poll
-      const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({microphone: mode})});
-      if (!r.ok) $('problem').textContent = 'The microphone mode did not change: the voice is not reachable.';
+      const r = await postSafe('/voice/prefs', {microphone: mode});
+      if (!r.ok) sayProblem('The microphone mode did not change: the voice is not reachable.');
       refresh();
       return r.ok;
     })());
   }
+  // Why the last tap on a card was not answered, by request: the card is rebuilt only when the request changes, and a
+  // rebuilt one must still say it.
+  const answerProblems = new Map();
   async function answer(x, decision, button) {
-    button.disabled = true;
-    const r = await fetch('/voice/approve', {method: 'POST', headers: {'content-type': 'application/json'},
-                                             body: JSON.stringify({session: x.name, request_id: x.request_id, decision})});
-    if (!r.ok) { button.disabled = false; $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'not answered'; }
+    const card = button.closest('.ask'), buttons = card ? [...card.querySelectorAll('.answer button')] : [button];
+    for (const b of buttons) b.disabled = true;
+    let why = null;
+    try {
+      const r = await fetch('/voice/approve', {method: 'POST', headers: {'content-type': 'application/json'},
+                                               body: JSON.stringify({session: x.name, request_id: x.request_id, decision})});
+      if (!r.ok) why = 'Not answered: ' + ((await r.json().catch(() => ({}))).detail || `the Mac said ${r.status}`) + '.';
+    } catch (e) { why = 'Not sent: the Mac did not answer. Check the connection, then tap again.'; }
+    if (why) {
+      answerProblems.set(x.request_id, why);
+      for (const b of buttons) b.disabled = false;
+    } else answerProblems.delete(x.request_id);
+    const line = card && card.querySelector('.need.err');
+    if (line) { line.textContent = why || ''; line.hidden = !why; }
     refresh();
   }
 
@@ -2976,8 +3156,9 @@
     else if (added) $('newpill').hidden = false;
   }
   function turnItem(t, polish) {
-    if (t.who !== 'user') return el('li', 'bot', t.text);
+    if (t.who !== 'user') { const b = el('li', 'bot'); b.append(el('span', 'sr', 'Pointe: '), t.text); return b; }
     const li = el('li', 'you fixable'); li.dir = 'auto';
+    li.append(el('span', 'sr', 'You: '));
     li.dataset.id = t.id; li.dataset.text = t.text;
     li.title = 'Click to fix what it heard';
     if (polish && t.understood && t.understood !== t.text) li.append(el('span', 'raw', t.text), el('span', 'meant', t.understood));
@@ -3018,11 +3199,19 @@
     if (!text) return;
     box.value = '';
     if (meetOn) {  // in a meeting the box asks Pointe: a note in listening, spoken to the room in participating
-      try { await meetPost({action: 'ask', text}); } catch (e) { box.value = text; meetError(e.message); }
+      try { await meetPost({action: 'ask', text}); } catch (e) { box.value = text; sayProblem(plain(e)); }
       refresh(); return;
     }
-    const r = await fetch('/voice/say', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({text})});
-    if (!r.ok) { box.value = text; box.placeholder = 'Not sent: connect first'; }
+    let why = null;
+    try {
+      const r = await fetch('/voice/say', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({text})});
+      if (!r.ok) {
+        const d = (await r.json().catch(() => ({}))).detail;
+        why = r.status === 409 ? 'Connect first.' : d ? d.charAt(0).toUpperCase() + d.slice(1).replace(/([^.])$/, '$1.') : `The Mac said ${r.status}.`;
+      }
+    } catch (e) { why = 'The Mac did not answer. Check the connection, then send again.'; }
+    if (why && !box.value) box.value = text;  // kept to send again, unless a new line was started meanwhile
+    $('typed-err').textContent = why ? 'Not sent. ' + why : '';
     toBottom(true);
     refresh();
   }
@@ -3048,7 +3237,11 @@
   // The sessions sheet (narrow, or beside the Showing pane): focus goes in with it and back to the button that opened it.
   function toggleSessions(open) {
     const on = document.body.classList.toggle('sheet', open);
-    if (on) requestAnimationFrame(() => $('sideclose').focus());
+    if (on) requestAnimationFrame(() => {
+      $('sideclose').focus();
+      const hot = [...$('list').querySelectorAll('.s')].find(r => r.querySelector('.tag.hot'));  // the one that needs you, in view
+      if (hot) hot.scrollIntoView({block: 'nearest'});
+    });
     else if ($('side').contains(document.activeElement) && $('sessbtn').offsetParent) $('sessbtn').focus();
   }
   // Two clicks, no dialog: the first asks, the second does it. Kept outside the list, whose rows are redrawn as it changes.
@@ -3165,11 +3358,17 @@
   }
   let ctxShow = 'talk';
   let ctxShown = '';  // the list is rebuilt only when it changed, so it does not jump under the reader
-  function openMsg(kind, text) { $('cm-kind').textContent = kind; $('cm-text').textContent = text; $('ctxmodal').classList.add('open'); }
-  function closeMsg() { $('ctxmodal').classList.remove('open'); }
+  // The panel and a message over it are dialogs like the sheets: focus goes in, Tab stays in, and goes back on close.
+  const ctxOpener = {};
+  function ctxOpen(id) { if (!$(id).classList.contains('open')) ctxOpener[id] = document.activeElement; $(id).classList.add('open');
+                         requestAnimationFrame(() => $(id).querySelector('h2 button').focus()); }
+  function ctxClose(id) { $(id).classList.remove('open'); const back = ctxOpener[id]; ctxOpener[id] = null;
+                          if (back && back.isConnected && back.offsetParent !== null) back.focus(); }
+  function openMsg(kind, text) { $('cm-kind').textContent = kind; $('cm-text').textContent = text; ctxOpen('ctxmodal'); }
+  function closeMsg() { ctxClose('ctxmodal'); }
   function ctxFilter(f) { ctxShow = f; ctxShown = ''; $('cf-talk').className = f === 'talk' ? 'on' : ''; $('cf-all').className = f === 'all' ? 'on' : ''; loadCtx(); }
-  function openCtx() { ctxShown = ''; $('ctxpanel').classList.add('open'); loadCtx(); ctxTimer = setInterval(loadCtx, 2000); }
-  function closeCtx() { $('ctxpanel').classList.remove('open'); clearInterval(ctxTimer); }
+  function openCtx() { ctxShown = ''; ctxOpen('ctxpanel'); document.body.classList.add('ctxopen'); loadCtx(); clearInterval(ctxTimer); ctxTimer = setInterval(loadCtx, 2000); }
+  function closeCtx() { ctxClose('ctxpanel'); document.body.classList.remove('ctxopen'); clearInterval(ctxTimer); }
 
   // ---------- conflict alarm ----------
   // Two sessions that disagree. The card shows both claims; Ask puts one side's question as your own typed words (the
@@ -3272,7 +3471,11 @@
   function openSheet(id, first) {
     if (!$(id).classList.contains('open')) sheetOpener[id] = document.activeElement;
     $(id).classList.add('open');
-    requestAnimationFrame(() => { const f = first ? $(first) : focusables($(id))[0]; if (f) f.focus(); });
+    // On a touch screen the sheet itself takes the focus: a ring on its first control reads as a selection (WebKit draws
+    // one on a programmatic focus). A keyboard's Tab goes on from there.
+    const box = $(id).querySelector('.sheetbox') || $(id);
+    if (matchMedia('(hover: none)').matches && !first) box.tabIndex = -1;
+    requestAnimationFrame(() => { const f = first ? $(first) : box.tabIndex === -1 ? box : focusables($(id))[0]; if (f) f.focus(); });
   }
   function closeSheet(id) {
     $(id).classList.remove('open');
@@ -3280,10 +3483,11 @@
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
   const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet', 'addsheet', 'nightsheet'].find(id => $(id).classList.contains('open'));
-  document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
-    const id = e.key === 'Tab' && openSheetId();
-    if (!id) return;
-    const items = focusables($(id)), i = items.indexOf(document.activeElement);
+  const trapBox = () => { const id = openSheetId(); return id ? $(id) : ['ctxmodal', 'ctxpanel'].map($).find(x => x.classList.contains('open')); };
+  document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet or the context panel
+    const box = e.key === 'Tab' && trapBox();
+    if (!box) return;
+    const items = focusables(box), i = items.indexOf(document.activeElement);
     if (!items.length) return;
     if (e.shiftKey && i <= 0) { e.preventDefault(); items[items.length - 1].focus(); }
     else if (!e.shiftKey && (i === -1 || i === items.length - 1)) { e.preventDefault(); items[0].focus(); }
@@ -3310,7 +3514,7 @@
   async function meetingConsent() {
     $('meeterr1').textContent = '';
     let v;
-    try { v = await meetPost({action: 'vendors'}); } catch (e) { $('meeterr1').textContent = e.message; return; }
+    try { v = await meetPost({action: 'vendors'}); } catch (e) { $('meeterr1').textContent = plain(e); return; }
     const rows = [['Room audio', v.vendors.room_audio], ['Notes and summary', v.vendors.notes],
                   ['Its voice, when it speaks', v.vendors.speech], ['What you ask it', v.vendors.commands]];
     $('meetvendors').replaceChildren(...rows.flatMap(([what, who]) => [el('dt', '', what), el('dd', '', VENDOR[who] || who || '—')]));
@@ -3329,17 +3533,17 @@
       await meetPost({action: 'start', consent: true, mode, brief: $('meetbrief').value.trim(), sessions, auto_lookups: $('meetlookups').checked});
       closeSheet('meetsheet'); endShown = false; notesVersion = -1; notesById.clear(); shownNotes.clear(); lookingUp.clear(); transcript = [];
       notesClosed = false; meetFilter = 'all'; showFilters();
-    } catch (e) { $('meeterr2').textContent = e.message; $('meetstart').disabled = !$('meetconsent').checked || !meetCanStart; }
+    } catch (e) { $('meeterr2').textContent = plain(e); $('meetstart').disabled = !$('meetconsent').checked || !meetCanStart; }
     refresh();
   }
-  async function meetingMode(mode) { try { await meetPost({action: 'mode', mode}); } catch (e) { meetError(e.message); } refresh(); }
+  async function meetingMode(mode) { try { await meetPost({action: 'mode', mode}); } catch (e) { sayProblem(plain(e)); } refresh(); }
   // A hand is known by its alert id (hand:<meeting id>:<n>), so a second click never decides the hand raised after it.
   let handShown = null, handBusy = null;
   const handIdOf = (s, hand) => ((s.attention || []).find(a => a.kind === 'hand') || {}).id || `at:${hand.at}`;
   async function handDecision(decision) {
     if (!handShown || handBusy === handShown) return;
     handBusy = handShown; showHandButtons(meetingOf(status));
-    try { await meetPost({action: 'hand', decision}); } catch (e) { handBusy = null; meetError(e.message); }
+    try { await meetPost({action: 'hand', decision}); } catch (e) { handBusy = null; sayProblem(plain(e)); }
     refresh();
   }
   function showHandButtons(m) {
@@ -3350,8 +3554,8 @@
     $('meetredial').disabled = true;
     try {
       await meetPost({action: 'reconnect'});
-      meetError('Reconnecting the room’s audio. Speakers are labelled afresh: say “Pointe, that’s me” again so it knows your voice.', 30);
-    } catch (e) { meetError(e.message); }
+      sayProblem('Reconnecting the room’s audio. Speakers are labelled afresh: say “Pointe, that’s me” again so it knows your voice.', 30);
+    } catch (e) { sayProblem(plain(e)); }
     $('meetredial').disabled = false;
     refresh();
   }
@@ -3365,15 +3569,20 @@
       return;
     }
     endSure = 0; $('meetend').textContent = endLabel();
-    try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { meetError(e.message); }
+    try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { sayProblem(plain(e)); }
     refresh();
   }
+  // An action item as a line: what, then who and by when, each only when the notes say it ("not stated" says nothing),
+  // set off by a dot so an owner that carries its own brackets never nests them.
+  const UNSTATED = /^(not stated|unstated|unassigned|none|unknown|n\/a|tbd|-|—)$/i;
+  const endItem = x => [x.what || x.q || x.text, x.owner, x.due && `by ${x.due}`]
+    .filter(v => v && !UNSTATED.test(String(v).replace(/^by /, '').trim())).join(' · ');
   function showEnd(result) {
     endShown = true; endVoiceShown = '';
     const body = $('endbody'); body.replaceChildren();
     if (result.summary) { const d = el('div', '', result.summary); d.dir = 'auto'; body.append(el('h3', '', 'Summary'), d); }
     for (const [key, title] of [['decisions', 'Decisions'], ['action_items', 'Action items'], ['open_questions', 'Open questions']]) {
-      const items = (result[key] || []).map(x => typeof x === 'string' ? x : [x.what || x.q || x.text, x.owner && `(${x.owner})`, x.due && `by ${x.due}`].filter(Boolean).join(' '));
+      const items = (result[key] || []).map(x => typeof x === 'string' ? x : endItem(x));
       if (items.length) { const ul = el('ul', 'items'); items.forEach(t => { const li = el('li', '', t); li.dir = 'auto'; ul.append(li); }); body.append(el('h3', '', title), ul); }
     }
     if (!body.children.length) body.append(el('div', 'lede', 'Nothing was noted.'));
@@ -3387,7 +3596,7 @@
   async function exportMeeting(withTranscript) {
     $('enderr').textContent = '';
     try { const r = await meetPost({action: 'export', transcript: withTranscript}); $('endok').textContent = `Saved to ${r.exported}`; }
-    catch (e) { $('enderr').textContent = e.message; }
+    catch (e) { $('enderr').textContent = plain(e); }
   }
   // The spoken "send the action items to billing": its read-back waits for a yes (or this sheet's Send), and where they
   // went shows here whichever way they were sent.
@@ -3410,7 +3619,7 @@
     sendSure = 0; $('endsend').disabled = true; $('enderr').textContent = '';
     $('endok').textContent = `Sending the action items to ${short(session)}…`;
     try { await meetPost({action: 'send_actions', session}); $('endok').textContent = `Asked to send the action items to ${short(session)}, as listed here.`; }
-    catch (e) { $('endok').textContent = ''; $('enderr').textContent = e.message; $('endsend').disabled = false; }
+    catch (e) { $('endok').textContent = ''; $('enderr').textContent = plain(e); $('endsend').disabled = false; }
     $('endsend').textContent = 'Send action items';
   }
   async function discardMeeting() {
@@ -3421,7 +3630,7 @@
     }
     discardSure = 0; $('enddiscard').textContent = 'Discard';
     try { await meetPost({action: 'discard'}); }
-    catch (e) { if (!/gone/.test(e.message)) { $('enderr').textContent = e.message; return; } }  // gone: nothing left to keep
+    catch (e) { if (!/gone/.test(e.message)) { $('enderr').textContent = plain(e); return; } }  // gone: nothing left to keep
     notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes();
     closeEnd();
   }
@@ -3462,8 +3671,8 @@
   async function noteState(id, body) {
     const r = await fetch('/voice/notes', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({id, ...body})})
       .catch(() => null);
-    if (!r) meetError('Pointe did not answer. Try again.');
-    else if (!r.ok) meetError(r.status === 404 ? 'That note is gone.' : meetRefusal(r.status, ((await r.json().catch(() => ({}))).detail) || ''));
+    if (!r) sayProblem('Pointe did not answer. Try again.');
+    else if (!r.ok) sayProblem(r.status === 404 ? 'That note is gone.' : meetRefusal(r.status, ((await r.json().catch(() => ({}))).detail) || ''));
     refresh();
   }
   function noteItem(n, m) {
@@ -3482,7 +3691,7 @@
         if (lookingUp.has(n.id)) acts.append(el('span', 'busy', `Looking it up in ${where}…`));
         else add(`Look it up in ${where}`, async () => {
           lookingUp.add(n.id); renderNotes();
-          try { await meetPost({action: 'lookup', note_id: n.id}); } catch (e) { lookingUp.delete(n.id); meetError(e.message); renderNotes(); } }, true);
+          try { await meetPost({action: 'lookup', note_id: n.id}); } catch (e) { lookingUp.delete(n.id); sayProblem(plain(e)); renderNotes(); } }, true);
       }
       if (n.kind === 'speaker' && m && m.on) { add('Use this name', () => noteState(n.id, {accept: true}), true); add('Ignore', () => noteState(n.id, {state: 'dismissed'})); }
       else if (n.kind === 'action') add('Done', () => noteState(n.id, {state: 'done'}));
@@ -3509,7 +3718,7 @@
         x.append(el('span', 'who', names.get(t.speaker) || t.who || `Speaker ${t.speaker}`), t.text); li.append(x);
         if (m && m.on && names.get(t.speaker) !== 'You') {
           const acts = el('div', 'acts'); const b = el('button', '', 'That was me');
-          b.onclick = async () => { try { await meetPost({action: 'owner', turn_id: t.id}); } catch (e) { meetError(e.message); } transcriptAt = 0; refresh(); };
+          b.onclick = async () => { try { await meetPost({action: 'owner', turn_id: t.id}); } catch (e) { sayProblem(plain(e)); } transcriptAt = 0; refresh(); };
           acts.append(b); li.append(acts);
         }
         return li;
@@ -3559,10 +3768,10 @@
     }
     if (s && !m && $('endsheet').classList.contains('open')) {  // the daemon no longer has it: export and send would fail
       closeSheet('endsheet');
-      meetError('The meeting is gone because Pointe restarted. Its notes were not saved.', 60);
+      sayProblem('The meeting is gone because Pointe restarted. Its notes were not saved.', 60);
     }
     if (wasOn && !meetOn && !ended) {  // it vanished without an end: the daemon restarted
-      meetError('The meeting stopped because Pointe restarted. Its notes were not saved.', 60);
+      sayProblem('The meeting stopped because Pointe restarted. Its notes were not saved.', 60);
       notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes();
     }
     document.body.classList.toggle('meeting', meetOn);
@@ -3790,7 +3999,8 @@
     where.replaceChildren();
     if (v.path) where.append(v.path + (!v.range ? '' : v.range[1] > v.range[0] ? ` · lines ${v.range[0]}–${v.range[1]}` : ` · line ${v.range[0]}`));
     if (v.changed_since) where.append(' · ', el('span', 'changed', 'changed since it was spoken about'));
-    if (v.problem) { body.replaceChildren(el('div', 'msg', `${v.name || ''}: ${v.problem}`)); return; }
+    const name = v.name || (show.art && show.art.name);  // a fetch that failed has no name of its own
+    if (v.problem) { body.replaceChildren(el('div', 'msg', name ? `${name}: ${v.problem}` : v.problem)); return; }
     let target = null;
     if (show.view === 'Test') {
       const rows = [];
@@ -3846,48 +4056,69 @@
   // tests/test_key_setup.py). A key no role needs is Optional, never Missing.
   const KEYS_COPY = {title: 'What do I need?',
     need: 'Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20). Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.',
-    why: 'Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe\'s voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use: about $1 for a busy hour of talk.',
+    why: 'Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe\'s voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk.',
     how: 'Add… opens the vendor\'s key page and a window on this Mac; Pointe checks the key and restarts to use it.',
     howRemote: 'Add or replace a key on the Mac: its page or the Mac app\'s Settings, or pointe key <vendor>.',
-    setups: 'Setups', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
-    add: 'Add…', replace: 'Replace…', use: 'Use this setup',
+    setups: 'Setups, with the cost of a busy hour of talk', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
+    add: 'Add…', replace: 'Replace…', use: 'Use this setup', addKey: v => `Add the ${v} key…`,
+    missing: names => `Needs the ${names.join(' and the ')} key${names.length > 1 ? 's' : ''}: not saved yet.`,
     keyWindow: 'A window opened on this Mac: paste the key there.', switching: 'Switching. Pointe restarts in a moment.',
-    inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional'};
-  const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional'};
+    inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional', notRead: 'Not read: the voice stays on this Mac'};
+  const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional', 'not read': 'notRead'};
   text('pref-keys-title', KEYS_COPY.title); text('pref-keys-need', KEYS_COPY.need); text('pref-keys-sub', KEYS_COPY.why);
   text('pref-keys-how', remotePage ? KEYS_COPY.howRemote : KEYS_COPY.how); text('pref-setups-h', KEYS_COPY.setups);
+  // An open sheet follows the Mac: after Use this setup, Pointe comes back on the other setup and the sheet says so.
+  let keysShown = '';
+  function followKeys(s) {
+    if (s && $('settingssheet').classList.contains('open') && JSON.stringify(s.keys || null) !== keysShown) showKeys();
+  }
   function showKeys() {
     const k = status && status.keys;
+    keysShown = JSON.stringify(k || null);
     $('pref-keys-line').textContent = (k && k.line) || 'Pointe on this Mac does not report it: update it.';
     $('pref-keys').replaceChildren(...Object.entries((k && k.keys) || {}).map(([vendor, st]) => {
       const uses = (k.uses || {})[vendor] || [];
       const row = el('div', 'r');
       row.append(el('span', '', VENDOR[vendor] || vendor),
                  el('span', 'kstate ' + (KEY_STATE[st] || ''), (KEYS_COPY[KEY_STATE[st]] || st) + (uses.length ? ': ' + uses.join(', ') : '')));
-      if (!remotePage) {  // the window opens on the Mac: a phone's page keeps the words only
+      if (!remotePage && st !== 'not read') {  // the window opens on the Mac: a phone's page keeps the words only
         const b = el('button', 'pill', st === 'needed' || st === 'optional' ? KEYS_COPY.add : KEYS_COPY.replace);
         b.onclick = () => keysPost('/voice/key', {vendor}, KEYS_COPY.keyWindow);
         row.append(b);
       }
       return row;
     }));
+    // A setup's keys (a Mac that sends them): one the Mac reports as not saved is named before any click, with its own
+    // Add, and Use this setup waits for it. A key whose state is not reported ('not read', or none) is not guessed at.
+    const unsaved = v => ['needed', 'optional'].includes(((k && k.keys) || {})[v]);
     $('pref-setups').replaceChildren(...((k && k.setups) || []).map(x => {
-      const row = el('div', 'r col'), head = el('div', 'shead2');
-      head.append(el('b', '', x.name), el('span', 'kstate', x.id === k.setup ? KEYS_COPY.current : x.cost));
-      row.append(head, el('span', 'help', `${x.short} Best for ${x.pick_for}.`));
-      if (x.id !== k.setup && remotePage) row.append(el('code', '', KEYS_COPY.switchTo + x.id));
-      else if (x.id !== k.setup) {
+      const row = el('div', 'r col'), head = el('div', 'shead2'), current = x.id === k.setup;
+      head.append(el('b', '', x.name));
+      if (current) head.append(el('span', 'kstate inUse', KEYS_COPY.current));
+      row.append(head, el('span', 'cost', x.cost), el('span', 'help', `${x.short} Best for ${x.pick_for}.`));
+      const missing = (x.keys || []).filter(unsaved), note = el('div', 'snote');
+      if (!current && missing.length) note.textContent = KEYS_COPY.missing(missing.map(v => VENDOR[v] || v));
+      row.append(note);  // read before the button; a refusal comes back here, by the click
+      if (!current && remotePage) row.append(el('code', '', KEYS_COPY.switchTo + x.id));
+      else if (!current && missing.length) {
+        for (const v of missing) {
+          const b = el('button', 'pill', KEYS_COPY.addKey(VENDOR[v] || v));
+          b.onclick = () => keysPost('/voice/key', {vendor: v}, KEYS_COPY.keyWindow, note);
+          row.append(b);
+        }
+      } else if (!current) {
         const b = el('button', 'pill', KEYS_COPY.use);
-        b.onclick = () => keysPost('/voice/setup', {id: x.id}, KEYS_COPY.switching);
+        b.onclick = () => keysPost('/voice/setup', {id: x.id}, KEYS_COPY.switching, note);
         row.append(b);
       }
       return row;
     }));
     $('pref-setups-h').hidden = !(k && k.setups && k.setups.length);
   }
-  async function keysPost(path, body, done) {
+  async function keysPost(path, body, done, where = $('pref-keys-line')) {  // a refusal shows by the click that met it
     const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
-    $('pref-keys-line').textContent = r.ok ? done : (await r.json().catch(() => ({}))).detail || 'Not done: the Mac did not answer.';
+    if (r.ok) { $('pref-keys-line').textContent = done; if (where !== $('pref-keys-line')) where.textContent = ''; return; }
+    where.textContent = (await r.json().catch(() => ({}))).detail || 'Not done: the Mac did not answer.';
   }
   async function openSettings() {
     // The sheet opens on the click, with the values it last had; the Mac's answers fill it in as they land.
@@ -3928,6 +4159,7 @@
       if (on && !b.classList.contains('on') && nav.scrollWidth > nav.clientWidth)  // the strip on a narrow screen: the mark stays in view
         nav.scrollTo({left: b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2, behavior: 'smooth'});
       b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
     }
   }
   // The last sections cannot scroll to the top of the panel, so the scroll position alone would mark the one above: the
@@ -3967,17 +4199,18 @@
     // made says null too, so a code made here is kept for a moment
     else if (st === null && !(invite && Date.now() - (invite.made || 0) < 3000)) invite = null;
     const asking = revoking && Date.now() < revoking.until ? revoking.name : '';
-    const sig = JSON.stringify([s.machines, asking]);
+    const stale = fails > 0;  // the last status this page read: nobody's state is known now
+    const sig = JSON.stringify([s.machines, asking, canInvite, stale]);
     if (sig !== machinesShown) {
       machinesShown = sig;
       $('mach-list').replaceChildren(...[...s.machines].sort((a, b) => b.here - a.here).map(m => {
         const li = el('li'), away = m.online === false;
         li.append(el('span', 'mn', m.here ? `${m.name} (this Mac)` : m.name));
-        const facts = [OS[m.os] || m.os, away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
+        const facts = [OS[m.os] || m.os, stale ? 'not known: the Mac is not answering' : away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
         if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
-        if (!m.here) {
+        if (!m.here && canInvite && !remotePage) {  // the same owner check as an invite; over the phone's listener the Mac refuses a revoke (hub_nodes.owner)
           const sure = asking === m.name, b = el('button', sure ? 'sure' : '', sure ? `Revoke ${m.name}?` : 'Revoke');
           b.title = 'Unpair it: its sessions leave the voice, and it needs a new code to come back';
           b.onclick = () => revokeMachine(m.name);
@@ -3994,9 +4227,13 @@
     $('mach-invite').hidden = !live;
     $('mach-cancel').hidden = !live;
     $('mach-invitebtn').hidden = live || !canInvite;
+    $('mach-row').hidden = $('mach-invitebtn').hidden && $('mach-cancel').hidden;  // no empty strip where both are hidden
+    $('mach-elsewhere').hidden = !remotePage;
     if (!live) return;
     $('mach-code').textContent = invite.code;
-    $('mach-link').textContent = invite.link ? `pointe node join '${invite.link}'` : '';
+    const line = invite.link ? `pointe node join '${invite.link}'` : '';
+    if ($('mach-link').textContent !== line) { $('mach-link').textContent = line; $('mach-copy').textContent = 'Copy command'; }
+    $('mach-copy').hidden = !line;
     $('mach-left').textContent = `Expires in ${clock(left)}`;
   }
   setInterval(() => { if (invite) showInvite(); }, 1000);
@@ -4006,10 +4243,20 @@
     if (!r.ok) {  // the hub's routes answer a refusal as plain text ("no machine called x is paired")
       const text = (await r.text().catch(() => '')).trim();
       let said = text; try { said = JSON.parse(text).detail || text; } catch (e) {}
-      $('mach-err').textContent = said || 'The Mac did not do it.';
+      if (r.headers.get('x-pointe-fix') === 'phone') {  // no address yet: the words name CLI commands; the page has its own way
+        const go = el('button', 'pill', 'Set it up under Phone'); go.type = 'button';
+        go.onclick = () => { $('mach-err').textContent = ''; settingsJump('phone'); phoneConnect(); };
+        $('mach-err').replaceChildren(el('div', '', 'Another machine needs an address to reach this Mac. Set one up under Phone (one address serves both), then invite again.'), go);
+        return null;
+      }
+      $('mach-err').textContent = r.status === 403 ? "Only the Mac's own page or the app can do this." : said || 'The Mac did not do it.';
       return null;
     }
     return await r.json().catch(() => ({}));
+  }
+  async function copyJoinLine() {  // the line is long and runs on the other machine: one click to carry it there
+    try { await navigator.clipboard.writeText($('mach-link').textContent); $('mach-copy').textContent = 'Copied'; }
+    catch (e) { getSelection().selectAllChildren($('mach-link')); $('mach-copy').textContent = 'Select and copy it'; }
   }
   async function inviteMachine() {
     const reply = await hubPost('/voice/hub/invite', {});
@@ -4086,9 +4333,9 @@
       radio.onchange = () => { phonePick = r; showRoutes(phoneRoutesSeen); };
       const title = el('span', 'pl', r.label);
       if (r.recommended) title.append(el('span', 'best', 'Recommended'));
-      if (r.current) title.append(el('span', 'now', 'set up now'));
+      if (r.current) title.append(el('span', 'now', 'in use'));
       label.append(radio, title, el('span', 'pw', r.words));
-      if (r.problem) label.append(el('span', 'pp', r.problem));
+      if (r.problem && !r.current) label.append(el('span', 'pp', r.problem));  // the route phones pair through works: no alarm under it
       return label;
     }));
     $('ph-advice').textContent = found.advice || '';
@@ -4211,7 +4458,15 @@
     if (document.body.classList.contains('sheet')) { toggleSessions(false); return; }
     if ($('ctxmodal').classList.contains('open')) closeMsg(); else closeCtx();
   });
-  $('talk').addEventListener('scroll', () => { pinned = atBottom(); if (pinned) $('newpill').hidden = true; });
+  // Only a scroll up lets go of the bottom. The page's own scroll to the newest turn reports late, after a card that
+  // came in the same poll has already taken its room; read as the user's, it would leave the newest turn under the card.
+  let talkTop = 0;
+  $('talk').addEventListener('scroll', () => {
+    const t = $('talk'), up = t.scrollTop < talkTop - 1;
+    talkTop = t.scrollTop;
+    pinned = atBottom() || (pinned && !up);
+    if (pinned) $('newpill').hidden = true;
+  });
   // A card or the caption takes room from the conversation: at the bottom it stays at the bottom (the newest turn is
   // never left under the card), and the Showing pane on a narrow screen is told where the conversation ends.
   let dumpAtEnd = true;
@@ -4345,6 +4600,7 @@
     showBriefing(status);
   }
   function showBriefings(list) {
+    $('brf-list-h').hidden = !list.length;  // "Last 7 briefings" over "No briefings yet." said nothing
     $('brf-list').replaceChildren(...(list.length ? list.map(b => {
       const li = el('li'); li.dir = 'auto';
       li.append(el('div', 'when', `${brfWhen(b.at)} · ${b.since_label}${b.scheduled ? ' · scheduled' : ''}`));
@@ -4360,15 +4616,15 @@
   async function briefMe() {
     $('brf-err').textContent = '';
     try { await brfPost('/voice/briefings', {action: 'start', since: $('brf-since').value, length: $('brf-length').value}); refresh(); }
-    catch (e) { $('brf-err').textContent = e.message; }
+    catch (e) { $('brf-err').textContent = plain(e); }
   }
   async function briefingAction(action) {
     $('brf-err').textContent = '';
-    try { await brfPost('/voice/briefings', {action}); refresh(); } catch (e) { $('brf-err').textContent = e.message; }
+    try { await brfPost('/voice/briefings', {action}); refresh(); } catch (e) { $('brf-err').textContent = plain(e); }
   }
   async function hearBriefing(id) {
     if (!(status && status.connected)) { brfHearWhenLive = true; startCall(); return; }  // no call anywhere: this tab dials
-    try { await brfPost('/voice/briefings', {action: 'start'}); } catch (e) { meetError(e.message); }
+    try { await brfPost('/voice/briefings', {action: 'start'}); } catch (e) { sayProblem(plain(e)); }
     refresh();
   }
   async function dismissBriefing(id) { await brfPost('/voice/attention', {id}).catch(() => {}); refresh(); }
@@ -4426,29 +4682,32 @@
     try {
       await brfPost('/voice/briefings/schedule', {time: on ? $('brf-time').value : '', days, length: $('brf-deflen').value,
                                                   speak_on_connect: $('brf-connect').checked, skip_empty: $('brf-skipempty').checked});
-    } catch (e) { $('seterr').textContent = e.message; return false; }
+    } catch (e) { $('seterr').textContent = plain(e); return false; }
     return true;
   }
 
   if (matchMedia('(max-width: 900px)').matches) $('compose').classList.add('folded');
-  // Narrow screens (a phone, the page on an iPad): five controls move into the More sheet and Sessions to the mic's left;
-  // the mic stays in the middle. A button keeps its id wherever it sits, so nothing that finds one by id changes.
-  const DOCK_MORE = ['listen', 'meetbtn', 'briefbtn', 'chlbtn', 'whisperbtn'];
-  const dockHome = new Map();  // id -> [its side, the fixed sibling it sits before]
+  // Narrow screens (a phone, the page on an iPad): the bar is the app's (BottomBar.swift), Brain dump and Type left of
+  // the mic, Sessions and Hang up right of it; four controls move into the More sheet, which opens from the top bar as
+  // the app's ••• does. A button keeps its id wherever it sits, so nothing that finds one by id changes.
+  const DOCK_MORE = ['meetbtn', 'briefbtn', 'chlbtn', 'whisperbtn'];
+  const DOCK_PHONE = [['typebtn', '.dock-side.left'], ['hangup', '.dock-side.right']];  // appended after Brain dump, after Sessions
+  const DOCK_MOVES = [...DOCK_MORE, ...DOCK_PHONE.map(([id]) => id)];
+  const dockHome = new Map();  // id -> [its home, the sibling that stays put it sits before]
   function layoutDock() {
     const narrow = matchMedia('(max-width: 760px)').matches;
     const place = (id, into) => {
       const b = $(id);
       if (!dockHome.has(id)) {
         let next = b.nextElementSibling;
-        while (next && (DOCK_MORE.includes(next.id) || next.id === 'sessbtn')) next = next.nextElementSibling;
+        while (next && DOCK_MOVES.includes(next.id)) next = next.nextElementSibling;
         dockHome.set(id, [b.parentElement, next]);
       }
       const [home, next] = dockHome.get(id);
       if (into ? b.parentElement !== into : b.parentElement !== home) (into || home).insertBefore(b, into ? null : next);
     };
     for (const id of DOCK_MORE) place(id, narrow ? $('more-list') : null);
-    place('sessbtn', narrow ? document.querySelector('.dock-side.left') : null);
+    for (const [id, side] of DOCK_PHONE) place(id, narrow ? document.querySelector(side) : null);
     const polish = $('polishrow');  // a bare switch in the top bar says nothing: in More it keeps its words
     if (narrow ? polish.parentElement !== $('more-list') : polish.parentElement === $('more-list'))
       narrow ? $('more-list').append(polish) : document.querySelector('.top').insertBefore(polish, $('topconnect'));
@@ -4456,6 +4715,13 @@
     if (!narrow && $('moresheet').classList.contains('open')) closeSheet('moresheet');
   }
   matchMedia('(max-width: 760px)').addEventListener('change', layoutDock);
+  for (const row of document.querySelectorAll('#notes .filters, .settings .snav, #show .arts')) {
+    const edges = () => { const more = row.scrollWidth > row.clientWidth + 2;
+      row.classList.toggle('fade-l', more && row.scrollLeft > 2); row.classList.toggle('fade-r', more && row.scrollLeft + row.clientWidth < row.scrollWidth - 2); };
+    row.addEventListener('scroll', edges, {passive: true});
+    new ResizeObserver(edges).observe(row);
+    new MutationObserver(edges).observe(row, {childList: true, subtree: true});
+  }
   layoutDock();
   $('more-list').addEventListener('click', e => { if (e.target.closest('button') && !e.target.closest('button').disabled) closeSheet('moresheet'); });
   refresh(); setInterval(refresh, 700);
@@ -4525,8 +4791,8 @@
     unreadable: 'Can’t be read out: it waits until you stop. Say no to deny it.',
   };
   async function setDrive(on) {
-    const r = await fetch('/voice/drive', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
-    if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Drive mode did not change.';
+    const r = await postSafe('/voice/drive', {on});
+    if (!r.ok) sayProblem(r.status ? r.detail || 'Drive mode did not change.' : NOT_REACHED);
     refresh();
   }
   function driveLine(s) {
@@ -4569,7 +4835,7 @@
       const r = await fetch('/voice/challenge', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({action})});
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.detail || `failed (${r.status})`);
-    } catch (e) { $('chl-err').textContent = e.message; meetError(e.message, 8); }
+    } catch (e) { $('chl-err').textContent = plain(e); sayProblem(plain(e), 8); }
     refresh();
   }
   function challengeButton() { challengeAction(status && status.challenge && status.challenge.on ? 'end' : 'start'); }

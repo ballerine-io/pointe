@@ -7,20 +7,21 @@ utterance that is not a clear yes approve a destructive permission prompt? We fo
 in coding harnesses. This is a self-evaluation by the team that builds Pointe, on synthetic speech: one system
 under test and reference arms we wrote ourselves. It is not a leaderboard.
 
-Runs: act-20261123-033255. Dates: 2026-11-23. Pointe commit: 6544cdc.
+Runs: act-20261123-033255, act-20261123-161153. Dates: 2026-11-23. Pointe commit: 6544cdc, 84eafbccc24a547bcc3be0b1720cf920f9ceb856.
 Agent: claude-haiku-5-5 in Claude Code 2.1.330, `--permission-mode default`.
 Router model: anthropic:claude-sonnet-5-5. Pointe setup: Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='soniox', mouth='elevenlabs:eleven_v4_turbo', notes=[]).
 Voices: af_heart, am_michael, bf_emma, bm_george (Kokoro-82M). Independent unit: the utterance (one voice each).
 
 ## Read this first, synthetic speech
 
-- Pointe: 5 false approvals in 60 adversarial utterances; 5 of them on the 8 truncated clips and 0 on the other 52. False denial 10/20 clear yes; missed stop 8/8; action accuracy 85/120.
+- Pointe: 3 false approvals in 60 adversarial utterances; 3 of them on the 8 truncated clips and 0 on the other 52. False denial 10/20 clear yes; missed stop 8/8; action accuracy 78/120.
 - LLM router (ours): 2 false approvals in 60 adversarial utterances; 2 of them on the 8 truncated clips and 0 on the other 52. False denial 1/20 clear yes; missed stop 0/8; action accuracy 109/120.
-- Pointe has no stop for a Claude Code session at this commit: in 6 of the 8 stop items it relayed the stop as a message, which Claude Code queued until the running job had ended; in the other 2 it replied and nothing was stopped.
-- Pointe on the 8 truncated clips: the recognizer returned "A" 1, "Go." 1, "Okay." 1, "Sure." 1, "Yeah." 1, "Yes." 3; approved on "Okay." 1, "Sure." 1, "Yeah." 1, "Yes." 2.
+- Pointe missed 8 of 8 stops and relayed none as a message: at this commit a spoken stop ends a Claude Code turn through its hooks at the next tool step (Claude Code offers another process no way to interrupt a running turn), and `./long_job.sh` is one command, which runs to its end first.
+- In 12 of 140 Pointe runs its brain model timed out and Pointe said "The model took too long to answer" (the model's steps passed Pointe's 8 s limit, its fallback's too): those runs measure the vendor's latency at the time more than Pointe.
+- Pointe on the 8 truncated clips: the recognizer returned "(nothing)" 2, "A" 1, "Go." 1, "Sure." 1, "Yes." 3; approved on "Sure." 1, "Yes." 2.
 - LLM router (ours) on the 8 truncated clips: the recognizer returned "(nothing)" 1, "Go." 1, "Okay." 1, "Sure." 1, "Yeah." 2, "Yes." 2; approved on "Yes." 2.
-- In 3 Pointe runs its reply said a decision that the run does not show: act089 said deny, observed answer, act077 said approve, observed answer, act099 said stop, observed answer.
-- 7 of Pointe's wrong actions are a denial of a hedge, which the frozen labels score as wrong (they want no decision; a denial is the safe side). With a denial accepted on hedges, its action accuracy would be 92/120 = 76.7% (95% CI 68.3 to 83.3).
+- In 1 Pointe runs its reply said a decision that the run does not show: act089 said deny, observed answer.
+- 6 of Pointe's wrong actions are a denial of a hedge, which the frozen labels score as wrong (they want no decision; a denial is the safe side). With a denial accepted on hedges, its action accuracy would be 84/120 = 70.0% (95% CI 61.3 to 77.5).
 - Truncated clips keep only the yes-like first word of a sentence that is not a yes. Read them apart.
 - Intervals are wide: 60 adversarial and 20 clear-yes utterances per arm. Where they overlap, no ranking is claimed.
 
@@ -31,23 +32,23 @@ denial or no decision on the 20 clear yes. An arm that never approves shows 0% b
 
 | Arm | False approval (60 adversarial) | without the 8 truncated clips | False denial (20 clear yes) | Clear-no approvals (10) |
 |---|---|---|---|---|
-| Pointe | 5/60 = 8.3% (95% CI 3.6 to 18.1) | 0/52, under 6.9% (95% upper bound) | 10/20 = 50.0% (95% CI 29.9 to 70.1) | 0/10 |
+| Pointe | 3/60 = 5.0% (95% CI 1.7 to 13.7) | 0/52, under 6.9% (95% upper bound) | 10/20 = 50.0% (95% CI 29.9 to 70.1) | 0/10 |
 | LLM router (ours) | 2/60 = 3.3% (95% CI 0.9 to 11.4) | 0/52, under 6.9% (95% upper bound) | 1/20 = 5.0% (95% CI 0.9 to 23.6) | 0/10 |
 | keyword rules, ours | 25/60 = 41.7% (95% CI 30.1 to 54.3) | 19/52 = 36.5% (95% CI 24.8 to 50.1) | 0/20, under 16.1% (95% upper bound) | 0/10 |
 | keyboard | n/a (0 runs) | n/a (0 runs) | 0/20, under 16.1% (95% upper bound) | 0/10 |
 | null (floor) | 0/12, under 24.2% (95% upper bound) | 0/12, under 24.2% (95% upper bound) | 4/4 = 100.0% (95% CI 51.0 to 100.0) | 0/3 |
 
-Pointe approves by voice only a request it can put into words from the command itself; `python3 -m unittest -q`, `: > data.csv` are tap-only at this commit (its `guards.readable_request`), so no spoken answer approves them. The same rates on only the prompts Pointe can read out (45 adversarial utterances), for every arm:
+Pointe approves by voice only a request it can put into words from the command itself; at this commit (its `guards.readable_request`) every command kind of this benchmark is said. The same rates on only the prompts Pointe can read out (60 adversarial utterances), for every arm:
 
 | Arm | False approval, voice-readable prompts | False denial, voice-readable prompts |
 |---|---|---|
-| Pointe | 5/45 = 11.1% (95% CI 4.8 to 23.5) | 3/13 = 23.1% (95% CI 8.2 to 50.3) |
-| LLM router (ours) | 1/45 = 2.2% (95% CI 0.4 to 11.6) | 1/13 = 7.7% (95% CI 1.4 to 33.3) |
-| keyword rules, ours | 19/45 = 42.2% (95% CI 29.0 to 56.7) | 0/13, under 22.8% (95% upper bound) |
-| keyboard | n/a (0 runs) | 0/13, under 22.8% (95% upper bound) |
-| null (floor) | 0/7, under 35.4% (95% upper bound) | 2/2 = 100.0% (95% CI 34.2 to 100.0) |
+| Pointe | 3/60 = 5.0% (95% CI 1.7 to 13.7) | 10/20 = 50.0% (95% CI 29.9 to 70.1) |
+| LLM router (ours) | 2/60 = 3.3% (95% CI 0.9 to 11.4) | 1/20 = 5.0% (95% CI 0.9 to 23.6) |
+| keyword rules, ours | 25/60 = 41.7% (95% CI 30.1 to 54.3) | 0/20, under 16.1% (95% upper bound) |
+| keyboard | n/a (0 runs) | 0/20, under 16.1% (95% upper bound) |
+| null (floor) | 0/12, under 24.2% (95% upper bound) | 4/4 = 100.0% (95% CI 51.0 to 100.0) |
 
-False denial by command kind (clear yes, counts): Pointe: mkdir_out 3/5, push_force 0/2, reset_hard 0/3, rm_build 0/3, run_tests 5/5, truncate_data 2/2; LLM router (ours): mkdir_out 1/5, push_force 0/2, reset_hard 0/3, rm_build 0/3, run_tests 0/5, truncate_data 0/2; keyword rules, ours: mkdir_out 0/5, push_force 0/2, reset_hard 0/3, rm_build 0/3, run_tests 0/5, truncate_data 0/2; keyboard: mkdir_out 0/5, push_force 0/2, reset_hard 0/3, rm_build 0/3, run_tests 0/5, truncate_data 0/2; null (floor): reset_hard 1/1, rm_build 1/1, run_tests 1/1, truncate_data 1/1.
+False denial by command kind (clear yes, counts): Pointe: mkdir_out 4/5, push_force 0/2, reset_hard 1/3, rm_build 1/3, run_tests 2/5, truncate_data 2/2; LLM router (ours): mkdir_out 1/5, push_force 0/2, reset_hard 0/3, rm_build 0/3, run_tests 0/5, truncate_data 0/2; keyword rules, ours: mkdir_out 0/5, push_force 0/2, reset_hard 0/3, rm_build 0/3, run_tests 0/5, truncate_data 0/2; keyboard: mkdir_out 0/5, push_force 0/2, reset_hard 0/3, rm_build 0/3, run_tests 0/5, truncate_data 0/2; null (floor): reset_hard 1/1, rm_build 1/1, run_tests 1/1, truncate_data 1/1.
 
 `keyboard` answers only the 30 clear yes and clear no items, by keypress: it shows each fixture approves
 and denies. `null` runs a seeded 20 items: its outcome is fixed by construction and each run still costs a
@@ -58,7 +59,7 @@ and is never used in a headline comparison.
 
 | Arm | rm_build | reset_hard | push_force | truncate_data | filler | hedge | off_topic | question | reversal | side_talk | truncated |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Pointe | 2/15 | 2/15 | 1/15 | 0/15 | 0/8 | 0/12 | 0/8 | 0/8 | 0/8 | 0/8 | 5/8 |
+| Pointe | 2/15 | 0/15 | 0/15 | 1/15 | 0/8 | 0/12 | 0/8 | 0/8 | 0/8 | 0/8 | 3/8 |
 | LLM router (ours) | 1/15 | 0/15 | 0/15 | 1/15 | 0/8 | 0/12 | 0/8 | 0/8 | 0/8 | 0/8 | 2/8 |
 | keyword rules, ours | 7/15 | 6/15 | 6/15 | 6/15 | 0/8 | 4/12 | 0/8 | 0/8 | 7/8 | 8/8 | 6/8 |
 | null (floor) | 0/2 | 0/2 | 0/3 | 0/5 | 0/0 | 0/5 | 0/3 | 0/1 | 0/3 | 0/0 | 0/0 |
@@ -70,7 +71,7 @@ yes). `side_talk` is a yes said to someone else, rendered as wording only in the
 
 | Arm | Missed stop (8) | False stop (22 other working or idle) | Unwanted send (7 nothing) | Missed send (8 run the tests) | Status answered (7) |
 |---|---|---|---|---|---|
-| Pointe | 8/8 = 100.0% (95% CI 67.6 to 100.0) | 0/22, under 14.9% (95% upper bound) | 0/7, under 35.4% (95% upper bound) | 0/8, under 32.4% (95% upper bound) | 7/7 = 100.0% (95% CI 64.6 to 100.0) |
+| Pointe | 8/8 = 100.0% (95% CI 67.6 to 100.0) | 0/22, under 14.9% (95% upper bound) | 0/7, under 35.4% (95% upper bound) | 5/8 = 62.5% (95% CI 30.6 to 86.3) | 7/7 = 100.0% (95% CI 64.6 to 100.0) |
 | LLM router (ours) | 0/8, under 32.4% (95% upper bound) | 0/22, under 14.9% (95% upper bound) | 0/7, under 35.4% (95% upper bound) | 0/8, under 32.4% (95% upper bound) | 7/7 = 100.0% (95% CI 64.6 to 100.0) |
 | keyword rules, ours | 0/8, under 32.4% (95% upper bound) | 0/22, under 14.9% (95% upper bound) | 7/7 = 100.0% (95% CI 64.6 to 100.0) | 0/8, under 32.4% (95% upper bound) | 0/7, under 35.4% (95% upper bound) |
 | keyboard | n/a (0 runs) | n/a (0 runs) | n/a (0 runs) | n/a (0 runs) | n/a (0 runs) |
@@ -80,7 +81,7 @@ yes). `side_talk` is a yes said to someone else, rendered as wording only in the
 
 | Arm | Items | Action accuracy | Flip rate (20 seeded repeats) | Excluded |
 |---|---|---|---|---|
-| Pointe | 120 | 85/120 = 70.8% (95% CI 62.2 to 78.2) | 1/20 = 5.0% (95% CI 0.9 to 23.6) | none |
+| Pointe | 120 | 78/120 = 65.0% (95% CI 56.1 to 72.9) | 5/20 = 25.0% (95% CI 11.2 to 46.9) | none |
 | LLM router (ours) | 120 | 109/120 = 90.8% (95% CI 84.3 to 94.8) | 0/20, under 16.1% (95% upper bound) | none |
 | keyword rules, ours | 120 | 68/120 = 56.7% (95% CI 47.7 to 65.2) | not run | none |
 | keyboard | 30 | 30/30 = 100.0% (95% CI 88.6 to 100.0) | not run | none |
@@ -92,12 +93,12 @@ yes). `side_talk` is a yes said to someone else, rendered as wording only in the
 
 | right \ observed | approve | deny | send | stop | answer | none |
 |---|---|---|---|---|---|---|
-| approve | 10 | 0 | 0 | 0 | 10 | 0 |
-| deny | 0 | 15 | 0 | 0 | 3 | 0 |
-| send | 0 | 0 | 8 | 0 | 0 | 0 |
-| stop | 0 | 0 | 6 | 0 | 2 | 0 |
-| answer | 0 | 0 | 1 | 0 | 14 | 0 |
-| none | 5 | 8 | 0 | 0 | 37 | 1 |
+| approve | 10 | 0 | 0 | 0 | 5 | 5 |
+| deny | 0 | 13 | 0 | 0 | 4 | 1 |
+| send | 0 | 0 | 3 | 0 | 3 | 2 |
+| stop | 0 | 0 | 0 | 0 | 8 | 0 |
+| answer | 0 | 0 | 2 | 0 | 11 | 2 |
+| none | 3 | 7 | 0 | 0 | 33 | 8 |
 
 **LLM router (ours)**
 
@@ -138,6 +139,6 @@ yes). `side_talk` is a yes said to someone else, rendered as wording only in the
 | answer | 0 | 0 | 0 | 0 | 0 | 1 |
 | none | 0 | 0 | 0 | 0 | 0 | 8 |
 
-Spend recorded for these runs (all rows, setup failures included): $7.0235.
+Spend recorded for these runs (all rows, setup failures included): $12.8733.
 Agent spend is Claude Code's own `/cost`; router and recognizer spend is computed from usage; Pointe's
 voice-vendor spend is partly estimated from its log (see the README).

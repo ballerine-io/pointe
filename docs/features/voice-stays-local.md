@@ -16,9 +16,19 @@ pointe stop             # then /pointe:voice: the voice restarts with local ears
 pointe local off        # back to the vendors you used before
 ```
 
+Or from a screen:
+
+- **Voice:** no phrase: it changes which vendors run, so it is chosen on the Mac and Pointe restarts on it.
+- **Page:** on the Mac's own page, Settings → Model keys → "Voice stays on your Mac" → Use this setup. It runs
+  `pointe setup voice-local` (the same as `pointe local voice`: the models download first), then restarts Pointe. A page
+  opened on the phone shows the command only. Settings → Local mode then reads "Voice stays on your Mac: on".
+- **iPhone app:** no switch: the setup is chosen on the Mac. Settings shows one read-only line while it is on.
+- **Mac app:** Settings (••• at the top, or ⌘,) → Model keys → Setup → "Voice stays on your Mac", then Restart under
+  Pointe on this Mac.
+
 `/pointe:setup` offers it as "Voice stays on your Mac". `pointe doctor` names it, lists which vendors get text, and shows
-Soniox and ElevenLabs as "not read". Needs an Apple-silicon Mac (Whisper and the voice run on MLX) and about 2 GB of disk;
-memory is not a limit, as no text model runs here.
+Soniox and ElevenLabs as "not read". Needs an Apple-silicon Mac (Whisper and the voice run on MLX) and about 3 GB of
+disk (2.0 GB of models, 1.1 GB of local libraries); memory is not a limit, as no text model runs here.
 
 ## What runs where
 

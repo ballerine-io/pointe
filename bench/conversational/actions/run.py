@@ -311,7 +311,7 @@ def actions(args) -> int:
             problems = scrub.problems(json.dumps(row))
             if problems:
                 row = {k: row[k] for k in row if k not in ("events", "requests", "why")}
-                row["scrub_dropped"] = problems[:3]
+                row["scrub_dropped"] = [p.split(":")[0] for p in problems[:3]]  # the kind only: the match would fail again
                 scrub.check(row)
             with write:
                 ledger.add("actions", run_id, f"{item['id']} {arm} {idx}.{attempt}", usd, by, kind)

@@ -123,13 +123,13 @@ final class PairingFlow {
                 return
             }
             adopt(p)
-            note = PairingNote(text: "Paired with your Mac. Tap Connect to call.", state: .done)
+            note = PairingNote(text: "Paired with your Mac.", state: .done)
         case .invite(let invite):
             note = PairingNote(text: "Pairing with your Mac…", state: .working)
             do {
                 let (p, mac) = try await redeem(invite)
                 adopt(p)
-                note = PairingNote(text: "Paired with \(mac). Tap Connect to call.", state: .done)
+                note = PairingNote(text: "Paired with \(mac).", state: .done)
             } catch PairingInvite.Failure.said(let why) {
                 note = PairingNote(text: why + kept, state: .failed)
                 attempt += 1

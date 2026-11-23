@@ -6,7 +6,7 @@ with POST /voice/phone/pair over the listener it pins, so the QR holds no lastin
 after PHONE_INVITE_SECS, is kept only as a hash, and wrong guesses are bounded as for machines (hub_nodes.Invites).
 
 Each pairing mints the phone its own key; phones.json keeps only its SHA-256. Unpair signs out that phone alone, at its
-next request, and ends its call; Unpair all signs out every phone. The shared `phone_key` from before (and from
+next request, and ends its call; Unpair all signs out every phone, phone browsers paired by `pointe pair link` too. The shared `phone_key` from before (and from
 `pointe pair show`, which still prints the old link with that key, minting it again if it was unpaired) counts as one
 more phone, so upgrading signs no one out.
 
@@ -108,6 +108,8 @@ class Phones:
         legacy = self._legacy_key()
         if legacy is not None and hmac.compare_digest(offered.encode(), legacy.encode()) and found is None:
             found = LEGACY
+        if found == LEGACY:
+            (self.state_dir / pair.UNUSED).unlink(missing_ok=True)  # a phone holds it: listed from now on
         if found:
             now = self.seen[found] = self._clock()
             if now - self._written >= SEEN_WRITE_SECS:
@@ -140,6 +142,7 @@ class Phones:
             if self._legacy_key() is None:
                 return False
             (self.state_dir / "phone_key").unlink(missing_ok=True)  # `pointe pair show` makes a new one when asked
+            (self.state_dir / pair.UNUSED).unlink(missing_ok=True)
             self.legacy_name = None
         elif not any(p["id"] == phone_id for p in self.paired):
             return False
@@ -148,11 +151,23 @@ class Phones:
         self._save()
         return True
 
-    def unpair_all(self) -> None:
+    def unpair_all(self) -> bool:
+        """Every phone app, and every phone browser paired by `pointe pair link` (its cookie and Home Screen key are the
+        remote_token, which gets a new value). True when that token changed: the listener must load it."""
         self.refresh()
         (self.state_dir / "phone_key").unlink(missing_ok=True)
+        (self.state_dir / pair.UNUSED).unlink(missing_ok=True)
         self.paired, self.legacy_name, self.seen = [], None, {}
         self._save()
+        token = self.state_dir / "remote_token"
+        if not token.exists():
+            return False
+        old = os.umask(0o077)
+        try:
+            token.write_text(secrets.token_hex(32))
+        finally:
+            os.umask(old)
+        return True
 
     def holds(self, phone_id: str | None) -> bool:
         """Is this phone (an id `allowed` gave) still paired?"""
@@ -172,7 +187,8 @@ class Phones:
                     "online": bool(seen and now - seen < ONLINE_SECS)}
 
         out = [entry(p["id"], p.get("name") or "iPhone", p.get("paired_at"), False) for p in self.paired]
-        if self._legacy_key() is not None:
+        # A key `pointe pair` made for a QR that no phone has used is not a paired phone; one from before per-phone keys is.
+        if self._legacy_key() is not None and (LEGACY in self.seen or not (self.state_dir / pair.UNUSED).exists()):
             out.append(entry(LEGACY, self.legacy_name or "Paired phone", None, True))
         return {"paired": out}
 
@@ -295,7 +311,11 @@ def install(app, link: PhoneLink, page_key: str, listener,
         body = await body_of(request)
         if body.get("all"):
             link.invites.cancel()
-            link.phones.unpair_all()
+            if link.phones.unpair_all():
+                # The new token, and an end to the connections opened with the old one (a browser's call among them).
+                problem = await listener.restart()
+                if problem:
+                    logger.warning(f"after unpair all, the phone listener: {problem}")
             ids = None
             logger.info("every phone unpaired from the page")
         else:

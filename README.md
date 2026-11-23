@@ -36,34 +36,45 @@ Pointe:  Duplicate charges during failover. It decided that an hour ago.
 
 ## Install
 
+**Claude Code:** one command, then `/pointe:setup` in a new Claude Code session.
+
 ```
 claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
 ```
 
-Then open a new Claude Code session and run `/pointe:setup`: about 5 minutes, free with one Google key. It asks one
-question, opens the key page and a Mac window for the key (the key goes to your Keychain, never into the chat), and
-starts your first call: say "hello", and Pointe answers that it hears you.
-
-You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome and headphones. More ways in, including
-the Claude desktop app: [docs/install.md](docs/install.md).
-
-Then, in each session you want to reach:
+**Codex or OpenCode** (no Claude Code needed): download the installer, run it, then `pointe setup` in a new terminal.
 
 ```
-/pointe:voice
+curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh
+pointe setup
 ```
 
-A tab opens: allow the microphone, press Connect, and say hello. `/pointe:stop` stops all voice.
+Setup takes about 5 minutes and is free with one Google key. It asks one question, opens the key page and a Mac window
+for the key (the key goes to your Keychain, never into the chat or the terminal), and starts your first call: say
+"hello", and Pointe answers that it hears you. `install.sh` checks the release against a SHA-256, needs no `sudo`, and
+asks before it changes anything; `pointe setup` then sets up Codex (its shared app-server and a `codex` alias, shown and
+asked first) and OpenCode (a `/voice` command).
+
+You need macOS, Chrome, headphones, and [Claude Code](https://code.claude.com) 2.1.224 or newer, Codex 0.160 or newer,
+or OpenCode v2. More ways in, including the Claude desktop app, and updates: [docs/install.md](docs/install.md).
+
+Then join the sessions you want to reach: `/pointe:voice` in a Claude Code session, `pointe join codex` or
+`pointe join opencode` in a Codex or OpenCode session's folder. A tab opens: allow the microphone, press Connect, and say
+hello. `/pointe:stop` or `pointe stop` stops all voice.
+
+The step-by-step guide, the phone, models, architecture and every feature: [the docs](docs/README.md).
 
 ### What this does to your Mac
 
-- **Installs** the plugin into Claude Code's plugin folder; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
+- **Installs** the plugin into Claude Code's plugin folder, or, with `install.sh`, a checked release into
+  `~/.pointe/<version>`; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
   is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
   the first run (about 530 MB on disk); and `~/.local/bin/pointe`, so `pointe` is a command in your terminal.
-- **Adds two Claude Code hooks**, active in every session: `PermissionRequest` (while Pointe runs, it holds the
+- **Adds two Claude Code hooks** (the plugin only), active in every session: `PermissionRequest` (while Pointe runs, it holds the
   permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
   and `SessionStart` (one file check, to suggest `/pointe:setup` until it is done).
-- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice`, until `/pointe:stop` or a restart of the Mac.
+- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice` or `pointe open`, until `/pointe:stop` or a restart of the Mac.
   Nothing starts at login unless you turn that on in the Mac app. During a call from your phone, on mains power, it
   runs `caffeinate -i` so the Mac does not sleep under the call. After you pair a phone it also listens on port 7443.
 - **Stores** your keys in the macOS Keychain only, as `pointe.<vendor>-api-key`; settings, logs and a journal of each
@@ -84,6 +95,7 @@ A tab opens: allow the microphone, press Connect, and say hello. `/pointe:stop` 
 | `pointe local` | fully local: download and start the local models, no keys ([details](docs/features/local.md)) |
 | `pointe local voice` | voice stays on your Mac: local ears and mouth, the brain in the cloud gets text only ([details](docs/features/voice-stays-local.md)) |
 | `/pointe:voice-review` | ask a session what happened in the last call |
+| `pointe update` | the standalone install: the newest release, checked against its SHA-256 ([details](docs/install.md#the-standalone-install)) |
 
 OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
 [docs/harnesses.md](docs/harnesses.md).
@@ -101,7 +113,7 @@ reads back what it found and joins on your yes; Add sessions on the page and in 
 and iPhone apps are built from source until there is a download, from the plugin you installed, with Xcode:
 `/pointe:setup apps` in Claude Code, or `pointe apps doctor` (what is missing), `pointe apps mac` (the Mac app, into
 `~/Applications`) and `pointe apps ios` (the iPhone app, signed with your free Apple Account) in a terminal.
-[The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/phone.md#getting-the-app).
+[The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/iphone-app.md#getting-the-app).
 
 ### Which keys, and what they cost
 
@@ -111,15 +123,15 @@ Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for t
 
 Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and
 the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so
-Pointe's voice needs its own API key from console.anthropic.com, or one Gemini key. An API key is billed per use:
-about $1 for a busy hour of talk.
+Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed
+per use: about $1 for a busy hour of talk.
 
 <!-- setups: written by tools/setups.py from setups.py -->
 | Setup (`pointe setup <id>`) | Keys | Measured | A busy hour | Best for |
 |---|---|---|---|---|
 | Free start (`free`) | Gemini | 28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19); replies took 4.0 to 4.5 s | $0 until the free quota ends; about $0.70 to $0.95 with billing on | trying Pointe at no cost |
 | One OpenAI key (`openai`) | OpenAI | 24 of 35 audio checks; whole replies not measured; the brain answers in 2.4 s at the median | about $0.95 | people who already pay for OpenAI |
-| Two keys (`two`) | Soniox + Anthropic | 30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work; whole replies not measured; the brain answers in 1.8 s at the median, the voice starts in 301 ms | about $1.20 | the best ears with two accounts, on laptop speakers |
+| Two keys (`two`) | Soniox + Anthropic | 30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work; whole replies not measured; the brain answers in 1.8 s at the median; in the voice benchmark the voice starts in 301 ms (the voice alone, not a call) | about $1.20 | the best ears with two accounts, on laptop speakers |
 | Fastest and most accurate voice (`full`) | Anthropic + Soniox + ElevenLabs + Gemini | 34 of 35 audio checks, echo guard 4 of 4: the highest whole-setup result; replies in 2.4 s at the median (2.0 to 2.6), the fastest measured | about $1 | daily use |
 | Voice stays on your Mac (`voice-local`) | Anthropic (Gemini optional) | 30 of 35 audio checks, with Anthropic and Gemini keys; replies in 4.1 s at the median | about $0.40 (Anthropic and Gemini) | confidential work where text may leave the Mac but your voice may not |
 | Fully local (`local`) | none | 10 of 19 one-session audio checks, every approval check among them; replies took 5.8 to 11.6 s | $0 | work where nothing may leave the Mac, on a 32 GB Mac |
@@ -147,16 +159,20 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
 - **One voice over many sessions.** Say a session's name to talk to it or switch to it. Background sessions stay quiet
   except for "finished" or "needs approval". Ask "by the way" questions: they are answered from a read-only copy, so the
   live session is never interrupted.
+- **Stop by voice.** "Stop", "cancel that" or "hold on" ends the turn a session is working on, and "stop, and do X
+  instead" ends it and sends X. Codex and OpenCode stop at once; Claude Code offers no supported way to interrupt a
+  running turn from outside, so Pointe ends it at its next tool step and a command that is already running finishes
+  first. A stop is never taken as a yes. [docs/harnesses.md](docs/harnesses.md).
 - **Session notes.** A reading model keeps each session's goal, state, decisions, what was ruled out and what is open,
   and turns each final message into what you need to hear. [How it works](docs/how-it-works.md).
 - **Live transcript.** The page shows the conversation as it happens, the exact text of every pending request with
   Approve and Deny, and lets you type or correct what was heard.
 - **Mac app.** The call in the menu bar and a native window with everything the page and the iPhone app have, on the
   iPhone app's own screens, and a system-wide talk shortcut. Built from source for now, with one command:
-  `bin/pointe apps mac`. [docs/mac-app.md](docs/mac-app.md).
+  `pointe apps mac`. [docs/mac-app.md](docs/mac-app.md).
 - **iPhone app.** The same call and controls on your phone, paired once by QR code over Tailscale, a VPN such as
-  Twingate, or Wi-Fi. Approve needs Face ID. Built from source for now: `bin/pointe apps ios`, with a free Apple
-  Account. [docs/phone.md](docs/phone.md#getting-the-app).
+  Twingate, or Wi-Fi. Approve needs Face ID. Built from source for now: `pointe apps ios`, with a free Apple
+  Account. [docs/iphone-app.md](docs/iphone-app.md#getting-the-app).
 - **Several harnesses and accounts** in one call, each session with its own approvals. [docs/harnesses.md](docs/harnesses.md).
 
 **Features** (each page says how to use it, the rules, what was measured, and the limits)
@@ -307,7 +323,7 @@ wins). A role you do not set takes the first vendor with a key.
 
 The defaults are the first vendor with a key; a chosen setup (`pointe setup <id>`) uses only its own vendors. Each
 setup's measured result, speed, cost and where your words go, with the file and row of every number:
-[docs/setups.md](docs/setups.md). `bin/voice-doctor` tells you which setup you are on.
+[docs/setups.md](docs/setups.md). `pointe doctor` tells you which setup you are on.
 
 **Fully local:** `pointe local` downloads and starts Whisper (ears), Kokoro (mouth) and Gemma 4 26B A4B (brain,
 reader and gate) on this Mac, and reads no key. On an M5 Pro with 64 GB, the brain passed 76.9% of 78 cases (Sonnet
@@ -350,8 +366,10 @@ Not measured for any setup: a real human voice on a real call.
 **Conversational engineering benchmarks.** Five benchmarks of what talking costs a coding agent, led by Humanity's Last
 Keystroke (small coding tasks finished by voice only), with one fixed agent and synthetic speech:
 [docs/benchmarks/](docs/benchmarks/README.md), and on the [site](https://eng.ballerine.com/pointe/benchmarks/). In the
-first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most; the pages
-show by how much and why.
+first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most. Pointe
+fixed the defects it found and its arm was run again: it gained on routing (41 to 49 of 60 turns), identifiers (40 to
+42 of 48) and spoken answers (18 to 23 of 27), stayed below the baseline on most, and lost on HLK (34 to 27 of 72), a
+rerun during which the brain model was often slow. The pages show both runs, by how much and why.
 
 ## Architecture
 
@@ -383,18 +401,22 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 ## Limits
 
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
-- **The Mac app is built from source** too (`bin/pointe apps mac`, [how](docs/mac-app.md#getting-it)), signed for your
+- **The Mac app is built from source** too (`pointe apps mac`, [how](docs/mac-app.md#getting-it)), signed for your
   own Mac and not notarized. Its
   call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon
   on one MacBook Pro; AirPods, device changes, the Touch ID sheet and a spoken sentence heard through it in this
   version were not.
-- **The iPhone app is built from source** for now (`bin/pointe apps ios`, [how](docs/phone.md#getting-the-app)); it is
+- **The iPhone app is built from source** for now (`pointe apps ios`, [how](docs/iphone-app.md#getting-the-app)); it is
   not in the App Store, and not on TestFlight yet. With a free Apple Account a build opens for 7 days. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
   page works in a phone browser.
 - **Synthetic evidence.** The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No
   bench on recorded people has been run, so use the voice lock at Approvals, and treat whisper recognition as limited.
 - **Real hardware.** Drive mode has not been measured on car hands-free audio. Phone alerts depend on the app being alive
   (there is no push server). Conflict alarms have no live run with real OpenCode or Codex sessions.
+- **Approvals by voice cover plain commands.** Pointe reads out only known programs in plain pipelines (`readout.py`).
+  A compound shell command (`pwd; ls | head`, an `if [ ... ]` test, `printf ... > file`), a web fetch or a tool call
+  from an MCP server is not read out: it waits for a tap on the page, the phone or the terminal. With no screen in
+  reach, such a request waits until you have one.
 - **Echo.** On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones. Known echo cases
   that are not solved are listed in [docs/how-it-works.md](docs/how-it-works.md#echo).
 - **Vendor-hosted cloud sessions are out of reach.** Claude Code on the web and Codex Cloud have no public interface to

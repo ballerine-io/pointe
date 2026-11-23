@@ -546,6 +546,39 @@ def test_a_command_that_cannot_be_said_safely_is_not_readable(command):
     assert readable_request("Bash", {"command": command}, "/p/repo") is None
 
 
+@pytest.mark.parametrize("command,want", [
+    (": > data.csv", "run: empty data.csv"),
+    ("> /p/other/notes.txt", "run: empty /p/other/notes.txt"),
+    ("python3 -m unittest -q", "run: python3 unittest"),
+    ("python3 -I -m unittest -v test_ledger 2>&1 | tail -n 20", "run: python3 unittest test_ledger"),
+    ("git checkout -- notes.txt", "run: git checkout notes.txt"),
+    ('python3 -I -c "import ledger; print(ledger.total([1, 2, None]))"', "run: python3 code calling ledger.total"),
+    ('python3 -c "\nfrom ledger import total as f\nprint(f([]))\nprint(f([2.5]))\n"', "run: python3 code calling ledger.total"),
+    ("python3 -I -c \"from ledger import total; assert total('3S') == 3\" && git diff --stat",
+     "run: python3 code calling ledger.total then git diff"),
+])
+def test_a_request_said_from_what_runs_can_be_approved_by_voice(command, want, tmp_path):
+    """From the conversational benchmarks: a tap was the only way for these, and a voice-only user was stuck."""
+    from guards import readable_request
+    (tmp_path / "ledger.py").write_text("def total(x): return 0\n")
+    assert readable_request("Bash", {"command": command.replace("/p/other", "/p/other")}, str(tmp_path)) == want
+
+
+@pytest.mark.parametrize("command", [
+    'python3 -c "import os; os.system(\'id\')"', 'python3 -c "import ledger; print(open(\'/etc/hosts\').read())"',
+    'python3 -c "import ledger; ledger.total(__import__(\'os\'))"', 'python3 -c "from ledger import *"',
+    'python3 -c "import ledger; print(ledger._secret())"', 'python3 -c "import ledger; print(ledger.total(x))"',
+    'python3 -c "import ledger" one two', 'python3 -c "import ledger; print(ledger.total(\'$HOME\'))"',
+    "python3 -c 'import ledger; print(ledger.total(1))' | sh", 'python3 -c "import sys; sys.exit(ledger.total(1))"',
+    'python3 -c "import ledger; x = ledger.total(1)"', 'python3 -c "import notthere; print(notthere.f(1))"',
+    "python3 -c 'import ledger\nimport os'", ": > $HOME/x", ": > a; rm -rf ~", "true > a > b",
+])
+def test_python_code_is_said_only_when_it_calls_the_projects_functions_on_literals(command, tmp_path):
+    from guards import readable_request
+    (tmp_path / "ledger.py").write_text("def total(x): return 0\n")
+    assert readable_request("Bash", {"command": command}, str(tmp_path)) is None
+
+
 def test_other_tools_go_to_the_terminal():
     from guards import readable_request
     assert readable_request("WebFetch", {"url": "https://a.example"}, "/p") is None
