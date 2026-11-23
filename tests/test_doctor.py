@@ -1,5 +1,6 @@
 """bin/voice-doctor's advice: what a setup measured, and the one key that would improve it most."""
 
+import re
 import sys
 from pathlib import Path
 
@@ -38,3 +39,18 @@ def test_the_best_setup_has_nothing_to_add():
 
 def test_every_measured_result_is_filled_in():
     assert not any("@@" in result for result, _ in doctor.MEASURED.values())
+
+
+def test_setup_reads_back_the_doctors_verdict_whatever_the_wrapper_prints_first():
+    """bin/voice-doctor prints "ok uv" and the node line before doctor.py's verdict, so "its first line" is always
+    "ok uv". /pointe:setup names the verdict by the words every verdict starts with."""
+    root = Path(__file__).resolve().parents[1]
+    wrapper = (root / "bin" / "voice-doctor").read_text()
+    assert 'echo "ok       uv"' in wrapper, "the wrapper's own lines come first"
+    text = " ".join((root / "plugin" / "commands" / "setup.md").read_text().split())
+    assert "first line back" not in text
+    prefix = re.search(r'Read back its verdict, the line that starts "([^"]+)"', text).group(1)
+    ready, needs = {"needed": False, "fix": None}, {"needed": True, "fix": "gemini"}
+    for lines in (doctor.verdict(0, ready, None, []), doctor.verdict(0, ready, None, ["gemini"]),
+                  doctor.verdict(0, needs, None, []), doctor.verdict(1, {"needed": True, "fix": None}, None, [])):
+        assert lines[0].startswith(prefix), lines[0]
