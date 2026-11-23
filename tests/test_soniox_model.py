@@ -98,3 +98,14 @@ def test_meeting_ears_ask_for_it(socket):
 def test_no_other_code_the_daemon_runs_names_a_soniox_realtime_model():
     named = {str(p.relative_to(ROOT)) for p in ROOT.glob("*.py") if re.search(r"stt-rt-v\d", p.read_text())}
     assert named == {"vendors.py"}
+
+
+def test_gemini_ears_get_the_session_names_too(monkeypatch):
+    """QA round 2: Free start's ears had no hints, heard "docs" as "Dox" and "shop" as "Sharp", and a session was renamed
+    "sharp-tests". The Live API took these phrases in a live check (gemini-3.5-transcribe-live)."""
+    monkeypatch.setenv("GOOGLE_API_KEY", "made-up")
+    stt = vendors.build_ears("gemini", ["billing", "docs", "shop"])
+    assert stt._build_live_config().input_audio_transcription.adaptation_phrases == ["billing", "docs", "shop"]
+    many = [f"name{i}" for i in range(500)]
+    assert len(vendors.build_ears("gemini", many)._settings.adaptation_phrases) == vendors.GEMINI_PHRASES
+    assert vendors.build_ears("gemini", [])._settings.adaptation_phrases is None

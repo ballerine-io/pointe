@@ -721,8 +721,12 @@ DEFAULT_ELEVENLABS_VOICE = "cjVigY5qzO86Huf0OWal"  # Eric
 DEFAULT_GEMINI_VOICE = "Charon"
 
 
+GEMINI_PHRASES = 100  # adaptation phrases sent to Gemini's ears: the session names and the dictionary come first
+
+
 def build_ears(vendor: str, terms: list[str]):
-    """A speech-to-text service in the pipeline. Only Soniox takes vocabulary hints."""
+    """A speech-to-text service in the pipeline. Soniox and Gemini take the vocabulary hints (session names, the user's
+    dictionary): without them Free start heard "docs" as "Dox" and "shop" as "Sharp" (QA round 2)."""
     from pipecat.transcriptions.language import Language
 
     if vendor != LOCAL and voice_local():
@@ -743,7 +747,8 @@ def build_ears(vendor: str, terms: list[str]):
     if vendor == "gemini":
         from pipecat.services.google.gemini_live.stt import GeminiSTTService
 
-        return GeminiSTTService(api_key=key("gemini"))
+        return GeminiSTTService(api_key=key("gemini"),
+                                settings=GeminiSTTService.Settings(adaptation_phrases=list(terms)[:GEMINI_PHRASES] or None))
     if vendor == "openai":
         refuse_openai_audio("CLAUDE_VOICE_EARS=openai")
         from pipecat.services.openai.stt import OpenAIRealtimeSTTService
