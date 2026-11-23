@@ -800,3 +800,16 @@ def test_the_phone_hint_is_not_shown_on_a_first_open_or_while_the_mac_is_away():
             " await refresh(); await refresh();")
     got = _run([(1280, "", hint), (1280, "wantCall = true; render();", hint), (1280, "wantCall = false; " + down, hint)], status)
     assert got == [True, False, False], got
+
+
+def test_settings_done_with_the_mac_away_says_so_in_words_and_machines_do_not_claim_online():
+    """QA round 5 (phone page, hub down): Done showed a raw 'Failed to fetch', and Machines still said 'online · 1 ms'
+    from the last status the page could read."""
+    status = fixture(sessions=2, machines=2, talk=2, connected=True)
+    down = ("window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));"
+            " await openSettings().catch(() => {}); await refresh(); await saveSettings().catch(() => {});")
+    got = _run([(390, down, "[document.getElementById('seterr').textContent, [...document.querySelectorAll('#mach-list .mmeta')].map(m => m.textContent)]")],
+               status)
+    err, machines = got[0]
+    assert err and "Failed to fetch" not in err and "Mac" in err, err
+    assert machines and not [m for m in machines if "online" in m], machines

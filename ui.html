@@ -1751,6 +1751,9 @@
   let status = null, fails = 0, denied = false, inflight = false, again = false;
   // A meeting's error or notice: shown with the page's other problems, for a while, so the next poll does not wipe it.
   let meetProblem = '', meetProblemUntil = 0;
+  // A request that never reached the Mac throws the browser's own words ("Failed to fetch", "Load failed"): said plainly.
+  const NOT_REACHED = 'The Mac did not answer, so nothing changed. Check that Pointe is running there, then try again.';
+  const plain = e => /^(Failed to fetch|NetworkError|Load failed)/.test((e && e.message) || '') ? NOT_REACHED : (e && e.message) || String(e);
   function meetError(text, secs = 12) { meetProblem = text; meetProblemUntil = Date.now() + secs * 1000; $('problem').textContent = text; }
   // One at a time: overlapping polls can come back out of order, and an older answer would undo a newer one
   // (a turn that appeared, then vanished for seconds). A refresh asked for meanwhile runs right after.
@@ -2308,7 +2311,7 @@
       const button = el('button', cls, label);
       button.onclick = async () => {
         button.disabled = true;
-        try { await nightPost({action, id: p.id}); } catch (e) { $('problem').textContent = e.message; }
+        try { await nightPost({action, id: p.id}); } catch (e) { $('problem').textContent = plain(e); }
         refresh();
       };
       row.append(button);
@@ -2420,11 +2423,11 @@
       await nightPost({action: 'start', items: nightItems(), hours: Number($('night-hours').value), messages: Math.round(Number($('night-messages').value)),
                        notify: $('night-notify').checked});
       await openNightShift();
-    } catch (e) { $('night-err').textContent = e.message; nightSync(); }
+    } catch (e) { $('night-err').textContent = plain(e); nightSync(); }
     refresh();
   }
   async function stopShift() {
-    try { await nightPost({action: 'stop'}); } catch (e) { $('night-lerr').textContent = e.message; $('problem').textContent = e.message; }
+    try { await nightPost({action: 'stop'}); } catch (e) { $('night-lerr').textContent = plain(e); $('problem').textContent = plain(e); }
     await refresh();
     if ($('nightsheet').classList.contains('open')) openNightShift();
   }
@@ -2644,12 +2647,12 @@
     $('dump-note').textContent = ''; $('dump-err').textContent = '';
     const now = Date.now() / 1000;
     if (action === 'start') want('dump', s => { s.brain_dump = {id: 'want', state: 'dumping', since: now, thoughts: [], prompt: null}; s.monologue = {since: now, said: ''}; },
-                                 dumpPost({action}).then(() => (refresh(), true), e => ($('problem').textContent = e.message, false)));
+                                 dumpPost({action}).then(() => (refresh(), true), e => ($('problem').textContent = plain(e), false)));
     else if (action === 'done') want('dump', s => { if (s.brain_dump) s.brain_dump.state = 'structuring'; },
-                                     dumpPost({action}).then(() => (refresh(), true), e => ($('dump-note').textContent = e.message, false)));
+                                     dumpPost({action}).then(() => (refresh(), true), e => ($('dump-note').textContent = plain(e), false)));
     else {
       try { await dumpPost({action}); if (action === 'more') closeSheet('dumpsheet'); refresh(); }
-      catch (e) { $('dump-err').textContent = e.message; }
+      catch (e) { $('dump-err').textContent = plain(e); }
     }
   }
   function dumpDiscard(id) {  // two clicks: the first asks
@@ -2664,7 +2667,7 @@
     const d = dumpOf(status);
     const text = $('dump-text').value.trim();
     if (!d || !d.prompt || text === (d.prompt.text || '') || !text) return;
-    try { await dumpPost({action: 'edit', text}); refresh(); } catch (e) { $('dump-err').textContent = e.message; }
+    try { await dumpPost({action: 'edit', text}); refresh(); } catch (e) { $('dump-err').textContent = plain(e); }
   }
   async function dumpSend() {  // two clicks, no dialog: the first names where it goes, the second sends
     const session = $('dump-session').value;
@@ -2676,7 +2679,7 @@
       await dumpPost(session ? {action: 'send', session} : {action: 'send', to: 'orchestrator'});
       $('dump-ok').textContent = `${DUMP_COPY.sent} ${dumpToName(session)}.`;
       setTimeout(() => { closeSheet('dumpsheet'); $('dump-ok').textContent = ''; }, 1200);
-    } catch (e) { $('dump-err').textContent = e.message; }
+    } catch (e) { $('dump-err').textContent = plain(e); }
     $('dump-send').disabled = false;
     refresh();
   }
@@ -3125,7 +3128,7 @@
     if (!text) return;
     box.value = '';
     if (meetOn) {  // in a meeting the box asks Pointe: a note in listening, spoken to the room in participating
-      try { await meetPost({action: 'ask', text}); } catch (e) { box.value = text; meetError(e.message); }
+      try { await meetPost({action: 'ask', text}); } catch (e) { box.value = text; meetError(plain(e)); }
       refresh(); return;
     }
     let why = null;
@@ -3435,7 +3438,7 @@
   async function meetingConsent() {
     $('meeterr1').textContent = '';
     let v;
-    try { v = await meetPost({action: 'vendors'}); } catch (e) { $('meeterr1').textContent = e.message; return; }
+    try { v = await meetPost({action: 'vendors'}); } catch (e) { $('meeterr1').textContent = plain(e); return; }
     const rows = [['Room audio', v.vendors.room_audio], ['Notes and summary', v.vendors.notes],
                   ['Its voice, when it speaks', v.vendors.speech], ['What you ask it', v.vendors.commands]];
     $('meetvendors').replaceChildren(...rows.flatMap(([what, who]) => [el('dt', '', what), el('dd', '', VENDOR[who] || who || '—')]));
@@ -3454,17 +3457,17 @@
       await meetPost({action: 'start', consent: true, mode, brief: $('meetbrief').value.trim(), sessions, auto_lookups: $('meetlookups').checked});
       closeSheet('meetsheet'); endShown = false; notesVersion = -1; notesById.clear(); shownNotes.clear(); lookingUp.clear(); transcript = [];
       notesClosed = false; meetFilter = 'all'; showFilters();
-    } catch (e) { $('meeterr2').textContent = e.message; $('meetstart').disabled = !$('meetconsent').checked || !meetCanStart; }
+    } catch (e) { $('meeterr2').textContent = plain(e); $('meetstart').disabled = !$('meetconsent').checked || !meetCanStart; }
     refresh();
   }
-  async function meetingMode(mode) { try { await meetPost({action: 'mode', mode}); } catch (e) { meetError(e.message); } refresh(); }
+  async function meetingMode(mode) { try { await meetPost({action: 'mode', mode}); } catch (e) { meetError(plain(e)); } refresh(); }
   // A hand is known by its alert id (hand:<meeting id>:<n>), so a second click never decides the hand raised after it.
   let handShown = null, handBusy = null;
   const handIdOf = (s, hand) => ((s.attention || []).find(a => a.kind === 'hand') || {}).id || `at:${hand.at}`;
   async function handDecision(decision) {
     if (!handShown || handBusy === handShown) return;
     handBusy = handShown; showHandButtons(meetingOf(status));
-    try { await meetPost({action: 'hand', decision}); } catch (e) { handBusy = null; meetError(e.message); }
+    try { await meetPost({action: 'hand', decision}); } catch (e) { handBusy = null; meetError(plain(e)); }
     refresh();
   }
   function showHandButtons(m) {
@@ -3476,7 +3479,7 @@
     try {
       await meetPost({action: 'reconnect'});
       meetError('Reconnecting the room’s audio. Speakers are labelled afresh: say “Pointe, that’s me” again so it knows your voice.', 30);
-    } catch (e) { meetError(e.message); }
+    } catch (e) { meetError(plain(e)); }
     $('meetredial').disabled = false;
     refresh();
   }
@@ -3490,7 +3493,7 @@
       return;
     }
     endSure = 0; $('meetend').textContent = endLabel();
-    try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { meetError(e.message); }
+    try { const result = await meetPost({action: 'end'}); showEnd(result); } catch (e) { meetError(plain(e)); }
     refresh();
   }
   function showEnd(result) {
@@ -3512,7 +3515,7 @@
   async function exportMeeting(withTranscript) {
     $('enderr').textContent = '';
     try { const r = await meetPost({action: 'export', transcript: withTranscript}); $('endok').textContent = `Saved to ${r.exported}`; }
-    catch (e) { $('enderr').textContent = e.message; }
+    catch (e) { $('enderr').textContent = plain(e); }
   }
   // The spoken "send the action items to billing": its read-back waits for a yes (or this sheet's Send), and where they
   // went shows here whichever way they were sent.
@@ -3535,7 +3538,7 @@
     sendSure = 0; $('endsend').disabled = true; $('enderr').textContent = '';
     $('endok').textContent = `Sending the action items to ${short(session)}…`;
     try { await meetPost({action: 'send_actions', session}); $('endok').textContent = `Asked to send the action items to ${short(session)}, as listed here.`; }
-    catch (e) { $('endok').textContent = ''; $('enderr').textContent = e.message; $('endsend').disabled = false; }
+    catch (e) { $('endok').textContent = ''; $('enderr').textContent = plain(e); $('endsend').disabled = false; }
     $('endsend').textContent = 'Send action items';
   }
   async function discardMeeting() {
@@ -3546,7 +3549,7 @@
     }
     discardSure = 0; $('enddiscard').textContent = 'Discard';
     try { await meetPost({action: 'discard'}); }
-    catch (e) { if (!/gone/.test(e.message)) { $('enderr').textContent = e.message; return; } }  // gone: nothing left to keep
+    catch (e) { if (!/gone/.test(e.message)) { $('enderr').textContent = plain(e); return; } }  // gone: nothing left to keep
     notesById.clear(); shownNotes.clear(); notesVersion = -1; renderNotes();
     closeEnd();
   }
@@ -3607,7 +3610,7 @@
         if (lookingUp.has(n.id)) acts.append(el('span', 'busy', `Looking it up in ${where}…`));
         else add(`Look it up in ${where}`, async () => {
           lookingUp.add(n.id); renderNotes();
-          try { await meetPost({action: 'lookup', note_id: n.id}); } catch (e) { lookingUp.delete(n.id); meetError(e.message); renderNotes(); } }, true);
+          try { await meetPost({action: 'lookup', note_id: n.id}); } catch (e) { lookingUp.delete(n.id); meetError(plain(e)); renderNotes(); } }, true);
       }
       if (n.kind === 'speaker' && m && m.on) { add('Use this name', () => noteState(n.id, {accept: true}), true); add('Ignore', () => noteState(n.id, {state: 'dismissed'})); }
       else if (n.kind === 'action') add('Done', () => noteState(n.id, {state: 'done'}));
@@ -3634,7 +3637,7 @@
         x.append(el('span', 'who', names.get(t.speaker) || t.who || `Speaker ${t.speaker}`), t.text); li.append(x);
         if (m && m.on && names.get(t.speaker) !== 'You') {
           const acts = el('div', 'acts'); const b = el('button', '', 'That was me');
-          b.onclick = async () => { try { await meetPost({action: 'owner', turn_id: t.id}); } catch (e) { meetError(e.message); } transcriptAt = 0; refresh(); };
+          b.onclick = async () => { try { await meetPost({action: 'owner', turn_id: t.id}); } catch (e) { meetError(plain(e)); } transcriptAt = 0; refresh(); };
           acts.append(b); li.append(acts);
         }
         return li;
@@ -4101,13 +4104,14 @@
     // made says null too, so a code made here is kept for a moment
     else if (st === null && !(invite && Date.now() - (invite.made || 0) < 3000)) invite = null;
     const asking = revoking && Date.now() < revoking.until ? revoking.name : '';
-    const sig = JSON.stringify([s.machines, asking, canInvite]);
+    const stale = fails > 0;  // the last status this page read: nobody's state is known now
+    const sig = JSON.stringify([s.machines, asking, canInvite, stale]);
     if (sig !== machinesShown) {
       machinesShown = sig;
       $('mach-list').replaceChildren(...[...s.machines].sort((a, b) => b.here - a.here).map(m => {
         const li = el('li'), away = m.online === false;
         li.append(el('span', 'mn', m.here ? `${m.name} (this Mac)` : m.name));
-        const facts = [OS[m.os] || m.os, away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
+        const facts = [OS[m.os] || m.os, stale ? 'not known: the Mac is not answering' : away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
         if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
@@ -4504,15 +4508,15 @@
   async function briefMe() {
     $('brf-err').textContent = '';
     try { await brfPost('/voice/briefings', {action: 'start', since: $('brf-since').value, length: $('brf-length').value}); refresh(); }
-    catch (e) { $('brf-err').textContent = e.message; }
+    catch (e) { $('brf-err').textContent = plain(e); }
   }
   async function briefingAction(action) {
     $('brf-err').textContent = '';
-    try { await brfPost('/voice/briefings', {action}); refresh(); } catch (e) { $('brf-err').textContent = e.message; }
+    try { await brfPost('/voice/briefings', {action}); refresh(); } catch (e) { $('brf-err').textContent = plain(e); }
   }
   async function hearBriefing(id) {
     if (!(status && status.connected)) { brfHearWhenLive = true; startCall(); return; }  // no call anywhere: this tab dials
-    try { await brfPost('/voice/briefings', {action: 'start'}); } catch (e) { meetError(e.message); }
+    try { await brfPost('/voice/briefings', {action: 'start'}); } catch (e) { meetError(plain(e)); }
     refresh();
   }
   async function dismissBriefing(id) { await brfPost('/voice/attention', {id}).catch(() => {}); refresh(); }
@@ -4570,7 +4574,7 @@
     try {
       await brfPost('/voice/briefings/schedule', {time: on ? $('brf-time').value : '', days, length: $('brf-deflen').value,
                                                   speak_on_connect: $('brf-connect').checked, skip_empty: $('brf-skipempty').checked});
-    } catch (e) { $('seterr').textContent = e.message; return false; }
+    } catch (e) { $('seterr').textContent = plain(e); return false; }
     return true;
   }
 
@@ -4716,7 +4720,7 @@
       const r = await fetch('/voice/challenge', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({action})});
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.detail || `failed (${r.status})`);
-    } catch (e) { $('chl-err').textContent = e.message; meetError(e.message, 8); }
+    } catch (e) { $('chl-err').textContent = plain(e); meetError(plain(e), 8); }
     refresh();
   }
   function challengeButton() { challengeAction(status && status.challenge && status.challenge.on ? 'end' : 'start'); }
