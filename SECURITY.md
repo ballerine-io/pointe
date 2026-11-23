@@ -356,7 +356,9 @@ A request from a web page, HTTP or WebSocket, must carry exactly this listener's
 name and port. Cookies ignore ports, so a page on another port of the same name (a dev server, `tailscale serve`) would
 otherwise get the pairing cookie and open a call.
 Limits: the pairing link is a lasting secret, despite the word "link", so treat it as a password; `pointe pair rotate`
-replaces it. `pointe pair off` (and `bin/voice-remote off`) leaves the connector and its tokens in place. And `bin/voice-connector` pulls
+replaces it. The page it opens keeps a key derived from it in its address (`/voice?k=…`), because "Add to Home Screen"
+saves the address and a Home Screen app does not share Safari's cookies: that key reaches the browser's history, synced
+tabs and screenshots, and opens the page to anyone who can also reach the listener, until `pointe pair rotate`. `pointe pair off` (and `bin/voice-remote off`) leaves the connector and its tokens in place. And `bin/voice-connector` pulls
 `twingate/connector:1`, a moving tag. Call audio over this path is one TCP connection.
 
 ### The iPhone app
