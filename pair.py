@@ -27,7 +27,6 @@ from urllib.parse import urlencode
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
 import nodelink  # noqa: E402
-from phone import phone_key  # noqa: E402
 from remote import TLS_PORT  # noqa: E402
 
 STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
@@ -138,8 +137,15 @@ def setup(host: str, listen: str) -> None:
         os.umask(old)
 
 
+UNUSED = "phone_key.unused"  # a phone_key made here for a QR no phone has used yet: not listed as a paired phone
+
+
 def pairing_link() -> str:
+    from phone import phone_key  # not at the top: phone.py imports Pipecat, which logs a banner
+
     config = json.loads((STATE / "remote.json").read_text())
+    if not (STATE / "phone_key").exists():
+        (STATE / UNUSED).touch(mode=0o600)
     return "pointe://pair?" + urlencode({"v": PAIRING_VERSION, "host": config["host"], "port": TLS_PORT,
                                          "fp": fingerprint(), "key": phone_key(STATE)})
 
@@ -299,7 +305,10 @@ def main(argv: list[str]) -> None:
     elif argv[0] == "wifi":
         host, listen = _wifi()
     elif argv[0] == "host" and len(argv) > 1:
-        host, listen = argv[1].lower(), "127.0.0.1"
+        host, listen = argv[1].strip().lower(), "127.0.0.1"
+        if not _HOST_NAME.fullmatch(host):  # checked before anything changes: a new certificate unpairs every phone and node
+            raise SystemExit(f"{argv[1]!r} is not a host name: letters, digits, hyphens and dots only, such as "
+                             "mac.example.internal. Nothing was changed.")
     else:
         raise SystemExit(__doc__.strip())
     setup(host, listen)
@@ -308,4 +317,7 @@ def main(argv: list[str]) -> None:
 
 
 if __name__ == "__main__":
+    from loguru import logger
+
+    logger.remove()  # Pipecat logs a banner when imported (pointe pair show): this is a command for people, not a log
     main(sys.argv[1:])

@@ -566,3 +566,25 @@ def test_the_daemon_ends_only_the_unpaired_phones_call(d, monkeypatch):
     asyncio.run(d._end_phone_call({"aaa"}))
     asyncio.run(d._end_phone_call(None))
     assert closed == [4401, 4401]
+
+
+def test_a_key_made_for_the_terminal_qr_is_not_a_paired_phone_until_a_phone_uses_it(world):
+    """`pointe pair wifi` shows a QR with the shared key; until a phone scans it, Settings lists no phone."""
+    link = world.pair.pairing_link()
+    assert world.phones.status() == {"paired": []}
+    key = parse_qs(urlparse(link).query)["key"][0]
+    assert status_with(world, key) == 200
+    assert [p["id"] for p in world.phones.status()["paired"]] == ["legacy"]
+    assert page(world).post("/voice/phone/unpair", json={"all": True}).json() == {"ok": True}
+    world.pair.pairing_link()  # `pointe pair show` again after Unpair all: still no phantom
+    assert world.phones.status() == {"paired": []}
+
+
+def test_pointe_pair_host_refuses_a_bad_name_before_changing_anything(world, capsys):
+    before = {p.name: p.read_bytes() for p in (world.state / "tls").iterdir()}
+    remote = (world.state / "remote.json").read_text()
+    with pytest.raises(SystemExit) as refused:
+        world.pair.main(["host", "Bad Name!"])
+    assert "not a host name" in str(refused.value) and "Nothing was changed" in str(refused.value)
+    assert (world.state / "remote.json").read_text() == remote
+    assert {p.name: p.read_bytes() for p in (world.state / "tls").iterdir()} == before

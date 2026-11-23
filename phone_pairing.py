@@ -88,6 +88,8 @@ class Phones:
         legacy = self._legacy_key()
         if legacy is not None and hmac.compare_digest(offered.encode(), legacy.encode()) and found is None:
             found = LEGACY
+        if found == LEGACY:
+            (self.state_dir / pair.UNUSED).unlink(missing_ok=True)  # a phone holds it: listed from now on
         if found:
             now = self.seen[found] = self._clock()
             if now - self._written >= SEEN_WRITE_SECS:
@@ -117,6 +119,7 @@ class Phones:
             if self._legacy_key() is None:
                 return False
             (self.state_dir / "phone_key").unlink(missing_ok=True)  # `pointe pair show` makes a new one when asked
+            (self.state_dir / pair.UNUSED).unlink(missing_ok=True)
             self.legacy_name = None
         elif not any(p["id"] == phone_id for p in self.paired):
             return False
@@ -129,6 +132,7 @@ class Phones:
         """Every phone app, and every phone browser paired by `pointe pair link` (its cookie and Home Screen key are the
         remote_token, which gets a new value). True when that token changed: the listener must load it."""
         (self.state_dir / "phone_key").unlink(missing_ok=True)
+        (self.state_dir / pair.UNUSED).unlink(missing_ok=True)
         self.paired, self.legacy_name, self.seen = [], None, {}
         self._save()
         token = self.state_dir / "remote_token"
@@ -151,7 +155,8 @@ class Phones:
                     "online": bool(seen and now - seen < ONLINE_SECS)}
 
         out = [entry(p["id"], p.get("name") or "iPhone", p.get("paired_at"), False) for p in self.paired]
-        if self._legacy_key() is not None:
+        # A key `pointe pair` made for a QR that no phone has used is not a paired phone; one from before per-phone keys is.
+        if self._legacy_key() is not None and (LEGACY in self.seen or not (self.state_dir / pair.UNUSED).exists()):
             out.append(entry(LEGACY, self.legacy_name or "Paired phone", None, True))
         return {"paired": out}
 

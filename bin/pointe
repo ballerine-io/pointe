@@ -39,6 +39,7 @@ case "$cmd" in
   apps)    exec "$BIN/pointe-apps" "$@" ;;       # the iPhone and Mac apps, built from source: doctor, mac, ios
   join)    "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I "$BIN/../harnesses/join.py" "$@" ;;  # another harness: pointe join opencode
   leave)   "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I -c "import sys; sys.path.insert(0, \"$BIN/../harnesses\"); import join; join.main(sys.argv[1:], leave=True)" "$@" ;;
+  version|--version|-V) echo "Pointe $(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$BIN/../.claude-plugin/plugin.json")" ;;
   help|-h|--help) cat <<'HELP'
 Pointe: one voice over your coding agents.
 
@@ -50,7 +51,7 @@ Sessions     pointe join <agent>    add an OpenCode or Codex session (Claude Cod
              pointe open            open the page
              pointe restart         start Pointe again, on new keys or a new setup
              pointe stop            end the call and stop Pointe
-More         pair · apps · local · hub · node · talk · log · context · status · uninstall
+More         pair · apps · local · hub · node · talk · log · context · status · version · uninstall
 In Claude Code: /pointe:setup, /pointe:voice, /pointe:stop
 HELP
            exit 0 ;;
