@@ -697,6 +697,8 @@
               flex-direction: column; gap: 16px; padding: 20px; background: var(--surface); border-left: 1px solid var(--line);
               box-shadow: -24px 0 56px -24px var(--scrim); overflow-y: auto; padding-top: calc(20px + env(safe-area-inset-top)); }
   #ctxpanel.open { display: flex; }
+  #ctxscrim { display: none; position: fixed; inset: 0; z-index: 29; background: var(--scrim); }
+  body.ctxopen #ctxscrim { display: block; }
   #ctxpanel h2 { margin: 0; font-size: 16px; display: flex; align-items: center; }
   #ctxpanel h2 button, #ctxmodal h2 button { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--raised);
                                              color: var(--muted); font: 400 20px/1 var(--font); cursor: pointer; display: grid; place-items: center; }
@@ -1130,6 +1132,7 @@
     <button id="ctx" onclick="openCtx()" title="What the voice model holds"></button>
   </footer>
 </aside>
+<div id="ctxscrim" onclick="closeCtx()"></div>
 <div id="ctxpanel" role="dialog" aria-modal="true" aria-label="What the voice holds">
   <h2>What the voice holds <button onclick="closeCtx()" aria-label="Close">×</button></h2>
   <div id="ctx-total"></div>
@@ -3275,8 +3278,8 @@
   function openMsg(kind, text) { $('cm-kind').textContent = kind; $('cm-text').textContent = text; ctxOpen('ctxmodal'); }
   function closeMsg() { ctxClose('ctxmodal'); }
   function ctxFilter(f) { ctxShow = f; ctxShown = ''; $('cf-talk').className = f === 'talk' ? 'on' : ''; $('cf-all').className = f === 'all' ? 'on' : ''; loadCtx(); }
-  function openCtx() { ctxShown = ''; ctxOpen('ctxpanel'); loadCtx(); clearInterval(ctxTimer); ctxTimer = setInterval(loadCtx, 2000); }
-  function closeCtx() { ctxClose('ctxpanel'); clearInterval(ctxTimer); }
+  function openCtx() { ctxShown = ''; ctxOpen('ctxpanel'); document.body.classList.add('ctxopen'); loadCtx(); clearInterval(ctxTimer); ctxTimer = setInterval(loadCtx, 2000); }
+  function closeCtx() { ctxClose('ctxpanel'); document.body.classList.remove('ctxopen'); clearInterval(ctxTimer); }
 
   // ---------- conflict alarm ----------
   // Two sessions that disagree. The card shows both claims; Ask puts one side's question as your own typed words (the
