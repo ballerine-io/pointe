@@ -81,7 +81,8 @@ SETUPS = (
           measured=(("30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work",
                      "bench/results/combinations.md, \"Anthropic, Soniox\""),
                     ("ears 95.9% of intents, the highest measured", "docs/benchmarks.md, ears table, Soniox v6")),
-          speed=(("whole replies not measured; the brain answers in 1.8 s at the median, the voice starts in 301 ms",
+          speed=(("whole replies not measured; the brain answers in 1.8 s at the median; in the voice benchmark the voice "
+                  "starts in 301 ms (the voice alone, not a call)",
                   "docs/benchmarks.md, \"Brain and reader\" and the mouth table"),),
           cost="about $1.20", privacy="Speech goes to Soniox; session text to Anthropic.",
           pick_for="the best ears with two accounts, on laptop speakers",
@@ -96,7 +97,8 @@ SETUPS = (
                      "docs/benchmarks.md, \"Brain and reader\"")),
           speed=(("replies in 2.4 s at the median (2.0 to 2.6), the fastest measured",
                   "docs/features/voice-stays-local.md, \"Measured\""),
-                 ("the voice starts in 213 ms", "docs/benchmarks.md, mouth table")),
+                 ("in the voice benchmark the voice starts in 213 ms (the voice alone, not a call)",
+                  "docs/benchmarks.md, mouth table")),
           cost="about $1",
           privacy="Speech goes to Soniox; session text to Anthropic and Gemini (paid tier); the replies' text to "
                   "ElevenLabs.",

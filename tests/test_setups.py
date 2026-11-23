@@ -138,6 +138,15 @@ def test_every_number_is_in_the_file_it_cites(s):
         assert number in costs, f"{s.id}: ${number} is not in docs/benchmarks.md"
 
 
+def test_a_voice_start_time_from_the_voice_benchmark_says_it_is_the_voice_alone():
+    """tts_bench times the voice by itself: 213 ms. In a call the voice's first audio waits on the network and the
+    machine, and came later, so the table may not read as if a caller hears it that soon."""
+    timed = [(s.id, claim) for s in setups.SETUPS for claim, source in s.speed if "mouth table" in source]
+    assert timed
+    for setup_id, claim in timed:
+        assert "voice benchmark" in claim and "the voice alone, not a call" in claim, f"{setup_id}: {claim}"
+
+
 def test_no_setup_is_called_best_and_the_brain_tie_is_said():
     for s in setups.SETUPS:
         assert "best" not in s.name.lower()
