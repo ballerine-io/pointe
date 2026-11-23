@@ -382,6 +382,16 @@ def test_every_url_in_the_source_names_a_host_in_the_egress_allowlist():
     assert not strangers, "hosts not in docs/security/egress-allowlist.txt (add with a reason, or `link` if only shown):\n" + "\n".join(strangers)
 
 
+def test_every_host_a_dependency_was_seen_to_contact_is_in_the_egress_allowlist():
+    """The URL grep sees only literals in our source; hf-xet is told its hosts by the server at runtime."""
+    contacted, _ = egress()
+    seen = [line.split()[0] for line in (ROOT / "tests" / "fixtures" / "dependency_hosts.txt").read_text().splitlines()
+            if line.strip() and not line.startswith("#")]
+    assert seen, "tests/fixtures/dependency_hosts.txt lists no host"
+    missing = [h for h in seen if not allowed(h, contacted)]
+    assert not missing, f"contacted at runtime but not in docs/security/egress-allowlist.txt: {missing}"
+
+
 def test_the_egress_table_in_the_doc_and_the_allowlist_agree():
     doc = (ROOT / "docs" / "security" / "supply-chain.md").read_text()
     section = doc.split("## Outbound hosts", 1)[1].split("\n## ", 1)[0]

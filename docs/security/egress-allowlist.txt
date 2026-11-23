@@ -1,8 +1,10 @@
 # Every host the software can contact, one per line: host, whitespace, why. `*.` at the start matches any subdomain.
 # A line that starts with `link` names a host that appears in the source only as text shown to a person (where to get a
 # key, an XML namespace) and is never contacted. tests/test_supply_chain.py fails when a URL literal in the source names
-# a host that is not here, so a dependency bump or a pull request cannot add an egress silently. The human-readable
-# table, with when each is reached, is docs/security/supply-chain.md.
+# a host that is not here, so a dependency bump or a pull request cannot add an egress silently. Some hosts are named by
+# a server at runtime, not by any literal (hf-xet is told its CAS server and CDN by Hugging Face): those were recorded
+# from the dependency's own log in tests/fixtures/dependency_hosts.txt, and the same test checks each is here. The
+# human-readable table, with when each is reached, is docs/security/supply-chain.md.
 
 # loopback: the daemon, the node, the local text-model server, Ollama
 127.0.0.1                  the daemon and the node (bin/*, channel, hooks, the page)
@@ -26,6 +28,8 @@ cdn-lfs.huggingface.co     model files (huggingface_hub)
 cdn-lfs-us-1.huggingface.co   model files (huggingface_hub)
 cas-bridge.xethub.hf.co    model files (hf-xet)
 transfer.xethub.hf.co      model files (hf-xet)
+cas-server.xethub.hf.co    model files: the xet CAS server the Hub names (hf-xet)
+*.cdn.hf.co                model files: the regional CDN the CAS server names, us.aws.cdn.hf.co from here (hf-xet)
 github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); links in the page and the site
 objects.githubusercontent.com        where github.com release downloads redirect
 release-assets.githubusercontent.com where github.com release downloads redirect

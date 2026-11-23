@@ -42,7 +42,8 @@ file adds what an agent editing the repository must do.
   URL fetched and used by name alone. Add the host to `docs/security/egress-allowlist.txt`, the row to `THIRD_PARTY.md`
   and the table in `docs/security/supply-chain.md`.
 - **No new outbound host** without a line and a reason in `docs/security/egress-allowlist.txt`; a host only shown to a
-  person is a `link` line. The test greps every URL literal in the source.
+  person is a `link` line. The test greps every URL literal in the source, and checks the hosts a dependency was seen
+  to contact at runtime (`tests/fixtures/dependency_hosts.txt`): add one there when a new dependency's log shows it.
 - **GitHub Actions by 40-hex commit**, with a `# vX.Y.Z` comment, `permissions: contents: read`, and only the actions
   already in use unless the owner agrees. The SHA is the commit that tag points to, never the tag object's own: after
   changing a `uses:` line run `python3 tools/check_action_pins.py --write` and commit `tests/fixtures/action_pins.json`. uv's version is pinned in `bin/install-uv`, CI and the e2e images together;
