@@ -15,7 +15,14 @@ case "$cmd" in
   log)     exec "$BIN/voice-log" "$@" ;;
   context) exec "$BIN/voice-context" "$@" ;;
   stop)    exec "$BIN/voice-daemon" stop ;;
-  restart) "$BIN/voice-daemon" stop >/dev/null; exec "$BIN/voice-daemon" ensure ;;  # after a key or setup change
+  restart) # after a key or setup change. A running Pointe is stopped only once the new setup can start: a missing or
+           # refused key keeps the call up, and the words say what to fix.
+           if "$BIN/voice-daemon" status | grep -q '^running'; then
+             "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." || exit 1
+             uv run --no-sync --project "$BIN/.." python "$BIN/../doctor.py" --preflight >&2 || {
+               echo "Not restarted: Pointe keeps running as it was. Fix the above, then pointe restart again." >&2; exit 1; }
+           fi
+           "$BIN/voice-daemon" stop >/dev/null; exec "$BIN/voice-daemon" ensure ;;
   uninstall) exec python3 -I "$BIN/../uninstall.py" "$@" ;;  # standard library only: runs whatever state uv is in
   pair)    cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pair.py "$@" ;;
   node)    ROOT="$BIN/.."; STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"  # this machine as a node: no Pipecat, no keys

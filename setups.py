@@ -220,8 +220,24 @@ def main(argv: list[str]) -> int:
           f"{' and the models on this Mac' if s.local else ''}, and no other vendor.")
     for vendor in s.keys:
         print(f"  Its {NAMES[vendor]} key: pointe key {vendor} opens the key page and a Mac window, and checks the key.")
-    print("If Pointe is running, restart it to use the setup: pointe restart.")
+    missing = _missing_keys(s)
+    if missing:
+        print(f"Not saved yet: the {' and the '.join(NAMES[v] for v in missing)} key. Save "
+              f"{'it' if len(missing) == 1 else 'them'} first ({'; '.join(f'pointe key {v}' for v in missing)}): until then "
+              "Pointe cannot start on this setup, and pointe restart keeps it running as it is.")
+    else:
+        print("If Pointe is running, restart it to use the setup: pointe restart.")
     return 0
+
+
+def _missing_keys(s: Setup) -> list[str]:
+    """The setup's keys that are neither in the environment nor in the Keychain. Empty when this cannot be told (run
+    without the project's packages, as tools/setups.py does)."""
+    try:
+        import vendors
+    except ImportError:
+        return []
+    return [v for v in s.keys if not vendors.key(v)]
 
 
 if __name__ == "__main__":
