@@ -112,3 +112,34 @@ def test_names_and_the_qr_code_reach_the_page_as_text_and_shapes_never_as_markup
     assert got["ctx"] == "—no call connected" and got["ctxTags"] == ["small"]
     assert got["qr"] == ["svg:http://www.w3.org/2000/svg:2"]  # segno's drawing, as SVG
     assert got["refused"] == [0, 0, 0, 0, 0] and got["pwned"] == 0
+
+
+CALL = """(async () => {
+  await startCall();
+  for (let i = 0; i < 50 && call.state === 'connecting'; i++) await new Promise(r => setTimeout(r, 100));
+  try { await silence.play(); } catch (e) {}
+  await new Promise(r => setTimeout(r, 500));
+  return {state: call.state, worklet: !!call.player, csp: window.__csp.slice()};
+})()"""
+
+
+def test_the_call_runs_under_the_policy():
+    """The microphone's AudioWorklet (from blob:), the call's WebSocket and the media-keys clip (a blob: wav): the
+    policy refuses none of them, so a stricter directive cannot silently break the call."""
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=1)
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.cdp("Page.addScriptToEvaluateOnNewDocument", {"source": WATCH})
+                await page.cdp("Page.reload")
+                await asyncio.sleep(0.5)
+                await page.wait_for_page()
+                return await page.eval(CALL)
+        finally:
+            await stub.stop()
+
+    got = asyncio.run(run())
+    assert got["csp"] == [] and got["worklet"], got
+    assert got["state"] not in ("off", "connecting"), got

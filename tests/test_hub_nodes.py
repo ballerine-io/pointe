@@ -956,14 +956,14 @@ def test_the_invite_expires_after_ten_minutes_of_the_hubs_monotonic_clock(world)
     code = hub.invites.make()
     clock.now -= 3600  # the wall clock is not what counts
     mono.now += hub_nodes.INVITE_SECS + 1
-    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "10.0.0.2") == (403, "invite expired")
+    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "10.0.0.2") == (403, hub_nodes.NO_SUCH_INVITE)
 
 
 def test_cancel_closes_the_route(world):
     hub = world[0]
     code = hub.invites.make()
     hub.invites.cancel()
-    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "10.0.0.2") == (403, "no invite outstanding")
+    assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "10.0.0.2") == (403, hub_nodes.NO_SUCH_INVITE)
 
 
 @pytest.mark.parametrize("name,why", [
@@ -1016,7 +1016,7 @@ def test_a_used_code_cannot_pair_twice(world):
     hub = world[0]
     code = hub.invites.make()
     assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "10.0.0.2")[0] == 200
-    assert hub.pair({"code": code, "name": "other", "os": "linux"}, "10.0.0.3") == (403, "no invite outstanding")
+    assert hub.pair({"code": code, "name": "other", "os": "linux"}, "10.0.0.3") == (403, hub_nodes.NO_SUCH_INVITE)
 
 
 def test_a_newly_joined_sessions_backlog_goes_into_the_record_but_is_never_fed_as_news(world, monkeypatch):

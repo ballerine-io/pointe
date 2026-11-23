@@ -126,3 +126,38 @@ def test_the_listener_takes_no_websocket_message_larger_than_a_node_frame(app, t
     monkeypatch.setattr(uvicorn.Server, "serve", serve)
     asyncio.run(Remote(tmp_path).serve(app))
     assert configs and all(c.get("ws_max_size") == nodelink.MAX_FRAME_BYTES for c in configs)
+
+
+def _rotated_remote(tmp_path):
+    (tmp_path / "tls").mkdir()
+    (tmp_path / "tls" / "cert.pem").write_text("x")
+    (tmp_path / "tls" / "key.pem").write_text("x")
+    (tmp_path / "remote.json").write_text(json.dumps({"host": HOST}))
+    (tmp_path / "remote_token").write_text("old-token")
+    remote = Remote(tmp_path)
+    app = FastAPI()
+    app.middleware("http")(remote.guard)
+    app.get("/voice/status")(lambda: {"ok": True})
+    client = remote_client(app)
+    client.cookies.set(COOKIE, "old-token")
+    assert client.get("/voice/status").status_code == 200
+    (tmp_path / "remote_token").write_text("new-token-after-rotate")  # `pointe pair rotate` in a terminal
+    return remote, client
+
+
+def test_after_rotate_the_old_browser_cookie_is_refused_at_once(tmp_path):
+    """Not at the next liveness round: the owner rotated because the cookie may have leaked."""
+    remote, client = _rotated_remote(tmp_path)
+    assert client.get("/voice/status").status_code == 403
+    assert client.get("/voice/status", cookies={COOKIE: "new-token-after-rotate"}).status_code == 200
+    assert remote.changed()  # the liveness round still sees the change, and restarts the listener on the new files
+
+
+def test_after_rotate_the_old_cookie_opens_no_websocket(tmp_path):
+    from types import SimpleNamespace
+
+    remote, _ = _rotated_remote(tmp_path)
+    socket_with = lambda token: SimpleNamespace(headers={}, cookies={COOKIE: token})  # noqa: E731
+    assert not remote.websocket_allowed(socket_with("old-token"))
+    assert remote.websocket_allowed(socket_with("new-token-after-rotate"))
+    assert remote.changed()

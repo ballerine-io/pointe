@@ -1,11 +1,13 @@
 """Decisions made in code, never by the voice model: consent, and who may talk to the daemon."""
 
 import base64
+import errno
 import functools
 import hashlib
 import hmac
 import json
 import re
+import socket
 import unicodedata
 
 import local_proof
@@ -773,9 +775,41 @@ def is_local_request(request: Request) -> bool:
     return _local_headers(request.headers)
 
 
+def loopback_sockets(port: int) -> list[socket.socket]:
+    """127.0.0.1 and ::1 on `port`, both bound here, for the daemon's (and the node's) loopback server. A browser tries
+    ::1 first for localhost and <hash>.localhost, and another account can bind [::1]:port beside a listener on
+    127.0.0.1 alone: it would be handed the page key. So ::1 in use raises (EADDRINUSE) and the start ends. A machine
+    with no IPv6 loopback has no ::1 for anyone to take: there only 127.0.0.1 is held."""
+    four = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    four.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # as uvicorn binds: a restart is not held up by TIME_WAIT
+    try:
+        four.bind(("127.0.0.1", port))
+    except OSError:
+        four.close()
+        raise
+    try:
+        six = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    except OSError as e:
+        if e.errno == errno.EAFNOSUPPORT:
+            return [four]
+        four.close()
+        raise
+    try:
+        six.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+        six.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # never SO_REUSEPORT: that would share the port
+        six.bind(("::1", port))
+    except OSError as e:
+        six.close()
+        if e.errno in (errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT):
+            return [four]
+        four.close()
+        raise
+    return [four, six]
+
+
 LOCAL_COOKIE = "pointe_local"
 _OPEN_PATHS = {"/voice/health"}
-_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/new-session", "/voice/night-shift", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"}  # all the phone app needs; nothing else takes its key
+_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/new-session", "/voice/add-sessions", "/voice/night-shift", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke"}  # all the phone app needs; nothing else takes its key
 # A node's own routes, and the phone app's pairing: each authenticates in its handler (an HMAC over the hub's nonce; a
 # one-time code), so no page, phone or daemon secret is asked for. On loopback they still need local headers, and a page
 # never reaches them.
@@ -911,13 +945,18 @@ class _InlineScripts(HTMLParser):
 def page_csp(html: str) -> str:
     """The page's script policy: only the inline scripts and handlers it was served with run ('unsafe-hashes' lets a
     hash allow an on* attribute). A script or handler injected later matches no hash. blob: is the microphone's
-    AudioWorklet, which the page builds from its own text; no plugin, no <base>."""
+    AudioWorklet, which the page builds from its own text; no plugin, no <base>. The rest keeps injected markup from
+    sending data out: fetches and the call's WebSocket go only to this origin, images are its own or data: (the
+    icons), media its own or blob: (the media-keys clip), forms post nowhere else. Inline styles stay allowed: the page
+    sets them, and a style cannot run script."""
     parser = _InlineScripts()
     parser.feed(html)
     parser.close()
     hashes = sorted({"'sha256-" + base64.b64encode(hashlib.sha256(t.encode()).digest()).decode() + "'"
                      for t in parser.found})
-    return f"script-src {' '.join(hashes)} 'unsafe-hashes' blob:; object-src 'none'; base-uri 'none'"
+    return (f"default-src 'self'; script-src {' '.join(hashes)} 'unsafe-hashes' blob:; connect-src 'self'; "
+            "img-src 'self' data:; media-src 'self' blob:; font-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "form-action 'self'; object-src 'none'; base-uri 'none'")
 
 
 class JsonPosts:

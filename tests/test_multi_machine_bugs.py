@@ -442,9 +442,10 @@ def test_an_invite_is_cancelled_after_too_many_wrong_codes_and_says_from_where(w
         assert hub.pair(wrong, address)[0] == 403
         assert hub.invites.status()["wrong_codes"] == i + 1
     status, why = hub.pair(wrong, addresses[-1])
-    assert status == 403 and "cancelled" in why
+    assert status == 403 and why == hub_nodes.NO_SUCH_INVITE  # the guesser is told nothing; the owner is, below
     assert hub.invites.status() is None
     assert hub.pair({"code": code, "name": "devbox", "os": "linux"}, "192.168.1.99")[0] == 403  # the code is gone
+    assert hub.invites.ended.startswith("the invite was cancelled after")
     assert all(a in hub.invites.ended for a in set(addresses)) and "LAN" in hub.invites.ended
 
 

@@ -203,15 +203,13 @@ class PhoneLink:
     def redeem(self, body, address: str) -> tuple[int, dict | str]:
         """POST /voice/phone/pair: (status, the phone key and this Mac's name, or why not)."""
         invites = self.invites
-        if invites.code is None:
-            return 403, "no invite outstanding"
         if not invites.outstanding:
-            return 403, "invite expired"
+            return 403, hub_nodes.NO_SUCH_INVITE
         body = body if isinstance(body, dict) else {}
         refused = invites.check(body.get("code", ""), address)  # the rate limit, then the code (hub_nodes.Invites)
         if refused:
             logger.warning(f"phone pairing from {address}: {refused[1]}")
-            return refused
+            return refused if refused[0] == 429 else (403, hub_nodes.NO_SUCH_INVITE)
         invites.cancel()
         name = _clean(body.get("device"), MAX_DEVICE_CHARS) or "iPhone"
         key = self.phones.mint(name, _clean(body.get("id"), 80), address)
@@ -257,7 +255,12 @@ def install(app, link: PhoneLink, page_key: str, listener,
 
     @app.post("/voice/phone/pair")
     async def phone_pair(request: Request):
-        status, answer = link.redeem(await body_of(request), request.client.host if request.client else "")
+        if not link.invites.outstanding:  # answered before a byte of the body is read
+            return PlainTextResponse(link.redeem({}, "")[1], status_code=403)
+        body = await hub_nodes.pairing_body(request)
+        if body is None:
+            return PlainTextResponse("too large", status_code=413)
+        status, answer = link.redeem(body, request.client.host if request.client else "")
         return JSONResponse(answer) if status == 200 else PlainTextResponse(answer, status_code=status)
 
     @app.get("/voice/phone/routes")

@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from guards import LOCAL_COOKIE, LocalAuth, page_host  # noqa: E402
+import hub_nodes  # noqa: E402
 from remote import COOKIE, Remote, TLS_PORT  # noqa: E402
 
 HOST = "phone.example.internal"
@@ -196,7 +197,7 @@ def test_the_page_gets_a_qr_with_a_one_time_code_and_the_app_trades_it_for_the_k
 def test_the_code_expires(world):
     made = make(world)
     world.mono.now += 301
-    assert redeem(tls(world), made["code"]).text == "invite expired"
+    assert redeem(tls(world), made["code"]).text == hub_nodes.NO_SUCH_INVITE
 
 
 def test_wrong_codes_are_limited_and_end_the_invite_after_twenty(world):
@@ -205,8 +206,8 @@ def test_wrong_codes_are_limited_and_end_the_invite_after_twenty(world):
     assert codes[:5] == [403] * 5 and codes[5] == 429
     world.link.invites.wrong = 19
     world.mono.now += 30  # the address has a token again: the limit is checked before the code
-    assert "cancelled after 20 wrong codes" in redeem(tls(world), "AAAA-AAAA").text
-    assert page(world).get("/voice/phone/invite").json()["ended"].startswith("the invite was cancelled")
+    assert redeem(tls(world), "AAAA-AAAA").text == hub_nodes.NO_SUCH_INVITE  # the guesser learns nothing
+    assert page(world).get("/voice/phone/invite").json()["ended"].startswith("the invite was cancelled after 20 wrong codes")
 
 
 def test_a_new_code_replaces_the_old_and_cancel_ends_it(world):

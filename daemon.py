@@ -96,6 +96,7 @@ from readout import mask
 from guards import (relays_approval, remote_readable, 
     JsonPosts,
     LocalAuth,
+    loopback_sockets,
     page_csp,
     permission_answer,
     stop_intent,
@@ -6978,7 +6979,7 @@ TOOLS = ToolsSchema(standard_tools=[
 
 # ---------- HTTP: registration, permission relay, status ----------
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)  # Swagger UI would load a CDN script into the page's origin
 app.add_middleware(JsonPosts)  # first, so innermost: the guards below answer a caller without a secret before it
 REMOTE = remote.Remote(STATE_DIR)
 remote.install(REMOTE, app)  # localhost as before; a paired phone over HTTPS through the private network
@@ -9370,8 +9371,15 @@ def main() -> None:
     port = parser.parse_args().port
     global SERVER, PORT
     PORT = harnesses.HOST.port = port  # a session Pointe starts registers with this daemon, not the default one
-    SERVER = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info"))  # loopback only: the phone comes in through remote.py
-    SERVER.run()
+    try:  # loopback only, both families (guards.loopback_sockets): the phone comes in through remote.py
+        sockets = loopback_sockets(port)
+    except OSError as e:
+        raise SystemExit(f"daemon: cannot listen on 127.0.0.1:{port} and [::1]:{port} ({e.strerror}): another program "
+                         f"holds one of them, and a browser could reach it instead. Use another port: "
+                         f"CLAUDE_VOICE_DAEMON_PORT=7870")
+    logger.info(f"listening on 127.0.0.1:{port}" + (f" and [::1]:{port}" if len(sockets) > 1 else ", no IPv6 loopback here"))
+    SERVER = uvicorn.Server(uvicorn.Config(app, port=port, log_level="info"))
+    SERVER.run(sockets=sockets)
 
 
 # ---------- whisper mode (whisper.py holds the rules) ----------

@@ -11,8 +11,13 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
 
 ## Who may connect
 
-- The daemon's HTTP port listens on the loopback interface only. Call audio uses the same port, as a WebSocket, so it
-  never leaves loopback either. Only `pointe pair` opens another address (see Phone access).
+- The daemon's HTTP port listens on the loopback interface only, on both addresses: `127.0.0.1` and `[::1]`
+  (`guards.loopback_sockets`; the node does the same). A browser tries `::1` first for `localhost` and
+  `<hash>.localhost`, so a program of another user on `[::1]:7860` beside a daemon on `127.0.0.1` alone would be handed
+  the page key. With both held nobody else can take either, and a daemon that finds either taken does not start. A
+  machine with no IPv6 loopback at all listens on `127.0.0.1` alone; there no one can take `::1` either. Call audio
+  uses the same port, as a WebSocket, so it never leaves loopback either. Only `pointe pair` opens another address
+  (see Phone access).
 - Every route except `/voice/health` needs a secret. Scripts send a per-daemon token (`~/.claude-voice/token`, 0600). The page
   opens once with a key in its address (`bin/voice-open`), which becomes an `HttpOnly`, `SameSite=Strict` cookie.
 - A script sends the token or the page key only when the program listening on the port is the one the daemon's pid file
@@ -27,7 +32,9 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
 - Only the same origin can frame the page, which blocks clickjacking.
 - The page runs only the scripts it was served with. Its `Content-Security-Policy` lists the SHA-256 of each inline
   script and event handler, computed from the page when it is served (`guards.page_csp`), on both listeners; a script
-  or handler that reaches the page later matches none and does not run. Plugins and `<base>` are refused. The page
+  or handler that reaches the page later matches none and does not run. Plugins and `<base>` are refused. The rest of
+  the policy keeps injected markup from sending data out: fetches and the call's WebSocket go only to the page's own
+  origin, images only to it or `data:`, media to it or `blob:`, and forms post nowhere else. The page
   builds session names, machine names and the QR code as nodes, never by parsing HTML. Browsers older than about 2022
   (Safari before 15.4) do not support hashed handlers and would refuse the page's buttons.
 - An empty secret opens nothing.
@@ -270,7 +277,9 @@ next to the locked phone can open the microphone that way and speak to your sess
 unless the voice lock's level keeps them out, and a spoken yes still has to pass every rule above.
 
 In fully local mode (`pointe local`), none of these goes anywhere: no key is read, from the environment or the
-Keychain, so no vendor can be reached, and the text-model server listens on loopback only. See
+Keychain, so no vendor can be reached, and the text-model server listens on loopback only. The daemon uses that
+server only when the program listening on its port is the one `pointe local` started (its pid file) or its child:
+otherwise another account that took the port would receive every transcript, so the start is refused. See
 [docs/features/local.md](docs/features/local.md).
 
 With "Voice stays on your Mac" (`pointe local voice`), no audio goes to a vendor: ears and mouth run on the Mac, the
@@ -346,6 +355,9 @@ The Mac with the call (the hub) keeps every rule above for them.
   accepted only while it is outstanding. Each address may try 5 codes at once, then about one a minute, checked before
   the code is compared, so one address cannot try enough to cancel the invite. After 20 wrong codes from all addresses
   together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
+  `/voice/node/pair` and `/voice/phone/pair` take no secret, so they answer 403 before reading a byte of the body
+  when no code is out, and read at most 4 kB of it when one is (413 past that). No invite, an expired one and a wrong
+  code get the same 403 text, so a caller cannot tell when a code is live; only the owner is told why an invite ended.
   A guesser behind the same connector as your machine can delay it by a minute, not lock it out. Making it from the
   app needs Face ID there; the daemon makes one for any holder of the phone key (see Phone access).
   The node checks the hub certificate's SHA-256 against the fingerprint in the invite before it sends anything. It
@@ -502,8 +514,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
     of the conversation, the words being heard) and approve (`/voice/approve`);
   - driving the sessions: `/voice/switch`, `/voice/disconnect`, `/voice/hung-up`, `/voice/rename`, `/voice/mode`,
     typed words (`/voice/say`, `/voice/correct`, `/voice/polish`), a new session in a folder the Mac allows
-    (`/voice/new-session`), the night shift (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the
-    challenge (`/voice/challenge`), drive mode (`/voice/drive`), alerts (`/voice/attention`) and the conflict alarm
+    (`/voice/new-session`), adding sessions listed on the Mac (`/voice/add-sessions`), the night shift
+    (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the challenge (`/voice/challenge`), drive mode (`/voice/drive`), alerts (`/voice/attention`) and the conflict alarm
     (`/voice/conflicts`: dismiss, or ask one side: the card's question, sent to that session as a conflict check,
     never as the user's words, and it approves nothing);
   - meetings and notes: `/voice/meeting`, `/voice/meeting/transcript`, `/voice/notes`;

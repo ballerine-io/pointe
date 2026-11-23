@@ -127,6 +127,7 @@ def test_preflight_in_local_mode_passes_with_zero_keys(state, monkeypatch):
     local.write_config()
     monkeypatch.setattr(subprocess, "run", no_keychain)
     monkeypatch.setattr(local, "answering", lambda *a: True)
+    monkeypatch.setattr(local, "ours", lambda: True)  # the server that answers is the one Pointe started
     assert doctor.preflight() == 0
 
 
@@ -215,6 +216,7 @@ def test_the_text_model_server_starts_offline(state, monkeypatch, tmp_path):
     monkeypatch.setattr(local.subprocess, "Popen", popen)
     monkeypatch.setattr(local, "answering", lambda *a: bool(seen))
     monkeypatch.setattr(local, "_warm", lambda m: True)
+    monkeypatch.setattr(local, "ours", lambda: True)  # the stand-in server holds the port
     monkeypatch.setenv("GOOGLE_API_KEY", "x")
     _pinned_cache(tmp_path, monkeypatch)
     (state / "local").mkdir()
@@ -353,6 +355,7 @@ def _fake_server(monkeypatch, tmp_path, seen, *, warm):
     monkeypatch.setattr(local, "server_bin", lambda: bin_)
     monkeypatch.setattr(local.subprocess, "Popen", popen)
     monkeypatch.setattr(local, "answering", lambda *a: bool(seen))
+    monkeypatch.setattr(local, "ours", lambda: True)  # the stand-in server is the one start() launched
     monkeypatch.setattr(local, "_warm", warm)
     monkeypatch.setattr(local.time, "sleep", lambda s: None)
     stopped = []
@@ -396,3 +399,69 @@ def test_a_failed_start_leaves_the_previous_setup_in_place(state, monkeypatch, t
     monkeypatch.setattr(local, "start", lambda m: False)
     assert local.install() == 1
     assert json.loads((state / "config.json").read_text()) == {"setup": "free"} and not local.on()
+class _Impostor:
+    """Another program answering an OpenAI-shaped /v1/models on the text-model port, in this test's own process."""
+
+    def __init__(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"data": [{"id": "anything"}]}')
+
+            def log_message(self, *a):
+                pass
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.port = self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+@pytest.fixture
+def impostor(state, monkeypatch):
+    fake = _Impostor()
+    monkeypatch.setenv("CLAUDE_VOICE_LOCAL_PORT", str(fake.port))
+    (state / "local").mkdir()
+    monkeypatch.setattr(local, "server_bin", lambda: state / "no-server-here")  # no real server is ever started
+    yield fake
+    fake.close()
+
+
+def test_start_refuses_a_program_on_the_port_that_is_not_its_server(impostor, state, capsys):
+    """With no server.pid, whatever answers is not Pointe's: it would get every transcript and write the gate's verdicts."""
+    assert local.start(quiet=True) is False
+    assert "not the text-model server Pointe started" in capsys.readouterr().err
+
+
+def test_start_refuses_it_when_server_pid_names_another_process(impostor, state, capsys):
+    other = subprocess.Popen(["sleep", "30"])  # alive, and not the listener
+    try:
+        (state / "local" / "server.pid").write_text(str(other.pid))
+        assert local.start(quiet=True) is False
+    finally:
+        other.kill()
+        other.wait()
+    assert "not the text-model server Pointe started" in capsys.readouterr().err
+
+
+def test_start_accepts_its_own_server_already_running(impostor, state):
+    import os
+
+    (state / "local" / "server.pid").write_text(str(os.getpid()))  # this process holds the listener
+    assert local.start(quiet=True) is True
+
+
+def test_preflight_refuses_local_mode_when_a_stranger_answers_on_the_port(impostor, state, capsys):
+    import doctor
+
+    local.write_config()
+    assert doctor.preflight() == 1
+    assert "not the text-model server Pointe started" in capsys.readouterr().out

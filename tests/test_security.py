@@ -430,11 +430,13 @@ def _pair(client, code, name="devbox"):
 
 
 def test_pairing_needs_an_outstanding_invite_and_the_right_code_once(hub_app):
+    import hub_nodes
+
     hub = hub_app.state.hub
     assert _pair(tls(hub_app), "AAAA-AAAA").status_code == 403  # no invite: closed
     code = hub.invites.make()
     wrong = _pair(tls(hub_app), "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB")
-    assert wrong.status_code == 403 and wrong.text == "wrong code"
+    assert wrong.status_code == 403 and wrong.text == hub_nodes.NO_SUCH_INVITE
     good = _pair(tls(hub_app), code)
     assert good.status_code == 200 and len(good.json()["node_key"]) == 64
     assert _pair(tls(hub_app), code, "other").status_code == 403  # single use
@@ -499,8 +501,9 @@ def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
               "/voice/dump"}
     # and, since 1.16.0, the New session sheet (docs/design/new-session.md): options and a start in an allowed folder
     # and, since 1.19.0, the night shift (docs/design/night-shift.md): its sheet, Start, Stop and the ledger; never an approval
+    # and the Add sessions sheet (SECURITY.md "Adding sessions"): the app called it, the key was refused, and joining failed
     assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/new-session",
-                                     "/voice/night-shift"}
+                                     "/voice/night-shift", "/voice/add-sessions"}
     assert before <= _PHONE_PATHS
 
 
@@ -558,6 +561,11 @@ def test_the_page_policy_allows_only_hashed_inline_scripts():
     policy = page_csp(page_html())
     directives = {d.split()[0]: d.split()[1:] for d in (p.strip() for p in policy.split(";")) if d}
     assert directives["object-src"] == ["'none'"] and directives["base-uri"] == ["'none'"]
+    # Beyond scripts: injected markup could still send data out through an image, a form, a fetch or a stylesheet.
+    assert directives["default-src"] == ["'self'"] and directives["connect-src"] == ["'self'"]
+    assert directives["img-src"] == ["'self'", "data:"] and directives["form-action"] == ["'self'"]
+    assert directives["media-src"] == ["'self'", "blob:"] and directives["font-src"] == ["'self'"]
+    assert all("*" not in v and "http:" not in v and "https:" not in v for v in directives.values())
     script = directives["script-src"]
     assert set(script) - {f"'sha256-{h}'" for h in _policy_hashes(policy)} == {"'unsafe-hashes'", "blob:"}
     assert len(_policy_hashes(policy)) > 100  # each inline script and handler of the page
@@ -599,3 +607,23 @@ def test_an_invite_made_in_a_terminal_reaches_the_page_with_its_join_line(hub_ap
     assert status["code"] == made["code"] and status["link"] == made["link"]
     hub_app.state.hub.invites.cancel()
     assert hub_app.state.hub.invites.status() is None and hub_app.state.hub.invites.link is None
+
+
+def test_the_phone_key_reaches_add_sessions_as_the_app_and_security_md_say(tmp_path):
+    """The iPhone app's Add sessions sheet lists (GET) and joins or reopens (POST, after Face ID in the app)."""
+    (tmp_path / "tls").mkdir()
+    (tmp_path / "tls" / "cert.pem").write_text("x")
+    (tmp_path / "tls" / "key.pem").write_text("x")
+    (tmp_path / "remote.json").write_text(json.dumps({"host": HOST}))
+    (tmp_path / "remote_token").write_text("s3cret-token")
+    remote = Remote(tmp_path)
+    app = FastAPI()
+    app.middleware("http")(remote.guard)
+    app.get("/voice/add-sessions")(lambda: {"open": []})
+    app.post("/voice/add-sessions")(lambda: {"joined": []})
+    app.add_middleware(LocalAuth, token="daemon-token", page_key="page-key", remote=remote,
+                       phone=lambda authorization: authorization == "Bearer phone-key")
+    phone = {"authorization": "Bearer phone-key"}
+    assert tls(app).get("/voice/add-sessions", headers=phone).status_code == 200
+    assert tls(app).post("/voice/add-sessions", headers=phone, json={"join": ["k"]}).status_code == 200
+    assert tls(app).get("/voice/add-sessions", headers={"authorization": "Bearer guess"}).status_code == 403

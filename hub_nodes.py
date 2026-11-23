@@ -39,6 +39,10 @@ CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # Crockford's 32: no I, L, O
 CODE_LETTERS = 8  # 40 bits
 PAIR_BURST = 5  # codes one address may try at once; its bucket refills so it alone never reaches PAIR_WRONG_PER_INVITE
 PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses from all addresses together
+# Every refused code gets these words (429 aside): "no invite", "expired" and "wrong" would tell a scanner when a code
+# is live, and the invite-ending answer named the guessers' addresses. The owner sees why (`ended`), the log too.
+NO_SUCH_INVITE = "no such invite: the code is wrong, expired or already used. Ask for a new one"
+PAIR_BODY_BYTES = 4096  # a pairing posts a few hundred bytes; read no more from a caller with no secret
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
@@ -268,6 +272,24 @@ def _normal_code(code) -> str:
 
 def _digest(letters: str) -> bytes:
     return hashlib.sha256(letters.encode()).digest()
+
+
+async def pairing_body(request) -> dict | None:
+    """The JSON object a pairing route was sent, read no further than PAIR_BODY_BYTES; None when it is longer. These
+    routes take no secret, so a body of any size from anyone on the network would otherwise be held in memory whole."""
+    declared = request.headers.get("content-length")
+    if declared is not None and (not declared.isdigit() or int(declared) > PAIR_BODY_BYTES):
+        return None
+    body = bytearray()
+    async for chunk in request.stream():
+        body += chunk
+        if len(body) > PAIR_BODY_BYTES:
+            return None
+    try:
+        parsed = json.loads(body)
+    except ValueError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
 
 
 class Invites:
@@ -750,15 +772,13 @@ class Hub:
     def pair(self, body, address: str) -> tuple[int, dict | str]:
         """POST /voice/node/pair: (status, the node's key and the hub's identity, or why not)."""
         invites = self.invites
-        if invites.code is None:
-            return 403, "no invite outstanding"
         if not invites.outstanding:
-            return 403, "invite expired"
+            return 403, NO_SUCH_INVITE
         body = body if isinstance(body, dict) else {}
         refused = invites.check(body.get("code", ""), address)
         if refused:
             logger.warning(f"node pairing from {address}: {refused[1]}")
-            return refused
+            return refused if refused[0] == 429 else (403, NO_SUCH_INVITE)
         name = " ".join(str(invites.name or body.get("name") or "").split())
         problem = self.name_problem(name)
         if problem:
@@ -1059,7 +1079,12 @@ def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
 
     @app.post(nodelink.PAIR_PATH)
     async def node_pair(request: Request):
-        status, answer = hub.pair(await body_of(request), request.client.host if request.client else "")
+        if not hub.invites.outstanding:  # answered before a byte of the body is read
+            return PlainTextResponse(hub.pair({}, "")[1], status_code=403)
+        body = await pairing_body(request)
+        if body is None:
+            return PlainTextResponse("too large", status_code=413)
+        status, answer = hub.pair(body, request.client.host if request.client else "")
         return JSONResponse(answer) if status == 200 else PlainTextResponse(answer, status_code=status)
 
     def owner(request: Request) -> bool:
