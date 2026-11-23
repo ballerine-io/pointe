@@ -468,6 +468,12 @@ def summary() -> dict:
 
 
 def main(argv: list[str]) -> int:
+    if argv and argv[0] in ("-h", "--help", "help"):
+        print(__doc__)
+        return 0
+    if argv and argv[0].startswith("-") and argv[0] != "--model":  # an unknown flag never starts a 19 GB download
+        print(__doc__)
+        return 2
     command = argv[0] if argv and not argv[0].startswith("-") else "install"
     text_model = argv[argv.index("--model") + 1] if "--model" in argv else TEXT_MODEL
     if command == "install":

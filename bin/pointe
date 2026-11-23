@@ -5,6 +5,34 @@ export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PATH="$PATH:$HOME/.local/bin"  # where uv's installer puts uv: a session started before it ran does not have it on PATH
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
+# `pointe <command> --help` says what the command does and does nothing else: before this, `local --help` started the
+# 19 GB fully local install and `stop --help` ended the call. pair and node read their own --help.
+usage() {
+  case "$1" in
+    start)     echo "pointe start: start a new Claude Code session that joins the voice." ;;
+    attach)    echo "pointe attach: join this Claude Code session to the voice (/pointe:voice runs it)." ;;
+    open)      echo "pointe open: open the Pointe page in the browser." ;;
+    talk)      echo "pointe talk: push to talk from any app; bind it to a system-wide shortcut." ;;
+    doctor)    echo "pointe doctor [--live]: what is ready, and the one thing to fix. --live also makes one tiny call per key." ;;
+    status)    echo "pointe status: whether Pointe is running, and its address." ;;
+    log)       echo "pointe log: the last lines of what Pointe heard, said and did." ;;
+    context)   echo "pointe context: what Pointe knows about a session." ;;
+    stop)      echo "pointe stop: end the call and stop Pointe." ;;
+    restart)   echo "pointe restart: start Pointe again, on new keys or a new setup. A running Pointe is stopped only once the new setup can start." ;;
+    uninstall) echo "pointe uninstall: remove Pointe, asking about your keys and settings first." ;;
+    hub)       echo "pointe hub invite [--name NAME] | nodes | revoke NAME: the machines that join this one." ;;
+    key)       echo "pointe key <vendor> [--no-restart] | key check <vendor>: save a key in the Keychain, checked first." ;;
+    setup)     echo "pointe setup [<id>]: show the setups, or choose one. Then pointe restart." ;;
+    join)      echo "pointe join <agent>: add an OpenCode or Codex session to the voice." ;;
+    leave)     echo "pointe leave <agent>: take it off the voice." ;;
+    local)     echo "pointe local [voice | status | off]: download the local models (about 19 GB, or 2 GB for voice) and switch to the Fully local setup (voice: Voice stays on your Mac); status shows them; off goes back to your vendors." ;;
+    apps)      echo "pointe apps doctor | mac | ios: build the iPhone and Mac apps from source." ;;
+    *)         return 1 ;;
+  esac
+}
+for arg in "$@"; do
+  case "$arg" in -h|--help) case "$cmd" in pair|node|help|-h|--help) ;; *) usage "$cmd" && exit 0 ;; esac ;; esac
+done
 case "$cmd" in
   start)   exec "$BIN/claude-voice" "$@" ;;        # a new session, with Claude Code's channel
   attach)  exec "$BIN/claude-voice-attach" "$@" ;; # from inside a session; /pointe:voice runs this
