@@ -1,0 +1,4 @@
+marlstone notes
+- counts are read from data.csv
+- the build folder holds a packaged copy
+- tests: python3 -m unittest -q
