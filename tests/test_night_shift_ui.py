@@ -168,9 +168,10 @@ def test_the_sheet_starts_what_it_shows_and_the_strip_the_card_and_the_ledger_fo
     assert [title for title, _ in ledger["sections"]] == ["Decisions made without you", "Questions waiting on you", "Done", "Blocked",
                                                           "In flight", "Not started"]
     rows = dict(ledger["sections"])
-    assert "cap the backoff?" in rows["Decisions made without you"][0] and "→ 30 seconds → change MAX_BACKOFF" in rows["Decisions made without you"][0]
-    assert "docsOld format or new?" in rows["Questions waiting on you"][0]
-    assert "42 of 42" in rows["Done"][0] and "commit 3f2a9c1" in rows["Done"][0] and "#12" in rows["Done"][0]
+    decided = rows["Decisions made without you"][0]  # as the iPhone app: the question, → the choice, then what else it costs
+    assert "cap the backoff?→ 30 secondschange MAX_BACKOFF" in decided and "→ change" not in decided, decided
+    assert "docsupdate the changelogOld format or new?" in rows["Questions waiting on you"][0]  # the task, as in the app
+    assert "42 of 42" in rows["Done"][0] and "3f2a9c1 · #12" in rows["Done"][0], rows["Done"][0]
     # the pull request is a link named by its number, as on the iPhone, not a raw address
     assert ledger["links"] == [["#12", "https://github.com/acme/billing/pull/12", "_blank", "noopener noreferrer"]], ledger["links"]
     assert ledger["request"] == [REQUEST] and "The exact request" in rows["Blocked"][0]  # word for word, on the screen

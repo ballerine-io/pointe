@@ -802,3 +802,24 @@ def test_a_call_shows_one_hang_up_labelled_as_the_dock_and_the_apps():
         assert r["hang"] == ["hangup"], (w, r)
         assert r["label"] == r["others"], (w, r)
         assert r["gap"] >= 8, (w, r)
+
+
+def test_a_short_phone_in_a_meeting_gives_the_notes_the_room_of_the_mic_switch():
+    """QA round 3: on a short phone a meeting's notes had a sliver between the top bar and the dock; the Always on / Hold
+    to talk switch above the mic took that room, and in a meeting the mic is the room's."""
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=2, talk=2, connected=True)
+        out = []
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                for w, h in ((360, 640), (390, 844)):
+                    await page.cdp("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 2, "mobile": True})
+                    out.append(await page.eval(f"(async () => {{ {LIVE} document.body.classList.add('meeting'); "
+                                               "await new Promise(r => setTimeout(r, 100)); return getComputedStyle(document.querySelector('.micmode')).display; })()"))
+        finally:
+            await stub.stop()
+        return out
+    short, tall = asyncio.run(run())
+    assert short == "none" and tall != "none", (short, tall)
