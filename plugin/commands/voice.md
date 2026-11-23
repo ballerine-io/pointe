@@ -1,11 +1,10 @@
 ---
-description: Join this Claude Code session to Pointe (starts Pointe if needed; sets it up on a first run)
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe node status:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run:*), Read(${CLAUDE_PLUGIN_ROOT}/plugin/commands/setup.md), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe setup:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe key:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps mac:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps ios:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/install-uv:*), Bash(ls /Applications:*), Bash(sw_vers:*), Bash(mkdir -p ~/.claude-voice), Bash(touch ~/.claude-voice/setup-done)
+description: Join this Claude Code session to Pointe (starts Pointe if needed; on a first run, points to /pointe:setup)
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe node status:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run:*)
 ---
 
 First run `${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run --needed`. If it prints `needed`, Pointe has never been set up on this Mac: say in
-one line "Pointe is not set up on this Mac yet, so I'll do that first: about 5 minutes.", then read
-`${CLAUDE_PLUGIN_ROOT}/plugin/commands/setup.md` and follow it from step 1; its step 4 joins this session, so do not run anything below.
+one line "Pointe is not set up on this Mac yet: run `/pointe:setup` (about 5 minutes); it joins this session at the end.", and do not run anything below.
 
 Otherwise run `${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach $ARGUMENTS` with the Bash tool and a 10-minute timeout: the first run downloads about 180 MB (less on a node, which installs no voice models). Report its output in one line, then its note about approvals in one sentence.
 If its output says `"node": true`, this machine is a node: the call, its page and the phone app are on the hub it names, not here. Then say in one line that this session joined the voice on that hub, and that its permission prompts go there while a call is up and stay in this terminal otherwise.

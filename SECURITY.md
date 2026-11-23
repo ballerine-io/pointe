@@ -76,7 +76,9 @@ that creates a process, so it is fenced on every side, in code with tests (`test
 - **Plugin commands.** A command file's `allowed-tools` lets the model run those commands without a prompt for that
   turn, in a session that may have read a stranger's text. Each rule names one command the file tells the model to run
   (`pointe setup`, `pointe key`, `pointe apps doctor`, ...), never `pointe` itself, `open` or `echo`; `pointe start`,
-  `pair`, `hub`, `join` and `uninstall` always ask (`tests/test_plugin_permissions.py`).
+  `pair`, `hub`, `join` and `uninstall` always ask (`tests/test_plugin_permissions.py`). `/pointe:voice`, which runs on
+  every join, pre-approves only joining (`claude-voice-attach`, `voice-first-run`, `pointe node status`); on a first run
+  it says to run `/pointe:setup`, which carries setup's own list.
 - **Who.** By voice, always a read-back of the agent, folder, machine and name, taken from the user's own words, then a
   plain yes within 60 seconds, under the rules of a yes to a permission prompt (`daemon._readback_answer`): a yes and
   nothing else, begun after the read-back ended, with the read-back the last thing the bot said; not the read-back

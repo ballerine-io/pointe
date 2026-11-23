@@ -32,9 +32,8 @@ def _parts(path: Path) -> tuple[list[tuple[str, str]], str]:
 
 
 def _instructions(path: Path) -> str:
-    """What the file tells the model to run: /pointe:voice follows setup.md on a first run."""
-    body = _parts(path)[1]
-    return body + (_parts(path.with_name("setup.md"))[1] if path.name == "voice.md" else "")
+    """What the file tells the model to run."""
+    return _parts(path)[1]
 
 
 @pytest.mark.parametrize("path", COMMANDS, ids=lambda p: p.name)
@@ -53,6 +52,18 @@ def test_each_command_pre_approves_only_what_it_tells_the_model_to_run(path):
         assert command in text, f"{path.name}: Bash({spec}) is not a command this file tells the model to run"
         assert not any(command.removeprefix(BIN).startswith(never) for never in NEVER), \
             f"{path.name}: Bash({spec}) must ask the person each time"
+
+
+def test_pointe_voice_pre_approves_only_joining_and_none_of_setup():
+    """/pointe:voice runs on every join, often in a session that has read a stranger's text: there it must not be able to
+    switch the setup (a free tier a vendor may review), add a key or install anything without a prompt. A first run
+    sends the person to /pointe:setup, which carries its own list."""
+    voice = ROOT / "plugin" / "commands" / "voice.md"
+    tools, body = _parts(voice)
+    assert {spec for _, spec in tools} == {f"{BIN}claude-voice-attach:*", f"{BIN}pointe node status:*", f"{BIN}voice-first-run:*"}
+    setup_only = {spec for _, spec in _parts(voice.with_name("setup.md"))[0]} - {f"{BIN}claude-voice-attach:*"}
+    assert not setup_only & {spec for _, spec in tools}
+    assert "/pointe:setup" in body and "setup.md" not in body, "a first run is the person's /pointe:setup, not read here"
 
 
 def test_the_check_refuses_the_old_rules(tmp_path):

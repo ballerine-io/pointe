@@ -76,7 +76,7 @@ one plain sentence, do the work yourself, and never ask me to paste a key into t
 ```
 
 After setup: run `/pointe:voice` in any session you want to talk to, allow the microphone in the tab that opens,
-press Connect, and say hello. If setup has not run yet, `/pointe:voice` runs it first.
+press Connect, and say hello. If setup has not run yet, `/pointe:voice` says to run `/pointe:setup` first.
 
 The last time this path was followed word for word on a clean environment, with timings and what it did not cover:
 [install-verification.md](install-verification.md).
