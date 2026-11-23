@@ -2,10 +2,10 @@
 
     pointe uninstall                  show what is there, ask, remove
     pointe uninstall --dry-run        show it only
-    pointe uninstall --yes            remove Pointe's own files and the plugin without asking
+    pointe uninstall --yes            remove Pointe's own files, the plugin and the standalone install without asking
     pointe uninstall --delete-keys    also Pointe's keys in the Keychain (never without this or a yes to its own question)
 
-Three groups, each with its own question: Pointe's own files and the plugin; Pointe's keys in the Keychain; and things
+Three groups, each with its own question: Pointe's own files, the plugin and the standalone install (~/.pointe); Pointe's keys in the Keychain; and things
 another tool may share (the Keychain items under the plain names Pointe used before 1.20.0, and the model downloads in the
 shared Hugging Face cache). uv stays: other tools use it. Standard library only, so it runs whatever state the plugin's
 Python is in. docs/install.md, "What this does to your Mac", is the same list.
@@ -22,6 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 LINK_MARK = "# Written by Pointe (bin/link-pointe)"
+RC_MARK = "# Pointe: codex runs on Codex's shared app-server"  # terminal_setup.RC_MARK starts so (tests/test_install.py)
 KEY_VENDORS = ("gemini", "openai", "anthropic", "soniox", "elevenlabs")  # vendors.KEYS (tests/test_uninstall.py)
 MAC_APP_ID = "io.ballerine.pointe.mac"  # macos/tools/make_project.py, PRODUCT_BUNDLE_IDENTIFIER (tests/test_uninstall.py)
 
@@ -32,6 +33,7 @@ class Item:
     path: Path | None = None  # a file or folder to delete
     keychain: str = ""  # a Keychain item to delete
     command: tuple = ()  # a command to run
+    rc: Path | None = None  # a shell startup file to take Pointe's codex alias out of
 
 
 def home() -> Path:
@@ -79,6 +81,38 @@ def _claude() -> str | None:
     return None
 
 
+def pointe_home() -> Path:
+    return Path(os.environ.get("POINTE_HOME") or home() / ".pointe")
+
+
+def _rc_files() -> list[Path]:
+    found = []
+    for rc in (home() / ".zshrc", home() / ".bash_profile", home() / ".bashrc"):
+        try:
+            if RC_MARK in rc.read_text(errors="replace"):
+                found.append(rc)
+        except OSError:
+            pass
+    return found
+
+
+def _without_alias(text: str) -> str:
+    """The file without the two lines `pointe setup codex` added: the mark and the alias under it."""
+    lines, out, skip = text.splitlines(keepends=True), [], False
+    for line in lines:
+        if line.startswith(RC_MARK):
+            skip = True
+            if out and out[-1].strip() == "":
+                out.pop()  # the blank line written before the mark
+            continue
+        if skip and line.startswith("alias codex="):
+            skip = False
+            continue
+        skip = False
+        out.append(line)
+    return "".join(out)
+
+
 def plugin_left() -> bool:
     """The plugin is installed and no claude CLI can remove it here."""
     return _claude() is None and ((home() / ".claude" / "plugins" / "cache" / "pointe").exists()
@@ -107,9 +141,17 @@ def plan() -> dict[str, list[Item]]:
     prefs = home() / "Library" / "Preferences" / f"{MAC_APP_ID}.plist"
     if prefs.exists() and shutil.which("defaults"):  # through defaults: macOS caches a domain, and a deleted file comes back
         own.append(Item(f"{prefs} (the Mac app's settings)", command=(shutil.which("defaults"), "delete", MAC_APP_ID)))
+    opencode = home() / ".config" / "opencode" / "plugins" / "pointe-voice.ts"
+    if opencode.exists():
+        own.append(Item(f"{opencode} (/voice in OpenCode)", path=opencode))
+    for rc in _rc_files():
+        own.append(Item(f"The codex alias in {rc} (two lines, from pointe setup codex)", rc=rc))
     kokoro = home() / ".cache" / "pipecat" / "kokoro-onnx"
     if kokoro.exists():
         own.append(Item(f"{kokoro} ({_size(kokoro)}: the local voice)", path=kokoro))
+    if pointe_home().exists():
+        own.append(Item(f"{pointe_home()} ({_size(pointe_home())}: the standalone install, with its Python)",
+                        path=pointe_home()))
     claude = _claude()
     if claude:
         own.append(Item("The Claude Code plugin pointe@pointe, with its two hooks and its Python (claude plugin uninstall)",
@@ -140,6 +182,9 @@ def remove(item: Item) -> str:
         if item.command:
             got = subprocess.run(list(item.command), capture_output=True, text=True, timeout=120)
             return "done" if got.returncode == 0 else f"failed: {(got.stderr or got.stdout).strip()[:200]}"
+        if item.rc:
+            item.rc.write_text(_without_alias(item.rc.read_text()))
+            return "done"
         if item.keychain:
             got = subprocess.run(["security", "delete-generic-password", "-s", item.keychain], capture_output=True, timeout=10)
             return "done" if got.returncode == 0 else "not found"
@@ -158,7 +203,7 @@ def main(argv: list[str]) -> int:
         print("usage: pointe uninstall [--dry-run] [--yes] [--delete-keys]")
         return 2
     groups = plan()
-    titles = {"own": "Pointe's own files, and the plugin", "keys": "Pointe's keys in the Keychain",
+    titles = {"own": "Pointe's own files, the plugin and the standalone install", "keys": "Pointe's keys in the Keychain",
               "shared": "Things another tool may share (asked separately; kept unless you say yes)"}
     print("Pointe added these to this Mac:\n")
     for name, items in groups.items():
@@ -177,7 +222,7 @@ def main(argv: list[str]) -> int:
         print("Nothing removed: run pointe uninstall in a terminal to answer, or pass --yes.")
         return 1
     chosen = []
-    if groups["own"] and ("--yes" in argv or _ask("Remove Pointe's own files and the plugin?")):
+    if groups["own"] and ("--yes" in argv or _ask("Remove Pointe's own files, the plugin and the standalone install?")):
         chosen += groups["own"]
     if groups["keys"] and ("--delete-keys" in argv or (interactive and _ask("Delete Pointe's keys from the Keychain?"))):
         chosen += groups["keys"]
@@ -186,7 +231,8 @@ def main(argv: list[str]) -> int:
     if not chosen:
         print("Nothing removed.")
         return 0
-    plugin = [i for i in chosen if i.command and "plugin" in i.command]  # last: it deletes the code running this
+    # last: the plugin and the standalone install hold the code running this
+    plugin = [i for i in chosen if (i.command and "plugin" in i.command) or i.path == pointe_home()]
     failed = 0
     for item in [i for i in chosen if i not in plugin] + plugin:
         result = remove(item)

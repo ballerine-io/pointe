@@ -112,14 +112,21 @@
 <p>Pointe is a conversational layer for your coding agents. You talk; it listens, reports what each session did, sends
 your requests to the right one, and reads permission prompts out so you can answer them by voice. The sessions do the
 work and keep their context. We call this conversational engineering ("convo coding", for short).</p>
-<p>This page takes you from nothing to your first call, in about 5 minutes. You need macOS, Claude Code 2.1.224 or newer,
-Google Chrome, headphones, and one model key (a free Google key is enough to start). Everything Pointe installs, and how
-to remove it: <a href="../install/">Install</a>.</p>
+<p>This page takes you from nothing to your first call, in about 5 minutes. You need macOS, a coding agent (Claude Code
+2.1.224 or newer, Codex 0.160 or newer, or OpenCode v2), Google Chrome, headphones, and one model key (a free Google key
+is enough to start). Everything Pointe installs, and how to remove it: <a href="../install/">Install</a>.</p>
 <h2 id="1-install">1. Install</h2>
-<p>In Terminal:</p>
+<p><strong>With Claude Code</strong>, in Terminal:</p>
 <div class="dx-code"><pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>In the Claude desktop app's Code tab, type the two commands instead:
 <code>/plugin marketplace add https://github.com/ballerine-io/pointe.git</code>, then <code>/plugin install pointe@pointe</code>.</p>
+<p><strong>With Codex or OpenCode</strong> (no Claude Code needed), in Terminal:</p>
+<div class="dx-code"><pre><code>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It says what it will do and asks first, checks the release against a SHA-256, and needs no <code>sudo</code>
+(<a href="../install/#the-standalone-install">The standalone install</a>). Then run <code>pointe setup</code> in a new terminal: the same steps
+as below, in the terminal, and then it sets up Codex and OpenCode for the voice (<a href="../install/#codex">Codex</a>,
+<a href="../install/#opencode">OpenCode</a>).</p>
 <h2 id="2-the-first-setup">2. The first setup</h2>
 <p>Open a new Claude Code session, so the plugin loads, and run:</p>
 <div class="dx-code"><pre><code>/pointe:setup</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
@@ -141,9 +148,10 @@ to remove it: <a href="../install/">Install</a>.</p>
 </ol>
 <p>Your phone, the Mac app and faster setups come after, as optional extras: <code>/pointe:setup phone</code>, <code>/pointe:setup apps</code>.</p>
 <h2 id="3-the-first-call">3. The first call</h2>
-<p>The call is a page in Chrome, on <code>127.0.0.1</code>. In any session you want to reach, run:</p>
+<p>The call is a page in Chrome, on <code>127.0.0.1</code>. In any Claude Code session you want to reach, run:</p>
 <div class="dx-code"><pre><code>/pointe:voice</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p>If Pointe is not running, this starts it and opens the page. Press <strong>Connect</strong>, and talk:</p>
+<p>If Pointe is not running, this starts it and opens the page. Without Claude Code, <code>pointe open</code> does the same, and a
+Codex or OpenCode session joins with <code>pointe join codex</code> or <code>pointe join opencode</code>, run in its folder. Press <strong>Connect</strong>, and talk:</p>
 <ul>
 <li>"What is this session doing?"</li>
 <li>"Tell it to run the tests and fix what fails."</li>
@@ -154,7 +162,7 @@ with its exact text and <strong>Approve</strong> and <strong>Deny</strong>. You 
 <p>When a session asks for permission, Pointe reads the request out and waits. A plain "yes", said right after the
 read-out, approves it. "No" denies it. A request Pointe cannot read out whole (unknown programs, <code>sudo</code>, several lines)
 waits for a tap on the page, the iPhone app or the terminal. The exact rules: <a href="../how-it-works/#rules-enforced-in-code">How it works</a>.</p>
-<p>To end the call, hang up on the page. To stop Pointe entirely, run <code>/pointe:stop</code>.</p>
+<p>To end the call, hang up on the page. To stop Pointe entirely, run <code>/pointe:stop</code> (or <code>pointe stop</code>).</p>
 <h2 id="4-joining-a-session">4. Joining a session</h2>
 <p>A session you <strong>join</strong> to the voice is a coding-agent session that Pointe can hear about and talk to. It keeps running
 where it is, in its own terminal, with its own context. Joining it means three things:</p>
@@ -211,7 +219,7 @@ yourself with <code>/pointe:voice --name billing</code>, or rename it on the pag
 </tr>
 <tr>
 <td>Stop all voice</td>
-<td><code>/pointe:stop</code></td>
+<td><code>/pointe:stop</code>, or <code>pointe stop</code></td>
 </tr>
 </tbody>
 </table></div>

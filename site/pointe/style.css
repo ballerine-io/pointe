@@ -274,6 +274,14 @@ details.more-detail > div { padding: 8px 0 28px; }
 .term .p { color: #958D88; user-select: none; }
 .term .c { color: #958D88; }
 .term + .small { margin-top: 12px; }
+.tablist { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.tablist [role=tab] { font: inherit; font-weight: 500; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+                      border: 1px solid var(--line-strong); background: transparent; color: var(--body); }
+.tablist [role=tab][aria-selected=true] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.tablist [role=tab]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tabpanel + .tabpanel { margin-top: 32px; }
+.tabpanel[hidden] { display: none; }
+.tabs + .small { margin-top: 24px; }
 
 /* A scene: one panel in three parts that move together: the moment, what is said, and what the sessions do. */
 .scene { margin-top: 40px; }

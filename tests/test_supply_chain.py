@@ -191,7 +191,7 @@ def test_locked_requirements_lists_every_package_for_the_audit():
 # ---------- install paths ----------
 
 # Files whose commands a person or Claude runs. Prose files are reduced to their code spans and fenced blocks first.
-INSTALL_PATHS = ("bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*", ".github/workflows/*.yml", "local.py", "node_cli.py",
+INSTALL_PATHS = ("install.sh", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*", ".github/workflows/*.yml", "local.py", "node_cli.py",
                  "harnesses/*.py", "docs/**/*.md", "README.md", "CONTRIBUTING.md", "THIRD_PARTY.md")
 RULE_DOCS = {"docs/security/supply-chain.md", "SECURITY.md", "CLAUDE.md"}  # they name the forbidden commands to forbid them
 CODE = re.compile(r"```.*?```|`[^`\n]+`", re.S)
@@ -237,6 +237,24 @@ def test_nothing_the_plugin_runs_fetches_remote_code():
             assert not re.search(r"\beval\b|source\s*<\(|bash\s+-c\s+\"\$\(", line), f"{rel(path)}:{n}"
             if path.name != "install-uv" and re.search(r"\b(curl|wget|fetch\()", line):
                 assert "127.0.0.1" in line or "$URL" in line or "DAEMON_URL" in line, f"{rel(path)}:{n}: reaches past loopback: {line.strip()[:100]}"
+
+
+def test_only_the_two_installers_reach_past_loopback_and_each_checks_a_sha256_first():
+    """install.sh (the standalone install and `pointe update`) and bin/install-uv are the only scripts that download.
+    install.sh fetches only github.com (a release by version, its .sha256, the /releases/latest redirect), over https
+    with no redirect to another scheme, and unpacks only after the hash matched: the pin in the file, or the one
+    published with the release."""
+    text = (ROOT / "install.sh").read_text()
+    assert re.search(r'^POINTE_SHA256="([0-9a-f]{64})?"', text, re.M) and re.search(r'^POINTE_VERSION="\d+\.\d+\.\d+"', text, re.M)
+    assert 'REPO="https://github.com/ballerine-io/pointe"' in text
+    curls = [line for line in text.splitlines() if re.search(r"\bcurl\b", line) and not line.lstrip().startswith(("#", "for "))]
+    assert len(curls) == 2 and all("--proto '=https" in line and "--tlsv1.2" in line for line in curls), curls
+    assert "--proto-redir '=https'" in text
+    assert text.index('[ "$GOT" = "$SHA" ] || die') < text.index("tar -xzf") < text.index('"$DEST/install.sh" --activate')
+    assert not re.search(r"\beval\b|\|\s*(ba|z)?sh\b|source\s*<\(", text)
+    assert '"$ROOT/$INSTALL_UV"' in text  # uv only through the pinned installer
+    pointe = (ROOT / "bin" / "pointe").read_text()
+    assert '"$STANDALONE/install.sh" --update' in pointe and "curl" not in pointe
 
 
 def test_setup_installs_uv_through_the_pinned_installer_only():
@@ -347,7 +365,7 @@ def test_fetch_keeps_only_a_file_whose_hash_is_the_pinned_one(tmp_path, monkeypa
 # ---------- egress ----------
 
 URL_HOST = re.compile(r"(?:https?|wss?)://([A-Za-z0-9][A-Za-z0-9.-]*)")
-EGRESS_SOURCES = ("*.py", "harnesses/*.py", "bench/*.py", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
+EGRESS_SOURCES = ("install.sh", "*.py", "harnesses/*.py", "bench/*.py", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
                   "channel/*.mjs", "channel/package.json", "ui*.html", "site/**/*", "ios/Pointe/**/*.swift", "apple/PointeKit/Package.swift",
                   "apple/PointeKit/Sources/**/*.swift", "macos/PointeMac/**/*.swift", "macos/*.sh",
                   "macos/tools/*", ".github/**/*.yml")

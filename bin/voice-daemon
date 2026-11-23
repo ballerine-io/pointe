@@ -34,13 +34,20 @@ case "${1:-ensure}" in
       kill -9 $KIDS "$PID" 2>/dev/null || true
       for _ in $(seq 1 20); do "$LISTENERS" taken "$PORT" || break; sleep 0.25; done
     fi
-    rm -f "$PIDFILE"
+    rm -f "$PIDFILE" "$STATE/daemon.root"
     # The local text model holds about 17 GB of memory: stopping the voice frees it.
     [ -f "$STATE/local/server.pid" ] && uv run --no-sync --project "$ROOT" python -I "$ROOT/local.py" stop
     echo "stopped"; exit 0 ;;
   ensure) ;;
   *) echo "usage: voice-daemon ensure|stop|status" >&2; exit 2 ;;
 esac
+
+# One daemon, the newest installed copy's: with the plugin and the standalone install both here, a start from the
+# older one hands over (bin/pointe-installs). A clone or a worktree starts itself.
+if [ "$("$ROOT/bin/pointe-installs" kind)" != clone ]; then
+  NEWEST="$("$ROOT/bin/pointe-installs" newest || true)"
+  [ -n "$NEWEST" ] && [ "$NEWEST" != "$(cd "$ROOT" && pwd -P)" ] && exec "$NEWEST/bin/voice-daemon" ensure
+fi
 
 # One start at a time: two sessions running /pointe:voice together each started a daemon, the pidfile named the one
 # that lost the port, and the winner ran on where status and stop could not see it. The lock is a directory (macOS has
@@ -121,6 +128,7 @@ for var in $(env | sed -n 's/^\(CLAUDE_CODE_[A-Z_]*\)=.*/\1/p'); do UNSET+=(-u "
 env "${UNSET[@]}" CLAUDE_VOICE_STATE="$STATE" nohup uv run --no-sync --project "$ROOT" python "$ROOT/daemon.py" --port "$PORT" \
   >"$STATE/daemon.log" 2>&1 </dev/null &
 echo $! >"$PIDFILE"
+echo "$ROOT" >"$STATE/daemon.root"  # which copy runs: pointe doctor says it
 disown || true
 
 wait_healthy

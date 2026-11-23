@@ -156,6 +156,21 @@ struct Sandbox {
         #expect(box.locator(FakeRunner()).plugin() == nil)
     }
 
+    @Test func theNewerOfThePluginAndTheStandaloneInstallWinsAndTheStandaloneOneOnATie() async throws {
+        let box = try Sandbox(); defer { box.remove() }
+        try box.plugin(".claude/plugins/cache/pointe/pointe/1.23.0", version: "1.23.0")
+        try box.plugin(".pointe/1.24.0", version: "1.24.0")
+        try box.write("standalone 1.24.0\n", to: ".pointe/1.24.0/.pointe-install")
+        try box.plugin(".pointe/1.99.0", version: "1.99.0")  // no .pointe-install: install.sh never finished it
+        #expect(box.locator(FakeRunner()).plugin()?.root.lastPathComponent == "1.24.0")
+        #expect(box.locator(FakeRunner()).plugin()?.root.deletingLastPathComponent().lastPathComponent == ".pointe")
+        try box.plugin(".claude/plugins/cache/pointe/pointe/1.25.0", version: "1.25.0")
+        #expect(box.locator(FakeRunner()).plugin()?.version == "1.25.0")
+        try box.plugin(".pointe/1.25.0", version: "1.25.0")
+        try box.write("standalone 1.25.0\n", to: ".pointe/1.25.0/.pointe-install")
+        #expect(box.locator(FakeRunner()).plugin()?.root.deletingLastPathComponent().lastPathComponent == ".pointe")
+    }
+
     @Test func aChosenFolderAndClaudesConfigDirAreHonoured() async throws {
         let box = try Sandbox(); defer { box.remove() }
         let chosen = try box.plugin("src/pointe", version: "1.15.0")

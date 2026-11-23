@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Releasing · Pointe docs</title>
-<meta name="description" content="A release is a version commit on main, an annotated tag on it, and a GitHub Release with notes a person can read. Claude Code installs the plugin from main,…">
+<meta name="description" content="A release is a version commit on main, an annotated tag on it, and a GitHub Release with notes a person can read and the release tarball the standalone…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Releasing">
-<meta property="og:description" content="A release is a version commit on main, an annotated tag on it, and a GitHub Release with notes a person can read. Claude Code installs the plugin from main,…">
+<meta property="og:description" content="A release is a version commit on main, an annotated tag on it, and a GitHub Release with notes a person can read and the release tarball the standalone…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/releasing/">
 <meta name="twitter:card" content="summary_large_image">
@@ -109,9 +109,10 @@
 <main id="main" class="dx-main">
 <article class="dx-doc">
 <h1 id="releasing">Releasing</h1>
-<p>A release is a version commit on <code>main</code>, an annotated tag on it, and a GitHub Release with notes a person can read.
-Claude Code installs the plugin from <code>main</code>, and keeps one copy per version: a change to anything a user runs
-(the Python, <code>bin/</code>, <code>hooks/</code>, <code>plugin/</code>, the page, the app) reaches them only with a new version number. A change to
+<p>A release is a version commit on <code>main</code>, an annotated tag on it, and a GitHub Release with notes a person can read and
+the release tarball the standalone install uses. Claude Code installs the plugin from <code>main</code>, and keeps one copy per
+version; <code>install.sh</code> and <code>pointe update</code> install the tarball of a tag. A change to anything a user runs (the Python,
+<code>bin/</code>, <code>hooks/</code>, <code>plugin/</code>, <code>install.sh</code>, the page, the app) reaches them only with a new version number. A change to
 docs, tests or <code>bench/</code> alone needs no version.</p>
 <h2 id="1-the-version-commit">1. The version commit</h2>
 <p>Patch for a fix, minor for something a user can newly do, major for a change that breaks a setup. Move every place
@@ -145,7 +146,14 @@ git push origin vX.Y.Z</code></pre><button class="dx-copy" type="button" hidden>
 <p>The tag's name is <code>v</code> plus the version in <code>.claude-plugin/plugin.json</code> at that commit. Never move a pushed tag: a
 mistake gets a new patch version.</p>
 <h2 id="4-the-github-release">4. The GitHub Release</h2>
-<div class="dx-code"><pre><code>gh release create vX.Y.Z --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<div class="dx-code"><pre><code>python3 tools/release_tarball.py build vX.Y.Z          # dist/pointe-X.Y.Z.tar.gz and .sha256, a git archive of the tag
+gh release create vX.Y.Z --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
+python3 tools/release_tarball.py pin vX.Y.Z            # install.sh installs it: the version and the SHA-256 the release publishes</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Commit the pinned <code>install.sh</code> on its own ("The installer pins X.Y.Z"; it changes only <code>POINTE_VERSION</code> and
+<code>POINTE_SHA256</code>, and needs no version), then deploy the site, which serves it at <code>/pointe/install.sh</code>. Until then a new
+standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out
+<code>bench/</code>, <code>evals/</code> and <code>site/</code> (<code>.gitattributes</code>). Never replace an asset of a published release: a mistake gets a new
+patch version, as for a tag.</p>
 <p>Write the notes for someone who has never seen Pointe, in this order:</p>
 <ol>
 <li>What Pointe is, in two sentences (the README's first paragraph).</li>
@@ -154,16 +162,17 @@ mistake gets a new patch version.</p>
    reported or fixed something.</p>
 </li>
 <li>
-<p>Install and update. Install is the one command in the README. To update: <code>claude plugin marketplace update pointe</code>,
-   then <code>claude plugin update pointe@pointe</code>, then <code>/pointe:stop</code> and <code>/pointe:voice</code> so the daemon restarts on the new
-   code.</p>
+<p>Install and update. Install is the README's: the plugin command for Claude Code, <code>install.sh</code> for Codex and
+   OpenCode. To update the plugin: <code>claude plugin marketplace update pointe</code>, then <code>claude plugin update pointe@pointe</code>,
+   then <code>/pointe:stop</code> and <code>/pointe:voice</code> so the daemon restarts on the new code. The standalone install: <code>pointe
+   update</code>.</p>
 </li>
 <li>
 <p>Limits that matter to a new user (the README's "Limits"), and anything this version is known not to fix.</p>
 </li>
 </ol>
-<p>No claim the README does not make, no "first" or "only", and numbers only with their source. The release has no
-attached files: the plugin installs from the repository.</p>
+<p>No claim the README does not make, no "first" or "only", and numbers only with their source. The release's two files
+are the tarball and its SHA-256; the plugin installs from the repository.</p>
 <h2 id="5-after">5. After</h2>
 <ul>
 <li>The iPhone app follows its own path to TestFlight and the App Store: <code>docs/ios/app-store.md</code>.</li>

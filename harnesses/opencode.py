@@ -466,9 +466,22 @@ def pick_session(cwd: str, wanted: str | None) -> dict:
     return max(found, key=lambda s: (s["id"] in running, (s.get("time") or {}).get("updated") or 0))
 
 
+def pointe_command() -> Path:
+    """The `pointe` a command written into another program runs: ~/.local/bin/pointe when Pointe wrote it, which follows
+    updates and the newer of the plugin and the standalone install (bin/link-pointe); else this copy's, whose folder an
+    update deletes."""
+    link = Path.home() / ".local" / "bin" / "pointe"
+    try:
+        if "# Written by Pointe (bin/link-pointe)" in link.read_text(errors="replace"):  # uninstall.LINK_MARK
+            return link
+    except OSError:
+        pass
+    return ROOT / "bin" / "pointe"
+
+
 def install_command() -> None:
     """An OpenCode v2 plugin with a /voice command: it joins the session it is typed in."""
-    pointe = ROOT / "bin" / "pointe"
+    pointe = pointe_command()
     PLUGIN.parent.mkdir(parents=True, exist_ok=True)
     PLUGIN.write_text(f'''// Pointe: /voice joins this OpenCode session to the shared voice. Written by `pointe join opencode --install-command`.
 import {{ execFile }} from "node:child_process"

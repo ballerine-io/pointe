@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.23
+
+- **1.23.0** (2026-11-23): Pointe installs without Claude Code: one installer for Codex and OpenCode, checked against the release's SHA-256, then pointe setup in the terminal (Codex's shared app-server, /voice in OpenCode) and pointe update; with the plugin on the same Mac there is one Pointe, the newer one, and pointe doctor says which runs
+
 ## 1.22
 
 - **1.22.0** (2026-11-23): Say "stop" and Pointe ends what a session is working on (Codex and OpenCode at once, Claude Code at its next step); after "which session?" Pointe sends the request you were asked about, not the one before; more permission requests can be approved by voice, and one that needs a tap says so once and is read on request; misheard names reach the agent as heard; and a short answer to your question comes without waiting for the reading model

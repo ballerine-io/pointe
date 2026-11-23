@@ -133,7 +133,7 @@ def test_each_group_has_its_own_question(mac, monkeypatch):
     monkeypatch.setattr(uninstall.sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(uninstall, "_ask", lambda q: asked.append(q) or next(answers) == "y")
     assert uninstall.main([]) == 0
-    assert asked == ["Remove Pointe's own files and the plugin?", "Delete Pointe's keys from the Keychain?",
+    assert asked == ["Remove Pointe's own files, the plugin and the standalone install?", "Delete Pointe's keys from the Keychain?",
                      "Also remove the shared items listed above?"]
     assert (mac.keychain / "pointe.gemini-api-key").exists() and not (mac.keychain / "soniox-api-key").exists()
     assert not mac.hub.exists() and not mac.state.exists()

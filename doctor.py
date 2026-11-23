@@ -7,6 +7,7 @@ import contextlib
 import io
 import json
 import os
+import shutil
 import socket
 import sys
 import textwrap
@@ -169,6 +170,34 @@ def harnesses_here() -> list[str]:
     return lines
 
 
+def install_lines() -> list[str]:
+    """Which copies of Pointe are installed (bin/pointe-installs: the Claude Code plugin, the standalone install), which
+    one `pointe` and every start use (the newest), and which one the running daemon came from."""
+    import subprocess
+
+    root = Path(__file__).resolve().parent
+    names = {"plugin": "Claude Code plugin", "standalone": "standalone install"}
+    try:
+        got = subprocess.run([str(root / "bin" / "pointe-installs"), "list"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        got = ""
+    rows = [line.split("\t") for line in got.splitlines() if line.count("\t") == 2]
+    lines = [f"  {names[kind]:18} {version:8} {path}" + ("   (the newest: pointe and each start use it)" if not i else "")
+             for i, (kind, version, path) in enumerate(rows)]
+    if not rows:
+        lines.append(f"  none: this copy runs from a folder ({root})")
+    try:
+        os.kill(int((state_dir() / "daemon.pid").read_text()), 0)
+        ran = Path((state_dir() / "daemon.root").read_text().strip()).resolve()
+    except (OSError, ValueError):
+        return lines
+    which = next(((kind, version) for kind, version, path in rows if Path(path).resolve() == ran), None)
+    lines.append(f"  running: {f'the {names[which[0]]}, {which[1]}' if which else ran}")
+    if rows and Path(rows[0][2]).resolve() != ran:
+        lines.append(f"  The {names[rows[0][0]]} is newer ({rows[0][1]}): pointe restart runs it.")
+    return lines
+
+
 def state_dir() -> Path:
     return Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
 
@@ -223,7 +252,9 @@ def verdict(problems: int, status: dict, setup, refused: list[str], faults: list
     cannot be used now (out of quota, the vendor failing)."""
     name = f" Setup: {setup.name}." if setup else ""
     if not problems and not status["needed"] and not refused and not faults:
-        return [f"Pointe is ready.{name} Start a call: /pointe:voice in Claude Code."]
+        start = ("/pointe:voice in Claude Code" if shutil.which("claude") else
+                 "pointe open, then pointe join codex or pointe join opencode in a session's folder")
+        return [f"Pointe is ready.{name} Start a call: {start}."]
     if refused:
         vendor = refused[0]
         return [f"Pointe is not ready: the {NAMES.get(vendor, vendor)} key was refused.",
@@ -265,6 +296,8 @@ def main() -> int:
 
 def _details() -> tuple:
     live, problems, refused, faults = "--live" in sys.argv, 0, [], []
+    print("\nInstalled:")
+    print("\n".join(install_lines()))
     print("\nCoding agents:")
     print("\n".join(harnesses_here()))
     present = {v for v in vendors.KEYS if vendors.has(v)}

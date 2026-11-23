@@ -36,36 +36,45 @@ Pointe:  Duplicate charges during failover. It decided that an hour ago.
 
 ## Install
 
+**Claude Code:** one command, then `/pointe:setup` in a new Claude Code session.
+
 ```
 claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
 ```
 
-Then open a new Claude Code session and run `/pointe:setup`: about 5 minutes, free with one Google key. It asks one
-question, opens the key page and a Mac window for the key (the key goes to your Keychain, never into the chat), and
-starts your first call: say "hello", and Pointe answers that it hears you.
-
-You need macOS, [Claude Code](https://code.claude.com) 2.1.224 or newer, Chrome and headphones. More ways in, including
-the Claude desktop app: [docs/install.md](docs/install.md).
-
-Then, in each session you want to reach:
+**Codex or OpenCode** (no Claude Code needed): download the installer, run it, then `pointe setup` in a new terminal.
 
 ```
-/pointe:voice
+curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh
+pointe setup
 ```
 
-A tab opens: allow the microphone, press Connect, and say hello. `/pointe:stop` stops all voice.
+Setup takes about 5 minutes and is free with one Google key. It asks one question, opens the key page and a Mac window
+for the key (the key goes to your Keychain, never into the chat or the terminal), and starts your first call: say
+"hello", and Pointe answers that it hears you. `install.sh` checks the release against a SHA-256, needs no `sudo`, and
+asks before it changes anything; `pointe setup` then sets up Codex (its shared app-server and a `codex` alias, shown and
+asked first) and OpenCode (a `/voice` command).
+
+You need macOS, Chrome, headphones, and [Claude Code](https://code.claude.com) 2.1.224 or newer, Codex 0.160 or newer,
+or OpenCode v2. More ways in, including the Claude desktop app, and updates: [docs/install.md](docs/install.md).
+
+Then join the sessions you want to reach: `/pointe:voice` in a Claude Code session, `pointe join codex` or
+`pointe join opencode` in a Codex or OpenCode session's folder. A tab opens: allow the microphone, press Connect, and say
+hello. `/pointe:stop` or `pointe stop` stops all voice.
 
 The step-by-step guide, the phone, models, architecture and every feature: [the docs](docs/README.md).
 
 ### What this does to your Mac
 
-- **Installs** the plugin into Claude Code's plugin folder; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
+- **Installs** the plugin into Claude Code's plugin folder, or, with `install.sh`, a checked release into
+  `~/.pointe/<version>`; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
   is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
   the first run (about 530 MB on disk); and `~/.local/bin/pointe`, so `pointe` is a command in your terminal.
-- **Adds two Claude Code hooks**, active in every session: `PermissionRequest` (while Pointe runs, it holds the
+- **Adds two Claude Code hooks** (the plugin only), active in every session: `PermissionRequest` (while Pointe runs, it holds the
   permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
   and `SessionStart` (one file check, to suggest `/pointe:setup` until it is done).
-- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice`, until `/pointe:stop` or a restart of the Mac.
+- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice` or `pointe open`, until `/pointe:stop` or a restart of the Mac.
   Nothing starts at login unless you turn that on in the Mac app. During a call from your phone, on mains power, it
   runs `caffeinate -i` so the Mac does not sleep under the call. After you pair a phone it also listens on port 7443.
 - **Stores** your keys in the macOS Keychain only, as `pointe.<vendor>-api-key`; settings, logs and a journal of each
@@ -86,6 +95,7 @@ The step-by-step guide, the phone, models, architecture and every feature: [the 
 | `pointe local` | fully local: download and start the local models, no keys ([details](docs/features/local.md)) |
 | `pointe local voice` | voice stays on your Mac: local ears and mouth, the brain in the cloud gets text only ([details](docs/features/voice-stays-local.md)) |
 | `/pointe:voice-review` | ask a session what happened in the last call |
+| `pointe update` | the standalone install: the newest release, checked against its SHA-256 ([details](docs/install.md#the-standalone-install)) |
 
 OpenCode and Codex sessions join with `pointe join opencode` or `pointe join codex`: see
 [docs/harnesses.md](docs/harnesses.md).

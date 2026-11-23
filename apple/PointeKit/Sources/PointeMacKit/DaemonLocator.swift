@@ -27,7 +27,8 @@ public struct DaemonPaths: Sendable, Equatable {
     public var log: URL { stateDir.appendingPathComponent("daemon.log") }
 }
 
-/// An installed copy of the plugin: the folder with `bin/voice-daemon`, and its version.
+/// An installed copy of Pointe (the Claude Code plugin, or the standalone install from install.sh): the folder with
+/// `bin/voice-daemon`, and its version.
 public struct PluginInstall: Sendable, Equatable {
     public let root: URL
     public let version: String
@@ -144,10 +145,27 @@ public struct DaemonLocator: Sendable {
         return dirs
     }
 
-    /// In order: a folder the user chose; the install path Claude Code recorded for `pointe@pointe`; the newest version
-    /// in its plugin cache. A candidate that is not the Pointe plugin is skipped.
+    /// A folder the user chose; otherwise the newer of the Claude Code plugin and the standalone install, the standalone
+    /// one on a tie, as `bin/pointe-installs` picks. A candidate that is not Pointe is skipped.
     public func plugin(chosen: URL? = nil) -> PluginInstall? {
         if let chosen, let install = PluginInstall(root: chosen) { return install }
+        return [standalone(), claudePlugin()].compactMap { $0 }
+            .max(by: { VersionCheck.compare(app: $0.version, daemon: $1.version) == .appOlder })
+    }
+
+    /// install.sh's folders: `$POINTE_HOME` (else `~/.pointe`)/<version>, each with the `.pointe-install` file written
+    /// once its SHA-256 matched. The newest.
+    func standalone() -> PluginInstall? {
+        let base = environment["POINTE_HOME"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
+            ?? home.appendingPathComponent(".pointe")
+        let folders = (try? FileManager.default.contentsOfDirectory(at: base, includingPropertiesForKeys: nil)) ?? []
+        return folders.filter { FileManager.default.fileExists(atPath: $0.appendingPathComponent(".pointe-install").path) }
+            .compactMap { PluginInstall(root: $0) }
+            .max(by: { VersionCheck.compare(app: $0.version, daemon: $1.version) == .appOlder })
+    }
+
+    /// The install path Claude Code recorded for `pointe@pointe`; else the newest version in its plugin cache.
+    func claudePlugin() -> PluginInstall? {
         for dir in configDirs {
             let record = dir.appendingPathComponent("plugins/installed_plugins.json")
             if let data = try? Data(contentsOf: record),

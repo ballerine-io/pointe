@@ -60,7 +60,8 @@
           <pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre>
           <button type="button" class="copy" hidden>Copy</button>
         </div>
-        <p class="small">Then run <code>/pointe:setup</code> in Claude Code: about 5 minutes, free with one Google key.</p>
+        <p class="small">Then run <code>/pointe:setup</code> in Claude Code: about 5 minutes, free with one Google key.
+          Codex or OpenCode without Claude Code: <a href="#install">the standalone install</a>.</p>
       </div>
       <figure class="devices">
         <div class="devices-stage">
@@ -123,7 +124,7 @@
       <div><dt class="kicker">Cost</dt><dd>About $1 for a busy hour (60 replies) on your own keys, by arithmetic. Free on one Gemini key's free tier. $0 fully local.</dd></div>
       <div><dt class="kicker">Models</dt><dd>You set each role. Defaults: Claude Sonnet 5.5 thinks, Soniox hears, ElevenLabs speaks. Or Gemini or OpenAI alone, or Whisper, Kokoro and Gemma on the Mac.</dd></div>
       <div><dt class="kicker">Needs</dt><dd>macOS, Claude Code 2.1.224 or newer, Chrome, headphones, one model key. The Mac and iPhone apps are optional, built from source.</dd></div>
-      <div><dt class="kicker">License</dt><dd>MIT. Version <span data-version>1.22.0</span>.</dd></div>
+      <div><dt class="kicker">License</dt><dd>MIT. Version <span data-version>1.23.0</span>.</dd></div>
       <div><dt class="kicker">Source</dt><dd><a class="link" href="https://github.com/ballerine-io/pointe">github.com/<wbr>ballerine-io/<wbr>pointe</a></dd></div>
     </dl>
   </div>
@@ -688,46 +689,87 @@
   <section id="install" class="section" aria-labelledby="h-install">
     <div class="page">
       <div class="head-stack">
-        <h2 id="h-install" class="h2">Install the plugin, run setup, join a session.</h2>
-        <p class="body">You need macOS, Claude Code 2.1.224 or newer, Chrome, headphones, and one model key, or an
-          Apple-silicon Mac with 32 GB of memory for the fully local mode.</p>
+        <h2 id="h-install" class="h2">Install it for the agent you use, run setup, join a session.</h2>
+        <p class="body">You need macOS, Chrome, headphones, one model key (or an Apple-silicon Mac with 32 GB of memory for
+          the fully local mode), and a coding agent: Claude Code 2.1.224 or newer, Codex 0.160 or newer, or OpenCode v2.</p>
       </div>
-      <div class="split split--term block">
-        <ol class="steps">
-          <li><div><span class="title">Install the plugin</span>One command, from the repository.</div></li>
-          <li><div><span class="title">Run <code>/pointe:setup</code> in a new Claude Code session</span>About 5
-            minutes, free with one Google key. It checks your Mac, asks one question (Start with Free start?), opens the
-            key page and a Mac window for the key, so the key goes to your Keychain and never into the chat, checks it,
-            and starts your first call: say hello, and Pointe answers that it hears you. Your phone and the apps come
-            after, if you want them.</div></li>
-          <li><div><span class="title">Run <code>/pointe:voice</code> in each session you want to reach</span>The first
-            run downloads about 180 MB. A tab opens: allow the microphone, press Connect, and say hello. OpenCode and Codex
-            sessions join with <code>pointe join</code>. Later, say "start a new Codex session in shop" and
-            Pointe starts one.</div></li>
-        </ol>
-        <div>
-          <pre class="term" aria-label="The commands, in order"><code><span class="p">$ </span>claude plugin marketplace add https://github.com/ballerine-io/pointe.git
+      <div class="tabs block" data-tabs>
+        <div class="tablist" role="tablist" aria-label="Your coding agent" hidden>
+          <button type="button" role="tab" id="tab-claude" aria-controls="install-claude" aria-selected="true">Claude Code</button>
+          <button type="button" role="tab" id="tab-codex" aria-controls="install-codex" aria-selected="false" tabindex="-1">Codex</button>
+          <button type="button" role="tab" id="tab-opencode" aria-controls="install-opencode" aria-selected="false" tabindex="-1">OpenCode</button>
+        </div>
+        <div class="split split--term tabpanel" role="tabpanel" id="install-claude" aria-labelledby="tab-claude">
+          <ol class="steps">
+            <li><div><span class="title">Install the plugin</span>One command, from the repository.</div></li>
+            <li><div><span class="title">Run <code>/pointe:setup</code> in a new Claude Code session</span>About 5
+              minutes, free with one Google key. It checks your Mac, asks one question (Start with Free start?), opens the
+              key page and a Mac window for the key, so the key goes to your Keychain and never into the chat, checks it,
+              and starts your first call: say hello, and Pointe answers that it hears you.</div></li>
+            <li><div><span class="title">Run <code>/pointe:voice</code> in each session you want to reach</span>A tab
+              opens: allow the microphone, press Connect, and say hello.</div></li>
+          </ol>
+          <div>
+            <pre class="term" aria-label="Claude Code: the commands, in order"><code><span class="p">$ </span>claude plugin marketplace add https://github.com/ballerine-io/pointe.git
 <span class="p">$ </span>claude plugin install pointe@pointe
 
 <span class="c"># in a new Claude Code session</span>
 <span class="p">&gt; </span>/pointe:setup
 
 <span class="c"># in each session you want on the voice</span>
-<span class="p">&gt; </span>/pointe:voice
-<span class="p">$ </span>pointe join opencode
-<span class="p">$ </span>pointe join codex      <span class="c"># started as codex --remote unix://</span>
+<span class="p">&gt; </span>/pointe:voice</code></pre>
+          </div>
+        </div>
+        <div class="split split--term tabpanel" role="tabpanel" id="install-codex" aria-labelledby="tab-codex">
+          <ol class="steps">
+            <li><div><span class="title">Download and run the installer</span>No Claude Code needed. It says what it
+              will do and asks first, checks the release against a SHA-256, and needs no sudo.</div></li>
+            <li><div><span class="title">Run <code>pointe setup</code></span>The same one question, your key in a Mac
+              window, and your first call. Then it starts Codex's shared app-server and shows the line that makes
+              <code>codex</code> use it; it adds that line to your shell only on your yes.</div></li>
+            <li><div><span class="title">Join a Codex session</span>Start <code>codex</code> in a project, then run
+              <code>pointe join codex</code> in that folder.</div></li>
+          </ol>
+          <div>
+            <pre class="term" aria-label="Codex: the commands, in order"><code><span class="p">$ </span>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+<span class="p">$ </span>bash install.sh
+<span class="p">$ </span>pointe setup
 
-<span class="c"># optional: the apps, built on this Mac (Xcode 16)</span>
-<span class="p">$ </span>pointe apps mac        <span class="c"># the Mac app, into ~/Applications (macOS 15)</span>
-<span class="p">$ </span>pointe apps ios        <span class="c"># the iPhone app, onto your iPhone (free Apple Account)</span></code></pre>
-          <p class="small">To remove it: <code>pointe uninstall</code> in a terminal. It lists what Pointe added (the plugin and
-            its two hooks, <code>~/.claude-voice</code>, the Mac app, its keys in the Keychain), asks, and removes it.</p>
+<span class="c"># in a new terminal, in a project</span>
+<span class="p">$ </span>codex
+<span class="c"># in that folder, in another terminal</span>
+<span class="p">$ </span>pointe join codex</code></pre>
+          </div>
+        </div>
+        <div class="split split--term tabpanel" role="tabpanel" id="install-opencode" aria-labelledby="tab-opencode">
+          <ol class="steps">
+            <li><div><span class="title">Download and run the installer</span>No Claude Code needed. It says what it
+              will do and asks first, checks the release against a SHA-256, and needs no sudo.</div></li>
+            <li><div><span class="title">Run <code>pointe setup</code></span>The same one question, your key in a Mac
+              window, and your first call. Then it adds a <code>/voice</code> command to OpenCode.</div></li>
+            <li><div><span class="title">Join an OpenCode session</span>Restart OpenCode and type <code>/voice</code> in
+              a session, or run <code>pointe join opencode</code> in its folder.</div></li>
+          </ol>
+          <div>
+            <pre class="term" aria-label="OpenCode: the commands, in order"><code><span class="p">$ </span>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+<span class="p">$ </span>bash install.sh
+<span class="p">$ </span>pointe setup
+
+<span class="c"># in an OpenCode session, after a restart of OpenCode</span>
+<span class="p">&gt; </span>/voice
+<span class="c"># or, in the session's folder</span>
+<span class="p">$ </span>pointe join opencode</code></pre>
+          </div>
         </div>
       </div>
+      <p class="small"><a href="docs/install/#what-this-does-to-your-mac">What this does to your Mac</a>. To remove it:
+        <code>pointe uninstall</code> in a terminal; it lists what Pointe added, asks, and removes it. Both installs can be
+        on one Mac: the newer one runs. Optional apps, built on this Mac with Xcode: <code>pointe apps mac</code>,
+        <code>pointe apps ios</code>.</p>
       <p class="small note">To try it free: one Google AI Studio key, no card. The quota is small, and Google may review
         what you send on that tier. With local voice and one text key, a busy hour is about $0.30 to $0.40. You pay the
         vendors directly. Which keys each setup needs, and what it measured: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/setups.md">setups.md</a>.
-        More install options, including the Claude desktop app: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/install.md">install.md</a>.</p>
+        More install options, updates and the Claude desktop app: <a href="docs/install/">Install</a>.</p>
     </div>
   </section>
 
@@ -833,6 +875,27 @@
       const paused = b.getAttribute('aria-pressed') !== 'true';
       b.setAttribute('aria-pressed', String(paused));
       b.closest('.wg-logos').classList.toggle('is-paused', paused);
+    });
+  }
+  // Install tabs: with no script every panel shows, each under its own commands; with it, one at a time.
+  for (const tabs of document.querySelectorAll('[data-tabs]')) {
+    const list = tabs.querySelector('[role=tablist]'), buttons = [...list.querySelectorAll('[role=tab]')];
+    const pick = (b, focus) => {
+      for (const t of buttons) {
+        const on = t === b;
+        t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      }
+      if (focus) b.focus();
+    };
+    list.hidden = false;
+    pick(buttons[0], false);
+    buttons.forEach((b, i) => {
+      b.addEventListener('click', () => pick(b, false));
+      b.addEventListener('keydown', e => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (step) { e.preventDefault(); pick(buttons[(i + step + buttons.length) % buttons.length], true); }
+      });
     });
   }
   for (const box of document.querySelectorAll('[data-cmd]')) {

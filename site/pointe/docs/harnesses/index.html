@@ -325,7 +325,7 @@ call with a real OpenCode model (a prompt, a spoken report, a voice approval) ha
 <p>Codex 0.160+ runs a shared app-server daemon. A TUI started with <code>codex --remote unix:// -C "$PWD"</code> is a client of
 it, so the voice drives the thread the user is typing in. A plain <code>codex</code> runs its app-server inside its own process
 and holds the thread's writer lock: it cannot be joined, and Pointe says how to start it instead (alias <code>codex</code> to the
-command above). Protocol: JSON-RPC over a WebSocket on the Unix socket <code>~/.codex/app-server-control/app-server-control.sock</code>.</p>
+command above; <code>pointe setup codex</code> starts the app-server and offers the alias, <a href="../install/#codex">install.md</a>). Protocol: JSON-RPC over a WebSocket on the Unix socket <code>~/.codex/app-server-control/app-server-control.sock</code>.</p>
 <div class="dx-table"><table>
 <thead>
 <tr>

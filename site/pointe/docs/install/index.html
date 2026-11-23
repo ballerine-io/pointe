@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install Pointe · Pointe docs</title>
-<meta name="description" content="One command in Terminal (or, in the Claude desktop app&#x27;s Code tab, type the two /plugin commands below):">
+<meta name="description" content="Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code plugin, or the standalone install,…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Install Pointe">
-<meta property="og:description" content="One command in Terminal (or, in the Claude desktop app&#x27;s Code tab, type the two /plugin commands below):">
+<meta property="og:description" content="Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code plugin, or the standalone install,…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/install/">
 <meta name="twitter:card" content="summary_large_image">
@@ -109,6 +109,10 @@
 <main id="main" class="dx-main">
 <article class="dx-doc">
 <h1 id="install-pointe">Install Pointe</h1>
+<p>Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code
+plugin, or the standalone install, which needs no Claude Code and is the way in for Codex and OpenCode. Both can be on
+the same Mac: one Pointe runs, the newer one (<a href="#the-standalone-install">The standalone install</a>).</p>
+<h2 id="claude-code">Claude Code</h2>
 <p><strong>One command</strong> in Terminal (or, in the Claude desktop app's Code tab, type the two <code>/plugin</code> commands below):</p>
 <div class="dx-code"><pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Desktop app: <code>/plugin marketplace add https://github.com/ballerine-io/pointe.git</code>, then <code>/plugin install pointe@pointe</code>.</p>
@@ -118,6 +122,67 @@ question ("Start with Free start?"; the other setups only if you ask), opens the
 the key so it goes straight to your Keychain, checks the key with one tiny call, and starts your first call. Say
 "hello": Pointe answers that it hears you, and setup says "Pointe heard you. You're set up." Your phone, the Mac app and
 faster setups come after, as optional extras.</p>
+<h2 id="codex">Codex</h2>
+<div class="dx-code"><pre><code>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh
+pointe setup</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><code>install.sh</code> says what it will do and asks first (<a href="#the-standalone-install">The standalone install</a>). <code>pointe setup</code> is
+the same one-question flow as <code>/pointe:setup</code>, in the terminal: it checks your Mac, asks "Start with Free start?", opens
+the key page and the Mac window for the key, and starts your first call; the page opens, and you say hello. Then, if
+Codex is on the Mac, it sets Codex up for the voice:</p>
+<ul>
+<li>
+<p>It starts Codex's shared app-server (<code>codex app-server daemon start</code>). Pointe joins a Codex session through it: a
+  <code>codex</code> started with <code>--remote unix://</code> is its client, so Pointe sees and sends to the thread you type in.</p>
+</li>
+<li>
+<p>It shows this line and asks before it adds it to <code>~/.zshrc</code> (or <code>~/.bash_profile</code>), so every <code>codex</code> starts the
+  app-server if it is not running and connects to it:</p>
+<div class="dx-code"><pre><code>alias codex=&#x27;command codex app-server daemon start &gt;/dev/null 2&gt;&amp;1; command codex --remote unix:// -C &quot;$PWD&quot;&#x27;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+</li>
+</ul>
+<p>Then start <code>codex</code> in a project folder (in a new terminal, so the line takes effect), and join it to the voice from
+that folder, in another terminal:</p>
+<div class="dx-code"><pre><code>pointe join codex</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><code>pointe setup codex</code> does the Codex part again on its own. <a href="../harnesses/#codex-cli-harnessescodexpy">Harnesses</a> has how
+the join works.</p>
+<h2 id="opencode">OpenCode</h2>
+<div class="dx-code"><pre><code>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh
+pointe setup</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The same first setup as for Codex. Then, if OpenCode is on the Mac, it adds a <code>/voice</code> command to OpenCode
+(<code>pointe join opencode --install-command</code>). Restart OpenCode, and type <code>/voice</code> in a session to join it. The command has
+not yet been run in a real OpenCode; <code>pointe join opencode</code>, in the session's folder, joins it the tested way.
+<code>pointe setup opencode</code> does the OpenCode part again on its own.</p>
+<h2 id="the-standalone-install">The standalone install</h2>
+<p><code>install.sh</code> is served at <code>https://eng.ballerine.com/pointe/install.sh</code> and is
+<a href="https://github.com/ballerine-io/pointe/blob/main/install.sh"><code>install.sh</code> in the repository</a>. Download it to a file, read it if you like, and run it with <code>bash</code>:
+nothing is piped into a shell. It runs as you, with no <code>sudo</code>, shows what it will do, and asks before it does it
+(<code>--yes</code> answers for a script). It:</p>
+<ol>
+<li>
+<p>Downloads one release, <code>pointe-&lt;version&gt;.tar.gz</code>, from the repository's GitHub Releases, and checks it against the
+   SHA-256 written in the installer (or, for another version with <code>--version</code>, the SHA-256 published with that release).
+   On any difference it stops before anything is unpacked.</p>
+</li>
+<li>
+<p>Unpacks it into <code>~/.pointe/&lt;version&gt;</code>.</p>
+</li>
+<li>Installs uv into <code>~/.local/bin</code> if it is missing, the same checked way the plugin does (<code>bin/install-uv</code>).</li>
+<li>Installs Pointe's Python packages into <code>~/.pointe/&lt;version&gt;/.venv</code>, from <code>uv.lock</code> (about 180 MB to download).</li>
+<li>Makes <code>pointe</code> a command: <code>~/.local/bin/pointe</code>.</li>
+</ol>
+<p><strong>Updates.</strong> <code>pointe update</code> finds the newest release, checks it against the SHA-256 published with it, installs it
+beside the old one, restarts Pointe on it if Pointe ran from the old one (a call in progress ends), and then removes the
+old one. It asks first; <code>--yes</code> for a script. The plugin updates through Claude Code: <code>claude plugin marketplace update
+pointe</code>, then <code>claude plugin update pointe@pointe</code>, then <code>pointe restart</code>.</p>
+<p><strong>Both on one Mac.</strong> The plugin and the standalone install can both be here. There is still one daemon and one
+<code>~/.local/bin/pointe</code>: both go to the newer version (the standalone install on a tie), and a start from the other one
+hands over to it. <code>pointe doctor</code> lists both under "Installed" and says which one runs.</p>
+<p><strong>Not as a Python tool.</strong> <code>uvx</code> and <code>uv tool install</code> from the git tag do not work cleanly, so they are not offered:
+Pointe is not a Python package (it runs from its folder: shell scripts, the page, the hooks), and <code>uv tool install</code>
+resolves the dependencies again instead of installing the hashes in <code>uv.lock</code>.</p>
+<h2 id="which-keys">Which keys</h2>
 <p><strong>What do I need?</strong> Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy
 hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20).
 Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.</p>
@@ -126,22 +191,23 @@ the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no in
 Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed
 per use: about $1 for a busy hour of talk.</p>
 <p>The setups side by side, what each key does in them, what each measured and where your words go:
-<a href="../setups/">setups.md</a>. <code>/pointe:setup</code> starts you on Free start unless you ask for another, then asks only for its
-keys; <a href="#try-it-for-free-or-cheap">Try it for free or cheap</a> has the free and cheap ways in.</p>
+<a href="../setups/">setups.md</a>. <code>/pointe:setup</code> and <code>pointe setup</code> start you on Free start unless you ask for another, then ask
+only for its keys; <a href="#try-it-for-free-or-cheap">Try it for free or cheap</a> has the free and cheap ways in.</p>
 <h2 id="what-this-does-to-your-mac">What this does to your Mac</h2>
 <ul>
 <li>
-<p><strong>Installs</strong> the plugin into Claude Code's plugin folder; <a href="https://docs.astral.sh/uv/">uv</a> into <code>~/.local/bin</code> if it
+<p><strong>Installs</strong> the plugin into Claude Code's plugin folder, or, with <code>install.sh</code>, a checked release into
+  <code>~/.pointe/&lt;version&gt;</code>; <a href="https://docs.astral.sh/uv/">uv</a> into <code>~/.local/bin</code> if it
   is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
   the first run (about 530 MB on disk); and <code>~/.local/bin/pointe</code>, so <code>pointe</code> is a command in your terminal.</p>
 </li>
 <li>
-<p><strong>Adds two Claude Code hooks</strong>, active in every session: <code>PermissionRequest</code> (while Pointe runs, it holds the
+<p><strong>Adds two Claude Code hooks</strong> (the plugin only), active in every session: <code>PermissionRequest</code> (while Pointe runs, it holds the
   permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
   and <code>SessionStart</code> (one file check, to suggest <code>/pointe:setup</code> until it is done).</p>
 </li>
 <li>
-<p><strong>Runs</strong> one daemon on <code>127.0.0.1:7860</code>, started by <code>/pointe:voice</code>, until <code>/pointe:stop</code> or a restart of the Mac.
+<p><strong>Runs</strong> one daemon on <code>127.0.0.1:7860</code>, started by <code>/pointe:voice</code> or <code>pointe open</code>, until <code>/pointe:stop</code> or a restart of the Mac.
   Nothing starts at login unless you turn that on in the Mac app. During a call from your phone, on mains power, it
   runs <code>caffeinate -i</code> so the Mac does not sleep under the call. After you pair a phone it also listens on port 7443.</p>
 </li>
@@ -159,7 +225,7 @@ keys; <a href="#try-it-for-free-or-cheap">Try it for free or cheap</a> has the f
 </li>
 </ul>
 <p>If macOS asks to install the command line developer tools, press Install, wait for it to finish, and run the command
-again: Claude Code needs <code>git</code> to fetch the plugin.</p>
+again: Claude Code needs <code>git</code> to fetch the plugin. The standalone install needs no <code>git</code>.</p>
 <p>If git cannot fetch the repository (a proxy or a firewall in the way), download it as a zip from
 <a href="https://github.com/ballerine-io/pointe">its GitHub page</a> (Code, then Download ZIP) and use the prompt below, which
 also installs from a folder.</p>
@@ -263,14 +329,17 @@ The pricing pages of <a href="https://developers.openai.com/api/docs/pricing">Op
 name no free credit.</p>
 <h2 id="what-it-installs">What it installs</h2>
 <ul>
-<li>The Pointe plugin, into Claude Code's own plugin folder.</li>
+<li>
+<p>The Pointe plugin, into Claude Code's own plugin folder. Or, with <code>install.sh</code>, one release in
+  <code>~/.pointe/&lt;version&gt;</code> (about 7 MB before its Python packages); <code>pointe update</code> replaces it with the next.</p>
+</li>
 <li>
 <p><a href="https://docs.astral.sh/uv/">uv</a>, which runs Pointe's Python, into <code>~/.local/bin</code>, if it is missing: one pinned
   version, whose installer is checked against a SHA-256 before it runs (<code>bin/install-uv</code>).</p>
 </li>
 <li>
 <p>The first time setup checks your Mac, about 180 MB of Python packages and a private copy of Python (about 530 MB on
-  disk), in the plugin's folder and <code>~/.local/share/uv</code>, with uv's download cache in <code>~/.cache/uv</code>. On a fast
+  disk), in the plugin's folder (or <code>~/.pointe/&lt;version&gt;</code>) and <code>~/.local/share/uv</code>, with uv's download cache in <code>~/.cache/uv</code>. On a fast
   connection this takes under a minute.</p>
 </li>
 <li>
@@ -279,8 +348,14 @@ name no free credit.</p>
   and still works.</p>
 </li>
 <li>
-<p><code>~/.local/bin/pointe</code>, a three-line script that runs the plugin's <code>bin/pointe</code>, so <code>pointe</code> is a command in a new
-  terminal. Each start of Pointe points it at the plugin's current version. One you made yourself is never replaced.</p>
+<p><code>~/.local/bin/pointe</code>, a three-line script that runs the plugin's <code>bin/pointe</code> (or the standalone install's), so
+  <code>pointe</code> is a command in a new terminal. Each start of Pointe points it at the newest installed version. One you made yourself is never
+  replaced.</p>
+</li>
+<li>
+<p>Only if you say yes in <code>pointe setup codex</code>: two lines at the end of <code>~/.zshrc</code> (or <code>~/.bash_profile</code>), the <code>codex</code>
+  alias and a comment above it. Only with <code>pointe setup opencode</code>: <code>/voice</code> for OpenCode, in
+  <code>~/.config/opencode/plugins/pointe-voice.ts</code>.</p>
 </li>
 <li>
 <p>Only if you choose a local setup: local libraries (about 290 MB to download, 1.1 GB on disk) in the plugin's folder,
@@ -294,9 +369,10 @@ and asks before it removes anything, in three groups, each with its own question
 <li>
 <p>Pointe's own: it stops Pointe, then removes <code>~/.local/bin/pointe</code>, <code>~/.claude-voice</code> (settings, logs that hold what
   was said on calls, phone pairings, the local text-model server), <code>~/Applications/Pointe.app</code> and its settings
-  (<code>defaults delete io.ballerine.pointe.mac</code>), <code>~/.cache/pipecat/kokoro-onnx</code>, and last the plugin and its marketplace
-  (<code>claude plugin uninstall pointe@pointe</code>, <code>claude plugin marketplace remove pointe</code>). The plugin's folder holds its
-  Python packages and both hooks.</p>
+  (<code>defaults delete io.ballerine.pointe.mac</code>), <code>/voice</code> in OpenCode and the <code>codex</code> alias if setup added them,
+  <code>~/.cache/pipecat/kokoro-onnx</code>, and last the standalone install (<code>~/.pointe</code>) and the plugin and its marketplace
+  (<code>claude plugin uninstall pointe@pointe</code>, <code>claude plugin marketplace remove pointe</code>). Each install's folder holds its
+  Python packages; the plugin's also holds both hooks.</p>
 </li>
 <li>
 <p>Pointe's keys: the Keychain items <code>pointe.&lt;vendor&gt;-api-key</code>. Removed only on a yes to this question, or with
@@ -319,6 +395,11 @@ then delete <code>~/.local/bin/uv</code>, <code>~/.local/bin/uvx</code> and <cod
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
+<li class="dx-l2"><a href="#claude-code">Claude Code</a></li>
+<li class="dx-l2"><a href="#codex">Codex</a></li>
+<li class="dx-l2"><a href="#opencode">OpenCode</a></li>
+<li class="dx-l2"><a href="#the-standalone-install">The standalone install</a></li>
+<li class="dx-l2"><a href="#which-keys">Which keys</a></li>
 <li class="dx-l2"><a href="#what-this-does-to-your-mac">What this does to your Mac</a></li>
 <li class="dx-l2"><a href="#or-let-claude-do-the-install-too">Or let Claude do the install too</a></li>
 <li class="dx-l2"><a href="#try-it-for-free-or-cheap">Try it for free or cheap</a></li>

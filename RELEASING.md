@@ -1,8 +1,9 @@
 # Releasing
 
-A release is a version commit on `main`, an annotated tag on it, and a GitHub Release with notes a person can read.
-Claude Code installs the plugin from `main`, and keeps one copy per version: a change to anything a user runs
-(the Python, `bin/`, `hooks/`, `plugin/`, the page, the app) reaches them only with a new version number. A change to
+A release is a version commit on `main`, an annotated tag on it, and a GitHub Release with notes a person can read and
+the release tarball the standalone install uses. Claude Code installs the plugin from `main`, and keeps one copy per
+version; `install.sh` and `pointe update` install the tarball of a tag. A change to anything a user runs (the Python,
+`bin/`, `hooks/`, `plugin/`, `install.sh`, the page, the app) reaches them only with a new version number. A change to
 docs, tests or `bench/` alone needs no version.
 
 ## 1. The version commit
@@ -47,21 +48,30 @@ mistake gets a new patch version.
 ## 4. The GitHub Release
 
 ```
-gh release create vX.Y.Z --title "Pointe X.Y.Z" --notes-file notes.md
+python3 tools/release_tarball.py build vX.Y.Z          # dist/pointe-X.Y.Z.tar.gz and .sha256, a git archive of the tag
+gh release create vX.Y.Z --title "Pointe X.Y.Z" --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
+python3 tools/release_tarball.py pin vX.Y.Z            # install.sh installs it: the version and the SHA-256 the release publishes
 ```
+
+Commit the pinned `install.sh` on its own ("The installer pins X.Y.Z"; it changes only `POINTE_VERSION` and
+`POINTE_SHA256`, and needs no version), then deploy the site, which serves it at `/pointe/install.sh`. Until then a new
+standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out
+`bench/`, `evals/` and `site/` (`.gitattributes`). Never replace an asset of a published release: a mistake gets a new
+patch version, as for a tag.
 
 Write the notes for someone who has never seen Pointe, in this order:
 
 1. What Pointe is, in two sentences (the README's first paragraph).
 2. What is in this version: the changelog lines since the last release, grouped, in plain words. Name people who
    reported or fixed something.
-3. Install and update. Install is the one command in the README. To update: `claude plugin marketplace update pointe`,
-   then `claude plugin update pointe@pointe`, then `/pointe:stop` and `/pointe:voice` so the daemon restarts on the new
-   code.
+3. Install and update. Install is the README's: the plugin command for Claude Code, `install.sh` for Codex and
+   OpenCode. To update the plugin: `claude plugin marketplace update pointe`, then `claude plugin update pointe@pointe`,
+   then `/pointe:stop` and `/pointe:voice` so the daemon restarts on the new code. The standalone install: `pointe
+   update`.
 4. Limits that matter to a new user (the README's "Limits"), and anything this version is known not to fix.
 
-No claim the README does not make, no "first" or "only", and numbers only with their source. The release has no
-attached files: the plugin installs from the repository.
+No claim the README does not make, no "first" or "only", and numbers only with their source. The release's two files
+are the tarball and its SHA-256; the plugin installs from the repository.
 
 ## 5. After
 

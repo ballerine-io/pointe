@@ -1,5 +1,11 @@
 # Install Pointe
 
+Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code
+plugin, or the standalone install, which needs no Claude Code and is the way in for Codex and OpenCode. Both can be on
+the same Mac: one Pointe runs, the newer one ([The standalone install](#the-standalone-install)).
+
+## Claude Code
+
 **One command** in Terminal (or, in the Claude desktop app's Code tab, type the two `/plugin` commands below):
 
 ```
@@ -15,6 +21,81 @@ the key so it goes straight to your Keychain, checks the key with one tiny call,
 "hello": Pointe answers that it hears you, and setup says "Pointe heard you. You're set up." Your phone, the Mac app and
 faster setups come after, as optional extras.
 
+## Codex
+
+```
+curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh
+pointe setup
+```
+
+`install.sh` says what it will do and asks first ([The standalone install](#the-standalone-install)). `pointe setup` is
+the same one-question flow as `/pointe:setup`, in the terminal: it checks your Mac, asks "Start with Free start?", opens
+the key page and the Mac window for the key, and starts your first call; the page opens, and you say hello. Then, if
+Codex is on the Mac, it sets Codex up for the voice:
+
+- It starts Codex's shared app-server (`codex app-server daemon start`). Pointe joins a Codex session through it: a
+  `codex` started with `--remote unix://` is its client, so Pointe sees and sends to the thread you type in.
+- It shows this line and asks before it adds it to `~/.zshrc` (or `~/.bash_profile`), so every `codex` starts the
+  app-server if it is not running and connects to it:
+
+  ```
+  alias codex='command codex app-server daemon start >/dev/null 2>&1; command codex --remote unix:// -C "$PWD"'
+  ```
+
+Then start `codex` in a project folder (in a new terminal, so the line takes effect), and join it to the voice from
+that folder, in another terminal:
+
+```
+pointe join codex
+```
+
+`pointe setup codex` does the Codex part again on its own. [Harnesses](harnesses.md#codex-cli-harnessescodexpy) has how
+the join works.
+
+## OpenCode
+
+```
+curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh
+pointe setup
+```
+
+The same first setup as for Codex. Then, if OpenCode is on the Mac, it adds a `/voice` command to OpenCode
+(`pointe join opencode --install-command`). Restart OpenCode, and type `/voice` in a session to join it. The command has
+not yet been run in a real OpenCode; `pointe join opencode`, in the session's folder, joins it the tested way.
+`pointe setup opencode` does the OpenCode part again on its own.
+
+## The standalone install
+
+`install.sh` is served at `https://eng.ballerine.com/pointe/install.sh` and is
+[`install.sh` in the repository](../install.sh). Download it to a file, read it if you like, and run it with `bash`:
+nothing is piped into a shell. It runs as you, with no `sudo`, shows what it will do, and asks before it does it
+(`--yes` answers for a script). It:
+
+1. Downloads one release, `pointe-<version>.tar.gz`, from the repository's GitHub Releases, and checks it against the
+   SHA-256 written in the installer (or, for another version with `--version`, the SHA-256 published with that release).
+   On any difference it stops before anything is unpacked.
+2. Unpacks it into `~/.pointe/<version>`.
+3. Installs uv into `~/.local/bin` if it is missing, the same checked way the plugin does (`bin/install-uv`).
+4. Installs Pointe's Python packages into `~/.pointe/<version>/.venv`, from `uv.lock` (about 180 MB to download).
+5. Makes `pointe` a command: `~/.local/bin/pointe`.
+
+**Updates.** `pointe update` finds the newest release, checks it against the SHA-256 published with it, installs it
+beside the old one, restarts Pointe on it if Pointe ran from the old one (a call in progress ends), and then removes the
+old one. It asks first; `--yes` for a script. The plugin updates through Claude Code: `claude plugin marketplace update
+pointe`, then `claude plugin update pointe@pointe`, then `pointe restart`.
+
+**Both on one Mac.** The plugin and the standalone install can both be here. There is still one daemon and one
+`~/.local/bin/pointe`: both go to the newer version (the standalone install on a tie), and a start from the other one
+hands over to it. `pointe doctor` lists both under "Installed" and says which one runs.
+
+**Not as a Python tool.** `uvx` and `uv tool install` from the git tag do not work cleanly, so they are not offered:
+Pointe is not a Python package (it runs from its folder: shell scripts, the page, the hooks), and `uv tool install`
+resolves the dependencies again instead of installing the hashes in `uv.lock`.
+
+## Which keys
+
 **What do I need?** Any one of these is enough to start: (a) one Gemini key (free tier; about $0.70 to $0.95 a busy
 hour with billing on), (b) one OpenAI key (about $0.95 a busy hour), (c) Soniox + Anthropic API keys (about $1.20).
 Fastest and most accurate voice: Anthropic + Soniox + ElevenLabs (+ Gemini for the checker), about $1 a busy hour.
@@ -25,18 +106,19 @@ Pointe's voice needs its own API key from console.anthropic.com, or one Gemini o
 per use: about $1 for a busy hour of talk.
 
 The setups side by side, what each key does in them, what each measured and where your words go:
-[setups.md](setups.md). `/pointe:setup` starts you on Free start unless you ask for another, then asks only for its
-keys; [Try it for free or cheap](#try-it-for-free-or-cheap) has the free and cheap ways in.
+[setups.md](setups.md). `/pointe:setup` and `pointe setup` start you on Free start unless you ask for another, then ask
+only for its keys; [Try it for free or cheap](#try-it-for-free-or-cheap) has the free and cheap ways in.
 
 ## What this does to your Mac
 
-- **Installs** the plugin into Claude Code's plugin folder; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
+- **Installs** the plugin into Claude Code's plugin folder, or, with `install.sh`, a checked release into
+  `~/.pointe/<version>`; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
   is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
   the first run (about 530 MB on disk); and `~/.local/bin/pointe`, so `pointe` is a command in your terminal.
-- **Adds two Claude Code hooks**, active in every session: `PermissionRequest` (while Pointe runs, it holds the
+- **Adds two Claude Code hooks** (the plugin only), active in every session: `PermissionRequest` (while Pointe runs, it holds the
   permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
   and `SessionStart` (one file check, to suggest `/pointe:setup` until it is done).
-- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice`, until `/pointe:stop` or a restart of the Mac.
+- **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice` or `pointe open`, until `/pointe:stop` or a restart of the Mac.
   Nothing starts at login unless you turn that on in the Mac app. During a call from your phone, on mains power, it
   runs `caffeinate -i` so the Mac does not sleep under the call. After you pair a phone it also listens on port 7443.
 - **Stores** your keys in the macOS Keychain only, as `pointe.<vendor>-api-key`; settings, logs and a journal of each
@@ -47,7 +129,7 @@ keys; [Try it for free or cheap](#try-it-for-free-or-cheap) has the free and che
   yes. [What it installs](#what-it-installs) has the sizes and folders.
 
 If macOS asks to install the command line developer tools, press Install, wait for it to finish, and run the command
-again: Claude Code needs `git` to fetch the plugin.
+again: Claude Code needs `git` to fetch the plugin. The standalone install needs no `git`.
 
 If git cannot fetch the repository (a proxy or a firewall in the way), download it as a zip from
 [its GitHub page](https://github.com/ballerine-io/pointe) (Code, then Download ZIP) and use the prompt below, which
@@ -129,17 +211,22 @@ name no free credit.
 
 ## What it installs
 
-- The Pointe plugin, into Claude Code's own plugin folder.
+- The Pointe plugin, into Claude Code's own plugin folder. Or, with `install.sh`, one release in
+  `~/.pointe/<version>` (about 7 MB before its Python packages); `pointe update` replaces it with the next.
 - [uv](https://docs.astral.sh/uv/), which runs Pointe's Python, into `~/.local/bin`, if it is missing: one pinned
   version, whose installer is checked against a SHA-256 before it runs (`bin/install-uv`).
 - The first time setup checks your Mac, about 180 MB of Python packages and a private copy of Python (about 530 MB on
-  disk), in the plugin's folder and `~/.local/share/uv`, with uv's download cache in `~/.cache/uv`. On a fast
+  disk), in the plugin's folder (or `~/.pointe/<version>`) and `~/.local/share/uv`, with uv's download cache in `~/.cache/uv`. On a fast
   connection this takes under a minute.
 - Your keys, in the macOS Keychain only, as `pointe.gemini-api-key`, `pointe.anthropic-api-key` and so on
   (`pointe key <vendor>` opens the window again). A key saved before 1.20.0 keeps its plain name (`gemini-api-key`)
   and still works.
-- `~/.local/bin/pointe`, a three-line script that runs the plugin's `bin/pointe`, so `pointe` is a command in a new
-  terminal. Each start of Pointe points it at the plugin's current version. One you made yourself is never replaced.
+- `~/.local/bin/pointe`, a three-line script that runs the plugin's `bin/pointe` (or the standalone install's), so
+  `pointe` is a command in a new terminal. Each start of Pointe points it at the newest installed version. One you made yourself is never
+  replaced.
+- Only if you say yes in `pointe setup codex`: two lines at the end of `~/.zshrc` (or `~/.bash_profile`), the `codex`
+  alias and a comment above it. Only with `pointe setup opencode`: `/voice` for OpenCode, in
+  `~/.config/opencode/plugins/pointe-voice.ts`.
 - Only if you choose a local setup: local libraries (about 290 MB to download, 1.1 GB on disk) in the plugin's folder,
   and models in `~/.cache/huggingface`. "Voice stays on your Mac" adds 2 GB of models. "Fully local" adds 17.7 GB, and
   a 0.4 GB text-model server in `~/.claude-voice/local`.
@@ -149,9 +236,10 @@ and asks before it removes anything, in three groups, each with its own question
 
 - Pointe's own: it stops Pointe, then removes `~/.local/bin/pointe`, `~/.claude-voice` (settings, logs that hold what
   was said on calls, phone pairings, the local text-model server), `~/Applications/Pointe.app` and its settings
-  (`defaults delete io.ballerine.pointe.mac`), `~/.cache/pipecat/kokoro-onnx`, and last the plugin and its marketplace
-  (`claude plugin uninstall pointe@pointe`, `claude plugin marketplace remove pointe`). The plugin's folder holds its
-  Python packages and both hooks.
+  (`defaults delete io.ballerine.pointe.mac`), `/voice` in OpenCode and the `codex` alias if setup added them,
+  `~/.cache/pipecat/kokoro-onnx`, and last the standalone install (`~/.pointe`) and the plugin and its marketplace
+  (`claude plugin uninstall pointe@pointe`, `claude plugin marketplace remove pointe`). Each install's folder holds its
+  Python packages; the plugin's also holds both hooks.
 - Pointe's keys: the Keychain items `pointe.<vendor>-api-key`. Removed only on a yes to this question, or with
   `--delete-keys`.
 - What another tool may share: keys under the plain names Pointe used before 1.20.0 (`gemini-api-key`,

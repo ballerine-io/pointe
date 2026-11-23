@@ -4,13 +4,13 @@ Pointe is a conversational layer for your coding agents. You talk; it listens, r
 your requests to the right one, and reads permission prompts out so you can answer them by voice. The sessions do the
 work and keep their context. We call this conversational engineering ("convo coding", for short).
 
-This page takes you from nothing to your first call, in about 5 minutes. You need macOS, Claude Code 2.1.224 or newer,
-Google Chrome, headphones, and one model key (a free Google key is enough to start). Everything Pointe installs, and how
-to remove it: [Install](install.md).
+This page takes you from nothing to your first call, in about 5 minutes. You need macOS, a coding agent (Claude Code
+2.1.224 or newer, Codex 0.160 or newer, or OpenCode v2), Google Chrome, headphones, and one model key (a free Google key
+is enough to start). Everything Pointe installs, and how to remove it: [Install](install.md).
 
 ## 1. Install
 
-In Terminal:
+**With Claude Code**, in Terminal:
 
 ```
 claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe
@@ -18,6 +18,18 @@ claude plugin marketplace add https://github.com/ballerine-io/pointe.git && clau
 
 In the Claude desktop app's Code tab, type the two commands instead:
 `/plugin marketplace add https://github.com/ballerine-io/pointe.git`, then `/plugin install pointe@pointe`.
+
+**With Codex or OpenCode** (no Claude Code needed), in Terminal:
+
+```
+curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh
+```
+
+It says what it will do and asks first, checks the release against a SHA-256, and needs no `sudo`
+([The standalone install](install.md#the-standalone-install)). Then run `pointe setup` in a new terminal: the same steps
+as below, in the terminal, and then it sets up Codex and OpenCode for the voice ([Codex](install.md#codex),
+[OpenCode](install.md#opencode)).
 
 ## 2. The first setup
 
@@ -41,13 +53,14 @@ Your phone, the Mac app and faster setups come after, as optional extras: `/poin
 
 ## 3. The first call
 
-The call is a page in Chrome, on `127.0.0.1`. In any session you want to reach, run:
+The call is a page in Chrome, on `127.0.0.1`. In any Claude Code session you want to reach, run:
 
 ```
 /pointe:voice
 ```
 
-If Pointe is not running, this starts it and opens the page. Press **Connect**, and talk:
+If Pointe is not running, this starts it and opens the page. Without Claude Code, `pointe open` does the same, and a
+Codex or OpenCode session joins with `pointe join codex` or `pointe join opencode`, run in its folder. Press **Connect**, and talk:
 
 - "What is this session doing?"
 - "Tell it to run the tests and fix what fails."
@@ -60,7 +73,7 @@ When a session asks for permission, Pointe reads the request out and waits. A pl
 read-out, approves it. "No" denies it. A request Pointe cannot read out whole (unknown programs, `sudo`, several lines)
 waits for a tap on the page, the iPhone app or the terminal. The exact rules: [How it works](how-it-works.md#rules-enforced-in-code).
 
-To end the call, hang up on the page. To stop Pointe entirely, run `/pointe:stop`.
+To end the call, hang up on the page. To stop Pointe entirely, run `/pointe:stop` (or `pointe stop`).
 
 ## 4. Joining a session
 
@@ -89,7 +102,7 @@ yourself with `/pointe:voice --name billing`, or rename it on the page.
 | Start a new session | Say "start a new Codex session in shop", or use **New session** ([Start a new session](features/new-session.md)) |
 | Join a session on another machine | Make that machine a node ([Machines](multi-machine.md)) |
 | Take a session off the voice | `/pointe:leave` in it, say "close billing", or use × on the page |
-| Stop all voice | `/pointe:stop` |
+| Stop all voice | `/pointe:stop`, or `pointe stop` |
 
 ## Next
 

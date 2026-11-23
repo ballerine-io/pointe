@@ -27,7 +27,7 @@ api.soniox.com             pointe key check soniox: one GET of the models list, 
 huggingface.co             model repositories (huggingface_hub, mlx-whisper, mlx-audio, faster-whisper; bench)
 us.aws.cdn.hf.co           model files: where huggingface.co redirects a file download (huggingface_hub, hf-xet)
 cas-server.xethub.hf.co    model files: the Xet storage that hf-xet reads a file's chunks from (hf-xet)
-github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); links in the page and the site
+github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); Pointe's own release tarball, its .sha256 and the /releases/latest redirect (install.sh, pointe update); links in the page and the site
 release-assets.githubusercontent.com where github.com release downloads redirect
 
 # maintainers' tools, never the plugin
@@ -59,7 +59,7 @@ link code.claude.com       where to get Claude Code (doctor.py, site)
 link tailscale.com         where to get Tailscale (pair.py)
 link ballerine.com         the makers' site, linked from About (ui.html, apple/PointeKit/Sources/PointeUI/About.swift, site)
 link happy.engineering     a compared tool's voice docs (site)
-link eng.ballerine.com     the site's own address, for link previews and the redirect from the old one (site)
+link eng.ballerine.com     the site's own address, for link previews and the redirect from the old one (site); where a person downloads install.sh (its usage line, the docs)
 link pointe.ballerine.com  the site's old address: a visitor there is sent to eng.ballerine.com/pointe/ (site)
 link arxiv.org             a cited study, speech against typing (site)
 link doi.org               cited studies: typing speed, interrupted work (site)
