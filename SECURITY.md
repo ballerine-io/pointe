@@ -198,11 +198,13 @@ What sessions report is data for the voice model, not instructions to it:
 - No program Pointe starts receives them: not the `claude -p` copy a side question runs in, not `claude agents`, `git`,
   OpenCode, the local text-model server or any other tool. Each gets the daemon's environment without the key variables
   (`childenv.py`; `tests/test_child_env.py` fails on a spawn that does not use it). The exceptions start the daemon
-  itself (`pointe key`'s restart, `pointe join`), which reads keys from the environment it is given.
+  itself (`pointe key`'s restart, `pointe join`), which reads keys from the environment it is given; `pointe apps` and
+  `pointe uninstall` never read a key and pass on the environment your shell gave them.
 - Pointe saves each key as `pointe.<vendor>-api-key`. It still reads the names before 1.20.0 (`openai-api-key`,
   `gemini-api-key`, ...) after its own, so a key saved then keeps working. Another tool may keep an item under such a
   name: Pointe then uses that key for the same vendor, and `pointe key <vendor>` saves one of Pointe's own, which wins.
-  With `openai_url` set, only `pointe.openai-api-key` is read, so another tool's OpenAI key never goes to that host.
+  With `openai_url` set, only `pointe.openai-api-key` is read from the Keychain, so another tool's item there never goes
+  to that host (`OPENAI_API_KEY` in the environment still comes first).
 - **Any program running as you can read them.** Pointe saves and reads the Keychain items through macOS's own
   `/usr/bin/security`, so the item's access list names that tool, not Pointe: a program running as you can run
   `security find-generic-password -s pointe.<vendor>-api-key -w` and get the key, without a prompt. Pressing Always
