@@ -866,13 +866,14 @@
   .settings #ph-done { padding: 12px 14px; margin: 0; }
   .settings #pref-local, .settings #pref-keys-line { font-size: 14px; color: var(--text); }
   .settings #pref-keys .r + .r, .settings #pref-setups .r + .r { border-top: 1px solid var(--line); }
-  .settings #pref-setups .shead2 { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; }
-  .settings #pref-setups .shead2 b { flex: none; }  /* a long cost goes under the name, never squeezes it */
-  .settings #pref-setups .shead2 .kstate { flex: 1 1 auto; text-align: right; color: var(--muted); }
-  .settings #pref-setups .r.col .help { padding: 0; }  /* the description starts where its name does */
-  .settings #pref-setups .r.col > button { align-self: flex-start; min-height: 36px; padding: 0 16px; font-size: 13.5px; }
-  /* a column for the state: name, state, button */
-  .settings #pref-keys .r { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) auto; }
+  .settings #pref-setups .shead2 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+  .settings #pref-setups .kstate { font-size: 12px; color: var(--success-text); }
+  .settings #pref-setups .r.col { gap: 6px; }
+  .settings #pref-setups .cost { font-size: 13px; color: var(--text); }
+  .settings #pref-setups .help { padding: 0; }  /* under the name, not indented past it */
+  .settings #pref-setups .pill { align-self: flex-start; min-height: 36px; padding: 0 16px; margin-top: 6px; }
+  .settings #pref-keys .pill { min-width: 6.5em; }
+  .settings .note.foot + .note.foot { margin-top: -4px; }
   .settings #pref-setups code:empty { display: none; }
   .settings #pref-keys .r { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; }  /* every state at one x */
   .settings #pref-keys .kstate { color: var(--muted); } .settings #pref-keys .kstate.inUse { color: var(--text); }
@@ -1360,8 +1361,9 @@
           <div class="card"><div class="note" id="pref-keys-line"></div><div id="pref-keys"></div></div>
           <div class="note foot" id="pref-setups-h"></div>
           <div class="card"><div id="pref-setups"></div></div>
-          <div class="note foot"><b id="pref-keys-title"></b> <span id="pref-keys-need"></span> <span id="pref-keys-sub"></span>
-            <span id="pref-keys-how"></span></div>
+          <div class="note foot"><b id="pref-keys-title"></b> <span id="pref-keys-need"></span></div>
+          <div class="note foot" id="pref-keys-sub"></div>
+          <div class="note foot" id="pref-keys-how"></div>
         </section>
         <section class="group" id="g-show">
           <h3>Show while it says</h3>
@@ -1797,6 +1799,7 @@
     if (window.showDrive) showDrive(status);
     if (window.showChallenge) showChallenge(status);
     showShowing(status);
+    followKeys(status);
     if (window.dictionaryFollow) dictionaryFollow(status);
     if (window.whisperFollow) whisperFollow(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
@@ -3929,15 +3932,21 @@
     why: 'Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe\'s voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk.',
     how: 'Add… opens the vendor\'s key page and a window on this Mac; Pointe checks the key and restarts to use it.',
     howRemote: 'Add or replace a key on the Mac: its page or the Mac app\'s Settings, or pointe key <vendor>.',
-    setups: 'Setups', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
+    setups: 'Setups, with the cost of a busy hour of talk', switchTo: 'Switch on the Mac: pointe setup ', current: 'In use',
     add: 'Add…', replace: 'Replace…', use: 'Use this setup',
     keyWindow: 'A window opened on this Mac: paste the key there.', switching: 'Switching. Pointe restarts in a moment.',
     inUse: 'In use', notUsed: 'Saved, not used', needed: 'Needed', optional: 'Optional', notRead: 'Not read: the voice stays on this Mac'};
   const KEY_STATE = {'in use': 'inUse', 'not used': 'notUsed', needed: 'needed', optional: 'optional', 'not read': 'notRead'};
   text('pref-keys-title', KEYS_COPY.title); text('pref-keys-need', KEYS_COPY.need); text('pref-keys-sub', KEYS_COPY.why);
   text('pref-keys-how', remotePage ? KEYS_COPY.howRemote : KEYS_COPY.how); text('pref-setups-h', KEYS_COPY.setups);
+  // An open sheet follows the Mac: after Use this setup, Pointe comes back on the other setup and the sheet says so.
+  let keysShown = '';
+  function followKeys(s) {
+    if (s && $('settingssheet').classList.contains('open') && JSON.stringify(s.keys || null) !== keysShown) showKeys();
+  }
   function showKeys() {
     const k = status && status.keys;
+    keysShown = JSON.stringify(k || null);
     $('pref-keys-line').textContent = (k && k.line) || 'Pointe on this Mac does not report it: update it.';
     $('pref-keys').replaceChildren(...Object.entries((k && k.keys) || {}).map(([vendor, st]) => {
       const uses = (k.uses || {})[vendor] || [];
@@ -3953,8 +3962,9 @@
     }));
     $('pref-setups').replaceChildren(...((k && k.setups) || []).map(x => {
       const row = el('div', 'r col'), head = el('div', 'shead2');
-      head.append(el('b', '', x.name), el('span', 'kstate', x.id === k.setup ? KEYS_COPY.current : x.cost));
-      row.append(head, el('span', 'help', `${x.short} Best for ${x.pick_for}.`));
+      head.append(el('b', '', x.name));
+      if (x.id === k.setup) head.append(el('span', 'kstate inUse', KEYS_COPY.current));
+      row.append(head, el('span', 'cost', x.cost), el('span', 'help', `${x.short} Best for ${x.pick_for}.`));
       if (x.id !== k.setup && remotePage) row.append(el('code', '', KEYS_COPY.switchTo + x.id));
       else if (x.id !== k.setup) {
         const b = el('button', 'pill', KEYS_COPY.use);

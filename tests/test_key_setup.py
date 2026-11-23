@@ -262,6 +262,42 @@ def test_the_page_shows_optional_not_missing():
     assert got["need"] == vendors.WHAT_YOU_NEED and "Missing" not in json.dumps(got)
 
 
+@pytest.mark.skipif(not os.path.exists(__import__("page_rig").CHROME), reason="headless Chrome is not installed here")
+def test_an_open_settings_sheet_follows_a_setup_switch():
+    """Use this setup restarts Pointe on the other setup. A sheet left open said "Switching. Pointe restarts in a
+    moment." and marked the old setup In use for minutes, until it was closed and opened again."""
+    from page_rig import Browser, StubMac, fixture, free_port
+
+    setups = [{"id": i, "name": n, "short": f"{n}.", "pick_for": "testing", "cost": "about $1"}
+              for i, n in (("two", "Two keys"), ("openai", "One OpenAI key"))]
+    def keys(chosen):
+        return {"line": "Every role is filled.", "setup": chosen, "setups": setups, "uses": {},
+                "keys": {"openai": "in use" if chosen == "openai" else "not used", "anthropic": "in use", "soniox": "in use"}}
+
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = {**fixture(sessions=1), "keys": keys("two")}
+        state = """(() => ({line: document.getElementById('pref-keys-line').textContent,
+          rows: [...document.querySelectorAll('#pref-setups .r')].map(r => [r.querySelector('.shead2').innerText.replace(/\\s+/g, ' '),
+                                                                         r.querySelector('.cost').textContent])}))()"""
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.eval("(async () => { await openSettings(); settingsJump('g-keys'); return true; })()")
+                await page.eval("(async () => { [...document.querySelectorAll('#pref-setups .r button')][0].click(); return true; })()")
+                await asyncio.sleep(0.4)
+                switching = await page.eval(state)
+                stub.status = {**stub.status, "keys": keys("openai")}  # Pointe came back on the other setup
+                await page.eval("(async () => { await refresh(); return true; })()")
+                return switching, await page.eval(state)
+        finally:
+            await stub.stop()
+    switching, after = asyncio.run(run())
+    assert switching["line"] == "Switching. Pointe restarts in a moment.", switching
+    assert after["line"] == "Every role is filled.", after
+    assert after["rows"] == [["Two keys", "about $1"], ["One OpenAI key In use", "about $1"]], after  # the setup in use keeps its cost
+
+
 # ---------- one answer on every surface ----------
 
 def _flat(text: str) -> str:
