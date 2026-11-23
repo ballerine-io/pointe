@@ -390,3 +390,32 @@ def test_more_is_never_an_empty_sheet():
     for status in (first, fixture(sessions=3, talk=4, connected=True)):
         (r,) = _run([(390, LIVE, more)], status)
         assert not r["more"] or r["items"] > 0, r
+
+
+def test_the_new_session_selects_look_like_every_other_select():
+    """The Agent and Folder pickers keep the chevron every select on the page has: without it they read as text fields."""
+    look = """(() => [...document.querySelectorAll('#newsheet select')].filter(e => e.offsetParent).map(e => {
+      const cs = getComputedStyle(e); return {id: e.id, chevron: cs.backgroundImage.startsWith('url('), room: parseFloat(cs.paddingRight)}; }))()"""
+    (got,) = _run([(1440, "await openNewSession();", look)], fixture(sessions=2, connected=True))
+    assert got and all(s["chevron"] and s["room"] >= 28 for s in got), got
+
+
+def test_the_typed_message_field_has_a_name_and_shows_its_focus():
+    """WCAG 2.4.7 and 4.1.2: focused, the field draws the page's focus ring; its name is not only a placeholder."""
+    focus = """(() => { const e = document.getElementById('typed'); e.focus(); const cs = getComputedStyle(e);
+      return {ring: cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2, name: e.getAttribute('aria-label') || (e.labels[0] || {}).textContent || ''}; })()"""
+
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=2, talk=2, connected=True)
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})  # headless has no focused window
+                await page.eval(f"(async () => {{ {LIVE} await refresh(); return true; }})()")
+                await asyncio.sleep(0.5)
+                return await page.eval(focus)
+        finally:
+            await stub.stop()
+    r = asyncio.run(run())
+    assert r["ring"] and r["name"].strip(), r
