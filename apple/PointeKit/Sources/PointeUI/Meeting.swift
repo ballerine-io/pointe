@@ -352,7 +352,7 @@ struct MeetingBanner: View {
     private var state: String {
         if meeting.isEnding { return "Ending: writing the summary\u{2026}" }
         if meeting.speaking == true { return "Speaking to the room" }
-        if meeting.owner_known != true { return "Say \u{201C}Pointe, that's me\u{201D}" }
+        if meeting.owner_known != true { return "Long-press one of your lines: That was me" }
         if meeting.paused == true { return "Quiet room" }
         return meeting.participating ? "It speaks only when you ask" : "It never speaks"
     }

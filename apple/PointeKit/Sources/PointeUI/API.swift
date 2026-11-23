@@ -661,7 +661,7 @@ struct API {
     /// The action items, as the owner's own request, through the normal send path and its checks.
     func sendActions(to session: String) async throws { try await meeting(["action": "send_actions", "session": session], timeout: 30) }
     func discardMeeting() async throws { try await meeting(["action": "discard"]) }
-    /// A new stream for the room's audio. Speakers are labelled afresh: the owner says "Pointe, that's me" again.
+    /// A new stream for the room's audio. Speakers are labelled afresh: the owner taps "That was me" again (or, with a voiceprint, is matched by voice).
     func reconnectMeeting() async throws { try await meeting(["action": "reconnect"]) }
 
     /// New notes after the id `since`, and older ones changed after the version `changedSince` (every changed one without it).
