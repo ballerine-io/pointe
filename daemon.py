@@ -185,6 +185,15 @@ from sessions import (
     waiting_since,
 )
 
+# loguru's default sink prints each frame's variables under a traceback (diagnose): a key, a URL with ?key=, in a log a
+# failure shows. Replaced by one that does not, before Pointe logs anything (tests/test_log_tracebacks.py).
+try:
+    logger.remove(0)
+except ValueError:  # replaced already
+    pass
+else:
+    logger.add(sys.stderr, diagnose=False, backtrace=False)
+
 STATE_DIR = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
 
 
@@ -292,8 +301,8 @@ def _start_journal() -> None:
     logging.getLogger("uvicorn.access").disabled = True  # it would write the page key, from the address, to daemon.log
     if _journal_sink is None:
         logger.configure(patcher=_meeting_redact)
-        logger.add(_note_problem, level="ERROR", format="{message}")
-        _journal_sink = logger.add(_journal, level="INFO",
+        logger.add(_note_problem, level="ERROR", format="{message}", diagnose=False, backtrace=False)
+        _journal_sink = logger.add(_journal, level="INFO", diagnose=False, backtrace=False,
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
 
 

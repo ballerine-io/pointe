@@ -37,6 +37,15 @@ import readout  # noqa: E402
 from harnesses.base import HOST  # noqa: E402
 from sessions import Registry, Session, wait_state  # noqa: E402
 
+# loguru's default sink prints each frame's variables under a traceback (diagnose): a key, a URL with ?key=, in a log a
+# failure shows. Replaced by one that does not, before Pointe logs anything (tests/test_log_tracebacks.py).
+try:
+    logger.remove(0)
+except ValueError:  # replaced already
+    pass
+else:
+    logger.add(sys.stderr, diagnose=False, backtrace=False)
+
 NO_WAIT = {"blocked_on": "", "blocked_since": None, "held_at": None}
 
 STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))

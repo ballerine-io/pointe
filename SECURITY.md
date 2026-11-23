@@ -200,7 +200,9 @@ What sessions report is data for the voice model, not instructions to it:
   (`childenv.py`; `tests/test_child_env.py` fails on a spawn that does not use it). The exceptions start the daemon
   itself (`pointe key`'s restart, `pointe join`), which reads keys from the environment it is given.
 - They are not in command lines: scripts pass the token to `curl` through `--config`.
-- The page shows vendor errors with key values replaced. Logs hold an error's text as the vendor wrote it.
+- The page shows vendor errors with key values replaced. Logs hold an error's text as the vendor wrote it, and a
+  traceback without the values of its variables: the daemon and the node turn loguru's `diagnose` off, which would
+  print a key or a URL with `?key=` (`tests/test_log_tracebacks.py`).
 
 ## What leaves your machine
 
