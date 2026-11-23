@@ -5836,10 +5836,18 @@ def _start_pending() -> tuple[float, dict] | None:
 
 
 def _start_line(what: dict) -> str:
-    """The read-back: exactly what a yes will start."""
+    """The read-back: exactly what a yes will start. Which machine only when there is more than one: a default host
+    name holds the owner's first name, said aloud and printed on the card for nothing (QA round 2)."""
+    where = "" if _one_machine() else f" on {_here()}"
     return (f"Start {'an' if _harness_title(what['harness'])[0] in 'AEIOU' else 'a'} {_harness_title(what['harness'])} "
-            f"session in {_spoken_names(what['said_folder'])} on {_here()}, named {_spoken_names(what['name'])}? "
+            f"session in {_spoken_names(what['said_folder'])}{where}, named {_spoken_names(what['name'])}? "
             f"Say yes or tap.")
+
+
+def _one_machine() -> bool:
+    """No machine is paired with this one, and every session runs here."""
+    here = _here()
+    return not HUB.nodes.nodes and all(not s.machine or s.machine == here for s in REGISTRY.sessions.values())
 
 
 def _start_owner_refusal(refused: str = "Not started", tap: str = "Start") -> str | None:
