@@ -45,8 +45,19 @@ def _only_yes(lowered: str) -> bool:
     return _words(lowered) <= _YES | _WEAK_YES | _FILLER
 
 
+# Hebrew yes and no as ears that write Latin letters return them: Free start heard a spoken "כן" as "Ken" (QA round 2).
+# Only as the whole answer: "Ken" inside a sentence is a name.
+_TRANSLITERATED = {"ken": "כן", "ken ken": "כן", "lo": "לא", "lo lo": "לא"}
+
+
+def _untransliterated(text: str) -> str:
+    alone = " ".join(re.findall(r"[a-z]+", (text or "").lower()))
+    return _TRANSLITERATED[alone] if alone in _TRANSLITERATED and not re.search(r"[^\w\s.,!]", text or "") else text
+
+
 def consent(text: str) -> str | None:
     """'allow' / 'deny' from the user's own words; None if they did not clearly decide. No wins ties."""
+    text = _untransliterated(text)
     lowered = _lower(text)
     despite = [p for p in _YES_DESPITE_NO if p in lowered]
     for p in despite:
@@ -143,6 +154,7 @@ _WAIT = {"wait", "רגע"}
 def permission_answer(text: str) -> str | None:
     """Stricter than consent: what approves a tool call is a yes and nothing else. "Okay, tell me more" is not an answer,
     and neither is "yes, and run the linter": it comes back as None, and the request is read out again."""
+    text = _untransliterated(text)
     verdict = consent(text)
     if verdict == "deny" and not (_words(_lower(text)) & (_NO - _WAIT)):
         return None  # "wait, what is this?" asks first: the prompt stays open, it is not a no
