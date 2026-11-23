@@ -159,49 +159,71 @@
         <p class="lead">From typing at your agents to talking with them: one day, from the first call in the morning
           to the briefing the next one.</p>
       </div>
-      <article class="scene" aria-labelledby="sc-desk-h">
+      <article class="scene" data-play data-total="60.35" aria-labelledby="sc-desk-h">
         <header class="scene-head">
           <p class="kicker">At the desk</p>
           <h3 id="sc-desk-h" class="h2">Five agents, one conversation, no tab switching.</h3>
         </header>
-        <figure class="film" data-film>
-          <video controls playsinline preload="none" width="1920" height="1080" poster="scenes/desk-light.jpg" data-dark-poster="scenes/desk-dark.jpg"
-                 aria-label="A one-minute film with sound: the conversation at the desk, and the sessions reacting.">
-            <source src="scenes/desk-dark.webm" type="video/webm" media="(prefers-color-scheme: dark)">
-            <source src="scenes/desk-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)">
-            <source src="scenes/desk-light.webm" type="video/webm">
-            <source src="scenes/desk-light.mp4" type="video/mp4">
-            <track kind="captions" src="scenes/desk.vtt" srclang="en" label="English">
-          </video>
-          <button type="button" class="film-play" hidden><span aria-hidden="true"></span>Play with sound · 1 min</button>
-        </figure>
-        <div class="scene-foot">
-        <p class="scene-out"><b class="figure">One minute</b><span class="body">3 sessions sent work in 9 seconds. One design decision. One pull request understood. No tab opened.</span></p>
+        <div class="scene-panel">
+          <figure class="scene-clip">
+            <img src="day/desk.jpg" width="960" height="540" loading="lazy" alt="AI-generated footage: at her desk she leans back and talks, then works at her laptop while she talks.">
+            <video muted loop playsinline preload="none" poster="day/desk.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+              <source src="day/desk.webm" type="video/webm"><source src="day/desk.mp4" type="video/mp4"></video>
+            <span class="ai">AI-generated footage</span>
+          </figure>
+          <div class="scene-talk">
+            <p class="kicker">What is said</p>
+            <ol class="scene-lines" aria-label="The conversation">
+            <li class="move" data-t="0.60">1 · Orchestrate</li>
+            <li class="you" data-t="0.9" data-end="2.6"><b>You</b><span>Okay— what's everyone up to?</span></li>
+            <li class="pointe" data-t="2.75" data-end="7.46"><b>Pointe</b><span>Billing's done with the retry fix. Docs is idle. Shop has a PR up.</span></li>
+            <li class="you" data-t="7.66" data-end="14.37"><b>You</b><span>Great. Billing, add a test for the timeout. Docs, update the changelog. And api, bump the retry budget to five.</span></li>
+            <li class="pointe" data-t="14.27" data-end="17.06"><b>Pointe</b><span>Sent, sent, and sent.</span></li>
+            <li class="move" data-t="17.66">2 · Focus on one</li>
+            <li class="you" data-t="17.96" data-end="19.17"><b>You</b><span>Let's focus on billing.</span></li>
+            <li class="pointe" data-t="19.22" data-end="21.84"><b>Pointe</b><span>Billing. Everything you say goes there.</span></li>
+            <li class="you" data-t="22.14" data-end="23.94"><b>You</b><span>Hm— should the retries go through a queue?</span></li>
+            <li class="pointe" data-t="24.64" data-end="31.89"><b>Pointe <i>from billing</i></b><span>Billing says a queue risks duplicate charges on failover. It suggests backoff with jitter, capped at ten seconds.</span></li>
+            <li class="you" data-t="31.84" data-end="33.29"><b>You</b><span>Ten's too long for checkout.</span></li>
+            <li class="pointe" data-t="33.79" data-end="36.99"><b>Pointe <i>from billing</i></b><span>Then a five second cap, with an idempotency key.</span></li>
+            <li class="you" data-t="37.09" data-end="38.35"><b>You</b><span>Yeah. Do that.</span></li>
+            <li class="pointe" data-t="38.35" data-end="39.14"><b>Pointe</b><span>Sent to billing.</span></li>
+            <li class="move" data-t="39.74">3 · Understand a PR</li>
+            <li class="you" data-t="40.04" data-end="43.88"><b>You</b><span>Okay, back to orchestrator mode. Walk me through the PR shop opened.</span></li>
+            <li class="pointe" data-t="44.18" data-end="56.08"><b>Pointe <i>from shop</i></b><span>Orchestrator mode. Shop's PR makes the flaky checkout test wait for the mock gateway, instead of sleeping. The risk: it touches a shared fixture. Check the two tests that reuse it.</span></li>
+            <li class="you" data-t="56.18" data-end="57.59"><b>You</b><span>Does it change any production code?</span></li>
+            <li class="pointe" data-t="57.84" data-end="59.35"><b>Pointe <i>from shop</i></b><span>No. Tests only.</span></li>
+            </ol>
+          </div>
+          <div class="scene-agents">
+            <p class="kicker">What the sessions do</p>
+            <p class="sc-mode" aria-live="off"><span data-from="0" data-to="20.44">Orchestrator: every session</span><span class="hot" data-from="20.44" data-to="44.18">Session mode: focused on billing</span><span data-from="44.18">Orchestrator: every session</span></p>
+            <ul class="scene-rows" aria-label="Her five sessions">
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>billing</b><span class="sc-ag">Claude Code · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="done">retry fix done</i><i data-at="10.06" data-state="working">adding the timeout test</i><i data-at="24.64" data-state="working">weighing a queue against backoff</i><i data-at="39.14" data-state="working">backoff, 5 s cap, idempotency key</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">O</span><b>docs</b><span class="sc-ag">OpenCode · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="idle">nothing to do</i><i data-at="11.86" data-state="working">updating the changelog</i><i data-at="33.79" data-state="done">changelog updated</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>api</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="idle">nothing to do</i><i data-at="14.17" data-state="working">retry budget to five</i><i data-at="40.04" data-state="done">retry budget is five</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">X</span><b>shop</b><span class="sc-ag">Codex · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="done">pull request open</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>ingest</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="working">running its tests</i><i data-at="22.14" data-state="done">tests pass</i></span></li>
+            </ul>
+            <div class="sc-pr" data-from="45.38">
+              <p class="title">shop · pull request</p>
+              <dl><div><dt>Changed</dt><dd>The flaky checkout test waits for the mock gateway instead of sleeping.</dd></div>
+                <div><dt>Risk</dt><dd>It touches a shared fixture.</dd></div>
+                <div><dt>Check</dt><dd>The two tests that reuse the fixture.</dd></div></dl>
+            </div>
+          </div>
         </div>
-        <details class="more-detail film-words">
-          <summary>The conversation in the film, as text</summary>
-          <ol>
-            <li><b>You</b> Okay— what's everyone up to?</li>
-            <li><b>Pointe</b> Billing's done with the retry fix. Docs is idle. Shop has a PR up.</li>
-            <li><b>You</b> Great. Billing, add a test for the timeout. Docs, update the changelog. And api, bump the retry budget to five.</li>
-            <li><b>Pointe</b> Sent, sent, and sent.</li>
-            <li><b>You</b> Let's focus on billing.</li>
-            <li><b>Pointe</b> Billing. Everything you say goes there.</li>
-            <li><b>You</b> Hm— should the retries go through a queue?</li>
-            <li><b>Pointe</b> Billing says a queue risks duplicate charges on failover. It suggests backoff with jitter, capped at ten seconds.</li>
-            <li><b>You</b> Ten's too long for checkout.</li>
-            <li><b>Pointe</b> Then a five second cap, with an idempotency key.</li>
-            <li><b>You</b> Yeah. Do that.</li>
-            <li><b>Pointe</b> Sent to billing.</li>
-            <li><b>You</b> Okay, back to orchestrator mode. Walk me through the PR shop opened.</li>
-            <li><b>Pointe</b> Orchestrator mode. Shop's PR makes the flaky checkout test wait for the mock gateway, instead of sleeping. The risk: it touches a shared fixture. Check the two tests that reuse it.</li>
-            <li><b>You</b> Does it change any production code?</li>
-            <li><b>Pointe</b> No. Tests only.</li>
-          </ol>
-        </details>
-        <p class="small note">One film: the words on it are its captions. The voices are synthesized with ElevenLabs: Pointe's is
-          the product's default voice. The time the sessions take is shortened. The sessions are invented, and the
-          right-hand panel is drawn in the product's look; the footage on the left is AI-generated.</p>
+        <div class="scene-foot">
+          <div class="scene-controls">
+            <button type="button" class="btn" data-sound hidden>Play with sound</button>
+            <span class="scene-bar" aria-hidden="true"><i></i></span>
+            <audio preload="none" src="scenes/desk.mp3"></audio>
+          </div>
+          <p class="scene-out"><b class="figure">One minute</b><span class="body">3 sessions sent work in 9 seconds. One design decision. One pull request understood. No tab opened.</span></p>
+        </div>
+        <p class="small note">The voices are synthesized with ElevenLabs: Pointe's is the product's default voice. The time the
+          sessions take is shortened. The sessions are invented, and the right-hand panel is drawn in the product's
+          look; the footage is AI-generated.</p>
       </article>
       <div class="story-grid" data-day>
         <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> By voice</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-pair"><span class="when">11:20</span> Away</a><a href="#beat-meeting"><span class="when">14:00</span> Meeting</a><a href="#beat-drive"><span class="when">18:10</span> Drive</a><a href="#beat-night"><span class="when">22:40</span> Night</a><a href="#beat-morning"><span class="when">07:40</span> Morning</a></nav>
@@ -822,15 +844,48 @@
       setTimeout(() => { b.textContent = 'Copy'; }, 1800);
     });
   }
-  // The scene's film: one player. Its button starts it with sound (a press is what a phone needs for sound), then the
-  // player's own controls take over. In the dark theme the poster is the dark film's.
-  for (const film of document.querySelectorAll('[data-film]')) {
-    const video = film.querySelector('video'), button = film.querySelector('.film-play');
-    if (matchMedia('(prefers-color-scheme: dark)').matches) video.poster = video.dataset.darkPoster;
+  // A scene: its lines appear in time, and the session rows change with them. It runs silently when it comes into view
+  // and loops; "Play with sound" runs it once from the audio's own clock. With reduced motion everything shows at once.
+  for (const scene of document.querySelectorAll("article[data-play]")) {
+    const total = +scene.dataset.total, lines = [...scene.querySelectorAll('.scene-lines li')], rows = [...scene.querySelectorAll('[data-row]')];
+    const audio = scene.querySelector('audio'), button = scene.querySelector('[data-sound]'), bar = scene.querySelector('.scene-bar i'), film = scene.querySelector('video');
+    const calm = matchMedia('(prefers-reduced-motion: reduce)');
+    const timed = [...scene.querySelectorAll('[data-from]')], list = scene.querySelector('.scene-lines');
+    const draw = now => {
+      for (const li of lines) { li.classList.toggle('on', now >= +li.dataset.t); li.classList.toggle('now', now >= +li.dataset.t && now < +(li.dataset.end || 0)); }
+      for (const row of rows) {
+        const states = [...row.querySelectorAll('.sc-states i')].filter(s => +s.dataset.at <= now), s = states[states.length - 1];
+        if (s && row.dataset.state + row.querySelector('.sc-what').textContent !== s.dataset.state + s.textContent) {
+          row.dataset.state = s.dataset.state; row.querySelector('.sc-tag').textContent = s.dataset.state; row.querySelector('.sc-what').textContent = s.textContent;
+          if (now > 0.2) { row.classList.remove('changed'); void row.offsetWidth; row.classList.add('changed'); }
+        }
+      }
+      for (const e of timed) e.classList.toggle('on', now >= +e.dataset.from && (!e.dataset.to || now < +e.dataset.to));
+      const last = lines.filter(li => li.classList.contains('on')).pop();  // the newest line stays in view: the list follows the talk
+      list.scrollTop = last ? Math.max(0, last.offsetTop + last.offsetHeight - list.clientHeight + 4) : 0;
+      bar.style.width = Math.min(100, 100 * now / total) + '%';
+    };
+    let from = 0, raf = 0, sound = false, seen = false;
+    const tick = () => {
+      const now = sound ? audio.currentTime : (performance.now() - from) / 1000;
+      draw(now);
+      if (sound && audio.ended) { sound = false; button.textContent = 'Play again with sound'; from = performance.now() - total * 1000; }
+      if (!sound && now > total + 2.5) from = performance.now();
+      raf = seen || sound ? requestAnimationFrame(tick) : 0;
+    };
+    const run = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    if (calm.matches) { scene.classList.add('is-whole'); draw(total); continue; }
+    draw(0);
     button.hidden = false;
-    button.onclick = () => { video.muted = false; video.play().catch(() => {}); };
-    video.addEventListener('play', () => { button.hidden = true; });
-    video.addEventListener('ended', () => { button.hidden = false; button.lastChild.textContent = 'Play again'; });
+    button.onclick = () => {
+      if (sound) { audio.pause(); sound = false; button.textContent = 'Play with sound'; from = performance.now(); return; }
+      audio.currentTime = 0; audio.play().then(() => { sound = true; button.textContent = 'Stop the sound'; run(); }).catch(() => {});
+    };
+    new IntersectionObserver(([e]) => {
+      seen = e.isIntersecting;
+      if (seen) { if (!sound) from = performance.now(); film.hidden = false; film.play().catch(() => {}); run(); }
+      else { film.pause(); if (sound) { audio.pause(); sound = false; button.textContent = 'Play with sound'; } }
+    }, { threshold: 0.35 }).observe(scene);
   }
 
   // The day story. On a wide screen the beats share one sticky stage and the beat at the middle of the window shows; on

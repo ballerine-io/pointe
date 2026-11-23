@@ -81,6 +81,9 @@
 .pg-footer-links a:hover { color: var(--text); }
 
 @media (max-width: 880px) {
+  .pg-header nav a, .pg-footer-links a { display: inline-flex; align-items: center; min-height: 44px; }
+  .pg-header nav a.pg-gh { height: 44px; }
+  .pg-footer-links { gap: 0 22px; }
   .pg-how, .pg-cols { grid-template-columns: minmax(0, 1fr); }
   .pg-how > li { padding: 14px 0; }
   .pg-how > li + li { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
