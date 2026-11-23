@@ -4,8 +4,8 @@ import AVFoundation
 import SwiftUI
 
 struct PairView: View {
-    let submit: (String) -> Void  // a pointe://pair link; PointeApp pairs with it and says how it went
-    var tryDemo: () -> Void = {}  // a sample call, no Mac needed
+    let flow: PairingFlow  // keeps a scanned or pasted code only after the owner confirms it (PairingFlow)
+    var tryDemo: (() -> Void)?  // a sample call, no Mac needed; none when the scanner is over a call
     @State private var link = ""
     @State private var problem: String?
     @State private var scanning = true
@@ -13,7 +13,7 @@ struct PairView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             BrandHeader()
-            Text("On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone. Scan the code it shows here, or with the Camera app.")
+            Text("On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone. Scan the code it shows here.")
                 .font(.brand(.callout)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
             if scanning {
                 ZStack {  // under the camera: what shows before it starts, without one, or when it was not allowed
@@ -23,8 +23,9 @@ struct PairView: View {
                     }
                     .accessibilityHidden(true)
                     Scanner { code in
-                        if PairingLink(code) != nil { submit(code) } else { problem = "That code is not a Pointe pairing code." }
+                        if PairingLink(code) != nil { flow.scanned(code) } else { problem = "That code is not a Pointe pairing code." }
                     }
+                    .id(flow.attempt)  // a code cancelled or refused: the camera reads again
                 }
                 .frame(maxWidth: .infinity, minHeight: 240, maxHeight: .infinity)
                 .background(Brand.raised, in: RoundedRectangle(cornerRadius: 16))
@@ -40,22 +41,55 @@ struct PairView: View {
                 .buttonStyle(.brandPrimary).controlSize(.large).disabled(link.isEmpty)
             if let problem { Text(problem).font(.brand(.footnote)).foregroundStyle(Brand.accent) }
             if !scanning { Spacer() }
-            Button(action: tryDemo) {
-                Label("No Mac yet? Try a demo", systemImage: "play.circle")
-                    .font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.muted)
-                    .frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+            if let tryDemo {
+                Button(action: tryDemo) {
+                    Label("No Mac yet? Try a demo", systemImage: "play.circle")
+                        .font(.brand(.subheadline, .semibold)).foregroundStyle(Brand.muted)
+                        .frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("tryDemo")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("tryDemo")
             Text("The code holds a secret that opens a call into your coding sessions. Scan only your own.")
                 .font(.brand(.footnote)).foregroundStyle(Brand.muted)
         }
         .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 16)
         .background(Brand.background)
+        .alert(flow.offer?.title ?? "", isPresented: Binding(get: { flow.offer != nil }, set: { _ in }), presenting: flow.offer) { offer in
+            Button(offer.action) { flow.confirmTapped() }.accessibilityIdentifier("confirmPairing")
+            Button("Cancel", role: .cancel) { flow.cancel() }
+        } message: { offer in
+            Text(offer.message)
+        }
     }
 
     private func use() {
-        if PairingLink(link) != nil { submit(link) } else { problem = "That link is not a Pointe pairing link." }
+        if PairingLink(link) != nil { problem = nil; flow.scanned(link) } else { problem = "That link is not a Pointe pairing link." }
+    }
+}
+
+/// A `pointe://` link opened Pointe from outside: another app, a web page or the Camera. It pairs nothing, since any of
+/// them can open one; the code is scanned inside the app.
+struct ScanInsideSheet: View {
+    let scan: () -> Void
+    let close: () -> Void
+
+    static let title = "Pair inside Pointe"
+    static let text = "Pointe pairs only with a code you scan in this app, so a link from another app or a web page can't change which Mac it talks to. On your Mac, open Pointe's page: Settings, then Phone, then Connect your phone, and scan the code here."
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(Self.title).font(.brand(.title2, .semibold))
+            Text(Self.text).font(.brand(.callout)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("scanInside")
+            Button(action: scan) { Text("Scan the code").frame(maxWidth: .infinity) }
+                .buttonStyle(.brandPrimary).controlSize(.large)
+                .accessibilityIdentifier("scanInsideScan")
+            Button("Not now", action: close).frame(maxWidth: .infinity)
+        }
+        .padding(20)
+        .presentationDetents([.medium])
+        .background(Brand.background)
     }
 }
 

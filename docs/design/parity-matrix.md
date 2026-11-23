@@ -144,7 +144,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | Show the code that pairs a phone, list the paired phones, unpair <br>`pair.show` | yes `ui.html:1247` | n/a | yes `apple/PointeKit/Sources/PointeUI/PhoneSheet.swift:198` |
-| Pair with the Mac: scan, paste or open the code; unpair this phone <br>`pair.read` | n/a | yes `apple/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a |
+| Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone <br>`pair.read` | n/a | yes `apple/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a |
 | Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1393` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:156` | yes `apple/PointeKit/Sources/PointeUI/CallSettings.swift:156` |
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1400` | yes `apple/PointeKit/Sources/PointeUI/About.swift:14` | yes `apple/PointeKit/Sources/PointeUI/About.swift:14` |
 | The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1056` | yes `apple/PointeKit/Sources/PointeUI/Brand.swift:449` | yes `macos/PointeMac/AppModel.swift:224` |
@@ -189,8 +189,8 @@ A feature a surface cannot have, and why. Everything else is on all three.
 | Offer drive mode when the phone is in a car | Page | no motion sensor and no car audio route on a Mac |
 | Offer drive mode when the phone is in a car | Mac | no motion sensor and no car audio route on a Mac |
 | Show the code that pairs a phone, list the paired phones, unpair | iPhone | the phone is the device being paired: it reads the code the Mac shows |
-| Pair with the Mac: scan, paste or open the code; unpair this phone | Page | the page is served by the daemon on the Mac: it is the side that shows the code |
-| Pair with the Mac: scan, paste or open the code; unpair this phone | Mac | the Mac app talks to its own daemon on loopback: nothing to pair |
+| Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone | Page | the page is served by the daemon on the Mac: it is the side that shows the code |
+| Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone | Mac | the Mac app talks to its own daemon on loopback: nothing to pair |
 | A demo with invented sessions, no Mac needed | Page | the page exists only while the daemon runs, so there is nothing to start, find or demo from it |
 | Keyboard: a key for every main action | iPhone | an iPhone has no keyboard by default; VoiceOver and Switch Control reach every control by its label |
 | A menu bar item with the state and who needs you | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |

@@ -20,7 +20,7 @@ enum PhoneCopy {
     static let check = "Check"
     static let show = "Show the code"
     static let cancel = "Cancel"
-    static let scan = "Scan with your iPhone's Camera, or in the Pointe app."
+    static let scan = "Scan it in the Pointe app on your iPhone."
     static let copyLink = "Can't scan? Copy the link"
     static let copied = "Copied"
     static let expired = "The code expired. Connect your phone again to make a new one."

@@ -119,8 +119,8 @@ struct PairingInvite: Hashable {
     }
 }
 
-/// A scanned or opened `pointe://pair` link: a pairing ready to use (`pointe pair` in a terminal), or a code to trade.
-enum PairingLink {
+/// A scanned or pasted `pointe://pair` link: a pairing ready to use (`pointe pair` in a terminal), or a code to trade.
+enum PairingLink: Equatable {
     case ready(Pairing)
     case invite(PairingInvite)
 
@@ -143,13 +143,15 @@ enum PairingStore {
         return try? JSONDecoder().decode(Pairing.self, from: data)
     }
 
+    /// Written over the old item, never deleted first: a write that fails leaves the old pairing in place.
     static func save(_ pairing: Pairing) {
-        let data = try! JSONEncoder().encode(pairing)
-        forget()
-        let item: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
-                                   kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-                                   kSecValueData as String: data]
-        SecItemAdd(item as CFDictionary, nil)
+        guard let data = try? JSONEncoder().encode(pairing) else { return }
+        let item: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service]
+        let value: [String: Any] = [kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+                                    kSecValueData as String: data]
+        if SecItemUpdate(item as CFDictionary, value as CFDictionary) == errSecItemNotFound {
+            SecItemAdd(item.merging(value) { $1 } as CFDictionary, nil)
+        }
     }
 
     static func forget() {

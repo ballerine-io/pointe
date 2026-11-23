@@ -1,7 +1,8 @@
-"""The iPhone app pairs from the page's QR link, opened by the system as the Camera app opens it: a test daemon, a
-one-time code made through the page's own route (its cookie), and ios/PointeUITests/PairByLinkUITests.swift, which opens
-the link, sees "Paired with <Mac>", and sees the same link refused a second time. Then the daemon lists the phone, and
-the phone shows online because the app polls with the key it was given.
+"""The iPhone app pairs from the page's QR link only inside the app: a test daemon, a one-time code made through the
+page's own route (its cookie), and ios/PointeUITests/PairByLinkUITests.swift, which has the system open the link (as the
+Camera app does) and sees that it pairs nothing, then pastes the same link in the app, confirms the Mac it names and sees
+"Paired with <Mac>". The code is then refused a second time. Then the daemon lists the phone, and the phone shows online
+because the app polls with the key it was given.
 
 Run: CLAUDE_VOICE_STATE=/tmp/cv-state-pc2 CLAUDE_VOICE_DAEMON_PORT=7971 CLAUDE_VOICE_TLS_PORT=7571 POINTE_SHOTS=/tmp/pc-shots \
      DEVELOPMENT_TEAM="$(cat ios/.team)" uv run python -u -I tests/e2e/ios_phone_pair.py "PC iPhone"
@@ -13,8 +14,10 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -77,7 +80,7 @@ def main() -> None:
         env={**os.environ, "TEST_RUNNER_POINTE_PAIR_CODE_LINK": made["link"], "TEST_RUNNER_POINTE_PAIR_MAC": mac},
         capture_output=True, text=True)
     tail = [l for l in test.stdout.splitlines() if "error" in l or "passed" in l or "failed" in l or "skipped" in l][-8:]
-    check("the UI test: the system-opened link pairs, says so, and is refused a second time",
+    check("the UI test: the system-opened link pairs nothing; pasted in the app it pairs after a confirm, and says so",
           test.returncode == 0 and "skipped" not in test.stdout.lower().split("** test")[0][-2000:], tail=tail)
 
     try:
@@ -94,6 +97,14 @@ def main() -> None:
 
     invite = as_page("GET", "/voice/phone/invite")
     check("the page sees who paired", bool(invite["paired"] and invite["paired"]["name"]), paired=invite["paired"])
+    code = parse_qs(urlparse(made["link"]).query)["code"][0]
+    again = urllib.request.Request(f"{DAEMON}/voice/phone/pair", method="POST", headers={"Content-Type": "application/json"},
+                                   data=json.dumps({"code": code, "device": "Second try", "id": "second-try"}).encode())
+    try:
+        status = urllib.request.urlopen(again, timeout=10).status
+    except urllib.error.HTTPError as e:
+        status = e.code
+    check("the same code is refused a second time", status in (403, 429), status=status)
     deadline, phones = time.time() + 20, {}
     while time.time() < deadline:
         phones = with_token("/voice/status")["phones"]

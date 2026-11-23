@@ -381,8 +381,8 @@ TOPICS = (
     Topic("pair-phone", "Pair the iPhone with this Mac",
           ("pair", "pair the phone", "pair my phone", "connect the phone", "connect my iphone", "set up the iphone",
            "qr code", "scan the code", "לצמד", "מצמיד", "צימוד", "לחבר את הטלפון", "לחבר את האייפון", "קוד qr"),
-          "On the Mac's page, Settings → Phone → Connect your phone shows a code; scan it with the iPhone's Camera or in "
-          "the Pointe app. The code works once and expires in 5 minutes.",
+          "On the Mac's page, Settings → Phone → Connect your phone shows a code; scan it in the Pointe app on the "
+          "iPhone. The code works once and expires in 5 minutes.",
           iphone=(("pair", "Pair"),), page=(("settings", "Phone", "Connect your phone"),), mac=(("menu", "Phone"),),
           mac_note="The Mac app shows the code: Connect your phone, then scan it with the iPhone.",
           iphone_note="Pairing starts on the Mac's page: Settings → Phone → Connect your phone."),

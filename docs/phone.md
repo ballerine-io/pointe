@@ -102,8 +102,9 @@ Without the app, the page works in the phone's browser ([above](#in-the-phones-b
 
 On the Mac, open Pointe's page: Settings → Phone → **Connect your phone**. The page lists the ways your phone can
 reach this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), recommends one, and shows a QR
-code. Point the iPhone's Camera at it and tap "Open in Pointe" (or scan it in the app). The page turns to "Connected:
-<phone>" when the app has paired. The code works once, for 5 minutes; the app gets its key from the Mac over the
+code. Scan it in the Pointe app on the iPhone (or paste its link there) and confirm the Mac it names. A `pointe://` link
+opened from the Camera, another app or a web page pairs nothing: it only opens Pointe and says to scan the code inside
+the app. The page turns to "Connected: <phone>" when the app has paired. The code works once, for 5 minutes; the app gets its key from the Mac over the
 certificate it checks. Each phone gets its own key: connecting another phone keeps the ones already paired, **Unpair**
 on a phone signs out that phone only, and **Unpair all** signs out every one. A phone paired with `pointe pair` before
 this keeps working; it shows as "Paired phone" until the app reports its name. If no way works, the page says what to

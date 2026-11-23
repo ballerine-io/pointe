@@ -348,6 +348,20 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 
 - **Pairing.** `pointe pair tailscale|wifi|host <name>` makes a TLS certificate for that one name, and a QR code with its
   SHA-256 and the phone's own key (`phone_key`, 0600). The app keeps both in the Keychain and talks only to that Mac.
+- **Only a code scanned or pasted in the app pairs** (`PairingFlow.swift`). The app first shows the Mac's address and
+  the first 16 characters of its certificate's SHA-256, and pairs only on the owner's confirm. Replacing a pairing names
+  both Macs and needs Face ID or the passcode, and the old pairing stays until the new Mac has answered: the code
+  redeemed, or, for a `pointe pair` code, the new key answered over the pinned connection. A `pointe://` link that
+  opens the app from outside (the Camera, another app, a web page) pairs nothing, whatever it holds: any app or page can
+  open one, and another app can register the same scheme. It only opens a sheet that says to scan the code inside
+  Pointe. The app still registers the scheme for that sheet; without it, an app that claims `pointe://` would be the
+  only one iOS could hand a Camera-scanned code to.
+- **A code scanned outside the app can still reach another app.** If a person scans the page's code with the Camera and
+  another installed app has claimed `pointe://`, iOS may hand that app the link. With the page's code, that app can
+  trade the one-time code for a phone key of its own within the 5 minutes; the page then shows "Connected:" with the
+  name it chose, and Unpair removes it. With the terminal's code (`pointe pair show`) it gets the lasting key. The page
+  and the app say to scan inside Pointe, and `pointe pair show` says not to use the Camera. The Mac does not ask for a
+  confirm before a new phone's key works (a known limit).
 - **Pairing from the page** (Settings → Phone, `phone_pairing.py`). The page lists the routes this Mac has (Tailscale, a
   name you set up, the Wi-Fi) and shows a QR code made on the Mac, with no outside service. The QR holds the listener's
   name, its certificate's SHA-256 and a one-time code, not the phone key: single use, 5 minutes, about 40 bits, kept only
@@ -366,7 +380,8 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 - **The shared key from before.** `phone_key` (0600), which `pointe pair` put in its QR code before per-phone keys,
   still works, as one phone named "Paired phone" until the app reports its name (an `X-Pointe-Device` header). So the
   upgrade signs no one out. `pointe pair show` still prints that old link with that key, and mints it again if it was
-  unpaired: the terminal path is unchanged, and Unpair on the page revokes it like any other phone.
+  unpaired: it works with the daemon stopped, which the page's one-time code cannot. It says to scan it inside the app
+  and not with the Camera, and Unpair on the page revokes it like any other phone.
 - **Pinning, and App Transport Security off.** The app accepts exactly the certificate it paired with, and nothing else,
   CA-signed or not. iOS's App Transport Security can't be scoped to a name you pick (a Twingate or VPN name), and it
   refuses a self-signed certificate before the app's own check runs, so it is off for this app. The pin is the stronger

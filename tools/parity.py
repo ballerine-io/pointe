@@ -318,7 +318,7 @@ GROUPS: list[tuple[str, list[Feature]]] = [
         F("pair.show", "Show the code that pairs a phone, list the paired phones, unpair",
           web=['id="phone"', 'id="ph-qr"', 'id="ph-unpair"'], mac=[r"struct PhoneSheet\b", r'"voice/phone/invite"'],
           ios="the phone is the device being paired: it reads the code the Mac shows"),
-        F("pair.read", "Pair with the Mac: scan, paste or open the code; unpair this phone",
+        F("pair.read", "Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone",
           ios=[r"struct PairView\b", r"Unpair this phone"], web=PAGE_IS_THE_MAC, mac="the Mac app talks to its own daemon on loopback: nothing to pair"),
         F("appearance", "Appearance: System, Light or Dark",
           web=['id="theme-system"', 'id="theme-dark"'], swift=[ident("appearanceSetting", "settings.theme")]),
