@@ -7,6 +7,10 @@ import SwiftUI
 
 /// The window: the call screen once Pointe runs on this Mac (or a demo is on), the setup guide until then.
 struct MainWindow: View {
+    /// The smallest window that keeps every primary button in it: Deny and Approve, Start shift, Connect, I've stopped.
+    /// Below 560 high the cards over the bar had no room left for their buttons.
+    static let minSize = NSSize(width: 420, height: 560)
+
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -19,21 +23,24 @@ struct MainWindow: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             if model.ready {
-                VStack(alignment: .leading, spacing: 0) {
+                // One band: the version note takes what the talk mode leaves beside it, so the mode keeps its place at the
+                // trailing edge and the note adds a line only when it wraps.
+                HStack(alignment: .firstTextBaseline, spacing: 16) {
                     if let note = model.versionNote {
                         Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
                             .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
-                            .padding(.vertical, 6)
+                            .fixedSize(horizontal: false, vertical: true)
                             .textSelection(.enabled)
                             .accessibilityIdentifier("versionNote")
                     }
+                    Spacer(minLength: 0)
                     Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
                         .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
-                        .padding(.vertical, 4)
+                        .fixedSize()
                         .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
                         .accessibilityIdentifier("talkMode")
                 }
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.vertical, 4)
                 .padding(.horizontal, 18)
             }
         }
@@ -51,7 +58,10 @@ struct SetupPanel: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Set up Pointe").font(PointeLook.display(28)).foregroundStyle(PointeLook.text).accessibilityAddTraits(.isHeader)
+                HStack(spacing: 12) {
+                    PointeLook.mark(36)
+                    Text("Set up Pointe").font(PointeLook.display(28)).foregroundStyle(PointeLook.text).accessibilityAddTraits(.isHeader)
+                }
                 step(done: model.plugin != nil, title: "The Pointe plugin",
                      detail: model.plugin.map { "Found version \($0.version)." } ?? "Install it in a terminal, then come back:") {
                     if model.plugin == nil {

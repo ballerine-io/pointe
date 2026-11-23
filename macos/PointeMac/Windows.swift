@@ -61,12 +61,12 @@ final class Windows: NSObject, NSWindowDelegate {
             window.titlebarAppearsTransparent = true  // the brand's own header is the top of the window
             window.titleVisibility = .hidden
             window.identifier = NSUserInterfaceItemIdentifier("pointe.main")
-            window.contentMinSize = NSSize(width: 420, height: 480)
+            window.contentMinSize = MainWindow.minSize
             window.isReleasedWhenClosed = false
             window.toolbarStyle = .unified
             // The window's size is the person's: the conversation's own ideal height (all of it) must not set it.
             let root = MainWindow().environment(AppModel.shared)
-                .frame(minWidth: 420, idealWidth: 820, maxWidth: .infinity, minHeight: 480, idealHeight: 640, maxHeight: .infinity)
+                .frame(minWidth: MainWindow.minSize.width, idealWidth: 820, maxWidth: .infinity, minHeight: MainWindow.minSize.height, idealHeight: 640, maxHeight: .infinity)
             let content = NSHostingView(rootView: root)
             content.sizingOptions = [.minSize]
             window.contentView = content

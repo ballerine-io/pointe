@@ -366,6 +366,10 @@ public enum PointeLook {
     public static var onPrimary: Color { Brand.onPrimary }
     public static func font(_ style: Font.TextStyle = .body, _ weight: Font.Weight = .regular) -> Font { .brand(style, weight) }
     public static func display(_ size: CGFloat) -> Font { .display(size) }
+    /// The Chorus mark, for the Mac target's own screens (the setup guide), as the call screen's header draws it.
+    public static func mark(_ size: CGFloat) -> some View {
+        Image("ChorusMark", bundle: .module).resizable().frame(width: size, height: size).accessibilityHidden(true)
+    }
     /// The key Appearance is stored under ("system", "light", "dark"), so the app's own windows follow it.
     public static let themeKey = Theme.key
 }
