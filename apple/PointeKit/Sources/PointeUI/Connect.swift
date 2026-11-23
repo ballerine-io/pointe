@@ -24,7 +24,7 @@ enum ConnectCopy {
     static let busy = "A call is already up on another page or phone. Hang up there first."
     static let notPaired = "This phone is no longer paired. Pair again from the page: Settings → Phone → Connect your phone."
     static let idleHangup = "The Mac hung up after 30 minutes of quiet. Tap Connect to talk again."
-    static let micDenied = "Pointe needs the microphone: allow it in Settings, then tap Connect."
+    static let micDenied = "Pointe needs the microphone: allow it in Settings, then tap Try again."
     /// Under Connect: the type bar opens from the keyboard button, and typing needs the call (the page's typeLaterTap).
     static let typeLaterTap = "Once connected, tap the keyboard to type"
     static func connecting(_ place: String) -> String { "Connecting to \(place)…" }
@@ -69,6 +69,8 @@ struct ConnectFace: Equatable {
     let button: String     // the empty stage's button
     let pill: String       // the header pill
     let dialling: Bool
+    /// The microphone was refused: the panel offers the system's own switch for it.
+    var opensSettings = false
 
     static func make(phase: Call.State, reach: Reach, host: String, problem: String?, macOnACall: Bool) -> ConnectFace {
         let issue: String? = reach == .rejected ? ConnectCopy.notPairedHere : reach == .unreachable ? ConnectCopy.unreachableHere(host)
@@ -77,7 +79,8 @@ struct ConnectFace: Equatable {
         let why = issue ?? (phase == .reconnecting ? ConnectCopy.redialling
                             : phase == .off && macOnACall ? ConnectCopy.elsewhereWhyHere : ConnectCopy.doesHere)
         let button = dialling ? ConnectCopy.cancel : issue != nil ? ConnectCopy.tryAgain : ConnectCopy.connect
-        return ConnectFace(why: why, bad: issue != nil, button: button, pill: phase == .live ? ConnectCopy.hangUp : button, dialling: dialling)
+        return ConnectFace(why: why, bad: issue != nil, button: button, pill: phase == .live ? ConnectCopy.hangUp : button, dialling: dialling,
+                           opensSettings: issue == ConnectCopy.micDeniedHere)
     }
 }
 
@@ -113,6 +116,11 @@ struct ConnectPanel: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("connectButton")
             .padding(.top, 4)
+            if face.opensSettings {
+                Button(Surface.isMac ? "Open Microphone settings…" : "Open Settings") { SystemSettings.openMicrophone() }
+                    .font(.brand(.subheadline, .semibold)).tint(Brand.accent)
+                    .accessibilityIdentifier("connectOpenSettings")
+            }
             Text(ConnectCopy.typeLaterHere).font(.brand(.caption)).foregroundStyle(Brand.dim)
                 .accessibilityIdentifier("connectHint")
         }

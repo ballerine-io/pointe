@@ -311,7 +311,7 @@ final class AppModel {
     }
 
     func openMicrophoneSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") { NSWorkspace.shared.open(url) }
+        SystemSettings.openMicrophone()
     }
 
     // MARK: the shortcut

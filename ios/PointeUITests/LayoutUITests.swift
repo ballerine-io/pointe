@@ -177,9 +177,23 @@ final class LayoutUITests: XCTestCase {
     func testALongNameOnTheRequestCardHasTheCardsWidthAtTheLargestType() {
         let app = launch("longNames", ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
         let name = text(app, "idempotency-keys-for-refunds needs approval")
-        let badge = app.descendants(matching: .any)["runs on Codex"].firstMatch
+        // the card's own badge: the session strip's agent mark has the same label
+        let badge = app.descendants(matching: .any)["requestAgent"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 10) && badge.exists, "the card and its badge")
         XCTAssertGreaterThanOrEqual(badge.frame.minY, name.frame.maxY - 1, "the badge is under the name, not beside it")
+    }
+
+    /// A long session name at the largest sizes made the card taller than the dock even with the command at two lines:
+    /// only the tops of Deny and Approve showed. Now what is above them scrolls inside the card, and they stay whole.
+    func testALongNameAtTheLargestTypeLeavesDenyAndApproveWhole() {
+        let app = launch("longNames", ["-demoEnglish", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"])
+        for name in ["Deny", "Approve"] {
+            let button = app.buttons[name]
+            XCTAssertTrue(button.waitForExistence(timeout: 10), name)
+            XCTAssertTrue(button.isHittable, "\(name) can be tapped without scrolling")
+            XCTAssertGreaterThan(button.frame.height, 40, "\(name) is whole, not its top edge")
+            XCTAssertLessThanOrEqual(button.frame.maxY, app.buttons["micRing"].frame.minY, "\(name) is above the bar")
+        }
     }
 
     /// The header's round buttons are drawn at 36 points and take a 44-point touch: a tap just off the circle still lands.

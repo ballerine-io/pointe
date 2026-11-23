@@ -90,8 +90,8 @@ For work on the app itself, `macos/build.sh --open` makes a Debug build in `maco
   (⇧⌘P). Esc closes a sheet.
 - **The call bubble** (menu or Settings): a small panel over other apps while a call is up, with the state, the talk
   mode and a talk button; if a call did not start, it says why. Click it to open the window; drag it anywhere, and it
-  keeps the place. − makes it a small pill that opens out when the pointer is over it; × hides it ("Show call bubble
-  during calls" in the menu, or Settings, brings it back). Right-click it for Keep on Screen with No Call, Reset
+  keeps the place. − makes it a small pill that opens out when the pointer is over it; × hides it ("Show Call Bubble
+  During Calls" in the menu, or Settings, brings it back). Right-click it for Keep on Screen with No Call, Reset
   Position and the rest.
 - **Alerts** (Settings → Alerts): a notification when a session needs you and the window is not in front. Approve on a
   notification appears only for a request Pointe can read out and only with "Approve from notifications" on.

@@ -59,6 +59,7 @@ enum BrainDumpCopy {
     static let lede = "Talk freely. Nothing is sent until you say so."
     static let empty = "Start talking. Every thought lands here."
     static let hint = "When you're done: tap Done, or say “done” or “over to you”."
+    static var hintHere: String { Surface.shown(hint.replacingOccurrences(of: "tap Done", with: "\(Surface.tap) Done")) }
     static let structuring = "Structuring your thoughts…"
     static let reviewTitle = "Your brain dump, structured"
     static let reviewLede = "In your words. Edit it, add more, or send it."
@@ -164,9 +165,10 @@ struct BrainDumpPanel: View {
                     .animation(.easeOut(duration: 0.15), value: dump.thoughts.count)
                 }
                 .defaultScrollAnchor(.bottom)
+                .edgeFade(.vertical)  // the earlier thoughts fade out above instead of being cut through a line
                 .onChange(of: dump.thoughts.count) { scroller.scrollTo("end", anchor: .bottom) }
             }
-            Text(BrainDumpCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted)
+            Text(BrainDumpCopy.hintHere).font(.brand(.footnote)).foregroundStyle(Brand.muted)
             if let note = problem ?? dump.problem ?? (dump.resumed == true ? BrainDumpCopy.resumed : nil) {
                 Label(note, systemImage: "exclamationmark.triangle.fill").font(.brand(.footnote)).foregroundStyle(Brand.accent)
                     .accessibilityIdentifier("dump.note")
@@ -260,11 +262,13 @@ struct BrainDumpReview: View {
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.up.chevron.down").font(.brand(.footnote, .semibold)).foregroundStyle(Brand.muted)
                         }
-                        .padding(.horizontal, 14).frame(minHeight: 46)
+                        .padding(.horizontal, 14).frame(maxWidth: .infinity, minHeight: 46)
                         .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.line))
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .tint(.primary)  // a field, not an accent: the orange is Send's
+                    .fieldMenu()
                     .accessibilityLabel("\(BrainDumpCopy.to) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.session")
                     if let note = BrainDumpCopy.goneNote(dump, target: target) {

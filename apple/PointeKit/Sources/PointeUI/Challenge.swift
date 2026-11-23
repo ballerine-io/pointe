@@ -112,6 +112,7 @@ struct ChallengePanel: View {
                 }
                 .defaultScrollAnchor(.bottom)
                 .scrollIndicatorsFlash(onAppear: true)  // scrolled to the newest objection: the cue that the plan is above
+                .edgeFade(.vertical)  // the plan above fades out under the header instead of being cut through its label
                 .onChange(of: challenge.items?.count) { withAnimation(.smooth) { scroller.scrollTo("end", anchor: .bottom) } }
             }
             if let problem {

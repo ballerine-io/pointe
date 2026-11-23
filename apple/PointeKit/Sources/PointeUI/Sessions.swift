@@ -96,7 +96,7 @@ struct SessionChips: View {
                     .accessibilityIdentifier("startingChip.\(row.name)")
                 }
                 if sessions.isEmpty && starting.isEmpty && known {
-                    Text("No sessions · /pointe:voice or pointe join").font(.brand(.subheadline)).foregroundStyle(Brand.muted)
+                    Text("No sessions yet").font(.brand(.subheadline)).foregroundStyle(Brand.muted)  // how to join is the line under it: said once
                 }
                 ForEach(groups, id: \.machine) { group in
                   if let name = group.machine { divider(name) }

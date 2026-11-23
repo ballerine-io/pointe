@@ -122,6 +122,7 @@ struct DriveScreen: View {
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollIndicators(.visible)
                 .scrollIndicatorsFlash(onAppear: true)  // the cue that more words are below
+                .edgeFade(.vertical)  // and the last line fades above I've stopped instead of being cut through its letters
             }
             Button(action: stop) {
                 Text(DriveCopy.stop).font(.brand(.title3, .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)

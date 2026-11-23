@@ -24,6 +24,12 @@ enum Surface {
     static let Tap = isMac ? "Click" : "Tap"
     /// The symbol on Approve: what the device asks with (Face ID; Touch ID or the password on the Mac).
     static let ownerSymbol = isMac ? "touchid" : "faceid"
+
+    /// A line the Mac (the daemon) wrote for every device, as this one shows it: its read-back ends "Say yes or tap.",
+    /// which on the Mac is a click.
+    static func shown(_ line: String) -> String {
+        isMac ? line.replacingOccurrences(of: "Say yes or tap.", with: "Say yes or click.") : line
+    }
 }
 
 enum Clipboard {
@@ -37,11 +43,32 @@ enum Clipboard {
     }
 }
 
+/// The system's own switch for the microphone: iOS opens Pointe's page in Settings, macOS its Privacy pane.
+public enum SystemSettings {
+    @MainActor public static func openMicrophone() {
+        #if os(macOS)
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") { NSWorkspace.shared.open(url) }
+        #else
+        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+        #endif
+    }
+}
+
 extension View {
-    /// A sheet's title, in the bar's own line on both platforms.
+    /// A sheet's title: in the bar on the iPhone, over the content on the Mac.
     @ViewBuilder func sheetTitle(_ title: String) -> some View {
         #if os(macOS)
-        navigationTitle(title)  // macOS draws it in the sheet's own bar
+        // Over the content, in line with the section headings: in the sheet's bar macOS keeps an empty slot for window
+        // buttons a sheet does not have, and the title sat about 48 points in from everything under it.
+        navigationTitle(title)
+            .toolbar(removing: .title)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Text(title).font(.brand(.headline, .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 4)
+                    .background(Brand.group)
+                    .accessibilityAddTraits(.isHeader)
+            }
         #else
         navigationTitle(title).navigationBarTitleDisplayMode(.inline)
         #endif
@@ -58,6 +85,16 @@ extension View {
             .modifier(EscCloses())
         #else
         presentationBackground(Brand.group)
+        #endif
+    }
+
+    /// A menu whose label draws itself as a field (brain dump's To:): macOS otherwise lays its own pop-up bezel and a
+    /// second arrow under the label, two controls drawn over each other.
+    @ViewBuilder func fieldMenu() -> some View {
+        #if os(macOS)
+        menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
+        #else
+        self
         #endif
     }
 

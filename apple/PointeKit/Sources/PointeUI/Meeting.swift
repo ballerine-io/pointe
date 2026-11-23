@@ -5,6 +5,8 @@ import SwiftUI
 // (docs/design/2026-11-feature-plan.md, meeting mode, UX table).
 
 enum MeetingCopy {
+    /// Under the speakers: how to claim a line that was given to someone else (a context menu: long press, or right-click).
+    static let notYouHere = "Not you? \(Surface.isMac ? "Right-click" : "Long-press") a line in the Transcript and choose \u{201C}That was me\u{201D}."
     static let listening = "Listening"
     static let participating = "Participating"
     static let listeningWhat = "Never speaks. Writes what matters into the notes: unanswered questions, decisions, action items."
@@ -718,7 +720,7 @@ struct SpeakersSheet: View {
                     }
                 } footer: {
                     Group {
-                        Text("Not you? Long-press a line in the Transcript and choose \u{201C}That was me\u{201D}.")
+                        Text(MeetingCopy.notYouHere)
                     }.brandFootnote()
                 }
             }

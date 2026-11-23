@@ -166,7 +166,7 @@ struct BubbleView: View {
                             help: model.bubbleSmall ? "Keep the bubble full size" : "Make the bubble small", id: "bubble.small.toggle") {
                         model.bubbleSmall.toggle()
                     }
-                    control("xmark", help: "Hide the bubble (Show call bubble during calls, in the menu, brings it back)", id: "bubble.close") {
+                    control("xmark", help: "Hide the bubble (Show Call Bubble During Calls, in the menu, brings it back)", id: "bubble.close") {
                         model.bubbleOn = false
                     }
                 }

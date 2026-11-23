@@ -41,11 +41,14 @@ struct PointeCommands: Commands {
             Button(MacMenu.addSessions) { model.ask(.addSessions) }.keyboardShortcut("j", modifiers: [.command, .shift])
                 .disabled(!model.ready)
         }
+        CommandGroup(replacing: .help) {
+            Button(MacMenu.help) { NSWorkspace.shared.open(MacMenu.helpURL) }.keyboardShortcut("?")
+        }
         CommandMenu("Call") {
-            Button(model.session.phase == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
+            Button(MacMenu.title(model.session.phase == .off ? MacCopy.connect : MacCopy.hangUp)) { Task { await model.toggleCall() } }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(model.session.isDemo)
-            Button(model.session.dumpLabel) { model.ask(.brainDump) }
+            Button(MacMenu.title(model.session.dumpLabel)) { model.ask(.brainDump) }
                 .keyboardShortcut("b")
                 .disabled(!model.session.live)
             Button(MacMenu.type) { model.ask(.type) }.keyboardShortcut("t").disabled(!model.ready)
@@ -57,7 +60,7 @@ struct PointeCommands: Commands {
             Button(MacMenu.machines) { model.ask(.machines) }.disabled(!model.ready)
             Button(MacMenu.phone) { model.ask(.phone) }.disabled(!model.ready || model.session.isDemo)
             Divider()
-            Button(MacCopy.openPage) { model.openPage() }.keyboardShortcut("p", modifiers: [.command, .shift])
+            Button(MacMenu.title(MacCopy.openPage)) { model.openPage() }.keyboardShortcut("p", modifiers: [.command, .shift])
                 .disabled(model.daemon != .running)
         }
     }
@@ -71,9 +74,22 @@ enum MacMenu {
     static let sessions = "Sessions and Mode"
     static let meeting = "Start a Meeting"
     static let briefing = "Briefing"
-    static let nightShift = NightShiftCopy.title
+    static let nightShift = title(NightShiftCopy.title)
     static let machines = "Machines"
     static let phone = "Pair a Phone…"
+    static let help = "Pointe Help"
+    /// Help → Pointe Help (⌘?): the Mac app's guide. Without it macOS said "Help isn't available for Pointe."
+    static let helpURL = URL(string: "https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md")!
+
+    /// A label shared with a button ("Hang up", "Open the page"), as a menu item: in title case, like every Mac menu.
+    static func title(_ label: String) -> String {
+        let minor: Set<String> = ["a", "an", "and", "as", "at", "but", "by", "for", "in", "of", "on", "or", "the", "to"]
+        return label.split(separator: " ", omittingEmptySubsequences: false).enumerated().map { index, word in
+            let w = String(word)
+            if index > 0 && minor.contains(w.lowercased()) { return w.lowercased() }
+            return w.prefix(1).uppercased() + w.dropFirst()
+        }.joined(separator: " ")
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -146,10 +162,10 @@ struct MenuContent: View {
         Text(session.menuTitle)
         if let note = model.versionNote { Text(note.line) }
         Divider()
-        Button(session.phase == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
+        Button(MacMenu.title(session.phase == .off ? MacCopy.connect : MacCopy.hangUp)) { Task { await model.toggleCall() } }
             .disabled(model.daemon == .node || model.daemon == .noPlugin || model.daemon == .squatter || session.isDemo)
         if session.live {
-            Button(session.dumpLabel) { model.ask(.brainDump) }
+            Button(MacMenu.title(session.dumpLabel)) { model.ask(.brainDump) }
         }
         let waiting = session.waiting
         if !waiting.isEmpty {
@@ -161,7 +177,7 @@ struct MenuContent: View {
         Divider()
         Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
         Button(MacMenu.newSession) { model.ask(.newSession) }.disabled(!model.ready)
-        Toggle("Show call bubble during calls", isOn: Binding(get: { model.bubbleOn }, set: { model.bubbleOn = $0 }))
+        Toggle("Show Call Bubble During Calls", isOn: Binding(get: { model.bubbleOn }, set: { model.bubbleOn = $0 }))
         Button("Settings…") { model.ask(.settings) }.keyboardShortcut(",")
         Divider()
         Button("Quit Pointe") { NSApp.terminate(nil) }.keyboardShortcut("q")

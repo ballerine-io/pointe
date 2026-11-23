@@ -159,7 +159,7 @@ struct StartCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Label { Text(NewSessionCopy.confirmTitle) } icon: { Image(systemName: "plus.circle.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
-            Text(pending.line).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
+            Text(Surface.shown(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("startLine")
             HStack(spacing: 10) {
                 Button { act(false) } label: { Text(NewSessionCopy.cancel).frame(maxWidth: .infinity) }

@@ -30,6 +30,7 @@ struct BottomBar: View {
                 if !driving {
                     Spacer(minLength: 0)
                     side("Type", typing ? "keyboard.chevron.compact.down" : "keyboard", on: typing, action: type)
+                        .disabled(!live && !typing)  // typing needs the call (Connect says so): a field it could not send from took text
                         .accessibilityIdentifier("typeButton")
                 }
                 Spacer(minLength: 0)

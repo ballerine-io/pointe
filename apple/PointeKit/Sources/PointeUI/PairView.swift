@@ -12,16 +12,19 @@ struct PairView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        // At the accessibility sizes the screen is taller than the phone: then it scrolls, from the top, with the camera
-        // at its smallest. A stack that did not fit was centred, which drew the title over the clock and cut the rest.
-        // (Not ViewThatFits: it keeps both copies of the link field, and a tap then focused the hidden one.)
-        Group {
-            if typeSize.isAccessibilitySize {
-                ScrollView { content }.scrollBounceBehavior(.basedOnSize)
-            } else {
-                content
+        // The screen scrolls when it is taller than the room: at the accessibility sizes, and on a small phone with the
+        // keyboard up. Below those it fills the screen and the camera takes what is left. Laid out without a scroll, the
+        // keyboard pushed the stack up: the intro ran under the clock and the link's error sat under the keys. Clipped to
+        // the safe area, so what scrolls up never draws under the clock either. (One container in every case: a field
+        // that moved between two lost its focus, and ViewThatFits kept both copies of the field.)
+        GeometryReader { room in
+            ScrollView {
+                content.frame(minHeight: typeSize.isAccessibilitySize ? 0 : room.size.height, alignment: .top)
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
         }
+        .clipped()
         .background(Brand.background)
     }
 
@@ -46,6 +49,11 @@ struct PairView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.line))
             }
+            // over the field, not under Pair: with the keyboard up, under Pair was under the keys, and Pair seemed to do nothing
+            if let problem {
+                Text(problem).font(.brand(.footnote)).foregroundStyle(Brand.accent).fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("pairProblem")
+            }
             TextField("or paste the pointe:// link", text: $link)
                 .autocorrectionDisabled().textInputAutocapitalization(.never).keyboardType(.URL).submitLabel(.go)
                 .padding(.horizontal, 14).frame(minHeight: 48)
@@ -53,7 +61,6 @@ struct PairView: View {
                 .onSubmit(use)
             Button(action: use) { Text("Pair").frame(maxWidth: .infinity) }
                 .buttonStyle(.brandPrimary).controlSize(.large).disabled(link.isEmpty)
-            if let problem { Text(problem).font(.brand(.footnote)).foregroundStyle(Brand.accent) }
             if !scanning { Spacer() }
             Button(action: tryDemo) {
                 Label("No Mac yet? Try a demo", systemImage: "play.circle")

@@ -53,6 +53,25 @@ final class PairPasteUITests: XCTestCase {
         XCTAssertTrue(app.buttons["tryDemo"].exists, "still on the pairing screen")
     }
 
+    /// With the keyboard up (on an SE it leaves under half the screen) the link's error is over the keys, where it is
+    /// read. It was drawn under Pair, behind the keys (the intro over the clock is checked on the screenshot: the scroll
+    /// is clipped to the safe area, which the accessibility tree does not show).
+    func testWithTheKeyboardUpTheLinksErrorShowsAndNothingRunsUnderTheClock() {
+        let app = unpaired()
+        paste("https://example.invalid/not-a-link", in: app)
+        let problem = app.staticTexts["pairProblem"]
+        XCTAssertTrue(problem.waitForExistence(timeout: 5))
+        XCTAssertEqual(problem.label, "That link is not a Pointe pairing link.")
+        let keys = app.keyboards.firstMatch
+        XCTAssertTrue(keys.waitForExistence(timeout: 5), "the keyboard is still up")
+        XCTAssertTrue(problem.isHittable)
+        XCTAssertLessThanOrEqual(problem.frame.maxY, keys.frame.minY, "the error is above the keyboard")
+        let field = app.textFields["or paste the pointe:// link"]
+        XCTAssertLessThanOrEqual(field.frame.maxY, keys.frame.minY, "the field is above the keyboard")
+        let top = app.windows.firstMatch.frame.minY + 20  // the status bar on an SE; a notch is taller and the inset with it
+        for element in [problem, field] { XCTAssertGreaterThanOrEqual(element.frame.minY, top) }
+    }
+
     func testAPastedLinkPairsAndConnectSaysTheMacCannotBeReachedThenUnpairGoesBack() {
         let app = unpaired()
         paste("pointe://pair?v=1&host=127.0.0.1&port=1&fp=\(fingerprint)&key=\(key)", in: app)
@@ -67,6 +86,7 @@ final class PairPasteUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["connectWhy"].label.hasPrefix("Can't reach your Mac at 127.0.0.1"), "with where it looked")
         let again = app.buttons["connectButton"]
         XCTAssertEqual(again.label, "Try again", "one button, Try again")
+        XCTAssertFalse(app.buttons["typeButton"].isEnabled, "typing needs the call: no field to type into that cannot send")
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Mac not reachable")).count, 1,
                        "said once, on the stage (M8)")
 

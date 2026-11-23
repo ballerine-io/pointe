@@ -209,7 +209,7 @@ struct ShiftCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Label { Text(NightShiftCopy.confirmTitle) } icon: { Image(systemName: "moon.stars.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
-            Text(pending.line).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
+            Text(Surface.shown(pending.line)).font(.brand(.subheadline)).fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("nightShiftLine")
             HStack(spacing: 10) {
                 Button { act(false) } label: { Text(NightShiftCopy.cancel).frame(maxWidth: .infinity) }

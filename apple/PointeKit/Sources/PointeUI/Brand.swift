@@ -264,34 +264,45 @@ struct FitScroll<Content: View>: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .scrollIndicatorsFlash(trigger: height > limit)  // the cue that there is more: shown when it starts to scroll
+        .edgeFade(.vertical)  // and it stays: an edge with more beyond it fades instead of cutting a line through its letters
         .frame(height: min(height, max(0, limit)))
     }
 }
 
-/// A row of chips that scrolls sideways fades out at an edge with more beyond it: a chip cut hard at the window's edge
-/// gave no sign that the row scrolls.
+/// Scrolling content fades out at an edge with more beyond it: a chip cut hard at the window's edge, or a line cut
+/// through its letters at a box's bottom, gave no sign that there was more.
 struct EdgeFade: ViewModifier {
+    var axis: Axis = .horizontal
     @State private var before = false
     @State private var after = false
 
     func body(content: Content) -> some View {
         content
             .onScrollGeometryChange(for: [Bool].self) { g in
-                [g.contentOffset.x > 1, g.contentOffset.x + g.containerSize.width < g.contentSize.width - 1]
+                axis == .horizontal
+                    ? [g.contentOffset.x > 1, g.contentOffset.x + g.containerSize.width < g.contentSize.width - 1]
+                    : [g.contentOffset.y + g.contentInsets.top > 1,
+                       g.contentOffset.y + g.containerSize.height < g.contentSize.height + g.contentInsets.bottom - 1]
             } action: { _, now in (before, after) = (now[0], now[1]) }
             .mask {
-                HStack(spacing: 0) {
-                    LinearGradient(colors: [.black.opacity(before ? 0 : 1), .black], startPoint: .leading, endPoint: .trailing).frame(width: 28)
+                let start: UnitPoint = axis == .horizontal ? .leading : .top
+                let end: UnitPoint = axis == .horizontal ? .trailing : .bottom
+                let layout = axis == .horizontal ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
+                layout {
+                    LinearGradient(colors: [.black.opacity(before ? 0 : 1), .black], startPoint: start, endPoint: end)
+                        .frame(width: axis == .horizontal ? 28 : nil, height: axis == .vertical ? 28 : nil)
                     Color.black
-                    LinearGradient(colors: [.black, .black.opacity(after ? 0 : 1)], startPoint: .leading, endPoint: .trailing).frame(width: 28)
+                    LinearGradient(colors: [.black, .black.opacity(after ? 0 : 1)], startPoint: start, endPoint: end)
+                        .frame(width: axis == .horizontal ? 28 : nil, height: axis == .vertical ? 28 : nil)
                 }
-                .padding(.vertical, -12)  // the chips' strokes and touch areas reach past the row's bounds
+                // the chips' and cards' strokes and touch areas reach past the scroll's bounds on the other axis
+                .padding(axis == .horizontal ? .vertical : .horizontal, -12)
             }
     }
 }
 
 extension View {
-    func edgeFade() -> some View { modifier(EdgeFade()) }
+    func edgeFade(_ axis: Axis = .horizontal) -> some View { modifier(EdgeFade(axis: axis)) }
 }
 
 /// A section under a kicker.
@@ -374,8 +385,10 @@ struct MacSections<Content: View>: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .edgeFade(.vertical)
         .toggleStyle(SpreadToggle())
         .labeledContentStyle(SpreadLabeled())
+        .labelStyle(RowLabel())
         .background(Brand.group)
     }
 }
@@ -387,6 +400,17 @@ private struct SpreadLabeled: LabeledContentStyle {
             configuration.label
             Spacer(minLength: 8)
             configuration.content
+        }
+    }
+}
+
+/// A row's icon in a column of its own width, as a grouped list on the phone has it: each symbol is as wide as it is
+/// drawn, so the labels after them started at a different place on every row.
+struct RowLabel: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 10) {
+            configuration.icon.frame(width: 24)
+            configuration.title
         }
     }
 }

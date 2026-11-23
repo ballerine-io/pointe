@@ -20,8 +20,9 @@ struct AboutSheet: View {
             BrandForm {
                 Section {
                     Text(AboutCopy.body).accessibilityIdentifier("aboutBody")
-                    Link(AboutCopy.repo, destination: URL(string: AboutCopy.repoURL)!).accessibilityIdentifier("aboutRepo")
-                    Link(AboutCopy.maker, destination: URL(string: AboutCopy.makerURL)!).accessibilityIdentifier("aboutMaker")
+                    // In the accent with the arrow that says it leaves the app: in the form's ink they read as two more lines of text.
+                    link(AboutCopy.repo, AboutCopy.repoURL).accessibilityIdentifier("aboutRepo")
+                    link(AboutCopy.maker, AboutCopy.makerURL).accessibilityIdentifier("aboutMaker")
                     LabeledContent(AboutCopy.version, value: AppVersion.line(app: AppVersion.app, mac: mac))
                         .accessibilityIdentifier("aboutVersion")
                 }
@@ -29,5 +30,19 @@ struct AboutSheet: View {
             .sheetTitle(AboutCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+    }
+
+    private func link(_ title: String, _ url: String) -> some View {
+        Link(destination: URL(string: url)!) {
+            HStack {
+                Text(title)
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.up.right").font(.brand(.footnote, .semibold))
+            }
+            .foregroundStyle(Brand.accent)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }

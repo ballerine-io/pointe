@@ -338,14 +338,6 @@ struct CallView: View {
         }
         .onChange(of: status?.dictionary) { showLearned(learnedToasts.fresh(status?.dictionary)) }
         .onChange(of: status?.whisper, initial: true) { if whisperFollow.follow(status?.whisper) { withAnimation(.snappy) { typing = true } } }
-        .overlay(alignment: .bottom) {
-            if let toast {
-                LearnedToast(terms: toast) { undoLearned(toast) }
-                    .padding(.bottom, 130)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.snappy, value: toast)
         .sheet(isPresented: $showIgnored) {
             if let ignored = status?.voice_lock?.ignored {
                 IgnoredSheet(ignored: ignored).presentationDetents([.medium, .large]).sheetSurface()
@@ -628,6 +620,7 @@ struct CallView: View {
 
     private var bottom: some View {
         Dock(limit: dockLimit) {
+            learnedToast
             // What needs you sits by your thumb, never scrolled away under the conversation.
             conflictCard(inMeeting: false)
             if let b = status?.briefing, b.isOn || b.building == true, !showBriefing {  // the sheet has the same controls
@@ -694,6 +687,17 @@ struct CallView: View {
         .padding(.bottom, 4)
         .brandDock()
         .animation(.snappy, value: waiting.first?.request_id)
+        .animation(.snappy, value: toast)
+    }
+
+    /// "Learned: …" with Undo, in the dock over the cards: laid over the screen at a fixed height it covered the mic-mode
+    /// switch and the newest line's "edited".
+    @ViewBuilder
+    private var learnedToast: some View {
+        if let toast {
+            LearnedToast(terms: toast) { undoLearned(toast) }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     /// The newest disagreement between two sessions; the others wait behind it, counted.
@@ -879,6 +883,7 @@ struct CallView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Dock(limit: dockLimit) {
+                learnedToast
                 if let hand = meeting.hand {
                     HandCard(hand: hand, participating: meeting.participating) { decision in
                         await act { try await call.api.hand(decision) }
@@ -1666,44 +1671,65 @@ struct RequestCard: View {
     let answer: (API.Session, Bool) async -> Void
     @State private var busy = false
     @State private var answered = 0
-    @State private var cardHeight: CGFloat = 0
-    @State private var boxHeight: CGFloat = 0
+    @State private var topHeight: CGFloat = 0   // the name and what it wants to do
+    @State private var hintHeight: CGFloat = 0
+    @State private var buttonsHeight: CGFloat = 0
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.dockRoom) private var room
 
+    /// What the dock leaves for everything above Deny and Approve (the card's padding and the gap above the buttons).
+    private var upperRoom: CGFloat {
+        guard room.isFinite, buttonsHeight > 0 else { return .infinity }
+        return max(56, room - buttonsHeight - 32 - 12 - 2)
+    }
+
     /// The command's box gives up height first when the dock is short (a small phone, large type), down to about two
-    /// lines: Deny and Approve stay on the screen instead of below the dock's edge.
+    /// lines. Past that (a long name at the largest sizes) the name, the command and the hint scroll together above the
+    /// buttons: Deny and Approve stay on the screen instead of below the dock's edge.
+    /// Worked out from the parts around the box, never from a height that includes it: measured with the box inside,
+    /// the limit fed back on itself and the layout never settled.
     private var commandLimit: CGFloat {
-        guard room.isFinite, cardHeight > 0 else { return 150 }
-        return min(150, max(56, room - (cardHeight - boxHeight) - 2))
+        guard upperRoom.isFinite, topHeight > 0 else { return 150 }
+        return min(150, max(56, upperRoom - topHeight - hintHeight - 24))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // At the accessibility sizes the agent's badge goes under the name: beside it, a long name broke inside its words.
-            let head = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 6))
-            head {
-                Label { Text("\(who ?? session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent) }
-                    .font(.brand(.headline))
-                if showAgent { AgentBadge(session: session) }
+            FitScroll(limit: upperRoom) {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // At the accessibility sizes the agent's badge goes under the name: beside it, a long name broke inside its words.
+                        let head = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 6))
+                        head {
+                            Label { Text("\(who ?? session.name) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent) }
+                                .font(.brand(.headline))
+                            if showAgent { AgentBadge(session: session).accessibilityIdentifier("requestAgent") }
+                        }
+                        if let what = parsed.what { Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted) }
+                    }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topHeight = $0 }
+                    FitScroll(limit: commandLimit) {  // a long command scrolls in its box: Deny and Approve never leave the screen
+                        Text(parsed.exact)  // word for word: this is what Approve runs
+                            .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                    }
+                    .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
+                    .accessibilityIdentifier("requestCommand")
+                    Group {
+                        if session.isOffline {  // its machine dropped: the prompt is back in its terminal, and an answer would be stale
+                            Label(MachinesCopy.offlineCard, systemImage: "bolt.horizontal.circle")
+                                .font(.brand(.subheadline)).foregroundStyle(Brand.muted)
+                                .accessibilityIdentifier("requestOffline")
+                        } else {
+                            Text(session.voice_can_approve == true ? "Say yes or no, or \(Surface.tap)." : "Too complex to read out: check it, then \(Surface.tap).")
+                                .font(.brand(.caption)).foregroundStyle(Brand.muted)
+                        }
+                    }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { hintHeight = $0 }
+                }
             }
-            if let what = parsed.what { Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted) }
-            FitScroll(limit: commandLimit) {  // a long command scrolls in its box: Deny and Approve never leave the screen
-                Text(parsed.exact)  // word for word: this is what Approve runs
-                    .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-            }
-            .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { boxHeight = $0 }
-            .accessibilityIdentifier("requestCommand")
-            if session.isOffline {  // its machine dropped: the prompt is back in its terminal, and an answer would be stale
-                Label(MachinesCopy.offlineCard, systemImage: "bolt.horizontal.circle")
-                    .font(.brand(.subheadline)).foregroundStyle(Brand.muted)
-                    .accessibilityIdentifier("requestOffline")
-            } else {
-                Text(session.voice_can_approve == true ? "Say yes or no, or \(Surface.tap)." : "Too complex to read out: check it, then \(Surface.tap).")
-                    .font(.brand(.caption)).foregroundStyle(Brand.muted)
+            if !session.isOffline {
                 HStack(spacing: 10) {
                     Button { act(false) } label: { Text("Deny").frame(maxWidth: .infinity) }
                         .buttonStyle(.brandQuiet).controlSize(.large).accessibilityIdentifier("requestDeny")
@@ -1712,11 +1738,11 @@ struct RequestCard: View {
                 }
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // past this, side by side, "Approve" broke inside the word
                 .disabled(busy)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { buttonsHeight = $0 }
             }
         }
         .padding(16)
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)  // past this a long name and the hint pushed Deny and Approve out of the dock
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: session.request_id)

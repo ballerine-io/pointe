@@ -98,8 +98,19 @@ final class ConnectCopyTests: XCTestCase {
         XCTAssertTrue(ConnectCopy.unreachable("h").contains("Settings → Phone → Connect your phone"))  // the listener may be off
         XCTAssertTrue(ConnectCopy.notPaired.contains("Settings → Phone → Connect your phone"))
         XCTAssertEqual(ConnectCopy.idleHangup, "The Mac hung up after 30 minutes of quiet. Tap Connect to talk again.")
-        XCTAssertTrue(ConnectCopy.micDenied.hasSuffix("then tap Connect."))
+        // the button under it says Try again when the microphone was refused: the words name that button (QA round 2)
+        XCTAssertTrue(ConnectCopy.micDenied.hasSuffix("then tap Try again."))
         XCTAssertEqual(ConnectCopy.connecting("studio"), "Connecting to studio…")
+    }
+
+    func testARefusedMicrophoneOffersTheSettingsThatAllowIt() {
+        let denied = ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: ConnectCopy.micDeniedHere, macOnACall: false)
+        XCTAssertEqual(denied.button, ConnectCopy.tryAgain)
+        XCTAssertTrue(denied.why.contains(ConnectCopy.tryAgain) || Surface.isMac, "the line names the button it sits over")
+        XCTAssertTrue(denied.opensSettings, "nothing opened Settings: the person had to find the switch alone")
+        let other = ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: "The call did not connect.", macOnACall: false)
+        XCTAssertFalse(other.opensSettings)
+        XCTAssertFalse(ConnectFace.make(phase: .off, reach: .ok, host: "h:1", problem: nil, macOnACall: false).opensSettings)
     }
 
     func testTheFaceSaysWhatATapDoesOrWhyTheLastOneFailed() {
@@ -229,5 +240,23 @@ final class OwnerSymbolTests: XCTestCase {
             XCTAssertFalse(text.contains("systemImage: \"faceid\"") || text.contains("systemImage: \"touchid\""),
                            "\(name) names the sensor itself: use Surface.ownerSymbol")
         }
+    }
+}
+
+/// A Mac has no finger: the lines it shows say click and right-click where the phone's say tap and long-press. The
+/// daemon's read-back ("Say yes or tap.") is one line for every device, so the Mac app words it for itself on screen.
+final class TouchWordsTests: XCTestCase {
+    func testTheMacSaysClickWhereThePhoneSaysTap() {
+        let readBack = "Start a Claude Code session in shop on studio, named shop-2? Say yes or tap."
+        if Surface.isMac {
+            XCTAssertEqual(Surface.shown(readBack), "Start a Claude Code session in shop on studio, named shop-2? Say yes or click.")
+            XCTAssertEqual(BrainDumpCopy.hintHere, "When you're done: click Done, or say “done” or “over to you”.")
+            XCTAssertTrue(MeetingCopy.notYouHere.hasPrefix("Not you? Right-click a line in the Transcript"))
+        } else {
+            XCTAssertEqual(Surface.shown(readBack), readBack)
+            XCTAssertEqual(BrainDumpCopy.hintHere, BrainDumpCopy.hint)
+            XCTAssertTrue(MeetingCopy.notYouHere.hasPrefix("Not you? Long-press a line in the Transcript"))
+        }
+        XCTAssertEqual(Surface.shown("Nothing to change here."), "Nothing to change here.")
     }
 }

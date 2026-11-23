@@ -103,7 +103,21 @@ final class PointeMacTests: XCTestCase {
         XCTAssertEqual(MacMenu.newSession, "New Session")
         XCTAssertEqual(MacMenu.sessions, "Sessions and Mode")
         XCTAssertEqual(MacMenu.meeting, "Start a Meeting")
-        XCTAssertEqual(MacMenu.nightShift, NightShiftCopy.title, "the ledger's own title, as on the page and the phone")
+        XCTAssertEqual(MacMenu.nightShift, "Night Shift", "the ledger's own title, in a menu's title case")
+    }
+
+    /// A menu item is in title case (the Mac's own menus are): "Hang up" next to "Start a Meeting" read as a mistake.
+    func testMenuItemsAreInTitleCase() {
+        XCTAssertEqual(MacMenu.title("Hang up"), "Hang Up")
+        XCTAssertEqual(MacMenu.title("Brain dump"), "Brain Dump")
+        XCTAssertEqual(MacMenu.title("Open the page"), "Open the Page")
+        XCTAssertEqual(MacMenu.title("Show call bubble during calls"), "Show Call Bubble During Calls")
+        XCTAssertEqual(MacMenu.title("Type instead of talking"), "Type Instead of Talking")
+        XCTAssertEqual(MacMenu.title("Pair a phone…"), "Pair a Phone…")
+        XCTAssertEqual(MacMenu.title("a new session"), "A New Session", "the first word always")
+        XCTAssertEqual(MacMenu.title("Review"), "Review")
+        XCTAssertEqual(MacMenu.help, "Pointe Help")
+        XCTAssertEqual(MacMenu.helpURL.host, "github.com", "the docs, on a host the egress allowlist names")
     }
 
     // MARK: the call bubble
