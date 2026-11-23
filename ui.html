@@ -220,6 +220,28 @@
   .night-strip button { border: 0; border-radius: 10px; min-height: 36px; padding: 0 12px; background: transparent; color: var(--text);
                         font: 600 13px var(--font); cursor: pointer; box-shadow: inset 0 0 0 1px var(--line-strong); }
   .night-strip button:hover { background: var(--raised); }
+  /* adding sessions the user already runs or ran (docs/design/attach-by-voice.md) */
+  #m-add { margin-top: 4px; align-self: flex-start; border: 0; border-radius: 12px; min-height: 36px; padding: 0 14px; background: transparent;
+           color: var(--muted); font: 600 13px var(--font); cursor: pointer; }
+  #m-add:hover { background: var(--raised); color: var(--text); }
+  #attachask { padding: 0 var(--gutter); } #attachask:empty { display: none; }
+  #addsheet input[type=search] { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; min-height: 44px;
+                                 padding: 0 12px; font: 14px var(--font); outline: none; }
+  #addsheet input[type=search]:focus { border-color: var(--orange-line); }
+  #addlist { display: flex; flex-direction: column; gap: 6px; }
+  #addlist .grp { margin-top: 8px; color: var(--muted); font: 600 11px var(--font); letter-spacing: .06em; text-transform: uppercase; }
+  #addlist .grp:first-child { margin-top: 0; }
+  .addrow { display: grid; grid-template-columns: 22px minmax(0, 1fr) max-content; gap: 4px 10px; align-items: start; padding: 8px 10px;
+            border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); }
+  .addrow.off { opacity: .55; }
+  .addrow .top { display: flex; gap: 8px; align-items: center; min-width: 0; }
+  .addrow .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .addrow .sub, .addrow .asked, .addrow .why { grid-column: 2 / 4; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+  .addrow .why { color: var(--accent); }
+  .addrow button { border: 0; border-radius: 10px; min-height: 32px; padding: 0 12px; background: transparent; color: var(--text);
+                   box-shadow: inset 0 0 0 1px var(--line-strong); font: 600 12.5px var(--font); cursor: pointer; }
+  #addsheet .err { color: var(--accent); font-size: 13px; } #addsheet .err:empty, #addsheet .note:empty { display: none; }
+  #addsheet .note { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
   #m-night { margin-top: 4px; align-self: flex-start; border: 0; border-radius: 12px; min-height: 36px; padding: 0 14px; background: transparent;
              color: var(--muted); font: 600 13px var(--font); cursor: pointer; }
   #m-night:hover { background: var(--raised); color: var(--text); }
@@ -382,7 +404,7 @@
   /* Before Pointe has answered anyone on this Mac (status.first_call): Connect, the mic, Type, Settings and Sessions only. */
   body.firstrun #listen, body.firstrun #meetbtn, body.firstrun #briefbtn, body.firstrun .micmode, body.firstrun #chlbtn,
   body.firstrun #whisperbtn, body.firstrun #polishrow, body.firstrun #ctx, body.firstrun #modesec,
-  body.firstrun #m-night { display: none !important; }
+  body.firstrun #m-night, body.firstrun #m-add { display: none !important; }
   [data-state=connecting] .top .dot, [data-state=reconnecting] .top .dot { background: var(--orange); animation: breathe 1s infinite; }
   .state { font: 400 20px/1.2 var(--display); letter-spacing: -.015em; }
   [data-state=muted] .state { color: var(--accent); }
@@ -936,7 +958,7 @@
     body.showing #sessbtn { display: flex; } body.showing:not(.showfold) #sideclose { display: grid; }
   }
   @media (max-width: 900px) {  /* narrow: the sessions column becomes a sheet behind the Sessions button */
-    #m-new, #m-night, .night-strip button, .night-row .rm { min-height: 44px; }  /* to the finger */
+    #m-new, #m-add, #m-night, .addrow button, .night-strip button, .night-row .rm { min-height: 44px; }  /* to the finger */
     .night-row { grid-template-columns: minmax(0, 1fr) 44px; }
     body { grid-template-columns: 1fr; }
     main { --gutter: 16px; }
@@ -1049,6 +1071,7 @@
     <div id="list"></div>
     <div id="renameproblem" role="alert"></div>
     <button id="m-new" type="button" onclick="openNewSession()" title="Start a coding agent in a folder you already work in">New session</button>
+    <button id="m-add" type="button" onclick="openAddSessions()" title="Join sessions you already run, or reopen one from this week">Add sessions</button>
     <button id="m-night" type="button" onclick="openNightShift()" title="Give your sessions work for while you are away">Night shift</button>
   </section>
 
@@ -1428,6 +1451,17 @@
     <div class="row"><button type="button" id="new-cancel" onclick="closeSheet('newsheet')"></button><button type="button" class="go" id="new-start" onclick="startNewSession()"></button></div>
   </div>
 </div>
+<div class="sheetbg" id="addsheet" onclick="if (event.target === this) closeSheet('addsheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="add-h">
+    <h2 id="add-h"><span id="add-title"></span><button class="x" onclick="closeSheet('addsheet')" aria-label="Close">×</button></h2>
+    <div class="lede" id="add-lede"></div>
+    <input type="search" id="add-search" dir="auto" autocomplete="off" oninput="addSessionsDraw()">
+    <div id="addlist" role="list"></div>
+    <div class="note" id="add-note"></div>
+    <div class="err" id="add-err" role="alert"></div>
+    <div class="row"><button type="button" id="add-cancel" onclick="closeSheet('addsheet')"></button><button type="button" class="go" id="add-join" onclick="joinChecked()"></button></div>
+  </div>
+</div>
 <div class="sheetbg" id="nightsheet" onclick="if (event.target === this) closeSheet('nightsheet')">
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="night-h">
     <h2 id="night-h"><span id="night-title"></span><button class="x" onclick="closeSheet('nightsheet')" aria-label="Close">×</button></h2>
@@ -1561,6 +1595,7 @@
   </div>
   <div id="attention"></div>
   <div id="startask"></div>
+  <div id="attachask"></div>
   <div id="shiftask"></div>
   <div id="nightstrip"></div>
   <div id="briefalert"></div>
@@ -1814,6 +1849,7 @@
                                 ...(foldedNames.includes(g.m.name) ? [] : byUrgency(g.sessions).map(keyed))])).concat(starts);
     reconcile($('list'), listShown, wanted);
     showStartAsk(s);
+    showAttachAsk(s);
     showNightShift(s);
     showMachines(s, mv);
     showPhones(s);
@@ -2006,6 +2042,121 @@
     if (r && r.ok) closeSheet('newsheet');
     else { $('new-err').textContent = (r && (await r.json().catch(() => ({}))).detail) || 'Not started: the Mac did not answer.'; newSessionSync(); }
     refresh();
+  }
+
+  // Adding sessions the user already runs or ran (docs/design/attach-by-voice.md). Shared with the apps' AddSessionsCopy
+  // (tests/test_attach_ui.py). Every row comes from the Mac's own listing; a tap sends back its key, never a path.
+  const ADD_SESSIONS_COPY = {
+    title: 'Add sessions',
+    lede: 'Sessions you run now, and ones you ran this week. Adding one gives the voice its transcript: it reports on it, sends to it and answers its prompts.',
+    searchPlaceholder: 'Search by name, folder or what you asked',
+    open: 'Open now',
+    recent: 'This week',
+    join: 'Join',
+    reopen: 'Reopen',
+    cancel: 'Cancel',
+    loading: 'Looking for sessions…',
+    none: 'No session to add: every open one is on the voice already.',
+    noMatch: 'No session fits that search.',
+    approvalsTerminal: 'Its approvals stay in its terminal.',
+    reopenNote: 'A Claude Code session reopens in a new terminal window on the Mac.',
+    confirmTitle: 'Add these sessions?',
+  };
+  let addList = null;
+  const addChecked = new Set();
+  async function openAddSessions() {
+    const c = ADD_SESSIONS_COPY;
+    for (const [id, words] of [['add-title', c.title], ['add-lede', c.lede], ['add-cancel', c.cancel], ['add-join', c.join]]) text(id, words);
+    $('add-search').placeholder = c.searchPlaceholder; $('add-search').value = ''; $('add-err').textContent = '';
+    addChecked.clear(); addList = null;
+    $('addlist').replaceChildren(el('div', 'note', c.loading));
+    openSheet('addsheet', 'add-search');
+    addList = await fetch('/voice/add-sessions').then(r => r.ok ? r.json() : null).catch(() => null);
+    if (!addList) $('add-err').textContent = 'Pointe on this Mac does not offer this yet: update it.';
+    addSessionsDraw();
+  }
+  function addMatches(x, q) {
+    if (!q) return true;
+    const hay = [x.name, x.folder, x.title, x.branch, x.first, x.last, x.machine, x.label].join(' ').toLowerCase();
+    return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w));
+  }
+  function addRow(x) {
+    const c = ADD_SESSIONS_COPY, b = el('div', 'addrow' + (x.joinable ? '' : ' off'));
+    b.setAttribute('role', 'listitem'); b.dataset.key = x.key;
+    const pick = el('input'); pick.type = 'checkbox'; pick.disabled = !x.joinable || x.state !== 'open';
+    pick.checked = addChecked.has(x.key); pick.setAttribute('aria-label', `${c.join} ${x.name}`);
+    pick.onchange = () => { pick.checked ? addChecked.add(x.key) : addChecked.delete(x.key); addSessionsSync(); };
+    const top = el('div', 'top'); top.append(el('span', 'nm', x.name), harnessMark(x));
+    const act = el('span');
+    if (x.state !== 'open') {
+      const again = el('button', '', c.reopen); again.disabled = !x.joinable;
+      again.onclick = () => addSessions({reopen: x.key}, again);
+      act.append(again); pick.hidden = true;
+    }
+    b.append(x.state === 'open' ? pick : el('span'), top, act, el('div', 'sub', [x.folder, x.branch, x.ago].filter(Boolean).join(' · ')));
+    if (x.first) b.append(el('div', 'asked', x.first));
+    if (x.why) b.append(el('div', 'why', x.why));
+    else if (!x.approvals) b.append(el('div', 'asked', c.approvalsTerminal));
+    return b;
+  }
+  function addSessionsDraw() {
+    const c = ADD_SESSIONS_COPY, q = $('add-search').value.trim(), list = $('addlist');
+    if (!addList) return;
+    const rows = [...addList.open, ...addList.recent].filter(x => addMatches(x, q));
+    const machines = [...new Set(rows.map(x => x.machine))], out = [];
+    for (const [state, title] of [['open', c.open], ['recent', c.recent]]) {
+      const these = rows.filter(x => (x.state === 'open') === (state === 'open'));
+      if (!these.length) continue;
+      out.push(el('div', 'grp', title));
+      for (const m of machines) {
+        const mine = these.filter(x => x.machine === m).sort((a, b) => a.label.localeCompare(b.label) || b.when - a.when);
+        if (!mine.length) continue;
+        if (machines.length > 1) out.push(el('div', 'grp', m));
+        out.push(...mine.map(addRow));
+      }
+    }
+    if (!out.length) out.push(el('div', 'note', q ? c.noMatch : c.none));
+    list.replaceChildren(...out);
+    addSessionsSync();
+  }
+  function addSessionsSync() {
+    const c = ADD_SESSIONS_COPY;
+    $('add-join').disabled = !addChecked.size;
+    text('add-join', addChecked.size > 1 ? `${c.join} ${addChecked.size}` : c.join);
+    text('add-note', addList && addList.recent.some(x => x.harness === 'claude-code' && x.joinable) ? c.reopenNote : '');
+  }
+  function joinChecked() { return addSessions({join: [...addChecked]}, $('add-join')); }
+  async function addSessions(body, button) {
+    button.disabled = true; $('add-err').textContent = '';
+    const r = await fetch('/voice/add-sessions', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)}).catch(() => null);
+    const got = r ? await r.json().catch(() => ({})) : {};
+    if (r && r.ok) { closeSheet('addsheet'); if (got.problems && got.problems.length) $('problem').textContent = got.problems.join(' '); }
+    else { $('add-err').textContent = got.detail || 'Not added: the Mac did not answer.'; button.disabled = false; }
+    refresh();
+  }
+  // What the voice read back and waits on: a yes by voice, or a tap here. A "which one?" is answered by voice or in the sheet.
+  let attachAskShown = '';
+  function showAttachAsk(s) {
+    const p = s.attach_pending, key = p ? p.id : '';
+    if (key === attachAskShown) return;
+    attachAskShown = key;
+    if (!p) { $('attachask').replaceChildren(); return; }
+    const c = ADD_SESSIONS_COPY, b = el('div', 'ask'), row = el('div', 'answer');
+    b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
+    const answers = [[c.cancel, 'deny', {cancel: p.id}]];
+    if (!p.choose) answers.push([p.verb === 'reopen' ? c.reopen : c.join, 'allow', {confirm: p.id}]);
+    for (const [label, cls, body] of answers) {
+      const button = el('button', cls, label);
+      button.onclick = async () => {
+        button.disabled = true;
+        const r = await fetch('/voice/add-sessions', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+        if (!r.ok) $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'Not added';
+        refresh();
+      };
+      row.append(button);
+    }
+    b.append(row);
+    $('attachask').replaceChildren(b);
   }
 
   // Night shift (docs/design/night-shift.md). Shared with the apps' NightShiftCopy (tests/test_night_shift_ui.py). The Mac
@@ -3107,7 +3258,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet', 'nightsheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet', 'addsheet', 'nightsheet'].find(id => $(id).classList.contains('open'));
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
     const id = e.key === 'Tab' && openSheetId();
     if (!id) return;

@@ -152,6 +152,61 @@ class ClaudeCode(Harness):
             raise StartError("Pointe could not open a terminal window for Claude Code.")
         return None
 
+    reopens_in_terminal = True
+
+    async def discover(self, since: float, cap: int) -> list:
+        """Each known account's open sessions (`claude agents --json`, the inbox socket from Claude Code's own record of
+        the process) and its recent transcripts. Whether the plugin's PermissionRequest hook runs in each, as far as
+        its settings and command line say."""
+        import discovery
+
+        out = []
+        known = list(HOST.known_homes() if HOST.known_homes else [])
+        for key in await asyncio.to_thread(discovery.claude_homes, DEFAULT_HOME, known):
+            home = Path(key) if key else DEFAULT_HOME
+            # The default account by its path whenever that is not ~/.claude (tests): never the real one by accident
+            entries = await _agents(key or ("" if DEFAULT_HOME == Path.home() / ".claude" else str(DEFAULT_HOME)))
+            opened = await asyncio.to_thread(discovery.claude_open, home, entries or [], key)
+            for found in opened:
+                args = await asyncio.to_thread(discovery.process_args, found.pid)
+                found.approvals = discovery.hook_applies(home, found.cwd, args, MANAGED_SETTINGS)
+            recent = await asyncio.to_thread(discovery.claude_recent, home, since, {f.id for f in opened}, key, cap)
+            why = self.can_start()
+            for found in recent:
+                found.approvals = discovery.hook_applies(home, found.cwd, "", MANAGED_SETTINGS)
+                if why and found.joinable:
+                    found.joinable, found.why = False, why.replace("Starting", "Reopening")
+            out += opened + recent
+        return out
+
+    def attach_body(self, found) -> dict:
+        """What /pointe:voice in that session would register: its id, folder, process, transcript, account and inbox
+        socket. Checked again now: the process still runs and the socket is still this user's."""
+        import discovery
+
+        if not found.pid or not discovery.ours(found.pid):
+            raise StartError(f"{found.name} has closed.")
+        if not discovery.usable_socket(found.socket):
+            raise StartError(f"Pointe cannot find how to type into {found.name}. Run /pointe:voice in that session.")
+        return {"id": found.id, "name": found.name, "name_given": found.name_given, "cwd": found.cwd, "pid": found.pid,
+                "transcript": found.transcript, "inbox_socket": found.socket, "config_dir": found.home}
+
+    async def reopen(self, found, start_id: str) -> dict | None:
+        """`claude --resume <id>` in a new terminal window in its folder and account, in the default permission mode;
+        its SessionStart hook (matcher `resume`) joins it, carrying `start_id`, so this returns None."""
+        why = self.can_start()
+        if why:
+            raise StartError(why.replace("Starting", "Reopening"))
+        if not os.path.isdir(found.cwd):
+            raise StartError(f"Not reopened: the folder of {found.name} is no longer there.")
+        script = start_script(found.cwd, found.name, start_id, resume=found.id, home=found.home)
+        try:
+            await asyncio.to_thread(open_terminal, script)
+        except (OSError, subprocess.SubprocessError) as e:
+            logger.warning(f"no terminal window to reopen a Claude Code session: {type(e).__name__}")
+            raise StartError("Pointe could not open a terminal window for Claude Code.")
+        return None
+
     async def send(self, session, text: str) -> bool:
         from sessions import post_inbox, voice_message
 
@@ -214,17 +269,24 @@ START_KEEP_SECS = 24 * 3600  # a start's script and settings: Claude Code reads 
 PORT_ENV = "CLAUDE_VOICE_DAEMON_PORT"
 
 
-def start_argv(name: str, settings: Path) -> list[str]:
+def start_argv(name: str, settings: Path, resume: str = "") -> list[str]:
     """How Pointe starts Claude Code: its default permission mode, said outright (the flag wins over a `defaultMode` in
-    the user's settings), and never a flag that skips prompts."""
-    argv = [shutil.which("claude") or "claude", "--permission-mode", "default", "--name", name, "--settings", str(settings)]
+    the user's settings), and never a flag that skips prompts. A reopen resumes the session by its id and keeps its
+    own name (the hook still joins it under the name read back)."""
+    claude = shutil.which("claude") or "claude"
+    if resume:
+        argv = [claude, "--resume", resume, "--permission-mode", "default", "--settings", str(settings)]
+    else:
+        argv = [claude, "--permission-mode", "default", "--name", name, "--settings", str(settings)]
     refuse_bypass(*argv)
     return argv
 
 
-def start_script(cwd: str, name: str, start_id: str, root: Path = Path(__file__).resolve().parents[1]) -> Path:
-    """The `.command` file a terminal runs for a new session, and the settings file with the hook that joins it. No
-    secret is in either: the hook reads the daemon's token from the state dir, as /pointe:voice does."""
+def start_script(cwd: str, name: str, start_id: str, root: Path = Path(__file__).resolve().parents[1], resume: str = "",
+                 home: str = "") -> Path:
+    """The `.command` file a terminal runs for a new session (or a reopened one: `resume`, in account `home`), and the
+    settings file with the hook that joins it. No secret is in either: the hook reads the daemon's token from the state
+    dir, as /pointe:voice does."""
     state = Path(HOST.state_dir or os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
     port = str(getattr(HOST, "port", None) or os.environ.get(PORT_ENV, "7860"))
     folder = state / "starts"
@@ -237,13 +299,15 @@ def start_script(cwd: str, name: str, start_id: str, root: Path = Path(__file__)
             pass
     settings, script = folder / f"{start_id}.json", folder / f"{start_id}.command"
     hook = " ".join(shlex.quote(a) for a in [str(root / "bin" / "register-session"), "--quiet", "--name", name, "--start", start_id])
-    # "startup" only: a /clear or /resume later must not register the session a second time under a new id
-    settings.write_text(json.dumps({"hooks": {"SessionStart": [{"matcher": "startup", "hooks": [
+    # "startup" only (or "resume" for a reopen): a /clear or /resume later must not register it again under a new id
+    settings.write_text(json.dumps({"hooks": {"SessionStart": [{"matcher": "resume" if resume else "startup", "hooks": [
         {"type": "command", "timeout": 10, "command": hook}]}]}}))
-    command = " ".join(shlex.quote(a) for a in start_argv(name, settings))
-    script.write_text(f"#!/bin/sh\n# Written by Pointe: starts Claude Code here and joins it to the voice. Safe to delete.\n"
+    command = " ".join(shlex.quote(a) for a in start_argv(name, settings, resume))
+    account = f" CLAUDE_CONFIG_DIR={shlex.quote(home)}" if home else ""
+    script.write_text(f"#!/bin/sh\n# Written by Pointe: {'reopens' if resume else 'starts'} Claude Code here and joins it to "
+                      f"the voice. Safe to delete.\n"
                       f"cd {shlex.quote(cwd)} || exit 1\n"
-                      f"export CLAUDE_VOICE_STATE={shlex.quote(str(state))} {PORT_ENV}={shlex.quote(port)}\n"
+                      f"export CLAUDE_VOICE_STATE={shlex.quote(str(state))} {PORT_ENV}={shlex.quote(port)}{account}\n"
                       f"exec {command}\n")
     settings.chmod(0o600)
     script.chmod(0o700)
@@ -259,10 +323,16 @@ def terminal_app() -> str:
     return "iTerm" if running else "Terminal"
 
 
+OPEN_WITH_ENV = "CLAUDE_VOICE_OPEN_WITH"  # the end-to-end tests: a program that runs the script out of sight (tmux)
+
+
 def open_terminal(script: Path) -> None:
     """`open` hands the script to the terminal as a document: a new window runs it. No Automation permission is asked,
-    which an AppleScript `tell` would need. Tests replace this."""
-    subprocess.run(["open", "-a", terminal_app(), str(script)], check=True, capture_output=True, timeout=15)
+    which an AppleScript `tell` would need. Unit tests replace this; the end-to-end tests name a program that runs the
+    script in a terminal of their own (CLAUDE_VOICE_OPEN_WITH), so the owner's screen is never touched."""
+    instead = os.environ.get(OPEN_WITH_ENV)
+    argv = [instead, str(script)] if instead else ["open", "-a", terminal_app(), str(script)]
+    subprocess.run(argv, check=True, capture_output=True, timeout=15)
 
 
 def _env(home: str) -> dict:
@@ -375,8 +445,9 @@ def parse_roster(out: bytes | str) -> dict[int, str] | None:
     return roster
 
 
-async def _roster(home: str) -> dict[int, str] | None:
-    """None when it could not be read: no `claude` on the path, one too old to know the command, or no answer in time."""
+async def _agents_raw(home: str) -> bytes | None:
+    """`claude agents --json` for an account, as printed. None when it could not be read: no `claude` on the path,
+    one too old to know the command, or no answer in time."""
     claude = shutil.which("claude")
     if not claude:
         return None
@@ -393,7 +464,22 @@ async def _roster(home: str) -> dict[int, str] | None:
         if proc is not None:
             await proc.wait()  # reaped: a stuck `claude` leaves no zombie behind
         return None
-    return parse_roster(out) if proc.returncode == 0 else None
+    return out if proc.returncode == 0 else None
+
+
+async def _roster(home: str) -> dict[int, str] | None:
+    out = await _agents_raw(home)
+    return None if out is None else parse_roster(out)
+
+
+async def _agents(home: str) -> list | None:
+    """Every session `claude agents --json` lists for an account; None when it could not be read."""
+    out = await _agents_raw(home)
+    try:
+        entries = json.loads(out) if out is not None else None
+    except ValueError:
+        return None
+    return entries if isinstance(entries, list) else None
 
 
 def _stat_of(pid: int) -> str:

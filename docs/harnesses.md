@@ -11,6 +11,11 @@ five things from the agent, and each harness adapter in `harnesses/` provides th
 | Approvals | see a permission request, put it to the user, answer it | calls `HOST.hold_permission(session, tool, input, gone, deadline)` |
 | Side questions | answer "by the way" from a copy, never touching the live session | `side_question(session, question)` |
 
+To be added from outside ("connect to the session about the pentest", [features/add-sessions.md](features/add-sessions.md)),
+an adapter also lists what its harness runs and ran (`discover(since, cap)`, returning `discovery.Found` records), builds
+the register body a session would send itself (`attach_body(found)`), and brings a closed one back (`reopen(found,
+start_id)`; by default the same as joining). Design: [design/attach-by-voice.md](design/attach-by-voice.md).
+
 Each adapter also declares what it can do, and `/voice/status` shows it per session (`capabilities`), so the brain and
 the screens never promise a missing feature: `approvals`, `side_questions`, `attach` (joins a session the user already
 runs), `spawn` (drives only sessions Pointe starts). An adapter with `starts` can also start a new session in a
@@ -56,6 +61,9 @@ session are answered by the transcript reader, as for a harness that cannot fork
 | Approvals | the plugin's `PermissionRequest` hook posts to `/voice/permission-hook`, which goes through the same `hold_permission` as any harness (280 s, under the hook's own timeout) |
 | Side questions | `claude -p --resume <id> --fork-session`, locked down, in the session's own account |
 | Start | a new terminal window (`open -a Terminal` on a `.command` script; iTerm when it is running) with `claude --permission-mode default --name <name> --settings <file>`; the settings file's `SessionStart` hook runs `bin/register-session --start <id>`, so it joins in attach mode. Mac only. |
+| Discover | open: `claude agents --json` for each account Pointe knows (`pid`, `cwd`, `kind`, `sessionId`, `name`, `status`), with the inbox socket from Claude Code's own record of the process (`sessions/<pid>.json`, `messagingSocketPath`: not a documented interface, checked against the roster and the socket's owner); recent: transcripts under `projects/` from the last 7 days, head and tail only |
+| Attach | the same body `/pointe:voice` registers (id, folder, pid, transcript, config dir, inbox socket), from outside. Approvals reach the voice only where the plugin's hook runs in that session (enabled in its settings when it started, or `--plugin-dir`): otherwise the read-back says they stay in its terminal |
+| Reopen | Start's terminal window with `claude --resume <id> --permission-mode default`, its `SessionStart` hook on matcher `resume`, in the session's folder and account. Mac only. |
 | A prompt in its terminal | `claude agents --json` (Claude Code's supported way to read session state), read when a session's tool call has gone quiet: `status: waiting` with its `waitingFor` (`permission prompt`, `input needed`, `sandbox request`, `dialog open`) |
 
 A prompt the voice does not hold (no call was up, the hold ran out, approvals are left to the terminal, a question, a
@@ -93,6 +101,7 @@ the same session the user is typing in.
 | Approvals | `permission.asked` (or a pending request listed by `/api/session/{id}/permission`) goes through `hold_permission`; the answer is `POST …/permission/{id}/reply` with `once` or `reject`. If the user answers in OpenCode first, the voice lets go. |
 | Side questions | `POST /api/session/{id}/fork`, a prompt to the fork, its answer, then the fork is deleted |
 | Start | `POST /api/session {location: {directory}, title}`; no agent, model or permission rules are sent |
+| Discover | `GET /api/session?limit=` and `GET /api/session/active`: active sessions and ones touched in the last 2 hours are open, older ones recent; both join the same way (the service keeps them all) |
 | Auth | the service URL from `opencode service status` (random localhost port) and HTTP Basic (`opencode` and the password in `~/.config/opencode/service.json`), read when needed and never logged |
 
 Verified against OpenCode v2.0.27's OpenAPI spec and live, read-only (sessions, mirror, event stream). An end-to-end
@@ -113,6 +122,8 @@ command above). Protocol: JSON-RPC over a WebSocket on the Unix socket `~/.codex
 | Approvals | the server's `item/commandExecution/requestApproval` and `item/fileChange/requestApproval` go through `hold_permission`, with the command unwrapped from Codex's `/bin/zsh -lc '…'` so the read-out applies. The answer is a decision Codex offered: `accept`; `decline` if offered, else `cancel`. `serverRequest/resolved` means the TUI answered first, and the voice lets go. Permission-grant requests (`item/permissions/requestApproval`) stay with the TUI. |
 | Side questions | `thread/fork {ephemeral, sandbox: read-only, approvalPolicy: never}`, a turn on the fork, its final answer; nothing is kept |
 | Start | `thread/start {cwd}` and `thread/name/set`; no approval policy or sandbox is sent, and an answer with approvals `never` and sandbox `dangerFullAccess` is archived and refused |
+| Discover | `thread/loaded/list` (open) and `thread/list {sortKey: updated_at}` (recent), sub-agent and ephemeral threads left out |
+| Reopen | `thread/resume` on the shared daemon, then joined as an open thread; one that comes back with approvals `never` and sandbox `dangerFullAccess` is refused |
 | Liveness | `thread/closed`, or status `notLoaded` (the TUI closed it); the daemon unreachable for a minute. With no call up, the liveness loop reads `thread/read`. |
 
 The daemon updates itself and restarts when idle: the link reconnects and resumes every joined thread, and turns that
@@ -142,7 +153,10 @@ client in Codex's own records (its `source` and `originator`). Each Codex turn c
    through `refuse_bypass`; raise `StartError` with words for the user. `open_hint(session)` says how to open it in a
    terminal. The daemon picks the folder and the name and does the read-back: an adapter never takes a path from
    anywhere else.
-8. Register it in `harnesses/__init__._load`, and add a fake-service test like `tests/test_opencode.py` plus a case
+8. To be added from outside: `discover(since, cap)` with only the harness's supported interfaces and only this user's
+   sessions, `attach_body(found)` (the body step 2 returns), and `reopen(found, start_id)` if a closed session needs
+   more than joining (set `reopens_in_terminal` when it opens a window). Pass anything it starts through `refuse_bypass`.
+9. Register it in `harnesses/__init__._load`, and add a fake-service test like `tests/test_opencode.py` plus a case
    in `tests/test_mixed_harnesses.py`.
 
 ## Next: Pi

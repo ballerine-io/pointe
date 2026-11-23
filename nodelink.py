@@ -106,6 +106,9 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
     # `held`: Claude Code kept the message from Claude, held for approval in the terminal or refused (1.12.0).
     "send.result": {"req": _str, "ok": _bool, "held?": _one_of("held", "refused")},
     "artifact.result": {"req": _str, "view?": _dict},
+    # Adding sessions (docs/design/attach-by-voice.md, 1.21.0): what the node lists, and whether one joined there.
+    "discovered": {"req": _str, "found": _list_of(_dict, 400)},
+    "attach.result": {"req": _str, "ok": _bool, "why?": _str},
     "pong": {"id": _int},
     "bye": {},
 }
@@ -121,6 +124,8 @@ HUB_FRAMES: dict[str, dict[str, Check]] = {
     "permission.answer": {"id": _str, "request_id": _str, "verdict": _one_of("allow", "deny"),
                           "how": _one_of("voice", "tap", "notification"), "spoken?": _str},
     "artifact.render": {"req": _str, "id": _str, "artifact_id": _str},
+    "discover": {"req": _str, "since": _num, "cap": _count},
+    "attach": {"req": _str, "harness": _str, "id": _str, "reopen?": _bool},
     "leave": {"id": _str},
     "unpaired": {},
     "ping": {"id": _int, "rtt_ms": _or_none(_count)},

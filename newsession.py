@@ -118,6 +118,8 @@ class Start:
     detail: str = ""
     session_id: str = ""
     ended: float | None = None
+    resume: str = ""  # a reopen (docs/design/attach-by-voice.md): the id of the session brought back
+    found: object = None  # its discovery.Found, for the harness's reopen
 
     def view(self, label: str) -> dict:
         return {"id": self.id, "name": self.name, "harness": self.harness, "label": label, "folder": Path(self.folder).name,

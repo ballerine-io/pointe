@@ -14,7 +14,8 @@ if TYPE_CHECKING:
 #   post_channel(session, path, body) -> bool
 #   state_dir: Path
 #   port: the port the daemon listens on (a session it starts registers there)
-HOST = SimpleNamespace(hold_permission=None, post_channel=None, state_dir=None, port=None)
+#   known_homes() -> the Claude config dirs sessions registered from (discovery reads those accounts too)
+HOST = SimpleNamespace(hold_permission=None, post_channel=None, state_dir=None, port=None, known_homes=None)
 
 # The bracketed line that tells the voice a session ended its turn. Producers write it with finished_tag(); the daemon
 # reads it with FINISHED_MARK. One place, so a new label cannot silently stop reports.
@@ -114,6 +115,26 @@ class Harness:
     def open_hint(self, session: Session) -> str:
         """How the user opens a session Pointe started in their own terminal, or "" when it already is one."""
         return ""
+
+    # Adding sessions the user already runs or ran (docs/design/attach-by-voice.md).
+    reopens_in_terminal = False  # reopening opens a terminal window (Claude Code), so it is said and is Mac only
+
+    async def discover(self, since: float, cap: int) -> list:
+        """The sessions this harness lists on this machine (discovery.Found): open ones, and recent ones touched since
+        `since`, at most `cap` of those. Only what its supported interfaces say; never another user's. [] when it
+        cannot be asked (not installed, its service down)."""
+        return []
+
+    def attach_body(self, found) -> dict:
+        """The /voice/register body for a listed session, the same one it would send to join by itself. Raises
+        StartError, with words for the user, when it can no longer join."""
+        raise StartError(f"Pointe cannot join {self.agent} sessions from outside.")
+
+    async def reopen(self, found, start_id: str) -> dict | None:
+        """Bring back a recent session, in its harness's default permission mode. Returns its register body, or None
+        when it registers itself (carrying `start_id`, as a start does). By default reopening is joining: the harness
+        keeps the session on its service."""
+        return self.attach_body(found)
 
 
 class UnknownHarness(Harness):

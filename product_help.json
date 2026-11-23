@@ -835,16 +835,34 @@
     "connect a session",
     "join the voice",
     "add claude code",
+    "add sessions",
+    "connect to a session",
+    "connect to all",
+    "all open sessions",
+    "reopen a session",
+    "resume a session",
+    "yesterday's session",
+    "leave a session",
     "להוסיף סשן",
-    "לחבר סשן"
+    "לחבר סשן",
+    "לפתוח מחדש"
    ],
-   "how": "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice. Pointe can also start a new one for you: New session.",
+   "how": "Say \"connect to the session about\" and what it is about, or \"connect to all open Claude Code sessions\": Pointe finds them, reads back what it found and joins them on your yes. \"Reopen yesterday's session about\" brings a closed one back in a new terminal window. Or use Add sessions on screen. From inside a session, /pointe:voice still joins it, and \"leave\" and its name takes one off.",
+   "about": "\"Connect to the session about the pentest\", \"reopen yesterday's session about billing\": found, read back, joined on your yes; no typing in the session",
    "iphone": [
-    "Sessions button at the bottom"
+    "Sessions button at the bottom → Add sessions"
+   ],
+   "page": [
+    "Add sessions in the Sessions panel on the left"
    ],
    "mac": [
-    "the sessions column on the left (in a narrow window, the Sessions button at the bottom)"
-   ]
+    "the sessions column on the left (in a narrow window, the Sessions button at the bottom) → Add sessions"
+   ],
+   "voice": [
+    "connect to the session about the pentest",
+    "reopen yesterday's session about billing"
+   ],
+   "tool": "add_sessions"
   },
   {
    "id": "new-session",
@@ -1222,6 +1240,7 @@
     "Orchestrator",
     "Session",
     "New session",
+    "Add sessions",
     "Disconnect"
    ],
    "card": [
@@ -1304,6 +1323,7 @@
     "Orchestrator",
     "Session",
     "New session",
+    "Add sessions",
     "Disconnect"
    ],
    "card": [
@@ -1431,6 +1451,7 @@
     "Orchestrator",
     "Session",
     "New session",
+    "Add sessions",
     "Night shift",
     "Settings"
    ],

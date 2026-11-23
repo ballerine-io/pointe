@@ -53,6 +53,7 @@ struct CallView: View {
     @State private var showMachines = false
     @State private var showAbout = false
     @State private var showNewSession = false
+    @State private var showAddSessions = false
     @State private var showNightShift = false
     @State private var showPhone = false
     @State private var wide = false  // a Mac window wide enough for the sessions column
@@ -148,6 +149,9 @@ struct CallView: View {
             .sheet(isPresented: $showNewSession) {  // straight to the sheet, for a menu or a key (the Mac's New Session)
                 NewSessionSheet(actions: starter).sheetSurface()
             }
+            .sheet(isPresented: $showAddSessions) {  // the Mac's Add Sessions menu item
+                AddSessionsSheet(actions: adder).sheetSurface()
+            }
             .sheet(isPresented: $showNightShift) {
                 NightShiftLedger(live: status?.night_shift, actions: nightShift, startOpen: demo?.screen == .nightShiftStart)
                     .presentationDetents([.large])
@@ -182,7 +186,7 @@ struct CallView: View {
         #if os(macOS)
         HStack(spacing: 0) {
             if wide {
-                SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter,
+                SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter, adder: adder,
                               docked: SessionsSheet.Docked(settings: { showCallSettings = true }, rename: rename))
                     .frame(width: 288)
                     .transition(.move(edge: .leading).combined(with: .opacity))
@@ -257,12 +261,12 @@ struct CallView: View {
             }
         }
         .sheet(isPresented: $showSessions) {
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter, adder: adder)
                 .presentationDetents([.medium, .large])
                 .sheetSurface()
         }
         .sheet(item: $sessionsOn) { on in
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter, starter: starter)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter, starter: starter, adder: adder)
                 .presentationDetents([.large])
                 .sheetSurface()
         }
@@ -588,6 +592,7 @@ struct CallView: View {
         case .settings: showCallSettings = true
         case .sessions: showSessions = true
         case .newSession: showNewSession = true
+        case .addSessions: showAddSessions = true
         case .brainDump: if phase == .live { dumpButton() }
         case .meeting: openMeetingStart()
         case .type: if !driving { withAnimation(.snappy) { typing = true } }
@@ -649,6 +654,10 @@ struct CallView: View {
             }
             if let pending = status?.start_pending, !driving {  // on the road nothing is tapped: the spoken yes starts it
                 StartCard(pending: pending, answer: answerStart)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if let pending = status?.attach_pending, !driving {  // on the road the spoken yes or pick adds it
+                AttachCard(pending: pending, answer: answerAttach)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             if driving, let request = waiting.first {
@@ -1309,6 +1318,39 @@ struct CallView: View {
             return
         }
         await act { try await call.api.newSession([start ? "confirm" : "cancel": pending.id]) }
+    }
+
+    // MARK: adding sessions (AddSessions.swift)
+
+    private var adder: AddSessionsActions {
+        AddSessionsActions(ownerCheck: ownerCheck, listing: addListing, join: joinSessions, reopen: { key in try await addSessions(["reopen": key]) })
+    }
+
+    private func joinSessions(_ keys: [String]) async throws {
+        if demo != nil { return }
+        try await call.api.joinSessions(keys)
+        await refreshStatus()
+    }
+
+    private func addListing() async throws -> AddSessions.Listing {
+        if demo != nil { return Demo.addListing }
+        return try await call.api.addSessionsListing()
+    }
+
+    private func addSessions(_ body: [String: String]) async throws {
+        if demo != nil { return }
+        try await call.api.addSessions(body)
+        await refreshStatus()
+    }
+
+    /// A tap on the read-back's card. Join needs Face ID (or the passcode), as Start does; Cancel never does.
+    private func answerAttach(_ pending: AddSessions.Pending, _ yes: Bool) async {
+        if yes, !(await ownerCheck(AddSessionsSheet.faceIDReason)) { return }
+        if demo != nil {
+            status?.attach_pending = nil
+            return
+        }
+        await act { try await call.api.addSessions([yes ? "confirm" : "cancel": pending.id]) }
     }
 
     /// The demo's start: a row under the sessions, then the session itself, as a Mac would show it.

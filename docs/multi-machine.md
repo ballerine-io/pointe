@@ -94,7 +94,9 @@ says which setting is on.
 ## What goes where
 
 - **To the hub:** each session's transcript, with credentials masked on the node; its name, folder path, process id and
-  agent; up to 40 file names; permission requests in masked form and in read-out form.
+  agent; up to 40 file names; permission requests in masked form and in read-out form. When you look for sessions to
+  add ([features/add-sessions.md](features/add-sessions.md)): each listed session's name, folder, agent, age, title,
+  keywords and first and last request, cut to 160 characters, and nothing of a session you do not add after that.
 - **From the hub:** your requests to its sessions, and your answers to its prompts.
 - **Never:** vendor keys (a node has none), your voiceprint, the journal, session notes, the dictionary, the page or
   phone keys, or the node's own key (the node proves it with a fresh challenge each time).
@@ -118,6 +120,10 @@ The hub treats a node's transcripts like its own: they go to the hub's reader an
 - **No call on a node.** The call, its page and the app are on the hub. `/pointe:open` on a node says where the call is.
 - **No launch mode on a node.** `pointe start` (a Claude Code channel) works only on the hub. On a node, use
   `/pointe:voice` or `pointe join`.
+- **Adding sessions on a node** works by voice and on screen: "connect to the pentest session on devbox". A closed
+  Claude Code session there is not reopened from the hub (it needs a terminal on that machine); Codex and OpenCode ones
+  are. The read-back says when a node session's approvals stay in its terminal; after it joins, its approvals capability
+  shows as the node's adapter reports it.
 - **No new session on a node from the hub.** Pointe starts sessions only on the hub's own Mac
   ([features/new-session.md](features/new-session.md)). On a node, start the agent there and join it.
 - **"By the way" questions** about a session on a node are answered from its transcript, not from a forked copy.

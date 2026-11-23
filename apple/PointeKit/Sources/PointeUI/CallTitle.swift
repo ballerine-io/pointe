@@ -37,7 +37,7 @@ protocol CallShell: AnyObject {
 
 /// One thing a menu or a shortcut asked the call screen for. `id` makes the same command twice two requests.
 struct ShellRequest: Equatable {
-    enum Command: Equatable { case settings, sessions, newSession, brainDump, meeting, type, about, briefing, machines, phone, nightShift }
+    enum Command: Equatable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift }
     let id: Int
     let command: Command
 }

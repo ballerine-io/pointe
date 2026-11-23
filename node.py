@@ -253,6 +253,7 @@ class Node:
         HOST.hold_permission = self.hold
         HOST.post_channel = self._no_channel
         HOST.state_dir = self.state
+        HOST.known_homes = lambda: sorted({s.home for s in self.registry.sessions.values() if s.home})
         for session in list(self.registry.sessions.values()):
             self._start_session(session)
         self._background = [asyncio.create_task(self._link_forever()), asyncio.create_task(self._liveness())]
@@ -629,6 +630,10 @@ class Node:
             await self._on_answer(frame)
         elif t == "resume":
             await self._apply_resume(frame["resume"])
+        elif t == "discover":
+            self._spawn(self._discover(frame))
+        elif t == "attach":
+            self._spawn(self._attach(frame))
         elif t == "leave":
             local = self._local(frame["id"])
             if local:
@@ -641,6 +646,54 @@ class Node:
             self.finished.set()
             if self.ws is not None:
                 await self.ws.close()
+
+    # ---- adding sessions from the hub (docs/design/attach-by-voice.md) ----
+
+    # What the hub gets of a session that is not on the voice: enough to list it and match words, never its transcript
+    # path, socket or account.
+    _SHARED = ("harness", "id", "name", "cwd", "state", "when", "title", "branch", "first", "last", "keywords", "kind",
+               "status", "name_given", "approvals", "joinable", "why")
+
+    async def _list_here(self, since: float, cap: int) -> list:
+        found = []
+        for name in harnesses.names():
+            try:
+                found += await asyncio.wait_for(harnesses.get(name).discover(since, cap), 20)
+            except Exception as e:
+                logger.info(f"{name} sessions not listed: {type(e).__name__}")
+        found = [f for f in found if f.id not in self.registry.sessions]
+        self._found = {(f.harness, f.id): f for f in found}
+        return found
+
+    async def _discover(self, frame: dict) -> None:
+        found = await self._list_here(float(frame["since"]), int(frame["cap"]))
+        await self._send("discovered", req=frame["req"], found=[{k: getattr(f, k) for k in self._SHARED} for f in found[:400]])
+
+    async def _attach(self, frame: dict) -> None:
+        """Join a listed session here, as /pointe:voice (or `pointe join`) in it would. A recent Claude Code session
+        is not reopened from the hub: that needs a terminal on this machine."""
+        key = (frame["harness"], frame["id"])
+        found = getattr(self, "_found", {}).get(key)
+        if found is None:
+            await self._list_here(time.time() - 7 * 86400, 40)
+            found = self._found.get(key)
+        why = None
+        try:
+            if found is None:
+                raise harnesses.StartError("That session is no longer listed there.")
+            kind = found.harness  # a listed session, not a session yet: this machine's adapter
+            adapter = harnesses.get(kind)
+            if frame.get("reopen"):
+                if adapter.reopens_in_terminal:
+                    raise harnesses.StartError("Pointe reopens Claude Code sessions only on the hub's Mac for now. Resume it "
+                                               "there and join it.")
+                body = await adapter.reopen(found, "")
+            else:
+                body = adapter.attach_body(found)
+            await self.register({**body, "harness": found.harness})
+        except (harnesses.StartError, ValueError) as e:
+            why = str(e)
+        await self._send("attach.result", req=frame["req"], ok=why is None, **({"why": why} if why else {}))
 
     async def _deliver(self, frame: dict) -> None:
         local = self._local(frame["id"])

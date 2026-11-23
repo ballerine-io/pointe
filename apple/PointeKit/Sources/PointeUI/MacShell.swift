@@ -11,7 +11,7 @@ public final class MacSession: CallShell {
     public enum Phase: Sendable { case off, connecting, live, reconnecting }
     /// What the menu bar item shows beside the mark: never by colour alone.
     public enum Glyph: Sendable { case down, off, live, talking, speaking, needsYou }
-    public enum Command: Sendable { case settings, sessions, newSession, brainDump, meeting, type, about, briefing, machines, phone, nightShift }
+    public enum Command: Sendable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift }
 
     /// A session that waits for an answer, for the menu.
     public struct Waiting: Identifiable, Equatable, Sendable {
@@ -190,6 +190,7 @@ public final class MacSession: CallShell {
         case .settings: .settings
         case .sessions: .sessions
         case .newSession: .newSession
+        case .addSessions: .addSessions
         case .brainDump: .brainDump
         case .meeting: .meeting
         case .type: .type

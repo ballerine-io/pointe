@@ -516,6 +516,22 @@ def _score(s: Session, tokens: list[str], idx: list[int], address=()) -> tuple[t
     return best
 
 
+def _joined(tokens: list[str], vocab: set[str]) -> list[str]:
+    """Two words the ears split that make one name word: "pen test" is pentest when a session is called pentest-recon.
+    Only when neither half is a name word itself."""
+    out: list[str] = []
+    i = 0
+    while i < len(tokens):
+        pair = tokens[i] + tokens[i + 1] if i + 1 < len(tokens) else ""
+        if pair in vocab and tokens[i] not in vocab and tokens[i + 1] not in vocab and pair.isalnum():
+            out.append(pair)
+            i += 2
+        else:
+            out.append(tokens[i])
+            i += 1
+    return out
+
+
 def name_groups(utterance: str, sessions: list[Session], addressed: bool = False) -> list[list[Session]]:
     """The sessions the user named, one group per name they said. A group of several is a tie: ask.
 
@@ -525,8 +541,8 @@ def name_groups(utterance: str, sessions: list[Session], addressed: bool = False
     bluebell); a generic branch word ("dev", "main") never selects a session on its own. `addressed` counts only
     the words that say where something goes, never a name word inside a request ("fix the voice settings").
     """
-    tokens = _tokens(strip_tasks(utterance))
     vocab = _vocab(sessions)
+    tokens = _joined(_tokens(strip_tasks(utterance)), vocab)
     negated = _negated(tokens, vocab)
     live = [i for i in range(len(tokens)) if i not in negated]
     address = sorted(set(live) & _address(tokens, vocab))
@@ -1122,7 +1138,7 @@ def _joined_first(transcript: str) -> bool:
     return False
 
 
-def session_title(transcript: str) -> str | None:
+def session_title(transcript: str, tail_bytes: int = TITLE_TAIL_BYTES) -> str | None:
     """The name Claude Code shows for the session: a /rename title, else an agent name, else its own AI title.
 
     Read from the end of the transcript, where the latest title record is; cleaned into a speakable name.
@@ -1130,7 +1146,7 @@ def session_title(transcript: str) -> str | None:
     try:
         with open(transcript, "rb") as f:
             f.seek(0, os.SEEK_END)
-            f.seek(max(0, f.tell() - TITLE_TAIL_BYTES))
+            f.seek(max(0, f.tell() - tail_bytes))
             tail = f.read().decode("utf-8", "replace")
     except OSError:
         return None

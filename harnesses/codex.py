@@ -287,6 +287,65 @@ class Codex(Harness):
     def open_hint(self, session) -> str:
         return f"codex resume {session.id} --remote unix://"
 
+    async def discover(self, since: float, cap: int) -> list:
+        """The shared daemon's threads: open ones are those it has loaded (`thread/loaded/list`), recent ones the rest
+        updated since `since` (`thread/list`, newest first). Sub-agent and ephemeral threads are left out. A thread
+        inside a plain `codex` is not loaded here; joining it fails with Codex's own words."""
+        from discovery import Found, keywords
+
+        try:
+            await self.link.ensure()
+            loaded = set((await self.link.request("thread/loaded/list", {}, timeout=10)).get("data") or [])
+            threads = (await self.link.request("thread/list", {"limit": max(cap, len(loaded) + cap), "sortKey": "updated_at"},
+                                               timeout=10)).get("data") or []
+        except (RpcError, ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.info(f"Codex threads not listed: {type(e).__name__}")
+            return []
+        out, recent = [], 0
+        for t in threads:
+            if not isinstance(t, dict) or not t.get("id") or t.get("parentThreadId") or t.get("ephemeral"):
+                continue
+            cwd = thread_cwd(t) or ""
+            when = float(t.get("updatedAt") or t.get("recencyAt") or 0)
+            state = "open" if t["id"] in loaded else "recent"
+            if state == "recent" and (when < since or recent >= cap):
+                continue
+            recent += state == "recent"
+            title = str(t.get("name") or "")
+            first = " ".join(str(t.get("preview") or "").split())[:160]
+            found = Found(harness=self.name, id=str(t["id"]), name=title or Path(cwd).name or "codex", cwd=cwd,
+                          state=state, when=when, title=title, branch=str((t.get("gitInfo") or {}).get("branch") or ""),
+                          first=first, keywords=keywords(title, first), transcript=str(self.mirror_path(str(t["id"]))),
+                          name_given=bool(title), status=str((t.get("status") or {}).get("type") or ""))
+            if cwd and not os.path.isdir(cwd):
+                found.joinable, found.why = False, "Its folder is no longer there."
+            out.append(found)
+        return out
+
+    def attach_body(self, found) -> dict:
+        """What `pointe join codex --thread <id>` registers. The watch resumes the thread on the shared daemon."""
+        cwd = found.cwd or os.getcwd()
+        return {"id": found.id, "name": Path(cwd).name, "name_given": False, "cwd": cwd,
+                "transcript": str(self.mirror_path(found.id)), "harness_data": {"title": found.title}}  # it joins by the name read back
+
+    async def reopen(self, found, start_id: str) -> dict | None:
+        """`thread/resume` on the shared daemon loads it again; then it joins as an attached thread does. A thread that
+        comes back running with no approvals and no sandbox is refused, as at Start."""
+        try:
+            await self.link.ensure()
+            got = await self.link.request("thread/resume", {"threadId": found.id, "excludeTurns": True})
+        except RpcError as e:
+            if "active writer" in str(e):
+                raise StartError(f"That Codex thread runs inside a plain `codex`, which locks it: {START_HINT}.")
+            raise StartError("Codex did not reopen the thread.")
+        except (ConnectionError, OSError, asyncio.TimeoutError):
+            raise StartError("Codex's shared daemon is not running. Run `codex app-server daemon start` and try again.")
+        if bypasses(got):
+            raise StartError("Not reopened: your Codex configuration runs that thread with no approvals and no sandbox, "
+                             "and Pointe never joins a session it reopens that skips its prompts.")
+        self._closed.discard(found.id)
+        return self.attach_body(found)
+
     def watch(self, session, feed):
         from sessions import follow_transcript
 

@@ -185,6 +185,18 @@ struct StartCard: View {
 }
 
 extension Demo {
+    /// What the Mac would list to add: two open sessions here, one on a second machine, one from yesterday. Every name
+    /// is made up.
+    static let addListing = AddSessions.Listing(
+        open: [AddSessions.Item(key: "-|claude-code|a1", machine: "studio", harness: "claude-code", label: "Claude Code", name: "pentest-recon",
+                                folder: "pentest-notes", state: "open", ago: "5 minutes ago", branch: "recon", first: "Plan the pentest of the login service"),
+               AddSessions.Item(key: "-|codex|t1", machine: "studio", harness: "codex", label: "Codex", name: "invoices", folder: "billing", state: "open",
+                                ago: "just now", first: "Fix the invoice export"),
+               AddSessions.Item(key: "devbox|claude-code|b2", machine: "devbox", harness: "claude-code", label: "Claude Code", name: "docs",
+                                folder: "docs", state: "open", ago: "an hour ago", approvals: false)],
+        recent: [AddSessions.Item(key: "-|claude-code|c3", machine: "studio", harness: "claude-code", label: "Claude Code", name: "billing-migration",
+                                  folder: "billing", state: "recent", ago: "from yesterday", first: "Write the invoices migration")])
+
     /// What the Mac would offer: two agents that can start and one that is not installed, a second machine that cannot
     /// take a start, three folders. Every name is made up.
     static let startOptions = try? JSONDecoder().decode(NewSession.Options.self, from: Data("""

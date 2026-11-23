@@ -237,6 +237,47 @@ class OpenCode(Harness):
     def open_hint(self, session) -> str:
         return f"opencode --session {session.id}"
 
+    async def discover(self, since: float, cap: int) -> list:
+        """Every session on the service (`/api/session`, newest first) and the ones running a turn (`/api/session/active`).
+        All of them are driven through the service, so none needs reopening: active ones, and ones updated in the last
+        OPEN_SECS, are listed as open, older ones as recent. Child sessions are left out."""
+        from discovery import Found, keywords
+
+        try:
+            listed = (await self.service.call("GET", f"/api/session?limit={max(1, cap * 2)}", timeout=10) or {}).get("data") or []
+            active = set(((await self.service.call("GET", "/api/session/active", timeout=10) or {}).get("data") or {}).keys())
+        except (aiohttp.ClientError, ConnectionError, LookupError, OSError, asyncio.TimeoutError, FileNotFoundError,
+                subprocess.SubprocessError, ValueError) as e:
+            logger.info(f"OpenCode sessions not listed: {type(e).__name__}")
+            return []
+        now, out, recent = time.time(), [], 0
+        for s in listed:
+            if not isinstance(s, dict) or not s.get("id") or s.get("parentID"):
+                continue
+            cwd = str((s.get("location") or {}).get("directory") or s.get("directory") or "")
+            updated = (s.get("time") or {}).get("updated") or (s.get("time") or {}).get("created") or 0
+            when = float(updated) / (1000 if float(updated) > 1e11 else 1)  # milliseconds in OpenCode's records
+            state = "open" if s["id"] in active or now - when < OPEN_SECS else "recent"
+            if state == "recent" and (when < since or recent >= cap):
+                continue
+            recent += state == "recent"
+            title = str(s.get("title") or "")
+            found = Found(harness=self.name, id=str(s["id"]), name=title or Path(cwd).name or "opencode", cwd=cwd,
+                          state=state, when=when, title=title, keywords=keywords(title), name_given=bool(title),
+                          transcript=str(self.mirror_path(str(s["id"]))), status="busy" if s["id"] in active else "")
+            if cwd and not os.path.isdir(cwd):
+                found.joinable, found.why = False, "Its folder is no longer there."
+            out.append(found)
+        return out
+
+    def attach_body(self, found) -> dict:
+        """What `pointe join opencode --session <id>` registers."""
+        cwd = found.cwd or os.getcwd()
+        self._last_ok[found.id] = time.time()
+        self._gone.discard(found.id)
+        return {"id": found.id, "name": Path(cwd).name, "name_given": False, "cwd": cwd,
+                "transcript": str(self.mirror_path(found.id)), "harness_data": {"title": found.title}}
+
     def watch(self, session, feed):
         from sessions import follow_transcript
 
@@ -388,6 +429,7 @@ class OpenCode(Harness):
 
 # ---------- joining from the command line (pointe join opencode) ----------
 
+OPEN_SECS = 2 * 3600  # an OpenCode session touched this recently is listed as open: the service keeps them all
 PLUGIN = Path.home() / ".config" / "opencode" / "plugins" / "pointe-voice.ts"
 ROOT = Path(__file__).resolve().parents[1]
 

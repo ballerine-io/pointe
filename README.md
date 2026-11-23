@@ -92,6 +92,11 @@ Pointe can also start a session for you, in a folder you already work in: say "s
 use New session on the page or in the apps. It reads back what it will start and waits for your yes:
 [docs/features/new-session.md](docs/features/new-session.md).
 
+It can also join sessions you already run without you typing in them: "connect to the session about the recent
+pentest", "connect to all open Claude Code sessions", or "reopen yesterday's session about the billing migration". It
+reads back what it found and joins on your yes; Add sessions on the page and in the apps lists them:
+[docs/features/add-sessions.md](docs/features/add-sessions.md).
+
 **Optional extras.** Your phone needs no app: the page works in its browser ([docs/phone.md](docs/phone.md)). The Mac
 and iPhone apps are built from source until there is a download, from the plugin you installed, with Xcode:
 `/pointe:setup apps` in Claude Code, or `pointe apps doctor` (what is missing), `pointe apps mac` (the Mac app, into
@@ -159,6 +164,7 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
 | | |
 |---|---|
 | [Start a new session](docs/features/new-session.md) | "Start a Codex session in shop": read back, started on your yes, only in folders you already work in, never with prompts skipped. |
+| [Add sessions](docs/features/add-sessions.md) | "Connect to the session about the pentest", "reopen yesterday's session about billing": found on your machines, read back, joined on your yes, with nothing typed in the session. |
 | [Night shift](docs/features/night-shift.md) | "Tonight: billing fixes the retry tests; docs updates the changelog": your sessions work while you sleep, Pointe approves nothing for you, and the morning briefing leads with what was decided and what waits. |
 | [Machines](docs/multi-machine.md) | Sessions on your other Macs and Linux machines join the same voice, each shown with its machine. |
 | [Voice lock](docs/features/voice-lock.md) | Only your voice counts, for approvals or for everything. Checked on this Mac. |
@@ -207,7 +213,7 @@ Where Pointe differs from Happy:
   carries encrypted messages between your devices, and its voice sends audio, the session list, recent messages and
   permission requests to ElevenLabs.
 - **You choose each model, or run them on the Mac.** Three or four vendors for each role, two local modes, and no metered voice minutes.
-- **It joins sessions that are already running**, with `/pointe:voice`, and they keep their context. It can also start a new one, on your yes.
+- **It joins sessions that are already running**, with `/pointe:voice` or by voice from outside ("connect to the session about the pentest"), and they keep their context. It can also start a new one, or reopen a closed one, on your yes.
 
 **The built-in voices** need nothing installed and work on Linux and Windows too. Claude Code's `/voice` is for
 dictating a prompt and needs a Claude.ai sign-in. Codex voice is a full spoken conversation over Codex tasks; in the

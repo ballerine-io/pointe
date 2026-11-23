@@ -44,6 +44,7 @@ PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
 STALE_PROBE_SECS = 3.0  # a new connection with a key already linked: the old link must answer a ping within this
 MAX_MIRROR_BYTES_PER_NODE = 4 << 30  # every mirror of one node together; past it, entries are counted, not written
+DISCOVER_TIMEOUT_SECS = 25.0  # a node lists its sessions (each account's `claude agents --json`) or joins one in this
 HISTORY_QUIET_SECS = 1.5  # a newly joined session's backlog: no frame for this long and it is all here
 _ID = re.compile(r"[\w-]{1,128}")  # a node's session id: it names a mirror file, so nothing that walks a path
 # What a node says reaches the brain's context every turn (a folder, file names), the read-out and the cards (a
@@ -582,14 +583,14 @@ class Hub:
             except Exception:  # the link went: its reader sees the disconnect and marks the node offline
                 return False
 
-    async def _request(self, node: Node, key: str, text: str):
+    async def _request(self, node: Node, key: str, text: str, timeout: float = nodelink.SEND_TIMEOUT_SECS):
         """Send a frame and wait for its reply: the reply's value, or None (offline, or no reply in time)."""
         future = asyncio.get_running_loop().create_future()
         node.waiting[key] = future
         try:
             if not await self._send(node, text):
                 return None
-            return await asyncio.wait_for(future, nodelink.SEND_TIMEOUT_SECS)
+            return await asyncio.wait_for(future, timeout)
         except asyncio.TimeoutError:
             return None
         finally:
@@ -624,6 +625,40 @@ class Hub:
         reply = await self._request(node, f"answer:{request_id}", frame)
         if reply is None:
             return False, "offline" if not node.online else "timeout"
+        return reply
+
+    async def discover(self, since: float, cap: int) -> list:
+        """What each online node lists (docs/design/attach-by-voice.md), as discovery.Found records named by machine.
+        A node that does not answer in time (offline, or an older Pointe) lists nothing."""
+        from discovery import Found
+
+        async def one(node: Node) -> list:
+            req = nodelink.new_id()
+            reply = await self._request(node, f"discover:{req}", encode("discover", req=req, since=float(since), cap=int(cap)),
+                                        timeout=DISCOVER_TIMEOUT_SECS)
+            out = []
+            for raw in reply if isinstance(reply, list) else []:
+                found = Found.from_dict(raw)
+                if found is not None and _ID.fullmatch(found.id):
+                    found.machine = node.name
+                    out.append(found)
+            return out
+
+        groups = await asyncio.gather(*(one(n) for n in self.live.values() if n.online))
+        return [f for group in groups for f in group]
+
+    async def attach(self, found) -> tuple[bool, str | None]:
+        """Ask the found session's node to join it, as /pointe:voice there would; it then arrives in the node's
+        `sessions` snapshot. (ok, why)."""
+        node = next((n for n in self.live.values() if n.name == found.machine), None)
+        if node is None or not node.online:
+            return False, f"{found.machine} is offline."
+        req = nodelink.new_id()
+        fields = {"reopen": True} if found.state != "open" else {}
+        reply = await self._request(node, f"attach:{req}", encode("attach", req=req, harness=found.harness, id=found.id, **fields),
+                                    timeout=DISCOVER_TIMEOUT_SECS)
+        if reply is None:
+            return False, f"{found.machine} did not answer. It may run an older Pointe: update it there."
         return reply
 
     async def leave(self, session: Session) -> None:
@@ -858,6 +893,14 @@ class Hub:
             resolved = self._hook("remote_resolved")
             if session and resolved:
                 await _maybe(resolved(session, frame["request_id"], frame["how"]))
+        elif t == "discovered":
+            future = node.waiting.get(f"discover:{frame['req']}")
+            if future is not None and not future.done():
+                future.set_result(frame["found"])
+        elif t == "attach.result":
+            future = node.waiting.get(f"attach:{frame['req']}")
+            if future is not None and not future.done():
+                future.set_result((frame["ok"], frame.get("why")))
         elif t in ("permission.answered", "send.result"):
             key = f"answer:{frame['request_id']}" if t == "permission.answered" else f"send:{frame['req']}"
             future = node.waiting.get(key)

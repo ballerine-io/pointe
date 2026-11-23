@@ -513,10 +513,16 @@ TOPICS = (
           page=(("row", "Disconnect from the voice"),),
           iphone_note="In the Sessions sheet, swipe a session left.", voice=("close lantern",), tool="disconnect_session"),
     Topic("join-session", "Add a session", ("add a session", "join a session", "connect a session", "join the voice",
-                                            "add claude code", "להוסיף סשן", "לחבר סשן"),
-          "Run /pointe:voice in a Claude Code session, or pointe join opencode in its folder, and it joins the voice. "
-          "Pointe can also start a new one for you: New session.",
-          iphone=(("sessions",),)),
+                                            "add claude code", "add sessions", "connect to a session", "connect to all",
+                                            "all open sessions", "reopen a session", "resume a session", "yesterday's session",
+                                            "leave a session", "להוסיף סשן", "לחבר סשן", "לפתוח מחדש"),
+          "Say \"connect to the session about\" and what it is about, or \"connect to all open Claude Code sessions\": "
+          "Pointe finds them, reads back what it found and joins them on your yes. \"Reopen yesterday's session about\" "
+          "brings a closed one back in a new terminal window. Or use Add sessions on screen. From inside a session, "
+          "/pointe:voice still joins it, and \"leave\" and its name takes one off.",
+          iphone=(("sessions", "Add sessions"),), page=(("side", "Add sessions"),),
+          voice=("connect to the session about the pentest", "reopen yesterday's session about billing"),
+          tool="add_sessions", doc="add-sessions.md"),
     Topic("new-session", "Start a new session", ("new session", "start a session", "start a new session", "open a new session",
                                                  "start an agent", "new agent", "start claude code", "start codex",
                                                  "start opencode", "launch a session", "which folders", "add a folder",

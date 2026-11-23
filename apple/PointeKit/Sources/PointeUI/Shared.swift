@@ -13,5 +13,9 @@ typealias NewSessionCopy = PointeKit.NewSessionCopy
 typealias NightShift = PointeKit.NightShift
 /// Its words, the page's (ui.html, NIGHT_SHIFT_COPY): one dictionary for both apps.
 typealias NightShiftCopy = PointeKit.NightShiftCopy
+/// Step 4: adding sessions the user already runs or ran (docs/design/attach-by-voice.md).
+typealias AddSessions = PointeKit.AddSessions
+/// Its words, the page's (ui.html, ADD_SESSIONS_COPY): one dictionary for both apps.
+typealias AddSessionsCopy = PointeKit.AddSessionsCopy
 /// Which coding agent runs a session, as a neutral letter tile (assets/theme.json): one table for both apps.
 typealias Harness = PointeKit.Harness

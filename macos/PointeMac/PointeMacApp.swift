@@ -38,6 +38,8 @@ struct PointeCommands: Commands {
             Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
             Button(MacMenu.newSession) { model.ask(.newSession) }.keyboardShortcut("n")
                 .disabled(!model.ready)
+            Button(MacMenu.addSessions) { model.ask(.addSessions) }.keyboardShortcut("j", modifiers: [.command, .shift])
+                .disabled(!model.ready)
         }
         CommandMenu("Call") {
             Button(model.session.phase == .off ? MacCopy.connect : MacCopy.hangUp) { Task { await model.toggleCall() } }
@@ -64,6 +66,7 @@ struct PointeCommands: Commands {
 /// The menus' own words: each names the sheet it opens by that sheet's title.
 enum MacMenu {
     static let newSession = "New Session"
+    static let addSessions = "Add Sessions"
     static let type = "Type Instead of Talking"
     static let sessions = "Sessions and Mode"
     static let meeting = "Start a Meeting"

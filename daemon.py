@@ -38,6 +38,8 @@ import braindump
 import challenge
 import conversation as flow  # State has a field named conversation
 import conflicts
+import discovery
+import matching
 import drive as drives
 import remote
 import harnesses
@@ -94,6 +96,7 @@ from guards import (relays_approval, remote_readable,
     close_request,
     disconnect_intent,
     start_request,
+    attach_request,
     strip_tasks,
     unfinished,
     readable_request,
@@ -458,7 +461,11 @@ words: act on the corrected version, and if you already did something with the m
 - "Close / disconnect / drop / remove <session>", several sessions, or "close all except X and Y" takes them off the \
 voice: call disconnect_session once; the daemon picks the sessions from the user's words. They keep running in their \
 terminals. If the result has confirm_first, say that line once and wait; when the user answers, call disconnect_session \
-again. "Tell <session> to close X" is a send, never a disconnect.
+again. "Tell <session> to close X" is a send, never a disconnect. "Leave <session>" is a disconnect too.
+- "Connect to / join / add the session about X", "connect to all open Claude Code sessions", "reopen / resume \
+yesterday's session about X" adds sessions the user already runs, or ran lately: call add_sessions once; the daemon \
+finds them from the user's words. Nothing joins yet: the result has confirm_first; say that line once, exactly, and \
+wait. When the user answers (yes, or which one), call add_sessions again.
 - "Start / open a new session (or a Claude Code, OpenCode or Codex session) in <folder>" starts a new coding agent: \
 call start_session once; the daemon takes the agent, the folder and the name from the user's words, and only folders \
 the user already works in. Nothing starts yet: the result has confirm_first; say that line once, exactly, and wait. \
@@ -1029,6 +1036,8 @@ def _machines_line() -> str | None:
 def _capabilities(s: Session) -> dict:
     """A session on another machine has no forked side questions (phase 2): the transcript reader answers."""
     caps = harnesses.of(s).capabilities()
+    if (s.harness_data or {}).get("approvals") is False:  # added from outside, and its prompts stay in its terminal
+        caps = {**caps, "approvals": False}
     return {**caps, "side_questions": False} if s.machine else caps
 
 
@@ -1704,6 +1713,8 @@ class SonioxEars(FrameProcessor):
             return
         if await _meeting_actions_words(heard):
             return
+        if await _attach_words(heard):
+            return
         await on_user_utterance(heard)
         await self.push_frame(InputTextRawFrame(text=heard))
 
@@ -2031,6 +2042,10 @@ class State:
     last_close_at: float = 0.0
     # A new session read back and not started yet: (when, {id, harness, folder, name, line}). Starts on the next yes.
     pending_start: tuple[float, dict] | None = None
+    # Sessions found and read back, not joined yet: (when, {id, line, items (Found), choose}). Joins on the next yes, or
+    # on a pick from the list read back when `choose` (docs/design/attach-by-voice.md).
+    pending_attach: tuple[float, dict] | None = None
+    last_attach_at: float = 0.0
     # (when, session id, the action items, the read-back): "send the action items to billing", sent on the next yes
     pending_actions: tuple[float, str, str, str] | None = None
     readback: str | None = None  # a start's or a close's read-back, said word for word by the next reply (BrainFront._speak)
@@ -4552,7 +4567,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     session = REGISTRY.active
     if not session or not session.permission_id or state.conn is None:
         return
-    pending = _close_pending() or _start_pending() or _shift_pending()
+    pending = _close_pending() or _start_pending() or _shift_pending() or _attach_pending()
     if pending and sum(at > pending[0] for at, _ in state.recent_said) == 1:
         return  # the first words after "Closing A and B. Go ahead?" (or "Start ...?") answer that, never a prompt
     if not online(session):  # its node handed the prompt back to its terminal when the link dropped
@@ -5614,7 +5629,8 @@ async def _run_start(start: newsession.Start) -> None:
     try:
         if not os.path.isdir(start.folder):
             raise harnesses.StartError("Not started: that folder is no longer there.")
-        body = await asyncio.wait_for(adapter.start(start.folder, start.name, start.id), 45)
+        body = await asyncio.wait_for(adapter.reopen(start.found, start.id) if start.resume
+                                      else adapter.start(start.folder, start.name, start.id), 45)
     except harnesses.StartError as e:
         return await _start_failed(start, str(e))
     except asyncio.TimeoutError:
@@ -5651,7 +5667,8 @@ async def _started(session: Session, start_id) -> None:
     start = STARTS.get(str(start_id or ""))
     if start is None or start.state == "joined":
         return
-    if session.harness != start.harness or newsession.real(session.cwd) != newsession.real(start.folder):
+    if session.harness != start.harness or newsession.real(session.cwd) != newsession.real(start.folder) \
+            or (start.resume and session.id != start.resume):
         logger.warning(f"{session.name} carried the id of a start it does not match; not treated as that start")
         return
     late = start.state == "failed"  # it joined after the wait ran out: the user was told the prompt was not sent
@@ -5812,6 +5829,312 @@ def _started_note(start: newsession.Start) -> str:
     opens = "Claude Code opens in a new terminal window on the Mac. " if start.harness == "claude-code" else ""
     return (f"{opens}It joins the voice by itself in a moment and is announced when it does; then requests can be sent "
             f"to it by its name. Say in one line that it is starting.")
+
+
+# ---------- adding sessions the user already runs or ran (docs/design/attach-by-voice.md) ----------
+
+ACCOUNTS_FILE = STATE_DIR / "accounts.json"  # Claude config dirs sessions registered from: discovery reads those too
+MAX_ACCOUNTS = 20
+FOUND_KEEP_SECS = 120.0  # a tap or a yes acts on the list shown, for this long
+DISCOVER_SECS = 20.0
+REOPEN_HUB_ONLY = "Pointe reopens Claude Code sessions only on this Mac for now. On another machine, resume it there and join it."
+FOUND: dict = {"at": 0.0, "items": {}}  # the last listing: key -> discovery.Found
+
+
+def _accounts() -> list[str]:
+    try:
+        data = json.loads(ACCOUNTS_FILE.read_text())
+    except (OSError, ValueError):
+        return []
+    return [p for p in data if isinstance(p, str) and os.path.isabs(p)][:MAX_ACCOUNTS] if isinstance(data, list) else []
+
+
+def _note_account(home: str) -> None:
+    known = _accounts()
+    if not home or home in known:
+        return
+    try:
+        tmp = ACCOUNTS_FILE.with_suffix(".tmp")
+        tmp.touch(mode=0o600)
+        tmp.write_text(json.dumps([home, *known][:MAX_ACCOUNTS]))
+        os.replace(tmp, ACCOUNTS_FILE)
+    except OSError as e:
+        logger.warning(f"accounts not saved: {type(e).__name__}")
+
+
+def _adapter_of(found: discovery.Found) -> harnesses.Harness:
+    """A listed session is not a session yet: its harness's adapter here. One on a node is joined over the link."""
+    kind = found.harness
+    return harnesses.get(kind)
+
+
+def _on_voice(found: discovery.Found) -> bool:
+    for s in REGISTRY.sessions.values():
+        if found.machine and s.machine == found.machine and (s.harness_data or {}).get("remote_id") == found.id:
+            return True
+        if not found.machine and not s.machine and s.id == found.id:
+            return True
+    return False
+
+
+async def _discover() -> list[discovery.Found]:
+    """Every session the harnesses here and on the paired machines list, minus those on the voice: open ones first,
+    then recent ones, newest first. Kept for FOUND_KEEP_SECS: what a tap or a yes acts on."""
+    since = time.time() - discovery.WINDOW_SECS
+
+    async def one(name: str) -> list:
+        try:
+            return await asyncio.wait_for(harnesses.get(name).discover(since, discovery.CAP), DISCOVER_SECS)
+        except Exception as e:
+            logger.warning(f"{name} sessions not listed: {type(e).__name__}")
+            return []
+
+    lists = await asyncio.gather(*(one(name) for name in harnesses.names()), HUB.discover(since, discovery.CAP))
+    found = [f for group in lists for f in group if isinstance(f, discovery.Found) and not _on_voice(f)]
+    for f in found:
+        if f.machine and f.state == "recent" and _adapter_of(f).reopens_in_terminal and f.joinable:
+            f.joinable, f.why = False, REOPEN_HUB_ONLY
+    found.sort(key=lambda f: (f.state != "open", -f.when))
+    FOUND.update(at=time.time(), items={f.key: f for f in found})
+    logger.info(f"sessions listed: {sum(f.state == 'open' for f in found)} open, {sum(f.state != 'open' for f in found)} recent")
+    return found
+
+
+def _found_view(f: discovery.Found) -> dict:
+    return {"key": f.key, "machine": f.machine or _here(), "here": not f.machine, "harness": f.harness,
+            "label": _harness_title(f.harness), "name": f.name, "folder": Path(f.cwd).name or f.cwd, "path": f.cwd,
+            "state": f.state, "when": f.when, "ago": discovery.ago(f.when), "branch": f.branch, "title": f.title,
+            "first": f.first, "last": f.last, "kind": f.kind, "status": f.status, "approvals": f.approvals,
+            "joinable": f.joinable, "why": f.why or None}
+
+
+def _attach_pending() -> tuple[float, dict] | None:
+    pending = state.pending_attach
+    return pending if pending and time.time() - pending[0] < newsession.CONFIRM_SECS else None
+
+
+def _attach_pending_view() -> dict | None:
+    pending = _attach_pending()
+    if pending is None:
+        return None
+    what = pending[1]
+    return {"id": what["id"], "line": what["line"], "choose": what["choose"],
+            "verb": "reopen" if all(f.state != "open" for f in what["items"]) else "join",
+            "items": [{"key": f.key, "name": f.name, "harness": f.harness, "state": f.state} for f in what["items"]],
+            "expires_in": round(newsession.CONFIRM_SECS - (time.time() - pending[0]))}
+
+
+def _begin_reopen(found: discovery.Found, how: str) -> newsession.Start:
+    start = newsession.Start(id=secrets.token_hex(8), harness=found.harness, folder=found.cwd,
+                             name=_clean_name(found.name) or Path(found.cwd).name, how=how, resume=found.id, found=found)
+    STARTS[start.id] = start
+    logger.info(f"reopening the {start.harness} session {start.name!r} in {start.folder} ({how})")
+    asyncio.create_task(_run_start(start))
+    return start
+
+
+async def _add(items: list[discovery.Found], how: str) -> dict:
+    """Joins what the user confirmed: an open session as /pointe:voice in it would, a recent one reopened. Each one
+    that cannot is said, in its own words; the others still join."""
+    joined, reopening, problems = [], [], []
+    for f in items:
+        try:
+            if f.state == "recent" and f.machine and _adapter_of(f).reopens_in_terminal:
+                raise harnesses.StartError(REOPEN_HUB_ONLY)
+            if f.machine:
+                ok, why = await HUB.attach(f)
+                if not ok:
+                    raise harnesses.StartError(why or f"{f.machine} did not add {f.name}.")
+                joined.append(f.name)
+            elif f.state == "recent":
+                reopening.append(_begin_reopen(f, how).name)
+            else:
+                body = _adapter_of(f).attach_body(f)
+                done = await _join({**body, "harness": f.harness, "attached": True, "approvals": f.approvals})
+                joined.append(done["name"])
+                logger.info(f"{done['name']} added from outside ({how})")
+        except harnesses.StartError as e:
+            problems.append(str(e))
+        except HTTPException as e:
+            problems.append(f"{f.name} could not join: {e.detail}.")
+    FOUND["at"] = 0.0  # the list changed: the next look lists again
+    result = {"joined": joined, "reopening": reopening, "problems": problems}
+    stay = [f.name for f in items if not f.approvals and (f.name in joined or f.name in reopening)]
+    notes = []
+    if joined:
+        notes.append("Say in one line which sessions are on the voice now.")
+    if reopening:
+        notes.append(("Claude Code opens in a new terminal window on the Mac. " if any(f.harness == "claude-code" for f in items
+                      if f.state == "recent") else "") + "A reopened session joins by itself in a moment and is announced then.")
+    if stay:
+        notes.append(f"Tell the user that approvals of {', '.join(stay)} stay in its terminal: Pointe's plugin is not "
+                     f"active there.")
+    if problems:
+        notes.append("Say what did not work, in its own words.")
+    result["note"] = " ".join(notes)
+    return result
+
+
+async def _rank(description: str, items: list[discovery.Found]) -> int | None:
+    """The brain orders close candidates from their titles and keywords (matching.rank_prompt): the index of the one
+    the description means, or None when it is not sure or cannot be reached."""
+    prompt = matching.rank_prompt(description, items)
+    for attempt in (1, 2):
+        try:
+            reply = await asyncio.wait_for(vendors.text(_checker(attempt), prompt, max_tokens=20), CHECK_TIMEOUT_SECS)
+            return matching.parse_rank(reply, len(items))
+        except Exception as e:
+            logger.warning(f"session ranking attempt {attempt} failed ({type(e).__name__})")
+    return None
+
+
+def _nothing_fits(ask, found: list[discovery.Found]) -> str:
+    opened = [f for f in found if f.state == "open" and f.joinable]
+    what = "reopen" if ask.verb == "reopen" else "join"
+    if not found:
+        return f"Nothing to {what}: no session is open or closed lately that is not on the voice already."
+    names = matching.said_list([_spoken_names(f.name) for f in opened[:3]]) if opened else ""
+    return f"Nothing to {what}: no session fits those words." + (f" Open ones not on the voice: {names}." if names else "")
+
+
+def _added_line(result: dict, items: list[discovery.Found]) -> str:
+    """What the voice says once sessions were added, in fixed words: who is on, what reopens, whose approvals stay in
+    a terminal, and what did not work, in its adapter's words."""
+    parts = []
+    joined, reopening = result["joined"], result["reopening"]
+    if joined:
+        parts.append(f"{matching.said_list([_spoken_names(n) for n in joined])} {'is' if len(joined) == 1 else 'are'} on "
+                     f"the voice now.")
+    if reopening:
+        window = " in a new terminal window" if any(f.harness == "claude-code" and f.state != "open" for f in items) else ""
+        parts.append(f"Reopening {matching.said_list([_spoken_names(n) for n in reopening])}{window}; it joins in a moment.")
+    stay = [f.name for f in items if not f.approvals and (f.name in joined or f.name in reopening)]
+    if stay:
+        parts.append(f"Approvals of {matching.said_list([_spoken_names(n) for n in stay])} stay in "
+                     f"{'its' if len(stay) == 1 else 'their'} terminal.")
+    parts += result["problems"]
+    return " ".join(parts) or "Nothing was added."
+
+
+async def _attach_words(text: str) -> bool:
+    """Adding sessions, taken here before the brain, so a slow or unreachable brain neither loses nor rewords it: the
+    request ("connect to the session about the pentest"), found and read back word for word; then its answer, a plain
+    yes, a pick from the list read back, or a no, once the read-back was spoken. Only spoken words (typed ones never
+    reach here), never the bot's own words heard back, never in a mode that cannot act, and the yes never also answers
+    a permission prompt (the words stop here). Other words go to the brain as before. True when taken here."""
+    if state.conn is None or state.heard_own_words or ECHO.repeats_bot(text) or _dumping() \
+            or not current_mode().allows_tool("add_sessions"):
+        return False
+    ask = attach_request(text, [m.name for m in paired_machines()], _here())
+    if ask is not None:  # the request itself: found and read back here too, in the daemon's own words
+        _remember("user", text)
+        state.last_utterance = text
+        state.recent_said.append((time.time(), text))
+        line, nothing = await _read_back_found(ask)
+        await _say_exactly(line or nothing, "add read back" if line else "nothing to add")
+        return True
+    pending = _attach_pending()
+    if pending is None or state.conn.injector.bot_started_at < pending[0]:
+        return False
+    what, verdict = pending[1], consent(text)
+    if what["choose"]:
+        chosen = matching.choice(text, what["items"])
+    else:
+        chosen = list(what["items"]) if verdict == "allow" else [] if verdict == "deny" else None
+    if chosen is None:
+        return False
+    _remember("user", text)
+    state.last_utterance = text
+    state.pending_attach, state.last_attach_at = None, time.time()
+    if not chosen:
+        await _say_exactly("Nothing added.", "add declined")
+        return True
+    refusal = _start_owner_refusal("Not joined", "Join")
+    if refusal:
+        await say(f"[sessions not added] {refusal} Say it in one short sentence. Do not call any tool.")
+        return True
+    logger.info(f"add: the owner answered the read-back, adding {', '.join(f.name for f in chosen)}")
+    await _say_exactly(_added_line(await _add(chosen, "voice"), chosen), "sessions added")
+    return True
+
+
+async def add_sessions(params: FunctionCallParams):
+    """Joins sessions the user already runs, or reopens one they ran lately, found from the user's own words, never
+    from the model's arguments. Always read back first; joins on the user's next plain yes, or on a pick from the list
+    read back, or a tap."""
+    pending = _attach_pending()
+    fresh = await _await_fresh_speech(pending[0] if pending else state.last_attach_at)
+    said = state.last_utterance
+    if pending and not fresh:
+        await params.result_callback({"error": f"Nothing joined yet: you asked \"{pending[1]['line']}\". Wait for the "
+                                      "answer; do not ask again."})
+        return
+    if pending:
+        state.pending_attach = None
+        what, chosen = pending[1], None
+        if not (state.heard_own_words or ECHO.repeats_bot(said)):
+            verdict = consent(said)
+            if what["choose"]:
+                chosen = matching.choice(said, what["items"])
+                if chosen is None and verdict == "allow" and len(what["items"]) == 1:
+                    chosen = list(what["items"])
+            elif verdict == "allow" and attach_request(said) is None:
+                chosen = list(what["items"])
+            elif verdict == "deny":
+                chosen = []
+        if chosen:
+            state.last_attach_at = time.time()
+            refusal = _start_owner_refusal("Not joined", "Join")
+            if refusal:
+                await params.result_callback({"error": refusal})
+                return
+            await params.result_callback(await _add(chosen, "voice"))
+            return
+        if chosen == [] or attach_request(said) is None:
+            await params.result_callback({"error": "Not joined: the user did not say yes. Nothing was added; ask what "
+                                          "they want if it is unclear."})
+            return
+    if not fresh:
+        await params.result_callback({"error": "Not joined. The user did not ask to add a session."})
+        return
+    machines = [m.name for m in paired_machines()]
+    asked = next((t for at, t in reversed(state.recent_said) if time.time() - at < SWITCH_WORDS_SECS
+                  and at > state.last_attach_at and attach_request(t) is not None), said)
+    ask = attach_request(asked, machines, _here())
+    if ask is None:
+        await params.result_callback({"error": "Not joined. The user did not ask to add a session."})
+        return
+    line, nothing = await _read_back_found(ask)
+    if line is None:
+        await params.result_callback({"error": f"{nothing} Ask the user what they meant."})
+        return
+    await params.result_callback({"confirm_first": line, "note": "Nothing is joined yet. Say this line once, as it is, "
+                                  "and wait. When the user answers, call add_sessions again."})
+
+
+async def _read_back_found(ask) -> tuple[str | None, str]:
+    """Finds what the words (guards.AttachAsk) mean and sets the read-back that waits for the yes: (its exact line,
+    "") or (None, why nothing was read back, in words for the user)."""
+    state.last_attach_at = time.time()
+    found = await _discover()
+    picked = matching.pick(found, ask)
+    if picked.kind == "rank":
+        best = await _rank(" ".join(ask.about), picked.items)
+        picked = matching.Pick("one", [picked.items[best]]) if best is not None else \
+            matching.Pick("choose", picked.items[:matching.MOST_CHOICES])
+    if picked.kind == "none":
+        return None, _nothing_fits(ask, found)
+    if picked.kind == "all":
+        line = matching.line_all(picked.items, _here(), ask.harness, _spoken_names)
+    elif picked.kind == "choose" and len(picked.items) > 1:
+        line = matching.line_choose(picked.items, _here(), speak=_spoken_names)
+    else:
+        line = matching.line_one(picked.items[0], _here(), speak=_spoken_names)
+    state.pending_attach = (time.time(), {"id": secrets.token_hex(8), "line": line, "items": picked.items,
+                                          "choose": picked.kind == "choose" and len(picked.items) > 1})
+    state.readback = line
+    logger.info(f"add read back: {line}")
+    return line, ""
 
 
 async def activate(session: Session) -> dict:
@@ -6118,6 +6441,14 @@ TOOLS = ToolsSchema(standard_tools=[
         properties={"folder": {"type": "string", "description": "The folder name the user said, if any."}},
         required=[], handler=_traced(start_session)),
     FunctionSchema(
+        name="add_sessions",
+        description="Join coding-agent sessions the user already runs that are not on the voice yet, or reopen one they "
+        "ran lately, found from the user's description: \"connect to the session about the pentest\", \"connect to all "
+        "open Claude Code sessions\", \"reopen yesterday's session about the billing migration\". Only when the user "
+        "just asked to connect, join, add, reopen or resume sessions. Call it once: the daemon takes everything from the "
+        "user's own words and returns confirm_first, a line to say exactly. Again after the user answers it.",
+        properties={}, required=[], handler=_traced(add_sessions)),
+    FunctionSchema(
         name="night_shift",
         description="Start a night shift: tasks the sessions work on while the user is away, with the morning briefing "
         "leading with what was decided and what waits. Only when the user just gave tonight's tasks (\"tonight: billing "
@@ -6244,6 +6575,8 @@ async def _join(body: dict) -> dict:
         transcript=str(body.get("transcript") or ""), inbox_socket=body.get("inbox_socket"),
         inbox_token=body.get("inbox_token"), channel_url=body.get("channel_url"), harness=harness, home=home,
         harness_data=body.get("harness_data") if isinstance(body.get("harness_data"), dict) else {})
+    if body.get("approvals") is False:  # an attached session where Pointe's PermissionRequest hook does not run
+        session.harness_data["approvals"] = False
     if body.get("name_given"):
         session.named_by = "user"
     else:
@@ -6259,9 +6592,10 @@ async def _join(body: dict) -> dict:
         return {"name": existing.name, "active": existing is REGISTRY.active}
     started = str(body.get("start") or "") in STARTS
     # Claude Code's /pointe:voice runs inside a turn; a session Pointe started joins from a hook, before any turn
-    session.joining = not session.channel_url and adapter.joins_mid_turn and not started
+    session.joining = not session.channel_url and adapter.joins_mid_turn and not started and not body.get("attached")
     REGISTRY.add(session)
     RECENT_FOLDERS.note(session.cwd)
+    _note_account(home)
     if started:
         await _started(session, body["start"])
     asyncio.create_task(_refresh_brief(session))  # read it now, so the first question of a call finds notes ready
@@ -6270,7 +6604,7 @@ async def _join(body: dict) -> dict:
     await _add_worker(session)
     if state.conn and started:
         await say(f"[session joined] {session.name}, the session the user asked to start, is on the voice now. Say so in a few words.")
-    elif state.conn and len(REGISTRY.sessions) > 1:
+    elif state.conn and len(REGISTRY.sessions) > 1 and not body.get("attached"):  # an added one: its tool or tap says so
         await say(f"[session joined] {session.name} is now available. Mention it in a few words.")
     return {"name": session.name, "active": session is REGISTRY.active}
 
@@ -6995,6 +7329,59 @@ async def new_session(request: Request):
     return {"id": start.id, "name": start.name}
 
 
+@app.get("/voice/add-sessions")
+async def add_sessions_options():
+    """What the Add sessions sheet lists: open and recent sessions here and on the paired machines, not on the voice."""
+    found = await _discover()
+    return {"machines": _status_machines(), "reopen_here": sys.platform == "darwin",
+            "open": [_found_view(f) for f in found if f.state == "open"],
+            "recent": [_found_view(f) for f in found if f.state != "open"]}
+
+
+@app.post("/voice/add-sessions")
+async def add_sessions_action(request: Request):
+    """The sheet's Join ({join: [key, ...]}) or Reopen ({reopen: key}), or a tap on a read-back's card ({confirm: id}
+    joins what it read back, {cancel: id} drops it). Keys come from the last listing, never a path. Same-origin, or the
+    phone's key."""
+    body = await _body(request)
+    how = _start_how(request)
+    if "confirm" in body or "cancel" in body:
+        pending = _attach_pending()
+        key = "confirm" if "confirm" in body else "cancel"
+        if not pending or not hmac.compare_digest(str(body[key]), pending[1]["id"]):
+            raise HTTPException(status_code=409, detail="That is no longer waiting for an answer.")
+        if key == "confirm" and pending[1]["choose"]:
+            raise HTTPException(status_code=409, detail="Say which one, or pick it in Add sessions.")
+        state.pending_attach, state.last_attach_at = None, time.time()
+        if key == "cancel":
+            if state.conn is not None:
+                await state.conn.injector.inject("[add cancelled] The user tapped Cancel: nothing was joined. Do not "
+                                                 "announce it.", False)
+            return {"cancelled": True}
+        items = list(pending[1]["items"])
+    else:
+        fresh = time.time() - FOUND["at"] < FOUND_KEEP_SECS
+        keys = body.get("join") if "join" in body else [body.get("reopen")]
+        if not isinstance(keys, list) or not keys or len(keys) > 50 or not all(isinstance(k, str) for k in keys):
+            raise HTTPException(status_code=400, detail="Pick the sessions to add.")
+        items = [FOUND["items"].get(k) for k in keys] if fresh else []
+        if not items or any(f is None for f in items):
+            raise HTTPException(status_code=409, detail="That list is out of date: open Add sessions again.")
+        if any(not f.joinable for f in items):
+            raise HTTPException(status_code=409, detail=next(f.why for f in items if not f.joinable) or "That session cannot join.")
+        if "reopen" in body and (len(items) != 1 or items[0].state == "open"):
+            raise HTTPException(status_code=400, detail="Reopen takes one recent session.")
+        if "join" in body and any(f.state != "open" for f in items):
+            raise HTTPException(status_code=400, detail="A recent session is reopened, one at a time.")
+    result = await _add(items, how)
+    if state.conn is not None and (result["joined"] or result["reopening"]):
+        names = ", ".join(result["joined"] + result["reopening"])
+        await state.conn.injector.inject(f"[sessions added] The user added {names} from the screen. Do not announce it.", False)
+    if not result["joined"] and not result["reopening"]:
+        raise HTTPException(status_code=409, detail=" ".join(result["problems"]) or "Nothing was added.")
+    return {k: result[k] for k in ("joined", "reopening", "problems")}
+
+
 @app.get("/voice/night-shift")
 async def night_shift_view(id: str = ""):
     """The night shift sheet and the ledger: the running or last shift in full (or the one asked for), the last seven
@@ -7405,6 +7792,8 @@ async def status(request: Request):
             "starting": [x.view(_harness_title(x.harness)) for x in newsession.shown(STARTS)],
             "start_pending": (lambda p: None if p is None else {k: p[1][k] for k in ("id", "line", "harness", "name")}
                               | {"folder": p[1]["said_folder"], "expires_in": round(newsession.CONFIRM_SECS - (time.time() - p[0]))})(_start_pending()),
+            # Adding sessions (docs/design/attach-by-voice.md): a read-back that waits for a yes, a pick or a tap.
+            "attach_pending": _attach_pending_view(),
             # A night shift (docs/design/night-shift.md): the running or last one in short, and a read-back that waits.
             "night_shift": NIGHT.latest.summary() if NIGHT.latest is not None else None,
             "shift_pending": _shift_pending_view(),
@@ -7948,6 +8337,7 @@ async def _on_connect(conn: Connection) -> None:
     state.unconfirmed, state.blocked, state.pending_route, state.notes_turns = {}, [], None, {}
     state.pending_close, state.last_close_at = None, now
     state.pending_start, state.last_start_at = None, now
+    state.pending_attach, state.last_attach_at = None, now
     state.pending_shift, state.last_shift_at = None, now
     if NIGHT.latest is not None and not NIGHT.latest.on:
         _NIGHT_SEEN.add(NIGHT.latest.id)  # the user is back after the shift: its blockers alert as any do
@@ -8316,6 +8706,7 @@ async def run_call(transport) -> None:
 harnesses.HOST.hold_permission = _harness_permission
 harnesses.HOST.post_channel = post_channel
 harnesses.HOST.state_dir = STATE_DIR
+harnesses.HOST.known_homes = _accounts
 # ...and what the node link (hub_nodes.py, harnesses/remote.py) calls; see harnesses/__init__.py for the whole seam.
 harnesses.HOST.register_remote = register_remote
 harnesses.HOST.remote_permission = remote_permission

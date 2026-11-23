@@ -240,6 +240,11 @@ _CLOSE_VERB = re.compile(rf"\b(?:disconnect|unplug|detach|drop|remove|kick|close
 _TAKE_OFF = re.compile(r"\b(?:take|get|let|put)\s+(?P<obj>(?:\S+\s+){0,8}?\S+)\s+off\b")
 _LEAVE = re.compile(r"\b(?:let|have|make)\s+(?P<obj>(?:\S+\s+){0,8}?\S+)\s+leave\b|"
                     r"(?P<subj>[^.;!?]+?)\s+(?:can|should|may|must|could)\s+leave\b")
+# "Leave the pentest session": an order to the voice at the start of the sentence, naming a session. "Leave billing" alone
+# or after a comma keeps it ("close all, leave billing"); so does "leave the session running".
+_LEAVE_SESSION = re.compile(r"^\s*(?:(?:hey|hi|ok|okay)\s+)?(?:point(?:e|y|ay)?\b[\s,.:!-]*)?(?:please\s+)?(?:now\s+)?leave\s+"
+                            r"(?P<obj>(?:\S+\s+){0,6}?(?:sessions?|agents?|threads?))\b"
+                            r"(?!\s+(?:alone|running|open|be|on|as|where|going|working))")
 # Where the words that say which sessions end: a new sentence, or another request ("..., and tell beta to ...").
 _OBJECT_END = re.compile(r"[.;!?]|\b(?:and\s+)?(?:then\s+)?(?:tell|ask|switch|go|move|keep|leave|stay)\b|"
                          r"(?<!\w)ו?(?:תשאירי?|תשאירו|השאר את|השאירי|תגידי?|תבקשי?|תעבור)(?!\w)")
@@ -260,7 +265,8 @@ _OBJECT_FILLER = {"the", "a", "my", "these", "those", "both", "of", "session", "
 def disconnect_intent(text: str) -> bool:
     """The user asked to take a session off the voice, not to have a session drop something ("tell billing to drop it")."""
     lowered = _lower(strip_tasks(text))
-    return bool(_CLOSE_VERB.search(lowered) or _TAKE_OFF.search(lowered) or _LEAVE.search(lowered))
+    return bool(_CLOSE_VERB.search(lowered) or _TAKE_OFF.search(lowered) or _LEAVE.search(lowered)
+                or _LEAVE_SESSION.search(lowered))
 
 
 class CloseAsk:
@@ -278,6 +284,8 @@ class CloseAsk:
 def _close_object(lowered: str) -> tuple[str, int, int] | None:
     """The words saying which sessions to close, and where they sit in `lowered`."""
     found = []
+    for m in _LEAVE_SESSION.finditer(lowered):
+        found.append((m.start("obj"), m.group("obj"), m.start("obj"), m.end("obj")))
     for m in _TAKE_OFF.finditer(lowered):
         found.append((m.start(), m.group("obj"), m.start("obj"), m.end("obj")))
     for m in _LEAVE.finditer(lowered):
@@ -290,7 +298,9 @@ def _close_object(lowered: str) -> tuple[str, int, int] | None:
     if not found:
         return None
     _, obj, start, end = min(found)
-    return _FROM_VOICE.sub("", obj), start, end
+    obj = _FROM_VOICE.sub("", obj)
+    lead = re.match(r"\s*(?:from|with)\s+", obj)  # "disconnect from the pentest session"
+    return obj[lead.end():] if lead else obj, start + (lead.end() if lead else 0), end
 
 
 def _named(text: str, sessions: list) -> tuple[list, list]:
@@ -322,7 +332,10 @@ def close_request(text: str, sessions: list) -> CloseAsk | None:
         return None
     obj, start, end = spot
     kept, kept_ties = [], []
+    leave_said = _LEAVE_SESSION.search(lowered)
     for m in _KEEP.finditer(lowered):
+        if leave_said and m.start() < leave_said.start("obj"):
+            continue  # the "leave" that asked to close, not one that keeps
         if not (start <= m.start() < end):
             named, ties = _named(m.group("tail"), sessions)
             kept += [s for s in named if s not in kept]
@@ -342,9 +355,9 @@ def close_request(text: str, sessions: list) -> CloseAsk | None:
         if _REST.search(obj) and not cut and not kept:
             return CloseAsk(inverse=True, unclear=True)  # the rest of what? ask which to keep
         return CloseAsk(close=[s for s in sessions if s not in kept], keep=kept, inverse=True)
-    from sessions import _tokens
+    from sessions import _joined, _tokens, _vocab
 
-    first = next((t for t in _tokens(head) if t not in _OBJECT_FILLER), "")
+    first = next((t for t in _joined(_tokens(head), _vocab(sessions)) if t not in _OBJECT_FILLER), "")
     if not first or not name_groups(first, sessions):
         return CloseAsk(unclear=True)  # "close it", "close the issue in billing": no session named where the close is
     named, ties = _named(head, sessions)
@@ -412,6 +425,9 @@ def start_request(text: str, places: list[tuple[str, str]], machines: list[str] 
     lowered = _lower(strip_tasks(text))
     if not _START.search(lowered):
         return None
+    ask = attach_request(text)
+    if ask is not None and ask.verb == "reopen":
+        return None  # "open yesterday's session about billing" brings back an old one: attach_request
     name = None
     said = _NAME_SAID.search(lowered)
     if said:
@@ -452,6 +468,98 @@ def start_request(text: str, places: list[tuple[str, str]], machines: list[str] 
     ties = paths if len(paths) > 1 else []
     return StartAsk(harness=found[0] if len(found) == 1 else None, harnesses=found if len(found) > 1 else (),
                     folder=paths[0] if len(paths) == 1 else None, ties=ties, machine=machine, name=name)
+
+
+# ---------- adding sessions the user already runs or ran (docs/design/attach-by-voice.md) ----------
+
+_WAKE = re.compile(r"^\s*(?:(?:hey|hi|ok|okay)\s+)?point(?:e|y|ay)?\b[\s,.:!-]*")
+_SESSION_WORD = r"(?:sessions?|agents?|threads?|conversations?|chats?)"
+_JOIN_VERB = (r"(?:connect|reconnect|join|attach|hook|plug|add|bring|listen|tune|follow|pull)\b(?:\s+(?:me|us|in|up|back))*"
+              r"(?:\s+(?:to|into|in|with|onto|on))?")
+_REOPEN_VERB = r"(?:re-?open|resume|bring\s+back|pick\s+up(?:\s+again)?|restore|revive|continue)\b"
+_PAST = (r"(?:yesterday(?:'s)?|earlier|old|older|last|previous|closed|recent|this\s+morning(?:'s)?|last\s+night(?:'s)?|"
+         r"last\s+week(?:'s)?|today(?:'s)?)")
+_OPEN_PAST = re.compile(rf"\b(?:open|go\s+back\s+to|get\s+back)\s+(?:(?:the|my|that)\s+)?{_PAST}\b")
+_JOIN = re.compile(rf"\b{_JOIN_VERB}\b")
+_REOPEN = re.compile(rf"\b{_REOPEN_VERB}")
+_ALL_OPEN = re.compile(r"\b(?:all|every|each|everything)\b")
+_WHEN = (("this morning", r"\bthis\s+morning(?:'s)?\b"), ("last night", r"\blast\s+night(?:'s)?\b|\btonight(?:'s)?\b"),
+         ("yesterday", r"\byesterday(?:'s)?\b"), ("today", r"\b(?:today(?:'s)?|earlier\s+today|this\s+afternoon(?:'s)?)\b"),
+         ("last week", r"\blast\s+week(?:'s)?\b"), ("this week", r"\bthis\s+week(?:'s)?\b"),
+         ("latest", r"\b(?:latest|most\s+recent|newest|last\s+one|last\s+session|the\s+last)\b"))
+_ABOUT_FILLER = set("""the a an my our that this those these which where who what when about on with for of from in into to
+at by was were is are we i you it its we've i've did do doing does been working worked work talking talked discussed
+discussing re regarding around called named one ones session sessions agent agents thread threads conversation
+conversations chat chats open opened running currently now please me us all every each everything there them both
+any some just again recent recently earlier old older previous closed last back up and or also too can could would will
+should let lets go get""".split())
+
+
+class AttachAsk:
+    """What the user asked to add. `verb`: "join" (sessions running now) or "reopen" (closed ones). `all`: every one
+    that fits. `harness`, `machine` (None when not said, "" this Mac), `when` (a spoken time: "yesterday", "today", ...,
+    or "latest"), and `about`: the words left that describe it."""
+
+    def __init__(self, verb="join", all=False, harness=None, machine=None, when=None, about=()):
+        self.verb, self.all, self.harness, self.machine, self.when, self.about = verb, all, harness, machine, when, list(about)
+
+    def __repr__(self):
+        return (f"AttachAsk(verb={self.verb}, all={self.all}, harness={self.harness}, machine={self.machine!r}, "
+                f"when={self.when}, about={self.about})")
+
+
+def attach_request(text: str, machines: list[str] = (), here: str = "") -> AttachAsk | None:
+    """Sessions the user asked to join or reopen, from their own words; None if they did not ask.
+
+    A request to join needs a verb ("connect to", "join", "attach", "add", "listen to") and something that says a
+    session is meant ("session", "agent", "thread", or an agent's name): "connect to the database" and "add a test" are
+    requests for a session, never this. A reopen needs "reopen", "resume", "bring back", "pick up", or "open" with a
+    past ("open yesterday's session"). "Tell billing to resume the job" is a send: those clauses are left out first.
+    """
+    from sessions import _hears, _name_words
+
+    lowered = _WAKE.sub("", _lower(strip_tasks(text))).strip()
+    reopen = bool(_REOPEN.search(lowered) or _OPEN_PAST.search(lowered))
+    if not reopen and not _JOIN.search(lowered):
+        return None
+    if not re.search(rf"\b{_SESSION_WORD}\b", lowered) and not re.search(rf"(?<![\w-])(?:{_ANY_HARNESS})(?![\w-])", lowered):
+        return None
+    if re.search(r"\bnew\s+(?:\S+\s+){0,2}?(?:session|agent|thread)\b", lowered) and not reopen:
+        return None  # "add a new session in shop" is a start (start_request)
+    machine = "" if _HERE_MACHINE.search(lowered) else None
+    for m in _ON_MACHINE.finditer(lowered):
+        heard = m.group("name").split()
+        for candidate in [here, *machines]:
+            words = _name_words(candidate)
+            if candidate and words and len(heard) >= len(words) and all(_hears(w, h) for w, h in zip(words, heard)):
+                machine = "" if candidate == here else candidate
+                spoken = " ".join(heard[:len(words)])
+                lowered = lowered[:m.start()] + " ; " + lowered[m.start("name") + len(spoken):]
+                break
+        if machine is not None:
+            break
+    lowered = _HERE_MACHINE.sub(" ", lowered)
+    harness = None
+    for name, pattern in _HARNESS_SAID:
+        found = re.search(rf"(?<![\w-])(?:{pattern})(?![\w-])", lowered)
+        if found and harness is None:
+            harness = name
+        lowered = re.sub(rf"(?<![\w-])(?:{pattern})(?![\w-])", " ", lowered)
+    when = None
+    for label, pattern in _WHEN:
+        if re.search(pattern, lowered):
+            when = when or label
+            lowered = re.sub(pattern, " ", lowered)
+    every = bool(_ALL_OPEN.search(lowered))
+    rest = re.sub(_REOPEN.pattern + "|" + _OPEN_PAST.pattern.replace(_PAST, "") + "|" + _JOIN.pattern, " ", lowered)
+    rest = re.sub(r"\b(?:the\s+)?(?:voice|call|line|me|us)\b", " ", rest)
+    words = [w[:-2] if w.endswith("'s") else w.strip(".-'") for w in re.findall(r"\w[\w.'-]*", rest)]
+    about = [w for w in words if w and w not in _ABOUT_FILLER and not w.isdigit()]
+    return AttachAsk(verb="reopen" if reopen else "join", all=every, harness=harness, machine=machine, when=when, about=about)
+
+
+def attach_intent(text: str) -> bool:
+    return attach_request(text) is not None
 
 
 def back_intent(text: str) -> bool:

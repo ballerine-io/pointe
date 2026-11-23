@@ -68,6 +68,28 @@ that creates a process, so it is fenced on every side, in code with tests (`test
   "recent". A paired phone can start a session with a first prompt in an allowed folder; it could already send requests
   to the sessions there.
 
+### Adding sessions
+
+Pointe can join sessions the user already runs, and reopen one they ran this week, from a description
+(`docs/features/add-sessions.md`). Joining gives the voice that session's transcript, sends and (where the harness
+allows) its approvals, so it is fenced the same way as a start, in code with tests (`tests/test_attach_*.py`):
+
+- **Who.** By voice, nothing joins on the first sentence: Pointe reads back what it found, from the user's own words,
+  and joins on a plain yes within 60 seconds, or on a pick from the list it read back ("the second one", "both"), bound
+  to exactly those sessions. Not the read-back heard back, not typed words, and with the voice lock on only the owner's
+  voice; that yes never approves a waiting request. On a screen, a tap sends back a key from the Mac's own listing
+  (never a path), and on the iPhone and the Mac app Join and Reopen ask for Face ID or Touch ID. Meeting mode and
+  Challenge me cannot add sessions.
+- **Whose.** Only this OS user's: the config dirs Pointe knows that the user owns, processes the daemon may signal, and
+  inbox sockets that are sockets owned by the user and not links. Claude Code's inbox socket is read from its own record
+  of the process (`sessions/<pid>.json`), checked against the session `claude agents --json` names.
+- **Reopen.** A Claude Code session reopens with `claude --resume <id> --permission-mode default` in a new terminal
+  window, never with a skip flag; a Codex thread that comes back with no approvals and no sandbox is refused.
+- **Approvals.** A Claude Code session whose Pointe plugin was not on when it started keeps its prompts in its terminal;
+  Pointe says so in the read-back and never claims otherwise.
+- **Left open.** Code running as you could already register any of your sessions; a paired phone can now add any of
+  your sessions listed on the Mac, after Face ID. Discovery reads up to 64 KB from each end of a week of transcripts.
+
 ### Night shift
 
 A night shift (`docs/features/night-shift.md`) is the one time Pointe sends to sessions while nobody is listening, so
@@ -176,6 +198,7 @@ What sessions report is data for the voice model, not instructions to it:
 | Session content, including transcripts | The brain and reader vendors |
 | What the bot says, which can quote session content | The mouth vendor |
 | What you said, each session's latest lines, goal, folder path and up to 40 file names | The gate vendor |
+| When you add sessions by voice and a few fit about as well: each one's title, folder name, age and up to 8 keywords (at most 8 sessions, never a transcript) | The gate vendor |
 
 With the microphone set to push to talk (Settings, on the page or the phone), no audio leaves your machine unless you hold
 the talk control (or toggled it on), plus 0.4 s after you let go. The daemon enforces this: it drops the audio before the
@@ -261,7 +284,9 @@ The Mac with the call (the hub) keeps every rule above for them.
   the node is connected. `pointe hub revoke <name>`, Settings → Machines on the page (two clicks) or in the app (a
   confirm, then Face ID) ends it.
 - **What crosses.** To the hub: each session's transcript and permission requests, with credentials masked on the node
-  (`readout.mask`), names, folder paths and up to 40 file names. To the node: your requests to its sessions and your
+  (`readout.mask`), names, folder paths and up to 40 file names; and, only when you look for sessions to add, each
+  listed session's name, folder, agent, age, title, keywords and first and last request (160 characters each), never
+  its transcript path, socket or account. To the node: your requests to its sessions and your
   answers to its prompts. A node holds no vendor key. Its sessions' content reaches the hub's vendors, as the hub's own
   sessions' does; `pointe node join` and `pointe node status` name them.
 - **Approvals, checked twice.** The node re-checks voice and notification approvals against its own copy of the request:

@@ -168,11 +168,14 @@ struct SessionsSheet: View {
     var filter: Binding<String?> = .constant(nil)
     /// Starting a new session from here; nil hides the button.
     var starter: NewSessionActions? = nil
+    /// Adding sessions already open, or reopening one from this week; nil hides the button.
+    var adder: AddSessionsActions? = nil
     /// The Mac's wide window: this list is the window's left column (the page's), always there, not a sheet.
     var docked: Docked? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var leaving: String?
     @State private var showNewSession = false
+    @State private var showAddSessions = false
     @State private var renaming: String?
     @State private var newName = ""
 
@@ -192,6 +195,10 @@ struct SessionsSheet: View {
                         Button { showNewSession = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
                             .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("newSession")
                     }
+                    if adder != nil {
+                        Button { showAddSessions = true } label: { Label(AddSessionsCopy.title, systemImage: "rectangle.stack.badge.plus") }
+                            .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("addSessions")
+                    }
                     Spacer(minLength: 0)
                     Button(action: docked.settings) { Label("Settings", systemImage: "gearshape") }
                         .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("sideSettings")
@@ -202,6 +209,7 @@ struct SessionsSheet: View {
             .background(Brand.surface.ignoresSafeArea())
             .confirmDisconnect($leaving, disconnect)
             .sheet(isPresented: $showNewSession) { if let starter { NewSessionSheet(actions: starter).sheetSurface() } }
+            .sheet(isPresented: $showAddSessions) { if let adder { AddSessionsSheet(actions: adder).sheetSurface() } }
             .alert("Rename \(renaming ?? "")", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
                 TextField("Name", text: $newName)
                 Button("Rename") {
@@ -228,11 +236,23 @@ struct SessionsSheet: View {
                         Button(NewSessionCopy.title) { showNewSession = true }.accessibilityIdentifier("newSession")
                     }
                 }
+                if adder != nil {
+                    ToolbarItem(placement: .sheetLeading) {
+                        Button(AddSessionsCopy.title) { showAddSessions = true }.accessibilityIdentifier("addSessions")
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
             .sheet(isPresented: $showNewSession) {
                 if let starter {
                     NewSessionSheet(actions: starter)
+                        .presentationDetents([.large])
+                        .sheetSurface()
+                }
+            }
+            .sheet(isPresented: $showAddSessions) {
+                if let adder {
+                    AddSessionsSheet(actions: adder)
                         .presentationDetents([.large])
                         .sheetSurface()
                 }

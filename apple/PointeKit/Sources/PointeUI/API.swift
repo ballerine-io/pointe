@@ -68,6 +68,7 @@ struct API {
         var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
         var starting: [NewSession.Starting]?    // sessions Pointe is starting, or that just failed to; nil from an older Mac
         var start_pending: NewSession.Pending?  // a read-back that waits for a yes or a tap; nil when none
+        var attach_pending: AddSessions.Pending?  // sessions read back to add, waiting for a yes, a pick or a tap; nil when none
         var night_shift: NightShift.Summary?    // the running or the last night shift; nil when there was none, or from an older Mac
         var shift_pending: NightShift.Pending?  // a night shift's read-back that waits for a yes or a tap; nil when none
         #if os(macOS)
@@ -561,6 +562,19 @@ struct API {
     /// The sheet's Start (`NewSession.Draft.body`), or a tap on a read-back: `confirm` or `cancel` with its id. A refusal
     /// carries the Mac's own words.
     func newSession(_ body: [String: String]) async throws { try await post("voice/new-session", body) }
+
+    // MARK: adding sessions (AddSessions.swift)
+
+    /// The sessions here and on the paired machines that are not on the voice: open ones and this week's.
+    func addSessionsListing() async throws -> AddSessions.Listing {
+        try JSONDecoder().decode(AddSessions.Listing.self, from: try await checked(request("voice/add-sessions")))
+    }
+
+    /// The sheet's Join with the listed keys ticked.
+    func joinSessions(_ keys: [String]) async throws { try await post("voice/add-sessions", ["join": keys]) }
+
+    /// The sheet's Reopen, `reopen` with a listed key, or a tap on a read-back: `confirm` or `cancel` with its id.
+    func addSessions(_ body: [String: String]) async throws { try await post("voice/add-sessions", body) }
 
     // MARK: night shift (NightShift.swift)
 
