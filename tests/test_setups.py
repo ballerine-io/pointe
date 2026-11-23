@@ -201,12 +201,11 @@ def test_the_first_call_ends_on_pointe_heard_you():
     assert text.index("**Done.**") < text.index("**Your phone.**") < text.index("**The Mac app and the iPhone app.**")
 
 
-def test_pointe_voice_runs_setup_on_a_first_run(tmp_path):
+def test_pointe_voice_sends_a_first_run_to_setup(tmp_path):
+    """/pointe:voice no longer runs setup itself: it would need setup's whole allow list on every join
+    (tests/test_plugin_permissions.py). It tells the person to run /pointe:setup and stops."""
     voice = (ROOT / "plugin" / "commands" / "voice.md").read_text()
-    assert "bin/voice-first-run --needed" in voice and "plugin/commands/setup.md` and follow it from step 1" in voice
-    setup_tools = re.search(r"allowed-tools: (.*)", (ROOT / "plugin" / "commands" / "setup.md").read_text()).group(1)
-    voice_tools = re.search(r"allowed-tools: (.*)", voice).group(1)
-    assert set(setup_tools.split(", ")) <= set(voice_tools.split(", ")), "voice may run every step of setup"
+    assert "bin/voice-first-run --needed" in voice and "run `/pointe:setup`" in voice
     run = lambda: subprocess.run([str(ROOT / "bin" / "voice-first-run"), "--needed"], capture_output=True, text=True,
                                  env={"CLAUDE_VOICE_STATE": str(tmp_path), "PATH": "/usr/bin:/bin"}).stdout  # noqa: E731
     assert run() == "needed\n"

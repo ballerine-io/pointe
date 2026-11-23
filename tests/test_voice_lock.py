@@ -379,3 +379,55 @@ def test_a_meeting_still_transcribes_every_voice_at_every_level(d, v, monkeypatc
     assert [t.text for t in m.turns] == ["Let's look at the numbers for the quarter.",
                                           "I think pricing should move first, honestly."]
     assert v.ignored_count == 0
+
+
+# ---------- a further voiceprint, off the Mac: only right after the owner's own voice ----------
+
+def _phone(d):
+    from fastapi.testclient import TestClient
+
+    return TestClient(d.app, base_url="http://127.0.0.1:7860", headers={
+        "authorization": f"Bearer {d.phone.phone_key(d.STATE_DIR)}"})
+
+
+@pytest.mark.parametrize("lvl", ["off", "approvals", "everything"])
+def test_off_the_mac_another_voiceprint_needs_a_strong_owner_match_first(d, v, lvl):
+    """Someone holding the owner's phone on a live call must not file their own voice as the owner's (Face ID is only
+    in the app). With the lock off a voiceprint still guards drive mode's yes, and it counts once the lock goes up."""
+    level(d, lvl)
+    d.state.conn = fake_conn()
+    phone = _phone(d)
+    assert phone.post("/voice/voiceprint", json={"action": "enrol", "device": "iPhone"}).status_code == 403
+    heard(d, OTHER_HZ)
+    assert phone.post("/voice/voiceprint", json={"action": "enrol", "device": "iPhone"}).status_code == 403
+    assert v.enrolment is None
+    heard(d, OWNER_HZ)
+    r = phone.post("/voice/voiceprint", json={"action": "enrol", "device": "iPhone"})
+    assert r.status_code == 200 and r.json()["voice_lock"]["enrolling"]["device"] == "iPhone"
+
+
+def test_a_strong_match_older_than_a_minute_does_not_open_enrolment_off_the_mac(d, v):
+    level(d, "approvals")
+    d.state.conn = fake_conn()
+    v.last_strong = speaker.Verdict(0.9, 2.0, "MacBook mic", time.time() - speaker.CONTINUITY_SECS - 1)
+    assert _phone(d).post("/voice/voiceprint", json={"action": "enrol", "device": "iPhone"}).status_code == 403
+    assert v.enrolment is None
+
+
+def test_a_damaged_voiceprint_still_counts_as_one_off_the_mac(d, v, monkeypatch, tmp_path):
+    level(d, "approvals")
+    d.state.conn = fake_conn()
+    for f in (tmp_path / "voiceprint").glob("*.npz"):
+        f.write_bytes(b"not a voiceprint")
+    monkeypatch.setattr(d, "VOICE", speaker.VoiceLock(tmp_path / "voiceprint", tmp_path / "models", FakeEmbedder()))
+    assert d.VOICE.profiles.problem
+    assert _phone(d).post("/voice/voiceprint", json={"action": "enrol", "device": "iPhone"}).status_code == 403
+
+
+def test_the_first_voiceprint_and_the_page_on_the_mac_need_no_match(d, v, monkeypatch, tmp_path):
+    level(d, "approvals")
+    d.state.conn = fake_conn()
+    assert client_for(d).post("/voice/voiceprint", json={"action": "enrol", "device": "MacBook mic"}).status_code == 200
+    monkeypatch.setattr(d, "VOICE", speaker.VoiceLock(tmp_path / "empty", tmp_path / "models", FakeEmbedder()))
+    level(d, "off")
+    assert _phone(d).post("/voice/voiceprint", json={"action": "enrol", "device": "iPhone"}).status_code == 200

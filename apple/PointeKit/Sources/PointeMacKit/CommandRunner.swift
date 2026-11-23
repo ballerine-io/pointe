@@ -22,13 +22,25 @@ public protocol CommandRunning: Sendable {
 /// sit in the plugin's folder, which any process of this user can edit, and a child the app is responsible for would
 /// record under the app's microphone grant. The daemon needs none: call audio reaches it over the socket.
 public struct ProcessRunner: CommandRunning {
-    public init() {}
+    typealias Disclaim = @convention(c) (UnsafeMutablePointer<posix_spawnattr_t?>, Int32) -> Int32
 
-    private typealias Disclaim = @convention(c) (UnsafeMutablePointer<posix_spawnattr_t?>, Int32) -> Int32
+    /// The disclaim is missing or refused: nothing was started. It fails closed, since a script started without it
+    /// would record under the app's microphone grant.
+    public struct NotDisclaimed: LocalizedError, Equatable {
+        public var errorDescription: String? {
+            "Pointe can't start its scripts safely on this version of macOS: it could not keep them from using this app's permissions."
+        }
+    }
+
+    private let disclaim: Disclaim?
+
+    public init() { self.init(disclaim: Self.systemDisclaim) }
+
+    init(disclaim: Disclaim?) { self.disclaim = disclaim }
 
     /// macOS's `responsibility_spawnattrs_setdisclaim`: in libSystem since macOS 10.14, not in its headers. The Mac app is
-    /// built from source and not sold in the App Store; without the symbol the child is started as before.
-    static var disclaim: (@convention(c) (UnsafeMutablePointer<posix_spawnattr_t?>, Int32) -> Int32)? {
+    /// built from source and not sold in the App Store.
+    static var systemDisclaim: Disclaim? {
         dlsym(UnsafeMutableRawPointer(bitPattern: -2), "responsibility_spawnattrs_setdisclaim").map { unsafeBitCast($0, to: Disclaim.self) }
     }
 
@@ -36,14 +48,15 @@ public struct ProcessRunner: CommandRunning {
                     timeout: TimeInterval = 10) async throws -> CommandResult {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                do { continuation.resume(returning: try Self.spawn(executable, arguments, environment: environment, timeout: timeout)) }
+                do { continuation.resume(returning: try Self.spawn(executable, arguments, environment: environment, timeout: timeout,
+                                                                   disclaim: disclaim)) }
                 catch { continuation.resume(throwing: error) }
             }
         }
     }
 
     private static func spawn(_ executable: URL, _ arguments: [String], environment: [String: String]?,
-                              timeout: TimeInterval) throws -> CommandResult {
+                              timeout: TimeInterval, disclaim: Disclaim?) throws -> CommandResult {
         let out = Pipe(), err = Pipe()
         var actions: posix_spawn_file_actions_t?
         posix_spawn_file_actions_init(&actions)
@@ -61,7 +74,11 @@ public struct ProcessRunner: CommandRunning {
         sigfillset(&all)
         posix_spawnattr_setsigmask(&attrs, &none)
         posix_spawnattr_setsigdefault(&attrs, &all)
-        _ = disclaim?(&attrs, 1)
+        guard let disclaim, disclaim(&attrs, 1) == 0 else {
+            try? out.fileHandleForWriting.close()
+            try? err.fileHandleForWriting.close()
+            throw NotDisclaimed()
+        }
 
         let argv = [executable.path] + arguments
         let envp = (environment ?? ProcessInfo.processInfo.environment).map { "\($0.key)=\($0.value)" }

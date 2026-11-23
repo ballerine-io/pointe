@@ -131,7 +131,7 @@ Before this work (1.16.0, a9ddfea), by the same scan:
 |---|---|---|---|
 | Voice lock: which actions only your voice may do <br>`lock.level` | yes `ui.html:1218` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:181` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:181` |
 | Enrol your voice, per device, and delete a voiceprint <br>`lock.enrol` | yes `ui.html:1210` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:122` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:122` |
-| What the lock ignored, and the note after three unsure yeses <br>`lock.ignored` | yes `ui.html:1435` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:212` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:212` |
+| What the lock ignored, and the note after three unsure yeses <br>`lock.ignored` | yes `ui.html:1435` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:219` | yes `apple/PointeKit/Sources/PointeUI/VoiceLock.swift:219` |
 | Dictionary: the terms, add, edit, delete, suggestions, learn from fixes <br>`dictionary.sheet` | yes `ui.html:1290` | yes `apple/PointeKit/Sources/PointeUI/Vocabulary.swift:139` | yes `apple/PointeKit/Sources/PointeUI/Vocabulary.swift:139` |
 | A term learned during the call shows, with Undo <br>`dictionary.toast` | yes `ui_dictionary.html:29` | yes `apple/PointeKit/Sources/PointeUI/Vocabulary.swift:120` | yes `apple/PointeKit/Sources/PointeUI/Vocabulary.swift:120` |
 | Two sessions disagree: the card, ask either, dismiss <br>`conflicts.card` | yes `ui.html:1591` | yes `apple/PointeKit/Sources/PointeUI/Conflicts.swift:80` | yes `apple/PointeKit/Sources/PointeUI/Conflicts.swift:80` |

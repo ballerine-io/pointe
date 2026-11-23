@@ -11,7 +11,9 @@ import UIKit
 public enum PointeBoot {
     public static func start() {
         #if os(iOS)
-        if ProcessInfo.processInfo.environment["POINTE_FORGET"] == "1" { PairingStore.forget() }  // UI tests start unpaired
+        #if DEBUG  // UI tests start unpaired; a Release build takes no pairing change from its launch environment
+        if ProcessInfo.processInfo.environment["POINTE_FORGET"] == "1" { PairingStore.forget() }
+        #endif
         API.deviceHeader = API.header(for: UIDevice.current.name)
         #endif
         Brand.registerFonts()
@@ -78,10 +80,12 @@ public struct PointeRoot: View {
                 }
             }
         }
-        .task {  // tests and the simulator: a link given at launch replaces any earlier pairing (no other app sets this)
+        .task {  // UI tests in a Debug build: a link given at launch replaces any earlier pairing, with no confirm
+            #if DEBUG
             if let link = ProcessInfo.processInfo.environment["POINTE_PAIR"], let p = Pairing(link: link), p != flow.pairing {
                 flow.adopt(p)
             }
+            #endif
         }
     }
 

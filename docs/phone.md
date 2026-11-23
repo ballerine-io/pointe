@@ -106,7 +106,8 @@ code. Scan it in the Pointe app on the iPhone (or paste its link there) and conf
 opened from the Camera, another app or a web page pairs nothing: it only opens Pointe and says to scan the code inside
 the app. The page turns to "Connected: <phone>" when the app has paired. The code works once, for 5 minutes; the app gets its key from the Mac over the
 certificate it checks. Each phone gets its own key: connecting another phone keeps the ones already paired, **Unpair**
-on a phone signs out that phone only, and **Unpair all** signs out every one. Lost a phone, or someone saw a pairing
+on a phone signs out that phone only, and **Unpair all** signs out every one. Deleting the app does not unpair: the
+pairing stays in the iPhone's Keychain and the Mac still takes its key, so Unpair it on the Mac. Lost a phone, or someone saw a pairing
 QR code or link? `pointe pair rotate` makes a new certificate and signs out every phone, browser and paired machine at
 once; `pointe pair off` does the same and stops listening. A phone paired with `pointe pair` before
 this keeps working; it shows as "Paired phone" until the app reports its name. If no way works, the page says what to

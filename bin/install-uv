@@ -10,7 +10,9 @@ INSTALLER_URL="https://astral.sh/uv/$UV_VERSION/install.sh"
 PATH="$PATH:$HOME/.local/bin"
 
 if command -v uv >/dev/null 2>&1; then
-  echo "ok       uv $(uv --version | cut -d' ' -f2) is already installed"
+  HAVE="$(uv --version | cut -d' ' -f2)"
+  if [ "$HAVE" = "$UV_VERSION" ]; then echo "ok       uv $HAVE is already installed"
+  else echo "note     uv $HAVE is already installed and is used as it is: Pointe pins $UV_VERSION only when it installs uv itself"; fi
   exec "$(dirname "${BASH_SOURCE[0]}")/link-pointe"
 fi
 

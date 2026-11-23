@@ -84,7 +84,9 @@ that creates a process, so it is fenced on every side, in code with tests (`test
 - **Plugin commands.** A command file's `allowed-tools` lets the model run those commands without a prompt for that
   turn, in a session that may have read a stranger's text. Each rule names one command the file tells the model to run
   (`pointe setup`, `pointe key`, `pointe apps doctor`, ...), never `pointe` itself, `open` or `echo`; `pointe start`,
-  `pair`, `hub`, `join` and `uninstall` always ask (`tests/test_plugin_permissions.py`).
+  `pair`, `hub`, `join` and `uninstall` always ask (`tests/test_plugin_permissions.py`). `/pointe:voice`, which runs on
+  every join, pre-approves only joining (`claude-voice-attach`, `voice-first-run`, `pointe node status`); on a first run
+  it says to run `/pointe:setup`, which carries setup's own list.
 - **Who.** By voice, always a read-back of the agent, folder, machine and name, taken from the user's own words, then a
   plain yes within 60 seconds, under the rules of a yes to a permission prompt (`daemon._readback_answer`): a yes and
   nothing else, begun after the read-back ended, with the read-back the last thing the bot said; not the read-back
@@ -173,6 +175,10 @@ and their words are not shown or kept).
 - **It fails closed.** When it cannot tell (no model yet, a model error or a score slower than 0.6 s, under 0.3 s of
   audio, a damaged voiceprint), the speech counts as not yours for what the level guards. A tap, Face ID, the terminal
   and typed text still work, so this costs convenience, never control. Deleting the voiceprint turns the lock off.
+- **Only the owner adds a voiceprint.** The first one can be enrolled from anywhere. Once one is stored (damaged
+  counts), the phone key and a page opened over the TLS listener can start another only within a minute of a strong
+  match to it on the call, at any level: with the lock off a voiceprint still guards drive mode's yes, and it counts
+  as soon as the lock goes up. The page on this Mac is not limited. The apps also ask for Face ID first.
 - **Meetings.** The meeting's owner is the one whose addressed words act (end the meeting, ask a session, speak to the
   room). With a voiceprint, a turn that strongly matches it binds the owner. Without one, a label is all Pointe has, so
   only the speaker of the words that started the meeting, or a tap on "That was me", becomes the owner; "Pointe, that's
@@ -258,7 +264,10 @@ With the microphone set to push to talk (Settings, on the page or the phone), no
 the talk control (or toggled it on), plus 0.4 s after you let go. The daemon enforces this: it drops the audio before the
 voice detector and every vendor, whatever a client sends. A press ends by itself after 90 s. One exception: during a
 meeting you started (it asks for consent and shows a recording indicator), the room's audio goes to the meeting's speech
-vendor without a press; talking to Pointe outside the meeting stream still needs one.
+vendor without a press; talking to Pointe outside the meeting stream still needs one. On the iPhone, the Talk shortcut
+(the Action button, Back Tap, Siri) is a press too, and works on a locked phone while a call is up, by design: anyone
+next to the locked phone can open the microphone that way and speak to your sessions. Their words count as yours
+unless the voice lock's level keeps them out, and a spoken yes still has to pass every rule above.
 
 In fully local mode (`pointe local`), none of these goes anywhere: no key is read, from the environment or the
 Keychain, so no vendor can be reached, and the text-model server listens on loopback only. See
@@ -315,7 +324,9 @@ leaves it. The inventory, with each source's pin and its verification, is
 ## Files
 
 `~/.claude-voice` is 0700. It holds the token, the page key, session notes, `daemon.log`, and `journal.jsonl`, a full record of
-each call with what you said and session content. With phone access it also holds the pairing secret, a TLS key and the
+each call with what you said and session content. Every line the daemon logs has the values of the keys it holds, the
+page key and the token replaced with `[key]` before it reaches `daemon.log` or the journal (an exception's own text
+under a traceback is not rewritten). With phone access it also holds the pairing secret, a TLS key and the
 connector's tokens. With the voice lock it holds `voiceprint/` (0700; one file per enrolled device, 0600): biometric data,
 computed and kept only on this Mac, deleted from Settings → Voice lock on the page or in the app. `models/` holds the
 speaker model. With fully local mode, `local/` holds the text-model server's environment, its log (which may hold session
@@ -419,7 +430,8 @@ no rule above and adds no listener.
   macOS counts a child as the app that started it, microphone permission included. So the app starts every script
   (`voice-daemon`, `pointe key`, `pointe setup`, `voice-open`) disclaimed (`CommandRunner.swift`): with
   `posix_spawn` and macOS's `responsibility_spawnattrs_setdisclaim`, a libSystem call that is not in Apple's headers,
-  so macOS judges the script by its own permissions, not the app's. The daemon needs no microphone: call audio reaches it over the socket. An app
+  so macOS judges the script by its own permissions, not the app's. If the call is missing or refused, the app starts
+  nothing and says it can't start its scripts safely on this macOS. The daemon needs no microphone: call audio reaches it over the socket. An app
   for the App Store could not use that call; this one is built from source.
 - **Known limits:** code running as you can read the page key the app reads. The browser page still sends the page key
   as its cookie, so a program that holds the port while the daemon is down gets the key from an open page's next
@@ -449,7 +461,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   opens the app from outside (the Camera, another app, a web page) pairs nothing, whatever it holds: any app or page can
   open one, and another app can register the same scheme. It only opens a sheet that says to scan the code inside
   Pointe. The app still registers the scheme for that sheet; without it, an app that claims `pointe://` would be the
-  only one iOS could hand a Camera-scanned code to.
+  only one iOS could hand a Camera-scanned code to. The UI tests' launch settings that pair or forget a pairing
+  (`POINTE_PAIR`, `POINTE_FORGET`) are compiled into Debug builds only.
 - **A code scanned outside the app can still reach another app.** If a person scans the page's code with the Camera and
   another installed app has claimed `pointe://`, iOS may hand that app the link. With the page's code, that app can
   trade the one-time code for a phone key of its own within the 5 minutes; the page then shows "Connected:" with the
@@ -504,9 +517,10 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
   uses.
 - **Face ID is a check in the app, not in the daemon.** The app asks for Face ID or the passcode before it approves,
-  turns on Show while it says or Approve from notifications, lowers or deletes the voice lock, or makes a machine
-  invite. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
-  key can do all of the above without it: approve any pending request (status carries its id), turn on
+  turns on Show while it says or Approve from notifications, lowers or deletes the voice lock, adds a voiceprint beside
+  a stored one, or makes a machine invite. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
+  key can do all of the above without it (a voiceprint beside a stored one only within a minute of the owner's voice
+  matching on the call, which the daemon checks): approve any pending request (status carries its id), turn on
   `show.on_phone` and read what the voice showed, turn on `alerts.watch_approve`, and pair a machine of its own, which
   stays paired after the phone is unpaired. If a phone key may have leaked, Unpair it, run `pointe pair rotate` (it
   signs out every machine too), and check Settings → Machines.
@@ -526,8 +540,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
   read out, bound to that request's id (`alerts.py`).
 - **What Face ID protects, and what it does not.** Every Face ID or passcode check in the app (Approve; starting,
-  adding or joining sessions; night shift; a machine invite or revoke; lowering the voice lock or deleting a
-  voiceprint; turning on show while it says or approve from notifications; replacing the pairing) runs in the app,
+  adding or joining sessions; night shift; a machine invite or revoke; lowering the voice lock, deleting a voiceprint
+  or adding one beside a stored one; turning on show while it says or approve from notifications; replacing the pairing) runs in the app,
   before it sends an ordinary request with the phone key. It stops a person who holds your unlocked iPhone. It does not
   bind the key: the daemon cannot tell whether Face ID ran. Whoever has the phone key itself (a `pointe pair` code that
   was copied or photographed, an app that redeemed a code scanned outside Pointe, the Keychain of a jailbroken phone)
@@ -536,6 +550,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 - **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
   description; a request that cannot be read out shows only its tool. Credential-like values follow the same rule as
   the voice (`readout.redact`): never shown, never said.
+- **Deleting the app does not unpair.** The pairing is in the iPhone's Keychain, which outlives the app, and the Mac
+  still takes its key: a reinstall is paired again without a scan. Unpair on the Mac to end it.
 - **Revoke:** Unpair in Settings → Phone. The phone paired from the terminal can also be revoked by deleting
   `~/.claude-voice/phone_key`; it takes effect at the next request. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.

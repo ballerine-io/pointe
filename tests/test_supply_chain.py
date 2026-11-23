@@ -101,6 +101,20 @@ def test_every_workflow_grants_the_token_read_only():
             assert job.get("permissions", {"contents": "read"}) == {"contents": "read"}, f"{wf.name}: job {name} widens permissions"
 
 
+def test_every_checkout_leaves_no_token_in_the_git_config():
+    """actions/checkout writes the job's token into .git/config unless told not to, where the pull request's own code
+    (pytest, xcodebuild) can read it. Read-only today; a leak the day a job gets a wider permission."""
+    seen = 0
+    for wf in WORKFLOWS:
+        for name, job in yaml.safe_load(wf.read_text())["jobs"].items():
+            for step in job.get("steps", []):
+                if str(step.get("uses", "")).startswith("actions/checkout@"):
+                    seen += 1
+                    assert (step.get("with") or {}).get("persist-credentials") is False, \
+                        f"{wf.name}: job {name} checks out with persist-credentials left on"
+    assert seen >= 2
+
+
 def test_ci_and_the_e2e_images_install_the_uv_version_setup_installs():
     pinned = 0
     for wf in WORKFLOWS:
@@ -294,6 +308,26 @@ def test_install_uv_refuses_an_installer_with_another_hash(tmp_path):
                          capture_output=True, text=True, timeout=60)
     assert got.returncode == 1 and "does not match its pinned SHA-256" in got.stderr
     assert not (home / "pwned").exists() and not (home / ".local").exists()
+
+
+@pytest.mark.parametrize("found, says", [(UV_VERSION, "ok "), ("0.1.0", "note ")])
+def test_install_uv_says_when_the_uv_it_finds_is_not_the_pinned_one(tmp_path, found, says):
+    """A uv already on the PATH is used as it is (docs/security/supply-chain.md): another version is said, not hidden."""
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    (fake / "uv").write_text(f'#!/bin/sh\necho "uv {found} (synthetic)"\n')
+    (fake / "uv").chmod(0o755)
+    (fake / "curl").write_text("#!/bin/sh\nexit 99\n")
+    (fake / "curl").chmod(0o755)
+    home = tmp_path / "home"
+    home.mkdir()
+    got = subprocess.run([str(ROOT / "bin" / "install-uv")], capture_output=True, text=True, timeout=60,
+                         env={"HOME": str(home), "PATH": f"{fake}:/usr/bin:/bin", "POINTE_LINK_DIR": str(tmp_path / "link")})
+    assert got.returncode == 0, got.stderr
+    first = got.stdout.splitlines()[0]
+    assert first.startswith(says) and found in first, first
+    if found != UV_VERSION:
+        assert UV_VERSION in first
 
 
 def test_the_channel_installs_from_its_lockfile_with_integrity_and_no_scripts():

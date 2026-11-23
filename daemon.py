@@ -303,7 +303,7 @@ def _start_journal() -> None:
     global _journal_sink
     logging.getLogger("uvicorn.access").disabled = True  # it would write the page key, from the address, to daemon.log
     if _journal_sink is None:
-        logger.configure(patcher=_meeting_redact)
+        logger.configure(patcher=_patch_record)
         logger.add(_note_problem, level="ERROR", format="{message}", diagnose=False, backtrace=False)
         _journal_sink = logger.add(_journal, level="INFO", diagnose=False, backtrace=False,
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
@@ -340,6 +340,21 @@ def _meeting_redact(record) -> None:
     elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET) \
             or " is waiting on the user: " in message or _quotes_the_room(message):
         record["message"] = f"(withheld during a meeting, {len(message)} chars)"
+
+
+def _mask_keys(record) -> None:
+    """No key this process holds, nor the page key or the token, reaches a sink: a vendor's error or a library's debug
+    line can carry one, and /pointe:voice shows daemon.log's last lines in a session's transcript on a failure."""
+    message = record["message"]
+    for value in (*vendors.known_keys(), PAGE_KEY, TOKEN):
+        if value in message:
+            message = message.replace(value, "[key]")
+    record["message"] = message
+
+
+def _patch_record(record) -> None:
+    _mask_keys(record)
+    _meeting_redact(record)
 
 
 _journal_sink = None
@@ -8173,6 +8188,12 @@ async def prefs_set(request: Request):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def _owner_heard_recently() -> bool:
+    """A strong match to a stored voiceprint on this call, within the minute a short "yes" may lean on it."""
+    v = VOICE.last_strong
+    return speaker.strong(v) and 0 <= time.time() - v.at < speaker.CONTINUITY_SECS
+
+
 @app.post("/voice/voiceprint")
 async def voiceprint_action(request: Request):
     """The owner-voice lock: enrol on the live call, cancel, delete a device's voiceprint (or all), set the level.
@@ -8186,6 +8207,11 @@ async def voiceprint_action(request: Request):
             raise HTTPException(status_code=409, detail="Not during a meeting: the room's audio does not reach the lock.")
         if EARS == "native":
             raise HTTPException(status_code=409, detail="The voice lock needs Pointe's own ears (CLAUDE_VOICE_EARS=auto).")
+        if _off_the_mac(request) and _has_voiceprint() and not _owner_heard_recently():
+            # Whoever holds the phone could file their voice as the owner's; Face ID is only in the app. At any level: a
+            # voiceprint guards drive mode's yes with the lock off, and counts as soon as the lock goes up.
+            raise HTTPException(status_code=403, detail="A voiceprint is stored: add another on the Mac, or first say a "
+                                                        "sentence with the voice lock on, then add it within a minute.")
         VOICE.start_enrolment(str(body.get("device") or "This device"))
         VOICE.load_soon()
         logger.info("voice lock: enrolment started")
