@@ -617,6 +617,19 @@ def _report_of(text: str) -> str | None:
     return found.group(1).strip() if found else None
 
 
+_JOINED = re.compile(r"^\[session joined\] (.+?)(?:,| is now )")
+
+
+def _gone_since(text: str) -> bool:
+    """News that a session joined, held for a gap, about a session that left the voice meanwhile: saying it then is
+    stale ("cedar rejoined" 45 s after cedar was closed)."""
+    joined = _JOINED.match(text)
+    if joined and not any(s.name == joined.group(1) for s in REGISTRY.sessions.values()):
+        logger.info(f"update dropped: {joined.group(1)} left the voice before it was said")
+        return True
+    return False
+
+
 class FeedInjector(FrameProcessor):
     """Sits right before the voice model so injected feed reaches it.
 
@@ -763,7 +776,7 @@ class FeedInjector(FrameProcessor):
     async def _deliver_if_free(self) -> bool:
         if self._bot_speaking or self._held or time.time() - self._asked_at < REPLY_WAIT_SECS or _floor_blocked() is not None:
             return False
-        items = [text for text in self._updates.take() if not self._parked(text)]
+        items = [text for text in self._updates.take() if not self._parked(text) and not _gone_since(text)]
         if not items:
             return True
         alone = next((text for text in items if flow.said_alone(text)), None)
