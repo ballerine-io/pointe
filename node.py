@@ -1106,7 +1106,8 @@ def serve(port: int = PORT, state: Path = STATE) -> None:
         sockets = guards.loopback_sockets(port)  # both families, as the daemon does
     except OSError as e:
         raise SystemExit(f"voice-node: cannot listen on 127.0.0.1:{port} and [::1]:{port} ({e.strerror})")
-    server = uvicorn.Server(uvicorn.Config(node.app(), port=port, log_level="warning"))
+    server = uvicorn.Server(uvicorn.Config(node.app(), port=port, log_level="warning", proxy_headers=False,
+                                           access_log=False))
 
     async def run() -> None:
         serving = asyncio.create_task(server.serve(sockets=sockets))

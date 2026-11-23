@@ -83,9 +83,10 @@ class Remote:
         """Over HTTPS, addressed to the configured name, and from a page of that name if from a page."""
         if not self.enabled:
             return False
-        if (urlparse(f"//{request.headers.get('host', '')}").hostname or "").lower() != self.host:
-            return False
-        return self._own_origin(request.headers.get("origin"))
+        return self._own_host(request.headers) and self._own_origin(request.headers.get("origin"))
+
+    def _own_host(self, headers) -> bool:
+        return (urlparse(f"//{headers.get('host', '')}").hostname or "").lower() == self.host
 
     def _own_origin(self, origin: str | None) -> bool:
         """No Origin (the app, a script), or exactly this listener's: scheme, name and port. Cookies and SameSite ignore
@@ -116,7 +117,7 @@ class Remote:
         self._fresh_token()
         origin = connection.headers.get("origin")
         return (self.enabled and hmac.compare_digest(connection.cookies.get(COOKIE, "").encode(), self.token.encode())
-                and self._own_origin(origin))
+                and self._own_host(connection.headers) and self._own_origin(origin))
 
     async def guard(self, request: Request, call_next):
         state = request.scope.get("state", {})
@@ -162,7 +163,7 @@ class Remote:
 
         # lifespan off: the main server already ran the app's startup, and running it again would recurse here
         servers = [Quiet(uvicorn.Config(app, host=address, port=TLS_PORT, log_level="warning", lifespan="off",
-                                        proxy_headers=False, ssl_certfile=str(self.cert), ssl_keyfile=str(self.key),
+                                        proxy_headers=False, access_log=False, ssl_certfile=str(self.cert), ssl_keyfile=str(self.key),
                                         # buffered whole before any handler; /voice/node reads one before any proof
                                         ws_max_size=nodelink.MAX_FRAME_BYTES))
                    for address in self.listen]

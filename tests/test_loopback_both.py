@@ -188,3 +188,55 @@ def test_the_listener_check_sees_a_program_on_the_ipv6_loopback():
     finally:
         squatter.close()
     assert str(os.getpid()) in out.stdout.split() and taken.returncode == 0
+
+
+def test_no_listener_trusts_forwarded_headers_or_writes_an_access_log():
+    """uvicorn trusts X-Forwarded-For from 127.0.0.1 and ::1 by default, so on the loopback listener another account's
+    process could pick the address that every per-address limit (pairing guesses, waiting node sockets) and the
+    owner's "paired from" line are keyed by. The access log would write addresses that carry ?pair=, ?k= and ?key=."""
+    import ast
+
+    configs = []
+    for path in sorted([*ROOT.glob("*.py"), *ROOT.glob("harnesses/*.py")]):
+        for call in ast.walk(ast.parse(path.read_text())):
+            if isinstance(call, ast.Call) and ast.unparse(call.func) in ("uvicorn.Config", "Config"):
+                kw = {k.arg: ast.unparse(k.value) for k in call.keywords}
+                configs.append((f"{path.name}:{call.lineno}", kw.get("proxy_headers"), kw.get("access_log")))
+    assert {where.split(":")[0] for where, *_ in configs} >= {"daemon.py", "node.py", "remote.py"}, configs
+    bad = [where for where, proxy, access in configs if proxy != "False" or access != "False"]
+    assert not bad, "uvicorn.Config(..., proxy_headers=False, access_log=False):\n" + "\n".join(bad)
+
+
+def test_x_forwarded_for_on_loopback_does_not_change_the_client_address():
+    import asyncio
+
+    import uvicorn
+
+    seen = []
+
+    async def app(scope, receive, send):
+        seen.append(scope["client"][0])
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b""})
+
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning",
+                                           proxy_headers=False, access_log=False, lifespan="off"))
+
+    async def go():
+        task = asyncio.create_task(server.serve())
+        while not server.started:
+            await asyncio.sleep(0.01)
+        reader, writer = await asyncio.open_connection("127.0.0.1", port)
+        writer.write(b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Forwarded-For: 100.64.0.77\r\nConnection: close\r\n\r\n")
+        await writer.drain()
+        await reader.read()
+        writer.close()
+        server.should_exit = True
+        await task
+
+    asyncio.run(go())
+    assert seen == ["127.0.0.1"]

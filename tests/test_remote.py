@@ -157,7 +157,18 @@ def test_after_rotate_the_old_cookie_opens_no_websocket(tmp_path):
     from types import SimpleNamespace
 
     remote, _ = _rotated_remote(tmp_path)
-    socket_with = lambda token: SimpleNamespace(headers={}, cookies={COOKIE: token})  # noqa: E731
+    socket_with = lambda token: SimpleNamespace(headers={"host": f"{HOST}:7443"}, cookies={COOKIE: token})  # noqa: E731
     assert not remote.websocket_allowed(socket_with("old-token"))
     assert remote.websocket_allowed(socket_with("new-token-after-rotate"))
     assert remote.changed()
+
+
+@pytest.mark.parametrize("host", ["evil.example:7443", "", "127.0.0.1:7443", f"{HOST}.evil.example:7443"])
+def test_a_websocket_addressed_to_another_name_is_refused_like_a_request(tmp_path, host):
+    """HTTP must name the configured host; an upgrade on the same listener too (a rebinding page names its own)."""
+    from types import SimpleNamespace
+
+    remote, _ = _rotated_remote(tmp_path)
+    token = "new-token-after-rotate"
+    assert remote.websocket_allowed(SimpleNamespace(headers={"host": f"{HOST}:7443"}, cookies={COOKIE: token}))
+    assert not remote.websocket_allowed(SimpleNamespace(headers={"host": host}, cookies={COOKIE: token}))
