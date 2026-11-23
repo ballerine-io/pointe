@@ -34,8 +34,8 @@ def load() -> float:
 
 
 def product_commit() -> str:
-    """The last commit that changed Pointe itself (anything outside bench/, tests/ and docs/)."""
-    return subprocess.run(["git", "-C", str(ROOT), "log", "-1", "--format=%H", "--", ".", ":!bench", ":!tests", ":!docs"],
+    """The last commit that changed Pointe itself (anything outside bench/, tests/, docs/ and .gitignore)."""
+    return subprocess.run(["git", "-C", str(ROOT), "log", "-1", "--format=%H", "--", ".", ":!bench", ":!tests", ":!docs", ":!.gitignore"],
                           capture_output=True, text=True).stdout.strip()
 
 
