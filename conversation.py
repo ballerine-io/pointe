@@ -23,6 +23,10 @@ REPORT = Limit(words=45, sentences=3)  # a session's finished turn: the verdict,
 URGENT_REPORT = Limit(words=60, sentences=4)
 BATCH = Limit(words=40, sentences=2)  # "Two updates: billing finished, docs needs approval."
 DETAIL = Limit(words=120, sentences=8, items=None)  # asked for: "tell me more", "elaborate", "תפרט"
+# Two things side by side: at 30 words the cut kept the mutex and dropped the semaphore, 3 of 3 (QA round 2).
+COMPARE = Limit(words=50, sentences=3)
+_COMPARE = re.compile(r"\b(?:differences? between|differ(?:s|ent from)?|vs\.?|versus|compared? (?:to|with)|compare|"
+                      r"pros and cons)\b|(?<![֐-׿])(?:ההבדל|ההבדלים|לעומת)(?![֐-׿])", re.I)
 
 _DETAIL = re.compile(
     r"\b(?:tell me more|say more|more (?:detail|details|about|on)|in (?:detail|depth|full)|details?|elaborate|expand(?: on)?|"
@@ -90,14 +94,19 @@ def limit_for(trigger: str | None, asked: str, status: bool = False, drive_words
         return STATUS if trigger.startswith("[voice connected]") else REPLY
     if wants_detail(asked):
         return DETAIL
+    if _COMPARE.search(asked or ""):
+        return COMPARE
     return STATUS if status else REPLY
 
 
 _ORDINALS = (r"(?:one|two|three|four|five|six|seven|eight|nine|ten|first|second|third|fourth|fifth|sixth|seventh|eighth|"
              r"\d{1,2}|אחת|שתיים|שלוש|ארבע|חמש|שש|ראשון|שני|שלישי|רביעי|חמישי)")
 _MARKER = re.compile(rf"(?:(?<=^)|(?<=[.!?…:;]\s)|(?<=,\s))(?:question |number |שאלה )?{_ORDINALS}\s?[:.)]\s", re.I)
+# A part that opens with a preposition is a phrase about the sentence, not an item: "on Monday, March 3, at noon, in
+# room 4" counted 3 items, and a 2-fact answer was sent back as a list (QA round 2).
 _NOT_AN_ITEM = re.compile(r"^(?:and |or |ו)?(?:but|so|then|which|because|since|if|when|while|though|i|it|it's|we|you|they|he|she|"
-                          r"that|this|there|אבל|אז|כי|אם|אני|זה|הוא|היא)\b", re.I)
+                          r"that|this|there|at|in|on|for|by|from|to|with|of|after|before|until|during|"
+                          r"אבל|אז|כי|אם|אני|זה|הוא|היא)\b", re.I)
 ITEM_WORDS = 3  # a list item is a name or a few words; a longer part is a clause
 _CHOICE = re.compile(r"(?:,|\s)\s*(?:or|או)\s", re.I)
 
