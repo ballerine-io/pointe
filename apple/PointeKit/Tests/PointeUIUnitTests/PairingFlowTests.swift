@@ -95,8 +95,11 @@ final class PairingFlowTests: XCTestCase {
     func testTheOldPairingStaysUntilTheNewOneAnswers() async {
         let keeper = Keeper(home)
         let failed = flow(keeper, owner: true, redeem: { _ in throw PairingInvite.Failure.said("This code has expired.") })
+        failed.scanInside()
+        XCTAssertTrue(failed.scanning, "paired: the scanner opens over the call")
         failed.scanned(evilCode)
         await failed.confirm()
+        XCTAssertFalse(failed.scanning, "the scanner closes, so the note about the code shows")
         XCTAssertEqual(keeper.saves, [], "a code that was not redeemed replaces nothing")
         XCTAssertEqual(failed.pairing, home)
         XCTAssertEqual(failed.note?.state, .failed)

@@ -113,6 +113,7 @@ final class PairingFlow {
             attempt += 1
             return
         }
+        scanning = false  // the note about the code shows over the call, not under the scanner
         let kept = offer.replaces.map { " Still paired with \($0)." } ?? ""
         switch offer.link {
         case .ready(let p):
