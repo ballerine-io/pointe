@@ -43,6 +43,18 @@ SONIOX_RT_MODEL = "stt-rt-v6"
 LOCAL_EARS_MODEL = "mlx-community/whisper-large-v3-turbo"  # why: bench/results/local.md; its commit: assets.HF_MODELS
 LOCAL_EARS_MODEL_CT2 = "deepdml/faster-whisper-large-v3-turbo-ct2"  # the same model for faster-whisper, off Apple silicon
 KEY_ENVS = {env for env, _ in KEYS.values()} | set(ENV_ALIASES.values()) | {"CLAUDE_VOICE_LOCAL_KEY"}
+# Read by the vendor SDKs when a client is built (Anthropic 2.6, openai 3.42, google-genai 2.34), and each sends the key
+# and session content to another host than the vendor's own API, or adds a gateway's credential to every request: the
+# egress list (docs/security/egress-allowlist.txt) would not hold. A person sets them for Claude Code, not for Pointe, so
+# they are taken out of this process's environment at import and handed back only to the Claude Code it starts
+# (harnesses/claude_code._env). The clients below also name their host outright.
+SDK_ROUTING_ENVS = ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_CUSTOM_HEADERS", "OPENAI_BASE_URL",
+                    "OPENAI_CUSTOM_HEADERS", "OPENAI_ADMIN_KEY", "GOOGLE_GEMINI_BASE_URL", "GOOGLE_VERTEX_BASE_URL",
+                    "GOOGLE_GENAI_USE_VERTEXAI", "GOOGLE_GENAI_USE_ENTERPRISE")
+FOR_CLAUDE_CODE = {name: os.environ.pop(name) for name in SDK_ROUTING_ENVS if name in os.environ}
+ANTHROPIC_URL = "https://api.anthropic.com"
+OPENAI_URL = "https://api.openai.com/v1"
+GEMINI_URL = "https://generativelanguage.googleapis.com/"
 # Keys read from the Keychain, in this process's memory only: never in os.environ, so nothing it starts inherits one.
 _found: dict[str, str] = {}
 # First available wins. The order is the result of bench/results; see README, "Benchmarks".
@@ -119,14 +131,14 @@ def _gemini():
 
     # One attempt: the library's own retries turned an out-of-quota 429 into a silent wait past every timeout, so the
     # vendor fallback never saw it. A refusal now surfaces at once and the next vendor answers.
-    return _clients.setdefault("gemini", genai.Client(api_key=key("gemini"), http_options=types.HttpOptions(
-        retry_options=types.HttpRetryOptions(attempts=1))))
+    return _clients.setdefault("gemini", genai.Client(api_key=key("gemini"), vertexai=False, http_options=types.HttpOptions(
+        base_url=GEMINI_URL, retry_options=types.HttpRetryOptions(attempts=1))))
 
 
 def _anthropic():
     import anthropic
 
-    return _clients.setdefault("anthropic", anthropic.AsyncAnthropic(api_key=key("anthropic")))
+    return _clients.setdefault("anthropic", anthropic.AsyncAnthropic(api_key=key("anthropic"), base_url=ANTHROPIC_URL))
 
 
 def openai_url() -> str | None:
@@ -150,7 +162,7 @@ def refuse_openai_audio(what: str) -> None:
 def _openai():
     from openai import AsyncOpenAI
 
-    return _clients.setdefault("openai", AsyncOpenAI(api_key=key("openai"), base_url=openai_url()))
+    return _clients.setdefault("openai", AsyncOpenAI(api_key=key("openai"), base_url=openai_url() or OPENAI_URL))
 
 
 def warm(choices: list[str]) -> None:

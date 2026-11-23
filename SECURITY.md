@@ -228,6 +228,12 @@ With `openai_url` set, the OpenAI text models are served by a host you choose (A
 receives what the brain, reader and gate vendors would, over https only, and the OpenAI key is sent there and never to
 OpenAI, so OpenAI's audio services are refused. See [docs/features/openai-url.md](docs/features/openai-url.md).
 
+The vendors' own SDKs would follow variables set for Claude Code or another tool, such as `ANTHROPIC_BASE_URL`,
+`ANTHROPIC_AUTH_TOKEN`, `OPENAI_BASE_URL` or `GOOGLE_GENAI_USE_VERTEXAI`, and send your keys and session content to
+that host, or a gateway's header to the vendor. Pointe takes them out of its environment at start and names each
+vendor's own address in its clients (`vendors.SDK_ROUTING_ENVS`, `tests/test_sdk_hosts.py`); only the Claude Code it
+starts gets them back, so a copy of a session runs through your gateway as your session does.
+
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
 

@@ -32,6 +32,8 @@ again after switching setups.
   OpenAI's ears, mouth and realtime front are refused, and ears and mouth never fall back to OpenAI. Use another vendor
   for the voice (Soniox, ElevenLabs, Gemini) or the local voice (`pointe local voice`).
 - **https only.** An address that does not start with `https://` is refused, because the key is sent there.
+- **Only this setting.** The OpenAI SDK's own `OPENAI_BASE_URL` (and `OPENAI_CUSTOM_HEADERS`) is not read: set for
+  another tool, it would send the key past both checks above. Pointe takes it out of its environment at start.
 - **Where your words go.** Your sessions' content and what you say, as text, go to the host you set. Pointe does not
   list that host in `docs/security/egress-allowlist.txt`: you choose it.
 - The brain uses OpenAI's Responses API and the reader and the checker use Chat Completions, so the host must serve both.

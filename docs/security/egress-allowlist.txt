@@ -15,6 +15,8 @@ generativelanguage.googleapis.com   Gemini text, ears, mouth and realtime front 
 api.openai.com             OpenAI text, ears, mouth and realtime front (openai SDK; bench)
 # openai_url (docs/features/openai-url.md): a host the user sets for the OpenAI text models, https only. It is theirs
 # to choose, so it is not listed; with it set, the OpenAI key is never sent to api.openai.com.
+# The SDKs' own variables for another host (ANTHROPIC_BASE_URL, OPENAI_BASE_URL, GOOGLE_GEMINI_BASE_URL, Vertex AI's
+# switches) are taken out of the daemon's environment at start (vendors.SDK_ROUTING_ENVS), so the hosts above hold.
 api.elevenlabs.io          ElevenLabs ears and mouth (pipecat; bench)
 stt-rt.soniox.com          Soniox ears, meeting ears (daemon.py, meeting.py, bench)
 tts-rt.soniox.com          Soniox mouth (pipecat; bench)

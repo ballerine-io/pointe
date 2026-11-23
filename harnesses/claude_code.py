@@ -339,9 +339,11 @@ def open_terminal(script: Path) -> None:
 
 
 def _env(home: str) -> dict:
-    """The environment for a `claude` this daemon starts: not the session's that started the daemon, no vendor key, and
-    the account (config dir) asked for."""
-    env = {k: v for k, v in childenv.child_env().items()
+    """The environment for a `claude` this daemon starts: not the session's that started the daemon, no vendor key, the
+    person's own gateway settings (vendors.FOR_CLAUDE_CODE), and the account (config dir) asked for."""
+    import vendors
+
+    env = {k: v for k, v in childenv.child_env(**vendors.FOR_CLAUDE_CODE).items()
            if not k.startswith("CLAUDE_CODE_") and k not in ("CLAUDECODE", "CLAUDE_PID", "CLAUDE_CONFIG_DIR")}
     if home:
         env["CLAUDE_CONFIG_DIR"] = home
