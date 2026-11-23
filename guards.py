@@ -896,13 +896,18 @@ class _InlineScripts(HTMLParser):
 def page_csp(html: str) -> str:
     """The page's script policy: only the inline scripts and handlers it was served with run ('unsafe-hashes' lets a
     hash allow an on* attribute). A script or handler injected later matches no hash. blob: is the microphone's
-    AudioWorklet, which the page builds from its own text; no plugin, no <base>."""
+    AudioWorklet, which the page builds from its own text; no plugin, no <base>. The rest keeps injected markup from
+    sending data out: fetches and the call's WebSocket go only to this origin, images are its own or data: (the
+    icons), media its own or blob: (the media-keys clip), forms post nowhere else. Inline styles stay allowed: the page
+    sets them, and a style cannot run script."""
     parser = _InlineScripts()
     parser.feed(html)
     parser.close()
     hashes = sorted({"'sha256-" + base64.b64encode(hashlib.sha256(t.encode()).digest()).decode() + "'"
                      for t in parser.found})
-    return f"script-src {' '.join(hashes)} 'unsafe-hashes' blob:; object-src 'none'; base-uri 'none'"
+    return (f"default-src 'self'; script-src {' '.join(hashes)} 'unsafe-hashes' blob:; connect-src 'self'; "
+            "img-src 'self' data:; media-src 'self' blob:; font-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "form-action 'self'; object-src 'none'; base-uri 'none'")
 
 
 class JsonPosts:

@@ -561,6 +561,11 @@ def test_the_page_policy_allows_only_hashed_inline_scripts():
     policy = page_csp(page_html())
     directives = {d.split()[0]: d.split()[1:] for d in (p.strip() for p in policy.split(";")) if d}
     assert directives["object-src"] == ["'none'"] and directives["base-uri"] == ["'none'"]
+    # Beyond scripts: injected markup could still send data out through an image, a form, a fetch or a stylesheet.
+    assert directives["default-src"] == ["'self'"] and directives["connect-src"] == ["'self'"]
+    assert directives["img-src"] == ["'self'", "data:"] and directives["form-action"] == ["'self'"]
+    assert directives["media-src"] == ["'self'", "blob:"] and directives["font-src"] == ["'self'"]
+    assert all("*" not in v and "http:" not in v and "https:" not in v for v in directives.values())
     script = directives["script-src"]
     assert set(script) - {f"'sha256-{h}'" for h in _policy_hashes(policy)} == {"'unsafe-hashes'", "blob:"}
     assert len(_policy_hashes(policy)) > 100  # each inline script and handler of the page
