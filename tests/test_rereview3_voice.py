@@ -143,3 +143,23 @@ def test_the_hook_reads_a_request_from_the_folder_claude_code_reports(d):
     assert seen["spoken"] == "run: in /Users/u/other-repo, rm -rf /Users/u/other-repo/build"
     assert seen["full"].split("\n")[0] == "Bash in /Users/u/other-repo"
 
+
+# ---------- an adapter never shows less than what is approved ----------
+
+def test_a_codex_file_change_is_never_read_as_one_file():
+    """Codex's file-change approval names no file: read as "edit ." a yes approved a patch nobody heard. Tap only, and
+    the card says what it is, not a file it is not."""
+    from harnesses.codex import tool_request
+    for params in ({"reason": "Change files"}, {"grantRoot": "/Users/u", "reason": "Change files"}):
+        tool, tool_input = tool_request("item/fileChange/requestApproval", params)
+        assert guards.readable_request(tool, tool_input, CWD) is None, params
+        assert "file_path" not in tool_input
+    assert tool_request("item/fileChange/requestApproval", {"grantRoot": "/Users/u"})[1]["grant_root"] == "/Users/u"
+
+
+def test_an_opencode_request_with_several_resources_shows_them_all_and_is_not_read_out():
+    from harnesses.opencode import tool_request
+    for action in ("bash", "edit"):
+        tool, tool_input = tool_request({"action": action, "resources": ["ls", "rm -rf ~/work"], "message": "x"})
+        assert tool_input["resources"] == ["ls", "rm -rf ~/work"]
+        assert guards.readable_request(tool, tool_input, CWD) is None

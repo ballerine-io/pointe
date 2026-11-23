@@ -104,6 +104,9 @@ def tool_request(request: dict) -> tuple[str, dict]:
     meta = request.get("metadata") or {}
     resources = [str(r) for r in request.get("resources") or []]
     name = TOOL_NAMES.get(action.lower(), action)
+    if name in ("Bash", "Edit", "Write", "Read", "MultiEdit") and len(resources) > 1 and not (
+            meta.get("command") or meta.get("filePath") or meta.get("file_path") or meta.get("path")):
+        return name, {"description": str(request.get("message") or action), "resources": resources}  # all shown, none read out
     if name == "Bash":
         return name, {"command": str(meta.get("command") or (resources[0] if resources else "")),
                       "description": str(request.get("message") or meta.get("description") or "")}
