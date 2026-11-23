@@ -15,7 +15,7 @@
 set -euo pipefail
 
 POINTE_VERSION="1.23.0"  # the release a new install gets; tools/release_tarball.py pin writes these two lines
-POINTE_SHA256=""         # of pointe-$POINTE_VERSION.tar.gz as attached to its GitHub Release; empty: read the release's
+POINTE_SHA256="3e2b700d2b68180d2feeba1078dbf5b5cb85499b1c2adb57a0e101b7910c0ff5"         # of pointe-$POINTE_VERSION.tar.gz as attached to its GitHub Release; empty: read the release's
 REPO="https://github.com/ballerine-io/pointe"
 POINTE_HOME="${POINTE_HOME:-$HOME/.pointe}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
