@@ -1,0 +1,448 @@
+{
+ "runs": [
+  "routing-20261123-0331-d17a"
+ ],
+ "summary": {
+  "pointe": {
+   "turns": 60,
+   "conversations": 12,
+   "correct": 41,
+   "wrong_session": 7,
+   "correct_wilson": [
+    0.5576623287169538,
+    0.7869413251704964
+   ],
+   "correct_bootstrap": [
+    0.6166666666666667,
+    0.75
+   ],
+   "wrong_wilson": [
+    0.057677206086183624,
+    0.22178788124005724
+   ],
+   "wrong_bootstrap": [
+    0.03333333333333333,
+    0.21666666666666667
+   ],
+   "ask_ambiguous": [
+    6,
+    14
+   ],
+   "ask_clear": [
+    3,
+    46
+   ],
+   "conversation_success": [
+    0,
+    12
+   ],
+   "clarifications": 9,
+   "generic_replies": 0,
+   "by_type": {
+    "ambiguous": {
+     "correct": 1,
+     "wrong_session": 6,
+     "n": 14
+    },
+    "description": {
+     "correct": 9,
+     "wrong_session": 0,
+     "n": 10
+    },
+    "name": {
+     "correct": 16,
+     "wrong_session": 0,
+     "n": 16
+    },
+    "two": {
+     "correct": 3,
+     "wrong_session": 0,
+     "n": 5
+    },
+    "context": {
+     "correct": 9,
+     "wrong_session": 1,
+     "n": 10
+    },
+    "mishear": {
+     "correct": 3,
+     "wrong_session": 0,
+     "n": 5
+    }
+   },
+   "outcomes": {
+    "correct": 41,
+    "missed": 10,
+    "wrong_session": 7,
+    "guessed_right": 2
+   },
+   "flip": [
+    2,
+    15
+   ],
+   "conversation_errors": [],
+   "cross_repo_turns": 0,
+   "failed_causes": {
+    "forwarded another request (the text lacked this turn's word)": 10,
+    "guessed on an ambiguous turn": 7,
+    "wrong session on a clear turn": 1,
+    "other": 0
+   },
+   "spend_usd": 3.8393,
+   "send_replaced": {
+    "failed_turns": 9,
+    "brain_right": 9,
+    "after_asking": 7,
+    "upper_bound_correct": 50
+   }
+  },
+  "llm-router": {
+   "turns": 60,
+   "conversations": 12,
+   "correct": 55,
+   "wrong_session": 3,
+   "correct_wilson": [
+    0.8193105788446039,
+    0.9638795436268733
+   ],
+   "correct_bootstrap": [
+    0.8333333333333334,
+    0.9833333333333333
+   ],
+   "wrong_wilson": [
+    0.01714950203090107,
+    0.1370051656999034
+   ],
+   "wrong_bootstrap": [
+    0.0,
+    0.13333333333333333
+   ],
+   "ask_ambiguous": [
+    10,
+    14
+   ],
+   "ask_clear": [
+    2,
+    46
+   ],
+   "conversation_success": [
+    8,
+    12
+   ],
+   "clarifications": 12,
+   "generic_replies": 0,
+   "by_type": {
+    "ambiguous": {
+     "correct": 10,
+     "wrong_session": 2,
+     "n": 14
+    },
+    "description": {
+     "correct": 10,
+     "wrong_session": 0,
+     "n": 10
+    },
+    "name": {
+     "correct": 16,
+     "wrong_session": 0,
+     "n": 16
+    },
+    "two": {
+     "correct": 5,
+     "wrong_session": 0,
+     "n": 5
+    },
+    "context": {
+     "correct": 9,
+     "wrong_session": 1,
+     "n": 10
+    },
+    "mishear": {
+     "correct": 5,
+     "wrong_session": 0,
+     "n": 5
+    }
+   },
+   "outcomes": {
+    "correct": 55,
+    "wrong_session": 3,
+    "guessed_right": 2
+   },
+   "flip": [
+    1,
+    15
+   ],
+   "conversation_errors": [],
+   "cross_repo_turns": 0,
+   "failed_causes": {
+    "forwarded another request (the text lacked this turn's word)": 0,
+    "guessed on an ambiguous turn": 4,
+    "wrong session on a clear turn": 1,
+    "other": 0
+   },
+   "spend_usd": 0.405
+  },
+  "naive": {
+   "turns": 60,
+   "conversations": 12,
+   "correct": 27,
+   "wrong_session": 22,
+   "correct_wilson": [
+    0.33093654320665966,
+    0.5750806420967631
+   ],
+   "correct_bootstrap": [
+    0.4,
+    0.5
+   ],
+   "wrong_wilson": [
+    0.2562091661088542,
+    0.49316999470027295
+   ],
+   "wrong_bootstrap": [
+    0.2833333333333333,
+    0.45
+   ],
+   "ask_ambiguous": [
+    0,
+    14
+   ],
+   "ask_clear": [
+    0,
+    46
+   ],
+   "conversation_success": [
+    0,
+    12
+   ],
+   "clarifications": 0,
+   "generic_replies": 0,
+   "by_type": {
+    "ambiguous": {
+     "correct": 0,
+     "wrong_session": 10,
+     "n": 14
+    },
+    "description": {
+     "correct": 4,
+     "wrong_session": 5,
+     "n": 10
+    },
+    "name": {
+     "correct": 16,
+     "wrong_session": 0,
+     "n": 16
+    },
+    "two": {
+     "correct": 0,
+     "wrong_session": 0,
+     "n": 5
+    },
+    "context": {
+     "correct": 3,
+     "wrong_session": 7,
+     "n": 10
+    },
+    "mishear": {
+     "correct": 4,
+     "wrong_session": 0,
+     "n": 5
+    }
+   },
+   "outcomes": {
+    "wrong_session": 22,
+    "correct": 27,
+    "missed": 6,
+    "guessed_right": 4,
+    "partial": 1
+   },
+   "flip": [
+    0,
+    0
+   ],
+   "conversation_errors": [],
+   "cross_repo_turns": 14,
+   "failed_causes": {
+    "forwarded another request (the text lacked this turn's word)": 0,
+    "guessed on an ambiguous turn": 14,
+    "wrong session on a clear turn": 12,
+    "other": 0
+   },
+   "spend_usd": 0.1269
+  },
+  "keyboard-canonical": {
+   "turns": 20,
+   "conversations": 10,
+   "correct": 19,
+   "wrong_session": 0,
+   "correct_wilson": [
+    0.7638688045357189,
+    0.9911185512976646
+   ],
+   "correct_bootstrap": [
+    0.8260869565217391,
+    1.0
+   ],
+   "wrong_wilson": [
+    0.0,
+    0.16112516018512965
+   ],
+   "wrong_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "ask_ambiguous": [
+    0,
+    0
+   ],
+   "ask_clear": [
+    0,
+    20
+   ],
+   "conversation_success": [
+    0,
+    0
+   ],
+   "clarifications": 0,
+   "generic_replies": 0,
+   "by_type": {
+    "name": {
+     "correct": 8,
+     "wrong_session": 0,
+     "n": 8
+    },
+    "context": {
+     "correct": 6,
+     "wrong_session": 0,
+     "n": 6
+    },
+    "description": {
+     "correct": 2,
+     "wrong_session": 0,
+     "n": 2
+    },
+    "two": {
+     "correct": 1,
+     "wrong_session": 0,
+     "n": 2
+    },
+    "mishear": {
+     "correct": 2,
+     "wrong_session": 0,
+     "n": 2
+    }
+   },
+   "outcomes": {
+    "correct": 19,
+    "partial": 1
+   },
+   "flip": [
+    0,
+    0
+   ],
+   "conversation_errors": [],
+   "cross_repo_turns": 0,
+   "failed_causes": {
+    "forwarded another request (the text lacked this turn's word)": 0,
+    "guessed on an ambiguous turn": 0,
+    "wrong session on a clear turn": 0,
+    "other": 0
+   },
+   "spend_usd": 0.0445
+  },
+  "null": {
+   "turns": 60,
+   "conversations": 12,
+   "correct": 0,
+   "wrong_session": 0,
+   "correct_wilson": [
+    0.0,
+    0.060171853034227174
+   ],
+   "correct_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "wrong_wilson": [
+    0.0,
+    0.060171853034227174
+   ],
+   "wrong_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "ask_ambiguous": [
+    0,
+    14
+   ],
+   "ask_clear": [
+    0,
+    46
+   ],
+   "conversation_success": [
+    0,
+    12
+   ],
+   "clarifications": 0,
+   "generic_replies": 0,
+   "by_type": {
+    "ambiguous": {
+     "correct": 0,
+     "wrong_session": 0,
+     "n": 14
+    },
+    "description": {
+     "correct": 0,
+     "wrong_session": 0,
+     "n": 10
+    },
+    "name": {
+     "correct": 0,
+     "wrong_session": 0,
+     "n": 16
+    },
+    "two": {
+     "correct": 0,
+     "wrong_session": 0,
+     "n": 5
+    },
+    "context": {
+     "correct": 0,
+     "wrong_session": 0,
+     "n": 10
+    },
+    "mishear": {
+     "correct": 0,
+     "wrong_session": 0,
+     "n": 5
+    }
+   },
+   "outcomes": {
+    "missed": 60
+   },
+   "flip": [
+    0,
+    0
+   ],
+   "conversation_errors": [],
+   "cross_repo_turns": 0,
+   "failed_causes": {
+    "forwarded another request (the text lacked this turn's word)": 0,
+    "guessed on an ambiguous turn": 14,
+    "wrong session on a clear turn": 0,
+    "other": 0
+   },
+   "spend_usd": 0
+  },
+  "_excluded_out_of_tree": 0,
+  "_delta_pointe_minus_router": {
+   "delta": -0.23333333333333334,
+   "turns": 60,
+   "conversations": 12,
+   "bootstrap": [
+    -0.31666666666666665,
+    -0.15
+   ]
+  }
+ }
+}

@@ -1,0 +1,462 @@
+# Session Routing: 12 conversations x 5 turns, spoken to four live Claude Code sessions.
+# Text: CC BY 4.0, written for this suite; every name is invented. Audio is rendered from it by Kokoro-82M (Apache-2.0).
+# Each turn asks for a one-line edit that carries a unique word, so the file system shows where the request went.
+# `ref` is resolved against [sessions] by check.resolve(); `target` must equal that resolution (tested offline).
+# Ambiguous turns resolve to two sessions by construction; `intended` is the one the scripted user names when asked.
+canary = "e93be0a4-7858-4b2c-9093-72b70a7b6830"
+version = "routing-0.1"
+
+[sessions.tariff]
+product = "tariff"
+role = "backend"
+
+[sessions.tariff-web]
+product = "tariff"
+role = "web"
+
+[sessions.depot]
+product = "depot"
+role = "backend"
+
+[sessions.depot-docs]
+product = "depot"
+role = "docs"
+
+# ---- c01
+[[conversation]]
+id = "c01"
+voice = "af_heart"
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff-web" }
+target = ["tariff-web"]
+word = "candle"
+say = "In tariff web, add a line with the word candle to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "same" }
+target = ["tariff-web"]
+word = "river"
+say = "Same one again: add a line with the word river to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { role = "backend" }
+target = ["tariff", "depot"]
+intended = "tariff"
+word = "pencil"
+say = "Add a line with the word pencil to the notes file in the backend."
+[[conversation.turn]]
+type = "description"
+ref = { role = "docs" }
+target = ["depot-docs"]
+word = "garden"
+say = "Over in the docs, add a line with the word garden to the notes file."
+[[conversation.turn]]
+type = "two"
+ref = { names = ["tariff", "depot-docs"] }
+target = ["tariff", "depot-docs"]
+word = "ladder"
+say = "Add a line with the word ladder to the notes file in both tariff and depot docs."
+
+# ---- c02
+[[conversation]]
+id = "c02"
+voice = "am_michael"
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "tariff" }
+target = ["tariff", "tariff-web"]
+intended = "tariff-web"
+word = "basket"
+say = "In the tariff one, add a line with the word basket to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot" }
+target = ["depot"]
+word = "mirror"
+say = "In depot, add a line with the word mirror to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "same" }
+target = ["depot"]
+word = "button"
+say = "Same session as before: add a line with the word button to the notes file."
+[[conversation.turn]]
+type = "description"
+ref = { product = "tariff", role = "backend" }
+target = ["tariff"]
+word = "carpet"
+say = "In the tariff backend, add a line with the word carpet to the notes file."
+[[conversation.turn]]
+type = "mishear"
+ref = { name = "depot-docs" }
+target = ["depot-docs"]
+word = "window"
+speed = 1.3
+say = "Depot docs: add a line with the word window to notes."
+
+# ---- c03
+[[conversation]]
+id = "c03"
+voice = "bf_emma"
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff" }
+target = ["tariff"]
+word = "rabbit"
+say = "In tariff, add a line with the word rabbit to the notes file."
+[[conversation.turn]]
+type = "description"
+ref = { role = "web" }
+target = ["tariff-web"]
+word = "orange"
+say = "In the web front end, add a line with the word orange to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "before" }
+target = ["tariff"]
+word = "pocket"
+say = "Back to the one before that: add a line with the word pocket to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "depot" }
+target = ["depot", "depot-docs"]
+intended = "depot-docs"
+word = "bottle"
+say = "In the depot one, add a line with the word bottle to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff-web" }
+target = ["tariff-web"]
+word = "kettle"
+say = "In tariff web, add a line with the word kettle to the notes file."
+
+# ---- c04
+[[conversation]]
+id = "c04"
+voice = "bm_george"
+[[conversation.turn]]
+type = "description"
+ref = { product = "depot", role = "backend" }
+target = ["depot"]
+word = "hammer"
+say = "In the depot service, add a line with the word hammer to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "tariff" }
+target = ["tariff", "tariff-web"]
+intended = "tariff"
+word = "saddle"
+say = "In the tariff one, add a line with the word saddle to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "other", product = "tariff" }
+target = ["tariff-web"]
+word = "violin"
+say = "Now the other tariff one: add a line with the word violin to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot-docs" }
+target = ["depot-docs"]
+word = "wagon"
+say = "In depot docs, add a line with the word wagon to the notes file."
+[[conversation.turn]]
+type = "two"
+ref = { names = ["tariff-web", "depot"] }
+target = ["tariff-web", "depot"]
+word = "lemon"
+say = "Add a line with the word lemon to the notes file in both tariff web and depot."
+
+# ---- c05
+[[conversation]]
+id = "c05"
+voice = "af_heart"
+[[conversation.turn]]
+type = "mishear"
+ref = { name = "tariff" }
+target = ["tariff"]
+word = "tiger"
+speed = 1.3
+say = "Tariff: add a line with the word tiger to notes."
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot-docs" }
+target = ["depot-docs"]
+word = "castle"
+say = "In depot docs, add a line with the word castle to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { role = "backend" }
+target = ["tariff", "depot"]
+intended = "depot"
+word = "pillow"
+say = "In the API service, add a line with the word pillow to the notes file."
+[[conversation.turn]]
+type = "description"
+ref = { product = "depot", role = "backend" }
+target = ["depot"]
+word = "bucket"
+say = "In the depot service, add a line with the word bucket to the notes file."
+[[conversation.turn]]
+type = "description"
+ref = { role = "web" }
+target = ["tariff-web"]
+word = "jacket"
+say = "In the web front end, add a line with the word jacket to the notes file."
+
+# ---- c06
+[[conversation]]
+id = "c06"
+voice = "am_michael"
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot" }
+target = ["depot"]
+word = "ribbon"
+say = "In depot, add a line with the word ribbon to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "other", product = "depot" }
+target = ["depot-docs"]
+word = "marble"
+say = "Now the other depot one: add a line with the word marble to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "tariff" }
+target = ["tariff", "tariff-web"]
+intended = "tariff-web"
+word = "cookie"
+say = "In the tariff one, add a line with the word cookie to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff" }
+target = ["tariff"]
+word = "feather"
+say = "In tariff, add a line with the word feather to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "depot" }
+target = ["depot", "depot-docs"]
+intended = "depot"
+word = "tunnel"
+say = "In the depot one, add a line with the word tunnel to the notes file."
+
+# ---- c07
+[[conversation]]
+id = "c07"
+voice = "bf_emma"
+[[conversation.turn]]
+type = "ambiguous"
+ref = { role = "backend" }
+target = ["tariff", "depot"]
+intended = "tariff"
+word = "anchor"
+say = "Add a line with the word anchor to the notes file in the backend."
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff-web" }
+target = ["tariff-web"]
+word = "rocket"
+say = "In tariff web, add a line with the word rocket to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "before" }
+target = ["tariff"]
+word = "wallet"
+say = "Back to the one before that: add a line with the word wallet to the notes file."
+[[conversation.turn]]
+type = "description"
+ref = { role = "docs" }
+target = ["depot-docs"]
+word = "helmet"
+say = "In the documentation, add a line with the word helmet to the notes file."
+[[conversation.turn]]
+type = "mishear"
+ref = { name = "depot" }
+target = ["depot"]
+word = "puzzle"
+speed = 1.3
+say = "Depot: add a line with the word puzzle to notes."
+
+# ---- c08
+[[conversation]]
+id = "c08"
+voice = "bm_george"
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot-docs" }
+target = ["depot-docs"]
+word = "blanket"
+say = "In depot docs, add a line with the word blanket to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "tariff" }
+target = ["tariff", "tariff-web"]
+intended = "tariff"
+word = "island"
+say = "In the tariff one, add a line with the word island to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "other", product = "tariff" }
+target = ["tariff-web"]
+word = "meadow"
+say = "Now the other tariff one: add a line with the word meadow to the notes file."
+[[conversation.turn]]
+type = "two"
+ref = { names = ["tariff", "depot"] }
+target = ["tariff", "depot"]
+word = "cabin"
+say = "Add a line with the word cabin to the notes file in both tariff and depot."
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot" }
+target = ["depot"]
+word = "compass"
+say = "In depot, add a line with the word compass to the notes file."
+
+# ---- c09
+[[conversation]]
+id = "c09"
+voice = "af_heart"
+[[conversation.turn]]
+type = "description"
+ref = { product = "tariff", role = "backend" }
+target = ["tariff"]
+word = "lantern"
+say = "In the tariff backend, add a line with the word lantern to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot" }
+target = ["depot"]
+word = "parrot"
+say = "In depot, add a line with the word parrot to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "tariff" }
+target = ["tariff", "tariff-web"]
+intended = "tariff-web"
+word = "peanut"
+say = "In the tariff one, add a line with the word peanut to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "same" }
+target = ["tariff-web"]
+word = "pepper"
+say = "Same one again: add a line with the word pepper to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "depot" }
+target = ["depot", "depot-docs"]
+intended = "depot-docs"
+word = "plum"
+say = "In the depot one, add a line with the word plum to the notes file."
+
+# ---- c10
+[[conversation]]
+id = "c10"
+voice = "am_michael"
+[[conversation.turn]]
+type = "mishear"
+ref = { name = "tariff-web" }
+target = ["tariff-web"]
+word = "raven"
+speed = 1.3
+say = "Tariff web: add a line with the word raven to notes."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "depot" }
+target = ["depot", "depot-docs"]
+intended = "depot"
+word = "salmon"
+say = "In the depot one, add a line with the word salmon to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "other", product = "depot" }
+target = ["depot-docs"]
+word = "spoon"
+say = "Now the other depot one: add a line with the word spoon to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff" }
+target = ["tariff"]
+word = "thimble"
+say = "In tariff, add a line with the word thimble to the notes file."
+[[conversation.turn]]
+type = "two"
+ref = { names = ["tariff-web", "depot-docs"] }
+target = ["tariff-web", "depot-docs"]
+word = "turnip"
+say = "Add a line with the word turnip to the notes file in both tariff web and depot docs."
+
+# ---- c11
+[[conversation]]
+id = "c11"
+voice = "bf_emma"
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff" }
+target = ["tariff"]
+word = "walrus"
+say = "In tariff, add a line with the word walrus to the notes file."
+[[conversation.turn]]
+type = "description"
+ref = { product = "depot", role = "backend" }
+target = ["depot"]
+word = "zebra"
+say = "In the depot service, add a line with the word zebra to the notes file."
+[[conversation.turn]]
+type = "ambiguous"
+ref = { product = "tariff" }
+target = ["tariff", "tariff-web"]
+intended = "tariff-web"
+word = "acorn"
+say = "In the tariff one, add a line with the word acorn to the notes file."
+[[conversation.turn]]
+type = "context"
+ref = { context = "before" }
+target = ["depot"]
+word = "banjo"
+say = "Back to the one before that: add a line with the word banjo to the notes file."
+[[conversation.turn]]
+type = "mishear"
+ref = { name = "depot-docs" }
+target = ["depot-docs"]
+word = "cactus"
+speed = 1.3
+say = "Depot docs: add a line with the word cactus to notes."
+
+# ---- c12
+[[conversation]]
+id = "c12"
+voice = "bm_george"
+[[conversation.turn]]
+type = "ambiguous"
+ref = { role = "backend" }
+target = ["tariff", "depot"]
+intended = "depot"
+word = "dolphin"
+say = "In the API service, add a line with the word dolphin to the notes file."
+[[conversation.turn]]
+type = "description"
+ref = { role = "web" }
+target = ["tariff-web"]
+word = "falcon"
+say = "In the web front end, add a line with the word falcon to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "depot-docs" }
+target = ["depot-docs"]
+word = "gravel"
+say = "In depot docs, add a line with the word gravel to the notes file."
+[[conversation.turn]]
+type = "name"
+ref = { name = "tariff" }
+target = ["tariff"]
+word = "igloo"
+say = "In tariff, add a line with the word igloo to the notes file."
+[[conversation.turn]]
+type = "two"
+ref = { names = ["depot", "tariff-web"] }
+target = ["depot", "tariff-web"]
+word = "jigsaw"
+say = "Add a line with the word jigsaw to the notes file in both depot and tariff web."
