@@ -16,6 +16,7 @@ public enum KeyCopy {
     public static let optional = "Optional"
     public static let setupLabel = "Setup"
     public static let noSetup = "None chosen"
+    public static let noSetupHow = "None chosen, so each role takes the first vendor with a key."
 }
 
 /// One row of `setups.SETUPS`, as the Mac app's menu shows it; tests/test_setups.py holds this list to it.

@@ -298,6 +298,12 @@ def test_the_mac_app_fills_roles_in_the_daemons_order():
     assert names == vendors.NAMES
 
 
+def test_with_no_setup_chosen_the_mac_says_what_fills_the_roles():
+    # Beside "Every role is filled", the setup guide's "None chosen" alone read as a contradiction: it says what the
+    # doctor says.
+    assert f"Setup: {_swift('noSetupHow')[0].lower()}{_swift('noSetupHow')[1:]}" in (ROOT / "doctor.py").read_text()
+
+
 def test_no_surface_calls_an_unneeded_key_missing():
     mac = (ROOT / "macos" / "PointeMac" / "MacSettings.swift").read_text()
     assert '"Missing"' not in mac and "KeyRow.text(state)" in mac

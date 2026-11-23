@@ -289,6 +289,64 @@ extension EnvironmentValues {
     @Entry var macSettings: AnyView? = nil
 }
 
+/// What the setup guide opens itself: before Pointe runs on this Mac there is no call screen to host Settings and About,
+/// and the guide's own words send people to Settings, Model keys. Every other command waits for the call screen.
+public enum MacSetupSheet: String, Identifiable, Sendable {
+    case settings, about
+
+    public var id: String { rawValue }
+
+    public init?(_ command: MacSession.Command) {
+        switch command {
+        case .settings: self = .settings
+        case .about: self = .about
+        default: return nil
+        }
+    }
+}
+
+/// The setup guide's Settings (Appearance and this Mac's own sections, its keys among them) and About.
+public struct MacSetupSheetView: View {
+    let sheet: MacSetupSheet
+    let version: String?
+    let sections: AnyView
+    @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue
+    @Environment(\.dismiss) private var dismiss
+
+    public init<Sections: View>(sheet: MacSetupSheet, version: String?, @ViewBuilder sections: () -> Sections) {
+        self.sheet = sheet
+        self.version = version
+        self.sections = AnyView(sections())
+    }
+
+    public var body: some View {
+        Group {
+            switch sheet {
+            case .about: AboutSheet(mac: version)
+            case .settings:
+                NavigationStack {
+                    BrandForm {
+                        Section {
+                            Picker(selection: $theme) {
+                                ForEach(Theme.allCases) { Text($0.label).tag($0.rawValue) }
+                            } label: { Label(Theme.setting, systemImage: "circle.lefthalf.filled") }
+                                .pickerStyle(.menu)
+                                .accessibilityIdentifier("appearanceSetting")
+                        }
+                        sections
+                    }
+                    .sheetTitle("Settings")
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+                }
+            }
+        }
+        .preferredColorScheme(Theme.stored(theme).scheme)
+        .font(.brand(.body))
+        .foregroundStyle(Brand.text)
+        .sheetSurface()
+    }
+}
+
 /// The brand's colours and type, for what the Mac app draws itself (the bubble, the setup panel, its own settings).
 public enum PointeLook {
     public static var bg: Color { Brand.bg }

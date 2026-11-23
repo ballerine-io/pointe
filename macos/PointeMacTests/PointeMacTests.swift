@@ -71,6 +71,17 @@ final class PointeMacTests: XCTestCase {
         XCTAssertEqual(session.needCount, 0)
     }
 
+    /// Before Pointe runs, the window is the setup guide and has no call screen: Settings and About open on the guide
+    /// itself (its words send people to Settings, Model keys); the other commands wait for the call screen.
+    func testTheSetupGuideOpensSettingsAndAbout() {
+        XCTAssertFalse(AppModel.shared.ready, "a test host finds no Pointe on this Mac")
+        XCTAssertEqual(MacSetupSheet(.settings), .settings)
+        XCTAssertEqual(MacSetupSheet(.about), .about)
+        for command in [MacSession.Command.sessions, .newSession, .brainDump, .meeting, .type, .briefing, .machines, .phone, .nightShift] {
+            XCTAssertNil(MacSetupSheet(command), "\(command)")
+        }
+    }
+
     /// Every menu command has a key, and no two share one (docs/design/parity.md, "Keys").
     func testTheMenusWordsAreTheSheetsTitles() {
         XCTAssertEqual(MacMenu.newSession, "New Session")

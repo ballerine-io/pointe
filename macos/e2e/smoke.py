@@ -206,6 +206,13 @@ def main() -> int:
         check("with no daemon the window is the setup guide", app.wait("setup", 10) and not app.has("conversation"))
         check("and with no call there is no bubble saying Not connected", not app.has("bubble.state") and not app.has("bubble.small"))
         app.shot("setup", "dark")
+        check("on the setup guide the Settings… menu command opens Settings, with the keys",
+              app.ax("menu", "Settings…").returncode == 0 and app.wait("settings.key.gemini"))
+        app.ax("button", "Done")
+        app.wait("settings.key.gemini", 4, gone=True)
+        check("and About Pointe opens About", app.ax("menu", "About Pointe").returncode == 0 and app.wait("aboutBody"))
+        app.ax("button", "Done")
+        app.wait("aboutBody", 4, gone=True)
         check("Try a demo shows the call screen with a request", app.press("tryDemo") and app.wait("requestCommand", 8) and app.has("demoBadge"))
     finally:
         app.quit()

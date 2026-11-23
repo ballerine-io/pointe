@@ -291,10 +291,13 @@ final class AppModel {
         settleDial()
     }
 
+    /// Settings or About while the window is the setup guide: it hosts them itself, as it has no call screen.
+    var setupSheet: MacSetupSheet?
+
     /// From a menu or a key: the sheet is the window's, so the window comes first.
     func ask(_ command: MacSession.Command) {
         windows.showMain()
-        session.ask(command)
+        if ready { session.ask(command) } else { setupSheet = MacSetupSheet(command) }
     }
 
     func openMicrophoneSettings() {

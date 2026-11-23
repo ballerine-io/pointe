@@ -97,6 +97,9 @@ struct SetupPanel: View {
         }
         .onAppear { model.refreshKeys() }
         .accessibilityIdentifier("setup")
+        .sheet(item: Binding(get: { model.setupSheet }, set: { model.setupSheet = $0 })) { sheet in
+            MacSetupSheetView(sheet: sheet, version: model.session.daemonVersion) { MacSettingsSections().environment(model) }
+        }
     }
 
     private func step<Action: View>(done: Bool, title: String, detail: String, @ViewBuilder action: () -> Action) -> some View {
