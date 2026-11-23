@@ -185,6 +185,12 @@ def choose(setup_id: str) -> dict:
         current = json.loads(path.read_text())
     except FileNotFoundError:
         current = {}
+    setup = BY_ID.get(setup_id)
+    host = os.environ.get("CLAUDE_VOICE_OPENAI_URL") or current.get("openai_url")
+    if host and setup and any(r in ("ears", "mouth") for r in setup.does.get("openai", ())):
+        # The OpenAI key belongs to that host (docs/features/openai-url.md); OpenAI's ears and mouth would send it to OpenAI.
+        raise SystemExit(f"The {setup.name} setup uses OpenAI's ears and mouth, but openai_url sends the OpenAI key to "
+                         "another host. Choose a setup with other ears and mouth, or remove openai_url.")
     for gone in (*ROLE_KEYS, "local_only", "local_url", "voice_local"):
         current.pop(gone, None)
     current["setup"] = setup_id

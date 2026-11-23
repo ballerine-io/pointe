@@ -226,3 +226,17 @@ def test_every_best_for_line_reads_as_a_sentence():
     assert "For ${x.pick_for}" not in page.replace("Best for ${x.pick_for}", "")
     mac = (ROOT / "macos" / "PointeMac" / "MacSettings.swift").read_text()
     assert ': best for \\(choice.pickFor)"' in mac
+
+
+def test_a_setup_with_openai_ears_is_refused_while_openai_url_sends_the_key_elsewhere(state, monkeypatch):
+    (state / "config.json").write_text(json.dumps({"openai_url": "https://example-resource.openai.azure.com/openai/v1/"}))
+    with pytest.raises(SystemExit, match="openai_url"):
+        setups.choose("openai")
+    assert json.loads((state / "config.json").read_text()).get("setup") is None
+    assert setups.choose("two")["openai_url"].startswith("https://example-resource")
+
+
+def test_the_env_setting_guards_the_same_way(state, monkeypatch):
+    monkeypatch.setenv("CLAUDE_VOICE_OPENAI_URL", "https://example-resource.openai.azure.com/openai/v1/")
+    with pytest.raises(SystemExit):
+        setups.choose("openai")

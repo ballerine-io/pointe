@@ -220,6 +220,11 @@ def _details() -> tuple:
             print(f"  optional {vendor} (the {setup.name} setup does not use it)")
         else:
             print(f"  optional {vendor}" + ("" if status["empty"] or vendors.local_only() else " (not needed with your current keys)"))
+    if vendors.openai_url():
+        import urllib.parse
+
+        print(f"\nOpenAI models come from {urllib.parse.urlsplit(vendors.openai_url()).hostname} (openai_url): text models "
+              "only, and the OpenAI key is sent there. Name your deployments: brain, reader and checker as openai:<deployment>.")
     print("\n" + "\n".join(local.status_lines()))
     print("\nRoles:")
     for role, _env, _order in ROLES:
