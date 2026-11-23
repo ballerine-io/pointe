@@ -231,7 +231,7 @@ def test_dock_keeps_the_mic_centred_and_fits_at_every_width():
         assert r["centred"] and r["fits"] and r["hangupHidden"], (w, r)
     assert got[1440]["inMore"] == [] and not got[1440]["more"] and got[1440]["labelsShown"]
     assert got[1024]["labelsShown"]  # they fit there (tests/test_ui_layout.py measures it)
-    assert not got[760]["labelsShown"] and not got[390]["labelsShown"]
+    assert got[760]["labelsShown"] and got[390]["labelsShown"]  # a phone's four dock buttons are labelled, as the iPhone app's
     for w in (760, 390):
         assert got[w]["more"] and got[w]["inMore"] == ["listen", "meetbtn", "briefbtn", "chlbtn", "whisperbtn", "polishrow"], (w, got[w])  # and Clean up my words, with its label
         assert "sessbtn" in got[w]["inDock"] and "typebtn" in got[w]["inDock"] and "mic" in got[w]["inDock"]
