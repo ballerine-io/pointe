@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import random
+import re
 import time
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from .fixture import make
 HERE = Path(__file__).resolve().parent
 LOCK = HERE / "audio.lock"
 GENERIC = "Please go on with what I asked."
+PERMISSION = re.compile(r"\b(allow|approve|permission|wants to run|wants to edit|go ahead with)\b", re.I)
 YES = "Yes, go ahead."
 
 
@@ -61,10 +63,12 @@ async def run_turn(arm, conv: dict, i: int, turn: dict, audio: dict, repos: dict
     asked_t = None
     followups: list[dict] = []
 
+    declined: set[str] = set()  # sessions whose permission dialog was declined: they may end without a Stop hook
+
     def finished(names) -> bool:
         """Every session that got something has ended an agent turn since this turn began (its Stop hook)."""
         counts = arm.stop_counts()
-        return all(counts.get(n, 1) > base.get(n, 0) for n in names) if counts else True
+        return all(counts.get(n, 1) > base.get(n, 0) for n in set(names) - declined) if counts else True
 
     deadline = time.time() + arm.wait_after_say
     hard = t0 + 300
@@ -74,11 +78,18 @@ async def run_turn(arm, conv: dict, i: int, turn: dict, audio: dict, repos: dict
         for ev in evs:
             if ev["kind"] == "delivered" and ev.get("session") in repos:
                 sent.setdefault(ev["session"], ev["t"])
+            if ev["kind"] == "prompt_declined":
+                declined.add(ev["session"])
         for name in check.present(repos, word):
             files.setdefault(name, time.time())
+        await arm.tick()
         questions = [ev for ev in evs if ev["kind"] == "asked"]
         if questions and not sent and not files:
             asked_t = asked_t or questions[0]["t"]
+        # Before anything is delivered every question is answered; after, only on a two-session turn delivered in part
+        # ("tariff web has it; can you say the depot part again?"). A permission read-out is never answered here.
+        partial = turn["type"] == "two" and not (set(sent) | set(files)) >= want
+        if questions and ((not sent and not files) or partial) and not PERMISSION.search(questions[-1]["text"]):
             if len(followups) < 2:
                 kind = user.reply(questions[-1]["text"], want, names)
                 clip = reply_clip(conv["id"], i, kind)
@@ -96,6 +107,11 @@ async def run_turn(arm, conv: dict, i: int, turn: dict, audio: dict, repos: dict
     active = set(sent) or set(files)
     settle_until = time.time() + 120
     while time.time() < settle_until and not (finished(active) and await arm.idle()):
+        await arm.tick()
+        for ev in arm.events():
+            log.append(ev)
+            if ev["kind"] == "prompt_declined":
+                declined.add(ev["session"])
         await asyncio.sleep(1)
     log += arm.events()
     final = check.present(repos, word)

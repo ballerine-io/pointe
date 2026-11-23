@@ -53,6 +53,7 @@ class Arm:
     def audit(self) -> list[dict]: return []
     def processes(self) -> list[dict]: return []
     def stop_counts(self) -> dict[str, int]: return {}  # finished agent turns per session (the Stop hook)
+    async def tick(self) -> None: ...  # called by the turn loop twice a second
     async def stop(self) -> None: ...
 
 
@@ -74,7 +75,8 @@ class AgentArm(Arm):
         base = self.job_dir(repos) / "agents"
         self.sessions = {name: AgentSession(name, repo, base / name, self.env.model, self.env.mode,
                                             plugin_dir=self.env.checkout if self.plugin else None,
-                                            env=self.session_env(name), deny_reads=self.env.deny_reads)
+                                            env=self.session_env(name), deny_reads=self.env.deny_reads,
+                                            deny_paths=[r for n, r in repos.items() if n != name])
                          for name, repo in repos.items()}
         for s in self.sessions.values():
             s.start()
@@ -98,6 +100,18 @@ class AgentArm(Arm):
 
     def stop_counts(self) -> dict[str, int]:
         return {n: s.stops() for n, s in self.sessions.items()}
+
+    async def tick(self) -> None:
+        """A permission dialog left open for 8 s is declined with Escape, the same in every arm (recorded)."""
+        now = time.time()
+        for n, s in self.sessions.items():
+            if s.prompt_pending():
+                s.prompt_since = s.prompt_since or now
+                if now - s.prompt_since > 8:
+                    s.decline()
+                    self.emit("prompt_declined", session=n)
+            else:
+                s.prompt_since = None
 
     def type_into(self, name: str, text: str) -> None:
         self.sessions[name].type(text)

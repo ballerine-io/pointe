@@ -71,9 +71,15 @@ A seeded repeat of 3 conversations for `pointe` and `llm-router` gives the flip 
 - Wilson 95% intervals on turns, a bootstrap by conversation (n = 12), the `null` floor row, n in every table.
 
 The scripted user (`core/user.py`) answers a question that offers sessions or asks which with the turn's answer line,
-a question that names exactly the intended sessions with "Yes, go ahead.", one that names another session with
-"No, ...", and anything else with "Please go on with what I asked." At most two replies per turn. It waits for
-Pointe's speech to finish before it talks.
+a confirmation that names exactly the intended sessions with "Yes, go ahead.", one that names another session with
+"No, ...", and anything else with "Please go on with what I asked." Before anything is delivered every question is
+answered; after a delivery, only on a two-session turn delivered in part. A permission read-out is never answered. At
+most two replies per turn. It waits for Pointe's speech to finish before it talks.
+
+Every session's settings (the same file in every arm) deny Read, Edit and Write on the other three repos, and a
+permission dialog left open for 8 s is declined with Escape and recorded (`prompt_declined`), as a person at the
+keyboard who does not approve. Without this, a misrouted agent that reached into a sibling repo held its dialog open
+until the turn's cap and swallowed the next request.
 
 ## Deviations from the design, stated
 

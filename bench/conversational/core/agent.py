@@ -49,9 +49,10 @@ def cwd_of(pid: int) -> str | None:
 
 class AgentSession:
     def __init__(self, name: str, repo: Path, home: Path, model: str, mode: str, *, plugin_dir: Path | None = None,
-                 env: dict | None = None, deny_reads: list[Path] = ()):
+                 env: dict | None = None, deny_reads: list[Path] = (), deny_paths: list[Path] = ()):
         self.name, self.repo, self.home, self.model, self.mode = name, repo, home, model, mode
         self.plugin_dir, self.extra_env, self.deny_reads = plugin_dir, env or {}, list(deny_reads)
+        self.deny_paths = list(deny_paths)  # the other repos of this conversation: no Read, Edit or Write there
         self.cfg = home / "config"
         self.stops_file = home / "stops"
         self.screen = ""
@@ -59,6 +60,8 @@ class AgentSession:
         self.fd: int | None = None
         self._stop = False
         self.last_busy = 0.0  # the last time the working spinner ("esc to interrupt") was drawn
+        self.declined_upto = 0  # screen offset of the last permission dialog answered with Escape
+        self.prompt_since: float | None = None
 
     def args(self) -> list[str]:
         extra = ["--plugin-dir", str(self.plugin_dir)] if self.plugin_dir else []
@@ -68,7 +71,10 @@ class AgentSession:
         self.cfg.mkdir(parents=True, exist_ok=False)
         settings = {
             "apiKeyHelper": KEY_HELPER,
-            "permissions": {"deny": [f"Read({p}/**)" for p in self.deny_reads] + ["Bash(find /:*)", "Bash(find ~:*)"]},
+            # `//` starts an absolute path in a permission rule; a single `/` is relative to the settings file.
+            "permissions": {"deny": [f"Read(/{p}/**)" for p in self.deny_reads] + ["Bash(find /:*)", "Bash(find ~:*)"]
+                            + [f"{tool}(/{path}/**)" for p in self.deny_paths for path in sorted({str(p), os.path.realpath(p)})
+                               for tool in ("Read", "Edit", "Write")]},
             "hooks": {"Stop": [{"hooks": [{"type": "command", "command": f"printf 'stop\\n' >> '{self.stops_file}'"}]}]},
         }
         (self.cfg / "settings.json").write_text(json.dumps(settings, indent=1))
@@ -123,6 +129,18 @@ class AgentSession:
     def busy(self) -> bool:
         """The spinner redraws while the agent works; two quiet seconds without it means the turn has ended."""
         return time.time() - self.last_busy < 2.5
+
+    def prompt_pending(self) -> bool:
+        """A permission dialog is open in the terminal (it stops the agent without a Stop hook)."""
+        flat = re.sub(r"\s+", "", self.screen[self.declined_upto:][-6000:]).lower()
+        i = flat.rfind("doyouwant")
+        return i >= 0 and "esctocancel" in flat[i:] and not self.busy()
+
+    def decline(self) -> None:
+        """Escape, as a person at the keyboard who does not approve."""
+        os.write(self.fd, b"\x1b")
+        self.declined_upto = len(self.screen)
+        self.prompt_since = None
 
     def stops(self) -> int:
         return len(self.stops_file.read_text().splitlines()) if self.stops_file.exists() else 0

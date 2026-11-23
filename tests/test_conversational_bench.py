@@ -150,6 +150,7 @@ def test_scripted_user_reply_rules():
     assert user.reply("Should I send it to tariff?", {"tariff-web"}, names) == "correct"
     assert user.reply("Which session?", {"tariff"}, names) == "answer"
     assert user.reply("Do you want me to commit?", {"tariff"}, names) == "generic"
+    assert user.reply("Tariff web has it. Can you say the depot part again?", {"depot", "tariff-web"}, names) == "answer"
     assert check.answer_line(DS["conversation"][0]["turn"][4]) == "Both tariff and depot docs."
     assert check.answer_line(DS["conversation"][0]["turn"][2]) == "Tariff, please."
 
@@ -319,3 +320,42 @@ def test_a_turn_is_read_only_after_the_agent_ends_its_turn():
     arm.wait_after_say, arm.stray = 1.0, "tariff-web"
     res = asyncio.run(runner.run_conversation(arm, conv, DS, fake_audio(DS), env.root / "stray" / "repos", only={2}))
     assert res["rows"][0]["wrong_session"] and not res["rows"][0]["correct"]
+
+
+def test_a_two_session_turn_delivered_in_part_gets_its_follow_up_answered():
+    env = RunEnv(run_id="t", root=tmp_root(), checkout=ROOT)
+    conv = DS["conversation"][11]  # turn 5: both depot and tariff web
+    turn = conv["turn"][4]
+
+    def policy(clip_id):
+        if clip_id.endswith("t5.say"):
+            return ("send", ["tariff-web"], turn["word"])
+        if clip_id.endswith("t5.answer"):
+            return ("send", ["depot"], turn["word"])
+        return ("none",)
+
+    class PartialArm(EchoArm):
+        async def utter(self, clip_id, pcm48):
+            out = await super().utter(clip_id, pcm48)
+            if clip_id.endswith("t5.say"):
+                self.emit("asked", text="Tariff web has it. Can you say the depot part again?")
+            return out
+
+    arm = PartialArm(env, policy)
+    arm.wait_after_say = 1.0
+    res = asyncio.run(runner.run_conversation(arm, conv, DS, fake_audio(DS), env.root / "partial" / "repos", only={5}))
+    row = res["rows"][0]
+    assert row["correct"] and [f["reply"] for f in row["followups"]] == ["answer"] and not row["asked_first"]
+
+
+def test_permission_dialog_detection_on_a_captured_screen():
+    from conversational.core.agent import AgentSession
+
+    s = AgentSession("t", Path("/tmp/x"), Path("/tmp/x-home"), "m", "acceptEdits")
+    s.screen = ("Read(/tmp/pccb/dialogtest/b/notes.md)\n Do you want to proceed?\n > 1. Yes\n   2. Yes, allow reading "
+                "from b during this session\n   3. No\n Esc to cancel · Tab to amend\n")
+    assert s.prompt_pending()
+    s.declined_upto = len(s.screen)
+    assert not s.prompt_pending()
+    s.screen += " Do you want me to commit this? I added the line.\n"
+    assert not s.prompt_pending()
