@@ -195,3 +195,30 @@ def test_a_checkout_repairs_a_pointe_command_whose_copy_is_gone(tmp_path):
     subprocess.run(["rm", "-rf", str(gone.parent)], check=True)
     subprocess.run([str(LINK), "--at-start"], env=env, check=True)
     assert f"exec {ROOT / 'bin' / 'pointe'}" in _linked_to(home)
+
+
+def test_keeping_pointes_own_files_is_not_called_removed(mac, monkeypatch, capsys):
+    answers = iter(["n", "y", "n"])
+    monkeypatch.setattr(uninstall.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(uninstall, "_ask", lambda q: next(answers) == "y")
+    assert uninstall.main([]) == 0
+    out = capsys.readouterr().out
+    assert "Pointe is removed." not in out and "Pointe itself is still installed" in out
+    assert mac.state.exists() and not (mac.keychain / "pointe.gemini-api-key").exists()
+
+
+def test_the_mac_apps_settings_are_listed_and_removed_through_defaults(mac, capsys):
+    prefs = mac.home / "Library" / "Preferences" / f"{uninstall.MAC_APP_ID}.plist"
+    prefs.parent.mkdir(parents=True)
+    prefs.write_text("<plist/>")
+    fake = Path(mac.env["PATH"].split(":")[0])
+    (fake / "defaults").write_text(f'#!/bin/sh\necho "$@" >> "{fake}/defaults-calls"\n')
+    (fake / "defaults").chmod(0o755)
+    assert run(mac, "--dry-run").stdout.count(f"{prefs} (the Mac app's settings)") == 1
+    assert run(mac, "--yes").returncode == 0
+    assert (fake / "defaults-calls").read_text() == f"delete {uninstall.MAC_APP_ID}\n"
+    assert uninstall.MAC_APP_ID in (ROOT / "macos" / "tools" / "make_project.py").read_text()
+
+
+def test_the_uv_hint_names_every_folder_uv_installs():
+    assert "~/.local/share/uv" in (ROOT / "uninstall.py").read_text().split("Kept: uv", 1)[1][:200]

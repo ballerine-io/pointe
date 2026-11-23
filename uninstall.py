@@ -23,6 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 LINK_MARK = "# Written by Pointe (bin/link-pointe)"
 KEY_VENDORS = ("gemini", "openai", "anthropic", "soniox", "elevenlabs")  # vendors.KEYS (tests/test_uninstall.py)
+MAC_APP_ID = "io.ballerine.pointe.mac"  # macos/tools/make_project.py, PRODUCT_BUNDLE_IDENTIFIER (tests/test_uninstall.py)
 
 
 @dataclass
@@ -81,6 +82,9 @@ def plan() -> dict[str, list[Item]]:
     app = home() / "Applications" / "Pointe.app"
     if app.exists():
         own.append(Item(f"{app} (the Mac app)", path=app))
+    prefs = home() / "Library" / "Preferences" / f"{MAC_APP_ID}.plist"
+    if prefs.exists() and shutil.which("defaults"):  # through defaults: macOS caches a domain, and a deleted file comes back
+        own.append(Item(f"{prefs} (the Mac app's settings)", command=(shutil.which("defaults"), "delete", MAC_APP_ID)))
     kokoro = home() / ".cache" / "pipecat" / "kokoro-onnx"
     if kokoro.exists():
         own.append(Item(f"{kokoro} ({_size(kokoro)}: the local voice)", path=kokoro))
@@ -139,7 +143,8 @@ def main(argv: list[str]) -> int:
         if items:
             print(f"{titles[name]}:")
             print("\n".join(f"  - {i.what}" for i in items) + "\n")
-    print("Kept: uv, which other tools use (remove it with: uv cache clean, then rm ~/.local/bin/uv ~/.local/bin/uvx).\n")
+    print("Kept: uv, which other tools use (remove it with: uv cache clean, then rm -r ~/.local/bin/uv ~/.local/bin/uvx "
+          "~/.local/share/uv).\n")
     if "--dry-run" in argv:
         print("Dry run: nothing removed.")
         return 0
@@ -163,7 +168,12 @@ def main(argv: list[str]) -> int:
         result = remove(item)
         failed += result.startswith("failed")
         print(f"  {result:9} {item.what}")
-    print("\nPointe is removed." if not failed else "\nSome items were not removed: see above.")
+    if failed:
+        print("\nSome items were not removed: see above.")
+    elif groups["own"] and not set(map(id, groups["own"])) <= set(map(id, chosen)):
+        print("\nRemoved what you chose. Pointe itself is still installed: pointe uninstall again removes it.")
+    else:
+        print("\nPointe is removed.")
     return 1 if failed else 0
 
 

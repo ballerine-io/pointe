@@ -148,9 +148,10 @@ To remove it, run `pointe uninstall` in a terminal (or `~/.local/bin/pointe unin
 and asks before it removes anything, in three groups, each with its own question:
 
 - Pointe's own: it stops Pointe, then removes `~/.local/bin/pointe`, `~/.claude-voice` (settings, logs that hold what
-  was said on calls, phone pairings, the local text-model server), `~/Applications/Pointe.app`,
-  `~/.cache/pipecat/kokoro-onnx`, and last the plugin and its marketplace (`claude plugin uninstall pointe@pointe`,
-  `claude plugin marketplace remove pointe`). The plugin's folder holds its Python packages and both hooks.
+  was said on calls, phone pairings, the local text-model server), `~/Applications/Pointe.app` and its settings
+  (`defaults delete io.ballerine.pointe.mac`), `~/.cache/pipecat/kokoro-onnx`, and last the plugin and its marketplace
+  (`claude plugin uninstall pointe@pointe`, `claude plugin marketplace remove pointe`). The plugin's folder holds its
+  Python packages and both hooks.
 - Pointe's keys: the Keychain items `pointe.<vendor>-api-key`. Removed only on a yes to this question, or with
   `--delete-keys`.
 - What another tool may share: keys under the plain names Pointe used before 1.20.0 (`gemini-api-key`,
