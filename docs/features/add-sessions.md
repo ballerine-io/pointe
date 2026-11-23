@@ -24,7 +24,8 @@ Also: "join the pentest session on devbox", "resume the codex thread from this m
 - **Page:** Add sessions under the sessions on the left. Open sessions are ticked and joined together; a session from
   this week has Reopen. Search by name, folder or what you asked it.
 - **iPhone app:** Sessions, then Add sessions. Join and Reopen ask for Face ID, as Approve does.
-- **Mac app:** Add sessions in the window's sessions list, or Add Sessions in the File menu (⇧⌘J). Join and Reopen ask
+- **Mac app:** Add sessions in the window's sessions list (in a narrow window, under Sessions), or Add Sessions in the
+  File menu (⇧⌘J). Join and Reopen ask
   for Touch ID or your password.
 
 ## What it finds

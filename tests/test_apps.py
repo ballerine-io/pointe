@@ -375,7 +375,7 @@ def test_the_local_signing_files_are_ignored_by_git():
 
 
 def test_the_docs_name_the_command_and_every_troubleshooting_row_has_its_fix_in_the_tool():
-    phone, mac = (ROOT / "docs" / "phone.md").read_text(), (ROOT / "docs" / "mac-app.md").read_text()
+    phone, mac = (ROOT / "docs" / "iphone-app.md").read_text(), (ROOT / "docs" / "mac-app.md").read_text()
     assert "pointe apps ios" in phone and "pointe apps ios --sim" in phone and "pointe apps doctor" in phone and "pointe apps mac" in mac
     for words in ("Manage Certificates", "VPN & Device Management", "Developer Mode", "sudo xcodebuild -license accept", "sudo xcode-select -s", "7 days"):
         assert words in phone, words
@@ -446,7 +446,8 @@ def test_a_long_status_word_keeps_a_space_before_its_line(capsys):
 def test_people_build_the_apps_with_the_installed_pointe_and_only_contributors_with_bin_pointe():
     """The plugin puts `pointe` on PATH; `bin/pointe` exists only in a clone. A person reads the README, the site and the
     app docs, so those say `pointe apps`, and `bin/pointe apps` only on a line addressed to contributors."""
-    paths = [ROOT / "README.md", ROOT / "docs" / "mac-app.md", ROOT / "docs" / "phone.md", ROOT / "RELEASING.md",
+    paths = [ROOT / "README.md", ROOT / "docs" / "mac-app.md", ROOT / "docs" / "phone.md", ROOT / "docs" / "iphone-app.md",
+             ROOT / "docs" / "getting-started.md", ROOT / "RELEASING.md",
              *sorted((ROOT / "site").glob("**/*.html"))]
     wrong = [f"{p.relative_to(ROOT)}:{n}" for p in paths for n, line in enumerate(p.read_text().splitlines(), 1)
              if re.search(r"(?<![\w/{}$])bin/pointe apps", line) and "ontributors" not in line]
@@ -458,7 +459,9 @@ def test_the_docs_give_an_installed_user_the_pointe_command_not_a_clones_bin():
     only where it says it is for a clone."""
     import re
     bare = []
-    for rel in ("README.md", "docs/phone.md", "docs/mac-app.md", "docs/install.md", "docs/features/openai-url.md",
+    for rel in ("README.md", "docs/phone.md", "docs/iphone-app.md", "docs/getting-started.md", "docs/models.md",
+                "docs/phone/wifi.md", "docs/phone/tailscale.md", "docs/phone/twingate.md", "docs/phone/cloudflare.md",
+                "docs/mac-app.md", "docs/install.md", "docs/features/openai-url.md",
                 "site/pointe/index.html", "site/pointe/features/index.html"):
         for n, line in enumerate((ROOT / rel).read_text().splitlines(), 1):
             if re.search(r"(?<![\w./~])bin/(pointe|voice-doctor)\b(?!-)", line) and "clone" not in line and "plugin's" not in line:

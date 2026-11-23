@@ -24,6 +24,16 @@ A recording indicator stays on screen while the meeting runs.
 By voice, "Meeting mode, listening" (or "מצב פגישה, השתתפות") starts one once the consent step was accepted on this
 Mac. It links the sessions its words name ("meeting mode with billing, join in"), else every joined session.
 
+Where:
+
+- **Voice:** "Meeting mode, listening" or "meeting mode, participating", as above; then the commands below.
+- **Page:** Meeting in the dock opens the sheet. Settings → Meetings holds the defaults (mode, Auto lookups, notes
+  language) and asks for consent again before the next meeting.
+- **iPhone app:** Start a meeting (the group icon at the top), or Settings (••• at the top) → Start a meeting. Settings →
+  Meeting settings holds the defaults. After the end, Settings → The meeting that ended opens its sheet again.
+- **Mac app:** the iPhone app's screens: Start a meeting at the top, Settings (••• at the top, or ⌘,) → Start a meeting
+  and Meeting settings, or Call → Start a Meeting (⇧⌘M) in the menu bar.
+
 Meeting mode needs a Soniox key: its ears are a separate Soniox stream with speaker separation.
 
 ## Who said what

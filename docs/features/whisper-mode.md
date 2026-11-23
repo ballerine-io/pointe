@@ -13,6 +13,7 @@ The rules live in `whisper.py` (phrases, gains, the voice-detector profile, the 
 - **Page:** a Whisper button in the dock. A card shows what the mode does, "Whisper recognition is limited; type when it
   matters.", a push-to-talk suggestion, and Back to normal. The compose box opens and takes focus.
 - **iPhone app:** a Whisper toggle in the Settings (⋯) menu, the same card and copy, and the keyboard up.
+- **Mac app:** the iPhone app's screens: Settings (••• at the top, or ⌘,) → Whisper, and the same card.
 
 It is one setting for both clients, kept across calls and reconnects, so a dropped call does not come back loud in an
 open office.

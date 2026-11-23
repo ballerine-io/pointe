@@ -8,9 +8,14 @@ The rules live in `speaker.py`. The daemon asks it on each final utterance (`Son
 
 ## Use it
 
-Settings → Voice lock, on the page or in the iPhone app. Enrol during a call: Pointe asks you to read a few lines, and
-learns those utterances instead of answering them. Each device (the Mac's microphone, the iPhone) gets its own
-voiceprint; scoring compares against every voiceprint and the best one wins.
+- **Voice:** no phrase turns it on or sets a level. Enrolment listens on the call: you read the lines it shows aloud.
+- **Page:** Settings → Voice lock → Enrol my voice, then the level.
+- **iPhone app:** Settings (••• at the top) → Voice lock.
+- **Mac app:** Settings (••• at the top, or ⌘,) → Voice lock.
+
+Enrol during a call: Pointe asks you to read a few lines, and learns those utterances instead of answering them. Each
+device (the Mac's microphone, the iPhone) gets its own voiceprint; scoring compares against every voiceprint and the
+best one wins.
 
 | Level | What it does |
 |---|---|
@@ -19,8 +24,8 @@ voiceprint; scoring compares against every voiceprint and the best one wins.
 | **Commands** | Other voices never reach the voice model. They are listed as ignored, with their words, in memory only. |
 | **Everything** | The same, and their words are not shown or kept. Live captions stay empty until the final words pass the check. |
 
-Deleting the last voiceprint turns the lock off. The iPhone app asks for Face ID before it lowers the level or deletes a
-voiceprint.
+Deleting the last voiceprint turns the lock off. The iPhone app asks for Face ID, and the Mac app for Touch ID or your
+password, before it lowers the level or deletes a voiceprint.
 
 ## Rules
 

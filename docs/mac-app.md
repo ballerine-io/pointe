@@ -10,7 +10,8 @@ What each surface has, and why the few differences exist: [design/parity.md](des
 
 ## Getting it
 
-It is not notarized yet and there is no download: you build it on your Mac, from the plugin you installed. In Claude
+**Coming to the App Store: in review with Apple.** Until it is there, there is no download: you build it on your Mac,
+from the plugin you installed. In Claude
 Code, `/pointe:setup apps` does it for you. In a terminal, one command builds it, signs it, and puts it in
 `~/Applications`:
 
@@ -28,7 +29,7 @@ and `pointe` is the command setup puts on your PATH. Contributors building from 
 | Step | Why |
 |---|---|
 | Checks Xcode | The build needs the full Xcode, selected and with its license accepted; the command line tools alone cannot build an app. |
-| Chooses how to sign | With an Apple Development certificate in your keychain (a free Apple Account is enough, [how](phone.md#getting-the-app)) it signs as your team. Without one it signs ad hoc, which Xcode calls "Sign to Run Locally". If signing as your team fails, it says why and signs ad hoc instead. |
+| Chooses how to sign | With an Apple Development certificate in your keychain (a free Apple Account is enough, [how](iphone-app.md#getting-the-app)) it signs as your team. Without one it signs ad hoc, which Xcode calls "Sign to Run Locally". If signing as your team fails, it says why and signs ad hoc instead. |
 | Builds Release | The optimized build, into `~/.claude-voice/apps/build` (in a clone, `macos/build/apps`, which git ignores). The first build took 44 s on an Apple-silicon Mac in the clean-install run. |
 | Quits a running Pointe and replaces `~/Applications/Pointe.app` | So there is one copy, where Spotlight and Login Items find it. Only the copy at that path is quit; if it was running, the new one is opened. |
 
@@ -46,7 +47,7 @@ General, Login Items, where you can remove it.
 Options: `--open` opens the app when it is installed, `--adhoc` signs to run locally even with a team, `--dest <folder>`
 installs somewhere other than `~/Applications`, `--dry-run` shows the Xcode command without running it. Run the command
 again to update. If the build fails, the command prints the cause and the fix; the table in
-[phone.md](phone.md#getting-the-app) covers the Xcode license, `xcode-select` and signing errors, and the full output
+[The iPhone app](iphone-app.md#getting-the-app) covers the Xcode license, `xcode-select` and signing errors, and the full output
 is in `build.log` in the build folder.
 
 For work on the app itself, `macos/build.sh --open` makes a Debug build in `macos/build/dd` and installs nothing.
@@ -117,12 +118,8 @@ Drive mode starts on the phone or by voice; the Mac shows it and can stop it, as
 
 ## Tests
 
-```
-macos/test.sh unit    # the shared package and the app's unit tests: what CI runs
-macos/test.sh smoke   # every main flow on invented sessions, through the Accessibility API: no daemon, no microphone
-macos/test.sh ui      # the same flows with XCUITest; macOS asks you to allow UI automation first
-uv run --locked python -I macos/e2e/live.py   # the real app against its own real daemon: keys, sound, nothing of the room sent
-```
+`macos/test.sh unit`, `smoke` and `ui`, and the live test against a real daemon:
+[Running the tests, The apps](../CONTRIBUTING.md#the-apps).
 
 ## A notarized build (when there is a Developer ID)
 

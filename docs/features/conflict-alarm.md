@@ -18,6 +18,15 @@ report and delivers what it accepts.
 - Settings: `conflicts.on` (default on; off means no check at all) and `conflicts.spoken` (default on; off is "Card
   only").
 
+Where:
+
+- **Voice:** the alarm is spoken unless the setting is Card only; "I know" or "later" dismisses it, as above. No phrase
+  turns the check on or off.
+- **Page:** the card under the conversation; Settings → Conflict alarm → "Check sessions against each other" and Alarm
+  (Spoken or Card only).
+- **iPhone app:** the same card, with the haptic; Settings (••• at the top) → Conflict alarm, with the same two settings.
+- **Mac app:** the same card; Settings (••• at the top, or ⌘,) → Conflict alarm.
+
 ## What is checked, in code
 
 - **Pairs.** Another registered session whose last report is under 4 hours old, and that shares a git root or folder,

@@ -14,12 +14,14 @@ and when it picks the current mode.
 - **Page:** no Drive button (drive mode is for a phone in a car: the app or the voice starts it). While on, whoever turned
   it on: one big line (who needs you, else Speaking / Listening / N working / All quiet), "I've stopped" to end it, typing
   folded away, and the approval card without buttons.
-- **iPhone app:** a Drive button in the bottom bar, a drive screen with the same line and the live caption, Now Playing
+- **iPhone app:** a Drive button (a car) at the top, beside Start a meeting, a drive screen with the same line and the live caption, Now Playing
   "Pointe · lantern needs you", and play/pause as mute. The app suggests "Switch to Drive mode?" when CarPlay's audio
   route carries the call, or after 60 s of motion detected as driving. It is never entered automatically. Menu →
   "Suggest Drive mode in the car" (per device, on by default) controls this. Motion is used only after you tap that
   setting on, when iOS asks for motion permission; until then only CarPlay is detected. A plain Bluetooth car kit looks
   like a headset to iOS.
+- **Mac app:** no Drive button, as on the page: a Mac has no motion sensor and no car audio route. While drive mode is
+  on, the window shows the same drive screen, with "I've stopped" to end it.
 
 It cannot be turned on with no call or during a meeting.
 

@@ -10,6 +10,14 @@ the file); `daemon.py` runs it. Design and the bugs it fixed: [docs/design/brain
 
 ## Use it
 
+- **Voice:** every step below has its phrase, so a whole dump works by voice alone.
+- **Page:** Brain dump in the dock. While you dump it reads Done; in review it reads Review.
+- **iPhone app:** the same button in the bottom bar, with the same three words.
+- **Mac app:** the same button in the bottom bar; Call → Brain Dump (⌘B) in the menu bar; or Brain Dump in the menu bar
+  item's menu during a call.
+
+The steps:
+
 - **Start:** "brain dump", "let me dump my thoughts", "just listen", "let me think out loud", "רק תקשיב"; or the
   **Brain dump** button (the page's dock, the app's bottom bar). A falling chime; the panel opens. "Brain dump." run
   straight into the first thought starts it too, with that thought kept.

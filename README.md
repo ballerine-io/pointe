@@ -55,6 +55,8 @@ Then, in each session you want to reach:
 
 A tab opens: allow the microphone, press Connect, and say hello. `/pointe:stop` stops all voice.
 
+The step-by-step guide, the phone, models, architecture and every feature: [the docs](docs/README.md).
+
 ### What this does to your Mac
 
 - **Installs** the plugin into Claude Code's plugin folder; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
@@ -101,7 +103,7 @@ reads back what it found and joins on your yes; Add sessions on the page and in 
 and iPhone apps are built from source until there is a download, from the plugin you installed, with Xcode:
 `/pointe:setup apps` in Claude Code, or `pointe apps doctor` (what is missing), `pointe apps mac` (the Mac app, into
 `~/Applications`) and `pointe apps ios` (the iPhone app, signed with your free Apple Account) in a terminal.
-[The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/phone.md#getting-the-app).
+[The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/iphone-app.md#getting-the-app).
 
 ### Which keys, and what they cost
 
@@ -156,7 +158,7 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
   `pointe apps mac`. [docs/mac-app.md](docs/mac-app.md).
 - **iPhone app.** The same call and controls on your phone, paired once by QR code over Tailscale, a VPN such as
   Twingate, or Wi-Fi. Approve needs Face ID. Built from source for now: `pointe apps ios`, with a free Apple
-  Account. [docs/phone.md](docs/phone.md#getting-the-app).
+  Account. [docs/iphone-app.md](docs/iphone-app.md#getting-the-app).
 - **Several harnesses and accounts** in one call, each session with its own approvals. [docs/harnesses.md](docs/harnesses.md).
 
 **Features** (each page says how to use it, the rules, what was measured, and the limits)
@@ -385,7 +387,7 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
   call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon
   on one MacBook Pro; AirPods, device changes, the Touch ID sheet and a spoken sentence heard through it in this
   version were not.
-- **The iPhone app is built from source** for now (`pointe apps ios`, [how](docs/phone.md#getting-the-app)); it is
+- **The iPhone app is built from source** for now (`pointe apps ios`, [how](docs/iphone-app.md#getting-the-app)); it is
   not in the App Store, and not on TestFlight yet. With a free Apple Account a build opens for 7 days. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
   page works in a phone browser.
 - **Synthetic evidence.** The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No

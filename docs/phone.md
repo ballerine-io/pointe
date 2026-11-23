@@ -1,127 +1,126 @@
-# Phone access
+# Connect your phone
 
-Start with your phone's browser: it needs nothing built or installed on the phone. The iPhone app is not on TestFlight
-or in the App Store yet, so it is built with Xcode ([below](#the-iphone-app)); until it ships, the browser is the
-quick way.
+You can join the call from your phone in two ways: the iPhone app, or Pointe's page in the phone's browser. Both reach
+the daemon on your Mac through a second listener, on port 7443, that uses HTTPS. Your phone needs a private way to
+reach that port. This page helps you choose one, pair the phone, and fix what goes wrong.
+
+The iPhone app is **coming to the App Store: in review with Apple.** Until it is there, you build it from source
+([The iPhone app](iphone-app.md#getting-the-app)), or use the page in the phone's browser, which needs nothing on the
+phone.
+
+## Which one should I use
+
+| Route | Works when | You install | iPhone app | Phone browser | Guide |
+|---|---|---|---|---|---|
+| **Wi-Fi** | The phone and the Mac are on the same Wi-Fi, or the Mac is on the iPhone's hotspot. Only while both stay on it. | Nothing | Yes | Yes, after a certificate warning | [Wi-Fi](phone/wifi.md) |
+| **Tailscale** | Anywhere both have internet | Tailscale on the Mac and the phone, one account | Yes | Yes, after a certificate warning | [Tailscale](phone/tailscale.md) |
+| **Twingate** | Anywhere the phone's Twingate client is on | A Twingate network, a connector in Docker on the Mac (Colima works), the Twingate client on the phone | Yes | Yes, after a certificate warning, or with [a certificate the phone trusts](#a-certificate-the-phone-trusts) | [Twingate](phone/twingate.md) |
+| **Cloudflare Tunnel with Access** | Anywhere, through a public name that only you can open | A Cloudflare account with a domain, `cloudflared` on the Mac | No | Yes | [Cloudflare](phone/cloudflare.md) |
+
+- **Start with Tailscale** if you have no preference. It works away from home, needs no server, and is what the page
+  recommends when it finds it (`pair.routes` in `pair.py` orders the route in use, then Tailscale, then a name you set
+  up, then the Wi-Fi).
+- **Wi-Fi** is the quickest to try, at home or with the Mac on the iPhone's hotspot. When either device leaves that
+  network, or the Mac's address changes, pair again.
+- **Twingate** suits a team that already runs it. It is the route the iPhone app was tested on with a real iPhone.
+- **Cloudflare Tunnel** is for the phone's browser only. The iPhone app trusts only the Mac's own certificate, and a
+  Cloudflare tunnel shows Cloudflare's certificate instead (see [why](phone/cloudflare.md#why-not-the-iphone-app)).
+
+Each route keeps the same rule: the phone listener answers only HTTPS requests for the name you paired, and only from a
+paired phone. The threat model for this path is in [SECURITY.md](../SECURITY.md#phone-access-experimental-off-by-default).
+
+## Pairing
+
+Pairing tells the phone where the Mac is and which certificate to trust, and gives the phone its own key. Choose the
+route first (the guides above), then pair in one of these places.
+
+### From the page
+
+On the Mac, open Pointe's page: **Settings → Phone → Connect your phone**. The page lists the ways your phone can reach
+this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), marks one **Recommended**, and has a
+field, "Or a name you set up (Twingate, a VPN)", with **Check**. Choose a route, then **Show the code**.
+
+On the iPhone, point the Camera at the code and tap "Open in Pointe", or scan it in the app's pairing screen. "Can't
+scan? Copy the link" copies the same `pointe://pair` link, which you can paste in the app ("or paste the pointe://
+link"). The page turns to "Connected: &lt;phone&gt;" when the app has paired.
+
+The code works once, for 5 minutes, and holds no lasting secret: the app checks the Mac's certificate first, then
+trades the code for its own key (`phone_pairing.py`). Choosing a route that the current certificate does not cover
+makes a new certificate, and the page says so first: every phone and machine paired before must pair again.
+
+### From the Mac app
+
+In the Mac app: **Call → Pair a Phone…**. It opens the same Phone sheet as the page, with the same routes, code and
+buttons.
+
+### From the terminal
+
+`pointe pair` sets up the route and prints a QR code for the app. It also opens the code as a picture, because a chat
+window cannot show the terminal's.
+
+| Command | Does |
+|---|---|
+| `pointe pair tailscale` | Listens on this Mac's Tailscale address, under its Tailscale name |
+| `pointe pair wifi` | Listens on this Mac's address on the current Wi-Fi |
+| `pointe pair host <name>` | Listens on `127.0.0.1` for a name you route yourself (Twingate, Cloudflare Tunnel) |
+| `pointe pair show` | Shows the QR code again |
+| `pointe pair link` | Prints the address that pairs a phone's browser |
+| `pointe pair rotate` | Makes a new certificate (see below) |
+| `pointe pair off` | Stops the phone listener |
+
+The terminal's QR code carries the phone key itself, not a one-time code: show it only to your own phone. After
+`pointe pair tailscale`, `wifi` or `host`, the listener starts once Pointe restarts (`pointe restart`). The page and
+the Mac app restart the listener for you.
+
+### Rotate and unpair
+
+- **Unpair one phone:** Settings → Phone on the page or in the Mac app, **Unpair** beside the phone, then click it again
+  to confirm. Or, on the iPhone, the menu's **Unpair this phone**. That phone's call ends, and it needs a new code to
+  come back.
+- **Unpair all:** signs out every phone, including a phone browser paired with `pointe pair link`. That link stops
+  working; `pointe pair link` prints the new one.
+- **A new certificate:** `pointe pair rotate`. Every phone and every machine paired with this Mac must pair again, and
+  a browser that trusted the old certificate must trust the new one. The command prints the steps for each paired
+  machine.
+- **Stop the listener:** `pointe pair off` removes the certificate and the pairing secret. A Twingate connector started
+  with `voice-connector` keeps running; stop it in Docker.
 
 ## In the phone's browser
 
-1. Give the phone a private way to reach this Mac. Easiest: [Tailscale](https://tailscale.com/download) on the Mac and
-   the phone, signed in to the same account, then `pointe pair tailscale`. A VPN that routes to this Mac (Twingate, for
-   example): `pointe pair host <name>`. The same Wi-Fi only: `pointe pair wifi`. In Claude Code, `/pointe:setup phone`
-   walks you through it.
-2. `pointe pair link` prints an address. It holds a secret: send it only to your own phone (AirDrop or Notes), and
-   open it once in the phone's browser. The page then works there like on the Mac.
+The page works in the phone's browser like on the Mac, with nothing installed on the phone.
 
-If the browser refuses the Mac's certificate, the steps in [A certificate the phone trusts](#a-certificate-the-phone-trusts)
-make it trust this one name. Not measured: how each phone browser treats the certificate on a first visit.
+1. Set up a route (the guides above). In Claude Code, `/pointe:setup phone` walks you through it.
+2. Run `pointe pair link` in your own terminal. It prints an address that holds a secret: send it only to your own
+   phone (AirDrop or Notes), and open it once in the phone's browser. The browser keeps a pairing cookie, and the
+   address it lands on can be added to the Home Screen.
 
-## The iPhone app
+The listener's certificate is made on your Mac, so the phone's browser warns about it on the first visit, except
+through Cloudflare, which shows its own certificate. To make the phone trust this one name instead, see
+[A certificate the phone trusts](#a-certificate-the-phone-trusts). Not measured: how each phone browser treats the
+certificate on a first visit.
 
-### Getting the app
+### A certificate the phone trusts
 
-The app is not in the App Store and not on TestFlight yet. Until it is, you build it on your own Mac with Xcode, from
-the plugin you installed. In Claude Code, `/pointe:setup apps` does it for you. In a terminal, one command does the
-build, the signing and the install, and tells you what to do when something is missing:
+For a name routed to this Mac's loopback, such as a Twingate alias. Call audio is one WebSocket on the same HTTPS port,
+so no UDP route is needed.
 
-```
-pointe apps doctor      # what this Mac has and lacks, with the exact fix for each
-pointe apps ios         # build, sign for your Apple Account, install on the connected iPhone
-pointe apps ios --sim   # no iPhone or no Apple Account: run it in the iPhone Simulator
-```
+1. Set up the route ([Twingate](phone/twingate.md)), with an alias such as `phone.example.internal`.
+2. Run `voice-remote setup phone.example.internal` from Pointe's `bin` folder (in a clone, `bin/voice-remote`). It makes a
+   certificate authority that can vouch only for that one name, signs the listener's certificate with it, and destroys
+   the authority's key.
+3. AirDrop `~/.claude-voice/tls/pointe-ca.crt` to the phone, install it, and turn it on in Settings, General, About,
+   Certificate Trust Settings.
+4. Restart Pointe (`pointe restart`), then open the address from `pointe pair link` on the phone once.
 
-Contributors building from a clone run `bin/pointe apps …` there.
+The certificate is new, so a paired iPhone app must pair again, as after `pointe pair rotate`.
 
-You need a Mac with Xcode 16 or newer (free in the App Store), an iPhone on iOS 18 or newer, and an Apple Account. A
-free one is enough. Nothing is uploaded and no file in the repository is changed. Run the same command again at any
-time: it updates the app in place and keeps its pairing and settings.
+Remote requests need HTTPS, the configured name and the pairing cookie; anything else gets 403.
 
-**What to do once, before the first run**
+## Getting the app
 
-1. Open Xcode, then Settings (⌘,), Accounts, the + button, Apple Account, and sign in.
-2. Select the account, press Manage Certificates, the + button, Apple Development.
-3. Plug the iPhone into the Mac, unlock it, and tap Trust on "Trust This Computer?".
-4. On the iPhone: Settings, Privacy & Security, Developer Mode, turn it on, restart, confirm.
-
-`pointe apps doctor` checks each of these and says which is missing.
-
-**What each step does, and why**
-
-| Step | Why it is needed |
-|---|---|
-| Sign in to Xcode | An iPhone runs only apps that Apple has signed for a known developer. Your Apple Account is that developer. |
-| Apple Development certificate | The key, in your Mac's keychain, that signs the app as you. The command reads your team from it, so you never type a Team ID. |
-| Team, saved in `~/.claude-voice/apps/.team` | Xcode needs to know which team signs. With one team it is picked for you; with several the command asks once. It is saved outside the plugin's folder, so a plugin update keeps it (a clone keeps it in `ios/.team`, which git ignores). |
-| Bundle ID, saved in `~/.claude-voice/apps/.bundle-id` | Apple gives each bundle ID to one team, and `io.ballerine.pointe` belongs to the team that publishes Pointe. The command makes one for you (`io.ballerine.pointe.dev` plus eight characters) and passes it to Xcode on the command line, so the project file stays as committed. It is saved so every rebuild, and every plugin update, updates the same app and keeps its pairing (a clone keeps it in `ios/.bundle-id`). |
-| Trust This Computer | Lets this Mac install apps on the iPhone. |
-| Developer Mode | iOS refuses apps that did not come from the App Store until you turn this on. |
-| Build with `-allowProvisioningUpdates` | Lets Xcode ask Apple for a provisioning profile: the signed note that says this app, from this team, may run on this iPhone. It also registers the iPhone with your team. |
-| `xcrun devicectl device install app` | Copies the signed app to the iPhone, over the cable or Wi-Fi. |
-| Trust the developer (free account, first time) | On the iPhone: Settings, General, VPN & Device Management, your Apple Account, Trust. iOS asks this once per account. |
-
-> **Free Apple Account or paid developer account?**
->
-> | | Free (Personal Team) | Apple Developer Program ($99 a year) |
-> |---|---|---|
-> | Installs on your own iPhone | Yes | Yes |
-> | How long a build opens | 7 days, then run `pointe apps ios` again | 1 year |
-> | Trust the developer on the iPhone | Once, by hand | Not asked |
-> | New bundle IDs | 10 every 7 days (the command reuses one) | No practical limit |
-> | Devices | 3 | 100 of each kind |
-> | Alerts, the Apple Watch, Face ID, the call | All work: Pointe uses no push server and no paid-only capability | The same |
-> | TestFlight or App Store | No | Yes ([docs/ios/app-store.md](ios/app-store.md)) |
->
-> A free account is enough to use Pointe every day. The one cost is the weekly rebuild: Xcode keeps one profile for 7
-> days, so a rebuild inside that week ends at the same moment as the first one. When the app stops opening, run the
-> command again; it prints the exact day and hour each time.
-
-**When something fails**
-
-The command prints the cause and the fix, and keeps Xcode's full output in `build.log` in the build folder (`~/.claude-voice/apps/build/ios`, or `ios/build/apps` in a clone). The usual ones:
-
-| What you see | What it means | Fix |
-|---|---|---|
-| "No Apple Development certificate on this Mac", or `No signing certificate "iOS Development" found`, or `No Accounts: Add a new account` | Xcode is not signed in, or has no certificate yet | Xcode, Settings, Accounts: sign in, then Manage Certificates, +, Apple Development |
-| `Failed to register bundle identifier … not available` | The bundle ID belongs to another team | Delete the saved `.bundle-id` (`~/.claude-voice/apps/.bundle-id`, or `ios/.bundle-id` in a clone) and run again, or pass `--bundle-id com.<yourname>.pointe` |
-| `CoreDeviceError error 4016`, "The device is unavailable", or the iPhone shown as not reachable | Xcode knows the iPhone but cannot reach it now | Unlock it and keep the screen on; use a cable, or the same Wi-Fi as the Mac with no VPN in between; tap Trust if asked |
-| "Untrusted Developer" on the iPhone, or `profile has not been explicitly trusted by the user` | iOS has not been told to trust your account | iPhone: Settings, General, VPN & Device Management, your Apple Account, Trust |
-| `Developer Mode is disabled` | iOS blocks apps built from source | iPhone: Settings, Privacy & Security, Developer Mode, on, restart, confirm. The row appears after the iPhone was connected to a Mac with Xcode |
-| The app closes the moment it opens, or "is no longer available", after about a week | The 7 days of a free account's profile ended | Run `pointe apps ios` again |
-| `You have not agreed to the Xcode license agreements` | Xcode was installed or updated and never opened | `sudo xcodebuild -license accept` |
-| `tool 'xcodebuild' requires Xcode, but active developer directory … is a command line tools instance` | The command line tools are selected instead of Xcode | `sudo xcode-select -s /Applications/Xcode.app` |
-
-Options: `--device <name>` when more than one iPhone is connected, `--team <Team ID>` when the Mac has several teams,
-`--no-launch` to install without opening the app, `--dry-run` to see the Xcode command without running it. With
-`--sim`, add `--demo` to open the app with invented sessions and no Pointe running.
-
-If you would rather use Xcode's window: open `ios/Pointe.xcodeproj`, choose your team under Signing & Capabilities,
-change the Bundle Identifier to one of your own (keep that change out of commits), choose the iPhone, press Run.
-Without the app, the page works in the phone's browser ([above](#in-the-phones-browser)).
-
-### Pairing
-
-On the Mac, open Pointe's page: Settings → Phone → **Connect your phone**. The page lists the ways your phone can
-reach this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), recommends one, and shows a QR
-code. Point the iPhone's Camera at it and tap "Open in Pointe" (or scan it in the app). The page turns to "Connected:
-<phone>" when the app has paired. The code works once, for 5 minutes; the app gets its key from the Mac over the
-certificate it checks. Each phone gets its own key: connecting another phone keeps the ones already paired, **Unpair**
-on a phone signs out that phone only, and **Unpair all** signs out every one, a phone browser opened with the `pointe pair link` address
-included (that link stops working; `pointe pair link` prints the new one). A phone paired with `pointe pair` before
-this keeps working; it shows as "Paired phone" until the app reports its name. If no way works, the page says what to
-install.
-
-Or, in a terminal, pick how the phone reaches the Mac, then scan the QR code in the app:
-
-| Command | When |
-|---|---|
-| `pointe pair host <name>` | Twingate, a VPN, or a tunnel you route yourself to this Mac's port 7443 |
-| `pointe pair tailscale` | the Mac and the phone are both on Tailscale |
-| `pointe pair wifi` | same Wi-Fi only; pair again when the address changes |
-
-With Twingate: a Connector on this Mac (Docker or Colima), a resource for the Mac with an alias such as
-`pointe.example.internal`, TCP 7443, access for you only. Then `pointe pair host pointe.example.internal`. If the app says
-"Mac not reachable" while Safari on the phone reaches `https://<name>:7443/voice/status` (a warning, then "Forbidden"),
-pair again. If Safari can't reach it either, restart the Twingate client: new aliases sometimes don't resolve until then.
+The iPhone app is coming to the App Store: in review with Apple. Until then, build it from source with one command,
+`pointe apps ios`. The steps, the free Apple Account and what to do when a build fails:
+[The iPhone app](iphone-app.md#getting-the-app).
 
 ## The Mac stays awake during a call
 
@@ -131,38 +130,22 @@ goes to battery (checked every 5 seconds), and never runs on battery or when the
 sleep is held off: the display may still sleep, and closing a laptop's lid still sleeps it. `/voice/status` says which,
 in `keep_awake: {on, why}`.
 
-## What stays on the Mac
+## Troubleshooting
 
-The app does what the page does, with one deliberate exception: the voice model's full context is shown only on the
-Mac. The page's "What the voice holds" lists the messages of the call's context; the app shows only the token count
-(Sessions sheet), and the phone's key is refused `/voice/context`.
+Start with the route's own guide, which has the checks for that network. These hold for every route.
 
-## Alerts and the Apple Watch
+| What you see | Why | Fix |
+|---|---|---|
+| The app says "Mac not reachable": "Can't reach your Mac at &lt;name&gt;. Is Twingate or Tailscale on? Is the Mac awake?" | The phone has no path to port 7443, the Mac sleeps, or the phone listener is off | Turn on the phone's Tailscale or Twingate, or join the Wi-Fi. Wake the Mac. Then check the listener: open `https://<name>:7443/voice/status` in the phone's browser. A certificate warning, then "This browser is no longer paired with the Mac…" or "forbidden", means the path works: pair the app again. No answer means the path is down: see the route's guide. |
+| "Not paired": "This phone is no longer paired." | The phone was unpaired, or the certificate changed (`pointe pair rotate`, or another route was chosen) | Pair again: Settings → Phone → Connect your phone |
+| "This code has expired or was already used." | The page's code lasts 5 minutes and works once | Press Connect your phone again and scan the new code |
+| "Too many tries. Wait a minute, then scan the code again." | Too many wrong codes from this address | Wait a minute, then scan |
+| "That code is not a Pointe pairing code." | The camera read another QR code | Scan the code on Pointe's Phone screen |
+| The app worked yesterday on Wi-Fi, and not today | The Mac's Wi-Fi address changed, or one device left that network | Join the same network, then pair again with the Wi-Fi route |
+| On Wi-Fi only, the app cannot reach the Mac | The app's Local Network access is off (iOS asks once, the first time) | iPhone: Settings, Privacy & Security, Local Network, turn Pointe on |
+| The phone's browser shows "This browser is no longer paired with the Mac. On the Mac, run: pointe pair link…" | The browser has no pairing cookie, or Unpair all replaced the pairing secret | Run `pointe pair link` and open the new address once |
+| The phone's browser shows "forbidden" | The address's name is not the one paired, or the request was not HTTPS | Open the exact address `pointe pair link` prints |
+| The page says "Your phone cannot reach this Mac yet: Settings → Phone → Connect your phone." | No phone listener is set up | Set up a route, then pair |
+| The page lists no route and says what to install | Neither Tailscale nor a Wi-Fi address was found, and no name was set | Install Tailscale on both, or join a Wi-Fi, or type a name you set up and press Check |
+| The call drops when the Mac sleeps | On battery, or the lid closed | Use AC power and keep the lid open ([above](#the-mac-stays-awake-during-a-call)) |
 
-Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS
-mirrors it to an Apple Watch on your wrist while the iPhone is locked. There is no push server, so this works while the
-app is alive: open, or in the background with the call up. With the call down and the app in the background, iOS checks
-only when it grants a Background App Refresh (rarely, never in Low Power Mode, never after you swipe the app away).
-"Approve from notifications" (shared with the page's Settings, off by default) adds Approve to a notification for a
-request Pointe can read out; it needs an unlocked iPhone or a watch on the wrist instead of Face ID.
-
-To check by hand on a real iPhone and watch (the simulator has no watch; not yet done on real devices):
-1. Alerts on, call up, lock the iPhone, wear the watch. A request arrives: the watch taps, and shows the session and the
-   read-out form, with Deny and Approve.
-2. Approve on the watch: the session gets it; the iPhone notification is gone.
-3. Answer one on the Mac instead: the watch notification disappears within a second or two.
-4. Take the watch off (locked): Approve asks to unlock it first.
-5. An unreadable request (`python3 -c …`): the watch shows only "Bash: open Pointe to see the exact request", Deny only.
-
-## A certificate the phone trusts
-
-For the browser page over Twingate, with a certificate the phone trusts for this one name. Call audio is one WebSocket on the same HTTPS port, so no UDP resource is needed.
-
-1. Twingate console: a remote network with a Connector running in Docker (Colima) on this Mac; a resource
-   `host.docker.internal`, alias `phone.example.internal`, TCP 7443, access for you only.
-2. Done on this Mac: `bin/voice-remote setup phone.example.internal`; the daemon serves HTTPS on 127.0.0.1:7443.
-3. AirDrop `~/.claude-voice/tls/pointe-ca.crt` to the phone; trust it in Settings > General > About >
-   Certificate Trust Settings. The CA can only vouch for that one name, and its key is destroyed after signing.
-4. `bin/voice-remote link` in your own terminal (it prints the pairing secret); open the link on the phone once.
-
-Remote requests need HTTPS, the configured name, and the pairing cookie; anything else gets 403.

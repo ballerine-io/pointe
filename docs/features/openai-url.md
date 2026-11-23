@@ -26,6 +26,10 @@ or any server that speaks OpenAI's API over https. The key stays in the Keychain
 `pointe setup <id>` writes the roles of the setup you choose, so it replaces `brain`, `reader` and `checker`; set them
 again after switching setups.
 
+It is set only in `config.json` or the environment. There is no phrase for it, and no switch on the page, in the iPhone
+app or in the Mac app. Choosing a setup on the page or in the Mac app (Settings → Model keys) runs `pointe setup`, so
+it replaces the three roles too.
+
 ## What changes
 
 - **Text models only.** With `openai_url` set, the OpenAI key belongs to that host, so Pointe never sends it to OpenAI:

@@ -9,8 +9,9 @@ The state lives in `ptt.py`; the gate (`PttGate`) is in `daemon.py`. The two way
 ## Use it
 
 The switch above the mic ("Always on" or "Hold to talk", which reads "Tap to talk" when that is the talk button), on
-the page and in the iPhone app; or Settings → Microphone ("Always on" or "Push to talk"). In the iPhone app, Settings is
-the ••• button at the top. It is one daemon setting, so every client agrees. Then **Talk button**, each device's own choice: **Hold to talk** (the default: press and hold, let go to
+the page, in the iPhone app and in the Mac app; or Settings → Microphone ("Always on" or "Push to talk"). In the apps,
+Settings is the ••• button at the top (on the Mac also ⌘,). It is one daemon setting, so every client agrees. No
+spoken phrase switches it: a press is what opens the microphone. Then **Talk button**, each device's own choice: **Hold to talk** (the default: press and hold, let go to
 send) or **Tap to talk** (tap to start, the microphone stays open, tap again to send).
 
 | | Page | iPhone app |
@@ -22,6 +23,14 @@ send) or **Tap to talk** (tap to start, the microphone stays open, tap again to 
 | From any app | a system-wide shortcut running `pointe talk` (below) | the Action button, Back Tap or Siri: "Talk to Pointe" (below) |
 | Shows | "Hold to talk" or "Tap to talk"; "Talking" ("Talking · tap to send"); "Sent" for a moment after a send | the same, with a haptic at the press and the send |
 | Your words | in the caption, dashed and labelled "Draft · not sent yet", then "Sending" after the release | the live bubble, with the same label |
+
+The Mac app draws the iPhone app's screens, so the mic ring, the switch, the two talk buttons and the draft are the
+same there. Its own ways to press: **Space** while the window is in front, and the **talk shortcut** from any app
+(Settings → This Mac → Talk shortcut; ⌃⌥Space until you record another). The shortcut is a real hold: macOS tells the
+app when the key goes down and when it comes up, with no Accessibility or Input Monitoring permission. In Always on,
+Space and the shortcut mute; with no call up, the shortcut brings Pointe forward. The talk mode and the shortcut are
+named at the top of the window and in the call bubble. An AirPods press does not reach the Mac app: macOS gives it to
+the app that owns the media keys.
 
 A press is one message, like a voice message: nothing you say while the button is open is a turn. Pause as long as you
 like, start over, say "hold on" or "brain dump" mid-thought: none of it is acted on until you let go (Hold to talk) or tap

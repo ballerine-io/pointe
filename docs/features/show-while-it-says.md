@@ -7,6 +7,18 @@ instead.
 The rules live in `artifacts.py`. The session follower collects what each turn touched, and the report that the voice
 speaks carries it to the screen.
 
+## Use it
+
+- **Voice:** nothing to say. It follows the voice: when a report touched files or tests, the voice says they are on your
+  screen instead of reading them.
+- **Page:** a pane beside the conversation, with File, Diff and Test views. It folds away for screen sharing
+  (remembered per browser). It is always on for the page on this Mac.
+- **iPhone app:** a "Showing: <summary>" card above the conversation; tap it for a sheet with a tab per item,
+  File/Diff/Test, horizontal scroll, pinch to zoom, Dynamic Type, Pin, and Shown earlier. Off until Settings (••• at the
+  top) → Show while it says is on (below).
+- **Mac app:** the same "Showing: <summary>" card and sheet; click the card to open it. Always on, as for the page: the
+  Mac app is on this Mac. Its Settings → Show while it says is the phone's switch.
+
 ## What is shown
 
 Per session turn, only tools that ran and were not refused (a tool still waiting for approval never shows):
@@ -22,11 +34,6 @@ never read code, paths or output aloud; you may say it is on their screen]` when
 
 The set stays on screen while the voice talks and 60 s after; switching the active session clears it. The last ten sets
 are listed as "Shown earlier".
-
-- **Page:** a pane beside the conversation, with File, Diff and Test views. It folds away for screen sharing
-  (remembered per browser). It is always on for the page on this Mac.
-- **iPhone app:** a "Showing: <summary>" card above the conversation; tap it for a sheet with a tab per item,
-  File/Diff/Test, horizontal scroll, pinch to zoom, Dynamic Type, Pin, and Shown earlier.
 
 ## Off the Mac, off by default
 

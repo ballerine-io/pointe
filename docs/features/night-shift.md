@@ -18,10 +18,11 @@ caps, the ledger, the morning report); `daemon.py` runs the shift, holds the app
 - **Page:** Night shift under the sessions on the left. One row per task: the session (or New session, with its agent
   and folder) and what it should get done. Set the hours, the message budget and whether blockers may alert you
   overnight, then Start shift.
-- **iPhone and Mac apps:** Night shift in the Settings (⋯) menu, the same sheet. Start shift asks for Face ID or Touch
-  ID, as Approve does.
+- **iPhone app:** Settings (••• at the top) → Night shift, the same sheet. Start shift asks for Face ID, as Approve does.
+- **Mac app:** Settings (••• at the top, or ⌘,) → Night shift, or Call → Night Shift (⇧⌘N) in the menu bar. Start shift
+  asks for Touch ID or your password, as Approve does.
 - **While it runs:** a strip shows tasks done, the blocked count and Stop shift; Ledger opens the night's record.
-- **Stop:** "stop the night shift", or Stop shift on any screen. Pointe sends nothing more. A turn already running in a
+- **Stop:** "stop the night shift" ("עצור את משמרת הלילה"), or Stop shift on any screen. Pointe sends nothing more. A turn already running in a
   session finishes by itself.
 - **Morning:** "brief me on the night" (or the scheduled briefing) starts with the night shift: decisions made without
   you, questions waiting on you, then done and blocked. "Approve billing's push" makes billing the active session and
