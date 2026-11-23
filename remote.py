@@ -39,8 +39,8 @@ class Remote:
         self.host = settings["host"].lower() if settings.get("host") else None
         # 127.0.0.1 for a connector on this machine (Twingate, cloudflared); a Tailscale or Wi-Fi address from `pointe pair`
         self.listen = settings.get("listen") or ["127.0.0.1"]
-        token = state_dir / "remote_token"
-        self.token = token.read_text().strip() if token.exists() else None
+        self._token_seen, self.token = None, None
+        self._fresh_token()
         self.cert, self.key = state_dir / "tls" / "cert.pem", state_dir / "tls" / "key.pem"
 
     def _on_disk(self) -> list:
@@ -53,6 +53,23 @@ class Remote:
             except OSError:
                 found.append(None)
         return found
+
+    def _fresh_token(self) -> None:
+        """remote_token as on disk now, re-read when it changed: `pointe pair rotate` or `off` signs a browser out at its
+        next request, as phones.json does for a phone, not at the next liveness round. Only the token: load() would also
+        mark the route and certificate seen, and the listener would never restart on them."""
+        path = self.state_dir / "remote_token"
+        try:
+            st = path.stat()
+            seen = (st.st_ino, st.st_mtime_ns, st.st_size)
+        except OSError:
+            seen = None
+        if seen != self._token_seen:
+            self._token_seen = seen
+            try:
+                self.token = path.read_text().strip() or None
+            except OSError:
+                self.token = None
 
     def changed(self) -> bool:
         """The route, the pairing secret or the certificate changed since load(): `pointe pair` ran in a terminal."""
@@ -96,6 +113,7 @@ class Remote:
         return (scope.get("server") or (None, 0))[1] == TLS_PORT
 
     def websocket_allowed(self, connection) -> bool:
+        self._fresh_token()
         origin = connection.headers.get("origin")
         return (self.enabled and hmac.compare_digest(connection.cookies.get(COOKIE, "").encode(), self.token.encode())
                 and self._own_origin(origin))
@@ -106,6 +124,7 @@ class Remote:
             return await call_next(request)
         if not self.on_tls_listener(request.scope):
             return await call_next(request) if is_local_request(request) else PlainTextResponse("forbidden", status_code=403)
+        self._fresh_token()  # before the pairing link, the app key and the cookie are checked against it
         if not self._remote_request(request):
             return PlainTextResponse("forbidden", status_code=403)
         offered = request.query_params.get("pair")
