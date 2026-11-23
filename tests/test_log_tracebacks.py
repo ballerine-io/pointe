@@ -52,3 +52,31 @@ def test_every_sink_pointe_adds_has_diagnose_off():
                 if kw.get("diagnose") != "False":
                     bad.append(f"{path.name}:{call.lineno}")
     assert not bad, "logger.add(..., diagnose=False):\n" + "\n".join(bad)
+
+
+def test_a_key_the_daemon_holds_is_masked_in_every_log_line(tmp_path, monkeypatch):
+    """A vendor's error or a library's debug line that carries a key (or the page key in an address) must not reach
+    daemon.log or the journal: /pointe:voice shows daemon.log's last lines in a transcript on a failure."""
+    from loguru import logger
+
+    import daemon
+    import vendors
+
+    key = "synthetic-vendor-key-9f8e7d6c5b4a3210"
+    monkeypatch.setitem(vendors._found, "gemini", ("pointe.gemini-api-key", key))
+    monkeypatch.setattr(daemon, "JOURNAL", tmp_path / "journal.jsonl")
+    monkeypatch.setattr(daemon, "_journal_sink", None)
+    daemon._start_journal()
+    lines = []
+    sink = logger.add(lambda m: lines.append(m.record["message"]), level="DEBUG", diagnose=False)
+    try:
+        as_daemon = logger.patch(lambda r: r.update(name="daemon"))  # the journal keeps the daemon's own lines
+        as_daemon.info(f"gemini refused wss://example.invalid/ws?key={key}")
+        logger.debug(f"a library's request: key={key} page={daemon.PAGE_KEY}")
+    finally:
+        logger.remove(sink)
+    journal = (tmp_path / "journal.jsonl").read_text()
+    assert "gemini refused" in journal and len(lines) == 2
+    for text in [journal, *lines]:
+        assert key not in text and daemon.PAGE_KEY not in text, text
+    assert "?key=[key]" in lines[0]

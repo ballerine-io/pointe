@@ -312,7 +312,9 @@ leaves it. The inventory, with each source's pin and its verification, is
 ## Files
 
 `~/.claude-voice` is 0700. It holds the token, the page key, session notes, `daemon.log`, and `journal.jsonl`, a full record of
-each call with what you said and session content. With phone access it also holds the pairing secret, a TLS key and the
+each call with what you said and session content. Every line the daemon logs has the values of the keys it holds, the
+page key and the token replaced with `[key]` before it reaches `daemon.log` or the journal (an exception's own text
+under a traceback is not rewritten). With phone access it also holds the pairing secret, a TLS key and the
 connector's tokens. With the voice lock it holds `voiceprint/` (0700; one file per enrolled device, 0600): biometric data,
 computed and kept only on this Mac, deleted from Settings → Voice lock on the page or in the app. `models/` holds the
 speaker model. With fully local mode, `local/` holds the text-model server's environment, its log (which may hold session

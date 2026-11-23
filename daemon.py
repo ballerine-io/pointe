@@ -302,7 +302,7 @@ def _start_journal() -> None:
     global _journal_sink
     logging.getLogger("uvicorn.access").disabled = True  # it would write the page key, from the address, to daemon.log
     if _journal_sink is None:
-        logger.configure(patcher=_meeting_redact)
+        logger.configure(patcher=_patch_record)
         logger.add(_note_problem, level="ERROR", format="{message}", diagnose=False, backtrace=False)
         _journal_sink = logger.add(_journal, level="INFO", diagnose=False, backtrace=False,
                                    filter=lambda r: r["name"] in ("__main__", "daemon", "sessions", "remote"))
@@ -339,6 +339,21 @@ def _meeting_redact(record) -> None:
     elif ((record["name"] or "").startswith("pipecat") and record["level"].no < 20) or message.startswith(_MEETING_QUIET) \
             or " is waiting on the user: " in message or _quotes_the_room(message):
         record["message"] = f"(withheld during a meeting, {len(message)} chars)"
+
+
+def _mask_keys(record) -> None:
+    """No key this process holds, nor the page key or the token, reaches a sink: a vendor's error or a library's debug
+    line can carry one, and /pointe:voice shows daemon.log's last lines in a session's transcript on a failure."""
+    message = record["message"]
+    for value in (*vendors.known_keys(), PAGE_KEY, TOKEN):
+        if value in message:
+            message = message.replace(value, "[key]")
+    record["message"] = message
+
+
+def _patch_record(record) -> None:
+    _mask_keys(record)
+    _meeting_redact(record)
 
 
 _journal_sink = None
