@@ -228,11 +228,8 @@ final class AppModel {
     /// The page, opened the way `bin/voice-open` does, so the browser has its own key.
     func openPage() {
         guard let plugin else { NSWorkspace.shared.open(pageURL); return }
-        Task.detached {
-            let process = Process()
-            process.executableURL = plugin.root.appendingPathComponent("bin/voice-open")
-            try? process.run()
-        }
+        let locator = locator
+        Task.detached { try? await locator.openPage(plugin) }  // through the runner: started disclaimed
     }
 
     // MARK: keys (never read: only whether one is there)

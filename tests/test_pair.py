@@ -124,6 +124,15 @@ def test_link_prints_the_browser_pairing_address(pair, tmp_path, capsys):
     assert f"https://pointe.example.internal:7443/voice?pair={(tmp_path / 'remote_token').read_text()}" in out
 
 
+def test_show_says_to_scan_inside_the_app_never_with_the_camera(pair, tmp_path, capsys, monkeypatch):
+    """The terminal's code holds the phone's lasting key, and a pointe:// link the Camera opens can reach another app."""
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    monkeypatch.setattr(pair.subprocess, "run", lambda *a, **k: None)  # no picture opens
+    pair.main(["show"])
+    out = capsys.readouterr().out
+    assert "inside the Pointe app" in out and "not with the Camera" in out and "lasting key" in out
+
+
 def test_off_removes_the_listener_and_keeps_the_connector(pair, tmp_path, capsys):
     pair.setup("pointe.example.internal", "127.0.0.1")
     (tmp_path / "connector.json").write_text("{}")

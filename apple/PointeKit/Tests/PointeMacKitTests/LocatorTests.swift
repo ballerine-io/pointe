@@ -106,10 +106,11 @@ struct Sandbox {
         let box = try Sandbox(); defer { box.remove() }
         try box.write("4100", to: ".claude-voice/daemon.pid")
         try box.write("the-page-key\n", to: ".claude-voice/page_key")
+        try box.write("this-starts-token\n", to: ".claude-voice/token")
         let runner = FakeRunner()
         runner.listening = "4100\n"
         let endpoint = try await box.locator(runner, environment: ["CLAUDE_VOICE_DAEMON_PORT": "7999"]).endpoint()
-        #expect(endpoint == DaemonEndpoint(port: 7999, credential: .pageKey("the-page-key")))
+        #expect(endpoint == DaemonEndpoint(port: 7999, credential: .pageKey("the-page-key", token: "this-starts-token")))
         #expect(endpoint.base.host == "127.0.0.1")
     }
 
@@ -120,6 +121,8 @@ struct Sandbox {
         runner.listening = "4100\n"
         await #expect(throws: LocatorError.noKey) { try await box.locator(runner).endpoint() }
         try box.write("  \n", to: ".claude-voice/page_key")
+        await #expect(throws: LocatorError.noKey) { try await box.locator(runner).endpoint() }
+        try box.write("the-page-key\n", to: ".claude-voice/page_key")  // a key, and no token of this start: no proof
         await #expect(throws: LocatorError.noKey) { try await box.locator(runner).endpoint() }
     }
 
@@ -199,6 +202,17 @@ struct Sandbox {
         let said = try await box.locator(runner).addKey(.soniox, plugin: plugin)
         #expect(said.hasPrefix("Saved your soniox key"))
         #expect(runner.ran.last?.1 == ["key", "soniox"])
+    }
+
+    /// Every script of the plugin goes through the runner, which starts it disclaimed (CommandRunnerTests).
+    @Test func openingThePageRunsThePluginsOwnScriptThroughTheRunner() async throws {
+        let box = try Sandbox(); defer { box.remove() }
+        let plugin = try #require(PluginInstall(root: try box.plugin("src/pointe", version: "1.15.0")))
+        let runner = FakeRunner()
+        try await box.locator(runner, environment: ["ANTHROPIC_API_KEY": "sk-made-up", "HOME": box.home.path]).openPage(plugin)
+        let (executable, arguments, passed) = try #require(runner.ran.last)
+        #expect(executable.path.hasSuffix("src/pointe/bin/voice-open") && arguments.isEmpty)
+        #expect(passed?["ANTHROPIC_API_KEY"] == nil && passed?["HOME"] == box.home.path)
     }
 
     @Test func eachVendorsKeychainItemIsTheDaemons() {

@@ -22,16 +22,18 @@ public enum JSONValue: Sendable, Equatable, ExpressibleByStringLiteral, Expressi
 
 /// How a request proves who it is on the loopback listener (guards.LocalAuth).
 public enum Credential: Sendable, Equatable {
-    /// The page's key, as the cookie the page itself holds.
-    case pageKey(String)
+    /// The page's key and the token of this daemon start: a proof made for each request (`LocalProof`), never the key.
+    case pageKey(String, token: String)
     /// The per-daemon token scripts use.
     case token(String)
 
-    public static let cookieName = "pointe_local"
-
+    /// Last, once the request's method, address and body are final: the proof covers them.
     public func apply(to request: inout URLRequest) {
         switch self {
-        case .pageKey(let key): request.setValue("\(Self.cookieName)=\(key)", forHTTPHeaderField: "Cookie")
+        case .pageKey(let key, let token):
+            guard let url = request.url else { return }
+            request.setValue(LocalProof.value(pageKey: key, token: token, method: request.httpMethod ?? "GET", url: url,
+                                              body: request.httpBody), forHTTPHeaderField: LocalProof.header)
         case .token(let token): request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
     }
@@ -55,7 +57,7 @@ public struct DaemonEndpoint: Sendable, Equatable {
     public var place: String { "\(Self.host):\(port)" }
 
     /// A request the daemon's loopback guard accepts: a local Host (URLSession sets it from the URL), no Origin, the
-    /// credential, and no cookie jar or cache behind it.
+    /// credential, and no cookie jar or cache behind it. Built fresh for each send: a proof works once.
     public func request(_ path: String, method: String = "GET", body: [String: JSONValue]? = nil,
                         query: [URLQueryItem] = [], timeout: TimeInterval = 10) -> URLRequest {
         var url = base.appendingPathComponent(path)
@@ -66,11 +68,11 @@ public struct DaemonEndpoint: Sendable, Equatable {
         var r = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: timeout)
         r.httpMethod = method
         r.httpShouldHandleCookies = false
-        credential.apply(to: &r)
         if let body {
             r.setValue("application/json", forHTTPHeaderField: "Content-Type")
             r.httpBody = try? JSONSerialization.data(withJSONObject: body.mapValues(\.any))
         }
+        credential.apply(to: &r)
         return r
     }
 

@@ -314,8 +314,10 @@ def show() -> None:
     code.save(str(image), scale=10)
     if sys.platform == "darwin":
         subprocess.run(["open", str(image)], check=False)
-    print(f"Scan with the Pointe app. It connects to {config['host']}:{TLS_PORT} and checks certificate {fingerprint()[:16]}...")
-    print("This code holds a secret. To revoke it, Unpair the phone in Settings → Phone, or delete ~/.claude-voice/phone_key.")
+    print(f"Scan it inside the Pointe app, not with the Camera app: it holds this phone's lasting key, and a link the Camera "
+          f"opens can reach another app. It connects to {config['host']}:{TLS_PORT} and checks certificate {fingerprint()[:16]}...")
+    print("To revoke it, Unpair the phone in Settings → Phone, or delete ~/.claude-voice/phone_key. The page's Settings → Phone "
+          "shows a one-time code instead, with no lasting key in it.")
 
 
 def main(argv: list[str]) -> None:

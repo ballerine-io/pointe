@@ -163,8 +163,10 @@ def test_the_wire_format_and_the_keys_are_the_daemons():
     assert all(item == f"pointe.{vendor}-api-key" for vendor, (_, item) in vendors.KEYS.items())
     assert all(item == f"{vendor}-api-key" for vendor, item in vendors.LEGACY_ITEMS.items())
     client = (KIT / "PointeKit" / "DaemonClient.swift").read_text()
-    import guards
-    assert f'cookieName = "{guards.LOCAL_COOKIE}"' in client
+    assert "\"Cookie\"" not in client + daemon_link, "the app never sends the page key: a proof per request (local_proof.py)"
+    import local_proof
+    proof = (KIT / "PointeKit" / "LocalProof.swift").read_text()
+    assert re.search(r'static let header = "([^"]+)"', proof).group(1).lower() == local_proof.HEADER
 
 
 def test_the_app_asks_for_one_entitlement_and_loopback_only():

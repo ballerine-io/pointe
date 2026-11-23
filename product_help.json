@@ -202,7 +202,7 @@
     "לחבר את האייפון",
     "קוד qr"
    ],
-   "how": "On the Mac's page, Settings → Phone → Connect your phone shows a code; scan it with the iPhone's Camera or in the Pointe app. The code works once and expires in 5 minutes.",
+   "how": "On the Mac's page, Settings → Phone → Connect your phone shows a code; scan it in the Pointe app on the iPhone. The code works once and expires in 5 minutes.",
    "iphone": [
     "the pairing screen → Pair"
    ],

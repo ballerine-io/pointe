@@ -68,12 +68,12 @@ struct DaemonLink: Hashable, Sendable {
         }
         var r = URLRequest(url: url)
         r.httpMethod = method
-        authorize(&r)
         if let body {
             r.setValue("application/json", forHTTPHeaderField: "Content-Type")
             r.httpBody = try? JSONSerialization.data(withJSONObject: body)
         }
         r.timeoutInterval = timeout
+        authorize(&r)  // last: the Mac's proof covers the method, the address and the body
         return r
     }
 

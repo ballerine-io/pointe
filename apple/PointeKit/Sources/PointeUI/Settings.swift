@@ -108,7 +108,7 @@ struct MachinesSheet: View {
                             .accessibilityIdentifier("inviteCountdown")
                         HStack {
                             Button("Copy the line", systemImage: "doc.on.doc") {
-                                Clipboard.copy(MachinesCopy.joinLine(shown, pairing: pairing))
+                                Clipboard.copy(MachinesCopy.joinLine(shown, pairing: pairing), until: until ?? Date().addingTimeInterval(600))
                             }
                             Spacer()
                             Button("Cancel the code", role: .destructive) { Task { await cancel() } }

@@ -34,7 +34,7 @@ final class PointeMacTests: XCTestCase {
         let box = EndpointBox()
         XCTAssertNil(box.endpoint)
         let daemon = LocalDaemon(endpoint: { box.endpoint }, lost: { box.set(nil) })
-        box.set(DaemonEndpoint(port: 7999, credential: .pageKey("made-up")))
+        box.set(DaemonEndpoint(port: 7999, credential: .pageKey("made-up", token: "made-up")))
         XCTAssertNotNil(box.endpoint)
         XCTAssertEqual(daemon, daemon)
         box.set(nil)

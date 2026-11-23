@@ -341,11 +341,18 @@ The Mac with the call (the hub) keeps every rule above for them.
 The Mac app (`macos/`, [docs/mac-app.md](docs/mac-app.md)) is another client of the daemon on the same Mac. It changes
 no rule above and adds no listener.
 
-- **It is the page, to the daemon.** It connects to `127.0.0.1` only and sends the page's key as the page's cookie,
-  read from `~/.claude-voice/page_key` (0600) into memory at each connect: never stored, logged or put in a URL.
-- **It checks who listens first.** Before the key is sent, the listener on the port must be the process the daemon's
-  pid file names, or its child, as `bin/voice-daemon` checks; another program on the port gets nothing. A request that
-  cannot connect drops the verified address, and the check runs again before the key is sent anywhere.
+- **It is the page, to the daemon, and never sends the page's key.** It connects to `127.0.0.1` only. It reads
+  `~/.claude-voice/page_key` and `~/.claude-voice/token` (both 0600) into memory at each connect, and puts on every
+  request and on the call's socket a proof instead (`X-Pointe-Proof`, `local_proof.py`): an HMAC keyed by both, over
+  the time, a random nonce, the method, the path, the query and the body's SHA-256. The daemon checks it before it
+  reads the body and accepts it once, within 120 seconds, and only with the token of its own start, which
+  `bin/voice-daemon` writes anew at every start. A proof opens what the page's cookie opens.
+- **It checks who listens first.** Before it sends anything, the listener on the port must be the process the daemon's
+  pid file names, or its child, as `bin/voice-daemon` checks. A request that cannot connect drops the verified address,
+  and the check runs again before anything else is sent; a refused one has the check run again too. The daemon can still stop, and another program take the port, between
+  two checks: that program gets proofs, not the key. Each is spent on a replay, good for its one request only, and
+  refused by the next daemon start. `lsof` cannot see another user's listener, so the app takes that port as "not
+  running" and does not connect.
 - **Approve asks who is there.** A click on Approve in the window asks for Touch ID, an Apple Watch or the account
   password (the page on the Mac asks for nothing); Deny never asks. The daemon still takes the click only for the
   request that is pending. A notification's Approve follows the same daemon rule as the phone's.
@@ -355,7 +362,15 @@ no rule above and adds no listener.
   Input Monitoring permission and sees no other key. While a press is open it reads that one key's up or down state.
 - **One entitlement**, the microphone, under the hardened runtime. Not sandboxed: it starts the plugin's
   `voice-daemon ensure` and reads the state folder. It makes no outbound connection and looks for no updates.
-- **Known limit, as above:** code running as you can read the page key the app reads.
+- **The plugin's scripts get none of the app's permissions.** Any process of yours can edit the plugin's folder, and
+  macOS counts a child as the app that started it, microphone permission included. So the app starts every script
+  (`voice-daemon`, `pointe key`, `pointe setup`, `voice-open`) disclaimed (`CommandRunner.swift`): with
+  `posix_spawn` and macOS's `responsibility_spawnattrs_setdisclaim`, a libSystem call that is not in Apple's headers,
+  so macOS judges the script by its own permissions, not the app's. The daemon needs no microphone: call audio reaches it over the socket. An app
+  for the App Store could not use that call; this one is built from source.
+- **Known limits:** code running as you can read the page key the app reads. The browser page still sends the page key
+  as its cookie, so a program that holds the port while the daemon is down gets the key from an open page's next
+  request.
 
 ## Phone access (experimental, off by default)
 
@@ -374,6 +389,20 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 
 - **Pairing.** `pointe pair tailscale|wifi|host <name>` makes a TLS certificate for that one name, and a QR code with its
   SHA-256 and the phone's own key (`phone_key`, 0600). The app keeps both in the Keychain and talks only to that Mac.
+- **Only a code scanned or pasted in the app pairs** (`PairingFlow.swift`). The app first shows the Mac's address and
+  the first 16 characters of its certificate's SHA-256, and pairs only on the owner's confirm. Replacing a pairing names
+  both Macs and needs Face ID or the passcode, and the old pairing stays until the new Mac has answered: the code
+  redeemed, or, for a `pointe pair` code, the new key answered over the pinned connection. A `pointe://` link that
+  opens the app from outside (the Camera, another app, a web page) pairs nothing, whatever it holds: any app or page can
+  open one, and another app can register the same scheme. It only opens a sheet that says to scan the code inside
+  Pointe. The app still registers the scheme for that sheet; without it, an app that claims `pointe://` would be the
+  only one iOS could hand a Camera-scanned code to.
+- **A code scanned outside the app can still reach another app.** If a person scans the page's code with the Camera and
+  another installed app has claimed `pointe://`, iOS may hand that app the link. With the page's code, that app can
+  trade the one-time code for a phone key of its own within the 5 minutes; the page then shows "Connected:" with the
+  name it chose, and Unpair removes it. With the terminal's code (`pointe pair show`) it gets the lasting key. The page
+  and the app say to scan inside Pointe, and `pointe pair show` says not to use the Camera. The Mac does not ask for a
+  confirm before a new phone's key works (a known limit).
 - **Pairing from the page** (Settings → Phone, `phone_pairing.py`). The page lists the routes this Mac has (Tailscale, a
   name you set up, the Wi-Fi) and shows a QR code made on the Mac, with no outside service. The QR holds the listener's
   name, its certificate's SHA-256 and a one-time code, not the phone key: single use, 5 minutes, about 40 bits, kept only
@@ -384,6 +413,10 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   the daemon token and a page opened over the TLS listener get 403. The status shows paired phones by name and time
   only; neither the status nor the log carries a code, a link or a key. Choosing another route makes a new certificate
   (the page says so first): every phone and machine paired before must pair again.
+- **A copied code** (the Mac app's "Can't scan? Copy the link", a machine's invite line in either app) is marked
+  concealed on the Mac (`org.nspasteboard.ConcealedType`, which clipboard managers skip) and cleared when the code ends
+  if nothing else was copied since; on the iPhone it stays on that phone (no Universal Clipboard) and expires with the
+  code. The page's own Copy button is the browser's and gets neither.
 - **A key for each phone.** Each pairing from the page mints that phone its own 256-bit key, returned once;
   `phones.json` (0600) keeps only its SHA-256, with the phone's name and when it paired and was last seen. Every route
   that takes the phone key takes any paired phone's key; each check compares against every stored key in constant time,
@@ -392,7 +425,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 - **The shared key from before.** `phone_key` (0600), which `pointe pair` put in its QR code before per-phone keys,
   still works, as one phone named "Paired phone" until the app reports its name (an `X-Pointe-Device` header). So the
   upgrade signs no one out. `pointe pair show` still prints that old link with that key, and mints it again if it was
-  unpaired: the terminal path is unchanged, and Unpair on the page revokes it like any other phone.
+  unpaired: it works with the daemon stopped, which the page's one-time code cannot. It says to scan it inside the app
+  and not with the Camera, and Unpair on the page revokes it like any other phone.
 - **Pinning, and App Transport Security off.** The app accepts exactly the certificate it paired with, and nothing else,
   CA-signed or not. iOS's App Transport Security can't be scoped to a name you pick (a Twingate or VPN name), and it
   refuses a self-signed certificate before the app's own check runs, so it is off for this app. The pin is the stronger
@@ -438,6 +472,14 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   on (`alerts.watch_approve`, off by default; the app asks for Face ID to turn it on), a notification's Approve needs an
   unlocked iPhone or a watch on the wrist instead. The daemon accepts it (`via: "notification"`) only for a request it can
   read out, bound to that request's id (`alerts.py`).
+- **What Face ID protects, and what it does not.** Every Face ID or passcode check in the app (Approve; starting,
+  adding or joining sessions; night shift; a machine invite or revoke; lowering the voice lock or deleting a
+  voiceprint; turning on show while it says or approve from notifications; replacing the pairing) runs in the app,
+  before it sends an ordinary request with the phone key. It stops a person who holds your unlocked iPhone. It does not
+  bind the key: the daemon cannot tell whether Face ID ran. Whoever has the phone key itself (a `pointe pair` code that
+  was copied or photographed, an app that redeemed a code scanned outside Pointe, the Keychain of a jailbroken phone)
+  can do everything the key opens (`_PHONE_PATHS` in `guards.py`), approvals included, with no Face ID. Unpair on the
+  Mac (Settings → Phone) ends that key at its next request.
 - **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
   description; a request that cannot be read out shows only its tool. Credential-like values follow the same rule as
   the voice (`readout.redact`): never shown, never said.

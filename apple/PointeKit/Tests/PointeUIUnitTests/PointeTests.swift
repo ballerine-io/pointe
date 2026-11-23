@@ -21,6 +21,18 @@ final class PairingTests: XCTestCase {
             XCTAssertNil(Pairing(link: link), link)
         }
     }
+
+    /// A host with a colon makes no URL: one such link would crash the app at every launch, and the Keychain keeps it.
+    func testAHostThatMakesNoAddressIsRefused() throws {
+        for host in ["a:b", "::1", "a:", "1.2.3.4:5"] {
+            XCTAssertNil(Pairing(link: "pointe://pair?v=1&host=\(host)&port=7443&fp=\(fp)&key=\(key)"), host)
+            XCTAssertNil(PairingLink("pointe://pair?v=2&host=\(host)&port=7443&fp=\(fp)&code=ABCD-EFGH"), host)
+            let stored = try JSONSerialization.data(withJSONObject: ["host": host, "port": 7443, "fingerprint": fp, "key": key] as [String: Any])
+            XCTAssertNil(try? JSONDecoder().decode(Pairing.self, from: stored), "a stored pairing to \(host) is not used")
+        }
+        let good = try JSONEncoder().encode(Pairing(host: "mac.example", port: 7443, fingerprint: fp, key: key))
+        XCTAssertEqual(try JSONDecoder().decode(Pairing.self, from: good).base.absoluteString, "https://mac.example:7443")
+    }
 }
 
 /// The page's QR (Settings → Phone): a one-time code the app trades for the key over the pinned listener.
