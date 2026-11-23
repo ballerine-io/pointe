@@ -1092,7 +1092,7 @@
     <button id="ctx" onclick="openCtx()" title="What the voice model holds"></button>
   </footer>
 </aside>
-<div id="ctxpanel" role="dialog" aria-label="What the voice holds">
+<div id="ctxpanel" role="dialog" aria-modal="true" aria-label="What the voice holds">
   <h2>What the voice holds <button onclick="closeCtx()" aria-label="Close">×</button></h2>
   <div id="ctx-total"></div>
   <section><h3 class="label">Where it goes</h3><div id="ctx-rows"></div>
@@ -3157,11 +3157,17 @@
   }
   let ctxShow = 'talk';
   let ctxShown = '';  // the list is rebuilt only when it changed, so it does not jump under the reader
-  function openMsg(kind, text) { $('cm-kind').textContent = kind; $('cm-text').textContent = text; $('ctxmodal').classList.add('open'); }
-  function closeMsg() { $('ctxmodal').classList.remove('open'); }
+  // The panel and a message over it are dialogs like the sheets: focus goes in, Tab stays in, and goes back on close.
+  const ctxOpener = {};
+  function ctxOpen(id) { if (!$(id).classList.contains('open')) ctxOpener[id] = document.activeElement; $(id).classList.add('open');
+                         requestAnimationFrame(() => $(id).querySelector('h2 button').focus()); }
+  function ctxClose(id) { $(id).classList.remove('open'); const back = ctxOpener[id]; ctxOpener[id] = null;
+                          if (back && back.isConnected && back.offsetParent !== null) back.focus(); }
+  function openMsg(kind, text) { $('cm-kind').textContent = kind; $('cm-text').textContent = text; ctxOpen('ctxmodal'); }
+  function closeMsg() { ctxClose('ctxmodal'); }
   function ctxFilter(f) { ctxShow = f; ctxShown = ''; $('cf-talk').className = f === 'talk' ? 'on' : ''; $('cf-all').className = f === 'all' ? 'on' : ''; loadCtx(); }
-  function openCtx() { ctxShown = ''; $('ctxpanel').classList.add('open'); loadCtx(); ctxTimer = setInterval(loadCtx, 2000); }
-  function closeCtx() { $('ctxpanel').classList.remove('open'); clearInterval(ctxTimer); }
+  function openCtx() { ctxShown = ''; ctxOpen('ctxpanel'); loadCtx(); clearInterval(ctxTimer); ctxTimer = setInterval(loadCtx, 2000); }
+  function closeCtx() { ctxClose('ctxpanel'); clearInterval(ctxTimer); }
 
   // ---------- conflict alarm ----------
   // Two sessions that disagree. The card shows both claims; Ask puts one side's question as your own typed words (the
@@ -3272,10 +3278,11 @@
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
   const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet', 'addsheet', 'nightsheet'].find(id => $(id).classList.contains('open'));
-  document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet
-    const id = e.key === 'Tab' && openSheetId();
-    if (!id) return;
-    const items = focusables($(id)), i = items.indexOf(document.activeElement);
+  const trapBox = () => { const id = openSheetId(); return id ? $(id) : ['ctxmodal', 'ctxpanel'].map($).find(x => x.classList.contains('open')); };
+  document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet or the context panel
+    const box = e.key === 'Tab' && trapBox();
+    if (!box) return;
+    const items = focusables(box), i = items.indexOf(document.activeElement);
     if (!items.length) return;
     if (e.shiftKey && i <= 0) { e.preventDefault(); items[items.length - 1].focus(); }
     else if (!e.shiftKey && (i === -1 || i === items.length - 1)) { e.preventDefault(); items[0].focus(); }

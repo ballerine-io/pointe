@@ -432,3 +432,35 @@ def test_a_screen_reader_hears_an_approval_and_the_call_changing_but_not_each_tu
     assert off == ["polite", ""], off
     assert live == ["polite", "Listening"] and muted[1] == "Muted", (live, muted)
     assert first[1] == turn[1] == "Speaking", (first, turn)  # said once, as the call came up
+
+
+def test_the_context_panel_keeps_the_keyboard_inside_and_gives_it_back():
+    """The panel is a modal dialog: focus starts on its Close, Tab never lands behind it, Escape returns to the opener."""
+    where = "[document.activeElement.id, !!document.activeElement.closest('#ctxpanel')]"
+
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=4, talk=6, connected=True)
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
+                await page.eval(f"(async () => {{ {LIVE} await refresh(); $('ctx').focus(); openCtx(); return true; }})()")
+                await asyncio.sleep(0.4)
+                stops = [await page.eval(where)]
+                for _ in range(40):
+                    for kind in ("keyDown", "keyUp"):
+                        await page.cdp("Input.dispatchKeyEvent", {"type": kind, "key": "Tab", "code": "Tab", "windowsVirtualKeyCode": 9})
+                    stops.append(await page.eval(where))
+                modal = await page.eval("document.getElementById('ctxpanel').getAttribute('aria-modal')")
+                for kind in ("keyDown", "keyUp"):
+                    await page.cdp("Input.dispatchKeyEvent", {"type": kind, "key": "Escape", "code": "Escape", "windowsVirtualKeyCode": 27})
+                await asyncio.sleep(0.2)
+                back = await page.eval("document.activeElement.id")
+                return stops, modal, back
+        finally:
+            await stub.stop()
+    stops, modal, back = asyncio.run(run())
+    assert modal == "true" and stops[0][1], stops[0]
+    assert all(inside for _, inside in stops), [s for s in stops if not s[1]]
+    assert back == "ctx", back
