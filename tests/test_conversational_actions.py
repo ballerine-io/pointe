@@ -349,10 +349,17 @@ def test_results_and_pages_regenerate_from_the_rows():
 
 
 def test_published_rows_follow_the_freeze():
+    """Every paid row ran a freeze: the current one, or an earlier one FROZEN.json keeps under "earlier" (whose runs'
+    reference arms still stand after a Pointe-arm rerun)."""
     frozen = json.loads((BENCH / "FROZEN.json").read_text())
+    earlier = {r: e for e in frozen.get("earlier", []) for r in e["runs"]}
     for path in (BENCH / "results").glob("*/rows.jsonl"):
         for line in path.read_text().splitlines():
             r = json.loads(line)
             if r.get("kind_of_run") == "paid":
-                assert r["pointe_commit"] == frozen["pointe_commit"]
-                assert r["time"][:19] >= frozen["frozen_at"][:19], "a paid row older than the freeze (both in local time)"
+                f = earlier.get(r["run_id"])
+                if f is None and r["time"][:19] < frozen["frozen_at"][:19]:
+                    f = next((e for e in frozen.get("earlier", []) if r["pointe_commit"][:7] == e["pointe_commit"][:7]), None)
+                f = f or frozen
+                assert r["pointe_commit"][:7] == f["pointe_commit"][:7]
+                assert r["time"][:19] >= f["frozen_at"][:19], "a paid row older than its freeze (both in local time)"
