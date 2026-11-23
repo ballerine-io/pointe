@@ -327,7 +327,8 @@ The Mac with the call (the hub) keeps every rule above for them.
 - **Voice is not authentication.** Anyone your microphone can hear can answer a prompt, unless the voice lock is on; even
   then, a recording of your voice can pass it.
 - **The page key does not rotate by itself.** It lasts until you delete `~/.claude-voice/page_key`. It also passes through a
-  browser's command line when `bin/voice-open` runs, which other users on a shared Linux machine can read.
+  command line when `bin/voice-open` runs (`open` on macOS, `xdg-open` and the browser on Linux), and any other user of
+  the machine can read a command line with `ps`, on macOS as on Linux.
 - **While the voice holds a prompt, the terminal also shows it**, and either can answer. It waits up to 280 seconds. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).
 - **Two pages with the key can both be in a call.** Keep it to one.
 
