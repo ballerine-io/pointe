@@ -208,7 +208,8 @@ def test_budget_gate_refuses_a_launch_near_the_cap():
     assert ledger.spent("routing", path) == pytest.approx(8.7)  # nothing was recorded by the refusal
 
 
-def test_scrubber_refuses_home_paths_and_key_shapes():
+def test_scrubber_refuses_home_paths_and_key_shapes(monkeypatch):
+    monkeypatch.setattr(scrub, "USER", "someaccount")  # on CI there is no account to look for
     assert scrub.problems(f"{Path.home()}/x")
     assert scrub.problems("token sk-ant-api03-abcdefghijklmnop")
     assert scrub.problems("/Users/someone/repo")

@@ -2,6 +2,7 @@
 
 import functools
 import getpass
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -13,6 +14,8 @@ CHECKOUT = str(Path(__file__).resolve().parents[4])
 @functools.cache
 def owner_names() -> tuple[str, ...]:
     """The machine owner's names, as the daemon or a tool may print them: read at run time, never stored."""
+    if os.environ.get("CI") == "true":
+        return ()  # a CI runner's account ("runner") is not a person and is an ordinary word in the rows
     found = set()
     for cmd in (["git", "config", "user.name"], ["git", "config", "user.email"], ["id", "-F"]):
         try:

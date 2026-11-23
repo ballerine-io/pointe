@@ -2,6 +2,7 @@
 `clean` rewrites free text before it is stored."""
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -9,7 +10,8 @@ import getpass
 import socket
 
 HOME = str(Path.home())
-USER = getpass.getuser()
+# A CI runner's account ("runner") is not a person and is an ordinary word in the rows: no owner to look for there.
+USER = "" if os.environ.get("CI") == "true" else getpass.getuser()
 HOST = socket.gethostname().split(".")[0]
 REPLACE: list = []  # (text, stand-in) pairs the runner adds: the Pointe checkout, this repository
 TOKEN = re.compile(r"sk-ant-[A-Za-z0-9_\-]{6,}|sk-[A-Za-z0-9]{20,}|AIza[\w-]{20,}|xi-api-key|[0-9a-f]{32,}(?![0-9a-f])")

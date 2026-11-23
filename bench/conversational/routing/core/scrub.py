@@ -1,10 +1,12 @@
 """Refuses committed text with a home path, a key shape, or a filesystem path outside /tmp."""
 
 import getpass
+import os
 import re
 from pathlib import Path
 
-USER = getpass.getuser()
+# A CI runner's account ("runner") is not a person and is an ordinary word in the rows: no owner to look for there.
+USER = "" if os.environ.get("CI") == "true" else getpass.getuser()
 
 KEY = re.compile(r"sk-ant-[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9]{32,}|AIza[0-9A-Za-z_-]{30,}|xi-api-key|\b[A-Fa-f0-9]{48}\b")
 PATH = re.compile(r"(?<![\w.])/(?:Users|home|private/var|var/folders|Volumes)/[^\s'\"]*")

@@ -141,7 +141,8 @@ class AgentSession:
         flat = re.sub(r"\s+", "", self.screen[self.declined_upto:][-6000:])
         i = flat.lower().rfind("doyouwant")
         segment = flat[max(0, i - 2500):]
-        own = [p.lower() for p in (str(self.repo), os.path.realpath(self.repo))]
+        own = {p.lower() for p in (str(self.repo), os.path.realpath(self.repo))}
+        own |= {"/private" + p for p in own if p.startswith("/tmp/")} | {p[8:] for p in own if p.startswith("/private/tmp/")}
         for m in re.finditer(r"(/(?:private/)?tmp/|/users/|/home/|/volumes/|~/)", segment, re.I):
             if not any(segment[m.start():].lower().startswith(o) for o in own):
                 return False
