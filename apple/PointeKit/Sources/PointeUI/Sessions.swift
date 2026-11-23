@@ -188,22 +188,35 @@ struct SessionsSheet: View {
 
     private var machines: MachineView { MachineView(status) }
 
+    private func foot<Style: LabelStyle>(_ docked: Docked, _ style: Style) -> some View {
+        HStack(spacing: 8) {
+            if starter != nil {
+                Button { showNewSession = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
+                    .buttonStyle(.brandQuiet).controlSize(.small).help(NewSessionCopy.title).accessibilityIdentifier("newSession")
+            }
+            if adder != nil {
+                Button { showAddSessions = true } label: { Label(AddSessionsCopy.title, systemImage: "rectangle.stack.badge.plus") }
+                    .buttonStyle(.brandQuiet).controlSize(.small).help(AddSessionsCopy.title).accessibilityIdentifier("addSessions")
+            }
+            Spacer(minLength: 0)
+            Button(action: docked.settings) { Label("Settings", systemImage: "gearshape") }
+                .buttonStyle(.brandQuiet).controlSize(.small).help("Settings").accessibilityIdentifier("sideSettings")
+        }
+        .labelStyle(style)
+        .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
     var body: some View {
         if let docked {
             VStack(spacing: 0) {
                 list.accessibilityElement(children: .contain).accessibilityIdentifier("sessionsColumn")
-                HStack(spacing: 8) {  // the page's foot of the column: New session and Settings
-                    if starter != nil {
-                        Button { showNewSession = true } label: { Label(NewSessionCopy.title, systemImage: "plus") }
-                            .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("newSession")
-                    }
-                    if adder != nil {
-                        Button { showAddSessions = true } label: { Label(AddSessionsCopy.title, systemImage: "rectangle.stack.badge.plus") }
-                            .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("addSessions")
-                    }
-                    Spacer(minLength: 0)
-                    Button(action: docked.settings) { Label("Settings", systemImage: "gearshape") }
-                        .buttonStyle(.brandQuiet).controlSize(.small).accessibilityIdentifier("sideSettings")
+                // The page's foot of the column: New session, Add sessions and Settings, with their words while the
+                // column has room for them on one line, else as their symbols (named on hover): a narrow column broke
+                // the words inside themselves ("sessi/on").
+                ViewThatFits(in: .horizontal) {
+                    foot(docked, .titleAndIcon)
+                    foot(docked, .iconOnly)
                 }
                 .padding(12)
                 .overlay(alignment: .top) { Rectangle().fill(Brand.line).frame(height: 1) }

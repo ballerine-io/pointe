@@ -34,25 +34,13 @@ struct MainWindow: View {
         }
         .overlay(alignment: .topTrailing) {  // in the title bar's row, beside nothing: a row of its own floated over the header
             if model.ready {
-                // One band: the version note takes what the talk mode leaves beside it, so the mode keeps its place at the
-                // trailing edge and the note adds a line only when it wraps.
-                HStack(alignment: .firstTextBaseline, spacing: 16) {
-                    if let note = model.versionNote {
-                        Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
-                            .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
-                            .accessibilityIdentifier("versionNote")
-                    }
-                    Spacer(minLength: 0)
-                    Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
-                        .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
-                        .fixedSize()
-                        .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
-                        .accessibilityIdentifier("talkMode")
-                }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 18)
+                Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
+                    .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
+                    .frame(height: 28)
+                    .padding(.horizontal, 14)
+                    .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
+                    .accessibilityIdentifier("talkMode")
+                    .ignoresSafeArea(edges: .top)
             }
         }
         .background(PointeLook.bg)
