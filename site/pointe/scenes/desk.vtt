@@ -1,0 +1,49 @@
+WEBVTT
+
+00:00.900 --> 00:02.600
+<v You>Okay— what's everyone up to?
+
+00:02.750 --> 00:07.460
+<v Pointe>Billing's done with the retry fix. Docs is idle. Shop has a PR up.
+
+00:07.660 --> 00:14.370
+<v You>Great. Billing, add a test for the timeout. Docs, update the changelog. And api, bump the retry budget to five.
+
+00:14.270 --> 00:17.060
+<v Pointe>Sent, sent, and sent.
+
+00:17.960 --> 00:19.170
+<v You>Let's focus on billing.
+
+00:19.220 --> 00:21.840
+<v Pointe>Billing. Everything you say goes there.
+
+00:22.140 --> 00:23.940
+<v You>Hm— should the retries go through a queue?
+
+00:24.640 --> 00:31.890
+<v Pointe>Billing says a queue risks duplicate charges on failover. It suggests backoff with jitter, capped at ten seconds.
+
+00:31.840 --> 00:33.290
+<v You>Ten's too long for checkout.
+
+00:33.790 --> 00:36.990
+<v Pointe>Then a five second cap, with an idempotency key.
+
+00:37.090 --> 00:38.350
+<v You>Yeah. Do that.
+
+00:38.350 --> 00:39.140
+<v Pointe>Sent to billing.
+
+00:40.040 --> 00:43.880
+<v You>Okay, back to orchestrator mode. Walk me through the PR shop opened.
+
+00:44.180 --> 00:56.080
+<v Pointe>Orchestrator mode. Shop's PR makes the flaky checkout test wait for the mock gateway, instead of sleeping. The risk: it touches a shared fixture. Check the two tests that reuse it.
+
+00:56.180 --> 00:57.590
+<v You>Does it change any production code?
+
+00:57.840 --> 00:59.350
+<v Pointe>No. Tests only.

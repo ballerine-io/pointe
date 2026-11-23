@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scene film: at the desk</title>
+<!-- The source of site/pointe/scenes/desk.mp4: tools/scene_film/render.py steps this page frame by frame (draw(t)), and
+     ffmpeg puts the footage under the left column and the voices on it. Invented sessions; nothing is fetched. -->
+<link rel="stylesheet" href="../../site/pointe/style.css">
+<link rel="stylesheet" href="scene.css">
+<style>
+  html, body { background: transparent; }
+  body { width: 1280px; height: 720px; overflow: hidden; }
+  .scene { margin: 0; }
+  .scene-panel { margin: 0; width: 1280px; height: 720px; border: 0 !important; border-radius: 0; background: transparent; grid-template-columns: 492px minmax(0, 1fr) minmax(0, 1fr); }
+  .scene-clip { background: transparent; }
+  .scene-talk, .scene-agents { background: var(--card); padding: 30px 30px 26px; }
+  .scene-lines { height: 610px; gap: 12px; scroll-behavior: auto; }
+  .scene-lines span { font-size: 20px; line-height: 28px; }
+  .scene-lines b, .scene-lines li.move, .scene-panel .kicker { font-size: 12.5px; }
+  .scene-rows li { padding: 10px 0 11px; }
+  .scene-rows b, .sc-what, .sc-mode span { font-size: 17px; line-height: 25px; }
+  .sc-ag, .sc-tag { font-size: 14px; }
+  .sc-pr dd { font-size: 15.5px; line-height: 23px; } .sc-pr dt { font-size: 13.5px; line-height: 23px; } .sc-pr dl div { grid-template-columns: 70px minmax(0, 1fr); }
+  .ai { font-size: 13px; left: 14px; top: 14px; }
+</style>
+</head>
+<body>
+<article class="scene" data-total="60.35">
+        <div class="scene-panel">
+          <figure class="scene-clip">
+            <span class="ai">AI-generated footage</span>
+          </figure>
+          <div class="scene-talk">
+            <p class="kicker">What is said</p>
+            <ol class="scene-lines" aria-label="The conversation">
+            <li class="move" data-t="0.60">1 · Orchestrate</li>
+            <li class="you" data-t="0.9" data-end="2.6"><b>You</b><span>Okay— what's everyone up to?</span></li>
+            <li class="pointe" data-t="2.75" data-end="7.46"><b>Pointe</b><span>Billing's done with the retry fix. Docs is idle. Shop has a PR up.</span></li>
+            <li class="you" data-t="7.66" data-end="14.37"><b>You</b><span>Great. Billing, add a test for the timeout. Docs, update the changelog. And api, bump the retry budget to five.</span></li>
+            <li class="pointe" data-t="14.27" data-end="17.06"><b>Pointe</b><span>Sent, sent, and sent.</span></li>
+            <li class="move" data-t="17.66">2 · Focus on one</li>
+            <li class="you" data-t="17.96" data-end="19.17"><b>You</b><span>Let's focus on billing.</span></li>
+            <li class="pointe" data-t="19.22" data-end="21.84"><b>Pointe</b><span>Billing. Everything you say goes there.</span></li>
+            <li class="you" data-t="22.14" data-end="23.94"><b>You</b><span>Hm— should the retries go through a queue?</span></li>
+            <li class="pointe" data-t="24.64" data-end="31.89"><b>Pointe <i>from billing</i></b><span>Billing says a queue risks duplicate charges on failover. It suggests backoff with jitter, capped at ten seconds.</span></li>
+            <li class="you" data-t="31.84" data-end="33.29"><b>You</b><span>Ten's too long for checkout.</span></li>
+            <li class="pointe" data-t="33.79" data-end="36.99"><b>Pointe <i>from billing</i></b><span>Then a five second cap, with an idempotency key.</span></li>
+            <li class="you" data-t="37.09" data-end="38.35"><b>You</b><span>Yeah. Do that.</span></li>
+            <li class="pointe" data-t="38.35" data-end="39.14"><b>Pointe</b><span>Sent to billing.</span></li>
+            <li class="move" data-t="39.74">3 · Understand a PR</li>
+            <li class="you" data-t="40.04" data-end="43.88"><b>You</b><span>Okay, back to orchestrator mode. Walk me through the PR shop opened.</span></li>
+            <li class="pointe" data-t="44.18" data-end="56.08"><b>Pointe <i>from shop</i></b><span>Orchestrator mode. Shop's PR makes the flaky checkout test wait for the mock gateway, instead of sleeping. The risk: it touches a shared fixture. Check the two tests that reuse it.</span></li>
+            <li class="you" data-t="56.18" data-end="57.59"><b>You</b><span>Does it change any production code?</span></li>
+            <li class="pointe" data-t="57.84" data-end="59.35"><b>Pointe <i>from shop</i></b><span>No. Tests only.</span></li>
+            </ol>
+          </div>
+          <div class="scene-agents">
+            <p class="kicker">What the sessions do</p>
+            <p class="sc-mode" aria-live="off"><span data-from="0" data-to="20.44">Orchestrator: every session</span><span class="hot" data-from="20.44" data-to="44.18">Session mode: focused on billing</span><span data-from="44.18">Orchestrator: every session</span></p>
+            <ul class="scene-rows" aria-label="Her five sessions">
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>billing</b><span class="sc-ag">Claude Code · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="done">retry fix done</i><i data-at="10.06" data-state="working">adding the timeout test</i><i data-at="24.64" data-state="working">weighing a queue against backoff</i><i data-at="39.14" data-state="working">backoff, 5 s cap, idempotency key</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">O</span><b>docs</b><span class="sc-ag">OpenCode · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="idle">nothing to do</i><i data-at="11.86" data-state="working">updating the changelog</i><i data-at="33.79" data-state="done">changelog updated</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>api</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="idle">nothing to do</i><i data-at="14.17" data-state="working">retry budget to five</i><i data-at="40.04" data-state="done">retry budget is five</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">X</span><b>shop</b><span class="sc-ag">Codex · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="done">pull request open</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>ingest</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="working">running its tests</i><i data-at="22.14" data-state="done">tests pass</i></span></li>
+            </ul>
+            <div class="sc-pr" data-from="45.38">
+              <p class="title">shop · pull request</p>
+              <dl><div><dt>Changed</dt><dd>The flaky checkout test waits for the mock gateway instead of sleeping.</dd></div>
+                <div><dt>Risk</dt><dd>It touches a shared fixture.</dd></div>
+                <div><dt>Check</dt><dd>The two tests that reuse the fixture.</dd></div></dl>
+            </div>
+          </div>
+        </div>
+</article>
+<script>
+  const scene = document.querySelector('.scene'), lines = [...scene.querySelectorAll('.scene-lines li')], rows = [...scene.querySelectorAll('[data-row]')];
+  const timed = [...scene.querySelectorAll('[data-from]')], list = scene.querySelector('.scene-lines');
+  window.draw = now => {
+    for (const li of lines) { li.classList.toggle('on', now >= +li.dataset.t); li.classList.toggle('now', now >= +li.dataset.t && now < +(li.dataset.end || 0)); }
+    for (const row of rows) {
+      const states = [...row.querySelectorAll('.sc-states i')].filter(s => +s.dataset.at <= now), s = states[states.length - 1];
+      if (s && row.dataset.state + row.querySelector('.sc-what').textContent !== s.dataset.state + s.textContent) {
+        row.dataset.state = s.dataset.state; row.querySelector('.sc-tag').textContent = s.dataset.state; row.querySelector('.sc-what').textContent = s.textContent;
+        if (now > 0.2) { row.classList.remove('changed'); void row.offsetWidth; row.classList.add('changed'); }
+      }
+    }
+    for (const e of timed) e.classList.toggle('on', now >= +e.dataset.from && (!e.dataset.to || now < +e.dataset.to));
+    const last = lines.filter(li => li.classList.contains('on')).pop();
+    const want = last ? Math.max(0, last.offsetTop + last.offsetHeight - list.clientHeight + 4) : 0;
+    scrolled += (want - scrolled) * 0.2; list.scrollTop = Math.round(scrolled);  // the list eases after the talk, a frame at a time
+  };
+  // One frame of the film: the state at t, with every transition and animation the state started held at the film's
+  // clock, not the wall's, so a frame is the same however long its screenshot took.
+  let scrolled = 0;
+  const began = new WeakMap();
+  window.step = t => {
+    draw(t);
+    document.body.offsetWidth;
+    for (const a of document.getAnimations()) {
+      if (!began.has(a)) { began.set(a, t); a.pause(); }
+      a.currentTime = (t - began.get(a)) * 1000;
+    }
+    return true;
+  };
+  step(0);
+</script>
+</body>
+</html>
