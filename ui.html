@@ -3799,7 +3799,8 @@
     where.replaceChildren();
     if (v.path) where.append(v.path + (!v.range ? '' : v.range[1] > v.range[0] ? ` · lines ${v.range[0]}–${v.range[1]}` : ` · line ${v.range[0]}`));
     if (v.changed_since) where.append(' · ', el('span', 'changed', 'changed since it was spoken about'));
-    if (v.problem) { body.replaceChildren(el('div', 'msg', `${v.name || ''}: ${v.problem}`)); return; }
+    const name = v.name || (show.art && show.art.name);  // a fetch that failed has no name of its own
+    if (v.problem) { body.replaceChildren(el('div', 'msg', name ? `${name}: ${v.problem}` : v.problem)); return; }
     let target = null;
     if (show.view === 'Test') {
       const rows = [];

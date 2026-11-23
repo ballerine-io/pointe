@@ -541,3 +541,11 @@ def test_fix_the_key_shows_only_beside_the_refused_key():
     assert mine[0] is True, mine
     assert elsewhere[0] is False, elsewhere
     assert dead[0] is False and "not answering" in dead[1] and dead[2] not in dead[1], dead
+
+
+def test_a_gone_artifact_is_named_not_led_by_a_colon():
+    status = fixture(sessions=2, talk=4, connected=True)
+    status["showing"] = {"id": "sh1", "session": "s0-shop", "summary": "the coupon fix", "current": "a1", "at": 1.0,
+                         "artifacts": [{"id": "a1", "kind": "file", "name": "checkout.py", "path": "shop/checkout.py"}]}
+    (msg,) = _run([(1440, LIVE, "(document.querySelector('#show-body .msg') || {}).textContent")], status)
+    assert msg and not msg.startswith(":") and msg.startswith("checkout.py: "), msg
