@@ -95,3 +95,27 @@ def test_home_screen_app_key_pairs_without_safari_cookies(app):
     assert r.status_code == 200 and "pointe_pair" in r.headers.get("set-cookie", "")
     assert fresh.get("/voice/status").status_code == 200
     assert remote_client(app).get("/voice?k=wrong").status_code == 403
+
+
+def test_the_listener_takes_no_websocket_message_larger_than_a_node_frame(app, tmp_path, monkeypatch):
+    """uvicorn buffers a whole message before any handler checks it (16 MB by default), and /voice/node takes one before
+    the node proves its key: the cap is the largest frame the link sends (nodelink.MAX_FRAME_BYTES)."""
+    import asyncio
+
+    import nodelink
+    import uvicorn
+
+    configs = []
+
+    class Recorded(uvicorn.Config):
+        def __init__(self, *args, **kwargs):
+            configs.append(kwargs)
+            super().__init__(*args, **kwargs)
+
+    async def serve(self, sockets=None):
+        return None
+
+    monkeypatch.setattr(uvicorn, "Config", Recorded)
+    monkeypatch.setattr(uvicorn.Server, "serve", serve)
+    asyncio.run(Remote(tmp_path).serve(app))
+    assert configs and all(c.get("ws_max_size") == nodelink.MAX_FRAME_BYTES for c in configs)

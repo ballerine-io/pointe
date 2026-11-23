@@ -42,6 +42,10 @@ PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses from al
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
 HELLO_WAIT_SECS = 10.0
+# Sockets on /voice/node that have not proven a key yet (each waits up to HELLO_WAIT_SECS for its hello). A real node
+# holds one for a round trip; every node behind one connector shares its address (127.0.0.1), so the share is not one.
+MAX_WAITING_PER_ADDRESS = 8
+MAX_WAITING = 32
 STALE_PROBE_SECS = 3.0  # a new connection with a key already linked: the old link must answer a ping within this
 MAX_MIRROR_BYTES_PER_NODE = 4 << 30  # every mirror of one node together; past it, entries are counted, not written
 DISCOVER_TIMEOUT_SECS = 25.0  # a node lists its sessions (each account's `claude agents --json`) or joins one in this
@@ -533,6 +537,7 @@ class Hub:
         self.invites = Invites(monotonic)
         self.mirrors = Mirrors(state_dir / "harness" / "remote")
         self.links = nodelink.Links()
+        self._waiting: dict[str, int] = {}  # address: sockets there still before their hello (serve)
         self.live: dict[str, Node] = {}
         for paired in self.nodes.nodes.values():
             self._track(paired)
@@ -769,6 +774,22 @@ class Hub:
 
     async def serve(self, ws) -> None:
         """The /voice/node WebSocket: a nonce, the node's HMAC over it, then frames until the link drops."""
+        address = _peer(ws)
+        if sum(self._waiting.values()) >= MAX_WAITING or self._waiting.get(address, 0) >= MAX_WAITING_PER_ADDRESS:
+            logger.warning(f"node link from {address or 'loopback'} refused before its hello: too many are waiting")
+            return await _close(ws, 1013, "too many connections waiting")  # before accept: the node backs off, retries
+        self._waiting[address] = self._waiting.get(address, 0) + 1
+        try:
+            proven = await self._hello(ws)
+        finally:
+            self._waiting[address] -= 1
+            if not self._waiting[address]:
+                del self._waiting[address]
+        if proven is not None:
+            await self._linked(ws, address, *proven)
+
+    async def _hello(self, ws) -> tuple[dict, dict] | None:
+        """The challenge and the node's answer: (its pairing, its hello), or None once the socket is closed."""
         await ws.accept()
         nonce = nodelink.new_nonce()
         await ws.send_text(encode("challenge", nonce=nonce, hub={"id": self.nodes.hub_id, "name": _here(self.state_dir)}))
@@ -785,7 +806,10 @@ class Hub:
         if paired is None or not nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
             logger.warning(f"node link refused: {hello['node']['name']!r} is not paired, or its key is wrong")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not paired with this hub")
-        address = _peer(ws)
+        return paired, hello
+
+    async def _linked(self, ws, address: str, paired: dict, hello: dict) -> None:
+        """A proven node: one link per key, then frames until it drops."""
         if not self.links.claim(paired["id"], ws) and not await self._replace_stale(paired, ws, address):
             logger.warning(f"node {paired['name']}: a second connection with its key refused")
             return await _close(ws, nodelink.CLOSE_ALREADY_CONNECTED, "already connected")

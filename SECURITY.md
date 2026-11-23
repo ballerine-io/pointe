@@ -285,7 +285,8 @@ The Mac with the call (the hub) keeps every rule above for them.
   plain names), so a hub cannot name a file outside `node_keys/`. The hub
   then shows the node's name, address and key fingerprint, so you can see that the machine that paired is yours.
 - **The link.** The node dials the hub's TLS listener (the phone's) and proves its 256-bit key with an HMAC over a fresh
-  challenge from the hub; the key itself never crosses. One connection per key: a copy of a node cannot connect while
+  challenge from the hub; the key itself never crosses. Before that proof, at most 8 sockets from one address and 32 in
+  all may wait for it (10 seconds each), and the listener takes no WebSocket message over 1 MB. One connection per key: a copy of a node cannot connect while
   the node is connected. `pointe hub revoke <name>`, Settings → Machines on the page (two clicks) or in the app (a
   confirm, then Face ID) ends it; `pointe pair rotate` or `off` ends every machine's at once.
 - **What crosses.** To the hub: each session's transcript and permission requests, with credentials masked on the node

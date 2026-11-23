@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 from fastapi import Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
 
+import nodelink
 from guards import is_local_request
 
 TLS_PORT = int(os.environ.get("CLAUDE_VOICE_TLS_PORT", "7443"))  # a second daemon (tests) needs its own
@@ -142,7 +143,9 @@ class Remote:
 
         # lifespan off: the main server already ran the app's startup, and running it again would recurse here
         servers = [Quiet(uvicorn.Config(app, host=address, port=TLS_PORT, log_level="warning", lifespan="off",
-                                        proxy_headers=False, ssl_certfile=str(self.cert), ssl_keyfile=str(self.key)))
+                                        proxy_headers=False, ssl_certfile=str(self.cert), ssl_keyfile=str(self.key),
+                                        # buffered whole before any handler; /voice/node reads one before any proof
+                                        ws_max_size=nodelink.MAX_FRAME_BYTES))
                    for address in self.listen]
         self._servers = servers
 
