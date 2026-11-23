@@ -156,8 +156,10 @@ def cleanup(run_tmp: Path, port_base: int) -> dict:
     for port in range(port_base, port_base + 100):
         for pid in subprocess.run(["lsof", "-t", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"], capture_output=True,
                                   text=True).stdout.split():
-            cmd = subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout
-            if "/tmp/pccb" in cmd or str(ROOT) in cmd:
+            # Only a process of this run (its folder in the command line or environment): another benchmark's daemon
+            # under /tmp/pccb on a port in this range is not ours to kill.
+            cmd = subprocess.run(["ps", "eww", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout
+            if str(run_tmp) in cmd:
                 os.kill(int(pid), 9)
                 left.append(f"port {port}")
     ps = subprocess.run(["ps", "eww", "-o", "pid=,command="], capture_output=True, text=True).stdout
