@@ -532,7 +532,9 @@ def plan(args, cmd: list[str], team: str | None, lines: list[str]) -> int:
 
 def mac_build_cmd(out: Path, team: str | None, bundle: str | None) -> list[str]:
     cmd = ["xcodebuild", "build", "-project", str(ROOT / "macos" / "PointeMac.xcodeproj"), "-scheme", "PointeMac",
-           "-configuration", "Release", "-derivedDataPath", str(out / "dd"), "-destination", "platform=macOS", "-quiet"]
+           "-configuration", "Release", "-derivedDataPath", str(out / "dd"), "-destination", "platform=macOS", "-quiet",
+           # a plain build signs in get-task-allow: any process of the user could attach and record under the mic grant
+           "CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO"]
     if team:  # your certificate: macOS remembers the microphone permission across rebuilds
         return cmd + ["-allowProvisioningUpdates", f"DEVELOPMENT_TEAM={team}", "CODE_SIGN_IDENTITY=Apple Development",
                       "CODE_SIGN_STYLE=Automatic", f"PRODUCT_BUNDLE_IDENTIFIER={bundle}.mac"]

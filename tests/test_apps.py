@@ -288,6 +288,14 @@ def test_mac_without_an_apple_account_signs_to_run_locally(rig):
     assert not rig.team_file.exists()
 
 
+@pytest.mark.parametrize("team", [TEAM, None])
+def test_the_mac_app_is_built_without_get_task_allow(tmp_path, team):
+    """A plain `xcodebuild build` signs in com.apple.security.get-task-allow (seen on a Release build with either
+    signature): any process of the user could then attach to Pointe.app and record under its microphone grant."""
+    cmd = apps.mac_build_cmd(tmp_path, team, "io.example.pointe" if team else None)
+    assert "CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO" in cmd
+
+
 def test_mac_falls_back_to_a_local_signature_when_the_team_cannot_sign(rig):
     got = rig.run("mac", "--no-open", FAKE_BUILD_ERROR="xcodebuild_no_account.txt")
     assert got.returncode == 0, got.stdout
