@@ -1835,7 +1835,7 @@
       b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
                           : focused ? (pinned ? ' (focused)' : ' — click to focus on it') : ' — click to talk to it next');
       b.onclick = () => switchTo(x.name);  // offline too: the voice can still say what its notes hold
-      b.onkeydown = e => { if (e.key === 'Enter') switchTo(x.name); };
+      b.onkeydown = e => { if (e.target === b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); switchTo(x.name); } };  // a button: Space too
       return b;
     };
     const header = g => {  // name, this Mac or its OS, offline since or round trip, how many need you; a click folds it

@@ -549,3 +549,25 @@ def test_a_gone_artifact_is_named_not_led_by_a_colon():
                          "artifacts": [{"id": "a1", "kind": "file", "name": "checkout.py", "path": "shop/checkout.py"}]}
     (msg,) = _run([(1440, LIVE, "(document.querySelector('#show-body .msg') || {}).textContent")], status)
     assert msg and not msg.startswith(":") and msg.startswith("checkout.py: "), msg
+
+
+def test_space_on_a_session_row_switches_as_enter_does():
+    """A row is role=button: Space presses it, as it presses every button (WAI-ARIA button pattern)."""
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=3, talk=2, connected=True)
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
+                await page.eval(f"(async () => {{ {LIVE} await refresh(); [...document.querySelectorAll('#list .s')]"
+                                ".find(r => r.querySelector('.nm').textContent === 's2-mobile').focus(); return true; })()")
+                for kind in ("keyDown", "keyUp"):
+                    await page.cdp("Input.dispatchKeyEvent", {"type": kind, "key": " ", "code": "Space", "windowsVirtualKeyCode": 32,
+                                                             **({"text": " "} if kind == "keyDown" else {})})
+                await asyncio.sleep(0.4)
+                return [b for p, b, _ in stub.posts if p == "/voice/switch"], await page.eval("muted")
+        finally:
+            await stub.stop()
+    switched, muted = asyncio.run(run())
+    assert switched == [{"name": "s2-mobile"}] and muted is False, (switched, muted)
