@@ -33,6 +33,20 @@ import Testing
         }
     }
 
+    /// A macOS without the call, or one that refuses it, must not start the script as the app's child anyway: it would
+    /// record under the app's microphone grant. Nothing runs, and the error says why.
+    @Test func withoutTheDisclaimNothingStarts() async throws {
+        let ran = FileManager.default.temporaryDirectory.appendingPathComponent("pointe-disclaim-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: ran) }
+        for broken in [ProcessRunner(disclaim: nil), ProcessRunner(disclaim: { _, _ in 22 })] {
+            await #expect(throws: ProcessRunner.NotDisclaimed.self) {
+                try await broken.run(URL(fileURLWithPath: "/usr/bin/touch"), [ran.path], environment: [:], timeout: 5)
+            }
+            #expect(!FileManager.default.fileExists(atPath: ran.path), "the program never ran")
+        }
+        #expect(ProcessRunner.NotDisclaimed().localizedDescription.contains("can't start"))
+    }
+
     @Test func theChildIsResponsibleForItselfNotThisApp() async throws {
         typealias Responsible = @convention(c) (pid_t) -> pid_t
         let symbol = try #require(dlsym(UnsafeMutableRawPointer(bitPattern: -2), "responsibility_get_pid_responsible_for_pid"))

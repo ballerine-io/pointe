@@ -411,7 +411,8 @@ no rule above and adds no listener.
   macOS counts a child as the app that started it, microphone permission included. So the app starts every script
   (`voice-daemon`, `pointe key`, `pointe setup`, `voice-open`) disclaimed (`CommandRunner.swift`): with
   `posix_spawn` and macOS's `responsibility_spawnattrs_setdisclaim`, a libSystem call that is not in Apple's headers,
-  so macOS judges the script by its own permissions, not the app's. The daemon needs no microphone: call audio reaches it over the socket. An app
+  so macOS judges the script by its own permissions, not the app's. If the call is missing or refused, the app starts
+  nothing and says it can't start its scripts safely on this macOS. The daemon needs no microphone: call audio reaches it over the socket. An app
   for the App Store could not use that call; this one is built from source.
 - **Known limits:** code running as you can read the page key the app reads. The browser page still sends the page key
   as its cookie, so a program that holds the port while the daemon is down gets the key from an open page's next
