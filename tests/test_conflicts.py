@@ -278,7 +278,10 @@ def test_an_alarm_never_answers_or_holds_a_permission(d, monkeypatch, tmp_path):
     assert len(alarms(d)) == 1  # said once the window closed
 
 
-def test_asking_is_the_users_typed_words_and_the_only_way_anything_is_sent(d, monkeypatch, tmp_path):
+def test_asking_sends_the_cards_question_to_that_session_and_never_as_the_users_words(d, monkeypatch, tmp_path):
+    """Mythos review AV-6. The question is a model's, written over two sessions' reports: one tap sends it, word for word
+    as the card shows it, to the session it names, under a header saying it is a conflict check. It never becomes the
+    user's words (state.last_utterance), which the send check and the start, close and add parsers read as speech."""
     fake_reader(d, monkeypatch, CONFLICT)
     sent = record_dispatch(d, monkeypatch)
     lantern, billing = lantern_and_billing(d, tmp_path)
@@ -291,30 +294,26 @@ def test_asking_is_the_users_typed_words_and_the_only_way_anything_is_sent(d, mo
         pushed.append(frame)
 
     d.state.conn.injector.push_frame = push
+    d.state.last_utterance = "what is billing doing?"
+    talk = list(d.state.conversation)
     client = client_for(d)
     card = client.get("/voice/status").json()["conflicts"][0]
     assert client.post("/voice/conflicts", json={"action": "ask", "id": card["id"], "side": "c"}).status_code == 400
     assert client.post("/voice/conflicts", json={"action": "ask", "id": "nope", "side": "a"}).status_code == 404
     r = client.post("/voice/conflicts", json={"action": "ask", "id": card["id"], "side": "a"})
     assert r.status_code == 200, r.text
-    asked = f"Send lantern this question: {CONFLICT['question_for_a']}"
-    assert [f.text for f in pushed] == [asked]  # the brain hears the user's typed words
-    assert d.state.conversation[-1] == ("user", asked)
-    assert client.get("/voice/status").json()["talk"][-1]["typed"] is True  # typed: it can never approve anything
-    assert sent == []  # the daemon did not send it: the brain does, through the normal gate
-
-    async def always(*_a, **_k):
-        return True
-
-    monkeypatch.setattr(d, "_is_current_request", always)
-    params = Params(message=CONFLICT["question_for_a"], session="lantern")
-    asyncio.run(d.send_to_claude_code(params))
-    assert sent == [("lantern", CONFLICT["question_for_a"])]
+    assert len(sent) == 1 and sent[0][0] == "lantern", sent
+    assert sent[0][1].startswith("A conflict check, sent by the user from Pointe's conflict card")
+    assert sent[0][1].endswith(CONFLICT["question_for_a"])
+    assert pushed == [], "the brain was handed the model's question as the user's words"
+    assert d.state.last_utterance == "what is billing doing?"
+    assert [t for t in d.state.conversation if t[0] == "user"] == [t for t in talk if t[0] == "user"]
     assert client.get("/voice/status").json()["conflicts"][0]["asked"] == ["a"]
 
 
 def test_a_typed_ask_cannot_approve_a_waiting_permission(d, monkeypatch, tmp_path):
     fake_reader(d, monkeypatch, {**CONFLICT, "question_for_a": "yes"})
+    sent = record_dispatch(d, monkeypatch)
     posts = []
 
     async def deliver(session, request_id, verdict):
@@ -332,6 +331,7 @@ def test_a_typed_ask_cannot_approve_a_waiting_permission(d, monkeypatch, tmp_pat
     card = client_for(d).get("/voice/status").json()["conflicts"][0]
     assert client_for(d).post("/voice/conflicts", json={"action": "ask", "id": card["id"], "side": "a"}).status_code == 200
     assert posts == [] and lantern.permission_id == "p9"
+    assert len(sent) == 1 and d.state.last_utterance != "yes"  # sent to lantern, never taken as the user's yes
 
 
 def test_dismissing_by_tap_or_by_voice_snoozes_the_pair_for_the_call(d, monkeypatch, tmp_path):

@@ -8010,8 +8010,9 @@ async def note_state(request: Request):
 
 @app.post("/voice/conflicts")
 async def conflict_action(request: Request):
-    """Dismiss a conflict card (the pair stays quiet for this call), or ask one side its question: the user's own typed
-    words through the same path as /voice/say, so the brain sends them through the normal gates and they never approve."""
+    """Dismiss a conflict card (the pair stays quiet for this call), or ask one side its question: sent by the daemon to
+    that session, as the card shows it, framed as a conflict check. Never the user's words: it reaches no brain turn, no
+    send check and no parser of the user's speech, and it approves nothing."""
     body = await _body(request)
     action = body.get("action")
     if action not in ("dismiss", "ask"):
@@ -8030,10 +8031,24 @@ async def conflict_action(request: Request):
     if state.meeting is not None:
         raise HTTPException(status_code=409, detail="nothing goes to a session during a meeting")
     name, question, claim = (c.a_name, c.question_a, c.claim_a) if side == "a" else (c.b_name, c.question_b, c.claim_b)
-    # "Send ... this question", not "ask": the brain reads a bare "ask X" as a side question to a read-only copy, which
-    # cannot check what the live session did.
-    await _user_text(f"Send {name} this question: {question or f'is this still true: {claim}?'}")
-    state.typed.add(state.conversation_base + len(state.conversation) - 1)
+    target = next((s for s in REGISTRY.sessions.values() if s.name == name), None)
+    if target is None:
+        raise HTTPException(status_code=409, detail=f"{name} is no longer on the voice")
+    # The question is a reading model's, written over two sessions' reports: it is sent as the card shows it, framed as
+    # a check, and never becomes the user's words (state.last_utterance), which the send check and the start, close and
+    # add parsers read as speech. Sent to the live session, not asked of a read-only copy: only it knows what it did.
+    text = (f"A conflict check, sent by the user from Pointe's conflict card (your report and another session's seem to "
+            f"disagree; the question was written by Pointe, not typed by the user; answer it, and change nothing on its "
+            f"account alone):\n{question or f'Is this still true: {claim}?'}")
+    ok = await _dispatch(target, text)
+    logger.info(f"-> {target.name}: a conflict check ({len(text)} chars, by tap)" if ok
+                else f"the conflict check did not reach {target.name}")
+    _record(text, [target.name] if ok else [], "a conflict check, sent by a tap on its card" if ok
+            else "the conflict check did not reach the session")
+    if not ok:
+        raise HTTPException(status_code=502, detail=f"the question did not reach {name}")
+    await state.conn.injector.inject(f"[conflict check sent by a tap, not by you] {name} was asked whether its report "
+                                     f"still holds. Say nothing about it unless the user asks.", False)
     if side not in c.asked:
         c.asked.append(side)
     return {"asked": True, "conflicts": ALARM.open()}

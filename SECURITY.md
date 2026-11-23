@@ -384,7 +384,7 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   heard), approve, the brain dump (`/voice/dump`, `/voice/listen`), switching the active session, hanging up, and the voice lock (`/voice/voiceprint`:
   enrol, delete, level; the app asks for Face ID before lowering the level or deleting), briefings (`/voice/briefings`:
   the last seven, start, skip, stop, and the schedule), Show while it says (`/voice/artifact`), the dictionary (`/voice/dictionary`: list, add, edit, delete), drive mode (`/voice/drive`: on, off), and the conflict alarm (`/voice/conflicts`: dismiss,
-  or ask one side as typed words, which never approve). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
+  or ask one side: the card's question, sent to that session as a conflict check, never as the user's words, and it approves nothing). Not the model's whole context, renaming, modes, or anything a Claude Code session uses.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
   `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it

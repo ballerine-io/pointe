@@ -11,8 +11,9 @@ report and delivers what it accepts.
 
 - The voice says it, and a card shows the two claims with Ask (either side) and Dismiss. One card at a time, the
   newest, with "N more disagreements" under it. The app plays a warning haptic when a card appears.
-- **Ask** sends your typed words `Send <name> this question: <question>` through the normal path, so every send gate
-  applies, and typed words can never approve.
+- **Ask** sends the card's question, as the card shows it, straight to that session, under a header saying it is a
+  conflict check written by Pointe, not typed by you. It never becomes your words: it starts no brain turn, passes no
+  send check as if you had said it, and approves nothing.
 - **Dismiss** (a tap, or "I know" / "later" within 5 minutes of the spoken alarm) keeps that pair quiet for the rest of
   the call.
 - Settings: `conflicts.on` (default on; off means no check at all) and `conflicts.spoken` (default on; off is "Card
@@ -53,7 +54,7 @@ OpenCode or Codex sessions, and no measured precision.
 | Body | Does | Errors |
 |---|---|---|
 | `{action: "dismiss", id}` | closes the card and its note; the pair stays quiet for the call | 404 unknown or closed id |
-| `{action: "ask", id, side: "a"\|"b"}` | sends the typed question through the normal send path | 400 bad side; 404; 409 no call, or a meeting on |
+| `{action: "ask", id, side: "a"\|"b"}` | sends the question to that session as a conflict check | 400 bad side; 404; 409 no call, a meeting on, or the session left; 502 not delivered |
 
 Status `conflicts: [{id, a, b, agent_a, agent_b, claim_a, claim_b, at_a, at_b, at, why, severity: high|normal,
 questions: {a, b}, branches: {a, b}|null, asked, state}]`, open ones only; `a` is the earlier report. Notes get kind
