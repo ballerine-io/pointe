@@ -485,8 +485,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
     of the conversation, the words being heard) and approve (`/voice/approve`);
   - driving the sessions: `/voice/switch`, `/voice/disconnect`, `/voice/hung-up`, `/voice/rename`, `/voice/mode`,
     typed words (`/voice/say`, `/voice/correct`, `/voice/polish`), a new session in a folder the Mac allows
-    (`/voice/new-session`), the night shift (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the
-    challenge (`/voice/challenge`), drive mode (`/voice/drive`), alerts (`/voice/attention`) and the conflict alarm
+    (`/voice/new-session`), adding sessions listed on the Mac (`/voice/add-sessions`), the night shift
+    (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the challenge (`/voice/challenge`), drive mode (`/voice/drive`), alerts (`/voice/attention`) and the conflict alarm
     (`/voice/conflicts`: dismiss, or ask one side: the card's question, sent to that session as a conflict check,
     never as the user's words, and it approves nothing);
   - meetings and notes: `/voice/meeting`, `/voice/meeting/transcript`, `/voice/notes`;

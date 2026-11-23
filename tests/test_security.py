@@ -501,8 +501,9 @@ def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
               "/voice/dump"}
     # and, since 1.16.0, the New session sheet (docs/design/new-session.md): options and a start in an allowed folder
     # and, since 1.19.0, the night shift (docs/design/night-shift.md): its sheet, Start, Stop and the ledger; never an approval
+    # and the Add sessions sheet (SECURITY.md "Adding sessions"): the app called it, the key was refused, and joining failed
     assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/new-session",
-                                     "/voice/night-shift"}
+                                     "/voice/night-shift", "/voice/add-sessions"}
     assert before <= _PHONE_PATHS
 
 
@@ -579,3 +580,23 @@ def test_security_md_names_every_route_the_phone_key_opens_and_no_other():
     start = text.index("- **What the phone key opens")
     bullet = text[start:text.index("\n- **", start + 1)]
     assert set(re.findall(r"`(/voice/[a-z/-]+)`", bullet)) == _PHONE_PATHS
+
+
+def test_the_phone_key_reaches_add_sessions_as_the_app_and_security_md_say(tmp_path):
+    """The iPhone app's Add sessions sheet lists (GET) and joins or reopens (POST, after Face ID in the app)."""
+    (tmp_path / "tls").mkdir()
+    (tmp_path / "tls" / "cert.pem").write_text("x")
+    (tmp_path / "tls" / "key.pem").write_text("x")
+    (tmp_path / "remote.json").write_text(json.dumps({"host": HOST}))
+    (tmp_path / "remote_token").write_text("s3cret-token")
+    remote = Remote(tmp_path)
+    app = FastAPI()
+    app.middleware("http")(remote.guard)
+    app.get("/voice/add-sessions")(lambda: {"open": []})
+    app.post("/voice/add-sessions")(lambda: {"joined": []})
+    app.add_middleware(LocalAuth, token="daemon-token", page_key="page-key", remote=remote,
+                       phone=lambda authorization: authorization == "Bearer phone-key")
+    phone = {"authorization": "Bearer phone-key"}
+    assert tls(app).get("/voice/add-sessions", headers=phone).status_code == 200
+    assert tls(app).post("/voice/add-sessions", headers=phone, json={"join": ["k"]}).status_code == 200
+    assert tls(app).get("/voice/add-sessions", headers={"authorization": "Bearer guess"}).status_code == 403
