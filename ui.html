@@ -492,6 +492,7 @@
   #attention { display: flex; flex-direction: column; gap: 8px; padding: 0 var(--gutter); }
   #attention:empty { display: none; }
   .ask .need.err { color: var(--danger-text); }
+  #night-sections a { color: var(--accent); text-underline-offset: 2px; }
   .ask { border: 1px solid var(--orange-line); border-radius: 12px; padding: 14px 16px; background: var(--card); color: var(--text); text-align: left; }
   .ask .what { font-weight: 600; font-size: 14px; }
   .ask .what span:not(.agent) { color: var(--accent); font-weight: 600; white-space: nowrap; }
@@ -2297,7 +2298,11 @@
         else {
           li.append(el('b', '', e.session), key === 'done' ? (e.proof || e.text) : e.text);
           if (e.task) li.append(el('div', 'sub', e.task));
-          if (key === 'done' && (e.commit || e.pr)) li.append(el('div', 'sub', [e.commit && `commit ${e.commit}`, e.pr].filter(Boolean).join(' · ')));
+          if (key === 'done' && (e.commit || e.pr)) {
+            const refs = el('div', 'sub', e.commit ? `commit ${e.commit}` : '');
+            if (e.pr) refs.append(e.commit ? ' · ' : '', prRef(e.pr));
+            li.append(refs);
+          }
           if (key === 'blocked' && e.request) { li.append(el('div', 'sub', c.exact), el('pre', '', e.request)); }
         }
         if (e.resolved) li.append(el('div', 'sub', e.resolved));
@@ -2353,6 +2358,14 @@
   function nightSync() {
     const items = nightItems();
     $('night-start').disabled = !items.length || !items.every(i => i.task && (i.session || (i.start && i.start.harness && i.start.folder)));
+  }
+  // A pull request the ledger names: a link called by its number (#12) when it is a web address, as on the iPhone; any
+  // other text as it was written. Only http(s): the ledger's words come from a session.
+  function prRef(pr) {
+    if (!/^https?:\/\/\S+$/.test(pr)) return pr;
+    const a = el('a', '', (pr.match(/\/pull\/(\d+)/) || [])[1] ? '#' + pr.match(/\/pull\/(\d+)/)[1] : pr);
+    a.href = pr; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.title = pr;
+    return a;
   }
   async function startShift() {
     $('night-start').disabled = true; $('night-err').textContent = '';

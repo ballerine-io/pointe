@@ -65,6 +65,7 @@ SHEET = """(() => ({open: document.getElementById('nightsheet').classList.contai
   sections: [...document.querySelectorAll('#night-sections section')].map(s => [s.querySelector('h3').textContent,
              [...s.querySelectorAll('li')].map(li => li.textContent)]),
   request: [...document.querySelectorAll('#night-sections pre')].map(p => p.textContent),
+  links: [...document.querySelectorAll('#night-sections a')].map(a => [a.textContent, a.href, a.target, a.rel]),
   stopShown: !document.getElementById('night-stop').hidden, newShown: !document.getElementById('night-new').hidden,
   history: [...document.querySelectorAll('#night-history button')].map(b => b.textContent)}))()"""
 MAIN = """(() => ({strip: document.getElementById('nightstrip').textContent,
@@ -169,7 +170,9 @@ def test_the_sheet_starts_what_it_shows_and_the_strip_the_card_and_the_ledger_fo
     rows = dict(ledger["sections"])
     assert "cap the backoff?" in rows["Decisions made without you"][0] and "→ 30 seconds → change MAX_BACKOFF" in rows["Decisions made without you"][0]
     assert "docsOld format or new?" in rows["Questions waiting on you"][0]
-    assert "42 of 42" in rows["Done"][0] and "commit 3f2a9c1" in rows["Done"][0] and "/pull/12" in rows["Done"][0]
+    assert "42 of 42" in rows["Done"][0] and "commit 3f2a9c1" in rows["Done"][0] and "#12" in rows["Done"][0]
+    # the pull request is a link named by its number, as on the iPhone, not a raw address
+    assert ledger["links"] == [["#12", "https://github.com/acme/billing/pull/12", "_blank", "noopener noreferrer"]], ledger["links"]
     assert ledger["request"] == [REQUEST] and "The exact request" in rows["Blocked"][0]  # word for word, on the screen
     assert ledger["history"] and "1 of 5 done · 2 blocked · running" in ledger["history"][0]
     assert got["busy"]["strip"].startswith("Night shift1 of 5 done · 2 blocked")
