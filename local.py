@@ -28,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
 import no_telemetry  # noqa: E402,F401  (before anything imports onnxruntime)
 import assets  # noqa: E402
+import childenv  # noqa: E402
 import vendors  # noqa: E402
 
 TEXT_MODEL = "mlx-community/gemma-4-26b-a4b-it-4bit"  # Apache-2.0; why: docs/features/local.md
@@ -196,7 +197,7 @@ def answering(base: str | None = None) -> bool:
 
 def memory(pid: int) -> str:
     """The process's footprint as macOS counts it. Not ps's RSS: the model's weights are GPU memory, which RSS leaves out."""
-    got = subprocess.run(["footprint", str(pid)], capture_output=True, text=True)
+    got = subprocess.run(["footprint", str(pid)], capture_output=True, text=True, env=childenv.child_env())
     found = re.search(r"Footprint: ([\d.]+ [KMG]B)", got.stdout)
     return found.group(1) if found else "unknown"
 
@@ -215,7 +216,7 @@ def start(text_model: str | None = None, quiet: bool = False) -> bool:
                                  *SERVER_ARGS], stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                 start_new_session=True,  # outlives the shell that started it, as the daemon does
                                 # Offline: the model is on disk, and loading it by name would ask the Hub about it.
-                                env={**{k: v for k, v in os.environ.items() if k not in vendors.KEY_ENVS}, "HF_HUB_OFFLINE": "1"})
+                                env=childenv.child_env(HF_HUB_OFFLINE="1"))
     (home() / "server.pid").write_text(str(proc.pid))
     if not quiet:
         print(f"Starting the text model on {url()} (loading about {gb(cached_bytes(text_model))} into memory)...", flush=True)
@@ -264,7 +265,8 @@ def supported(text_model: str = TEXT_MODEL) -> str | None:
     if platform.system() != "Darwin" or platform.machine() != "arm64":
         return ("The one-step local mode needs an Apple-silicon Mac. Elsewhere, set each role to local by hand and run "
                 "an OpenAI-compatible server such as Ollama: see docs/features/local.md.")
-    ram = int(subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True).stdout.strip() or 0) / 2**30
+    ram = int(subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True,
+                             env=childenv.child_env()).stdout.strip() or 0) / 2**30
     if ram < MIN_RAM_GB and text_model == TEXT_MODEL:  # a model chosen by hand is the user's call
         return (f"This Mac has {ram:.0f} GB of memory; the local text model needs {MIN_RAM_GB} GB or more. "
                 f"A smaller model can be chosen with: pointe local --model <mlx-community model>, unmeasured.")
@@ -375,7 +377,7 @@ def install(text_model: str = TEXT_MODEL) -> int:
         print(f"Installing {MLX_LM}...", flush=True)
         # Its own environment, from the lockfile: the same pinned, hashed packages as every other install path.
         subprocess.run(["uv", "sync", "--locked", "--quiet", "--only-group", "mlx-lm", "--project", str(ROOT)], check=True,
-                       env={**os.environ, "UV_PROJECT_ENVIRONMENT": str(home() / "mlx-lm")})
+                       env=childenv.child_env(UV_PROJECT_ENVIRONMENT=str(home() / "mlx-lm")))
     for label, repo in wanted:
         if not cached_bytes(repo):
             print(f"Downloading {label}...", flush=True)

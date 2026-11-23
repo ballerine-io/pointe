@@ -18,8 +18,10 @@ import select
 import subprocess
 import sys
 import time
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
+import childenv  # noqa: E402
 import vendors  # noqa: E402
 from vendors import KEYS  # noqa: E402
 
@@ -59,14 +61,14 @@ def ask(vendor: str, refused: bool = False) -> str | None:
     script = (f'display dialog "{prompt(vendor, refused)}" default answer "" with hidden answer '
               f'with title "Pointe: {LABEL[vendor]} key" buttons {{"Cancel", "Save"}} default button "Save"\n'
               f'text returned of result')
-    got = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    got = subprocess.run(["/usr/bin/osascript", "-e", script], capture_output=True, text=True, env=childenv.child_env())
     return got.stdout.strip() if got.returncode == 0 and got.stdout.strip() else None
 
 
 def open_page(vendor: str) -> None:
     """The vendor's key page in the browser, so the person does not have to find it."""
     try:
-        subprocess.run(["open", WHERE[vendor]], capture_output=True, timeout=10)
+        subprocess.run(["open", WHERE[vendor]], capture_output=True, timeout=10, env=childenv.child_env())
     except (OSError, subprocess.TimeoutExpired):
         pass
 
@@ -75,7 +77,8 @@ def save(item: str, secret: str) -> bool:
     """`security` asks for the password on its terminal: answer it there, twice, so the key never is an argument."""
     pid, fd = pty.fork()
     if pid == 0:
-        os.execvp("security", ["security", "add-generic-password", "-U", "-s", item, "-a", os.environ.get("USER", "pointe"), "-w"])
+        os.execve("/usr/bin/security", ["security", "add-generic-password", "-U", "-s", item, "-a", os.environ.get("USER", "pointe"),
+                             "-w"], childenv.child_env())
     answered, deadline = 0, time.time() + 15
     try:
         while time.time() < deadline:
@@ -101,6 +104,11 @@ def save(item: str, secret: str) -> bool:
 # The audio-only vendors have no text model: a list of their models is the smallest call their key must authorise.
 AUDIO_CHECK = {"soniox": ("https://api.soniox.com/v1/models", "Authorization", "Bearer {}"),
                "elevenlabs": ("https://api.elevenlabs.io/v1/models", "xi-api-key", "{}")}
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None  # the 3xx is raised as an HTTPError: answered, not checked
 
 
 def check(vendor: str, secret: str | None = None) -> tuple[bool | None, str]:
@@ -134,7 +142,8 @@ def _check(vendor: str, asyncio, urllib) -> tuple[bool | None, str]:
     try:
         if vendor in AUDIO_CHECK:
             url, header, form = AUDIO_CHECK[vendor]
-            urllib.request.urlopen(urllib.request.Request(url, headers={header: form.format(secret)}), timeout=15).close()
+            opener = urllib.request.build_opener(_NoRedirect)  # urllib would send the key on to wherever a 3xx points
+            opener.open(urllib.request.Request(url, headers={header: form.format(secret)}), timeout=15).close()
         else:
             # Their own choice first: on another host (openai_url) the default model names are not deployed.
             configured = [c for c in (vendors.config().get(r) for r in ("checker", "brain", "reader")) if c]
@@ -154,7 +163,7 @@ def _check(vendor: str, asyncio, urllib) -> tuple[bool | None, str]:
 
 
 def running() -> bool:
-    got = subprocess.run([os.path.join(BIN, "voice-daemon"), "status"], capture_output=True, text=True)
+    got = subprocess.run([os.path.join(BIN, "voice-daemon"), "status"], capture_output=True, text=True, env=childenv.child_env())
     return got.stdout.startswith("running")
 
 

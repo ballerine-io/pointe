@@ -3,6 +3,14 @@
 # its channel adds voice permission relay that /pointe:voice (attach) mode lacks.
 # Usage: [CLAUDE_VOICE_FRONT=brain|gemini|openai] [CLAUDE_VOICE_EARS=soniox|gemini|openai|elevenlabs] claude-voice [claude args...]
 set -euo pipefail
+# Never a session that skips its permission prompts, whoever asked: the words harnesses/base.py refuse_bypass refuses,
+# checked before anything starts.
+for arg in "$@"; do
+  case "$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')" in
+    *dangerously*|*skip-permissions*|*bypasspermissions*|*danger-full-access*|*dangerfullaccess*)
+      echo "claude-voice: not started: Pointe never starts a session that skips its permission prompts." >&2; exit 2 ;;
+  esac
+done
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -14,7 +22,7 @@ command -v node >/dev/null 2>&1 || { echo "claude-voice: Node.js is missing; lau
 URL="$("$ROOT/bin/voice-daemon" ensure)"
 
 # A free port for this session's channel, so several voice sessions can run at once.
-CHANNEL_PORT="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')"
+CHANNEL_PORT="$(python3 -I -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')"
 CLAUDE_VOICE_TOKEN="$(cat "$STATE/token")"
 export CLAUDE_VOICE_TOKEN CLAUDE_VOICE_CHANNEL_PORT="$CHANNEL_PORT" CLAUDE_VOICE_DAEMON_URL="http://127.0.0.1:$PORT"
 export CLAUDE_VOICE_STATE="$STATE" CLAUDE_VOICE_DAEMON_PORT="$PORT"  # for the SessionStart hook
@@ -30,7 +38,8 @@ cat >"$SESSION_STATE/settings.json" <<EOF
     "command": "'$ROOT/bin/register-session' --quiet --channel-url http://127.0.0.1:$CHANNEL_PORT" } ] } ] } }
 EOF
 
-CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
+"$ROOT/bin/voice-ours" || { echo "claude-voice: the program on port $PORT is not Pointe, or nothing here can tell (lsof, ss or /proc)" >&2; exit 1; }  # the token goes only to the daemon
+CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$ROOT/bin/voice-open"
 
 # exec: the session's pid is Claude Code itself, which is what liveness checks watch.

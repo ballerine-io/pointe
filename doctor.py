@@ -11,6 +11,7 @@ import sys
 import textwrap
 
 import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
+import childenv
 import local
 import setups
 import vendors
@@ -146,7 +147,8 @@ def harnesses_here() -> list[str]:
         lines.append("  missing  Claude Code   (optional) https://code.claude.com")
     if shutil.which("opencode"):
         try:
-            up = subprocess.run(["opencode", "service", "status"], capture_output=True, text=True, timeout=5).returncode == 0
+            up = subprocess.run(["opencode", "service", "status"], capture_output=True, text=True, timeout=5,
+                                env=childenv.child_env()).returncode == 0
         except (OSError, subprocess.TimeoutExpired):
             up = False
         lines.append(f"  found    OpenCode      join: pointe join opencode, in the session's folder"

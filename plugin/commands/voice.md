@@ -1,6 +1,6 @@
 ---
 description: Join this Claude Code session to Pointe (starts Pointe if needed; sets it up on a first run)
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe node status:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run:*), Read(${CLAUDE_PLUGIN_ROOT}/plugin/commands/setup.md), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-daemon:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/install-uv:*), Bash(command -v:*), Bash(ls:*), Bash(sw_vers:*), Bash(open:*), Bash(echo:*), Bash(mkdir -p ~/.claude-voice:*), Bash(touch ~/.claude-voice/setup-done:*)
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/claude-voice-attach:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe node status:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run:*), Read(${CLAUDE_PLUGIN_ROOT}/plugin/commands/setup.md), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe setup:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe key:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps mac:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/pointe apps ios:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/voice-doctor:*), Bash(${CLAUDE_PLUGIN_ROOT}/bin/install-uv:*), Bash(ls /Applications:*), Bash(sw_vers:*), Bash(mkdir -p ~/.claude-voice), Bash(touch ~/.claude-voice/setup-done)
 ---
 
 First run `${CLAUDE_PLUGIN_ROOT}/bin/voice-first-run --needed`. If it prints `needed`, Pointe has never been set up on this Mac: say in

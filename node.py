@@ -29,12 +29,22 @@ sys.path.insert(0, str(ROOT))
 import aiohttp  # noqa: E402
 from loguru import logger  # noqa: E402
 
+import childenv  # noqa: E402
 import guards  # noqa: E402
 import harnesses  # noqa: E402
 import nodelink  # noqa: E402
 import readout  # noqa: E402
 from harnesses.base import HOST  # noqa: E402
 from sessions import Registry, Session, wait_state  # noqa: E402
+
+# loguru's default sink prints each frame's variables under a traceback (diagnose): a key, a URL with ?key=, in a log a
+# failure shows. Replaced by one that does not, before Pointe logs anything (tests/test_log_tracebacks.py).
+try:
+    logger.remove(0)
+except ValueError:  # replaced already
+    pass
+else:
+    logger.add(sys.stderr, diagnose=False, backtrace=False)
 
 NO_WAIT = {"blocked_on": "", "blocked_since": None, "held_at": None}
 
@@ -812,7 +822,8 @@ class Node:
         proc = None
         try:
             proc = await asyncio.create_subprocess_exec(
-                "git", "-C", session.cwd, "ls-files", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+                "git", "-C", session.cwd, "ls-files", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+                env=childenv.child_env())
             out, _ = await asyncio.wait_for(proc.communicate(), 5)
         except (OSError, asyncio.TimeoutError):
             return

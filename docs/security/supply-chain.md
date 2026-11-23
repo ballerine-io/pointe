@@ -47,7 +47,7 @@ that is not there, so a dependency bump or a pull request cannot add an egress s
 | `api.openai.com` | OpenAI text, ears, mouth, realtime front | with an OpenAI key |
 | `api.elevenlabs.io` | ElevenLabs ears and mouth | with an ElevenLabs key |
 | `stt-rt.soniox.com`, `tts-rt.soniox.com` | Soniox ears, meeting ears, mouth (WebSocket) | with a Soniox key |
-| `api.soniox.com` | One GET of the models list, to tell whether a saved key works | `pointe key check soniox` only |
+| `api.soniox.com` | One GET of the models list, to tell whether a saved key works; a redirect is not followed | `pointe key check soniox` only |
 | `huggingface.co`, `cdn-lfs.huggingface.co`, `cdn-lfs-us-1.huggingface.co`, `cas-bridge.xethub.hf.co`, `transfer.xethub.hf.co` | model downloads at the pinned revisions (`huggingface_hub`, `hf-xet`) | `pointe local`, `pointe local voice`, first use of `ears: local` |
 | `github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com` | Kokoro v1.0 and ERes2Net release assets; the `en-core-web-sm` wheel; uv's binaries | first use of `mouth: local`, the voice lock; `uv sync --extra local`; `bin/install-uv` |
 | `api.github.com` | the roadmap issues and their 👍 counts, through `gh api` | `tools/roadmap.py` (`site/deploy.sh --roadmap`), run by a maintainer; never by the plugin |
@@ -111,3 +111,8 @@ tags are not yet in use (see Open).
 - `osv-scanner` and a Software Bill of Materials diff between releases are not run; the SBOM is produced, not compared.
 - The Twingate image tag (above) and the e2e Dockerfile base images are accepted as moving.
 - `bench/local_tts_bench.py` downloads Chatterbox unpinned; measurement code, not shipped behaviour.
+- **Accepted:** CI's `uvx pip-audit@2.10.1` and `uvx --from cyclonedx-bom@8.0.1` pin each tool's version, not its
+  dependencies or their hashes, so those resolve to whatever PyPI serves that day. Locking them would add a dependency
+  group (new packages in `uv.lock` and the allowlist), which needs the owner's yes. The risk is bounded: the job runs
+  with a read-only token and no secrets, reads only this repository, and its outputs are a pass or fail and the SBOM
+  artifact; nothing it produces ships to a user.

@@ -34,3 +34,11 @@ def pytest_runtest_setup(item):
         import conv_suite
 
         conv_suite.enter(key)
+
+
+def pytest_runtest_teardown(item):
+    """vendors keeps a key read from the Keychain in memory, not in os.environ, so monkeypatch's restore of the
+    environment does not reach it: one test's fake Keychain key must not answer the next test's lookup."""
+    vendors = sys.modules.get("vendors")
+    if vendors is not None:
+        vendors._found.clear()

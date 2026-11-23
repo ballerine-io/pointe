@@ -26,6 +26,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
+import childenv  # noqa: E402
 import nodelink  # noqa: E402
 from phone import phone_key  # noqa: E402
 from remote import TLS_PORT  # noqa: E402
@@ -39,7 +40,7 @@ CODE_PAIRING_VERSION = 2  # the page's QR: a one-time code the app trades for th
 
 def _run(*args: str) -> str:
     try:
-        return subprocess.run(args, capture_output=True, text=True, timeout=10).stdout.strip()
+        return subprocess.run(args, capture_output=True, text=True, timeout=10, env=childenv.child_env()).stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
         return ""
 
@@ -313,7 +314,7 @@ def show() -> None:
     image.touch(mode=0o600)
     code.save(str(image), scale=10)
     if sys.platform == "darwin":
-        subprocess.run(["open", str(image)], check=False)
+        subprocess.run(["open", str(image)], check=False, env=childenv.child_env())
     print(f"Scan it inside the Pointe app, not with the Camera app: it holds this phone's lasting key, and a link the Camera "
           f"opens can reach another app. It connects to {config['host']}:{TLS_PORT} and checks certificate {fingerprint()[:16]}...")
     print("To revoke it, Unpair the phone in Settings → Phone, or delete ~/.claude-voice/phone_key. The page's Settings → Phone "

@@ -21,6 +21,7 @@ from pathlib import Path
 from loguru import logger
 
 import assets
+import childenv
 import setups
 
 KEYS = {
@@ -31,7 +32,8 @@ KEYS = {
     "elevenlabs": ("ELEVENLABS_API_KEY", "pointe.elevenlabs-api-key"),
 }
 # The names before 1.20.0. Still read, after Pointe's own, so a key saved then keeps working; never written or deleted
-# here, because another tool may keep an item of the same name.
+# here, because another tool may keep an item of the same name. Not for OpenAI with openai_url set: that key goes to a
+# host the person chose, and `openai-api-key` may be another tool's key for OpenAI itself (openai_url came after 1.20.0).
 LEGACY_ITEMS = {vendor: item.removeprefix("pointe.") for vendor, (_, item) in KEYS.items()}
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names
 LOCAL = "local"  # needs no key: Whisper and Kokoro on this machine, and an OpenAI-compatible server for text models
@@ -42,6 +44,21 @@ SONIOX_RT_MODEL = "stt-rt-v6"
 LOCAL_EARS_MODEL = "mlx-community/whisper-large-v3-turbo"  # why: bench/results/local.md; its commit: assets.HF_MODELS
 LOCAL_EARS_MODEL_CT2 = "deepdml/faster-whisper-large-v3-turbo-ct2"  # the same model for faster-whisper, off Apple silicon
 KEY_ENVS = {env for env, _ in KEYS.values()} | set(ENV_ALIASES.values()) | {"CLAUDE_VOICE_LOCAL_KEY"}
+# Read by the vendor SDKs when a client is built (Anthropic 2.6, openai 3.42, google-genai 2.34), and each sends the key
+# and session content to another host than the vendor's own API, or adds a gateway's credential to every request: the
+# egress list (docs/security/egress-allowlist.txt) would not hold. A person sets them for Claude Code, not for Pointe, so
+# they are taken out of this process's environment at import and handed back only to the Claude Code it starts
+# (harnesses/claude_code._env). The clients below also name their host outright.
+SDK_ROUTING_ENVS = ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_CUSTOM_HEADERS", "OPENAI_BASE_URL",
+                    "OPENAI_CUSTOM_HEADERS", "OPENAI_ADMIN_KEY", "GOOGLE_GEMINI_BASE_URL", "GOOGLE_VERTEX_BASE_URL",
+                    "GOOGLE_GENAI_USE_VERTEXAI", "GOOGLE_GENAI_USE_ENTERPRISE")
+FOR_CLAUDE_CODE = {name: os.environ.pop(name) for name in SDK_ROUTING_ENVS if name in os.environ}
+ANTHROPIC_URL = "https://api.anthropic.com"
+OPENAI_URL = "https://api.openai.com/v1"
+GEMINI_URL = "https://generativelanguage.googleapis.com/"
+# Keys read from the Keychain, in this process's memory only: never in os.environ, so nothing it starts inherits one.
+# vendor -> (the item it came from, the key)
+_found: dict[str, tuple[str, str]] = {}
 # First available wins. The order is the result of bench/results; see README, "Benchmarks".
 BRAIN_ORDER = ["anthropic:claude-sonnet-5-5", "gemini:gemini-3.8-flash", "openai:gpt-6-sol"]
 BRAIN_FALLBACK = {"gemini:gemini-3.8-flash": "gemini:gemini-3.6-flash", "anthropic:claude-sonnet-5-5": "anthropic:claude-haiku-5-5",
@@ -86,16 +103,24 @@ def key(vendor: str) -> str | None:
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
         return value
-    for name in (item, LEGACY_ITEMS[vendor]):
+    names = (item,) if vendor == "openai" and openai_url() else (item, LEGACY_ITEMS[vendor])
+    if _found.get(vendor, ("",))[0] in names:
+        return _found[vendor][1]
+    for name in names:
         try:
-            got = subprocess.run(["security", "find-generic-password", "-s", name, "-w"], capture_output=True,
-                                 text=True, timeout=5)
+            got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", name, "-w"], capture_output=True,
+                                 text=True, timeout=5, env=childenv.child_env())
         except (OSError, subprocess.TimeoutExpired):
             return None
         if not got.returncode and got.stdout.strip():
-            os.environ[env] = got.stdout.strip()
-            return os.environ[env]
+            _found[vendor] = (name, got.stdout.strip())
+            return _found[vendor][1]
     return None
+
+
+def known_keys() -> list[str]:
+    """Every key value this process holds, from its environment or the Keychain: what a log line or a mask must hide."""
+    return [v for v in [*(os.environ.get(env, "") for env in KEY_ENVS), *(v for _, v in _found.values())] if v]
 
 
 _clients: dict[str, object] = {}
@@ -109,14 +134,14 @@ def _gemini():
 
     # One attempt: the library's own retries turned an out-of-quota 429 into a silent wait past every timeout, so the
     # vendor fallback never saw it. A refusal now surfaces at once and the next vendor answers.
-    return _clients.setdefault("gemini", genai.Client(api_key=key("gemini"), http_options=types.HttpOptions(
-        retry_options=types.HttpRetryOptions(attempts=1))))
+    return _clients.setdefault("gemini", genai.Client(api_key=key("gemini"), vertexai=False, http_options=types.HttpOptions(
+        base_url=GEMINI_URL, retry_options=types.HttpRetryOptions(attempts=1))))
 
 
 def _anthropic():
     import anthropic
 
-    return _clients.setdefault("anthropic", anthropic.AsyncAnthropic(api_key=key("anthropic")))
+    return _clients.setdefault("anthropic", anthropic.AsyncAnthropic(api_key=key("anthropic"), base_url=ANTHROPIC_URL))
 
 
 def openai_url() -> str | None:
@@ -140,7 +165,7 @@ def refuse_openai_audio(what: str) -> None:
 def _openai():
     from openai import AsyncOpenAI
 
-    return _clients.setdefault("openai", AsyncOpenAI(api_key=key("openai"), base_url=openai_url()))
+    return _clients.setdefault("openai", AsyncOpenAI(api_key=key("openai"), base_url=openai_url() or OPENAI_URL))
 
 
 def warm(choices: list[str]) -> None:

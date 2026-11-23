@@ -15,6 +15,9 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
   never leaves loopback either. Only `pointe pair` opens another address (see Phone access).
 - Every route except `/voice/health` needs a secret. Scripts send a per-daemon token (`~/.claude-voice/token`, 0600). The page
   opens once with a key in its address (`bin/voice-open`), which becomes an `HttpOnly`, `SameSite=Strict` cookie.
+- A script sends the token or the page key only when the program listening on the port is the one the daemon's pid file
+  names, or its child (`bin/voice-ours`): with the daemon down, another user's program on `127.0.0.1:7860` gets nothing.
+  Where nothing can tell who listens (no `lsof`, `ss` or `/proc`), nothing is sent.
 - That cookie lives on a private name, `<hash>.localhost`. Cookies ignore ports, so one set on plain `localhost` would reach any
   server you open on another port.
 - `Origin` must match `Host` exactly, for HTTP and for WebSocket. This stops other web pages and DNS rebinding.
@@ -68,7 +71,12 @@ that creates a process, so it is fenced on every side, in code with tests (`test
   opened over the network, so the list grows only at the Mac.
 - **How.** Never with permission prompts skipped: Claude Code gets `--permission-mode default`, Codex and OpenCode no
   override, and a Codex thread that would run with no approvals and no sandbox is archived and refused
-  (`harnesses.base.refuse_bypass`, `harnesses.codex.bypasses`).
+  (`harnesses.base.refuse_bypass`, `harnesses.codex.bypasses`). `pointe start` (`bin/claude-voice`) refuses the same
+  flags and settings before it starts anything.
+- **Plugin commands.** A command file's `allowed-tools` lets the model run those commands without a prompt for that
+  turn, in a session that may have read a stranger's text. Each rule names one command the file tells the model to run
+  (`pointe setup`, `pointe key`, `pointe apps doctor`, ...), never `pointe` itself, `open` or `echo`; `pointe start`,
+  `pair`, `hub`, `join` and `uninstall` always ask (`tests/test_plugin_permissions.py`).
 - **Who.** By voice, always a read-back of the agent, folder, machine and name, taken from the user's own words, then a
   plain yes within 60 seconds, under the rules of a yes to a permission prompt (`daemon._readback_answer`): a yes and
   nothing else, begun after the read-back ended, with the read-back the last thing the bot said; not the read-back
@@ -202,10 +210,27 @@ What sessions report is data for the voice model, not instructions to it:
 
 ## Keys
 
-- Keys come from the environment or the macOS Keychain, and reach the daemon only.
-- Claude Code sessions never receive them from Pointe, and `git` runs without them.
+- Keys come from the environment or the macOS Keychain, and reach the daemon only. A key read from the Keychain stays in
+  the daemon's memory, never in its environment.
+- No program Pointe starts receives them: not the `claude -p` copy a side question runs in, not `claude agents`, `git`,
+  OpenCode, the local text-model server or any other tool. Each gets the daemon's environment without the key variables
+  (`childenv.py`; `tests/test_child_env.py` fails on a spawn that does not use it). The exceptions start the daemon
+  itself (`pointe key`'s restart, `pointe join`), which reads keys from the environment it is given; `pointe apps` and
+  `pointe uninstall` never read a key and pass on the environment your shell gave them.
+- Pointe saves each key as `pointe.<vendor>-api-key`. It still reads the names before 1.20.0 (`openai-api-key`,
+  `gemini-api-key`, ...) after its own, so a key saved then keeps working. Another tool may keep an item under such a
+  name: Pointe then uses that key for the same vendor, and `pointe key <vendor>` saves one of Pointe's own, which wins.
+  With `openai_url` set, only `pointe.openai-api-key` is read from the Keychain, so another tool's item there never goes
+  to that host (`OPENAI_API_KEY` in the environment still comes first).
+- **Any program running as you can read them.** Pointe saves and reads the Keychain items through macOS's own
+  `/usr/bin/security`, so the item's access list names that tool, not Pointe: a program running as you can run
+  `security find-generic-password -s pointe.<vendor>-api-key -w` and get the key, without a prompt. Pressing Always
+  Allow when macOS asks (`/pointe:setup`, step 3) also allows `security`. This is the known limit below, code running as
+  you is trusted; the Keychain keeps the keys off disk in plain text and out of other users' reach.
 - They are not in command lines: scripts pass the token to `curl` through `--config`.
-- The page shows vendor errors with key values replaced. Logs hold an error's text as the vendor wrote it.
+- The page shows vendor errors with key values replaced. Logs hold an error's text as the vendor wrote it, and a
+  traceback without the values of its variables: the daemon and the node turn loguru's `diagnose` off, which would
+  print a key or a URL with `?key=` (`tests/test_log_tracebacks.py`).
 
 ## What leaves your machine
 
@@ -235,6 +260,12 @@ vendors still receive text. See [docs/features/voice-stays-local.md](docs/featur
 With `openai_url` set, the OpenAI text models are served by a host you choose (Azure OpenAI, for example): that host
 receives what the brain, reader and gate vendors would, over https only, and the OpenAI key is sent there and never to
 OpenAI, so OpenAI's audio services are refused. See [docs/features/openai-url.md](docs/features/openai-url.md).
+
+The vendors' own SDKs would follow variables set for Claude Code or another tool, such as `ANTHROPIC_BASE_URL`,
+`ANTHROPIC_AUTH_TOKEN`, `OPENAI_BASE_URL` or `GOOGLE_GENAI_USE_VERTEXAI`, and send your keys and session content to
+that host, or a gateway's header to the vendor. Pointe takes them out of its environment at start and names each
+vendor's own address in its clients (`vendors.SDK_ROUTING_ENVS`, `tests/test_sdk_hosts.py`); only the Claude Code it
+starts gets them back, so a copy of a session runs through your gateway as your session does.
 
 Choose vendors you are allowed to send that content to. `bin/voice-doctor` shows which ones are in use. Pointe has no server
 and no telemetry, and the page loads nothing from outside your machine.
@@ -332,7 +363,8 @@ The Mac with the call (the hub) keeps every rule above for them.
 - **Voice is not authentication.** Anyone your microphone can hear can answer a prompt, unless the voice lock is on; even
   then, a recording of your voice can pass it.
 - **The page key does not rotate by itself.** It lasts until you delete `~/.claude-voice/page_key`. It also passes through a
-  browser's command line when `bin/voice-open` runs, which other users on a shared Linux machine can read.
+  command line when `bin/voice-open` runs (`open` on macOS, `xdg-open` and the browser on Linux), and any other user of
+  the machine can read a command line with `ps`, on macOS as on Linux.
 - **While the voice holds a prompt, the terminal also shows it**, and either can answer. It waits up to 280 seconds. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).
 - **Two pages with the key can both be in a call.** Keep it to one.
 

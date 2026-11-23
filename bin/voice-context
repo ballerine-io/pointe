@@ -7,10 +7,13 @@
 set -euo pipefail
 PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || {  # the token goes only to the daemon itself
+  echo "voice-context: Pointe is not running on port $PORT" >&2; exit 1; }
 BODY="$(curl -fsS --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/context")"
-python3 - "${1:-}" "$BODY" <<'PY'
+# The context goes on stdin: on a command line any local user could read it with ps, and a long one does not fit.
+SHOW="$(cat <<'PY'
 import json, sys
-arg, raw = sys.argv[1], json.loads(sys.argv[2])
+arg, raw = sys.argv[1], json.load(sys.stdin)
 if arg == "--json":
     print(json.dumps(raw, indent=2, ensure_ascii=False)); sys.exit()
 if arg == "notes":
@@ -37,3 +40,5 @@ for m in msgs:
         c = "; ".join(f"{x['function']['name']}({x['function']['arguments']})" for x in m["tool_calls"])
     print(f"  {m.get('role', '?'):9} {str(c or '').replace(chr(10), ' ')[:300]}")
 PY
+)"
+printf '%s' "$BODY" | python3 -I -c "$SHOW" "${1:-}"

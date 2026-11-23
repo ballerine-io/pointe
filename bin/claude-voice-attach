@@ -9,9 +9,10 @@ PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 
 case "${1:-on}" in
-  status) "$BIN/voice-daemon" status; curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/status" && echo; exit 0 ;;
+  status) "$BIN/voice-daemon" status; "$BIN/voice-ours" || exit 0; curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/status" && echo; exit 0 ;;
   off)  # this session leaves the voice; it keeps running here, and /pointe:voice joins it again
     : "${CLAUDE_CODE_SESSION_ID:?run this from inside a Claude Code session}"
+    "$BIN/voice-ours" || { echo "this session was not on the voice"; exit 0; }  # the token goes only to the daemon
     curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") -H 'Content-Type: application/json' \
       -d "{\"id\": \"$CLAUDE_CODE_SESSION_ID\"}" "http://127.0.0.1:$PORT/voice/disconnect" >/dev/null \
       && echo "this session left the voice; its permission prompts are back in this terminal" \
@@ -35,7 +36,8 @@ esac
 URL="$("$BIN/voice-daemon" ensure)"
 RESULT="$("$BIN/register-session" "$@" </dev/null)"
 echo "this session joined Pointe: $RESULT"
-CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
+"$BIN/voice-ours" || { echo "Pointe: the program on port $PORT is not Pointe, or nothing here can tell (lsof, ss or /proc)" >&2; exit 1; }  # the token goes only to the daemon
+CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$BIN/voice-open"
 echo "For the person (nothing here waits on them, and nothing is for you to do): they talk in the voice tab or the phone app;"
 echo "$BIN/voice-open opens the tab again. Stop all voice with: $BIN/voice-daemon stop"

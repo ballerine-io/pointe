@@ -12,6 +12,8 @@ import time
 
 from loguru import logger
 
+import childenv
+
 SYSTEM = True  # tests turn it off: they never read this machine's idle time or power, nor keep it awake
 
 # Used within this long: the user is at the Mac, and a phone or another device stays quiet (attention items `quiet`).
@@ -38,7 +40,7 @@ async def read_idle() -> float | None:
     proc = None
     try:
         proc = await asyncio.create_subprocess_exec(*IOREG, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.DEVNULL)
+                                                    stderr=asyncio.subprocess.DEVNULL, env=childenv.child_env())
         out, _ = await asyncio.wait_for(proc.communicate(), IDLE_TIMEOUT_SECS)
     except (OSError, asyncio.TimeoutError):  # not a Mac, or ioreg stuck: no reading
         if proc is not None and proc.returncode is None:
@@ -96,7 +98,7 @@ async def read_power() -> bool | None:
     proc = None
     try:
         proc = await asyncio.create_subprocess_exec(*POWER, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.DEVNULL)
+                                                    stderr=asyncio.subprocess.DEVNULL, env=childenv.child_env())
         out, _ = await asyncio.wait_for(proc.communicate(), POWER_TIMEOUT_SECS)
     except (OSError, asyncio.TimeoutError):
         if proc is not None and proc.returncode is None:
@@ -113,7 +115,8 @@ async def start_caffeinate():
         return None
     try:
         return await asyncio.create_subprocess_exec("caffeinate", "-i", "-w", str(os.getpid()), stdin=asyncio.subprocess.DEVNULL,
-                                                    stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+                                                    stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
+                                                    env=childenv.child_env())
     except OSError as e:
         logger.warning(f"could not keep the Mac awake: {e}")
         return None

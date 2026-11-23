@@ -22,9 +22,9 @@ SESSION_ID="${CLAUDE_CODE_SESSION_ID:-}"
 TRANSCRIPT=""
 if [ ! -t 0 ]; then  # hook mode: the event JSON carries the session id and transcript path
   HOOK="$(cat)"
-  HOOK_ID="$(printf '%s' "$HOOK" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("session_id",""))' 2>/dev/null || true)"
+  HOOK_ID="$(printf '%s' "$HOOK" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("session_id",""))' 2>/dev/null || true)"
   [ -n "$HOOK_ID" ] && SESSION_ID="$HOOK_ID"
-  TRANSCRIPT="$(printf '%s' "$HOOK" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("transcript_path",""))' 2>/dev/null || true)"
+  TRANSCRIPT="$(printf '%s' "$HOOK" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("transcript_path",""))' 2>/dev/null || true)"
 fi
 [ -n "$SESSION_ID" ] || { echo "register-session: not inside a Claude Code session" >&2; exit 1; }
 # Each Claude account (CLAUDE_CONFIG_DIR) keeps its own transcripts: look in this session's, and tell the daemon which.
@@ -40,7 +40,7 @@ if [ -z "$NAME" ]; then
 fi
 
 BODY="$(CONFIG_DIR="$CONFIG_DIR" SESSION_ID="$SESSION_ID" NAME="$NAME" NAME_GIVEN="$NAME_GIVEN" TRANSCRIPT="$TRANSCRIPT" CHANNEL_URL="$CHANNEL_URL" START="$START" \
-  PID_="${CLAUDE_PID:-$PPID}" python3 -c '
+  PID_="${CLAUDE_PID:-$PPID}" python3 -I -c '
 import json, os
 print(json.dumps({
     "id": os.environ["SESSION_ID"], "name": os.environ["NAME"], "cwd": os.getcwd(),
@@ -53,7 +53,10 @@ print(json.dumps({
     **({"start": os.environ["START"]} if os.environ.get("START") else {}),
 }))')"
 
-# The token and the body (it holds the inbox token) go by file descriptor, never on a command line.
+# The token and the body (it holds the inbox token) go by file descriptor, never on a command line, and only to the
+# daemon itself: with it down, another program on the port would get them.
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || {
+  [ -n "$QUIET" ] || echo "register-session: daemon not reachable on port $PORT" >&2; exit 1; }
 RESULT="$(printf %s "$BODY" | curl -sf -m 3 -X POST "http://127.0.0.1:$PORT/voice/register" \
   --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") -H 'content-type: application/json' --data-binary @-)" || {
   [ -n "$QUIET" ] || echo "register-session: daemon not reachable on port $PORT" >&2; exit 1; }

@@ -15,10 +15,12 @@ generativelanguage.googleapis.com   Gemini text, ears, mouth and realtime front 
 api.openai.com             OpenAI text, ears, mouth and realtime front (openai SDK; bench)
 # openai_url (docs/features/openai-url.md): a host the user sets for the OpenAI text models, https only. It is theirs
 # to choose, so it is not listed; with it set, the OpenAI key is never sent to api.openai.com.
+# The SDKs' own variables for another host (ANTHROPIC_BASE_URL, OPENAI_BASE_URL, GOOGLE_GEMINI_BASE_URL, Vertex AI's
+# switches) are taken out of the daemon's environment at start (vendors.SDK_ROUTING_ENVS), so the hosts above hold.
 api.elevenlabs.io          ElevenLabs ears and mouth (pipecat; bench)
 stt-rt.soniox.com          Soniox ears, meeting ears (daemon.py, meeting.py, bench)
 tts-rt.soniox.com          Soniox mouth (pipecat; bench)
-api.soniox.com             pointe key check soniox: one GET of the models list, to tell a working key from a refused one (keys.py)
+api.soniox.com             pointe key check soniox: one GET of the models list, to tell a working key from a refused one; a redirect is not followed, so the key goes nowhere else (keys.py)
 
 # models, at the commits and hashes pinned in assets.py
 huggingface.co             model repositories (huggingface_hub, mlx-whisper, mlx-audio, faster-whisper; bench)
@@ -66,3 +68,4 @@ link doi.org               cited studies: typing speed, interrupted work (site)
 link learn.chatgpt.com     a compared tool's voice docs (site)
 link scripts.sil.org       the font licences' own address (site/fonts)
 link www.w3.org            XML namespace of inline SVG icons (ui.html, site)
+link www.apple.com         the property-list DTD named in a plist's header, never fetched (ios/release.sh, Info.plist)

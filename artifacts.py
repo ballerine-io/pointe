@@ -21,6 +21,7 @@ import time
 from collections import deque
 from pathlib import Path
 
+import childenv
 from readout import _hidden, mask  # one rule for secrets: what is shown, said and notified
 
 MAX_ARTIFACTS = 8
@@ -246,12 +247,7 @@ def safe_command(command: str) -> str:
 
 def _git(cwd: str, *args: str) -> subprocess.CompletedProcess:
     """A repo's own config can run code (core.fsmonitor), and any folder may register: that code gets no keys."""
-    try:
-        import vendors
-        strip = set(vendors.KEY_ENVS)
-    except Exception:
-        strip = set()
-    env = {k: v for k, v in os.environ.items() if k not in strip and not k.startswith("GIT_")}
+    env = {k: v for k, v in childenv.child_env().items() if not k.startswith("GIT_")}
     return subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.quotepath=false", *args], cwd=cwd, env=env,
                           capture_output=True, timeout=GIT_TIMEOUT)
 

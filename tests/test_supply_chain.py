@@ -239,6 +239,41 @@ def test_nothing_the_plugin_runs_fetches_remote_code():
                 assert "127.0.0.1" in line or "$URL" in line or "DAEMON_URL" in line, f"{rel(path)}:{n}: reaches past loopback: {line.strip()[:100]}"
 
 
+PY_INLINE = re.compile(r"(?:\bpython3?|\"\$PY\")((?:\s+-[A-Za-z]+)*?)\s+(-c\b|-(?=\s|$))")
+
+
+def test_no_script_runs_python_code_with_the_current_folder_on_its_path():
+    """`python3 -c` and `python3 -` put the folder they run in first on the import path: a session's repo with a
+    `json.py` would run as you, with the token at hand. `-I` leaves it out (and ignores PYTHON* variables)."""
+    bad = []
+    for path in files("bin/*", "hooks/**/*", "plugin/**/*"):
+        for n, line in enumerate(path.read_text().splitlines(), 1):
+            for flags, _ in PY_INLINE.findall(line):
+                if "-I" not in flags.split():
+                    bad.append(f"{rel(path)}:{n}: {line.strip()[:90]}")
+    assert not bad, "use python3 -I -c / python3 -I -:\n" + "\n".join(bad)
+    assert PY_INLINE.findall("x | python3 -c 'import json'") == [("", "-c")]
+    assert PY_INLINE.findall('python3 - "$J" <<PY') == [("", "-")]
+    assert PY_INLINE.findall('"$PY" -c "print(1)"') == [("", "-c")]
+
+
+SHIPPED_PY = ("*.py", "harnesses/*.py")
+
+
+def test_the_keychain_and_dialog_tools_are_run_by_their_absolute_path():
+    """`security` gives out a key (`-w`) and takes one (`add-generic-password`), `osascript` returns the key typed in its
+    dialog: none of these is looked up on PATH, where a folder earlier in it could hold another program of that name.
+    Both tools are macOS-only, in /usr/bin. (uninstall.py and apps.py only ask whether an item exists, delete one, or
+    list signing identities; their tests put a stand-in `security` on PATH, so they keep the name.)"""
+    bad = []
+    for path in files(*SHIPPED_PY):
+        for n, line in enumerate(path.read_text().splitlines(), 1):
+            named = re.search(r"[\[(]\s*[\"'](security|osascript)[\"']", line)
+            if named and "/usr/bin/" not in line and (named.group(1) == "osascript" or re.search(r"[\"']-w[\"']|add-generic-password", line)):
+                bad.append(f"{rel(path)}:{n}: {line.strip()[:90]}")
+    assert not bad, "use /usr/bin/security and /usr/bin/osascript:\n" + "\n".join(bad)
+
+
 def test_setup_installs_uv_through_the_pinned_installer_only():
     assert re.fullmatch(r"\d+\.\d+\.\d+", UV_VERSION)
     assert re.search(r'^INSTALLER_SHA256="[0-9a-f]{64}"', INSTALL_UV, re.M)
@@ -347,7 +382,8 @@ def test_fetch_keeps_only_a_file_whose_hash_is_the_pinned_one(tmp_path, monkeypa
 # ---------- egress ----------
 
 URL_HOST = re.compile(r"(?:https?|wss?)://([A-Za-z0-9][A-Za-z0-9.-]*)")
-EGRESS_SOURCES = ("*.py", "harnesses/*.py", "bench/*.py", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
+EGRESS_SOURCES = ("*.py", "harnesses/*.py", "bench/**/*.py", "bench/**/*.sh", "bench/**/*.ts", "evals/**/*.py", "demo/**/*.py",
+                  "ios/e2e/*.py", "ios/*.sh", "macos/e2e/*", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
                   "channel/*.mjs", "channel/package.json", "ui*.html", "site/**/*", "ios/Pointe/**/*.swift", "apple/PointeKit/Package.swift",
                   "apple/PointeKit/Sources/**/*.swift", "macos/PointeMac/**/*.swift", "macos/*.sh",
                   "macos/tools/*", ".github/**/*.yml")
@@ -380,6 +416,17 @@ def test_every_url_in_the_source_names_a_host_in_the_egress_allowlist():
                 if not allowed(host, contacted | shown):
                     strangers.append(f"{rel(path)}:{n}: {host}")
     assert not strangers, "hosts not in docs/security/egress-allowlist.txt (add with a reason, or `link` if only shown):\n" + "\n".join(strangers)
+
+
+def test_the_egress_scan_reads_every_source_file():
+    """"Every URL literal in the source" means every file: a new folder of code must not fall outside the scan. Test
+    targets are left out: they name made-up hosts on purpose."""
+    tracked = subprocess.run(["git", "ls-files", "*.py", "*.sh", "*.mjs", "*.ts", "*.swift", "bin/*"], cwd=ROOT,
+                             capture_output=True, text=True, check=True).stdout.split()
+    tests = re.compile(r"^tests/|/Tests/|Tests/")
+    scanned = {rel(p) for p in files(*EGRESS_SOURCES)}
+    missed = sorted(t for t in tracked if t not in scanned and not tests.search(t))
+    assert not missed, "add to EGRESS_SOURCES:\n" + "\n".join(missed)
 
 
 def test_the_egress_table_in_the_doc_and_the_allowlist_agree():
