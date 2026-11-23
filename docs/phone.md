@@ -43,7 +43,7 @@ time: it updates the app in place and keeps its pairing and settings.
 3. Plug the iPhone into the Mac, unlock it, and tap Trust on "Trust This Computer?".
 4. On the iPhone: Settings, Privacy & Security, Developer Mode, turn it on, restart, confirm.
 
-`bin/pointe apps doctor` checks each of these and says which is missing.
+`pointe apps doctor` checks each of these and says which is missing.
 
 **What each step does, and why**
 
@@ -64,7 +64,7 @@ time: it updates the app in place and keeps its pairing and settings.
 > | | Free (Personal Team) | Apple Developer Program ($99 a year) |
 > |---|---|---|
 > | Installs on your own iPhone | Yes | Yes |
-> | How long a build opens | 7 days, then run `bin/pointe apps ios` again | 1 year |
+> | How long a build opens | 7 days, then run `pointe apps ios` again | 1 year |
 > | Trust the developer on the iPhone | Once, by hand | Not asked |
 > | New bundle IDs | 10 every 7 days (the command reuses one) | No practical limit |
 > | Devices | 3 | 100 of each kind |
@@ -86,7 +86,7 @@ The command prints the cause and the fix, and keeps Xcode's full output in `buil
 | `CoreDeviceError error 4016`, "The device is unavailable", or the iPhone shown as not reachable | Xcode knows the iPhone but cannot reach it now | Unlock it and keep the screen on; use a cable, or the same Wi-Fi as the Mac with no VPN in between; tap Trust if asked |
 | "Untrusted Developer" on the iPhone, or `profile has not been explicitly trusted by the user` | iOS has not been told to trust your account | iPhone: Settings, General, VPN & Device Management, your Apple Account, Trust |
 | `Developer Mode is disabled` | iOS blocks apps built from source | iPhone: Settings, Privacy & Security, Developer Mode, on, restart, confirm. The row appears after the iPhone was connected to a Mac with Xcode |
-| The app closes the moment it opens, or "is no longer available", after about a week | The 7 days of a free account's profile ended | Run `bin/pointe apps ios` again |
+| The app closes the moment it opens, or "is no longer available", after about a week | The 7 days of a free account's profile ended | Run `pointe apps ios` again |
 | `You have not agreed to the Xcode license agreements` | Xcode was installed or updated and never opened | `sudo xcodebuild -license accept` |
 | `tool 'xcodebuild' requires Xcode, but active developer directory … is a command line tools instance` | The command line tools are selected instead of Xcode | `sudo xcode-select -s /Applications/Xcode.app` |
 

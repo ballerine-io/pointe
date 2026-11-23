@@ -267,7 +267,7 @@
             <p class="kicker"><span class="when">11:20</span> Away from the desk</p>
             <h3 class="h2">Scan one code. The call goes with you.</h3>
             <p class="body">On the Mac, Connect your phone shows a QR code. Point the iPhone's Camera at it, and the same call is in the iPhone app: on a walk, in a queue, in the car.</p>
-            <p class="small">The iPhone app, built from source: <code>bin/pointe apps ios</code>. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#pairing">phone.md</a></p>
+            <p class="small">The iPhone app, built from source: <code>pointe apps ios</code>. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#pairing">phone.md</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
@@ -694,9 +694,9 @@
 <span class="p">$ </span>pointe join opencode
 <span class="p">$ </span>pointe join codex      <span class="c"># started as codex --remote unix://</span>
 
-<span class="c"># optional: the apps, from a clone of the repository (Xcode 16)</span>
-<span class="p">$ </span>bin/pointe apps mac     <span class="c"># the Mac app, into ~/Applications (macOS 15)</span>
-<span class="p">$ </span>bin/pointe apps ios     <span class="c"># the iPhone app, onto your iPhone (free Apple Account)</span></code></pre>
+<span class="c"># optional: the apps, built from source on this Mac (Xcode 16)</span>
+<span class="p">$ </span>pointe apps mac        <span class="c"># the Mac app, into ~/Applications (macOS 15)</span>
+<span class="p">$ </span>pointe apps ios        <span class="c"># the iPhone app, onto your iPhone (free Apple Account)</span></code></pre>
           <p class="small">To remove it: <code>pointe uninstall</code> in a terminal. It lists what Pointe added (the plugin and
             its two hooks, <code>~/.claude-voice</code>, the Mac app, its keys in the Keychain), asks, and removes it.</p>
         </div>

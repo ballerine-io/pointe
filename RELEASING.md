@@ -67,7 +67,7 @@ attached files: the plugin installs from the repository.
 
 - The iPhone app follows its own path to TestFlight and the App Store: `docs/ios/app-store.md`.
 - The Mac app is built from source until there is a Developer ID: `docs/mac-app.md` has the notarization steps.
-  Until either app has a download, people build them with `bin/pointe apps mac` and `bin/pointe apps ios`.
+  Until either app has a download, people build them with `pointe apps mac` and `pointe apps ios`.
 - The repository page: the description and topics are set through `gh repo edit`. The social preview image cannot be
   set through the API: upload `docs/social-preview.png` by hand in Settings, General, Social preview, after any change
   to it.

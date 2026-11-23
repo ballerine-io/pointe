@@ -153,9 +153,9 @@ The table, the sources and the limits: [docs/install.md](docs/install.md#try-it-
   Approve and Deny, and lets you type or correct what was heard.
 - **Mac app.** The call in the menu bar and a native window with everything the page and the iPhone app have, on the
   iPhone app's own screens, and a system-wide talk shortcut. Built from source for now, with one command:
-  `bin/pointe apps mac`. [docs/mac-app.md](docs/mac-app.md).
+  `pointe apps mac`. [docs/mac-app.md](docs/mac-app.md).
 - **iPhone app.** The same call and controls on your phone, paired once by QR code over Tailscale, a VPN such as
-  Twingate, or Wi-Fi. Approve needs Face ID. Built from source for now: `bin/pointe apps ios`, with a free Apple
+  Twingate, or Wi-Fi. Approve needs Face ID. Built from source for now: `pointe apps ios`, with a free Apple
   Account. [docs/phone.md](docs/phone.md#getting-the-app).
 - **Several harnesses and accounts** in one call, each session with its own approvals. [docs/harnesses.md](docs/harnesses.md).
 
@@ -380,12 +380,12 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 ## Limits
 
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
-- **The Mac app is built from source** too (`bin/pointe apps mac`, [how](docs/mac-app.md#getting-it)), signed for your
+- **The Mac app is built from source** too (`pointe apps mac`, [how](docs/mac-app.md#getting-it)), signed for your
   own Mac and not notarized. Its
   call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon
   on one MacBook Pro; AirPods, device changes, the Touch ID sheet and a spoken sentence heard through it in this
   version were not.
-- **The iPhone app is built from source** for now (`bin/pointe apps ios`, [how](docs/phone.md#getting-the-app)); it is
+- **The iPhone app is built from source** for now (`pointe apps ios`, [how](docs/phone.md#getting-the-app)); it is
   not in the App Store, and not on TestFlight yet. With a free Apple Account a build opens for 7 days. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
   page works in a phone browser.
 - **Synthetic evidence.** The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No

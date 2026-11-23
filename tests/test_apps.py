@@ -441,3 +441,13 @@ def test_a_long_status_word_keeps_a_space_before_its_line(capsys):
     apps.say("not yet", "pointe apps ios       needs a signing certificate")
     apps.say("ok", "built")
     assert capsys.readouterr().out == "not yet pointe apps ios       needs a signing certificate\nok    built\n"
+
+
+def test_people_build_the_apps_with_the_installed_pointe_and_only_contributors_with_bin_pointe():
+    """The plugin puts `pointe` on PATH; `bin/pointe` exists only in a clone. A person reads the README, the site and the
+    app docs, so those say `pointe apps`, and `bin/pointe apps` only on a line addressed to contributors."""
+    paths = [ROOT / "README.md", ROOT / "docs" / "mac-app.md", ROOT / "docs" / "phone.md", ROOT / "RELEASING.md",
+             *sorted((ROOT / "site").glob("**/*.html"))]
+    wrong = [f"{p.relative_to(ROOT)}:{n}" for p in paths for n, line in enumerate(p.read_text().splitlines(), 1)
+             if re.search(r"(?<![\w/{}$])bin/pointe apps", line) and "ontributors" not in line]
+    assert not wrong, "say `pointe apps` (the installed command), or address the line to contributors:\n" + "\n".join(wrong)
