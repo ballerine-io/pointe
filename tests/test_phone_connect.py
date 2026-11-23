@@ -343,6 +343,22 @@ def test_unpair_all_signs_out_every_phone_and_the_legacy_key(world):
     assert not (world.state / "phone_key").exists()
 
 
+def test_unpair_all_also_signs_out_a_phone_browser_paired_by_the_pairing_link(world):
+    browser = tls(world)
+    token = (world.state / "remote_token").read_text().strip()
+    landed = browser.get(f"/voice?pair={token}")
+    assert landed.status_code == 303
+    home_screen = landed.headers["location"]
+    assert browser.get("/voice/status").status_code == 200
+    restarts = world.listener.restarts
+    assert page(world).post("/voice/phone/unpair", json={"all": True}).json() == {"ok": True}
+    assert world.listener.restarts == restarts + 1  # open connections, a browser's call among them, end now
+    assert browser.get("/voice/status").status_code == 403  # the cookie
+    assert tls(world).get(home_screen).status_code == 403  # the Home Screen app's saved address
+    assert tls(world).get(f"/voice?pair={token}").status_code == 403  # the old link
+    assert (world.state / "remote_token").stat().st_mode & 0o077 == 0
+
+
 def test_the_shared_key_from_before_is_one_legacy_phone_until_it_reports_its_name(world):
     legacy = key_of(world)  # `pointe pair` made it before the upgrade: the owner's iPhone holds it
     [entry] = world.phones.status()["paired"]
