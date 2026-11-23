@@ -179,6 +179,20 @@ def test_the_openai_setup_says_its_ears_take_english_only():
     assert "Needs headphones; English speech only" in setups.table()
 
 
+def test_the_local_setups_disk_figures_count_the_libraries_too():
+    """`pointe setup voice-local` installs the local libraries (bin/pointe: 1.1 GB on disk) and then 2.0 GB of models."""
+    install = " ".join((ROOT / "docs" / "install.md").read_text().split())
+    libs = float(re.search(r"the libraries below are ([\d.]+) GB on disk", (ROOT / "bin" / "pointe").read_text())[1])
+    voice = float(re.search(r'"Voice stays on your Mac" adds ([\d.]+) GB of models', install)[1])
+    full = float(re.search(r'"Fully local" adds ([\d.]+) GB, and a ([\d.]+) GB text-model server', install)[1])
+    server = float(re.search(r'"Fully local" adds [\d.]+ GB, and a ([\d.]+) GB text-model server', install)[1])
+    want = f"about {round(libs + voice)} GB of disk"
+    assert want in setups.BY_ID["voice-local"].needs
+    assert want in " ".join((ROOT / "docs" / "features" / "voice-stays-local.md").read_text().split())
+    assert f"| Voice stays on your Mac | an Apple-silicon Mac, {want}," in install
+    assert f"about {round(libs + full + server)} GB of disk" in setups.BY_ID["local"].needs
+
+
 def test_the_page_lists_the_setups_from_the_daemon():
     page = (ROOT / "ui.html").read_text()
     assert "k.setups" in page and "pointe setup " in page and 'id="pref-setups"' in page

@@ -116,7 +116,7 @@ SETUPS = (
           cost="about $0.40 (Anthropic and Gemini)",
           privacy="No audio leaves the Mac. Your words, as text, and session text go to Anthropic (and Gemini, if set).",
           pick_for="confidential work where text may leave the Mac but your voice may not",
-          needs="an Apple-silicon Mac, about 2 GB of disk, headphones", local="voice",
+          needs="an Apple-silicon Mac, about 3 GB of disk, headphones", local="voice",
           short="One Anthropic key; ears and voice on the Mac. No audio leaves it."),
     Setup("local", "Fully local", (), {"this Mac": ("brain", "reader", "checker", "ears", "mouth")},
           measured=(("10 of 19 one-session audio checks, every approval check among them", "bench/results/combinations.md, "

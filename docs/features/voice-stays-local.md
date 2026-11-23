@@ -17,8 +17,8 @@ pointe local off        # back to the vendors you used before
 ```
 
 `/pointe:setup` offers it as "Voice stays on your Mac". `pointe doctor` names it, lists which vendors get text, and shows
-Soniox and ElevenLabs as "not read". Needs an Apple-silicon Mac (Whisper and the voice run on MLX) and about 2 GB of disk;
-memory is not a limit, as no text model runs here.
+Soniox and ElevenLabs as "not read". Needs an Apple-silicon Mac (Whisper and the voice run on MLX) and about 3 GB of
+disk (2.0 GB of models, 1.1 GB of local libraries); memory is not a limit, as no text model runs here.
 
 ## What runs where
 

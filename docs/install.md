@@ -91,7 +91,7 @@ benchmarks and list prices, not a metered bill ([how it is counted](benchmarks.m
 |---|---|---|---|
 | Free | one Google AI Studio key, no card | $0 until the free quota ends | 28 of 35 audio checks on a paid key; a free key ran out during one test run |
 | One paid key | the same key with billing on (Google asks for a prepayment of $5 or more) | about $0.70 to $0.95 | 28 of 35; replies take about 4 s; headphones |
-| Voice stays on your Mac | an Apple-silicon Mac, 2 GB of disk, one text key (Gemini or Anthropic) | about $0.30 with a Gemini key, about $0.40 with Anthropic and Gemini | 30 of 35 with Anthropic and Gemini; not run with a Gemini key alone |
+| Voice stays on your Mac | an Apple-silicon Mac, about 3 GB of disk, one text key (Gemini or Anthropic) | about $0.30 with a Gemini key, about $0.40 with Anthropic and Gemini | 30 of 35 with Anthropic and Gemini; not run with a Gemini key alone |
 | Fully local | an Apple-silicon Mac with 32 GB of memory, 19 GB of disk | $0 | 10 of 19 one-session checks; replies take 6 to 12 s |
 
 **The free path.** Say yes to "Start with Free start?" in `/pointe:setup`: it opens
