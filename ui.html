@@ -577,7 +577,7 @@
   #hangup:disabled { visibility: hidden; }
   /* Hang up has no room of its own in the grid: the mode switch above the mic is what makes the middle column wide enough.
      The first call hides that switch, so the mic's row keeps Hang up's room both sides (the phone layout does the same). */
-  @media (min-width: 561px) { body.firstrun .microw { padding: 0 60px; } }
+  @media (min-width: 761px) { body.firstrun .microw { padding: 0 60px; } }
   #sessbtn { display: none; }  /* shown where the sessions column is a sheet (narrow, or beside the Showing pane) */
   [data-state=muted] #mic { background: var(--raised); color: var(--accent); box-shadow: inset 0 0 0 2px var(--orange); }
   [data-state=muted] #mic .on { display: none; } [data-state=muted] #mic .off { display: block; }
@@ -962,7 +962,7 @@
   /* Where the labels do not fit on one row, they become tooltips: beside the sessions column under 1000 px, and on a
      phone or a small tablet (the rest is in More). Measured: at 1024 px the labels leave 55 px a side, the longest ones
      ("End challenge", "Whispering") 22 px; at 1000 and 761 px, 10 px (tests/test_ui_layout.py). */
-  @media (max-width: 760px), (min-width: 901px) and (max-width: 999px) {
+  @media (min-width: 901px) and (max-width: 999px) {
     .dock .btn .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   }
   @media (min-width: 901px) and (max-width: 1339px) {  /* a small laptop with the Showing pane open: the sessions column steps aside, as on a narrow screen */
@@ -1007,7 +1007,11 @@
     .settings .spanel { padding: 16px 14px calc(30px + env(safe-area-inset-bottom)); gap: 22px; }
     .micmode button { min-width: 0; padding: 4px 12px; font-size: 12px; min-height: 32px; }
     .dock .btn { min-width: 46px; }
-    #hangup { left: calc(50% + 34px + 8px); } #hangup .ic { width: 44px; height: 44px; }
+    /* the dock is two and two around the mic, labelled, as the iPhone app's: Hang up is a button of the right side (layoutDock) */
+    .dock-side .btn, #hangup { width: 62px; min-width: 0; }  /* one width: the two sides mirror each other */
+    #hangup { position: static; transform: none; padding: 4px 2px; }
+    #hangup .ic { width: 44px; height: 44px; background: var(--raised); color: var(--danger-text); }
+    #hangup .lb { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
     /* Clean up my words moves to More (layoutDock): a bare switch in the top bar says nothing about what it does */
     #more-list .toggle { flex-direction: row-reverse; justify-content: space-between; min-height: 54px; padding: 6px 10px 6px 64px; font-size: 15px; color: var(--text);
                          white-space: normal; border-top: 1px solid var(--line); margin-top: 6px; }
@@ -1047,20 +1051,17 @@
     .dock { grid-template-rows: auto auto auto; gap: 6px 4px; padding: 8px 4px calc(10px + env(safe-area-inset-bottom)); }
     .dock-center { display: contents; }
     .micmode { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
-    .microw { grid-column: 2; grid-row: 2; padding: 0 48px; }  /* the same room both sides: Hang up sits in the right one */
+    .microw { grid-column: 2; grid-row: 2; }
     #miclabel { grid-column: 1 / -1; grid-row: 3; justify-self: center; margin-top: 2px; }
     #keyhint { display: none; }
     .dock-side { grid-row: 2; align-self: center; gap: 2px; }
     .dock .btn { min-width: 44px; padding: 4px 0; } .dock .btn .ic { width: 44px; height: 44px; }
-    #hangup { left: calc(50% + 34px + 4px); } #hangup .ic { width: 44px; height: 44px; }
     #topconnect.hang { display: none; }  /* Hang up is the red button beside the mic, under the thumb: the bar keeps its room for the state */
     #dictsheet ul li { flex-wrap: wrap; } #dictsheet ul li .term { flex: 1 1 100%; } #dictsheet ul li .src { margin-right: auto; }  /* the name has its own line */
     #talk li.empty .hint { max-width: 300px; }
   }
   @media (max-width: 389px) {  /* a small phone: a smaller mic keeps two 44 px controls each side of it */
     #mic { width: 60px; height: 60px; } #mic svg { width: 26px; height: 26px; }
-    .microw { padding: 0 46px; }
-    #hangup { left: calc(50% + 30px + 2px); }
   }
   @media (prefers-reduced-motion: reduce) {  /* the breathing dots, the wave and the slides stop for a person who asked for less motion */
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
@@ -4442,9 +4443,10 @@
   }
 
   if (matchMedia('(max-width: 900px)').matches) $('compose').classList.add('folded');
-  // Narrow screens (a phone, the page on an iPad): five controls move into the More sheet and Sessions to the mic's left;
-  // the mic stays in the middle. A button keeps its id wherever it sits, so nothing that finds one by id changes.
-  const DOCK_MORE = ['listen', 'meetbtn', 'briefbtn', 'chlbtn', 'whisperbtn'];
+  // Narrow screens (a phone, the page on an iPad): five controls move into the More sheet, and the dock is two and two
+  // around the mic, as the iPhone app's: More and Type left, Sessions and Hang up right. A button keeps its id wherever
+  // it sits, so nothing that finds one by id changes.
+  const DOCK_MORE = ['listen', 'meetbtn', 'briefbtn', 'chlbtn', 'whisperbtn'], DOCK_MOVES = [...DOCK_MORE, 'morebtn', 'typebtn', 'hangup'];
   const dockHome = new Map();  // id -> [its side, the fixed sibling it sits before]
   function layoutDock() {
     const narrow = matchMedia('(max-width: 760px)').matches;
@@ -4452,14 +4454,15 @@
       const b = $(id);
       if (!dockHome.has(id)) {
         let next = b.nextElementSibling;
-        while (next && (DOCK_MORE.includes(next.id) || next.id === 'sessbtn')) next = next.nextElementSibling;
+        while (next && (DOCK_MOVES.includes(next.id) || next.id === 'sessbtn')) next = next.nextElementSibling;
         dockHome.set(id, [b.parentElement, next]);
       }
       const [home, next] = dockHome.get(id);
       if (into ? b.parentElement !== into : b.parentElement !== home) (into || home).insertBefore(b, into ? null : next);
     };
     for (const id of DOCK_MORE) place(id, narrow ? $('more-list') : null);
-    place('sessbtn', narrow ? document.querySelector('.dock-side.left') : null);
+    const left = document.querySelector('.dock-side.left'), right = document.querySelector('.dock-side.right');
+    place('morebtn', narrow ? left : null); place('typebtn', narrow ? left : null); place('hangup', narrow ? right : null);
     const polish = $('polishrow');  // a bare switch in the top bar says nothing: in More it keeps its words
     if (narrow ? polish.parentElement !== $('more-list') : polish.parentElement === $('more-list'))
       narrow ? $('more-list').append(polish) : document.querySelector('.top').insertBefore(polish, $('topconnect'));

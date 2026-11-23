@@ -278,7 +278,8 @@ DOCK = """(() => { const r = e => e.getBoundingClientRect();
 
 def test_the_dock_keeps_its_labels_where_they_fit():
     """Measured, not guessed: at 1024 px beside the sessions column (and from 1000 px, and from 761 px with no column)
-    every dock button keeps its label on one row, the longest ones too; under that they are tooltips."""
+    every dock button keeps its label on one row, the longest ones too; beside the column under 1000 px they are
+    tooltips. A phone's dock has four buttons, labelled as the iPhone app's are."""
     status = fixture(sessions=3, talk=4, connected=True)
     long = {**status, "whisper": {"on": True, "held": None, "suggest_ptt": False, "lock_note": None},
             "challenge": {"id": "c1", "on": True, "plan": "Ship it.", "items": [], "verdict": None}}
@@ -288,8 +289,18 @@ def test_the_dock_keeps_its_labels_where_they_fit():
         assert all(s["rows"] == 1 and s["inside"] and None not in s["labels"] for s in sides), sides
     assert [s["labels"] for s in got[0]] == [["Brain dump", "Meeting", "Briefing"], ["Challenge", "Whisper", "Type"]]
     assert [s["labels"] for s in longs[0]][1] == ["End challenge", "Whispering", "Type"]
-    for sides in got[3:]:
-        assert all(s["rows"] == 1 and set(s["labels"]) == {None} for s in sides), sides
+    assert all(s["rows"] == 1 and set(s["labels"]) == {None} for s in got[3]), got[3]
+    assert [s["labels"] for s in got[4]] == [["More", "Type"], ["Sessions", "Hang up"]], got[4]
+
+
+def test_a_phones_dock_is_two_and_two_around_the_mic():
+    """Two buttons each side, the same distance out, as the iPhone app's dock (QA round 1: one left, three right)."""
+    probe = """(() => { const c = e => { const r = (e.querySelector('.ic') || e).getBoundingClientRect(); return r.left + r.width / 2; };
+      const mic = c(document.getElementById('mic')), side = s => [...document.querySelector('.dock-side.' + s).children]
+        .filter(b => b.offsetParent && getComputedStyle(b).visibility !== 'hidden').map(b => Math.round(Math.abs(c(b) - mic)));
+      return [side('left').reverse(), side('right')]; })()"""
+    for left, right in _run([(390, LIVE, probe), (360, "", probe)], fixture(sessions=3, talk=4, connected=True)):
+        assert len(left) == len(right) == 2 and all(abs(a - b) <= 4 for a, b in zip(left, right)), (left, right)
 
 
 OVERLAPS = """(() => { const btns = [...document.querySelectorAll('.dock button')].filter(b => b.offsetParent && getComputedStyle(b).visibility !== 'hidden');
