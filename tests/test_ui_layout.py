@@ -813,3 +813,12 @@ def test_settings_done_with_the_mac_away_says_so_in_words_and_machines_do_not_cl
     err, machines = got[0]
     assert err and "Failed to fetch" not in err and "Mac" in err, err
     assert machines and not [m for m in machines if "online" in m], machines
+
+
+def test_a_sheet_opened_on_a_touch_screen_rings_nothing():
+    """WebKit drew a focus box round 'Meeting ended' and a ring on the first control of Settings and New session when they
+    opened on a phone (QA round 5, Playwright WebKit): a touch opens a sheet with the sheet itself focused, unringed."""
+    touch = ("const mm = window.matchMedia; window.matchMedia = q => q === '(hover: none)' ? {matches: true} : mm(q);"
+             " openSheet('settingssheet'); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));")
+    ring = "[document.activeElement.classList.contains('sheetbox'), getComputedStyle(document.activeElement).outlineStyle]"
+    assert _run([(390, touch, ring)]) == [[True, "none"]]

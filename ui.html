@@ -169,7 +169,7 @@
   #sideclose:hover { background: var(--raised2); color: var(--text); }
   .logo { width: 24px; height: 24px; flex: none; color: var(--text); }  /* the Chorus mark's compact drawing (docs/brand/logo.md) */
   .brand .name { font: 400 21px/1.1 var(--display); letter-spacing: -.015em; color: var(--text); margin: 0; }
-  #night-h:focus { outline: none; }
+  #night-h:focus, .sheetbox h2[tabindex]:focus, .sheetbox:focus { outline: none; }  /* focus parked on a title or the sheet: nothing to ring */
   @media (hover: none) { .keyonly { display: none; } }  /* a key hint means nothing on a touch screen */
   .brand .serif { font-size: 12.5px; color: var(--dim); white-space: nowrap; margin-top: 2px; }
   .brand .ver { font: 500 10.5px var(--font); font-style: normal; color: var(--dim); letter-spacing: .02em; }
@@ -3399,7 +3399,11 @@
   function openSheet(id, first) {
     if (!$(id).classList.contains('open')) sheetOpener[id] = document.activeElement;
     $(id).classList.add('open');
-    requestAnimationFrame(() => { const f = first ? $(first) : focusables($(id))[0]; if (f) f.focus(); });
+    // On a touch screen the sheet itself takes the focus: a ring on its first control reads as a selection (WebKit draws
+    // one on a programmatic focus). A keyboard's Tab goes on from there.
+    const box = $(id).querySelector('.sheetbox') || $(id);
+    if (matchMedia('(hover: none)').matches && !first) box.tabIndex = -1;
+    requestAnimationFrame(() => { const f = first ? $(first) : box.tabIndex === -1 ? box : focusables($(id))[0]; if (f) f.focus(); });
   }
   function closeSheet(id) {
     $(id).classList.remove('open');
