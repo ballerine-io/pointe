@@ -32,7 +32,8 @@ KEYS = {
     "elevenlabs": ("ELEVENLABS_API_KEY", "pointe.elevenlabs-api-key"),
 }
 # The names before 1.20.0. Still read, after Pointe's own, so a key saved then keeps working; never written or deleted
-# here, because another tool may keep an item of the same name.
+# here, because another tool may keep an item of the same name. Not for OpenAI with openai_url set: that key goes to a
+# host the person chose, and `openai-api-key` may be another tool's key for OpenAI itself (openai_url came after 1.20.0).
 LEGACY_ITEMS = {vendor: item.removeprefix("pointe.") for vendor, (_, item) in KEYS.items()}
 ENV_ALIASES = {"gemini": "GEMINI_API_KEY"}  # Google documents both names
 LOCAL = "local"  # needs no key: Whisper and Kokoro on this machine, and an OpenAI-compatible server for text models
@@ -103,7 +104,7 @@ def key(vendor: str) -> str | None:
         return value
     if vendor in _found:
         return _found[vendor]
-    for name in (item, LEGACY_ITEMS[vendor]):
+    for name in (item,) if vendor == "openai" and openai_url() else (item, LEGACY_ITEMS[vendor]):
         try:
             got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", name, "-w"], capture_output=True,
                                  text=True, timeout=5, env=childenv.child_env())

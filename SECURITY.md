@@ -199,6 +199,10 @@ What sessions report is data for the voice model, not instructions to it:
   OpenCode, the local text-model server or any other tool. Each gets the daemon's environment without the key variables
   (`childenv.py`; `tests/test_child_env.py` fails on a spawn that does not use it). The exceptions start the daemon
   itself (`pointe key`'s restart, `pointe join`), which reads keys from the environment it is given.
+- Pointe saves each key as `pointe.<vendor>-api-key`. It still reads the names before 1.20.0 (`openai-api-key`,
+  `gemini-api-key`, ...) after its own, so a key saved then keeps working. Another tool may keep an item under such a
+  name: Pointe then uses that key for the same vendor, and `pointe key <vendor>` saves one of Pointe's own, which wins.
+  With `openai_url` set, only `pointe.openai-api-key` is read, so another tool's OpenAI key never goes to that host.
 - They are not in command lines: scripts pass the token to `curl` through `--config`.
 - The page shows vendor errors with key values replaced. Logs hold an error's text as the vendor wrote it, and a
   traceback without the values of its variables: the daemon and the node turn loguru's `diagnose` off, which would

@@ -109,3 +109,24 @@ def test_the_doctor_names_the_host(state, capsys):
           ears="soniox", mouth="soniox:tts-rt-v2")
     doctor.main()
     assert "example-resource.openai.azure.com" in capsys.readouterr().out
+
+
+def test_a_key_another_tool_keeps_under_the_old_name_is_never_sent_to_that_host(state, monkeypatch):
+    """`openai-api-key`, the name before 1.20.0, may be another tool's key for OpenAI itself: with openai_url set, only
+    the item `pointe key openai` saves is read, because the key goes to a host the person chose for Pointe."""
+    monkeypatch.delenv("OPENAI_API_KEY")
+    store, asked = {"openai-api-key": "synthetic-other-tools-key"}, []
+
+    def security(cmd, **kw):
+        asked.append(cmd[3])
+        found = store.get(cmd[3])
+        return subprocess.CompletedProcess(cmd, 0 if found else 44, (found or "") + "\n", "")
+    monkeypatch.setattr(subprocess, "run", security)
+    state(openai_url=HOST)
+    assert vendors.key("openai") is None and asked == ["pointe.openai-api-key"]
+    store["pointe.openai-api-key"] = "synthetic-azure-key"
+    assert vendors.key("openai") == "synthetic-azure-key"
+    vendors._found.clear()
+    state()  # without the setting, a key saved before 1.20.0 keeps working
+    del store["pointe.openai-api-key"]
+    assert vendors.key("openai") == "synthetic-other-tools-key"
