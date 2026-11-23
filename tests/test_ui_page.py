@@ -11,6 +11,7 @@ import re
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -348,3 +349,36 @@ def test_connect_your_phone_names_the_browser_way_until_the_app_ships():
     phone = PAGE[PAGE.index('<section id="phone"'):]
     phone = phone[:phone.index("</section>")]
     assert "No app on the phone yet? Use its browser: in a terminal on this Mac, <b>pointe pair link</b> prints an address to open there." in phone
+
+
+@needs_chrome
+def test_a_keyboard_and_a_screen_reader_can_tell_what_is_selected_and_where_focus_is():
+    got = asyncio.run(_render("""(async () => {
+        const a = id => document.getElementById(id).getAttribute('aria-pressed');
+        window.__status = {...window.__status, mode: 'session'}; await refresh();
+        const mode = [a('m-orchestrator'), a('m-session')], role = document.getElementById('m-session').parentElement.getAttribute('role');
+        openSettings(); await new Promise(r => setTimeout(r, 300)); settingsJump('phone'); await new Promise(r => setTimeout(r, 900));
+        const current = [...document.querySelectorAll('#set-nav button[aria-current]')].map(b => b.dataset.section);
+        return {mode, role, current};
+    })()"""))
+    assert got["mode"] == ["false", "true"] and got["role"] == "group", got  # two buttons, not tabs with no panels
+    assert got["current"] == ["phone"], got
+
+
+@needs_chrome
+def test_the_text_box_shows_a_focus_ring():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from page_rig import Browser, StubMac, fixture, free_port
+
+    async def run():
+        stub = await StubMac(free_port()).start()
+        stub.status = fixture(sessions=2, connected=True)
+        try:
+            async with Browser() as browser:
+                page = await browser.open(stub.url)
+                await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
+                return await page.eval("(() => { const t = document.getElementById('typed'); t.disabled = false; t.focus();"
+                                       " return getComputedStyle(t).outlineStyle; })()")
+        finally:
+            await stub.stop()
+    assert asyncio.run(run()) == "solid"

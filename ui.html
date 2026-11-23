@@ -118,6 +118,8 @@
   button { font-family: inherit; }
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role=button]:focus-visible {
     outline: 2px solid var(--orange); outline-offset: 2px; }
+  /* a text field's own rule clears the outline for its quiet look: a keyboard user still sees where they are */
+  :is(input, textarea, select):focus-visible { outline: 2px solid var(--orange) !important; outline-offset: 1px; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
   /* ---- controls: the iOS set. A setting is a switch, a choice is a select or a segmented control, days are chips. ---- */
@@ -1088,9 +1090,9 @@
 
   <section id="modesec">
     <h3 class="label">Mode</h3>
-    <div class="seg" role="radiogroup" aria-label="Mode">
-      <button id="m-orchestrator" type="button" role="radio" aria-checked="true" onclick="setMode('orchestrator')">Orchestrator</button>
-      <button id="m-session" type="button" role="radio" aria-checked="false" onclick="setMode('session')">Session</button>
+    <div class="seg" role="group" aria-label="Mode">
+      <button id="m-orchestrator" type="button" aria-pressed="true" onclick="setMode('orchestrator')">Orchestrator</button>
+      <button id="m-session" type="button" aria-pressed="false" onclick="setMode('session')">Session</button>
     </div>
     <div class="modehelp" id="modehelp"></div>
   </section>
@@ -1792,7 +1794,7 @@
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
     text('ctx', s.tokens ? `Context ${(s.tokens.context / 1000).toFixed(1)}k tokens` : 'Context');
-    for (const m of ['orchestrator', 'session']) { $('m-' + m).classList.toggle('on', s.mode === m); $('m-' + m).setAttribute('aria-checked', s.mode === m); }
+    for (const m of ['orchestrator', 'session']) { $('m-' + m).classList.toggle('on', s.mode === m); $('m-' + m).setAttribute('aria-pressed', s.mode === m); }
     text('modehelp', MODE_HELP[s.mode] || '');
 
     // One approval card at a time, pinned above the bar, as in the app; the rest are counted.
