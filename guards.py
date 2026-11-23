@@ -1,5 +1,7 @@
 """Decisions made in code, never by the voice model: consent, and who may talk to the daemon."""
 
+import base64
+import functools
 import hashlib
 import hmac
 import json
@@ -7,6 +9,7 @@ import re
 import unicodedata
 
 import readout
+from html.parser import HTMLParser
 from urllib.parse import parse_qs, urlparse
 
 from fastapi import Request
@@ -803,6 +806,48 @@ class LocalAuth:
         if not self._authorized(connection):
             return await self._refuse(scope, receive, send, _NEEDS_KEY if path == "/voice" else "forbidden")
         await self.app(scope, receive, framed)
+
+
+class _InlineScripts(HTMLParser):
+    """Every inline <script> body and every on* attribute value in a page, as the browser hashes them: attribute values
+    with entities decoded, script text exactly as written."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.found: list[str] = []
+        self._script: list[str] | None = None
+
+    def handle_starttag(self, tag, attrs):
+        self.found += [value or "" for name, value in attrs if name.startswith("on")]
+        if tag == "script":
+            if any(name == "src" for name, _ in attrs):
+                raise ValueError("the page loads no script file: its scripts are inline and hashed")
+            self._script = []
+
+    def handle_startendtag(self, tag, attrs):
+        self.found += [value or "" for name, value in attrs if name.startswith("on")]
+
+    def handle_data(self, data):
+        if self._script is not None:
+            self._script.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._script is not None:
+            self.found.append("".join(self._script))
+            self._script = None
+
+
+@functools.lru_cache(maxsize=4)
+def page_csp(html: str) -> str:
+    """The page's script policy: only the inline scripts and handlers it was served with run ('unsafe-hashes' lets a
+    hash allow an on* attribute). A script or handler injected later matches no hash. blob: is the microphone's
+    AudioWorklet, which the page builds from its own text; no plugin, no <base>."""
+    parser = _InlineScripts()
+    parser.feed(html)
+    parser.close()
+    hashes = sorted({"'sha256-" + base64.b64encode(hashlib.sha256(t.encode()).digest()).decode() + "'"
+                     for t in parser.found})
+    return f"script-src {' '.join(hashes)} 'unsafe-hashes' blob:; object-src 'none'; base-uri 'none'"
 
 
 class JsonPosts:

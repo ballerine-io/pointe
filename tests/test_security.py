@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from guards import LOCAL_COOKIE, LocalAuth, page_host, permission_answer  # noqa: E402
 from remote import COOKIE, Remote, TLS_PORT  # noqa: E402
 
@@ -535,3 +536,32 @@ def test_every_post_the_page_makes_says_it_is_json(page):
     assert posts or page != "ui.html"
     for call in posts:
         assert "'content-type': 'application/json'" in call, call
+
+
+# ---------- the page's script policy (guards.page_csp): only the scripts and handlers it was served with run ----------
+
+def _policy_hashes(policy: str) -> set[str]:
+    import re
+    return set(re.findall(r"'sha256-([A-Za-z0-9+/=]+)'", policy))
+
+
+def _sha(text: str) -> str:
+    import base64
+    import hashlib
+    return base64.b64encode(hashlib.sha256(text.encode()).digest()).decode()
+
+
+def test_the_page_policy_allows_only_hashed_inline_scripts():
+    from guards import page_csp
+    from page_rig import page_html
+
+    policy = page_csp(page_html())
+    directives = {d.split()[0]: d.split()[1:] for d in (p.strip() for p in policy.split(";")) if d}
+    assert directives["object-src"] == ["'none'"] and directives["base-uri"] == ["'none'"]
+    script = directives["script-src"]
+    assert set(script) - {f"'sha256-{h}'" for h in _policy_hashes(policy)} == {"'unsafe-hashes'", "blob:"}
+    assert len(_policy_hashes(policy)) > 100  # each inline script and handler of the page
+    for injected in ("alert(1)", "fetch('/voice/approve')", "window.__pwned = 1"):
+        assert _sha(injected) not in _policy_hashes(policy)
+    for handler in ("foldShow()", "event.preventDefault(); phoneRoutes($('ph-host').value)"):
+        assert _sha(handler) in _policy_hashes(policy)  # read the way the browser hashes: the attribute's decoded value

@@ -232,3 +232,21 @@ def test_a_paired_page_over_the_phone_listener_must_post_json_too(tmp_path, monk
     r = phone.post("/voice/switch", content=json.dumps({"name": "beta/main"}), headers={**own, "content-type": "text/plain"})
     assert r.status_code == 415
     assert phone.post("/voice/switch", json={"name": "beta/main"}, headers=own).json() == {"active": "beta/main"}
+
+
+def test_the_page_carries_its_script_policy_on_both_listeners(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import guards
+    from remote import COOKIE, TLS_PORT
+
+    daemon, client = _client(tmp_path)
+    (tmp_path / "cert.pem").write_text("x"), (tmp_path / "key.pem").write_text("x")
+    for name, value in (("host", "studio.example.internal"), ("token", "pair-secret"),
+                        ("cert", tmp_path / "cert.pem"), ("key", tmp_path / "key.pem")):
+        monkeypatch.setattr(daemon.REMOTE, name, value)
+    phone = TestClient(daemon.app, base_url=f"https://studio.example.internal:{TLS_PORT}", cookies={COOKIE: "pair-secret"})
+    for r in (client.get("/voice"), phone.get("/voice")):
+        assert r.status_code == 200
+        policies = r.headers.get_list("content-security-policy")
+        assert guards.page_csp(r.text) in policies and "frame-ancestors 'self'" in policies

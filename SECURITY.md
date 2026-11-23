@@ -22,6 +22,11 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
   on another origin can send a POST without asking first only as text, a form or an empty body, so none reaches a
   route. The check runs after the secret check.
 - Only the same origin can frame the page, which blocks clickjacking.
+- The page runs only the scripts it was served with. Its `Content-Security-Policy` lists the SHA-256 of each inline
+  script and event handler, computed from the page when it is served (`guards.page_csp`), on both listeners; a script
+  or handler that reaches the page later matches none and does not run. Plugins and `<base>` are refused. The page
+  builds session names, machine names and the QR code as nodes, never by parsing HTML. Browsers older than about 2022
+  (Safari before 15.4) do not support hashed handlers and would refuse the page's buttons.
 - An empty secret opens nothing.
 
 ## What a spoken word can do

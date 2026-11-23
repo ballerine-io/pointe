@@ -92,6 +92,7 @@ from readout import mask
 from guards import (relays_approval, remote_readable, 
     JsonPosts,
     LocalAuth,
+    page_csp,
     permission_answer,
     quote_intent,
     close_request,
@@ -8232,9 +8233,10 @@ async def font(name: str):
 @app.get("/voice", response_class=HTMLResponse)
 async def page():
     here = Path(__file__).parent
-    return ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
+    html = ((here / "ui.html").read_text().replace("{{LOGO}}", (here / "assets" / "logo.svg").read_text())
             .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
             .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text()))
+    return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 
 async def _add_worker(session: Session) -> None:

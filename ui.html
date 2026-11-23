@@ -2726,10 +2726,13 @@
     const mine = call.state === 'live';  // this page's own call, not the daemon's: the call may be on the phone
     let st, title;
     const s = status, mv = machineView(s), sessions = mv.shown, need = sessions.filter(x => needsYou(x) && x.online !== false).length;
-    const on = machineFilter ? ` on ${machineFilter.replace(/[<&]/g, '')}` : '';  // the machine filter narrows this line too
-    const where = !s ? '' : !(s.sessions || []).length ? 'No sessions yet: /pointe:voice in Claude Code, or pointe join opencode'
-      : s.mode === 'session' ? `Focused on <b>${short(s.active || '').replace(/[<&]/g, '')}</b>`
-      : `Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}${on}` + (need ? ` · <b>${need} need${need === 1 ? 's' : ''} you</b>` : '');
+    // The line under the state, as parts: a string is text, {b} is bold. Built as nodes, never parsed as HTML: it carries
+    // session and machine names.
+    const on = machineFilter ? ` on ${machineFilter}` : '';  // the machine filter narrows this line too
+    const where = !s ? [] : !(s.sessions || []).length ? ['No sessions yet: /pointe:voice in Claude Code, or pointe join opencode']
+      : s.mode === 'session' ? ['Focused on ', {b: short(s.active || '')}]
+      : [`Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}${on}`,
+         ...(need ? [' · ', {b: `${need} need${need === 1 ? 's' : ''} you`}] : [])];
     // The empty stage carries the reason there is no call, next to the button that fixes it; with a conversation on
     // screen the top bar says it.
     const issue = connectIssue(), panel = connectLi.isConnected && !document.body.matches('.meeting, .meetend');
@@ -2757,9 +2760,16 @@
     // the link itself, from the call's heartbeat, so "connected" is never a guess
     const quiet = mine && call.heard ? (Date.now() - call.heard) / 1000 : 0;
     const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : call.rtt != null ? ` · ${call.rtt} ms` : '';
-    const sub = st === 'off' && !(s && s.connected) ? (where ? where + ' · press Connect to talk' : 'Press Connect to start talking')
-      : title === TURNS_COPY.holding ? TURNS_COPY.holdingHow : where + health;
-    if (sub !== subShown) { subShown = sub; $('sub').innerHTML = sub; }
+    const sub = st === 'off' && !(s && s.connected) ? (where.length ? [...where, ' · press Connect to talk'] : ['Press Connect to start talking'])
+      : title === TURNS_COPY.holding ? [TURNS_COPY.holdingHow] : [...where, health];
+    const subKey = JSON.stringify(sub);
+    if (subKey !== subShown) {
+      subShown = subKey;
+      $('sub').replaceChildren(...sub.map(p => {
+        if (typeof p === 'string') return p;
+        const b = document.createElement('b'); b.textContent = p.b; return b;
+      }));
+    }
     const live = !!(s && s.connected && mine);
     $('hangup').disabled = !live;
     showDump(s);
@@ -3112,8 +3122,9 @@
     let c;
     try { c = await (await fetch('/voice/context')).json(); } catch (e) { return; }
     const t = c.tokens;
-    $('ctx-total').innerHTML = t ? `${t.context.toLocaleString()} tokens<small>as of ${t.at}</small>`
-      : `—<small>${c.connected ? 'Gemini reports after its first reply' : 'no call connected'}</small>`;
+    const note = document.createElement('small');
+    note.textContent = t ? `as of ${t.at}` : c.connected ? 'Gemini reports after its first reply' : 'no call connected';
+    $('ctx-total').replaceChildren(t ? `${t.context.toLocaleString()} tokens` : '—', note);
     const rows = c.breakdown.slice().sort((a, b) => b.chars - a.chars), max = Math.max(1, ...rows.map(r => r.chars));
     $('ctx-rows').replaceChildren(...rows.map(r => {
       const d = el('div', 'ctx-row');
@@ -4091,6 +4102,18 @@
   function phonePickDone() {
     $('ph-pick').hidden = true; $('ph-actions').hidden = false;
   }
+  // The QR code's SVG, parsed in an inert document and taken only if it is the drawing segno makes: shapes, no script,
+  // no handler, no link. Anything else shows no code (the link below still pairs).
+  const QR_TAGS = new Set(['svg', 'g', 'path', 'rect']);
+  const QR_ATTRS = new Set(['viewBox', 'class', 'transform', 'fill', 'stroke', 'd', 'x', 'y', 'width', 'height']);
+  function qrNodes(markup) {
+    const svg = new DOMParser().parseFromString(String(markup || ''), 'text/html').body.firstElementChild;
+    if (!svg || svg.localName !== 'svg') return [];
+    for (const node of [svg, ...svg.querySelectorAll('*')]) {
+      if (!QR_TAGS.has(node.localName) || [...node.attributes].some(a => !QR_ATTRS.has(a.name))) return [];
+    }
+    return [document.importNode(svg, true)];
+  }
   async function phoneCode() {
     if (!phonePick) return;
     $('ph-show').disabled = true;
@@ -4099,7 +4122,7 @@
     if (!made || !made.code) return;
     phoneQR = {...made, until: Date.now() + made.expires_in * 1000};
     $('ph-pick').hidden = true; $('ph-qr').hidden = false; $('ph-foot').hidden = false; $('ph-done').textContent = '';
-    $('ph-svg').innerHTML = made.svg;  // made by this Mac (segno): no image service sees the code
+    $('ph-svg').replaceChildren(...qrNodes(made.svg));  // made by this Mac (segno): no image service sees the code
     $('ph-link').textContent = made.link;
     $('ph-copy').textContent = "Can't scan? Copy the link";
     phoneTick();

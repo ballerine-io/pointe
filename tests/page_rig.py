@@ -13,6 +13,7 @@ import json
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.request
@@ -21,6 +22,8 @@ from pathlib import Path
 from aiohttp import web
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from guards import page_csp  # noqa: E402
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 
@@ -136,8 +139,9 @@ class StubMac:
         if self.delay:
             await asyncio.sleep(self.delay)
 
-    async def _page(self, request):
-        return web.Response(text=page_html(), content_type="text/html")
+    async def _page(self, request):  # under the daemon's script policy, so every page test runs under it
+        html = page_html()
+        return web.Response(text=html, content_type="text/html", headers={"Content-Security-Policy": page_csp(html)})
 
     async def _call(self, request):  # the call's socket: accepted, never spoken on
         ws = web.WebSocketResponse()
@@ -219,6 +223,8 @@ class StubMac:
         return web.json_response({"detail": "gone"}, status=404)
 
     async def _post(self, request):
+        if request.content_type != "application/json":  # as the daemon's guards.JsonPosts
+            return web.Response(status=415, text="POST a JSON body")
         body = await request.json() if request.can_read_body else {}
         await self._stall()
         path = request.path
