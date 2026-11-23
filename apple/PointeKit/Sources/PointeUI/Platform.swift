@@ -1,6 +1,7 @@
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
+import UniformTypeIdentifiers
 #else
 import AppKit
 #endif
@@ -27,14 +28,30 @@ enum Surface {
 }
 
 enum Clipboard {
-    @MainActor static func copy(_ text: String) {
-        #if os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-        #else
-        UIPasteboard.general.string = text
-        #endif
+    #if os(macOS)
+    /// nspasteboard.org's marker: clipboard managers and history tools do not keep or show what carries it.
+    static let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+
+    /// A pairing code or an invite line: marked concealed, and cleared when the code ends unless something else was
+    /// copied since.
+    @MainActor static func copy(_ text: String, until: Date, on board: NSPasteboard = .general) {
+        board.clearContents()
+        board.setString(text, forType: .string)
+        board.setData(Data(), forType: concealed)
+        let mine = board.changeCount
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(max(0, until.timeIntervalSinceNow)))
+            if board.changeCount == mine { board.clearContents() }
+        }
     }
+    #else
+    /// A pairing code or an invite line: this iPhone only (not Universal Clipboard to the person's other devices), and
+    /// gone when the code ends.
+    @MainActor static func copy(_ text: String, until: Date) {
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]],
+                                      options: [.localOnly: true, .expirationDate: until])
+    }
+    #endif
 }
 
 extension View {

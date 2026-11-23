@@ -324,7 +324,7 @@ struct PhoneSheet: View {
                     .accessibilityIdentifier("phoneCountdown")
                 HStack {
                     Button(copied ? PhoneCopy.copied : PhoneCopy.copyLink) {  // the link stays off the screen; the clipboard carries it
-                        if let link = pairing.invite?.link { Clipboard.copy(link) }
+                        if let link = pairing.invite?.link { Clipboard.copy(link, until: pairing.until) }
                         copied = true
                         Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
                     }

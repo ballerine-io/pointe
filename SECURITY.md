@@ -381,6 +381,10 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
   the daemon token and a page opened over the TLS listener get 403. The status shows paired phones by name and time
   only; neither the status nor the log carries a code, a link or a key. Choosing another route makes a new certificate
   (the page says so first): every phone and machine paired before must pair again.
+- **A copied code** (the Mac app's "Can't scan? Copy the link", a machine's invite line in either app) is marked
+  concealed on the Mac (`org.nspasteboard.ConcealedType`, which clipboard managers skip) and cleared when the code ends
+  if nothing else was copied since; on the iPhone it stays on that phone (no Universal Clipboard) and expires with the
+  code. The page's own Copy button is the browser's and gets neither.
 - **A key for each phone.** Each pairing from the page mints that phone its own 256-bit key, returned once;
   `phones.json` (0600) keeps only its SHA-256, with the phone's name and when it paired and was last seen. Every route
   that takes the phone key takes any paired phone's key; each check compares against every stored key in constant time,
