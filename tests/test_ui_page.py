@@ -321,3 +321,23 @@ def test_a_phone_page_that_is_not_paired_says_how_to_pair_it_again():
     block = PAGE[PAGE.index("const CONNECT_COPY = {"):]
     assert "notPairedBrowser: 'This phone is no longer paired with this Mac. On the Mac, run pointe pair link and open the new address here.'" in block
     assert "if (denied) return remotePage ? CONNECT_COPY.notPairedBrowser : CONNECT_COPY.notPaired;" in PAGE
+
+
+@needs_chrome
+def test_machines_where_this_page_cannot_invite_shows_no_empty_row():
+    """Over the phone's listener the Mac refuses invites and revokes (hub_nodes.owner): the button row with Invite
+    hidden was an empty bordered strip."""
+    got = asyncio.run(_render("""(async () => {
+        window.__status = {...window.__status, can_invite: false, machines: [{id: 'studio', name: 'studio', here: true, os: 'macos', online: true, sessions: 1},
+          {id: 'devbox', name: 'devbox', here: false, os: 'linux', online: true, sessions: 2, rtt_ms: 30}]};
+        await refresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
+        const row = document.getElementById('mach-invitebtn').parentElement;
+        return {row: row.getBoundingClientRect().height, display: getComputedStyle(row).display};
+    })()"""))
+    assert got["display"] == "none" or got["row"] == 0, got
+
+
+def test_a_page_over_the_phones_listener_offers_no_revoke():
+    """The Mac answers a revoke from there with a bare 403: the page does not offer one, and says where it is done."""
+    assert "if (!m.here && !remotePage) {" in PAGE
+    assert "Invite or revoke a machine on the Mac's own page or in the app." in PAGE

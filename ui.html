@@ -1264,10 +1264,11 @@
               <div id="mach-link" dir="ltr"></div>
               <div class="note" id="mach-left" role="timer"></div>
             </div>
-            <div class="row" style="justify-content:flex-start">
+            <div class="row" id="mach-row" style="justify-content:flex-start">
               <button type="button" id="mach-invitebtn" onclick="inviteMachine()">Invite a machine</button>
               <button type="button" id="mach-cancel" onclick="cancelInvite()" hidden>Cancel the code</button>
             </div>
+            <div class="note" id="mach-elsewhere" hidden>Invite or revoke a machine on the Mac's own page or in the app.</div>
             <div class="err" id="mach-ended" role="status" hidden></div>
             <div class="err" id="mach-err" role="alert"></div>
           </div>
@@ -4031,7 +4032,7 @@
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
         if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
-        if (!m.here && canInvite) {  // the same owner check as an invite: elsewhere the Mac refuses a revoke
+        if (!m.here && canInvite && !remotePage) {  // the same owner check as an invite; over the phone's listener the Mac refuses a revoke (hub_nodes.owner)
           const sure = asking === m.name, b = el('button', sure ? 'sure' : '', sure ? `Revoke ${m.name}?` : 'Revoke');
           b.title = 'Unpair it: its sessions leave the voice, and it needs a new code to come back';
           b.onclick = () => revokeMachine(m.name);
@@ -4048,7 +4049,8 @@
     $('mach-invite').hidden = !live;
     $('mach-cancel').hidden = !live;
     $('mach-invitebtn').hidden = live || !canInvite;
-    $('mach-invitebtn').parentElement.hidden = !live && !canInvite;  // no empty bordered row
+    $('mach-row').hidden = $('mach-invitebtn').hidden && $('mach-cancel').hidden;  // no empty strip where both are hidden
+    $('mach-elsewhere').hidden = !remotePage;
     if (!live) return;
     $('mach-code').textContent = invite.code;
     $('mach-link').textContent = invite.link ? `pointe node join '${invite.link}'` : '';
@@ -4067,7 +4069,7 @@
         $('mach-err').replaceChildren(el('div', '', 'Another machine needs an address to reach this Mac. Set one up under Phone (one address serves both), then invite again.'), go);
         return null;
       }
-      $('mach-err').textContent = said || 'The Mac did not do it.';
+      $('mach-err').textContent = r.status === 403 ? "Only the Mac's own page or the app can do this." : said || 'The Mac did not do it.';
       return null;
     }
     return await r.json().catch(() => ({}));
