@@ -4,7 +4,7 @@ regenerates both from the rows and fails on any difference."""
 import json
 from pathlib import Path
 
-from actions import check
+from actions import check, fixture
 from core import stats
 
 HERE = Path(__file__).resolve().parents[1]
@@ -41,6 +41,10 @@ def build(run_ids: list[str]) -> dict:
     scores = check.score(rows)
     for arm, s in check.score(no_trunc).items():
         scores[arm]["false_approval_without_truncated"] = s["false_approval"]
+    readable = voice_readable()
+    for arm, s in check.score([r for r in rows if r["phase"] != "pending" or r["kind"] in readable]).items():
+        scores[arm]["false_approval_voice_readable"] = s["false_approval"]
+        scores[arm]["false_denial_voice_readable"] = s["false_denial"]
     spend = round(sum(r.get("spend_usd", 0) for r in load(run_ids)[0]), 4)
     meta = {"run_ids": run_ids, "dates": sorted({r["time"][:10] for r in rows}),
             "pointe_commit": sorted({r["pointe_commit"] for r in rows}), "agent_model": sorted({r["agent_model"] for r in rows}),
@@ -50,8 +54,21 @@ def build(run_ids: list[str]) -> dict:
             "pointe_setup": sorted({r["versions"].get("pointe_setup") for r in rows if r["adapter"] == "pointe"
                                     and r.get("versions", {}).get("pointe_setup")}),
             "voices": sorted({r["voice"] for r in rows}), "rows": len(rows), "spend_usd_all_rows_of_these_runs": spend,
-            "frozen": runs[0].get("frozen")}
+            "frozen": runs[0].get("frozen"), "voice_readable_kinds": readable,
+            "tap_only_kinds": sorted(set(fixture.COMMANDS) - set(readable) - {"long_job"})}
     return {"benchmark": "actions", "title": "Spoken Actions and False Approval", "meta": meta, "scores": scores}
+
+
+def voice_readable() -> list[str]:
+    """The pending command kinds Pointe can put into words at the pinned commit (guards.readable_request): only those
+    can be approved by voice at all. Pointe's own rule, read from its code, not decided here."""
+    import os
+    import sys
+    os.environ.setdefault("CLAUDE_VOICE_STATE", "/tmp/pccb/vendors-state")
+    sys.path.insert(0, str(HERE.parents[1]))
+    import guards
+    return sorted(k for k in (*fixture.DESTRUCTIVE, *fixture.BENIGN)
+                  if guards.readable_request("Bash", {"command": fixture.COMMANDS[k]}, "/tmp") is not None)
 
 
 def _cell(w: dict) -> str:
@@ -88,6 +105,16 @@ def page(results: dict) -> str:
         x = s[a]
         lines.append(f"| {ARM_LABEL[a]} | {_cell(x['false_approval'])} | {_cell(x['false_approval_without_truncated'])} "
                      f"| {_cell(x['false_denial'])} | {x['clear_no_approvals']['k']}/{x['clear_no_approvals']['n']} |")
+    tap = ", ".join(f"`{fixture.COMMANDS[k]}`" for k in m["tap_only_kinds"])
+    n_read = sum(1 for k in m["voice_readable_kinds"] if k in check.DESTRUCTIVE) * 15
+    lines += ["", f"Pointe approves by voice only a request it can put into words from the command itself; {tap} are "
+              "tap-only at this commit (its `guards.readable_request`), so no spoken answer approves them. The same rates "
+              f"on only the prompts Pointe can read out ({n_read} adversarial utterances), for every arm:", "",
+              "| Arm | False approval, voice-readable prompts | False denial, voice-readable prompts |", "|---|---|---|"]
+    for a in arms:
+        lines.append(f"| {ARM_LABEL[a]} | {_cell(s[a]['false_approval_voice_readable'])} | {_cell(s[a]['false_denial_voice_readable'])} |")
+    lines += ["", "False denial by command kind (clear yes, counts): " + "; ".join(
+        f"{ARM_LABEL[a]}: " + ", ".join(f"{k} {v['k']}/{v['n']}" for k, v in s[a]["false_denial_by_kind"].items()) for a in arms) + "."]
     lines += ["", "`keyboard` answers only the 30 clear yes and clear no items, by keypress: it shows each fixture approves",
               "and denies. `null` runs a seeded 20 items: its outcome is fixed by construction and each run still costs a",
               "session set-up, so it is confirmed on a sample. `keyword rules, ours` fails the adversarial set by construction",
@@ -132,10 +159,106 @@ def page(results: dict) -> str:
     return "\n".join(lines)
 
 
+SITE_PAGE = HERE.parents[1] / "site" / "pointe" / "benchmarks" / "actions" / "index.html"
+
+
+def _inline(text: str) -> str:
+    import html
+    import re
+    text = html.escape(text, quote=False)
+    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+
+
+def site(markdown: str) -> str:
+    """The same generated page as HTML, in the site's own style. Loads nothing from another host."""
+    body, para, table = [], [], []
+
+    def flush():
+        if para:
+            body.append(f'<p class="pg-body">{_inline(" ".join(para))}</p>')
+            para.clear()
+        if table:
+            head, rows = table[0], table[2:]
+            cells = lambda r, tag: "".join(f"<{tag}>{_inline(c.strip())}</{tag}>" for c in r.strip().strip("|").split(" | "))  # noqa: E731
+            body.append('<div class="bx-scroll"><table class="bx-table"><thead><tr>' + cells(head, "th") + "</tr></thead><tbody>"
+                        + "".join("<tr>" + cells(r, "td") + "</tr>" for r in rows) + "</tbody></table></div>")
+            table.clear()
+
+    for line in markdown.splitlines()[1:]:
+        if line.startswith("|"):
+            if para:
+                flush()
+            table.append(line)
+        elif line.startswith("## "):
+            flush()
+            body.append(f'<h2 class="pg-h2">{_inline(line[3:])}</h2>')
+        elif not line.strip():
+            flush()
+        else:
+            if table:
+                flush()
+            para.append(line)
+    flush()
+    return f"""<!doctype html>
+<!-- Generated by bench/conversational/run.py report from the committed rows. Do not edit by hand. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pointe benchmarks: Spoken Actions and False Approval</title>
+<meta name="description" content="How often speech that is not a clear yes approves a destructive permission prompt, on synthetic speech.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<style>
+  .bx-scroll {{ overflow-x: auto; margin: 16px 0 28px; }}
+  .bx-table {{ border-collapse: collapse; font-size: 14px; min-width: 100%; }}
+  .bx-table th, .bx-table td {{ border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }}
+  .bx-table th {{ font-weight: 600; }}
+  .pg-body code {{ font-size: 0.92em; }}
+</style>
+</head>
+<body class="pg">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+  </nav>
+</header>
+<main id="main" class="pg-wrap">
+  <section class="pg-hero">
+    <p class="pg-kicker">Pointe Conversational Coding Benchmarks</p>
+    <h1 class="pg-h1">Spoken Actions and False Approval</h1>
+  </section>
+  {chr(10).join("  " + b for b in body)}
+</main>
+<footer class="pg-footer">
+  <div class="pg-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed. Text CC BY 4.0.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../../roadmap/">Roadmap</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>
+"""
+
+
 def main(run_ids: list[str]) -> int:
     results = build(run_ids)
     out = RESULTS / run_ids[-1] / "results.json"
     out.write_text(json.dumps(results, indent=1, sort_keys=True) + "\n")
-    PAGE.write_text(page(results))
-    print(f"wrote {out.relative_to(HERE.parents[1])} and {PAGE.relative_to(HERE.parents[1])}")
+    md = page(results)
+    PAGE.write_text(md)
+    SITE_PAGE.parent.mkdir(parents=True, exist_ok=True)
+    SITE_PAGE.write_text(site(md))
+    print(f"wrote {out.relative_to(HERE.parents[1])}, {PAGE.relative_to(HERE.parents[1])} and "
+          f"{SITE_PAGE.relative_to(HERE.parents[1])}")
     return 0

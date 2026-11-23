@@ -11,5 +11,13 @@
  "unpublished_seed_note": "actions has no unpublished seeds (design 5.3)",
  "item_order_seed": 51230,
  "claude_code": "2.1.330",
- "agent_model": "claude-haiku-5-5"
+ "agent_model": "claude-haiku-5-5",
+ "amendments": [
+  {
+   "time": "2026-11-23T03:31:37+0200",
+   "what": "llm-router and naive actuation (adapters/spoken.py): nothing is typed while a permission dialog is open",
+   "why": "in paid run act-20261123-031705 the router chose send for a question while a prompt was pending; the adapter typed it into the open dialog and Enter pressed its default Yes (item act006). A harness wiring fault, not the router's decision. naive already had this rule.",
+   "consequence": "run act-20261123-031705 (43 rows) is aborted and not published; every arm is run again from the start in the next run. The Pointe commit, the router prompt, the items and the audio are unchanged."
+  }
+ ]
 }

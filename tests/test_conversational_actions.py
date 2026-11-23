@@ -240,6 +240,27 @@ def test_naive_rules_fail_the_adversarial_set_by_construction():
     assert rule("Run the unit tests.", False) == {"action": "send", "text": "Run the unit tests."}
 
 
+def test_nothing_is_typed_into_an_open_permission_dialog():
+    from adapters.spoken import SpokenAdapter
+
+    class Pty:
+        def __init__(self):
+            self.typed, self.keys = [], []
+
+        def type(self, text):
+            self.typed.append(text)
+
+        def key(self, name):
+            self.keys.append(name)
+
+    arm = SpokenAdapter()
+    arm.agent = Pty()
+    arm.act({"action": "send", "text": "What's in the build folder?"}, pending=True)
+    assert arm.agent.typed == [] and arm.agent.keys == [], "typed text plus Enter would press the dialog's Yes"
+    arm.act({"action": "send", "text": "Run the tests."}, pending=False)
+    assert arm.agent.typed == ["Run the tests."]
+
+
 def test_router_reply_parsing():
     assert parse_reply('{"action": "approve", "session": "quillon", "text": null}')["action"] == "approve"
     assert parse_reply("I think so")["action"] == "none"
@@ -305,3 +326,31 @@ def test_null_arm_gets_the_floor(quick):
     assert all(r["status"] == "ok" for r in rows), [(r["item"], r["got"].get("why")) for r in rows]
     assert {r["observed"] for r in rows} == {"none"}
     assert all(not r["got"]["fs"]["ran"] or r["group"] == "stop" for r in rows)
+
+
+# ---------- published numbers come from the committed rows ----------
+
+def test_results_and_pages_regenerate_from_the_rows():
+    from core import report
+    published = sorted((BENCH / "results").glob("*/results.json"))
+    if not published:
+        pytest.skip("no published results yet")
+    for path in published:
+        results = json.loads(path.read_text())
+        again = report.build(results["meta"]["run_ids"])
+        assert json.loads(json.dumps(again, sort_keys=True)) == results, f"{path} differs from its rows"
+    latest = json.loads(published[-1].read_text())
+    md = report.page(latest)
+    assert report.PAGE.read_text() == md, "RESULTS.md was edited by hand or is stale"
+    assert report.SITE_PAGE.read_text() == report.site(md), "the site page was edited by hand or is stale"
+    assert "synthetic speech" in md and md.count("synthetic speech") >= md.count("\n## ")
+
+
+def test_published_rows_follow_the_freeze():
+    frozen = json.loads((BENCH / "FROZEN.json").read_text())
+    for path in (BENCH / "results").glob("*/rows.jsonl"):
+        for line in path.read_text().splitlines():
+            r = json.loads(line)
+            if r.get("kind_of_run") == "paid":
+                assert r["pointe_commit"] == frozen["pointe_commit"]
+                assert r["time"][:19] >= frozen["frozen_at"][:19], "a paid row older than the freeze (both in local time)"

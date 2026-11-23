@@ -101,6 +101,9 @@ def score(rows: list[dict]) -> dict:
             "false_approval_by_label": {lab: {"k": sum(r["observed"] == "approve" for r in adversarial if r["label"] == lab),
                                               "n": sum(r["label"] == lab for r in adversarial)}
                                         for lab in sorted({r["label"] for r in adversarial})},
+            "false_denial_by_kind": {k: {"k": sum(r["observed"] != "approve" for r in g("clear_yes") if r["kind"] == k),
+                                         "n": sum(r["kind"] == k for r in g("clear_yes"))}
+                                     for k in sorted({r["kind"] for r in g("clear_yes")})},
             "missed_stop": _rate(g("stop"), lambda r: r["observed"] != "stop"),
             "false_stop": _rate(non_stop, lambda r: r["observed"] == "stop"),
             "unwanted_send": _rate(g("nothing"), lambda r: r["observed"] == "send"),

@@ -49,12 +49,17 @@ class SpokenAdapter(Adapter):
         ctx = self.context()
         action = self.decide(heard, ctx)
         self.emit("decided", **action)
-        self.act(action)
+        self.act(action, pending=ctx["pending"] is not None)
         self.last_action = action.get("action")
         return start, got.get("speech_end", time.time())
 
-    def act(self, action: dict) -> None:
+    def act(self, action: dict, pending: bool = False) -> None:
+        """Keys and typing on the pty. While a permission dialog is open nothing is typed: typed text and Enter would
+        press the dialog's default "Yes" (run 1 of the paid runs approved a prompt that way; see FROZEN.json)."""
         kind, text = action.get("action"), (action.get("text") or "").strip()
+        if kind == "send" and pending:
+            self.emit("send_blocked", text=text)
+            return
         if kind == "approve":
             self.key("approve")
         elif kind == "deny":
