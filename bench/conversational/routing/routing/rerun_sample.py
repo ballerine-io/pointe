@@ -1,16 +1,16 @@
 """A sample re-run for verification: the given conversations through pointe and llm-router, same harness and frozen
 commit as the paid run; rows go to results/<id>-verify and are used in no table.
 
-  uv run --locked python bench/conversational/routing/rerun_sample.py c06,c12
+  uv run --locked python bench/conversational/routing/routing/rerun_sample.py c06,c12
 """
 import asyncio, json, os, sys, time, secrets
 from pathlib import Path
-WT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(WT / "bench/conversational"))
+WT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(WT / "bench/conversational/routing"))
 import run as R  # noqa
-from conversational.core import agent, corpus, ledger, scrub
-from conversational.core.adapter import RunEnv
-from conversational.routing import check, runner
+from conversational.routing.core import agent, corpus, ledger, scrub
+from conversational.routing.core.adapter import RunEnv
+from conversational.routing.routing import check, runner
 
 CONVS = sys.argv[1].split(",")
 ds = check.load()

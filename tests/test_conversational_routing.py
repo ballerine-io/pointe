@@ -13,15 +13,15 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "bench"))
 
-from conversational.core import detector, ledger, scrub, stats, user  # noqa: E402
-from conversational.core.adapter import AgentArm, RunEnv  # noqa: E402
-from conversational.adapters import naive  # noqa: E402
-from conversational.adapters.echo import EchoArm  # noqa: E402
-from conversational.routing import check, runner  # noqa: E402
-from conversational.routing.fixture import make  # noqa: E402
+from conversational.routing.core import detector, ledger, scrub, stats, user  # noqa: E402
+from conversational.routing.core.adapter import AgentArm, RunEnv  # noqa: E402
+from conversational.routing.adapters import naive  # noqa: E402
+from conversational.routing.adapters.echo import EchoArm  # noqa: E402
+from conversational.routing.routing import check, runner  # noqa: E402
+from conversational.routing.routing.fixture import make  # noqa: E402
 
 DS = check.load()
-CANARY = (ROOT / "bench" / "conversational" / "CANARY").read_text().strip()
+CANARY = (ROOT / "bench" / "conversational" / "routing" / "CANARY").read_text().strip()
 
 
 def tmp_root() -> Path:
@@ -234,7 +234,7 @@ def test_audit_flags_a_planted_out_of_tree_read():
     arm.sessions = {"tariff": _FakeSession(repo, [
         {"tool": "Read", "input": {"file_path": str(repo / "NOTES.md")}},
         {"tool": "Bash", "input": {"command": "echo x > /dev/null"}},
-        {"tool": "Read", "input": {"file_path": str(ROOT / "bench/conversational/routing/conversations.toml")}},
+        {"tool": "Read", "input": {"file_path": str(ROOT / "bench/conversational/routing/routing/conversations.toml")}},
         {"tool": "Read", "input": {"file_path": str(root / "a" / "repos" / "depot" / "NOTES.md")}},
         {"tool": "Bash", "input": {"command": "find / -iname '*web*'"}}])}
     flagged = arm.audit()
@@ -244,7 +244,7 @@ def test_audit_flags_a_planted_out_of_tree_read():
 
 
 def test_runner_refuses_the_owners_ports_and_a_home_state_folder():
-    from conversational.adapters.pointe import PointeArm
+    from conversational.routing.adapters.pointe import PointeArm
 
     env = RunEnv(run_id="t", root=tmp_root(), checkout=ROOT)
     for port in (7860, 7443, 9700):
@@ -258,17 +258,17 @@ def test_runner_refuses_the_owners_ports_and_a_home_state_folder():
 
 
 def test_committed_rows_hold_no_home_path_or_key_and_the_page_matches_the_rows():
-    results = ROOT / "bench" / "conversational" / "results"
+    results = ROOT / "bench" / "conversational" / "routing" / "results"
     for path in results.rglob("*"):
         if path.is_file() and path.suffix in (".jsonl", ".json", ".log"):
             assert not scrub.problems(path.read_text(errors="ignore")), path
-    md = ROOT / "bench" / "conversational" / "routing" / "RESULTS.md"
+    md = ROOT / "bench" / "conversational" / "routing" / "routing" / "RESULTS.md"
     runs = sorted({json.loads(l)["run_id"] for p in results.glob("*/rows.jsonl") for l in p.read_text().splitlines()
                    if not json.loads(l).get("smoke")
                    and not json.loads((p.parent / "run.json").read_text()).get("aborted")
                    and not json.loads((p.parent / "run.json").read_text()).get("verification")})
     if md.exists() and runs:
-        from conversational.routing import report
+        from conversational.routing.routing import report
 
         rows, spend, metas = report.load(runs)
         assert report.markdown(report.summarize(rows, spend), metas) == md.read_text()
@@ -351,7 +351,7 @@ def test_a_two_session_turn_delivered_in_part_gets_its_follow_up_answered():
 
 
 def test_permission_dialog_detection_on_a_captured_screen():
-    from conversational.core.agent import AgentSession
+    from conversational.routing.core.agent import AgentSession
 
     s = AgentSession("t", Path("/tmp/x"), Path("/tmp/x-home"), "m", "acceptEdits")
     s.screen = ("Read(/tmp/pccb/dialogtest/b/notes.md)\n Do you want to proceed?\n > 1. Yes\n   2. Yes, allow reading "
@@ -364,7 +364,7 @@ def test_permission_dialog_detection_on_a_captured_screen():
 
 
 def test_a_dialog_is_approved_only_when_it_stays_in_the_session_repo():
-    from conversational.core.agent import AgentSession
+    from conversational.routing.core.agent import AgentSession
 
     repo = Path("/tmp/pccb/run/pointe/c12-r0/repos/depot")
     s = AgentSession("depot", repo, Path("/tmp/x-home"), "m", "acceptEdits")

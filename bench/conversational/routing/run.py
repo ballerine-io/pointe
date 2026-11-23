@@ -1,9 +1,9 @@
 """Pointe Conversational Coding Benchmarks: the one command. This build carries the `routing` benchmark.
 
-  uv run --locked python bench/conversational/run.py routing --budget-usd 9 [--adapter ...] [--smoke] [--dry-run]
-  uv run --locked python bench/conversational/run.py corpus          # render the audio only, $0
-  uv run --locked python bench/conversational/run.py verify          # offline checks, $0
-  uv run --locked python bench/conversational/run.py report <run-id> # rows -> routing/RESULTS.md and results.json
+  uv run --locked python bench/conversational/routing/run.py routing --budget-usd 9 [--adapter ...] [--smoke] [--dry-run]
+  uv run --locked python bench/conversational/routing/run.py corpus          # render the audio only, $0
+  uv run --locked python bench/conversational/routing/run.py verify          # offline checks, $0
+  uv run --locked python bench/conversational/routing/run.py report <run-id> # rows -> routing/RESULTS.md and results.json
 """
 
 import argparse
@@ -19,11 +19,11 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-sys.path.insert(0, str(HERE.parent))
+ROOT = HERE.parents[2]
+sys.path.insert(0, str(HERE.parents[1]))
 
-from conversational.core import agent, corpus, ledger, scrub  # noqa: E402
-from conversational.routing import check, report, runner  # noqa: E402
+from conversational.routing.core import agent, corpus, ledger, scrub  # noqa: E402
+from conversational.routing.routing import check, report, runner  # noqa: E402
 
 ARMS = ("pointe", "llm-router", "naive", "keyboard-canonical", "null")
 ESTIMATE = {"pointe": 0.055, "llm-router": 0.035, "naive": 0.025, "keyboard-canonical": 0.025, "null": 0.0}  # $/turn
@@ -32,7 +32,7 @@ SEED = 20261123
 REPEATS = 3
 FROZEN = HERE / "FROZEN.json"
 PROMPT = HERE / "adapters" / "llm_router_prompt.txt"
-PRODUCT_EXCLUDES = [":(exclude)bench/conversational", ":(exclude)tests/test_conversational_bench.py", ":(exclude).gitignore"]
+PRODUCT_EXCLUDES = [":(exclude)bench/conversational", ":(exclude)tests/test_conversational_routing.py", ":(exclude).gitignore"]
 
 
 def git(*args: str) -> str:
@@ -89,11 +89,11 @@ def preflight(root: Path, model: str) -> dict:
 
 
 def make_arm(name: str, env, router_model: str):
-    from conversational.adapters.keyboard import KeyboardArm
-    from conversational.adapters.llm_router import LLMRouterArm
-    from conversational.adapters.naive import NaiveArm
-    from conversational.adapters.null import NullArm
-    from conversational.adapters.pointe import PointeArm
+    from conversational.routing.adapters.keyboard import KeyboardArm
+    from conversational.routing.adapters.llm_router import LLMRouterArm
+    from conversational.routing.adapters.naive import NaiveArm
+    from conversational.routing.adapters.null import NullArm
+    from conversational.routing.adapters.pointe import PointeArm
 
     return {"pointe": lambda: PointeArm(env, env.port_base + 10), "llm-router": lambda: LLMRouterArm(env, router_model),
             "naive": lambda: NaiveArm(env), "keyboard-canonical": lambda: KeyboardArm(env),
@@ -170,7 +170,7 @@ async def routing(args) -> int:
     root = Path("/tmp/pccb") / run_id
     root.mkdir(parents=True, exist_ok=True)
     link_before = sha_file(Path.home() / ".local/bin/pointe") if (Path.home() / ".local/bin/pointe").exists() else None
-    from conversational.core.adapter import RunEnv
+    from conversational.routing.core.adapter import RunEnv
 
     env = RunEnv(run_id=run_id, root=root, checkout=ROOT, port_base=args.port_base,
                  deny_reads=[HERE, root / "staging"])
@@ -188,7 +188,7 @@ async def routing(args) -> int:
                 "repo_commit": git("rev-parse", "HEAD"), "pointe_commit": pointe_commit(),
                 "claude_code_version": agent.claude_version(), "agent_model": env.model, "permission_mode": env.mode,
                 "pointe_setup": setup, "router_model": setup["brain"].split(":", 1)[1], "router_effort": "low",
-                "ears_model": "soniox:" + __import__("conversational.core.ears", fromlist=["model"]).model(),
+                "ears_model": "soniox:" + __import__("conversational.routing.core.ears", fromlist=["model"]).model(),
                 "voice_engine": "Kokoro-82M (mlx-community/Kokoro-82M-bf16, Apache-2.0)", "seed": seed,
                 "smoke": args.smoke, "frozen": frozen, "preflight": pf, "dataset_version": ds["version"],
                 "arms": arms, "budget_usd": args.budget_usd, "trimmed": []}
@@ -289,7 +289,7 @@ def corpus_cmd(_args) -> int:
 
 
 def verify(_args) -> int:
-    return subprocess.run(["uv", "run", "--locked", "pytest", "-q", "tests/test_conversational_bench.py"], cwd=ROOT).returncode
+    return subprocess.run(["uv", "run", "--locked", "pytest", "-q", "tests/test_conversational_routing.py"], cwd=ROOT).returncode
 
 
 def main() -> int:

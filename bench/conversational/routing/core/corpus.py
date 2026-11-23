@@ -12,7 +12,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parents[1]
 AUDIO = HERE / ".audio"
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 RATE = 48000
 VOICES = ("af_heart", "am_michael", "bf_emma", "bm_george")  # US female, US male, British female, British male
 

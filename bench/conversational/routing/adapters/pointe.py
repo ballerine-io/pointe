@@ -39,7 +39,7 @@ def log_time(line: str) -> float:
 
 
 def _rig():
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests" / "e2e"))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tests" / "e2e"))
     import rig  # noqa: E402
 
     return rig

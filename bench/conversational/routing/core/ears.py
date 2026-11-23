@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parents[1]
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 CACHE = HERE / ".audio" / "transcripts.json"
 RATE = 16000
 CHUNK = 320  # 20 ms
