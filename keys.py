@@ -18,6 +18,7 @@ import select
 import subprocess
 import sys
 import time
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
 import childenv  # noqa: E402
@@ -105,6 +106,11 @@ AUDIO_CHECK = {"soniox": ("https://api.soniox.com/v1/models", "Authorization", "
                "elevenlabs": ("https://api.elevenlabs.io/v1/models", "xi-api-key", "{}")}
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None  # the 3xx is raised as an HTTPError: answered, not checked
+
+
 def check(vendor: str, secret: str | None = None) -> tuple[bool | None, str]:
     """One tiny live call with the saved key, or with `secret` before it is saved. (True, ...) works, (False, ...)
     refused or missing, (None, ...) could not be checked. The answer never holds the key or the vendor's own error text
@@ -136,7 +142,8 @@ def _check(vendor: str, asyncio, urllib) -> tuple[bool | None, str]:
     try:
         if vendor in AUDIO_CHECK:
             url, header, form = AUDIO_CHECK[vendor]
-            urllib.request.urlopen(urllib.request.Request(url, headers={header: form.format(secret)}), timeout=15).close()
+            opener = urllib.request.build_opener(_NoRedirect)  # urllib would send the key on to wherever a 3xx points
+            opener.open(urllib.request.Request(url, headers={header: form.format(secret)}), timeout=15).close()
         else:
             # Their own choice first: on another host (openai_url) the default model names are not deployed.
             configured = [c for c in (vendors.config().get(r) for r in ("checker", "brain", "reader")) if c]

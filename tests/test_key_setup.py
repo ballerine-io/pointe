@@ -290,10 +290,10 @@ def test_key_check_says_works_refused_or_unreachable_and_never_shows_the_key(key
     keys("soniox", "gemini")
     asked = []
 
-    def fake_open(request, timeout):
+    def fake_open(opener, request, data=None, timeout=None):  # every urllib opener: no request leaves this test
         asked.append((request.full_url, request.headers))
         raise urllib.error.HTTPError(request.full_url, 401, "Unauthorized", {}, None)
-    monkeypatch.setattr(urllib.request, "urlopen", fake_open)
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", fake_open)
     ok, said = keys_cli.check("soniox")
     assert not ok and said == vendors.refused_help("soniox") and "synthetic" not in said
     assert asked[0][0] == "https://api.soniox.com/v1/models" and asked[0][1]["Authorization"] == "Bearer synthetic-soniox"
@@ -412,3 +412,44 @@ def test_keys_are_saved_under_pointes_own_name_and_the_old_name_still_reads(tmp_
     assert vendors.key("soniox") == "synthetic-new" and asked == ["pointe.soniox-api-key"]
     asked.clear()
     assert vendors.key("openai") is None and asked == ["pointe.openai-api-key", "openai-api-key"]
+
+
+def test_the_key_check_never_follows_a_redirect_with_the_key(keys, monkeypatch):
+    """urllib would send the key's header on to wherever a 3xx points. The check stops at the first answer."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    import keys as keys_cli
+
+    seen = []
+
+    class Elsewhere(BaseHTTPRequestHandler):
+        def do_GET(self):
+            seen.append(dict(self.headers))
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, *a):
+            pass
+
+    other = ThreadingHTTPServer(("127.0.0.1", 0), Elsewhere)
+
+    class Redirects(Elsewhere):
+        def do_GET(self):
+            self.send_response(302)
+            self.send_header("location", f"http://127.0.0.1:{other.server_address[1]}/v1/models")
+            self.end_headers()
+
+    vendor = ThreadingHTTPServer(("127.0.0.1", 0), Redirects)
+    for s in (other, vendor):
+        threading.Thread(target=s.serve_forever, daemon=True).start()
+    try:
+        monkeypatch.setitem(keys_cli.AUDIO_CHECK, "soniox",
+                            (f"http://127.0.0.1:{vendor.server_address[1]}/v1/models", "Authorization", "Bearer {}"))
+        ok, said = keys_cli.check("soniox", "synthetic-soniox-key")
+    finally:
+        for s in (other, vendor):
+            s.shutdown()
+            s.server_close()
+    assert not seen, f"the key followed the redirect: {seen}"
+    assert ok is None and "302" in said

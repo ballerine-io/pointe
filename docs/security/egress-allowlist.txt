@@ -20,7 +20,7 @@ api.openai.com             OpenAI text, ears, mouth and realtime front (openai S
 api.elevenlabs.io          ElevenLabs ears and mouth (pipecat; bench)
 stt-rt.soniox.com          Soniox ears, meeting ears (daemon.py, meeting.py, bench)
 tts-rt.soniox.com          Soniox mouth (pipecat; bench)
-api.soniox.com             pointe key check soniox: one GET of the models list, to tell a working key from a refused one (keys.py)
+api.soniox.com             pointe key check soniox: one GET of the models list, to tell a working key from a refused one; a redirect is not followed, so the key goes nowhere else (keys.py)
 
 # models, at the commits and hashes pinned in assets.py
 huggingface.co             model repositories (huggingface_hub, mlx-whisper, mlx-audio, faster-whisper; bench)
