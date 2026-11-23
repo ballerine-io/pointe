@@ -529,3 +529,15 @@ def test_an_invite_with_no_address_offers_the_pages_own_phone_step():
     said = "(() => { const e = document.getElementById('mach-err'); return [e.textContent, !!e.querySelector('button')]; })()"
     (r,) = _run([(1440, fail, said)], fixture(sessions=2, machines=2, connected=True))
     assert "`" not in r[0] and "pointe pair" not in r[0] and "Phone" in r[0] and r[1], r
+
+
+def test_fix_the_key_shows_only_beside_the_refused_key():
+    """With a key refused, Fix the key goes with Cannot hear you; not with Pointe not answering, nor with a call that is
+    up on another device. The not-answering line names no internal host."""
+    probe = "(() => [!!document.getElementById('fixkey').offsetParent, (document.getElementById('connect-why')?.textContent || '') + ' ' + document.getElementById('problem').textContent, location.host])()"
+    refused = {**fixture(sessions=2, talk=2, connected=True), "key_refused": {"vendor": "gemini", "ears": True}}
+    down = "window.fetch = async () => { throw new TypeError('Failed to fetch'); }; await refresh(); await refresh();"
+    mine, elsewhere, dead = _run([(1440, LIVE, probe), (1440, "call.state = 'off'; render();", probe), (1440, down, probe)], refused)
+    assert mine[0] is True, mine
+    assert elsewhere[0] is False, elsewhere
+    assert dead[0] is False and "not answering" in dead[1] and dead[2] not in dead[1], dead

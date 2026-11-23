@@ -2425,7 +2425,7 @@
     reconnecting: n => `Reconnecting… attempt ${n}`,
     // (a) the Mac is not reachable at its address; on the Mac itself that means Pointe is not running
     unreachable: host => `Can't reach your Mac at ${host}. Is Twingate or Tailscale on? Is the Mac awake?`,
-    daemonDown: host => `Pointe on this Mac is not answering${host ? ' at ' + host : ''}. Is it running? In a terminal: pointe doctor`,
+    daemonDown: () => 'Pointe on this Mac is not answering. Is it running? In a terminal: pointe doctor',  // the page's host is an internal name
     // (b) the key this page or phone holds is refused
     notPaired: 'This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open.',
     // (c) the Mac has no listener for the phone yet
@@ -2736,7 +2736,7 @@
   // then the Mac not answering, then this page's own microphone or link trouble.
   function connectIssue() {
     if (denied) return CONNECT_COPY.notPaired;
-    if (fails >= 3) return remotePage ? CONNECT_COPY.unreachable(location.host) : CONNECT_COPY.daemonDown(location.host);
+    if (fails >= 3) return remotePage ? CONNECT_COPY.unreachable(location.host) : CONNECT_COPY.daemonDown();
     return micError || callNote;
   }
   setInterval(checkMic, 2000);
@@ -2776,7 +2776,7 @@
     const callIs = ['live', 'bot', 'user', 'ptt', 'talking'].includes(st) ? 'on' : st;
     if (callIs !== saidState) { saidState = callIs; if (callIs !== 'off' || $('statesay').textContent) text('statesay', title); }
     document.body.classList.toggle('firstrun', !!(s && s.first_call));
-    $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor);
+    $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor) || denied || fails >= 3 || (s.connected && !mine);  // its own problem only
     // the link itself, from the call's heartbeat, so "connected" is never a guess
     const quiet = mine && call.heard ? (Date.now() - call.heard) / 1000 : 0;
     const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : call.rtt != null ? ` · ${call.rtt} ms` : '';
