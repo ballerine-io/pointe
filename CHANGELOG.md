@@ -7,6 +7,10 @@ the one in `.claude-plugin/plugin.json`, which the page and the iPhone app show.
 
 The public history starts on 2026-11-11 at 0.4.0. Earlier work was in a private repository and is not listed.
 
+## 1.21
+
+- **1.21.0** (2026-11-23): Add sessions by voice: "connect to the session about the pentest", "connect to all open Claude Code sessions" and "reopen yesterday's session about billing" find sessions here and on paired machines, read back what was found, and join on a yes, with an Add sessions sheet on the page and in the apps
+
 ## 1.20
 
 - **1.20.4** (2026-11-23): The Pointe Conversational Coding Benchmarks are published: Humanity's Last Keystroke and four more measure what talking costs a coding agent, with every result, its limits and how to run them on another harness in docs/benchmarks/ and on the site's new Benchmarks page
