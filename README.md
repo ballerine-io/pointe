@@ -392,6 +392,10 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
   bench on recorded people has been run, so use the voice lock at Approvals, and treat whisper recognition as limited.
 - **Real hardware.** Drive mode has not been measured on car hands-free audio. Phone alerts depend on the app being alive
   (there is no push server). Conflict alarms have no live run with real OpenCode or Codex sessions.
+- **Approvals by voice cover plain commands.** Pointe reads out only known programs in plain pipelines (`readout.py`).
+  A compound shell command (`pwd; ls | head`, an `if [ ... ]` test, `printf ... > file`), a web fetch or a tool call
+  from an MCP server is not read out: it waits for a tap on the page, the phone or the terminal. With no screen in
+  reach, such a request waits until you have one.
 - **Echo.** On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones. Known echo cases
   that are not solved are listed in [docs/how-it-works.md](docs/how-it-works.md#echo).
 - **Vendor-hosted cloud sessions are out of reach.** Claude Code on the web and Codex Cloud have no public interface to
