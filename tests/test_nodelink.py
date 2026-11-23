@@ -58,6 +58,11 @@ def test_extra_fields_are_kept_so_one_side_can_move_first():
     {"t": "transcript", "id": "s1", "gen": 0, "offset": 0, "next_offset": 5, "entries": ["no newline"]},
     {"t": "files", "id": "s1", "names": [f"f{i}" for i in range(41)]},
     {"t": "hello", **_hello(node={"id": "n1"})},
+    {"t": "hello", **_hello(node={**_hello()["node"], "name": "x" * 201})},  # before any proof: nothing large
+    {"t": "hello", **_hello(node={**_hello()["node"], "id": "f" * 129})},
+    {"t": "hello", **_hello(node={**_hello()["node"], "version": "1" * 201})},
+    {"t": "hello", **_hello(node={**_hello()["node"], "harnesses": ["claude-code"] * 41})},
+    {"t": "hello", **_hello(auth="0" * 129)},
 ])
 def test_a_malformed_node_frame_is_dropped(frame):
     assert decode(json.dumps(frame), NODE_FRAMES) is None

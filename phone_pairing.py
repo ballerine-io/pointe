@@ -208,7 +208,8 @@ class PhoneLink:
         body = body if isinstance(body, dict) else {}
         refused = invites.check(body.get("code", ""), address)  # the rate limit, then the code (hub_nodes.Invites)
         if refused:
-            logger.warning(f"phone pairing from {address}: {refused[1]}")
+            if invites.worth_logging(refused, address):
+                logger.warning(f"phone pairing from {address}: {refused[1]}")
             return refused if refused[0] == 429 else (403, hub_nodes.NO_SUCH_INVITE)
         invites.cancel()
         name = _clean(body.get("device"), MAX_DEVICE_CHARS) or "iPhone"

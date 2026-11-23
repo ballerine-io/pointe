@@ -1304,3 +1304,79 @@ def test_sockets_waiting_for_a_hello_are_capped_per_address_and_in_all(world, mo
         assert hub._waiting == {}
 
     run(go())
+
+
+def _logged(level="INFO"):
+    from loguru import logger
+    lines: list[str] = []
+    sink = logger.add(lambda m: lines.append(str(m)), level=level, diagnose=False, backtrace=False)
+    return lines, lambda: logger.remove(sink)
+
+
+def _raw_hello(name, node_id="f" * 16):
+    return json.dumps({"t": "hello", "protocol": nodelink.PROTOCOL, "auth": "00" * 32, "now": 1.0,
+                       "node": {"id": node_id, "name": name, "os": "linux", "arch": "x86_64", "version": "1.0.1",
+                                "harnesses": ["claude-code"]}})
+
+
+def test_a_refused_hello_with_a_megabyte_name_logs_under_a_kilobyte(world):
+    """/voice/node takes no secret before the hello: what a stranger puts in it must not reach daemon.log whole."""
+    hub, *_ = world
+    lines, done = _logged()
+
+    async def go():
+        for name in ("x" * (nodelink.MAX_FRAME_BYTES - 400), "y" * 5000):
+            pipe = AddressedPipe("100.64.0.9")
+            task = asyncio.create_task(hub.serve(pipe))
+            await pipe.to_node.get()  # the challenge
+            await pipe.to_hub.put(_raw_hello(name))
+            await asyncio.wait_for(task, 2)
+            assert pipe.closed is not None
+
+    try:
+        run(go())
+    finally:
+        done()
+    assert sum(len(line) for line in lines) < 1024, lines
+
+
+def test_a_refused_hello_is_logged_once_per_address_a_minute(world):
+    hub, host, registry, clock, mono, state = world
+    lines, done = _logged()
+
+    async def refuse(address):
+        pipe = AddressedPipe(address)
+        task = asyncio.create_task(hub.serve(pipe))
+        await pipe.to_node.get()
+        await pipe.to_hub.put(_raw_hello("stranger"))
+        await asyncio.wait_for(task, 2)
+        assert pipe.closed[0] == nodelink.CLOSE_UNAUTHORIZED
+
+    async def go():
+        for _ in range(50):
+            await refuse("100.64.0.9")
+        assert len([x for x in lines if "refused" in x]) == 1
+        await refuse("100.64.0.10")  # another address is told
+        assert len([x for x in lines if "refused" in x]) == 2
+        mono.now += hub_nodes.REFUSED_LOG_SECS + 1  # and the first again, a window later
+        await refuse("100.64.0.9")
+        assert len([x for x in lines if "refused" in x]) == 3
+
+    try:
+        run(go())
+    finally:
+        done()
+
+
+def test_an_addresss_over_rate_pairing_guesses_are_logged_once_per_invite(world):
+    hub = world[0]
+    hub.invites.make()
+    bad = {"code": "AAAA-AAAA", "name": "devbox", "os": "linux"}
+    lines, done = _logged()
+    try:
+        codes = [hub.pair(bad, "10.0.0.2")[0] for _ in range(200)]
+    finally:
+        done()
+    assert codes[:5] == [403] * 5 and set(codes[5:]) == {429}
+    assert len([x for x in lines if "too many attempts" in x]) == 1
+    assert len([x for x in lines if "wrong code" in x]) == 5  # every compared guess still is (at most 20 an invite)
