@@ -36,6 +36,7 @@ import artifacts
 import briefing
 import braindump
 import challenge
+import childenv
 import conversation as flow  # State has a field named conversation
 import conflicts
 import discovery
@@ -251,9 +252,8 @@ def _note_problem(message) -> None:
         text = vendors.refused_help(vendor)
     elif shown and vendors.refused_key(shown) is not None:
         return
-    for env in vendors.KEY_ENVS:
-        if os.environ.get(env):
-            text = text.replace(os.environ[env], "[key]")
+    for value in vendors.known_keys():
+        text = text.replace(value, "[key]")
     _problem = (time.time(), text[:200])
 
 
@@ -1770,7 +1770,7 @@ class MirrorEars(FrameProcessor):
 
         vendors.refuse_cloud_audio("the echo guard's mirror stream (Soniox)")
         self._ws = await connect(self.URL, additional_headers={
-            "Authorization": f"Bearer {os.environ['SONIOX_API_KEY']}"})
+            "Authorization": f"Bearer {vendors.key('soniox')}"})
         self._rate = rate
         await self._ws.send(json.dumps({
             "model": vendors.SONIOX_RT_MODEL, "audio_format": "pcm_s16le", "num_channels": 1, "sample_rate": rate,
@@ -4899,7 +4899,7 @@ _NAME_NOISE = re.compile(r"^(?:session|answer)\s*:\s*|\s*\[[^\]]*\]\s*$|[*`'\"]"
 
 def _git_files(cwd: str, timeout: float) -> str:
     """A repo's own config can run code (core.fsmonitor), and any directory may register: that code gets no keys."""
-    env = {k: v for k, v in os.environ.items() if k not in vendors.KEY_ENVS}
+    env = childenv.child_env()
     return subprocess.run(["git", "-c", "core.fsmonitor=false", "ls-files", "-z"], cwd=cwd, env=env, capture_output=True, text=True,
                           timeout=timeout).stdout
 
@@ -7689,8 +7689,7 @@ def _run_on_the_mac(*commands: list[str]) -> None:
     """Run `bin/pointe` commands one after another, detached from this daemon: they restart it, and `voice-daemon stop`
     ends its children. No key travels in their environment: the restarted daemon reads the Keychain afresh."""
     script = " && ".join(" ".join(shlex.quote(part) for part in cmd) for cmd in commands)
-    env = {k: v for k, v in os.environ.items() if k not in vendors.KEY_ENVS}
-    env.update({"CLAUDE_VOICE_STATE": str(STATE_DIR), "CLAUDE_VOICE_DAEMON_PORT": str(PORT)})
+    env = childenv.child_env(CLAUDE_VOICE_STATE=str(STATE_DIR), CLAUDE_VOICE_DAEMON_PORT=str(PORT))
     subprocess.run(["/bin/sh", "-c", f"( {script} ) >/dev/null 2>&1 </dev/null &"], env=env, start_new_session=True,
                    timeout=10)
 
@@ -8394,7 +8393,7 @@ def build_front():
         )
         if MODEL:
             settings.model = MODEL
-        return OpenAIRealtimeLLMService(api_key=os.environ["OPENAI_API_KEY"], settings=settings, tools=TOOLS)
+        return OpenAIRealtimeLLMService(api_key=vendors.key("openai"), settings=settings, tools=TOOLS)
 
     from pipecat.services.google.gemini_live.llm import ContextWindowCompressionParams, GeminiLiveLLMService
 
@@ -8405,7 +8404,7 @@ def build_front():
     )
     if MODEL:
         settings.model = MODEL
-    return GeminiLiveLLMService(api_key=os.environ["GOOGLE_API_KEY"], settings=settings, tools=TOOLS)
+    return GeminiLiveLLMService(api_key=vendors.key("gemini"), settings=settings, tools=TOOLS)
 
 
 async def _listed_repos() -> dict[str, list[str]]:

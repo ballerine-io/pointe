@@ -18,6 +18,8 @@ from pathlib import Path
 
 from loguru import logger
 
+import childenv
+
 from .base import HOST, Harness, StartError, refuse_bypass
 
 DEFAULT_HOME = Path.home() / ".claude"
@@ -317,7 +319,8 @@ def start_script(cwd: str, name: str, start_id: str, root: Path = Path(__file__)
 def terminal_app() -> str:
     """The terminal that gets the window: iTerm when it is the one running, else Terminal, which every Mac has."""
     try:
-        running = subprocess.run(["pgrep", "-x", "iTerm2"], capture_output=True, timeout=3).returncode == 0
+        running = subprocess.run(["pgrep", "-x", "iTerm2"], capture_output=True, timeout=3,
+                                 env=childenv.child_env()).returncode == 0
     except (OSError, subprocess.SubprocessError):
         running = False
     return "iTerm" if running else "Terminal"
@@ -332,13 +335,13 @@ def open_terminal(script: Path) -> None:
     script in a terminal of their own (CLAUDE_VOICE_OPEN_WITH), so the owner's screen is never touched."""
     instead = os.environ.get(OPEN_WITH_ENV)
     argv = [instead, str(script)] if instead else ["open", "-a", terminal_app(), str(script)]
-    subprocess.run(argv, check=True, capture_output=True, timeout=15)
+    subprocess.run(argv, check=True, capture_output=True, timeout=15, env=childenv.child_env())
 
 
 def _env(home: str) -> dict:
-    """The environment for a `claude` this daemon starts: not the session's that started the daemon, and the account
-    (config dir) asked for."""
-    env = {k: v for k, v in os.environ.items()
+    """The environment for a `claude` this daemon starts: not the session's that started the daemon, no vendor key, and
+    the account (config dir) asked for."""
+    env = {k: v for k, v in childenv.child_env().items()
            if not k.startswith("CLAUDE_CODE_") and k not in ("CLAUDECODE", "CLAUDE_PID", "CLAUDE_CONFIG_DIR")}
     if home:
         env["CLAUDE_CONFIG_DIR"] = home
@@ -483,7 +486,8 @@ async def _agents(home: str) -> list | None:
 
 
 def _stat_of(pid: int) -> str:
-    return subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, timeout=5).stdout
+    return subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, timeout=5,
+                          env=childenv.child_env()).stdout
 
 
 def _model_of(session) -> str | None:

@@ -15,6 +15,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import childenv
 from brief import unsupported
 from notes import mostly_same
 from readout import mask
@@ -134,7 +135,8 @@ _ROOTS: dict[str, str] = {}
 
 def _git(cwd: str, *args: str) -> str:
     try:
-        done = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=2)
+        done = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=2,
+                              env=childenv.child_env())
     except (OSError, subprocess.SubprocessError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""

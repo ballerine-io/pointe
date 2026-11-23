@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 import aiohttp  # noqa: E402
 from loguru import logger  # noqa: E402
 
+import childenv  # noqa: E402
 import guards  # noqa: E402
 import harnesses  # noqa: E402
 import nodelink  # noqa: E402
@@ -812,7 +813,8 @@ class Node:
         proc = None
         try:
             proc = await asyncio.create_subprocess_exec(
-                "git", "-C", session.cwd, "ls-files", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+                "git", "-C", session.cwd, "ls-files", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+                env=childenv.child_env())
             out, _ = await asyncio.wait_for(proc.communicate(), 5)
         except (OSError, asyncio.TimeoutError):
             return

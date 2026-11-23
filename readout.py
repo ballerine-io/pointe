@@ -108,11 +108,12 @@ def _live_values() -> list[str]:
     """The values of this machine's own secrets, wherever they appear."""
     try:
         import vendors
-        names = set(vendors.KEY_ENVS)
+        names, held = set(vendors.KEY_ENVS), vendors.known_keys()  # held: the Keychain's, which os.environ never sees
     except Exception:
-        names = set()
+        names, held = set(), []
     names |= {k for k in os.environ if re.search(r"KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL", k, re.I)}
-    return sorted({v for k in names if len(v := os.environ.get(k, "")) >= 8}, key=len, reverse=True)
+    values = {os.environ.get(k, "") for k in names} | set(held)
+    return sorted({v for v in values if len(v) >= 8}, key=len, reverse=True)
 
 
 def mask(text: str) -> str:

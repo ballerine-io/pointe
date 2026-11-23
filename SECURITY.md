@@ -185,8 +185,12 @@ What sessions report is data for the voice model, not instructions to it:
 
 ## Keys
 
-- Keys come from the environment or the macOS Keychain, and reach the daemon only.
-- Claude Code sessions never receive them from Pointe, and `git` runs without them.
+- Keys come from the environment or the macOS Keychain, and reach the daemon only. A key read from the Keychain stays in
+  the daemon's memory, never in its environment.
+- No program Pointe starts receives them: not the `claude -p` copy a side question runs in, not `claude agents`, `git`,
+  OpenCode, the local text-model server or any other tool. Each gets the daemon's environment without the key variables
+  (`childenv.py`; `tests/test_child_env.py` fails on a spawn that does not use it). The exceptions start the daemon
+  itself (`pointe key`'s restart, `pointe join`), which reads keys from the environment it is given.
 - They are not in command lines: scripts pass the token to `curl` through `--config`.
 - The page shows vendor errors with key values replaced. Logs hold an error's text as the vendor wrote it.
 

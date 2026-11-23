@@ -21,6 +21,7 @@ from pathlib import Path
 from loguru import logger
 
 import assets
+import childenv
 import setups
 
 KEYS = {
@@ -42,6 +43,8 @@ SONIOX_RT_MODEL = "stt-rt-v6"
 LOCAL_EARS_MODEL = "mlx-community/whisper-large-v3-turbo"  # why: bench/results/local.md; its commit: assets.HF_MODELS
 LOCAL_EARS_MODEL_CT2 = "deepdml/faster-whisper-large-v3-turbo-ct2"  # the same model for faster-whisper, off Apple silicon
 KEY_ENVS = {env for env, _ in KEYS.values()} | set(ENV_ALIASES.values()) | {"CLAUDE_VOICE_LOCAL_KEY"}
+# Keys read from the Keychain, in this process's memory only: never in os.environ, so nothing it starts inherits one.
+_found: dict[str, str] = {}
 # First available wins. The order is the result of bench/results; see README, "Benchmarks".
 BRAIN_ORDER = ["anthropic:claude-sonnet-5-5", "gemini:gemini-3.8-flash", "openai:gpt-6-sol"]
 BRAIN_FALLBACK = {"gemini:gemini-3.8-flash": "gemini:gemini-3.6-flash", "anthropic:claude-sonnet-5-5": "anthropic:claude-haiku-5-5",
@@ -86,16 +89,23 @@ def key(vendor: str) -> str | None:
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
         return value
+    if vendor in _found:
+        return _found[vendor]
     for name in (item, LEGACY_ITEMS[vendor]):
         try:
             got = subprocess.run(["security", "find-generic-password", "-s", name, "-w"], capture_output=True,
-                                 text=True, timeout=5)
+                                 text=True, timeout=5, env=childenv.child_env())
         except (OSError, subprocess.TimeoutExpired):
             return None
         if not got.returncode and got.stdout.strip():
-            os.environ[env] = got.stdout.strip()
-            return os.environ[env]
+            _found[vendor] = got.stdout.strip()
+            return _found[vendor]
     return None
+
+
+def known_keys() -> list[str]:
+    """Every key value this process holds, from its environment or the Keychain: what a log line or a mask must hide."""
+    return [v for v in [*(os.environ.get(env, "") for env in KEY_ENVS), *_found.values()] if v]
 
 
 _clients: dict[str, object] = {}

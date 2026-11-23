@@ -29,6 +29,8 @@ from pathlib import Path
 import aiohttp
 from loguru import logger
 
+import childenv
+
 from .base import HOST, Harness, StartError, refuse_bypass
 
 SERVICE_FILE = Path(os.environ.get("OPENCODE_SERVICE_FILE", Path.home() / ".config" / "opencode" / "service.json"))
@@ -47,7 +49,8 @@ class Service:
 
     def url(self) -> str:
         if not self._url:
-            got = subprocess.run(["opencode", "service", "status"], capture_output=True, text=True, timeout=10)
+            got = subprocess.run(["opencode", "service", "status"], capture_output=True, text=True, timeout=10,
+                                 env=childenv.child_env())
             words = got.stdout.split()
             if got.returncode or not words or not words[0].startswith("http"):
                 raise ConnectionError("the OpenCode service is not running (start OpenCode, or `opencode service start`)")
@@ -435,7 +438,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _service_get(path: str) -> dict:
-    url = subprocess.run(["opencode", "service", "status"], capture_output=True, text=True, timeout=10).stdout.split()
+    url = subprocess.run(["opencode", "service", "status"], capture_output=True, text=True, timeout=10,
+                         env=childenv.child_env()).stdout.split()
     if not url or not url[0].startswith("http"):
         raise SystemExit("OpenCode's service is not running. Open OpenCode (or run `opencode service start`) and try again.")
     password = json.loads(SERVICE_FILE.read_text())["password"]

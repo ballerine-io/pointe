@@ -17,6 +17,8 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+import childenv
+
 WINDOW_SECS = 7 * 24 * 3600  # recent closed sessions: the last week
 CAP = 40  # at most this many recent sessions per account and harness, newest first
 HEAD_BYTES = TAIL_BYTES = 64 << 10  # what is read of any one transcript
@@ -339,7 +341,8 @@ def process_args(pid: int) -> str:
     if not pid:
         return ""
     try:
-        return subprocess.run(["ps", "-o", "args=", "-p", str(pid)], capture_output=True, text=True, timeout=3).stdout
+        return subprocess.run(["ps", "-o", "args=", "-p", str(pid)], capture_output=True, text=True, timeout=3,
+                              env=childenv.child_env()).stdout
     except (OSError, subprocess.SubprocessError):
         return ""
 

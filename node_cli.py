@@ -24,6 +24,7 @@ import aiohttp
 
 from node import (DAEMON_HERE, PORT, ROOT, STATE, _daemon_here, _netloc, _os, _read_json, _version, _write_private,
                   forget, nodelink, pairing)
+import childenv  # noqa: E402  (after node, which puts the plugin's folder on the path)
 
 def peer_fingerprint(host: str, port: int, timeout: float = 10) -> str:
     """The SHA-256 of the certificate the listener presents, read with verification off: the pin is the check."""
@@ -97,7 +98,7 @@ def join(invite: str, name: str | None, state: Path = STATE, port: int = PORT, s
                 "fp": invited["fp"]}}) + "\n")  # one line: bin/voice-node and bin/voice-open read it with sed
     vendors = ", ".join(got.get("vendors") or []) or "none (fully local)"
     if start:
-        subprocess.run([str(ROOT / "bin" / "voice-node"), "ensure"], check=False)
+        subprocess.run([str(ROOT / "bin" / "voice-node"), "ensure"], check=False, env=childenv.child_env())
     print(f"Paired with {hub['name']} as {name} (key {nodelink.fingerprint(got['node_key'])}). Sessions you join here "
           f"reach its voice: /pointe:voice in Claude Code, pointe join opencode|codex in a folder. Their transcripts "
           f"(credentials masked) go to {hub['name']} and its vendors: {vendors}.")
@@ -158,7 +159,7 @@ def leave(state: Path = STATE, port: int = PORT) -> None:
     told = _local("/voice/node/leave", port, state, {})  # the running node says `bye`, so the hub forgets it too
     forget(state)
     if told is not None:
-        subprocess.run([str(ROOT / "bin" / "voice-node"), "stop"], check=False, capture_output=True)
+        subprocess.run([str(ROOT / "bin" / "voice-node"), "stop"], check=False, capture_output=True, env=childenv.child_env())
     if told is None:
         why = "The node was not running"
     elif told.get("told_hub") is False:

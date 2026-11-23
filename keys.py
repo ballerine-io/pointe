@@ -20,6 +20,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
+import childenv  # noqa: E402
 import vendors  # noqa: E402
 from vendors import KEYS  # noqa: E402
 
@@ -59,14 +60,14 @@ def ask(vendor: str, refused: bool = False) -> str | None:
     script = (f'display dialog "{prompt(vendor, refused)}" default answer "" with hidden answer '
               f'with title "Pointe: {LABEL[vendor]} key" buttons {{"Cancel", "Save"}} default button "Save"\n'
               f'text returned of result')
-    got = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    got = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, env=childenv.child_env())
     return got.stdout.strip() if got.returncode == 0 and got.stdout.strip() else None
 
 
 def open_page(vendor: str) -> None:
     """The vendor's key page in the browser, so the person does not have to find it."""
     try:
-        subprocess.run(["open", WHERE[vendor]], capture_output=True, timeout=10)
+        subprocess.run(["open", WHERE[vendor]], capture_output=True, timeout=10, env=childenv.child_env())
     except (OSError, subprocess.TimeoutExpired):
         pass
 
@@ -75,7 +76,8 @@ def save(item: str, secret: str) -> bool:
     """`security` asks for the password on its terminal: answer it there, twice, so the key never is an argument."""
     pid, fd = pty.fork()
     if pid == 0:
-        os.execvp("security", ["security", "add-generic-password", "-U", "-s", item, "-a", os.environ.get("USER", "pointe"), "-w"])
+        os.execvpe("security", ["security", "add-generic-password", "-U", "-s", item, "-a", os.environ.get("USER", "pointe"), "-w"],
+                   childenv.child_env())
     answered, deadline = 0, time.time() + 15
     try:
         while time.time() < deadline:
@@ -154,7 +156,7 @@ def _check(vendor: str, asyncio, urllib) -> tuple[bool | None, str]:
 
 
 def running() -> bool:
-    got = subprocess.run([os.path.join(BIN, "voice-daemon"), "status"], capture_output=True, text=True)
+    got = subprocess.run([os.path.join(BIN, "voice-daemon"), "status"], capture_output=True, text=True, env=childenv.child_env())
     return got.stdout.startswith("running")
 
 
