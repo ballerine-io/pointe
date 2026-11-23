@@ -22,7 +22,7 @@ import numpy as np
 
 from core.adapter import Adapter
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[4]
 IN_RATE, OUT_RATE = 16000, 24000
 FRAME = 320  # 20 ms at 16 kHz
 ASKED = re.compile(r"speak: .*(?:Should it\?|[Ss]ay it again|wants to)")

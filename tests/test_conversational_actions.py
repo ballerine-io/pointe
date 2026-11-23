@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-BENCH = ROOT / "bench" / "conversational"
+BENCH = ROOT / "bench" / "conversational" / "actions"
 sys.path.insert(0, str(BENCH))
 
 from actions import check, fixture, protocol  # noqa: E402

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 import vendors  # noqa: E402  (Pointe's own constant: the recognizer is the one its default setup uses)
 
 RATE = 16000

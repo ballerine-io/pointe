@@ -17,7 +17,7 @@ from actions import check, fixture
 from core import agent as agentlib
 from core import corpus, scrub
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[4]
 BENCH = ROOT / "bench" / "conversational"
 INSTRUCTION = "Run exactly this shell command once and nothing else: `{cmd}`"
 IDLE_SETUP = "Read notes.txt and reply with one short sentence saying what this repo is."

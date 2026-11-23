@@ -30,7 +30,7 @@ _model = None
 def _kokoro():
     global _model
     if _model is None:
-        sys.path.insert(0, str(HERE.parents[1]))
+        sys.path.insert(0, str(HERE.parents[2]))
         import assets  # Pointe's pins: the model is read at its pinned commit
         from mlx_audio.tts.utils import load_model
 

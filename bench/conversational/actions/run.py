@@ -1,10 +1,10 @@
 """Pointe Conversational Coding Benchmarks: the one command. This build carries the `actions` benchmark.
 
-    uv run --locked --extra local python bench/conversational/run.py corpus              # render audio, $0
-    uv run --locked --extra local python bench/conversational/run.py verify              # offline checks, $0
-    uv run --locked --extra local python bench/conversational/run.py actions --budget-usd 17 [--adapter ...]
+    uv run --locked --extra local python bench/conversational/actions/run.py corpus              # render audio, $0
+    uv run --locked --extra local python bench/conversational/actions/run.py verify              # offline checks, $0
+    uv run --locked --extra local python bench/conversational/actions/run.py actions --budget-usd 17 [--adapter ...]
                                                                        [--smoke] [--dry-run] [--port-base 9500]
-    uv run --locked --extra local python bench/conversational/run.py report <run-id>     # rows -> results JSON + page
+    uv run --locked --extra local python bench/conversational/actions/run.py report <run-id>     # rows -> results JSON + page
 
 `--extra local` is needed for Kokoro and Whisper (Pointe's optional extra; no new dependency).
 """
@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))
 sys.path.insert(1, str(ROOT))  # Pointe's own modules (vendors, assets): the recognizer and brain it resolves to
 VENDOR_STATE = Path("/tmp/pccb/vendors-state")  # vendors.config() must never read the owner's ~/.claude-voice
