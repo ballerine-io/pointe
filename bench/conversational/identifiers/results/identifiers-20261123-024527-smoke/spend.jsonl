@@ -1,0 +1,8 @@
+{"key": "t20.null.t20-bf_emma-clean.r0", "spend": [{"detail": {"session": "almanac", "usage": {}}, "how": "computed", "usd": 0, "vendor": "anthropic-agent"}]}
+{"key": "t20.keyboard-transcript.typed.r0", "spend": [{"detail": {"session": "almanac", "usage": {"claude-haiku-5-5": {"cache_read": 74178, "cache_write": 7896, "input": 8, "messages": 4, "output": 755}}}, "how": "computed", "usd": 0.002107, "vendor": "anthropic-agent"}]}
+{"key": "t20.null.t20-bm_george-babble12.r0", "spend": [{"detail": {"session": "almanac", "usage": {}}, "how": "computed", "usd": 0, "vendor": "anthropic-agent"}]}
+{"key": "t18.keyboard-canonical.typed.r0", "spend": [{"detail": {"session": "almanac", "usage": {"claude-haiku-5-5": {"cache_read": 94358, "cache_write": 7836, "input": 10, "messages": 5, "output": 870}}}, "how": "computed", "usd": 0.002359, "vendor": "anthropic-agent"}]}
+{"key": "t18.keyboard-transcript.typed.r0", "spend": [{"detail": {"session": "almanac", "usage": {"claude-haiku-5-5": {"cache_read": 95169, "cache_write": 8171, "input": 10, "messages": 5, "output": 726}}}, "how": "computed", "usd": 0.002337, "vendor": "anthropic-agent"}]}
+{"key": "t18.null.t18-af_heart-clean.r0", "spend": [{"detail": {"session": "almanac", "usage": {}}, "how": "computed", "usd": 0, "vendor": "anthropic-agent"}]}
+{"key": "t18.null.t18-am_michael-babble12.r0", "spend": [{"detail": {"session": "almanac", "usage": {}}, "how": "computed", "usd": 0, "vendor": "anthropic-agent"}]}
+{"key": "t20.keyboard-canonical.typed.r0", "spend": [{"detail": {"session": "almanac", "usage": {"claude-haiku-5-5": {"cache_read": 33258, "cache_write": 7235, "input": 4, "messages": 2, "output": 601}}}, "how": "computed", "usd": 0.001538, "vendor": "anthropic-agent"}]}
