@@ -517,8 +517,8 @@ for the owner ("You"), in {language}. Keep every hedge; invent nothing. JSON onl
 
 
 def end_prompt(m: Meeting, notes: Notes) -> str:
-    listed = [f"- [{n.kind}] {n.text}" for n in _of(m, notes) if n.state != "dismissed" and n.kind in
-              ("thought", "question", "answer", "action", "decision")]
+    listed = [f"- [{n.kind}{', answered' if n.kind == 'question' and n.state == 'done' else ''}] {n.text}"
+              for n in _of(m, notes) if n.state != "dismissed" and n.kind in ("thought", "question", "answer", "action", "decision")]
     return (f"Agenda and brief:\n{m.brief or '(none)'}\n\nRunning summary:\n{m.summary or '(none)'}\n\nNotes:\n"
             + ("\n".join(listed) or "(none)") + f"\n\nThe end of the meeting:\n{m.window(3000)}")
 

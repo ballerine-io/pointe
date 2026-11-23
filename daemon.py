@@ -4405,6 +4405,21 @@ def _asked_about(question: str):
     return found[0] if len(found) == 1 else None
 
 
+def _answer_note(target: Session, answer: str, question: str, meeting: str | None) -> None:
+    """The answer to the owner's question in a meeting, written under the open question it answers, which is then done:
+    the feed showed the room's question still open beside Pointe's spoken answer, and the end notes listed it as open."""
+    asked = content_words(question)
+    open_ = [n for n in NOTES.items if n.kind == "question" and n.state == "open" and n.meeting == meeting]
+    scored = [(len(asked & content_words(n.text)), n.id) for n in open_]
+    best = max(scored, default=(0, None))
+    meta = {"question": question[:300]}
+    if best[0] >= 2:
+        meta["question_id"] = best[1]
+    NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta=meta, dedup=False, meeting=meeting)
+    if "question_id" in meta:
+        NOTES.set_state(meta["question_id"], "done")
+
+
 async def _meeting_session_question(m, target, question: str, aloud: bool) -> None:
     """The owner asked about a session: a read-only copy of it answers (never the live session, never a send). In
     participating, said to the room in two sentences at most; in listening, and always, written as an answer note."""
@@ -4418,8 +4433,7 @@ async def _meeting_session_question(m, target, question: str, aloud: bool) -> No
     if not answer:
         NOTES.add("answer", f"Could not look it up in {target.name}.", session=target.name, dedup=False, meeting=m.id)
         return
-    NOTES.add("answer", f"{target.name}: {answer.strip()}", session=target.name, meta={"question": question[:300]},
-              dedup=False, meeting=m.id)
+    _answer_note(target, answer, question, m.id)
     if aloud and state.meeting is m and m.mode == "participating":
         state.last_utterance = question  # the reply's language follows the question
         await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; the "
@@ -6460,7 +6474,7 @@ async def _ask_copy(target: Session, question: str) -> None:
     if answer is None:  # a session in the middle of a tool call may not resume: the record is the fallback
         answer = (await _from_record(target, question)).get("answer") or "I could not get an answer."
     if state.meeting is not None:  # in a meeting the answer is written; said only in participating, where the owner asked
-        NOTES.add("answer", f"{target.name}: {answer}", session=target.name, dedup=False)
+        _answer_note(target, answer, question, state.meeting.id)
         if state.meeting.mode == "participating":
             await _meeting_speak(f"[{target.name} answered the owner's question in the meeting, from a read-only copy; "
                                  f"the room hears you; at most two sentences; say only the answer] {answer}")
