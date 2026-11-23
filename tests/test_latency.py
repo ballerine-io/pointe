@@ -645,3 +645,22 @@ def test_the_ears_have_the_brain_read_a_whole_sentence_while_it_settles_and_forg
     asyncio.run(run())
     assert [t for t, _ in taken] == ["Is it better to rebase or to merge? I mean for a team of forty people.", "Yes."]
     assert len(read) == 3
+
+
+def test_the_latency_suite_times_a_filler_turn_by_the_reply_not_the_filler(monkeypatch):
+    """From the latency runs: a turn that began with "One sec." was printed as "no reply timed", so the slowest turns
+    fell out of the numbers. The reply's sound is the first span at or after the daemon's first_sound stamp."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    e2e = Path(__file__).parent / "e2e"
+    monkeypatch.setattr(sys, "argv", ["latency.py"])
+    monkeypatch.syspath_prepend(str(e2e))
+    spec = importlib.util.spec_from_file_location("e2e_latency", e2e / "latency.py")
+    suite = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(suite)
+    filler, reply = (104.5, 105.1), (107.9, 110.0)
+    assert suite.reply_onset([filler, reply], 107.85) == (107.9, True)
+    assert suite.reply_onset([reply], 107.85) == (107.9, False)
+    assert suite.reply_onset([filler], None) == (104.5, False)
