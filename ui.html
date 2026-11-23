@@ -254,6 +254,12 @@
                    box-shadow: inset 0 0 0 1px var(--line-strong); font: 600 12.5px var(--font); cursor: pointer; }
   #addsheet .err { color: var(--accent); font-size: 13px; } #addsheet .err:empty, #addsheet .note:empty { display: none; }
   #addsheet .note { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  /* a row that scrolls sideways fades at the edge where more is hidden, so a cut chip reads as "more this way" */
+  .fade-r { -webkit-mask: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+  .fade-l { -webkit-mask: linear-gradient(90deg, transparent, #000 28px); mask: linear-gradient(90deg, transparent, #000 28px); }
+  .fade-l.fade-r { -webkit-mask: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+                   mask: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+  .night-strip .acts { display: flex; gap: 8px; margin-left: auto; } .night-strip button { white-space: nowrap; }
   #m-night { margin-top: 4px; align-self: flex-start; border: 0; border-radius: 12px; min-height: 36px; padding: 0 14px; background: transparent;
              color: var(--muted); font: 600 13px var(--font); cursor: pointer; }
   #m-night:hover { background: var(--raised); color: var(--text); }
@@ -2298,7 +2304,9 @@
       else {
         const b = el('div', 'night-strip'), ledger = el('button', '', c.ledger), stop = el('button', '', c.stop);
         ledger.onclick = () => openNightShift(); stop.onclick = () => stopShift();
-        b.append(el('b', '', c.title), el('span', 'how', nightLine(n)), ledger, stop);
+        const acts = el('span', 'acts');  // the two buttons keep one row, at the right, whatever the line does
+        acts.append(ledger, stop);
+        b.append(el('b', '', c.title), el('span', 'how', nightLine(n)), acts);
         $('nightstrip').replaceChildren(b);
       }
       if ($('nightsheet').classList.contains('open') && !$('night-ledger').hidden) openNightShift();
@@ -4614,6 +4622,13 @@
     if (!narrow && $('moresheet').classList.contains('open')) closeSheet('moresheet');
   }
   matchMedia('(max-width: 760px)').addEventListener('change', layoutDock);
+  for (const row of document.querySelectorAll('#notes .filters, .settings .snav, #show .arts')) {
+    const edges = () => { const more = row.scrollWidth > row.clientWidth + 2;
+      row.classList.toggle('fade-l', more && row.scrollLeft > 2); row.classList.toggle('fade-r', more && row.scrollLeft + row.clientWidth < row.scrollWidth - 2); };
+    row.addEventListener('scroll', edges, {passive: true});
+    new ResizeObserver(edges).observe(row);
+    new MutationObserver(edges).observe(row, {childList: true, subtree: true});
+  }
   layoutDock();
   $('more-list').addEventListener('click', e => { if (e.target.closest('button') && !e.target.closest('button').disabled) closeSheet('moresheet'); });
   refresh(); setInterval(refresh, 700);

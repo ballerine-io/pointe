@@ -835,3 +835,12 @@ def test_the_call_keeps_a_readable_width_on_a_wide_screen():
     for r in got[:2]:
         assert r["approve"] <= 560 and r["typed"] <= 1100 and r["talk"] <= 1100 and r["top"] == r["main"], r
     assert got[2]["typed"] > 800, got[2]  # a laptop keeps its width
+
+
+def test_a_row_that_scrolls_sideways_fades_where_more_is_hidden():
+    """Phone layout (QA round 5): the Settings strip and the meeting's filters were cut mid-chip with no fade."""
+    got = _run([(390, "openSettings();", "[...document.querySelector('.settings .snav').classList].filter(c => c.startsWith('fade'))"),
+                (390, "const n = document.querySelector('.settings .snav'); n.scrollLeft = n.scrollWidth;",
+                 "[...document.querySelector('.settings .snav').classList].filter(c => c.startsWith('fade'))"),
+                (1280, "", "[...document.querySelector('.settings .snav').classList].filter(c => c.startsWith('fade'))")])
+    assert got == [["fade-r"], ["fade-l"], []], got
