@@ -574,6 +574,9 @@ class Shift:
         for what in outcome.blocked:
             self._add("blocked", front, now, text=what, waits_on=what)
         if outcome.status == "done":
+            for e in self.open_entries(front.session, ("blocked",)):  # logged on the way, and got past: not blocked now
+                if e.task == task.text:
+                    e.resolved, e.resolved_at = "done after all", now
             self._add("done", front, now, text="; ".join(outcome.done) or outcome.last_line,
                       proof="; ".join(outcome.done) or outcome.last_line, commit=outcome.commit, pr=outcome.pr)
             task.state = "done"
@@ -732,7 +735,8 @@ def morning(shift: Shift, now: float | None = None) -> list[dict]:
     asked = [e for e in shift.entries if e.kind == "asked" and not e.resolved]
     done = [e for e in shift.entries if e.kind == "done"]
     blocked = [e for e in shift.entries if e.kind == "blocked" and not e.resolved]
-    flight = shift.ledger()["in_flight"]
+    stuck = {e.session for e in blocked}
+    flight = [x for x in shift.ledger()["in_flight"] if x["session"] not in stuck]  # said once, under Blocked
     waiting = shift.ledger()["not_started"]
     head = (f"Night shift, {_clock(shift.at)} {until}: {s['done']} of {_n(s['tasks'], 'task')} done, {len(blocked)} blocked; "
             f"{_ENDS.get(shift.why, shift.why)}. {_n(len(decided), 'decision')} made without you, "

@@ -523,6 +523,22 @@ def test_the_morning_leads_with_decisions_then_questions_then_done_then_blocked(
     assert "the fixture server is down" in parts[4]["text"]
 
 
+def test_the_morning_counts_a_task_that_got_past_its_blocker_as_done_and_says_each_blocked_one_once():
+    """From a live run: "1 of 3 tasks done, 3 blocked", with shop done after a mid-run BLOCKED line, and billing and docs
+    listed both as blocked and as still working."""
+    shift = shift_of(("billing", ["write the marker"]), ("docs", ["compare the versions"]), ("shop", ["read the files"]))
+    billing, docs, shop = started(shift)
+    shift.tick(billing, 1100.0, present=True, request_id="p1", request=REQUEST)
+    shift.tick(docs, 1100.0, present=True, request_id="p2", request=REQUEST)
+    shift.report(shop, ns.read_report("NIGHT REPORT\nSTATUS: working\nBLOCKED: the fixture server is slow"), 1200.0)
+    shift.report(shop, ns.read_report("NIGHT REPORT\nSTATUS: done\nDONE: read both tracked files, no edits"), 1300.0)
+    shift.end("hours", 2000.0)
+    parts = {p["kind"]: p["text"] for p in ns.morning(shift)}
+    assert "1 of 3 tasks done, 2 blocked" in parts["headline"]
+    assert "the fixture server is slow" not in ns.written(shift)
+    assert "in_flight" not in parts  # billing and docs are said under Blocked, not again as still working
+
+
 def test_a_spoken_approval_is_named_never_quoted():
     shift = night_with_everything()
     said = ns.written(shift)
@@ -945,7 +961,7 @@ def test_no_night_shift_code_in_the_daemon_can_answer_a_request(d):  # noqa: F81
 def test_the_hook_waits_as_long_as_a_night(tmp_path):
     hook = json.loads((ROOT / "hooks" / "hooks.json").read_text())["hooks"]["PermissionRequest"][0]["hooks"][0]
     script = (ROOT / "bin" / "voice-permission-hook").read_text()
-    waits = int(re.search(r"--max-time (\d+)", script).group(1))
+    waits = max(int(n) for n in re.findall(r"--max-time (\d+)", script))  # the wait, not the health check before it
     assert hook["timeout"] >= ns.PARK_SECS and ns.PARK_SECS <= waits < hook["timeout"]
     assert harnesses.get("claude-code").permission_deadline == 280.0  # an ordinary request is let go as before
 
