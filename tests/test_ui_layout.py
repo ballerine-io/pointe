@@ -822,3 +822,16 @@ def test_a_sheet_opened_on_a_touch_screen_rings_nothing():
              " openSheet('settingssheet'); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));")
     ring = "[document.activeElement.classList.contains('sheetbox'), getComputedStyle(document.activeElement).outlineStyle]"
     assert _run([(390, touch, ring)]) == [[True, "none"]]
+
+
+def test_the_call_keeps_a_readable_width_on_a_wide_screen():
+    """At 1920 px Deny and Approve were 750 px each; at 2560 px the conversation was 2,240 px wide and the text box
+    2,114 px (QA round 5). The call keeps a column of about 1,100 px, centred; the top bar keeps the whole width."""
+    status = fixture(sessions=3, talk=6, approval=True, connected=True)
+    widths = """(() => { const w = s => Math.round(document.querySelector(s).getBoundingClientRect().width);
+      return {approve: w('#attention .allow'), typed: w('#typed'), talk: Math.round(document.getElementById('talk').clientWidth
+        - parseFloat(getComputedStyle(document.getElementById('talk')).paddingLeft) * 2), top: w('.top'), main: w('main')}; })()"""
+    got = _run([(2560, LIVE, widths), (1920, "", widths), (1280, "", widths)], status)
+    for r in got[:2]:
+        assert r["approve"] <= 560 and r["typed"] <= 1100 and r["talk"] <= 1100 and r["top"] == r["main"], r
+    assert got[2]["typed"] > 800, got[2]  # a laptop keeps its width

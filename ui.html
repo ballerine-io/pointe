@@ -431,7 +431,10 @@
   #problem { color: var(--accent); font-size: 13px; overflow-wrap: anywhere; }
   #problem:empty { display: none; }
 
-  .stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }  /* a squeezed stage never paints over a card */
+  .stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  /* A wide screen: the call keeps a column of about 1,100 px in the middle (a 750 px Approve, a 2,000 px text box read
+     badly); the top bar keeps the whole width. A percentage here is of each element's own container: main, or the stage. */
+  @media (min-width: 1500px) { main { --gutter: max(24px, calc((100% - 1100px) / 2)); } .top, #meetbar { --gutter: 24px; } }  /* a squeezed stage never paints over a card */
   @media (max-height: 560px) {  /* a phone held sideways, a laptop at 200 %: the call scrolls, and the conversation keeps a few lines */
     main { overflow-y: auto; } main > * { flex-shrink: 0; } main > .stage { flex-shrink: 1; min-height: 120px; }
   }
