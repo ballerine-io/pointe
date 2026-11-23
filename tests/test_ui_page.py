@@ -258,7 +258,10 @@ CONNECT_STATES = """(async () => {
     ringTap({detail: 1}); out.ringNoCall = {dialled, nudged: q('connectbtn').classList.contains('nudge'), focused: document.activeElement.id};
     connectTap(); out.connectDials = dialled; startCall = realStart;
     // a Mac without the phone's listener: the panel says so
-    window.__status = {...window.__status, phone_listener: false}; await refresh(); out.noListener = snap();
+    window.__status = {...window.__status, phone_listener: false}; await refresh(); out.noListenerNoPhone = snap();
+    window.__status = {...window.__status, phones: {paired: [{id: 'p1', name: 'Test iPhone', online: false, paired_at: 1, last_seen: 2}]}};
+    await refresh(); out.noListener = snap();
+    window.__status = {...window.__status, phones: {paired: []}};
     window.__status = {...window.__status, phone_listener: true}; await refresh();
     call.state = 'connecting'; showState(); out.connecting = snap(); call.state = 'off';
     // (a) the Mac stops answering
@@ -294,11 +297,13 @@ def test_connect_is_its_own_control_and_says_why_it_failed():
     assert got["ringNoCall"] == {"dialled": 0, "nudged": True, "focused": "connectbtn"}
     assert got["connectDials"] == 1
     assert got["noListener"]["phone"] is True
+    assert got["noListenerNoPhone"]["phone"] is False  # a newcomer with no phone paired is not told about one
     assert got["connecting"]["title"] == "Connecting to studio…" and got["connecting"]["button"] == "Cancel" and got["connecting"]["busy"]
     assert got["connecting"]["state"] == "connecting" and got["connecting"]["mic"][3] == "Connecting to studio…"
     un = got["unreachable"]
     assert un["title"] == "Pointe is not answering" and un["button"] == "Try again" and un["bad"]
-    assert un["why"].startswith("Pointe on this Mac is not answering") and "pointe doctor" in un["why"]
+    # a newcomer's words: no hashed host name, no terminal; the Mac app's way to start it (MacCopy.daemonDown)
+    assert un["why"] == "Pointe on this Mac is not answering. Start it again: /pointe:voice in a Claude Code session, or open the Pointe app.", un
     assert un["problem"] == "", un  # the panel carries it, not the top bar as well
     npd = got["notPaired"]
     # nothing on screen that cannot work: no Try again (the key stays refused), no sessions or "press Connect" from the
@@ -382,3 +387,9 @@ def test_the_text_box_shows_a_focus_ring():
         finally:
             await stub.stop()
     assert asyncio.run(run()) == "solid"
+
+
+def test_the_mac_page_shows_no_bare_latency_and_a_phone_page_labels_it():
+    """On the Mac's own page the call's round trip is a loopback (· 0 ms): noise. Over the phone's listener it says
+    what the number is."""
+    assert "const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : remotePage && call.rtt != null ? ` · round trip ${call.rtt} ms` : '';" in PAGE

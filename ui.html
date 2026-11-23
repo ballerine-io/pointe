@@ -2457,7 +2457,7 @@
     reconnecting: n => `Reconnecting… attempt ${n}`,
     // (a) the Mac is not reachable at its address; on the Mac itself that means Pointe is not running
     unreachable: host => `Can't reach your Mac at ${host}. Is Twingate or Tailscale on? Is the Mac awake?`,
-    daemonDown: () => 'Pointe on this Mac is not answering. Is it running? In a terminal: pointe doctor',  // the page's host is an internal name
+    daemonDown: 'Pointe on this Mac is not answering. Start it again: /pointe:voice in a Claude Code session, or open the Pointe app.',
     // (b) the key this page or phone holds is refused
     notPaired: 'This page is no longer paired with this Mac. Open it again from the Mac: /pointe:open in Claude Code, or pointe open.',
     notPairedBrowser: 'This phone is no longer paired with this Mac. On the Mac, run pointe pair link and open the new address here.',
@@ -2733,7 +2733,9 @@
     text('connectbtn-label', dialling ? CONNECT_COPY.cancel : issue ? CONNECT_COPY.tryAgain : CONNECT_COPY.connect);
     const folded = !$('compose').offsetHeight;
     text('connect-hint', denied ? '' : live ? (folded ? CONNECT_COPY.typeTooTap : CONNECT_COPY.typeToo) : folded ? CONNECT_COPY.typeLaterTap : CONNECT_COPY.typeLater);
-    const noListener = !live && !!s && s.phone_listener === false;  // (c): a Mac without the phone's listener; older Macs send nothing
+    // (c): a Mac without the phone's listener (older Macs send nothing), said only once a phone is paired: a newcomer's
+    // first view is about this Mac's call, not a phone they never set up
+    const noListener = !live && !!s && s.phone_listener === false && !!(s.phones && (s.phones.paired || []).length);
     if ($('connect-phone').hidden === noListener) $('connect-phone').hidden = !noListener;
   }
   // A call can die without a close: a VPN drops, the laptop sleeps. Six seconds with nothing from the Mac means dead.
@@ -2769,7 +2771,7 @@
   // then the Mac not answering, then this page's own microphone or link trouble.
   function connectIssue() {
     if (denied) return remotePage ? CONNECT_COPY.notPairedBrowser : CONNECT_COPY.notPaired;
-    if (fails >= 3) return remotePage ? CONNECT_COPY.unreachable(location.host) : CONNECT_COPY.daemonDown();
+    if (fails >= 3) return remotePage ? CONNECT_COPY.unreachable(location.host) : CONNECT_COPY.daemonDown;
     return micError || callNote;
   }
   setInterval(checkMic, 2000);
@@ -2812,7 +2814,7 @@
     $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor) || denied || fails >= 3 || (s.connected && !mine);  // its own problem only
     // the link itself, from the call's heartbeat, so "connected" is never a guess
     const quiet = mine && call.heard ? (Date.now() - call.heard) / 1000 : 0;
-    const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : call.rtt != null ? ` · ${call.rtt} ms` : '';
+    const health = !mine ? '' : quiet > 3 ? ` · no answer for ${Math.round(quiet)} s` : remotePage && call.rtt != null ? ` · round trip ${call.rtt} ms` : '';
     // not paired: the last status this page could read is stale, and Connect cannot help
     const sub = denied ? '' : st === 'off' && !(s && s.connected) ? (where ? where + ' · press Connect to talk' : 'Press Connect to start talking')
       : title === TURNS_COPY.holding ? TURNS_COPY.holdingHow : where + health;
