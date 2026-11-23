@@ -844,3 +844,15 @@ def test_a_row_that_scrolls_sideways_fades_where_more_is_hidden():
                  "[...document.querySelector('.settings .snav').classList].filter(c => c.startsWith('fade'))"),
                 (1280, "", "[...document.querySelector('.settings .snav').classList].filter(c => c.startsWith('fade'))")])
     assert got == [["fade-r"], ["fade-l"], []], got
+
+
+def test_a_mac_that_stopped_answering_leaves_no_stale_sessions_line_and_an_empty_briefing_list_no_heading():
+    """QA round 5: 'Orchestrating 4 sessions · 1 needs you' stayed under 'Pointe is not answering', and the Briefing
+    sheet said 'Last 7 briefings' over 'No briefings yet.'"""
+    status = fixture(sessions=4, talk=2, approval=True, connected=True)
+    down = ("window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));"
+            " for (let i = 0; i < 4; i++) await poll();")
+    got = _run([(1280, "showBriefings([]);", "document.getElementById('brf-list-h').hidden"),
+                (1280, down, "[document.getElementById('state').textContent, document.getElementById('sub').textContent]")], status)
+    assert got[0] is True, got
+    assert got[1][0] == "Pointe is not answering" and "session" not in got[1][1], got

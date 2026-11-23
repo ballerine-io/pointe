@@ -1489,7 +1489,7 @@
       <button id="brf-stop" onclick="briefingAction('stop')" hidden>Stop</button>
     </div>
     <div class="ok" id="brf-state" role="status"></div><div class="err" id="brf-err" role="alert"></div>
-    <h3>Last 7 briefings</h3>
+    <h3 id="brf-list-h">Last 7 briefings</h3>
     <ul id="brf-list" aria-label="Last 7 briefings"></ul>
   </div>
 </div>
@@ -2845,7 +2845,8 @@
     let st, title;
     const s = status, mv = machineView(s), sessions = mv.shown, need = sessions.filter(x => needsYou(x) && x.online !== false).length;
     const on = machineFilter ? ` on ${machineFilter.replace(/[<&]/g, '')}` : '';  // the machine filter narrows this line too
-    const where = !s ? '' : !(s.sessions || []).length ? 'No sessions yet: /pointe:voice in Claude Code, or pointe join opencode'
+    // a Mac not answering: the last count it sent is stale, so none is shown
+    const where = !s || fails >= 3 ? '' : !(s.sessions || []).length ? 'No sessions yet: /pointe:voice in Claude Code, or pointe join opencode'
       : s.mode === 'session' ? `Focused on <b>${short(s.active || '').replace(/[<&]/g, '')}</b>`
       : `Orchestrating ${sessions.length} session${sessions.length === 1 ? '' : 's'}${on}` + (need ? ` · <b>${need} need${need === 1 ? 's' : ''} you</b>` : '');
     // The empty stage carries the reason there is no call, next to the button that fixes it; with a conversation on
@@ -4508,6 +4509,7 @@
     showBriefing(status);
   }
   function showBriefings(list) {
+    $('brf-list-h').hidden = !list.length;  // "Last 7 briefings" over "No briefings yet." said nothing
     $('brf-list').replaceChildren(...(list.length ? list.map(b => {
       const li = el('li'); li.dir = 'auto';
       li.append(el('div', 'when', `${brfWhen(b.at)} · ${b.since_label}${b.scheduled ? ' · scheduled' : ''}`));
