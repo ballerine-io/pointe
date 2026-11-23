@@ -415,15 +415,17 @@ def _part_b(adapter, item, meta, pcm, log, asr, clips_pcm, voice) -> dict:
 
 
 def cleanup(run_id: str, port_base: int) -> dict:
-    """Every agent, daemon and child this run started is gone: a sweep of the run folder, then anything still
-    listening on the run's ports that is Pointe's daemon from /tmp. Returns what it had to kill."""
-    swept = agent_mod.sweep(Path("/tmp/pccb") / run_id)
+    """Every agent, daemon and child this run started is gone: a sweep of the run folder, then anything of this run
+    still listening on its ports. Returns what it had to kill."""
+    from adapters.pointe import ours
+
+    run_folder = Path("/tmp/pccb") / run_id
+    swept = agent_mod.sweep(run_folder)
     killed = []
     for port in range(port_base, port_base + 2):
         pids = subprocess.run(["lsof", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"], capture_output=True, text=True).stdout.split()
         for pid in pids:
-            cmd = subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout
-            if "/tmp/pccb/" in cmd or "daemon.py" in cmd:
+            if ours(pid, run_folder):  # another benchmark's daemon on this port is not ours to kill
                 subprocess.run(["kill", "-9", pid])
                 killed.append(int(pid))
     listening = subprocess.run(["lsof", "-t", f"-iTCP:{port_base}-{port_base + 99}", "-sTCP:LISTEN"],

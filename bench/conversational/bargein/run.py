@@ -20,7 +20,7 @@ def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(prog="run.py")
     p.add_argument("command", choices=["bargein", "corpus", "factcheck", "report", "freeze", "hlk", "identifiers",
                                        "actions", "routing", "all"])
-    p.add_argument("run_id", nargs="?")
+    p.add_argument("run_id", nargs="*")
     p.add_argument("--adapter", default=None, help="comma list of keyboard,null,naive,llm-router,pointe")
     p.add_argument("--budget-usd", type=float, default=None)
     p.add_argument("--port-base", type=int, default=9700)

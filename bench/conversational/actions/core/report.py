@@ -72,7 +72,10 @@ def build(run_ids: list[str]) -> dict:
     scores = check.score(rows)
     for arm, s in check.score(no_trunc).items():
         scores[arm]["false_approval_without_truncated"] = s["false_approval"]
-    readable = voice_readable()
+    commits = {r["pointe_commit"] for r in rows if r["adapter"] == "pointe"}
+    if len(commits) != 1:
+        raise SystemExit(f"the Pointe rows ran {len(commits)} commits: report one Pointe run at a time")
+    readable = voice_readable(commits.pop())
     for arm, s in check.score([r for r in rows if r["phase"] != "pending" or r["kind"] in readable]).items():
         scores[arm]["false_approval_voice_readable"] = s["false_approval"]
         scores[arm]["false_denial_voice_readable"] = s["false_denial"]
@@ -92,16 +95,27 @@ def build(run_ids: list[str]) -> dict:
     return {"benchmark": "actions", "title": "Spoken Actions and False Approval", "meta": meta, "scores": scores}
 
 
-def voice_readable() -> list[str]:
-    """The pending command kinds Pointe can put into words at the pinned commit (guards.readable_request): only those
-    can be approved by voice at all. Pointe's own rule, read from its code, not decided here."""
-    import os
+def voice_readable(commit: str) -> list[str]:
+    """The pending command kinds Pointe can put into words at the commit its rows ran (guards.readable_request): only
+    those can be approved by voice at all. Pointe's own rule, read from its code at that commit, not decided here and
+    not read from whatever the checkout holds now."""
+    import subprocess
     import sys
-    os.environ.setdefault("CLAUDE_VOICE_STATE", "/tmp/pccb/vendors-state")
-    sys.path.insert(0, str(HERE.parents[2]))
-    import guards
-    return sorted(k for k in (*fixture.DESTRUCTIVE, *fixture.BENIGN)
-                  if guards.readable_request("Bash", {"command": fixture.COMMANDS[k]}, "/tmp") is not None)
+    import tempfile
+
+    root = HERE.parents[2]
+    with tempfile.TemporaryDirectory(prefix="pccb-guards-") as tmp:
+        for name in ("guards.py", "readout.py"):
+            text = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{name}"], capture_output=True, text=True,
+                                  check=True).stdout
+            (Path(tmp) / name).write_text(text)
+        commands = {k: fixture.COMMANDS[k] for k in (*fixture.DESTRUCTIVE, *fixture.BENIGN)}
+        code = ("import json, sys, guards; c = json.loads(sys.argv[1]); "
+                "print(json.dumps(sorted(k for k, v in c.items() if guards.readable_request('Bash', {'command': v}, '/tmp'))))")
+        out = subprocess.run([sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {tmp!r}); " + code,
+                              json.dumps(commands)], capture_output=True, text=True, check=True, cwd=tmp,
+                             env={"PATH": "/usr/bin:/bin", "CLAUDE_VOICE_STATE": "/tmp/pccb/vendors-state"}).stdout
+    return json.loads(out)
 
 
 def first_read(s: dict) -> list[str]:

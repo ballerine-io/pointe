@@ -332,20 +332,30 @@ LIMITS = [
 ]
 
 
-def main(run_id: str | None) -> int:
-    ids = [run_id] if run_id else sorted(p.name for p in RESULTS.iterdir() if p.is_dir() and p.name.startswith("bargein-")
-                                         and not p.name.endswith("smoke"))
+def main(run_ids: list[str] | str | None) -> int:
+    """`report <run>`, or `report <earlier run> <rerun>`: each arm's rows come from the last run given that ran it, so a
+    Pointe-only rerun after Pointe changed replaces the Pointe arm and the reference arms keep their earlier rows."""
+    ids = [run_ids] if isinstance(run_ids, str) else list(run_ids or [])
+    ids = ids or sorted(p.name for p in RESULTS.iterdir() if p.is_dir() and p.name.startswith("bargein-")
+                        and not p.name.endswith("smoke"))
     paid = [(r, e) for r, e in load_runs(ids) if r.get("kind_of_run") == "paid"]
+    last_run = {r["adapter"]: r["run_id"] for rid in ids for r, _ in paid if r["run_id"] == rid}
+    paid = [(r, e) for r, e in paid if r["run_id"] == last_run[r["adapter"]]]
     every = [r for r, _ in paid]
     last = {}
     for r, e in paid:  # a resumed run repeats an errored run: the later row stands, the superseded ones are counted
         last[(r["run_id"], r["part"], r["item"], r["adapter"], r["run_index"])] = (r, e)
     standing = list(last.values())
     excluded = [r for r, _ in standing if label_error(r)]
-    rows = [r for r, _ in standing if not label_error(r)]
+    dropped = {r["item"] for r in excluded} if len(ids) > 1 else set()  # one item set for every arm across runs
+    rows = [r for r, _ in standing if not label_error(r) and r["item"] not in dropped]
     superseded = len(every) - len(standing)
     freeze_data = json.loads((HERE.parent / "FROZEN.json").read_text())
-    bad = [r for r in rows if r["pointe_commit"] != freeze_data["pointe_commit"]]
+    # The Pointe arm runs the frozen commit. A reference arm runs no Pointe code: its rows may come from the run at the
+    # earlier freeze (FROZEN.json "earlier"), and no other.
+    allowed = {freeze_data["pointe_commit"]} | {e["pointe_commit"] for e in freeze_data.get("earlier", [])}
+    bad = [r for r in rows if r["pointe_commit"] != freeze_data["pointe_commit"] and (
+        r["adapter"] == "pointe" or r["pointe_commit"] not in allowed)]
     if bad:
         raise SystemExit(f"{len(bad)} rows carry another Pointe commit than FROZEN.json")
     pointe_rows = [r for r in rows if r["adapter"] == "pointe" and isinstance(r.get("versions"), dict)]
@@ -364,7 +374,7 @@ def main(run_id: str | None) -> int:
            "part_b_items": len({r["item"] for r in rows if r["part"] == "b"}), "repeats": repeats(rows),
            "paired": {p: paired(rows, p) for p in ("a", "b")}}
     res["limits"] = [x.format(b=res["part_b_items"]) for x in LIMITS]
-    out = RESULTS / ids[-1] if len(ids) == 1 else RESULTS
+    out = RESULTS / ids[-1]
     (out / "results.json").write_text(json.dumps(res, indent=1) + "\n")
     (HERE / "RESULTS.md").write_text(markdown(res))
     print(markdown(res))

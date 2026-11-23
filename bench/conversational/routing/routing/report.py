@@ -85,7 +85,14 @@ def load(run_ids: list[str]) -> tuple[list[dict], list[dict], list[dict]]:
         if (d / "spend.jsonl").exists():
             spend += [json.loads(l) for l in (d / "spend.jsonl").read_text().splitlines()]
         runs.append(json.loads((d / "run.json").read_text()))
-    return rows, spend, runs
+    last = {r["adapter"]: r["run_id"] for rid in run_ids for r in rows if r["run_id"] == rid}
+    return from_latest_run(rows, last), from_latest_run(spend, last), runs
+
+
+def from_latest_run(rows: list[dict], last: dict[str, str]) -> list[dict]:
+    """Each arm's rows come from the last run, in the order given, that ran it: a rerun of one arm after Pointe
+    changed ("report <earlier run> <rerun>") replaces that arm, and the reference arms keep their earlier rows."""
+    return [r for r in rows if r["run_id"] == last.get(r["adapter"])]
 
 
 def pct(k: int, n: int) -> str:
@@ -284,8 +291,8 @@ def markdown(s: dict, runs: list[dict]) -> str:
 def main(run_ids: list[str]) -> int:
     rows, spend, runs = load(run_ids)
     s = summarize(rows, spend)
-    for rid in run_ids:
-        (RESULTS / rid / "results.json").write_text(json.dumps({"runs": run_ids, "summary": s}, indent=1, default=list))
+    # The last run's folder holds the combined result; an earlier run's own result stays as it was published.
+    (RESULTS / run_ids[-1] / "results.json").write_text(json.dumps({"runs": run_ids, "summary": s}, indent=1, default=list))
     (HERE / "RESULTS.md").write_text(markdown(s, runs))
     print((HERE / "RESULTS.md").read_text())
     return 0

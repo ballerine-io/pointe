@@ -38,9 +38,17 @@ def load(results: Path = HERE / "results") -> tuple[list, list, dict]:
             row = json.loads(line)
             if row.get("kind") not in ("paid", "unpublished"):
                 continue
-            if row["pointe_commit"] != frozen["pointe_commit"]:
+            earlier = next((e for e in frozen.get("earlier", []) if row["run_id"] in e["runs"]), None)
+            if earlier is not None:
+                # A run at an earlier freeze: its reference arms run no Pointe code and stand; its Pointe rows are the
+                # earlier result, replaced by the rerun at the frozen commit.
+                if row["adapter"] == "pointe":
+                    continue
+                if row["pointe_commit"] != earlier["pointe_commit"] or row["time"] < earlier["frozen_at"]:
+                    raise ReportRefused(f"{row['run_id']} {row['item']}: not the earlier freeze it is listed under")
+            elif row["pointe_commit"] != frozen["pointe_commit"]:
                 raise ReportRefused(f"{row['run_id']} {row['item']}: Pointe commit {row['pointe_commit'][:10]} is not the frozen one")
-            if row["time"] < frozen["frozen_at"]:
+            elif row["time"] < frozen["frozen_at"]:
                 raise ReportRefused(f"{row['run_id']} {row['item']}: older than the freeze")
             (published if row["kind"] == "paid" else unpublished).append(row)
     return replace_reruns(published), replace_reruns(unpublished), frozen
