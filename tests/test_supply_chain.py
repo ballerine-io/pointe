@@ -382,7 +382,8 @@ def test_fetch_keeps_only_a_file_whose_hash_is_the_pinned_one(tmp_path, monkeypa
 # ---------- egress ----------
 
 URL_HOST = re.compile(r"(?:https?|wss?)://([A-Za-z0-9][A-Za-z0-9.-]*)")
-EGRESS_SOURCES = ("*.py", "harnesses/*.py", "bench/*.py", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
+EGRESS_SOURCES = ("*.py", "harnesses/*.py", "bench/**/*.py", "bench/**/*.sh", "bench/**/*.ts", "evals/**/*.py", "demo/**/*.py",
+                  "ios/e2e/*.py", "ios/*.sh", "macos/e2e/*", "tools/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
                   "channel/*.mjs", "channel/package.json", "ui*.html", "site/**/*", "ios/Pointe/**/*.swift", "apple/PointeKit/Package.swift",
                   "apple/PointeKit/Sources/**/*.swift", "macos/PointeMac/**/*.swift", "macos/*.sh",
                   "macos/tools/*", ".github/**/*.yml")
@@ -415,6 +416,17 @@ def test_every_url_in_the_source_names_a_host_in_the_egress_allowlist():
                 if not allowed(host, contacted | shown):
                     strangers.append(f"{rel(path)}:{n}: {host}")
     assert not strangers, "hosts not in docs/security/egress-allowlist.txt (add with a reason, or `link` if only shown):\n" + "\n".join(strangers)
+
+
+def test_the_egress_scan_reads_every_source_file():
+    """"Every URL literal in the source" means every file: a new folder of code must not fall outside the scan. Test
+    targets are left out: they name made-up hosts on purpose."""
+    tracked = subprocess.run(["git", "ls-files", "*.py", "*.sh", "*.mjs", "*.ts", "*.swift", "bin/*"], cwd=ROOT,
+                             capture_output=True, text=True, check=True).stdout.split()
+    tests = re.compile(r"^tests/|/Tests/|Tests/")
+    scanned = {rel(p) for p in files(*EGRESS_SOURCES)}
+    missed = sorted(t for t in tracked if t not in scanned and not tests.search(t))
+    assert not missed, "add to EGRESS_SOURCES:\n" + "\n".join(missed)
 
 
 def test_the_egress_table_in_the_doc_and_the_allowlist_agree():
