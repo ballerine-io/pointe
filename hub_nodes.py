@@ -250,16 +250,17 @@ class Invites:
         self.wrong = 0  # wrong codes against this invite
         self.guessers: dict[str, int] = {}  # address -> wrong codes from it, against this invite
         self.ended: str | None = None  # why the last invite ended early, for the owner
+        self.link: str | None = None  # the join line for this code: a code alone is "not a Pointe hub invite"
 
     def make(self, name: str | None = None) -> str:
         letters = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LETTERS))
         self.code, self._hash, self.name = f"{letters[:4]}-{letters[4:]}", _digest(letters), name
-        self._until, self.paired, self.wrong, self.ended = self._clock() + self._secs, None, 0, None
+        self._until, self.paired, self.wrong, self.ended, self.link = self._clock() + self._secs, None, 0, None, None
         self._buckets, self.guessers = {}, {}
         return self.code
 
     def cancel(self) -> None:
-        self.code = self._hash = self.name = None
+        self.code = self._hash = self.name = self.link = None
 
     @property
     def outstanding(self) -> bool:
@@ -268,7 +269,8 @@ class Invites:
     def status(self) -> dict | None:
         if not self.outstanding:
             return None
-        return {"code": self.code, "expires_in": max(0, round(self._until - self._clock())), "wrong_codes": self.wrong}
+        return {"code": self.code, "expires_in": max(0, round(self._until - self._clock())), "wrong_codes": self.wrong,
+                **({"link": self.link} if self.link else {})}  # an invite made in a terminal shows on the page whole
 
     def check(self, code, address: str) -> tuple[int, str] | None:
         """None when `code` is this invite's, else (status, why) for the caller to answer. Each address has a token
@@ -1025,6 +1027,7 @@ def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
             from pair import NOT_SET_UP
             # The words are the CLI's (pointe hub invite prints them); the header lets the page offer its own Phone step.
             return PlainTextResponse(str(e), status_code=409, headers={"x-pointe-fix": "phone"} if str(e) == NOT_SET_UP else None)
+        hub.invites.link = line
         return {"code": code, "expires_in": INVITE_SECS, "link": line}
 
     @app.get("/voice/hub/invite")
