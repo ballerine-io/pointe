@@ -101,6 +101,20 @@ def test_every_workflow_grants_the_token_read_only():
             assert job.get("permissions", {"contents": "read"}) == {"contents": "read"}, f"{wf.name}: job {name} widens permissions"
 
 
+def test_every_checkout_leaves_no_token_in_the_git_config():
+    """actions/checkout writes the job's token into .git/config unless told not to, where the pull request's own code
+    (pytest, xcodebuild) can read it. Read-only today; a leak the day a job gets a wider permission."""
+    seen = 0
+    for wf in WORKFLOWS:
+        for name, job in yaml.safe_load(wf.read_text())["jobs"].items():
+            for step in job.get("steps", []):
+                if str(step.get("uses", "")).startswith("actions/checkout@"):
+                    seen += 1
+                    assert (step.get("with") or {}).get("persist-credentials") is False, \
+                        f"{wf.name}: job {name} checks out with persist-credentials left on"
+    assert seen >= 2
+
+
 def test_ci_and_the_e2e_images_install_the_uv_version_setup_installs():
     pinned = 0
     for wf in WORKFLOWS:
