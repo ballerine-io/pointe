@@ -258,6 +258,7 @@ struct FitScroll<Content: View>: View {
             content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
+        .scrollIndicatorsFlash(trigger: height > limit)  // the cue that there is more: shown when it starts to scroll
         .frame(height: min(height, max(0, limit)))
     }
 }

@@ -83,6 +83,22 @@ final class LayoutUITests: XCTestCase {
         onScreen(app, app.buttons["Settings"], "the menu, after the swipe")
     }
 
+    /// At large type the command's box gives up its height first: Deny and Approve are on the screen without a scroll.
+    /// (On a 4.7-inch phone the card's own words outgrow the dock at these sizes: there the card scrolls, as above.)
+    func testAtLargeTypeDenyAndApproveNeedNoScroll() throws {
+        for screen in ["request", "longRequest"] {
+            let app = launch(screen, ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"])
+            if app.windows.firstMatch.frame.height < 700 { throw XCTSkip("a 4.7-inch phone: the card scrolls") }
+            for name in ["Deny", "Approve"] {
+                XCTAssertTrue(app.buttons[name].waitForExistence(timeout: 5), "\(screen): \(name)")
+                XCTAssertTrue(app.buttons[name].isHittable, "\(screen): \(name) can be tapped without scrolling")
+                XCTAssertLessThanOrEqual(app.buttons[name].frame.maxY, app.buttons["micRing"].frame.minY, "\(screen): \(name) is above the bar")
+            }
+            XCTAssertLessThan(app.buttons["Approve"].frame.height, 90, "\(screen): Approve is one line, not broken inside the word")
+            app.terminate()
+        }
+    }
+
     /// A command of nine lines scrolls in its own box: Deny and Approve stay where the thumb is.
     func testAVeryLongCommandLeavesTheAnswerOnScreen() {
         let app = launch("longRequest")

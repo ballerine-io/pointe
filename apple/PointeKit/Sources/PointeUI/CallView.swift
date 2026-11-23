@@ -1666,7 +1666,17 @@ struct RequestCard: View {
     let answer: (API.Session, Bool) async -> Void
     @State private var busy = false
     @State private var answered = 0
+    @State private var cardHeight: CGFloat = 0
+    @State private var boxHeight: CGFloat = 0
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.dockRoom) private var room
+
+    /// The command's box gives up height first when the dock is short (a small phone, large type), down to about two
+    /// lines: Deny and Approve stay on the screen instead of below the dock's edge.
+    private var commandLimit: CGFloat {
+        guard room.isFinite, cardHeight > 0 else { return 150 }
+        return min(150, max(56, room - (cardHeight - boxHeight) - 2))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1678,13 +1688,14 @@ struct RequestCard: View {
                 if showAgent { AgentBadge(session: session) }
             }
             if let what = parsed.what { Text(what).font(.brand(.subheadline)).foregroundStyle(Brand.muted) }
-            FitScroll(limit: 150) {  // a long command scrolls in its box: Deny and Approve never leave the screen
+            FitScroll(limit: commandLimit) {  // a long command scrolls in its box: Deny and Approve never leave the screen
                 Text(parsed.exact)  // word for word: this is what Approve runs
                     .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
             }
             .background(Brand.raised, in: RoundedRectangle(cornerRadius: 12))
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { boxHeight = $0 }
             .accessibilityIdentifier("requestCommand")
             if session.isOffline {  // its machine dropped: the prompt is back in its terminal, and an answer would be stale
                 Label(MachinesCopy.offlineCard, systemImage: "bolt.horizontal.circle")
@@ -1699,10 +1710,12 @@ struct RequestCard: View {
                     Button { act(true) } label: { Label("Approve", systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
                         .buttonStyle(.brandPrimary).controlSize(.large).accessibilityIdentifier("requestApprove")
                 }
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // past this, side by side, "Approve" broke inside the word
                 .disabled(busy)
             }
         }
         .padding(16)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardHeight = $0 }
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orangeLine))
         .sensoryFeedback(.warning, trigger: session.request_id)
