@@ -20,6 +20,27 @@ final class DriveUITests: XCTestCase {
 
     private func any(_ id: String) -> XCUIElement { app.descendants(matching: .any)[id].firstMatch }
 
+    /// At the accessibility sizes the drive screen's words scroll in its own box: the header stays under the status bar,
+    /// and I've stopped and the bar stay on the screen. A stack that did not fit pushed them off both edges.
+    func testAtTheLargestTypeDriveModeKeepsTheHeaderAndTheBarOnTheScreen() {
+        for screen in ["drive", "machinesDrive"] {
+            app = XCUIApplication()
+            app.launchArguments = ["-demo", screen, "-demoEnglish", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+            app.launch()
+            XCTAssertTrue(any("driveLine").waitForExistence(timeout: 15), screen)
+            let window = app.windows.firstMatch.frame
+            for name in ["Settings", "driveButton", "driveStop", "micRing", "hangUp"] {
+                let element = app.buttons[name]
+                XCTAssertTrue(element.exists, "\(screen): \(name)")
+                XCTAssertGreaterThanOrEqual(element.frame.minY, 44, "\(screen): \(name) is under the status bar")
+                XCTAssertLessThanOrEqual(element.frame.maxY, window.maxY + 0.5, "\(screen): \(name) is on the screen")
+                XCTAssertTrue(element.isHittable, "\(screen): \(name) can be tapped")
+            }
+            shot("drive-ax-\(screen)")
+            app.terminate()
+        }
+    }
+
     func testWhileDrivingNothingAsksForATapUntilIveStopped() {
         launch("drive")
         XCTAssertTrue(any("driveLine").waitForExistence(timeout: 15))
