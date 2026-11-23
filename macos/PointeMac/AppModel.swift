@@ -86,8 +86,16 @@ final class AppModel {
         if session.isDemo { daemon = .running }  // a demo given at launch: nothing is looked for on this Mac
     }
 
-    /// The call screen shows: Pointe runs on this Mac, or a demo is on. Otherwise the window is the setup guide.
-    var ready: Bool { daemon == .running || session.isDemo || session.live }
+    /// Restart, from Settings: the daemon is down for a moment, by the person's own hand.
+    private(set) var restarting = false
+
+    /// The call screen shows: Pointe runs on this Mac (or is being restarted from here), or a demo is on. Otherwise the
+    /// window is the setup guide. A restart that swapped in the whole checklist read as if setup had been lost.
+    var ready: Bool { Self.showsCall(daemon: daemon, restarting: restarting, demo: session.isDemo, live: session.live) }
+
+    static func showsCall(daemon: DaemonPhase, restarting: Bool, demo: Bool, live: Bool) -> Bool {
+        daemon == .running || demo || live || (restarting && (daemon == .starting || daemon == .stopped || daemon == .checking))
+    }
 
     // MARK: launch
 
@@ -199,6 +207,8 @@ final class AppModel {
 
     func restartDaemon() async {
         guard let plugin, daemon != .starting else { return }
+        restarting = true
+        defer { restarting = false }
         session.hangUp()
         daemon = .starting
         box.set(nil)

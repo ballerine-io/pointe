@@ -82,6 +82,22 @@ final class PointeMacTests: XCTestCase {
         }
     }
 
+    /// A restart from Settings keeps the call screen; a daemon found stopped shows the guide, with Start.
+    func testARestartKeepsTheCallScreen() {
+        XCTAssertTrue(AppModel.showsCall(daemon: .starting, restarting: true, demo: false, live: false))
+        XCTAssertTrue(AppModel.showsCall(daemon: .stopped, restarting: true, demo: false, live: false))
+        XCTAssertFalse(AppModel.showsCall(daemon: .stopped, restarting: false, demo: false, live: false))
+        XCTAssertFalse(AppModel.showsCall(daemon: .failed("no"), restarting: true, demo: false, live: false), "a failed start says why on the guide")
+        XCTAssertTrue(AppModel.showsCall(daemon: .running, restarting: false, demo: false, live: false))
+    }
+
+    /// The setup guide's slash commands never wrap after their slash.
+    func testASlashCommandStaysWhole() {
+        let line = SetupPanel.unbroken("Start it here, or run /pointe:voice in a session. See docs/setups.md.")
+        XCTAssertEqual(line, "Start it here, or run /\u{2060}pointe:voice in a session. See docs/setups.md.")
+        XCTAssertEqual(SetupPanel.unbroken("/pointe:stop"), "/\u{2060}pointe:stop")
+    }
+
     /// Every menu command has a key, and no two share one (docs/design/parity.md, "Keys").
     func testTheMenusWordsAreTheSheetsTitles() {
         XCTAssertEqual(MacMenu.newSession, "New Session")
@@ -124,6 +140,13 @@ final class PointeMacTests: XCTestCase {
         XCTAssertEqual(heard.text, "run the checkout tests", "on a call an old reason is gone")
         XCTAssertTrue(heard.keepsEnd)
         XCTAssertEqual(BubbleRule.detail(problem: nil, phase: .off, hearing: "", session: nil).text, MacCopy.appName)
+    }
+
+    /// Heard words that do not fit lose whole words from their start, never half of one.
+    func testHeardWordsAreCutAtAWord() {
+        XCTAssertEqual(BubbleRule.tails("ask river lantern whether"), ["ask river lantern whether", "…river lantern whether", "…lantern whether", "…whether"])
+        XCTAssertEqual(BubbleRule.tails("retry"), ["retry"])
+        XCTAssertEqual(BubbleRule.tails(""), [""])
     }
 
     /// A call the person placed that ended with a reason opens the window, where Connect says the reason and its fix;

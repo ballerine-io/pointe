@@ -102,6 +102,11 @@ struct SetupPanel: View {
         }
     }
 
+    /// A slash command stays on one line: a word joiner after its slash, so "/pointe:voice" never wraps after the "/".
+    static func unbroken(_ text: String) -> String {
+        text.replacingOccurrences(of: #"(^|\s)/(?=\w)"#, with: "$1/\u{2060}", options: .regularExpression)
+    }
+
     private func step<Action: View>(done: Bool, title: String, detail: String, @ViewBuilder action: () -> Action) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: done ? "checkmark.circle.fill" : "circle")
@@ -109,7 +114,7 @@ struct SetupPanel: View {
                 .accessibilityLabel(done ? "Done" : "To do")
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(PointeLook.font(.headline)).foregroundStyle(PointeLook.text)
-                Text(detail).font(PointeLook.font(.callout)).foregroundStyle(PointeLook.muted).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                Text(Self.unbroken(detail)).font(PointeLook.font(.callout)).foregroundStyle(PointeLook.muted).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                 action()
             }
         }

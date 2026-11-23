@@ -28,6 +28,14 @@ enum BubbleRule {
         return (session ?? MacCopy.appName, false, false)
     }
 
+    /// Heard words cut to fit from their start, at a word: the whole line, then "…" and fewer of its last words, so the
+    /// bubble never shows half a word ("…ntern whether the retry").
+    static func tails(_ text: String) -> [String] {
+        let words = text.split(separator: " ", omittingEmptySubsequences: true)
+        guard words.count > 1 else { return [text] }
+        return [text] + (1..<words.count).map { "…" + words[$0...].joined(separator: " ") }
+    }
+
     /// A call the person placed ended before it started, with a reason: the window opens on it, where Connect shows the
     /// reason and its fix. Nil while the call is still being placed.
     static func failedDial(phase: MacSession.Phase, problem: String?) -> Bool? {
@@ -133,10 +141,20 @@ struct BubbleView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(session.stateTitle).font(PointeLook.font(.callout, .medium)).foregroundStyle(PointeLook.text).lineLimit(1)
                     .accessibilityIdentifier("bubble.state")
-                Text(detail.text).font(PointeLook.font(.caption)).foregroundStyle(detail.bad ? PointeLook.accent : PointeLook.muted)
-                    .lineLimit(1).truncationMode(detail.keepsEnd ? .head : .tail)
-                    .help(detail.text)
-                    .accessibilityIdentifier("bubble.detail")
+                Group {
+                    if detail.keepsEnd {
+                        ViewThatFits(in: .horizontal) {
+                            ForEach(BubbleRule.tails(detail.text), id: \.self) { Text($0).lineLimit(1) }
+                        }
+                        .truncationMode(.head)  // one word longer than the bubble: the last resort
+                    } else {
+                        Text(detail.text).lineLimit(1).truncationMode(.tail)
+                    }
+                }
+                .font(PointeLook.font(.caption)).foregroundStyle(detail.bad ? PointeLook.accent : PointeLook.muted)
+                .help(detail.text)
+                .accessibilityLabel(detail.text)
+                .accessibilityIdentifier("bubble.detail")
                 Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: session.pushToTalk))
                     .font(PointeLook.font(.caption2)).foregroundStyle(PointeLook.dim).lineLimit(1)
                     .accessibilityIdentifier("bubble.mode")
