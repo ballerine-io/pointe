@@ -120,6 +120,7 @@ class StubMac:
         app.router.add_get("/voice/artifact", self._gone)
         app.router.add_get("/voice/new-session", self._new_session)
         app.router.add_get("/voice/night-shift", self._night_shift)
+        app.router.add_get("/voice/add-sessions", self._add_sessions)
         app.router.add_route("POST", "/{tail:.*}", self._post)
         app.router.add_route("DELETE", "/{tail:.*}", self._ok)
         self._runner = web.AppRunner(app, access_log=None)
@@ -188,6 +189,27 @@ class StubMac:
              "rule": "I approve nothing: a session that needs approval waits for you.", "pending": None,
              "sessions": [{"name": "shop", "harness": "claude-code", "available": True, "why": None},
                           {"name": "billing", "harness": "opencode", "available": True, "why": None}]}
+
+    # The Add sessions sheet (daemon.add_sessions_options); a test may replace `adding`. Every name is made up.
+    adding = {"machines": [], "reopen_here": True,
+              "open": [{"key": "-|claude-code|a1", "machine": "studio", "here": True, "harness": "claude-code",
+                        "label": "Claude Code", "name": "pentest-recon", "folder": "pentest-notes", "path": "/Users/sam/work/pentest-notes",
+                        "state": "open", "when": 2, "ago": "5 minutes ago", "branch": "recon", "title": "",
+                        "first": "Plan the pentest of the login service", "last": "", "kind": "interactive", "status": "idle",
+                        "approvals": True, "joinable": True, "why": None},
+                       {"key": "-|codex|t1", "machine": "studio", "here": True, "harness": "codex", "label": "Codex",
+                        "name": "invoices", "folder": "billing", "path": "/Users/sam/work/billing", "state": "open", "when": 1,
+                        "ago": "just now", "branch": "", "title": "", "first": "Fix the invoice export", "last": "", "kind": "",
+                        "status": "", "approvals": False, "joinable": True, "why": None}],
+              "recent": [{"key": "-|claude-code|c3", "machine": "studio", "here": True, "harness": "claude-code",
+                          "label": "Claude Code", "name": "billing-migration", "folder": "billing", "path": "/Users/sam/work/billing",
+                          "state": "recent", "when": 0, "ago": "from yesterday", "branch": "main", "title": "billing-migration",
+                          "first": "Write the invoices migration", "last": "", "kind": "", "status": "", "approvals": True,
+                          "joinable": True, "why": None}]}
+
+    async def _add_sessions(self, request):
+        await self._stall()
+        return web.json_response(self.adding)
 
     async def _night_shift(self, request):
         await self._stall()
@@ -321,8 +343,8 @@ class Browser:
 
     async def __aenter__(self) -> "Browser":
         self.proc = subprocess.Popen(
-            [CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={self.port}", f"--user-data-dir={self.profile / 'profile'}",
-             "--no-first-run", "--window-size=1440,900", "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
+            [CHROME, "--headless=new", f"--remote-debugging-port={self.port}", f"--user-data-dir={self.profile / 'profile'}",
+             "--no-first-run", "--use-mock-keychain", "--password-store=basic", "--window-size=1440,900", "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
              "--autoplay-policy=no-user-gesture-required", "--disable-background-timer-throttling", "about:blank"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return self

@@ -57,9 +57,9 @@ def test_pointe_key_finds_uv_and_installs_what_it_needs(stranger):
     assert calls.splitlines()[0].startswith("sync --locked")  # before the first download there is nothing to run unsynced
 
 
-@pytest.mark.parametrize("command", ["pair", "join", "leave"])
-def test_every_python_command_syncs_first(stranger, command):
-    run("pointe", command, "--help", env=stranger.env)
+@pytest.mark.parametrize("command,arg", [("pair", "--help"), ("join", "opencode"), ("leave", "opencode")])
+def test_every_python_command_syncs_first(stranger, command, arg):
+    run("pointe", command, arg, env=stranger.env)  # join --help and leave --help print their line and run nothing
     calls = stranger.calls().splitlines()
     assert calls and calls[0].startswith("sync --locked") and len(calls) == 2  # the cache satisfied it: no second sync
 

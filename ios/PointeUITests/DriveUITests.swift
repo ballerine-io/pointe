@@ -29,10 +29,11 @@ final class DriveUITests: XCTestCase {
             app.launch()
             XCTAssertTrue(any("driveLine").waitForExistence(timeout: 15), screen)
             let window = app.windows.firstMatch.frame
+            let statusBar: CGFloat = window.height > 700 ? 44 : 20  // a phone with a notch or an island; an iPhone SE
             for name in ["Settings", "driveButton", "driveStop", "micRing", "hangUp"] {
                 let element = app.buttons[name]
                 XCTAssertTrue(element.exists, "\(screen): \(name)")
-                XCTAssertGreaterThanOrEqual(element.frame.minY, 44, "\(screen): \(name) is under the status bar")
+                XCTAssertGreaterThanOrEqual(element.frame.minY, statusBar, "\(screen): \(name) is under the status bar")
                 XCTAssertLessThanOrEqual(element.frame.maxY, window.maxY + 0.5, "\(screen): \(name) is on the screen")
                 XCTAssertTrue(element.isHittable, "\(screen): \(name) can be tapped")
             }

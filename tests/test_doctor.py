@@ -49,8 +49,9 @@ def test_setup_reads_back_the_doctors_verdict_whatever_the_wrapper_prints_first(
     assert 'echo "ok       uv"' in wrapper, "the wrapper's own lines come first"
     text = " ".join((root / "plugin" / "commands" / "setup.md").read_text().split())
     assert "first line back" not in text
-    prefix = re.search(r'Read back its verdict, the line that starts "([^"]+)"', text).group(1)
+    said = re.search(r'Read back only its verdict: the line that starts ((?:"[^"]+"(?: or )?)+)', text).group(1)
+    prefixes = tuple(re.findall(r'"([^"]+)"', said))
     ready, needs = {"needed": False, "fix": None}, {"needed": True, "fix": "gemini"}
     for lines in (doctor.verdict(0, ready, None, []), doctor.verdict(0, ready, None, ["gemini"]),
                   doctor.verdict(0, needs, None, []), doctor.verdict(1, {"needed": True, "fix": None}, None, [])):
-        assert lines[0].startswith(prefix), lines[0]
+        assert lines[0].startswith(prefixes), (lines[0], prefixes)

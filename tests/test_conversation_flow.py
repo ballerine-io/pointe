@@ -1028,16 +1028,16 @@ def test_updates_queued_when_the_call_ends_are_dropped_with_it(call):
 
 
 def test_news_of_a_join_is_dropped_when_the_session_left_before_it_was_said(call):
-    """From a live run: "cedar rejoined as available" was said 45 s after cedar was closed; the news had waited for a gap."""
+    """From a live run: "rowan rejoined as available" was said 45 s after rowan was closed; the news had waited for a gap."""
     d = call.d  # noqa: F811
 
     async def run():
         injector = call.start()
         add(d, "s1", "alder")
-        add(d, "s2", "cedar")
+        add(d, "s2", "rowan")
         add(d, "s3", "birch")
         d.state.floor.user_started(time.time())  # the user is talking: the news waits
-        await injector.inject("[session joined] cedar is now available. Mention it in a few words.", True)
+        await injector.inject("[session joined] rowan is now available. Mention it in a few words.", True)
         await injector.inject("[session joined] birch is now available. Mention it in a few words.", True)
         del d.REGISTRY.sessions["s2"]  # closed by voice meanwhile
         d.state.floor.user_stopped(time.time())
@@ -1046,7 +1046,7 @@ def test_news_of_a_join_is_dropped_when_the_session_left_before_it_was_said(call
                 break
             await asyncio.sleep(0.02)
         said = " ".join(text for _, text in call.asked)
-        assert "birch" in said and "cedar" not in said
+        assert "birch" in said and "rowan" not in said
 
     asyncio.run(run())
 
