@@ -310,3 +310,20 @@ def test_recent_audio_is_whole_samples(d, secs):
     gate = d.MicGate()
     gate.ring.append(b"\x01\x02" * 100_000)
     assert len(gate.recent_audio(secs)) % 2 == 0
+
+
+def test_a_meeting_started_by_voice_links_the_joined_sessions(d, monkeypatch):
+    """From a live run: "Meeting mode, join in." linked no session, so "Pointe, look that up" always answered "Nothing to
+    look up yet". The page and the apps let the user tick sessions; by voice, every joined one is linked."""
+    _meeting_ready(d, monkeypatch)
+    add(d, "s1", "pricing")
+    add(d, "s2", "billing/main")
+    d.PREFS.update({"meeting.consented": True})
+    asyncio.run(d._start_meeting_by_voice("Pointe, meeting mode, join in.", "participating"))
+    assert sorted(d.state.meeting.sessions) == ["billing/main", "pricing"]
+
+
+def test_a_meeting_started_by_voice_that_names_a_session_links_that_one(d):
+    add(d, "s1", "pricing")
+    add(d, "s2", "billing/main")
+    assert d._meeting_sessions_heard("Pointe, meeting mode with billing, join in.") == ["billing/main"]

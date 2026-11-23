@@ -3978,9 +3978,18 @@ async def _start_meeting_by_voice(heard: str, mode: str) -> None:
         await say("[meeting mode] It needs the consent step once: tell the user in one line to start it from the page or "
                   "the phone the first time, where it shows who receives the room's audio.")
         return
-    error = await start_meeting(mode, entry_words=heard)
+    error = await start_meeting(mode, sessions=_meeting_sessions_heard(heard), entry_words=heard)
     if error:
         await say(f"[meeting mode not started] {error} Say it in one line.")
+
+
+def _meeting_sessions_heard(heard: str) -> list[str]:
+    """The sessions a meeting started by voice links: the ones its words name, else every joined one. With none linked,
+    "Pointe, look that up" has nothing to look in (the page and the apps let the user tick them)."""
+    names = [s.name for s in REGISTRY.sessions.values()]
+    words = set(re.findall(r"[a-z0-9]+", heard.lower()))
+    named = [n for n in names if set(re.findall(r"[a-z0-9]+", n.split("/")[0].lower())) <= words]
+    return named or names
 
 
 def _meeting_vendors() -> dict:
