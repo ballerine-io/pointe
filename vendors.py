@@ -345,8 +345,49 @@ def refused_key(text: str) -> str | None:
     low = text.lower()
     if not any(sign in low for sign in _REFUSED):
         return None
+    return _named(low)
+
+
+_QUOTA = ("resource_exhausted", "quota", "insufficient_quota", "billing", "credit balance")
+_RATE = ("429", "rate_limit", "ratelimit", "rate limit", "too many requests")
+_DOWN = re.compile(r"\b50[0234]\b|internal server error|internal error|service unavailable|bad gateway|overloaded|servererror")
+
+
+def _named(low: str) -> str:
     named = [(low.find(name), vendor) for name, vendor in _VENDOR_NAMES.items() if name in low]
     return min(named)[1] if named else ""
+
+
+def fault(error) -> tuple[str, str] | None:
+    """A vendor failing in a way a retry of the same words will not fix: ("quota" | "rate" | "down", the vendor named in
+    the error or ""). None for anything else (a refused key is refused_key's; a timeout or a dropped link is not this)."""
+    text = f"{type(error).__name__} {error}" if isinstance(error, BaseException) else str(error)
+    low = text.lower()
+    if any(sign in low for sign in _QUOTA):
+        kind = "quota"
+    elif any(sign in low for sign in _RATE):
+        kind = "rate"
+    elif _DOWN.search(low):
+        kind = "down"
+    else:
+        return None
+    return kind, _named(low)
+
+
+def fault_help(kind: str, vendor: str) -> str:
+    """The page's line for a vendor fault: what happened and what to do, in words, never the library's text."""
+    name = NAMES.get(vendor, "The model")
+    return {"quota": f"{name}'s quota for this key is used up: turn on billing for the key, or wait until the quota "
+                     f"resets. Check it with pointe key check {vendor or '<vendor>'}.",
+            "rate": f"{name} is limiting how often this key may call it: wait a minute, then talk again.",
+            "down": f"{name} is not answering (an error on its side). Talk again in a minute."}[kind]
+
+
+def fault_spoken(kind: str, vendor: str, default: str = "") -> str:
+    name = NAMES.get(vendor or default, "the model")
+    return {"quota": f"My {name} quota is used up. Turn on billing for the key, or wait for it to reset.",
+            "rate": f"{name} is limiting my key for a moment. Try again in a minute.",
+            "down": f"{name} is not answering right now. Try again in a minute."}[kind]
 
 
 def refused_help(vendor: str) -> str:

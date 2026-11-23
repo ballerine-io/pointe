@@ -2740,7 +2740,7 @@
     else if (call.state === 'connecting') [st, title] = ['connecting', CONNECT_COPY.connecting(macName())];
     else if (!s || !s.connected || !mine) [st, title] = ['off', s && s.connected ? CONNECT_COPY.elsewhere : CONNECT_COPY.notConnected];
     else if (micError) [st, title] = ['off', 'Cannot hear you'];
-    else if (s.key_refused) [st, title] = ['broken', s.key_refused.ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer];
+    else if (s.key_refused || s.vendor_fault) [st, title] = ['broken', (s.key_refused || s.vendor_fault).ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer];
     else if (pttMode() && pttOpen()) [st, title] = ['talking', pttTap() ? 'Talking · tap to send' : 'Talking'];
     else if (dumping(s)) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', DUMP_COPY.state];
     else if (s.hold) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', TURNS_COPY.holding];

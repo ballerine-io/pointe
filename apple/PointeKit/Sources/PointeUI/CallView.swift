@@ -519,7 +519,7 @@ struct CallView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     // The empty stage says the same title and why in the middle of the screen: once is enough.
-                    if !panelShown { StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking, broken: status?.key_refused != nil) }
+                    if !panelShown { StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking, broken: status?.key_refused != nil || status?.vendor_fault != nil) }
                     #if os(iOS)  // the Mac keeps itself awake only for a call from another device: on the Mac there is nothing to say
                     if let awake = API.KeepAwake.shown(status, live: phase == .live) {
                         Text(awake).font(.brand(.caption)).foregroundStyle(Brand.dim).lineLimit(1)

@@ -49,6 +49,12 @@ FILLER_AFTER_SECS = 4.5  # silence past this says "one sec"; the model's p95 is 
 STEP_TIMEOUT_SECS = 8.0  # past this the fast model answers: p95 is 2.3 s, and stalls of 20 s were seen
 SLOW_LINE = "The model took too long to answer. Say that again?"
 LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
+# After a step that already acted: "say that again" would invite the user to send it twice (sends have no dedupe).
+SENT_SLOW_LINE = "Sent. The model was too slow to say more."
+DONE_SLOW_LINE = "Done. The model was too slow to say more."
+# Tools that only read: one of them having run does not make the turn's work done.
+READ_ONLY_TOOLS = {"list_sessions", "ask_about_session", "how_to_use_pointe", "briefing"}
+UNASKED_RETRY_SECS = 5.0  # a session's report whose turn failed is tried once more, when nothing else is going on
 # Put before the user's own words, in what the model is sent, when they come right after a session's text or another
 # line from the daemon: two user turns in a row reach a model as one, and the words then read as that text's last line.
 # Added to a refusal when the reply's first sentence was said while the rest was still being written (Brain._say_first).
@@ -198,6 +204,8 @@ class Brain:
         # The sentence for a refused key, by vendor; None when it cannot be heard (the mouth uses that key too).
         self.key_refused: Callable[[str], str | None] = vendors.refused_spoken
         self._key_refusal_said = False  # one Brain per call: said once, then the page explains
+        self._fault_said = ""  # the vendor fault said last (quota, outage): said once a call, then the page explains
+        self._unsaid: str | None = None  # an unasked turn (a session's report) whose model call failed: tried once more
         self.messages: list[dict] = []
         self._chars_per_token = CHARS_PER_TOKEN  # what the vendor last counted, so the budget holds in its tokens
         self._lock = asyncio.Lock()
@@ -479,7 +487,11 @@ class Brain:
                     logger.info(f"turn skipped, the reply before it already answered this: {text[:80]!r}")
                     return
                 unasked = text is not None and (conversation.is_update(text) or bool(conversation.BATCH_HEAD.match(text)))
+                self._unsaid = None
                 await self._run(generation, not unasked, text, speech_only)
+                if self._unsaid is not None:
+                    asyncio.ensure_future(self._retry_unasked(self._unsaid, self._generation))
+                    self._unsaid = None
         finally:
             if user:
                 self._user_turns -= 1
@@ -490,6 +502,23 @@ class Brain:
                     await self.turn(news)
                 else:
                     self.add_news(news)
+
+    async def _retry_unasked(self, trigger: str, generation: int) -> None:
+        """A session's report whose model call failed (slow, or the connection dropped) is otherwise never said: it is
+        tried once more, from the history it is already in, unless the user spoke or another turn ran meanwhile."""
+        await asyncio.sleep(UNASKED_RETRY_SECS)
+        if generation != self._generation or self._user_turns or self._lock.locked():
+            return
+        clipped = self._clipped(trigger)
+        at = next((i for i in range(len(self.messages) - 1, -1, -1)
+                   if self.messages[i]["role"] == "user" and self.messages[i].get("content") == clipped), None)
+        if at is None or any(m["role"] != "user" or not str(m.get("content", "")).startswith("[") for m in self.messages[at + 1:]):
+            return  # a reply or the user's words came after it: the next turn answers those, with the report in its history
+        logger.info(f"an unasked turn failed; trying it once more: {trigger[:80]!r}")
+        async with self._lock:
+            if generation == self._generation:
+                await self._run(generation, False, trigger)
+        self._unsaid = None  # once: a second failure is not retried
 
     def _asked(self) -> str:
         """The user's own latest words, not session news (which arrives bracketed)."""
@@ -502,6 +531,7 @@ class Brain:
         thinking."""
         decls = [SPEAK] if speech_only else self._decls()
         sent, retries, filled, refused, shortened = False, 0, not user, False, False
+        acted = False  # a tool that changes something ran without an error this turn
         self._trigger = trigger or ""
         own_words = trigger is not None and not trigger.lstrip().startswith("[")  # not a report, a click or a mode's line
         ahead_checked = not own_words
@@ -541,8 +571,20 @@ class Brain:
                     if line:
                         await self.speak(line)
                     return
+                fault = vendors.fault(e)
+                if fault is not None:  # out of quota, or the vendor's servers failing: "say that again" would not help
+                    line = vendors.fault_spoken(*fault, self.choice.split(":")[0])
+                    if user and line != self._fault_said:
+                        self._fault_said = line
+                        await self.speak(line)
+                    return
+                if not user:
+                    self._unsaid = trigger
+                    return
                 # A step past the timeout is the model being slow, not a lost connection: the words must not say otherwise
-                if user:
+                if sent or acted:
+                    await self.speak(SENT_SLOW_LINE if sent else DONE_SLOW_LINE)
+                else:
                     await self.speak(SLOW_LINE if isinstance(e, TimeoutError) else LOST_LINE)
                 return
             finally:
@@ -575,6 +617,7 @@ class Brain:
                 result, filled = await self._tool(call, filled)
                 results[call["id"]] = result
                 sent = sent or (call["name"] == "send_to_claude_code" and "sent_to" in (result or {}))
+                acted = acted or (call["name"] not in READ_ONLY_TOOLS and not (isinstance(result, dict) and "error" in result))
                 refused = refused or (call["name"] == "send_to_claude_code" and "error" in (result or {}))
             speaks = [c for c in calls if c["name"] == "speak"]
             for call in speaks[:-1]:  # a draft and its rewrite in one step: one reply per turn, the last

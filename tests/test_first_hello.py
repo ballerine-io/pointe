@@ -129,7 +129,8 @@ def test_the_page_never_says_listening_over_a_refused_key():
     state = PAGE[PAGE.index("function showState()"):PAGE.index("let subShown")]
     refused = state.index("s.key_refused")
     assert refused < state.index("['live', 'Listening']") and refused < state.index("[st, title] = ['bot', 'Speaking']")
-    assert "['broken', s.key_refused.ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer]" in state
+    assert ("['broken', (s.key_refused || s.vendor_fault).ears ? CONNECT_COPY.cannotHear : CONNECT_COPY.cannotAnswer]"
+            in state)  # a vendor out of quota, failing, or gone for the call: the same red state (tests/test_vendor_faults.py)
     assert "[data-state=broken] .top .dot { background: var(--danger); }" in PAGE
     assert 'id="fixkey"' in PAGE and "Fix the key" in PAGE
 

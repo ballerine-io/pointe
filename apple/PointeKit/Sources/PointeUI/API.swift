@@ -62,6 +62,7 @@ struct API {
         var local: LocalMode?       // local mode, read-only (local.summary); nil from a Mac without it
         var problem: String?        // the Mac's last error (a refused key, a vendor down), for a while; nil when none
         var key_refused: KeyRefused?  // a refused key while its problem shows: the title says so, never Listening
+        var vendor_fault: KeyRefused?  // a vendor out of quota, failing, or gone for the call: the same, Cannot hear you
         var keep_awake: KeepAwake?  // the Mac holds off idle sleep under this call (mac.py); nil from an older Mac
         var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
         var invite: Invite?         // the one-time code to pair another machine, while one is outstanding

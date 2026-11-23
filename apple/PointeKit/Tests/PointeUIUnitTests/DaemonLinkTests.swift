@@ -94,6 +94,8 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertEqual(title(.live, refused, speaking: true), "Cannot hear you")
         let brain = try! JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": [], "key_refused": {"vendor": "anthropic", "ears": false}}"#.utf8))
         XCTAssertEqual(title(.live, brain), "Cannot answer you")
+        let lost = try! JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": [], "vendor_fault": {"vendor": "soniox", "ears": true, "kind": "lost"}}"#.utf8))
+        XCTAssertEqual(title(.live, lost), "Cannot hear you", "ears that gave up reconnecting are never Listening")
         XCTAssertEqual(CallTitle.line(phase: .off, reach: .unreachable, status: nil, call: call, macName: "studio", dumping: false, talking: false,
                                       speaking: false, muted: false),
                        ConnectCopy.offTitle(reach: .unreachable, macOnACall: false))

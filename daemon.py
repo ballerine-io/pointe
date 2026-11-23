@@ -237,12 +237,14 @@ HAD_CALLS = JOURNAL.exists()  # before this start writes to it: a Mac used befor
 
 PROBLEM_SHOWN_SECS = 90.0
 _problem: tuple[float, str] = (0.0, "")
+_fault: tuple[float, str, str] = (0.0, "", "")  # when, kind, vendor: the vendor fault behind the line shown
 
 
 def _note_problem(message) -> None:
-    """A wrong key or a vendor outage otherwise shows only in a log, while the page says Listening. A refused key is said
-    in words, and stays over the errors it causes next ("can no longer do its job", "completed with no audio")."""
-    global _problem
+    """A wrong key or a vendor outage otherwise shows only in a log, while the page says Listening. A refused key, or a
+    vendor out of quota or failing, is said in words, and stays over the errors it causes next ("can no longer do its
+    job", "completed with no audio")."""
+    global _problem, _fault
     text = message.record["message"].split("\n")[0]
     shown = current_problem()
     if (vendor := vendors.refused_key(text)) is not None:
@@ -251,6 +253,14 @@ def _note_problem(message) -> None:
         text = vendors.refused_help(vendor)
     elif shown and vendors.refused_key(shown) is not None:
         return
+    elif (found := vendors.fault(text)) is not None:
+        kind, vendor = found
+        if not vendor and text.startswith("brain failed"):
+            vendor = (setup().brain or "").split(":")[0]
+        _fault = (time.time(), kind, vendor)
+        text = vendors.fault_help(kind, vendor)
+    elif shown and vendor_fault():
+        return
     for env in vendors.KEY_ENVS:
         if os.environ.get(env):
             text = text.replace(os.environ[env], "[key]")
@@ -258,7 +268,22 @@ def _note_problem(message) -> None:
 
 
 def current_problem() -> str | None:
+    lost = state.lost
+    if lost is not None and vendors.refused_key(_problem[1]) is None:
+        return lost["line"]
     return _problem[1] if time.time() - _problem[0] < PROBLEM_SHOWN_SECS else None
+
+
+def vendor_fault() -> dict | None:
+    """A vendor that cannot do its part now, while its line is shown: out of quota, failing, or a service that gave up
+    reconnecting for the rest of the call (state.lost). The page then says Cannot hear you or Cannot answer you, with a
+    red dot, never Listening with a green one. A refused key is key_refused's."""
+    if state.lost is not None:
+        return {k: state.lost[k] for k in ("vendor", "ears", "kind")}
+    when, kind, vendor = _fault
+    if kind and time.time() - when < PROBLEM_SHOWN_SECS:
+        return {"vendor": vendor, "ears": bool(vendor) and vendor == (setup().ears or "").split(":")[0], "kind": kind}
+    return None
 
 
 def key_refused() -> dict | None:
@@ -1947,6 +1972,7 @@ class Connection:
 @dataclass
 class State:
     conn: Connection | None = None
+    lost: dict | None = None  # this call's ears or voice gave up reconnecting (_service_lost); a new call clears it
     http: aiohttp.ClientSession | None = None
     last_utterance: str = ""
     last_user_speech_at: float = 0.0
@@ -7744,6 +7770,7 @@ async def status(request: Request):
             "connected": state.conn is not None,
             "problem": current_problem(),
             "key_refused": key_refused(),
+            "vendor_fault": vendor_fault(),
             "first_call": first_call(),  # the page keeps its advanced controls out of the way until Pointe answered once
             "idle_hangup": state.idle_hangup,
             "monologue": state.dump.compat() if _dumping() else None,  # an older app reads this
@@ -8669,6 +8696,11 @@ async def run_call(transport) -> None:
     # A quiet call is normal (sessions work, the user listens); hang up only a call forgotten for half an hour.
     voice = PipelineWorker(pipeline, name="voice", params=VOICE_PARAMS,
                            idle_timeout_secs=IDLE_HANGUP_SECS)
+    state.lost = None  # new ears and a new voice
+
+    @voice.event_handler("on_pipeline_error")
+    async def on_pipeline_error(_worker, frame):
+        await _service_lost(frame.processor)
     runner = WorkerRunner(handle_sigint=False)  # uvicorn owns Ctrl-C
     await runner.add_workers(voice)
 
@@ -8700,6 +8732,31 @@ async def run_call(transport) -> None:
         if state.meeting is not None:
             asyncio.create_task(_end_meeting_without_call())
         logger.info("call ended")
+
+
+LOST_LINES = {"ears": "I can't hear you anymore: the connection to {name} dropped. Hang up and call again; typing still works.",
+              "mouth": "The voice stopped: the connection to {name} dropped. Replies show as text; hang up and call again "
+                       "for the voice."}
+
+
+async def _service_lost(processor) -> None:
+    """Pipecat stops reconnecting a service after its retries ("can no longer do its job") and, by its default policy,
+    keeps the call running: without this the ears stay deaf for the rest of the call while every surface says Listening.
+    The call says so, aloud while the voice works, and status keeps a lasting Cannot hear you until a new call."""
+    from pipecat.services.stt_service import STTService
+    from pipecat.services.tts_service import TTSService
+
+    if processor is None or processor.is_usable or state.lost is not None:
+        return
+    role = "ears" if isinstance(processor, STTService) else "mouth" if isinstance(processor, TTSService) else None
+    if role is None:
+        return
+    vendor = (getattr(setup(), role) or "").split(":")[0]
+    line = LOST_LINES[role].format(name=vendors.NAMES.get(vendor, "the speech service"))
+    state.lost = {"vendor": vendor, "ears": role == "ears", "kind": "lost", "line": line}
+    logger.warning(f"{role} lost for the rest of this call: {processor} gave up reconnecting")
+    if role == "ears":
+        await _say_exactly(line, "the ears are gone")
 
 
 # What harness adapters borrow from the daemon (harnesses/base.py).
