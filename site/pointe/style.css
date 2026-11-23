@@ -283,6 +283,12 @@ details.more-detail > div { padding: 8px 0 28px; }
 .scene-panel > * + * { border-left: 1px solid var(--line); }
 .scene-clip { position: relative; background: #0A0400; min-height: 100%; }
 .scene-clip img, .scene-clip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 58% 50%; }
+/* The one control: on the clip, so it is seen with the scene. A triangle to play, a square while the sound runs. */
+.scene-play { position: absolute; left: 14px; bottom: 14px; z-index: 1; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px 0 14px;
+              border: 0; border-radius: 99px; background: #F7F2F0; color: #0A0400; font: 600 15px/1 var(--font-sans); cursor: pointer; white-space: nowrap;
+              box-shadow: 0 6px 20px rgba(10, 5, 0, .35); }
+.scene-play i { width: 0; height: 0; border-left: 12px solid currentColor; border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+.scene-play.is-playing i { width: 12px; height: 12px; border: 0; background: currentColor; border-radius: 2px; }
 .scene-talk, .scene-agents { padding: 20px 22px 22px; }
 .scene-lines { margin-top: 14px; display: grid; gap: 10px; align-content: start; height: 410px; overflow: hidden; position: relative; scroll-behavior: smooth; }
 .is-whole .scene-lines { height: auto; }
@@ -324,7 +330,7 @@ details.more-detail > div { padding: 8px 0 28px; }
 @keyframes sc-changed { from { background: var(--raised); } to { background: transparent; } }
 .scene-foot { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); gap: 16px 0; align-items: center; margin-top: 18px; }
 button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor: pointer; white-space: nowrap; }
-.scene-controls { display: flex; align-items: center; gap: 16px; padding-right: 22px; }
+.scene-controls { display: flex; align-items: center; padding-right: 22px; }
 .scene-bar { flex: 1; height: 2px; background: var(--line); }
 .scene-bar i { display: block; height: 100%; width: 0; background: var(--orange); }
 .scene-out { display: flex; align-items: baseline; gap: 14px; padding-left: 22px; }
@@ -482,7 +488,8 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
   .cells > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .beat { grid-template-columns: minmax(0, 1fr); }
   .scene-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .scene-clip { grid-column: 1 / -1; aspect-ratio: 16 / 9; min-height: 0; }
+  .scene-clip { grid-column: 1 / -1; aspect-ratio: 5 / 2; min-height: 0; }
+  .scene-lines { height: 320px; }
   .scene-panel > .scene-talk { border-left: 0; border-top: 1px solid var(--line); }
   .scene-panel > .scene-agents { border-top: 1px solid var(--line); }
   .scene-foot { grid-template-columns: minmax(0, 1fr); }
@@ -524,22 +531,37 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
   .talk dt { padding-top: 0; }
   [data-cmd] pre { padding: 13px 16px 50px; }
   .copy { top: auto; bottom: 8px; right: 8px; }
-  /* On a phone the scene fits one screen: the clip, the two newest lines, and the sessions as single rows, so what is
-     said and what the sessions do are seen together. */
-  .scene-panel { grid-template-columns: minmax(0, 1fr); }
+  /* On a phone the whole scene, with its play button, fits one screen of a standard phone (about 390 by 660 inside
+     Safari's bars): the clip with the button on it, the two newest lines, and the sessions as a grid of two columns.
+     The pull request's card takes the grid's place when it comes. */
+  .scene { margin-top: 28px; }
+  .scene-head .h2 { font-size: 22px; line-height: 27px; margin-top: 4px; }
+  .scene-panel { grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
+  .scene-clip { aspect-ratio: 2 / 1; }
+  .scene-play { left: 10px; bottom: 10px; }
   .scene-panel > .scene-agents { border-left: 0; }
-  .scene-talk, .scene-agents { padding: 14px 16px 14px; min-height: 0; }
+  .scene-talk { padding: 10px 14px 8px; min-height: 0; }
+  .scene-agents { padding: 8px 14px 12px; min-height: 0; position: relative; }
   .scene-talk > .kicker, .scene-agents > .kicker { display: none; }
-  .scene-lines { height: 148px; margin-top: 0; gap: 8px; }
-  .scene-lines span { font-size: 16px; line-height: 23px; }
+  .scene-lines { height: 98px; margin-top: 0; gap: 6px; }
+  .scene-lines span { font-size: 15px; line-height: 21px; }
+  .scene-lines li.move { margin-top: 2px; padding-top: 6px; }
   .sc-mode { margin-top: 0; }
-  .scene-rows li { grid-template-columns: 10px 16px auto minmax(0, 1fr) auto; padding: 8px 0; }
-  .sc-ag { display: none; }
-  .sc-what { grid-column: 4; grid-row: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
-  .sc-pr { margin-top: 8px; padding: 10px 12px; }
+  .sc-mode span { font-size: 13px; line-height: 20px; padding: 2px 9px; }
+  .scene-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 4px; min-height: 102px; }
+  .scene-rows li { grid-template-columns: 8px auto minmax(0, 1fr); column-gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .scene-rows li:last-child { border-bottom: 1px solid var(--line); }
+  .sc-g, .sc-ag, .sc-tag { display: none; }
+  .scene-rows b { grid-column: 2; font-size: 14px; }
+  .sc-what { grid-column: 3; grid-row: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  .sc-pr { position: absolute; left: 14px; right: 14px; bottom: 12px; margin: 0; padding: 7px 10px 8px; background: var(--card); }
+  .sc-pr .title { font-size: 13px; line-height: 18px; }
+  .sc-pr dl { margin-top: 2px; gap: 0; }
+  .sc-pr dl div { grid-template-columns: 62px minmax(0, 1fr); }
+  .sc-pr dt, .sc-pr dd { font-size: 12.5px; line-height: 17px; }
+  .scene-foot { margin-top: 10px; }
   .scene-out { flex-direction: column; gap: 4px; }
   .scene-controls { padding-right: 0; }
-  .scene-controls .btn { flex: 0 0 auto; }
   /* The day's beats are cards to swipe through, one at a time: each is its clip, its screen and a few lines. */
   .beats { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -18px; padding: 0 18px 10px; overscroll-behavior-x: contain; }
   .beat { flex: 0 0 86%; scroll-snap-align: center; align-content: start; gap: 14px; }

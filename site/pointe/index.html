@@ -170,6 +170,7 @@
             <video muted loop playsinline preload="none" poster="day/desk.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
               <source src="day/desk.webm" type="video/webm"><source src="day/desk.mp4" type="video/mp4"></video>
             <span class="ai">AI-generated footage</span>
+            <button type="button" class="scene-play" data-sound hidden><i aria-hidden="true"></i><span>Play with sound · 1 min</span></button>
           </figure>
           <div class="scene-talk">
             <p class="kicker">What is said</p>
@@ -215,7 +216,6 @@
         </div>
         <div class="scene-foot">
           <div class="scene-controls">
-            <button type="button" class="btn" data-sound hidden>Play with sound</button>
             <span class="scene-bar" aria-hidden="true"><i></i></span>
             <audio preload="none" src="scenes/desk.mp3"></audio>
           </div>
@@ -866,10 +866,11 @@
       bar.style.width = Math.min(100, 100 * now / total) + '%';
     };
     let from = 0, raf = 0, sound = false, seen = false;
+    const say = (label, playing) => { button.lastElementChild.textContent = label; button.classList.toggle('is-playing', playing); };
     const tick = () => {
       const now = sound ? audio.currentTime : (performance.now() - from) / 1000;
       draw(now);
-      if (sound && audio.ended) { sound = false; button.textContent = 'Play again with sound'; from = performance.now() - total * 1000; }
+      if (sound && audio.ended) { sound = false; say('Play again with sound', false); from = performance.now() - total * 1000; }
       if (!sound && now > total + 2.5) from = performance.now();
       raf = seen || sound ? requestAnimationFrame(tick) : 0;
     };
@@ -878,13 +879,13 @@
     draw(0);
     button.hidden = false;
     button.onclick = () => {
-      if (sound) { audio.pause(); sound = false; button.textContent = 'Play with sound'; from = performance.now(); return; }
-      audio.currentTime = 0; audio.play().then(() => { sound = true; button.textContent = 'Stop the sound'; run(); }).catch(() => {});
+      if (sound) { audio.pause(); sound = false; say('Play with sound · 1 min', false); from = performance.now(); return; }
+      audio.currentTime = 0; audio.play().then(() => { sound = true; say('Stop the sound', true); run(); }).catch(() => {});
     };
     new IntersectionObserver(([e]) => {
       seen = e.isIntersecting;
       if (seen) { if (!sound) from = performance.now(); film.hidden = false; film.play().catch(() => {}); run(); }
-      else { film.pause(); if (sound) { audio.pause(); sound = false; button.textContent = 'Play with sound'; } }
+      else { film.pause(); if (sound) { audio.pause(); sound = false; say('Play with sound · 1 min', false); } }
     }, { threshold: 0.35 }).observe(scene);
   }
 
