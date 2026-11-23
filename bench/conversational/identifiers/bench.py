@@ -275,5 +275,26 @@ def one(run: dict, port: int, item_dir: Path, ctx: dict, adapter=None) -> tuple[
         keep = re.compile(r"registered |user said|speak: |bot said|-> |routing|brain step|permission|refused|ERROR|"
                           r"Traceback|setup|turn")
         log["daemon_log"] = [scrub.text(l)[:400] for l in lines if keep.search(l)][:200]
+    log["final_files"] = final_files(repo)
     shutil.rmtree(repo / ".git", ignore_errors=True)
     return row, spend, log
+
+
+def final_files(repo: Path) -> dict:
+    """Every file that differs from the fixture: its final text (None when removed). With the fixture this rebuilds
+    the final repository, so `run.py rescore` can run the current check on committed logs."""
+    before, after = check._files(check.FIXTURE), check._files(repo)
+    return {n: scrub.text("\n".join(after[n]) + "\n") if n in after else None
+            for n in sorted(set(before) | set(after)) if before.get(n) != after.get(n)}
+
+
+def rebuild(files: dict, dest: Path) -> Path:
+    """The final repository of a row from the fixture and its `final_files`."""
+    shutil.copytree(check.FIXTURE, dest, ignore=shutil.ignore_patterns("__pycache__", ".DS_Store"))
+    for name, text in files.items():
+        if text is None:
+            (dest / name).unlink(missing_ok=True)
+        else:
+            (dest / name).parent.mkdir(parents=True, exist_ok=True)
+            (dest / name).write_text(text)
+    return dest

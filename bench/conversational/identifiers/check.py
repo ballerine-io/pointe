@@ -25,7 +25,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "fixture"
 ITEMS = HERE / "items.toml"
-MARKER = re.compile(r"^\s*(#|//)\s*marked\b", re.I)
+# Quotes, backticks or emphasis around the word do not change what the comment says: "# `marked`" counts.
+MARKER = re.compile(r"""^\s*(#|//)\s*[`'"*]*marked\b""", re.I)
 EXACT = re.compile(r"^\s*(#|//)\s*marked\.?\s*$", re.I)
 COMMENT = {".py": "#", ".ts": "//"}
 SKIP = {".git", "__pycache__", "node_modules", ".DS_Store"}

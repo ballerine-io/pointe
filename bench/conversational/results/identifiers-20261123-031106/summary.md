@@ -9,7 +9,7 @@ Run `identifiers-20261123-031106`. Independent unit: the target (n = 24). Bracke
 | keyboard-canonical | 24 | 24/24 100% [86%, 100%] | [100%, 100%] | 0/24 (at most 14%) | 0/24 (at most 14%) | 0/24 (at most 14%) | 0 | n/a | $0.05 |
 | keyboard-transcript | 24 | 22/24 92% [74%, 98%] | [79%, 100%] | 1/24 4% [1%, 20%] | 0/24 (at most 14%) | 1/24 4% [1%, 20%] | 0 | n/a | $0.06 |
 | pointe | 48 | 40/48 83% [70%, 91%] | [71%, 94%] | 2/48 4% [1%, 14%] | 5/48 10% [5%, 22%] | 1/48 2% [0%, 11%] | 0 | 23/48 48% [34%, 62%] | $1.91 |
-| pointe-text | 24 | 23/24 96% [80%, 99%] | [88%, 100%] | 0/24 (at most 14%) | 0/24 (at most 14%) | 1/24 4% [1%, 20%] | 0 | 15/24 62% [43%, 79%] | $0.89 |
+| pointe-text | 24 | 24/24 100% [86%, 100%] | [100%, 100%] | 0/24 (at most 14%) | 0/24 (at most 14%) | 0/24 (at most 14%) | 0 | 15/24 62% [43%, 79%] | $0.89 |
 | llm-router | 45 | 39/45 87% [74%, 94%] | [74%, 98%] | 2/45 4% [1%, 15%] | 2/45 4% [1%, 15%] | 2/45 4% [1%, 15%] | 0 | 23/45 51% [37%, 65%] | $0.24 |
 | naive | 48 | 43/48 90% [78%, 95%] | [79%, 98%] | 2/48 4% [1%, 14%] | 0/48 (at most 7%) | 3/48 6% [2%, 17%] | 0 | 2/48 4% [1%, 14%] | $0.13 |
 | null | 48 | 0/48 (at most 7%) | [0%, 0%] | 0/48 (at most 7%) | 48/48 100% [93%, 100%] | 0/48 (at most 7%) | 0 | n/a | $0.00 |
@@ -19,10 +19,11 @@ Run `identifiers-20261123-031106`. Independent unit: the target (n = 24). Bracke
 | Comparison | Difference | 95% bootstrap by target |
 |---|---|---|
 | pointe - llm-router | -2% | [-10%, +6%] |
+| pointe - naive | -6% | [-17%, +2%] |
 | pointe - keyboard-canonical | -17% | [-29%, -6%] |
 | pointe - keyboard-transcript | -8% | [-25%, +6%] |
 | llm-router - keyboard-canonical | -15% | [-27%, -4%] |
-| pointe-text - pointe | +12% | [-2%, +27%] |
+| pointe-text - pointe | +17% | [+6%, +29%] |
 
 ## Repeat of 12 seeded items, synthetic speech
 
@@ -35,7 +36,7 @@ Run `identifiers-20261123-031106`. Independent unit: the target (n = 24). Bracke
 
 | Slice | keyboard-canonical | keyboard-transcript | pointe | pointe-text | llm-router | naive | null |
 |---|---|---|---|---|---|---|---|
-| class=camel_snake | 6/6 100% [61%, 100%]; wrong 0/6 (at most 39%) | 5/6 83% [44%, 97%]; wrong 0/6 (at most 39%) | 8/12 67% [39%, 86%]; wrong 0/12 (at most 24%) | 5/6 83% [44%, 97%]; wrong 0/6 (at most 39%) | 8/10 80% [49%, 94%]; wrong 0/10 (at most 28%) | 11/12 92% [65%, 99%]; wrong 0/12 (at most 24%) | 0/12 (at most 24%); wrong 0/12 (at most 24%) |
+| class=camel_snake | 6/6 100% [61%, 100%]; wrong 0/6 (at most 39%) | 5/6 83% [44%, 97%]; wrong 0/6 (at most 39%) | 8/12 67% [39%, 86%]; wrong 0/12 (at most 24%) | 6/6 100% [61%, 100%]; wrong 0/6 (at most 39%) | 8/10 80% [49%, 94%]; wrong 0/10 (at most 28%) | 11/12 92% [65%, 99%]; wrong 0/12 (at most 24%) | 0/12 (at most 24%); wrong 0/12 (at most 24%) |
 | class=digits | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 6/8 75% [41%, 93%]; wrong 0/8 (at most 32%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 7/7 100% [65%, 100%]; wrong 0/7 (at most 35%) | 7/8 88% [53%, 98%]; wrong 0/8 (at most 32%) | 0/8 (at most 32%); wrong 0/8 (at most 32%) |
 | class=dunder_caps | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 8/8 100% [68%, 100%]; wrong 0/8 (at most 32%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 8/8 100% [68%, 100%]; wrong 0/8 (at most 32%) | 8/8 100% [68%, 100%]; wrong 0/8 (at most 32%) | 0/8 (at most 32%); wrong 0/8 (at most 32%) |
 | class=flag | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 3/4 75% [30%, 95%]; wrong 1/4 25% [5%, 70%] | 8/8 100% [68%, 100%]; wrong 0/8 (at most 32%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 7/8 88% [53%, 98%]; wrong 0/8 (at most 32%) | 8/8 100% [68%, 100%]; wrong 0/8 (at most 32%) | 0/8 (at most 32%); wrong 0/8 (at most 32%) |
@@ -43,7 +44,7 @@ Run `identifiers-20261123-031106`. Independent unit: the target (n = 24). Bracke
 | class=nested_path | 2/2 100% [34%, 100%]; wrong 0/2 (at most 66%) | 2/2 100% [34%, 100%]; wrong 0/2 (at most 66%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 2/2 100% [34%, 100%]; wrong 0/2 (at most 66%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 4/4 100% [51%, 100%]; wrong 0/4 (at most 49%) | 0/4 (at most 49%); wrong 0/4 (at most 49%) |
 | noise=babble 12 dB | n/a | n/a | 18/24 75% [55%, 88%]; wrong 1/24 4% [1%, 20%] | n/a | 18/21 86% [65%, 95%]; wrong 1/21 5% [1%, 23%] | 22/24 92% [74%, 98%]; wrong 1/24 4% [1%, 20%] | 0/24 (at most 14%); wrong 0/24 (at most 14%) |
 | noise=clean | n/a | n/a | 22/24 92% [74%, 98%]; wrong 1/24 4% [1%, 20%] | n/a | 21/24 88% [69%, 96%]; wrong 1/24 4% [1%, 20%] | 21/24 88% [69%, 96%]; wrong 1/24 4% [1%, 20%] | 0/24 (at most 14%); wrong 0/24 (at most 14%) |
-| noise=typed | 24/24 100% [86%, 100%]; wrong 0/24 (at most 14%) | 22/24 92% [74%, 98%]; wrong 1/24 4% [1%, 20%] | n/a | 23/24 96% [80%, 99%]; wrong 0/24 (at most 14%) | n/a | n/a | n/a |
+| noise=typed | 24/24 100% [86%, 100%]; wrong 0/24 (at most 14%) | 22/24 92% [74%, 98%]; wrong 1/24 4% [1%, 20%] | n/a | 24/24 100% [86%, 100%]; wrong 0/24 (at most 14%) | n/a | n/a | n/a |
 
 **llm-router: 60 rows of this run superseded** by run `identifiers-20261123-040357`: the first run's router call had max_tokens 400, which claude-sonnet-5-5 spent on thinking, cutting its JSON off (read as no action); fixed in the commit after the freeze, prompt unchanged, arm rerun in full
 

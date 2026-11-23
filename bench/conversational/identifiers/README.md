@@ -37,11 +37,14 @@ A repeat of 12 seeded spoken items for `pointe` and `llm-router` gives the flip 
 ## Scoring (`check.py`, automatic)
 
 The final repository is compared with the fixture file by file. **right_symbol**: the target is touched (a comment
-starting with "marked" above its anchor, or its anchor line changed) and no other symbol is. **wrong_symbol**: any
+starting with the word "marked" above its anchor, quotes or backticks around it allowed, or its anchor line changed)
+and no other symbol is. **wrong_symbol**: any
 other symbol is touched: the harmful outcome, printed beside **no_action** so an arm that does nothing cannot look
 safe. **other_change**: something changed but no symbol was touched. `marker_exact` (the comment is exactly
 "marked") and `delivered_exact` (the text the harness delivered names the target as it is written) are secondary.
 Rows whose transcript names a path outside the item repo are `invalid_out_of_tree` and excluded, with counts.
+Each row's log keeps the final text of every file it changed (`final_files`), so `run.py rescore <run-id>` runs the
+current `check.py` on the committed results, without the run's `/tmp` folder.
 
 ## Choices made here, recorded
 
@@ -75,5 +78,37 @@ Published summary: `results/identifiers-20261123-031106/summary.json` and `summa
 - **Ledger rows of the first run were rebuilt** from its `spend.jsonl` (marked `rebuilt from spend.jsonl`): a
   `git checkout` of the results folder during the run reverted `ledger.jsonl` to its committed state. `spend.jsonl`
   was not affected and holds the same per-run figures.
+- **Verification pass (2026-11-23), after the run.** The summary was rebuilt from the committed rows and every
+  figure recomputed independently; `check.py` was re-run on every final repository. Changes:
+  - **A scorer false negative fixed.** `# \`marked\`` (the word in backticks, directly above `format_equinox_date`)
+    was scored `other_change`. The marker rule now allows quotes, backticks or asterisks around the word. One row
+    changed: `pointe-text` t06, so `pointe-text` is 24/24, not 23/24, and `pointe-text - pointe` is +17% [+6%, +29%],
+    not +12% [-2%, +27%]. `# marked_right_above_parse_moon_phase` (keyboard-transcript t01) still does not count.
+  - **The final repositories are committed.** They were only in `/tmp`. `final_files.jsonl` (backfilled by
+    `run.py finals` for both runs) rebuilds all 348 rows; under the old rule the rebuilt repositories give every row's
+    committed outcome. `rescore.jsonl` is the current check on them, and the report reads it.
+  - **`pointe - naive` is in the paired table**: the keyword baseline was nominally the best speech arm.
 - The machine was shared with other benchmark runs: the 1-minute load average ranged from about 5 to about 200. No
   metric here is a latency.
+
+## Limits of this run
+
+- **Small.** 24 targets in one invented repository, one agent model (`claude-haiku-5-5`). A difference under about
+  ten points between two speech arms is not resolved: every speech-arm interval overlaps.
+- **One recognizer.** `pointe`, `llm-router` and `naive` all hear through Soniox `stt-rt-v6`, and on the same clip they
+  mostly got the same transcript. The comparison is what each does with the words, not how well it hears.
+- **Misheard words written as code names.** When Soniox heard "past moon phase" or "get tied table", `pointe` and
+  `llm-router` wrote it as a code name (`pastMoonPhase`, `getTiedTable`), the agent found no such name and changed
+  nothing. `naive` typed the words as heard and the agent matched `parseMoonPhase` and `getTideTable`. This, and the
+  write/right homophone (t08, wrong in every speech arm), are most of the speech arms' failures.
+- **Helpful scripts.** The spoken forms carry hints a person may not give ("write as in writing", "in snake case").
+- **The marker text counts.** Six rows found the target but wrote another comment or put it inside the function
+  (`pointe` 1, `llm-router` 2, `naive` 2, `keyboard-transcript` 1). Counted as right, `pointe - llm-router` is -4%
+  [-10%, 0%], not -2% [-10%, +6%].
+- **Exclusions.** 3 `llm-router` rows are `invalid_out_of_tree` (2 right, 1 no action); at their check outcome the arm
+  is 41/48. The audit reads absolute paths only: one `llm-router` row of the rerun listed its item folder with
+  `ls -la ..` (it changed nothing and is counted).
+- **Noise.** `pointe` falls from 22/24 clean to 18/24 under babble (paired by target -17% [-33%, -4%]); `naive` and
+  `llm-router` do not fall. A target's clean and babble clips are in different voices.
+- **Timing.** The `llm-router` rerun ran after the other arms (04:04 to 04:16); the machine's load varied from about 5
+  to about 200. No metric is a latency.

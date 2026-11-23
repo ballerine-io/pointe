@@ -16,10 +16,20 @@ TITLE = "Spoken Identifiers, synthetic speech (Kokoro-82M, 4 voices)"
 
 
 def rows(run_id: str) -> list[dict]:
-    """The committed rows; where results/<run-id>/audit.jsonl exists (a re-audit of the kept transcripts with the
+    """The committed rows; where results/<run-id>/rescore.jsonl exists, its check outcome replaces the row's; where
+    results/<run-id>/audit.jsonl exists (a re-audit of the kept transcripts with the
     current audit.py), its verdict replaces the one the row was written with. The row itself is never edited."""
     d = HERE / "results" / run_id
     out = [json.loads(l) for l in (d / "rows.jsonl").read_text().splitlines() if l.strip()]
+    if (d / "rescore.jsonl").exists():  # the current check.py on the committed final files (run.py rescore)
+        rescored = {x["key"]: x for x in map(json.loads, (d / "rescore.jsonl").read_text().splitlines())}
+        for r in out:
+            x = rescored[r["key"]]
+            if x["outcome"] != r["check_outcome"]:
+                r["rescored_from"] = r["check_outcome"]
+                if r["outcome"] == r["check_outcome"]:
+                    r["outcome"] = x["outcome"]
+            r.update({k: v for k, v in x.items() if k not in ("key", "outcome")}, check_outcome=x["outcome"])
     if (d / "audit.jsonl").exists():
         audit = {a["key"]: a for a in map(json.loads, (d / "audit.jsonl").read_text().splitlines())}
         for r in out:
@@ -103,8 +113,8 @@ def summarize(run_id: str, frozen: dict | None, arm_from: dict | None = None, wh
             sl[f"noise={noise}"] = {"right_symbol": pct(sum(r["outcome"] == "right_symbol" for r in x), len(x)),
                                     "wrong_symbol": pct(sum(r["outcome"] == "wrong_symbol" for r in x), len(x))}
         summary["slices"][a] = sl
-    for a, b in (("pointe", "llm-router"), ("pointe", "keyboard-canonical"), ("pointe", "keyboard-transcript"),
-                 ("llm-router", "keyboard-canonical"), ("pointe-text", "pointe")):
+    for a, b in (("pointe", "llm-router"), ("pointe", "naive"), ("pointe", "keyboard-canonical"),
+                 ("pointe", "keyboard-transcript"), ("llm-router", "keyboard-canonical"), ("pointe-text", "pointe")):
         if a in arms and b in arms:
             d, lo, hi = stats.paired_bootstrap(by_target([r for r in pub if r["arm"] == a]),
                                                by_target([r for r in pub if r["arm"] == b]))

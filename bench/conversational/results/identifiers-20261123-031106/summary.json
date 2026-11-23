@@ -229,12 +229,12 @@
    "n_runs": 24,
    "n_targets": 24,
    "right_symbol": {
-    "k": 23,
+    "k": 24,
     "n": 24,
-    "rate": 0.9583,
+    "rate": 1.0,
     "wilson95": [
-     0.7976,
-     0.9926
+     0.862,
+     1.0
     ]
    },
    "wrong_symbol": {
@@ -256,26 +256,26 @@
     ]
    },
    "other_change": {
-    "k": 1,
+    "k": 0,
     "n": 24,
-    "rate": 0.0417,
+    "rate": 0.0,
     "wilson95": [
-     0.0074,
-     0.2024
+     0.0,
+     0.138
     ]
    },
    "capped": 0,
    "right_symbol_bootstrap_by_target95": [
-    0.875,
+    1.0,
     1.0
    ],
    "marker_exact_of_right": {
     "k": 23,
-    "n": 23,
-    "rate": 1.0,
+    "n": 24,
+    "rate": 0.9583,
     "wilson95": [
-     0.8569,
-     1.0
+     0.7976,
+     0.9926
     ]
    },
    "clarifications": 1,
@@ -931,12 +931,12 @@
   "pointe-text": {
    "class=camel_snake": {
     "right_symbol": {
-     "k": 5,
+     "k": 6,
      "n": 6,
-     "rate": 0.8333,
+     "rate": 1.0,
      "wilson95": [
-      0.4365,
-      0.9699
+      0.6097,
+      1.0
      ]
     },
     "wrong_symbol": {
@@ -1051,12 +1051,12 @@
    },
    "noise=typed": {
     "right_symbol": {
-     "k": 23,
+     "k": 24,
      "n": 24,
-     "rate": 0.9583,
+     "rate": 1.0,
      "wilson95": [
-      0.7976,
-      0.9926
+      0.862,
+      1.0
      ]
     },
     "wrong_symbol": {
@@ -1565,6 +1565,13 @@
     0.0625
    ]
   },
+  "pointe - naive": {
+   "right_symbol_diff": -0.0625,
+   "bootstrap95_by_target": [
+    -0.1667,
+    0.0208
+   ]
+  },
   "pointe - keyboard-canonical": {
    "right_symbol_diff": -0.1667,
    "bootstrap95_by_target": [
@@ -1587,10 +1594,10 @@
    ]
   },
   "pointe-text - pointe": {
-   "right_symbol_diff": 0.125,
+   "right_symbol_diff": 0.1667,
    "bootstrap95_by_target": [
-    -0.0208,
-    0.2708
+    0.0625,
+    0.2917
    ]
   }
  },

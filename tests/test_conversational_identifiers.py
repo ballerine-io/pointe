@@ -92,6 +92,25 @@ def test_a_marker_with_an_aside_counts_but_is_not_exact(repo):
     assert s["outcome"] == "right_symbol" and not s["marker_exact"]
 
 
+@pytest.mark.parametrize("text,counts", [("`marked`", True), ('"marked"', True), ("**marked**", True),
+                                         ("markedly", False), ("marked_right_above_parse_moon_phase", False)])
+def test_quotes_around_the_marker_do_not_change_what_it_says(repo, text, counts):
+    r = repo()
+    _mark(r, "py.format_equinox_date", text)
+    assert (check.score(r, "t06", ITEMS)["outcome"] == "right_symbol") is counts
+
+
+def test_committed_final_files_rebuild_the_repository_the_check_scored(repo, tmp_path):
+    r = repo()
+    _mark(r, "py.cash.flush")
+    (r / "NOTES.md").write_text("x\n")
+    (r / "almanac" / "tides.py").unlink()
+    files = bench.final_files(r)
+    assert set(files) == {"almanac/cash.py", "NOTES.md", "almanac/tides.py"} and files["almanac/tides.py"] is None
+    rebuilt = bench.rebuild(json.loads(json.dumps(files)), tmp_path / "rebuilt")
+    assert check.score(rebuilt, "t07", ITEMS) == check.score(r, "t07", ITEMS)
+
+
 @pytest.mark.parametrize("tid", sorted(ITEMS["targets"]))
 def test_every_target_has_a_decoy_within_edit_distance_two_of_its_spoken_form(tid):
     assert check.qualifying_decoys(ITEMS, tid), tid
