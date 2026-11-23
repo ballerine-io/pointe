@@ -51,10 +51,11 @@ def test_an_audio_vendor_answering_429_is_named_too(monkeypatch):
 
     monkeypatch.setattr(vendors, "key", lambda v: "made-up")
 
-    def urlopen(*_a, **_k):
-        raise urllib.error.HTTPError("https://api.example.invalid", 429, "Too Many Requests", {}, None)
+    class Opener:  # keys._check opens through an opener that refuses redirects (the key must not follow one)
+        def open(self, *_a, **_k):
+            raise urllib.error.HTTPError("https://api.example.invalid", 429, "Too Many Requests", {}, None)
 
-    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *handlers: Opener())
     ok, said = keys._check("soniox", asyncio, urllib)
     assert ok is None and "Soniox" in said and "HTTP 429" not in said
 

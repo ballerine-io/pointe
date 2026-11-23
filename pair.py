@@ -4,7 +4,7 @@
   pointe pair wifi           this Mac's address on the current Wi-Fi (pair again if it changes)
   pointe pair host <name>    a name you route yourself (Twingate, Cloudflare Tunnel with Access); listens on 127.0.0.1
   pointe pair show           the QR code again
-  pointe pair link           the address that pairs a phone's browser page (what bin/voice-remote link printed)
+  pointe pair link           the address that pairs a phone's browser page
   pointe pair rotate         a new certificate and pairing link; signs out every phone, browser and machine (pair again)
   pointe pair off            stop listening, and sign out every phone, browser and machine
 

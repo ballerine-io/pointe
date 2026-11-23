@@ -25,7 +25,11 @@ SPAWNS |= {("os", n) for n in ("system", "popen", "execv", "execve", "execvp", "
                                "execlpe", "spawnv", "spawnve", "spawnvp", "spawnvpe", "posix_spawn", "posix_spawnp")}
 BUILDERS = {"child_env", "_env"}  # _env: claude_code's, built on child_env (tested below)
 # Programs that start the daemon: it reads keys from the environment it is given (Linux, CI, a shell's exports).
-NEEDS_KEYS = {("keys.py", "restart"), ("harnesses/join.py", "main")}
+NEEDS_KEYS = {("keys.py", "restart"), ("harnesses/join.py", "main"),
+              # `pointe setup` in the person's own terminal: its environment holds no Keychain key (vendors keeps those in memory), and
+              # starts Pointe's own scripts (the daemon reads keys from the environment) and the person's own Codex
+              # server, which may sign in with their OPENAI_API_KEY.
+              ("terminal_setup.py", "run"), ("terminal_setup.py", "codex")}
 # Scripts that run on macOS's own python3, standard library only (tests/test_apps.py), and never import vendors: they hold
 # no key from the Keychain, only the environment the person's shell gave them, which their children get as before.
 OWN_ENV = {"apps.py", "uninstall.py"}

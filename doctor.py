@@ -183,7 +183,8 @@ def install_lines() -> list[str]:
     root = Path(__file__).resolve().parent
     names = {"plugin": "Claude Code plugin", "standalone": "standalone install"}
     try:
-        got = subprocess.run([str(root / "bin" / "pointe-installs"), "list"], capture_output=True, text=True, timeout=10).stdout
+        got = subprocess.run([str(root / "bin" / "pointe-installs"), "list"], capture_output=True, text=True, timeout=10,
+                             env=childenv.child_env()).stdout
     except (OSError, subprocess.TimeoutExpired):
         got = ""
     rows = [line.split("\t") for line in got.splitlines() if line.count("\t") == 2]

@@ -26,8 +26,10 @@ def test_rotate_gives_each_paired_machine_the_steps_that_work(tmp_path, monkeypa
     capsys.readouterr()
     pair.rotate()
     out = capsys.readouterr().out
-    assert "pointe restart" in out and "pointe stop" not in out
-    assert "pointe hub revoke devbox, then pointe hub invite --name devbox" in out
+    # rotate signs every machine out here at once and a running daemon follows within seconds (Mythos review NP-5):
+    # no restart, and no revoke step left for this side
+    assert "signed out now" in out and "pointe stop" not in out and "pointe restart" not in out
+    assert "here, pointe hub invite --name devbox;" in out and "pointe hub revoke" not in out
     assert "on devbox, pointe node leave, then pointe node join" in out
 
 
