@@ -310,6 +310,26 @@ def test_install_uv_refuses_an_installer_with_another_hash(tmp_path):
     assert not (home / "pwned").exists() and not (home / ".local").exists()
 
 
+@pytest.mark.parametrize("found, says", [(UV_VERSION, "ok "), ("0.1.0", "note ")])
+def test_install_uv_says_when_the_uv_it_finds_is_not_the_pinned_one(tmp_path, found, says):
+    """A uv already on the PATH is used as it is (docs/security/supply-chain.md): another version is said, not hidden."""
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    (fake / "uv").write_text(f'#!/bin/sh\necho "uv {found} (synthetic)"\n')
+    (fake / "uv").chmod(0o755)
+    (fake / "curl").write_text("#!/bin/sh\nexit 99\n")
+    (fake / "curl").chmod(0o755)
+    home = tmp_path / "home"
+    home.mkdir()
+    got = subprocess.run([str(ROOT / "bin" / "install-uv")], capture_output=True, text=True, timeout=60,
+                         env={"HOME": str(home), "PATH": f"{fake}:/usr/bin:/bin", "POINTE_LINK_DIR": str(tmp_path / "link")})
+    assert got.returncode == 0, got.stderr
+    first = got.stdout.splitlines()[0]
+    assert first.startswith(says) and found in first, first
+    if found != UV_VERSION:
+        assert UV_VERSION in first
+
+
 def test_the_channel_installs_from_its_lockfile_with_integrity_and_no_scripts():
     lock = json.loads((ROOT / "channel" / "package-lock.json").read_text())
     assert lock["lockfileVersion"] >= 2
