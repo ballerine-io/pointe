@@ -3,6 +3,7 @@
 import asyncio
 import json
 import re
+import time
 import sys
 import tempfile
 from pathlib import Path
@@ -261,9 +262,60 @@ def test_committed_rows_hold_no_home_path_or_key_and_the_page_matches_the_rows()
             assert not scrub.problems(path.read_text(errors="ignore")), path
     md = ROOT / "bench" / "conversational" / "routing" / "RESULTS.md"
     runs = sorted({json.loads(l)["run_id"] for p in results.glob("*/rows.jsonl") for l in p.read_text().splitlines()
-                   if not json.loads(l).get("smoke")})
+                   if not json.loads(l).get("smoke")
+                   and not json.loads((p.parent / "run.json").read_text()).get("aborted")})
     if md.exists() and runs:
         from conversational.routing import report
 
         rows, spend, metas = report.load(runs)
         assert report.markdown(report.summarize(rows, spend), metas) == md.read_text()
+
+
+class _SlowAgentArm(EchoArm):
+    """Reports the delivery at once; the agent writes the word three seconds later and only then ends its turn."""
+
+    async def start(self, conv_id, repos):
+        self.repos, self.counts, self.tasks = repos, {n: 0 for n in repos}, []
+
+    def stop_counts(self):
+        return dict(self.counts)
+
+    async def utter(self, clip_id, pcm48):
+        now = time.time()
+        action = self.policy(clip_id)
+        if action[0] == "send":
+            for name in action[1]:
+                self.emit("delivered", session=name, text=action[2])
+                self.tasks.append(asyncio.create_task(self._work(name, action[2])))
+        return now, now
+
+    stray = None  # a sibling repo the agent also writes into, two seconds later, before it ends its turn
+
+    async def _work(self, name, word):
+        await asyncio.sleep(3)
+        with (self.repos[name] / "NOTES.md").open("a") as f:
+            f.write(f"{word}\n")
+        if self.stray:
+            await asyncio.sleep(2)
+            (self.repos[self.stray] / "NOTES.md").open("a").write(f"{word}\n")
+        self.counts[name] += 1
+
+
+def test_a_turn_waits_for_the_agent_that_got_the_request():
+    env = RunEnv(run_id="t", root=tmp_root(), checkout=ROOT)
+    conv = DS["conversation"][1]
+    arm = _SlowAgentArm(env, perfect_policy(conv))
+    arm.wait_after_say = 1.0
+    res = asyncio.run(runner.run_conversation(arm, conv, DS, fake_audio(DS), env.root / "slow" / "repos",
+                                              only={2, 3}))
+    assert res["error"] is None
+    assert [r["correct"] for r in res["rows"]] == [True, True]
+
+
+def test_a_turn_is_read_only_after_the_agent_ends_its_turn():
+    env = RunEnv(run_id="t", root=tmp_root(), checkout=ROOT)
+    conv = DS["conversation"][1]
+    arm = _SlowAgentArm(env, perfect_policy(conv))
+    arm.wait_after_say, arm.stray = 1.0, "tariff-web"
+    res = asyncio.run(runner.run_conversation(arm, conv, DS, fake_audio(DS), env.root / "stray" / "repos", only={2}))
+    assert res["rows"][0]["wrong_session"] and not res["rows"][0]["correct"]

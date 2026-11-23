@@ -52,6 +52,7 @@ class Arm:
     def spend(self) -> list[dict]: return []
     def audit(self) -> list[dict]: return []
     def processes(self) -> list[dict]: return []
+    def stop_counts(self) -> dict[str, int]: return {}  # finished agent turns per session (the Stop hook)
     async def stop(self) -> None: ...
 
 
@@ -94,6 +95,9 @@ class AgentArm(Arm):
             if await self.idle():
                 return
             await asyncio.sleep(1)
+
+    def stop_counts(self) -> dict[str, int]:
+        return {n: s.stops() for n, s in self.sessions.items()}
 
     def type_into(self, name: str, text: str) -> None:
         self.sessions[name].type(text)

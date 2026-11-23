@@ -6,7 +6,7 @@ from pathlib import Path
 
 USER = getpass.getuser()
 
-KEY = re.compile(r"sk-ant-[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9]{32,}|AIza[0-9A-Za-z_-]{30,}|xi-api-key|[A-Fa-f0-9]{48}")
+KEY = re.compile(r"sk-ant-[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9]{32,}|AIza[0-9A-Za-z_-]{30,}|xi-api-key|\b[A-Fa-f0-9]{48}\b")
 PATH = re.compile(r"(?<![\w.])/(?:Users|home|private/var|var/folders|Volumes)/[^\s'\"]*")
 
 

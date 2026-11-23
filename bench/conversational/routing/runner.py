@@ -45,6 +45,7 @@ def reply_clip(conv_id: str, i: int, kind: str) -> str:
 async def run_turn(arm, conv: dict, i: int, turn: dict, audio: dict, repos: dict, names: list[str]) -> tuple[dict, list]:
     word, want = turn["word"], check.intended(turn)
     log: list[dict] = []
+    base = arm.stop_counts()
     t0 = time.time()
     if arm.kind == "audio":
         cid = f"{conv['id']}.t{i}.say"
@@ -55,9 +56,16 @@ async def run_turn(arm, conv: dict, i: int, turn: dict, audio: dict, repos: dict
         await arm.typed(text, sorted(want, key=turn["target"].index))
         log.append({"kind": "user_typed", "t": t0, "text": text})
     spoke_end = time.time()
-    seen: dict[str, float] = {}
+    sent: dict[str, float] = {}   # sessions the arm reported sending to, and when
+    files: dict[str, float] = {}  # repos where the word appeared, and when it was first seen
     asked_t = None
     followups: list[dict] = []
+
+    def finished(names) -> bool:
+        """Every session that got something has ended an agent turn since this turn began (its Stop hook)."""
+        counts = arm.stop_counts()
+        return all(counts.get(n, 1) > base.get(n, 0) for n in names) if counts else True
+
     deadline = time.time() + arm.wait_after_say
     hard = t0 + 300
     while time.time() < min(deadline, hard):
@@ -65,11 +73,11 @@ async def run_turn(arm, conv: dict, i: int, turn: dict, audio: dict, repos: dict
         log += evs
         for ev in evs:
             if ev["kind"] == "delivered" and ev.get("session") in repos:
-                seen.setdefault(ev["session"], ev["t"])
+                sent.setdefault(ev["session"], ev["t"])
         for name in check.present(repos, word):
-            seen.setdefault(name, time.time())
+            files.setdefault(name, time.time())
         questions = [ev for ev in evs if ev["kind"] == "asked"]
-        if questions and not seen:
+        if questions and not sent and not files:
             asked_t = asked_t or questions[0]["t"]
             if len(followups) < 2:
                 kind = user.reply(questions[-1]["text"], want, names)
@@ -78,17 +86,23 @@ async def run_turn(arm, conv: dict, i: int, turn: dict, audio: dict, repos: dict
                 followups.append({"question": questions[-1]["text"], "reply": kind, "clip": clip})
                 log.append({"kind": "user_said", "clip": clip, "t": s, "end": e, "reply_to": questions[-1]["text"]})
                 deadline = time.time() + arm.wait_after_say
-        if seen and await arm.idle():
-            if set(seen) >= want or time.time() - min(seen.values()) > 25:
-                break
+        active = set(sent) or set(files)  # wait on the sessions that were sent something, not on a repo it strayed into
+        if active:
+            deadline = max(deadline, min(hard, min({**sent, **files}.values()) + 120))
+            if finished(active) and await arm.idle():
+                if set(files) >= want or time.time() - min({**sent, **files}.values()) > 25:
+                    break
         await asyncio.sleep(0.5)
-    await arm.settle(90)
+    active = set(sent) or set(files)
+    settle_until = time.time() + 120
+    while time.time() < settle_until and not (finished(active) and await arm.idle()):
+        await asyncio.sleep(1)
     log += arm.events()
     final = check.present(repos, word)
     for name in final:
-        seen.setdefault(name, time.time())
+        files.setdefault(name, time.time())
     first_delivery = min((ev["t"] for ev in log if ev["kind"] == "delivered"), default=None)
-    first_file = min((seen[n] for n in final), default=None)
+    first_file = min((files[n] for n in final), default=None)
     delivery_t = min(x for x in (first_delivery, first_file) if x is not None) if (first_delivery or first_file) else None
     sent_to = {ev["session"] for ev in log if ev["kind"] == "delivered" and ev.get("session") in repos}
     score = check.score_turn(turn, final, delivery_t, asked_t, sent_to)
