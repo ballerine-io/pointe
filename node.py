@@ -1076,10 +1076,14 @@ def serve(port: int = PORT, state: Path = STATE) -> None:
     if pairing(state) is None:
         raise SystemExit("voice-node: this machine is not paired with a hub: pointe node join '<invite>'")
     node = Node(state, port)
-    server = uvicorn.Server(uvicorn.Config(node.app(), host="127.0.0.1", port=port, log_level="warning"))
+    try:
+        sockets = guards.loopback_sockets(port)  # both families, as the daemon does
+    except OSError as e:
+        raise SystemExit(f"voice-node: cannot listen on 127.0.0.1:{port} and [::1]:{port} ({e.strerror})")
+    server = uvicorn.Server(uvicorn.Config(node.app(), port=port, log_level="warning"))
 
     async def run() -> None:
-        serving = asyncio.create_task(server.serve())
+        serving = asyncio.create_task(server.serve(sockets=sockets))
         done, _ = await asyncio.wait([serving, asyncio.create_task(node.finished.wait())],
                                      return_when=asyncio.FIRST_COMPLETED)
         if serving not in done:  # unpaired, revoked or left: nothing left to serve

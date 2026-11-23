@@ -11,8 +11,13 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
 
 ## Who may connect
 
-- The daemon's HTTP port listens on the loopback interface only. Call audio uses the same port, as a WebSocket, so it
-  never leaves loopback either. Only `pointe pair` opens another address (see Phone access).
+- The daemon's HTTP port listens on the loopback interface only, on both addresses: `127.0.0.1` and `[::1]`
+  (`guards.loopback_sockets`; the node does the same). A browser tries `::1` first for `localhost` and
+  `<hash>.localhost`, so a program of another user on `[::1]:7860` beside a daemon on `127.0.0.1` alone would be handed
+  the page key. With both held nobody else can take either, and a daemon that finds either taken does not start. A
+  machine with no IPv6 loopback at all listens on `127.0.0.1` alone; there no one can take `::1` either. Call audio
+  uses the same port, as a WebSocket, so it never leaves loopback either. Only `pointe pair` opens another address
+  (see Phone access).
 - Every route except `/voice/health` needs a secret. Scripts send a per-daemon token (`~/.claude-voice/token`, 0600). The page
   opens once with a key in its address (`bin/voice-open`), which becomes an `HttpOnly`, `SameSite=Strict` cookie.
 - A script sends the token or the page key only when the program listening on the port is the one the daemon's pid file

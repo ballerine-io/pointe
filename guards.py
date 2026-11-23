@@ -1,11 +1,13 @@
 """Decisions made in code, never by the voice model: consent, and who may talk to the daemon."""
 
 import base64
+import errno
 import functools
 import hashlib
 import hmac
 import json
 import re
+import socket
 import unicodedata
 
 import local_proof
@@ -722,6 +724,38 @@ def _local_headers(headers: Headers) -> bool:
 def is_local_request(request: Request) -> bool:
     """Blocks web pages (Origin) and DNS rebinding (Host) from reaching the daemon on 127.0.0.1."""
     return _local_headers(request.headers)
+
+
+def loopback_sockets(port: int) -> list[socket.socket]:
+    """127.0.0.1 and ::1 on `port`, both bound here, for the daemon's (and the node's) loopback server. A browser tries
+    ::1 first for localhost and <hash>.localhost, and another account can bind [::1]:port beside a listener on
+    127.0.0.1 alone: it would be handed the page key. So ::1 in use raises (EADDRINUSE) and the start ends. A machine
+    with no IPv6 loopback has no ::1 for anyone to take: there only 127.0.0.1 is held."""
+    four = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    four.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # as uvicorn binds: a restart is not held up by TIME_WAIT
+    try:
+        four.bind(("127.0.0.1", port))
+    except OSError:
+        four.close()
+        raise
+    try:
+        six = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    except OSError as e:
+        if e.errno == errno.EAFNOSUPPORT:
+            return [four]
+        four.close()
+        raise
+    try:
+        six.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+        six.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # never SO_REUSEPORT: that would share the port
+        six.bind(("::1", port))
+    except OSError as e:
+        six.close()
+        if e.errno in (errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT):
+            return [four]
+        four.close()
+        raise
+    return [four, six]
 
 
 LOCAL_COOKIE = "pointe_local"

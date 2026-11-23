@@ -93,6 +93,7 @@ from readout import mask
 from guards import (relays_approval, remote_readable, 
     JsonPosts,
     LocalAuth,
+    loopback_sockets,
     page_csp,
     permission_answer,
     quote_intent,
@@ -8852,8 +8853,15 @@ def main() -> None:
     port = parser.parse_args().port
     global SERVER, PORT
     PORT = harnesses.HOST.port = port  # a session Pointe starts registers with this daemon, not the default one
-    SERVER = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info"))  # loopback only: the phone comes in through remote.py
-    SERVER.run()
+    try:  # loopback only, both families (guards.loopback_sockets): the phone comes in through remote.py
+        sockets = loopback_sockets(port)
+    except OSError as e:
+        raise SystemExit(f"daemon: cannot listen on 127.0.0.1:{port} and [::1]:{port} ({e.strerror}): another program "
+                         f"holds one of them, and a browser could reach it instead. Use another port: "
+                         f"CLAUDE_VOICE_DAEMON_PORT=7870")
+    logger.info(f"listening on 127.0.0.1:{port}" + (f" and [::1]:{port}" if len(sockets) > 1 else ", no IPv6 loopback here"))
+    SERVER = uvicorn.Server(uvicorn.Config(app, port=port, log_level="info"))
+    SERVER.run(sockets=sockets)
 
 
 # ---------- whisper mode (whisper.py holds the rules) ----------
