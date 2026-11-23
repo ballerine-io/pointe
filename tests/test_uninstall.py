@@ -255,3 +255,10 @@ def test_a_claude_installed_where_claude_codes_installer_puts_it_is_used(mac):
     got = run(mac, "--yes")
     assert got.returncode == 0 and "Pointe is removed." in got.stdout
     assert mac.claude() == "plugin uninstall pointe@pointe\nplugin marketplace remove pointe\n"
+
+
+def test_the_install_doc_counts_the_lines_link_pointe_writes(tmp_path):
+    subprocess.run([str(LINK), "--quiet"], env={"POINTE_LINK_DIR": str(tmp_path), "PATH": "/usr/bin:/bin"}, check=True)
+    lines = len((tmp_path / "pointe").read_text().splitlines())
+    word = {2: "two", 3: "three", 4: "four"}[lines]
+    assert f"`~/.local/bin/pointe`, a {word}-line script" in (ROOT / "docs" / "install.md").read_text()
