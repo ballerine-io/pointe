@@ -8,11 +8,16 @@ from pathlib import Path
 
 from core import agent as agent_mod
 from core import ledger, runner, stats
-from bargein import bench
+from bargein import bench, check
 
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE.parent / "results"
 STOP_KINDS = ("stop", "undo", "redirect")
+# Part B facts whose label was wrong for the repo the runs saw; a row is excluded unless it records the fixed fixture.
+LABEL_ERRORS = {"branch": ("cedar", "the runner made each fixture a fresh git repo on `master` while STATUS.md, the "
+                           "label, says `cedar`; most agents checked git and answered `master`. The keyboard arm was "
+                           "credited for printing `cedar` beside it; Whisper at times hears the spoken arms' \"cedar\" as "
+                           "\"CDER\". Fixed in the runner (the repo is now on `cedar`); these rows are not scored")}
 
 
 def _sha(path: Path) -> str:
@@ -36,11 +41,37 @@ def freeze() -> int:
     return 0
 
 
-def load_rows(run_ids: list[str]) -> list[dict]:
-    rows = []
+def rescore(row: dict, event: dict) -> dict:
+    """The row's scores computed again from its own raw log by the current scorer (check.py, facts.py)."""
+    if row["status"] not in ("ok", "capped"):
+        return row
+    entries = event["log"]
+    log = {k: v for x in entries for k, v in x.items()}
+    if row["part"] == "a":
+        return {**row, **check.part_a(row["kind"], log["files"], set(log["final"]), 0.0)}
+    if row["adapter"] == "keyboard":
+        said = [(t, t, x["keyboard_text"]) for x in entries if "keyboard_text" in x
+                for t in [x["t_pty"] if x["pty_match"] else x["t_seen"]]]
+        return {**row, **check.part_b(row["kind"], 0.0, said, bench.WINDOW_B), "first_output": None}
+    said = [(u["t"], u["end"], u["text"]) for u in log["spoken"]]
+    return {**row, **check.part_b(row["kind"], 0.0, said, bench.WINDOW_B)}
+
+
+def load_runs(run_ids: list[str]) -> list[tuple[dict, dict]]:
+    """(row, event) as written together, each row re-scored from its event."""
+    pairs = []
     for rid in run_ids:
-        rows += [json.loads(line) for line in (RESULTS / rid / "rows.jsonl").read_text().splitlines() if line.strip()]
-    return rows
+        read = lambda name: [json.loads(x) for x in (RESULTS / rid / name).read_text().splitlines() if x.strip()]  # noqa: E731
+        rows, events = read("rows.jsonl"), read("events.jsonl")
+        if len(rows) != len(events) or any((r["item"], r["adapter"], r["run_index"]) != (e["item"], e["adapter"], e["k"])
+                                           for r, e in zip(rows, events)):
+            raise SystemExit(f"{rid}: rows.jsonl and events.jsonl are not in step")
+        pairs += [(rescore(r, e), e) for r, e in zip(rows, events)]
+    return pairs
+
+
+def label_error(r: dict) -> bool:
+    return r["part"] == "b" and r["kind"] in LABEL_ERRORS and r.get("fixture_branch") != LABEL_ERRORS[r["kind"]][0]
 
 
 def _rate(k: int, n: int) -> str:
@@ -151,38 +182,37 @@ def paired(rows: list[dict], part: str) -> dict | None:
             "delta": round(sum(d[0] for d in diffs.values()) / len(both), 4), "ci95": [round(boots[50], 4), round(boots[1949], 4)]}
 
 
-def from_logs(run_ids: list[str], rows: list[dict]) -> dict:
+def from_logs(standing: list[tuple[dict, dict]]) -> dict:
     """Counts read from the committed raw logs (events.jsonl), by code: what Pointe did with a spoken stop, and what the
-    typed reference's agent did with a redirect."""
+    typed reference's agent did with a redirect. Each log is read with its own row; a superseded attempt is not read."""
     import re
 
-    standing = {(r["run_id"], r["item"], r["adapter"], r["run_index"]): r for r in rows}
     out = {"pointe_roles": None, "pointe_a_runs": 0, "pointe_a_forwarded_as_message": 0, "pointe_a_forwarded_and_job_ran_on": 0,
-           "keyboard_redirect_runs": 0, "keyboard_redirect_agent_asked": 0}
-    for rid in run_ids:
-        for line in (RESULTS / rid / "events.jsonl").read_text().splitlines():
-            e = json.loads(line)
-            row = standing.get((rid, e["item"], e["adapter"], e["k"]))
-            if row is None or row.get("status") not in ("ok", "capped"):
-                continue
-            log = {k: v for x in e["log"] for k, v in x.items()}
-            if e["adapter"] == "pointe":
-                daemon = log.get("daemon_log_tail", "")
-                found = re.search(r"setup: Setup\(([^)]*)\)", daemon)
-                if found and not out["pointe_roles"]:
-                    out["pointe_roles"] = found.group(1).replace("'", "")
-                if e["item"].startswith("a") and row.get("kind") != "backchannel":
-                    out["pointe_a_runs"] += 1
-                    said = daemon.split("user said:", 1)
-                    sent = len(said) > 1 and re.search(r"-> kiln: ", said[1]) is not None
-                    out["pointe_a_forwarded_as_message"] += sent
-                    out["pointe_a_forwarded_and_job_ran_on"] += sent and not row.get("halted")
-            if e["adapter"] == "keyboard" and row.get("kind") == "redirect" and e["k"] == 0:
-                out["keyboard_redirect_runs"] += 1
-                texts = [t for _, t in log.get("agent_text", [])]
-                asks = re.compile(r"\?|need to know|should i|tell me|let me know|which (one|option)|do you want", re.I)
-                out["keyboard_redirect_agent_asked"] += bool(texts) and not log.get("tool_uses", [])[1:] and \
-                    bool(asks.search(texts[-1]))
+           "keyboard_redirect_runs": 0, "keyboard_redirect_agent_asked": 0, "pointe_b_runs": 0, "pointe_b_permission_request": 0}
+    for row, e in standing:
+        if row.get("status") not in ("ok", "capped"):
+            continue
+        log = {k: v for x in e["log"] for k, v in x.items()}
+        if e["adapter"] == "pointe":
+            daemon = log.get("daemon_log_tail", "")
+            found = re.search(r"setup: Setup\(([^)]*)\)", daemon)
+            if found and not out["pointe_roles"]:
+                out["pointe_roles"] = found.group(1).replace("'", "")
+            if e["item"].startswith("a") and row.get("kind") != "backchannel":
+                out["pointe_a_runs"] += 1
+                said = daemon.split("user said:", 1)
+                sent = len(said) > 1 and re.search(r"-> kiln: ", said[1]) is not None
+                out["pointe_a_forwarded_as_message"] += sent
+                out["pointe_a_forwarded_and_job_ran_on"] += sent and not row.get("halted")
+            if row["part"] == "b" and not label_error(row):
+                out["pointe_b_runs"] += 1
+                out["pointe_b_permission_request"] += "[permission request]" in daemon.split("user said:", 1)[-1]
+        if e["adapter"] == "keyboard" and row.get("kind") == "redirect" and e["k"] == 0:
+            out["keyboard_redirect_runs"] += 1
+            texts = [t for _, t in log.get("agent_text", [])]
+            asks = re.compile(r"\?|need to know|should i|tell me|let me know|which (one|option)|do you want", re.I)
+            out["keyboard_redirect_agent_asked"] += bool(texts) and not log.get("tool_uses", [])[1:] and \
+                bool(asks.search(texts[-1]))
     return out
 
 
@@ -217,7 +247,8 @@ def markdown(res: dict) -> str:
               "keypress), at the job's 2 s resolution. Overshoot is files written after that point minus one file in "
               "flight. A redirect counts when the job stopped, `out/` ends with steps 04 to 20, and steps 01 to 03 are "
               "either left in place or moved to `out/` (both accepted).", "",
-              "## Part B: time to the first correct answer (synthetic speech, 30 questions, one Kokoro voice each)", "",
+              f"## Part B: time to the first correct answer (synthetic speech, {res['part_b_items']} questions, one "
+              "Kokoro voice each)", "",
               "| Arm | Correct within 45 s | First audio (median / p90) | Time to correct answer (median / p90, censored) "
               "| Correct within 10 s | Correct within 30 s | Clarifications | Load-flagged |", "|---|---|---|---|---|---|---|---|"]
     for arm, r in b.items():
@@ -230,7 +261,11 @@ def markdown(res: dict) -> str:
               "Spoken answers are scored on the recorded audio through the one pinned Whisper large-v3-turbo, the same "
               "for every arm; an item never answered correctly within 45 s is censored and counted beside each median. "
               "When an arm asks a question back, the scripted user answers it once (a clarification, not a penalty) and "
-              "the clock keeps running from the first question.", "",
+              "the clock keeps running from the first question."]
+    for fact, x in res.get("label_errors", {}).items():
+        lines += ["", f"Not scored: the {len(x['items'])} `{fact}` questions ({', '.join(x['items'])}; {x['runs']} runs), "
+                  f"a label error: {x['why']}."]
+    lines += ["",
               "## Pointe against llm-router, paired by item (synthetic speech)", ""]
     for part, label in (("a", "Part A success (halt, undo, redirect; no false stop)"), ("b", "Part B correct answer")):
         p = res["paired"].get(part)
@@ -248,6 +283,10 @@ def markdown(res: dict) -> str:
               f"{lg['keyboard_redirect_runs']} runs the agent ran nothing after Escape and the typed redirect and its "
               "last reply asked how to redirect (or which option to take). The keyboard arm has no scripted answer to questions, so the redirect "
               "column measures the agent and this scripted user more than the voice path; it does not separate the arms.",
+              f"- Pointe, Part B runs (repeats included): in {lg['pointe_b_permission_request']} of {lg['pointe_b_runs']} the "
+              "daemon log shows a permission request after the question: the voice model sent the agent to check the "
+              "repo, and the agent ran a command outside the item repo, which the settings file does not allow. The "
+              "scripted user answers no permission prompt.",
               ""]
     lines += ["## Run-to-run (synthetic speech)", ""]
     for key, f in res["repeats"].items():
@@ -259,26 +298,36 @@ def markdown(res: dict) -> str:
 LIMITS = [
     "Synthetic speech only (four Kokoro voices, no noise): an upper bound for every arm. Kokoro is also Pointe's local "
     "voice.",
+    "The arms do not share a mouth: the reference arms speak the agent's reply through local Kokoro (no network), "
+    "Pointe through its default ElevenLabs voice over the network. First audio and time to a correct answer include "
+    "that difference, and the one Whisper transcribes two different voices.",
     "The reference arms (`naive`, `llm-router`, `keyboard`) were written by the team that builds Pointe. No outside "
     "product is tested.",
+    "The llm-router prompt was written with the items: the acknowledgements it gives as examples (\"mm-hm\", "
+    "\"okay\", \"right\") are words of the backchannel items. Backchannels do not separate the arms: no arm made a "
+    "false stop, the keyword arm included.",
+    "The fact matcher is regular expressions, checked on canonical answers in every voice. On the run's own answers it "
+    "gave one false positive (a \"no\" that began \"No build has run\"); the matcher was fixed and every row "
+    "re-scored from its raw log. No person or model judges the answers.",
     "Spend is computed from token usage and list prices (Claude Code session usage; Pointe's daemon log with an assumed "
     "300 output tokens a brain step and a flat allowance for its reader and checker), not metered by the vendors. Claude "
     "Code's own background calls (session titles) are not in its transcript.",
     "The machine ran other workloads, including other benchmark agents, during the runs; the runner waited up to 45 s "
     "(Part A) or 2 minutes (Part B, the latency result) for the 1-minute load average to fall under 12 before each run and flags rows that started above it. "
     "Latency rows with a flag are less reliable.",
-    "Small samples: 18 stop-type items and 6 backchannels per arm in Part A, 30 questions in Part B. Intervals are wide; "
+    "Small samples: 18 stop-type items and 6 backchannels per arm in Part A, {b} scored questions in Part B. Intervals are wide; "
     "the tables do not rank arms whose intervals overlap.",
     "Part B's facts were read into the agent's context by a typed setup turn before the question (the same in every "
     "arm), so the time measures the voice path, not the agent's search.",
     "The agent's settings file allows the job's shell commands and a hook allows commands that stay inside the item "
-    "repo, the same in every arm, so no permission prompt stands between the user and the outcome. The hook refuses "
+    "repo, the same in every arm, so the job's own commands never wait at a prompt; a command outside the item repo "
+    "still does, and the scripted user answers no prompt. The hook refuses "
     "any command with `..`, even one that stays inside the repo: such a run waits at a prompt and ends as capped.",
     "The scripted user answers a spoken question back (question detector, slot answers); it does not answer a "
     "question the agent asks in text on the keyboard arm.",
     "The run was resumed twice: once to shorten the load wait for Part A (from 2 minutes to 45 s, after 49 runs), "
-    "once to run again the 6 Pointe runs that had failed to start because an earlier isolated daemon still held the "
-    "port. The failed rows stay in rows.jsonl; the later row for the same run is the one counted. Each row carries "
+    "once to run again the 6 Pointe runs that had failed to start because a Pointe daemon started from /tmp "
+    "still held the port (once visibly another benchmark's, run on the same machine and ports). The failed rows stay in rows.jsonl; the later row for the same run is the one counted. Each row carries "
     "the bench commit it ran at; Pointe's commit is the same in every row.",
 ]
 
@@ -286,12 +335,15 @@ LIMITS = [
 def main(run_id: str | None) -> int:
     ids = [run_id] if run_id else sorted(p.name for p in RESULTS.iterdir() if p.is_dir() and p.name.startswith("bargein-")
                                          and not p.name.endswith("smoke"))
-    every = [r for r in load_rows(ids) if r.get("kind_of_run") == "paid"]
+    paid = [(r, e) for r, e in load_runs(ids) if r.get("kind_of_run") == "paid"]
+    every = [r for r, _ in paid]
     last = {}
-    for r in every:  # a resumed run repeats an errored run: the later row stands, the superseded ones are counted
-        last[(r["run_id"], r["part"], r["item"], r["adapter"], r["run_index"])] = r
-    rows = list(last.values())
-    superseded = len(every) - len(rows)
+    for r, e in paid:  # a resumed run repeats an errored run: the later row stands, the superseded ones are counted
+        last[(r["run_id"], r["part"], r["item"], r["adapter"], r["run_index"])] = (r, e)
+    standing = list(last.values())
+    excluded = [r for r, _ in standing if label_error(r)]
+    rows = [r for r, _ in standing if not label_error(r)]
+    superseded = len(every) - len(standing)
     freeze_data = json.loads((HERE.parent / "FROZEN.json").read_text())
     bad = [r for r in rows if r["pointe_commit"] != freeze_data["pointe_commit"]]
     if bad:
@@ -302,11 +354,16 @@ def main(run_id: str | None) -> int:
            "agent_model": agent_mod.MODEL, "claude_code": freeze_data["claude_code_version"],
            "pointe_commit": freeze_data["pointe_commit"],
            "pointe_setup": pointe_rows[0]["versions"].get("pointe_setup") if pointe_rows else "",
-           "logs": from_logs(ids, rows), "ledger_usd": ledger.spent("bargein"),
+           "logs": from_logs(standing), "ledger_usd": ledger.spent("bargein"),
            "spend_usd": round(sum(r.get("spend_usd", 0) for r in every), 4), "rows": len(rows),
            "superseded_error_rows": superseded,
-           "part_a": part_a(rows), "part_b": part_b(rows), "repeats": repeats(rows),
-           "paired": {p: paired(rows, p) for p in ("a", "b")}, "limits": LIMITS}
+           "label_errors": {fact: {"runs": sum(r["kind"] == fact for r in excluded),
+                                   "items": sorted({r["item"] for r in excluded if r["kind"] == fact}), "why": why}
+                            for fact, (_, why) in LABEL_ERRORS.items() if any(r["kind"] == fact for r in excluded)},
+           "part_a": part_a(rows), "part_b": part_b(rows),
+           "part_b_items": len({r["item"] for r in rows if r["part"] == "b"}), "repeats": repeats(rows),
+           "paired": {p: paired(rows, p) for p in ("a", "b")}}
+    res["limits"] = [x.format(b=res["part_b_items"]) for x in LIMITS]
     out = RESULTS / ids[-1] if len(ids) == 1 else RESULTS
     (out / "results.json").write_text(json.dumps(res, indent=1) + "\n")
     (HERE / "RESULTS.md").write_text(markdown(res))

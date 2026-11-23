@@ -42,6 +42,7 @@ EST = {("a", "pointe"): 0.11, ("a", "llm-router"): 0.07, ("a", "naive"): 0.065, 
        ("b", "keyboard"): 0.035}
 EST_REPEAT = {"a": 1.1 / 12, "b": 0.6 / 16}
 NULL_A, REPEAT_A, REPEAT_B = 8, 6, 8
+FIXTURE_BRANCH = "cedar"  # fixture/status/STATUS.md names the checked-out branch: the item repo must agree
 LOAD_WAIT = {"a": 45.0, "b": 120.0}  # seconds to wait for the load to fall: Part B's times are the latency result
 # The agent's settings file, the same in every arm: the job's commands and the file moves a stop, undo or redirect
 # needs, so no permission prompt stands between the user and the outcome. Reads of this suite are denied.
@@ -244,7 +245,7 @@ def run_one(run: dict, clips_pcm: dict, args, results: runner.Results, run_id: s
     shutil.rmtree(root, ignore_errors=True)
     repo = root / meta["session"]
     shutil.copytree(HERE / meta["fixture"], repo)
-    subprocess.run(["git", "init", "-q"], cwd=repo)
+    subprocess.run(["git", "init", "-q", "-b", FIXTURE_BRANCH], cwd=repo)
     subprocess.run(["git", "-c", "user.name=bench", "-c", "user.email=bench@example.invalid", "add", "-A"], cwd=repo)
     subprocess.run(["git", "-c", "user.name=bench", "-c", "user.email=bench@example.invalid", "commit", "-qm", "fixture"],
                    cwd=repo)
@@ -255,7 +256,7 @@ def run_one(run: dict, clips_pcm: dict, args, results: runner.Results, run_id: s
            "repo_commit": runner.head_commit(), "pointe_commit": runner.product_commit(), "benchmark": BENCH,
            "item_version": ITEMS["version"], "part": part, "item": item["id"],
            "kind": item.get("kind") or item.get("fact"), "adapter": arm, "voice": env.voice if arm != "keyboard" else None,
-           "noise": "none", "seed": SEED, "run_index": run["k"], "kind_of_run": kind, "load_start": runner.load(), "load_wait_s": waited,
+           "noise": "none", "fixture_branch": FIXTURE_BRANCH, "seed": SEED, "run_index": run["k"], "kind_of_run": kind, "load_start": runner.load(), "load_wait_s": waited,
            "audio_matches_lock": audio_ok, "status": "ok"}
     log: list[dict] = []
     adapter = make_adapter(arm)

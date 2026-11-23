@@ -34,7 +34,8 @@ Anthropic and Soniox (plus ElevenLabs and Gemini for Pointe's default setup).
   (6).
 - **Part B, 30 questions** (one voice each) on `fixture/status`, a status file whose facts survive speech recognition
   (seven failed tests, the build did not pass, port 8080, ...). A typed setup turn, the same in every arm, has the
-  agent read the file before the question.
+  agent read the file before the question. The item repo is on the branch the file names (`cedar`); the run of
+  2026-11-23 had it on `master`, so its three branch questions are not scored (RESULTS.md).
 - The scripted user answers a question back once per slot ("Want me to ask it?" gets "Yes, please."; a backchannel
   item's confirm gets "No, keep going."; anything else gets "Please go on with what I asked."). The question detector
   scores 100% on 40 labelled lines rendered and recognized (`factcheck.json`).

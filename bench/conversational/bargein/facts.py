@@ -11,7 +11,8 @@ FACTS = {
     "tests_failed": (r"\b(7|seven)\b", None, "Seven tests failed."),
     "tests_total": (r"\b(120|one hundred (and )?twenty|a hundred (and )?twenty)\b", None, "There are one hundred and twenty tests in total."),
     "worst_file": (r"\bvouchers?\b", None, "Most failures are in test voucher dot py."),
-    "build_failed": (r"\b(no|nope)\b|\b(did not|didn't|does not|doesn't|has not|hasn't) (pass|go through)\b|"
+    # A "no" counts only as the answer that opens a sentence: "No build has run" or "No figure yet" is not a no.
+    "build_failed": (r"^(no|nope)( |$)(?!(build|test|figure|number|record|run|lint|linter|data)s?\b)|\b(did not|didn't|does not|doesn't|has not|hasn't) (pass|go through)\b|"
                      r"\bnot (green|passing)\b|\bisn't green\b|\b(build|bill|built) (has )?(failed|is failing|is broken|is red)\b|"
                      r"\bfailed build\b",
                      r"\b(yes|it passed|build passed|is green|went through)\b", "No, the build failed."),
@@ -33,8 +34,8 @@ def normalize(text: str) -> str:
 
 
 def states(fact: str, text: str) -> bool:
+    """`must` is searched sentence by sentence (a pattern may anchor on a sentence's start); `must_not` on the whole."""
     must, must_not, _ = FACTS[fact]
-    norm = normalize(text)
-    if not re.search(must, norm):
+    if not any(re.search(must, normalize(s)) for s in re.split(r"(?<=[.!?])\s+", text)):
         return False
-    return not (must_not and re.search(must_not, norm))
+    return not (must_not and re.search(must_not, normalize(text)))

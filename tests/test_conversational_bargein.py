@@ -143,6 +143,9 @@ def test_each_canonical_answer_states_its_fact_and_no_other(fact):
     ("build_failed", "No, the bill failed.", True), ("build_failed", "Yes, it passed.", False),
     ("build_failed", "I'm not sure yet.", False), ("tests_total", "A hundred and twenty.", True),
     ("worst_file", "Most are in test_voucher.py.", True), ("deploy_day", "On Tuesday.", True),
+    ("build_failed", "I don't know. No build has run in this session.", False),
+    ("build_failed", "No figure yet.", False), ("build_failed", "No. STATUS.md says the last build failed.", True),
+    ("build_failed", "Quarry. No, it did not pass.", True),
 ])
 def test_fact_matcher_on_recognizer_style_text(fact, text, ok):
     assert facts.states(fact, text) is ok
@@ -284,3 +287,34 @@ def test_a_restart_after_the_stop_is_not_the_original_job_running_on():
     row = check.part_a("backchannel", seen, set(seen), speech_end=4.5)
     assert row["false_stop"] is True
     assert check.part_a("redirect", seen, set(seen), 4.5)["redirected"] is False
+
+
+def test_the_item_repo_is_on_the_branch_status_md_names():
+    from bargein import bench
+
+    status = (CONV / "bargein" / "fixture" / "status" / "STATUS.md").read_text()
+    assert f"Checked-out branch: {bench.FIXTURE_BRANCH}." in status
+
+
+def test_branch_rows_from_a_repo_on_another_branch_are_not_scored():
+    from bargein import report
+
+    assert report.label_error({"part": "b", "kind": "branch"})
+    assert not report.label_error({"part": "b", "kind": "branch", "fixture_branch": "cedar"})
+    assert not report.label_error({"part": "b", "kind": "port"})
+
+
+def test_log_counts_read_each_log_with_its_own_row_and_skip_superseded_attempts():
+    """A resumed run leaves the errored attempt's log beside the row that replaced it: only the standing row's own
+    log is counted."""
+    from bargein import report
+
+    standing = report.load_runs(["bargein-20261123-040244"])
+    last = {}
+    for r, e in standing:
+        last[(r["part"], r["item"], r["adapter"], r["run_index"])] = (r, e)
+    logs = report.from_logs(list(last.values()))
+    expected = sum(r["adapter"] == "pointe" and r["part"] == "a" and r["kind"] != "backchannel"
+                   and r["status"] in ("ok", "capped") for r, _ in last.values())
+    assert logs["pointe_a_runs"] == expected == 23
+
