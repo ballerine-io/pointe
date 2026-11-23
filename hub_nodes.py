@@ -172,6 +172,32 @@ class NodesRegistry:
         self.hub_id = data.get("hub_id") if isinstance(data.get("hub_id"), str) else secrets.token_hex(8)
         if not broken:  # a broken file is not saved over: the next pairing or revoke writes a new one
             self.save()
+        else:
+            self._read = self._on_disk()
+
+    def _on_disk(self) -> tuple | None:
+        try:
+            st = self.path.stat()
+        except OSError:
+            return None
+        return st.st_ino, st.st_mtime_ns, st.st_size
+
+    def refresh(self) -> None:
+        """nodes.json changed under the daemon (`pointe pair rotate` or `off` emptied it): only the machines it lists now
+        are paired. Before every lookup and change, so a signed-out machine is refused at once and a later save cannot
+        bring it back. Unreadable or gone: none is."""
+        if self._on_disk() == self._read:
+            return
+        self._read = self._on_disk()
+        try:
+            data = json.loads(self.path.read_text())
+        except (OSError, ValueError):
+            data = {}
+        data = data if isinstance(data, dict) else {}
+        self.nodes = {n["id"]: n for n in data.get("nodes", [])
+                      if isinstance(n, dict) and isinstance(n.get("id"), str) and n.get("key")}
+        if isinstance(data.get("hub_id"), str):
+            self.hub_id = data["hub_id"]
 
     def _set_aside(self, error: Exception) -> str | None:
         """Move an unreadable nodes.json to nodes.json.broken-<time> for repair by hand; its hub id if one is legible
@@ -205,14 +231,18 @@ class NodesRegistry:
 
     def save(self) -> None:
         _write_private(self.path, json.dumps({"hub_id": self.hub_id, "nodes": list(self.nodes.values())}) + "\n")
+        self._read = self._on_disk()
 
     def get(self, node_id) -> dict | None:
+        self.refresh()
         return self.nodes.get(node_id) if isinstance(node_id, str) else None
 
     def by_name(self, name: str) -> dict | None:
+        self.refresh()
         return next((n for n in self.nodes.values() if n["name"].lower() == name.lower()), None)
 
     def add(self, name: str, os_name: str) -> dict:
+        self.refresh()
         prefixes = {n["id"][:6] for n in self.nodes.values()}
         node_id = secrets.token_hex(8)
         while node_id[:6] in prefixes:  # hub session ids carry the first six: they must tell nodes apart
@@ -223,6 +253,7 @@ class NodesRegistry:
         return node
 
     def remove(self, node_id: str) -> None:
+        self.refresh()
         if self.nodes.pop(node_id, None):
             self.save()
 
@@ -568,6 +599,7 @@ class Hub:
         """A machine's own sessions do not count: one revoked and paired again (a rotated certificate) still has its
         old sessions listed, named "shop devbox" by the machine suffix, until the next liveness check reaps them."""
         others = [s for s in self.registry.sessions.values() if (s.machine or "").lower() != name.lower()]
+        self.nodes.refresh()
         return name_problem(name, [n["name"] for n in self.nodes.nodes.values()], others, _here(self.state_dir))
 
     # ---------- hub to node ----------
@@ -676,6 +708,13 @@ class Hub:
         task = asyncio.get_running_loop().create_task(coro)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
+
+    async def drop_unpaired(self) -> None:
+        """Machines whose keys left nodes.json under the daemon (`pointe pair rotate` or `off`): their links close now,
+        as a revoke closes one."""
+        self.nodes.refresh()
+        for node in [n for n in self.live.values() if self.nodes.get(n.id) is None]:
+            await self._forget(node, "revoked")
 
     async def revoke(self, name: str) -> bool:
         paired = self.nodes.by_name(name)

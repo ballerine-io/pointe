@@ -26,11 +26,13 @@ class Remote:
     def __init__(self, state_dir: Path):
         self.state_dir = state_dir
         self._app, self._task, self._servers = None, None, []
+        self._restarting: asyncio.Lock | None = None
         self.load()
 
     def load(self) -> None:
         """Read remote.json, remote_token and the certificate: at start, and when Settings → Phone picks a route."""
         state_dir = self.state_dir
+        self._seen = self._on_disk()  # before reading: a change while it reads shows as a change next time
         config = state_dir / "remote.json"
         settings = json.loads(config.read_text()) if config.exists() else {}
         self.host = settings["host"].lower() if settings.get("host") else None
@@ -39,6 +41,21 @@ class Remote:
         token = state_dir / "remote_token"
         self.token = token.read_text().strip() if token.exists() else None
         self.cert, self.key = state_dir / "tls" / "cert.pem", state_dir / "tls" / "key.pem"
+
+    def _on_disk(self) -> list:
+        found = []
+        for path in (self.state_dir / "remote.json", self.state_dir / "remote_token",
+                     self.state_dir / "tls" / "cert.pem", self.state_dir / "tls" / "key.pem"):
+            try:
+                st = path.stat()
+                found.append((st.st_ino, st.st_mtime_ns, st.st_size))
+            except OSError:
+                found.append(None)
+        return found
+
+    def changed(self) -> bool:
+        """The route, the pairing secret or the certificate changed since load(): `pointe pair` ran in a terminal."""
+        return self._on_disk() != self._seen
 
     @property
     def enabled(self) -> bool:
@@ -154,8 +171,16 @@ class Remote:
                 self._task.cancel()
         self._task, self._servers = None, []
 
-    async def restart(self) -> str | None:
-        """Serve what remote.json says now, without a daemon restart. None once every address listens, else why not."""
+    async def restart(self, only_if_changed: bool = False) -> str | None:
+        """Serve what remote.json says now, without a daemon restart. None once every address listens, else why not.
+        One at a time: the page choosing a route and the daemon following `pointe pair` must not both bind the port."""
+        self._restarting = self._restarting or asyncio.Lock()
+        async with self._restarting:
+            if only_if_changed and not self.changed():
+                return None
+            return await self._restart()
+
+    async def _restart(self) -> str | None:
         await self.stop()
         self.load()
         if self._app is None or not self.enabled:

@@ -1234,3 +1234,24 @@ def test_a_prompt_re_offered_on_a_new_link_is_asked_again_but_a_duplicate_on_one
         await again.drop()
 
     run(go())
+
+
+def test_a_machine_signed_out_on_disk_is_refused_and_its_live_link_closes(world):
+    """`pointe pair rotate` or `off` in a terminal empties nodes.json under the running daemon."""
+    hub, host, registry, *_ = world
+    node, other = paired(hub), hub.nodes.add("laptop", "macos")
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        hub.nodes.path.write_text(json.dumps({"hub_id": hub.nodes.hub_id, "nodes": []}))
+        await hub.drop_unpaired()
+        assert (await fake.recv("unpaired"))["t"] == "unpaired"
+        assert await fake.recv() is None
+        assert not registry.sessions[nodelink.hub_session_id(node["id"], "s1")].alive()
+        assert node["id"] not in hub.live and "devbox" not in sessions.MACHINES
+        late = FakeNode(hub, other)
+        assert await late.connect() is None and late.pipe.closed[0] == nodelink.CLOSE_UNAUTHORIZED
+
+    run(go())

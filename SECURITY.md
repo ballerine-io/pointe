@@ -287,7 +287,7 @@ The Mac with the call (the hub) keeps every rule above for them.
 - **The link.** The node dials the hub's TLS listener (the phone's) and proves its 256-bit key with an HMAC over a fresh
   challenge from the hub; the key itself never crosses. One connection per key: a copy of a node cannot connect while
   the node is connected. `pointe hub revoke <name>`, Settings → Machines on the page (two clicks) or in the app (a
-  confirm, then Face ID) ends it.
+  confirm, then Face ID) ends it; `pointe pair rotate` or `off` ends every machine's at once.
 - **What crosses.** To the hub: each session's transcript and permission requests, with credentials masked on the node
   (`readout.mask`), names, folder paths and up to 40 file names; and, only when you look for sessions to add, each
   listed session's name, folder, agent, age, title, keywords and first and last request (160 characters each), never
@@ -349,7 +349,8 @@ pairing cookie. The listener is decided by the port that accepted the connection
 A request from a web page, HTTP or WebSocket, must carry exactly this listener's origin, `https://<name>:7443`: scheme,
 name and port. Cookies ignore ports, so a page on another port of the same name (a dev server, `tailscale serve`) would
 otherwise get the pairing cookie and open a call.
-Limits: the pairing link is a lasting secret with no rotate command, despite the word "link", so treat it as a password. `bin/voice-remote off` leaves the connector and its tokens in place. And `bin/voice-connector` pulls
+Limits: the pairing link is a lasting secret, despite the word "link", so treat it as a password; `pointe pair rotate`
+replaces it. `pointe pair off` (and `bin/voice-remote off`) leaves the connector and its tokens in place. And `bin/voice-connector` pulls
 `twingate/connector:1`, a moving tag. Call audio over this path is one TCP connection.
 
 ### The iPhone app
@@ -404,4 +405,9 @@ Limits: the pairing link is a lasting secret with no rotate command, despite the
 - **Revoke:** Unpair in Settings → Phone. The phone paired from the terminal can also be revoked by deleting
   `~/.claude-voice/phone_key`; it takes effect at the next request. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
+- **Revoke everything at once** (a lost phone, a QR code, link or invite someone else saw): `pointe pair rotate` makes a
+  new certificate and a new browser pairing secret, and signs out every phone (`phones.json`, `phone_key`), every
+  browser and every machine (`nodes.json` keeps only the hub's id). `pointe pair off` signs out the same and stops
+  listening. A running daemon refuses the old keys at their next request, because it reads these files at each check;
+  within about five seconds it restarts the listener on what is on disk and closes the calls and links that were up.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.

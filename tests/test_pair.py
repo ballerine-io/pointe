@@ -10,6 +10,8 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from test_orchestrator import d  # noqa: E402,F401
 
 
 @pytest.fixture
@@ -168,3 +170,105 @@ def test_the_pairing_result_carries_the_fingerprint_and_source_address(tmp_path)
     assert hub.invites.paired["key_fp"] == nodelink.fingerprint(body["node_key"])
     assert hub.invites.paired["address"] == "100.101.5.7" and hub.invites.paired["network"] == "Tailscale"
     assert hub_nodes.paired_line(hub.invites.paired).startswith("devbox paired from 100.101.5.7 (Tailscale), key ")
+
+
+# ---------- rotate and off revoke every credential the listener honours, in a running daemon too ----------
+
+def _everyone_paired(pair, tmp_path):
+    """A browser pairing secret, the shared phone key, a phone paired from the page and a machine: each held in memory
+    by a daemon that was already running."""
+    import hub_nodes
+    import phone_pairing
+
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    (tmp_path / "phone_key").write_text("shared-phone-key")
+    phones = phone_pairing.Phones(tmp_path)
+    phone = phones.mint("Test iPhone", "device-1", "100.64.0.9")
+    nodes = hub_nodes.NodesRegistry(tmp_path / "nodes.json")
+    node = nodes.add("devbox", "linux")
+    import remote
+    listener = remote.Remote(tmp_path)
+    assert phones.allowed(f"Bearer {phone}") and phones.allowed("Bearer shared-phone-key") == phone_pairing.LEGACY
+    assert nodes.get(node["id"]) and listener.token == (tmp_path / "remote_token").read_text()
+    return phones, phone, nodes, node, listener
+
+
+def _nothing_honoured(tmp_path, phones, phone, nodes, node, old_token):
+    import hub_nodes
+    import phone_pairing
+
+    assert phones.allowed(f"Bearer {phone}") is None and phones.allowed("Bearer shared-phone-key") is None
+    assert phones.status() == {"paired": []}
+    assert nodes.get(node["id"]) is None and nodes.by_name("devbox") is None
+    assert phone_pairing.Phones(tmp_path).paired == [] and not (tmp_path / "phone_key").exists()
+    assert hub_nodes.NodesRegistry(tmp_path / "nodes.json").nodes == {}
+    token = tmp_path / "remote_token"
+    assert not token.exists() or token.read_text().strip() != old_token
+
+
+@pytest.mark.parametrize("command", ["rotate", "off"])
+def test_rotate_and_off_revoke_every_phone_browser_and_machine_in_the_running_daemon_too(pair, tmp_path, capsys, command):
+    phones, phone, nodes, node, listener = _everyone_paired(pair, tmp_path)
+    hub_id, old_token = nodes.hub_id, listener.token
+    capsys.readouterr()
+    pair.main([command])
+    _nothing_honoured(tmp_path, phones, phone, nodes, node, old_token)
+    assert nodes.hub_id == hub_id  # the hub stays the same hub: a machine pairs again with a new code, nothing else
+    assert listener.changed()  # the daemon's watch restarts the listener on what is on disk now
+    out = capsys.readouterr().out
+    assert "phone" in out and "machine" in out
+
+
+def test_after_rotate_a_new_pairing_does_not_bring_the_old_ones_back(pair, tmp_path):
+    phones, phone, nodes, node, _ = _everyone_paired(pair, tmp_path)
+    pair.main(["rotate"])
+    fresh = phones.mint("Other iPhone", "device-2", "100.64.0.9")
+    again = nodes.add("laptop", "macos")
+    assert phones.allowed(f"Bearer {phone}") is None and phones.allowed(f"Bearer {fresh}")
+    assert nodes.get(node["id"]) is None and nodes.get(again["id"])
+    import hub_nodes
+    import phone_pairing
+    assert [p["name"] for p in phone_pairing.Phones(tmp_path).paired] == ["Other iPhone"]
+    assert list(hub_nodes.NodesRegistry(tmp_path / "nodes.json").nodes) == [again["id"]]
+
+
+def test_rotate_gives_the_browser_a_new_pairing_link(pair, tmp_path, capsys):
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    old = (tmp_path / "remote_token").read_text()
+    pair.main(["rotate"])
+    capsys.readouterr()
+    pair.main(["link"])
+    assert old not in capsys.readouterr().out
+
+
+def test_the_running_daemon_restarts_the_listener_and_ends_a_signed_out_phones_call(d, monkeypatch):
+    """Its liveness loop, every few seconds: a listener restarted on what is on disk (a new certificate, or none), and a
+    call held by a phone that is no longer paired ends, as Unpair on the page ends it."""
+    import asyncio
+
+    daemon = d
+    restarted, closed = [], []
+
+    class Listener:
+        def changed(self):
+            return True
+
+        async def restart(self, only_if_changed=False):
+            restarted.append(only_if_changed)
+
+    class Socket:
+        async def close(self, code, reason):
+            closed.append(code)
+
+    async def drop_unpaired():
+        return None
+
+    monkeypatch.setattr(daemon, "REMOTE", Listener())
+    monkeypatch.setattr(daemon.HUB, "drop_unpaired", drop_unpaired)
+    monkeypatch.setattr(daemon.PHONES, "holds", lambda phone_id: phone_id != "gone")
+    daemon.state.phone_socket, daemon.state.phone_socket_id = Socket(), "kept"
+    asyncio.run(daemon._follow_pairing())
+    assert restarted == [True] and closed == []
+    daemon.state.phone_socket_id = "gone"
+    asyncio.run(daemon._follow_pairing())
+    assert closed == [4401]

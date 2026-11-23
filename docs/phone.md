@@ -105,7 +105,9 @@ reach this Mac (Tailscale, a name you set up such as a Twingate alias, the same 
 code. Point the iPhone's Camera at it and tap "Open in Pointe" (or scan it in the app). The page turns to "Connected:
 <phone>" when the app has paired. The code works once, for 5 minutes; the app gets its key from the Mac over the
 certificate it checks. Each phone gets its own key: connecting another phone keeps the ones already paired, **Unpair**
-on a phone signs out that phone only, and **Unpair all** signs out every one. A phone paired with `pointe pair` before
+on a phone signs out that phone only, and **Unpair all** signs out every one. Lost a phone, or someone saw a pairing
+QR code or link? `pointe pair rotate` makes a new certificate and signs out every phone, browser and paired machine at
+once; `pointe pair off` does the same and stops listening. A phone paired with `pointe pair` before
 this keeps working; it shows as "Paired phone" until the app reports its name. If no way works, the page says what to
 install.
 

@@ -8258,8 +8258,21 @@ async def _liveness() -> None:
         await _reap_dead()
         _follow_titles()
         await _watch_machines()
+        await _follow_pairing()
         _notify_call()  # also catches a change of the approvals setting in config.json
         await KEEP_AWAKE.update(state.call_from_elsewhere)  # unplugged mid-call: released within one round
+
+
+async def _follow_pairing() -> None:
+    """`pointe pair` ran in a terminal: the phone listener serves what is on disk now (a new certificate after rotate,
+    nothing after off), and the call or link of a phone or machine signed out there ends. Each key check already reads
+    the files; this closes what was already connected."""
+    if REMOTE.changed():
+        problem = await REMOTE.restart(only_if_changed=True)
+        logger.info(f"phone listener follows the pairing on disk{f': {problem}' if problem else ''}")
+    if state.phone_socket is not None and state.phone_socket_id and not PHONES.holds(state.phone_socket_id):
+        await _end_phone_call(None)
+    await HUB.drop_unpaired()
 
 
 def _follow_titles() -> None:
