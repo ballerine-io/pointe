@@ -86,3 +86,32 @@ def test_a_pairing_sized_body_still_reaches_the_code_check(world, path):
     good = ('{"code": "%s", "name": "devbox", "os": "linux", "arch": "x86_64", "version": "1.0.1", '
             '"device": "Mira\'s iPhone", "id": "dev-1"}' % code).encode()
     assert post(world.app, path, [good], length=len(good))[0] == 200
+
+
+@pytest.mark.parametrize("path", ROUTES)
+def test_a_caller_with_no_secret_cannot_tell_why_its_code_was_refused(world, path):
+    """No invite, an expired one, a wrong code and the wrong code that ends the invite answer the same words, so a
+    scanner cannot tell when a code is live. The owner still sees why the invite ended (the page, the app, the CLI)."""
+    from fastapi.testclient import TestClient
+
+    import hub_nodes
+
+    client = TestClient(world.app, base_url="https://studio.example.internal:7443")
+    invites = world.invites[path]
+
+    def answer(code: str) -> tuple[int, str]:
+        r = client.post(path, json={"code": code, "name": "devbox", "os": "linux", "device": "Mira's iPhone", "id": "d"})
+        return r.status_code, r.text
+
+    said = [answer("AAAA-AAAA")]  # no invite out
+    code = invites.make()
+    invites._until = 0  # expired
+    said.append(answer(code))
+    code = invites.make()
+    wrong = "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB"
+    said.append(answer(wrong))
+    invites.wrong = hub_nodes.PAIR_WRONG_PER_INVITE - 1
+    said.append(answer(wrong))  # the one that ends it
+    assert invites.ended and invites.ended.startswith("the invite was cancelled")
+    assert len(set(said)) == 1, said
+    assert said[0] == (403, hub_nodes.NO_SUCH_INVITE)

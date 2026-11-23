@@ -187,15 +187,13 @@ class PhoneLink:
     def redeem(self, body, address: str) -> tuple[int, dict | str]:
         """POST /voice/phone/pair: (status, the phone key and this Mac's name, or why not)."""
         invites = self.invites
-        if invites.code is None:
-            return 403, "no invite outstanding"
         if not invites.outstanding:
-            return 403, "invite expired"
+            return 403, hub_nodes.NO_SUCH_INVITE
         body = body if isinstance(body, dict) else {}
         refused = invites.check(body.get("code", ""), address)  # the rate limit, then the code (hub_nodes.Invites)
         if refused:
             logger.warning(f"phone pairing from {address}: {refused[1]}")
-            return refused
+            return refused if refused[0] == 429 else (403, hub_nodes.NO_SUCH_INVITE)
         invites.cancel()
         name = _clean(body.get("device"), MAX_DEVICE_CHARS) or "iPhone"
         key = self.phones.mint(name, _clean(body.get("id"), 80), address)

@@ -430,11 +430,13 @@ def _pair(client, code, name="devbox"):
 
 
 def test_pairing_needs_an_outstanding_invite_and_the_right_code_once(hub_app):
+    import hub_nodes
+
     hub = hub_app.state.hub
     assert _pair(tls(hub_app), "AAAA-AAAA").status_code == 403  # no invite: closed
     code = hub.invites.make()
     wrong = _pair(tls(hub_app), "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB")
-    assert wrong.status_code == 403 and wrong.text == "wrong code"
+    assert wrong.status_code == 403 and wrong.text == hub_nodes.NO_SUCH_INVITE
     good = _pair(tls(hub_app), code)
     assert good.status_code == 200 and len(good.json()["node_key"]) == 64
     assert _pair(tls(hub_app), code, "other").status_code == 403  # single use

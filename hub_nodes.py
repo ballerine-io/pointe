@@ -39,6 +39,9 @@ CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # Crockford's 32: no I, L, O
 CODE_LETTERS = 8  # 40 bits
 PAIR_BURST = 5  # codes one address may try at once; its bucket refills so it alone never reaches PAIR_WRONG_PER_INVITE
 PAIR_WRONG_PER_INVITE = 20  # then the invite ends: the bound on guesses from all addresses together
+# Every refused code gets these words (429 aside): "no invite", "expired" and "wrong" would tell a scanner when a code
+# is live, and the invite-ending answer named the guessers' addresses. The owner sees why (`ended`), the log too.
+NO_SUCH_INVITE = "no such invite: the code is wrong, expired or already used. Ask for a new one"
 PAIR_BODY_BYTES = 4096  # a pairing posts a few hundred bytes; read no more from a caller with no secret
 PRUNE_AFTER_SECS = 7 * 86400
 PRUNE_EVERY_SECS = 3600.0
@@ -767,15 +770,13 @@ class Hub:
     def pair(self, body, address: str) -> tuple[int, dict | str]:
         """POST /voice/node/pair: (status, the node's key and the hub's identity, or why not)."""
         invites = self.invites
-        if invites.code is None:
-            return 403, "no invite outstanding"
         if not invites.outstanding:
-            return 403, "invite expired"
+            return 403, NO_SUCH_INVITE
         body = body if isinstance(body, dict) else {}
         refused = invites.check(body.get("code", ""), address)
         if refused:
             logger.warning(f"node pairing from {address}: {refused[1]}")
-            return refused
+            return refused if refused[0] == 429 else (403, NO_SUCH_INVITE)
         name = " ".join(str(invites.name or body.get("name") or "").split())
         problem = self.name_problem(name)
         if problem:
