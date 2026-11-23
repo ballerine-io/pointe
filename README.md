@@ -228,6 +228,8 @@ iPhone app is built from source for now and reaches the Mac only over a network 
 Words you speak can make a session do work, so the rules are in code with tests, not in a prompt. The whole threat
 model, including what Pointe does not defend against, is in [SECURITY.md](SECURITY.md).
 
+Security reviews, run every minor release and monthly, are published with each finding's status in [docs/security/reviews/](docs/security/reviews/README.md).
+
 **What can approve a permission prompt**
 
 - **Your spoken yes**, only when all of these hold: the daemon read the request out itself, from what will run (not

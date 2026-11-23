@@ -352,6 +352,15 @@ The Mac with the call (the hub) keeps every rule above for them.
   hub. On a node, `node_keys/<hub id>` (0600). Mirrors of remote transcripts sit under `harness/remote/` (0700, files
   0600), and are deleted 7 days after their session left.
 
+## Security reviews
+
+Pointe's security is reviewed with Claude Mythos before every minor release and at least once a month, and after any
+change to a boundary on this page. Each review is five focused, read-only passes over one commit (the network and
+pairing, approvals and voice, secrets and supply chain, the page, the apps). A maintainer checks every finding against
+the code: a fix lands with a test that failed before it, and the fixes are reviewed again before the release. Results,
+with each finding's status, are published in [docs/security/reviews/](docs/security/reviews/README.md);
+`tools/security_review.sh` runs the same review.
+
 ## Known limits
 
 - **Code running as you is trusted.** It can read the token and forge anything: register a session, read the journal, inject a
