@@ -55,3 +55,25 @@ Rows whose transcript names a path outside the item repo are `invalid_out_of_tre
   answers once with "I mean <the spoken reference>", in the same voice and noise; it counts as a clarification.
 - **No speech out for `naive` and `llm-router`.** No item needs it; their question detection reads the agent's text.
 - **Pointe's spend is computed from its log**, with stated assumptions for the tokens it does not log.
+
+## Run record (2026-11-23)
+
+Published summary: `results/identifiers-20261123-031106/summary.json` and `summary.md`, made by
+`run.py report identifiers-20261123-031106 llm-router=identifiers-20261123-040357 --why "..."`.
+
+- `FROZEN.json` was committed before the first non-smoke paid row; every row is on Pointe 6544cdc and Claude Code
+  2.1.330.
+- **llm-router was rerun.** In the first run its call had `max_tokens` 400; `claude-sonnet-5-5` thinks first by
+  default, spent the budget, and cut its JSON off, which the adapter read as no action (2 of its first 14 rows,
+  reproduced by hand: about one call in two). That handicapped the baseline. The fix (8000, as Pointe's own text calls)
+  came after the freeze, with the prompt unchanged; the arm was rerun in full as `identifiers-20261123-040357`. The
+  first run's 60 router rows stay committed and are counted as superseded in the summary.
+- **The audit was re-run** with one false positive fixed (`"$(git rev-parse --show-toplevel)/almanac/..."` was read as
+  an absolute path). `run.py reaudit` reads the transcripts kept in `/tmp/pccb/<run-id>/` and writes `audit.jsonl`;
+  the report uses it; the rows are not edited. 3 router rows remain `invalid_out_of_tree` (the agent searched `/`, or
+  the item folder, for a misheard name such as `pastMoonPhase`) and are excluded, so the router's n is 45, not 48.
+- **Ledger rows of the first run were rebuilt** from its `spend.jsonl` (marked `rebuilt from spend.jsonl`): a
+  `git checkout` of the results folder during the run reverted `ledger.jsonl` to its committed state. `spend.jsonl`
+  was not affected and holds the same per-run figures.
+- The machine was shared with other benchmark runs: the 1-minute load average ranged from about 5 to about 200. No
+  metric here is a latency.

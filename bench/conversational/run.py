@@ -97,9 +97,28 @@ def freeze(pointe_commit: str) -> None:
     print(json.dumps(record, indent=1))
 
 
+def reaudit(run_id: str) -> None:
+    from core import audit, scrub
+
+    out, d = [], HERE / "results" / run_id
+    frozen = json.loads(FROZEN.read_text())
+    root = runner.TMP / f"pointe-{frozen['pointe_commit'][:12]}"
+    for line in (d / "rows.jsonl").read_text().splitlines():
+        r = json.loads(line)
+        item = runner.TMP / run_id / r["key"]
+        transcripts = sorted(item.glob("config-*/projects/**/*.jsonl"))
+        if r["arm"] == "null" or not item.exists():
+            continue
+        allowed = [item / bench.SESSION] + ([root, item / "pointe-state"] if r["arm"].startswith("pointe") else [])
+        found = [scrub.text(p)[:120] for p in audit.outside(transcripts, allowed)][:10]
+        out.append({"key": r["key"], "out_of_tree": found, "transcripts": len(transcripts)})
+    (d / "audit.jsonl").write_text("".join(json.dumps(x, sort_keys=True) + "\n" for x in out))
+    print(f"{run_id}: {len(out)} rows re-audited, {sum(bool(x['out_of_tree']) for x in out)} out of tree")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("what", choices=["identifiers", "corpus", "verify", "report", "freeze"])
+    ap.add_argument("what", choices=["identifiers", "corpus", "verify", "report", "freeze", "reaudit"])
     ap.add_argument("rest", nargs="*")
     ap.add_argument("--adapter", default=",".join(bench.ARMS))
     ap.add_argument("--budget-usd", type=float, default=12.0)
@@ -122,6 +141,9 @@ def main() -> int:
         from identifiers import report
         arm_from = dict(x.split("=", 1) for x in a.rest[1:] if "=" in x)  # report <run-id> [arm=<run-id> ...]
         report.write(a.rest[0], arm_from, a.why or "")
+        return 0
+    if a.what == "reaudit":  # the audit again, on the transcripts still in /tmp/pccb/<run-id>/: results/<run-id>/audit.jsonl
+        reaudit(a.rest[0])
         return 0
     if a.what == "freeze":
         runner.git("fetch", "-q", "origin")

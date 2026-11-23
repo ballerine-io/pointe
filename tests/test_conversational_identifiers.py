@@ -188,6 +188,7 @@ def test_audit_flags_a_planted_out_of_tree_read(tmp_path):
     t = tmp_path / "t.jsonl"
     uses = [{"type": "tool_use", "name": "Read", "input": {"file_path": f"{repo}/almanac/lunar.py"}},
             {"type": "tool_use", "name": "Bash", "input": {"command": "grep -rn flush . | grep -v \"/.git/\""}},
+            {"type": "tool_use", "name": "Bash", "input": {"command": "cat \"$(git rev-parse --show-toplevel)/almanac/x.py\""}},
             {"type": "tool_use", "name": "Bash", "input": {"command": "cat /opt/answers/items.toml"}},
             {"type": "tool_use", "name": "Bash", "input": {"command": "ls ~/.claude-voice"}}]
     t.write_text("\n".join(json.dumps({"type": "assistant", "message": {"content": [u]}}) for u in uses))

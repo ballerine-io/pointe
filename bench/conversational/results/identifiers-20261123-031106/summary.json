@@ -1,0 +1,1659 @@
+{
+ "title": "Spoken Identifiers, synthetic speech (Kokoro-82M, 4 voices)",
+ "run_id": "identifiers-20261123-031106",
+ "frozen": {
+  "frozen_at": "2026-11-23T03:10:58+0200",
+  "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+  "llm_router_prompt_commit": "a49a5819e1000b5b3cdc5068a8dd6b05f0d0492b",
+  "llm_router_prompt_sha256": "17fabdf991d29aebf621e321c15911b2e2bf8248ae1ccd7af414a1db3ee7835f",
+  "unpublished_seed_manifest_sha256": null,
+  "item_order_seed": 20261123,
+  "claude_code": "2.1.330",
+  "agent_model": "claude-haiku-5-5",
+  "identifiers_items_sha256": "0db93074d31cd355b888a9e48b30852db4392ede965668631a3dddd6262083be",
+  "identifiers_audio_lock_sha256": "f3d4d47c6464bf6993b17e540d59b67b69417c42a1864b3af1fa3e1ea9dbfc97"
+ },
+ "unit": "target (n = 24)",
+ "excluded": {
+  "keyboard-canonical": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  },
+  "keyboard-transcript": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  },
+  "pointe": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  },
+  "pointe-text": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  },
+  "llm-router": {
+   "invalid_out_of_tree": 3,
+   "error": 0
+  },
+  "naive": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  },
+  "null": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  }
+ },
+ "arms": {
+  "keyboard-canonical": {
+   "n_runs": 24,
+   "n_targets": 24,
+   "right_symbol": {
+    "k": 24,
+    "n": 24,
+    "rate": 1.0,
+    "wilson95": [
+     0.862,
+     1.0
+    ]
+   },
+   "wrong_symbol": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.138
+    ]
+   },
+   "no_action": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.138
+    ]
+   },
+   "other_change": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.138
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": [
+    1.0,
+    1.0
+   ],
+   "marker_exact_of_right": {
+    "k": 24,
+    "n": 24,
+    "rate": 1.0,
+    "wilson95": [
+     0.862,
+     1.0
+    ]
+   },
+   "clarifications": 0,
+   "median_s_to_done": 6.07,
+   "spend_usd": 0.0496
+  },
+  "keyboard-transcript": {
+   "n_runs": 24,
+   "n_targets": 24,
+   "right_symbol": {
+    "k": 22,
+    "n": 24,
+    "rate": 0.9167,
+    "wilson95": [
+     0.7415,
+     0.9768
+    ]
+   },
+   "wrong_symbol": {
+    "k": 1,
+    "n": 24,
+    "rate": 0.0417,
+    "wilson95": [
+     0.0074,
+     0.2024
+    ]
+   },
+   "no_action": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.138
+    ]
+   },
+   "other_change": {
+    "k": 1,
+    "n": 24,
+    "rate": 0.0417,
+    "wilson95": [
+     0.0074,
+     0.2024
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": [
+    0.7917,
+    1.0
+   ],
+   "marker_exact_of_right": {
+    "k": 19,
+    "n": 22,
+    "rate": 0.8636,
+    "wilson95": [
+     0.6667,
+     0.9525
+    ]
+   },
+   "clarifications": 0,
+   "median_s_to_done": 7.57,
+   "spend_usd": 0.0563
+  },
+  "pointe": {
+   "n_runs": 48,
+   "n_targets": 24,
+   "right_symbol": {
+    "k": 40,
+    "n": 48,
+    "rate": 0.8333,
+    "wilson95": [
+     0.7042,
+     0.913
+    ]
+   },
+   "wrong_symbol": {
+    "k": 2,
+    "n": 48,
+    "rate": 0.0417,
+    "wilson95": [
+     0.0115,
+     0.1398
+    ]
+   },
+   "no_action": {
+    "k": 5,
+    "n": 48,
+    "rate": 0.1042,
+    "wilson95": [
+     0.0453,
+     0.2217
+    ]
+   },
+   "other_change": {
+    "k": 1,
+    "n": 48,
+    "rate": 0.0208,
+    "wilson95": [
+     0.0037,
+     0.109
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": [
+    0.7083,
+    0.9375
+   ],
+   "marker_exact_of_right": {
+    "k": 40,
+    "n": 40,
+    "rate": 1.0,
+    "wilson95": [
+     0.9124,
+     1.0
+    ]
+   },
+   "clarifications": 0,
+   "median_s_to_done": 9.81,
+   "spend_usd": 1.9073,
+   "delivered_exact": {
+    "k": 23,
+    "n": 48,
+    "rate": 0.4792,
+    "wilson95": [
+     0.3447,
+     0.6167
+    ]
+   }
+  },
+  "pointe-text": {
+   "n_runs": 24,
+   "n_targets": 24,
+   "right_symbol": {
+    "k": 23,
+    "n": 24,
+    "rate": 0.9583,
+    "wilson95": [
+     0.7976,
+     0.9926
+    ]
+   },
+   "wrong_symbol": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.138
+    ]
+   },
+   "no_action": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.138
+    ]
+   },
+   "other_change": {
+    "k": 1,
+    "n": 24,
+    "rate": 0.0417,
+    "wilson95": [
+     0.0074,
+     0.2024
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": [
+    0.875,
+    1.0
+   ],
+   "marker_exact_of_right": {
+    "k": 23,
+    "n": 23,
+    "rate": 1.0,
+    "wilson95": [
+     0.8569,
+     1.0
+    ]
+   },
+   "clarifications": 1,
+   "median_s_to_done": 7.62,
+   "spend_usd": 0.8877,
+   "delivered_exact": {
+    "k": 15,
+    "n": 24,
+    "rate": 0.625,
+    "wilson95": [
+     0.4271,
+     0.7884
+    ]
+   }
+  },
+  "llm-router": {
+   "n_runs": 45,
+   "n_targets": 24,
+   "right_symbol": {
+    "k": 39,
+    "n": 45,
+    "rate": 0.8667,
+    "wilson95": [
+     0.7382,
+     0.9374
+    ]
+   },
+   "wrong_symbol": {
+    "k": 2,
+    "n": 45,
+    "rate": 0.0444,
+    "wilson95": [
+     0.0123,
+     0.1483
+    ]
+   },
+   "no_action": {
+    "k": 2,
+    "n": 45,
+    "rate": 0.0444,
+    "wilson95": [
+     0.0123,
+     0.1483
+    ]
+   },
+   "other_change": {
+    "k": 2,
+    "n": 45,
+    "rate": 0.0444,
+    "wilson95": [
+     0.0123,
+     0.1483
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": [
+    0.7391,
+    0.9767
+   ],
+   "marker_exact_of_right": {
+    "k": 34,
+    "n": 39,
+    "rate": 0.8718,
+    "wilson95": [
+     0.7329,
+     0.944
+    ]
+   },
+   "clarifications": 2,
+   "median_s_to_done": 14.71,
+   "spend_usd": 0.2426,
+   "delivered_exact": {
+    "k": 23,
+    "n": 45,
+    "rate": 0.5111,
+    "wilson95": [
+     0.37,
+     0.6504
+    ]
+   }
+  },
+  "naive": {
+   "n_runs": 48,
+   "n_targets": 24,
+   "right_symbol": {
+    "k": 43,
+    "n": 48,
+    "rate": 0.8958,
+    "wilson95": [
+     0.7783,
+     0.9547
+    ]
+   },
+   "wrong_symbol": {
+    "k": 2,
+    "n": 48,
+    "rate": 0.0417,
+    "wilson95": [
+     0.0115,
+     0.1398
+    ]
+   },
+   "no_action": {
+    "k": 0,
+    "n": 48,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.0741
+    ]
+   },
+   "other_change": {
+    "k": 3,
+    "n": 48,
+    "rate": 0.0625,
+    "wilson95": [
+     0.0215,
+     0.1684
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": [
+    0.7917,
+    0.9792
+   ],
+   "marker_exact_of_right": {
+    "k": 37,
+    "n": 43,
+    "rate": 0.8605,
+    "wilson95": [
+     0.7274,
+     0.9344
+    ]
+   },
+   "clarifications": 0,
+   "median_s_to_done": 10.8,
+   "spend_usd": 0.1265,
+   "delivered_exact": {
+    "k": 2,
+    "n": 48,
+    "rate": 0.0417,
+    "wilson95": [
+     0.0115,
+     0.1398
+    ]
+   }
+  },
+  "null": {
+   "n_runs": 48,
+   "n_targets": 24,
+   "right_symbol": {
+    "k": 0,
+    "n": 48,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.0741
+    ]
+   },
+   "wrong_symbol": {
+    "k": 0,
+    "n": 48,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.0741
+    ]
+   },
+   "no_action": {
+    "k": 48,
+    "n": 48,
+    "rate": 1.0,
+    "wilson95": [
+     0.9259,
+     1.0
+    ]
+   },
+   "other_change": {
+    "k": 0,
+    "n": 48,
+    "rate": 0.0,
+    "wilson95": [
+     0.0,
+     0.0741
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": [
+    0.0,
+    0.0
+   ],
+   "marker_exact_of_right": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "clarifications": 0,
+   "median_s_to_done": null,
+   "spend_usd": 0.0
+  }
+ },
+ "slices": {
+  "keyboard-canonical": {
+   "class=camel_snake": {
+    "right_symbol": {
+     "k": 6,
+     "n": 6,
+     "rate": 1.0,
+     "wilson95": [
+      0.6097,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 6,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3903
+     ]
+    }
+   },
+   "class=digits": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=dunder_caps": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=flag": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=homophone": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=nested_path": {
+    "right_symbol": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.3424,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576
+     ]
+    }
+   },
+   "noise=typed": {
+    "right_symbol": {
+     "k": 24,
+     "n": 24,
+     "rate": 1.0,
+     "wilson95": [
+      0.862,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 24,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.138
+     ]
+    }
+   }
+  },
+  "keyboard-transcript": {
+   "class=camel_snake": {
+    "right_symbol": {
+     "k": 5,
+     "n": 6,
+     "rate": 0.8333,
+     "wilson95": [
+      0.4365,
+      0.9699
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 6,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3903
+     ]
+    }
+   },
+   "class=digits": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=dunder_caps": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=flag": {
+    "right_symbol": {
+     "k": 3,
+     "n": 4,
+     "rate": 0.75,
+     "wilson95": [
+      0.3006,
+      0.9544
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 4,
+     "rate": 0.25,
+     "wilson95": [
+      0.0456,
+      0.6994
+     ]
+    }
+   },
+   "class=homophone": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=nested_path": {
+    "right_symbol": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.3424,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576
+     ]
+    }
+   },
+   "noise=typed": {
+    "right_symbol": {
+     "k": 22,
+     "n": 24,
+     "rate": 0.9167,
+     "wilson95": [
+      0.7415,
+      0.9768
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 24,
+     "rate": 0.0417,
+     "wilson95": [
+      0.0074,
+      0.2024
+     ]
+    }
+   }
+  },
+  "pointe": {
+   "class=camel_snake": {
+    "right_symbol": {
+     "k": 8,
+     "n": 12,
+     "rate": 0.6667,
+     "wilson95": [
+      0.3906,
+      0.8619
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 12,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2425
+     ]
+    }
+   },
+   "class=digits": {
+    "right_symbol": {
+     "k": 6,
+     "n": 8,
+     "rate": 0.75,
+     "wilson95": [
+      0.4093,
+      0.9285
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=dunder_caps": {
+    "right_symbol": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6756,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=flag": {
+    "right_symbol": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6756,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=homophone": {
+    "right_symbol": {
+     "k": 6,
+     "n": 8,
+     "rate": 0.75,
+     "wilson95": [
+      0.4093,
+      0.9285
+     ]
+    },
+    "wrong_symbol": {
+     "k": 2,
+     "n": 8,
+     "rate": 0.25,
+     "wilson95": [
+      0.0715,
+      0.5907
+     ]
+    }
+   },
+   "class=nested_path": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "noise=babble 12 dB": {
+    "right_symbol": {
+     "k": 18,
+     "n": 24,
+     "rate": 0.75,
+     "wilson95": [
+      0.551,
+      0.88
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 24,
+     "rate": 0.0417,
+     "wilson95": [
+      0.0074,
+      0.2024
+     ]
+    }
+   },
+   "noise=clean": {
+    "right_symbol": {
+     "k": 22,
+     "n": 24,
+     "rate": 0.9167,
+     "wilson95": [
+      0.7415,
+      0.9768
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 24,
+     "rate": 0.0417,
+     "wilson95": [
+      0.0074,
+      0.2024
+     ]
+    }
+   }
+  },
+  "pointe-text": {
+   "class=camel_snake": {
+    "right_symbol": {
+     "k": 5,
+     "n": 6,
+     "rate": 0.8333,
+     "wilson95": [
+      0.4365,
+      0.9699
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 6,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3903
+     ]
+    }
+   },
+   "class=digits": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=dunder_caps": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=flag": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=homophone": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "class=nested_path": {
+    "right_symbol": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.3424,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576
+     ]
+    }
+   },
+   "noise=typed": {
+    "right_symbol": {
+     "k": 23,
+     "n": 24,
+     "rate": 0.9583,
+     "wilson95": [
+      0.7976,
+      0.9926
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 24,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.138
+     ]
+    }
+   }
+  },
+  "llm-router": {
+   "class=camel_snake": {
+    "right_symbol": {
+     "k": 8,
+     "n": 10,
+     "rate": 0.8,
+     "wilson95": [
+      0.4902,
+      0.9433
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2775
+     ]
+    }
+   },
+   "class=digits": {
+    "right_symbol": {
+     "k": 7,
+     "n": 7,
+     "rate": 1.0,
+     "wilson95": [
+      0.6457,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3543
+     ]
+    }
+   },
+   "class=dunder_caps": {
+    "right_symbol": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6756,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=flag": {
+    "right_symbol": {
+     "k": 7,
+     "n": 8,
+     "rate": 0.875,
+     "wilson95": [
+      0.5291,
+      0.9776
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=homophone": {
+    "right_symbol": {
+     "k": 5,
+     "n": 8,
+     "rate": 0.625,
+     "wilson95": [
+      0.3057,
+      0.8632
+     ]
+    },
+    "wrong_symbol": {
+     "k": 2,
+     "n": 8,
+     "rate": 0.25,
+     "wilson95": [
+      0.0715,
+      0.5907
+     ]
+    }
+   },
+   "class=nested_path": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "noise=babble 12 dB": {
+    "right_symbol": {
+     "k": 18,
+     "n": 21,
+     "rate": 0.8571,
+     "wilson95": [
+      0.6536,
+      0.9502
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 21,
+     "rate": 0.0476,
+     "wilson95": [
+      0.0085,
+      0.2267
+     ]
+    }
+   },
+   "noise=clean": {
+    "right_symbol": {
+     "k": 21,
+     "n": 24,
+     "rate": 0.875,
+     "wilson95": [
+      0.69,
+      0.9566
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 24,
+     "rate": 0.0417,
+     "wilson95": [
+      0.0074,
+      0.2024
+     ]
+    }
+   }
+  },
+  "naive": {
+   "class=camel_snake": {
+    "right_symbol": {
+     "k": 11,
+     "n": 12,
+     "rate": 0.9167,
+     "wilson95": [
+      0.6461,
+      0.9851
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 12,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2425
+     ]
+    }
+   },
+   "class=digits": {
+    "right_symbol": {
+     "k": 7,
+     "n": 8,
+     "rate": 0.875,
+     "wilson95": [
+      0.5291,
+      0.9776
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=dunder_caps": {
+    "right_symbol": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6756,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=flag": {
+    "right_symbol": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6756,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=homophone": {
+    "right_symbol": {
+     "k": 5,
+     "n": 8,
+     "rate": 0.625,
+     "wilson95": [
+      0.3057,
+      0.8632
+     ]
+    },
+    "wrong_symbol": {
+     "k": 2,
+     "n": 8,
+     "rate": 0.25,
+     "wilson95": [
+      0.0715,
+      0.5907
+     ]
+    }
+   },
+   "class=nested_path": {
+    "right_symbol": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "noise=babble 12 dB": {
+    "right_symbol": {
+     "k": 22,
+     "n": 24,
+     "rate": 0.9167,
+     "wilson95": [
+      0.7415,
+      0.9768
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 24,
+     "rate": 0.0417,
+     "wilson95": [
+      0.0074,
+      0.2024
+     ]
+    }
+   },
+   "noise=clean": {
+    "right_symbol": {
+     "k": 21,
+     "n": 24,
+     "rate": 0.875,
+     "wilson95": [
+      0.69,
+      0.9566
+     ]
+    },
+    "wrong_symbol": {
+     "k": 1,
+     "n": 24,
+     "rate": 0.0417,
+     "wilson95": [
+      0.0074,
+      0.2024
+     ]
+    }
+   }
+  },
+  "null": {
+   "class=camel_snake": {
+    "right_symbol": {
+     "k": 0,
+     "n": 12,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2425
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 12,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2425
+     ]
+    }
+   },
+   "class=digits": {
+    "right_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=dunder_caps": {
+    "right_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=flag": {
+    "right_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=homophone": {
+    "right_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244
+     ]
+    }
+   },
+   "class=nested_path": {
+    "right_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 4,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.4899
+     ]
+    }
+   },
+   "noise=babble 12 dB": {
+    "right_symbol": {
+     "k": 0,
+     "n": 24,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.138
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 24,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.138
+     ]
+    }
+   },
+   "noise=clean": {
+    "right_symbol": {
+     "k": 0,
+     "n": 24,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.138
+     ]
+    },
+    "wrong_symbol": {
+     "k": 0,
+     "n": 24,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.138
+     ]
+    }
+   }
+  }
+ },
+ "paired": {
+  "pointe - llm-router": {
+   "right_symbol_diff": -0.0208,
+   "bootstrap95_by_target": [
+    -0.1042,
+    0.0625
+   ]
+  },
+  "pointe - keyboard-canonical": {
+   "right_symbol_diff": -0.1667,
+   "bootstrap95_by_target": [
+    -0.2917,
+    -0.0625
+   ]
+  },
+  "pointe - keyboard-transcript": {
+   "right_symbol_diff": -0.0833,
+   "bootstrap95_by_target": [
+    -0.25,
+    0.0625
+   ]
+  },
+  "llm-router - keyboard-canonical": {
+   "right_symbol_diff": -0.1458,
+   "bootstrap95_by_target": [
+    -0.2708,
+    -0.0417
+   ]
+  },
+  "pointe-text - pointe": {
+   "right_symbol_diff": 0.125,
+   "bootstrap95_by_target": [
+    -0.0208,
+    0.2708
+   ]
+  }
+ },
+ "repeat": {
+  "pointe": {
+   "n_pairs": 12,
+   "flip_rate": 0.0833,
+   "flips": 1,
+   "pass2": 0.8333
+  },
+  "llm-router": {
+   "n_pairs": 12,
+   "flip_rate": 0.25,
+   "flips": 3,
+   "pass2": 0.6667
+  }
+ },
+ "superseded": {
+  "llm-router": {
+   "rows": 60,
+   "replaced_by_run": "identifiers-20261123-040357",
+   "why": "the first run's router call had max_tokens 400, which claude-sonnet-5-5 spent on thinking, cutting its JSON off (read as no action); fixed in the commit after the freeze, prompt unchanged, arm rerun in full"
+  }
+ },
+ "conditions": {
+  "dates": [
+   "2026-11-23"
+  ],
+  "repo_commits": [
+   "559af51210fcf04fc4d8fe19638cbc6e41980714",
+   "a61e00c9a1e7fe9224248c73bfe8065a2888082b"
+  ],
+  "run_ids": [
+   "identifiers-20261123-031106",
+   "identifiers-20261123-040357"
+  ],
+  "pointe_commits": [
+   "6544cdc403af9a9c87ffb2a5612b1919910c37db"
+  ],
+  "agent_model": "claude-haiku-5-5",
+  "claude_code": [
+   "2.1.330"
+  ],
+  "permission_mode": "acceptEdits",
+  "router_models": [
+   "claude-sonnet-5-5"
+  ],
+  "recognizers": [
+   "soniox:stt-rt-v6"
+  ],
+  "voices": [
+   "af_heart",
+   "am_michael",
+   "bf_emma",
+   "bm_george"
+  ],
+  "load_average": [
+   4.76,
+   202.86
+  ],
+  "audio_matches_lock": [
+   true
+  ],
+  "spend_usd_all_rows": 3.8313
+ }
+}

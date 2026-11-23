@@ -8,8 +8,9 @@ import re
 from pathlib import Path
 
 URL = re.compile(r"\w+://\S+")
-# An absolute or home path: "/" or "~/" then a name that starts with a letter ("/.git/" in a grep pattern is not one).
-PATH = re.compile(r"(?<![\w.\-/$}])(?:~/[\w.@+\-]*|/[A-Za-z][\w.@+\-]*)(?:/[\w.@+\-]+)*/?")
+# An absolute or home path: "/" or "~/" then a name that starts with a letter ("/.git/" in a grep pattern is not one,
+# nor "$(git rev-parse --show-toplevel)/almanac/x.py", which is inside the repo).
+PATH = re.compile(r"(?<![\w.\-/$})])(?:~/[\w.@+\-]*|/[A-Za-z][\w.@+\-]*)(?:/[\w.@+\-]+)*/?")
 ALWAYS = ("/dev/null", "/dev/stdin", "/dev/stdout", "/dev/stderr", "/usr/bin/", "/bin/")
 
 

@@ -16,8 +16,23 @@ TITLE = "Spoken Identifiers, synthetic speech (Kokoro-82M, 4 voices)"
 
 
 def rows(run_id: str) -> list[dict]:
-    p = HERE / "results" / run_id / "rows.jsonl"
-    return [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+    """The committed rows; where results/<run-id>/audit.jsonl exists (a re-audit of the kept transcripts with the
+    current audit.py), its verdict replaces the one the row was written with. The row itself is never edited."""
+    d = HERE / "results" / run_id
+    out = [json.loads(l) for l in (d / "rows.jsonl").read_text().splitlines() if l.strip()]
+    if (d / "audit.jsonl").exists():
+        audit = {a["key"]: a for a in map(json.loads, (d / "audit.jsonl").read_text().splitlines())}
+        for r in out:
+            a = audit.get(r["key"])
+            if a is None:
+                continue
+            r["out_of_tree"], r["audit_rerun"] = a["out_of_tree"], True
+            if a["out_of_tree"]:
+                r["outcome"] = "invalid_out_of_tree"
+            elif r["outcome"] == "invalid_out_of_tree":
+                r["outcome"] = ("error" if r["error"] and r["check_outcome"] == "no_action" else
+                                "capped" if r["capped"] and r["check_outcome"] != "right_symbol" else r["check_outcome"])
+    return out
 
 
 def pct(k: int, n: int) -> dict:
