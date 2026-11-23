@@ -374,11 +374,12 @@ button.btn { font: 600 15px/1 var(--font-sans); background: var(--card); cursor:
   .is-stage .beat.is-active .beat-ui { opacity: 1; transform: none; transition: opacity .45s .2s, transform .7s var(--ease) .2s; }
 }
 
-/* Founding partners: one line and one link, until there are names to show */
+/* The working group: one paragraph and one link, until there are names to show */
 .partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 32px; }
+.partners .body { max-width: 72ch; }
 .partners .link { text-decoration: none; }
 .partners .link:hover { text-decoration: underline; }
-#partners { padding: 36px 0; }
+#working-group { padding: 36px 0; }
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--line); padding: 40px 0 56px; }
