@@ -22,16 +22,12 @@ stt-rt.soniox.com          Soniox ears, meeting ears (daemon.py, meeting.py, ben
 tts-rt.soniox.com          Soniox mouth (pipecat; bench)
 api.soniox.com             pointe key check soniox: one GET of the models list, to tell a working key from a refused one (keys.py)
 
-# models, at the commits and hashes pinned in assets.py
+# models, at the commits and hashes pinned in assets.py. Hugging Face and GitHub pick the hosts a download is redirected
+# to; tests/e2e/egress_redirects.py fetches through a recording proxy and fails on a host that is not here.
 huggingface.co             model repositories (huggingface_hub, mlx-whisper, mlx-audio, faster-whisper; bench)
-cdn-lfs.huggingface.co     model files (huggingface_hub)
-cdn-lfs-us-1.huggingface.co   model files (huggingface_hub)
-cas-bridge.xethub.hf.co    model files (hf-xet)
-transfer.xethub.hf.co      model files (hf-xet)
-cas-server.xethub.hf.co    model files: the xet CAS server the Hub names (hf-xet)
-*.cdn.hf.co                model files: the regional CDN the CAS server names, us.aws.cdn.hf.co from here (hf-xet)
+us.aws.cdn.hf.co           model files: where huggingface.co redirects a file download (huggingface_hub, hf-xet)
+cas-server.xethub.hf.co    model files: the Xet storage that hf-xet reads a file's chunks from (hf-xet)
 github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); links in the page and the site
-objects.githubusercontent.com        where github.com release downloads redirect
 release-assets.githubusercontent.com where github.com release downloads redirect
 
 # maintainers' tools, never the plugin
