@@ -57,7 +57,8 @@ ANTHROPIC_URL = "https://api.anthropic.com"
 OPENAI_URL = "https://api.openai.com/v1"
 GEMINI_URL = "https://generativelanguage.googleapis.com/"
 # Keys read from the Keychain, in this process's memory only: never in os.environ, so nothing it starts inherits one.
-_found: dict[str, str] = {}
+# vendor -> (the item it came from, the key)
+_found: dict[str, tuple[str, str]] = {}
 # First available wins. The order is the result of bench/results; see README, "Benchmarks".
 BRAIN_ORDER = ["anthropic:claude-sonnet-5-5", "gemini:gemini-3.8-flash", "openai:gpt-6-sol"]
 BRAIN_FALLBACK = {"gemini:gemini-3.8-flash": "gemini:gemini-3.6-flash", "anthropic:claude-sonnet-5-5": "anthropic:claude-haiku-5-5",
@@ -102,23 +103,24 @@ def key(vendor: str) -> str | None:
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
         return value
-    if vendor in _found:
-        return _found[vendor]
-    for name in (item,) if vendor == "openai" and openai_url() else (item, LEGACY_ITEMS[vendor]):
+    names = (item,) if vendor == "openai" and openai_url() else (item, LEGACY_ITEMS[vendor])
+    if _found.get(vendor, ("",))[0] in names:
+        return _found[vendor][1]
+    for name in names:
         try:
             got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", name, "-w"], capture_output=True,
                                  text=True, timeout=5, env=childenv.child_env())
         except (OSError, subprocess.TimeoutExpired):
             return None
         if not got.returncode and got.stdout.strip():
-            _found[vendor] = got.stdout.strip()
-            return _found[vendor]
+            _found[vendor] = (name, got.stdout.strip())
+            return _found[vendor][1]
     return None
 
 
 def known_keys() -> list[str]:
     """Every key value this process holds, from its environment or the Keychain: what a log line or a mask must hide."""
-    return [v for v in [*(os.environ.get(env, "") for env in KEY_ENVS), *_found.values()] if v]
+    return [v for v in [*(os.environ.get(env, "") for env in KEY_ENVS), *(v for _, v in _found.values())] if v]
 
 
 _clients: dict[str, object] = {}

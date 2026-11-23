@@ -130,3 +130,14 @@ def test_a_key_another_tool_keeps_under_the_old_name_is_never_sent_to_that_host(
     state()  # without the setting, a key saved before 1.20.0 keeps working
     del store["pointe.openai-api-key"]
     assert vendors.key("openai") == "synthetic-other-tools-key"
+
+
+def test_a_key_read_under_the_old_name_before_the_setting_is_not_used_after_it(state, monkeypatch):
+    """The daemon keeps a Keychain key in memory: one read from `openai-api-key` must not reach a host set later."""
+    monkeypatch.delenv("OPENAI_API_KEY")
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: subprocess.CompletedProcess(
+        cmd, 0 if cmd[3] == "openai-api-key" else 44, "synthetic-other-tools-key\n" if cmd[3] == "openai-api-key" else "", ""))
+    state()
+    assert vendors.key("openai") == "synthetic-other-tools-key"
+    state(openai_url=HOST)
+    assert vendors.key("openai") is None
