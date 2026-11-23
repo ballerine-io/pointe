@@ -99,6 +99,19 @@ final class LayoutUITests: XCTestCase {
         }
     }
 
+    /// Fix it at large text shows every word of what was heard: cut to one line, the text the person is there to check
+    /// ended in an ellipsis.
+    func testFixItShowsAllOfWhatWasHeardAtLargeType() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-demo", "edit", "-demoEnglish", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        let heard = app.staticTexts["fixHeard"], kicker = app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "heard")).firstMatch
+        XCTAssertTrue(heard.waitForExistence(timeout: 20), "the Fix it sheet")
+        XCTAssertGreaterThan(heard.frame.height, kicker.frame.height * 1.8, "the heard words wrap instead of being cut to one line")
+        let title = app.navigationBars["Fix it"].staticTexts["Fix it"]
+        XCTAssertGreaterThan(title.frame.height, 22, "the sheet's title grows with the text too, not fixed at 17 points")
+    }
+
     /// A command of nine lines scrolls in its own box: Deny and Approve stay where the thumb is.
     func testAVeryLongCommandLeavesTheAnswerOnScreen() {
         let app = launch("longRequest")

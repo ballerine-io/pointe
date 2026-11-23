@@ -82,11 +82,16 @@ enum Brand {
     /// no appearance proxy: on the Mac a sheet's title is drawn by the sheet (`sheetChrome`), in the family.
     static func install() {
         #if canImport(UIKit)
-        let title = UIFont(name: displayRegular, size: 17) ?? .systemFont(ofSize: 17)
-        let large = UIFont(name: displayLight, size: 34) ?? .systemFont(ofSize: 34, weight: .light)
+        // Scaled by the text size the phone had at launch, up to what a bar and a segment hold: at 17 and 13 points
+        // fixed, a sheet's title and the Orchestrator/Session switch stayed small beside large body text.
+        let title = UIFontMetrics(forTextStyle: .headline)
+            .scaledFont(for: UIFont(name: displayRegular, size: 17) ?? .systemFont(ofSize: 17), maximumPointSize: 26)
+        let large = UIFontMetrics(forTextStyle: .largeTitle)
+            .scaledFont(for: UIFont(name: displayLight, size: 34) ?? .systemFont(ofSize: 34, weight: .light), maximumPointSize: 48)
         UINavigationBar.appearance().titleTextAttributes = [.font: title]
         UINavigationBar.appearance().largeTitleTextAttributes = [.font: large]
-        let segment = UIFont(name: textFace(.medium), size: 13) ?? .systemFont(ofSize: 13, weight: .medium)
+        let segment = UIFontMetrics(forTextStyle: .footnote)
+            .scaledFont(for: UIFont(name: textFace(.medium), size: 13) ?? .systemFont(ofSize: 13, weight: .medium), maximumPointSize: 22)
         UISegmentedControl.appearance().setTitleTextAttributes([.font: segment, .foregroundColor: UIColor(text)], for: .normal)
         UISegmentedControl.appearance().backgroundColor = UIColor(raised)
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(card)

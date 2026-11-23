@@ -162,9 +162,12 @@ struct EditTurnSheet: View {
 
     var body: some View {
         NavigationStack {
+            ScrollView {  // at large text every word of what was heard shows: it is what the person is here to check
             VStack(alignment: .leading, spacing: 8) {  // a label sits on what it names; the two groups stand apart
                 Text("Heard").brandKicker()
                 Text(turn.text).readingDirection(of: turn.text).font(.brand(.callout)).foregroundStyle(Brand.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("fixHeard")
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, 12)
                 Text("You meant").brandKicker()
                 TextField("What you said", text: $text, axis: .vertical)
@@ -175,10 +178,11 @@ struct EditTurnSheet: View {
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.line))
                     .focused($focused)
                 Text("If it already acted on the misheard words, it says what it did and fixes it.")
-                    .font(.brand(.footnote)).foregroundStyle(Brand.muted)
-                Spacer()
+                    .font(.brand(.footnote)).foregroundStyle(Brand.muted).fixedSize(horizontal: false, vertical: true)
             }
             .padding(20)
+            }
+            .scrollBounceBehavior(.basedOnSize)
             .sheetTitle("Fix it")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
