@@ -5,10 +5,13 @@ in words there, and the tab never opens on a call that cannot hear."""
 import asyncio
 import contextlib
 import io
+import json
 import os
 import socket
 import sys
 import textwrap
+import urllib.request
+from pathlib import Path
 
 import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
 import local
@@ -156,15 +159,60 @@ def harnesses_here() -> list[str]:
     return lines
 
 
-def verdict(problems: int, status: dict, setup, refused: list[str]) -> list[str]:
-    """The first lines: ready or not, and the one fix."""
+def state_dir() -> Path:
+    return Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
+
+
+def running_status() -> dict | None:
+    """/voice/status of the Pointe running on this Mac, by its token, or None when none answers: what the call is
+    seeing now (a key refused, a vendor out of quota) that the checks here cannot."""
+    port = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
+    try:
+        os.kill(int((state_dir() / "daemon.pid").read_text()), 0)  # this state dir's own daemon or node, nothing else
+        token = (state_dir() / "token").read_text().strip()
+        request = urllib.request.Request(f"http://127.0.0.1:{port}/voice/status", headers={"Authorization": f"Bearer {token}"})
+        got = json.loads(urllib.request.urlopen(request, timeout=3).read())
+    except (OSError, ValueError):
+        return None
+    return got if isinstance(got, dict) else None
+
+
+def node_lines() -> list[str] | None:
+    """On a node (node.json from `pointe node join`): the verdict for a node, which has no models and no keys. None
+    elsewhere."""
+    try:
+        config = json.loads((state_dir() / "node.json").read_text())
+    except (OSError, ValueError):
+        return None
+    hub = config.get("hub") or {}
+    if not hub.get("host") or not (state_dir() / "node_keys" / str(hub.get("id"))).exists():
+        return None
+    name = hub.get("name") or hub["host"]
+    live = running_status()
+    if live is None or not live.get("node"):
+        return [f"Pointe is not running here. This machine is a node of {name}: it needs no keys and no models.",
+                "Fix: bin/voice-node ensure (or /pointe:voice in a session here) starts it. Details: pointe node status"]
+    if live.get("link") != "up":
+        return [f"Pointe is not ready: this node's link to {name} is down ({live.get('link_error') or 'connecting'}).",
+                f"Fix: check that {name} is running and reachable at {hub['host']}. Details: pointe node status"]
+    taps = "only for requests that can be read out" if live.get("remote_taps") == "readable_only" else "trusted"
+    return [f"Pointe is ready as a node of {name}: no keys and no models here; {name}'s call hears these sessions.",
+            f"Taps on prompts from {name}: {taps}. Details: pointe node status"]
+
+
+def verdict(problems: int, status: dict, setup, refused: list[str], faults: list[tuple[str, str]] = ()) -> list[str]:
+    """The first lines: ready or not, and the one fix. `faults`: (kind, vendor) from vendors.fault, a key that works but
+    cannot be used now (out of quota, the vendor failing)."""
     name = f" Setup: {setup.name}." if setup else ""
-    if not problems and not status["needed"] and not refused:
+    if not problems and not status["needed"] and not refused and not faults:
         return [f"Pointe is ready.{name} Start a call: /pointe:voice in Claude Code."]
     if refused:
         vendor = refused[0]
         return [f"Pointe is not ready: the {NAMES.get(vendor, vendor)} key was refused.",
                 f"Fix: pointe key {vendor}   (opens {vendor}'s key page and a Mac window, checks the new key)"]
+    if faults:
+        kind, vendor = faults[0]
+        return ["Pointe is not ready: " + vendors.fault_help(kind, vendor)]
     if status["fix"]:
         vendor = status["fix"]
         where = f" (get one: {keys_where(vendor)})" if keys_where(vendor) else ""
@@ -183,16 +231,19 @@ def keys_where(vendor: str) -> str:
 def main() -> int:
     if "--preflight" in sys.argv:
         return preflight()
+    if (node := node_lines()) is not None:
+        print("\n".join(node))
+        return 0 if node[0].startswith("Pointe is ready") else 1
     details = io.StringIO()
     with contextlib.redirect_stdout(details):
-        problems, status, setup, refused = _details()
-    print("\n".join(verdict(problems, status, setup, refused)))
+        problems, status, setup, refused, faults = _details()
+    print("\n".join(verdict(problems, status, setup, refused, faults)))
     print("\nDetails:" + details.getvalue().rstrip("\n"))
-    return 1 if problems or status["needed"] or refused else 0
+    return 1 if problems or status["needed"] or refused or faults else 0
 
 
 def _details() -> tuple:
-    live, problems, refused = "--live" in sys.argv, 0, []
+    live, problems, refused, faults = "--live" in sys.argv, 0, [], []
     print("\nCoding agents:")
     print("\n".join(harnesses_here()))
     present = {v for v in vendors.KEYS if vendors.has(v)}
@@ -250,6 +301,14 @@ def _details() -> tuple:
     with socket.socket() as s:
         in_use = s.connect_ex(("127.0.0.1", port)) == 0
     print(f"\nPort {port}: {'in use (Pointe, or another program: pointe status tells which)' if in_use else 'free'}")
+    running = running_status() if in_use else None
+    if running is not None:  # what the running call sees: a key refused after the start check, a quota that ran out
+        if (seen := running.get("key_refused")) and seen.get("vendor"):
+            refused.append(seen["vendor"])
+        elif (seen := running.get("vendor_fault")) and seen.get("kind") in ("quota", "rate", "down"):
+            faults.append((seen["kind"], seen.get("vendor") or ""))
+        print(f"Running Pointe {running.get('version') or ''}".rstrip() + ": "
+              + (running.get("problem") or "no problem reported"))
     if live:
         print("\nLive check, one short call per text model:")
         for role in ("brain", "reader", "checker"):
@@ -261,13 +320,18 @@ def _details() -> tuple:
                 except Exception as e:
                     problems += 1
                     vendor = chosen[role].split(":")[0]
+                    fault = vendors.fault(e)
                     if vendors.refused_key(f"{type(e).__name__} {e}") is not None:
                         refused.append(vendor)
-                    why = (vendors.refused_help(vendor) if vendors.refused_key(f"{type(e).__name__} {e}") is not None
-                           else "Check the key and that it can use this model.")
+                        why = vendors.refused_help(vendor)
+                    elif fault is not None:
+                        faults.append((fault[0], vendor))
+                        why = vendors.fault_help(fault[0], vendor)
+                    else:
+                        why = "Check the key and that it can use this model."
                     print(f"  FAILED  {role} {chosen[role]}: {type(e).__name__}. {why}")
     print("\nChange the setup: pointe setup. One role by hand: CLAUDE_VOICE_<ROLE>=vendor:model, or ~/.claude-voice/config.json.")
-    return problems, status, setup, refused
+    return problems, status, setup, refused, faults
 
 
 if __name__ == "__main__":

@@ -143,12 +143,16 @@ def _check(vendor: str, asyncio, urllib) -> tuple[bool | None, str]:
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
             return False, vendors.refused_help(vendor)
+        if fault := vendors.fault(f"HTTP {e.code} {vendor}"):
+            return None, vendors.fault_help(fault[0], vendor)
         return None, f"The {vendor} key could not be checked: the vendor answered HTTP {e.code}. Try again later."
     except urllib.error.URLError:
         return None, f"The {vendor} key could not be checked: no connection to {vendor}."
     except Exception as e:
         if vendors.refused_key(f"{type(e).__name__} {e}") is not None:
             return False, vendors.refused_help(vendor)
+        if fault := vendors.fault(e):  # the key is accepted; its quota, or the vendor, is the problem
+            return None, vendors.fault_help(fault[0], vendor)
         return None, f"The {vendor} key could not be checked: {type(e).__name__}. Try again, or run /pointe:doctor."
     return True, f"The {vendor} key works."
 
