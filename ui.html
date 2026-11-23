@@ -489,6 +489,7 @@
   /* approval cards, pinned above the bar like the app */
   #attention { display: flex; flex-direction: column; gap: 8px; padding: 0 var(--gutter); }
   #attention:empty { display: none; }
+  .ask .need.err { color: var(--danger-text); }
   .ask { border: 1px solid var(--orange-line); border-radius: 12px; padding: 14px 16px; background: var(--card); color: var(--text); text-align: left; }
   .ask .what { font-weight: 600; font-size: 14px; }
   .ask .what span:not(.agent) { color: var(--accent); font-weight: 600; white-space: nowrap; }
@@ -536,6 +537,8 @@
                    color: var(--text); font: 15px var(--font); }  /* the page's focus ring, as every field has */
   #compose input:focus { border-color: var(--orange-line); }
   #compose input:disabled { opacity: .5; }
+  #typed-err { padding: 4px var(--gutter) 0; font: 12.5px var(--font); color: var(--danger-text); }
+  #typed-err:empty, #compose.folded + #typed-err { display: none; }
   #compose button { border: 0; border-radius: 12px; padding: 0 18px; min-height: 44px; background: var(--primary); color: var(--on-primary);
                     font: 600 14px var(--font); cursor: pointer; }
   #compose button:disabled { opacity: .35; cursor: default; }
@@ -1628,6 +1631,7 @@
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
   <form id="compose" onsubmit="sendTyped(event)"><input id="typed" dir="auto" aria-label="Message to the voice" placeholder="Type to the voice…" autocomplete="off" disabled>
     <button id="typed-send" disabled>Send</button></form>
+  <div id="typed-err" role="alert"></div>
   <nav class="dock" aria-label="Call controls">
     <div class="dock-side left">
       <button class="btn" id="listen" onclick="dumpButton()" disabled title="Dump your thoughts; Pointe stays quiet, then structures them for you to send">
@@ -2372,6 +2376,9 @@
     b.append(el('div', 'need', meetOn ? 'In a meeting, nothing is approved by voice: click to answer.'
                                : !x.voice_can_approve ? 'Too complex to read out: check it, then tap.'
                                : x.name === s.active ? 'Say yes or no, or tap.' : 'Say its name and yes or no, or tap.'));
+    const err = el('div', 'need err', answerProblems.get(x.request_id) || '');
+    err.setAttribute('role', 'alert'); err.hidden = !answerProblems.has(x.request_id);
+    b.append(err);
     const row = el('div', 'answer');
     for (const [label, decision] of [['Deny', 'deny'], ['Approve', 'allow']]) {
       const button = el('button', decision, label);
@@ -2831,11 +2838,24 @@
       return r.ok;
     })());
   }
+  // Why the last tap on a card was not answered, by request: the card is rebuilt only when the request changes, and a
+  // rebuilt one must still say it.
+  const answerProblems = new Map();
   async function answer(x, decision, button) {
-    button.disabled = true;
-    const r = await fetch('/voice/approve', {method: 'POST', headers: {'content-type': 'application/json'},
-                                             body: JSON.stringify({session: x.name, request_id: x.request_id, decision})});
-    if (!r.ok) { button.disabled = false; $('problem').textContent = (await r.json().catch(() => ({}))).detail || 'not answered'; }
+    const card = button.closest('.ask'), buttons = card ? [...card.querySelectorAll('.answer button')] : [button];
+    for (const b of buttons) b.disabled = true;
+    let why = null;
+    try {
+      const r = await fetch('/voice/approve', {method: 'POST', headers: {'content-type': 'application/json'},
+                                               body: JSON.stringify({session: x.name, request_id: x.request_id, decision})});
+      if (!r.ok) why = 'Not answered: ' + ((await r.json().catch(() => ({}))).detail || `the Mac said ${r.status}`) + '.';
+    } catch (e) { why = 'Not sent: the Mac did not answer. Check the connection, then tap again.'; }
+    if (why) {
+      answerProblems.set(x.request_id, why);
+      for (const b of buttons) b.disabled = false;
+    } else answerProblems.delete(x.request_id);
+    const line = card && card.querySelector('.need.err');
+    if (line) { line.textContent = why || ''; line.hidden = !why; }
     refresh();
   }
 
@@ -3028,8 +3048,16 @@
       try { await meetPost({action: 'ask', text}); } catch (e) { box.value = text; meetError(e.message); }
       refresh(); return;
     }
-    const r = await fetch('/voice/say', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({text})});
-    if (!r.ok) { box.value = text; box.placeholder = 'Not sent: connect first'; }
+    let why = null;
+    try {
+      const r = await fetch('/voice/say', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({text})});
+      if (!r.ok) {
+        const d = (await r.json().catch(() => ({}))).detail;
+        why = r.status === 409 ? 'Connect first.' : d ? d.charAt(0).toUpperCase() + d.slice(1).replace(/([^.])$/, '$1.') : `The Mac said ${r.status}.`;
+      }
+    } catch (e) { why = 'The Mac did not answer. Check the connection, then send again.'; }
+    if (why && !box.value) box.value = text;  // kept to send again, unless a new line was started meanwhile
+    $('typed-err').textContent = why ? 'Not sent. ' + why : '';
     toBottom(true);
     refresh();
   }
