@@ -7,7 +7,7 @@ or any server that speaks OpenAI's API over https. The key stays in the Keychain
 
 ## Turn it on
 
-1. Save the host's key as the OpenAI key: `pointe key openai` (it goes to the Keychain item `openai-api-key`).
+1. Save the host's key as the OpenAI key: `pointe key openai` (it goes to the Keychain item `pointe.openai-api-key`).
 2. In `~/.claude-voice/config.json`, set the address and name your own deployments for the three text roles:
 
    ```json
