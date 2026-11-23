@@ -250,7 +250,10 @@ With the microphone set to push to talk (Settings, on the page or the phone), no
 the talk control (or toggled it on), plus 0.4 s after you let go. The daemon enforces this: it drops the audio before the
 voice detector and every vendor, whatever a client sends. A press ends by itself after 90 s. One exception: during a
 meeting you started (it asks for consent and shows a recording indicator), the room's audio goes to the meeting's speech
-vendor without a press; talking to Pointe outside the meeting stream still needs one.
+vendor without a press; talking to Pointe outside the meeting stream still needs one. On the iPhone, the Talk shortcut
+(the Action button, Back Tap, Siri) is a press too, and works on a locked phone while a call is up, by design: anyone
+next to the locked phone can open the microphone that way and speak to your sessions. Their words count as yours
+unless the voice lock's level keeps them out, and a spoken yes still has to pass every rule above.
 
 In fully local mode (`pointe local`), none of these goes anywhere: no key is read, from the environment or the
 Keychain, so no vendor can be reached, and the text-model server listens on loopback only. See
@@ -531,6 +534,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 - **Notifications** (phone, watch, desktop) show only the read-out form of a request, never its full text or the model's
   description; a request that cannot be read out shows only its tool. Credential-like values follow the same rule as
   the voice (`readout.redact`): never shown, never said.
+- **Deleting the app does not unpair.** The pairing is in the iPhone's Keychain, which outlives the app, and the Mac
+  still takes its key: a reinstall is paired again without a scan. Unpair on the Mac to end it.
 - **Revoke:** Unpair in Settings → Phone. The phone paired from the terminal can also be revoked by deleting
   `~/.claude-voice/phone_key`; it takes effect at the next request. Pairing again with the same name keeps the
   certificate, so a browser that trusts it keeps working.
