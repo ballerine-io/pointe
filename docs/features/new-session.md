@@ -10,7 +10,7 @@ The rules live in `newsession.py` (where a session may start, names), `guards.st
 
 - **Voice:** "start a new Claude Code session in shop", "open a codex session in billing called invoices", "start
   another agent here". Pointe reads back exactly what it will start ("Start a Codex session in billing on studio, named
-  invoices? Say yes or tap.") and starts it on your yes. Say no, or anything else, and nothing starts. With no agent
+  invoices? Say yes or tap."; the machine is named only when another one is paired) and starts it on your yes. Say no, or anything else, and nothing starts. With no agent
   named it is Claude Code.
 - **Page:** New session under the sessions on the left. Pick the agent and the folder, give it a name and a first
   prompt if you like, press Start.
