@@ -1,6 +1,6 @@
 """The speech corpus: every line the scripted user may say, rendered once by Kokoro-82M v1.0 (local, Apache-2.0, $0, no
 key) in one of four panel voices, with noise generated in code. Audio is built, not stored: `run.py corpus` writes
-bench/conversational/.audio/ (ignored) and audio.lock, the SHA-256 of every clip."""
+bench/conversational/hlk/.audio/ (ignored) and audio.lock, the SHA-256 of every clip."""
 
 import hashlib
 import json
@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parents[1]
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 AUDIO = HERE / ".audio"
 LOCK = HERE / "hlk" / "audio.lock"
 RATE = 24000

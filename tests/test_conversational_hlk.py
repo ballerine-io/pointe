@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-BENCH = ROOT / "bench" / "conversational"
+BENCH = ROOT / "bench" / "conversational" / "hlk"
 sys.path.insert(0, str(BENCH))
 
 import hlk  # noqa: E402
@@ -157,7 +157,7 @@ def test_generated_pages_match_the_rows():
         pytest.skip("no frozen run yet")
     from core import report
     text, page = report.build()
-    assert report.DOC.read_text() == text, "run: uv run --locked python bench/conversational/run.py report"
+    assert report.DOC.read_text() == text, "run: uv run --locked python bench/conversational/hlk/run.py report"
     assert report.PAGE.read_text() == page
     for body in (text, page):
         assert "Humanity's Last Keystroke" in body and report.SUBTITLE in body

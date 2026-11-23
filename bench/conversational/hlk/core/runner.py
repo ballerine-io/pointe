@@ -25,7 +25,7 @@ from hlk import score
 from hlk.common import FINAL_QUESTION, VERSION
 
 HERE = Path(__file__).resolve().parents[1]
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 RESULTS = HERE / "results"
 FORBIDDEN_PORTS = {7860, 7443}
 ARMS = ("keyboard-canonical", "keyboard-transcript", "null", "naive", "llm-router", "pointe")

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[4]
 WHISPER_REPO = "mlx-community/whisper-large-v3-turbo"
 SONIOX_URL = "wss://stt-rt.soniox.com/transcribe-websocket"
 

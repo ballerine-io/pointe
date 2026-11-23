@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 CANARY = (HERE.parent / "CANARY").read_text().strip()
 VERSION = "0.1"
 
-# Session and repository names. None occurs in Pointe's own tests or benches (tests/test_conversational_bench.py greps).
+# Session and repository names. None occurs in Pointe's own tests or benches (tests/test_conversational_hlk.py greps).
 NAMES = ["tariff", "depot", "almanac", "quarry", "kiln", "ferry", "meadow", "saffron", "tundra", "marlin", "pebble",
          "willow", "cobalt", "thistle", "gazette"]
 GROUPS = ("naming", "language", "control")

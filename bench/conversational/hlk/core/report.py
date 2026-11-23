@@ -1,5 +1,5 @@
-"""Rows -> docs/benchmarks-conversational.md and site/pointe/benchmarks/index.html. Every number on both pages is computed
-here from the committed rows; tests/test_conversational_bench.py regenerates both and fails on any difference.
+"""Rows -> docs/benchmarks/hlk.md and site/pointe/benchmarks/hlk/index.html. Every number on both pages is computed
+here from the committed rows; tests/test_conversational_hlk.py regenerates both and fails on any difference.
 The reporter refuses a published row with another Pointe commit than FROZEN.json names, or one older than the freeze."""
 
 import html
@@ -13,9 +13,9 @@ from core import ledger, stats
 from hlk import FAMILIES
 
 HERE = Path(__file__).resolve().parents[1]
-ROOT = HERE.parents[1]
-DOC = ROOT / "docs" / "benchmarks-conversational.md"
-PAGE = ROOT / "site" / "pointe" / "benchmarks" / "index.html"
+ROOT = HERE.parents[2]
+DOC = ROOT / "docs" / "benchmarks" / "hlk.md"
+PAGE = ROOT / "site" / "pointe" / "benchmarks" / "hlk" / "index.html"
 ARMS = ["keyboard-canonical", "keyboard-transcript", "pointe", "llm-router", "naive", "null"]
 SPOKEN = ["pointe", "llm-router", "naive"]
 LABEL = {"keyboard-canonical": "keyboard, canonical", "keyboard-transcript": "keyboard, transcript",
@@ -336,17 +336,17 @@ def sections(rows, unpub, frozen) -> list:
         "instance for both runs; noise made in code (babble from the three other voices at 6 dB for the noisy-paths "
         "instruction, pink noise at 12 dB for the rest of that item)."]))
     B.append(("h2", "Run it, add to it"))
-    B.append(("code", "uv run --locked python bench/conversational/run.py corpus\n"
-                      "uv run --locked python bench/conversational/run.py verify\n"
-                      "uv run --locked python bench/conversational/run.py hlk --budget-usd 55 --port-base 9300 --workers 3"))
+    B.append(("code", "uv run --locked python bench/conversational/hlk/run.py corpus\n"
+                      "uv run --locked python bench/conversational/hlk/run.py verify\n"
+                      "uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3"))
     B.append(("p", "An adapter implements start, say, type, key, events, speech, versions, spend and stop "
-                   "(bench/conversational/core/adapter.py); a missing capability shows as coverage, never as a failure. "
-                   "A family is a generator in bench/conversational/hlk/families/; hlk/CONTRIBUTING.md says how, and "
+                   "(bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. "
+                   "A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and "
                    "run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better "
                    "router prompt is welcome as a pull request. Family authors so far: the Pointe team."))
     B.append(("p", f"Spend: ${spent:.2f} for HLK in all (smoke and debugging included; cap $55), computed from usage and "
-                   "list prices in bench/conversational/prices.json. Raw rows and the final files of every published run "
-                   "(run.py verify re-scores them): bench/conversational/results/. Text and "
+                   "list prices in bench/conversational/hlk/prices.json. Raw rows and the final files of every published run "
+                   "(run.py verify re-scores them): bench/conversational/hlk/results/. Text and "
                    "tasks CC BY 4.0, code MIT."))
     return B
 
@@ -370,7 +370,7 @@ def markdown(blocks) -> str:
             head, body = x
             out.append("| " + " | ".join(head) + " |\n|" + "---|" * len(head) + "\n" +
                        "\n".join("| " + " | ".join(r) + " |" for r in body) + "\n")
-    return "<!-- Written by bench/conversational/run.py report from the committed rows. Do not edit by hand. -->\n\n" + "\n".join(out)
+    return "<!-- Written by bench/conversational/hlk/run.py report from the committed rows. Do not edit by hand. -->\n\n" + "\n".join(out)
 
 
 def page(blocks) -> str:
@@ -410,14 +410,14 @@ TEMPLATE = """<!doctype html>
 <meta property="og:title" content="Humanity's Last Keystroke">
 <meta property="og:description" content="A pilot voice-only coding benchmark, v0.1, synthetic speech, n = 36 in 12 families.">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
-<meta property="og:url" content="https://eng.ballerine.com/pointe/benchmarks/">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/benchmarks/hlk/">
 <script>
   // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
-  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/benchmarks/' + location.hash);
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/benchmarks/hlk/' + location.hash);
 </script>
-<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../style.css">
-<link rel="stylesheet" href="../pages.css">
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
 <style>
   .bm-scroll { overflow-x: auto; margin: 1rem 0 1.5rem; }
   .bm-table { border-collapse: collapse; font-size: 0.9rem; min-width: 100%; }
@@ -429,18 +429,18 @@ TEMPLATE = """<!doctype html>
 <body class="pg">
 <a class="pg-skip" href="#main">Skip to content</a>
 <header class="pg-wrap pg-header">
-  <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
   <nav aria-label="Pages">
-    <a href="../roadmap/">Roadmap</a>
-    <a href="../contribute/">Contribute</a>
-    <a href="./" aria-current="page">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a href="../" aria-current="page">Benchmarks</a>
     <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
   </nav>
 </header>
 <main id="main" class="pg-wrap">
 {BODY}
 </main>
-<footer class="pg-wrap"><p>Pointe <span data-version>VERSION</span>. Written by bench/conversational/run.py report from the committed rows.</p></footer>
+<footer class="pg-wrap"><p>Pointe <span data-version>VERSION</span>. Written by bench/conversational/hlk/run.py report from the committed rows.</p></footer>
 </body>
 </html>
 """

@@ -1,12 +1,12 @@
 """Pointe Conversational Coding Benchmarks: the one command.
 
-    uv run --locked python bench/conversational/run.py hlk --budget-usd 55     # Humanity's Last Keystroke, every arm
-    uv run --locked python bench/conversational/run.py hlk --adapter pointe --smoke
-    uv run --locked python bench/conversational/run.py corpus                  # render the synthetic speech, $0
-    uv run --locked python bench/conversational/run.py verify                  # offline: items, checks, detector, results
-    uv run --locked python bench/conversational/run.py freeze                  # write FROZEN.json before paid runs
-    uv run --locked python bench/conversational/run.py report                  # rows -> docs and site page
-    uv run --locked python bench/conversational/run.py finals --rerun-faults RUN   # final files of a run, for re-scoring
+    uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55     # Humanity's Last Keystroke, every arm
+    uv run --locked python bench/conversational/hlk/run.py hlk --adapter pointe --smoke
+    uv run --locked python bench/conversational/hlk/run.py corpus                  # render the synthetic speech, $0
+    uv run --locked python bench/conversational/hlk/run.py verify                  # offline: items, checks, detector, results
+    uv run --locked python bench/conversational/hlk/run.py freeze                  # write FROZEN.json before paid runs
+    uv run --locked python bench/conversational/hlk/run.py report                  # rows -> docs and site page
+    uv run --locked python bench/conversational/hlk/run.py finals --rerun-faults RUN   # final files of a run, for re-scoring
 
 Options: --adapter keyboard,null,naive,llm-router,pointe  --budget-usd N  --port-base N (never 7860 or 7443)
 --workers N  --smoke (2 items, never published)  --dry-run (the plan and its estimated cost, spends nothing)
@@ -28,7 +28,7 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))
 
 from core import corpus, ledger, runner  # noqa: E402

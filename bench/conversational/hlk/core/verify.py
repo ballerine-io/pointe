@@ -23,7 +23,7 @@ from hlk import score
 from hlk.common import CANARY, GROUPS, NAMES
 
 HERE = Path(__file__).resolve().parents[1]
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 
 
 def name_collisions() -> list:
@@ -32,7 +32,7 @@ def name_collisions() -> list:
         got = subprocess.run(["grep", "-rliw", "--include=*.py", "--include=*.sh", "--include=*.json", name,
                               str(ROOT / "tests"), str(ROOT / "bench")], capture_output=True, text=True)
         files = [l for l in got.stdout.splitlines() if "/bench/conversational/" not in l
-                 and not l.endswith("test_conversational_bench.py")]
+                 and not l.endswith("test_conversational_hlk.py")]
         if files:
             hits.append(f"{name}: {len(files)} files")
     return hits
@@ -129,9 +129,9 @@ def main(args) -> int:
         from core import report
         text, page = report.build()
         if report.DOC.exists() and report.DOC.read_text() != text:
-            problems.append("docs/benchmarks-conversational.md does not match the rows: run.py report")
+            problems.append("docs/benchmarks/hlk.md does not match the rows: run.py report")
         if report.PAGE.exists() and report.PAGE.read_text() != page:
-            problems.append("site/pointe/benchmarks/index.html does not match the rows: run.py report")
+            problems.append("site/pointe/benchmarks/hlk/index.html does not match the rows: run.py report")
     except FileNotFoundError:
         pass
     for p in problems:
