@@ -39,7 +39,7 @@ def plugin(tmp_path):
     """bin/voice-daemon and bin/voice-listeners as shipped; a uv whose `run ... daemon.py --port N` is a tiny server."""
     bin_ = tmp_path / "plugin" / "bin"
     bin_.mkdir(parents=True)
-    for name in ("voice-daemon", "voice-listeners"):
+    for name in ("voice-daemon", "voice-listeners", "pointe-installs"):
         shutil.copy(ROOT / "bin" / name, bin_ / name)
     for name in ("uv-sync", "link-pointe"):
         (bin_ / name).write_text("#!/bin/bash\nexit 0\n")
