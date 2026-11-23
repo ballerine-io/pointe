@@ -341,3 +341,10 @@ def test_a_page_over_the_phones_listener_offers_no_revoke():
     """The Mac answers a revoke from there with a bare 403: the page does not offer one, and says where it is done."""
     assert "if (!m.here && !remotePage) {" in PAGE
     assert "Invite or revoke a machine on the Mac's own page or in the app." in PAGE
+
+
+def test_connect_your_phone_names_the_browser_way_until_the_app_ships():
+    """The QR is the app's (pointe://pair); docs/phone.md sends people to the phone's browser first, so Settings → Phone says how."""
+    phone = PAGE[PAGE.index('<section id="phone"'):]
+    phone = phone[:phone.index("</section>")]
+    assert "No app on the phone yet? Use its browser: in a terminal on this Mac, <b>pointe pair link</b> prints an address to open there." in phone
