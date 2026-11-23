@@ -40,9 +40,12 @@ On the Mac, open Pointe's page: **Settings → Phone → Connect your phone**. T
 this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), marks one **Recommended**, and has a
 field, "Or a name you set up (Twingate, a VPN)", with **Check**. Choose a route, then **Show the code**.
 
-On the iPhone, point the Camera at the code and tap "Open in Pointe", or scan it in the app's pairing screen. "Can't
-scan? Copy the link" copies the same `pointe://pair` link, which you can paste in the app ("or paste the pointe://
-link"). The page turns to "Connected: &lt;phone&gt;" when the app has paired.
+On the iPhone, scan the code in the Pointe app's pairing screen, and confirm the Mac it names (its address and the
+start of its certificate's fingerprint). "Can't scan? Copy the link" copies the same `pointe://pair` link, which you can
+paste in the app ("or paste the pointe:// link"). A `pointe://` link opened from the Camera, another app or a web page
+pairs nothing: it only opens Pointe and says to scan the code inside the app, because any app can open such a link.
+Replacing the Mac a phone is paired with asks for Face ID, and the old pairing stays until the new Mac answers. The page
+turns to "Connected: &lt;phone&gt;" when the app has paired.
 
 The code works once, for 5 minutes, and holds no lasting secret: the app checks the Mac's certificate first, then
 trades the code for its own key (`phone_pairing.py`). Choosing a route that the current certificate does not cover
@@ -68,9 +71,9 @@ window cannot show the terminal's.
 | `pointe pair rotate` | Makes a new certificate (see below) |
 | `pointe pair off` | Stops the phone listener |
 
-The terminal's QR code carries the phone key itself, not a one-time code: show it only to your own phone. After
-`pointe pair tailscale`, `wifi` or `host`, the listener starts once Pointe restarts (`pointe restart`). The page and
-the Mac app restart the listener for you.
+The terminal's QR code carries the phone key itself, not a one-time code: show it only to your own phone, and scan it
+inside the app, not with the Camera. After `pointe pair tailscale`, `wifi` or `host`, a running Pointe starts the
+listener within a few seconds (otherwise at its next start).
 
 ### Rotate and unpair
 
@@ -79,11 +82,15 @@ the Mac app restart the listener for you.
   come back.
 - **Unpair all:** signs out every phone, including a phone browser paired with `pointe pair link`. That link stops
   working; `pointe pair link` prints the new one.
-- **A new certificate:** `pointe pair rotate`. Every phone and every machine paired with this Mac must pair again, and
+- **A new certificate:** `pointe pair rotate`. It signs out every phone, phone browser and paired machine at once (a
+  running Pointe ends their calls and links within seconds), and makes a new pairing secret. Each must pair again, and
   a browser that trusted the old certificate must trust the new one. The command prints the steps for each paired
-  machine.
-- **Stop the listener:** `pointe pair off` removes the certificate and the pairing secret. A Twingate connector started
-  with `voice-connector` keeps running; stop it in Docker.
+  machine. Use it when a phone is lost or a pairing code or link was seen by someone else.
+- **Stop the listener:** `pointe pair off` signs out every phone, browser and machine the same way, and removes the
+  certificate and the pairing secret. A Twingate connector started with `voice-connector` keeps running; stop it in
+  Docker.
+- **Deleting the app does not unpair it:** the pairing stays in the iPhone's Keychain and the Mac still takes its key.
+  Unpair it on the Mac.
 
 ## In the phone's browser
 

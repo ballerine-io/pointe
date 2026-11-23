@@ -145,7 +145,9 @@ and when it picks the current mode.</p>
 <ol>
 <li>the read-out allowlist can say the request whole (a credential-like value is never read out);</li>
 <li>
-<p>the request loses nothing (<code>drive.road_safe</code>, a second allowlist): read-only programs, tests, <code>mkdir</code>, <code>touch</code>,
+<p>the request loses nothing (<code>drive.road_safe</code>, a second allowlist, of programs and of each program's flags: a flag
+   the read-out does not know for that program waits, as do git's <code>--upload-pack</code>, <code>--receive-pack</code>, <code>--exec</code> and <code>-c</code>,
+   curl's data and config flags, and <code>uniq</code> with an output file): read-only programs, tests, <code>mkdir</code>, <code>touch</code>,
    <code>git status</code>, <code>diff</code>, <code>log</code>, <code>show</code>, <code>fetch</code>, <code>pull</code>, <code>add</code>, <code>commit</code>, and <code>push</code> without force, delete, mirror,
    <code>+ref</code> or <code>:ref</code>; no <code>--amend</code>, <code>--no-verify</code>, <code>--rebase</code>, <code>--prune</code>, or <code>add -f</code>; plain <code>curl</code> GETs; and edits inside
    the project. <code>rm</code>, <code>mv</code>, <code>cp</code>, redirects into files, <code>git reset</code>, <code>clean</code>, <code>rebase</code>, <code>checkout</code>, <code>stash</code>, <code>npm run</code>,

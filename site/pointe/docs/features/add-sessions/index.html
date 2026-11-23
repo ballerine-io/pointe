@@ -126,22 +126,22 @@ them. Describe them, and Pointe finds them, reads back what it found, and joins 
 <tbody>
 <tr>
 <td>"Hey Pointe, connect to the session about the recent pentest"</td>
-<td>"Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap."</td>
+<td>"Join pentest-recon, the Claude Code session in pentest-notes on studio?"</td>
 <td>it joins</td>
 </tr>
 <tr>
 <td>"Connect to all open Claude Code sessions"</td>
-<td>"Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs? Say yes or tap."</td>
+<td>"Join 3 open Claude Code sessions on studio: pentest-recon, billing and docs?"</td>
 <td>they all join</td>
 </tr>
 <tr>
 <td>"Reopen yesterday's session about the billing migration"</td>
-<td>"Reopen billing-migration, the Claude Code session in billing from yesterday, in a new terminal window on studio? Say yes or tap."</td>
+<td>"Reopen billing-migration, the Claude Code session in billing from yesterday, in a new terminal window on studio?"</td>
 <td>a terminal window opens with <code>claude --resume</code>, and it joins</td>
 </tr>
 <tr>
 <td>"Join the codex thread about the changelog"</td>
-<td>"Join docs, the Codex session in docs on studio? Say yes or tap."</td>
+<td>"Join docs, the Codex session in docs on studio?"</td>
 <td>it joins</td>
 </tr>
 <tr>
@@ -208,8 +208,9 @@ stay in its terminal", and the voice tells you when that session waits there.</p
 <ul>
 <li>
 <p><strong>Join anything you did not confirm.</strong> A description only finds and reads back. A yes, a pick from the list read
-  back, or a tap joins; the read-back heard back, typed words, and (with the voice lock on) another voice do not, and
-  that yes never also approves a waiting prompt.</p>
+  back, or a tap joins. The yes and the pick keep a permission prompt's rules: a yes and nothing else, begun after the
+  read-back ended, with the read-back the last thing Pointe said. The read-back heard back, typed or corrected words,
+  and (with the voice lock on) another voice do not, and that yes never also approves a waiting prompt.</p>
 </li>
 <li>
 <p><strong>Read another user's sessions.</strong> Only this OS user's config dirs, processes and sockets.</p>

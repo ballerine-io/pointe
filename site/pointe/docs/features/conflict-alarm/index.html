@@ -121,8 +121,9 @@ report and delivers what it accepts.</p>
   newest, with "N more disagreements" under it. The app plays a warning haptic when a card appears.</p>
 </li>
 <li>
-<p><strong>Ask</strong> sends your typed words <code>Send &lt;name&gt; this question: &lt;question&gt;</code> through the normal path, so every send gate
-  applies, and typed words can never approve.</p>
+<p><strong>Ask</strong> sends the card's question, as the card shows it, straight to that session, under a header saying it is a
+  conflict check written by Pointe, not typed by you. It never becomes your words: it starts no brain turn, passes no
+  send check as if you had said it, and approves nothing.</p>
 </li>
 <li>
 <p><strong>Dismiss</strong> (a tap, or "I know" / "later" within 5 minutes of the spoken alarm) keeps that pair quiet for the rest of
@@ -202,8 +203,8 @@ OpenCode or Codex sessions, and no measured precision.</p>
 </tr>
 <tr>
 <td><code>{action: "ask", id, side: "a"\|"b"}</code></td>
-<td>sends the typed question through the normal send path</td>
-<td>400 bad side; 404; 409 no call, or a meeting on</td>
+<td>sends the question to that session as a conflict check</td>
+<td>400 bad side; 404; 409 no call, a meeting on, or the session left; 502 not delivered</td>
 </tr>
 </tbody>
 </table></div>

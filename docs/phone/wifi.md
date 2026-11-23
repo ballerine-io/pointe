@@ -16,7 +16,7 @@ Two networks work:
 1. Put the Mac and the phone on the same network (one of the two above).
 2. Pair. On the Mac, open Pointe's page: **Settings → Phone → Connect your phone**. Choose **Same Wi-Fi** (it shows the
    Mac's address), then **Show the code**. In a terminal instead: `pointe pair wifi`, then `pointe restart`.
-3. On the iPhone, scan the code with the Camera and tap "Open in Pointe", or scan it in the app.
+3. On the iPhone, scan the code in the Pointe app and confirm the Mac it names. (The Camera does not pair: a link it opens only takes you to the app's scanner.)
 4. The first time, iOS asks whether Pointe may find and connect to devices on your local network. Allow it: the
    Wi-Fi route needs it.
 

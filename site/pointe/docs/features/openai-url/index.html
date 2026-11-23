@@ -114,7 +114,11 @@ or any server that speaks OpenAI's API over https. The key stays in the Keychain
 <p><strong>Not measured.</strong> None of Pointe's benchmark results cover this setup. What you get depends on the model you deployed.</p>
 <h2 id="turn-it-on">Turn it on</h2>
 <ol>
-<li>Save the host's key as the OpenAI key: <code>pointe key openai</code> (it goes to the Keychain item <code>pointe.openai-api-key</code>).</li>
+<li>
+<p>Save the host's key as the OpenAI key: <code>pointe key openai</code> (it goes to the Keychain item <code>pointe.openai-api-key</code>).
+   With <code>openai_url</code> set, that is the only Keychain item read, not the name before 1.20.0, <code>openai-api-key</code>, which
+   another tool may keep for OpenAI itself. <code>OPENAI_API_KEY</code> in the environment still comes first, as for every key.</p>
+</li>
 <li>
 <p>In <code>~/.claude-voice/config.json</code>, set the address and name your own deployments for the three text roles:</p>
 <div class="dx-code"><pre><code class="language-json">{
@@ -144,6 +148,10 @@ it replaces the three roles too.</p>
 </li>
 <li>
 <p><strong>https only.</strong> An address that does not start with <code>https://</code> is refused, because the key is sent there.</p>
+</li>
+<li>
+<p><strong>Only this setting.</strong> The OpenAI SDK's own <code>OPENAI_BASE_URL</code> (and <code>OPENAI_CUSTOM_HEADERS</code>) is not read: set for
+  another tool, it would send the key past both checks above. Pointe takes it out of its environment at start.</p>
 </li>
 <li>
 <p><strong>Where your words go.</strong> Your sessions' content and what you say, as text, go to the host you set. Pointe does not

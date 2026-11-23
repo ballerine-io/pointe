@@ -121,7 +121,7 @@ caps, the ledger, the morning report); <code>daemon.py</code> runs the shift, ho
 <p><strong>Voice:</strong> "Tonight: billing finishes the retry work and opens a PR; docs updates the changelog; start a Codex session
   in shop to fix the flaky test." Each session gets the words you said after its name. Pointe reads the plan back
   ("Night shift. billing: finishes the retry work and opens a PR. … Up to 8 hours and 40 messages. I approve nothing: a
-  session that needs approval waits for you. Start? Say yes or tap.") and starts on your yes. Say no, or anything else,
+  session that needs approval waits for you. Start?") and starts on your yes, or a tap on Start shift. Say no, or anything else,
   and nothing starts.</p>
 </li>
 <li>
@@ -213,8 +213,10 @@ sends at night is one of five fixed texts around your own task; no model writes 
   as New session starts one: in a folder you already work in, never with prompts skipped.</p>
 </li>
 <li>
-<p><strong>Start without your yes.</strong> The read-back heard back, typed words and, with the voice lock on, another voice do not
-  count, and that yes never also approves a waiting request.</p>
+<p><strong>Start without your yes.</strong> The yes keeps a permission prompt's rules: a yes and nothing else ("yes, but skip the
+  deploy" starts nothing), begun after the read-back ended, with the read-back the last thing Pointe said. The read-back
+  heard back, typed or corrected words and, with the voice lock on, another voice do not count, and that yes never also
+  approves a waiting request.</p>
 </li>
 <li>
 <p><strong>Run past its caps.</strong> 8 hours and 40 messages unless you set otherwise (at most 12 hours, 200 messages). The

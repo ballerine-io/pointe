@@ -51,7 +51,7 @@ In the Twingate console, add a resource in the same remote network:
 2. On the Mac, open Pointe's page: **Settings → Phone → Connect your phone**. In "Or a name you set up (Twingate, a
    VPN)", type the alias and press **Check**, then choose it and **Show the code**. In a terminal instead:
    `pointe pair host pointe.example.internal`, then `pointe restart`.
-3. On the iPhone, scan the code with the Camera and tap "Open in Pointe", or scan it in the app.
+3. On the iPhone, scan the code in the Pointe app and confirm the Mac it names. (The Camera does not pair: a link it opens only takes you to the app's scanner.)
 
 The page may say "This Mac can't look it up, so Pointe can't check it." That is expected: a Twingate alias often
 resolves only on the phone. Use it anyway.

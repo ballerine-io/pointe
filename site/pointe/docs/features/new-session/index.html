@@ -118,7 +118,7 @@ session joins the voice by itself. Design and reasons: <a href="https://github.c
 <li>
 <p><strong>Voice:</strong> "start a new Claude Code session in shop", "open a codex session in billing called invoices", "start
   another agent here". Pointe reads back exactly what it will start ("Start a Codex session in billing on studio, named
-  invoices? Say yes or tap."; the machine is named only when another one is paired) and starts it on your yes. Say no, or anything else, and nothing starts. With no agent
+  invoices?"; the machine is named only when another one is paired) and starts it on your yes, or a tap on Start. Say no, or anything else, and nothing starts. With no agent
   named it is Claude Code.</p>
 </li>
 <li>
@@ -177,8 +177,10 @@ gone).</p>
 </li>
 <li>
 <p><strong>Start on a guess.</strong> Two folders with the same name, or a name it did not catch: it asks which. The yes must be
-  yours: the read-back heard back, typed words, and (with the voice lock on) another voice do not count, and that yes
-  never also approves a waiting request.</p>
+  yours, under the rules of a yes to a permission prompt: a yes and nothing else ("okay, except in billing" is not one),
+  begun after the read-back ended, with the read-back the last thing Pointe said. The read-back heard back, typed or
+  corrected words, and (with the voice lock on) another voice do not count, and that yes never also approves a waiting
+  request.</p>
 </li>
 <li>
 <p><strong>Start in a meeting or in Challenge me.</strong> Those modes cannot act.</p>

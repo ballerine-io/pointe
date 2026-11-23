@@ -10,7 +10,7 @@ the route the page recommends when it finds Tailscale on the Mac.
 2. Pair. On the Mac, open Pointe's page: **Settings → Phone → Connect your phone**. Choose **Tailscale** (it shows the
    Mac's Tailscale name), then **Show the code**. In a terminal instead: `pointe pair tailscale`, then
    `pointe restart`.
-3. On the iPhone, scan the code with the Camera and tap "Open in Pointe", or scan it in the app.
+3. On the iPhone, scan the code in the Pointe app and confirm the Mac it names. (The Camera does not pair: a link it opens only takes you to the app's scanner.)
 
 For the phone's browser instead of the app, run `pointe pair link` after step 2 and open the address once on the phone
 ([In the phone's browser](../phone.md#in-the-phones-browser)).

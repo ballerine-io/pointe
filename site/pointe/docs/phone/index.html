@@ -187,9 +187,12 @@ route first (the guides above), then pair in one of these places.</p>
 <p>On the Mac, open Pointe's page: <strong>Settings → Phone → Connect your phone</strong>. The page lists the ways your phone can reach
 this Mac (Tailscale, a name you set up such as a Twingate alias, the same Wi-Fi), marks one <strong>Recommended</strong>, and has a
 field, "Or a name you set up (Twingate, a VPN)", with <strong>Check</strong>. Choose a route, then <strong>Show the code</strong>.</p>
-<p>On the iPhone, point the Camera at the code and tap "Open in Pointe", or scan it in the app's pairing screen. "Can't
-scan? Copy the link" copies the same <code>pointe://pair</code> link, which you can paste in the app ("or paste the pointe://
-link"). The page turns to "Connected: &lt;phone&gt;" when the app has paired.</p>
+<p>On the iPhone, scan the code in the Pointe app's pairing screen, and confirm the Mac it names (its address and the
+start of its certificate's fingerprint). "Can't scan? Copy the link" copies the same <code>pointe://pair</code> link, which you can
+paste in the app ("or paste the pointe:// link"). A <code>pointe://</code> link opened from the Camera, another app or a web page
+pairs nothing: it only opens Pointe and says to scan the code inside the app, because any app can open such a link.
+Replacing the Mac a phone is paired with asks for Face ID, and the old pairing stays until the new Mac answers. The page
+turns to "Connected: &lt;phone&gt;" when the app has paired.</p>
 <p>The code works once, for 5 minutes, and holds no lasting secret: the app checks the Mac's certificate first, then
 trades the code for its own key (<code>phone_pairing.py</code>). Choosing a route that the current certificate does not cover
 makes a new certificate, and the page says so first: every phone and machine paired before must pair again.</p>
@@ -237,9 +240,9 @@ window cannot show the terminal's.</p>
 </tr>
 </tbody>
 </table></div>
-<p>The terminal's QR code carries the phone key itself, not a one-time code: show it only to your own phone. After
-<code>pointe pair tailscale</code>, <code>wifi</code> or <code>host</code>, the listener starts once Pointe restarts (<code>pointe restart</code>). The page and
-the Mac app restart the listener for you.</p>
+<p>The terminal's QR code carries the phone key itself, not a one-time code: show it only to your own phone, and scan it
+inside the app, not with the Camera. After <code>pointe pair tailscale</code>, <code>wifi</code> or <code>host</code>, a running Pointe starts the
+listener within a few seconds (otherwise at its next start).</p>
 <h3 id="rotate-and-unpair">Rotate and unpair</h3>
 <ul>
 <li>
@@ -252,13 +255,19 @@ the Mac app restart the listener for you.</p>
   working; <code>pointe pair link</code> prints the new one.</p>
 </li>
 <li>
-<p><strong>A new certificate:</strong> <code>pointe pair rotate</code>. Every phone and every machine paired with this Mac must pair again, and
+<p><strong>A new certificate:</strong> <code>pointe pair rotate</code>. It signs out every phone, phone browser and paired machine at once (a
+  running Pointe ends their calls and links within seconds), and makes a new pairing secret. Each must pair again, and
   a browser that trusted the old certificate must trust the new one. The command prints the steps for each paired
-  machine.</p>
+  machine. Use it when a phone is lost or a pairing code or link was seen by someone else.</p>
 </li>
 <li>
-<p><strong>Stop the listener:</strong> <code>pointe pair off</code> removes the certificate and the pairing secret. A Twingate connector started
-  with <code>voice-connector</code> keeps running; stop it in Docker.</p>
+<p><strong>Stop the listener:</strong> <code>pointe pair off</code> signs out every phone, browser and machine the same way, and removes the
+  certificate and the pairing secret. A Twingate connector started with <code>voice-connector</code> keeps running; stop it in
+  Docker.</p>
+</li>
+<li>
+<p><strong>Deleting the app does not unpair it:</strong> the pairing stays in the iPhone's Keychain and the Mac still takes its key.
+  Unpair it on the Mac.</p>
 </li>
 </ul>
 <h2 id="in-the-phones-browser">In the phone's browser</h2>
