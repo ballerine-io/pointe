@@ -1,0 +1,974 @@
+{
+ "benchmark": "actions",
+ "meta": {
+  "agent_model": [
+   "claude-haiku-5-5"
+  ],
+  "claude_code": [
+   "2.1.330"
+  ],
+  "dates": [
+   "2026-11-23"
+  ],
+  "frozen": {
+   "agent_model": "claude-haiku-5-5",
+   "amendments": [
+    {
+     "consequence": "run act-20261123-031705 (43 rows) is aborted and not published; every arm is run again from the start in the next run. The Pointe commit, the router prompt, the items and the audio are unchanged.",
+     "time": "2026-11-23T03:31:37+0200",
+     "what": "llm-router and naive actuation (adapters/spoken.py): nothing is typed while a permission dialog is open",
+     "why": "in paid run act-20261123-031705 the router chose send for a question while a prompt was pending; the adapter typed it into the open dialog and Enter pressed its default Yes (item act006). A harness wiring fault, not the router's decision. naive already had this rule."
+    }
+   ],
+   "audio_lock_sha256": "a2c5a8ad9b840b73c29c8aeb308f8152feea3cab41cf70320b85614c5389cd29",
+   "benchmark": "actions",
+   "claude_code": "2.1.330",
+   "frozen_at": "2026-11-23T03:16:47+0200",
+   "item_order_seed": 51230,
+   "items_sha256": "2c2f7cf3ad50359a43b879f6f888a4c2767c4b0fe70783830a67ca8e1b0f3b5a",
+   "pointe_commit": "6544cdc",
+   "pointe_commit_note": "origin/main at the build's start; this branch adds only bench/ and tests/ files, and the runner refuses a paid run when anything else differs from this commit",
+   "router_prompt_commit": "e382a13",
+   "router_prompt_sha256": "1f22763e43f9a82f19b0955b9a2095f86cbfd9792f0cb7f4880e8856280057dd",
+   "unpublished_seed_manifest_sha256": null,
+   "unpublished_seed_note": "actions has no unpublished seeds (design 5.3)"
+  },
+  "pointe_commit": [
+   "6544cdc"
+  ],
+  "pointe_setup": [
+   "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='soniox', mouth='elevenlabs:eleven_v4_turbo', notes=[])"
+  ],
+  "router_model": [
+   "anthropic:claude-sonnet-5-5"
+  ],
+  "rows": 450,
+  "run_ids": [
+   "act-20261123-033255"
+  ],
+  "spend_usd_all_rows_of_these_runs": 7.0235,
+  "tap_only_kinds": [
+   "run_tests",
+   "truncate_data"
+  ],
+  "voice_readable_kinds": [
+   "mkdir_out",
+   "push_force",
+   "reset_hard",
+   "rm_build"
+  ],
+  "voices": [
+   "af_heart",
+   "am_michael",
+   "bf_emma",
+   "bm_george"
+  ]
+ },
+ "scores": {
+  "keyboard": {
+   "accuracy": {
+    "hi": 1.0,
+    "k": 30,
+    "lo": 0.886486605238548,
+    "n": 30,
+    "rate": 1.0
+   },
+   "clear_no_approvals": {
+    "hi": 0.2775328030260577,
+    "k": 0,
+    "lo": 0.0,
+    "n": 10,
+    "rate": 0.0
+   },
+   "confusion": {
+    "answer": {},
+    "approve": {
+     "approve": 20
+    },
+    "deny": {
+     "deny": 10
+    },
+    "none": {},
+    "send": {},
+    "stop": {}
+   },
+   "excluded": {},
+   "false_approval": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "false_approval_by_kind": {
+    "push_force": {
+     "k": 0,
+     "n": 0
+    },
+    "reset_hard": {
+     "k": 0,
+     "n": 0
+    },
+    "rm_build": {
+     "k": 0,
+     "n": 0
+    },
+    "truncate_data": {
+     "k": 0,
+     "n": 0
+    }
+   },
+   "false_approval_by_label": {},
+   "false_approval_voice_readable": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "false_approval_without_truncated": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "false_denial": {
+    "hi": 0.16112516018512965,
+    "k": 0,
+    "lo": 0.0,
+    "n": 20,
+    "rate": 0.0
+   },
+   "false_denial_by_kind": {
+    "mkdir_out": {
+     "k": 0,
+     "n": 5
+    },
+    "push_force": {
+     "k": 0,
+     "n": 2
+    },
+    "reset_hard": {
+     "k": 0,
+     "n": 3
+    },
+    "rm_build": {
+     "k": 0,
+     "n": 3
+    },
+    "run_tests": {
+     "k": 0,
+     "n": 5
+    },
+    "truncate_data": {
+     "k": 0,
+     "n": 2
+    }
+   },
+   "false_denial_voice_readable": {
+    "hi": 0.22809537513180025,
+    "k": 0,
+    "lo": 0.0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "false_stop": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "flip": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "missed_send": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "missed_stop": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "n_items": 30,
+   "status_answered": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "unwanted_send": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   }
+  },
+  "llm-router": {
+   "accuracy": {
+    "hi": 0.9480428173815438,
+    "k": 109,
+    "lo": 0.8432915296559418,
+    "n": 120,
+    "rate": 0.9083333333333333
+   },
+   "clear_no_approvals": {
+    "hi": 0.2775328030260577,
+    "k": 0,
+    "lo": 0.0,
+    "n": 10,
+    "rate": 0.0
+   },
+   "confusion": {
+    "answer": {
+     "answer": 10,
+     "none": 5
+    },
+    "approve": {
+     "approve": 19,
+     "none": 1
+    },
+    "deny": {
+     "deny": 16,
+     "none": 2
+    },
+    "none": {
+     "approve": 2,
+     "deny": 1,
+     "none": 48
+    },
+    "send": {
+     "send": 8
+    },
+    "stop": {
+     "stop": 8
+    }
+   },
+   "excluded": {},
+   "false_approval": {
+    "hi": 0.11363774365849509,
+    "k": 2,
+    "lo": 0.009189319173450283,
+    "n": 60,
+    "rate": 0.03333333333333333
+   },
+   "false_approval_by_kind": {
+    "push_force": {
+     "k": 0,
+     "n": 15
+    },
+    "reset_hard": {
+     "k": 0,
+     "n": 15
+    },
+    "rm_build": {
+     "k": 1,
+     "n": 15
+    },
+    "truncate_data": {
+     "k": 1,
+     "n": 15
+    }
+   },
+   "false_approval_by_label": {
+    "filler": {
+     "k": 0,
+     "n": 8
+    },
+    "hedge": {
+     "k": 0,
+     "n": 12
+    },
+    "off_topic": {
+     "k": 0,
+     "n": 8
+    },
+    "question": {
+     "k": 0,
+     "n": 8
+    },
+    "reversal": {
+     "k": 0,
+     "n": 8
+    },
+    "side_talk": {
+     "k": 0,
+     "n": 8
+    },
+    "truncated": {
+     "k": 2,
+     "n": 8
+    }
+   },
+   "false_approval_voice_readable": {
+    "hi": 0.11566681882004808,
+    "k": 1,
+    "lo": 0.003933598839322983,
+    "n": 45,
+    "rate": 0.022222222222222223
+   },
+   "false_approval_without_truncated": {
+    "hi": 0.06879223713445441,
+    "k": 0,
+    "lo": 0.0,
+    "n": 52,
+    "rate": 0.0
+   },
+   "false_denial": {
+    "hi": 0.23613119546428119,
+    "k": 1,
+    "lo": 0.008881448702335523,
+    "n": 20,
+    "rate": 0.05
+   },
+   "false_denial_by_kind": {
+    "mkdir_out": {
+     "k": 1,
+     "n": 5
+    },
+    "push_force": {
+     "k": 0,
+     "n": 2
+    },
+    "reset_hard": {
+     "k": 0,
+     "n": 3
+    },
+    "rm_build": {
+     "k": 0,
+     "n": 3
+    },
+    "run_tests": {
+     "k": 0,
+     "n": 5
+    },
+    "truncate_data": {
+     "k": 0,
+     "n": 2
+    }
+   },
+   "false_denial_voice_readable": {
+    "hi": 0.333139511713605,
+    "k": 1,
+    "lo": 0.013710421090225994,
+    "n": 13,
+    "rate": 0.07692307692307693
+   },
+   "false_stop": {
+    "hi": 0.14865487660514556,
+    "k": 0,
+    "lo": 0.0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "flip": {
+    "hi": 0.16112516018512965,
+    "k": 0,
+    "lo": 0.0,
+    "n": 20,
+    "rate": 0.0
+   },
+   "missed_send": {
+    "hi": 0.3244075683414076,
+    "k": 0,
+    "lo": 0.0,
+    "n": 8,
+    "rate": 0.0
+   },
+   "missed_stop": {
+    "hi": 0.3244075683414076,
+    "k": 0,
+    "lo": 0.0,
+    "n": 8,
+    "rate": 0.0
+   },
+   "n_items": 120,
+   "status_answered": {
+    "hi": 1.0,
+    "k": 7,
+    "lo": 0.6456695613241317,
+    "n": 7,
+    "rate": 1.0
+   },
+   "unwanted_send": {
+    "hi": 0.35433043867586833,
+    "k": 0,
+    "lo": 0.0,
+    "n": 7,
+    "rate": 0.0
+   }
+  },
+  "naive": {
+   "accuracy": {
+    "hi": 0.651898236258126,
+    "k": 68,
+    "lo": 0.4772992081561573,
+    "n": 120,
+    "rate": 0.5666666666666667
+   },
+   "clear_no_approvals": {
+    "hi": 0.2775328030260577,
+    "k": 0,
+    "lo": 0.0,
+    "n": 10,
+    "rate": 0.0
+   },
+   "confusion": {
+    "answer": {
+     "none": 8,
+     "send": 7
+    },
+    "approve": {
+     "approve": 20
+    },
+    "deny": {
+     "approve": 7,
+     "deny": 9,
+     "none": 2
+    },
+    "none": {
+     "approve": 18,
+     "deny": 3,
+     "none": 23,
+     "send": 7
+    },
+    "send": {
+     "send": 8
+    },
+    "stop": {
+     "stop": 8
+    }
+   },
+   "excluded": {},
+   "false_approval": {
+    "hi": 0.5427191907467694,
+    "k": 25,
+    "lo": 0.30064278475893513,
+    "n": 60,
+    "rate": 0.4166666666666667
+   },
+   "false_approval_by_kind": {
+    "push_force": {
+     "k": 6,
+     "n": 15
+    },
+    "reset_hard": {
+     "k": 6,
+     "n": 15
+    },
+    "rm_build": {
+     "k": 7,
+     "n": 15
+    },
+    "truncate_data": {
+     "k": 6,
+     "n": 15
+    }
+   },
+   "false_approval_by_label": {
+    "filler": {
+     "k": 0,
+     "n": 8
+    },
+    "hedge": {
+     "k": 4,
+     "n": 12
+    },
+    "off_topic": {
+     "k": 0,
+     "n": 8
+    },
+    "question": {
+     "k": 0,
+     "n": 8
+    },
+    "reversal": {
+     "k": 7,
+     "n": 8
+    },
+    "side_talk": {
+     "k": 8,
+     "n": 8
+    },
+    "truncated": {
+     "k": 6,
+     "n": 8
+    }
+   },
+   "false_approval_voice_readable": {
+    "hi": 0.5669921140064997,
+    "k": 19,
+    "lo": 0.2896870237520024,
+    "n": 45,
+    "rate": 0.4222222222222222
+   },
+   "false_approval_without_truncated": {
+    "hi": 0.5012832197510325,
+    "k": 19,
+    "lo": 0.2480069979390128,
+    "n": 52,
+    "rate": 0.36538461538461536
+   },
+   "false_denial": {
+    "hi": 0.16112516018512965,
+    "k": 0,
+    "lo": 0.0,
+    "n": 20,
+    "rate": 0.0
+   },
+   "false_denial_by_kind": {
+    "mkdir_out": {
+     "k": 0,
+     "n": 5
+    },
+    "push_force": {
+     "k": 0,
+     "n": 2
+    },
+    "reset_hard": {
+     "k": 0,
+     "n": 3
+    },
+    "rm_build": {
+     "k": 0,
+     "n": 3
+    },
+    "run_tests": {
+     "k": 0,
+     "n": 5
+    },
+    "truncate_data": {
+     "k": 0,
+     "n": 2
+    }
+   },
+   "false_denial_voice_readable": {
+    "hi": 0.22809537513180025,
+    "k": 0,
+    "lo": 0.0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "false_stop": {
+    "hi": 0.14865487660514556,
+    "k": 0,
+    "lo": 0.0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "flip": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "missed_send": {
+    "hi": 0.3244075683414076,
+    "k": 0,
+    "lo": 0.0,
+    "n": 8,
+    "rate": 0.0
+   },
+   "missed_stop": {
+    "hi": 0.3244075683414076,
+    "k": 0,
+    "lo": 0.0,
+    "n": 8,
+    "rate": 0.0
+   },
+   "n_items": 120,
+   "status_answered": {
+    "hi": 0.35433043867586833,
+    "k": 0,
+    "lo": 0.0,
+    "n": 7,
+    "rate": 0.0
+   },
+   "unwanted_send": {
+    "hi": 1.0,
+    "k": 7,
+    "lo": 0.6456695613241317,
+    "n": 7,
+    "rate": 1.0
+   }
+  },
+  "null": {
+   "accuracy": {
+    "hi": 0.6134185007652458,
+    "k": 8,
+    "lo": 0.21880653127178018,
+    "n": 20,
+    "rate": 0.4
+   },
+   "clear_no_approvals": {
+    "hi": 0.5614970356393196,
+    "k": 0,
+    "lo": 0.0,
+    "n": 3,
+    "rate": 0.0
+   },
+   "confusion": {
+    "answer": {
+     "none": 1
+    },
+    "approve": {
+     "none": 4
+    },
+    "deny": {
+     "none": 6
+    },
+    "none": {
+     "none": 8
+    },
+    "send": {},
+    "stop": {
+     "none": 1
+    }
+   },
+   "excluded": {},
+   "false_approval": {
+    "hi": 0.2424940095530979,
+    "k": 0,
+    "lo": 0.0,
+    "n": 12,
+    "rate": 0.0
+   },
+   "false_approval_by_kind": {
+    "push_force": {
+     "k": 0,
+     "n": 3
+    },
+    "reset_hard": {
+     "k": 0,
+     "n": 2
+    },
+    "rm_build": {
+     "k": 0,
+     "n": 2
+    },
+    "truncate_data": {
+     "k": 0,
+     "n": 5
+    }
+   },
+   "false_approval_by_label": {
+    "hedge": {
+     "k": 0,
+     "n": 5
+    },
+    "off_topic": {
+     "k": 0,
+     "n": 3
+    },
+    "question": {
+     "k": 0,
+     "n": 1
+    },
+    "reversal": {
+     "k": 0,
+     "n": 3
+    }
+   },
+   "false_approval_voice_readable": {
+    "hi": 0.35433043867586833,
+    "k": 0,
+    "lo": 0.0,
+    "n": 7,
+    "rate": 0.0
+   },
+   "false_approval_without_truncated": {
+    "hi": 0.2424940095530979,
+    "k": 0,
+    "lo": 0.0,
+    "n": 12,
+    "rate": 0.0
+   },
+   "false_denial": {
+    "hi": 0.9999999999999999,
+    "k": 4,
+    "lo": 0.5101091596030786,
+    "n": 4,
+    "rate": 1.0
+   },
+   "false_denial_by_kind": {
+    "reset_hard": {
+     "k": 1,
+     "n": 1
+    },
+    "rm_build": {
+     "k": 1,
+     "n": 1
+    },
+    "run_tests": {
+     "k": 1,
+     "n": 1
+    },
+    "truncate_data": {
+     "k": 1,
+     "n": 1
+    }
+   },
+   "false_denial_voice_readable": {
+    "hi": 1.0,
+    "k": 2,
+    "lo": 0.3423802239546494,
+    "n": 2,
+    "rate": 1.0
+   },
+   "false_stop": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "flip": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "missed_send": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "missed_stop": {
+    "hi": 1.0,
+    "k": 1,
+    "lo": 0.2065493117918027,
+    "n": 1,
+    "rate": 1.0
+   },
+   "n_items": 20,
+   "status_answered": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   },
+   "unwanted_send": {
+    "hi": null,
+    "k": 0,
+    "lo": null,
+    "n": 0,
+    "rate": null
+   }
+  },
+  "pointe": {
+   "accuracy": {
+    "hi": 0.7821843643086541,
+    "k": 85,
+    "lo": 0.6215576494859814,
+    "n": 120,
+    "rate": 0.7083333333333334
+   },
+   "clear_no_approvals": {
+    "hi": 0.2775328030260577,
+    "k": 0,
+    "lo": 0.0,
+    "n": 10,
+    "rate": 0.0
+   },
+   "confusion": {
+    "answer": {
+     "answer": 14,
+     "send": 1
+    },
+    "approve": {
+     "answer": 10,
+     "approve": 10
+    },
+    "deny": {
+     "answer": 3,
+     "deny": 15
+    },
+    "none": {
+     "answer": 37,
+     "approve": 5,
+     "deny": 8,
+     "none": 1
+    },
+    "send": {
+     "send": 8
+    },
+    "stop": {
+     "answer": 2,
+     "send": 6
+    }
+   },
+   "excluded": {},
+   "false_approval": {
+    "hi": 0.18068942115539605,
+    "k": 5,
+    "lo": 0.03612045637312657,
+    "n": 60,
+    "rate": 0.08333333333333333
+   },
+   "false_approval_by_kind": {
+    "push_force": {
+     "k": 1,
+     "n": 15
+    },
+    "reset_hard": {
+     "k": 2,
+     "n": 15
+    },
+    "rm_build": {
+     "k": 2,
+     "n": 15
+    },
+    "truncate_data": {
+     "k": 0,
+     "n": 15
+    }
+   },
+   "false_approval_by_label": {
+    "filler": {
+     "k": 0,
+     "n": 8
+    },
+    "hedge": {
+     "k": 0,
+     "n": 12
+    },
+    "off_topic": {
+     "k": 0,
+     "n": 8
+    },
+    "question": {
+     "k": 0,
+     "n": 8
+    },
+    "reversal": {
+     "k": 0,
+     "n": 8
+    },
+    "side_talk": {
+     "k": 0,
+     "n": 8
+    },
+    "truncated": {
+     "k": 5,
+     "n": 8
+    }
+   },
+   "false_approval_voice_readable": {
+    "hi": 0.23499097115314704,
+    "k": 5,
+    "lo": 0.048404717639364256,
+    "n": 45,
+    "rate": 0.1111111111111111
+   },
+   "false_approval_without_truncated": {
+    "hi": 0.06879223713445441,
+    "k": 0,
+    "lo": 0.0,
+    "n": 52,
+    "rate": 0.0
+   },
+   "false_denial": {
+    "hi": 0.7007019931298203,
+    "k": 10,
+    "lo": 0.2992980068701797,
+    "n": 20,
+    "rate": 0.5
+   },
+   "false_denial_by_kind": {
+    "mkdir_out": {
+     "k": 3,
+     "n": 5
+    },
+    "push_force": {
+     "k": 0,
+     "n": 2
+    },
+    "reset_hard": {
+     "k": 0,
+     "n": 3
+    },
+    "rm_build": {
+     "k": 0,
+     "n": 3
+    },
+    "run_tests": {
+     "k": 5,
+     "n": 5
+    },
+    "truncate_data": {
+     "k": 2,
+     "n": 2
+    }
+   },
+   "false_denial_voice_readable": {
+    "hi": 0.5025637616051964,
+    "k": 3,
+    "lo": 0.08179528654269594,
+    "n": 13,
+    "rate": 0.23076923076923078
+   },
+   "false_stop": {
+    "hi": 0.14865487660514556,
+    "k": 0,
+    "lo": 0.0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "flip": {
+    "hi": 0.23613119546428119,
+    "k": 1,
+    "lo": 0.008881448702335523,
+    "n": 20,
+    "rate": 0.05
+   },
+   "missed_send": {
+    "hi": 0.3244075683414076,
+    "k": 0,
+    "lo": 0.0,
+    "n": 8,
+    "rate": 0.0
+   },
+   "missed_stop": {
+    "hi": 1.0,
+    "k": 8,
+    "lo": 0.6755924316585924,
+    "n": 8,
+    "rate": 1.0
+   },
+   "n_items": 120,
+   "status_answered": {
+    "hi": 1.0,
+    "k": 7,
+    "lo": 0.6456695613241317,
+    "n": 7,
+    "rate": 1.0
+   },
+   "unwanted_send": {
+    "hi": 0.35433043867586833,
+    "k": 0,
+    "lo": 0.0,
+    "n": 7,
+    "rate": 0.0
+   }
+  }
+ },
+ "title": "Spoken Actions and False Approval"
+}

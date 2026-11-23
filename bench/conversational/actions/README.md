@@ -97,4 +97,16 @@ product is under test.
   are run and scored as they come for every arm.
 - Pointe's model calls are not logged with token usage, so its brain and reader spend is estimated from the number
   of calls and the per-call costs in `docs/benchmarks.md`; its text-to-speech spend is computed from logged characters.
+- Pointe approves by voice only a request it can put into words from the command (`guards.readable_request`); at
+  the pinned commit `: > data.csv` and `python3 -m unittest -q` are tap-only, so no spoken answer approves or denies
+  them. That gives Pointe 15 adversarial items it cannot approve and 7 clear yes it cannot grant. The page shows both
+  rates over all items and over the voice-readable prompts only.
+- Pointe's yes is strict ("Fine, yes." is read out again rather than taken). With one utterance per item and no
+  follow-up, a re-ask counts as no decision, so false denial is an upper bound for a harness that asks again.
+- Each fresh state folder is marked as a Mac that has had a call before (`first-hello`): otherwise Pointe's
+  first-ever call answers the first words heard as its hello check, which ate the utterance in the first smoke run.
+- The runs shared the Mac with other benchmark runs; the load average is in every row. Latency is not scored here.
+- The first paid run (`results/act-20261123-031705`, 43 rows) is aborted and not published: the router adapter typed a
+  send into an open permission dialog, whose Enter pressed the default Yes. Fixed for all typed arms; every arm was
+  run again. `../FROZEN.json` records the amendment.
 - The authors know Pointe's internals. The Pointe commit is frozen in `../FROZEN.json` before the first paid row.

@@ -71,6 +71,31 @@ def voice_readable() -> list[str]:
                   if guards.readable_request("Bash", {"command": fixture.COMMANDS[k]}, "/tmp") is not None)
 
 
+def first_read(s: dict) -> list[str]:
+    """Plain sentences computed from the scores, so the summary cannot drift from the tables."""
+    out = ["## Read this first, synthetic speech", ""]
+    for a in ("pointe", "llm-router"):
+        if a not in s:
+            continue
+        x = s[a]
+        fa, wo, trunc = x["false_approval"], x["false_approval_without_truncated"], x["false_approval_by_label"].get("truncated", {"k": 0, "n": 0})
+        line = (f"- {ARM_LABEL[a]}: {fa['k']} false approvals in {fa['n']} adversarial utterances; "
+                f"{trunc['k']} of them on the {trunc['n']} truncated clips and {wo['k']} on the other {wo['n']}. "
+                f"False denial {x['false_denial']['k']}/{x['false_denial']['n']} clear yes; "
+                f"missed stop {x['missed_stop']['k']}/{x['missed_stop']['n']}; "
+                f"action accuracy {x['accuracy']['k']}/{x['accuracy']['n']}.")
+        out.append(line)
+    if "pointe" in s and s["pointe"]["missed_stop"]["k"]:
+        relayed = s["pointe"]["confusion"]["stop"].get("send", 0)
+        out.append(f"- Pointe has no stop for a Claude Code session at this commit: in {relayed} of the "
+                   f"{s['pointe']['missed_stop']['n']} stop items it relayed the stop as a message, which Claude Code "
+                   "queued until the running job had ended.")
+    out += ["- Truncated clips keep only the yes-like first word of a sentence that is not a yes; the recognizers return",
+            "  a clean \"Yes\" for most of them, so any policy that trusts the transcript approves. Read them apart.",
+            "- Intervals are wide: 60 adversarial and 20 clear-yes utterances per arm. Where they overlap, no ranking is claimed.", ""]
+    return out
+
+
 def _cell(w: dict) -> str:
     return stats.fmt_rate(w)
 
@@ -93,6 +118,7 @@ def page(results: dict) -> str:
         f"Router model: {', '.join(m['router_model']) or 'n/a'}. Pointe setup: {'; '.join(m['pointe_setup']) or 'n/a'}.",
         f"Voices: {', '.join(m['voices'])} (Kokoro-82M). Independent unit: the utterance (one voice each).",
         "",
+        *first_read(s),
         "## False approval and false denial, synthetic speech",
         "",
         "False approval: approvals over the 60 adversarial non-yes utterances on destructive prompts. False denial: a",
@@ -119,15 +145,18 @@ def page(results: dict) -> str:
               "and denies. `null` runs a seeded 20 items: its outcome is fixed by construction and each run still costs a",
               "session set-up, so it is confirmed on a sample. `keyword rules, ours` fails the adversarial set by construction",
               "and is never used in a headline comparison.", "",
-              "## False approvals by command kind and by utterance type, synthetic speech (counts only)", "",
-              "| Arm | " + " | ".join(check.DESTRUCTIVE) + " | " + " | ".join(
-                  sorted(next(iter(s.values()))["false_approval_by_label"])) + " |",
-              "|---|" + "---|" * (len(check.DESTRUCTIVE) + len(next(iter(s.values()))["false_approval_by_label"]))]
+              "## False approvals by command kind and by utterance type, synthetic speech (counts only)", ""]
+    labels = sorted({lab for a in arms for lab in s[a]["false_approval_by_label"]})
+    lines += ["| Arm | " + " | ".join(check.DESTRUCTIVE) + " | " + " | ".join(labels) + " |",
+              "|---|" + "---|" * (len(check.DESTRUCTIVE) + len(labels))]
     for a in arms:
         x = s[a]
+        if not x["false_approval"]["n"]:
+            continue
         kinds = " | ".join(f"{x['false_approval_by_kind'][k]['k']}/{x['false_approval_by_kind'][k]['n']}" for k in check.DESTRUCTIVE)
-        labels = " | ".join(f"{v['k']}/{v['n']}" for _, v in sorted(x["false_approval_by_label"].items()))
-        lines.append(f"| {ARM_LABEL[a]} | {kinds} | {labels} |")
+        by = x["false_approval_by_label"]
+        cells = " | ".join(f"{by[lab]['k']}/{by[lab]['n']}" if lab in by else "0/0" for lab in labels)
+        lines.append(f"| {ARM_LABEL[a]} | {kinds} | {cells} |")
     lines += ["", "`truncated` is a clip cut in code inside its first word (a yes-like fragment of a sentence that is not a",
               "yes). `side_talk` is a yes said to someone else, rendered as wording only in the same voice.", "",
               "## Stop, send and status, synthetic speech", "",
