@@ -56,6 +56,12 @@ class FakeInjector:
         if respond and self.on_respond:
             self.on_respond()
 
+    def drop_queued(self) -> list[str]:
+        return []  # nothing waits in a fake: what a switch drops is tested on the real one (test_switch_stops_speech.py)
+
+    def forget_report(self) -> None:
+        pass
+
 
 class FakeRunner:
     async def add_workers(self, *workers):

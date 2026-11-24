@@ -960,6 +960,24 @@ class FeedInjector(FrameProcessor):
             state.monologue_held.append((text, True))  # a session's report waits for the end of the challenge
             return True
         if current_mode().holds_news:
+    def drop_queued(self) -> list[str]:
+        """The owner moved to another session or mode (_drop_old_topic): nothing that waited to be said for the place
+        they left is said. Returns what waited, most important first, so its words can be kept as text."""
+        waited = self._updates.take() + sorted(self._held, key=_feed_priority)
+        self._held, self._offered, self._cut = [], [], None
+        if self._deliverer is not None:
+            self._deliverer.cancel()
+            self._deliverer = None
+        return waited
+
+    def skip_ahead(self) -> None:
+        """The owner skipped the line being said (skip_speech): it is not offered again, and the next thing that waits
+        goes after a breath instead of after the quiet gap news waits for."""
+        self.forget_report()
+        self._skipped_at = time.time()
+        if self._updates and (self._deliverer is None or self._deliverer.done()):
+            self._deliverer = asyncio.create_task(self._deliver_updates())
+
             state.monologue_held.append((text, True))  # news waits for the end of the mode (brainstorm, meeting)
             if state.meeting is not None:
                 NOTES.add("session_news", text.split("]", 1)[-1].strip()[:300] or text[:300], dedup=False)
@@ -6595,6 +6613,8 @@ def _close_pending() -> tuple[float, list[str], str] | None:
     return pending if pending and time.time() - pending[0] < CLOSE_CONFIRM_SECS else None
 
 
+    if session is not REGISTRY.active or REGISTRY.mode != "session":
+        await _drop_old_topic(by_voice=True)
 def _said_list(sessions: list[Session]) -> str:
     names = [_spoken_names(s.name) for s in sessions]
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
@@ -7337,7 +7357,10 @@ async def set_mode(params: FunctionCallParams):
             options = ", ".join(s.name for g in groups for s in g)
             await params.result_callback({"error": f"Not changed. Which session to focus on: {options}?"})
             return
-        if groups and groups[0][0] is not REGISTRY.active:
+        moved = bool(groups) and groups[0][0] is not REGISTRY.active
+        if moved or REGISTRY.mode != "session":
+            await _drop_old_topic(by_voice=True)
+        if moved:
             await activate(groups[0][0])
     state.last_switch_at = time.time()
     await params.result_callback(_apply_mode(wanted))
@@ -7352,6 +7375,8 @@ def _apply_mode(mode: str) -> dict:
     elif mode == "session":
         _stop_briefing()  # a briefing covers every session: what is left of it is about the others
     REGISTRY.save()
+    elif REGISTRY.mode != wanted:
+        await _drop_old_topic(by_voice=True)
     logger.info(f"mode -> {mode}" + (f" on {REGISTRY.active.name}" if mode == "session" and REGISTRY.active else ""))
     if mode == "session":
         return {"mode": "session", "pinned_to": REGISTRY.active.name if REGISTRY.active else None}
@@ -8469,16 +8494,57 @@ def _focus_line(s: Session) -> str:
     return " ".join(parts)
 
 
-async def _drop_old_topic() -> None:
-    """The owner moved on by a click: what the bot is saying, the reply being generated, and a report it would come
-    back to all belong to the session before. The same cut as a barge-in."""
-    if state.front is not None:
-        state.front.brain.interrupt()
+UNSAID = "Not said, from {name}: {line}"  # a line dropped by a switch, as the conversation keeps it
+
+
+async def _keep_unsaid(waited: list[str]) -> None:
+    """Lines a switch dropped before they were said stay readable: each one about a session is written into the
+    conversation, and the brain is given them so "what did billing say?" still has an answer. A reminder or a prompt
+    with no line of its own (a nudge, a resume) is only dropped: the nudger brings a wait up again."""
+    kept = []
+    for text in waited:
+        about = _SUBJECTS.get(text)
+        if about is None or not about[2].strip():
+            logger.info(f"dropped at a switch, nothing to keep: {text[:60]!r}")
+            continue
+        names, _, line = about
+        kept.append(UNSAID.format(name=", ".join(n for n in names if n) or "the sessions", line=_sentence(line)))
+    if not kept:
+        return
+    logger.info(f"a switch dropped {len(kept)} line(s) before they were said: kept as text")
+    state.call_break = True  # each a turn of its own in the conversation, not the tail of what was being said
+    _remember("assistant", "\n".join(kept) + " ")
+    state.call_break = True
     if state.conn is not None:
-        state.conn.injector.forget_report()
-        cut = getattr(state.conn.injector, "broadcast_interruption", None)
-        if cut is not None:
-            await cut()
+        await state.conn.injector.inject(
+            "[not said: the user switched away before these were spoken. They are on the screen as text. Do not say "
+            "them unless the user asks]\n" + "\n".join(kept), False)
+
+
+async def _drop_old_topic(by_voice: bool = False) -> None:
+    """The owner moved to another session or to the other mode, by a click or by voice, from any surface: what the bot
+    is saying, the reply being generated, a report it would come back to, and everything that waited to be said all
+    belong to the place they left. Nothing queued plays after the switch; what was dropped is kept as text
+    (_keep_unsaid).
+
+    A click is cut as a barge-in is. `by_voice`: the switch runs inside the turn the owner's words started, and their
+    words already cut the bot, so the brain is left alone to say where it landed; the mouth is flushed downstream only
+    (an interruption from the injector reaches the brain and ends that turn)."""
+    if state.front is not None and not by_voice:
+        state.front.brain.interrupt()
+    _stop_briefing()  # what is left of a briefing was for the place the owner left
+    if state.conn is None:
+        return
+    injector = state.conn.injector
+    injector.forget_report()
+    await _keep_unsaid(injector.drop_queued())
+    if by_voice:
+        if state.mouth_gate is not None:
+            await state.mouth_gate.hush()
+        return
+    cut = getattr(injector, "broadcast_interruption", None)
+    if cut is not None:
+        await cut()
 
 
 async def focus_by_click(session: Session) -> None:
@@ -9001,6 +9067,7 @@ async def add_key(request: Request):
     key page and the Mac's own key window, checks the key, asks again when it is refused, and restarts Pointe on it.
     The key never passes through the page or this process. Not from the phone: the window opens on the Mac."""
     if _off_the_mac(request):
+        await _drop_old_topic()  # before the mode moves: the news held for the way back is said after the cut
         raise HTTPException(status_code=403, detail="Add a key on the Mac itself.")
     body = await request.json()
     vendor = body.get("vendor") if isinstance(body, dict) else None
