@@ -131,21 +131,6 @@
       </figure>
       <p class="film-out"><b class="figure">One minute.</b><span class="body">Three sessions sent work in 9 seconds. One design decision. One pull request understood. No tab opened.</span></p>
       <p class="small note">The footage is AI-generated. The voices are synthesized with ElevenLabs; Pointe's is the product's default voice. The panel is drawn in the product's look, with invented sessions, and the sessions' work is shortened. Picture, panel and sound come from one timeline.</p>
-
-      <article class="workout" aria-labelledby="h-workout">
-        <div class="workout-copy">
-          <p class="kicker"><span class="when">12:30</span> Away from the desk</p>
-          <h3 id="h-workout" class="h2">Go to the gym. The work keeps up.</h3>
-          <p class="body">Phone in the pocket, earbuds in. Between sets: “How’s billing doing?” “All tests pass.” “Ship it.”
-            Back at the desk, it is done.</p>
-          <p class="small">On the go, the call is in the iPhone app: scan one code on the Mac. <a href="#apps">iPhone beta on TestFlight</a></p>
-        </div>
-        <figure class="beat-frame" data-loop>
-          <img src="day/workout.jpg" width="960" height="540" loading="lazy" alt="AI-generated footage: she leaves her desk, phone in hand, and slides it into her pocket. At the gym, between sets, she touches her earbud: You: How's billing doing? Pointe: All tests pass. The PR is ready. You: Ship it. She picks the weights back up. Back at her desk, a card shows billing merged, docs and api done.">
-          <video muted loop playsinline preload="none" poster="day/workout.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden><source src="day/workout.mp4" type="video/mp4"></video>
-          <span class="ai">AI-generated footage</span>
-        </figure>
-      </article>
     </div>
   </section>
 
@@ -156,7 +141,7 @@
         <h2 id="h-day" class="h1">Your agents keep up with your day.</h2>
       </div>
       <div class="story-grid" data-day>
-        <nav class="rail" aria-label="The day, step by step"><a href="#beat-switch"><span class="when">09:20</span> Sessions by voice</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-meeting"><span class="when">14:00</span> Meeting mode</a><a href="#beat-drive"><span class="when">16:30</span> Drive mode</a><a href="#beat-night"><span class="when">22:40</span> Night shift</a><a href="#beat-morning"><span class="when">07:40</span> Morning briefing</a></nav>
+        <nav class="rail" aria-label="The day, step by step"><a href="#beat-switch"><span class="when">09:20</span> Sessions by voice</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-workout"><span class="when">13:00</span> Workout</a><a href="#beat-meeting"><span class="when">14:00</span> Meeting mode</a><a href="#beat-drive"><span class="when">16:30</span> Drive mode</a><a href="#beat-night"><span class="when">22:40</span> Night shift</a><a href="#beat-morning"><span class="when">07:40</span> Morning briefing</a></nav>
         <ol class="beats">
         <li class="beat" id="beat-switch">
           <div class="beat-copy">
@@ -196,6 +181,23 @@
               <source srcset="day/ui-mac-dark.png" media="(prefers-color-scheme: dark)">
               <img src="day/ui-mac-light.png" width="528" height="160" loading="lazy" alt="The Mac app's call bubble: Listening, the words it is hearing, Always on, and a 1 for the one session that waits.">
             </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-workout">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">13:00</span> Workout</p>
+            <h3 class="h2">Go to the gym. The work keeps up.</h3>
+            <p class="body">Phone in the pocket, earbuds in. Between sets: “How’s billing doing?” “All tests pass.” “Ship it.”
+              Back at the desk, it is done.</p>
+            <p class="small">On the go, the call is in the iPhone app. <a href="#apps">iPhone beta on TestFlight</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/workout.jpg" width="960" height="540" loading="lazy" alt="AI-generated footage: she leaves her desk, phone in hand, and slides it into her pocket. At the gym, between sets, she touches her earbud: You: How's billing doing? Pointe: All tests pass. The PR is ready. You: Ship it. She picks the weights back up. Back at her desk, a card shows billing merged, docs and api done.">
+              <video muted playsinline preload="none" poster="day/workout.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/workout.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
           </figure>
         </li>
         <li class="beat" id="beat-meeting">
@@ -857,7 +859,7 @@
       video.play().catch(() => {});
     });
   }
-  // Short silent loops (the pains, the workout) play while in view. With reduced motion or data saver the stills stay.
+  // The pains' short silent loops play while in view. With reduced motion or data saver the stills stay.
   const calm = matchMedia('(prefers-reduced-motion: reduce)'), lean = navigator.connection && navigator.connection.saveData;
   const loops = new IntersectionObserver(entries => {
     for (const e of entries) {
