@@ -52,6 +52,8 @@ public enum MacCopy {
     public static let squatter = "Another program is answering on Pointe's port, so this app sent it nothing."
     public static let node = "This Mac is a node: the call is on its hub. Open Pointe there, or use the phone app."
     public static let noPlugin = "Pointe is not installed on this Mac yet."
+    /// The daemon is coming up. It downloads nothing: the installer put the packages there first (Installer.swift).
+    public static let starting = "Starting Pointe…"
     public static let installCommand = "claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe"
     public static let approveReason = "approve a session's request"
     public static let lowerLockReason = "lower the voice lock"

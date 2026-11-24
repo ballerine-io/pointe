@@ -226,7 +226,7 @@ final class AppModel {
         case .node: MacCopy.node
         case .stopped: MacCopy.daemonDown
         case .squatter: MacCopy.squatter
-        case .starting: "Starting Pointe… the first start downloads about 180 MB."
+        case .starting: MacCopy.starting
         case .running: session.daemonVersion.map { "Running, version \($0)" } ?? "Running"
         case .failed(let why): why
         }
