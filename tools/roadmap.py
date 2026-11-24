@@ -181,11 +181,9 @@ TEMPLATE = """<!doctype html>
 <main id="main" class="pg-wrap">
   <section class="pg-hero">
     <p class="pg-kicker">Roadmap</p>
-    <h1 class="pg-h1">What comes next is partly up to you.</h1>
-    <p class="pg-lead">Each item is a GitHub issue. Vote with a 👍 on the issue, and the lists here are sorted by those
-      votes. Something missing? Propose it in <a href="{{IDEAS}}">Discussions → Ideas</a>.</p>
-    <p class="pg-small">Votes as of {{DATE}}: this page is a snapshot, updated when the site is published. No dates are
-      promised: Pointe is community-supported, on a best-effort basis.</p>
+    <h1 class="pg-h1">What may come next, sorted by votes.</h1>
+    <p class="pg-lead">Each item is a GitHub issue. Something missing? Propose it in <a href="{{IDEAS}}">Discussions → Ideas</a>.</p>
+    <p class="pg-small">Votes as of {{DATE}}: a snapshot, updated when the site is published. No dates are promised.</p>
   </section>
   <ul class="pg-how" aria-label="How the roadmap works">
     <li><b>Vote</b> with a 👍 reaction on an item's issue. A "+1" comment is not counted.</li>
