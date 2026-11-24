@@ -4,7 +4,7 @@ You can join the call from your phone in two ways: the iPhone app, or Pointe's p
 the daemon on your Mac through a second listener, on port 7443, that uses HTTPS. Your phone needs a private way to
 reach that port. This page helps you choose one, pair the phone, and fix what goes wrong.
 
-The iPhone app is **coming to the App Store: in review with Apple.** Until it is there, you build it from source
+The iPhone app is in a public [TestFlight beta](https://testflight.apple.com/join/gkRJccpc). You can also build it from source
 ([The iPhone app](iphone-app.md#getting-the-app)), or use the page in the phone's browser, which needs nothing on the
 phone.
 
@@ -127,7 +127,7 @@ Remote requests need HTTPS, the configured name and the pairing cookie; anything
 
 ## Getting the app
 
-The iPhone app is coming to the App Store: in review with Apple. Until then, build it from source with one command,
+The iPhone app is in a public [TestFlight beta](https://testflight.apple.com/join/gkRJccpc), or build it from source with one command,
 `pointe apps ios`. The steps, the free Apple Account and what to do when a build fails:
 [The iPhone app](iphone-app.md#getting-the-app).
 
