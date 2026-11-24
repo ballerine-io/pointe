@@ -6,7 +6,8 @@ package. It needs a paired route to your Mac: [Connect your phone](phone.md) say
 
 ## Getting the app
 
-**Coming to the App Store: in review with Apple.** It is not in the App Store or on TestFlight yet. Until it is, you
+**The public beta is waiting for Apple's beta review.** The [TestFlight link](https://testflight.apple.com/join/gkRJccpc) opens once
+Apple approves the build; the app is not in the App Store yet. Until then, you
 build it on your own Mac with Xcode, from the plugin you installed. In Claude Code, `/pointe:setup apps` does it for you. In a terminal, one command does the
 build, the signing and the install, and tells you what to do when something is missing:
 

@@ -44,8 +44,8 @@ Beta, macOS only. Setup takes about five minutes and is free with one Google AI 
    [Releases](https://github.com/ballerine-io/pointe/releases/latest) or the
    [website](https://eng.ballerine.com/pointe/#install), drag it to Applications, and open it. The app installs the
    rest, puts your model key in the Keychain and starts your first call.
-2. **iPhone** (optional). Join the [TestFlight beta](https://testflight.apple.com/join/gkRJccpc), which has a limited
-   number of places, or [build the app from source](docs/iphone-app.md#getting-the-app) with `pointe apps ios`.
+2. **iPhone** (optional). The [TestFlight beta link](https://testflight.apple.com/join/gkRJccpc) opens once Apple's beta review approves
+   the build. Until then, [build the app from source](docs/iphone-app.md#getting-the-app) with `pointe apps ios`.
 3. **Other ways.**
    - Claude Code plugin: run the command below, then `/pointe:setup` in a new session
      ([details](docs/install.md#claude-code)).
