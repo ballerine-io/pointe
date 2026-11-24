@@ -157,32 +157,34 @@ gh release create vX.Y.Z --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md 
 python3 tools/release_tarball.py pin vX.Y.Z            # install.sh installs it: the version and the SHA-256 the release publishes</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Commit the pinned <code>install.sh</code> on its own ("The installer pins X.Y.Z"; it changes only <code>POINTE_VERSION</code> and
 <code>POINTE_SHA256</code> in it and the same file's SHA-256 in <code>apps/PointeKit/Sources/PointeMacKit/Installer.swift</code>, which <code>pin</code>
-writes too, and needs no version), then deploy the site, which serves it at <code>/pointe/install.sh</code>.</p>
-<p>Then the Mac app, from that commit, so the <code>install.sh</code> built into it installs this release:</p>
-<div class="dx-code"><pre><code>tools/build_dmg.sh --upload     # dist/Pointe-X.Y.Z.dmg and .sha256, signed, notarized, stapled; attached to the release</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p>It signs and notarizes the app through Xcode's account (the team's cloud-managed Developer ID certificate). The disk
-image needs a "Developer ID Application" identity in the keychain and the notarytool profile <code>pointe-notary</code>, each made
-once; the script names whichever is missing and attaches nothing until both are there. Once they exist,
-<code>tools/build_dmg.sh --app apps/macos/build/dmg/app/Pointe.app --upload</code> makes the image again from the app already
-notarized, without a new archive.</p>
-<p><strong>0.8.1 shipped with an unsigned disk image.</strong> The app inside it is signed with Developer ID, notarized and stapled,
-which is what Gatekeeper judges: a quarantined download of the image (as Safari marks it) mounts on a double-click, and
-the copied app is "accepted, source=Notarized Developer ID" (<code>spctl -a -vvv -t exec</code>), with <code>stapler validate</code> and
-<code>syspolicy_check distribution</code> passing. The image itself (<code>spctl -t install</code>: "no usable signature") gets signed and
-notarized from the next patch version on, once the owner has made the Developer ID Application certificate and the
-<code>pointe-notary</code> profile: a published asset is never replaced, so 0.8.1's stays as it is. In CI the <code>mac-release</code>
-workflow does the same on a published release when its environment holds the signing secrets
-(<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
-<code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>. <code>--upload</code> also attaches the same image as <code>Pointe.dmg</code>, which every release must carry: the site
-links <code>https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg</code>. Once the disk image is attached
-and <code>spctl</code> accepts it, set <code>mac</code> in <code>site/pointe/apps.json</code> to <code>"status": "open"</code> with that <code>download_url</code>, this
-<code>version</code> and the image's <code>size</code> in decimal megabytes, as Finder and browsers show it (<code>stat -f %z</code>, divided by
-1,000,000: "4.5 MB"): the hero, the top nav and the install card then offer
-the download (<code>tools/apps_status.py</code>). Deploy the site, and check the link anonymously (<code>curl -sIL &lt;url&gt;</code> ends in 200)
-and the downloaded file's SHA-256 against the release's <code>.sha256</code>. Until then a new
+writes too, and needs no version), then deploy the site, which serves it at <code>/pointe/install.sh</code>. Until then a new
 standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out
 <code>bench/</code>, <code>evals/</code> and <code>site/</code> (<code>.gitattributes</code>). Never replace an asset of a published release: a mistake gets a new
-patch version, as for a tag.</p>
+patch version, as for a tag. The one exception is the <code>Pointe.dmg</code> copy below, when it holds the wrong image.</p>
+<p>Then the Mac app, from that commit, so the <code>install.sh</code> built into it installs this release:</p>
+<div class="dx-code"><pre><code>tools/build_dmg.sh --upload     # dist/Pointe-X.Y.Z.dmg and .sha256, signed, notarized, stapled; attached to the release</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><strong>Signing is set up on the owner's Mac.</strong> The app is archived and sent to Apple's notary service through Xcode's
+account (the team's cloud-managed Developer ID certificate, export destination "upload"). The disk image is signed with
+the "Developer ID Application: Alon Peretz (PP445E78PD)" identity in the login keychain and notarized with the
+notarytool profile <code>pointe-notary</code> (an App Store Connect API key with the Developer role), then stapled. On another
+Mac, the script names whichever of the two is missing and attaches nothing. <code>--app &lt;notarized Pointe.app&gt;</code> makes the
+image again from an app already notarized, without a new archive.</p>
+<p>Check before attaching: <code>spctl -a -vvv -t install</code> on the image and <code>spctl -a -vvv -t exec</code> on the app say
+"accepted, source=Notarized Developer ID"; <code>xcrun stapler validate</code> passes on both; and a quarantined copy of the image
+(as Safari marks a download) mounts on a double-click, its app copied out still accepted.</p>
+<p><code>--upload</code> also attaches the same image as <code>Pointe.dmg</code>, which every release must carry: the site links
+<code>https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg</code>. If a release went out with the wrong
+<code>Pointe.dmg</code> (0.8.2's first held the 0.8.1 app), replace that copy alone with <code>gh release upload vX.Y.Z Pointe.dmg
+Pointe.dmg.sha256 --clobber</code>; the versioned <code>Pointe-X.Y.Z.dmg</code> is never replaced. Then set <code>mac</code> in
+<code>site/pointe/apps.json</code> to <code>"status": "open"</code> with that <code>download_url</code>, this <code>version</code> and the image's <code>size</code> in
+decimal megabytes, as Finder and browsers show it (<code>stat -f %z</code> divided by 1,000,000: "4.5 MB"); the hero, the top
+nav and the install card follow it (<code>tools/apps_status.py</code>). Deploy the site, and check the link anonymously
+(<code>curl -sIL &lt;url&gt;</code> ends in 200) and the downloaded file's SHA-256 against the release's <code>.sha256</code>.</p>
+<p>In CI the <code>mac-release</code> workflow does the same on a published release when its environment holds the signing secrets
+(<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
+<code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>.</p>
+<p>0.8.1's disk image is not signed (its app is signed, notarized and stapled, which is what Gatekeeper judges on a
+download); 0.8.2's is the first signed and notarized image.</p>
 <p>Write the notes for someone who has never seen Pointe, in this order:</p>
 <ol>
 <li>What Pointe is, in two sentences (the README's first paragraph).</li>

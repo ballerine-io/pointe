@@ -9,8 +9,8 @@ What does not work yet, and what was not measured. Each feature page lists its o
 - **Claude Code cannot be interrupted from outside.** "Stop" ends a Claude Code turn at its next tool step, and a
   command that is already running finishes first. Codex and OpenCode stop at once: [Harnesses](harnesses.md).
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
-- **The Mac app** is `Pointe.dmg`: the app in it is signed with Developer ID and notarized ([how](mac-app.md#getting-it)); the
-  0.8.1 disk image itself is not signed yet. Its
+- **The Mac app** is `Pointe.dmg`, signed with Developer ID and notarized, the image and the app in it
+  ([how](mac-app.md#getting-it)). Its
   first-launch install ran for real into an empty home folder, through the same installer code, but has not yet been
   followed on a fresh Mac account; its screens were checked in a preview. Its
   call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon

@@ -12,7 +12,7 @@ What each surface has, and why the few differences exist: [design/parity.md](des
 
 Download `Pointe-<version>.dmg` from the [newest release](https://github.com/ballerine-io/pointe/releases/latest), drag
 Pointe to Applications, and open it. The app is signed with Ballerine's Developer ID and notarized by Apple, with the
-ticket stapled, so macOS opens it without a warning (the 0.8.1 disk image around it is not signed yet). You need macOS 15 or newer. On a Mac with no Pointe yet, the window is the setup: it installs Pointe
+ticket stapled, and so is the disk image: macOS opens them without a warning. You need macOS 15 or newer. On a Mac with no Pointe yet, the window is the setup: it installs Pointe
 with the `install.sh` built into it (checked against a SHA-256 the app carries, and installing only the release of the
 app's own version, checked against the SHA-256 pinned in that script), then asks one question, takes your key and
 starts your first call: [Install, Mac](install.md#mac-download-pointedmg-drag-to-applications-open). An existing Claude
