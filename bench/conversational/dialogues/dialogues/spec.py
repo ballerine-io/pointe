@@ -9,7 +9,7 @@ HERE = Path(__file__).resolve().parents[1]
 SUITE = HERE / "dialogues.toml"
 NEED = {"answer": 30, "send": 8, "multi": 10, "ask": 20, "none": 3, "hold": 0, "stop": 8, "approve": 8, "deny": 20,
         "gated": 30, "files": 30, "any": 40, "send_or_ask": 20}
-WHENS = ("idle", "approval", "speaking", "working", "quick", "now")
+WHENS = ("idle", "approval", "readout", "speaking", "working", "quick", "now")
 
 
 @dataclass

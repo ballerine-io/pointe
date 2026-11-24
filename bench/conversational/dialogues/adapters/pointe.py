@@ -268,6 +268,16 @@ class Pointe(Base):
     def speech(self):
         return self.call.spans() if self.call else []
 
+    def _said_events(self) -> list:
+        out = []
+        for line in self.lines():
+            if m := re.search(r" - speak: (.*)", line):
+                try:
+                    out.append((time.mktime(time.strptime(line[:19], "%Y-%m-%d %H:%M:%S")), m.group(1)))
+                except ValueError:
+                    pass
+        return out
+
     def thinking(self) -> bool:
         """The voice is mid-step: a brain step or a send logged in the last 2.5 seconds."""
         lines = self.lines()[-5:]

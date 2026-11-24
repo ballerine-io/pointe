@@ -19,7 +19,7 @@ from core.asr import Whisper
 from dialogues.fixtures import FIXTURES, SETUP_LINE
 
 GUARD_BIN = Path("/tmp/pccb-pointe/guard-bin")
-CAPS = {"idle": 75, "approval": 50, "speaking": 30, "working": 40, "quick": 30, "now": 0}
+CAPS = {"idle": 75, "approval": 50, "readout": 50, "speaking": 30, "working": 40, "quick": 30, "now": 0}
 WALL_SECS = 420
 
 
@@ -155,12 +155,20 @@ async def wait_for(turn, w: Watch, last_end: float, last_busy: list) -> str:
                 break
         elif turn.when == "approval":
             name, ap = w.pending()
-            if ap is not None and any(s >= ap["_t"] - 1 for s, _ in w.spans()) and w.quiet(1.5):
+            # A person answers the request they heard: the turn waits for its read-out, not for any speech after it
+            # ("Sent to atlas." is not the request).
+            read = w.a.readout_since(max(ap["_t"] - 1, last_end)) if ap is not None else None
+            if read is not None and any(s >= read - 1.5 for s, _ in w.spans()) and w.quiet(1.5):
+                break
+        elif turn.when == "readout":  # over the read-out itself: a yes said before it ends
+            name, ap = w.pending()
+            read = w.a.readout_since(max(ap["_t"] - 1, last_end)) if ap is not None else None
+            if read is not None and now - read >= 0.8 and w.speaking():
                 break
         await asyncio.sleep(0.2)
     if turn.delay:
         await asyncio.sleep(turn.delay)
-    if turn.when not in ("speaking", "now"):  # a person does not start over the voice: at most 8 s more
+    if turn.when not in ("speaking", "readout", "now"):  # a person does not start over the voice: at most 8 s more
         t1 = time.time()
         while time.time() - t1 < 8 and not w.quiet(1.0):
             await asyncio.sleep(0.2)

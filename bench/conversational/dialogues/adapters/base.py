@@ -1,5 +1,6 @@
 """What every adapter shares: the agent sessions started with the one launch line, and events read from their hooks."""
 
+import re
 import time
 from pathlib import Path
 
@@ -52,6 +53,19 @@ class Base:
 
     def speech(self) -> list:
         return list(self._spans)
+
+    READOUT = re.compile(r"\bwants? to\b|\bמבקש\b|needs an approval|צריך אישור")
+
+    def readout_since(self, t: float) -> float | None:
+        """When the arm began to say a permission request's read-out, at or after `t`; None while it has not."""
+        for e in self._said_events():
+            if e[0] >= t and self.READOUT.search(e[1]):
+                return e[0]
+        return None
+
+    def _said_events(self) -> list:
+        """(time, text) of each line the arm said, as the arm itself records it."""
+        return [(e.t, e.text or "") for e in getattr(self, "_events", []) if e.kind == "said"]
 
     def thinking(self) -> bool:
         return False

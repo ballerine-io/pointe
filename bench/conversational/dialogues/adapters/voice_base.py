@@ -64,6 +64,10 @@ class VoiceBase(Base):
         self._watch: asyncio.Task | None = None
         self.heard: list = []
         self.tts_chars = 0
+        self._said_log: list = []
+
+    def _said_events(self) -> list:
+        return list(self._said_log)
 
     def start(self, sessions, env):
         super().start(sessions, env)
@@ -104,6 +108,7 @@ class VoiceBase(Base):
         self._said_until = end
         self._spans.append((start, end, pcm))
         self._events.append(Event("said", start, None, text))
+        self._said_log.append((start, text))
         self.busy_until = 0.0
         await asyncio.sleep(max(0.0, end - time.time()))
 

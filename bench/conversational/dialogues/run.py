@@ -26,6 +26,7 @@ sys.path.insert(0, str(HERE))
 
 MAX_RUN = 0.90  # the most one dialogue on one arm may cost, for the budget gate
 BENCH = "dialogues"
+MAX_LOAD = 20.0  # no scored dialogue starts while the 1-minute load is above this
 
 
 def key(env_name: str, item: str) -> str | None:
@@ -87,12 +88,16 @@ async def run_all(jobs: list, ctx: dict, workers: int, port_base: int, cap: floa
                 print(f"budget: {e}", flush=True)
                 queue.clear()
                 return
+            while os.getloadavg()[0] > MAX_LOAD:  # a loaded machine measures itself, not the arm: wait it out
+                print(f"[{k}] load {os.getloadavg()[0]:.1f} > {MAX_LOAD:.0f}: waiting", flush=True)
+                await asyncio.sleep(30)
             t = time.time()
             row = await play.run(d, arm, ctx, port)
             with out.open("a") as f:
                 f.write(play.dump(row) + "\n")
             ledger.append({"benchmark": BENCH, "run_id": ctx["run_id"], "item": d.id, "arm": arm, "kind": ctx["kind"],
-                           "usd": row["spend_usd"], "label": ctx["label"]})
+                           "usd": row["spend_usd"], "label": ctx["label"], "load_avg": row.get("load_avg"),
+                           "load_avg_end": round(os.getloadavg()[0], 2)})
             print(f"[{k}] {d.id} {arm}: {time.time() - t:.0f} s, ${row['spend_usd']:.3f}"
                   f"{'  ERROR ' + row['error'] if row.get('error') else ''}", flush=True)
 
