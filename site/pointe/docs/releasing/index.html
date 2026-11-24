@@ -160,7 +160,9 @@ writes too, and needs no version), then deploy the site, which serves it at <cod
 <div class="dx-code"><pre><code>tools/build_dmg.sh --upload     # dist/Pointe-X.Y.Z.dmg and .sha256, signed, notarized, stapled; attached to the release</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>It signs and notarizes the app through Xcode's account (the team's cloud-managed Developer ID certificate). The disk
 image needs a "Developer ID Application" identity in the keychain and the notarytool profile <code>pointe-notary</code>, each made
-once; the script names whichever is missing and attaches nothing until both are there. In CI the <code>mac-release</code>
+once; the script names whichever is missing and attaches nothing until both are there. Once they exist,
+<code>tools/build_dmg.sh --app apps/macos/build/dmg/app/Pointe.app --upload</code> makes the image again from the app already
+notarized, without a new archive. In CI the <code>mac-release</code>
 workflow does the same on a published release when its environment holds the signing secrets
 (<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
 <code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>. Once the disk image is attached, set <code>mac</code> in

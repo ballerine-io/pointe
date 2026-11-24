@@ -5,6 +5,8 @@
 #
 #   tools/build_dmg.sh            dist/Pointe-<version>.dmg and its .sha256, for the version in .claude-plugin/plugin.json
 #   tools/build_dmg.sh --upload   then attach both to the GitHub Release v<version> (gh)
+#   tools/build_dmg.sh --app P    skip the archive and use P, a Pointe.app already notarized (this script's own, in
+#                                 apps/macos/build/dmg/app): for the disk image step again, once its credentials exist
 #   tools/build_dmg.sh --ci       the mac-release workflow: see "Signing" below
 #
 # Signing. Locally the app is signed and notarized through Xcode's own account: automatic signing with the team's
@@ -24,12 +26,14 @@ TEAM="${POINTE_TEAM:-PP445E78PD}"
 PROFILE="${POINTE_NOTARY_PROFILE:-pointe-notary}"
 WORK="$ROOT/apps/macos/build/dmg"
 VOLUME="Pointe"
-UPLOAD=""; CI_MODE=""
-for arg in "$@"; do
+UPLOAD=""; CI_MODE=""; GIVEN=""
+while [ $# -gt 0 ]; do
+  arg="$1"; shift
   case "$arg" in
     --upload) UPLOAD=1 ;;
     --ci)     CI_MODE=1 ;;
-    -h|--help) sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --app)    GIVEN="$(cd "${1:?--app needs a Pointe.app}" && pwd)"; shift ;;
+    -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "build_dmg.sh: no option $arg (--help lists them)" >&2; exit 2 ;;
   esac
 done
@@ -67,9 +71,16 @@ submit() {  # $1: a zip or a disk image. Waits for Apple's answer and prints the
 developer_id() { security find-identity -v -p codesigning | sed -n "s/.*\"\(Developer ID Application: .*($TEAM)\)\"/\1/p" | head -1; }
 
 [ ! -e "/Volumes/$VOLUME" ] || die "a volume named $VOLUME is mounted: eject it first (Finder lays out the new one by that name)"
+if [ -n "$GIVEN" ]; then  # kept out of $WORK, which is emptied below
+  rm -rf "$ROOT/dist/.given.app" && ditto "$GIVEN" "$ROOT/dist/.given.app" && GIVEN="$ROOT/dist/.given.app"
+fi
 rm -rf "$WORK"; mkdir -p "$WORK" "$ROOT/dist"
 ARCHIVE="$WORK/Pointe.xcarchive"
 
+if [ -n "$GIVEN" ]; then
+  mkdir -p "$WORK/app" && mv "$GIVEN" "$WORK/app/Pointe.app"
+  [ "$(defaults read "$WORK/app/Pointe.app/Contents/Info.plist" CFBundleShortVersionString)" = "$VERSION" ] || die "--app is not Pointe $VERSION"
+else
 step "1. Archive Pointe $VERSION"
 SIGN=(DEVELOPMENT_TEAM="$TEAM")
 if [ -n "$CI_MODE" ]; then SIGN+=(CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Developer ID Application")
@@ -103,11 +114,13 @@ else
   done
   [ -d "$WORK/app/Pointe.app" ] || { tail -20 "$WORK/notarized.log" >&2; die "no notarized app after an hour (log: $WORK/notarized.log)"; }
 fi
+fi
 APP="$WORK/app/Pointe.app"
 xcrun stapler staple "$APP" >/dev/null 2>&1 || true  # -exportNotarizedApp has stapled it already; --ci has not
 xcrun stapler validate "$APP"
 codesign --verify --deep --strict "$APP"
-codesign -dv "$APP" 2>&1 | grep -q "^Authority=Developer ID Application" || die "$APP is not signed with Developer ID"
+SIGNED="$(codesign -dv --verbose=2 "$APP" 2>&1)"  # captured first: grep -q on a pipe breaks it under pipefail
+case "$SIGNED" in *"Authority=Developer ID Application"*) ;; *) die "$APP is not signed with Developer ID" ;; esac
 spctl -a -vv -t exec "$APP"
 
 step "3. The disk image"
@@ -117,7 +130,7 @@ ditto "$APP" "$STAGE/Pointe.app"
 ln -s /Applications "$STAGE/Applications"
 swift "$ROOT/tools/dmg_background.swift" "$WORK/background.png" 1
 swift "$ROOT/tools/dmg_background.swift" "$WORK/background@2x.png" 2
-tiffutil -cathidpicheck "$WORK/background.png" "$WORK/background@2x.png" -out "$STAGE/.background/background.tiff" >/dev/null
+tiffutil -cathidpicheck "$WORK/background.png" "$WORK/background@2x.png" -out "$STAGE/.background/background.tiff" >/dev/null 2>&1
 hdiutil create -volname "$VOLUME" -srcfolder "$STAGE" -fs HFS+ -format UDRW -ov "$WORK/rw.dmg" >/dev/null
 MOUNT="$(hdiutil attach -readwrite -noverify -noautoopen "$WORK/rw.dmg" | sed -n 's/.*Apple_HFS[[:space:]]*//p' | head -1)"
 [ -d "$MOUNT" ] || die "the image did not mount"
@@ -148,6 +161,7 @@ end run
 APPLESCRIPT
 then say "ok       the window: background, icons placed"
 else say "note     Finder did not lay out the window (Automation permission?): the image works, unstyled"; fi
+rm -rf "$MOUNT/.fseventsd"
 chmod -Rf go-w "$MOUNT" || true
 sync
 hdiutil detach "$MOUNT" -quiet || { sleep 3; hdiutil detach "$MOUNT" -force -quiet; }

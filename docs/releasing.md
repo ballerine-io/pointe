@@ -68,7 +68,9 @@ tools/build_dmg.sh --upload     # dist/Pointe-X.Y.Z.dmg and .sha256, signed, not
 
 It signs and notarizes the app through Xcode's account (the team's cloud-managed Developer ID certificate). The disk
 image needs a "Developer ID Application" identity in the keychain and the notarytool profile `pointe-notary`, each made
-once; the script names whichever is missing and attaches nothing until both are there. In CI the `mac-release`
+once; the script names whichever is missing and attaches nothing until both are there. Once they exist,
+`tools/build_dmg.sh --app apps/macos/build/dmg/app/Pointe.app --upload` makes the image again from the app already
+notarized, without a new archive. In CI the `mac-release`
 workflow does the same on a published release when its environment holds the signing secrets
 (`.github/workflows/mac-release.yml` lists them); its token is read-only, so attach its artifact with
 `gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256`. Once the disk image is attached, set `mac` in
