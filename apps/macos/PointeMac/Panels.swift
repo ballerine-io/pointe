@@ -23,13 +23,25 @@ struct MainWindow: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             if model.ready, let note = model.versionNote {
-                Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath")
-                    .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
-                    .padding(.vertical, 6)
-                    .textSelection(.enabled)
-                    .accessibilityIdentifier("versionNote")
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.horizontal, 18)
+                HStack(spacing: 10) {
+                    if model.canUpdate {  // the standalone install, older than this app: the app brings it up itself
+                        Label(model.installRun?.line ?? model.installProblem ?? note.line, systemImage: "arrow.triangle.2.circlepath")
+                        if let run = model.installRun {
+                            ProgressView(value: run.fraction).frame(width: 120)
+                        } else {
+                            Button("Update Pointe to \(model.appVersion)") { Task { await model.installPointe() } }
+                                .help("Installs Pointe \(model.appVersion), checked, beside the old one, restarts Pointe on it (a call in progress ends), then removes the old one.")
+                                .accessibilityIdentifier("updatePointe")
+                        }
+                    } else {
+                        Label("\(note.line) \(note.fix)", systemImage: "arrow.triangle.2.circlepath").textSelection(.enabled)
+                    }
+                }
+                .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent)
+                .padding(.vertical, 6)
+                .accessibilityIdentifier("versionNote")
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.horizontal, 18)
             }
         }
         .overlay(alignment: .topTrailing) {  // in the title bar's row, beside nothing: a row of its own floated over the header
@@ -61,24 +73,38 @@ struct SetupPanel: View {
                     PointeLook.mark(36)
                     Text("Set up Pointe").font(PointeLook.display(28)).foregroundStyle(PointeLook.text).accessibilityAddTraits(.isHeader)
                 }
-                step(done: model.plugin != nil, title: "The Pointe plugin",
-                     detail: model.plugin.map { "Found version \($0.version)." } ?? "Install it in a terminal, then come back:") {
-                    if model.plugin == nil {
-                        HStack {
-                            Text(MacCopy.installCommand).font(.system(.caption, design: .monospaced)).textSelection(.enabled).lineLimit(2)
-                            Button("Copy") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(MacCopy.installCommand, forType: .string)
-                            }
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    ProgressView(value: Double(stepsDone), total: 4).tint(PointeLook.primary)
+                    Text(stepsDone == 4 ? "Ready: press Connect and say hello." : "Step \(stepsDone + 1) of 4. About five minutes, then your first call.")
+                        .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
                 }
-                step(done: model.keyPlan?.ready == true, title: "A setup and its keys",
-                     detail: model.keyPlan?.ready == true ? "\(model.keyPlan?.line ?? KeyCopy.allFilled) The app never reads a key; Pointe on this Mac does."
-                        : "\(model.keyPlan.map { $0.present.isEmpty && $0.setup == nil ? KeyCopy.noKey : $0.line } ?? KeyCopy.noKey) \(KeyCopy.whatYouNeedTitle) \(KeyCopy.whatYouNeed) Choose a setup, then add the keys it marks Needed in Settings, Model keys.\n\n\(KeyCopy.whyKeys)") {
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("setup.progress")
+                installStep
+                step(done: setupChosen, title: "Your setup", detail: setupChosen
+                     ? (model.setupID == nil ? model.keyPlan?.line ?? KeyCopy.allFilled : "Pointe uses this setup's vendors. Settings, Model keys, changes it.")
+                     : KeyCopy.freeStart) {
+                    if !setupChosen {
+                        Button("Start with Free start") { Task { await model.chooseSetup("free") } }
+                            .buttonStyle(.borderedProminent).tint(PointeLook.primary)
+                            .disabled(model.plugin == nil || model.setupBusy)
+                            .accessibilityIdentifier("setup.free")
+                    }
                     SetupPicker()
                 }
-                step(done: model.daemon == .running, title: "Pointe on this Mac", detail: model.daemonLine) {
+                step(done: model.keyPlan?.ready == true, title: "Your key",
+                     detail: model.keyPlan?.ready == true ? "\(model.keyPlan?.line ?? KeyCopy.allFilled) The app never reads a key; Pointe on this Mac does."
+                        : "Add… opens the vendor's key page in your browser and a small Mac window. Make a key there, paste it in the window and press Save: it goes straight to your Keychain, never to a file or this app. Pointe tries it with one tiny call.") {
+                    ForEach(neededKeys) { vendor in
+                        Button("Add the \(vendor.label) key…") { Task { await model.addKey(vendor) } }
+                            .buttonStyle(.borderedProminent).tint(PointeLook.primary)
+                            .disabled(model.plugin == nil)
+                            .accessibilityIdentifier("setup.key.\(vendor.rawValue)")
+                    }
+                    if let note = model.keyNote { Text(note).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted) }
+                }
+                step(done: model.daemon == .running, title: "Your first call", detail: [.stopped, .noPlugin].contains(model.daemon)
+                     ? "Start Pointe, put on headphones, press Connect and say hello: Pointe answers that it hears you." : model.daemonLine) {
                     switch model.daemon {
                     case .stopped, .failed:
                         Button("Start Pointe") { Task { await model.startDaemon() } }.buttonStyle(.borderedProminent).tint(PointeLook.primary)
@@ -108,6 +134,44 @@ struct SetupPanel: View {
         .accessibilityIdentifier("setup")
         .sheet(item: Binding(get: { model.setupSheet }, set: { model.setupSheet = $0 })) { sheet in
             MacSetupSheetView(sheet: sheet, version: model.session.daemonVersion) { MacSettingsSections().environment(model) }
+        }
+    }
+
+    private var setupChosen: Bool { model.setupID != nil || model.keyPlan?.ready == true }
+
+    /// The keys the chosen setup still lacks (with none chosen, the one key that fills an empty role).
+    private var neededKeys: [Vendor] { model.keyPlan.map { plan in Vendor.allCases.filter { plan.state($0) == .needed } } ?? [] }
+
+    private var stepsDone: Int {
+        [model.plugin != nil, setupChosen, model.keyPlan?.ready == true, model.daemon == .running].filter { $0 }.count
+    }
+
+    /// Pointe itself: found, being installed (install.sh, built into the app, with its own progress), or one button.
+    @ViewBuilder private var installStep: some View {
+        let version = model.appVersion
+        if let plugin = model.plugin {
+            step(done: true, title: "Pointe", detail: plugin.isStandalone ? "Pointe \(plugin.version) is installed in your home folder."
+                 : "Pointe \(plugin.version) is installed: the Claude Code plugin.") { EmptyView() }
+        } else if let run = model.installRun {
+            step(done: false, title: "Installing Pointe \(version)", detail: run.line) {
+                ProgressView(value: run.fraction).tint(PointeLook.primary).frame(maxWidth: 360).accessibilityIdentifier("install.progress")
+            }
+        } else if model.canInstall {
+            step(done: false, title: "Pointe", detail: model.installProblem ?? "The app installs Pointe \(version) in your home folder: it downloads it from GitHub, checks it against the SHA-256 built into this app, and installs its Python (about 180 MB). No Terminal and no password. Pointe → Uninstall Pointe… removes it again.") {
+                Button(model.installProblem == nil ? "Install Pointe" : "Try Again") { Task { await model.installPointe() } }
+                    .buttonStyle(.borderedProminent).tint(PointeLook.primary).keyboardShortcut(.defaultAction)
+                    .accessibilityIdentifier("install")
+            }
+        } else {
+            step(done: false, title: "The Pointe plugin", detail: "\(MacCopy.noPlugin) Install it in a terminal, then come back:") {
+                HStack {
+                    Text(MacCopy.installCommand).font(.system(.caption, design: .monospaced)).textSelection(.enabled).lineLimit(2)
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(MacCopy.installCommand, forType: .string)
+                    }
+                }
+            }
         }
     }
 

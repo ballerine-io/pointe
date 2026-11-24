@@ -3,7 +3,9 @@
     python3 tools/release_tarball.py build vX.Y.Z      dist/pointe-X.Y.Z.tar.gz and its .sha256, from the tag
     python3 tools/release_tarball.py pin vX.Y.Z        install.sh installs that release: its version and SHA-256,
                                                        read from the asset on the GitHub Release (gh), checked
-                                                       against dist/ when it is there
+                                                       against dist/ when it is there; then `app`
+    python3 tools/release_tarball.py app               the Mac app carries install.sh's SHA-256 (Installer.swift): it
+                                                       runs the copy built into it only when the two agree
 
 The archive is `git archive` of the tag, with the folders a person never runs left out (.gitattributes, export-ignore):
 GitHub's own "Source code" archives are not promised to keep their bytes, so the SHA-256 is of an asset we attach.
@@ -23,6 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "install.sh"
+APP_INSTALLER = ROOT / "apps" / "PointeKit" / "Sources" / "PointeMacKit" / "Installer.swift"
 REPO = "ballerine-io/pointe"
 
 
@@ -91,6 +94,16 @@ def pin(text: str, version: str, digest: str) -> str:
     return text
 
 
+def pin_app() -> str:
+    """Writes install.sh's SHA-256 into the Mac app's installer, which refuses a script with any other."""
+    digest = sha256(INSTALLER)
+    text, n = re.subn(r'(static let scriptSHA256 = ")[0-9a-f]{64}(")', rf"\g<1>{digest}\g<2>", APP_INSTALLER.read_text(), count=1)
+    if n != 1:
+        raise SystemExit(f"{APP_INSTALLER.relative_to(ROOT)} has no scriptSHA256 line to write")
+    APP_INSTALLER.write_text(text)
+    return digest
+
+
 def published(tag: str) -> str:
     """The SHA-256 the GitHub Release publishes for its tarball, downloaded through gh."""
     got = subprocess.run(["gh", "release", "download", tag, "--repo", REPO, "--pattern", name(tag.removeprefix("v")) + ".sha256",
@@ -99,6 +112,9 @@ def published(tag: str) -> str:
 
 
 def main(argv: list[str]) -> int:
+    if argv == ["app"]:
+        print(f"the Mac app runs install.sh only with SHA-256 {pin_app()}")
+        return 0
     if len(argv) != 2 or argv[0] not in ("build", "pin") or not re.fullmatch(r"v\d+\.\d+\.\d+", argv[1]):
         print(__doc__)
         return 2
@@ -112,7 +128,7 @@ def main(argv: list[str]) -> int:
     if local.exists() and sha256(local) != digest:
         raise SystemExit(f"the release's SHA-256 ({digest}) is not that of {local.relative_to(ROOT)}: not pinned")
     INSTALLER.write_text(pin(INSTALLER.read_text(), tag.removeprefix("v"), digest))
-    print(f"install.sh now installs {tag} ({digest})")
+    print(f"install.sh now installs {tag} ({digest}); the Mac app runs it only with SHA-256 {pin_app()}")
     return 0
 
 

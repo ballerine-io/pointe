@@ -36,6 +36,9 @@ struct PointeCommands: Commands {
         CommandGroup(replacing: .appSettings) {
             Button("Settings…") { model.ask(.settings) }.keyboardShortcut(",").disabled(model.sheetUp)
         }
+        CommandGroup(after: .appSettings) {
+            Button(MacMenu.uninstall) { Task { await model.uninstallPointe() } }.disabled(model.session.isDemo || model.installRun != nil)
+        }
         CommandGroup(replacing: .newItem) {
             Button("Open Pointe") { model.windows.showMain() }.keyboardShortcut("o")
             Button(MacMenu.newSession) { model.ask(.newSession) }.keyboardShortcut("n")
@@ -91,6 +94,8 @@ enum MacMenu {
     static let mute = "Mute"
     static let unmute = "Unmute"
     static let help = "Pointe Help"
+    /// `pointe uninstall`, from the app menu: its list first, one question, keys only on their own box.
+    static let uninstall = "Uninstall Pointe…"
     /// Help → Pointe Help (⌘?): the Mac app's guide. Without it macOS said "Help isn't available for Pointe."
     static let helpURL = URL(string: "https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md")!
 

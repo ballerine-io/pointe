@@ -21,6 +21,21 @@ import Testing
         #expect(cat.status == 0 && cat.output.isEmpty, "stdin is /dev/null: nothing waits on it")
     }
 
+    final class Lines: @unchecked Sendable {
+        let lock = NSLock()
+        var all: [String] = []
+        func add(_ line: String) { lock.withLock { all.append(line) } }
+    }
+
+    /// The installer's progress bar reads install.sh's lines while it runs.
+    @Test func eachLineOfOutputArrivesAsItIsPrintedAndTheOutputIsKept() async throws {
+        let lines = Lines()
+        let result = try await runner.run(URL(fileURLWithPath: "/bin/sh"), ["-c", "echo one; echo two >&2; printf 'three\\nfour'"],
+                                          environment: [:], timeout: 10) { lines.add($0) }
+        #expect(lines.all == ["one", "three", "four"])
+        #expect(result == CommandResult(status: 0, output: "one\nthree\nfour", errors: "two\n"))
+    }
+
     @Test func aProgramThatRunsTooLongIsStopped() async throws {
         let start = Date()
         let result = try await runner.run(URL(fileURLWithPath: "/bin/sleep"), ["30"], environment: [:], timeout: 0.5)

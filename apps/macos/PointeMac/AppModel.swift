@@ -113,7 +113,9 @@ final class AppModel {
         hotKey.onDown = { [weak self] in self?.shortcutDown() }
         hotKey.onUp = { [weak self] in self?.session.talkUp() }
         registerShortcut()
-        if !launchedForDemo {
+        if Self.preview != nil {
+            showPreview()
+        } else if !launchedForDemo {
             watcher = Task { [weak self] in await self?.watch() }
             session.start()
         }
@@ -242,9 +244,129 @@ final class AppModel {
         Task.detached { try? await locator.openPage(plugin) }  // through the runner: started disclaimed
     }
 
+    // MARK: installing Pointe (install.sh, built into the app)
+
+    struct InstallRun: Equatable {
+        var fraction: Double
+        var line: String
+        var slow: Bool
+    }
+
+    private let installer = Installer()
+    /// While install.sh runs: how far, and its last step in words.
+    private(set) var installRun: InstallRun?
+    private(set) var installProblem: String?
+
+    /// A released app installs its own version, checked; a build between releases has no release to install.
+    var canInstall: Bool { Self.preview != nil || (!session.isDemo && installer.canInstall(appVersion: appVersion)) }
+
+    /// `-PointeSetupPreview fresh|installing|setup|key`, Debug builds only: the setup guide in that state, for
+    /// screenshots and apps/macos/e2e/smoke.py. Nothing is looked for, installed, started or read from the Keychain.
+    static var preview: String? {
+        #if DEBUG
+        UserDefaults.standard.string(forKey: "PointeSetupPreview")
+        #else
+        nil
+        #endif
+    }
+
+    private func showPreview() {
+        daemon = .noPlugin
+        keys = Dictionary(uniqueKeysWithValues: Vendor.allCases.map { ($0, false) })
+        switch Self.preview {
+        case "installing":
+            installRun = InstallRun(fraction: 0.42, line: "Installing Pointe's Python: about 180 MB the first time, under a minute on a fast connection…", slow: false)
+        case "setup", "key":
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent("pointe-preview/\(appVersion)")
+            try? FileManager.default.createDirectory(at: root.appendingPathComponent(".claude-plugin"), withIntermediateDirectories: true)
+            try? FileManager.default.createDirectory(at: root.appendingPathComponent("bin"), withIntermediateDirectories: true)
+            try? #"{"name": "pointe", "version": "\#(appVersion)"}"#.write(to: root.appendingPathComponent(".claude-plugin/plugin.json"), atomically: true, encoding: .utf8)
+            FileManager.default.createFile(atPath: root.appendingPathComponent("bin/voice-daemon").path, contents: Data("#!/bin/sh\nexit 1\n".utf8), attributes: [.posixPermissions: 0o755])
+            FileManager.default.createFile(atPath: root.appendingPathComponent(".pointe-install").path, contents: Data())
+            plugin = PluginInstall(root: root)
+            daemon = .stopped
+            if Self.preview == "key" { setupID = "free" }
+        default: break
+        }
+    }
+
+    /// The standalone install is older than this app, which can bring it to its own version (`pointe update` still
+    /// works too). The Claude Code plugin updates through Claude Code: the app never puts a second copy beside it.
+    var canUpdate: Bool {
+        guard let plugin, plugin.isStandalone, VersionCheck.compare(app: appVersion, daemon: plugin.version) == .daemonOlder else { return false }
+        return canInstall
+    }
+
+    /// Installs Pointe, or updates the standalone install, with install.sh: the app's own version, checked against the
+    /// SHA-256 pinned in the script, which is itself checked against the hash built into the app. install.sh restarts
+    /// a Pointe that ran from the folder it replaces.
+    func installPointe() async {
+        guard Self.preview == nil, installRun == nil, plugin == nil || canUpdate else { return }
+        installProblem = nil
+        installRun = InstallRun(fraction: 0.01, line: "Starting…", slow: false)
+        let creep = Task { [weak self] in  // the Python packages take a minute: the bar moves while they download
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard let self, var run = self.installRun, run.slow else { continue }
+                run.fraction += (0.92 - run.fraction) * 0.04
+                self.installRun = run
+            }
+        }
+        defer { creep.cancel() }
+        do {
+            try await installer.install(appVersion: appVersion, environment: locator.scriptEnvironment()) { step in
+                Task { @MainActor [weak self] in
+                    guard let self, let run = self.installRun else { return }
+                    self.installRun = InstallRun(fraction: max(run.fraction, step.fraction), line: step.line, slow: step.slow)
+                }
+            }
+        } catch let problem as Installer.Problem {
+            installProblem = problem.line
+        } catch {
+            installProblem = error.localizedDescription
+        }
+        installRun = nil
+        await locate()
+    }
+
+    // MARK: uninstalling (pointe uninstall)
+
+    /// Pointe → Uninstall Pointe…: `pointe uninstall`'s own list, one question (and the keys only on their own box),
+    /// then `pointe uninstall --yes`. The app quits once its own copy is gone.
+    func uninstallPointe() async {
+        windows.activate()
+        guard let plugin else {
+            let alert = NSAlert()
+            alert.messageText = "Pointe is not installed on this Mac."
+            alert.informativeText = "To remove this app too, move it to the Trash."
+            alert.runModal()
+            return
+        }
+        let listed = (try? await locator.uninstall(plugin, ["--dry-run"]))?.output ?? ""
+        let items = listed.split(separator: "\n").filter { $0.hasPrefix("  - ") }.map { "• " + $0.dropFirst(4) }
+        let alert = NSAlert()
+        alert.messageText = "Uninstall Pointe?"
+        alert.informativeText = "This removes:\n\(items.joined(separator: "\n"))\n\nuv stays: other tools use it. The same as pointe uninstall in a terminal."
+        let keys = NSButton(checkboxWithTitle: "Also delete Pointe's keys from the Keychain", target: nil, action: nil)
+        alert.accessoryView = keys
+        alert.addButton(withTitle: "Uninstall").hasDestructiveAction = true
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        session.hangUp()
+        let result = try? await locator.uninstall(plugin, ["--yes"] + (keys.state == .on ? ["--delete-keys"] : []))
+        let done = NSAlert()
+        done.messageText = result?.status == 0 ? "Pointe is removed." : "Some items were not removed."
+        let failed = (result?.output ?? "").split(separator: "\n").filter { $0.contains("failed") }.joined(separator: "\n")
+        done.informativeText = result.map { failed.isEmpty ? DaemonLocator.lastLines($0.output, 1) : failed } ?? "pointe uninstall did not run."
+        done.runModal()
+        if !FileManager.default.fileExists(atPath: Bundle.main.bundlePath) { NSApp.terminate(nil) }
+        await locate()
+    }
+
     // MARK: keys (never read: only whether one is there)
 
     func refreshKeys() {
+        if Self.preview != nil { return }
         guard !session.isDemo else { keys = [.gemini: true, .anthropic: true, .soniox: true, .elevenlabs: false, .openai: false]; setupID = "two"; return }
         setupID = locator.chosenSetup()
         Task {

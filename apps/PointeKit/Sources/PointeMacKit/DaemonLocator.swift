@@ -37,6 +37,9 @@ public struct PluginInstall: Sendable, Equatable {
 
     var daemon: URL { root.appendingPathComponent("bin/voice-daemon") }
     var cli: URL { root.appendingPathComponent("bin/pointe") }
+    /// install.sh's folder (it wrote `.pointe-install` once the release's SHA-256 matched), not the Claude Code plugin
+    /// or a checkout: the one copy this app may update.
+    public var isStandalone: Bool { FileManager.default.fileExists(atPath: root.appendingPathComponent(".pointe-install").path) }
 
     /// A folder counts only if it is the Pointe plugin and can start the daemon.
     public init?(root: URL, files: FileManager = .default) {
@@ -187,11 +190,11 @@ public struct DaemonLocator: Sendable {
     }
 
     /// What the plugin's scripts need that a GUI app's environment lacks: `uv` in `~/.local/bin` or Homebrew, and the
-    /// state and port when they are not the defaults. Nothing else is added, and no key is passed: the daemon reads its
+    /// state, port and install folder when they are not the defaults. Nothing else is added, and no key is passed: the daemon reads its
     /// own from the Keychain.
-    func scriptEnvironment() -> [String: String] {
+    public func scriptEnvironment() -> [String: String] {
         var env: [String: String] = [:]
-        for name in ["HOME", "USER", "LOGNAME", "TMPDIR", "LANG", "SHELL", "CLAUDE_VOICE_STATE", "CLAUDE_VOICE_DAEMON_PORT"] {
+        for name in ["HOME", "USER", "LOGNAME", "TMPDIR", "LANG", "SHELL", "CLAUDE_VOICE_STATE", "CLAUDE_VOICE_DAEMON_PORT", "POINTE_HOME"] {
             if let value = environment[name] { env[name] = value }
         }
         env["HOME"] = env["HOME"] ?? home.path
@@ -237,6 +240,16 @@ public struct DaemonLocator: Sendable {
         return Self.lastLines(result.output, 2)
     }
 
+    /// `pointe uninstall`'s own script, run by the install's own Python: macOS's /usr/bin/python3 asks to install the
+    /// command line developer tools on a Mac that has none. `--dry-run` lists, `--yes` removes (keys only with
+    /// `--delete-keys`). Returns what it printed.
+    public func uninstall(_ plugin: PluginInstall, _ arguments: [String]) async throws -> CommandResult {
+        let own = plugin.root.appendingPathComponent(".venv/bin/python3")
+        let python = FileManager.default.isExecutableFile(atPath: own.path) ? own : URL(fileURLWithPath: "/usr/bin/python3")
+        return try await runner.run(python, ["-I", plugin.root.appendingPathComponent("pointe/uninstall.py").path] + arguments,
+                                    environment: scriptEnvironment(), timeout: 300)
+    }
+
     /// The setup in config.json ("setup"), nil when none was chosen. The file holds no secret.
     public func chosenSetup() -> String? {
         guard let data = try? Data(contentsOf: paths.stateDir.appendingPathComponent("config.json")),
@@ -244,7 +257,7 @@ public struct DaemonLocator: Sendable {
         return json["setup"] as? String
     }
 
-    static func lastLines(_ text: String, _ n: Int = 4) -> String {
+    public static func lastLines(_ text: String, _ n: Int = 4) -> String {
         text.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             .suffix(n).joined(separator: "\n")
     }

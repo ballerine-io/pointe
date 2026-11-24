@@ -1,0 +1,92 @@
+name: mac-release
+# Pointe.dmg for a release, built by tools/build_dmg.sh --ci: the app and the disk image signed with Developer ID,
+# notarized and stapled. It runs only when the environment "mac-release" holds all five secrets below; with any missing,
+# every step after the check is skipped and the job passes. The token stays read-only, so the job attaches nothing:
+# the disk image and its .sha256 are a workflow artifact, attached to the release with `gh release upload`
+# (docs/releasing.md, step 4).
+#
+# Secrets, in Settings, Environments, mac-release (never repository-wide):
+#   MAC_DEVELOPER_ID_P12           the "Developer ID Application" certificate and its private key, as a .p12, base64
+#   MAC_DEVELOPER_ID_P12_PASSWORD  the .p12's password
+#   ASC_API_KEY_P8                 an App Store Connect API key (Users and Access, Integrations, role Developer), the .p8, base64
+#   ASC_API_KEY_ID                 its key ID
+#   ASC_API_ISSUER_ID              the issuer ID shown above the keys
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag to build, vX.Y.Z
+        required: true
+permissions:
+  contents: read
+jobs:
+  dmg:
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: mac-release
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Are the signing secrets there?
+        id: secrets
+        env:
+          P12: ${{ secrets.MAC_DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.MAC_DEVELOPER_ID_P12_PASSWORD }}
+          KEY: ${{ secrets.ASC_API_KEY_P8 }}
+          KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          if [ -n "$P12" ] && [ -n "$P12_PASSWORD" ] && [ -n "$KEY" ] && [ -n "$KEY_ID" ] && [ -n "$ISSUER" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The mac-release environment does not hold all five signing secrets: nothing to build."
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+      - name: The newest Xcode on the runner
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: A throwaway keychain with the Developer ID identity, and the API key as a file
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          P12: ${{ secrets.MAC_DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.MAC_DEVELOPER_ID_P12_PASSWORD }}
+          KEY: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          umask 077
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/id.p12"
+          printf '%s' "$KEY" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/id.p12" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign >/dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/id.p12"
+      - name: Build, sign, notarize and staple Pointe.dmg
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          NOTARY_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: NOTARY_KEY="$RUNNER_TEMP/notary.p8" tools/build_dmg.sh --ci
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          name: pointe-dmg
+          path: |
+            dist/Pointe-*.dmg
+            dist/Pointe-*.dmg.sha256
+      - name: Remove the keychain and the key
+        if: always() && steps.secrets.outputs.ready == 'true'
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/notary.p8"

@@ -1,10 +1,50 @@
 # Install Pointe
 
-Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code
-plugin, or the standalone install, which needs no Claude Code and is the way in for Codex and OpenCode. Both can be on
-the same Mac: one Pointe runs, the newer one ([The standalone install](#the-standalone-install)).
+Pointe is a conversational layer for your coding agents. On a Mac, install it the way any Mac app installs: download
+`Pointe.dmg`, drag Pointe to Applications, open it. The other ways in, for a person who works in Claude Code, Codex or
+OpenCode, follow under [Other ways](#other-ways). To work on Pointe itself, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-## Claude Code
+## Mac: download Pointe.dmg, drag to Applications, open
+
+1. Download `Pointe-<version>.dmg` from the [newest release](https://github.com/ballerine-io/pointe/releases/latest).
+2. Open it and drag Pointe to Applications.
+3. Open Pointe from Applications.
+
+The app sets up the rest, in one window with a progress bar, in about five minutes:
+
+1. **Pointe.** Press Install Pointe. The app runs the same installer as the terminal way, `install.sh`, from a copy
+   inside the app that it checks against a SHA-256 built into it. That installer downloads the release of the app's own
+   version, checks it against the SHA-256 pinned in it, installs uv the checked way and Pointe's Python (about 180 MB),
+   and makes `pointe` a command. No Terminal and no password. It installs nothing when Pointe is here already: an
+   existing plugin or standalone install is found and used, and the newer of the two runs, as below.
+2. **Your setup.** One question: Start with Free start, or choose another setup from the menu.
+3. **Your key.** Add… opens the vendor's key page in your browser and a small Mac window for the key, which goes
+   straight to your Keychain; Pointe tries it with one tiny call.
+4. **Your first call.** Start Pointe, put on headphones, press Connect (macOS asks for the microphone the first time),
+   and say hello: Pointe answers that it hears you.
+
+The app and Pointe are signed by Ballerine with Developer ID and notarized by Apple: macOS opens them without a warning.
+`Pointe.dmg` has its SHA-256 beside it on the release page.
+
+**Updates.** When Pointe in your home folder is older than the app, the app shows Update Pointe to <version> at the top
+of its window: it installs the app's version beside the old one, checked, restarts Pointe on it (a call in progress
+ends), and removes the old one. `pointe update` in a terminal does the same. A Claude Code plugin install updates
+through Claude Code, as below: the app never installs a second copy beside it. The app itself: download the new
+`Pointe.dmg` and drag it to Applications again.
+
+**Uninstall.** In the app, Pointe → Uninstall Pointe… lists what Pointe added to this Mac, asks once (your keys only if
+you tick their box), removes it, the app included, and quits. `pointe uninstall` in a terminal does the same.
+
+Codex and OpenCode sessions join from a terminal, `pointe join codex` or `pointe join opencode` (below); a Claude Code
+session joins with `/pointe:voice` once the plugin is installed too.
+
+## Other ways
+
+Install it the way that fits the agent you use: the Claude Code plugin, or the standalone install, which needs no
+Claude Code and is the way in for Codex and OpenCode. Both can be on the same Mac: one Pointe runs, the newer one
+([The standalone install](#the-standalone-install)).
+
+### Claude Code
 
 **One command** in Terminal (or, in the Claude desktop app's Code tab, type the two `/plugin` commands below):
 
@@ -21,7 +61,7 @@ the key so it goes straight to your Keychain, checks the key with one tiny call,
 "hello": Pointe answers that it hears you, and setup says "Pointe heard you. You're set up." Your phone, the Mac app and
 faster setups come after, as optional extras.
 
-## Codex
+### Codex
 
 ```
 curl -fsSLO https://eng.ballerine.com/pointe/install.sh
@@ -53,7 +93,7 @@ pointe join codex
 `pointe setup codex` does the Codex part again on its own. [Harnesses](harnesses.md#codex-cli-pointeharnessescodexpy) has how
 the join works.
 
-## OpenCode
+### OpenCode
 
 ```
 curl -fsSLO https://eng.ballerine.com/pointe/install.sh
@@ -66,7 +106,7 @@ The same first setup as for Codex. Then, if OpenCode is on the Mac, it adds a `/
 not yet been run in a real OpenCode; `pointe join opencode`, in the session's folder, joins it the tested way.
 `pointe setup opencode` does the OpenCode part again on its own.
 
-## The standalone install
+### The standalone install
 
 `install.sh` is served at `https://eng.ballerine.com/pointe/install.sh` and is
 [`install.sh` in the repository](../install.sh). Download it to a file, read it if you like, and run it with `bash`:
@@ -111,7 +151,7 @@ only for its keys; [Try it for free or cheap](#try-it-for-free-or-cheap) has the
 
 ## What this does to your Mac
 
-- **Installs** the plugin into Claude Code's plugin folder, or, with `install.sh`, a checked release into
+- **Installs** the plugin into Claude Code's plugin folder, or, with `install.sh` or the Mac app, a checked release into
   `~/.pointe/<version>`; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
   is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
   the first run (about 530 MB on disk); and `~/.local/bin/pointe`, so `pointe` is a command in your terminal.
@@ -235,7 +275,8 @@ To remove it, run `pointe uninstall` in a terminal (or `~/.local/bin/pointe unin
 and asks before it removes anything, in three groups, each with its own question:
 
 - Pointe's own: it stops Pointe, then removes `~/.local/bin/pointe`, `~/.claude-voice` (settings, logs that hold what
-  was said on calls, phone pairings, the local text-model server), `~/Applications/Pointe.app` and its settings
+  was said on calls, phone pairings, the local text-model server), `~/Applications/Pointe.app` (and the disk image's
+  `/Applications/Pointe.app`, when it is Pointe's) and its settings
   (`defaults delete io.ballerine.pointe.mac`), `/voice` in OpenCode and the `codex` alias if setup added them,
   `~/.cache/pipecat/kokoro-onnx`, and last the standalone install (`~/.pointe`) and the plugin and its marketplace
   (`claude plugin uninstall pointe@pointe`, `claude plugin marketplace remove pointe`). Each install's folder holds its

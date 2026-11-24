@@ -337,6 +337,38 @@ def test_the_installer_pins_a_release_and_pin_rewrites_exactly_those_lines():
         release_tarball.pin(text, "3.4.5", "not-a-hash")
 
 
+# ---------- the Mac app's installer: install.sh, built into Pointe.app ----------
+
+APP_SCRIPT = ROOT / "apps" / "macos" / "PointeMac" / "install.sh"
+
+
+def test_the_mac_app_bundles_this_install_sh_and_carries_its_sha256():
+    """Pointe.app runs install.sh from its own Resources (the synced folder copies the file the link names) only when
+    the bytes match the SHA-256 compiled into it: after any change to install.sh, tools/release_tarball.py app."""
+    import hashlib
+    import re
+
+    assert APP_SCRIPT.is_symlink() and APP_SCRIPT.resolve() == INSTALL.resolve()
+    pinned = re.search(r'static let scriptSHA256 = "([0-9a-f]{64})"', release_tarball.APP_INSTALLER.read_text())
+    assert pinned and pinned[1] == hashlib.sha256(INSTALL.read_bytes()).hexdigest(), "run python3 tools/release_tarball.py app"
+
+
+def test_release_tarball_app_writes_the_hash_the_app_checks(tmp_path, monkeypatch):
+    import hashlib
+
+    script, swift = tmp_path / "install.sh", tmp_path / "Installer.swift"
+    script.write_text("#!/bin/bash\necho a test installer\n")
+    swift.write_text(f'    public static let scriptSHA256 = "{"0" * 64}"\n')
+    monkeypatch.setattr(release_tarball, "INSTALLER", script)
+    monkeypatch.setattr(release_tarball, "APP_INSTALLER", swift)
+    assert release_tarball.main(["app"]) == 0
+    assert hashlib.sha256(script.read_bytes()).hexdigest() in swift.read_text()
+
+
+def test_the_mac_app_asks_the_terminal_setups_one_question_word_for_word():
+    assert f'freeStart = "{terminal_setup.FREE_START}"' in (ROOT / "apps" / "PointeKit" / "Sources" / "PointeMacKit" / "KeyPlan.swift").read_text()
+
+
 def test_the_release_tarball_leaves_out_only_what_no_one_runs(releases):
     import tarfile
 

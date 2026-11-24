@@ -16,6 +16,19 @@ public struct CommandResult: Sendable, Equatable {
 /// Runs a program and waits for it, off the main thread. Injected, so the locator is tested without one.
 public protocol CommandRunning: Sendable {
     func run(_ executable: URL, _ arguments: [String], environment: [String: String]?, timeout: TimeInterval) async throws -> CommandResult
+    /// The same, with each line of the program's output handed to `line` as it is printed (a progress bar reads them).
+    func run(_ executable: URL, _ arguments: [String], environment: [String: String]?, timeout: TimeInterval,
+             line: @escaping @Sendable (String) -> Void) async throws -> CommandResult
+}
+
+extension CommandRunning {
+    /// A runner that cannot stream hands over the lines once the program has ended.
+    public func run(_ executable: URL, _ arguments: [String], environment: [String: String]?, timeout: TimeInterval,
+                    line: @escaping @Sendable (String) -> Void) async throws -> CommandResult {
+        let result = try await run(executable, arguments, environment: environment, timeout: timeout)
+        result.output.split(whereSeparator: \.isNewline).forEach { line(String($0)) }
+        return result
+    }
 }
 
 /// Starts each program disclaimed: macOS holds the program, not Pointe.app, responsible for it. The scripts it starts
@@ -46,17 +59,22 @@ public struct ProcessRunner: CommandRunning {
 
     public func run(_ executable: URL, _ arguments: [String], environment: [String: String]? = nil,
                     timeout: TimeInterval = 10) async throws -> CommandResult {
+        try await run(executable, arguments, environment: environment, timeout: timeout, line: { _ in })
+    }
+
+    public func run(_ executable: URL, _ arguments: [String], environment: [String: String]?, timeout: TimeInterval,
+                    line: @escaping @Sendable (String) -> Void) async throws -> CommandResult {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 do { continuation.resume(returning: try Self.spawn(executable, arguments, environment: environment, timeout: timeout,
-                                                                   disclaim: disclaim)) }
+                                                                   disclaim: disclaim, line: line)) }
                 catch { continuation.resume(throwing: error) }
             }
         }
     }
 
     private static func spawn(_ executable: URL, _ arguments: [String], environment: [String: String]?,
-                              timeout: TimeInterval, disclaim: Disclaim?) throws -> CommandResult {
+                              timeout: TimeInterval, disclaim: Disclaim?, line: @Sendable (String) -> Void) throws -> CommandResult {
         let out = Pipe(), err = Pipe()
         var actions: posix_spawn_file_actions_t?
         posix_spawn_file_actions_init(&actions)
@@ -97,7 +115,16 @@ public struct ProcessRunner: CommandRunning {
         final class Read: @unchecked Sendable { var data = Data() }  // written on one queue, read after the group waits
         let errors = Read(), reading = DispatchGroup()
         DispatchQueue.global().async(group: reading) { errors.data = err.fileHandleForReading.readDataToEndOfFile() }
-        let output = out.fileHandleForReading.readDataToEndOfFile()
+        var output = Data(), pending = Data()
+        while let chunk = try? out.fileHandleForReading.read(upToCount: 4096), !chunk.isEmpty {
+            output.append(chunk)
+            pending.append(chunk)
+            while let end = pending.firstIndex(of: UInt8(ascii: "\n")) {
+                line(String(decoding: pending[pending.startIndex..<end], as: UTF8.self))
+                pending.removeSubrange(pending.startIndex...end)
+            }
+        }
+        if !pending.isEmpty { line(String(decoding: pending, as: UTF8.self)) }
         reading.wait()
         var status: Int32 = 0
         while waitpid(pid, &status, 0) == -1 && errno == EINTR {}

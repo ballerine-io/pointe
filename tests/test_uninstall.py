@@ -231,6 +231,28 @@ def test_the_mac_apps_settings_are_listed_and_removed_through_defaults(mac, caps
     assert uninstall.MAC_APP_ID in (ROOT / "apps" / "macos" / "tools" / "make_project.py").read_text()
 
 
+def test_the_disk_images_app_in_applications_is_removed_and_another_pointe_app_is_not(mac, tmp_path):
+    apps = tmp_path / "Applications"
+    ours, theirs = apps / "Pointe.app" / "Contents", tmp_path / "other" / "Pointe.app" / "Contents"
+    for folder, bundle in ((ours, uninstall.MAC_APP_ID), (theirs, "com.example.pointe")):
+        folder.mkdir(parents=True)
+        (folder / "Info.plist").write_bytes(__import__("plistlib").dumps({"CFBundleIdentifier": bundle}))
+    out = subprocess.run([sys.executable, "-I", str(ROOT / "pointe" / "uninstall.py"), "--yes"], capture_output=True, text=True,
+                         env={**mac.env, "POINTE_SYSTEM_APPLICATIONS": str(apps)}, timeout=60)
+    assert f"{apps / 'Pointe.app'} (the Mac app, from Pointe.dmg)" in out.stdout and not (apps / "Pointe.app").exists()
+    out = subprocess.run([sys.executable, "-I", str(ROOT / "pointe" / "uninstall.py"), "--dry-run"], capture_output=True, text=True,
+                         env={**mac.env, "POINTE_SYSTEM_APPLICATIONS": str(theirs.parent.parent)}, timeout=60)
+    assert "Pointe.dmg" not in out.stdout and theirs.exists()
+
+
+def test_a_throwaway_home_never_reaches_the_real_applications_folder(mac):
+    """mac.env names a HOME that is not this account's: /Applications is left out, whatever is there."""
+    assert "POINTE_SYSTEM_APPLICATIONS" not in mac.env
+    got = subprocess.run([sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {str(ROOT / 'pointe')!r}); import uninstall; "
+                          "print(uninstall.system_apps())"], env=mac.env, capture_output=True, text=True, timeout=30)
+    assert got.stdout.strip() == "None"
+
+
 def test_the_uv_hint_names_every_folder_uv_installs():
     assert "~/.local/share/uv" in (ROOT / "pointe" / "uninstall.py").read_text().split("Kept: uv", 1)[1][:200]
 

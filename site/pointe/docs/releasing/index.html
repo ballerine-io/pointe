@@ -154,7 +154,18 @@ mistake gets a new patch version.</p>
 gh release create vX.Y.Z --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
 python3 tools/release_tarball.py pin vX.Y.Z            # install.sh installs it: the version and the SHA-256 the release publishes</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Commit the pinned <code>install.sh</code> on its own ("The installer pins X.Y.Z"; it changes only <code>POINTE_VERSION</code> and
-<code>POINTE_SHA256</code>, and needs no version), then deploy the site, which serves it at <code>/pointe/install.sh</code>. Until then a new
+<code>POINTE_SHA256</code> in it and the same file's SHA-256 in <code>apps/PointeKit/Sources/PointeMacKit/Installer.swift</code>, which <code>pin</code>
+writes too, and needs no version), then deploy the site, which serves it at <code>/pointe/install.sh</code>.</p>
+<p>Then the Mac app, from that commit, so the <code>install.sh</code> built into it installs this release:</p>
+<div class="dx-code"><pre><code>tools/build_dmg.sh --upload     # dist/Pointe-X.Y.Z.dmg and .sha256, signed, notarized, stapled; attached to the release</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It signs and notarizes the app through Xcode's account (the team's cloud-managed Developer ID certificate). The disk
+image needs a "Developer ID Application" identity in the keychain and the notarytool profile <code>pointe-notary</code>, each made
+once; the script names whichever is missing and attaches nothing until both are there. In CI the <code>mac-release</code>
+workflow does the same on a published release when its environment holds the signing secrets
+(<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
+<code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>. Once the disk image is attached, set <code>mac</code> in
+<code>site/pointe/apps.json</code> to <code>"status": "open"</code> with the <code>download_url</code> of the release's <code>Pointe-X.Y.Z.dmg</code>, and deploy the
+site. Until then a new
 standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out
 <code>bench/</code>, <code>evals/</code> and <code>site/</code> (<code>.gitattributes</code>). Never replace an asset of a published release: a mistake gets a new
 patch version, as for a tag.</p>
@@ -166,8 +177,8 @@ patch version, as for a tag.</p>
    reported or fixed something.</p>
 </li>
 <li>
-<p>Install and update. Install is the README's: the plugin command for Claude Code, <code>install.sh</code> for Codex and
-   OpenCode. To update the plugin: <code>claude plugin marketplace update pointe</code>, then <code>claude plugin update pointe@pointe</code>,
+<p>Install and update. Install is the README's: <code>Pointe-X.Y.Z.dmg</code> on a Mac, the plugin command for Claude Code,
+   <code>install.sh</code> for Codex and OpenCode. To update the plugin: <code>claude plugin marketplace update pointe</code>, then <code>claude plugin update pointe@pointe</code>,
    then <code>/pointe:stop</code> and <code>/pointe:voice</code> so the daemon restarts on the new code. The standalone install: <code>pointe
    update</code>.</p>
 </li>
@@ -175,14 +186,14 @@ patch version, as for a tag.</p>
 <p>Limits that matter to a new user (the README's "Limits"), and anything this version is known not to fix.</p>
 </li>
 </ol>
-<p>No claim the README does not make, no "first" or "only", and numbers only with their source. The release's two files
-are the tarball and its SHA-256; the plugin installs from the repository.</p>
+<p>No claim the README does not make, no "first" or "only", and numbers only with their source. The release's files are
+the tarball, the disk image and the SHA-256 of each; the plugin installs from the repository.</p>
 <h2 id="5-after">5. After</h2>
 <ul>
 <li>The iPhone app follows its own path to TestFlight and the App Store: <code>docs/ios/app-store.md</code>.</li>
 <li>
-<p>The Mac app is built from source until there is a Developer ID: <code>docs/mac-app.md</code> has the notarization steps.
-  Until either app has a download, people build them with <code>pointe apps mac</code> and <code>pointe apps ios</code>.</p>
+<p>The Mac app ships as <code>Pointe-X.Y.Z.dmg</code> (step 4). Until the iPhone app has a download, people build it with
+  <code>pointe apps ios</code>.</p>
 </li>
 <li>
 <p>The repository page: the description and topics are set through <code>gh repo edit</code>. The social preview image cannot be

@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install Pointe · Pointe docs</title>
-<meta name="description" content="Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code plugin, or the standalone install,…">
+<meta name="description" content="Pointe is a conversational layer for your coding agents. On a Mac, install it the way any Mac app installs: download Pointe.dmg, drag Pointe to…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Install Pointe">
-<meta property="og:description" content="Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code plugin, or the standalone install,…">
+<meta property="og:description" content="Pointe is a conversational layer for your coding agents. On a Mac, install it the way any Mac app installs: download Pointe.dmg, drag Pointe to…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/install/">
 <meta name="twitter:card" content="summary_large_image">
@@ -110,10 +110,52 @@
 <main id="main" class="dx-main">
 <article class="dx-doc">
 <h1 id="install-pointe">Install Pointe</h1>
-<p>Pointe is a conversational layer for your coding agents. Install it the way that fits the agent you use: the Claude Code
-plugin, or the standalone install, which needs no Claude Code and is the way in for Codex and OpenCode. Both can be on
-the same Mac: one Pointe runs, the newer one (<a href="#the-standalone-install">The standalone install</a>).</p>
-<h2 id="claude-code">Claude Code</h2>
+<p>Pointe is a conversational layer for your coding agents. On a Mac, install it the way any Mac app installs: download
+<code>Pointe.dmg</code>, drag Pointe to Applications, open it. The other ways in, for a person who works in Claude Code, Codex or
+OpenCode, follow under <a href="#other-ways">Other ways</a>. To work on Pointe itself, see <a href="../contributing/">CONTRIBUTING.md</a>.</p>
+<h2 id="mac-download-pointedmg-drag-to-applications-open">Mac: download Pointe.dmg, drag to Applications, open</h2>
+<ol>
+<li>Download <code>Pointe-&lt;version&gt;.dmg</code> from the <a href="https://github.com/ballerine-io/pointe/releases/latest">newest release</a>.</li>
+<li>Open it and drag Pointe to Applications.</li>
+<li>Open Pointe from Applications.</li>
+</ol>
+<p>The app sets up the rest, in one window with a progress bar, in about five minutes:</p>
+<ol>
+<li>
+<p><strong>Pointe.</strong> Press Install Pointe. The app runs the same installer as the terminal way, <code>install.sh</code>, from a copy
+   inside the app that it checks against a SHA-256 built into it. That installer downloads the release of the app's own
+   version, checks it against the SHA-256 pinned in it, installs uv the checked way and Pointe's Python (about 180 MB),
+   and makes <code>pointe</code> a command. No Terminal and no password. It installs nothing when Pointe is here already: an
+   existing plugin or standalone install is found and used, and the newer of the two runs, as below.</p>
+</li>
+<li>
+<p><strong>Your setup.</strong> One question: Start with Free start, or choose another setup from the menu.</p>
+</li>
+<li>
+<p><strong>Your key.</strong> Add… opens the vendor's key page in your browser and a small Mac window for the key, which goes
+   straight to your Keychain; Pointe tries it with one tiny call.</p>
+</li>
+<li>
+<p><strong>Your first call.</strong> Start Pointe, put on headphones, press Connect (macOS asks for the microphone the first time),
+   and say hello: Pointe answers that it hears you.</p>
+</li>
+</ol>
+<p>The app and Pointe are signed by Ballerine with Developer ID and notarized by Apple: macOS opens them without a warning.
+<code>Pointe.dmg</code> has its SHA-256 beside it on the release page.</p>
+<p><strong>Updates.</strong> When Pointe in your home folder is older than the app, the app shows Update Pointe to <version> at the top
+of its window: it installs the app's version beside the old one, checked, restarts Pointe on it (a call in progress
+ends), and removes the old one. <code>pointe update</code> in a terminal does the same. A Claude Code plugin install updates
+through Claude Code, as below: the app never installs a second copy beside it. The app itself: download the new
+<code>Pointe.dmg</code> and drag it to Applications again.</p>
+<p><strong>Uninstall.</strong> In the app, Pointe → Uninstall Pointe… lists what Pointe added to this Mac, asks once (your keys only if
+you tick their box), removes it, the app included, and quits. <code>pointe uninstall</code> in a terminal does the same.</p>
+<p>Codex and OpenCode sessions join from a terminal, <code>pointe join codex</code> or <code>pointe join opencode</code> (below); a Claude Code
+session joins with <code>/pointe:voice</code> once the plugin is installed too.</p>
+<h2 id="other-ways">Other ways</h2>
+<p>Install it the way that fits the agent you use: the Claude Code plugin, or the standalone install, which needs no
+Claude Code and is the way in for Codex and OpenCode. Both can be on the same Mac: one Pointe runs, the newer one
+(<a href="#the-standalone-install">The standalone install</a>).</p>
+<h3 id="claude-code">Claude Code</h3>
 <p><strong>One command</strong> in Terminal (or, in the Claude desktop app's Code tab, type the two <code>/plugin</code> commands below):</p>
 <div class="dx-code"><pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Desktop app: <code>/plugin marketplace add https://github.com/ballerine-io/pointe.git</code>, then <code>/plugin install pointe@pointe</code>.</p>
@@ -123,7 +165,7 @@ question ("Start with Free start?"; the other setups only if you ask), opens the
 the key so it goes straight to your Keychain, checks the key with one tiny call, and starts your first call. Say
 "hello": Pointe answers that it hears you, and setup says "Pointe heard you. You're set up." Your phone, the Mac app and
 faster setups come after, as optional extras.</p>
-<h2 id="codex">Codex</h2>
+<h3 id="codex">Codex</h3>
 <div class="dx-code"><pre><code>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
 bash install.sh
 pointe setup</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
@@ -147,7 +189,7 @@ that folder, in another terminal:</p>
 <div class="dx-code"><pre><code>pointe join codex</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p><code>pointe setup codex</code> does the Codex part again on its own. <a href="../harnesses/#codex-cli-pointeharnessescodexpy">Harnesses</a> has how
 the join works.</p>
-<h2 id="opencode">OpenCode</h2>
+<h3 id="opencode">OpenCode</h3>
 <div class="dx-code"><pre><code>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
 bash install.sh
 pointe setup</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
@@ -155,7 +197,7 @@ pointe setup</code></pre><button class="dx-copy" type="button" hidden>Copy</butt
 (<code>pointe join opencode --install-command</code>). Restart OpenCode, and type <code>/voice</code> in a session to join it. The command has
 not yet been run in a real OpenCode; <code>pointe join opencode</code>, in the session's folder, joins it the tested way.
 <code>pointe setup opencode</code> does the OpenCode part again on its own.</p>
-<h2 id="the-standalone-install">The standalone install</h2>
+<h3 id="the-standalone-install">The standalone install</h3>
 <p><code>install.sh</code> is served at <code>https://eng.ballerine.com/pointe/install.sh</code> and is
 <a href="https://github.com/ballerine-io/pointe/blob/main/install.sh"><code>install.sh</code> in the repository</a>. Download it to a file, read it if you like, and run it with <code>bash</code>:
 nothing is piped into a shell. It runs as you, with no <code>sudo</code>, shows what it will do, and asks before it does it
@@ -197,7 +239,7 @@ only for its keys; <a href="#try-it-for-free-or-cheap">Try it for free or cheap<
 <h2 id="what-this-does-to-your-mac">What this does to your Mac</h2>
 <ul>
 <li>
-<p><strong>Installs</strong> the plugin into Claude Code's plugin folder, or, with <code>install.sh</code>, a checked release into
+<p><strong>Installs</strong> the plugin into Claude Code's plugin folder, or, with <code>install.sh</code> or the Mac app, a checked release into
   <code>~/.pointe/&lt;version&gt;</code>; <a href="https://docs.astral.sh/uv/">uv</a> into <code>~/.local/bin</code> if it
   is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
   the first run (about 530 MB on disk); and <code>~/.local/bin/pointe</code>, so <code>pointe</code> is a command in your terminal.</p>
@@ -369,7 +411,8 @@ and asks before it removes anything, in three groups, each with its own question
 <ul>
 <li>
 <p>Pointe's own: it stops Pointe, then removes <code>~/.local/bin/pointe</code>, <code>~/.claude-voice</code> (settings, logs that hold what
-  was said on calls, phone pairings, the local text-model server), <code>~/Applications/Pointe.app</code> and its settings
+  was said on calls, phone pairings, the local text-model server), <code>~/Applications/Pointe.app</code> (and the disk image's
+  <code>/Applications/Pointe.app</code>, when it is Pointe's) and its settings
   (<code>defaults delete io.ballerine.pointe.mac</code>), <code>/voice</code> in OpenCode and the <code>codex</code> alias if setup added them,
   <code>~/.cache/pipecat/kokoro-onnx</code>, and last the standalone install (<code>~/.pointe</code>) and the plugin and its marketplace
   (<code>claude plugin uninstall pointe@pointe</code>, <code>claude plugin marketplace remove pointe</code>). Each install's folder holds its
@@ -396,10 +439,12 @@ then delete <code>~/.local/bin/uv</code>, <code>~/.local/bin/uvx</code> and <cod
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
-<li class="dx-l2"><a href="#claude-code">Claude Code</a></li>
-<li class="dx-l2"><a href="#codex">Codex</a></li>
-<li class="dx-l2"><a href="#opencode">OpenCode</a></li>
-<li class="dx-l2"><a href="#the-standalone-install">The standalone install</a></li>
+<li class="dx-l2"><a href="#mac-download-pointedmg-drag-to-applications-open">Mac: download Pointe.dmg, drag to Applications, open</a></li>
+<li class="dx-l2"><a href="#other-ways">Other ways</a></li>
+<li class="dx-l3"><a href="#claude-code">Claude Code</a></li>
+<li class="dx-l3"><a href="#codex">Codex</a></li>
+<li class="dx-l3"><a href="#opencode">OpenCode</a></li>
+<li class="dx-l3"><a href="#the-standalone-install">The standalone install</a></li>
 <li class="dx-l2"><a href="#which-keys">Which keys</a></li>
 <li class="dx-l2"><a href="#what-this-does-to-your-mac">What this does to your Mac</a></li>
 <li class="dx-l2"><a href="#or-let-claude-do-the-install-too">Or let Claude do the install too</a></li>

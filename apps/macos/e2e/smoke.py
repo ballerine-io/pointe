@@ -293,6 +293,16 @@ def main() -> int:
     finally:
         app.quit()
 
+    # the first launch from Pointe.dmg, with nothing installed (-PointeSetupPreview, Debug only: nothing is looked for,
+    # installed or started): Install Pointe, its progress bar, then the one question and the key
+    for state, ident in (("fresh", "install"), ("installing", "install.progress"), ("setup", "setup.free"), ("key", "setup.key.gemini")):
+        app = start("-PointeSetupPreview", state, look="light", env={"CLAUDE_VOICE_STATE": str(empty), "CLAUDE_VOICE_DAEMON_PORT": "7999"})
+        try:
+            check(f"first launch, {state}: the setup shows {ident}", app.wait(ident, 10) and app.has("setup.progress"))
+            app.shot(f"first-launch-{state}", "light")
+        finally:
+            app.quit()
+
     failed = [name for name, ok in results if not ok]
     print(f"\n{len(results) - len(failed)} of {len(results)} checks passed" + (f"; failed: {failed}" if failed else ""))
     return 1 if failed else 0

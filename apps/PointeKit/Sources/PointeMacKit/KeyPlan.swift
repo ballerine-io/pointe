@@ -19,6 +19,8 @@ public enum KeyCopy {
     public static let noSetupHow = "None chosen, so each role takes the first vendor with a key."
     /// Before "Every role is filled." with no setup chosen: the picker beside it says None chosen.
     public static let noSetupHead = "Setup: \(noSetup), so Pointe uses the keys you have. "
+    /// The one question before the first key: `terminal_setup.FREE_START`, word for word (tests/test_install.py).
+    public static let freeStart = "Pointe needs its own model key: your coding agent's subscription cannot be used by other apps. The quickest start is Free start: one Google key, no card, $0 until the free quota ends. Google may review what you send on the free tier, so try it on work that is not confidential."
 }
 
 /// One row of `setups.SETUPS`, as the Mac app's menu shows it; tests/test_setups.py holds this list to it.

@@ -13,6 +13,8 @@ Python is in. docs/install.md, "What this does to your Mac", is the same list.
 from __future__ import annotations  # macOS's own python3 (3.9) runs this: `bin/pointe uninstall` needs no uv
 
 import os
+import plistlib
+import pwd
 import re
 import shutil
 import subprocess
@@ -81,6 +83,22 @@ def _claude() -> str | None:
     return None
 
 
+def system_apps() -> Path | None:
+    """Where the disk image's Pointe.app is dragged: /Applications, outside the home folder, so only for this account's
+    real home (a test's throwaway HOME never reaches it). POINTE_SYSTEM_APPLICATIONS names another folder (tests)."""
+    if os.environ.get("POINTE_SYSTEM_APPLICATIONS"):
+        return Path(os.environ["POINTE_SYSTEM_APPLICATIONS"])
+    return Path("/Applications") if home() == Path(pwd.getpwuid(os.getuid()).pw_dir) else None
+
+
+def _ours(app: Path) -> bool:
+    """A Pointe.app in /Applications is removed only when it is this one: another app may have the same name."""
+    try:
+        return plistlib.loads((app / "Contents" / "Info.plist").read_bytes()).get("CFBundleIdentifier") == MAC_APP_ID
+    except (OSError, ValueError, plistlib.InvalidFileException):
+        return False
+
+
 def pointe_home() -> Path:
     return Path(os.environ.get("POINTE_HOME") or home() / ".pointe")
 
@@ -138,6 +156,9 @@ def plan() -> dict[str, list[Item]]:
     app = home() / "Applications" / "Pointe.app"
     if app.exists():
         own.append(Item(f"{app} (the Mac app)", path=app))
+    app = system_apps() / "Pointe.app" if system_apps() else None
+    if app and _ours(app):
+        own.append(Item(f"{app} (the Mac app, from Pointe.dmg)", path=app))
     prefs = home() / "Library" / "Preferences" / f"{MAC_APP_ID}.plist"
     if prefs.exists() and shutil.which("defaults"):  # through defaults: macOS caches a domain, and a deleted file comes back
         own.append(Item(f"{prefs} (the Mac app's settings)", command=(shutil.which("defaults"), "delete", MAC_APP_ID)))

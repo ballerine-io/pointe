@@ -118,15 +118,20 @@ talks to the same Pointe on this Mac that the page does, so the two can be used 
 What each surface has, and why the few differences exist: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/parity.md">design/parity.md</a>. The Mac's own parts
 (the protocol, the audio, the shortcut, security): <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/macos-app.md">design/macos-app.md</a>.</p>
 <h2 id="getting-it">Getting it</h2>
-<p><strong>Coming to the App Store: in review with Apple.</strong> Until it is there, there is no download: you build it on your Mac,
-from the plugin you installed. In Claude
-Code, <code>/pointe:setup apps</code> does it for you. In a terminal, one command builds it, signs it, and puts it in
-<code>~/Applications</code>:</p>
+<p>Download <code>Pointe-&lt;version&gt;.dmg</code> from the <a href="https://github.com/ballerine-io/pointe/releases/latest">newest release</a>, drag
+Pointe to Applications, and open it. The app is signed with Ballerine's Developer ID and notarized by Apple, and so is
+the disk image. You need macOS 15 or newer. On a Mac with no Pointe yet, the window is the setup: it installs Pointe
+with the <code>install.sh</code> built into it (checked against a SHA-256 the app carries, and installing only the release of the
+app's own version, checked against the SHA-256 pinned in that script), then asks one question, takes your key and
+starts your first call: <a href="../install/#mac-download-pointedmg-drag-to-applications-open">Install, Mac</a>. An existing Claude
+Code plugin or standalone install is found and used; the app never installs a second copy.</p>
+<p><strong>Build it from source</strong> instead, from the plugin you installed. In Claude Code, <code>/pointe:setup apps</code> does it for you.
+In a terminal, one command builds it, signs it, and puts it in <code>~/Applications</code>:</p>
 <div class="dx-code"><pre><code>pointe apps mac</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>You need Xcode 16 or newer (free in the App Store) and macOS 15 or newer. You do not need an Apple Account.
 <code>pointe apps doctor</code> checks the Mac first and prints the fix for anything missing. The plugin must be installed too
-(see the <a href="https://github.com/ballerine-io/pointe/blob/main/README.md#install">README</a>): the app starts and talks to the plugin's daemon and has no engine of its own,
-and <code>pointe</code> is the command setup puts on your PATH. Contributors building from a clone run <code>bin/pointe apps mac</code> there.</p>
+(see the <a href="https://github.com/ballerine-io/pointe/blob/main/README.md#install">README</a>): built this way, the app starts and talks to the plugin's daemon, and <code>pointe</code>
+is the command setup puts on your PATH. Contributors building from a clone run <code>bin/pointe apps mac</code> there.</p>
 <p><strong>What the command does, and why</strong></p>
 <div class="dx-table"><table>
 <thead>
@@ -232,6 +237,14 @@ is in <code>build.log</code> in the build folder.</p>
   Esc closes a sheet and the Type bar. Help, Pointe Help (⌘?) opens this page.</p>
 </li>
 <li>
+<p><strong>Uninstall Pointe…</strong> (in the Pointe menu): <code>pointe uninstall</code>'s list, one question (your keys only if you tick their
+  box), then it removes Pointe, the app included, and quits.</p>
+</li>
+<li>
+<p><strong>Update Pointe to <version></strong> shows at the top of the window when the standalone install in your home folder is
+  older than the app: it runs the app's <code>install.sh</code> for its own version, as on the first launch.</p>
+</li>
+<li>
 <p><strong>Before Pointe runs</strong>, the window is the setup guide; Settings… (⌘,) opens this Mac's own settings over it, and About
   Pointe opens About.</p>
 </li>
@@ -254,13 +267,8 @@ is in <code>build.log</code> in the build folder.</p>
 <p>Drive mode starts on the phone or by voice; the Mac shows it and can stop it, as the page does.</p>
 <h2 id="limits">Limits</h2>
 <ul>
-<li>
-<p>Built from source (<a href="#getting-it">one command</a>), signed for your own Mac, not notarized. Another Mac will refuse to
-  open a copy of your build.</p>
-</li>
-<li>
-<p>One call at a time: hang up on the page or the phone to talk here.</p>
-</li>
+<li>A copy you built from source is signed for your own Mac only: another Mac refuses it. <code>Pointe.dmg</code> is the one to share.</li>
+<li>One call at a time: hang up on the page or the phone to talk here.</li>
 <li>
 <p>Echo cancellation is macOS's own. If the audio device gives none, the call still starts and the window says to use
   headphones.</p>
@@ -274,23 +282,11 @@ is in <code>build.log</code> in the build folder.</p>
 <h2 id="tests">Tests</h2>
 <p><code>apps/macos/test.sh unit</code>, <code>smoke</code> and <code>ui</code>, and the live test against a real daemon:
 <a href="../contributing/#the-apps">Running the tests, The apps</a>.</p>
-<h2 id="a-notarized-build-when-there-is-a-developer-id">A notarized build (when there is a Developer ID)</h2>
-<p>Not done yet: it needs a Developer ID Application certificate. The steps, for whoever holds one:</p>
-<ol>
-<li>
-<p><code>xcodebuild archive -project apps/macos/PointeMac.xcodeproj -scheme PointeMac -configuration Release -archivePath
-   build/Pointe.xcarchive DEVELOPMENT_TEAM=&lt;team&gt; CODE_SIGN_IDENTITY="Developer ID Application"</code>, then export with
-   <code>method: developer-id</code>. The hardened runtime is already on, with one entitlement (the microphone).</p>
-</li>
-<li>
-<p><code>ditto -c -k --keepParent Pointe.app Pointe.zip</code>, <code>xcrun notarytool submit Pointe.zip --keychain-profile &lt;profile&gt;
-   --wait</code>, <code>xcrun stapler staple Pointe.app</code>.</p>
-</li>
-<li>
-<p>A disk image (<code>hdiutil create -volname Pointe -srcfolder Pointe.app -ov -format UDZO Pointe.dmg</code>), notarized and
-   stapled the same way, attached to the GitHub release; then a Homebrew cask pointing at it with its SHA-256.</p>
-</li>
-</ol>
+<h2 id="the-signed-disk-image">The signed disk image</h2>
+<p><code>tools/build_dmg.sh</code> builds <code>Pointe-&lt;version&gt;.dmg</code> in one command: the app archived, signed with Developer ID through
+Xcode's account and notarized (Xcode exports it with destination "upload"), stapled; a disk image with an Applications
+link and the brand's background (<code>tools/dmg_background.swift</code>), itself signed, notarized and stapled. The steps around
+it, and the GitHub Actions job that does the same with secrets: <a href="../releasing/#4-the-github-release">releasing.md</a>.</p>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md">docs/mac-app.md</a> in the repository.</p>
 <nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../install/"><span class="pg-small">Previous</span>Install Pointe</a><a class="dx-next" href="../phone/"><span class="pg-small">Next</span>Connect your phone</a></nav>
@@ -302,7 +298,7 @@ is in <code>build.log</code> in the build folder.</p>
 <li class="dx-l2"><a href="#using-it">Using it</a></li>
 <li class="dx-l2"><a href="#limits">Limits</a></li>
 <li class="dx-l2"><a href="#tests">Tests</a></li>
-<li class="dx-l2"><a href="#a-notarized-build-when-there-is-a-developer-id">A notarized build (when there is a Developer ID)</a></li>
+<li class="dx-l2"><a href="#the-signed-disk-image">The signed disk image</a></li>
 </ul>
 </details>
 </aside>

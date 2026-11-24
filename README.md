@@ -7,7 +7,7 @@
 
 # Pointe
 
-**Beta (0.8.0): work in progress.** It works and is used every day; expect rough edges, and please
+**Beta (0.8.1): work in progress.** It works and is used every day; expect rough edges, and please
 [report them](https://github.com/ballerine-io/pointe/issues).
 
 A conversational layer for your coding agents. Built and open-sourced by Ballerine Engineering.
@@ -38,6 +38,10 @@ Pointe:  Duplicate charges during failover. It decided that an hour ago.
   sent out, with its measured cost in speed and accuracy. [docs/features/local.md](docs/features/local.md).
 
 ## Install
+
+**Mac:** download `Pointe-<version>.dmg` from the [newest release](https://github.com/ballerine-io/pointe/releases/latest),
+drag Pointe to Applications, and open it. The app installs Pointe (checked, no Terminal, no password), asks one question,
+takes your key into the Keychain and starts your first call: [docs/install.md](docs/install.md).
 
 **Claude Code:** one command, then `/pointe:setup` in a new Claude Code session.
 
@@ -113,9 +117,10 @@ reads back what it found and joins on your yes; Add sessions on the page and in 
 [docs/features/add-sessions.md](docs/features/add-sessions.md).
 
 **Optional extras.** Your phone needs no app: the page works in its browser ([docs/phone.md](docs/phone.md)). The Mac
-and iPhone apps are built from source until there is a download, from the plugin you installed, with Xcode:
-`/pointe:setup apps` in Claude Code, or `pointe apps doctor` (what is missing), `pointe apps mac` (the Mac app, into
-`~/Applications`) and `pointe apps ios` (the iPhone app, signed with your free Apple Account) in a terminal.
+app is `Pointe.dmg` on the release page. The iPhone app is built from source until there is a download, from the plugin
+you installed, with Xcode: `/pointe:setup apps` in Claude Code, or `pointe apps doctor` (what is missing) and
+`pointe apps ios` (the iPhone app, signed with your free Apple Account) in a terminal; `pointe apps mac` builds the Mac
+app the same way, into `~/Applications`.
 [The Mac app](docs/mac-app.md#getting-it), [the iPhone app](docs/iphone-app.md#getting-the-app).
 
 ### Which keys, and what they cost
@@ -410,8 +415,9 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 ## Limits
 
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
-- **The Mac app is built from source** too (`pointe apps mac`, [how](docs/mac-app.md#getting-it)), signed for your
-  own Mac and not notarized. Its
+- **The Mac app** is `Pointe.dmg`, signed with Developer ID and notarized ([how](docs/mac-app.md#getting-it)). Its
+  first-launch install ran for real into an empty home folder, through the same installer code, but has not yet been
+  followed on a fresh Mac account; its screens were checked in a preview. Its
   call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon
   on one MacBook Pro; AirPods, device changes, the Touch ID sheet and a spoken sentence heard through it in this
   version were not.

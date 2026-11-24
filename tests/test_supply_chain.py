@@ -436,7 +436,7 @@ EGRESS_SOURCES = ("install.sh", "pointe/*.py", "pointe/harnesses/*.py", "bench/*
                   "apps/ios/e2e/*.py", "apps/ios/*.sh", "apps/macos/e2e/*", "tools/*.py", "tools/*.sh", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
                   "channel/*.mjs", "channel/package.json", "pointe/ui*.html", "site/**/*", "apps/ios/Pointe/**/*.swift", "apps/ios/PointeShared/*.swift", "apps/ios/PointeWidget/*.swift", "apps/PointeKit/Package.swift",
                   "apps/PointeKit/Sources/**/*.swift", "apps/macos/PointeMac/**/*.swift", "apps/macos/*.sh",
-                  "apps/macos/tools/*", ".github/**/*.yml")
+                  "apps/macos/tools/*", ".github/**/*.yml", "tools/*.swift", "apps/macos/PointeMac/*.sh")
 
 
 def test_every_scanned_pattern_finds_files():

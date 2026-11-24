@@ -57,7 +57,23 @@ python3 tools/release_tarball.py pin vX.Y.Z            # install.sh installs it:
 ```
 
 Commit the pinned `install.sh` on its own ("The installer pins X.Y.Z"; it changes only `POINTE_VERSION` and
-`POINTE_SHA256`, and needs no version), then deploy the site, which serves it at `/pointe/install.sh`. Until then a new
+`POINTE_SHA256` in it and the same file's SHA-256 in `apps/PointeKit/Sources/PointeMacKit/Installer.swift`, which `pin`
+writes too, and needs no version), then deploy the site, which serves it at `/pointe/install.sh`.
+
+Then the Mac app, from that commit, so the `install.sh` built into it installs this release:
+
+```
+tools/build_dmg.sh --upload     # dist/Pointe-X.Y.Z.dmg and .sha256, signed, notarized, stapled; attached to the release
+```
+
+It signs and notarizes the app through Xcode's account (the team's cloud-managed Developer ID certificate). The disk
+image needs a "Developer ID Application" identity in the keychain and the notarytool profile `pointe-notary`, each made
+once; the script names whichever is missing and attaches nothing until both are there. In CI the `mac-release`
+workflow does the same on a published release when its environment holds the signing secrets
+(`.github/workflows/mac-release.yml` lists them); its token is read-only, so attach its artifact with
+`gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256`. Once the disk image is attached, set `mac` in
+`site/pointe/apps.json` to `"status": "open"` with the `download_url` of the release's `Pointe-X.Y.Z.dmg`, and deploy the
+site. Until then a new
 standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out
 `bench/`, `evals/` and `site/` (`.gitattributes`). Never replace an asset of a published release: a mistake gets a new
 patch version, as for a tag.
@@ -67,20 +83,20 @@ Write the notes for someone who has never seen Pointe, in this order:
 1. What Pointe is, in two sentences (the README's first paragraph).
 2. What is in this version: the changelog lines since the last release, grouped, in plain words. Name people who
    reported or fixed something.
-3. Install and update. Install is the README's: the plugin command for Claude Code, `install.sh` for Codex and
-   OpenCode. To update the plugin: `claude plugin marketplace update pointe`, then `claude plugin update pointe@pointe`,
+3. Install and update. Install is the README's: `Pointe-X.Y.Z.dmg` on a Mac, the plugin command for Claude Code,
+   `install.sh` for Codex and OpenCode. To update the plugin: `claude plugin marketplace update pointe`, then `claude plugin update pointe@pointe`,
    then `/pointe:stop` and `/pointe:voice` so the daemon restarts on the new code. The standalone install: `pointe
    update`.
 4. Limits that matter to a new user (the README's "Limits"), and anything this version is known not to fix.
 
-No claim the README does not make, no "first" or "only", and numbers only with their source. The release's two files
-are the tarball and its SHA-256; the plugin installs from the repository.
+No claim the README does not make, no "first" or "only", and numbers only with their source. The release's files are
+the tarball, the disk image and the SHA-256 of each; the plugin installs from the repository.
 
 ## 5. After
 
 - The iPhone app follows its own path to TestFlight and the App Store: `docs/ios/app-store.md`.
-- The Mac app is built from source until there is a Developer ID: `docs/mac-app.md` has the notarization steps.
-  Until either app has a download, people build them with `pointe apps mac` and `pointe apps ios`.
+- The Mac app ships as `Pointe-X.Y.Z.dmg` (step 4). Until the iPhone app has a download, people build it with
+  `pointe apps ios`.
 - The repository page: the description and topics are set through `gh repo edit`. The social preview image cannot be
   set through the API: upload `docs/social-preview.png` by hand in Settings, General, Social preview, after any change
   to it.
