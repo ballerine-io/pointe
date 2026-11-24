@@ -53,7 +53,13 @@ final class AppModel {
     /// "Show the call bubble during calls": on a call, and with none when pinned (`BubbleRule.shows`). A demo keeps
     /// none of these.
     var bubbleOn: Bool { didSet { remember(bubbleOn, Keys.bubble); syncBubble() } }
-    var bubblePinned: Bool { didSet { remember(bubblePinned, Keys.bubblePinned); syncBubble() } }
+    /// Pinning a bubble that is switched off switches it on: nothing can be kept on screen that never shows.
+    var bubblePinned: Bool {
+        didSet {
+            remember(bubblePinned, Keys.bubblePinned)
+            if bubblePinned, !bubbleOn { bubbleOn = true } else { syncBubble() }
+        }
+    }
     /// The bubble as a small pill; hovering or clicking it shows the whole bubble (`bubbleExpanded`) until the mouse leaves.
     var bubbleSmall: Bool { didSet { remember(bubbleSmall, Keys.bubbleSmall); syncBubble() } }
     var bubbleExpanded = false { didSet { syncBubble() } }
@@ -480,3 +486,4 @@ final class AppModel {
         if NSApp.appearance?.name != wanted?.name { NSApp.appearance = wanted }
     }
 }
+        if session.isDemo { loginItem = on; return }  // a demo keeps nothing: the switch moves, this Mac's login items do not

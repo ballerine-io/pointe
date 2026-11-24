@@ -23,10 +23,19 @@ struct MacSettingsSections: View {
                     }
                 }
             }
+            LabeledContent(Shortcut.Role.skip.label) {
+                VStack(alignment: .trailing, spacing: 4) {
+                    ShortcutRecorder(role: .skip, shortcut: $model.skipShortcut)
+                    if let note = model.skipNote {
+                        Text(note).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent).accessibilityIdentifier("settings.skipShortcutNote")
+                    }
+                }
+            }
+            // Each of the three always takes a click. The two under the first were switched off whenever the bubble was
+            // hidden (its × does that), and a switch that is off and one that takes no click look the same here.
             Toggle("Show the call bubble during calls", isOn: $model.bubbleOn).accessibilityIdentifier("settings.bubble")
-            Toggle("Keep it on screen with no call", isOn: $model.bubblePinned).disabled(!model.bubbleOn)
-                .accessibilityIdentifier("settings.bubblePinned")
-            Toggle("Small bubble", isOn: $model.bubbleSmall).disabled(!model.bubbleOn).accessibilityIdentifier("settings.bubbleSmall")
+            Toggle("Keep it on screen with no call", isOn: $model.bubblePinned).accessibilityIdentifier("settings.bubblePinned")
+            Toggle("Small bubble", isOn: $model.bubbleSmall).accessibilityIdentifier("settings.bubbleSmall")
             Toggle("Open Pointe at login", isOn: Binding(get: { model.loginItem }, set: { model.setLoginItem($0) }))
                 .accessibilityIdentifier("settings.login")
             if let note = model.loginNote { Text(note).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent) }

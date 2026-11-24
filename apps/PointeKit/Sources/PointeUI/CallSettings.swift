@@ -126,6 +126,7 @@ struct CallSettingsSheet: View, Equatable {
                     Toggle(isOn: Binding(get: { polishWanted ?? model.polish }, set: { polishWanted = $0; act.setPolish($0) })) {
                         Label("Clean up my words", systemImage: "wand.and.sparkles")
                     }
+                    .accessibilityIdentifier("polishSetting")
                     if let whisper = model.whisper {
                         Toggle(isOn: Binding(get: { whisperWanted ?? whisper }, set: { whisperWanted = $0; act.setWhisper($0) })) {
                             Label(WhisperCopy.button, systemImage: "waveform.badge.minus")

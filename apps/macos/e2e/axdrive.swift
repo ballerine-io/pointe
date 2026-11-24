@@ -6,12 +6,17 @@
 //   axdrive <pid> value <id>            print its value, title or label
 //   axdrive <pid> label <id>            print its label (what VoiceOver reads), else its title or value
 //   axdrive <pid> exists <id>           exit 0 when it is on screen
+//   axdrive <pid> switches              print the identifier of every switch on screen, one per line ("?<title>" for one with none)
+//   axdrive <pid> state <id>            print "value=<0|1> enabled=<0|1> hit=<0|1>" for a switch, scrolled into view first:
+//                                       on or off, whether it takes a press, and whether the point where its switch is
+//                                       drawn (the row's trailing end) answers as this row, so nothing lies over it
 //   axdrive <pid> labelled <prefix>     print every label that starts with the prefix
 //   axdrive <pid> count <id>            how many texts are inside it
 //   axdrive <pid> texts <id>            print the texts inside it, one per line
+//   axdrive <pid> actions <id>          print the names of the actions its parts offer (a bubble's "Copy"), one per line
 //   axdrive <pid> window                print the id of the app's main window (for screencapture -l)
 //   axdrive <pid> panel                 print the id of its floating panel (the call bubble)
-//   axdrive <pid> button <title>        press the first button with this title (a system prompt's "Allow")
+//   axdrive <pid> button <title>        press the first button with this title or label (a system prompt's "Allow", a sheet's "Done")
 //   axdrive <pid> type <id> <text>      put text in a field and confirm it (Return)
 //   axdrive <pid> set <id> <text>       put text in a field, nothing else
 //   axdrive <pid> return <id> [shift|option]  focus the field and press Return in it, with that modifier (to this app only)
@@ -23,7 +28,7 @@ import Foundation
 
 let args = CommandLine.arguments
 guard args.count >= 3, let pid = pid_t(args[1]) else {
-    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|labelled|count|window|panel|button|type|ids|menu|size [what]\n".utf8))
+    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|switches|state|actions|labelled|count|window|panel|button|type|ids|menu|size [what]\n".utf8))
     exit(2)
 }
 guard AXIsProcessTrusted() else {
@@ -63,6 +68,27 @@ func find(_ id: String) -> AXUIElement? {
     return found
 }
 
+func frame(of element: AXUIElement) -> CGRect? {
+    var origin = CGPoint.zero, size = CGSize.zero
+    guard let p = attribute(element, kAXPositionAttribute as String), let s = attribute(element, kAXSizeAttribute as String),
+          AXValueGetValue(p as! AXValue, .cgPoint, &origin), AXValueGetValue(s as! AXValue, .cgSize, &size) else { return nil }
+    return CGRect(origin: origin, size: size)
+}
+
+/// Scrolls the list an element is in until the element shows: a row below the fold of its sheet takes no click.
+func reveal(_ element: AXUIElement) {
+    var at = attribute(element, kAXParentAttribute as String)
+    while let here = at, attribute(here as! AXUIElement, kAXRoleAttribute as String) as? String != kAXScrollAreaRole as String {
+        at = attribute(here as! AXUIElement, kAXParentAttribute as String)
+    }
+    guard let area = at.map({ $0 as! AXUIElement }), let bar = attribute(area, kAXVerticalScrollBarAttribute as String) else { return }
+    for step in 0...20 {
+        if let outer = frame(of: area), let box = frame(of: element), outer.insetBy(dx: 0, dy: 30).contains(CGPoint(x: box.midX, y: box.midY)) { return }
+        AXUIElementSetAttributeValue(bar as! AXUIElement, kAXValueAttribute as CFString, NSNumber(value: Double(step) / 20))
+        usleep(120_000)
+    }
+}
+
 let what = args.count > 3 ? args[3...].joined(separator: " ") : ""
 switch args[2] {
 case "press":
@@ -76,6 +102,32 @@ case "label":
     print(text(element, labelFirst: true))
 case "exists":
     exit(find(what) == nil ? 1 : 0)
+case "switches":
+    var seen = Set<String>()
+    _ = walk(app) { element in
+        guard attribute(element, kAXSubroleAttribute as String) as? String == "AXSwitch"
+            || attribute(element, kAXRoleAttribute as String) as? String == kAXCheckBoxRole as String else { return false }
+        let id = attribute(element, kAXIdentifierAttribute as String) as? String ?? ""
+        let name = id.isEmpty ? "?" + text(element, labelFirst: true) : id
+        if seen.insert(name).inserted { print(name) }
+        return false
+    }
+case "state":
+    guard let element = find(what) else { print("missing"); exit(1) }
+    reveal(element)
+    guard let box = frame(of: element) else { print("missing"); exit(1) }
+    let value = (attribute(element, kAXValueAttribute as String) as? NSNumber)?.intValue ?? -1
+    let enabled = (attribute(element, kAXEnabledAttribute as String) as? Bool) ?? false
+    var under: AXUIElement?
+    AXUIElementCopyElementAtPosition(app, Float(box.maxX - min(26, box.width / 2)), Float(box.midY), &under)
+    var hit = false
+    var at = under
+    for _ in 0..<6 {  // the element under the point, or what it is inside of
+        guard let here = at else { break }
+        if CFEqual(here, element) { hit = true; break }
+        at = attribute(here, kAXParentAttribute as String).map { $0 as! AXUIElement }
+    }
+    print("value=\(value) enabled=\(enabled ? 1 : 0) hit=\(hit ? 1 : 0)")
 case "labelled":
     _ = walk(app) { element in
         let label = attribute(element, kAXDescriptionAttribute as String) as? String ?? ""
@@ -94,6 +146,19 @@ case "texts":
     guard let element = find(what) else { print("missing"); exit(1) }
     _ = walk(element) { inner in
         if attribute(inner, kAXRoleAttribute as String) as? String == kAXStaticTextRole as String { print(text(inner)) }
+        return false
+    }
+case "actions":
+    guard let element = find(what) else { print("missing"); exit(1) }
+    var seen = Set<String>()
+    _ = walk(element) { inner in
+        var names: CFArray?
+        guard AXUIElementCopyActionNames(inner, &names) == .success, let list = names as? [String] else { return false }
+        for name in list {
+            // A view's own named action arrives as "Name:Copy\nTarget:…": its name is what a person is offered.
+            let shown = name.split(separator: "\n").first { $0.hasPrefix("Name:") }.map { String($0.dropFirst(5)) } ?? name
+            if seen.insert(shown).inserted { print(shown) }
+        }
         return false
     }
 case "window", "panel":
@@ -153,8 +218,10 @@ case "size":
 case "button":
     var pressed = false
     _ = walk(app) { element in
+        // A sheet's toolbar button (Done) carries its name as its description, with no title, on newer systems.
         guard attribute(element, kAXRoleAttribute as String) as? String == kAXButtonRole as String,
-              attribute(element, kAXTitleAttribute as String) as? String == what else { return false }
+              attribute(element, kAXTitleAttribute as String) as? String == what
+                || attribute(element, kAXDescriptionAttribute as String) as? String == what else { return false }
         pressed = AXUIElementPerformAction(element, kAXPressAction as CFString) == .success
         return true
     }
