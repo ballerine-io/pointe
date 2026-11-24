@@ -794,6 +794,11 @@ class Brain:
                     # Over on words, sent back once: the model shortens better than a cut does. A second long one, and one
                     # over only on sentences, is cut in code below: that costs no model step before the first sound.
                     problem, shortened = conversation.retry_problem(without_closer(said), limit), True
+                    if problem and conversation.awaited(self._trigger):
+                        # The answer the user is waiting for, from the session they asked: sent back, they sat through
+                        # another model step of silence, and when that step was slow the answer was never said. Its
+                        # first sentences hold the answer (it was asked for "the answer first"): cut in code, said now.
+                        problem = None
                     if problem and early and not self._room_after(early, limit):
                         problem = None  # what was said ahead fills the limit: nothing to shorten the rest into, so it is cut
                     if problem and not early and own_words and self.speak_first and self.speak_rest \

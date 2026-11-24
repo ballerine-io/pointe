@@ -24,7 +24,7 @@ def test_the_same_folder_through_a_link_is_inside(tmp_path):
     (Path(real) / "tests").mkdir()
     assert readout.place(f"{linked}/tests", real) == "tests"
     assert readout.place(f"{real}/tests", linked) == "tests"
-    assert readout.place(real, linked) == real  # the project itself is said whole (test_readout_discover.py)
+    assert readout.place(real, linked) == "the project folder"  # test_readout_project_folder.py
 
 
 def test_a_folder_outside_is_still_whole(tmp_path):

@@ -434,6 +434,14 @@ SWITCH_WORDS_SECS = 10.0  # a switch asked this recently still counts when anoth
 # How long a final transcript waits for silence before it is the turn: turns.LEVELS, by the "turns.patience" setting.
 HEARING_SECS = 3.0  # live words older than this are stale: the user stopped
 VAD_STOP_SECS = 0.2  # the voice detector says "stopped" this long after the sound ended (pipecat's default, set in _call_ears)
+SILENT_TURN_SECS = 2.0  # Pointe idle this long with nothing said to the user's last words: the turn was silent. 0: off
+SILENT_TURN_POLL_SECS = 0.25
+SILENT_TURN_WATCH_SECS = 45.0  # a turn still working after this is slow, not silent: the model's own lines cover that
+SILENT_TURN_ASK = ("[silent turn] Nothing was said to the user's last words: your reply was cut off or never spoken, and "
+                   "they heard nothing. Answer those words now in one short sentence. If something was not sent or "
+                   "cannot be done, say that. Do not send anything again.")
+SILENT_TURN_LINE = "Sorry, I didn't answer that. Say it again?"
+SILENT_TURN_HE = "סליחה, לא עניתי על זה. אפשר שוב?"
 BARGE_CONFIRM_SECS = 0.25  # a loud voice over the bot cuts it after this much more, unless its words are a backchannel
 BARGE_WORDS_SECS = 0.8  # and, while it has no live words yet, up to this much longer: a wordless "mm-hm" lasts about 0.9 s
 SETTLE_POLL_SECS = 0.03  # how often held words are checked for their settle time: what it adds to every turn
@@ -1844,6 +1852,43 @@ class BrainFront(FrameProcessor):
     def _start(self, text: str | None, speech_only: bool = False) -> None:
         self.create_task(self.brain.turn(text, speech_only=speech_only), f"brain-{time.time()}")
 
+    def _watch(self, text: str) -> None:
+        """The user's own words were taken as a turn: it must not end in silence (_no_silent_turn)."""
+        if SILENT_TURN_SECS and not (ack_only(text) or backchannel(text)):
+            self.create_task(self._no_silent_turn(state.last_user_speech_at), f"reply-watch-{time.time()}")
+
+    async def _no_silent_turn(self, asked_at: float) -> None:
+        """A turn on the user's own words ends in speech, always. Silence after a question is the worst failure in a
+        call, and it has several causes no one check covers: a noise the detector took for a voice cut the reply, a send
+        was refused with "do not mention this" and the model said nothing, a reply was lost between its checks. Once
+        Pointe has been idle SILENT_TURN_SECS with nothing said since those words, the model is asked once to answer
+        them; if that is silent too, a fixed line asks the user to say it again. Never when they spoke again (that turn
+        has its own watch), when an acknowledgement needs no answer, or in a mode that does not talk."""
+        asked_again = False
+        idle_since, deadline = None, time.time() + SILENT_TURN_WATCH_SECS
+        while time.time() < deadline:
+            await asyncio.sleep(SILENT_TURN_POLL_SECS)
+            if state.conn is None or state.last_user_speech_at != asked_at or state.utterance_spent:
+                return  # the call ended, they said something new, or the daemon answered these words itself
+            if any(at >= asked_at for at, _ in state.bot_spoke):
+                return  # answered: by the reply, by a fixed line, or by the second try
+            if current_mode() not in (modes.CONVERSATION, modes.DRIVE) or state.meeting is not None \
+                    or state.hold is not None or state.ptt.collecting:
+                return  # a mode with its own rules for when Pointe talks
+            if _user_talking() or self.brain.busy or self.brain._user_turns or state.sending.locked() or self._speaking:
+                idle_since = None
+                continue
+            idle_since = idle_since or time.time()
+            if time.time() - idle_since < SILENT_TURN_SECS:
+                continue
+            if asked_again:
+                logger.warning("silent turn: still nothing said; the fixed line")
+                await _say_fixed(SILENT_TURN_HE if re.search(r"[\u0590-\u05ff]", state.last_utterance) else SILENT_TURN_LINE)
+                return
+            logger.warning("silent turn: nothing was said to the user's last words; asking the model once more")
+            asked_again, idle_since = True, None
+            self._start(SILENT_TURN_ASK)
+
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
         if isinstance(frame, BotStartedSpeakingFrame):
@@ -1893,6 +1938,7 @@ class BrainFront(FrameProcessor):
                     self._start(f"{frame.text}\n[you already told the user: {reply!r}. Do not say it again, and do not "
                                 "greet: do what these words ask.]")
                     return
+                self._watch(frame.text)
                 fast = _fast_send(frame.text) if _may_fast_send() else None
                 if fast is not None:
                     self.create_task(self._fast_or_brain(frame.text, *fast), f"fast-{time.time()}")

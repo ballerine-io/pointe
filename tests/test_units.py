@@ -489,7 +489,7 @@ def test_plain_answers_still_approve(said):
     ("Bash", {"command": "cat README.md && python3 -m pytest -q 2>&1 | tail -40"}, "run: cat README.md then python3 pytest"),
     # what Claude Code really runs: output trims, separators, the exit status, a cd first, uv run
     ("Bash", {"command": "cat a.py && echo ---- && python3 -m pytest -q 2>&1 | tail -40"}, "run: cat a.py then echo then python3 pytest"),
-    ("Bash", {"command": 'pwd; ls -la /p/repo 2>&1; echo "exit=$?"'}, "run: pwd then ls /p/repo then echo"),
+    ("Bash", {"command": 'pwd; ls -la /p/repo 2>&1; echo "exit=$?"'}, "run: pwd then ls the project folder then echo"),
     ("Bash", {"command": "cd /p/repo/web && npm test 2>&1 | tail -20"}, "run: cd web then npm test"),
     ("Bash", {"command": "cd /etc && cat x > hosts"}, "run: cd /etc then cat /etc/x writing to /etc/hosts"),
     ("Bash", {"command": "uv run pytest -q tests/ -x 2>&1 | tail -30"}, "run: uv run pytest tests"),

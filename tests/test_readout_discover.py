@@ -21,7 +21,7 @@ CWD = "/tmp/project/ledgerline"
 
 
 @pytest.mark.parametrize("command,said", [
-    (f"python3 -m unittest discover -s {CWD}/tests -t {CWD}", f"python3 unittest discover -s tests -t {CWD}"),
+    (f"python3 -m unittest discover -s {CWD}/tests -t {CWD}", "python3 unittest discover -s tests -t the project folder"),
     ("python3 -m unittest discover -s tests -v", "python3 unittest discover -s tests"),
 ])
 def test_discover_with_its_folders_is_read_out(command, said):

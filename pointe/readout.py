@@ -23,6 +23,7 @@ _PROGRAMS: dict[str, tuple[set, set, set, set]] = {
     "head": (set(), set(), set(), set("-n -c".split())),
     "tail": (set("-f".split()), set(), set(), set("-n -c".split())),
     "wc": (set("-l -w -c -m".split()), set(), set(), set()),
+    "tee": (set(), set("-a".split()), set(), set()),  # every file it writes is said; -a (it adds, not replaces) too
     "grep": (_GREP_SAFE, set(), set(), set("-e -m -A -B -C --include --exclude --exclude-dir".split())),
     "rg": (set("-n -i -l -c -v -w -F -S --hidden -uu -u --files".split()), set(), set(), set("-g -t -e -A -B -C --glob --type".split())),
     "pwd": (set(), set(), set(), set()),
@@ -164,6 +165,9 @@ def visible(value):
     return value
 
 
+PROJECT = "the project folder"
+
+
 def place(path: str, cwd: str | None) -> str:
     """Plainly inside the project: its name. Anywhere else, through a hidden folder, or through a symlink that leaves the
     project: the whole path."""
@@ -176,7 +180,9 @@ def place(path: str, cwd: str | None) -> str:
     if inside.startswith("..") or path.startswith(("~", "/")) and not full.startswith(cwd.rstrip("/") + "/"):
         # The same folder spelled through another link (/tmp is /private/tmp on a Mac) is still inside: read on.
         real_inside = os.path.relpath(os.path.realpath(full), os.path.realpath(cwd))
-        if real_inside.startswith("..") or os.path.isabs(real_inside) or real_inside == ".":
+        if real_inside == ".":
+            return PROJECT  # the session's own folder, by its full path: said as that, not as twenty seconds of path
+        if real_inside.startswith("..") or os.path.isabs(real_inside):
             return full if not path.startswith("~") else path
         inside = real_inside
     # Through a symlink (a cloned repo's docs -> ~/.ssh), where it really goes. Run on the disk the session runs on: a
