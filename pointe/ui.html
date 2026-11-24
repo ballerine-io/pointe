@@ -454,6 +454,10 @@
           flex-direction: column; gap: 4px; }
   #talk li { max-width: min(640px, 78%); padding: 11px 16px; border-radius: 16px; line-height: 1.45; font-size: 15.5px;
              background: var(--card); white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--line); }
+  /* Selecting and copying a line is the browser's own: the text selects, and what only a screen reader hears ("Pointe: ",
+     "You: ") and the marks under a line (typed, edited) stay out of the copy. */
+  #talk li { -webkit-user-select: text; user-select: text; }
+  #talk li .sr, #talk li .badges { -webkit-user-select: none; user-select: none; }
   #talk li.bot { align-self: flex-start; border-bottom-left-radius: 3px; }
   #talk li.you { align-self: flex-end; background: var(--raised); border-color: var(--line); border-bottom-right-radius: 3px; }
   #talk li.gap { margin-top: 10px; }
@@ -3226,11 +3230,16 @@
       if (t.corrected) badges.append(el('span', 'badge', 'edited'));
       li.append(badges);
     }
-    li.onclick = () => startFix(li);
+    li.onclick = () => { if (!selecting(li)) startFix(li); };  // a drag that selected words is a selection, not a click
     return li;
   }
   function startFix(li) {  // inline: Enter sends the correction, Esc puts it back
     if (editing) return;
+  // The conversation's text is for selecting and copying, as on any page: words selected inside this line.
+  function selecting(li) {
+    const sel = getSelection();
+    return !!sel && !sel.isCollapsed && String(sel).trim() !== '' && (li.contains(sel.anchorNode) || li.contains(sel.focusNode));
+  }
     editing = li;
     const box = el('textarea', 'fix'); box.value = li.dataset.text; box.rows = Math.max(1, Math.ceil(box.value.length / 60));
     li.classList.add('editing'); li.onclick = null;

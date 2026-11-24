@@ -60,6 +60,16 @@ enum OwnerCopy {
 }
 
 enum Clipboard {
+    /// A line of the conversation: an ordinary copy, kept until the person copies something else.
+    @MainActor static func copy(_ text: String) {
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #else
+        UIPasteboard.general.string = text
+        #endif
+    }
+
     #if os(macOS)
     /// nspasteboard.org's marker: clipboard managers and history tools do not keep or show what carries it.
     static let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")

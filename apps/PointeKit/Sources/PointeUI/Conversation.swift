@@ -31,7 +31,8 @@ struct ConversationView: View {
                            tail: groupEnd)
                         // the live bubble becomes this one: same place, same shape, so it flows instead of jumping
                         .matchedGeometryEffect(id: newestMine ? "speech" : "turn-\(turn.id)", in: speech)
-                        .onTapGesture { if turn.mine { edit(turn) } }
+                        // with the text's own: on the Mac a line's words select by a drag, and a click still opens the fix
+                        .simultaneousGesture(TapGesture().onEnded { if turn.mine { edit(turn) } })
                         .padding(.bottom, groupEnd ? 14 : 4)
                         .transition(.opacity)
                 }
@@ -64,12 +65,15 @@ struct Bubble: View {
         HStack(alignment: .bottom, spacing: 0) {
             if turn.mine { Spacer(minLength: 56) }
             VStack(alignment: turn.mine ? Bubble.textStart(turn.text, in: direction) : .leading, spacing: 4) {
-                if turn.mine, polish, let understood = turn.understood, understood != turn.text {
-                    Text(turn.text).readingDirection(of: turn.text).font(.brand(.footnote)).foregroundStyle(Brand.muted)
-                    Text(understood).readingDirection(of: understood)
-                } else {
-                    Text(turn.text).readingDirection(of: turn.text)
+                Group {
+                    if turn.mine, polish, let understood = turn.understood, understood != turn.text {
+                        Text(turn.text).readingDirection(of: turn.text).font(.brand(.footnote)).foregroundStyle(Brand.muted)
+                        Text(understood).readingDirection(of: understood)
+                    } else {
+                        Text(turn.text).readingDirection(of: turn.text)
+                    }
                 }
+                .selectableOnMac()
                 if turn.mine && (turn.typed == true || turn.corrected == true || (pending && turn.understood == nil)) {
                     badges
                 }
@@ -85,10 +89,23 @@ struct Bubble: View {
             if !turn.mine { Spacer(minLength: 56) }
         }
         .contentShape(Rectangle())
+        .contextMenu {  // right-click on the Mac, a long press on the phone
+            Button(CopyCopy.copy, systemImage: "doc.on.doc") { Clipboard.copy(Self.copyText(turn, polish: polish)) }
+                .accessibilityIdentifier("copyTurn")
+        }
         .netProbe(turn.text)
         .accessibilityElement(children: .combine)
         .accessibilityLabel((turn.mine ? "You: " : "Pointe: ") + (turn.understood ?? turn.text))
+        .accessibilityAddTraits(.isStaticText)  // selectable text is no static text to the system: the bubble still is one
         .accessibilityHint(turn.mine ? "Double-tap to fix what was heard" : "")
+        .accessibilityAction(named: CopyCopy.copy) { Clipboard.copy(Self.copyText(turn, polish: polish)) }
+    }
+
+    /// What Copy puts on the clipboard: the words the bubble reads as. With "Clean up my words" on that is the cleaned
+    /// line of your own turn, not the raw one above it; the marks under a line (typed, edited) are never part of it.
+    static func copyText(_ turn: API.Turn, polish: Bool) -> String {
+        if turn.mine, polish, let understood = turn.understood, !understood.isEmpty { return understood }
+        return turn.text
     }
 
     /// Where a text's lines start inside a bubble, on a screen laid out in `direction`: English on the left, Hebrew on the
@@ -112,6 +129,23 @@ struct Bubble: View {
         .labelStyle(.titleAndIcon)
         .font(.brand(.caption2))
         .foregroundStyle(Brand.muted)
+    }
+}
+
+/// The conversation's Copy, on both apps.
+enum CopyCopy {
+    static let copy = "Copy"
+}
+
+extension View {
+    /// The conversation's text selects by a drag on the Mac, as on the page. On the phone a long press is the bubble's
+    /// Copy menu: iOS gives selectable text a long press of its own, and the two would fight for it.
+    @ViewBuilder func selectableOnMac() -> some View {
+        #if os(macOS)
+        textSelection(.enabled)
+        #else
+        self
+        #endif
     }
 }
 
