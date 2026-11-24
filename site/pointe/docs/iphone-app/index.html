@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The iPhone app · Pointe docs</title>
+<meta name="description" content="The iPhone app has the same call and controls as the page: the sessions, the conversation, approvals (Face ID), the modes, and alerts that reach an Apple…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="The iPhone app">
+<meta property="og:description" content="The iPhone app has the same call and controls as the page: the sessions, the conversation, approvals (Face ID), the modes, and alerts that reach an Apple…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/iphone-app/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/iphone-app/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="./" aria-current="page">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="the-iphone-app">The iPhone app</h1>
+<p>The iPhone app has the same call and controls as the page: the sessions, the conversation, approvals (Face ID), the
+modes, and alerts that reach an Apple Watch. It draws the same screens as the Mac app, from the shared <code>PointeKit</code>
+package. It needs a paired route to your Mac: <a href="../phone/">Connect your phone</a> says which one to use and how to pair.</p>
+<h2 id="getting-the-app">Getting the app</h2>
+<p><strong>Coming to the App Store: in review with Apple.</strong> It is not in the App Store or on TestFlight yet. Until it is, you
+build it on your own Mac with Xcode, from the plugin you installed. In Claude Code, <code>/pointe:setup apps</code> does it for you. In a terminal, one command does the
+build, the signing and the install, and tells you what to do when something is missing:</p>
+<div class="dx-code"><pre><code>pointe apps doctor      # what this Mac has and lacks, with the exact fix for each
+pointe apps ios         # build, sign for your Apple Account, install on the connected iPhone
+pointe apps ios --sim   # no iPhone or no Apple Account: run it in the iPhone Simulator</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Contributors building from a clone run <code>bin/pointe apps …</code> there.</p>
+<p>You need a Mac with Xcode 16 or newer (free in the App Store), an iPhone on iOS 18 or newer, and an Apple Account. A
+free one is enough. Nothing is uploaded and no file in the repository is changed. Run the same command again at any
+time: it updates the app in place and keeps its pairing and settings.</p>
+<p><strong>What to do once, before the first run</strong></p>
+<ol>
+<li>Open Xcode, then Settings (⌘,), Accounts, the + button, Apple Account, and sign in.</li>
+<li>Select the account, press Manage Certificates, the + button, Apple Development.</li>
+<li>Plug the iPhone into the Mac, unlock it, and tap Trust on "Trust This Computer?".</li>
+<li>On the iPhone: Settings, Privacy &amp; Security, Developer Mode, turn it on, restart, confirm.</li>
+</ol>
+<p><code>pointe apps doctor</code> checks each of these and says which is missing.</p>
+<p><strong>What each step does, and why</strong></p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Why it is needed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sign in to Xcode</td>
+<td>An iPhone runs only apps that Apple has signed for a known developer. Your Apple Account is that developer.</td>
+</tr>
+<tr>
+<td>Apple Development certificate</td>
+<td>The key, in your Mac's keychain, that signs the app as you. The command reads your team from it, so you never type a Team ID.</td>
+</tr>
+<tr>
+<td>Team, saved in <code>~/.claude-voice/apps/.team</code></td>
+<td>Xcode needs to know which team signs. With one team it is picked for you; with several the command asks once. It is saved outside the plugin's folder, so a plugin update keeps it (a clone keeps it in <code>apps/ios/.team</code>, which git ignores).</td>
+</tr>
+<tr>
+<td>Bundle ID, saved in <code>~/.claude-voice/apps/.bundle-id</code></td>
+<td>Apple gives each bundle ID to one team, and <code>io.ballerine.pointe</code> belongs to the team that publishes Pointe. The command makes one for you (<code>io.ballerine.pointe.dev</code> plus eight characters) and passes it to Xcode on the command line (<code>POINTE_BUNDLE_ID</code>, from which the project derives the widget's ID and the app group), so the project file stays as committed. It is saved so every rebuild, and every plugin update, updates the same app and keeps its pairing (a clone keeps it in <code>apps/ios/.bundle-id</code>).</td>
+</tr>
+<tr>
+<td>Trust This Computer</td>
+<td>Lets this Mac install apps on the iPhone.</td>
+</tr>
+<tr>
+<td>Developer Mode</td>
+<td>iOS refuses apps that did not come from the App Store until you turn this on.</td>
+</tr>
+<tr>
+<td>Build with <code>-allowProvisioningUpdates</code></td>
+<td>Lets Xcode ask Apple for a provisioning profile: the signed note that says this app, from this team, may run on this iPhone. It also registers the iPhone with your team.</td>
+</tr>
+<tr>
+<td><code>xcrun devicectl device install app</code></td>
+<td>Copies the signed app to the iPhone, over the cable or Wi-Fi.</td>
+</tr>
+<tr>
+<td>Trust the developer (free account, first time)</td>
+<td>On the iPhone: Settings, General, VPN &amp; Device Management, your Apple Account, Trust. iOS asks this once per account.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Free Apple Account or paid developer account?</strong></p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th>Free (Personal Team)</th>
+<th>Apple Developer Program ($99 a year)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Installs on your own iPhone</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>How long a build opens</td>
+<td>7 days, then run <code>pointe apps ios</code> again</td>
+<td>1 year</td>
+</tr>
+<tr>
+<td>Trust the developer on the iPhone</td>
+<td>Once, by hand</td>
+<td>Not asked</td>
+</tr>
+<tr>
+<td>New bundle IDs</td>
+<td>10 every 7 days (the command reuses two: the app's, and its widget's, the same plus <code>.widget</code>)</td>
+<td>No practical limit</td>
+</tr>
+<tr>
+<td>Devices</td>
+<td>3</td>
+<td>100 of each kind</td>
+</tr>
+<tr>
+<td>Alerts, the Apple Watch, Face ID, the call</td>
+<td>All work: Pointe uses no push server and no paid-only capability</td>
+<td>The same</td>
+</tr>
+<tr>
+<td>Talk to Pointe: the Control, the Action button, Siri, the Live Activity</td>
+<td>All work: they run in the app and need no paid-only capability</td>
+<td>The same</td>
+</tr>
+<tr>
+<td>The Home Screen widget's Mac status</td>
+<td>No: it needs an app group, and a free team's profiles carry none. The widget is a plain Talk to Pointe button, which works</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>TestFlight or App Store</td>
+<td>No</td>
+<td>Yes (<a href="https://github.com/ballerine-io/pointe/blob/main/docs/ios/app-store.md">ios/app-store.md</a>)</td>
+</tr>
+</tbody>
+</table></div>
+<p>A free account is enough to use Pointe every day. The one cost is the weekly rebuild: Xcode keeps one profile for 7
+days, so a rebuild inside that week ends at the same moment as the first one. When the app stops opening, run the
+command again; it prints the exact day and hour each time.</p>
+</blockquote>
+<p><strong>When something fails</strong></p>
+<p>The command prints the cause and the fix, and keeps Xcode's full output in <code>build.log</code> in the build folder (<code>~/.claude-voice/apps/build/ios</code>, or <code>apps/ios/build/apps</code> in a clone). The usual ones:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>What it means</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No Apple Development certificate on this Mac", or <code>No signing certificate "iOS Development" found</code>, or <code>No Accounts: Add a new account</code></td>
+<td>Xcode is not signed in, or has no certificate yet</td>
+<td>Xcode, Settings, Accounts: sign in, then Manage Certificates, +, Apple Development</td>
+</tr>
+<tr>
+<td><code>Failed to register bundle identifier … not available</code></td>
+<td>The bundle ID belongs to another team</td>
+<td>Delete the saved <code>.bundle-id</code> (<code>~/.claude-voice/apps/.bundle-id</code>, or <code>apps/ios/.bundle-id</code> in a clone) and run again, or pass <code>--bundle-id com.&lt;yourname&gt;.pointe</code></td>
+</tr>
+<tr>
+<td><code>CoreDeviceError error 4016</code>, "The device is unavailable", or the iPhone shown as not reachable</td>
+<td>Xcode knows the iPhone but cannot reach it now</td>
+<td>Unlock it and keep the screen on; use a cable, or the same Wi-Fi as the Mac with no VPN in between; tap Trust if asked</td>
+</tr>
+<tr>
+<td>"Untrusted Developer" on the iPhone, or <code>profile has not been explicitly trusted by the user</code></td>
+<td>iOS has not been told to trust your account</td>
+<td>iPhone: Settings, General, VPN &amp; Device Management, your Apple Account, Trust</td>
+</tr>
+<tr>
+<td><code>Developer Mode is disabled</code></td>
+<td>iOS blocks apps built from source</td>
+<td>iPhone: Settings, Privacy &amp; Security, Developer Mode, on, restart, confirm. The row appears after the iPhone was connected to a Mac with Xcode</td>
+</tr>
+<tr>
+<td>The app closes the moment it opens, or "is no longer available", after about a week</td>
+<td>The 7 days of a free account's profile ended</td>
+<td>Run <code>pointe apps ios</code> again</td>
+</tr>
+<tr>
+<td><code>You have not agreed to the Xcode license agreements</code></td>
+<td>Xcode was installed or updated and never opened</td>
+<td><code>sudo xcodebuild -license accept</code></td>
+</tr>
+<tr>
+<td><code>tool 'xcodebuild' requires Xcode, but active developer directory … is a command line tools instance</code></td>
+<td>The command line tools are selected instead of Xcode</td>
+<td><code>sudo xcode-select -s /Applications/Xcode.app</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Options: <code>--device &lt;name&gt;</code> when more than one iPhone is connected, <code>--team &lt;Team ID&gt;</code> when the Mac has several teams,
+<code>--no-launch</code> to install without opening the app, <code>--dry-run</code> to see the Xcode command without running it. With
+<code>--sim</code>, add <code>--demo</code> to open the app with invented sessions and no Pointe running.</p>
+<p>If you would rather use Xcode's window: open <code>apps/ios/Pointe.xcodeproj</code>, choose your team under Signing &amp; Capabilities,
+change the Bundle Identifier to one of your own (keep that change out of commits), choose the iPhone, press Run.
+Without the app, the page works in the phone's browser (<a href="../phone/#in-the-phones-browser">Connect your phone</a>).</p>
+<h2 id="what-stays-on-the-mac">What stays on the Mac</h2>
+<p>The app does what the page does, with one deliberate exception: the voice model's full context is shown only on the
+Mac. The page's "What the voice holds" lists the messages of the call's context; the app shows only the token count
+(Sessions sheet), and the phone's key is refused <code>/voice/context</code>.</p>
+<h2 id="alerts-and-the-apple-watch">Alerts and the Apple Watch</h2>
+<p>Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS
+mirrors it to an Apple Watch on your wrist while the iPhone is locked. There is no push server, so this works while the
+app is alive: open, or in the background with the call up. With the call down and the app in the background, iOS checks
+only when it grants a Background App Refresh (rarely, never in Low Power Mode, never after you swipe the app away).
+"Approve from notifications" (shared with the page's Settings, off by default) adds Approve to a notification for a
+request Pointe can read out; it needs an unlocked iPhone or a watch on the wrist instead of Face ID.</p>
+<p>To check by hand on a real iPhone and watch (the simulator has no watch; not yet done on real devices):</p>
+<ol>
+<li>
+<p>Alerts on, call up, lock the iPhone, wear the watch. A request arrives: the watch taps, and shows the session and the
+   read-out form, with Deny and Approve.</p>
+</li>
+<li>
+<p>Approve on the watch: the session gets it; the iPhone notification is gone.</p>
+</li>
+<li>Answer one on the Mac instead: the watch notification disappears within a second or two.</li>
+<li>Take the watch off (locked): Approve asks to unlock it first.</li>
+<li>An unreadable request (<code>python3 -c …</code>): the watch shows only "Bash: open Pointe to see the exact request", Deny only.</li>
+</ol>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/iphone-app.md">docs/iphone-app.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../phone/cloudflare/"><span class="pg-small">Previous</span>Connect over Cloudflare Tunnel with Access</a><a class="dx-next" href="../models/"><span class="pg-small">Next</span>Models and setups</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#getting-the-app">Getting the app</a></li>
+<li class="dx-l2"><a href="#what-stays-on-the-mac">What stays on the Mac</a></li>
+<li class="dx-l2"><a href="#alerts-and-the-apple-watch">Alerts and the Apple Watch</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Put `pointe` on the PATH: ~/.local/bin/pointe, a small script (not a symlink, which would dangle once an update
+# deletes this folder) that runs an installed copy's bin/pointe. bin/install-uv runs it during setup, install.sh after an
+# install or update, and bin/voice-daemon at each start, so it follows updates. Run from an installed copy (the plugin or
+# the standalone install), it points at the newest installed copy (bin/pointe-installs), so the two never take turns.
+# A ~/.local/bin/pointe that Pointe did not write is left alone; `pointe uninstall` removes Pointe's.
+# Usage: link-pointe [--quiet | --at-start]
+# --at-start (bin/voice-daemon): quiet, and a copy that is not installed (a clone, a worktree, a test's checkout) takes
+# the command only when the one there runs nothing: a start from another checkout once left every `pointe`, uninstall
+# included, failing once that checkout was deleted.
+set -euo pipefail
+BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DIR="${POINTE_LINK_DIR:-$HOME/.local/bin}"
+LINK="$DIR/pointe"
+OURS="# Written by Pointe (bin/link-pointe)"  # how a link Pointe wrote is told (uninstall.py LINK_MARK); older ones say "plugin"
+MARK="$OURS: runs an installed Pointe's own bin/pointe."
+quiet() { [ "${1:-}" = "--quiet" ] || [ "${1:-}" = "--at-start" ]; }
+
+if [ "$("$BIN/pointe-installs" kind)" = clone ]; then
+  if [ "${1:-}" = "--at-start" ]; then
+    TARGET="$(sed -n 's/^exec \(.*\) "\$@"$/\1/p' "$LINK" 2>/dev/null)"
+    [ -n "$TARGET" ] && [ -x "$TARGET" ] && exit 0
+  fi
+else
+  NEWEST="$("$BIN/pointe-installs" newest || true)"  # an installed copy: the newest one takes the command
+  [ -n "$NEWEST" ] && BIN="$NEWEST/bin"
+fi
+
+if [ -e "$LINK" ] && ! grep -qsF "$OURS" "$LINK"; then
+  quiet "${1:-}" || echo "note     $LINK is not Pointe's: left as it is. Pointe's own command is $BIN/pointe"
+  exit 0
+fi
+WANT="$(printf '#!/bin/bash\n%s\nexec %q "$@"\n' "$MARK" "$BIN/pointe")"
+if [ "$(cat "$LINK" 2>/dev/null)" != "$WANT" ]; then
+  mkdir -p "$DIR"
+  printf '%s\n' "$WANT" >"$LINK.tmp.$$" && chmod 755 "$LINK.tmp.$$" && mv -f "$LINK.tmp.$$" "$LINK"
+fi
+quiet "${1:-}" && exit 0
+echo "ok       pointe is a command now: $LINK runs Pointe (pointe uninstall removes it)"
+case ":$PATH:" in
+  *":$DIR:"*) ;;
+  *) echo "note     $DIR is not on this terminal's PATH yet: open a new terminal (uv's installer adds it), or run $LINK" ;;
+esac

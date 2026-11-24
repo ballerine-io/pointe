@@ -1,0 +1,59 @@
+<!-- Whisper mode (feature 9, whisper.py): the voice answers briefly and quietly, typing is one tap away. Served inside
+     ui.html at {{WHISPER}}; the iPhone app has the same button, card and copy. The daemon's status is the truth. While
+     drive mode is on, whisper mode is held (status `held`): the button stays pressed, the card and its effects wait. -->
+<style>
+  body.whisper #caption:not([hidden]) { font-size: 30px; padding: 18px 22px; border-color: var(--orange-line); }  /* not while hidden: its padding left a gap */
+  #whispercard { padding: 0 var(--gutter); } #whispercard:empty { display: none; }
+  #whispercard .ask .what { font-weight: 600; }
+  #whispercard .ask .need { margin-top: 6px; }
+</style>
+<script>
+  // One card while whisper mode is on: what it does, the push-to-talk suggestion, and the voice-lock note.
+  const wsp = {on: undefined, pttNotNow: false, key: ''};
+  const WSP_LIMIT = 'Whisper recognition is limited; type when it matters.';
+  async function whisperSet(on) {
+    const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({whisper: on})});
+    if (!r.ok) $('problem').textContent = 'Whisper mode did not change: the voice is not reachable.';
+    refresh();
+  }
+  function whisperToggle() { whisperSet(!((status && status.whisper) || {}).on); }
+  function whisperFollow(s) {
+    const w = (s && s.whisper) || {on: false};
+    const on = !!w.on && !w.held, was = wsp.on;  // held: drive mode is on, and nothing of whisper mode applies
+    wsp.on = on;
+    document.body.classList.toggle('whisper', on);
+    const btn = $('whisperbtn');
+    btn.classList.toggle('on', !!w.on); btn.setAttribute('aria-pressed', !!w.on);
+    text('whisper-label', on ? 'Whispering' : 'Whisper');
+    if (on && was !== true) {  // on at the first look, or turned on here, on the phone or by voice: typing comes forward
+      $('compose').classList.remove('folded');
+      const busy = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+      if (!busy && !$('typed').disabled) $('typed').focus();
+    }
+    if (!on) wsp.pttNotNow = false;
+    const key = [on, w.suggest_ptt && !wsp.pttNotNow, w.lock_note || ''].join('|');
+    if (key === wsp.key) return;
+    wsp.key = key;
+    if (!on) { $('whispercard').replaceChildren(); return; }
+    const card = el('div', 'ask');
+    card.setAttribute('role', 'status');
+    card.append(el('div', 'what', 'Whisper mode: short, quiet replies.'), el('div', 'need', WSP_LIMIT));
+    if (w.lock_note) card.append(el('div', 'need', w.lock_note));
+    let row = el('div', 'answer');
+    if (w.suggest_ptt && !wsp.pttNotNow) {
+      card.append(el('div', 'need', 'Whisper works best with Push to talk. Turn it on?'));
+      const later = el('button', 'deny', 'Not now'); later.onclick = () => { wsp.pttNotNow = true; wsp.key = ''; whisperFollow(status); };
+      const ptton = el('button', 'allow', 'Turn on');
+      ptton.onclick = async () => {
+        await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({microphone: 'ptt'})});
+        refresh();
+      };
+      row.append(later, ptton);
+      card.append(row); row = el('div', 'answer');  // the question's two answers together; Back to normal on its own row
+    }
+    const back = el('button', 'deny', 'Back to normal'); back.id = 'whisper-off'; back.onclick = () => whisperSet(false);
+    row.append(back);
+    card.append(row);
+    $('whispercard').replaceChildren(card);
+  }
+</script>

@@ -1,0 +1,6 @@
+# Hosts a dependency contacted at runtime that no URL literal in the source names: the server hands them out (the
+# Hugging Face Hub names the xet CAS server, the CAS server names the CDN), so the URL grep cannot see them. Recorded
+# from the dependency's own log after a real download; tests/test_supply_chain.py checks each is in
+# docs/security/egress-allowlist.txt. Host, whitespace, where it was seen.
+cas-server.xethub.hf.co    hf-xet log (~/.cache/huggingface/xet/logs), pointe setup local with an empty Hugging Face cache, 2026-11
+us.aws.cdn.hf.co           hf-xet log (~/.cache/huggingface/xet/logs), pointe setup local with an empty Hugging Face cache, 2026-11

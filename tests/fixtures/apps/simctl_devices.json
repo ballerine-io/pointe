@@ -1,0 +1,11 @@
+{"devices": {
+ "com.apple.CoreSimulator.SimRuntime.iOS-18-0": [
+  {"udid": "18000000-0000-0000-0000-000000000001", "isAvailable": true, "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16", "state": "Shutdown", "name": "iPhone 16"}],
+ "com.apple.CoreSimulator.SimRuntime.iOS-27-2": [
+  {"udid": "27200000-0000-0000-0000-000000000001", "isAvailable": true, "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad-A16", "state": "Shutdown", "name": "iPad (A16)"},
+  {"udid": "27200000-0000-0000-0000-000000000002", "isAvailable": true, "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro", "state": "Shutdown", "name": "iPhone 18 Pro"}],
+ "com.apple.CoreSimulator.SimRuntime.iOS-27-2-iPhone19-4": [
+  {"udid": "27200000-0000-0000-0000-000000000003", "isAvailable": true, "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-Duo", "state": "Shutdown", "name": "iPhone Duo"}],
+ "com.apple.CoreSimulator.SimRuntime.watchOS-27-0": [
+  {"udid": "99000000-0000-0000-0000-000000000001", "isAvailable": true, "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.Apple-Watch", "state": "Shutdown", "name": "Apple Watch"}]
+}}

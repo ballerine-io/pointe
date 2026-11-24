@@ -1,0 +1,149 @@
+{
+ "title": "Spoken Identifiers, synthetic speech (Kokoro-82M, 4 voices)",
+ "run_id": "identifiers-20261123-025939-smoke",
+ "frozen": null,
+ "unit": "target (n = 24)",
+ "excluded": {
+  "llm-router": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  },
+  "naive": {
+   "invalid_out_of_tree": 0,
+   "error": 0
+  }
+ },
+ "arms": {
+  "llm-router": {
+   "n_runs": 0,
+   "n_targets": 0,
+   "right_symbol": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "wrong_symbol": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "no_action": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "other_change": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": null,
+   "marker_exact_of_right": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "clarifications": 0,
+   "median_s_to_done": null,
+   "spend_usd": 0
+  },
+  "naive": {
+   "n_runs": 0,
+   "n_targets": 0,
+   "right_symbol": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "wrong_symbol": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "no_action": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "other_change": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "capped": 0,
+   "right_symbol_bootstrap_by_target95": null,
+   "marker_exact_of_right": {
+    "k": 0,
+    "n": 0,
+    "rate": null,
+    "wilson95": [
+     0.0,
+     1.0
+    ]
+   },
+   "clarifications": 0,
+   "median_s_to_done": null,
+   "spend_usd": 0
+  }
+ },
+ "slices": {
+  "llm-router": {},
+  "naive": {}
+ },
+ "paired": {},
+ "repeat": {},
+ "conditions": {
+  "dates": [],
+  "repo_commits": [],
+  "pointe_commits": [],
+  "agent_model": "claude-haiku-5-5",
+  "claude_code": [],
+  "permission_mode": "acceptEdits",
+  "router_models": [],
+  "recognizers": [],
+  "voices": [],
+  "load_average": [
+   null,
+   null
+  ],
+  "audio_matches_lock": [],
+  "spend_usd_all_rows": 0.028
+ }
+}

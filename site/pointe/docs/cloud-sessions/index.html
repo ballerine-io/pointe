@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud sessions: what Pointe can and cannot control · Pointe docs</title>
+<meta name="description" content="Checked 2026-11-21 against the vendors&#x27; public docs and terms. These products change often; if something below is out of date, open an issue.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Cloud sessions: what Pointe can and cannot control">
+<meta property="og:description" content="Checked 2026-11-21 against the vendors&#x27; public docs and terms. These products change often; if something below is out of date, open an issue.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/cloud-sessions/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/cloud-sessions/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="./" aria-current="page">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="cloud-sessions-what-pointe-can-and-cannot-control">Cloud sessions: what Pointe can and cannot control</h1>
+<p>Checked 2026-11-21 against the vendors' public docs and terms. These products change often; if something below is out
+of date, open an issue.</p>
+<h2 id="the-short-answer">The short answer</h2>
+<ul>
+<li>
+<p><strong>Your own cloud machine works today.</strong> A Linux VM or devbox you run (AWS, Hetzner, anywhere) can run Claude Code,
+  Codex or OpenCode and join Pointe as a node, with everything a local session gets: talk to it, reports, approvals.
+  See <a href="../multi-machine/">multi-machine.md</a>.</p>
+</li>
+<li>
+<p><strong>Vendor-hosted cloud sessions do not.</strong> Neither Anthropic nor OpenAI offers a public interface that lets an outside
+  app read the transcript of, or answer the approvals of, the cloud sessions you run on your own subscription
+  (Claude Code on the web, Codex Cloud in ChatGPT). Pointe does not use private endpoints or your browser login to get
+  around that: the vendors' terms forbid it, and so do Pointe's own rules.</p>
+</li>
+</ul>
+<p>Pointe needs four things from a session: read its state and transcript, send it a message, receive and answer its
+permission requests, and (optionally) start it.</p>
+<h2 id="by-surface">By surface</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Read</th>
+<th>Send</th>
+<th>Approvals</th>
+<th>Start</th>
+<th>Status for Pointe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A session on a machine you control, local or cloud VM</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td><strong>Supported</strong> (local, or as a node)</td>
+</tr>
+<tr>
+<td>Claude Code on the web (claude.ai/code), through your own <code>claude</code> CLI</td>
+<td>No</td>
+<td>Yes (<code>claude -p "…" --cloud &lt;id&gt;</code>)</td>
+<td>No</td>
+<td>Yes (<code>claude --cloud "…"</code>)</td>
+<td>Not supported: no way to read it</td>
+</tr>
+<tr>
+<td>Claude Code Remote Control</td>
+<td>Its sessions run on your machine</td>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Already supported</strong>: Pointe joins the local session</td>
+</tr>
+<tr>
+<td>Claude Code background sessions (<code>claude --bg</code>, agent view)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>n/a</td>
+<td><strong>Already supported</strong> (local)</td>
+</tr>
+<tr>
+<td>Claude Managed Agents (Claude API, beta)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Possible later: spawn-only, billed to an API key</td>
+</tr>
+<tr>
+<td>Codex Cloud, through your own <code>codex cloud</code> CLI (experimental)</td>
+<td>Status and summary only</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>Not supported</td>
+</tr>
+<tr>
+<td>Codex remote connections / ChatGPT mobile remote</td>
+<td>Their host side is the local Codex app-server</td>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Already supported</strong>: Pointe joins the local app-server</td>
+</tr>
+<tr>
+<td>OpenAI Agents API (public beta)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No manual approval of shell or file actions</td>
+<td>Yes</td>
+<td>Possible later, without voice approvals</td>
+</tr>
+</tbody>
+</table></div>
+<p>"Spawn-only" means Pointe could drive only sessions it starts there itself; it still could not see sessions you started
+in the vendor's own app.</p>
+<h2 id="what-would-change-this">What would change this</h2>
+<ul>
+<li>
+<p>A vendor publishing a read API (transcript or event stream) and an approvals API for subscription cloud sessions.
+  Pointe would add a harness adapter for it, under the harness contract in <a href="../harnesses/">harnesses.md</a>.</p>
+</li>
+<li>
+<p>A Claude Managed Agents adapter is designed but not built: it would be an opt-in mode with its own API key in the
+  Keychain and its own spending limit, separate from your Claude subscription. Track it in <a href="https://github.com/ballerine-io/pointe/issues/29">issue #29</a>.</p>
+</li>
+</ul>
+<h2 id="sources-read-2026-11-21">Sources (read 2026-11-21)</h2>
+<ul>
+<li>
+<p>Anthropic: <a href="https://code.claude.com/docs/en/claude-code-on-the-web">Claude Code in the cloud</a>,
+  <a href="https://code.claude.com/docs/en/cross-session-messaging">cross-session messaging</a>,
+  <a href="https://code.claude.com/docs/en/remote-control">Remote Control</a>,
+  <a href="https://code.claude.com/docs/en/agent-view">agent view</a>,
+  <a href="https://code.claude.com/docs/en/legal-and-compliance">legal and compliance</a>,
+  <a href="https://platform.claude.com/docs/en/managed-agents/overview">Managed Agents overview</a>,
+  <a href="https://platform.claude.com/docs/en/managed-agents/permission-policies">Managed Agents permission policies</a>,
+  <a href="https://www.anthropic.com/legal/consumer-terms">Consumer Terms</a>.</p>
+</li>
+<li>
+<p>OpenAI: <a href="https://learn.chatgpt.com/docs/developer-commands?surface=cli">Codex CLI commands</a>,
+  <a href="https://learn.chatgpt.com/docs/remote-connections">Codex remote connections</a>,
+  <a href="https://developers.openai.com/api/docs/guides/agents-api/sessions">Agents API sessions</a>,
+  <a href="https://developers.openai.com/api/docs/guides/agents-api/sessions/approvals">Agents API approvals</a>,
+  <a href="https://openai.com/policies/row-terms-of-use/">Terms of Use</a>.</p>
+</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/cloud-sessions.md">docs/cloud-sessions.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../multi-machine/"><span class="pg-small">Previous</span>Machines: one voice over sessions on several machines</a><a class="dx-next" href="../features/"><span class="pg-small">Next</span>Features</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#the-short-answer">The short answer</a></li>
+<li class="dx-l2"><a href="#by-surface">By surface</a></li>
+<li class="dx-l2"><a href="#what-would-change-this">What would change this</a></li>
+<li class="dx-l2"><a href="#sources-read-2026-11-21">Sources (read 2026-11-21)</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,665 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1B2C3D4E5F6000000000103 /* PointeKit in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6000000000102 /* PointeKit */; };
+		A1B2C3D4E5F6000000000104 /* PointeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000101 /* PointeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1B2C3D4E5F6000000000092 /* PointeUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6000000000091 /* PointeUI */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D4E5F6000000000018 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D4E5F6000000000004;
+			remoteInfo = Pointe;
+		};
+		A1B2C3D4E5F600000000006D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D4E5F6000000000004;
+			remoteInfo = Pointe;
+		};
+		A1B2C3D4E5F6000000000106 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D4E5F6000000000111;
+			remoteInfo = PointeWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1B2C3D4E5F6000000000105 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1B2C3D4E5F6000000000104 /* PointeWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A1B2C3D4E5F600000000000A0 /* Pointe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pointe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F600000000000D0 /* PointeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PointeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F600000000006E /* PointeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PointeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F6000000000101 /* PointeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PointeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1B2C3D4E5F60000000000061 /* Exceptions for "Pointe" folder in "Pointe" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Pointe.entitlements,
+			);
+			target = A1B2C3D4E5F6000000000004 /* Pointe */;
+		};
+		A1B2C3D4E5F6000000000110 /* Exceptions for "PointeWidget" folder in "PointeWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				PointeWidget.entitlements,
+			);
+			target = A1B2C3D4E5F6000000000111 /* PointeWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A1B2C3D4E5F6000000000006 /* Pointe */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1B2C3D4E5F60000000000061 /* Exceptions for "Pointe" folder in "Pointe" target */,
+			);
+			path = Pointe;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000007 /* PointeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PointeTests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000065 /* PointeUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PointeUITests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000108 /* PointeWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1B2C3D4E5F6000000000110 /* Exceptions for "PointeWidget" folder in "PointeWidget" target */,
+			);
+			path = PointeWidget;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000109 /* PointeShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PointeShared;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1B2C3D4E5F6000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6000000000092 /* PointeUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F600000000000C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000067 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000113 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6000000000103 /* PointeKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1B2C3D4E5F6000000000002 = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000006 /* Pointe */,
+				A1B2C3D4E5F6000000000109 /* PointeShared */,
+				A1B2C3D4E5F6000000000108 /* PointeWidget */,
+				A1B2C3D4E5F6000000000007 /* PointeTests */,
+				A1B2C3D4E5F6000000000065 /* PointeUITests */,
+				A1B2C3D4E5F6000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F600000000000A0 /* Pointe.app */,
+				A1B2C3D4E5F600000000000D0 /* PointeTests.xctest */,
+				A1B2C3D4E5F600000000006E /* PointeUITests.xctest */,
+				A1B2C3D4E5F6000000000101 /* PointeWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1B2C3D4E5F6000000000004 /* Pointe */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6000000000011 /* Build configuration list for PBXNativeTarget "Pointe" */;
+			buildPhases = (
+				A1B2C3D4E5F6000000000008 /* Sources */,
+				A1B2C3D4E5F6000000000009 /* Frameworks */,
+				A1B2C3D4E5F600000000000A /* Resources */,
+				A1B2C3D4E5F6000000000105 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3D4E5F6000000000107 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D4E5F6000000000006 /* Pointe */,
+				A1B2C3D4E5F6000000000109 /* PointeShared */,
+			);
+			name = Pointe;
+			packageProductDependencies = (
+				A1B2C3D4E5F6000000000091 /* PointeUI */,
+			);
+			productName = Pointe;
+			productReference = A1B2C3D4E5F600000000000A0 /* Pointe.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1B2C3D4E5F6000000000005 /* PointeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6000000000014 /* Build configuration list for PBXNativeTarget "PointeTests" */;
+			buildPhases = (
+				A1B2C3D4E5F600000000000B /* Sources */,
+				A1B2C3D4E5F600000000000C /* Frameworks */,
+				A1B2C3D4E5F600000000000D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3D4E5F6000000000017 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D4E5F6000000000007 /* PointeTests */,
+			);
+			name = PointeTests;
+			productName = PointeTests;
+			productReference = A1B2C3D4E5F600000000000D0 /* PointeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A1B2C3D4E5F6000000000064 /* PointeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6000000000069 /* Build configuration list for PBXNativeTarget "PointeUITests" */;
+			buildPhases = (
+				A1B2C3D4E5F6000000000066 /* Sources */,
+				A1B2C3D4E5F6000000000067 /* Frameworks */,
+				A1B2C3D4E5F6000000000068 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3D4E5F600000000006C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D4E5F6000000000065 /* PointeUITests */,
+			);
+			name = PointeUITests;
+			productName = PointeUITests;
+			productReference = A1B2C3D4E5F600000000006E /* PointeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		A1B2C3D4E5F6000000000111 /* PointeWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6000000000117 /* Build configuration list for PBXNativeTarget "PointeWidget" */;
+			buildPhases = (
+				A1B2C3D4E5F6000000000112 /* Sources */,
+				A1B2C3D4E5F6000000000113 /* Frameworks */,
+				A1B2C3D4E5F6000000000114 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D4E5F6000000000108 /* PointeWidget */,
+				A1B2C3D4E5F6000000000109 /* PointeShared */,
+			);
+			name = PointeWidget;
+			packageProductDependencies = (
+				A1B2C3D4E5F6000000000102 /* PointeKit */,
+			);
+			productName = PointeWidget;
+			productReference = A1B2C3D4E5F6000000000101 /* PointeWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1B2C3D4E5F6000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+			};
+			buildConfigurationList = A1B2C3D4E5F600000000000E /* Build configuration list for PBXProject "Pointe" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1B2C3D4E5F6000000000002;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			packageReferences = (
+				A1B2C3D4E5F6000000000090 /* XCLocalSwiftPackageReference "../PointeKit" */,
+			);
+			productRefGroup = A1B2C3D4E5F6000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1B2C3D4E5F6000000000004 /* Pointe */,
+				A1B2C3D4E5F6000000000005 /* PointeTests */,
+				A1B2C3D4E5F6000000000064 /* PointeUITests */,
+				A1B2C3D4E5F6000000000111 /* PointeWidget */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1B2C3D4E5F600000000000A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F600000000000D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000068 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000114 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1B2C3D4E5F6000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F600000000000B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000066 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000112 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B2C3D4E5F6000000000017 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D4E5F6000000000004 /* Pointe */;
+			targetProxy = A1B2C3D4E5F6000000000018 /* PBXContainerItemProxy */;
+		};
+		A1B2C3D4E5F600000000006C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D4E5F6000000000004 /* Pointe */;
+			targetProxy = A1B2C3D4E5F600000000006D /* PBXContainerItemProxy */;
+		};
+		A1B2C3D4E5F6000000000107 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D4E5F6000000000111 /* PointeWidget */;
+			targetProxy = A1B2C3D4E5F6000000000106 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A1B2C3D4E5F600000000000F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				POINTE_APP_GROUP = "group.$(POINTE_BUNDLE_ID)";
+				POINTE_BUNDLE_ID = io.ballerine.pointe;
+				POINTE_ENTITLEMENTS_APP_YES = Pointe/Pointe.entitlements;
+				POINTE_ENTITLEMENTS_WIDGET_YES = PointeWidget/PointeWidget.entitlements;
+				POINTE_SHARE_GROUP = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				POINTE_APP_GROUP = "group.$(POINTE_BUNDLE_ID)";
+				POINTE_BUNDLE_ID = io.ballerine.pointe;
+				POINTE_ENTITLEMENTS_APP_YES = Pointe/Pointe.entitlements;
+				POINTE_ENTITLEMENTS_WIDGET_YES = PointeWidget/PointeWidget.entitlements;
+				POINTE_SHARE_GROUP = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F6000000000012 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "$(POINTE_ENTITLEMENTS_APP_$(POINTE_SHARE_GROUP))";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 60;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Pointe/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe uses the camera to scan the QR code your Mac shows when you pair this iPhone with it.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe uses Face ID to confirm it is you before it approves a command or changes your paired machines.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your own Mac on your local network to carry your voice calls.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe uses the microphone to send your voice to your own Mac, which runs your coding sessions.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(POINTE_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "$(POINTE_ENTITLEMENTS_APP_$(POINTE_SHARE_GROUP))";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 60;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Pointe/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Pointe uses the camera to scan the QR code your Mac shows when you pair this iPhone with it.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Pointe uses Face ID to confirm it is you before it approves a command or changes your paired machines.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Pointe connects to your own Mac on your local network to carry your voice calls.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pointe uses the microphone to send your voice to your own Mac, which runs your coding sessions.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(POINTE_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F6000000000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pointe.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Pointe";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pointe.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Pointe";
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F600000000006A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Pointe;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F600000000006B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Pointe;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F6000000000115 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "$(POINTE_ENTITLEMENTS_WIDGET_$(POINTE_SHARE_GROUP))";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 60;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PointeWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(POINTE_BUNDLE_ID).widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "POINTE_WIDGET $(inherited)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000116 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "$(POINTE_ENTITLEMENTS_WIDGET_$(POINTE_SHARE_GROUP))";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 60;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PointeWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(POINTE_BUNDLE_ID).widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "POINTE_WIDGET $(inherited)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1B2C3D4E5F600000000000E /* Build configuration list for PBXProject "Pointe" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F600000000000F /* Debug */,
+				A1B2C3D4E5F6000000000010 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6000000000011 /* Build configuration list for PBXNativeTarget "Pointe" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6000000000012 /* Debug */,
+				A1B2C3D4E5F6000000000013 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6000000000014 /* Build configuration list for PBXNativeTarget "PointeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6000000000015 /* Debug */,
+				A1B2C3D4E5F6000000000016 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6000000000069 /* Build configuration list for PBXNativeTarget "PointeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F600000000006A /* Debug */,
+				A1B2C3D4E5F600000000006B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6000000000117 /* Build configuration list for PBXNativeTarget "PointeWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6000000000115 /* Debug */,
+				A1B2C3D4E5F6000000000116 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A1B2C3D4E5F6000000000090 /* XCLocalSwiftPackageReference "../PointeKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../PointeKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1B2C3D4E5F6000000000091 /* PointeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PointeUI;
+		};
+		A1B2C3D4E5F6000000000102 /* PointeKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PointeKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A1B2C3D4E5F6000000000001 /* Project object */;
+}

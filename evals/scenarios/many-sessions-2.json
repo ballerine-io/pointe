@@ -1,0 +1,72 @@
+{
+ "mode": "session",
+ "sessions": [
+  {
+   "name": "orbitdesk/auth-refresh",
+   "cwd": "/tmp/synth/orbitdesk",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "Mobile users at Orbit Desk get logged out every morning. Support has 60 tickets this week. Find it."
+    },
+    {
+     "role": "assistant",
+     "text": "Refresh tokens rotate on every use, and the mobile app fires two refresh calls in parallel on wake. The second call presents an already-rotated token, the server treats that as token theft and revokes the whole family. That logs the user out."
+    },
+    {
+     "role": "user",
+     "text": "So what are the options? I don't want to weaken theft detection for nothing."
+    },
+    {
+     "role": "assistant",
+     "text": "Two options. A: a 30 second reuse grace window on the server, which keeps detection for anything older. B: serialize refresh in the mobile app, which needs an app store release and leaves old versions broken. I recommend A now and B later."
+    },
+    {
+     "role": "user",
+     "text": "Go with A. Keep B as a follow-up ticket. Write the test for the parallel refresh first."
+    },
+    {
+     "role": "assistant",
+     "text": "Writing the parallel refresh test first, then the grace window."
+    }
+   ]
+  },
+  {
+   "name": "orbitdesk/billing-export",
+   "cwd": "/tmp/synth/orbitdesk-wt-billing",
+   "history": [
+    {
+     "role": "user",
+     "text": "Finance at Orbit Desk needs the monthly invoice export as CSV with VAT split per country. Build it."
+    },
+    {
+     "role": "assistant",
+     "text": "Building the export job now. The VAT split reads from the tax ledger. Running it against the October data next."
+    }
+   ]
+  },
+  {
+   "name": "Claude Code voice conversation addon",
+   "cwd": "/tmp/synth/voxline-addon",
+   "history": [
+    {
+     "role": "user",
+     "text": "In the voice addon, barge-in is flaky: when I interrupt, it sometimes keeps talking for two seconds. Investigate."
+    },
+    {
+     "role": "assistant",
+     "text": "The speech gate waits for the full audio chunk before it cancels playback. Chunks are 1.8 seconds at the current buffer size, which matches what you hear. I can cut the chunk to 200 ms and cancel on the first voiced frame, at a small cost in CPU."
+    },
+    {
+     "role": "user",
+     "text": "Do that and measure the latency before and after."
+    },
+    {
+     "role": "assistant",
+     "text": "Changing the buffer now and measuring interrupt-to-silence latency across 40 scripted interruptions."
+    }
+   ]
+  }
+ ]
+}

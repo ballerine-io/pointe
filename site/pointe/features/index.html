@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pointe: all 60 features</title>
+<meta name="description" content="Everything Pointe does, in eight groups, with a link to the page that explains each feature and where it works: the browser, the iPhone app, the Mac app.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Pointe: all 60 features">
+<meta property="og:description" content="Everything Pointe does, in eight groups.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/features/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/features/' + location.hash);
+</script>
+<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../pages.css">
+</head>
+<body class="pg">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap pg-header">
+  <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="./" aria-current="page">Features</a>
+    <a href="../docs/">Docs</a>
+    <a href="../benchmarks/">Benchmarks</a>
+    <a href="../roadmap/">Roadmap</a>
+    <a href="../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<main id="main" class="pg-wrap">
+  <section class="pg-hero">
+    <p class="pg-kicker">Features</p>
+    <h1 class="pg-h1">Everything Pointe does.</h1>
+    <p class="pg-lead">Sixty features in eight groups. Each name opens the page that explains it: how to use it, its
+      rules and its limits.</p>
+    <p class="pg-small">You can use Pointe in three places: a page in your browser, the iPhone app and the Mac app.
+      Most features work in all three. When one does not, the line says where it works. Why:
+      <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/parity-matrix.md#bound-to-a-platform">the parity matrix</a>. Version <span data-version>0.8.0</span>.</p>
+  </section>
+  <section class="pg-section" aria-labelledby="g-0">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-0">Talk</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="../docs/how-it-works/">One conversation, every session</a><span class="pg-body">Ask what each did. Background ones speak only when done or stuck</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/how-it-works/#what-the-voice-knows-and-says">Send by name</a><span class="pg-body">Say a session's name, and your words go to it</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/README.md#what-it-does">"By the way" questions</a><span class="pg-body">Answered from a read-only copy of the session</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/push-to-talk/">Push to talk</a><span class="pg-body">Hold or tap. No audio leaves the Mac unless you do</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/push-to-talk/">Talk without the screen</a><span class="pg-body">A key, a shortcut from any app, or the Action button</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/turn-taking.md">Turn taking</a><span class="pg-body">Answers Quick, Normal or Patient; "don't interrupt me"</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/how-it-works/#rules-enforced-in-code">Type instead</a><span class="pg-body">Typed words are sent like speech, and never approve</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/vocabulary/">Self-learning dictionary</a><span class="pg-body">Fix a misheard name once; the next call hears it right</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/product-help.md">Clean up my words</a><span class="pg-body">A clean version of what it understood, under your words</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/show-while-it-says/">Show while it says</a><span class="pg-body">The file, diff or failing test, as the voice mentions it</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/whisper-mode/">Whisper mode</a><span class="pg-body">Short, quiet replies, under the same approval rules</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/benchmarks/">English and Hebrew</a><span class="pg-body">Both benchmarked. Hebrew lines read right to left</span><span class="pg-small"></span></li>
+    </ul>
+  </section>
+  <section class="pg-section" aria-labelledby="g-1">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-1">Sessions and machines</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="../docs/harnesses/">Claude Code, OpenCode, Codex</a><span class="pg-body">Side by side in one call, each with its own approvals</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/multi-machine/#use-it">Sessions by machine</a><span class="pg-body">Agent and state of each. Rename, disconnect, filter</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/how-it-works/">Orchestrator or Session</a><span class="pg-body">The voice tracks them all, or everything goes to one</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/how-it-works/#what-the-voice-knows-and-says">Session notes</a><span class="pg-body">Each session's goal, state, decisions and open points</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/how-it-works/#rules-enforced-in-code">Recent requests</a><span class="pg-body">Where each request went, or why the gate blocked it</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/conflict-alarm/">Conflict alarm</a><span class="pg-body">Two sessions claim opposite things: you hear it at once</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/multi-machine/">Machines</a><span class="pg-body">Online, sessions, round trip, key. Invite or revoke one</span><span class="pg-small"></span></li>
+    </ul>
+  </section>
+  <section class="pg-section" aria-labelledby="g-2">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-2">Approvals and safety</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="../#approvals">A spoken yes</a><span class="pg-body">Only for a request the daemon just read out itself</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">A tap on the exact request</a><span class="pg-body">Face ID on the iPhone, Touch ID on the Mac</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/how-it-works/#approvals-exactly">A no from anyone denies</a><span class="pg-body">In every mode</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/how-it-works/#rules-enforced-in-code">The gate</a><span class="pg-body">A model checks each send against what you just said</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/voice-lock/">Voice lock</a><span class="pg-body">Only your voice counts. Checked on this Mac</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Secrets masked</a><span class="pg-body">A credential-like value is not read out or shown</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/alerts/">Deny and Approve on a notification</a><span class="pg-body">Approve is off by default, and only for a readable request</span><span class="pg-small">iPhone and Mac apps</span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Terminal-only approvals</a><span class="pg-body">One setting keeps every prompt in the terminal</span><span class="pg-small"></span></li>
+    </ul>
+  </section>
+  <section class="pg-section" aria-labelledby="g-3">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-3">Thinking tools</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="../docs/features/brain-dump/">Brain dump</a><span class="pg-body">Think aloud; get a prompt in your words, sent on your say</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/challenge/">Challenge me</a><span class="pg-body">It argues against your plan, and cannot send</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/meeting-mode/">Meeting mode</a><span class="pg-body">Notes, lookups and a raised hand. No sends</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/briefings/">Audio briefings</a><span class="pg-body">"Brief me on the night", on request or on a schedule</span><span class="pg-small"></span></li>
+    </ul>
+  </section>
+  <section class="pg-section" aria-labelledby="g-4">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-4">On the go</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="../docs/iphone-app/#getting-the-app">iPhone app</a><span class="pg-body">The same call. From source: pointe apps ios. <span class="store-soon">Coming to the App Store: in review with Apple</span></span><span class="pg-small">iPhone app only</span></li>
+      <li class="pg-feat"><a href="../docs/features/drive-mode/">Drive and walk mode</a><span class="pg-body">Short answers, nothing to look at or touch</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/drive-mode/">Drive mode offered in the car</a><span class="pg-body">On CarPlay or detected driving. Never by itself</span><span class="pg-small">iPhone app only</span></li>
+      <li class="pg-feat"><a href="../docs/features/push-to-talk/">AirPods</a><span class="pg-body">A stem press talks or mutes</span><span class="pg-small">iPhone app only</span></li>
+      <li class="pg-feat"><a href="../docs/features/drive-mode/">Lock screen</a><span class="pg-body">Drive mode as Now Playing; play or pause mutes</span><span class="pg-small">iPhone app only</span></li>
+      <li class="pg-feat"><a href="../docs/features/alerts/">Alerts</a><span class="pg-body">A notification when a session needs you</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/iphone-app/#alerts-and-the-apple-watch">Apple Watch</a><span class="pg-body">The alert on your wrist, with Deny and Approve</span><span class="pg-small">iPhone app only</span></li>
+      <li class="pg-feat"><a href="../docs/phone/#in-the-phones-browser">The page on a phone</a><span class="pg-body">Works in a phone browser, without the app</span><span class="pg-small">Browser only</span></li>
+      <li class="pg-feat"><a href="../docs/phone/#the-mac-stays-awake-during-a-call">The Mac stays awake</a><span class="pg-body">During a call from the phone, on AC power</span><span class="pg-small">iPhone app only</span></li>
+    </ul>
+  </section>
+  <section class="pg-section" aria-labelledby="g-5">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-5">Mac app</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="../docs/mac-app/">Native window</a><span class="pg-body">All the page has. From source: pointe apps mac. <span class="store-soon">Coming to the App Store: in review with Apple</span></span><span class="pg-small">Mac app only</span></li>
+      <li class="pg-feat"><a href="../docs/mac-app/#using-it">Menu bar</a><span class="pg-body">The mark, the state, and how many sessions wait</span><span class="pg-small">Mac app only</span></li>
+      <li class="pg-feat"><a href="../docs/mac-app/#using-it">Call bubble</a><span class="pg-body">A small panel over other apps, with a talk button</span><span class="pg-small">Mac app only</span></li>
+      <li class="pg-feat"><a href="../docs/mac-app/#using-it">Global shortcut</a><span class="pg-body">Hold it to talk from any app</span><span class="pg-small">Mac app only</span></li>
+      <li class="pg-feat"><a href="../docs/mac-app/#getting-it">Open at login</a><span class="pg-body">One switch in Settings</span><span class="pg-small">Mac app only</span></li>
+      <li class="pg-feat"><a href="../docs/mac-app/#using-it">Pointe on this Mac</a><span class="pg-body">Start or restart it; see which keys are stored</span><span class="pg-small">Mac app only</span></li>
+      <li class="pg-feat"><a href="../docs/mac-app/#using-it">A key for every main action</a><span class="pg-body">Connect, type, brain dump, sessions, meeting, briefing</span><span class="pg-small">Browser and Mac app</span></li>
+      <li class="pg-feat"><a href="../docs/mac-app/#using-it">Try a demo</a><span class="pg-body">Invented sessions to look around; nothing is sent</span><span class="pg-small">iPhone and Mac apps</span></li>
+    </ul>
+  </section>
+  <section class="pg-section" aria-labelledby="g-6">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-6">Privacy and local modes</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md">No server, no account, no telemetry</a><span class="pg-body">What leaves the Mac goes to vendors you chose</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Your own keys</a><span class="pg-body">In the macOS Keychain; they reach the daemon only</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/benchmarks/">A model for each role</a><span class="pg-body">Ears, brain, reader, gate and mouth, set separately</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/voice-stays-local/">Voice stays on your Mac</a><span class="pg-body">Local ears and mouth: no audio to any vendor</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/local/">Fully local</a><span class="pg-body">Every model on your Mac. Slower, less accurate, measured</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md#files">Kept on the Mac</a><span class="pg-body">Voiceprint, call journal, session notes, dictionary</span><span class="pg-small"></span></li>
+    </ul>
+  </section>
+  <section class="pg-section" aria-labelledby="g-7">
+    <div class="pg-section-head"><h2 class="pg-h3" id="g-7">Setup</h2></div>
+    <ul class="pg-items">
+      <li class="pg-feat"><a href="../docs/install/">Guided setup</a><span class="pg-body">/pointe:setup: checks, keys, and your first call</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/phone/#pairing">Pair the phone by QR</a><span class="pg-body">A code on the Mac that works once, for 5 minutes</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/features/new-session/">Start a new session</a><span class="pg-body">By voice or from the screen; read back, started on a yes</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="../docs/multi-machine/#set-it-up">More machines</a><span class="pg-body">A one-time code joins another Mac or Linux host</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/product-help.md">Ask Pointe how</a><span class="pg-body">"How do I…?" It answers with the path on your screen</span><span class="pg-small"></span></li>
+      <li class="pg-feat"><a href="https://github.com/ballerine-io/pointe/blob/main/README.md#install">Doctor</a><span class="pg-body">/pointe:doctor: what runs here and what is missing</span><span class="pg-small"></span></li>
+    </ul>
+  </section>
+</main>
+<footer class="pg-footer">
+  <div class="pg-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../">Pointe</a>
+      <a href="../docs/">Docs</a>
+      <a href="../roadmap/">Roadmap</a>
+      <a href="../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

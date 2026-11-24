@@ -1,0 +1,7 @@
+{
+  "_consent": "A team is shown only with \"consent\": true, set after the team has agreed in writing that its name and logo may appear on the page. Without it the entry is skipped. tools/working_group.py writes the page from this file.",
+  "_maintainer": "The maintainer is credited elsewhere on the page, so the row appears only once a consented team other than the maintainer is listed.",
+  "teams": [
+    {"name": "Ballerine", "logo": "img/logos/ballerine.svg", "url": "https://ballerine.com", "consent": true, "maintainer": true}
+  ]
+}

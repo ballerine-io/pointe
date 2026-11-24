@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wrist approvals and desktop alerts · Pointe docs</title>
+<meta name="description" content="A session needs you: your watch taps, it shows what the session wants to run, and you deny or, if you allow it, approve from the wrist. On the desktop, the…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Wrist approvals and desktop alerts">
+<meta property="og:description" content="A session needs you: your watch taps, it shows what the session wants to run, and you deny or, if you allow it, approve from the wrist. On the desktop, the…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/alerts/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/alerts/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="./" aria-current="page">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../reading-mode/">Reading mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="wrist-approvals-and-desktop-alerts">Wrist approvals and desktop alerts</h1>
+<p>A session needs you: your watch taps, it shows what the session wants to run, and you deny or, if you allow it, approve
+from the wrist. On the desktop, the same event is a notification that brings the page forward.</p>
+<p>This is version 1: iPhone notifications that iOS mirrors to an Apple Watch, and browser notifications on the Mac. There
+is no native watchOS app yet. The rules live in <code>pointe/alerts.py</code>; <code>pointe/daemon.py</code> builds the attention list from them and checks
+an Approve that comes from a notification.</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li>
+<p><strong>Page:</strong> Settings → Alerts → "Desktop alerts" (per browser; the browser asks for permission when you tick it). An
+  item that appears while the tab is hidden becomes one notification. It closes when the item is answered or the tab is
+  shown; a click brings the page forward. Approving stays a click on the card.</p>
+</li>
+<li>
+<p><strong>iPhone:</strong> Menu → Alerts → "Alerts on this iPhone" (off until you turn it on). The app posts a local notification
+  when a session needs you and the app is not on screen, and withdraws it when the item is answered. iOS mirrors it to
+  a watch on your wrist while the iPhone is locked.</p>
+</li>
+<li>
+<p><strong>Mac app:</strong> Settings (••• at the top, or ⌘,) → Alerts → "Alerts on this Mac". A notification when a session needs
+  you and the window is not in front, with Deny on it. The app keeps checking from the menu bar, so alerts arrive with
+  the window closed. A click opens the window.</p>
+</li>
+<li>
+<p><strong>"Approve from notifications"</strong> (one setting for every client, off by default; the iPhone app asks for Face ID and the
+  Mac app for Touch ID or your password to turn it on) adds Approve to a notification. On the Mac, a locked Mac asks to
+  be unlocked first.</p>
+</li>
+<li>
+<p><strong>Voice:</strong> no phrase; these are settings. On a call the voice itself reads a request out, and tells you when a
+  session waits at a prompt in its terminal (below).</p>
+</li>
+</ul>
+<p>What raises an alert: a permission request, a Claude Code session stopped for 15 seconds at a prompt of its own in its
+terminal (a permission prompt, a question, a sandbox request: the ones the voice does not hold, for example with no call
+up), a session that ended its turn waiting on you, a raised hand in a
+<a href="../meeting-mode/">meeting</a>, a <a href="../conflict-alarm/">conflict</a>, and a scheduled <a href="../briefings/">briefing</a> that is ready.</p>
+<h2 id="rules">Rules</h2>
+<ul>
+<li>
+<p><strong>What a notification shows</strong> is the read-out form of a request (the read-out allowlist), never its full text or the
+  model's description. That text may hold a secret. A request that cannot be read out shows only
+  <code>"&lt;Tool&gt;: open Pointe to see the exact request"</code>. A credential-like value is never shown or said.</p>
+</li>
+<li>
+<p><strong>Approve from a notification</strong> is offered only when the setting is on and the request is one Pointe can read out:
+  exactly what a spoken yes could approve. It needs an unlocked iPhone, or a watch on the wrist, instead of Face ID. The
+  daemon accepts it (<code>via: "notification"</code>) only for that request's id. Anything else needs the app (Face ID) or the page.</p>
+</li>
+<li>
+<p><strong>Deny</strong> is always offered for a permission, and is the first action.</p>
+</li>
+<li>
+<p><strong>A prompt in a session's terminal</strong> has no actions and fixed words ("A permission prompt in its terminal. Answer it
+  there."): Pointe does not hold that prompt, so nothing here could answer it. One you answer at the keyboard within 15
+  seconds never alerts, and a dialog you may have opened yourself never does. On a call, in orchestrator mode, the voice
+  says it once the room is quiet, like any session stuck on you.</p>
+</li>
+<li>
+<p><strong>Quiet while you are at the Mac.</strong> The phone, and the page opened on another device, post nothing while this Mac had
+  keyboard, mouse or trackpad input in the last 60 seconds (IOKit's HIDIdleTime, read with <code>ioreg</code> at most every 5
+  seconds while a client asks). The item is held, not dropped: it is posted on the first check after you leave the Mac.
+  An approval within 60 seconds of going back to its terminal is never held. A minute covers reading between
+  keystrokes and lets the next alert through soon after you walk away; a missed approval costs more than one extra buzz.
+  The page on this Mac is never held: its desktop alerts are for the person at the Mac. An idle time that could not be
+  read, or is over 15 seconds old, counts as away.</p>
+</li>
+<li>
+<p>A stale request answers "Already answered"; a refused Approve answers "Approve it in the app"; anything else answers
+  "Mac not reachable", and the notification is posted again on the next check.</p>
+</li>
+</ul>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>
+<p><strong>No push server.</strong> The phone learns about a request from its own status checks. This works while the app is alive:
+  open, or in the background with a call up. With the call down and the app in the background, iOS checks only when it
+  grants a Background App Refresh: rarely, never in Low Power Mode, never after you swipe the app away.</p>
+</li>
+<li>
+<p>Checked by hand on a real iPhone and watch (the simulator has no watch); the steps are in <a href="../../iphone-app/#alerts-and-the-apple-watch">The iPhone app</a>.</p>
+</li>
+<li>Not built: per-event switches, sound and lock-screen preview settings (iOS's own settings cover them), Touch ID on the
+  page, and the Time Sensitive entitlement.</li>
+</ul>
+<h2 id="api">API</h2>
+<ul>
+<li>
+<p>Status <code>attention: [{id, kind: permission|terminal|question|hand|conflict|briefing, session?, request_id?, title, body,
+  text, approvable, quiet, at}]</code>. <code>quiet</code>: the user is at this Mac and the client asking is not on it, so it posts
+  nothing for the item yet. Status <code>mac_idle_secs</code>: seconds since the Mac's last input, or null when unknown. A <code>terminal</code> item is a prompt in the session's own terminal, id <code>terminal:&lt;session&gt;:&lt;since&gt;</code>. <code>title</code> and <code>body</code> are what a notification may show. <code>approvable</code>: a notification may offer
+  Approve. A <code>question</code> is a session that ended its turn waiting on you, id <code>question:&lt;session&gt;:&lt;since&gt;</code>.</p>
+</li>
+<li>
+<p><code>POST /voice/approve</code> takes <code>via: "notification"</code>: an Allow is refused (403) unless the setting is on and the request
+  is <code>approvable</code>; a stale <code>request_id</code> is 409. Deny needs neither.</p>
+</li>
+<li>
+<p><code>POST /voice/attention {id}</code> dismisses one item for this call.</p>
+</li>
+<li>Pref <code>alerts.watch_approve</code> (default false) in <code>GET/POST /voice/prefs</code>.</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/alerts.md">docs/features/alerts.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../challenge/"><span class="pg-small">Previous</span>Challenge me (devil&#x27;s advocate)</a><a class="dx-next" href="../show-while-it-says/"><span class="pg-small">Next</span>Show while it says</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#rules">Rules</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

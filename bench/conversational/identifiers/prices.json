@@ -1,0 +1,12 @@
+{
+  "read": "2026-11-06, unchanged on 2026-11-19 (docs/benchmarks.md, \"Cost arithmetic\" and the ears prices)",
+  "sources": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://soniox.com/pricing",
+              "https://aistudio.google.com/docs/pricing", "https://elevenlabs.io/pricing"],
+  "per_million_tokens": {
+    "claude-haiku-5-5": {"input": 0.10, "cache_read": 0.01, "cache_write": 0.125, "output": 0.50},
+    "claude-sonnet-5-5": {"input": 2.00, "cache_read": 0.10, "cache_write": 2.50, "output": 10.00},
+    "gemini-3.5-flash-lite": {"input": 0.30, "cache_read": 0.03, "cache_write": 0.30, "output": 2.50}
+  },
+  "soniox_rt_per_stream_hour": 0.12,
+  "elevenlabs_per_1000_chars": 0.04
+}

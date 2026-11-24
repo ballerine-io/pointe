@@ -1,0 +1,36 @@
+{
+ "mode": "orchestrator",
+ "sessions": [
+  {
+   "name": "harborpay-api/webhook-dedup",
+   "cwd": "/tmp/repo/harborpay-api",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "Northwind Freight is complaining they got the same payout.settled webhook three or four times last Tuesday. They double-booked 41 payouts in their ERP. Find out why and fix it. Their CFO is on my back."
+    },
+    {
+     "role": "assistant",
+     "text": "Looked at the delivery worker logs for last Tuesday. The retries are real: the delivery worker retried 212 events to Northwind between 14:02 and 14:40 UTC because their endpoint answered in about 31 seconds and our HTTP client gives up at 30 seconds. Their endpoint was processing the event and returning 200, we just stopped listening. So they received the same event up to 4 times.\n\nWe send an `X-Harbor-Event-Id` header, but it is regenerated on each attempt in `src/delivery/attempt.ts:88`, so they could not have deduped even if they wanted to. That is our bug, not theirs.\n\nPlan: make the event id stable across attempts, add a server side idempotency record so we stop re-sending after a success that we learn of late, and raise the timeout. Going ahead unless you object."
+    },
+    {
+     "role": "user",
+     "text": "go. don't touch the public payload shape, Meridian Bank parses it strictly. and I want this out before the Thursday partner review"
+    },
+    {
+     "role": "assistant",
+     "text": "Understood: no public payload changes because Meridian Bank parses strictly, target is before the Thursday partner review. Starting with the stable id. The header stays the same name and the same format, only the value stops changing between attempts."
+    },
+    {
+     "role": "user",
+     "text": "also Dana from Northwind asked whether we can replay the 41 corrected events once it's fixed. don't do it yet just tell me if it's possible"
+    },
+    {
+     "role": "assistant",
+     "text": "Possible. The replay tool in `scripts/replay-events.ts` can target a list of event ids for one merchant, but it mints new ids today, so it has to wait for the stable id fix or Northwind will see them as new events. I will not run anything. I will report when the fix is ready."
+    }
+   ]
+  }
+ ]
+}

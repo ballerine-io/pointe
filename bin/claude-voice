@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Start Claude Code with voice in the current directory. The session joins the shared voice daemon;
+# its channel adds voice permission relay that /pointe:voice (attach) mode lacks.
+# Usage: [CLAUDE_VOICE_FRONT=brain|gemini|openai] [CLAUDE_VOICE_EARS=soniox|gemini|openai|elevenlabs] claude-voice [claude args...]
+set -euo pipefail
+# Never a session that skips its permission prompts, whoever asked: the words harnesses/base.py refuse_bypass refuses,
+# checked before anything starts.
+for arg in "$@"; do
+  case "$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')" in
+    *dangerously*|*skip-permissions*|*bypasspermissions*|*danger-full-access*|*dangerfullaccess*)
+      echo "claude-voice: not started: Pointe never starts a session that skips its permission prompts." >&2; exit 2 ;;
+  esac
+done
+export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+
+command -v node >/dev/null 2>&1 || { echo "claude-voice: Node.js is missing; launch mode needs it. Attach mode (/pointe:voice) does not." >&2; exit 1; }
+[ -d "$ROOT/channel/node_modules/@modelcontextprotocol" ] || npm ci --prefix "$ROOT/channel" --ignore-scripts --silent
+URL="$("$ROOT/bin/voice-daemon" ensure)"
+
+# A free port for this session's channel, so several voice sessions can run at once.
+CHANNEL_PORT="$(python3 -I -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')"
+CLAUDE_VOICE_TOKEN="$(cat "$STATE/token")"
+export CLAUDE_VOICE_TOKEN CLAUDE_VOICE_CHANNEL_PORT="$CHANNEL_PORT" CLAUDE_VOICE_DAEMON_URL="http://127.0.0.1:$PORT"
+export CLAUDE_VOICE_STATE="$STATE" CLAUDE_VOICE_DAEMON_PORT="$PORT"  # for the SessionStart hook
+SESSION_STATE="$STATE/sessions/$$"
+mkdir -p "$SESSION_STATE"
+find "$STATE/sessions" -mindepth 1 -maxdepth 1 -mtime +1 -exec rm -rf {} + 2>/dev/null || true
+
+cat >"$SESSION_STATE/mcp.json" <<EOF
+{ "mcpServers": { "voice": { "command": "node", "args": ["$ROOT/channel/voice-channel.mjs"] } } }
+EOF
+cat >"$SESSION_STATE/settings.json" <<EOF
+{ "hooks": { "SessionStart": [ { "hooks": [ { "type": "command", "timeout": 5,
+    "command": "'$ROOT/bin/register-session' --quiet --channel-url http://127.0.0.1:$CHANNEL_PORT" } ] } ] } }
+EOF
+
+"$ROOT/bin/voice-ours" || { echo "claude-voice: the program on port $PORT is not Pointe, or nothing here can tell (lsof, ss or /proc)" >&2; exit 1; }  # the token goes only to the daemon
+CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
+[ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$ROOT/bin/voice-open"
+
+# exec: the session's pid is Claude Code itself, which is what liveness checks watch.
+exec claude \
+  --mcp-config "$SESSION_STATE/mcp.json" \
+  --settings "$SESSION_STATE/settings.json" \
+  --dangerously-load-development-channels server:voice \
+  "$@"

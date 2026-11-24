@@ -1,0 +1,78 @@
+name: Bug report
+description: Something in Pointe does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not paste API keys, tokens, pairing links, or call transcripts.** Issues are public. Check every log line
+        before you paste it: the journal and `daemon.log` hold what you said and your sessions' content.
+
+        A security problem goes to private reporting instead (Security → Report a vulnerability), not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. /pointe:voice in a Claude Code session
+        2. Say "..."
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`pointe doctor` output"
+      description: |
+        Run `/pointe:doctor` in a session, or `bin/pointe doctor`, and paste the output. It says whether each key was
+        found, never its value. It does name your agents and machine: remove anything you do not want public.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: harness
+    attributes:
+      label: Harness
+      multiple: true
+      options:
+        - Claude Code
+        - OpenCode
+        - Codex CLI
+        - A session on another machine (node)
+    validations:
+      required: true
+  - type: input
+    id: harness-version
+    attributes:
+      label: Harness version
+      placeholder: e.g. output of `claude --version`
+  - type: dropdown
+    id: client
+    attributes:
+      label: Client
+      multiple: true
+      options:
+        - Page in Chrome on the Mac
+        - iPhone app
+        - Page in a phone browser
+        - Page in another desktop browser
+  - type: input
+    id: macos
+    attributes:
+      label: Operating system and version
+      placeholder: e.g. macOS 27.0 (`sw_vers -productVersion`), or the Linux distribution
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines (optional)
+      description: A few lines from `bin/voice-log` or `daemon.log`, with keys, names and session content removed.
+      render: text

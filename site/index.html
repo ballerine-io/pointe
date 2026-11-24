@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ballerine Engineering: open source</title>
+<meta name="description" content="Tools Ballerine's engineers built for their own work and open-sourced. First: Pointe, a conversational layer for your coding agents.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Ballerine Engineering: open source">
+<meta property="og:description" content="Tools Ballerine's engineers built for their own work and open-sourced. First: Pointe.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/' + location.hash);
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23FF5A01'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/BricolageGrotesque-Light.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="pointe/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="page site-header">
+  <a class="wordmark" href="./">Ballerine Engineering</a>
+  <nav aria-label="Links">
+    <a class="gh" href="https://github.com/ballerine-io">GitHub</a>
+  </nav>
+</header>
+<main id="main" class="page">
+  <section class="hub-hero" aria-labelledby="h-hub">
+    <p class="kicker">Open source</p>
+    <h1 id="h-hub" class="h-hero" style="margin-top:14px">Tools we built for our own work, and share.</h1>
+    <p class="lead">Ballerine builds AI agents for merchant risk and fraud prevention at payment companies. It is not a
+      developer-tools company. When its engineers build a tool that others can use, it goes here, under an open
+      licence.</p>
+  </section>
+  <a class="project" href="pointe/">
+    <div>
+      <p class="kicker">MIT · macOS · version <span data-version>0.8.0</span> <span class="beta-tag" data-beta>Beta</span></p>
+      <h2 class="h1 project-lockup" style="margin-top:10px"><picture><source srcset="pointe/brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="pointe/brand/lockup-small.svg" width="168" height="48" alt="Pointe"></picture></h2>
+      <p class="body">Conversational engineering: talk the work through with every agent you run. Pointe is a
+        conversational layer for your coding agents: one spoken conversation over your Claude Code, OpenCode and Codex
+        sessions, on your Mac, with your own model keys or local models.</p>
+      <p class="link">Read about Pointe →</p>
+    </div>
+    <picture>
+      <source srcset="pointe/img/hero-web-dark-1600.jpg" media="(prefers-color-scheme: dark)">
+      <img src="pointe/img/hero-web-light-1600.jpg" width="1600" height="1078" alt="Pointe's call page on a Mac, with three sessions and a request to run a test file waiting for approval.">
+    </picture>
+  </a>
+  <p class="small" style="margin-top:14px"><a href="pointe/roadmap/">Pointe's roadmap</a>: vote on what comes next ·
+    <a href="pointe/contribute/">Contribute to Pointe</a></p>
+  <section class="section" style="border:0;padding-top:56px">
+    <p class="small" style="max-width:80ch">Community-supported, best effort, no SLA. These projects are not Ballerine
+      products. Ballerine's own product is at <a href="https://ballerine.com">ballerine.com</a>, and
+      <a href="https://ballerine.com/company/careers">we're hiring</a>.</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "_": "The pre-release commits the published runs cite, and the words a page says for each. That history is not public, so a page names the build, not its hash; the raw rows and FROZEN.json keep the hashes. A commit not listed here is public and is cited by its hash.",
+  "builds": {
+    "6544cdc403af9a9c87ffb2a5612b1919910c37db": "a pre-release build (2026-11-23) before the benchmark fixes",
+    "7113efa273cbe96ede9e385da44eff1970039274": "a pre-release build (2026-11-23) before the benchmark fixes",
+    "84eafbccc24a547bcc3be0b1720cf920f9ceb856": "a pre-release build (2026-11-23) with the benchmark fixes",
+    "5d920372d43e66edb4277a51dac4fff46f67aa06": "a pre-release runner (2026-11-23 04:09)",
+    "84fb244ee135233abfd1ff202372006a1cef9813": "a pre-release runner (2026-11-23 08:50) with the approval-credit fix",
+    "10030346e6ffadd8d7b5b5f61cd3cd311772b6ce": "a pre-release runner (2026-11-23 03:31)"
+  }
+}

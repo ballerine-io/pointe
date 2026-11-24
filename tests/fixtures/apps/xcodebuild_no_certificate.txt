@@ -1,0 +1,2 @@
+/work/pointe/ios/Pointe.xcodeproj: error: No signing certificate "iOS Development" found: No "iOS Development" signing certificate matching team ID "ABCDE12345" with a private key was found. (in target 'Pointe' from project 'Pointe')
+** BUILD FAILED **

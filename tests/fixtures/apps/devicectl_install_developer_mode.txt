@@ -1,0 +1,1 @@
+ERROR: The operation failed because Developer Mode is disabled on the device. (com.apple.dt.CoreDeviceError error 9021)

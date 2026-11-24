@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drive &amp; walk mode · Pointe docs</title>
+<meta name="description" content="Driving or walking with AirPods: you hear short answers, approve only what can be read out and loses nothing, and are never asked to look at or touch a…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Drive &amp; walk mode">
+<meta property="og:description" content="Driving or walking with AirPods: you hear short answers, approve only what can be read out and loses nothing, and are never asked to look at or touch a…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/drive-mode/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/drive-mode/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="./" aria-current="page">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../reading-mode/">Reading mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="drive--walk-mode">Drive &amp; walk mode</h1>
+<p>Driving or walking with AirPods: you hear short answers, approve only what can be read out and loses nothing, and are
+never asked to look at or touch a screen. Nothing destructive is approved from the road.</p>
+<p>The rules live in <code>pointe/drive.py</code> (the road allowlist, the phrases, the copy). The daemon asks it at the read-out, at a yes,
+and when it picks the current mode.</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li>
+<p><strong>Voice:</strong> "drive mode", "walk mode", "I'm driving", "<span lang="he" dir="rtl">מצב נהיגה</span>" turn it on. "Back to normal", "I've stopped", "exit
+  drive mode", "<span lang="he" dir="rtl">חזרה לרגיל</span>", "<span lang="he" dir="rtl">עצרתי</span>" turn it off. Each must be a whole short utterance; it never reaches the voice model.
+  The daemon answers "Drive mode. Short answers, …" or "Back to normal." in your language.</p>
+</li>
+<li>
+<p><strong>Page:</strong> no Drive button (drive mode is for a phone in a car: the app or the voice starts it). While on, whoever turned
+  it on: one big line (who needs you, else Speaking / Listening / N working / All quiet), "I've stopped" to end it, typing
+  folded away, and the approval card without buttons.</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> a Drive button (a car) at the top, beside Start a meeting, a drive screen with the same line and the live caption, Now Playing
+  "Pointe · lantern needs you", and play/pause as mute. The app suggests "Switch to Drive mode?" when CarPlay's audio
+  route carries the call, or after 60 s of motion detected as driving. It is never entered automatically. Menu →
+  "Suggest Drive mode in the car" (per device, on by default) controls this. Motion is used only after you tap that
+  setting on, when iOS asks for motion permission; until then only CarPlay is detected. A plain Bluetooth car kit looks
+  like a headset to iOS.</p>
+</li>
+<li>
+<p><strong>Mac app:</strong> no Drive button, as on the page: a Mac has no motion sensor and no car audio route. While drive mode is
+  on, the window shows the same drive screen, with "I've stopped" to end it.</p>
+</li>
+</ul>
+<p>It cannot be turned on with no call or during a meeting.</p>
+<h2 id="approvals-while-driving">Approvals while driving</h2>
+<p>A spoken yes approves only when every normal rule holds (the daemon's own read-out, a yes begun after it ended, within
+120 s, nothing else said, never typed, never the bot's echo, never aimed at another session), and also:</p>
+<ol>
+<li>the read-out allowlist can say the request whole (a credential-like value is never read out);</li>
+<li>
+<p>the request loses nothing (<code>drive.road_safe</code>, a second allowlist, of programs and of each program's flags: a flag
+   the read-out does not know for that program waits, as do git's <code>--upload-pack</code>, <code>--receive-pack</code>, <code>--exec</code> and <code>-c</code>,
+   curl's data and config flags, and <code>uniq</code> with an output file): read-only programs, tests, <code>mkdir</code>, <code>touch</code>,
+   <code>git status</code>, <code>diff</code>, <code>log</code>, <code>show</code>, <code>fetch</code>, <code>pull</code>, <code>add</code>, <code>commit</code>, and <code>push</code> without force, delete, mirror,
+   <code>+ref</code> or <code>:ref</code>; no <code>--amend</code>, <code>--no-verify</code>, <code>--rebase</code>, <code>--prune</code>, or <code>add -f</code>; plain <code>curl</code> GETs; and edits inside
+   the project. <code>rm</code>, <code>mv</code>, <code>cp</code>, redirects into files, <code>git reset</code>, <code>clean</code>, <code>rebase</code>, <code>checkout</code>, <code>stash</code>, <code>npm run</code>,
+   <code>make</code>, <code>gh</code>, edits outside the project, and any edit in a session on another machine wait;</p>
+</li>
+<li>
+<p>with a voiceprint stored, the yes itself is a strong match for your voice (score ≥ 0.55, ≥ 1 s of speech), at any
+   <a href="../voice-lock/">voice lock</a> level, Off included. Utterances are scored while driving even with the lock off.</p>
+</li>
+</ol>
+<p>Otherwise the voice says "X wants to run: … I won't approve that while you drive. It waits until you stop, or say no."
+(or "X needs an approval I can't read out. …"), and opens no yes window: a yes repeats the line. <strong>A no from anyone
+denies.</strong> A destructive request is said in full and waits; it is not denied for you.</p>
+<p>A tap still answers any request. The page and the app hide the buttons while driving; "I've stopped" leaves the mode,
+and the pending request is read out again in its normal form. Entering or leaving the mode closes an open yes window and
+reads the pending request again in the new mode's form.</p>
+<h2 id="short-answers">Short answers</h2>
+<p>The mode's rules are added to the voice model's context. A reply over 25 words is sent back ("Shorter: they are
+driving"), an active session's report is one line, and the model's "Sorry, I lost that" is not spoken.</p>
+<h2 id="with-other-modes">With other modes</h2>
+<ul>
+<li>
+<p><strong>Challenge:</strong> never both, and driving wins. Entering drive mode ends a challenge with no verdict; a challenge is
+  refused while driving.</p>
+</li>
+<li>
+<p><strong>Whisper:</strong> drive mode holds it: full volume while driving, and whisper mode applies again when you stop.</p>
+</li>
+<li><strong>Reading mode:</strong> drive mode holds it too: Pointe talks while you drive, and reading mode applies again when you stop.</li>
+<li>
+<p><strong>Meeting</strong> and brain dump rank above it for the mode shown, but the road rules for approvals are keyed on drive mode
+  itself, so they hold whatever else is on.</p>
+</li>
+<li>
+<p>"Back to normal" ends one mode per utterance: drive mode, then a challenge, then whisper mode, then reading mode.</p>
+</li>
+</ul>
+<h2 id="ends-with-the-call">Ends with the call</h2>
+<p>A hang-up or the idle hang-up ends it at once. A dropped link (a tunnel) keeps it for 5 minutes; a call back within that
+time keeps it on.</p>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>
+<p>Not measured on real car hands-free (HFP) audio. Advice to switch to the iPhone microphone on poor car audio waits for
+  that measurement.</p>
+</li>
+<li>
+<p>The voiceprint rule is covered by offline tests, not by a live end-to-end run.</p>
+</li>
+<li>The voice model's own short replies are worded in Hebrew only where they are fixed lines.</li>
+</ul>
+<h2 id="api">API</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /voice/drive {on: true\|false}</code></td>
+<td><code>{drive: &lt;status&gt;}</code>. 400 unless <code>on</code> is a boolean; turning it on is 409 with no call or a meeting on. Page cookie, bearer token, phone key</td>
+</tr>
+<tr>
+<td>status <code>drive</code></td>
+<td><code>{on, since, how: voice\|button, dropped_at, pending: [{session, request_id, voice}]}</code>. <code>voice</code>: a spoken yes may answer that request while driving</td>
+</tr>
+<tr>
+<td>status <code>mode_state</code></td>
+<td><code>{mode: "drive", approvals: "drive"}</code> while on</td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/drive-mode.md">docs/features/drive-mode.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../vocabulary/"><span class="pg-small">Previous</span>Self-learning vocabulary</a><a class="dx-next" href="../push-to-talk/"><span class="pg-small">Next</span>Push to talk</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#approvals-while-driving">Approvals while driving</a></li>
+<li class="dx-l2"><a href="#short-answers">Short answers</a></li>
+<li class="dx-l2"><a href="#with-other-modes">With other modes</a></li>
+<li class="dx-l2"><a href="#ends-with-the-call">Ends with the call</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

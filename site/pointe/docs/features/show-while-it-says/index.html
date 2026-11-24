@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Show while it says · Pointe docs</title>
+<meta name="description" content="The voice says &quot;the retry fix touched the payments client and one test still fails&quot;, and the page shows that file at the edited lines, the diff, and the…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Show while it says">
+<meta property="og:description" content="The voice says &quot;the retry fix touched the payments client and one test still fails&quot;, and the page shows that file at the edited lines, the diff, and the…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/show-while-it-says/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/show-while-it-says/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="./" aria-current="page">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../reading-mode/">Reading mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="show-while-it-says">Show while it says</h1>
+<p>The voice says "the retry fix touched the payments client and one test still fails", and the page shows that file at
+the edited lines, the diff, and the failing test's output, at that moment. Code is never read aloud; it is shown
+instead.</p>
+<p>The rules live in <code>pointe/artifacts.py</code>. The session follower collects what each turn touched, and the report that the voice
+speaks carries it to the screen.</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li>
+<p><strong>Voice:</strong> nothing to say. It follows the voice: when a report touched files or tests, the voice says they are on your
+  screen instead of reading them.</p>
+</li>
+<li>
+<p><strong>Page:</strong> a pane beside the conversation, with File, Diff and Test views. It folds away for screen sharing
+  (remembered per browser). It is always on for the page on this Mac.</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> a "Showing: <summary>" card above the conversation; tap it for a sheet with a tab per item,
+  File/Diff/Test, horizontal scroll, pinch to zoom, Dynamic Type, Pin, and Shown earlier. Off until Settings (••• at the
+  top) → Show while it says is on (below).</p>
+</li>
+<li>
+<p><strong>Mac app:</strong> the same "Showing: <summary>" card and sheet; click the card to open it. Always on, as for the page: the
+  Mac app is on this Mac. Its Settings → Show while it says is the phone's switch.</p>
+</li>
+</ul>
+<h2 id="what-is-shown">What is shown</h2>
+<p>Per session turn, only tools that ran and were not refused (a tool still waiting for approval never shows):</p>
+<ul>
+<li><strong>edits</strong> (Claude Code's edit and write tools, OpenCode's <code>edit</code>/<code>write</code>/<code>patch</code>, Codex's file changes);</li>
+<li><strong>reads</strong>, with their line range;</li>
+<li>
+<p><strong>test runs</strong> (<code>pytest</code>, <code>npm|pnpm|yarn|bun test</code>, <code>nx test</code>, <code>go test</code>, <code>cargo test</code>, <code>jest</code>, <code>vitest</code>, …), with the
+  last 4,000 characters of output, marked failed on an error or a failure pattern;</p>
+</li>
+<li>
+<p>files named in the session's final message that exist in its folder.</p>
+</li>
+</ul>
+<p>Merged per file, ordered failing tests, edits, passing tests, reads; at most 8. The voice is told <code>[on screen now: …
+never read code, paths or output aloud; you may say it is on their screen]</code> when a screen will show it.</p>
+<p>The set stays on screen while the voice talks and 60 s after; switching the active session clears it. The last ten sets
+are listed as "Shown earlier".</p>
+<h2 id="off-the-mac-off-by-default">Off the Mac, off by default</h2>
+<p>The phone, and a page opened over the phone's TLS listener, get nothing (no <code>showing</code> in status, 403 from
+<code>/voice/artifact</code>) until Settings → Show while it says is on. The app asks for Face ID or the passcode to turn it on.
+Once on, a leaked phone key can read what the voice showed: the last ten sets' files, inside each session's folder only.</p>
+<h2 id="what-it-will-not-show">What it will not show</h2>
+<ul>
+<li>
+<p>The daemon never takes a path from the caller: it renders only what a report put on screen, from its own record of
+  the last ten sets.</p>
+</li>
+<li>
+<p>Files outside the session's folder after resolving symlinks; hidden files; secret-looking names (<code>.env*</code>, <code>*.pem</code>,
+  <code>*secret*</code>, <code>*key*</code>, <code>id_*</code>, <code>*credential*</code>, <code>*password*</code>, <code>*.p12</code>, <code>*.pfx</code>, keystores, <code>.netrc</code>, <code>.npmrc</code>,
+  <code>.pgpass</code>, in any folder or the file name). <code>*key*</code> is literal, so <code>keyboard.ts</code> is refused too.</p>
+</li>
+<li>
+<p>Binary files and files over 512 kB.</p>
+</li>
+<li>
+<p>Secret-looking values are masked in file lines, diffs, test output and commands: known token shapes, private-key
+  blocks, URL passwords, quoted or env-style values of secret-like names, and the values of this machine's own key
+  variables.</p>
+</li>
+<li>
+<p>Diffs are made from <code>HEAD</code> with <code>git cat-file</code> and Python's <code>difflib</code>, never <code>git diff</code>, so a repository's filters and
+  diff drivers (which are code) never run. Outside a repository there is no diff view, only the file.</p>
+</li>
+</ul>
+<h2 id="tests">Tests</h2>
+<p><code>tests/e2e/page_show.py</code> writes a synthetic Claude Code turn into a registered transcript and checks the page, with the
+real reader, brain and mouth. <code>apps/ios/e2e/show_ui.py</code> runs the app against a real daemon over the pinned link.</p>
+<h2 id="api">API</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /voice/artifact?id=&lt;artifact id&gt;</code></td>
+<td><code>{id, kind, name, path, range, failed, problem?, lines?: [{n, text, hl}], total, truncated, changed_since, diff?, command?, output?, focus?}</code>. Page cookie, bearer token, phone key. 403 off the Mac while <code>show.on_phone</code> is off; 404 for an id not in the last ten sets</td>
+</tr>
+<tr>
+<td><code>GET/POST /voice/prefs</code> <code>show.on_phone</code></td>
+<td><code>false</code> by default</td>
+</tr>
+<tr>
+<td>status <code>showing</code></td>
+<td><code>null</code> or <code>{id, session, since, summary, current, artifacts: [{id, kind, name, path, range, failed, refused?}]}</code>: names only, no content</td>
+</tr>
+<tr>
+<td>status <code>shown_earlier</code></td>
+<td>the last ten sets, newest first</td>
+</tr>
+<tr>
+<td>status <code>show_on_phone</code></td>
+<td>the pref</td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/show-while-it-says.md">docs/features/show-while-it-says.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../alerts/"><span class="pg-small">Previous</span>Wrist approvals and desktop alerts</a><a class="dx-next" href="../whisper-mode/"><span class="pg-small">Next</span>Whisper mode</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-is-shown">What is shown</a></li>
+<li class="dx-l2"><a href="#off-the-mac-off-by-default">Off the Mac, off by default</a></li>
+<li class="dx-l2"><a href="#what-it-will-not-show">What it will not show</a></li>
+<li class="dx-l2"><a href="#tests">Tests</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{"mode":"orchestrator","sessions":[
+{"name":"orbitcart/checkout-retry","cwd":"/work/orbitcart","active":true,"history":[
+{"role":"user","text":"Add automatic retry for declined card authorizations at checkout in Orbitcart, only for soft declines, behind a flag. Run the review agents when it is ready."},
+{"role":"assistant","text":"Retry logic is in place behind the flag checkout.softDeclineRetry. Only network timeouts and issuer-unavailable codes retry, max two attempts with backoff."},
+{"role":"user","text":"<command-name>/model</command-name>\n<local-command-stdout>Set model to claude-model</local-command-stdout>"},
+{"role":"user","text":"<system-reminder>\nCalled the Read tool with the following input: {\"file_path\":\"/work/orbitcart/src/checkout/retry.ts\"}\nResult of calling the Read tool: 1 export async function retryAuthorization(...)\n</system-reminder>"},
+{"role":"assistant","text":"Tests are written. Starting three review agents: security, correctness and payments-domain."}
+]},
+{"name":"orbitcart/search-index","cwd":"/work/orbitcart-search","history":[
+{"role":"user","text":"Rebuild the product search index with the new synonyms file and open a PR when the relevance check passes."},
+{"role":"assistant","text":"Rebuild is running on staging. It takes about twenty minutes."}
+]}
+]}

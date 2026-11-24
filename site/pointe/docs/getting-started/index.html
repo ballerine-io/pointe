@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started · Pointe docs</title>
+<meta name="description" content="Pointe is a conversational layer for your coding agents. You talk; it listens, reports what each session did, sends your requests to the right one, and…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Getting started">
+<meta property="og:description" content="Pointe is a conversational layer for your coding agents. You talk; it listens, reports what each session did, sends your requests to the right one, and…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/getting-started/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/getting-started/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="./" aria-current="page">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="getting-started">Getting started</h1>
+<p>Pointe is a conversational layer for your coding agents. You talk; it listens, reports what each session did, sends
+your requests to the right one, and reads permission prompts out so you can answer them by voice. The sessions do the
+work and keep their context. We call this conversational engineering ("convo coding", for short).</p>
+<p>This page takes you from nothing to your first call, in about 5 minutes. You need macOS, a coding agent (Claude Code
+2.1.224 or newer, Codex 0.160 or newer, or OpenCode v2), Google Chrome, headphones, and one model key (a free Google key
+is enough to start). Everything Pointe installs, and how to remove it: <a href="../install/">Install</a>.</p>
+<h2 id="1-install">1. Install</h2>
+<p><strong>With Claude Code</strong>, in Terminal:</p>
+<div class="dx-code"><pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>In the Claude desktop app's Code tab, type the two commands instead:
+<code>/plugin marketplace add https://github.com/ballerine-io/pointe.git</code>, then <code>/plugin install pointe@pointe</code>.</p>
+<p><strong>With Codex or OpenCode</strong> (no Claude Code needed), in Terminal:</p>
+<div class="dx-code"><pre><code>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+bash install.sh</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It says what it will do and asks first, checks the release against a SHA-256, and needs no <code>sudo</code>
+(<a href="../install/#the-standalone-install">The standalone install</a>). Then run <code>pointe setup</code> in a new terminal: the same steps
+as below, in the terminal, and then it sets up Codex and OpenCode for the voice (<a href="../install/#codex">Codex</a>,
+<a href="../install/#opencode">OpenCode</a>).</p>
+<h2 id="2-the-first-setup">2. The first setup</h2>
+<p>Open a new Claude Code session, so the plugin loads, and run:</p>
+<div class="dx-code"><pre><code>/pointe:setup</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The session first says "Pointe is installed. Run /pointe:setup to finish." Setup then:</p>
+<ol>
+<li>Checks your Mac and installs what is missing: uv, and about 180 MB of Python packages on the first run.</li>
+<li>
+<p>Asks one question: "Start with Free start?". Free start runs every role on one Gemini key. Say no to see the other
+   setups (<a href="../models/">Models and setups</a>).</p>
+</li>
+<li>
+<p>Opens the vendor's key page, and a Mac window for the key. The key goes from that window to your macOS Keychain; it
+   never passes through the chat. Setup checks the key with one small call.</p>
+</li>
+<li>
+<p>Starts your first call. Allow the microphone in the tab that opens, press <strong>Connect</strong>, and say "hello". Pointe
+   answers that it hears you, and setup says "Pointe heard you. You're set up."</p>
+</li>
+</ol>
+<p>Your phone, the Mac app and faster setups come after, as optional extras: <code>/pointe:setup phone</code>, <code>/pointe:setup apps</code>.</p>
+<h2 id="3-the-first-call">3. The first call</h2>
+<p>The call is a page in Chrome, on <code>127.0.0.1</code>. In any Claude Code session you want to reach, run:</p>
+<div class="dx-code"><pre><code>/pointe:voice</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>If Pointe is not running, this starts it and opens the page. Without Claude Code, <code>pointe open</code> does the same, and a
+Codex or OpenCode session joins with <code>pointe join codex</code> or <code>pointe join opencode</code>, run in its folder. Press <strong>Connect</strong>, and talk:</p>
+<ul>
+<li>"What is this session doing?"</li>
+<li>"Tell it to run the tests and fix what fails."</li>
+<li>"What did it decide about the retry logic?"</li>
+</ul>
+<p>The page shows the conversation as it happens, what Pointe heard as you speak, and every pending permission request
+with its exact text and <strong>Approve</strong> and <strong>Deny</strong>. You can type instead of talking, and correct a line that was misheard.</p>
+<p>When a session asks for permission, Pointe reads the request out and waits. A plain "yes", said right after the
+read-out, approves it. "No" denies it. A request Pointe cannot read out whole (unknown programs, <code>sudo</code>, several lines)
+waits for a tap on the page, the iPhone app or the terminal. The exact rules: <a href="../how-it-works/#rules-enforced-in-code">How it works</a>.</p>
+<p>To end the call, hang up on the page. To stop Pointe entirely, run <code>/pointe:stop</code> (or <code>pointe stop</code>).</p>
+<h2 id="4-joining-a-session">4. Joining a session</h2>
+<p>A session you <strong>join</strong> to the voice is a coding-agent session that Pointe can hear about and talk to. It keeps running
+where it is, in its own terminal, with its own context. Joining it means three things:</p>
+<ul>
+<li>
+<p><strong>Pointe reads it.</strong> It follows the session's transcript and keeps short notes on its goal, its state and what it
+  decided. When the session finishes a turn, Pointe tells you what you need to know.</p>
+</li>
+<li>
+<p><strong>Pointe can send to it.</strong> A request you speak goes to that session as a message, after a check that it matches what
+  you said.</p>
+</li>
+<li>
+<p><strong>Pointe holds its permission prompts.</strong> While a call is up, a joined session's prompts come to the call to be read
+  out. When you hang up, they go back to the session's terminal.</p>
+</li>
+</ul>
+<p>One call can hold many joined sessions. One is <strong>active</strong>: what you say goes to it unless you name another. Say a
+session's name to switch ("switch to billing"), or to address it once ("billing, run the tests"). The others stay
+quiet, except for "finished" and "needs approval".</p>
+<p>A Claude Code session is named after its folder, plus its git branch when the two differ (<code>shop/main</code>). Name it
+yourself with <code>/pointe:voice --name billing</code>, or rename it on the page.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>To</th>
+<th>Do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Join a Claude Code session</td>
+<td><code>/pointe:voice</code> in that session</td>
+</tr>
+<tr>
+<td>Join an OpenCode or Codex session</td>
+<td><code>pointe join opencode</code> or <code>pointe join codex</code> (<a href="../harnesses/">Harnesses</a>)</td>
+</tr>
+<tr>
+<td>Join sessions you already run, without typing in them</td>
+<td>Say "connect to the session about the pentest", or use <strong>Add sessions</strong> on the page or in the apps (<a href="../features/add-sessions/">Add sessions</a>)</td>
+</tr>
+<tr>
+<td>Start a new session</td>
+<td>Say "start a new Codex session in shop", or use <strong>New session</strong> (<a href="../features/new-session/">Start a new session</a>)</td>
+</tr>
+<tr>
+<td>Join a session on another machine</td>
+<td>Make that machine a node (<a href="../multi-machine/">Machines</a>)</td>
+</tr>
+<tr>
+<td>Take a session off the voice</td>
+<td><code>/pointe:leave</code> in it, say "close billing", or use × on the page</td>
+</tr>
+<tr>
+<td>Stop all voice</td>
+<td><code>/pointe:stop</code>, or <code>pointe stop</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="next">Next</h2>
+<ul>
+<li><a href="../phone/">Connect your phone</a>: the same call on your iPhone, in the app or the browser.</li>
+<li><a href="../mac-app/">The Mac app</a>: the call in the menu bar, with a system-wide talk shortcut.</li>
+<li><a href="../models/">Models and setups</a>: which vendor does what, what it costs, and how to run everything on your Mac.</li>
+<li><a href="../features/">Features</a>: night shift, briefings, meeting mode, push to talk and more.</li>
+<li><code>pointe doctor</code> says what is ready and the one thing to fix.</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/getting-started.md">docs/getting-started.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../"><span class="pg-small">Previous</span>Pointe documentation</a><a class="dx-next" href="../install/"><span class="pg-small">Next</span>Install Pointe</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#1-install">1. Install</a></li>
+<li class="dx-l2"><a href="#2-the-first-setup">2. The first setup</a></li>
+<li class="dx-l2"><a href="#3-the-first-call">3. The first call</a></li>
+<li class="dx-l2"><a href="#4-joining-a-session">4. Joining a session</a></li>
+<li class="dx-l2"><a href="#next">Next</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

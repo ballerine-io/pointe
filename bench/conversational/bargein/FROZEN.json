@@ -1,0 +1,23 @@
+{
+ "benchmark": "bargein",
+ "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
+ "router_prompt_commit": "cdfba3ded2d1208d62ca5165f0d9877c665b7f2a",
+ "unpublished_seed_manifest_sha256": null,
+ "item_order_seed": 20261123,
+ "claude_code_version": "2.1.330",
+ "agent_model": "claude-haiku-5-5",
+ "items_sha256": "95cf1f3775fb67e3ce6a2383a34b14b9947b34c17728497907364e37dabc347c",
+ "audio_lock_sha256": "b37b0db03d4b59df37d9e937f72821a9744504417994d4a9fb10a6f3a6093e45",
+ "frozen_on": "2026-11-23",
+ "earlier": [
+  {
+   "pointe_commit": "7113efa273cbe96ede9e385da44eff1970039274",
+   "frozen_at": "2026-11-23T00:00:00+0200",
+   "runs": [
+    "bargein-20261123-040244"
+   ],
+   "why": "the published run before the fixes of the benchmark findings; its reference arms still stand"
+  }
+ ],
+ "rerun": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run."
+}

@@ -1,0 +1,14 @@
+# gitleaks (`gitleaks dir .`, `gitleaks git .`): the repository's secret scan. The tests hold deliberately secret-shaped
+# synthetic tokens, because they exercise readout.mask (the redaction); gitleaks cannot tell those from real ones, so the
+# test trees are allowlisted here. By CONTRIBUTING.md everything in them is synthetic. A real key must never be there
+# either, and a review has to catch that, not this scan.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "synthetic fixtures in the tests and the bench"
+paths = ['''^tests/''', '''^apps/PointeKit/Tests/''', '''^apps/ios/PointeTests/''', '''^apps/macos/PointeMacTests/''', '''^apps/ios/PointeUITests/''', '''^bench/''']
+
+[[allowlists]]
+description = "a 16-hex key fingerprint shown in the app's Machines screen; a fingerprint, not a key"
+regexes = ['''3f2a9c41d07be215''']

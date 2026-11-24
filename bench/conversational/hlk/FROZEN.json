@@ -1,0 +1,24 @@
+{
+ "agent_model": "claude-haiku-5-5",
+ "benchmark": "hlk",
+ "claude_code_version": "2.1.330",
+ "earlier": [
+  {
+   "frozen_at": "2026-11-23T04:09:05+0200",
+   "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+   "runs": [
+    "hlk-20261123-040919",
+    "hlk-20261123-085104"
+   ],
+   "why": "the published run before the fixes of the benchmark findings; its reference arms still stand"
+  }
+ ],
+ "frozen_at": "2026-11-23T12:45:20+0200",
+ "instances_sha256": "71c2e609b1ec003bbe433f505bc91da2003c4948f09a648dc1bc3d52f780bfd0",
+ "item_order_seed": 20261123,
+ "llm_router_prompt_commit": "651b8805867e20b17fbcbdf97a646ee1e1123844",
+ "llm_router_prompt_sha256": "9b5a2fe8548b10df8f9fbe66c6015750ce275c4671b3197541663c2c8a6416d5",
+ "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
+ "rerun": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run.",
+ "unpublished_manifest_sha256": "4bb4f4ed535a965a485703ee67ae28df087d663be1f3b62e2725d66665ae7ca7"
+}

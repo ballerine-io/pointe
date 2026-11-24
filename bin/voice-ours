@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Exit 0 only when what listens on the daemon's port is the process its pid file names (the daemon, or the node in its
+# place) or that process's child. Every script runs this before a request that carries the token or the page key: with
+# the daemon down, another user's program on 127.0.0.1:$PORT would get them. No pid file, or no lsof, ss or /proc to
+# tell who listens: exit 1, and nothing is sent.
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ -r "$STATE/daemon.pid" ] || exit 1
+PID="$(cat "$STATE/daemon.pid")"
+OURS="$({ echo "$PID"; pgrep -P "$PID" 2>/dev/null || tr ' ' '\n' 2>/dev/null </proc/"$PID"/task/"$PID"/children; } |
+  grep -x '[0-9][0-9]*')" || exit 1
+"$BIN/voice-listeners" pids "$PORT" 2>/dev/null | grep -qxF "$OURS"

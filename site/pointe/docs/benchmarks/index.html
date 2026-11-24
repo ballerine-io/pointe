@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchmarks · Pointe docs</title>
+<meta name="description" content="The default models come from these runs. Scripts and reports are in bench/; re-run them with your own keys. All data is synthetic.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Benchmarks">
+<meta property="og:description" content="The default models come from these runs. Scripts and reports are in bench/; re-run them with your own keys. All data is synthetic.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/benchmarks/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/benchmarks/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="./" aria-current="page">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="benchmarks">Benchmarks</h1>
+<p>The default models come from these runs. Scripts and reports are in <code>bench/</code>; re-run them with your own keys. All data
+is synthetic.</p>
+<ul>
+<li>
+<p><strong>Brain and reader:</strong> <code>bench/brain_bench.py</code>, report in <code>bench/results/brain.md</code>. Real tool and speech path; 78 brain
+  cases and 17 reader cases. On 78 cases with the daemon's own context block (2026-11-12), <code>claude-sonnet-5-5</code> passes
+  91.9% ignoring length (95% CI 85.9% to 97.0%), median reply 1.8 s; its fallback <code>claude-haiku-5-5</code> passes 88.0%; <code>gemini-3.8-flash</code> passes 94.9%
+  (89.7% to 98.7%), median reply 2.7 s, with no unwanted sends against Sonnet's 9. The intervals overlap. Sonnet's 9 are all attempts to relay an
+  approval that must be typed in the terminal; the daemon now refuses those in code, and the bench still counts the attempt.
+  The earlier ranking on 66 cases, in <code>bench/results/brain_substance.md</code>, had Sonnet at 95.5%; nothing tested there beat
+  it measurably, including Opus, Fable, high effort and 11 OpenAI models. Those prompts were tuned on Sonnet, which
+  favours it. From that earlier run, not re-measured: <code>gemini-4-argon</code> 93.5% but 17 s.</p>
+</li>
+<li>
+<p><strong>Gate:</strong> <code>tests/test_relevance_live.py</code>, report in <code>bench/results/gate.md</code>.</p>
+</li>
+<li>
+<p><strong>Fully local (<code>pointe local</code>):</strong> the same benchmarks on an M5 Pro with 64 GB, 2026-11-13, report in
+  <code>bench/results/local.md</code>. Brain <code>gemma-4-26b-a4b-it</code> (MLX 4-bit) passes 76.9% (67.9% to 85.5%) ignoring length,
+  median reply 3.4 s, against 91.9% and 1.8 s for <code>claude-sonnet-5-5</code>; as the reader it passes 51.0%
+  against 100% for Sonnet on 51 reports. Measured with other work running on the Mac.</p>
+</li>
+<li>
+<p><strong>Voice stays on your Mac (<code>pointe local voice</code>):</strong> local Whisper and Kokoro on MLX with the cloud brain, 2026-11-13,
+  in <a href="../features/voice-stays-local/#measured">docs/features/voice-stays-local.md</a>. Kokoro on MLX, as the daemon runs it,
+  starts English speech in 185 ms at the median (kokoro-onnx 750 ms in the same run); the whole setup passed 30 of 35
+  audio checks.</p>
+</li>
+<li>
+<p><strong>Which vendors and whole setups are covered, and what is not:</strong> <code>bench/results/combinations.md</code>.</p>
+</li>
+<li>
+<p><strong>Ears:</strong> <code>bench/stt_extra.py</code>, report in <code>bench/results/report.txt</code>. 70 utterances (English, Hebrew, mixed, short
+  yes/no) x 4 voices x clean/noisy = 560 clips, at real-time pace, with a blind intent judge.</p>
+</li>
+<li>
+<p><strong>Mouth:</strong> <code>bench/tts_bench.py</code>, report in <code>bench/results/tts.md</code>. Time to first audio, plus intelligibility by round trip
+  through a recognizer. Not covered: how it sounds to a person (samples are generated locally to listen to).</p>
+</li>
+</ul>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>ears</th>
+<th>intent correct</th>
+<th>word error</th>
+<th>latency p50 / p90</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Soniox stt-rt-v5</td>
+<td>95.4%</td>
+<td>0.062</td>
+<td>0.36 / 1.29 s</td>
+</tr>
+<tr>
+<td><strong>Soniox stt-rt-v6</strong></td>
+<td><strong>95.9%</strong></td>
+<td><strong>0.063</strong></td>
+<td><strong>0.38 / 2.18 s</strong></td>
+</tr>
+<tr>
+<td>gemini-3.5-transcribe-live</td>
+<td>92.0%</td>
+<td>0.094</td>
+<td>0.72 / 1.62 s</td>
+</tr>
+<tr>
+<td>OpenAI gpt-4o-transcribe</td>
+<td>90.9%</td>
+<td>0.209</td>
+<td>1.16 / 1.96 s</td>
+</tr>
+<tr>
+<td>OpenAI gpt-4o-mini-transcribe</td>
+<td>85.5%</td>
+<td>0.203</td>
+<td>1.09 / 1.97 s</td>
+</tr>
+<tr>
+<td>Gemini Live, as a whole</td>
+<td>79.6%</td>
+<td>0.240</td>
+<td>1.13 / 2.45 s</td>
+</tr>
+<tr>
+<td>OpenAI gpt-live-transcribe</td>
+<td>81.1%</td>
+<td>0.195</td>
+<td>0.66 / 1.59 s</td>
+</tr>
+<tr>
+<td>ElevenLabs scribe_v2_realtime</td>
+<td>68.9%</td>
+<td>0.378</td>
+<td>0.77 / 1.78 s</td>
+</tr>
+<tr>
+<td>Whisper large-v3-turbo, local (MLX, M5 Pro)</td>
+<td>85.7%</td>
+<td>0.219</td>
+<td>0.76 / 1.25 s</td>
+</tr>
+</tbody>
+</table></div>
+<p>The local row is from a run on 2026-11-13 on the same 560 clips and the same judge; its latency is the voice detector's
+0.2 s wait plus the time to transcribe the clip on the Mac, not a network path, so it compares with the others only roughly.
+Details: <a href="../features/local/#measured">docs/features/local.md</a>.</p>
+<p>The ears run Soniox <code>stt-rt-v6</code> since 2026-11-20 (a pre-release build) because Soniox removes <code>stt-rt-v5</code> on 2026-12-15, not because v6 measured
+better. Until then v5 was the default: in the table, with Soniox's default endpoint settings, v6 never finalised 3 clips
+of 560 and waited over 1 s more often (17.6% of clips against 13.9%). A second run on 2026-11-20 with the daemon's own
+settings (<a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/soniox-v6.md">bench/results/soniox-v6.md</a>) found v6 as accurate (intent 95.9% against 94.6%,
+Hebrew 98.3% for both) with the same median endpoint (0.38 s against 0.36 s) and a much longer tail: p90 2.67 s against
+0.82 s, Hebrew p90 3.04 s against 0.85 s, because on 35 of 560 clips v6 waits about 3.2 s before it ends the turn.
+Since 2026-11-20 (a pre-release build) the call asks Soniox for held words after 0.7 s of silence (<code>turns.finalize_due</code>): p90 0.76 s, Hebrew 0.80 s,
+no clip over 2.5 s, intent 96.1%; the cost is that a pause after a clause that reads whole no longer gets Soniox's
+occasional extra patience at Normal (60 of 60 such pauses taken, against 52 with v5).</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>mouth</th>
+<th>first audio p50 / p95</th>
+<th>word error EN / HE</th>
+<th>Speaks Hebrew</th>
+<th>$ per 1k chars</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>eleven_v4_turbo</strong></td>
+<td>213 / 309 ms</td>
+<td>0.00 / 0.02</td>
+<td>yes</td>
+<td>0.04</td>
+</tr>
+<tr>
+<td>eleven_v3_conversational</td>
+<td>181 / 205 ms</td>
+<td>0.03 / 0.05</td>
+<td>yes</td>
+<td>0.04</td>
+</tr>
+<tr>
+<td>eleven_flash_v2_5</td>
+<td>174 / 182 ms</td>
+<td>0.04 / 1.11</td>
+<td><strong>no</strong></td>
+<td>0.04</td>
+</tr>
+<tr>
+<td>soniox tts-rt-v2</td>
+<td>301 / 326 ms</td>
+<td>0.03 / 0.02</td>
+<td>yes</td>
+<td>about 0.05</td>
+</tr>
+<tr>
+<td>gemini-3.8-flash-lite-tts</td>
+<td>441 / 534 ms</td>
+<td>0.03 / 0.02</td>
+<td>yes</td>
+<td>0.012</td>
+</tr>
+<tr>
+<td>gemini-3.8-flash-tts</td>
+<td>733 / 961 ms</td>
+<td>0.02 / 0.02</td>
+<td>yes</td>
+<td>0.018</td>
+</tr>
+<tr>
+<td>OpenAI gpt-4o-mini-tts</td>
+<td>799 / 1815 ms</td>
+<td>0.03 / 0.03</td>
+<td>yes</td>
+<td>about 0.035</td>
+</tr>
+</tbody>
+</table></div>
+<p>Limits: voices are synthetic, latency is from one laptop and one network, the round trip uses one recognizer, and the benchmark author is a model from a vendor under test. Each report lists its own limits.</p>
+<h2 id="cost-arithmetic">Cost arithmetic</h2>
+<p>A busy hour on the best setup: brain 60 replies at $0.0045, about $0.27. Mouth 60 replies of 30 words, about 11,000 characters at $0.04 per
+1,000, about $0.43. Reader 10 reports at $0.01, about $0.10. Soniox $0.12 per stream hour with up to two streams, about $0.24. About $1 in all.
+Prices read 2026-11-06; check them. This is arithmetic, not a metered bill.</p>
+<p>Other setups, the same hour, from the measured cost per reply in <code>bench/results/brain_substance.md</code> and the mouth table above:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Keys</th>
+<th>Brain (60)</th>
+<th>Reader (10)</th>
+<th>Mouth (11,000 chars)</th>
+<th>Ears (the call open for the hour)</th>
+<th>About</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Anthropic, Soniox</td>
+<td>$0.27</td>
+<td>$0.10</td>
+<td>$0.55 (Soniox)</td>
+<td>$0.24</td>
+<td>$1.20</td>
+</tr>
+<tr>
+<td>Gemini only, billing on</td>
+<td>$0.25</td>
+<td>$0.03</td>
+<td>$0.13</td>
+<td>$0.30 to $0.54</td>
+<td>$0.70 to $0.95</td>
+</tr>
+<tr>
+<td>Gemini only, free tier</td>
+<td>$0</td>
+<td>$0</td>
+<td>$0</td>
+<td>$0</td>
+<td>$0 until the quota ends</td>
+</tr>
+<tr>
+<td>OpenAI only</td>
+<td>$0.16</td>
+<td>$0.04</td>
+<td>$0.39</td>
+<td>$0.36</td>
+<td>$0.95</td>
+</tr>
+<tr>
+<td>Anthropic, Gemini, voice on the Mac</td>
+<td>$0.27</td>
+<td>$0.10</td>
+<td>$0 (Kokoro, local)</td>
+<td>$0 (Whisper, local)</td>
+<td>$0.40</td>
+</tr>
+<tr>
+<td>Gemini only, voice on the Mac (not run through the audio suite)</td>
+<td>$0.25</td>
+<td>$0.03</td>
+<td>$0</td>
+<td>$0</td>
+<td>$0.30</td>
+</tr>
+<tr>
+<td>Fully local</td>
+<td>$0</td>
+<td>$0</td>
+<td>$0</td>
+<td>$0</td>
+<td>$0</td>
+</tr>
+</tbody>
+</table></div>
+<p>The gate adds a small amount on every setup.</p>
+<p>Where the ears prices come from, read on the vendors' pages on 2026-11-19: Soniox real-time transcription $0.12 an hour
+per stream (<a href="https://soniox.com/pricing">soniox.com/pricing</a>); <code>gemini-3.5-transcribe-live</code> $0.005 a minute of audio in
+and $0.004 a minute of text out, so $0.30 to $0.54 an hour (<a href="https://aistudio.google.com/docs/pricing">Google's pricing page</a>);
+<code>gpt-4o-transcribe</code> about $0.006 a minute (<a href="https://developers.openai.com/api/docs/pricing">OpenAI's pricing page</a>). The
+brain and reader prices behind the per-reply costs (read 2026-11-06) were the same on those pages on 2026-11-19: Claude
+Sonnet 5.5 $2 and $10 per million tokens in and out (<a href="https://platform.claude.com/docs/en/about-claude/pricing">Anthropic</a>),
+<code>gemini-3.8-flash</code> $0.75 and $3.75, <code>gpt-6-sol</code> $2 and $10. Google's page says <code>gemini-3.8-flash</code> and
+<code>gemini-3.8-flash-lite-tts</code> double on 2027-01-01: the two paid Gemini-only rows then rise by about $0.40 and $0.30. The
+free tier and its limits: <a href="../install/#try-it-for-free-or-cheap">docs/install.md</a>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">docs/benchmarks.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../setups/"><span class="pg-small">Previous</span>Setups: which keys Pointe needs, and for what</a><a class="dx-next" href="../architecture/"><span class="pg-small">Next</span>Architecture</a></nav>
+</main>
+
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

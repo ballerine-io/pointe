@@ -1,0 +1,43 @@
+{
+ "mode": "session",
+ "sessions": [
+  {
+   "name": "ledgercore/fx-rounding",
+   "cwd": "/tmp/repo/ledgercore",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "Finance at Altamira says the monthly FX statement is off by a few cents on JPY and KWD accounts. Figure out what's wrong in the rounding. Don't change prod data."
+    },
+    {
+     "role": "assistant",
+     "text": "Reproduced it. We round every currency to 2 decimals in `convertAmount`, at line 112 of `src/fx/convert.ts`. JPY has 0 minor units and KWD has 3. For KWD we lose a fils on each line and that accumulates to about 0.4 KWD a month on the busy accounts. For JPY we store fractional yen which then gets truncated in the statement renderer.\n\nThe fix is to read minor units from the currency table. I need to know how you want old statements treated: restate them or leave them and fix forward."
+    },
+    {
+     "role": "user",
+     "text": "fix forward for now. no restating until I talk to Altamira's controller. Marek owns the statement renderer, keep him in the loop"
+    },
+    {
+     "role": "assistant",
+     "text": "Fix forward only, no restating. I will write the renderer questions down for Marek and not edit the renderer myself. Working on the minor unit change now."
+    }
+   ]
+  },
+  {
+   "name": "portal-web/invoice-export",
+   "cwd": "/tmp/repo/portal-web",
+   "active": false,
+   "history": [
+    {
+     "role": "user",
+     "text": "Add CSV export to the invoices page in the customer portal. Behind a flag. Max 10000 rows."
+    },
+    {
+     "role": "assistant",
+     "text": "Started. Export button added behind `portal.invoiceCsvExport`. Streaming the CSV from the existing list endpoint with a 10000 row cap. Running the test suite now."
+    }
+   ]
+  }
+ ]
+}

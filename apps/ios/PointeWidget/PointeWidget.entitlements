@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The app and its widget extension share one app group (TalkStore): the widget's last look at the Mac and the
+	     "Talk from outside the app" setting. Available to a free Personal Team too. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(POINTE_APP_GROUP)</string>
+	</array>
+</dict>
+</plist>

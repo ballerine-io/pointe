@@ -1,0 +1,46 @@
+# The voice panel: Kokoro-82M v1.0 (hexgrad), ONNX export pinned by SHA-256 in assets.py. Apache-2.0. $0, no key.
+# Synthetic speech only: no microphone, no macOS say voices, no cloud voices.
+[voice.af_heart]
+lang = "en-us"
+label = "US female"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.am_michael]
+lang = "en-us"
+label = "US male"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.bf_emma]
+lang = "en-gb"
+label = "British female"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.bm_george]
+lang = "en-gb"
+label = "British male"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.hm_omega]
+lang = "en-us"
+label = "Hindi-language Kokoro voice reading English (Indian accent)"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.ef_dora]
+lang = "en-us"
+label = "Spanish-language Kokoro voice reading English (Spanish accent)"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.ff_siwis]
+lang = "en-us"
+label = "French-language Kokoro voice reading English (French accent)"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.im_nicola]
+lang = "en-us"
+label = "Italian-language Kokoro voice reading English (Italian accent)"
+license = "Apache-2.0 (Kokoro-82M v1.0)"
+
+[voice.oa-he]
+lang = "he"
+label = "OpenAI gpt-4o-mini-tts, ash, Israeli accent: Hebrew, mixed, and accented English"
+license = "OpenAI API output (synthetic)"

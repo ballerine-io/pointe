@@ -1,0 +1,35 @@
+{
+ "mode": "orchestrator",
+ "sessions": [
+  {
+   "name": "pelican/search-reindex",
+   "cwd": "/tmp/repo",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "Plan the v7 reindex for shipment search. The port code searches are bad and customers complain. Tell me what you need before running on the full index."
+    },
+    {
+     "role": "assistant",
+     "text": "Mapping for shipments_v7 is ready and the dry run on 200,000 documents passed.\n\n## What changed in the mapping\n- port_code gets a keyword analyzer, so case no longer matters.\n- carrier_aliases is a new field populated from the carrier table.\n- eta moves from string to date. Documents with bad strings get a null eta and a flag.\n- shipper_raw is removed, nothing reads it.\n\n## Dry run\n200,000 documents sampled across all customers. 12 workers, bulk size 2,000. 3m 40s. Extrapolated full run: about 5 hours for 4.1 million documents. CPU stayed at about 55%. Search on v6 was not affected.\n\n## Relevance\nPrecision at 10 went from 0.81 to 0.87 on the sampled suite. Recall at 50 went from 0.74 to 0.82.\n\n## Cost\nIndex is about 11% smaller. Overlap of one week between v6 and v7 is budgeted, which is why the retention job on v6 is set to one week after the start of the run.\n\n## Risk notes\nThe bulk loader treats errors as retryable and I have not exercised a large error rate in the dry run. A sampled run does not prove the rare document shapes. I would check counts after the real run, not only the job status. If counts differ, v6 is still there, so nothing is lost.\n\n## Runbook\nThe alias swap is atomic. Rollback is the same swap in reverse while v6 exists. The runbook has the low-traffic point at 06:10.\n\n## Other\nRelevance suite now runs in CI on the branch. PR #588 is open as a draft with the switch script and the query changes. Marek is reviewing.\n\n## Decision I need\nThe full run needs a 5 hour window with low write traffic. Two windows work: Saturday 22:00, but that overlaps the Corvid Cargo bulk import, which would make the job slower and may push past 5 hours; or Sunday 01:00, which is clean. Which window do you want? I will not start until you pick."
+    }
+   ]
+  },
+  {
+   "name": "pelican/billing-webhooks",
+   "cwd": "/tmp/repo2",
+   "active": false,
+   "history": [
+    {
+     "role": "user",
+     "text": "Add exponential backoff to the Tollgate webhook retries. Fixed 30 second retries are hammering them during outages. Include a dead-letter table."
+    },
+    {
+     "role": "assistant",
+     "text": "On it. I will replace the fixed retry with exponential backoff and jitter, add a dead-letter table with admin replay, and write the tests. I will report when CI is green."
+    }
+   ]
+  }
+ ]
+}

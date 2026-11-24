@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Build Pointe's iPhone and Mac apps from source and install them. Usage: pointe apps doctor|mac|ios [--sim] [--dry-run]
+# Uses the Python that comes with Xcode's tools: no uv, no packages, no network of its own (apps.py).
+set -euo pipefail
+BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+if [ "$(uname)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
+  echo "fix   Xcode is not installed. Install Xcode from the App Store (free, about 12 GB), open it once, then run this again." >&2
+  exit 1
+fi
+exec python3 -I "$BIN/../pointe/apps.py" "$@"

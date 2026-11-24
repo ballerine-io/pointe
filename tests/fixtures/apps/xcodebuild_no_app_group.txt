@@ -1,0 +1,3 @@
+/Users/dana/pointe/ios/Pointe.xcodeproj: error: Provisioning profile "iOS Team Provisioning Profile: io.ballerine.pointe.dev729e7a25.widget" doesn't match the entitlements file's value for the com.apple.security.application-groups entitlement. (in target 'PointeWidget' from project 'Pointe')
+/Users/dana/pointe/ios/Pointe.xcodeproj: error: Provisioning profile "iOS Team Provisioning Profile: io.ballerine.pointe.dev729e7a25" doesn't match the entitlements file's value for the com.apple.security.application-groups entitlement. (in target 'Pointe' from project 'Pointe')
+** BUILD FAILED **

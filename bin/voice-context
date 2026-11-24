@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# What the voice model holds right now, and its size in tokens.
+#   voice-context          the token count and the last 20 messages
+#   voice-context all      every message
+#   voice-context notes    the voice's notes on each session (goal, state, decisions, open items)
+#   voice-context --json   the raw response
+set -euo pipefail
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || {  # the token goes only to the daemon itself
+  echo "voice-context: Pointe is not running on port $PORT" >&2; exit 1; }
+BODY="$(curl -fsS --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/context")"
+# The context goes on stdin: on a command line any local user could read it with ps, and a long one does not fit.
+SHOW="$(cat <<'PY'
+import json, sys
+arg, raw = sys.argv[1], json.load(sys.stdin)
+if arg == "--json":
+    print(json.dumps(raw, indent=2, ensure_ascii=False)); sys.exit()
+if arg == "notes":
+    for name, notes in raw.get("notes", {}).items():
+        print(f"== {name}\n{json.dumps(notes, indent=2, ensure_ascii=False)}")
+    sys.exit()
+t = raw["tokens"]
+print(f"context: {t['context']:,} tokens (last reply {t['reply']:,}, at {t['at']})" if t
+      else "context: no token report yet (the model reports after its first reply)")
+print("\nwhere it goes (estimates, 4 characters a token):")
+for r in sorted(raw["breakdown"], key=lambda r: -r["chars"]):
+    print(f"  {r['kind']:28} {r['count']:4} items  ~{r['est_tokens']:>7,} tokens")
+print(f"  {'total':28}            ~{sum(r['est_tokens'] for r in raw['breakdown']):>7,} tokens")
+print("Gemini keeps its own copy and drops the oldest turns at about 80% of its window; this list is Pointe's copy.\n")
+msgs = raw["messages"] if arg == "all" else raw["messages"][-20:]
+print(f"messages: {len(raw['messages'])} (showing {len(msgs)})" + ("" if raw["connected"] else "  [no call connected]"))
+for m in msgs:
+    if not isinstance(m, dict):
+        print("  ?", str(m)[:200]); continue
+    c = m.get("content")
+    if isinstance(c, list):
+        c = " ".join(p.get("text", f"[{p.get('type')}]") for p in c if isinstance(p, dict))
+    if m.get("tool_calls"):
+        c = "; ".join(f"{x['function']['name']}({x['function']['arguments']})" for x in m["tool_calls"])
+    print(f"  {m.get('role', '?'):9} {str(c or '').replace(chr(10), ' ')[:300]}")
+PY
+)"
+printf '%s' "$BODY" | python3 -I -c "$SHOW" "${1:-}"

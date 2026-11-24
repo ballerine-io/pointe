@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setups: which keys Pointe needs, and for what · Pointe docs</title>
+<meta name="description" content="Written by tools/setups.py from setups.py: edit those, not this file.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Setups: which keys Pointe needs, and for what">
+<meta property="og:description" content="Written by tools/setups.py from setups.py: edit those, not this file.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/setups/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/setups/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="./" aria-current="page">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="setups-which-keys-pointe-needs-and-for-what">Setups: which keys Pointe needs, and for what</h1>
+<p>Written by <code>tools/setups.py</code> from <code>setups.py</code>: edit those, not this file.</p>
+<p>Why its own keys? Pointe runs its own models next to Claude Code: the brain, the reader and the checker, the ears and the voice. Your Claude subscription (Pro or Max) runs Claude Code, but has no interface other apps can use, so Pointe's voice needs its own API key from console.anthropic.com, or one Gemini or OpenAI key. An API key is billed per use: about $1 for a busy hour of talk.</p>
+<p>Pointe has five roles. Each setup fills all five, with the keys in its row:</p>
+<ul>
+<li><strong>brain</strong>: understands you and replies</li>
+<li><strong>reader</strong>: turns session output into short reports</li>
+<li><strong>checker</strong>: a safety check on each send and approval</li>
+<li><strong>ears</strong>: speech to text</li>
+<li><strong>mouth</strong>: the voice</li>
+</ul>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Setup</th>
+<th>Keys</th>
+<th>What each one does</th>
+<th>Measured</th>
+<th>Speed</th>
+<th>A busy hour</th>
+<th>Where your words go</th>
+<th>Best for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Free start</strong> (<code>free</code>)</td>
+<td>Gemini</td>
+<td>Gemini: brain, reader, checker, ears, mouth</td>
+<td>28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19) (bench/results/combinations.md, "Gemini only")<br>brain 94.9% against Sonnet's 91.9%: within the margin (the 95% intervals overlap) (docs/benchmarks.md, "Brain and reader")<br>ears 92.0% of intents against Soniox's 95.9%; no echo guard, so use headphones (docs/benchmarks.md, ears table)</td>
+<td>replies took 4.0 to 4.5 s (bench/results/combinations.md, "Gemini only")</td>
+<td>$0 until the free quota ends; about $0.70 to $0.95 with billing on</td>
+<td>Speech and session text go to Google. On the free tier Google may use and review them: not for confidential work.</td>
+<td>trying Pointe at no cost</td>
+</tr>
+<tr>
+<td><strong>One OpenAI key</strong> (<code>openai</code>)<br>Needs headphones; English speech only</td>
+<td>OpenAI</td>
+<td>OpenAI: brain, reader, checker, ears, mouth</td>
+<td>24 of 35 audio checks (bench/results/combinations.md, "OpenAI only")<br>brain 87.9% against Sonnet's 95.5% in the same run: the 95% intervals overlap (bench/results/brain_substance.md, gpt-6-sol (v7openai))<br>ears 90.9% of intents; no echo guard, so use headphones (docs/benchmarks.md, ears table)</td>
+<td>whole replies not measured; the brain answers in 2.4 s at the median (bench/results/brain_substance.md, gpt-6-sol (v7openai))</td>
+<td>about $0.95</td>
+<td>Speech and session text go to OpenAI.</td>
+<td>people who already pay for OpenAI</td>
+</tr>
+<tr>
+<td><strong>Two keys</strong> (<code>two</code>)</td>
+<td>Soniox + Anthropic</td>
+<td>Anthropic: brain, reader, checker; Soniox: ears, mouth</td>
+<td>30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work (bench/results/combinations.md, "Anthropic, Soniox")<br>ears 95.9% of intents, the highest measured (docs/benchmarks.md, ears table, Soniox v6)</td>
+<td>whole replies not measured; the brain answers in 1.8 s at the median; in the voice benchmark the voice starts in 301 ms (the voice alone, not a call) (docs/benchmarks.md, "Brain and reader" and the mouth table)</td>
+<td>about $1.20</td>
+<td>Speech goes to Soniox; session text to Anthropic.</td>
+<td>the best ears with two accounts, on laptop speakers</td>
+</tr>
+<tr>
+<td><strong>Fastest and most accurate voice</strong> (<code>full</code>)</td>
+<td>Anthropic + Soniox + ElevenLabs + Gemini</td>
+<td>Anthropic: brain, reader; Gemini: checker; Soniox: ears; ElevenLabs: mouth</td>
+<td>34 of 35 audio checks, echo guard 4 of 4: the highest whole-setup result (bench/results/combinations.md, "(default)")<br>ears 95.9% of intents (next: Gemini 92.0%) (docs/benchmarks.md, ears table)<br>voice word error 0.00 in English, the lowest (docs/benchmarks.md, mouth table, eleven_v4_turbo)<br>brain: Sonnet 91.9% against Gemini's 94.9%, within the margin; Sonnet is the faster one (docs/benchmarks.md, "Brain and reader")</td>
+<td>replies in 2.4 s at the median (2.0 to 2.6), the fastest measured (docs/features/voice-stays-local.md, "Measured")<br>in the voice benchmark the voice starts in 213 ms (the voice alone, not a call) (docs/benchmarks.md, mouth table)</td>
+<td>about $1</td>
+<td>Speech goes to Soniox; session text to Anthropic and Gemini (paid tier); the replies' text to ElevenLabs.</td>
+<td>daily use</td>
+</tr>
+<tr>
+<td><strong>Voice stays on your Mac</strong> (<code>voice-local</code>)<br>Needs an Apple-silicon Mac, about 3 GB of disk, headphones</td>
+<td>Anthropic (Gemini optional)</td>
+<td>Anthropic: brain, reader, checker; this Mac: ears, mouth</td>
+<td>30 of 35 audio checks, with Anthropic and Gemini keys (bench/results/combinations.md, "Voice stays on your Mac")<br>ears 82.7% of intents on the Mac, against Soniox's 94.6% in the same run; English speech only (docs/features/voice-stays-local.md, "Measured")</td>
+<td>replies in 4.1 s at the median (docs/features/voice-stays-local.md, "Measured")</td>
+<td>about $0.40 (Anthropic and Gemini)</td>
+<td>No audio leaves the Mac. Your words, as text, and session text go to Anthropic (and Gemini, if set).</td>
+<td>confidential work where text may leave the Mac but your voice may not</td>
+</tr>
+<tr>
+<td><strong>Fully local</strong> (<code>local</code>)<br>Needs an Apple-silicon Mac with 32 GB of memory, about 19 GB of disk, headphones; English only</td>
+<td>none</td>
+<td>this Mac: brain, reader, checker, ears, mouth</td>
+<td>10 of 19 one-session audio checks, every approval check among them (bench/results/combinations.md, "None: fully local")<br>brain 76.9% against Sonnet's 91.9% (docs/benchmarks.md, "Fully local")</td>
+<td>replies took 5.8 to 11.6 s (bench/results/combinations.md, "None: fully local")</td>
+<td>$0</td>
+<td>Nothing leaves the Mac.</td>
+<td>work where nothing may leave the Mac, on a 32 GB Mac</td>
+</tr>
+</tbody>
+</table></div>
+<p>A busy hour: 60 spoken replies, 10 session reports and the call open for the hour, by arithmetic from measured and list prices (docs/benchmarks.md, "Cost arithmetic"), not a metered bill. "Measured" is the real audio suite (<code>tests/e2e/run_all.sh</code>, 35 checks: 19 single-session, 12
+multi-session, 4 echo), one run per setup on 2026-11-13 with only that setup's keys visible, and the per-role benchmarks
+in <code>bench/</code>. "Not measured" means no run covered it. Voices are synthetic; no setup was measured on a real human call.</p>
+<p>No setup is best on every axis. The fastest and most accurate voice has the highest whole-setup result and the best ears
+and voice, but its brain (Sonnet) and the Free start's brain (Gemini) are within the margin of each other: Gemini passed
+more cases, Sonnet answered faster. Pick by what matters to you:</p>
+<ul>
+<li><strong>Best for trying Pointe at no cost</strong>: Free start (<code>pointe setup free</code>)</li>
+<li><strong>Best for people who already pay for OpenAI</strong>: One OpenAI key (<code>pointe setup openai</code>)</li>
+<li><strong>Best for the best ears with two accounts, on laptop speakers</strong>: Two keys (<code>pointe setup two</code>)</li>
+<li><strong>Best for daily use</strong>: Fastest and most accurate voice (<code>pointe setup full</code>)</li>
+<li><strong>Best for confidential work where text may leave the Mac but your voice may not</strong>: Voice stays on your Mac (<code>pointe setup voice-local</code>)</li>
+<li><strong>Best for work where nothing may leave the Mac, on a 32 GB Mac</strong>: Fully local (<code>pointe setup local</code>)</li>
+</ul>
+<p>With nothing chosen, <code>/pointe:setup</code> asks one question, "Start with Free start?": one key, about 5
+minutes, and this table only if you ask for the other setups.</p>
+<h2 id="choosing-and-switching">Choosing and switching</h2>
+<p><code>pointe setup</code> shows this table and the setup in use; <code>pointe setup &lt;id&gt;</code> switches, and from then on the daemon uses
+exactly that setup's vendors, whatever other keys the Keychain holds. <code>pointe key &lt;vendor&gt;</code> saves a key through a Mac
+window after opening the vendor's key page, checks it with one tiny live call (and asks again when the vendor refuses
+it), and restarts Pointe to use it; <code>pointe key check &lt;vendor&gt;</code> checks a saved key. After <code>pointe setup &lt;id&gt;</code>, restart
+with <code>pointe restart</code>. The page's Settings, Model keys, and the Mac app's do the same with buttons: Add… or Replace… for a
+key, Use this setup for a setup, each shown with the key as In use, Needed or Optional.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/setups.md">docs/setups.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../models/"><span class="pg-small">Previous</span>Models and setups</a><a class="dx-next" href="../benchmarks/"><span class="pg-small">Next</span>Benchmarks</a></nav>
+</main>
+
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

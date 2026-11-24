@@ -1,0 +1,28 @@
+{
+ "alerts.watch_approve": false,
+ "briefings.days": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6
+ ],
+ "briefings.length": "normal",
+ "briefings.skip_empty": false,
+ "briefings.speak_on_connect": true,
+ "briefings.time": "",
+ "conflicts.on": true,
+ "conflicts.spoken": true,
+ "dictionary.learn": true,
+ "meeting.auto_lookups": false,
+ "meeting.consented": false,
+ "meeting.default_mode": "listening",
+ "meeting.notes_language": "auto",
+ "microphone": "always",
+ "show.on_phone": false,
+ "turns.patience": "normal",
+ "voice_lock": "off",
+ "whisper": false
+}

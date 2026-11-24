@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Who listens on a TCP port here, for scripts that must know an answer comes from our own process.
+#   voice-listeners pids PORT    the listening pids this user can see, one per line
+#   voice-listeners taken PORT   exit 0 if anything listens on PORT
+# Linux boxes and containers often lack lsof: then ss (iproute2), then /proc. Exit 3 when none can tell.
+set -uo pipefail
+MODE="${1:-}" PORT="${2:-}"
+[[ "$MODE" =~ ^(pids|taken)$ && "$PORT" =~ ^[0-9]+$ ]] || { echo "usage: voice-listeners pids|taken PORT" >&2; exit 2; }
+
+if command -v lsof >/dev/null 2>&1; then
+  [ "$MODE" = taken ] && { lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; exit; }
+  lsof -nP -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null; exit 0
+fi
+if command -v ss >/dev/null 2>&1; then
+  OUT="$(ss -ltnp "sport = :$PORT" 2>/dev/null | tail -n +2)"
+  [ "$MODE" = taken ] && { [ -n "$OUT" ]; exit; }
+  printf '%s\n' "$OUT" | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u; exit 0
+fi
+if [ -r /proc/net/tcp ]; then
+  # A listening socket (state 0A) on the port, then the processes holding that socket's inode among their fds.
+  HEX="$(printf '%04X' "$PORT")"
+  INODES="$(awk -v hex="$HEX" 'FNR > 1 && $4 == "0A" { n = split($2, a, ":"); if (a[n] == hex) print $10 }' \
+    /proc/net/tcp /proc/net/tcp6 2>/dev/null)"
+  [ "$MODE" = taken ] && { [ -n "$INODES" ]; exit; }
+  for inode in $INODES; do
+    find /proc/[0-9]*/fd -maxdepth 1 -lname "socket:\[$inode\]" 2>/dev/null | cut -d/ -f3
+  done | sort -u
+  exit 0
+fi
+exit 3

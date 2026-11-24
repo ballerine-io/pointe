@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Open the voice page in the browser. The address carries the page key once; the page then keeps it as a cookie.
+set -euo pipefail
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+if grep -qs '"hub"' "$STATE/node.json"; then  # a node (pointe node join): the page and the call are on the hub
+  HUB="$(sed -n 's/.*"hub": *{[^}]*"name": *"\([^"]*\)".*/\1/p' "$STATE/node.json" | head -1)"
+  echo "This machine is a node: the call is on ${HUB:-the hub}. Open Pointe there, or use the phone app."
+  exit 0
+fi
+[ -r "$STATE/page_key" ] || { echo "voice-open: Pointe is not running: pointe open starts it (or /pointe:voice in Claude Code)" >&2; exit 1; }
+# The key goes only to the daemon itself: with it down, another program on the port would get it.
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || { echo "voice-open: Pointe is not running on port $PORT" >&2; exit 1; }
+URL="http://localhost:$PORT/voice?key=$(cat "$STATE/page_key")"
+if command -v open >/dev/null 2>&1; then open "$URL"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
+else echo "voice-open: no browser opener found; open http://localhost:$PORT/voice?key= followed by the contents of $STATE/page_key" >&2; exit 1; fi

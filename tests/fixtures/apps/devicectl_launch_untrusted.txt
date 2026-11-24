@@ -1,0 +1,2 @@
+ERROR: The application failed to launch. (com.apple.dt.CoreDeviceError error 10002 (0x2712))
+       Unable to launch io.ballerine.pointe.dev729e7a25 because it has an invalid code signature, inadequate entitlements or its profile has not been explicitly trusted by the user.

@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture · Pointe docs</title>
+<meta name="description" content="Pointe is one process on your Mac, the daemon, with clients that carry your voice to it and adapters that connect it to your coding-agent sessions. There is…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Architecture">
+<meta property="og:description" content="Pointe is one process on your Mac, the daemon, with clients that carry your voice to it and adapters that connect it to your coding-agent sessions. There is…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/architecture/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/architecture/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="./" aria-current="page">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="architecture">Architecture</h1>
+<p>Pointe is one process on your Mac, the <strong>daemon</strong>, with clients that carry your voice to it and adapters that connect
+it to your coding-agent sessions. There is no Pointe server and no account: the daemon talks to the model vendors you
+chose, with your keys, or to models on the Mac. This page names the parts, follows the data through them, and says
+where state lives and where the trust boundaries are. How the call pipeline decides, step by step:
+<a href="../how-it-works/">How it works</a>. Where each part lives in the repository:
+<a href="../contributing/#repository-layout">Repository layout</a>.</p>
+<p><img alt="Pointe's architecture: the clients reach the daemon over one WebSocket per call; the daemon runs ears, echo guard, brain and mouth, with approvals, the checker and the reader; harness adapters connect it to Claude Code, OpenCode, Codex, and through a node to sessions on other machines." src="../img/architecture.svg"></p>
+<p>On a small screen, open the diagram at full size: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/img/architecture.svg">architecture.svg</a>.</p>
+<h2 id="components">Components</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Daemon</strong></td>
+<td>A Python process built on <a href="https://github.com/pipecat-ai/pipecat">Pipecat</a>, listening on <code>127.0.0.1:7860</code>. It runs the call pipeline (ears, echo guard, brain, mouth), the approvals, the checker and the reader; it keeps the registry of joined sessions; and it serves the page, the routes the apps use, and the phone listener. Started by <code>/pointe:voice</code>, stopped by <code>/pointe:stop</code>.</td>
+</tr>
+<tr>
+<td><strong>The page</strong></td>
+<td><code>pointe/ui.html</code>, one file with no build step, served by the daemon and opened in Chrome on the Mac. It holds the call (microphone, echo cancellation, speaker), the conversation, approvals and every setting. The same page works in a phone's browser over the phone listener.</td>
+</tr>
+<tr>
+<td><strong>Plugin and hooks</strong></td>
+<td>The Claude Code plugin: the <code>/pointe:*</code> commands, and two hooks active in every session. <code>PermissionRequest</code> hands a joined session's permission prompts to the daemon while a call is up, and leaves them in the terminal otherwise. <code>SessionStart</code> suggests <code>/pointe:setup</code> until setup is done.</td>
+</tr>
+<tr>
+<td><strong>Harness adapters</strong></td>
+<td>One adapter per kind of agent: Claude Code, OpenCode and Codex, and <code>remote</code> for a session on another machine. Each follows a session's record, sends to it, and holds its permission prompts, behind one contract (<a href="../harnesses/">Harnesses</a>).</td>
+</tr>
+<tr>
+<td><strong>Nodes</strong></td>
+<td>Another Mac or a Linux host that runs the same adapters for its own sessions and links to the Mac with the call (the <strong>hub</strong>). A node has no audio and no keys (<a href="../multi-machine/">Machines</a>).</td>
+</tr>
+<tr>
+<td><strong>iPhone app and Mac app</strong></td>
+<td>Native clients of the same daemon. The iPhone app reaches it over the phone listener; the Mac app on loopback, and it can start the daemon. (<a href="../iphone-app/">The iPhone app</a>, <a href="../mac-app/">The Mac app</a>.)</td>
+</tr>
+<tr>
+<td><strong>PointeKit</strong></td>
+<td>The Swift package both apps share: <code>PointeKit</code> (the wire format and the loopback client), <code>PointeUI</code> (the call, the rules, the words and every screen, drawn once for both), and <code>PointeMacKit</code> (what only a Mac does: find and start the daemon, the talk shortcut). Apple frameworks only, no other package.</td>
+</tr>
+<tr>
+<td><strong>Model vendors or local models</strong></td>
+<td>Soniox, Anthropic, Gemini, OpenAI and ElevenLabs, each in the roles your setup gives it; or Whisper, Kokoro and a local text model on the Mac (<a href="../models/">Models and setups</a>).</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="the-data-flows">The data flows</h2>
+<h3 id="a-spoken-request">A spoken request</h3>
+<ol>
+<li>
+<p><strong>Audio in.</strong> The page or an app captures the microphone, with the platform's echo cancellation, and streams it to
+   the daemon over one WebSocket per call. The same socket carries the reply's audio back, the status and your taps.
+   A link that drops is dialled again and the call goes on over the new one, as it was (<code>pointe/calllink.py</code>); the apps send
+   the audio as ADPCM, a quarter of the size, so a weak cellular or VPN path carries it (<a href="../phone/#on-a-weak-network">Connect your
+   phone</a>).</p>
+</li>
+<li>
+<p><strong>Ears.</strong> The ears turn speech into text, with hints from your dictionary and the session names.</p>
+</li>
+<li><strong>Echo guard.</strong> Words that are the bot's own voice, heard through the speakers, are dropped. It needs Soniox ears.</li>
+<li>
+<p><strong>Brain.</strong> A text model decides what to do, through tools: speak, send to a session, list or switch sessions, ask
+   about a session. Speech is a tool call too, so code checks every reply before you hear it.</p>
+</li>
+<li>
+<p><strong>Send to a session.</strong> A send goes to the active session, or to one you named. The checker first compares it with
+   what you just said, and a send needs words of yours since that session's last request. Then the session's adapter
+   delivers it: a message into Claude Code, a prompt to OpenCode's local service, a turn for Codex, or a line to a node.</p>
+</li>
+<li>
+<p><strong>Mouth.</strong> The reply is spoken and streamed back to the client.</p>
+</li>
+</ol>
+<h3 id="what-a-session-did">What a session did</h3>
+<p>The adapter follows each joined session's record. The reader keeps notes on each session (goal, state, decisions, what
+was ruled out, what is open), and turns each final message into a short report: what you must hear, and the one
+decision or next move. The brain speaks the report; a background session only says "finished" or "needs approval". A
+"by the way" question is answered from a read-only copy, so the live session is not interrupted.</p>
+<h3 id="approvals">Approvals</h3>
+<ol>
+<li>
+<p>A joined session needs permission. In Claude Code, its <code>PermissionRequest</code> hook asks the daemon and waits; OpenCode
+   and Codex send their requests to the adapter over their own interfaces.</p>
+</li>
+<li>
+<p>The daemon builds the read-out itself, from what will run, and only if every part is a known program in a plain
+   pipeline. Anything else waits for a tap.</p>
+</li>
+<li>
+<p>The mouth says the read-out. A plain yes of yours, begun after it ended, within 120 seconds, on the active session,
+   approves it; a no from any voice denies it. Or you tap <strong>Approve</strong> or <strong>Deny</strong> on the page or in an app (Face ID on
+   the iPhone).</p>
+</li>
+<li>
+<p>The daemon answers the hook, and the session goes on. With no call up, or Pointe stopped, the hook leaves the prompt
+   in the terminal.</p>
+</li>
+</ol>
+<p>The exact rules, and what never approves: <a href="https://github.com/ballerine-io/pointe/blob/main/README.md#safety-model">README, Safety model</a> and
+<a href="../security/#what-a-spoken-word-can-do">SECURITY.md</a>.</p>
+<h3 id="other-machines">Other machines</h3>
+<p>A node runs the adapters for its own sessions and dials the hub's phone listener over TLS, pinned to the hub's
+certificate, and proves its key with an HMAC. It ships each session's transcript with credentials masked, types your
+requests in, and checks each voice approval again against its own unmasked copy of the request. Its sessions' content
+reaches the hub's vendors, as the hub's own sessions' does (<a href="../multi-machine/">Machines</a>).</p>
+<h2 id="where-state-lives">Where state lives</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings, the daemon's token and page key, joined sessions, session notes, the call journal and log, phone and machine pairings, the voice lock's voiceprints, the dictionary, briefings, night shifts</td>
+<td><code>~/.claude-voice</code> (0700). A test or a second daemon sets <code>CLAUDE_VOICE_STATE</code> to use another folder. Every file and what it holds: <a href="../security/#files">SECURITY.md</a>.</td>
+</tr>
+<tr>
+<td>Model keys</td>
+<td>The macOS Keychain, <code>pointe.&lt;vendor&gt;-api-key</code>, or the environment (<a href="../models/#keys">Keys</a>)</td>
+</tr>
+<tr>
+<td>Pointe's code and its Python packages</td>
+<td>Claude Code's plugin folder; <code>~/.local/bin/pointe</code> runs the plugin's <code>pointe</code> command (<a href="../install/#what-it-installs">Install</a>)</td>
+</tr>
+<tr>
+<td>Local models</td>
+<td><code>~/.cache/huggingface</code>, <code>~/.cache/pipecat</code>; the local text-model server in <code>~/.claude-voice/local</code></td>
+</tr>
+<tr>
+<td>The Mac app</td>
+<td><code>~/Applications/Pointe.app</code>, its settings in the <code>io.ballerine.pointe.mac</code> defaults</td>
+</tr>
+<tr>
+<td>The iPhone app's pairing</td>
+<td>The iPhone's Keychain: the Mac's name, port, certificate fingerprint and the phone's own key</td>
+</tr>
+<tr>
+<td>A node</td>
+<td><code>~/.claude-voice</code> on that machine: its key for the hub, and its own sessions' state</td>
+</tr>
+</tbody>
+</table></div>
+<p>Ports: the daemon on <code>127.0.0.1:7860</code> (<code>CLAUDE_VOICE_DAEMON_PORT</code>), the phone and node listener on 7443
+(<code>CLAUDE_VOICE_TLS_PORT</code>) only after you pair, and the local text-model server on <code>127.0.0.1:7869</code> in fully local mode.</p>
+<h2 id="trust-boundaries">Trust boundaries</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>What guards it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A web page or program on the Mac, and the daemon</td>
+<td>Loopback only; a secret on every route (a token for scripts, an <code>HttpOnly</code> cookie for the page); <code>Origin</code> must match <code>Host</code>. Code running as you is trusted: it can read the token.</td>
+</tr>
+<tr>
+<td>The phone, and the daemon</td>
+<td>A separate TLS listener, off until you pair. The app pins the Mac's certificate; each phone has its own key; a phone browser needs the pairing cookie; the owner's routes refuse a phone's key.</td>
+</tr>
+<tr>
+<td>A node, and the hub</td>
+<td>Pinned TLS, an HMAC over a fresh challenge, one connection per key; approvals checked again on the node.</td>
+</tr>
+<tr>
+<td>The daemon, and the model vendors</td>
+<td>Your keys, read only by the daemon, only for roles in use; what each role sends is listed in <a href="../security/#what-leaves-your-machine">SECURITY.md</a>.</td>
+</tr>
+<tr>
+<td>A session's output, and what Pointe does</td>
+<td>Session output is data, not instructions: the checker tests each send against your words, and approvals follow rules in code, never a prompt. This lowers the risk of prompt injection; it does not remove it.</td>
+</tr>
+<tr>
+<td>Your voice, and an approval</td>
+<td>A spoken yes approves only a request the daemon read out itself, right after the read-out. Voice is not authentication: anyone your microphone hears can say no, and, with the voice lock off, yes.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The whole threat model, including what Pointe does not defend against: <a href="../security/">SECURITY.md</a>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/architecture.md">docs/architecture.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../benchmarks/"><span class="pg-small">Previous</span>Benchmarks</a><a class="dx-next" href="../how-it-works/"><span class="pg-small">Next</span>How it works</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#components">Components</a></li>
+<li class="dx-l2"><a href="#the-data-flows">The data flows</a></li>
+<li class="dx-l3"><a href="#a-spoken-request">A spoken request</a></li>
+<li class="dx-l3"><a href="#what-a-session-did">What a session did</a></li>
+<li class="dx-l3"><a href="#approvals">Approvals</a></li>
+<li class="dx-l3"><a href="#other-machines">Other machines</a></li>
+<li class="dx-l2"><a href="#where-state-lives">Where state lives</a></li>
+<li class="dx-l2"><a href="#trust-boundaries">Trust boundaries</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# The voice panel: Kokoro-82M v1.0 (Apache-2.0, hexgrad/Kokoro-82M), the MLX copy pinned in Pointe's assets.py
+# (mlx-community/Kokoro-82M-bf16 at a71e4d38). Four clean voices: an upper bound on recognition for everyone.
+[[voice]]
+id = "af_heart"
+accent = "US"
+gender = "female"
+license = "Apache-2.0"
+
+[[voice]]
+id = "am_michael"
+accent = "US"
+gender = "male"
+license = "Apache-2.0"
+
+[[voice]]
+id = "bf_emma"
+accent = "British"
+gender = "female"
+license = "Apache-2.0"
+
+[[voice]]
+id = "bm_george"
+accent = "British"
+gender = "male"
+license = "Apache-2.0"

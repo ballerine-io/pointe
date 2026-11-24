@@ -1,0 +1,5 @@
+# Left out of the release tarball (tools/release_tarball.py, install.sh): what a person never runs. The Claude Code
+# plugin is a clone of the repository and still has them.
+/bench/** export-ignore
+/evals/** export-ignore
+/site/** export-ignore

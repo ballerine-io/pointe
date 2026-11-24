@@ -1,0 +1,58 @@
+{
+ "run_id": "routing-20261123-0331-d17a",
+ "benchmark": "routing",
+ "started": "2026-11-23T03:31:18+0200",
+ "repo_commit": "10030346e6ffadd8d7b5b5f61cd3cd311772b6ce",
+ "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "claude_code_version": "2.1.330 (Claude Code)",
+ "agent_model": "claude-haiku-5-5",
+ "permission_mode": "acceptEdits",
+ "pointe_setup": {
+  "brain": "anthropic:claude-sonnet-5-5",
+  "reader": "anthropic:claude-sonnet-5-5",
+  "checker": "gemini:gemini-3.5-flash-lite",
+  "ears": "soniox",
+  "mouth": "elevenlabs:eleven_v4_turbo"
+ },
+ "router_model": "claude-sonnet-5-5",
+ "router_effort": "low",
+ "ears_model": "soniox:stt-rt-v6",
+ "voice_engine": "Kokoro-82M (mlx-community/Kokoro-82M-bf16, Apache-2.0)",
+ "seed": 20261123,
+ "smoke": false,
+ "frozen": {
+  "benchmark": "routing",
+  "frozen_at": "2026-11-23T02:57:42+0200",
+  "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+  "router_prompt_sha256": "7983993a3c04153fdf8571dd8d651db79a4415af49e28963dd5e2ae906a50a38",
+  "dataset_sha256": "440ee4c7008f2cb7ec7296d9cb41035246722d09a1cf20314079d281bb4ccbbc",
+  "item_order_seed": 20261123,
+  "claude_code_version": "2.1.330 (Claude Code)",
+  "dataset_version": "routing-0.1",
+  "unpublished_seed_manifest_sha256": null,
+  "note": "routing has no unpublished seeds; the router prompt commit is the commit that adds this file"
+ },
+ "preflight": {
+  "ok": true,
+  "apiKeySource": "apiKeyHelper",
+  "model": "claude-haiku-5-5",
+  "credentials_files": [],
+  "oauth_account": false,
+  "usd": 0.00087965
+ },
+ "dataset_version": "routing-0.1",
+ "arms": [
+  "pointe",
+  "llm-router",
+  "naive",
+  "keyboard-canonical",
+  "null"
+ ],
+ "budget_usd": 9.0,
+ "trimmed": [],
+ "audio_matches_lock": true,
+ "finished": "2026-11-23T04:14:48+0200",
+ "leftover_processes": [],
+ "installed_pointe_link_unchanged": true,
+ "spent_usd": 5.6926
+}

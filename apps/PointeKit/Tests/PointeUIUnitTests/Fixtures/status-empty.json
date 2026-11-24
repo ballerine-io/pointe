@@ -1,0 +1,111 @@
+{
+ "active": null,
+ "attention": [],
+ "brain_dump": null,
+ "briefing": {
+  "building": false,
+  "latest_id": null,
+  "part": 0,
+  "parts": 0,
+  "paused": "",
+  "playing": false
+ },
+ "call": {},
+ "can_invite": true,
+ "challenge": null,
+ "conflicts": [],
+ "connected": false,
+ "dictionary": {
+  "learned_this_call": []
+ },
+ "drive": {
+  "on": false,
+  "pending": []
+ },
+ "hearing": "",
+ "idle_hangup": false,
+ "invite": null,
+ "invite_ended": null,
+ "jobs": {},
+ "local": {
+  "line": "Cloud voice: Soniox + ElevenLabs"
+ },
+ "machines": [
+  {
+   "here": true,
+   "id": "studio",
+   "key_fp": null,
+   "name": "studio",
+   "need": 0,
+   "online": true,
+   "os": "macos",
+   "rtt_ms": null,
+   "sessions": 0,
+   "since": 1700000000
+  }
+ ],
+ "meeting": null,
+ "mode": "orchestrator",
+ "mode_state": {
+  "approvals": "voice",
+  "mode": "normal",
+  "speech": "full"
+ },
+ "monologue": null,
+ "notes": {
+  "last_id": 0,
+  "version": 0
+ },
+ "phones": {
+  "paired": []
+ },
+ "polish": false,
+ "problem": null,
+ "ptt": {
+  "mode": "always",
+  "open": false,
+  "room_heard": false,
+  "sent_bytes": 0
+ },
+ "recent": [
+  {
+   "at": "15:00:12",
+   "how": "named",
+   "said": "what is shop doing",
+   "to": []
+  }
+ ],
+ "router": "orchestrator: named session \u2192 auto (gate) \u2192 active session",
+ "sessions": [],
+ "show_on_phone": false,
+ "showing": null,
+ "shown_earlier": [],
+ "speaking": null,
+ "talk": [],
+ "tokens": {
+  "at": "15:04",
+  "context": 48210
+ },
+ "voice_lock": {
+  "devices": [],
+  "enrolled": false,
+  "enrolling": null,
+  "ignored": {
+   "count": 0,
+   "last_at": null,
+   "recent": []
+  },
+  "level": "off",
+  "lines": [],
+  "model": "ready",
+  "problem": null,
+  "speaker": null,
+  "unsure_streak": 0
+ },
+ "whisper": {
+  "held": null,
+  "lock_note": null,
+  "on": false,
+  "suggest_ptt": false
+ }
+}

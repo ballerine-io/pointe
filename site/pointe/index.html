@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pointe: a conversational layer for your coding agents</title>
+<meta name="description" content="A conversational layer for your coding agents: one spoken conversation over your Claude Code, OpenCode and Codex sessions. Ask what each did, send work by name, approve prompts by voice or tap. MIT, runs on your Mac. Open source from Ballerine Engineering.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Pointe: a conversational layer for your coding agents">
+<meta property="og:description" content="A conversational layer for your coding agents: one spoken conversation over your Claude Code, OpenCode and Codex sessions. MIT, runs on your Mac, with your own model keys or fully local.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/' + location.hash);
+</script>
+<link rel="icon" href="brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png">
+<link rel="preload" href="../fonts/BricolageGrotesque-Light.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../fonts/InstrumentSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="viz/viz.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="page site-header">
+  <a class="wordmark" href="./"><picture><source srcset="brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <span class="beta-tag" data-beta>Beta</span>
+  <nav aria-label="Sections">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#install">Install</a>
+    <a href="docs/">Docs</a>
+    <a href="benchmarks/">Benchmarks</a>
+    <a href="roadmap/">Roadmap</a>
+    <a class="gh" href="https://github.com/ballerine-io/pointe">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.87 2.33.67.07-.52.28-.87.5-1.07-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.19c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+      GitHub</a>
+  </nav>
+</header>
+
+<main id="main">
+  <div class="page">
+    <section class="hero" aria-labelledby="h-hero">
+      <div class="hero-copy">
+        <p class="h3 descriptor">Conversational engineering: talk the work through with every agent you&nbsp;run.</p>
+        <h1 id="h-hero" class="h-hero">Stop typing to one agent.<br><span class="accent">Talk to all of them.</span></h1>
+        <p class="lead">Pointe is a conversational layer for your coding agents: one voice over every Claude Code,
+          OpenCode and Codex session you join to it. Ask what each one did. Send work to one by name. Approve a request by saying yes, or with a tap.</p>
+        <p class="small">Runs on your Mac. No server, no account. Your own model keys, or local models. MIT, open source
+          from Ballerine Engineering.</p>
+        <p class="hero-cta"><a class="btn btn--primary" href="#install">Install</a><a class="btn" href="#day">Watch the day</a></p>
+        <div class="cmd" data-cmd>
+          <pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre>
+          <button type="button" class="copy" hidden>Copy</button>
+        </div>
+        <p class="small">Then run <code>/pointe:setup</code> in Claude Code: about 5 minutes, free with one Google key.
+          Codex or OpenCode without Claude Code: <a href="#install">the standalone install</a>.</p>
+      </div>
+      <figure class="devices">
+        <div class="devices-stage">
+          <div class="dev dev-web">
+            <div class="dev-bar" aria-hidden="true"><i></i><i></i><i></i><span>127.0.0.1</span></div>
+            <picture>
+            <source srcset="img/hero-web-dark-800.jpg 800w, img/hero-web-dark-1600.jpg 1600w" sizes="(max-width: 1080px) 90vw, 620px" media="(prefers-color-scheme: dark)">
+            <img src="img/hero-web-light-1600.jpg" srcset="img/hero-web-light-800.jpg 800w, img/hero-web-light-1600.jpg 1600w" sizes="(max-width: 1080px) 90vw, 620px" width="1600" height="1078" alt="The page Pointe serves, in a browser: three sessions on the left, the conversation, and a card that reads billing/main needs approval, pytest -q tests/test_retry.py, say yes or no, or tap, with Deny and Approve.">
+          </picture>
+          </div>
+          <div class="dev dev-mac">
+            <picture>
+            <source srcset="img/hero-mac-dark-470.jpg 470w, img/hero-mac-dark-940.jpg 940w" sizes="(max-width: 1080px) 46vw, 330px" media="(prefers-color-scheme: dark)">
+            <img src="img/hero-mac-light-940.jpg" srcset="img/hero-mac-light-470.jpg 470w, img/hero-mac-light-940.jpg 940w" sizes="(max-width: 1080px) 46vw, 330px" width="940" height="822" alt="The Mac app: sessions grouped by machine (studio, devbox, laptop), the conversation, and a request from shop on devbox to run uv run pytest -q, with Deny and Approve.">
+          </picture>
+          </div>
+          <picture class="dev-bubble"><source srcset="img/hero-bubble-dark.png" media="(prefers-color-scheme: dark)"><img src="img/hero-bubble-light.png" width="528" height="128" alt="The Mac app's call bubble: Listening, with the number of sessions that wait."></picture>
+          <div class="dev dev-phone">
+            <picture>
+            <source srcset="img/hero-phone-dark-300.jpg 300w, img/hero-phone-dark-600.jpg 600w" sizes="(max-width: 640px) 30vw, 130px" media="(prefers-color-scheme: dark)">
+            <img src="img/hero-phone-light-600.jpg" srcset="img/hero-phone-light-300.jpg 300w, img/hero-phone-light-600.jpg 600w" sizes="(max-width: 640px) 30vw, 130px" width="600" height="1304" alt="The iPhone app on the same call: the sessions across the top, the conversation, and the talk button.">
+          </picture>
+          </div>
+        </div>
+        <figcaption class="small">One call in three places: the page in your browser, the Mac app and the iPhone app.
+          Screenshots of the product on demo data; every name in them is invented.<br><span class="store-soon">Coming to the App Store: in review with Apple</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="value" aria-labelledby="h-value">
+      <h2 id="h-value" class="kicker">Why a conversation</h2>
+      <div class="value-grid">
+        <div>
+          <p class="figure figure--key">2.93×</p>
+          <p class="body"><b>Research.</b> Speech entered short English messages 2.93 times faster than a phone
+            keyboard in a lab: 153 against 52 words a minute.</p>
+          <p class="body">In Pointe you say a request instead of typing it.</p>
+          <p class="small"><a href="https://doi.org/10.1145/3161187">Ruan et al., IMWUT 2017</a></p>
+        </div>
+        <div>
+          <p class="figure">10%</p>
+          <p class="body"><b>Research.</b> After an interruption, programmers resumed editing in under a minute in
+            10% of sessions, in editor logs of 86 programmers.</p>
+          <p class="body">In Pointe you ask what a session did and hear a short report, without opening it.</p>
+          <p class="small"><a href="https://doi.org/10.1007/s11219-010-9104-9">Parnin and Rugaber, Software Quality Journal 2011</a></p>
+        </div>
+        <div>
+          <p class="figure">2.11 s</p>
+          <p class="body"><b>Measured in Pointe.</b> From your last word to the first sound of the reply: the
+            median of 24 turns with a synthesized speaker, on 2026-11-20.</p>
+          <p class="body">Pointe times each stage of that wait and publishes the table.</p>
+          <p class="small"><a href="#evidence">How it was measured</a></p>
+        </div>
+      </div>
+      <p class="small value-note">The two research figures are not about Pointe or coding agents: neither study
+        measured prompts to an agent. Their limits are under <a href="#evidence">Evidence</a>.</p>
+    </section>
+
+    <dl class="strip" aria-label="In short">
+      <div><dt class="kicker">Cost</dt><dd>About $1 for a busy hour (60 replies) on your own keys, by arithmetic. Free on one Gemini key's free tier. $0 fully local.</dd></div>
+      <div><dt class="kicker">Models</dt><dd>You set each role. Defaults: Claude Sonnet 5.5 thinks, Soniox hears, ElevenLabs speaks. Or Gemini or OpenAI alone, or Whisper, Kokoro and Gemma on the Mac.</dd></div>
+      <div><dt class="kicker">Needs</dt><dd>macOS, Claude Code 2.1.224 or newer, Chrome, headphones, one model key. The Mac and iPhone apps are optional, built from source.</dd></div>
+      <div><dt class="kicker">License</dt><dd>MIT. Version <span data-version>0.8.0</span>.</dd></div>
+      <div><dt class="kicker">Source</dt><dd><a class="link" href="https://github.com/ballerine-io/pointe">github.com/<wbr>ballerine-io/<wbr>pointe</a></dd></div>
+    </dl>
+  </div>
+
+  <section id="machines" class="section orch-section" aria-labelledby="h-machines">
+    <div class="page">
+      <div class="head-row">
+        <p class="kicker">One voice, every machine</p>
+        <h2 id="h-machines" class="h2">Say a name. Pointe finds the session, on whichever machine runs it.</h2>
+        <p class="body">Pointe runs on one Mac, the hub, which holds the call. Sessions on another Mac or a Linux host
+          join through a small node there. You send to them, hear their reports and approve their prompts in the same
+          conversation. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/multi-machine.md">How machines pair</a>.</p>
+      </div>
+<!-- orchestra:begin (tools/orchestra_viz.py draws this; edit it there) -->
+<figure class="orch" data-orch data-phone="ask" aria-labelledby="orch-desc">
+<p id="orch-desc" class="o-vh">A diagram of Pointe across three machines. In the middle is the hub, a Mac named studio, which holds the call: an orange point, your voice, with rings of dots around it. The hub runs three sessions: shop on Claude Code, docs on OpenCode and river-lantern on Codex. Two other machines are joined to it as nodes: devbox, a Linux host, runs billing on Codex and ingest on Claude Code; laptop, another Mac, runs notes on OpenCode and api on Claude Code. An iPhone is joined to the same hub. Three things happen in turn. One: you say “Ask billing on devbox to run the tests”, a wave of dots goes from the point to devbox, billing starts working, and its report comes back and is spoken. Two: notes on laptop needs approval; the request travels to the hub, is read out, and shows on the phone with Deny and Approve; a tap on Approve travels back to laptop. Three: you ask “What&#x27;s going on everywhere?” and Pointe answers machine by machine.</p>
+<div class="o-stage" style="--wl:19.05%;--ww:37.41%;--wt:9.27%;--tl:5.59%;--tw:88.83%;--tt:16.6%">
+<p class="o-say" aria-hidden="true"><span class="o-who">You</span><span class="o-line">Ask billing on devbox to run the tests.</span></p>
+<svg class="o-svg o-wide" viewBox="0 0 1176 496" aria-hidden="true" focusable="false"><g class="o-mach" data-m="studio"><clipPath id="w-studio"><rect x="224" y="1" width="440" height="494" rx="16"/></clipPath><rect class="o-hub" x="224" y="1" width="440" height="494" rx="16"/><g clip-path="url(#w-studio)"><g class="o-row" data-s="shop" data-state="working"><rect class="o-row-hot" x="224" y="354" width="440" height="44"/><rect class="o-row-bar" x="224" y="354" width="2" height="44"/><circle class="o-st o-is-idle" cx="239" cy="376" r="3"/><circle class="o-st o-is-working" cx="239" cy="376" r="3"/><circle class="o-st o-is-approve" cx="239" cy="376" r="3"/><rect class="o-hg" x="252" y="368" width="16" height="16" rx="3"/><text class="o-hgt" x="260" y="379.4" text-anchor="middle">C</text><text class="o-nm" x="278" y="380.6">shop</text><text class="o-ag" x="400" y="380.2">Claude</text><text class="o-tag o-is-idle" x="650" y="380.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="650" y="380.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="650" y="380.2" text-anchor="end">approve</text><path class="o-hair" d="M236 398H652"/></g><g class="o-row" data-s="docs" data-state="idle"><rect class="o-row-hot" x="224" y="398" width="440" height="44"/><rect class="o-row-bar" x="224" y="398" width="2" height="44"/><circle class="o-st o-is-idle" cx="239" cy="420" r="3"/><circle class="o-st o-is-working" cx="239" cy="420" r="3"/><circle class="o-st o-is-approve" cx="239" cy="420" r="3"/><rect class="o-hg" x="252" y="412" width="16" height="16" rx="3"/><text class="o-hgt" x="260" y="423.4" text-anchor="middle">O</text><text class="o-nm" x="278" y="424.6">docs</text><text class="o-ag" x="400" y="424.2">OpenCode</text><text class="o-tag o-is-idle" x="650" y="424.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="650" y="424.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="650" y="424.2" text-anchor="end">approve</text><path class="o-hair" d="M236 442H652"/></g><g class="o-row" data-s="river-lantern" data-state="idle"><rect class="o-row-hot" x="224" y="442" width="440" height="44"/><rect class="o-row-bar" x="224" y="442" width="2" height="44"/><circle class="o-st o-is-idle" cx="239" cy="464" r="3"/><circle class="o-st o-is-working" cx="239" cy="464" r="3"/><circle class="o-st o-is-approve" cx="239" cy="464" r="3"/><rect class="o-hg" x="252" y="456" width="16" height="16" rx="3"/><text class="o-hgt" x="260" y="467.4" text-anchor="middle">X</text><text class="o-nm" x="278" y="468.6">river-lantern</text><text class="o-ag" x="400" y="468.2">Codex</text><text class="o-tag o-is-idle" x="650" y="468.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="650" y="468.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="650" y="468.2" text-anchor="end">approve</text></g></g><circle class="o-live" cx="239" cy="19" r="3"/><text class="o-mn" x="251" y="23.4">studio</text><text class="o-os" x="302.8" y="23">this Mac</text><text class="o-os o-num" x="650" y="23" text-anchor="end">the hub: holds the call</text><path class="o-hair" d="M224 354H664"/><rect class="o-lit" x="224" y="1" width="440" height="494" rx="16"/></g><text class="o-os" x="72" y="100" text-anchor="middle">iPhone app</text><path class="o-wire" d="M340 240L138 240"/><path class="o-wire-hot" data-wire="phone" d="M340 240L138 240"/><path class="o-route" data-route="phone" d="M444 240L138 240"/><path class="o-wire" d="M548 240L724 240Q736 240 736 228L736 162Q736 150 748 150L808 150"/><path class="o-wire-hot" data-wire="devbox" d="M548 240L724 240Q736 240 736 228L736 162Q736 150 748 150L808 150"/><path class="o-route" data-route="devbox" d="M444 240L724 240Q736 240 736 228L736 162Q736 150 748 150L808 150"/><path class="o-wire" d="M548 240L724 240Q736 240 736 252L736 318Q736 330 748 330L808 330"/><path class="o-wire-hot" data-wire="laptop" d="M548 240L724 240Q736 240 736 252L736 318Q736 330 748 330L808 330"/><path class="o-route" data-route="laptop" d="M444 240L724 240Q736 240 736 252L736 318Q736 330 748 330L808 330"/><path class="o-wire" d="M444 344L444 354"/><path class="o-wire-hot" data-wire="studio" d="M444 344L444 354"/><path class="o-route" data-route="studio" d="M444 240L444 354"/><g class="o-mach" data-m="devbox"><clipPath id="w-devbox"><rect x="808" y="86" width="366" height="128" rx="12"/></clipPath><rect class="o-card" x="808" y="86" width="366" height="128" rx="12"/><g clip-path="url(#w-devbox)"><g class="o-row" data-s="billing" data-state="working"><rect class="o-row-hot" x="808" y="122" width="366" height="44"/><rect class="o-row-bar" x="808" y="122" width="2" height="44"/><circle class="o-st o-is-idle" cx="823" cy="144" r="3"/><circle class="o-st o-is-working" cx="823" cy="144" r="3"/><circle class="o-st o-is-approve" cx="823" cy="144" r="3"/><rect class="o-hg" x="836" y="136" width="16" height="16" rx="3"/><text class="o-hgt" x="844" y="147.4" text-anchor="middle">X</text><text class="o-nm" x="862" y="148.6">billing</text><text class="o-ag" x="984" y="148.2">Codex</text><text class="o-tag o-is-idle" x="1160" y="148.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="1160" y="148.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="1160" y="148.2" text-anchor="end">approve</text><path class="o-hair" d="M820 166H1162"/></g><g class="o-row" data-s="ingest" data-state="working"><rect class="o-row-hot" x="808" y="166" width="366" height="44"/><rect class="o-row-bar" x="808" y="166" width="2" height="44"/><circle class="o-st o-is-idle" cx="823" cy="188" r="3"/><circle class="o-st o-is-working" cx="823" cy="188" r="3"/><circle class="o-st o-is-approve" cx="823" cy="188" r="3"/><rect class="o-hg" x="836" y="180" width="16" height="16" rx="3"/><text class="o-hgt" x="844" y="191.4" text-anchor="middle">C</text><text class="o-nm" x="862" y="192.6">ingest</text><text class="o-ag" x="984" y="192.2">Claude</text><text class="o-tag o-is-idle" x="1160" y="192.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="1160" y="192.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="1160" y="192.2" text-anchor="end">approve</text></g></g><circle class="o-live" cx="823" cy="104" r="3"/><text class="o-mn" x="835" y="108.4">devbox</text><text class="o-os" x="886.8" y="108">Linux</text><text class="o-os o-num" x="1160" y="108" text-anchor="end">23 ms</text><path class="o-hair" d="M808 122H1174"/><rect class="o-lit" x="808" y="86" width="366" height="128" rx="12"/></g><g class="o-mach" data-m="laptop"><clipPath id="w-laptop"><rect x="808" y="266" width="366" height="128" rx="12"/></clipPath><rect class="o-card" x="808" y="266" width="366" height="128" rx="12"/><g clip-path="url(#w-laptop)"><g class="o-row" data-s="notes" data-state="approve"><rect class="o-row-hot" x="808" y="302" width="366" height="44"/><rect class="o-row-bar" x="808" y="302" width="2" height="44"/><circle class="o-st o-is-idle" cx="823" cy="324" r="3"/><circle class="o-st o-is-working" cx="823" cy="324" r="3"/><circle class="o-st o-is-approve" cx="823" cy="324" r="3"/><rect class="o-hg" x="836" y="316" width="16" height="16" rx="3"/><text class="o-hgt" x="844" y="327.4" text-anchor="middle">O</text><text class="o-nm" x="862" y="328.6">notes</text><text class="o-ag" x="984" y="328.2">OpenCode</text><text class="o-tag o-is-idle" x="1160" y="328.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="1160" y="328.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="1160" y="328.2" text-anchor="end">approve</text><path class="o-hair" d="M820 346H1162"/></g><g class="o-row" data-s="api" data-state="idle"><rect class="o-row-hot" x="808" y="346" width="366" height="44"/><rect class="o-row-bar" x="808" y="346" width="2" height="44"/><circle class="o-st o-is-idle" cx="823" cy="368" r="3"/><circle class="o-st o-is-working" cx="823" cy="368" r="3"/><circle class="o-st o-is-approve" cx="823" cy="368" r="3"/><rect class="o-hg" x="836" y="360" width="16" height="16" rx="3"/><text class="o-hgt" x="844" y="371.4" text-anchor="middle">C</text><text class="o-nm" x="862" y="372.6">api</text><text class="o-ag" x="984" y="372.2">Claude</text><text class="o-tag o-is-idle" x="1160" y="372.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="1160" y="372.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="1160" y="372.2" text-anchor="end">approve</text></g></g><circle class="o-live" cx="823" cy="284" r="3"/><text class="o-mn" x="835" y="288.4">laptop</text><text class="o-os" x="886.8" y="288">macOS</text><text class="o-os o-num" x="1160" y="288" text-anchor="end">41 ms</text><path class="o-hair" d="M808 302H1174"/><rect class="o-lit" x="808" y="266" width="366" height="128" rx="12"/></g><g class="o-phone"><rect class="o-phone-body" x="6" y="114" width="132" height="252" rx="24"/><rect class="o-island" x="55" y="124" width="34" height="8" rx="4"/><circle class="o-mdot" cx="76.28" cy="175.24" r="1.2"/><circle class="o-mdot" cx="75.33" cy="173.2" r="1.2"/><circle class="o-mdot" cx="73.49" cy="171.91" r="1.2"/><circle class="o-mdot" cx="71.24" cy="171.72" r="1.2"/><circle class="o-mdot" cx="69.2" cy="172.67" r="1.2"/><circle class="o-mdot" cx="67.91" cy="174.51" r="1.2"/><circle class="o-mdot" cx="67.72" cy="176.76" r="1.2"/><circle class="o-mdot" cx="68.67" cy="178.8" r="1.2"/><circle class="o-mdot" cx="70.51" cy="180.09" r="1.2"/><circle class="o-mdot" cx="72.76" cy="180.28" r="1.2"/><circle class="o-mdot" cx="74.8" cy="179.33" r="1.2"/><circle class="o-mdot" cx="76.09" cy="177.49" r="1.2"/><circle class="o-mdot" cx="78.62" cy="173.59" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="77.4" cy="171.47" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="75.53" cy="169.9" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="73.22" cy="169.06" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="70.78" cy="169.06" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="68.47" cy="169.9" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="66.6" cy="171.47" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="65.38" cy="173.59" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="64.95" cy="176" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="65.38" cy="178.41" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="66.6" cy="180.53" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="68.47" cy="182.1" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="70.78" cy="182.94" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="73.22" cy="182.94" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="75.53" cy="182.1" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="77.4" cy="180.53" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="78.62" cy="178.41" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="79.05" cy="176" r="1.11" opacity="0.9"/><circle class="o-mdot" cx="81.75" cy="174.28" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="80.97" cy="171.81" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="79.58" cy="169.64" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="77.68" cy="167.89" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="75.39" cy="166.7" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="72.86" cy="166.14" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="70.28" cy="166.25" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="67.81" cy="167.03" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="65.64" cy="168.42" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="63.89" cy="170.32" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="62.7" cy="172.61" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="62.14" cy="175.14" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="62.25" cy="177.72" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="63.03" cy="180.19" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="64.42" cy="182.36" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="66.32" cy="184.11" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="68.61" cy="185.3" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="71.14" cy="185.86" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="73.72" cy="185.75" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="76.19" cy="184.97" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="78.36" cy="183.58" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="80.11" cy="181.68" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="81.3" cy="179.39" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="81.86" cy="176.86" r="1.02" opacity="0.78"/><circle class="o-mdot" cx="84.4" cy="172.44" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="83.39" cy="169.94" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="81.88" cy="167.71" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="79.94" cy="165.84" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="77.66" cy="164.41" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="75.12" cy="163.48" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="72.45" cy="163.11" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="69.76" cy="163.29" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="67.17" cy="164.04" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="64.78" cy="165.31" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="62.72" cy="167.04" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="61.06" cy="169.16" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="59.88" cy="171.59" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="59.23" cy="174.21" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="59.13" cy="176.9" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="59.6" cy="179.56" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="60.61" cy="182.06" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="62.12" cy="184.29" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="64.06" cy="186.16" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="66.34" cy="187.59" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="68.88" cy="188.52" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="71.55" cy="188.89" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="74.24" cy="188.7" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="76.83" cy="187.96" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="79.22" cy="186.69" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="81.28" cy="184.96" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="82.94" cy="182.84" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="84.12" cy="180.41" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="84.77" cy="177.79" r="0.93" opacity="0.64"/><circle class="o-mdot" cx="84.87" cy="175.1" r="0.93" opacity="0.64"/><circle class="o-mpoint" cx="72" cy="176" r="1.95"/><text class="o-ph-t" x="72" y="216" text-anchor="middle">On the call</text><text class="o-ph-s" x="72" y="232" text-anchor="middle">7 sessions · 3 machines</text><g class="o-notif"><rect class="o-ncard" x="15" y="258" width="114" height="94" rx="10"/><text class="o-nwho" x="24" y="276">notes · laptop</text><text class="o-nwhat" x="24" y="291">needs approval</text><text class="o-ncmd" x="24" y="308">npm test</text><rect class="o-deny" x="23" y="320" width="46" height="24" rx="7"/><text class="o-btn-t" x="46" y="336" text-anchor="middle">Deny</text><g class="o-approve" style="transform-origin:98px 332px"><rect x="75" y="320" width="46" height="24" rx="7"/><text class="o-btn-t" x="98" y="336" text-anchor="middle">Approve</text></g></g></g><circle class="o-port" cx="138" cy="240" r="3"/><circle class="o-port" cx="808" cy="150" r="3"/><circle class="o-port" cx="808" cy="330" r="3"/><circle class="o-port" cx="664" cy="240" r="3"/><circle class="o-port" cx="224" cy="240" r="3"/><circle class="o-port" cx="444" cy="354" r="3"/><g class="o-rings" style="transform-origin:444px 240px"><g class="o-ring" data-ring="0"><circle cx="472.96" cy="234.9" r="5.67"/><circle cx="466.51" cy="221.1" r="5.67"/><circle cx="454.06" cy="212.36" r="5.67"/><circle cx="438.9" cy="211.04" r="5.67"/><circle cx="425.1" cy="217.49" r="5.67"/><circle cx="416.36" cy="229.94" r="5.67"/><circle cx="415.04" cy="245.1" r="5.67"/><circle cx="421.49" cy="258.9" r="5.67"/><circle cx="433.94" cy="267.64" r="5.67"/><circle cx="449.1" cy="268.96" r="5.67"/><circle cx="462.9" cy="262.51" r="5.67"/><circle cx="471.64" cy="250.06" r="5.67"/></g><g class="o-ring" data-ring="1"><circle cx="484.66" cy="225.19" r="4.94"/><circle cx="477.14" cy="212.2" r="4.94"/><circle cx="465.63" cy="202.54" r="4.94"/><circle cx="451.52" cy="197.39" r="4.94"/><circle cx="436.48" cy="197.39" r="4.94"/><circle cx="422.37" cy="202.54" r="4.94"/><circle cx="410.86" cy="212.2" r="4.94"/><circle cx="403.34" cy="225.19" r="4.94"/><circle cx="400.74" cy="240" r="4.94"/><circle cx="403.34" cy="254.81" r="4.94"/><circle cx="410.86" cy="267.8" r="4.94"/><circle cx="422.37" cy="277.46" r="4.94"/><circle cx="436.48" cy="282.61" r="4.94"/><circle cx="451.52" cy="282.61" r="4.94"/><circle cx="465.63" cy="277.46" r="4.94"/><circle cx="477.14" cy="267.8" r="4.94"/><circle cx="484.66" cy="254.81" r="4.94"/><circle cx="487.26" cy="240" r="4.94"/></g><g class="o-ring" data-ring="2"><circle cx="501.08" cy="229.94" r="4.28"/><circle cx="496.52" cy="215.51" r="4.28"/><circle cx="488.39" cy="202.75" r="4.28"/><circle cx="477.24" cy="192.52" r="4.28"/><circle cx="463.82" cy="185.53" r="4.28"/><circle cx="449.06" cy="182.27" r="4.28"/><circle cx="433.94" cy="182.92" r="4.28"/><circle cx="419.51" cy="187.48" r="4.28"/><circle cx="406.75" cy="195.61" r="4.28"/><circle cx="396.52" cy="206.76" r="4.28"/><circle cx="389.53" cy="220.18" r="4.28"/><circle cx="386.27" cy="234.94" r="4.28"/><circle cx="386.92" cy="250.06" r="4.28"/><circle cx="391.48" cy="264.49" r="4.28"/><circle cx="399.61" cy="277.25" r="4.28"/><circle cx="410.76" cy="287.48" r="4.28"/><circle cx="424.18" cy="294.47" r="4.28"/><circle cx="438.94" cy="297.73" r="4.28"/><circle cx="454.06" cy="297.08" r="4.28"/><circle cx="468.49" cy="292.52" r="4.28"/><circle cx="481.25" cy="284.39" r="4.28"/><circle cx="491.48" cy="273.24" r="4.28"/><circle cx="498.47" cy="259.82" r="4.28"/><circle cx="501.73" cy="245.06" r="4.28"/></g><g class="o-ring" data-ring="3"><circle cx="514.64" cy="219.74" r="3.74"/><circle cx="508.89" cy="205.5" r="3.74"/><circle cx="500.3" cy="192.75" r="3.74"/><circle cx="489.25" cy="182.08" r="3.74"/><circle cx="476.21" cy="173.93" r="3.74"/><circle cx="461.79" cy="168.68" r="3.74"/><circle cx="446.56" cy="166.54" r="3.74"/><circle cx="431.23" cy="167.61" r="3.74"/><circle cx="416.47" cy="171.85" r="3.74"/><circle cx="402.9" cy="179.06" r="3.74"/><circle cx="391.12" cy="188.95" r="3.74"/><circle cx="381.67" cy="201.04" r="3.74"/><circle cx="374.93" cy="214.86" r="3.74"/><circle cx="371.21" cy="229.77" r="3.74"/><circle cx="370.69" cy="245.12" r="3.74"/><circle cx="373.36" cy="260.26" r="3.74"/><circle cx="379.11" cy="274.5" r="3.74"/><circle cx="387.7" cy="287.25" r="3.74"/><circle cx="398.75" cy="297.92" r="3.74"/><circle cx="411.79" cy="306.07" r="3.74"/><circle cx="426.21" cy="311.32" r="3.74"/><circle cx="441.44" cy="313.46" r="3.74"/><circle cx="456.77" cy="312.39" r="3.74"/><circle cx="471.53" cy="308.14" r="3.74"/><circle cx="485.1" cy="300.94" r="3.74"/><circle cx="496.88" cy="291.05" r="3.74"/><circle cx="506.33" cy="278.95" r="3.74"/><circle cx="513.07" cy="265.14" r="3.74"/><circle cx="516.79" cy="250.23" r="3.74"/><circle cx="517.31" cy="234.88" r="3.74"/></g><g class="o-ring" data-ring="4"><circle cx="532.73" cy="224.35" r="3.26"/><circle cx="528.65" cy="209.19" r="3.26"/><circle cx="522.01" cy="194.95" r="3.26"/><circle cx="513.01" cy="182.08" r="3.26"/><circle cx="501.92" cy="170.99" r="3.26"/><circle cx="489.05" cy="161.99" r="3.26"/><circle cx="474.81" cy="155.35" r="3.26"/><circle cx="459.64" cy="151.27" r="3.26"/><circle cx="444" cy="149.91" r="3.26"/><circle cx="428.36" cy="151.27" r="3.26"/><circle cx="413.19" cy="155.35" r="3.26"/><circle cx="398.95" cy="161.99" r="3.26"/><circle cx="386.08" cy="170.99" r="3.26"/><circle cx="374.99" cy="182.08" r="3.26"/><circle cx="365.99" cy="194.95" r="3.26"/><circle cx="359.35" cy="209.19" r="3.26"/><circle cx="355.27" cy="224.35" r="3.26"/><circle cx="353.91" cy="240" r="3.26"/><circle cx="355.27" cy="255.65" r="3.26"/><circle cx="359.35" cy="270.81" r="3.26"/><circle cx="365.99" cy="285.05" r="3.26"/><circle cx="374.99" cy="297.92" r="3.26"/><circle cx="386.08" cy="309.01" r="3.26"/><circle cx="398.95" cy="318.01" r="3.26"/><circle cx="413.19" cy="324.65" r="3.26"/><circle cx="428.36" cy="328.73" r="3.26"/><circle cx="444" cy="330.09" r="3.26"/><circle cx="459.64" cy="328.73" r="3.26"/><circle cx="474.81" cy="324.65" r="3.26"/><circle cx="489.05" cy="318.01" r="3.26"/><circle cx="501.92" cy="309.01" r="3.26"/><circle cx="513.01" cy="297.92" r="3.26"/><circle cx="522.01" cy="285.05" r="3.26"/><circle cx="528.65" cy="270.81" r="3.26"/><circle cx="532.73" cy="255.65" r="3.26"/><circle cx="534.09" cy="240" r="3.26"/></g></g><circle class="o-halo" cx="444" cy="240" r="10.08" style="transform-origin:444px 240px"/><circle class="o-point" cx="444" cy="240" r="10.08" style="transform-origin:444px 240px"/><g class="o-still"><circle class="o-dot" cx="650" cy="240" r="4" opacity="1"/><circle class="o-dot" cx="634.84" cy="240" r="3.5" opacity="0.87"/><circle class="o-dot" cx="619.68" cy="240" r="3" opacity="0.74"/><circle class="o-dot" cx="604.52" cy="240" r="2.6" opacity="0.61"/><circle class="o-dot" cx="589.35" cy="240" r="2.2" opacity="0.48"/><circle class="o-dot" cx="574.19" cy="240" r="1.9" opacity="0.35"/><text class="o-note" x="548" y="228">to billing, by name</text><circle class="o-dot" cx="238" cy="240" r="4" opacity="1"/><circle class="o-dot" cx="253.16" cy="240" r="3.5" opacity="0.87"/><circle class="o-dot" cx="268.32" cy="240" r="3" opacity="0.74"/><circle class="o-dot" cx="283.48" cy="240" r="2.6" opacity="0.61"/><circle class="o-dot" cx="298.65" cy="240" r="2.2" opacity="0.48"/><circle class="o-dot" cx="313.81" cy="240" r="1.9" opacity="0.35"/><text class="o-note" x="340" y="228" text-anchor="end">to your phone</text></g><g class="o-trains"></g></svg>
+<svg class="o-svg o-tall" viewBox="0 0 358 723" aria-hidden="true" focusable="false"><g class="o-phone"><rect class="o-card" x="20" y="1" width="318" height="62" rx="12"/><rect class="o-phone-body" x="34" y="14" width="20" height="36" rx="5"/><rect class="o-island" x="40" y="18" width="8" height="2.5" rx="1.25"/><text class="o-mn" x="66" y="28">iPhone app</text><text class="o-ph-s" x="66" y="45">On the call · 7 sessions · 3 machines</text><g class="o-notif"><rect class="o-ncard" x="62" y="13" width="268" height="36" rx="10"/><text class="o-nwho" x="73" y="28.5">notes · laptop</text><text class="o-nwhat" x="73" y="41.5">needs approval <tspan class="o-ncmd">npm test</tspan></text><rect class="o-deny" x="216" y="18" width="52" height="26" rx="8"/><text class="o-btn-t" x="242" y="35" text-anchor="middle">Deny</text><g class="o-approve" style="transform-origin:299px 31px"><rect x="273" y="18" width="52" height="26" rx="8"/><text class="o-btn-t" x="299" y="35" text-anchor="middle">Approve</text></g></g></g><g class="o-mach" data-m="studio"><clipPath id="t-studio"><rect x="20" y="80" width="318" height="384" rx="16"/></clipPath><rect class="o-hub" x="20" y="80" width="318" height="384" rx="16"/><g clip-path="url(#t-studio)"><g class="o-row" data-s="shop" data-state="working"><rect class="o-row-hot" x="20" y="344" width="318" height="38"/><rect class="o-row-bar" x="20" y="344" width="2" height="38"/><circle class="o-st o-is-idle" cx="35" cy="363" r="3"/><circle class="o-st o-is-working" cx="35" cy="363" r="3"/><circle class="o-st o-is-approve" cx="35" cy="363" r="3"/><rect class="o-hg" x="48" y="355" width="16" height="16" rx="3"/><text class="o-hgt" x="56" y="366.4" text-anchor="middle">C</text><text class="o-nm" x="74" y="367.6">shop</text><text class="o-ag" x="178" y="367.2">Claude</text><text class="o-tag o-is-idle" x="324" y="367.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="324" y="367.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="324" y="367.2" text-anchor="end">approve</text><path class="o-hair" d="M32 382H326"/></g><g class="o-row" data-s="docs" data-state="idle"><rect class="o-row-hot" x="20" y="382" width="318" height="38"/><rect class="o-row-bar" x="20" y="382" width="2" height="38"/><circle class="o-st o-is-idle" cx="35" cy="401" r="3"/><circle class="o-st o-is-working" cx="35" cy="401" r="3"/><circle class="o-st o-is-approve" cx="35" cy="401" r="3"/><rect class="o-hg" x="48" y="393" width="16" height="16" rx="3"/><text class="o-hgt" x="56" y="404.4" text-anchor="middle">O</text><text class="o-nm" x="74" y="405.6">docs</text><text class="o-ag" x="178" y="405.2">OpenCode</text><text class="o-tag o-is-idle" x="324" y="405.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="324" y="405.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="324" y="405.2" text-anchor="end">approve</text><path class="o-hair" d="M32 420H326"/></g><g class="o-row" data-s="river-lantern" data-state="idle"><rect class="o-row-hot" x="20" y="420" width="318" height="38"/><rect class="o-row-bar" x="20" y="420" width="2" height="38"/><circle class="o-st o-is-idle" cx="35" cy="439" r="3"/><circle class="o-st o-is-working" cx="35" cy="439" r="3"/><circle class="o-st o-is-approve" cx="35" cy="439" r="3"/><rect class="o-hg" x="48" y="431" width="16" height="16" rx="3"/><text class="o-hgt" x="56" y="442.4" text-anchor="middle">X</text><text class="o-nm" x="74" y="443.6">river-lantern</text><text class="o-ag" x="178" y="443.2">Codex</text><text class="o-tag o-is-idle" x="324" y="443.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="324" y="443.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="324" y="443.2" text-anchor="end">approve</text></g></g><circle class="o-live" cx="35" cy="98" r="3"/><text class="o-mn" x="47" y="102.4">studio</text><text class="o-os" x="98.8" y="102">this Mac</text><text class="o-os o-num" x="324" y="102" text-anchor="end">the hub</text><path class="o-hair" d="M20 344H338"/><rect class="o-lit" x="20" y="80" width="318" height="384" rx="16"/></g><path class="o-wire" d="M257 262L338 262Q350 262 350 250L350 38Q350 32 344 32L338 32"/><path class="o-wire-hot" data-wire="phone" d="M257 262L338 262Q350 262 350 250L350 38Q350 32 344 32L338 32"/><path class="o-route" data-route="phone" d="M179 262L338 262Q350 262 350 250L350 38Q350 32 344 32L338 32"/><path class="o-wire" d="M101 262L20 262Q8 262 8 274L8 530Q8 536 14 536L20 536"/><path class="o-wire-hot" data-wire="devbox" d="M101 262L20 262Q8 262 8 274L8 530Q8 536 14 536L20 536"/><path class="o-route" data-route="devbox" d="M179 262L20 262Q8 262 8 274L8 530Q8 536 14 536L20 536"/><path class="o-wire" d="M101 262L20 262Q8 262 8 274L8 658Q8 664 14 664L20 664"/><path class="o-wire-hot" data-wire="laptop" d="M101 262L20 262Q8 262 8 274L8 658Q8 664 14 664L20 664"/><path class="o-route" data-route="laptop" d="M179 262L20 262Q8 262 8 274L8 658Q8 664 14 664L20 664"/><path class="o-wire" d="M179 332L179 344"/><path class="o-wire-hot" data-wire="studio" d="M179 332L179 344"/><path class="o-route" data-route="studio" d="M179 262L179 344"/><g class="o-mach" data-m="devbox"><clipPath id="t-devbox"><rect x="20" y="478" width="318" height="116" rx="12"/></clipPath><rect class="o-card" x="20" y="478" width="318" height="116" rx="12"/><g clip-path="url(#t-devbox)"><g class="o-row" data-s="billing" data-state="working"><rect class="o-row-hot" x="20" y="514" width="318" height="38"/><rect class="o-row-bar" x="20" y="514" width="2" height="38"/><circle class="o-st o-is-idle" cx="35" cy="533" r="3"/><circle class="o-st o-is-working" cx="35" cy="533" r="3"/><circle class="o-st o-is-approve" cx="35" cy="533" r="3"/><rect class="o-hg" x="48" y="525" width="16" height="16" rx="3"/><text class="o-hgt" x="56" y="536.4" text-anchor="middle">X</text><text class="o-nm" x="74" y="537.6">billing</text><text class="o-ag" x="178" y="537.2">Codex</text><text class="o-tag o-is-idle" x="324" y="537.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="324" y="537.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="324" y="537.2" text-anchor="end">approve</text><path class="o-hair" d="M32 552H326"/></g><g class="o-row" data-s="ingest" data-state="working"><rect class="o-row-hot" x="20" y="552" width="318" height="38"/><rect class="o-row-bar" x="20" y="552" width="2" height="38"/><circle class="o-st o-is-idle" cx="35" cy="571" r="3"/><circle class="o-st o-is-working" cx="35" cy="571" r="3"/><circle class="o-st o-is-approve" cx="35" cy="571" r="3"/><rect class="o-hg" x="48" y="563" width="16" height="16" rx="3"/><text class="o-hgt" x="56" y="574.4" text-anchor="middle">C</text><text class="o-nm" x="74" y="575.6">ingest</text><text class="o-ag" x="178" y="575.2">Claude</text><text class="o-tag o-is-idle" x="324" y="575.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="324" y="575.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="324" y="575.2" text-anchor="end">approve</text></g></g><circle class="o-live" cx="35" cy="496" r="3"/><text class="o-mn" x="47" y="500.4">devbox</text><text class="o-os" x="98.8" y="500">Linux</text><text class="o-os o-num" x="324" y="500" text-anchor="end">23 ms</text><path class="o-hair" d="M20 514H338"/><rect class="o-lit" x="20" y="478" width="318" height="116" rx="12"/></g><g class="o-mach" data-m="laptop"><clipPath id="t-laptop"><rect x="20" y="606" width="318" height="116" rx="12"/></clipPath><rect class="o-card" x="20" y="606" width="318" height="116" rx="12"/><g clip-path="url(#t-laptop)"><g class="o-row" data-s="notes" data-state="approve"><rect class="o-row-hot" x="20" y="642" width="318" height="38"/><rect class="o-row-bar" x="20" y="642" width="2" height="38"/><circle class="o-st o-is-idle" cx="35" cy="661" r="3"/><circle class="o-st o-is-working" cx="35" cy="661" r="3"/><circle class="o-st o-is-approve" cx="35" cy="661" r="3"/><rect class="o-hg" x="48" y="653" width="16" height="16" rx="3"/><text class="o-hgt" x="56" y="664.4" text-anchor="middle">O</text><text class="o-nm" x="74" y="665.6">notes</text><text class="o-ag" x="178" y="665.2">OpenCode</text><text class="o-tag o-is-idle" x="324" y="665.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="324" y="665.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="324" y="665.2" text-anchor="end">approve</text><path class="o-hair" d="M32 680H326"/></g><g class="o-row" data-s="api" data-state="idle"><rect class="o-row-hot" x="20" y="680" width="318" height="38"/><rect class="o-row-bar" x="20" y="680" width="2" height="38"/><circle class="o-st o-is-idle" cx="35" cy="699" r="3"/><circle class="o-st o-is-working" cx="35" cy="699" r="3"/><circle class="o-st o-is-approve" cx="35" cy="699" r="3"/><rect class="o-hg" x="48" y="691" width="16" height="16" rx="3"/><text class="o-hgt" x="56" y="702.4" text-anchor="middle">C</text><text class="o-nm" x="74" y="703.6">api</text><text class="o-ag" x="178" y="703.2">Claude</text><text class="o-tag o-is-idle" x="324" y="703.2" text-anchor="end">idle</text><text class="o-tag o-is-working" x="324" y="703.2" text-anchor="end">working</text><text class="o-tag o-is-approve" x="324" y="703.2" text-anchor="end">approve</text></g></g><circle class="o-live" cx="35" cy="624" r="3"/><text class="o-mn" x="47" y="628.4">laptop</text><text class="o-os" x="98.8" y="628">macOS</text><text class="o-os o-num" x="324" y="628" text-anchor="end">41 ms</text><path class="o-hair" d="M20 642H338"/><rect class="o-lit" x="20" y="606" width="318" height="116" rx="12"/></g><circle class="o-port" cx="338" cy="32" r="3"/><circle class="o-port" cx="20" cy="536" r="3"/><circle class="o-port" cx="20" cy="664" r="3"/><circle class="o-port" cx="20" cy="262" r="3"/><circle class="o-port" cx="338" cy="262" r="3"/><circle class="o-port" cx="179" cy="344" r="3"/><g class="o-rings" style="transform-origin:179px 262px"><g class="o-ring" data-ring="0"><circle cx="199.69" cy="258.36" r="4.05"/><circle cx="195.08" cy="248.5" r="4.05"/><circle cx="186.19" cy="242.26" r="4.05"/><circle cx="175.35" cy="241.31" r="4.05"/><circle cx="165.5" cy="245.92" r="4.05"/><circle cx="159.26" cy="254.81" r="4.05"/><circle cx="158.31" cy="265.64" r="4.05"/><circle cx="162.92" cy="275.5" r="4.05"/><circle cx="171.81" cy="281.74" r="4.05"/><circle cx="182.65" cy="282.69" r="4.05"/><circle cx="192.5" cy="278.08" r="4.05"/><circle cx="198.74" cy="269.19" r="4.05"/></g><g class="o-ring" data-ring="1"><circle cx="208.04" cy="251.43" r="3.53"/><circle cx="202.67" cy="242.14" r="3.53"/><circle cx="194.45" cy="235.24" r="3.53"/><circle cx="184.37" cy="231.56" r="3.53"/><circle cx="173.63" cy="231.56" r="3.53"/><circle cx="163.55" cy="235.24" r="3.53"/><circle cx="155.33" cy="242.14" r="3.53"/><circle cx="149.96" cy="251.43" r="3.53"/><circle cx="148.1" cy="262" r="3.53"/><circle cx="149.96" cy="272.57" r="3.53"/><circle cx="155.33" cy="281.86" r="3.53"/><circle cx="163.55" cy="288.76" r="3.53"/><circle cx="173.63" cy="292.44" r="3.53"/><circle cx="184.37" cy="292.44" r="3.53"/><circle cx="194.45" cy="288.76" r="3.53"/><circle cx="202.67" cy="281.86" r="3.53"/><circle cx="208.04" cy="272.57" r="3.53"/><circle cx="209.9" cy="262" r="3.53"/></g><g class="o-ring" data-ring="2"><circle cx="219.77" cy="254.81" r="3.06"/><circle cx="216.52" cy="244.51" r="3.06"/><circle cx="210.71" cy="235.39" r="3.06"/><circle cx="202.75" cy="228.09" r="3.06"/><circle cx="193.16" cy="223.09" r="3.06"/><circle cx="182.62" cy="220.76" r="3.06"/><circle cx="171.81" cy="221.23" r="3.06"/><circle cx="161.51" cy="224.49" r="3.06"/><circle cx="152.39" cy="230.29" r="3.06"/><circle cx="145.09" cy="238.25" r="3.06"/><circle cx="140.09" cy="247.84" r="3.06"/><circle cx="137.76" cy="258.38" r="3.06"/><circle cx="138.23" cy="269.19" r="3.06"/><circle cx="141.49" cy="279.49" r="3.06"/><circle cx="147.29" cy="288.61" r="3.06"/><circle cx="155.25" cy="295.92" r="3.06"/><circle cx="164.84" cy="300.91" r="3.06"/><circle cx="175.38" cy="303.24" r="3.06"/><circle cx="186.19" cy="302.77" r="3.06"/><circle cx="196.49" cy="299.51" r="3.06"/><circle cx="205.61" cy="293.71" r="3.06"/><circle cx="212.91" cy="285.75" r="3.06"/><circle cx="217.91" cy="276.16" r="3.06"/><circle cx="220.23" cy="265.62" r="3.06"/></g><g class="o-ring" data-ring="3"><circle cx="229.46" cy="247.53" r="2.67"/><circle cx="225.35" cy="237.35" r="2.67"/><circle cx="219.22" cy="228.25" r="2.67"/><circle cx="211.32" cy="220.63" r="2.67"/><circle cx="202.01" cy="214.81" r="2.67"/><circle cx="191.7" cy="211.06" r="2.67"/><circle cx="180.83" cy="209.53" r="2.67"/><circle cx="169.88" cy="210.3" r="2.67"/><circle cx="159.34" cy="213.32" r="2.67"/><circle cx="149.65" cy="218.47" r="2.67"/><circle cx="141.23" cy="225.53" r="2.67"/><circle cx="134.48" cy="234.18" r="2.67"/><circle cx="129.66" cy="244.05" r="2.67"/><circle cx="127.01" cy="254.69" r="2.67"/><circle cx="126.64" cy="265.66" r="2.67"/><circle cx="128.54" cy="276.48" r="2.67"/><circle cx="132.65" cy="286.64" r="2.67"/><circle cx="138.78" cy="295.75" r="2.67"/><circle cx="146.68" cy="303.37" r="2.67"/><circle cx="155.99" cy="309.19" r="2.67"/><circle cx="166.3" cy="312.94" r="2.67"/><circle cx="177.17" cy="314.47" r="2.67"/><circle cx="188.12" cy="313.7" r="2.67"/><circle cx="198.66" cy="310.68" r="2.67"/><circle cx="208.35" cy="305.53" r="2.67"/><circle cx="216.77" cy="298.47" r="2.67"/><circle cx="223.52" cy="289.82" r="2.67"/><circle cx="228.34" cy="279.95" r="2.67"/><circle cx="230.99" cy="269.31" r="2.67"/><circle cx="231.37" cy="258.34" r="2.67"/></g><g class="o-ring" data-ring="4"><circle cx="242.38" cy="250.82" r="2.33"/><circle cx="239.47" cy="240" r="2.33"/><circle cx="234.73" cy="229.82" r="2.33"/><circle cx="228.29" cy="220.63" r="2.33"/><circle cx="220.37" cy="212.71" r="2.33"/><circle cx="211.18" cy="206.28" r="2.33"/><circle cx="201" cy="201.53" r="2.33"/><circle cx="190.18" cy="198.62" r="2.33"/><circle cx="179" cy="197.65" r="2.33"/><circle cx="167.82" cy="198.62" r="2.33"/><circle cx="157" cy="201.53" r="2.33"/><circle cx="146.82" cy="206.28" r="2.33"/><circle cx="137.63" cy="212.71" r="2.33"/><circle cx="129.71" cy="220.63" r="2.33"/><circle cx="123.28" cy="229.82" r="2.33"/><circle cx="118.53" cy="240" r="2.33"/><circle cx="115.62" cy="250.82" r="2.33"/><circle cx="114.65" cy="262" r="2.33"/><circle cx="115.62" cy="273.18" r="2.33"/><circle cx="118.53" cy="284" r="2.33"/><circle cx="123.28" cy="294.18" r="2.33"/><circle cx="129.71" cy="303.37" r="2.33"/><circle cx="137.63" cy="311.29" r="2.33"/><circle cx="146.82" cy="317.73" r="2.33"/><circle cx="157" cy="322.47" r="2.33"/><circle cx="167.82" cy="325.38" r="2.33"/><circle cx="179" cy="326.35" r="2.33"/><circle cx="190.18" cy="325.38" r="2.33"/><circle cx="201" cy="322.47" r="2.33"/><circle cx="211.18" cy="317.73" r="2.33"/><circle cx="220.37" cy="311.29" r="2.33"/><circle cx="228.29" cy="303.37" r="2.33"/><circle cx="234.73" cy="294.18" r="2.33"/><circle cx="239.47" cy="284" r="2.33"/><circle cx="242.38" cy="273.18" r="2.33"/><circle cx="243.35" cy="262" r="2.33"/></g></g><circle class="o-halo" cx="179" cy="262" r="7.2" style="transform-origin:179px 262px"/><circle class="o-point" cx="179" cy="262" r="7.2" style="transform-origin:179px 262px"/><g class="o-still"><circle class="o-dot" cx="28" cy="262" r="4" opacity="1"/><circle class="o-dot" cx="39.13" cy="262" r="3.5" opacity="0.87"/><circle class="o-dot" cx="50.26" cy="262" r="3" opacity="0.74"/><circle class="o-dot" cx="61.39" cy="262" r="2.6" opacity="0.61"/><circle class="o-dot" cx="72.52" cy="262" r="2.2" opacity="0.48"/><circle class="o-dot" cx="83.65" cy="262" r="1.9" opacity="0.35"/><text class="o-note" x="101" y="252" text-anchor="end">to billing</text><circle class="o-dot" cx="330" cy="262" r="4" opacity="1"/><circle class="o-dot" cx="318.87" cy="262" r="3.5" opacity="0.87"/><circle class="o-dot" cx="307.74" cy="262" r="3" opacity="0.74"/><circle class="o-dot" cx="296.61" cy="262" r="2.6" opacity="0.61"/><circle class="o-dot" cx="285.48" cy="262" r="2.2" opacity="0.48"/><circle class="o-dot" cx="274.35" cy="262" r="1.9" opacity="0.35"/><text class="o-note" x="257" y="252">to your phone</text></g><g class="o-trains"></g></svg>
+</div>
+<figcaption><ol class="o-tabs"><li data-scene="0"><b>Send by name</b><span>Say a session&#x27;s name, and the machine&#x27;s when two share it. Pointe sends your words there and speaks the report when it ends.</span></li><li data-scene="1"><b>Approve from anywhere</b><span>A permission prompt on any machine comes to the hub. It is read out, and shown on the page and the phone: say yes, or tap.</span></li><li data-scene="2"><b>Ask about all of them</b><span>“What&#x27;s going on everywhere?” is answered machine by machine, from the record Pointe keeps of each session.</span></li></ol>
+<p class="small o-foot"><span>A drawing of how the parts connect, not a recording. The names are invented. A node has no microphone, no models and no keys.</span></p></figcaption>
+</figure>
+<!-- orchestra:end -->
+    </div>
+  </section>
+
+  <section id="day" class="section story" aria-labelledby="h-day">
+    <div class="page">
+      <div class="head-row">
+        <p class="kicker">One day, one conversation</p>
+        <h2 id="h-day" class="h1">The sessions do the work. Pointe listens, reports and routes.</h2>
+        <p class="lead">From typing at your agents to talking with them: one day, from the first call in the morning
+          to the briefing the next one.</p>
+      </div>
+      <article class="scene" data-play data-total="60.35" aria-labelledby="sc-desk-h">
+        <header class="scene-head">
+          <p class="kicker">At the desk</p>
+          <h3 id="sc-desk-h" class="h2">Five agents, one conversation, no tab switching.</h3>
+        </header>
+        <div class="scene-panel">
+          <figure class="scene-clip">
+            <img src="day/desk.jpg" width="960" height="540" loading="lazy" alt="AI-generated footage: at her desk she leans back and talks, then works at her laptop while she talks.">
+            <video muted loop playsinline preload="none" poster="day/desk.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+              <source src="day/desk.webm" type="video/webm"><source src="day/desk.mp4" type="video/mp4"></video>
+            <span class="ai">AI-generated footage</span>
+            <button type="button" class="scene-play" data-sound hidden><i aria-hidden="true"></i><span>Play with sound · 1 min</span></button>
+          </figure>
+          <div class="scene-talk">
+            <p class="kicker">What is said</p>
+            <ol class="scene-lines" aria-label="The conversation">
+            <li class="move" data-t="0.60">1 · Orchestrate</li>
+            <li class="you" data-t="0.9" data-end="2.6"><b>You</b><span>Okay— what's everyone up to?</span></li>
+            <li class="pointe" data-t="2.75" data-end="7.46"><b>Pointe</b><span>Billing's done with the retry fix. Docs is idle. Shop has a PR up.</span></li>
+            <li class="you" data-t="7.66" data-end="14.37"><b>You</b><span>Great. Billing, add a test for the timeout. Docs, update the changelog. And api, bump the retry budget to five.</span></li>
+            <li class="pointe" data-t="14.27" data-end="17.06"><b>Pointe</b><span>Sent, sent, and sent.</span></li>
+            <li class="move" data-t="17.66">2 · Focus on one</li>
+            <li class="you" data-t="17.96" data-end="19.17"><b>You</b><span>Let's focus on billing.</span></li>
+            <li class="pointe" data-t="19.22" data-end="21.84"><b>Pointe</b><span>Billing. Everything you say goes there.</span></li>
+            <li class="you" data-t="22.14" data-end="23.94"><b>You</b><span>Hm— should the retries go through a queue?</span></li>
+            <li class="pointe" data-t="24.64" data-end="31.89"><b>Pointe <i>from billing</i></b><span>Billing says a queue risks duplicate charges on failover. It suggests backoff with jitter, capped at ten seconds.</span></li>
+            <li class="you" data-t="31.84" data-end="33.29"><b>You</b><span>Ten's too long for checkout.</span></li>
+            <li class="pointe" data-t="33.79" data-end="36.99"><b>Pointe <i>from billing</i></b><span>Then a five second cap, with an idempotency key.</span></li>
+            <li class="you" data-t="37.09" data-end="38.35"><b>You</b><span>Yeah. Do that.</span></li>
+            <li class="pointe" data-t="38.35" data-end="39.14"><b>Pointe</b><span>Sent to billing.</span></li>
+            <li class="move" data-t="39.74">3 · Understand a PR</li>
+            <li class="you" data-t="40.04" data-end="43.88"><b>You</b><span>Okay, back to orchestrator mode. Walk me through the PR shop opened.</span></li>
+            <li class="pointe" data-t="44.18" data-end="56.08"><b>Pointe <i>from shop</i></b><span>Orchestrator mode. Shop's PR makes the flaky checkout test wait for the mock gateway, instead of sleeping. The risk: it touches a shared fixture. Check the two tests that reuse it.</span></li>
+            <li class="you" data-t="56.18" data-end="57.59"><b>You</b><span>Does it change any production code?</span></li>
+            <li class="pointe" data-t="57.84" data-end="59.35"><b>Pointe <i>from shop</i></b><span>No. Tests only.</span></li>
+            </ol>
+          </div>
+          <div class="scene-agents">
+            <p class="kicker">What the sessions do</p>
+            <p class="sc-mode" aria-live="off"><span data-from="0" data-to="20.44">Orchestrator: every session</span><span class="hot" data-from="20.44" data-to="44.18">Session mode: focused on billing</span><span data-from="44.18">Orchestrator: every session</span></p>
+            <ul class="scene-rows" aria-label="Her five sessions">
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>billing</b><span class="sc-ag">Claude Code · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="done">retry fix done</i><i data-at="10.06" data-state="working">adding the timeout test</i><i data-at="24.64" data-state="working">weighing a queue against backoff</i><i data-at="39.14" data-state="working">backoff, 5 s cap, idempotency key</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">O</span><b>docs</b><span class="sc-ag">OpenCode · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="idle">nothing to do</i><i data-at="11.86" data-state="working">updating the changelog</i><i data-at="33.79" data-state="done">changelog updated</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>api</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="idle">nothing to do</i><i data-at="14.17" data-state="working">retry budget to five</i><i data-at="40.04" data-state="done">retry budget is five</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">X</span><b>shop</b><span class="sc-ag">Codex · studio</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="done">pull request open</i></span></li>
+            <li data-row><span class="sc-dot"></span><span class="sc-g" aria-hidden="true">C</span><b>ingest</b><span class="sc-ag">Claude Code · devbox</span><span class="sc-tag"></span><span class="sc-what"></span><span class="sc-states" hidden><i data-at="0.00" data-state="working">running its tests</i><i data-at="22.14" data-state="done">tests pass</i></span></li>
+            </ul>
+            <div class="sc-pr" data-from="45.38">
+              <p class="title">shop · pull request</p>
+              <dl><div><dt>Changed</dt><dd>The flaky checkout test waits for the mock gateway instead of sleeping.</dd></div>
+                <div><dt>Risk</dt><dd>It touches a shared fixture.</dd></div>
+                <div><dt>Check</dt><dd>The two tests that reuse the fixture.</dd></div></dl>
+            </div>
+          </div>
+        </div>
+        <div class="scene-foot">
+          <div class="scene-controls">
+            <span class="scene-bar" aria-hidden="true"><i></i></span>
+            <audio preload="none" src="scenes/desk.mp3"></audio>
+          </div>
+          <p class="scene-out"><b class="figure">One minute</b><span class="body">3 sessions sent work in 9 seconds. One design decision. One pull request understood. No tab opened.</span></p>
+        </div>
+        <p class="small note">The voices are synthesized with ElevenLabs: Pointe's is the product's default voice. The time the
+          sessions take is shortened. The sessions are invented, and the right-hand panel is drawn in the product's
+          look; the footage is AI-generated.</p>
+      </article>
+      <div class="story-grid" data-day>
+        <nav class="rail" aria-label="The day, step by step"><a href="#beat-before"><span class="when">09:05</span> Before</a><a href="#beat-switch"><span class="when">09:20</span> By voice</a><a href="#beat-mac"><span class="when">10:40</span> Mac app</a><a href="#beat-pair"><span class="when">11:20</span> Away</a><a href="#beat-meeting"><span class="when">14:00</span> Meeting</a><a href="#beat-drive"><span class="when">18:10</span> Drive</a><a href="#beat-night"><span class="when">22:40</span> Night</a><a href="#beat-morning"><span class="when">07:40</span> Morning</a></nav>
+        <ol class="beats">
+        <li class="beat" id="beat-before">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">09:05</span> Before</p>
+            <h3 class="h2">Type a prompt. Switch tabs. Wait. Repeat.</h3>
+            <p class="body">With text, you prompt one session at a time and read each reply. Every session you add is
+              one more chat to keep in your head.</p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/before.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: a developer types into one chat, then another, and waits, drumming her fingers.">
+              <video muted playsinline preload="none" poster="day/before.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/before.webm" type="video/webm"><source src="day/before.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-switch">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">09:20</span> Sessions, by voice</p>
+            <h3 class="h2">Start, rename, switch and close. All by voice.</h3>
+            <p class="body">"Start a new Codex session in shop." Pointe reads it back and starts it on your yes. Then "rename it to shop-tests", "switch to billing", "close docs", "close all except billing and shop", and "go back to orchestrator mode". Each one does what you said, and shows on screen.</p>
+            <p class="small">A start and a close of several sessions are read back first. A session starts only in a folder you already work in. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/new-session.md">new-session.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/switch.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: she puts an earbud in, leans back from the keyboard and starts talking, with a grin.">
+              <video muted playsinline preload="none" poster="day/switch.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/switch.webm" type="video/webm"><source src="day/switch.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--mac"><picture>
+              <source srcset="day/ui-switch-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-switch-light.jpg" width="680" height="551" loading="lazy" alt="The call page. You: Go back to orchestrator mode. Pointe: Orchestrator mode. You: Start a new Codex session in shop. A card: Start this session? Start a Codex session in shop on studio, named shop-2? Say yes or tap. Cancel, Start.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-mac">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">10:40</span> In another app</p>
+            <h3 class="h2">Keep working. Hold a key and talk.</h3>
+            <p class="body">The Mac app puts the call in the menu bar, and a small bubble over whatever you are working in. Hold the shortcut from any app to talk, and let go to send. The sessions can be Claude Code, OpenCode or Codex, on this Mac or on another machine.</p>
+            <p class="small"><span class="store-soon">Coming to the App Store: in review with Apple</span> Until then, built from source: <code>pointe apps mac</code>. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md">mac-app.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/mac.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: at her laptop she keeps her eyes on her work, holds one key down, says a short sentence, and goes on typing.">
+              <video muted playsinline preload="none" poster="day/mac.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/mac.webm" type="video/webm"><source src="day/mac.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--bubble"><picture>
+              <source srcset="day/ui-mac-dark.png" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-mac-light.png" width="528" height="160" loading="lazy" alt="The Mac app's call bubble: Listening, the words it is hearing, Always on, and a 1 for the one session that waits.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-pair">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">11:20</span> Away from the desk</p>
+            <h3 class="h2">Scan one code. The call goes with you.</h3>
+            <p class="body">On the Mac, Connect your phone shows a QR code. Point the iPhone's Camera at it, and the same call is in the iPhone app: on a walk, in a queue, in the car.</p>
+            <p class="small"><span class="store-soon">Coming to the App Store: in review with Apple</span> Until then, the iPhone app is built from source: <code>pointe apps ios</code>. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#pairing">phone.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/pair.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: standing at her desk she aims her phone at the monitor, smiles when it pairs, pockets the phone and reaches for her jacket.">
+              <video muted playsinline preload="none" poster="day/pair.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/pair.webm" type="video/webm"><source src="day/pair.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--mac beat-ui--left"><picture>
+              <source srcset="day/ui-pair-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-pair-light.jpg" width="680" height="656" loading="lazy" alt="The page's Settings, Phone. Scan with your iPhone's Camera, or in the Pointe app. A QR code. Waiting for your phone, expires in 4:52. Can't scan? Copy the link. Cancel.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-meeting">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">14:00</span> The project meeting</p>
+            <h3 class="h2">The phone on the table. It listens until you ask.</h3>
+            <p class="body">Put the phone on the table in Meeting mode. Listening, Pointe takes notes and never speaks. Someone asks what the retry limit on the billing queue is. One tap switches to Participating, and Pointe answers the room from the billing session, in two sentences at most. A follow-up gets its answer the same way. One more tap, and it is listening again.</p>
+            <p class="small">Answers come from a read-only copy: the live session gets nothing. The room's audio goes to the speech vendor while a meeting runs, so it starts with a consent step. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/meeting-mode.md">meeting-mode.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/meeting.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: a quiet project meeting; a colleague asks a question, she reaches to the phone lying on the table, taps it once and sits back, and they listen.">
+              <video muted playsinline preload="none" poster="day/meeting.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/meeting.webm" type="video/webm"><source src="day/meeting.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--phone beat-ui--seq" style="--n:4">
+              <picture style="--i:0">
+                <source srcset="day/ui-meeting-1-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-1-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Listening. It never speaks. Open question: What's the retry limit on the billing queue? asked by Sam.">
+              </picture>
+              <picture style="--i:1">
+                <source srcset="day/ui-meeting-2-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-2-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Participating. It speaks only when you ask. Answer found: Five attempts, with backoff. It is set in the queue config. From billing.">
+              </picture>
+              <picture class="still" style="--i:2">
+                <source srcset="day/ui-meeting-3-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-3-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Participating. A second question: Which region does the worker run in? asked by Dana. Answer found: One region, eu-west. A second one is planned, not built. From billing.">
+              </picture>
+              <picture style="--i:3">
+                <source srcset="day/ui-meeting-4-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-meeting-4-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. Meeting, Listening again, with both questions and both answers in the notes.">
+              </picture>
+            </div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-drive">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">18:10</span> The drive home</p>
+            <h3 class="h2">Eyes on the road. Short answers, by voice.</h3>
+            <p class="body">Say "drive mode". Answers get short, and nothing asks you to look at a screen or touch one. A yes approves only what loses nothing, such as running tests. Anything else waits until you stop.</p>
+            <p class="small">Not measured on a car's hands-free audio yet. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/drive-mode.md">drive-mode.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/drive.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: early evening, she drives with both hands on the wheel and her eyes on the road, listens, and answers out loud.">
+              <video muted playsinline preload="none" poster="day/drive.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/drive.webm" type="video/webm"><source src="day/drive.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--card"><picture>
+              <source srcset="day/ui-drive-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-drive-light.jpg" width="680" height="797" loading="lazy" alt="The drive screen, as the Mac app draws it. Drive mode. billing/main needs you. Short answers. Pointe approves by voice only what it can read out and is safe from the road. I've stopped. A card: billing/main needs approval. Not for the road: it waits until you stop. Say no to deny it.">
+            </picture></div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-night">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">22:40</span> Getting into bed</p>
+            <h3 class="h2">Two tasks for the night, from the phone.</h3>
+            <p class="body">"Tonight: billing fixes the retry tests; docs updates the changelog." The phone shows the plan read back, and it starts on your yes or a tap. Pointe keeps the two sessions moving for up to 8 hours and 40 messages. It approves nothing: a session that needs approval waits for you.</p>
+            <p class="small">This version runs sessions on the Mac Pointe runs on. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/night-shift.md">night-shift.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/night.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: in bed by a bedside lamp, she says two sentences to her phone, reads it, taps once and puts it on the bedside table.">
+              <video muted playsinline preload="none" poster="day/night.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/night.webm" type="video/webm"><source src="day/night.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--phone beat-ui--seq" style="--n:2">
+              <picture class="still" style="--i:0">
+                <source srcset="day/ui-night-1-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-night-1-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. You: Tonight: billing fixes the retry tests; docs updates the changelog. A card: Start this night shift? Night shift. billing: fixes the retry tests. docs: updates the changelog. Up to 8 hours and 40 messages. I approve nothing: a session that needs approval waits for you. Start? Say yes or tap. Cancel, Start shift.">
+              </picture>
+              <picture style="--i:1">
+                <source srcset="day/ui-night-2-dark.jpg" media="(prefers-color-scheme: dark)">
+                <img src="day/ui-night-2-light.jpg" width="560" height="910" loading="lazy" alt="The iPhone app. You: Yes. Pointe: Night shift started. Good night. A strip: Night shift, 0 of 2 done, 0 blocked, Stop shift.">
+              </picture>
+            </div>
+          </figure>
+        </li>
+        <li class="beat" id="beat-morning">
+          <div class="beat-copy">
+            <p class="kicker"><span class="when">07:40</span> The next morning</p>
+            <h3 class="h2">The briefing leads with what was decided without you.</h3>
+            <p class="body">"Brief me on the night." First the decisions billing and docs made alone, then the questions that wait on you, then what is done and what is blocked. "Approve billing's request" reads out the exact command that waited all night, and your yes answers it.</p>
+            <p class="small">A request that cannot be read out whole waits for a tap. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/briefings.md">briefings.md</a></p>
+          </div>
+          <figure class="beat-media">
+            <div class="beat-frame">
+              <img src="day/morning.jpg" width="1280" height="720" loading="lazy" alt="AI-generated footage: early morning light in a kitchen, in a cardigan, she listens with a mug in both hands, raises her eyebrows, says one sentence, then a yes, and smiles.">
+              <video muted playsinline preload="none" poster="day/morning.jpg" aria-hidden="true" tabindex="-1" disablepictureinpicture hidden>
+                <source src="day/morning.webm" type="video/webm"><source src="day/morning.mp4" type="video/mp4"></video>
+              <span class="ai">AI-generated footage</span>
+            </div>
+            <div class="beat-ui beat-ui--card"><picture>
+              <source srcset="day/ui-morning-dark.jpg" media="(prefers-color-scheme: dark)">
+              <img src="day/ui-morning-light.jpg" width="680" height="773" loading="lazy" alt="The page the next morning. You: Approve billing's request. Pointe: Billing wants to run: pytest -q tests/test_retry.py. Say yes or no. You: Yes. A card: billing needs approval, pytest -q tests/test_retry.py, say yes or no, or tap, with Deny and Approve.">
+            </picture></div>
+          </figure>
+        </li>
+        </ol>
+      </div>
+      <p class="small note">The footage is AI-generated and shows an invented person. The panels on it are screenshots
+        of the page Pointe serves, the iPhone app and the Mac app, with invented sessions and an invented pairing code; no screen in
+        the footage is real.</p>
+    </div>
+  </section>
+
+  <section id="features" class="section" aria-labelledby="h-features">
+    <div class="page">
+      <h2 id="h-features" class="h2">What you can do with it.</h2>
+      <ul class="tiles">
+        <li>
+          <figure><picture>
+            <source srcset="img/f-ask-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-ask-light.jpg" width="760" height="507" loading="lazy" alt="The conversation in the Mac app. You: Yes. And tell docs to update the changelog. Pointe: Docs is on it. Billing is opening the PR. You, typed: by the way why did billing drop the queue idea. Pointe: Duplicate charges during failover. It decided that an hour ago.">
+          </picture></figure>
+          <h3 class="h3">Ask all of them at once</h3>
+          <p class="body">Ask what each agent did, and send work to one by saying its name.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-machines-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-machines-light.jpg" width="760" height="507" loading="lazy" alt="The Mac app, orchestrating 6 sessions. You: what&#x27;s going on everywhere. Pointe: On studio, billing is running its tests. On devbox, shop wants to run the tests and api needs a retry budget. The laptop is offline.">
+          </picture></figure>
+          <h3 class="h3">Works across machines</h3>
+          <p class="body">Agents on your other Macs and Linux machines join the same conversation.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-approve-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-approve-light.jpg" width="760" height="507" loading="lazy" alt="A card in the iPhone app: shop on devbox needs approval. Bash: Run the tests. uv run pytest -q. Say yes or no, or tap. Deny, and Approve with the Face ID mark.">
+          </picture></figure>
+          <h3 class="h3">Approve from your phone</h3>
+          <p class="body">When an agent needs a yes, you see the exact command and tap Approve.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-start-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-start-light.jpg" width="760" height="507" loading="lazy" alt="The Mac app. You: tell building to bump the timeout to 30 seconds. A card: Start this session? Start a Claude Code session in shop on studio, named shop-2? Say yes or tap. Cancel, Start.">
+          </picture></figure>
+          <h3 class="h3">Start an agent by voice</h3>
+          <p class="body">Say which agent and where, hear it read back, and say yes.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-dump-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-dump-light.jpg" width="760" height="507" loading="lazy" alt="The Mac app: Your brain dump, structured. In your words. Edit it, add more, or send it. Goal: stop the checkout timing out for some customers. Context: the retry loop retries five times with no backoff. Constraints: we must not touch the tax service this sprint.">
+          </picture></figure>
+          <h3 class="h3">Brain dump</h3>
+          <p class="body">Think out loud, and get a clear prompt in your own words, ready to send.</p>
+        </li>
+        <li>
+          <figure><picture>
+            <source srcset="img/f-challenge-dark.jpg" media="(prefers-color-scheme: dark)">
+            <img src="img/f-challenge-light.jpg" width="760" height="507" loading="lazy" alt="The page at phone width. Objection: A 30 second cap is longer than the checkout waits. Billing&#x27;s notes say the page gives up after 20 seconds, so the last retries can never land. You: Fair. Cap it at ten seconds, then.">
+          </picture></figure>
+          <h3 class="h3">Challenge your plan</h3>
+          <p class="body">Before you send a plan, Pointe argues against it, one objection at a time.</p>
+        </li>
+      </ul>
+      <p class="tiles-more"><a class="link" href="features/">All 60 features →</a>
+        <span class="small">The pictures are the product on demo data. Every name in them is invented.</span></p>
+    </div>
+  </section>
+
+  <section id="how" class="section" aria-labelledby="h-how">
+    <div class="page">
+      <div class="head-row">
+        <p class="kicker">How it works</p>
+        <h2 id="h-how" class="h1">A daemon on your Mac, between your voice and your sessions.</h2>
+        <p class="body">A Python daemon built on <a href="https://github.com/pipecat-ai/pipecat">Pipecat</a> runs the
+          call. Each session you join gets an adapter. It reads the session's transcript, sends your requests in, and
+          holds its permission prompts.</p>
+      </div>
+
+      <div class="daemon" role="group" aria-label="The daemon on your Mac">
+        <div>
+          <p class="kicker">The daemon on your Mac</p>
+          <p class="pipe"><span>Ears</span><i aria-hidden="true">→</i><span>Echo guard</span><i aria-hidden="true">→</i><span class="key">Brain</span><i aria-hidden="true">→</i><span>Mouth</span></p>
+          <p class="small">Speech to text, the bot's own voice dropped, an LLM that acts only through tools, text to
+            speech. Speech is a tool call, checked in code before it is said.</p>
+        </div>
+        <div class="hub-roles">
+          <p><b>Approvals</b><span>Which commands may be read out, what counts as a yes, the tap, the optional voice lock.</span></p>
+          <p><b>Gate</b><span>A model checks each send against what you just said. It lowers injection risk; it does not remove it.</span></p>
+          <p><b>Reader</b><span>Session notes, reports, briefings, conflict checks, meeting notes.</span></p>
+        </div>
+      </div>
+      <p class="small note">You reach the daemon from the Chrome page or the Mac app on the Mac (loopback only), or from the
+        iPhone app (paired once by QR code, pinned TLS certificate): one WebSocket per call carries the audio both ways, the
+        status and your taps. <a href="#machines">The drawing above</a> shows the sessions and machines it reaches.
+        Each role (ears, brain, reader, gate, mouth) is set separately: a vendor you chose, under
+        your key, or a model on your Mac. The gate's config name is <code>checker</code>.
+        Detail: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md">how-it-works.md</a>.</p>
+    </div>
+  </section>
+
+  <section id="approvals" class="band-dark" aria-labelledby="h-approvals">
+    <div class="page">
+      <div class="head-row">
+        <p class="kicker">Approvals</p>
+        <h2 id="h-approvals" class="h1">What a spoken yes can approve, and what it cannot.</h2>
+        <p class="lead">Words you speak can make a session do work, so the rules are in code with tests, not in a
+          prompt.</p>
+      </div>
+      <div class="scroll block">
+        <table class="table table--stack">
+          <thead><tr><th scope="col">What happens</th><th scope="col">Result</th></tr></thead>
+          <tbody>
+            <tr><td><b>You say yes</b>, and all of these hold:
+              <ul class="conds">
+                <li>the daemon read the request out itself, from the command that will run, not from the model's description</li>
+                <li>the read-out was the last thing Pointe said</li>
+                <li>you said a plain yes and nothing else, begun after the read-out ended</li>
+                <li>within 120 seconds, on the active session</li>
+              </ul></td><td class="verdict verdict--yes">Approves</td></tr>
+            <tr><td><b>You tap Approve</b> on the exact request, on the page, in the iPhone app (Face ID) or in the Mac app (Touch ID or your password). A request the
+              daemon cannot read out whole (unknown programs or flags, <code>$</code>, globs, subshells, several lines,
+              <code>sudo</code>, more than 25 words) is approved only this way.</td><td class="verdict verdict--yes">Approves</td></tr>
+            <tr><td><b>You answer in the terminal</b>, as always: your Claude Code deny rules still apply. Or <b>a
+              notification's Approve</b>, only if you turned it on, and only for a request that could be read out.</td><td class="verdict verdict--yes">Approves</td></tr>
+            <tr><td>"Okay, tell me more", "yes, and run the linter", silence, or a yes to any other question. An echo of
+              Pointe's own voice. Words typed in the call or as a correction. A voice match by itself. Any mode: drive,
+              whisper, meeting, briefing and challenge can only narrow what a word may do.</td><td class="verdict verdict--none">Nothing</td></tr>
+            <tr><td>The request holds a credential-like value: a key, a token or <code>password=</code>. Detection is by
+              pattern, so it can miss one.</td><td class="verdict verdict--none">Not read out. Masked on screen, waits for a tap</td></tr>
+            <tr><td><b>Anyone says no</b>, in every mode.</td><td class="verdict verdict--no">Denies</td></tr>
+            <tr><td>Another person in the room, a video or a podcast says yes right after a read-out. Voice is not
+              authentication. The voice lock narrows a yes to your voice; it is off by default, and a recording of your
+              voice can pass it. Do not use voice approvals in a room you do not trust.</td><td class="verdict verdict--yes">Approves, with the voice lock off</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="band-foot">
+        <div>
+          <p class="figure figure--key">About 13%</p>
+          <p class="body">of the shell commands in Ballerine Engineering's own Claude Code history can be read out. The
+            rest need a tap or the terminal. That is the design, not a gap.</p>
+        </div>
+        <div class="stack">
+          <p class="body">Two adversarial reviews found 24 ways around earlier versions of the read-out rules; each is
+            now a test in <a href="https://github.com/ballerine-io/pointe/blob/main/tests/test_security.py">test_security.py</a>.
+            Text-to-speech can mispronounce a command, so the page always shows the exact request.</p>
+          <p class="body">Set <code>"approvals": "terminal"</code> in <code>~/.claude-voice/config.json</code> to keep
+            every prompt in the terminal. The daemon listens on loopback only, every route needs a secret, and
+            <code>Origin</code> must match <code>Host</code>. The threat model, including what Pointe does not defend
+            against: <a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy" class="section" aria-labelledby="h-privacy">
+    <div class="page">
+      <div class="head-stack">
+        <h2 id="h-privacy" class="h2">What leaves your Mac, and where it goes.</h2>
+        <p class="body">Pointe has no server and no telemetry, and the call page loads nothing from outside your Mac.
+          What leaves the Mac goes to the vendors you chose, under your own keys. Ballerine runs no server for Pointe
+          and receives none of this traffic.</p>
+      </div>
+      <div class="scroll block" tabindex="0" role="region" aria-label="What goes to which vendor">
+        <table class="table table--stack">
+          <thead><tr><th scope="col">What</th><th scope="col">Goes to</th></tr></thead>
+          <tbody>
+            <tr><td>Your speech while the microphone is open, plus hints: your dictionary, session and folder names, names from session notes</td><td>The ears vendor: Soniox, Google Gemini, OpenAI or ElevenLabs</td></tr>
+            <tr><td>Session content: transcripts, notes, reports, briefings, conflict checks. This can include your code.</td><td>The brain and reader vendors: Anthropic, Google Gemini or OpenAI</td></tr>
+            <tr><td>What the bot says, which can quote session content</td><td>The mouth vendor: ElevenLabs, Google Gemini, Soniox or OpenAI</td></tr>
+            <tr><td>What you said, each session's latest lines, goal, folder path and up to 40 file names</td><td>The vendor you set for the gate: Google Gemini, Anthropic or OpenAI</td></tr>
+            <tr><td>In a meeting you started: the room's audio, and transcript windows</td><td>Soniox, and the reader vendor</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="cols block">
+        <div><p class="title"><code>pointe local voice</code>: no audio leaves</p>
+          <p class="body">Whisper hears and Kokoro speaks on the Mac. Your words reach the brain, reader and gate vendors as text. Meeting mode is off.</p></div>
+        <div><p class="title"><code>pointe local</code>: nothing leaves</p>
+          <p class="body">Whisper, Kokoro and Gemma 4 26B on the Mac, and no key is read. Needs Apple silicon, 32 GB of memory and about 19 GB of disk. Slower and less accurate, by measure: the brain passed 76.9% of 78 cases against 91.9% for Sonnet. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/local.md">local.md</a></p></div>
+        <div><p class="title">Always on the Mac</p>
+          <p class="body">Your voiceprint, the call journal, session notes, the dictionary and briefings, as files in your home folder. Keys come from the environment or the macOS Keychain and reach the daemon only. With push to talk on, no audio leaves unless you hold the talk control.</p></div>
+      </div>
+      <p class="small note">Full list: <a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md#files">SECURITY.md</a> and <a href="https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md">PRIVACY.md</a>. This page has no analytics and loads nothing from other hosts.</p>
+    </div>
+  </section>
+
+  <section id="evidence" class="section" aria-labelledby="h-evidence">
+    <div class="page">
+      <div class="head-row">
+        <p class="kicker">Evidence</p>
+        <h2 id="h-evidence" class="h1">What we can show, and what we cannot.</h2>
+        <p class="body">Three kinds of numbers, kept apart: measured in Pointe, published research that is not about
+          Pointe, and one engineer's own use. Where we have no number, we say so.</p>
+      </div>
+
+      <h3 class="h3 block">Measured in Pointe</h3>
+      <div class="cells" style="margin-top:16px">
+        <div><p class="figure figure--key">2.11 s</p><p class="title">last word to first sound, median</p>
+          <p class="small">p90 2.50 s. 24 turns, live vendors, a synthesized speaker, Soniox v6, on 2026-11-20.</p></div>
+        <div><p class="figure">13%</p><p class="title">of our shell commands can be approved by voice</p>
+          <p class="small">The rest need a tap. Ballerine Engineering's own Claude Code history.</p></div>
+        <div><p class="figure">$1</p><p class="title">about, for a busy hour</p>
+          <p class="small">60 replies and 10 reports on Anthropic, Soniox, ElevenLabs and Gemini keys. Arithmetic from measured use and list prices, not a metered bill. It does not include what your coding agents spend.</p></div>
+        <div><p class="figure">3.4 s</p><p class="title">median reply, fully local</p>
+          <p class="small">Against 1.8 s for Sonnet, on an M5 Pro with 64 GB. The local brain passed 76.9% of 78 cases; Sonnet 91.9%.</p></div>
+      </div>
+      <details class="more-detail">
+        <summary>How the latency was measured, stage by stage</summary>
+        <div class="split">
+          <div class="stack">
+            <p class="body"><code>tests/e2e/latency.py</code> asks twelve plain questions on a live call, with a synthesized
+              voice as the user, and stamps each turn stage by stage. Vendors: Claude Sonnet 5.5 as the brain, Soniox ears,
+              ElevenLabs mouth. One 18-core Mac that other work kept busy. Run it with your own keys. It calls paid APIs.</p>
+            <p class="body">The headline is the run on Soniox stt-rt-v6, which Pointe uses since 2026-11-20 (the same day, v5
+              gave 2.02 s and 2.66 s). The stage table is the last full run, on v5 in a pre-release build of 2026-11-16: 1.86 s median, 2.21 s p90,
+              slowest turn 4.19 s. On v6 the ears stage is 0.47 s median, 0.60 s p90. No end-to-end run after 2026-11-20 is
+              recorded yet. The 1.08 s wait before the turn is taken is deliberate: a shorter one cuts people off
+              mid-sentence.</p>
+            <p class="small">Source: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/conversation-flow.md#7-a-faster-first-word-1140">conversation-flow.md §7</a>, <a href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">benchmarks.md</a>.</p>
+          </div>
+          <div class="scroll" tabindex="0" role="region" aria-label="Latency by stage">
+            <table class="table">
+              <caption class="small">Stages on Soniox v5 (2026-11-16), 24 turns, seconds. They overlap: the model is asked before the turn is taken.</caption>
+              <thead><tr><th scope="col">Stage</th><th scope="col" class="num">Median</th><th scope="col" class="num">p90</th></tr></thead>
+              <tbody>
+                <tr><td>Ears: last word to final transcript</td><td class="num">0.46</td><td class="num">0.52</td></tr>
+                <tr><td>The turn is taken, after the last word</td><td class="num">1.08</td><td class="num">1.10</td></tr>
+                <tr><td>Model: request to first token</td><td class="num">0.74</td><td class="num">0.82</td></tr>
+                <tr><td>Mouth: request to first audio</td><td class="num">0.22</td><td class="num">0.33</td></tr>
+                <tr><td>Client: playing to audible</td><td class="num">0.07</td><td class="num">0.11</td></tr>
+                <tr class="total"><td>Last word to first sound</td><td class="num">1.86</td><td class="num">2.21</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <details class="more-detail">
+        <summary>The published research behind the figures, and one engineer's 14 days of use</summary>
+      <div class="split split--half">
+        <div>
+          <h3 class="h3">Published research, not about Pointe</h3>
+          <ul class="rows" style="margin-top:16px">
+            <li><b>The 2.93 times under the headline</b> is from a lab, on an iPhone, for transcribing short messages.
+              Speech left slightly more errors in the final text (1.30% against 0.79%). Desktop keyboards were not
+              tested. <a href="https://doi.org/10.1145/3161187">Ruan et al., IMWUT 2017</a>.</li>
+            <li><b>People typed 52 words a minute on average</b> in an online test of 168,000 volunteers, who chose to
+              take a typing test. <a href="https://doi.org/10.1145/3173574.3174220">Dhakal et al., CHI 2018</a>.</li>
+            <li><b>The 10% under the headline</b> is from editor logs of 86 programmers: the time from returning to a
+              task to the first edit. In about 30% of sessions it was over 30 minutes.
+              <a href="https://doi.org/10.1007/s11219-010-9104-9">Parnin and Rugaber, 2011</a>.</li>
+            <li><b>Interrupted work was finished faster, at a price</b>: more stress, frustration, time pressure and
+              effort, in a lab study of office tasks. <a href="https://doi.org/10.1145/1357054.1357072">Mark, Gudith and Klocke, CHI 2008</a>.</li>
+          </ul>
+          <p class="small note">None of these measured prompts to coding agents. We found no published measurement of
+            approval waiting time, or of supervising several agents by voice, and we claim none.</p>
+        </div>
+        <div>
+          <h3 class="h3">One engineer's usage, 14 days</h3>
+          <table class="table" style="margin-top:16px">
+            <tbody>
+              <tr><td>Calls with at least one spoken turn</td><td class="num"><b>33</b>, on 10 of the 14 days</td></tr>
+              <tr><td>Time in calls, from connecting to the last turn</td><td class="num"><b>8.6 hours</b></td></tr>
+              <tr><td>Sessions joined when a call started</td><td class="num">median <b>5</b>, most 6</td></tr>
+              <tr><td>Spoken turns, and words</td><td class="num"><b>443</b> turns, 5,667 words</td></tr>
+              <tr><td>Requests sent to sessions, counting any the gate refused</td><td class="num"><b>171</b></td></tr>
+              <tr><td>Side questions to a read-only copy</td><td class="num"><b>19</b></td></tr>
+              <tr><td>Brain dumps</td><td class="num"><b>1</b></td></tr>
+              <tr><td>Permission prompts answered through Pointe, by voice or by tap</td><td class="num"><b>0</b></td></tr>
+            </tbody>
+          </table>
+          <p class="small note">3 to 16 November 2026, counted from the call journal on the Mac of the engineer who
+            builds Pointe, so some calls were tests of it. Counts and durations only; no transcript text was read for
+            this. One person is not a study. The zero is real: the journal records no prompt answered through Pointe
+            in these two weeks.</p>
+        </div>
+      </div>
+      </details>
+    </div>
+  </section>
+
+  <section id="install" class="section" aria-labelledby="h-install">
+    <div class="page">
+      <div class="head-stack">
+        <h2 id="h-install" class="h2">Install it for the agent you use, run setup, join a session.</h2>
+        <p class="body">You need macOS, Chrome, headphones, one model key (or an Apple-silicon Mac with 32 GB of memory for
+          the fully local mode), and a coding agent: Claude Code 2.1.224 or newer, Codex 0.160 or newer, or OpenCode v2.</p>
+      </div>
+      <div class="tabs block" data-tabs>
+        <div class="tablist" role="tablist" aria-label="Your coding agent" hidden>
+          <button type="button" role="tab" id="tab-claude" aria-controls="install-claude" aria-selected="true">Claude Code</button>
+          <button type="button" role="tab" id="tab-codex" aria-controls="install-codex" aria-selected="false" tabindex="-1">Codex</button>
+          <button type="button" role="tab" id="tab-opencode" aria-controls="install-opencode" aria-selected="false" tabindex="-1">OpenCode</button>
+        </div>
+        <div class="split split--term tabpanel" role="tabpanel" id="install-claude" aria-labelledby="tab-claude">
+          <ol class="steps">
+            <li><div><span class="title">Install the plugin</span>One command, from the repository.</div></li>
+            <li><div><span class="title">Run <code>/pointe:setup</code> in a new Claude Code session</span>About 5
+              minutes, free with one Google key. It checks your Mac, asks one question (Start with Free start?), opens the
+              key page and a Mac window for the key, so the key goes to your Keychain and never into the chat, checks it,
+              and starts your first call: say hello, and Pointe answers that it hears you.</div></li>
+            <li><div><span class="title">Run <code>/pointe:voice</code> in each session you want to reach</span>A tab
+              opens: allow the microphone, press Connect, and say hello.</div></li>
+          </ol>
+          <div>
+            <pre class="term" aria-label="Claude Code: the commands, in order"><code><span class="p">$ </span>claude plugin marketplace add https://github.com/ballerine-io/pointe.git
+<span class="p">$ </span>claude plugin install pointe@pointe
+
+<span class="c"># in a new Claude Code session</span>
+<span class="p">&gt; </span>/pointe:setup
+
+<span class="c"># in each session you want on the voice</span>
+<span class="p">&gt; </span>/pointe:voice</code></pre>
+          </div>
+        </div>
+        <div class="split split--term tabpanel" role="tabpanel" id="install-codex" aria-labelledby="tab-codex">
+          <ol class="steps">
+            <li><div><span class="title">Download and run the installer</span>No Claude Code needed. It says what it
+              will do and asks first, checks the release against a SHA-256, and needs no sudo.</div></li>
+            <li><div><span class="title">Run <code>pointe setup</code></span>The same one question, your key in a Mac
+              window, and your first call. Then it starts Codex's shared app-server and shows the line that makes
+              <code>codex</code> use it; it adds that line to your shell only on your yes.</div></li>
+            <li><div><span class="title">Join a Codex session</span>Start <code>codex</code> in a project, then run
+              <code>pointe join codex</code> in that folder.</div></li>
+          </ol>
+          <div>
+            <pre class="term" aria-label="Codex: the commands, in order"><code><span class="p">$ </span>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+<span class="p">$ </span>bash install.sh
+<span class="p">$ </span>pointe setup
+
+<span class="c"># in a new terminal, in a project</span>
+<span class="p">$ </span>codex
+<span class="c"># in that folder, in another terminal</span>
+<span class="p">$ </span>pointe join codex</code></pre>
+          </div>
+        </div>
+        <div class="split split--term tabpanel" role="tabpanel" id="install-opencode" aria-labelledby="tab-opencode">
+          <ol class="steps">
+            <li><div><span class="title">Download and run the installer</span>No Claude Code needed. It says what it
+              will do and asks first, checks the release against a SHA-256, and needs no sudo.</div></li>
+            <li><div><span class="title">Run <code>pointe setup</code></span>The same one question, your key in a Mac
+              window, and your first call. Then it adds a <code>/voice</code> command to OpenCode.</div></li>
+            <li><div><span class="title">Join an OpenCode session</span>Restart OpenCode and type <code>/voice</code> in
+              a session, or run <code>pointe join opencode</code> in its folder.</div></li>
+          </ol>
+          <div>
+            <pre class="term" aria-label="OpenCode: the commands, in order"><code><span class="p">$ </span>curl -fsSLO https://eng.ballerine.com/pointe/install.sh
+<span class="p">$ </span>bash install.sh
+<span class="p">$ </span>pointe setup
+
+<span class="c"># in an OpenCode session, after a restart of OpenCode</span>
+<span class="p">&gt; </span>/voice
+<span class="c"># or, in the session's folder</span>
+<span class="p">$ </span>pointe join opencode</code></pre>
+          </div>
+        </div>
+      </div>
+      <p class="small"><a href="docs/install/#what-this-does-to-your-mac">What this does to your Mac</a>. To remove it:
+        <code>pointe uninstall</code> in a terminal; it lists what Pointe added, asks, and removes it. Both installs can be
+        on one Mac: the newer one runs. Optional apps, built on this Mac with Xcode: <code>pointe apps mac</code>,
+        <code>pointe apps ios</code>.</p>
+      <p class="small note">To try it free: one Google AI Studio key, no card. The quota is small, and Google may review
+        what you send on that tier. With local voice and one text key, a busy hour is about $0.30 to $0.40. You pay the
+        vendors directly. Which keys each setup needs, and what it measured: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/setups.md">setups.md</a>.
+        More install options, updates and the Claude desktop app: <a href="docs/install/">Install</a>.</p>
+    </div>
+  </section>
+
+  <section id="alternatives" class="section" aria-labelledby="h-alternatives">
+    <div class="page">
+      <div class="head-stack">
+        <h2 id="h-alternatives" class="h2">Other ways to talk to a coding agent.</h2>
+        <p class="body">Pointe is not the first tool to read permission requests aloud. These are the closest, described
+          from their public documentation, read on 2026-11-19. They change; follow the links.</p>
+      </div>
+      <div class="scroll block" tabindex="0" role="region" aria-label="Pointe and three alternatives">
+        <table class="table compare">
+          <thead><tr>
+            <th scope="col"><span class="skip">Attribute</span></th>
+            <th scope="col">Pointe</th>
+            <th scope="col">Happy <small>MIT · <a href="https://happy.engineering/docs/features/voice-coding-with-claude-code">voice docs</a> · <a href="https://github.com/slopus/happy">source</a></small></th>
+            <th scope="col">Codex voice <small>built into Codex · <a href="https://learn.chatgpt.com/docs/features/voice">docs</a></small></th>
+            <th scope="col">Claude Code <code>/voice</code> <small>built in · <a href="https://code.claude.com/docs/en/voice-dictation">docs</a></small></th>
+          </tr></thead>
+          <tbody>
+            <tr><th scope="row">It talks back</th><td>Yes</td><td>Yes, on ElevenLabs</td><td>Yes</td><td>No. Dictation into the prompt</td></tr>
+            <tr><th scope="row">What it covers</th><td>Claude Code, OpenCode and Codex sessions in one call. Running Claude Code and OpenCode sessions join as they are</td><td>Claude Code, Codex and other agents, started through <code>happy</code></td><td>Codex tasks: start, check, switch between them</td><td>The Claude Code session you dictate into, or a background one in agent view</td></tr>
+            <tr><th scope="row">Approving by voice</th><td>Rules in code with tests. A command the daemon cannot read out word for word needs a tap</td><td>Reads requests aloud; allows or denies when you say so, or accepts the ones that follow if you tell it to</td><td>Voice "follows the same permissions as the tasks it directs"; no spoken approval described</td><td>No</td></tr>
+            <tr><th scope="row">Server and account</th><td>None. A daemon on your Mac</td><td>A relay syncs your devices, end-to-end encrypted. You can host it yourself</td><td>Runs inside Codex, under its sign-in</td><td>Claude.ai sign-in. Audio goes to Anthropic</td></tr>
+            <tr><th scope="row">Cost of voice</th><td>Your vendor keys, about $1 a busy hour, or local models</td><td>Free 20 minutes every 30 days, then a subscription, or your own ElevenLabs agent</td><td>In the desktop app, a paid ChatGPT plan</td><td>Not counted toward usage limits</td></tr>
+            <tr><th scope="row">Runs on</th><td>macOS, in Chrome or the Mac app. Apps built from source</td><td>App Store, Google Play, web, Windows, Linux</td><td>Codex CLI 0.156.0 or newer, ChatGPT desktop app</td><td>macOS, Linux, Windows; 20 dictation languages</td></tr>
+            <tr><th scope="row">Where it is ahead of Pointe</th><td>n/a</td><td>Store apps, more platforms, more agents, and many more users: about 24,700 GitHub stars</td><td>Nothing to install, no keys</td><td>Nothing to install, no keys, more platforms</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small note">Dictation and Pointe work side by side. More tools, including Paseo, Moshi and Claude Code
+        Remote Control: <a href="https://github.com/ballerine-io/pointe#compared-to">the README's table</a>.</p>
+    </div>
+  </section>
+
+  <section id="limits" class="section" aria-labelledby="h-limits">
+    <div class="page">
+      <h2 id="h-limits" class="h2">What it does not do.</h2>
+      <ul class="rows rows--cols block">
+        <li><b>The Mac is the hub.</b> The call runs on macOS, in Chrome or in the Mac app. Other Macs and Linux hosts join as nodes, with no audio. On Linux the daemon starts, but no real call has been made there. Windows is not supported.</li>
+        <li><b>The apps are built from source for now.</b> Neither is in a store yet: both are in review with Apple. A build from source is signed for your own devices, and the Mac build is not notarized. With a free Apple Account an iPhone build opens for 7 days. Without the apps, the page works, in a phone browser too. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#getting-the-app">phone.md</a>, <a href="https://github.com/ballerine-io/pointe/blob/main/docs/mac-app.md#getting-it">mac-app.md</a></li>
+        <li><b>Synthetic evidence.</b> The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No bench on recorded people has been run.</li>
+        <li><b>The voice lock is not authentication.</b> A recording of your voice can pass it.</li>
+        <li><b>Echo.</b> On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones.</li>
+        <li><b>Real hardware.</b> Drive mode has not been measured on car hands-free audio. Phone alerts need the app to be running (there is no push server). Conflict alarms have no live run with real OpenCode or Codex sessions.</li>
+        <li><b>Launch mode uses <code>--dangerously-load-development-channels</code>.</b> Claude Code requires that flag for a channel outside its allowlist. It loads one file from the repository, and Claude Code shows a warning at start.</li>
+        <li><b>Code running as you is trusted.</b> It can read Pointe's token and act as you.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="working-group" class="section" aria-labelledby="h-working-group">
+    <span id="partners"></span><span id="founding-partners"></span><!-- earlier names of this section; old links still land here -->
+    <div class="page partners">
+      <div>
+        <h2 id="h-working-group" class="h3">Conversational Engineering Working Group</h2>
+        <p class="body">Teams that use Pointe in real work. Members share what works and what breaks, help shape the
+          practice, the roadmap and the benchmarks, Humanity's Last Keystroke among them, and contribute code or
+          adapters when they can. They get a voice in the roadmap, early builds, a shared channel with the maintainers,
+          and their team's name here if they want it.</p>
+      </div>
+      <a class="link" href="https://github.com/ballerine-io/pointe/issues/new?template=working-group.yml">Join the working group →</a>
+      <!-- working-group:begin (tools/working_group.py writes this from site/pointe/working-group.json; edit it there) -->
+      <!-- working-group:end -->
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="page footer-grid">
+    <div class="stack">
+      <p><b>Built and open-sourced by <a href="../">Ballerine Engineering</a>.</b></p>
+      <p class="body">Ballerine builds AI agents for merchant risk and fraud prevention at payment companies. It is not
+        a developer-tools company: Pointe is a tool its engineers built for their own work, and share.
+        <a href="https://ballerine.com/company/careers">We're hiring</a>.</p>
+      <p class="small">Community-supported, best effort, no SLA. Bugs and questions go to
+        <a href="https://github.com/ballerine-io/pointe/issues">GitHub issues</a>. MIT licensed. Built on
+        <a href="https://github.com/pipecat-ai/pipecat">Pipecat</a>.</p>
+    </div>
+    <nav aria-label="Project links" class="footer-links">
+      <a href="#approvals">Approvals</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#alternatives">Alternatives</a>
+      <a href="#limits">Limits</a>
+      <a href="features/">All features</a>
+      <a href="docs/">Docs</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">Security</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md">Privacy</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">Speech benchmarks</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="roadmap/">Roadmap</a>
+      <a href="contribute/">Contribute</a>
+      <a href="benchmarks/">Coding benchmarks</a>
+      <a href="https://ballerine.com">ballerine.com</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  for (const b of document.querySelectorAll('.wg-pause')) {
+    b.addEventListener('click', () => {
+      const paused = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', String(paused));
+      b.closest('.wg-logos').classList.toggle('is-paused', paused);
+    });
+  }
+  // Install tabs: with no script every panel shows, each under its own commands; with it, one at a time.
+  for (const tabs of document.querySelectorAll('[data-tabs]')) {
+    const list = tabs.querySelector('[role=tablist]'), buttons = [...list.querySelectorAll('[role=tab]')];
+    const pick = (b, focus) => {
+      for (const t of buttons) {
+        const on = t === b;
+        t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      }
+      if (focus) b.focus();
+    };
+    list.hidden = false;
+    pick(buttons[0], false);
+    buttons.forEach((b, i) => {
+      b.addEventListener('click', () => pick(b, false));
+      b.addEventListener('keydown', e => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (step) { e.preventDefault(); pick(buttons[(i + step + buttons.length) % buttons.length], true); }
+      });
+    });
+  }
+  for (const box of document.querySelectorAll('[data-cmd]')) {
+    const b = box.querySelector('button.copy');
+    if (!b || !navigator.clipboard) continue;
+    b.hidden = false;
+    b.setAttribute('aria-label', 'Copy the command');
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(box.querySelector('code').textContent); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Select and copy'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1800);
+    });
+  }
+  // A scene: its lines appear in time, and the session rows change with them. It runs silently when it comes into view
+  // and loops; "Play with sound" runs it once from the audio's own clock. With reduced motion everything shows at once.
+  for (const scene of document.querySelectorAll("article[data-play]")) {
+    const total = +scene.dataset.total, lines = [...scene.querySelectorAll('.scene-lines li')], rows = [...scene.querySelectorAll('[data-row]')];
+    const audio = scene.querySelector('audio'), button = scene.querySelector('[data-sound]'), bar = scene.querySelector('.scene-bar i'), film = scene.querySelector('video');
+    const calm = matchMedia('(prefers-reduced-motion: reduce)');
+    const timed = [...scene.querySelectorAll('[data-from]')], list = scene.querySelector('.scene-lines');
+    const draw = now => {
+      for (const li of lines) { li.classList.toggle('on', now >= +li.dataset.t); li.classList.toggle('now', now >= +li.dataset.t && now < +(li.dataset.end || 0)); }
+      for (const row of rows) {
+        const states = [...row.querySelectorAll('.sc-states i')].filter(s => +s.dataset.at <= now), s = states[states.length - 1];
+        if (s && row.dataset.state + row.querySelector('.sc-what').textContent !== s.dataset.state + s.textContent) {
+          row.dataset.state = s.dataset.state; row.querySelector('.sc-tag').textContent = s.dataset.state; row.querySelector('.sc-what').textContent = s.textContent;
+          if (now > 0.2) { row.classList.remove('changed'); void row.offsetWidth; row.classList.add('changed'); }
+        }
+      }
+      for (const e of timed) e.classList.toggle('on', now >= +e.dataset.from && (!e.dataset.to || now < +e.dataset.to));
+      const last = lines.filter(li => li.classList.contains('on')).pop();  // the newest line stays in view: the list follows the talk
+      list.scrollTop = last ? Math.max(0, last.offsetTop + last.offsetHeight - list.clientHeight + 4) : 0;
+      bar.style.width = Math.min(100, 100 * now / total) + '%';
+    };
+    let from = 0, raf = 0, sound = false, seen = false;
+    const say = (label, playing) => { button.lastElementChild.textContent = label; button.classList.toggle('is-playing', playing); };
+    const tick = () => {
+      const now = sound ? audio.currentTime : (performance.now() - from) / 1000;
+      draw(now);
+      if (sound && audio.ended) { sound = false; say('Play again with sound', false); from = performance.now() - total * 1000; }
+      if (!sound && now > total + 2.5) from = performance.now();
+      raf = seen || sound ? requestAnimationFrame(tick) : 0;
+    };
+    const run = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    if (calm.matches) { scene.classList.add('is-whole'); draw(total); continue; }
+    draw(0);
+    button.hidden = false;
+    button.onclick = () => {
+      if (sound) { audio.pause(); sound = false; say('Play with sound · 1 min', false); from = performance.now(); return; }
+      audio.currentTime = 0; audio.play().then(() => { sound = true; say('Stop the sound', true); run(); }).catch(() => {});
+    };
+    new IntersectionObserver(([e]) => {
+      seen = e.isIntersecting;
+      if (seen) { if (!sound) from = performance.now(); film.hidden = false; film.play().catch(() => {}); run(); }
+      else { film.pause(); if (sound) { audio.pause(); sound = false; say('Play with sound · 1 min', false); } }
+    }, { threshold: 0.35 }).observe(scene);
+  }
+
+  // The day story. On a wide screen the beats share one sticky stage and the beat at the middle of the window shows; on
+  // a narrow one they are stacked. A clip plays once when its beat shows, and holds its last frame. With reduced motion
+  // or data saver the stills stay. The page scrolls as any page does: nothing here moves it.
+  const day = document.querySelector('[data-day]');
+  const beats = [...day.querySelectorAll('.beat')];
+  const links = [...day.querySelectorAll('.rail a')];
+  const wide = matchMedia('(min-width: 1081px)');
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const saver = navigator.connection && navigator.connection.saveData;
+  const clip = beat => beat.querySelector('video');
+  const play = beat => {
+    if (still.matches || saver) return;
+    const v = clip(beat);
+    v.hidden = false; v.currentTime = 0; v.play().catch(() => {});
+    const next = beats[beats.indexOf(beat) + 1];
+    if (next) clip(next).preload = 'auto';
+  };
+  let current = null;
+  const show = beat => {
+    if (beat === current) return;
+    current = beat;
+    beats.forEach((b, i) => {
+      const on = b === beat;
+      b.classList.toggle('is-active', on);
+      if (links[i]) on ? links[i].setAttribute('aria-current', 'step') : links[i].removeAttribute('aria-current');
+      on ? play(b) : clip(b).pause();
+    });
+  };
+  const stage = () => day.classList.toggle('is-stage', wide.matches);
+  wide.addEventListener('change', stage); stage();
+  beats[0].classList.add('is-active');
+  const middle = new IntersectionObserver(entries => {
+    if (!wide.matches) return;
+    for (const e of entries) if (e.isIntersecting) show(e.target.closest('.beat'));
+  }, { rootMargin: '-50% 0px -50% 0px' });
+  const seen = new IntersectionObserver(entries => {
+    if (wide.matches) return;
+    for (const e of entries) e.isIntersecting ? play(e.target.closest('.beat')) : clip(e.target.closest('.beat')).pause();
+  }, { threshold: 0.6 });
+  for (const b of beats) { middle.observe(b.querySelector('.beat-copy')); seen.observe(b.querySelector('.beat-frame')); }
+</script>
+<script src="viz/viz.js" defer></script>
+</body>
+</html>

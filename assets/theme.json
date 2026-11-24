@@ -1,0 +1,50 @@
+{
+  "_": "Ballerine Brand Guidelines V6 as Pointe uses it: the one source for the page (ui.html) and the iPhone app (apps/PointeKit/Sources/PointeUI/Brand.swift). tests/test_theme.py fails when either drifts. Design: docs/design/brand-v6.md.",
+  "choices": ["system", "light", "dark"],
+  "default": "system",
+  "labels": {"system": "System", "light": "Light", "dark": "Dark"},
+  "fonts": {
+    "display": {"family": "Bricolage Grotesque", "weights": {"300": "BricolageGrotesque-Light", "400": "BricolageGrotesque-Regular"}},
+    "text": {"family": "Instrument Sans", "weights": {"400": "InstrumentSans-Regular", "500": "InstrumentSans-Medium", "600": "InstrumentSans-SemiBold"}}
+  },
+  "files": {
+    "BricolageGrotesque-Light.ttf": "121cd3614a367ae68287977832e7077aafb76b1e98723488a93914c03a3c0639",
+    "BricolageGrotesque-Regular.ttf": "dcfe24ee4e7aa40aa13a91837acca9b170befd4dbbbcf9e084a0db1c1676e06f",
+    "InstrumentSans-Regular.ttf": "69fd3f7c467c70c1f73b232812407f688f3d87dd7a801ea7281aa97d29cf53d5",
+    "InstrumentSans-Medium.ttf": "56ba599d12b7cf2fff4eebf46d29253231b6f49bc5b6ce7733dfbf3d7940bfae",
+    "InstrumentSans-SemiBold.ttf": "7151cf505f897e17b4e9b956293b5a60046ec39da3923a8feba29ce86fd14e12"
+  },
+  "tokens": {
+    "bg":           {"light": "#FFFFFF", "dark": "#0A0400"},
+    "surface":      {"light": "#FCFAFA", "dark": "#0C0906"},
+    "card":         {"light": "#FFFFFF", "dark": "#0F0B08"},
+    "raised":       {"light": "#F5F1EF", "dark": "#1A1410"},
+    "raised2":      {"light": "#E9E2DE", "dark": "#26201B"},
+    "group":        {"light": "#F5F1EF", "dark": "#0C0906"},
+    "cell":         {"light": "#FFFFFF", "dark": "#1A1410"},
+    "text":         {"light": "#0A0400", "dark": "#F7F2F0"},
+    "muted":        {"light": "#5C5450", "dark": "#B5ADA8"},
+    "dim":          {"light": "#6E6762", "dark": "#958D88"},
+    "line":         {"light": "rgba(10,5,0,.10)", "dark": "rgba(255,255,255,.08)"},
+    "line-strong":  {"light": "rgba(10,5,0,.18)", "dark": "rgba(255,255,255,.16)"},
+    "orange":       {"light": "#FF5A01", "dark": "#FF5A01"},
+    "on-orange":    {"light": "#0A0400", "dark": "#0A0400"},
+    "accent":       {"light": "#C24F0D", "dark": "#FF8C4A"},
+    "tint":         {"light": "#FFF1E9", "dark": "rgba(255,90,1,.14)"},
+    "orange-line":  {"light": "rgba(255,90,1,.45)", "dark": "rgba(255,90,1,.45)"},
+    "success":      {"light": "#138A4B", "dark": "#138A4B"},
+    "success-text": {"light": "#0E7A41", "dark": "#3DBE7B"},
+    "danger":       {"light": "#C83A37", "dark": "#C83A37"},
+    "danger-text":  {"light": "#C83A37", "dark": "#F0706B"},
+    "primary":      {"light": "#0A0400", "dark": "#F7F2F0"},
+    "on-primary":   {"light": "#FCFAFA", "dark": "#0A0400"},
+    "glow":         {"light": "rgba(255,90,1,0)", "dark": "rgba(255,90,1,.16)"},
+    "scrim":        {"light": "rgba(10,4,0,.35)", "dark": "rgba(0,0,0,.60)"}
+  },
+  "harnesses": {
+    "claude-code": {"name": "Claude", "glyph": "C"},
+    "codex": {"name": "Codex", "glyph": "X"},
+    "opencode": {"name": "OpenCode", "glyph": "O"},
+    "pi": {"name": "Pi", "glyph": "P"}
+  }
+}

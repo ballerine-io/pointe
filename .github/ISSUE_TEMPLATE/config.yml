@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Propose an idea
+    url: https://github.com/ballerine-io/pointe/discussions/categories/ideas
+    about: New features start in Discussions → Ideas, where others can upvote them. Ideas with support become roadmap issues.
+  - name: Ask a question
+    url: https://github.com/ballerine-io/pointe/discussions/categories/q-a
+    about: How to set something up, or why Pointe does what it does.
+  - name: Vote on the roadmap
+    url: https://github.com/ballerine-io/pointe/blob/main/ROADMAP.md
+    about: What may come next, sorted by 👍. Vote with a 👍 reaction on an item's issue.
+  - name: Report a security vulnerability
+    url: https://github.com/ballerine-io/pointe/security/advisories/new
+    about: Report it privately. Do not open a public issue.

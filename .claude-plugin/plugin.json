@@ -1,0 +1,19 @@
+{
+  "name": "pointe",
+  "version": "0.8.0",
+  "description": "Talk to your Claude Code sessions by voice. Run /pointe:voice in a session to join it to the shared voice.",
+  "author": {
+    "name": "Ballerine Engineering"
+  },
+  "repository": "https://github.com/ballerine-io/pointe",
+  "license": "MIT",
+  "commands": [
+    "./plugin/commands/setup.md",
+    "./plugin/commands/voice.md",
+    "./plugin/commands/leave.md",
+    "./plugin/commands/voice-review.md",
+    "./plugin/commands/doctor.md",
+    "./plugin/commands/open.md",
+    "./plugin/commands/stop.md"
+  ]
+}

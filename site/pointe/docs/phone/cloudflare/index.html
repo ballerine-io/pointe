@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect over Cloudflare Tunnel with Access · Pointe docs</title>
+<meta name="description" content="A Cloudflare Tunnel gives Pointe&#x27;s listener a public name on a domain you own, such as pointe.example.com, with no open port on your Mac. Cloudflare Access…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Connect over Cloudflare Tunnel with Access">
+<meta property="og:description" content="A Cloudflare Tunnel gives Pointe&#x27;s listener a public name on a domain you own, such as pointe.example.com, with no open port on your Mac. Cloudflare Access…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/phone/cloudflare/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/phone/cloudflare/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../">Connect your phone</a></li>
+<li><a href="../wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../tailscale/">Connect over Tailscale</a></li>
+<li><a href="../twingate/">Connect over Twingate</a></li>
+<li><a href="./" aria-current="page">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../../features/">Features</a></li>
+<li><a href="../../features/voice-lock/">Voice lock</a></li>
+<li><a href="../../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../../features/briefings/">Audio briefings</a></li>
+<li><a href="../../features/brain-dump/">Brain dump</a></li>
+<li><a href="../../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../../features/reading-mode/">Reading mode</a></li>
+<li><a href="../../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../../features/new-session/">Start a new session</a></li>
+<li><a href="../../features/add-sessions/">Add sessions</a></li>
+<li><a href="../../features/night-shift/">Night shift</a></li>
+<li><a href="../../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../../features/local/">Fully local</a></li>
+<li><a href="../../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="connect-over-cloudflare-tunnel-with-access">Connect over Cloudflare Tunnel with Access</h1>
+<p>A <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/">Cloudflare Tunnel</a> gives Pointe's
+listener a public name on a domain you own, such as <code>pointe.example.com</code>, with no open port on your Mac. Cloudflare
+Access sits in front of the name, so only you can open it. This route is for <strong>the phone's browser only</strong>: the iPhone
+app cannot use it (<a href="#why-not-the-iphone-app">why</a>). For the app, use <a href="../tailscale/">Tailscale</a>,
+<a href="../twingate/">Twingate</a> or <a href="../wifi/">Wi-Fi</a>.</p>
+<p>You need a Cloudflare account with a domain on it, Cloudflare Zero Trust (for Access), and <code>cloudflared</code> on the Mac
+(<code>brew install cloudflared</code>).</p>
+<h2 id="set-it-up">Set it up</h2>
+<h3 id="1-pointes-listener">1. Pointe's listener</h3>
+<p>Make Pointe listen on <code>127.0.0.1</code>, port 7443, for the public name:</p>
+<div class="dx-code"><pre><code>pointe pair host pointe.example.com
+pointe restart</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The page's Settings → Phone does the same: type the name in "Or a name you set up (Twingate, a VPN)" and press
+<strong>Check</strong>. It warns that the name resolves to a public internet address, and says to use it only if just you can reach
+it, as behind Cloudflare Access. That is this case.</p>
+<h3 id="2-the-tunnel">2. The tunnel</h3>
+<p>Create a tunnel in the Cloudflare dashboard (Zero Trust, Networks, Tunnels), and run its connector on the Mac with the
+command the dashboard gives. Then add a public hostname to the tunnel:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hostname</td>
+<td><code>pointe.example.com</code></td>
+<td>The name you paired in step 1</td>
+</tr>
+<tr>
+<td>Service</td>
+<td><code>HTTPS</code>, <code>localhost:7443</code></td>
+<td>Pointe's phone listener</td>
+</tr>
+<tr>
+<td>No TLS Verify</td>
+<td>on</td>
+<td>The listener's certificate is made on your Mac, not by a public authority</td>
+</tr>
+</tbody>
+</table></div>
+<p>Keep the default Host header. Pointe answers only requests whose <code>Host</code> is the paired name, and the tunnel passes the
+public name on.</p>
+<h3 id="3-access">3. Access</h3>
+<p>Before you open the name anywhere, add an Access application for <code>pointe.example.com</code> (Zero Trust, Access,
+Applications, self-hosted), with a policy that allows only you, for example your own email address. Without it, anyone
+who finds the name reaches the listener; Pointe's pairing secret still guards it, but Access is the first wall.</p>
+<h3 id="4-pair-the-phones-browser">4. Pair the phone's browser</h3>
+<p>Run <code>pointe pair link</code>. It prints <code>https://pointe.example.com:7443/voice?pair=…</code>. Through Cloudflare, the name answers
+on the standard HTTPS port, so remove <code>:7443</code>: open <code>https://pointe.example.com/voice?pair=…</code> once on the phone. The
+address holds a secret: send it only to your own phone (AirDrop or Notes).</p>
+<p>Cloudflare Access asks you to sign in first. Then the page opens and keeps a pairing cookie, and the address it lands
+on can be added to the Home Screen. The browser sees Cloudflare's certificate, so there is no certificate warning.</p>
+<h2 id="why-not-the-iphone-app">Why not the iPhone app</h2>
+<p>The app trusts only the certificate the pairing code named: the one made on your Mac (<code>PinnedDelegate</code>, in <code>Pairing.swift</code> in
+PointeKit). A Cloudflare tunnel ends the HTTPS connection at Cloudflare and shows
+Cloudflare's certificate, so the app refuses it. The app also talks to port 7443 and cannot sign in to Cloudflare
+Access. Tailscale, Twingate and Wi-Fi carry the connection to the Mac unopened, so the app's check passes on those.</p>
+<h2 id="when-it-stops-working">When it stops working</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Why</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The address with <code>:7443</code> does not load</td>
+<td>Cloudflare does not serve that port</td>
+<td>Remove <code>:7443</code> from the address</td>
+</tr>
+<tr>
+<td>Cloudflare's error page (502, or "Bad gateway")</td>
+<td>The tunnel cannot reach the listener: Pointe is not running, the listener is off, or the service is <code>HTTP</code> instead of <code>HTTPS</code></td>
+<td>Start Pointe; check the service is <code>HTTPS</code>, <code>localhost:7443</code>, with No TLS Verify on</td>
+</tr>
+<tr>
+<td>"forbidden"</td>
+<td>The <code>Host</code> the tunnel sends is not the paired name</td>
+<td>Remove any Host header override on the public hostname, or pair the exact public name</td>
+</tr>
+<tr>
+<td>"This browser is no longer paired with the Mac. On the Mac, run: pointe pair link…"</td>
+<td>The browser has no pairing cookie, or Unpair all replaced the secret</td>
+<td>Run <code>pointe pair link</code> and open the new address (without <code>:7443</code>) once</td>
+</tr>
+<tr>
+<td>Access asks you to sign in again</td>
+<td>The Access session ended</td>
+<td>Sign in; the pairing cookie is still there</td>
+</tr>
+</tbody>
+</table></div>
+<p>Not measured: this route has not been run end to end by the maintainers. The Pointe side is in code (<code>pointe/pair.py</code>,
+<code>pointe/remote.py</code>); the Cloudflare steps follow Cloudflare's documentation and may change with it.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone/cloudflare.md">docs/phone/cloudflare.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../twingate/"><span class="pg-small">Previous</span>Connect over Twingate</a><a class="dx-next" href="../../iphone-app/"><span class="pg-small">Next</span>The iPhone app</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#set-it-up">Set it up</a></li>
+<li class="dx-l3"><a href="#1-pointes-listener">1. Pointe&#x27;s listener</a></li>
+<li class="dx-l3"><a href="#2-the-tunnel">2. The tunnel</a></li>
+<li class="dx-l3"><a href="#3-access">3. Access</a></li>
+<li class="dx-l3"><a href="#4-pair-the-phones-browser">4. Pair the phone&#x27;s browser</a></li>
+<li class="dx-l2"><a href="#why-not-the-iphone-app">Why not the iPhone app</a></li>
+<li class="dx-l2"><a href="#when-it-stops-working">When it stops working</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

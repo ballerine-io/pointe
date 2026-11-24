@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contributing · Pointe docs</title>
+<meta name="description" content="Pointe is a conversational layer for your coding agents: convo coding, or conversational engineering. It is MIT licensed and community-supported. Pull…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Contributing">
+<meta property="og:description" content="Pointe is a conversational layer for your coding agents: convo coding, or conversational engineering. It is MIT licensed and community-supported. Pull…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/contributing/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/contributing/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="./" aria-current="page">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="contributing">Contributing</h1>
+<p>Pointe is a conversational layer for your coding agents: convo coding, or conversational engineering. It is MIT
+licensed and community-supported. Pull requests, bug reports, test reports from machines we do not have, and ideas are
+all welcome. What may come next, sorted by votes: <a href="https://github.com/ballerine-io/pointe/blob/main/ROADMAP.md">ROADMAP.md</a>. Teams that use Pointe in real work can join
+the <a href="#the-conversational-engineering-working-group">Conversational Engineering Working Group</a>.</p>
+<h2 id="your-first-pull-request-in-15-minutes">Your first pull request in 15 minutes</h2>
+<p>You need git and a Mac or a Linux machine. No keys and no cost, until step 4.</p>
+<ol>
+<li>
+<p><strong>Clone, and install uv</strong> (pinned, checked against its SHA-256; it does nothing if uv is already there):</p>
+<div class="dx-code"><pre><code>git clone https://github.com/ballerine-io/pointe.git &amp;&amp; cd pointe
+bin/install-uv</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+</li>
+<li>
+<p><strong>See what runs here.</strong> <code>bin/voice-doctor</code> downloads Python and the locked packages on its first run (about 190 MB),
+   then says which keys and tools it found.</p>
+</li>
+<li>
+<p><strong>Run the offline suite.</strong> About four minutes, no keys. Tests that call vendors (<code>RUN_LIVE=1</code>), or need Apple silicon
+   or the local extra, skip themselves. CI runs the same command on Ubuntu.</p>
+<div class="dx-code"><pre><code>uv run --locked pytest -q tests/ --ignore=tests/e2e
+uv run --locked pytest -q tests/test_ui_page.py          # one file, while you work</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+</li>
+<li>
+<p><strong>Run a daemon of your own</strong>, on its own port and state folder, so it never touches a Pointe you use (port 7860,
+   <code>~/.claude-voice</code>). It needs one model key, from the Keychain (<code>bin/pointe key gemini</code> opens a window for it) or
+   from its environment variable; it refuses to start without one.</p>
+<div class="dx-code"><pre><code>export CLAUDE_VOICE_STATE=&quot;$(mktemp -d)&quot; CLAUDE_VOICE_DAEMON_PORT=7870
+bin/voice-daemon ensure                                  # prints the page&#x27;s address
+bin/voice-daemon stop</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Never put a key on a command line or in a file in the repository.</p>
+</li>
+<li>
+<p><strong>Change one thing, test it, sign the commit, open the pull request.</strong></p>
+<div class="dx-code"><pre><code>git switch -c my-fix
+uv run --locked pytest -q tests/ --ignore=tests/e2e
+git commit -s -m &quot;The sessions column keeps a long name on one line&quot;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Commit subjects are plain sentences, like the log. A maintainer reviews every pull request before it reaches <code>main</code>.</p>
+</li>
+</ol>
+<h2 id="development-setup">Development setup</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>You need</th>
+<th>For</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>git, and a Mac or a Linux machine</td>
+<td>everything</td>
+<td></td>
+</tr>
+<tr>
+<td>uv</td>
+<td>Python, the packages, every command below</td>
+<td><code>bin/install-uv</code> installs the pinned version, checked against its SHA-256</td>
+</tr>
+<tr>
+<td>Python 3.12 or newer</td>
+<td>the daemon and the tests</td>
+<td>uv installs it: <code>.python-version</code> names 3.12, <code>pyproject.toml</code> requires 3.12 or newer</td>
+</tr>
+<tr>
+<td>The locked packages</td>
+<td>the daemon and the tests</td>
+<td><code>uv sync --locked</code>; any <code>uv run --locked</code> syncs first</td>
+</tr>
+<tr>
+<td>The local extra (Apple silicon)</td>
+<td>local models: <code>pointe local</code>, the local benchmarks</td>
+<td><code>uv sync --locked --extra local</code> (about 290 MB to download)</td>
+</tr>
+<tr>
+<td>Google Chrome</td>
+<td>the page's tests (<code>tests/test_ui_page.py</code>, <code>tests/test_ui_layout.py</code>) and the end-to-end suites</td>
+<td>They skip without it</td>
+</tr>
+<tr>
+<td>Xcode 16 or newer, macOS 15 or newer</td>
+<td>the Mac app, the iPhone app and PointeKit</td>
+<td>Free in the App Store. The iPhone app targets iOS 18; its tests run in the iPhone Simulator</td>
+</tr>
+<tr>
+<td>Node.js</td>
+<td>channel mode only (<code>pointe start</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td>Model keys</td>
+<td>only the live and end-to-end tests, and a daemon of your own</td>
+<td>The macOS Keychain or the environment, never a file or a command line</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>bin/voice-doctor</code> says which of these it found.</p>
+<h2 id="repository-layout">Repository layout</h2>
+<p>The daemon's modules are in <code>pointe/</code> (flat: they import each other by name and run as scripts, nothing is installed
+as a package), the apps in <code>apps/</code>. This section is the one place in the docs that maps parts to paths: when files move,
+update it here.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Path</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pointe/daemon.py</code></td>
+<td>The hub: the HTTP routes, the call pipeline (ears, echo guard, brain, mouth), approvals, <code>/voice/status</code></td>
+</tr>
+<tr>
+<td><code>pointe/brain.py</code></td>
+<td>Decides what to say. Speech is a tool call, so code checks a reply before anyone hears it</td>
+</tr>
+<tr>
+<td><code>pointe/guards.py</code>, <code>pointe/readout.py</code></td>
+<td>Rules in code: what can be read out, what counts as a plain yes, which routes the phone key may call</td>
+</tr>
+<tr>
+<td><code>pointe/brief.py</code></td>
+<td>The reader: session notes and reports</td>
+</tr>
+<tr>
+<td><code>pointe/harnesses/</code></td>
+<td>One adapter per agent (Claude Code, OpenCode, Codex), and <code>pointe/remote.py</code> for sessions on other machines. The contract: <a href="../harnesses/">docs/harnesses.md</a></td>
+</tr>
+<tr>
+<td><code>pointe/sessions.py</code></td>
+<td>The registry of joined sessions, their transcripts, and sends</td>
+</tr>
+<tr>
+<td><code>pointe/vendors.py</code>, <code>pointe/setups.py</code>, <code>pointe/keys.py</code></td>
+<td>Each vendor, its key, the order roles pick them in; the six setups; <code>pointe key</code></td>
+</tr>
+<tr>
+<td><code>pointe/pair.py</code>, <code>pointe/phone_pairing.py</code>, <code>pointe/remote.py</code>, <code>pointe/phone.py</code>, <code>pointe/calllink.py</code></td>
+<td>The phone listener, pairing, the phone's call and its wire format, and the link that keeps a call through a dropped connection</td>
+</tr>
+<tr>
+<td><code>pointe/node.py</code>, <code>pointe/nodelink.py</code>, <code>pointe/hub_nodes.py</code></td>
+<td>Other machines: the node, the link, and the hub's side of it (<a href="../multi-machine/">docs/multi-machine.md</a>)</td>
+</tr>
+<tr>
+<td>The other <code>pointe/*.py</code></td>
+<td>One module per feature: <code>pointe/meeting.py</code>, <code>pointe/nightshift.py</code>, <code>pointe/briefing.py</code>, <code>pointe/drive.py</code>, <code>pointe/whisper.py</code>, <code>pointe/ptt.py</code>, <code>pointe/speaker.py</code> (the voice lock), <code>pointe/vocabulary.py</code>, and the rest</td>
+</tr>
+<tr>
+<td><code>pointe/ui.html</code></td>
+<td>The page: one file, no build step (<code>pointe/ui_*.html</code> are parts the daemon puts in it)</td>
+</tr>
+<tr>
+<td><code>apps/PointeKit</code></td>
+<td>The Swift package both apps share: <code>PointeKit</code> (wire format, loopback client), <code>PointeUI</code> (every screen), <code>PointeMacKit</code> (the Mac's own parts). Unit tests in <code>Tests/</code></td>
+</tr>
+<tr>
+<td><code>apps/ios/</code></td>
+<td>The iPhone app: its entry point, intent and icon (<code>apps/ios/Pointe</code>), the Control and widget (<code>apps/ios/PointeWidget</code>), its tests (<code>PointeTests</code>, <code>PointeUITests</code>), and drivers against a test daemon (<code>apps/ios/e2e/</code>)</td>
+</tr>
+<tr>
+<td><code>apps/macos/</code></td>
+<td>The Mac app (<code>PointeMac</code>), its tests, <code>test.sh</code>, <code>build.sh</code>, and <code>tools/make_project.py</code>, which writes its Xcode project</td>
+</tr>
+<tr>
+<td><code>pointe/apps.py</code></td>
+<td><code>pointe apps doctor</code>, <code>mac</code>, <code>ios</code>: builds, signs and installs the two apps from source. Standard library only, so it runs on Xcode's Python; tested against recorded tool output in <code>tests/test_apps.py</code></td>
+</tr>
+<tr>
+<td><code>bin/</code>, <code>plugin/</code>, <code>hooks/</code>, <code>channel/</code>, <code>install.sh</code></td>
+<td>The launchers (<code>bin/pointe</code> and the scripts it runs), the installer for Pointe without Claude Code, the Claude Code commands (<code>/pointe:*</code>), the permission hook, and the channel for <code>pointe start</code></td>
+</tr>
+<tr>
+<td><code>tests/</code></td>
+<td>The offline suite. <code>tests/e2e/</code> calls paid vendors and starts real sessions</td>
+</tr>
+<tr>
+<td><code>bench/</code>, <code>evals/</code></td>
+<td>Benchmarks and scenarios behind every default, all synthetic</td>
+</tr>
+<tr>
+<td><code>tools/</code></td>
+<td>Generators and checks: the setups table, the roadmap, the parity matrix, the site's version, the docs site (<code>build_docs.py</code>), the release tarball, and the demo-video recorder (<code>tools/demo-video/</code>)</td>
+</tr>
+<tr>
+<td><code>docs/</code></td>
+<td>These docs. <code>docs/design/</code> holds plans and reviews, <code>docs/security/</code> the supply-chain inventory and the security reviews</td>
+</tr>
+<tr>
+<td><code>site/</code></td>
+<td>The website, eng.ballerine.com. <code>site/pointe/roadmap/</code> and <code>site/pointe/docs/</code> are generated</td>
+</tr>
+</tbody>
+</table></div>
+<p>How the parts fit together: <a href="../architecture/">docs/architecture.md</a>. How a call works, step by step:
+<a href="../how-it-works/">docs/how-it-works.md</a>. The threat model: <a href="../security/">SECURITY.md</a>.</p>
+<h2 id="running-the-tests">Running the tests</h2>
+<p>Every command runs from the top of the repository, with paths from the <a href="#repository-layout">layout</a> above.</p>
+<h3 id="the-offline-suite">The offline suite</h3>
+<p>No keys, no cost, about four minutes. CI runs the same command on Ubuntu, so a test that needs a Mac, Chrome, Apple
+silicon or a key skips itself elsewhere.</p>
+<div class="dx-code"><pre><code>uv run --locked pytest -q tests/ --ignore=tests/e2e        # all of it
+uv run --locked pytest -q tests/test_ui_page.py            # one file
+uv run --locked pytest -q tests/test_pair.py -k rotate     # the tests whose names match</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Tests get a throwaway state folder and ports of their own (<code>tests/conftest.py</code>); none touches a Pointe you use.
+<code>tests/test_orchestrator.py</code> drives the real daemon code with a fake model: start a bug fix there.</p>
+<h3 id="the-page">The page</h3>
+<p><code>tests/test_ui_page.py</code> and <code>tests/test_ui_layout.py</code> drive <code>pointe/ui.html</code> in a headless Chrome against a stub Mac
+(<code>tests/page_rig.py</code>): a small server that serves the page as the daemon does and answers <code>/voice/status</code> from a fixture
+the test changes. A test sets the fixture, waits for the page, and reads or clicks it. Words the page and the apps both
+show are checked by <code>tests/test_copy_parity.py</code>, colours by <code>tests/test_theme.py</code>, and what each surface has by
+<code>tests/test_parity_matrix.py</code>.</p>
+<h3 id="the-apps">The apps</h3>
+<div class="dx-code"><pre><code>(cd apps/PointeKit &amp;&amp; swift test)    # PointeKit: every screen, the call, the models; on the Mac
+apps/macos/test.sh unit                    # PointeKit and the Mac app&#x27;s unit tests: what CI runs
+apps/macos/test.sh smoke                   # every main flow on invented sessions, through the Accessibility API
+apps/macos/test.sh ui                      # the same flows with XCUITest; macOS asks you to allow UI automation first</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The iPhone app's tests run in the iPhone Simulator, as in CI (<code>.github/workflows/test.yml</code>, job <code>ios</code>): pick an
+available simulator's id from <code>xcrun simctl list devices available</code>, then</p>
+<div class="dx-code"><pre><code>(cd ios &amp;&amp; xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination &quot;id=&lt;simulator id&gt;&quot; \
+  -only-testing:PointeTests CODE_SIGNING_ALLOWED=NO -quiet)
+(cd apps/PointeKit &amp;&amp; xcodebuild test -scheme PointeKit-Package -destination &quot;id=&lt;simulator id&gt;&quot; \
+  -only-testing:PointeUIUnitTests -quiet)</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The UI tests (<code>apps/ios/PointeUITests</code>) and the drivers in <code>apps/ios/e2e/</code> run the app against a test daemon; each driver's first
+lines give its command, with its own state folder and ports. <code>uv run --locked python -I apps/macos/e2e/live.py</code> runs the
+real Mac app against its own daemon, with keys and the microphone.</p>
+<h3 id="end-to-end-with-paid-vendors">End to end, with paid vendors</h3>
+<p><code>tests/e2e/</code> starts real Claude Code sessions and calls the vendors on your keys, so each run costs money; the cost of
+a run is not recorded. Run them when you change the audio path, or ask a maintainer to.</p>
+<div class="dx-code"><pre><code>tests/e2e/run_all.sh    # three suites in parallel, each on its own daemon, port and sample repository</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><code>run_all.sh</code> runs <code>scenarios.py brain</code> (one session), <code>multi_session.py</code> (routing, switching, permissions) and <code>pointe/echo.py</code>
+(the bot's voice leaking into the microphone) on ports 7862 to 7864, with state in <code>/tmp/cv-state-*</code>, and stops a suite
+after 25 minutes. To run one suite by itself, give it a state folder and a port of its own:</p>
+<div class="dx-code"><pre><code>export CLAUDE_VOICE_STATE=&quot;$(mktemp -d)&quot; CLAUDE_VOICE_DAEMON_PORT=7861
+uv run --locked python -I tests/e2e/scenarios.py brain        # one session, about 15 minutes
+uv run --locked python -I tests/e2e/multi_session.py          # two sessions
+ECHO_GAIN=0.9 uv run --locked python -I tests/e2e/echo.py     # speakers leaking into the microphone, no echo cancel</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><code>evals/sim.py</code> runs a whole call on the real voice model, without audio, from synthetic scenarios: each run calls the
+Gemini API at a small cost (<a href="https://github.com/ballerine-io/pointe/blob/main/evals/README.md">evals/README.md</a>).</p>
+<h3 id="benchmarks">Benchmarks</h3>
+<p>Every default comes from a benchmark in <code>bench/</code>, on synthetic data. Each runner says its commands in its first
+lines; for example:</p>
+<div class="dx-code"><pre><code>uv run --locked python -I bench/brain_bench.py validate       # the cases: counts, lengths, synthetic-data lint; free
+uv run --locked python -I bench/brain_bench.py run --role brain
+uv run --locked python -I bench/brain_bench.py report         # writes bench/results/brain.md</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The others measure the ears (<code>stt_bench.py</code>), the voice (<code>tts_bench.py</code>, <code>local_tts_bench.py</code>), the voice lock
+(<code>speaker_bench.py</code>), the vocabulary (<code>vocab_bench.py</code>) and whisper mode (<code>whisper_bench.py</code>); their results are in
+<code>bench/results/</code>. The five conversational engineering benchmarks are in <code>bench/conversational/</code>, each with a spend cap
+(<code>--budget-usd</code>) checked before every launch, and their spend per run is in
+<a href="../../benchmarks/#spend">docs/benchmarks/README.md</a>.</p>
+<h3 id="before-a-pull-request">Before a pull request</h3>
+<div class="dx-code"><pre><code>uv run --locked pytest -q tests/test_supply_chain.py       # when you touch dependencies, workflows, bin/, hooks/, plugin/ or downloads
+uv run --locked python tools/build_docs.py                 # after a change to docs/: writes the docs pages on the site</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<h2 id="pick-something-to-work-on">Pick something to work on</h2>
+<ul>
+<li>
+<p><a href="https://github.com/ballerine-io/pointe/issues?q=is%3Aopen+label%3A%22good+first+issue%22"><strong>good first issue</strong></a>:
+  small, with the files named and a "done when". Some are reports that need no code, such as a real call on Linux.</p>
+</li>
+<li>
+<p><a href="https://github.com/ballerine-io/pointe/issues?q=is%3Aopen+label%3A%22help+wanted%22"><strong>help wanted</strong></a>: larger, or
+  needs a machine or a skill the maintainers do not have.</p>
+</li>
+<li>
+<p><a href="https://github.com/ballerine-io/pointe/blob/main/ROADMAP.md"><strong>roadmap</strong></a>: the bigger items, sorted by 👍. Comment on the issue before you start one, so the approach
+  is agreed before you write much code.</p>
+</li>
+</ul>
+<p>The <code>area/</code> labels say which part of the code an issue touches, and <code>platform/</code> which operating system.</p>
+<h2 id="propose-something">Propose something</h2>
+<ul>
+<li>
+<p><strong>A feature:</strong> start in <a href="https://github.com/ballerine-io/pointe/discussions/categories/ideas">Discussions → Ideas</a>.
+  Ideas that gather support become roadmap issues. Pointe's rule: a feature may only narrow what a spoken word can
+  approve or send, never widen it.</p>
+</li>
+<li>
+<p><strong>A new agent (harness):</strong> the harness request form in <a href="https://github.com/ballerine-io/pointe/issues/new/choose">issues</a>.</p>
+</li>
+<li><strong>A bug:</strong> the bug report form, with the output of <code>bin/pointe doctor</code>. Check every line before you paste it.</li>
+<li><strong>A question:</strong> <a href="https://github.com/ballerine-io/pointe/discussions/categories/q-a">Discussions → Q&amp;A</a>.</li>
+<li><strong>A vulnerability:</strong> never in public. <a href="../security/">SECURITY.md</a> says how to report it privately.</li>
+</ul>
+<h2 id="before-you-change-behavior">Before you change behavior</h2>
+<ul>
+<li>
+<p><strong>Rules live in code.</strong> If the bot must never do something, enforce it in <code>pointe/guards.py</code> or <code>pointe/daemon.py</code> and add a test. A
+  sentence in a prompt is not a guarantee.</p>
+</li>
+<li>
+<p><strong>Bug fix: failing test first.</strong> <code>tests/test_orchestrator.py</code> drives the real daemon code with a fake model.</p>
+</li>
+<li>
+<p><strong>The page:</strong> <code>tests/test_ui_page.py</code> and <code>tests/test_ui_layout.py</code> drive <code>pointe/ui.html</code> in a headless Chrome against a stub
+  Mac (<code>tests/page_rig.py</code>). Words the page and the app both show live in shared dictionaries that
+  <code>tests/test_copy_parity.py</code> checks; colours come from <code>assets/theme.json</code> (<code>tests/test_theme.py</code>).</p>
+</li>
+<li>
+<p><strong>The iPhone app:</strong> add to <code>apps/PointeKit/Tests/PointeUIUnitTests</code>; CI builds the app and runs them on a simulator.</p>
+</li>
+<li>
+<p><strong>Prompt or model change: run the benchmark.</strong> <code>bench/brain_bench.py</code> compares against saved results. Scores move, and
+  a change that reads better can score worse.</p>
+</li>
+<li>
+<p><strong>Audio paths: run <code>tests/e2e/run_all.sh</code>.</strong> It calls paid APIs and starts real Claude Code sessions on isolated ports.
+  If you have no keys, say so in the pull request and a maintainer runs it.</p>
+</li>
+</ul>
+<h2 id="new-dependencies-and-downloads">New dependencies and downloads</h2>
+<p>The supply-chain rules are in <a href="https://github.com/ballerine-io/pointe/blob/main/CLAUDE.md">CLAUDE.md</a> ("Supply chain") and enforced by <code>tests/test_supply_chain.py</code>.
+In short:</p>
+<ul>
+<li>
+<p><strong>No new dependency without the owner's yes.</strong> Ask in the issue first: the package, its license, what it pulls in, and
+  why nothing already here does the job. The iPhone app uses no packages at all.</p>
+</li>
+<li>
+<p><strong>Lockfile only:</strong> <code>uv run --locked</code> and <code>uv sync --locked</code>. Nothing is installed around the lockfile.</p>
+</li>
+<li><strong>Every download is pinned</strong> by SHA-256 or commit in <code>pointe/assets.py</code>, and every host the code can reach is listed in
+  <code>docs/security/egress-allowlist.txt</code>. The page and the site load nothing from another host.</li>
+</ul>
+<p>Run <code>uv run --locked pytest -q tests/test_supply_chain.py</code> before a pull request that touches <code>pyproject.toml</code>,
+<code>uv.lock</code>, <code>.github/</code>, <code>bin/</code>, <code>hooks/</code>, <code>plugin/</code>, <code>channel/</code>, <code>pointe/assets.py</code> or anything that downloads.</p>
+<h2 id="adding-a-vendor">Adding a vendor</h2>
+<p>Add it to <code>KEYS</code> and the role orders in <code>pointe/vendors.py</code>, add its text and step adapters, then add a row to
+<code>bench/results/combinations.md</code> with what you measured. A role order changes only with a benchmark behind it.</p>
+<h2 id="adding-a-harness">Adding a harness</h2>
+<p>Follow "Adding a harness" in <a href="../harnesses/">docs/harnesses.md</a>: subclass <code>Harness</code>, declare its capabilities
+truthfully, and add a fake-service test like <code>tests/test_opencode.py</code> plus a case in <code>tests/test_mixed_harnesses.py</code>.</p>
+<h2 id="test-data">Test data</h2>
+<p>Everything in <code>bench/</code>, <code>evals/</code> and <code>tests/</code> must be synthetic: invented companies, names and paths. Never a real session.</p>
+<h2 id="sign-your-commits-dco">Sign your commits (DCO)</h2>
+<p>Every commit needs a <code>Signed-off-by:</code> line: <code>git commit -s</code> adds it. By signing, you certify the
+<a href="https://developercertificate.org/">Developer Certificate of Origin</a>: you wrote the change, or have the right to submit
+it under this project's MIT license. A check on each pull request fails if a commit is not signed. To sign commits you
+already made: <code>git rebase --signoff main</code>, then push again.</p>
+<h2 id="releases">Releases</h2>
+<p>A release is a version commit on <code>main</code>, an annotated tag, and a GitHub Release with notes a person can read. A change
+to anything a user runs (the Python, <code>bin/</code>, <code>hooks/</code>, <code>plugin/</code>, the page, the apps) reaches them only with a new
+version, because Claude Code installs the plugin from <code>main</code> and keeps one copy per version. Docs, tests, <code>bench/</code> and
+the site's copy alone need none. Ask in your pull request whether it needs one; a maintainer cuts it. The version
+commit moves the plugin manifest, <code>pyproject.toml</code> and <code>uv.lock</code>, both apps' projects, the changelog and the site
+together, and <code>tests/test_version.py</code> fails when they disagree. The whole process: <a href="../releasing/">docs/releasing.md</a>.</p>
+<h2 id="security-reviews">Security reviews</h2>
+<p>Pointe holds your keys, hears your microphone and can approve your agents' permission prompts. A change to a security
+boundary (the listeners and their authentication, pairing, what a spoken word or a tap can approve, how keys reach
+processes, the install path) needs tests in <code>tests/test_security.py</code> or next to the code, and is covered by the
+project's security reviews. Each review is published in <code>docs/security/reviews/</code>, with what was looked at, what was
+found, and what was done about each finding; the cadence and the method are in that folder's <code>README.md</code>. A maintainer
+checks each finding against the code before it is marked fixed, by design or accepted. The threat model is
+<a href="../security/">SECURITY.md</a>. Report a vulnerability privately, never in an issue.</p>
+<h2 id="the-conversational-engineering-working-group">The Conversational Engineering Working Group</h2>
+<p>Teams that use Pointe in real work. Members share what works and what breaks, help shape the practice, the roadmap and
+the benchmarks (Humanity's Last Keystroke among them), and contribute code or adapters when they can. They get a voice
+in the roadmap, early builds, a shared channel with the maintainers, and their team's name on the site if they want it.
+There is no fee and no contract. To join, open the
+<a href="https://github.com/ballerine-io/pointe/issues/new?template=working-group.yml">working group form</a>; the issue is public,
+so write nothing there you would not publish.</p>
+<p>Please follow the <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../features/openai-url/"><span class="pg-small">Previous</span>OpenAI models from another host</a><a class="dx-next" href="../releasing/"><span class="pg-small">Next</span>Releasing</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#your-first-pull-request-in-15-minutes">Your first pull request in 15 minutes</a></li>
+<li class="dx-l2"><a href="#development-setup">Development setup</a></li>
+<li class="dx-l2"><a href="#repository-layout">Repository layout</a></li>
+<li class="dx-l2"><a href="#running-the-tests">Running the tests</a></li>
+<li class="dx-l3"><a href="#the-offline-suite">The offline suite</a></li>
+<li class="dx-l3"><a href="#the-page">The page</a></li>
+<li class="dx-l3"><a href="#the-apps">The apps</a></li>
+<li class="dx-l3"><a href="#end-to-end-with-paid-vendors">End to end, with paid vendors</a></li>
+<li class="dx-l3"><a href="#benchmarks">Benchmarks</a></li>
+<li class="dx-l3"><a href="#before-a-pull-request">Before a pull request</a></li>
+<li class="dx-l2"><a href="#pick-something-to-work-on">Pick something to work on</a></li>
+<li class="dx-l2"><a href="#propose-something">Propose something</a></li>
+<li class="dx-l2"><a href="#before-you-change-behavior">Before you change behavior</a></li>
+<li class="dx-l2"><a href="#new-dependencies-and-downloads">New dependencies and downloads</a></li>
+<li class="dx-l2"><a href="#adding-a-vendor">Adding a vendor</a></li>
+<li class="dx-l2"><a href="#adding-a-harness">Adding a harness</a></li>
+<li class="dx-l2"><a href="#test-data">Test data</a></li>
+<li class="dx-l2"><a href="#sign-your-commits-dco">Sign your commits (DCO)</a></li>
+<li class="dx-l2"><a href="#releases">Releases</a></li>
+<li class="dx-l2"><a href="#security-reviews">Security reviews</a></li>
+<li class="dx-l2"><a href="#the-conversational-engineering-working-group">The Conversational Engineering Working Group</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

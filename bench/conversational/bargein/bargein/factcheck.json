@@ -1,0 +1,578 @@
+{
+ "date": "2026-11-23",
+ "recognizer": "mlx-community/whisper-large-v3-turbo",
+ "voices": [
+  "af_heart",
+  "am_michael",
+  "bf_emma",
+  "bm_george"
+ ],
+ "facts": [
+  {
+   "fact": "branch",
+   "voice": "af_heart",
+   "said": "You're on the cedar branch.",
+   "heard": "You're on the cedar branch.",
+   "matched": true
+  },
+  {
+   "fact": "branch",
+   "voice": "am_michael",
+   "said": "You're on the cedar branch.",
+   "heard": "You're on the cedar branch.",
+   "matched": true
+  },
+  {
+   "fact": "branch",
+   "voice": "bf_emma",
+   "said": "You're on the cedar branch.",
+   "heard": "You're on the cedar branch.",
+   "matched": true
+  },
+  {
+   "fact": "branch",
+   "voice": "bm_george",
+   "said": "You're on the cedar branch.",
+   "heard": "You're on the cedar branch.",
+   "matched": true
+  },
+  {
+   "fact": "build_failed",
+   "voice": "af_heart",
+   "said": "No, the build failed.",
+   "heard": "No, the build failed.",
+   "matched": true
+  },
+  {
+   "fact": "build_failed",
+   "voice": "am_michael",
+   "said": "No, the build failed.",
+   "heard": "No, the build failed.",
+   "matched": true
+  },
+  {
+   "fact": "build_failed",
+   "voice": "bf_emma",
+   "said": "No, the build failed.",
+   "heard": "No the build failed.",
+   "matched": true
+  },
+  {
+   "fact": "build_failed",
+   "voice": "bm_george",
+   "said": "No, the build failed.",
+   "heard": "No, the build failed.",
+   "matched": true
+  },
+  {
+   "fact": "coverage",
+   "voice": "af_heart",
+   "said": "Coverage is sixty-four percent.",
+   "heard": "Coverage is 64%.",
+   "matched": true
+  },
+  {
+   "fact": "coverage",
+   "voice": "am_michael",
+   "said": "Coverage is sixty-four percent.",
+   "heard": "Coverage is 64%.",
+   "matched": true
+  },
+  {
+   "fact": "coverage",
+   "voice": "bf_emma",
+   "said": "Coverage is sixty-four percent.",
+   "heard": "Coverage is 64%.",
+   "matched": true
+  },
+  {
+   "fact": "coverage",
+   "voice": "bm_george",
+   "said": "Coverage is sixty-four percent.",
+   "heard": "Coverage is 64%.",
+   "matched": true
+  },
+  {
+   "fact": "deploy_day",
+   "voice": "af_heart",
+   "said": "The last deploy was on Tuesday.",
+   "heard": "The last deploy was on Tuesday.",
+   "matched": true
+  },
+  {
+   "fact": "deploy_day",
+   "voice": "am_michael",
+   "said": "The last deploy was on Tuesday.",
+   "heard": "The last deploy was on Tuesday.",
+   "matched": true
+  },
+  {
+   "fact": "deploy_day",
+   "voice": "bf_emma",
+   "said": "The last deploy was on Tuesday.",
+   "heard": "The last deploy was on Tuesday.",
+   "matched": true
+  },
+  {
+   "fact": "deploy_day",
+   "voice": "bm_george",
+   "said": "The last deploy was on Tuesday.",
+   "heard": "The last deploy was on Tuesday.",
+   "matched": true
+  },
+  {
+   "fact": "lint_errors",
+   "voice": "af_heart",
+   "said": "There are twelve lint errors.",
+   "heard": "There are 12 lint errors.",
+   "matched": true
+  },
+  {
+   "fact": "lint_errors",
+   "voice": "am_michael",
+   "said": "There are twelve lint errors.",
+   "heard": "There are 12 lint errors.",
+   "matched": true
+  },
+  {
+   "fact": "lint_errors",
+   "voice": "bf_emma",
+   "said": "There are twelve lint errors.",
+   "heard": "There are 12 lint errors.",
+   "matched": true
+  },
+  {
+   "fact": "lint_errors",
+   "voice": "bm_george",
+   "said": "There are twelve lint errors.",
+   "heard": "There are 12 lint errors.",
+   "matched": true
+  },
+  {
+   "fact": "port",
+   "voice": "af_heart",
+   "said": "It runs on port eighty eighty.",
+   "heard": "It runs on port 8080.",
+   "matched": true
+  },
+  {
+   "fact": "port",
+   "voice": "am_michael",
+   "said": "It runs on port eighty eighty.",
+   "heard": "It runs on port 8080.",
+   "matched": true
+  },
+  {
+   "fact": "port",
+   "voice": "bf_emma",
+   "said": "It runs on port eighty eighty.",
+   "heard": "It runs on port 8080.",
+   "matched": true
+  },
+  {
+   "fact": "port",
+   "voice": "bm_george",
+   "said": "It runs on port eighty eighty.",
+   "heard": "It runs on port 8080.",
+   "matched": true
+  },
+  {
+   "fact": "tests_failed",
+   "voice": "af_heart",
+   "said": "Seven tests failed.",
+   "heard": "Seven tests failed.",
+   "matched": true
+  },
+  {
+   "fact": "tests_failed",
+   "voice": "am_michael",
+   "said": "Seven tests failed.",
+   "heard": "Seven tests failed.",
+   "matched": true
+  },
+  {
+   "fact": "tests_failed",
+   "voice": "bf_emma",
+   "said": "Seven tests failed.",
+   "heard": "Seven tests failed.",
+   "matched": true
+  },
+  {
+   "fact": "tests_failed",
+   "voice": "bm_george",
+   "said": "Seven tests failed.",
+   "heard": "Seven tests failed.",
+   "matched": true
+  },
+  {
+   "fact": "tests_total",
+   "voice": "af_heart",
+   "said": "There are one hundred and twenty tests in total.",
+   "heard": "There are 120 tests in total.",
+   "matched": true
+  },
+  {
+   "fact": "tests_total",
+   "voice": "am_michael",
+   "said": "There are one hundred and twenty tests in total.",
+   "heard": "There are 120 tests in total.",
+   "matched": true
+  },
+  {
+   "fact": "tests_total",
+   "voice": "bf_emma",
+   "said": "There are one hundred and twenty tests in total.",
+   "heard": "There are 120 tests in total.",
+   "matched": true
+  },
+  {
+   "fact": "tests_total",
+   "voice": "bm_george",
+   "said": "There are one hundred and twenty tests in total.",
+   "heard": "There are 120 tests in total.",
+   "matched": true
+  },
+  {
+   "fact": "waiting_service",
+   "voice": "af_heart",
+   "said": "The garden service is waiting for your review.",
+   "heard": "The garden service is waiting for your review.",
+   "matched": true
+  },
+  {
+   "fact": "waiting_service",
+   "voice": "am_michael",
+   "said": "The garden service is waiting for your review.",
+   "heard": "The garden service is waiting for your review.",
+   "matched": true
+  },
+  {
+   "fact": "waiting_service",
+   "voice": "bf_emma",
+   "said": "The garden service is waiting for your review.",
+   "heard": "The garden service is waiting for your review.",
+   "matched": true
+  },
+  {
+   "fact": "waiting_service",
+   "voice": "bm_george",
+   "said": "The garden service is waiting for your review.",
+   "heard": "The garden service is waiting for your review.",
+   "matched": true
+  },
+  {
+   "fact": "worst_file",
+   "voice": "af_heart",
+   "said": "Most failures are in test voucher dot py.",
+   "heard": "Most failures are in test Voucher.py.",
+   "matched": true
+  },
+  {
+   "fact": "worst_file",
+   "voice": "am_michael",
+   "said": "Most failures are in test voucher dot py.",
+   "heard": "Most failures are in test, voucher dot pi.",
+   "matched": true
+  },
+  {
+   "fact": "worst_file",
+   "voice": "bf_emma",
+   "said": "Most failures are in test voucher dot py.",
+   "heard": "Most failures are in test voucher.py.",
+   "matched": true
+  },
+  {
+   "fact": "worst_file",
+   "voice": "bm_george",
+   "said": "Most failures are in test voucher dot py.",
+   "heard": "Most failures are in test, voucher.py.",
+   "matched": true
+  }
+ ],
+ "detector": {
+  "accuracy": 1.0,
+  "n": 40,
+  "lines": [
+   {
+    "line": "I don't know yet. Want me to ask it?",
+    "voice": "bm_george",
+    "heard": "I don't know yet, want me to ask it.",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Which session do you mean?",
+    "voice": "am_michael",
+    "heard": "Which session do you mean?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Do you want me to stop the job?",
+    "voice": "am_michael",
+    "heard": "Do you want me to stop the job?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Should I delete the step files too?",
+    "voice": "af_heart",
+    "heard": "Should I delete the step files too?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Did you mean the out folder?",
+    "voice": "bm_george",
+    "heard": "Did you mean the outfolder?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Is that the kiln session?",
+    "voice": "bm_george",
+    "heard": "Is that the kiln session?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "What would you like me to do with them?",
+    "voice": "am_michael",
+    "heard": "What would you like me to do with them?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Shall I put the rest in out?",
+    "voice": "af_heart",
+    "heard": "Shall I put the rest in out?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Can you say that again?",
+    "voice": "af_heart",
+    "heard": "Can you say that again?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Would you like me to ask quarry?",
+    "voice": "af_heart",
+    "heard": "Would you like me to ask Corey?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Okay, so which one?",
+    "voice": "bm_george",
+    "heard": "Okay, so which one?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Where should the files go?",
+    "voice": "bf_emma",
+    "heard": "Where should the files go?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "How many steps should it run?",
+    "voice": "af_heart",
+    "heard": "How many steps should it run?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Are you sure you want to stop it?",
+    "voice": "af_heart",
+    "heard": "Are you sure you want to stop it?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Was that a yes?",
+    "voice": "bf_emma",
+    "heard": "Was that a yes?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "I can ask it. Do you want that?",
+    "voice": "bf_emma",
+    "heard": "I can ask it, do you want that?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Kiln is still running. Should I interrupt it?",
+    "voice": "bm_george",
+    "heard": "Kiln is still running. Should I interrupt it?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Who should I send this to?",
+    "voice": "bf_emma",
+    "heard": "Who should I send this to?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Why do you want it stopped?",
+    "voice": "af_heart",
+    "heard": "Why do you want it stopped?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "Could you repeat the folder name?",
+    "voice": "af_heart",
+    "heard": "Could you repeat the folder name?",
+    "label": true,
+    "detected": true
+   },
+   {
+    "line": "I asked kiln to stop the long job.",
+    "voice": "bf_emma",
+    "heard": "I asked Kiln to stop the long job.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Seven tests failed.",
+    "voice": "af_heart",
+    "heard": "Seven tests failed.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "The build did not pass.",
+    "voice": "bm_george",
+    "heard": "The build did not pass.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Kiln is running the long job now.",
+    "voice": "am_michael",
+    "heard": "Kiln is running the long job now.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Done. The files are in out.",
+    "voice": "am_michael",
+    "heard": "Done, the files are an out.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Quarry says the port is eighty eighty.",
+    "voice": "bm_george",
+    "heard": "Quarry says the port is 8080.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "It hasn't confirmed yet.",
+    "voice": "af_heart",
+    "heard": "It hasn't confirmed yet.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "The last deploy was on Tuesday.",
+    "voice": "bf_emma",
+    "heard": "The last deploy was on Tuesday.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "I sent that to quarry.",
+    "voice": "bm_george",
+    "heard": "I sent that to quarry.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "There are twelve lint errors.",
+    "voice": "bm_george",
+    "heard": "There are 12 lint errors.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Okay.",
+    "voice": "bf_emma",
+    "heard": "Okay.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Got it, stopping now.",
+    "voice": "bm_george",
+    "heard": "Got it, stopping now.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "The garden service is waiting for your review.",
+    "voice": "bm_george",
+    "heard": "The garden service is waiting for your review.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "You're on the cedar branch.",
+    "voice": "af_heart",
+    "heard": "You're on the cedar branch.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "I'll ask it and let you know.",
+    "voice": "bf_emma",
+    "heard": "I'll ask it and let you know.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Coverage is sixty four percent.",
+    "voice": "bf_emma",
+    "heard": "Coverage is 64%.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Most failures are in test voucher.",
+    "voice": "bf_emma",
+    "heard": "Most failures are in test voucher.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Kiln stopped after step three.",
+    "voice": "am_michael",
+    "heard": "Kiln stopped after step 3.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Nothing else is running.",
+    "voice": "af_heart",
+    "heard": "Nothing else is running.",
+    "label": false,
+    "detected": false
+   },
+   {
+    "line": "Sure, putting them in out.",
+    "voice": "bf_emma",
+    "heard": "Sure, putting them in out.",
+    "label": false,
+    "detected": false
+   }
+  ]
+ }
+}

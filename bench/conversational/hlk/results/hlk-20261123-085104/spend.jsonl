@@ -1,0 +1,5 @@
+{"adapter": "keyboard-transcript", "how": "computed", "item": "read-then-decide-2", "role": "agent", "run_id": "hlk-20261123-085104", "run_index": 1, "session": "tariff", "usd": 0.00568, "vendor": "anthropic"}
+{"adapter": "llm-router", "how": "computed", "item": "two-repo-handoff-0", "role": "agent", "run_id": "hlk-20261123-085104", "run_index": 0, "session": "quarry", "usd": 0.00249, "vendor": "anthropic"}
+{"adapter": "llm-router", "how": "computed", "item": "two-repo-handoff-0", "role": "agent", "run_id": "hlk-20261123-085104", "run_index": 0, "session": "thistle", "usd": 0.00259, "vendor": "anthropic"}
+{"adapter": "llm-router", "how": "computed", "item": "two-repo-handoff-0", "role": "llm-router", "run_id": "hlk-20261123-085104", "run_index": 0, "usd": 0.0007, "vendor": "soniox", "what": "21 s streamed"}
+{"adapter": "llm-router", "how": "computed", "item": "two-repo-handoff-0", "role": "llm-router", "run_id": "hlk-20261123-085104", "run_index": 0, "usd": 0.00718, "vendor": "anthropic", "what": "4 router calls, usage from the API"}

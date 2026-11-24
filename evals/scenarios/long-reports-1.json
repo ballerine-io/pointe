@@ -1,0 +1,36 @@
+{
+ "mode": "session",
+ "sessions": [
+  {
+   "name": "tidewater/settlement-dedupe",
+   "cwd": "/tmp/repo",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "We have duplicate settlement rows showing up for Orchard Credit after the acquirer re-sent files last week. Find out why and fix it. Constraint: do not touch or lock ledger_entries, it is the audited table. Keep it behind a customer flag."
+    },
+    {
+     "role": "assistant",
+     "text": "Found it. The batch idempotency key is the file's SHA-256, so a re-sent file with one reordered line gets a new key and creates a second batch. The retry worker has a second path to the same bug: if the first attempt times out after commit, it creates another batch. Plan: derive the key from tenant, acquirer batch ref, value date and currency, store it in a new table, and make the retry worker read it first. No change to ledger_entries."
+    },
+    {
+     "role": "user",
+     "text": "Good. Code freeze is Thursday 18:00 so I want this in a PR before then. Also Tomas will ask about the nightly close job locks, make sure you have an answer."
+    },
+    {
+     "role": "assistant",
+     "text": "Understood. PR before the freeze, and I will check the close job's locks. Starting the implementation now, then the full test suite, and I will also measure how many old duplicates exist in production, read-only."
+    },
+    {
+     "role": "user",
+     "text": "Yes measure it read only. And the staging latency alert from Tuesday, after the PR, look into whether it's us."
+    },
+    {
+     "role": "assistant",
+     "text": "Will do, after the PR is up. I will also compare the vendor gateway candidates you forwarded once those two are done."
+    }
+   ]
+  }
+ ]
+}

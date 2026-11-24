@@ -1,0 +1,480 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+		B0C1D2E3F4A500000000002B /* PointeKit in Frameworks */ = {isa = PBXBuildFile; productRef = B0C1D2E3F4A5000000000029 /* PointeKit */; };
+		B0C1D2E3F4A500000000002C /* PointeMacKit in Frameworks */ = {isa = PBXBuildFile; productRef = B0C1D2E3F4A500000000002A /* PointeMacKit */; };
+		B0C1D2E3F4A500000000002E /* PointeUI in Frameworks */ = {isa = PBXBuildFile; productRef = B0C1D2E3F4A500000000002D /* PointeUI */; };
+		B0C1D2E3F4A5000000000032 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B0C1D2E3F4A5000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B0C1D2E3F4A5000000000004;
+			remoteInfo = PointeMac;
+		};
+		B0C1D2E3F4A5000000000033 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B0C1D2E3F4A5000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B0C1D2E3F4A5000000000004;
+			remoteInfo = PointeMac;
+		};
+		B0C1D2E3F4A500000000000A /* Pointe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pointe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0C1D2E3F4A500000000000B /* PointeMacTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PointeMacTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0C1D2E3F4A500000000000C /* PointeMacUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PointeMacUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0C1D2E3F4A500000000005A /* Exceptions for "PointeMac" folder in "PointeMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				PointeMac.entitlements,
+			);
+			target = B0C1D2E3F4A5000000000004 /* PointeMac */;
+		};
+		B0C1D2E3F4A5000000000007 /* PointeMac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B0C1D2E3F4A500000000005A,
+			);
+			path = PointeMac;
+			sourceTree = "<group>";
+		};
+		B0C1D2E3F4A5000000000008 /* PointeMacTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PointeMacTests;
+			sourceTree = "<group>";
+		};
+		B0C1D2E3F4A5000000000009 /* PointeMacUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PointeMacUITests;
+			sourceTree = "<group>";
+		};
+		B0C1D2E3F4A5000000000015 /* PBXFrameworksBuildPhase */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0C1D2E3F4A500000000002B /* PointeKit in Frameworks */,
+				B0C1D2E3F4A500000000002C /* PointeMacKit in Frameworks */,
+				B0C1D2E3F4A500000000002E /* PointeUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A5000000000018 /* PBXFrameworksBuildPhase */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A500000000001B /* PBXFrameworksBuildPhase */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A5000000000002 = {
+			isa = PBXGroup;
+			children = (
+				B0C1D2E3F4A5000000000007 /* PointeMac */,
+				B0C1D2E3F4A5000000000008 /* PointeMacTests */,
+				B0C1D2E3F4A5000000000009 /* PointeMacUITests */,
+				B0C1D2E3F4A5000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B0C1D2E3F4A5000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B0C1D2E3F4A500000000000A /* Pointe.app */,
+				B0C1D2E3F4A500000000000B /* PointeMacTests.xctest */,
+				B0C1D2E3F4A500000000000C /* PointeMacUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B0C1D2E3F4A5000000000004 /* PointeMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0C1D2E3F4A500000000003D;
+			buildPhases = (
+				B0C1D2E3F4A5000000000014 /* Sources */,
+				B0C1D2E3F4A5000000000015 /* Frameworks */,
+				B0C1D2E3F4A5000000000016 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B0C1D2E3F4A5000000000007 /* PointeMac */,
+			);
+			name = PointeMac;
+			packageProductDependencies = (
+				B0C1D2E3F4A5000000000029 /* PointeKit */,
+				B0C1D2E3F4A500000000002A /* PointeMacKit */,
+				B0C1D2E3F4A500000000002D /* PointeUI */,
+			);
+			productName = PointeMac;
+			productReference = B0C1D2E3F4A500000000000A /* Pointe.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B0C1D2E3F4A5000000000005 /* PointeMacTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0C1D2E3F4A500000000003E;
+			buildPhases = (
+				B0C1D2E3F4A5000000000017 /* Sources */,
+				B0C1D2E3F4A5000000000018 /* Frameworks */,
+				B0C1D2E3F4A5000000000019 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B0C1D2E3F4A5000000000034 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B0C1D2E3F4A5000000000008 /* PointeMacTests */,
+			);
+			name = PointeMacTests;
+			packageProductDependencies = (
+			);
+			productName = PointeMacTests;
+			productReference = B0C1D2E3F4A500000000000B /* PointeMacTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B0C1D2E3F4A5000000000006 /* PointeMacUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0C1D2E3F4A500000000003F;
+			buildPhases = (
+				B0C1D2E3F4A500000000001A /* Sources */,
+				B0C1D2E3F4A500000000001B /* Frameworks */,
+				B0C1D2E3F4A500000000001C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B0C1D2E3F4A5000000000035 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B0C1D2E3F4A5000000000009 /* PointeMacUITests */,
+			);
+			name = PointeMacUITests;
+			packageProductDependencies = (
+			);
+			productName = PointeMacUITests;
+			productReference = B0C1D2E3F4A500000000000C /* PointeMacUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		B0C1D2E3F4A5000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					B0C1D2E3F4A5000000000004 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					B0C1D2E3F4A5000000000005 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = B0C1D2E3F4A5000000000004;
+					};
+					B0C1D2E3F4A5000000000006 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = B0C1D2E3F4A5000000000004;
+					};
+				};
+			};
+			buildConfigurationList = B0C1D2E3F4A500000000003C;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B0C1D2E3F4A5000000000002;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B0C1D2E3F4A5000000000028 /* XCLocalSwiftPackageReference "../PointeKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B0C1D2E3F4A5000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B0C1D2E3F4A5000000000004 /* PointeMac */,
+				B0C1D2E3F4A5000000000005 /* PointeMacTests */,
+				B0C1D2E3F4A5000000000006 /* PointeMacUITests */,
+			);
+		};
+		B0C1D2E3F4A5000000000016 /* PBXResourcesBuildPhase */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A5000000000014 /* PBXSourcesBuildPhase */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A5000000000019 /* PBXResourcesBuildPhase */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A5000000000017 /* PBXSourcesBuildPhase */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A500000000001C /* PBXResourcesBuildPhase */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A500000000001A /* PBXSourcesBuildPhase */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C1D2E3F4A5000000000034 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B0C1D2E3F4A5000000000004 /* PointeMac */;
+			targetProxy = B0C1D2E3F4A5000000000032 /* PBXContainerItemProxy */;
+		};
+		B0C1D2E3F4A5000000000035 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B0C1D2E3F4A5000000000004 /* PointeMac */;
+			targetProxy = B0C1D2E3F4A5000000000033 /* PBXContainerItemProxy */;
+		};
+		B0C1D2E3F4A5000000000046 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		B0C1D2E3F4A5000000000047 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B0C1D2E3F4A5000000000048 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY" = "-";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PointeMac/PointeMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 30;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PointeMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT, © Ballerine";
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac;
+				PRODUCT_NAME = Pointe;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		B0C1D2E3F4A5000000000049 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY" = "-";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PointeMac/PointeMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 30;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PointeMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Pointe;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT, © Ballerine";
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac;
+				PRODUCT_NAME = Pointe;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		B0C1D2E3F4A500000000004A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY" = "-";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 30;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pointe.app/Contents/MacOS/Pointe";
+			};
+			name = Debug;
+		};
+		B0C1D2E3F4A500000000004B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY" = "-";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 30;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pointe.app/Contents/MacOS/Pointe";
+			};
+			name = Release;
+		};
+		B0C1D2E3F4A500000000004C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 30;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = PointeMac;
+			};
+			name = Debug;
+		};
+		B0C1D2E3F4A500000000004D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 30;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.8.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ballerine.pointe.mac.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = PointeMac;
+			};
+			name = Release;
+		};
+		B0C1D2E3F4A500000000003C /* Build configuration list for PBXProject "PointeMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0C1D2E3F4A5000000000046 /* Debug */,
+				B0C1D2E3F4A5000000000047 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0C1D2E3F4A500000000003D /* Build configuration list for PBXNativeTarget "PointeMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0C1D2E3F4A5000000000048 /* Debug */,
+				B0C1D2E3F4A5000000000049 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0C1D2E3F4A500000000003E /* Build configuration list for PBXNativeTarget "PointeMacTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0C1D2E3F4A500000000004A /* Debug */,
+				B0C1D2E3F4A500000000004B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0C1D2E3F4A500000000003F /* Build configuration list for PBXNativeTarget "PointeMacUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0C1D2E3F4A500000000004C /* Debug */,
+				B0C1D2E3F4A500000000004D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0C1D2E3F4A5000000000028 /* XCLocalSwiftPackageReference "../PointeKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../PointeKit;
+		};
+		B0C1D2E3F4A5000000000029 /* PointeKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PointeKit;
+		};
+		B0C1D2E3F4A500000000002A /* PointeMacKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PointeMacKit;
+		};
+		B0C1D2E3F4A500000000002D /* PointeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PointeUI;
+		};
+	};
+	rootObject = B0C1D2E3F4A5000000000001 /* Project object */;
+}

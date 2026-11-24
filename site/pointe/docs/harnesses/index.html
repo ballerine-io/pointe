@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harnesses: Claude Code, OpenCode, Codex, and how to add another · Pointe docs</title>
+<meta name="description" content="Pointe&#x27;s voice side (ears, brain, mouth, approvals, routing) does not care which coding agent runs a session. It needs five things from the agent, and each…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Harnesses: Claude Code, OpenCode, Codex, and how to add another">
+<meta property="og:description" content="Pointe&#x27;s voice side (ears, brain, mouth, approvals, routing) does not care which coding agent runs a session. It needs five things from the agent, and each…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/harnesses/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/harnesses/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="./" aria-current="page">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="harnesses-claude-code-opencode-codex-and-how-to-add-another">Harnesses: Claude Code, OpenCode, Codex, and how to add another</h1>
+<p>Pointe's voice side (ears, brain, mouth, approvals, routing) does not care which coding agent runs a session. It needs
+five things from the agent, and each harness adapter in <code>pointe/harnesses/</code> provides them:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>What Pointe needs</th>
+<th>Adapter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Join</td>
+<td>a session id, a name, a folder, and a way to tell it is still running</td>
+<td><code>join(argv)</code> (for <code>pointe join &lt;harness&gt;</code>), <code>alive(session)</code>, <code>probe(session)</code></td>
+</tr>
+<tr>
+<td>Watch</td>
+<td>its activity and final messages, to report and keep notes</td>
+<td><code>watch(session, feed)</code>, <code>transcript_path</code>, <code>noise</code>, <code>title</code></td>
+</tr>
+<tr>
+<td>Send</td>
+<td>type the user's request into the running session</td>
+<td><code>send(session, text)</code></td>
+</tr>
+<tr>
+<td>Approvals</td>
+<td>see a permission request, put it to the user, answer it</td>
+<td>calls <code>HOST.hold_permission(session, tool, input, gone, deadline)</code></td>
+</tr>
+<tr>
+<td>Side questions</td>
+<td>answer "by the way" from a copy, never touching the live session</td>
+<td><code>side_question(session, question)</code></td>
+</tr>
+<tr>
+<td>Stop</td>
+<td>end the running turn when the user says "stop", "cancel that" or "hold on"</td>
+<td><code>interrupts</code>, <code>interrupt(session)</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>To be added from outside ("connect to the session about the pentest", <a href="../features/add-sessions/">features/add-sessions.md</a>),
+an adapter also lists what its harness runs and ran (<code>discover(since, cap)</code>, returning <code>discovery.Found</code> records), builds
+the register body a session would send itself (<code>attach_body(found)</code>), and brings a closed one back (<code>reopen(found,
+start_id)</code>; by default the same as joining). Design: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/attach-by-voice.md">design/attach-by-voice.md</a>.</p>
+<p>Each adapter also declares what it can do, and <code>/voice/status</code> shows it per session (<code>capabilities</code>), so the brain and
+the screens never promise a missing feature: <code>approvals</code>, <code>side_questions</code>, <code>attach</code> (joins a session the user already
+runs), <code>spawn</code> (drives only sessions Pointe starts), <code>interrupt</code> (<code>now</code>: the harness cuts the turn, a running command
+included; <code>next_step</code>: the turn ends after the tool call that runs; null: no supported way, and the voice says so). An adapter with <code>starts</code> can also start a new session in a
+folder (<code>start(cwd, name, start_id)</code>, below, and <a href="../features/new-session/">features/new-session.md</a>). Plus <code>label</code> (how the feed names it: <code>claude-code</code>, <code>opencode</code>, <code>codex</code>),
+<code>agent</code> (what the voice calls it: "Claude", "OpenCode"), <code>joins_mid_turn</code>, and <code>permission_deadline</code>.</p>
+<p>Everything else (the brain, consent rules, the read-out allowlist, Face ID taps, reports, notes, routing, the apps)
+is shared. The feed lines an adapter produces are the bracketed lines <code>sessions.follow_transcript</code> writes, labelled
+with the harness; a turn end is <code>harnesses.finished_tag(label)</code>, read back by the daemon through one constant.</p>
+<h2 id="one-call-several-harnesses-and-accounts">One call, several harnesses and accounts</h2>
+<p>Sessions of different harnesses, and Claude Code sessions of different accounts, sit side by side: routing, status,
+reports and approvals work per session. In practice:</p>
+<ul>
+<li>
+<p><strong>Names:</strong> the same folder in two harnesses registers as "shop" and "shop opencode". "The opencode one" picks a
+  session by its harness (Claude Code is never matched by "Claude": every "ask Claude Code to …" would). An unnamed
+  "ask Claude Code to …" still never goes to another harness's session the conversation was with: with one Claude
+  Code session, it goes there.</p>
+</li>
+<li>
+<p><strong>Approvals:</strong> each session holds its own prompt; one answer never answers another session's (tested with a Claude
+  Code and an OpenCode prompt at once).</p>
+</li>
+<li>
+<p><strong>The voice names each agent:</strong> reports and notes about an OpenCode session call it OpenCode, not Claude
+  (<code>brief.for_agent</code>).</p>
+</li>
+<li>
+<p><strong>Several Claude accounts:</strong> a session registers its config dir (<code>CLAUDE_CONFIG_DIR</code>), so its transcripts, title and
+  "by the way" copy come from that account's folder. The daemon itself does not inherit the starting session's account.</p>
+</li>
+</ul>
+<h2 id="sessions-on-other-machines">Sessions on other machines</h2>
+<p>An adapter always runs on the session's own machine. A session on another Mac or a Linux host joins through the Pointe
+node there (<a href="../multi-machine/">multi-machine.md</a>): the node runs the same adapter (join, watch, send, approvals), and the
+hub sees the session through one wrapper, <code>pointe/harnesses/remote.py</code>, that reads a mirror of its transcript and passes sends
+and verdicts over the link. Badges, feed labels and <code>capabilities</code> still come from the real adapter, with one change:
+<code>side_questions</code> is false, because a forked copy would have to run on the node. "By the way" questions about a remote
+session are answered by the transcript reader, as for a harness that cannot fork.</p>
+<h2 id="claude-code-pointeharnessesclaude_codepy">Claude Code (<code>pointe/harnesses/claude_code.py</code>)</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Join</td>
+<td><code>/pointe:voice</code> in the session registers it: its id, folder, process id, transcript path, config dir, inbox socket. <code>/pointe:leave</code> takes it off.</td>
+</tr>
+<tr>
+<td>Watch</td>
+<td>the transcript under the session's config dir (<code>projects/</code>), followed live; a <code>/clear</code> or <code>/resume</code> re-points it (<code>transcript_path</code>)</td>
+</tr>
+<tr>
+<td>Send</td>
+<td>the session's inbox socket (Claude Code 2.1.224+), or its voice channel in launch mode; with a reply address where Claude Code could hold or refuse it (below)</td>
+</tr>
+<tr>
+<td>Approvals</td>
+<td>the plugin's <code>PermissionRequest</code> hook posts to <code>/voice/permission-hook</code>, which goes through the same <code>hold_permission</code> as any harness (280 s, under the hook's own timeout)</td>
+</tr>
+<tr>
+<td>Side questions</td>
+<td><code>claude -p --resume &lt;id&gt; --fork-session</code>, locked down, in the session's own account</td>
+</tr>
+<tr>
+<td>Start</td>
+<td>a new terminal window (<code>open -a Terminal</code> on a <code>.command</code> script; iTerm when it is running) with <code>claude --permission-mode default --name &lt;name&gt; --settings &lt;file&gt;</code>; the settings file's <code>SessionStart</code> hook runs <code>bin/register-session --start &lt;id&gt;</code>, so it joins in attach mode. Mac only.</td>
+</tr>
+<tr>
+<td>Discover</td>
+<td>open: <code>claude agents --json</code> for each account Pointe knows (<code>pid</code>, <code>cwd</code>, <code>kind</code>, <code>sessionId</code>, <code>name</code>, <code>status</code>), with the inbox socket from Claude Code's own record of the process (<code>sessions/&lt;pid&gt;.json</code>, <code>messagingSocketPath</code>: not a documented interface, checked against the roster and the socket's owner); recent: transcripts under <code>projects/</code> from the last 7 days, head and tail only</td>
+</tr>
+<tr>
+<td>Attach</td>
+<td>the same body <code>/pointe:voice</code> registers (id, folder, pid, transcript, config dir, inbox socket), from outside. Approvals reach the voice only where the plugin's hook runs in that session (enabled in its settings when it started, or <code>--plugin-dir</code>): otherwise the read-back says they stay in its terminal</td>
+</tr>
+<tr>
+<td>Reopen</td>
+<td>Start's terminal window with <code>claude --resume &lt;id&gt; --permission-mode default</code>, its <code>SessionStart</code> hook on matcher <code>resume</code>, in the session's folder and account. Mac only.</td>
+</tr>
+<tr>
+<td>Stop</td>
+<td>No supported way exists for another process to interrupt a running turn: an inbox message is read between tool calls, Escape is a key in its terminal, and <code>claude stop</code> stops a background session whole. The plugin's <code>PreToolUse</code> and <code>PostToolUse</code> hook, <code>bin/voice-stop-hook</code>, returns <code>"continue": false</code>, which the hooks reference documents as ending the turn after the hook runs. The daemon leaves a file named by the session id in <code>&lt;state&gt;/stop/</code>; the hook takes it, so the turn ends at its next tool step. A command that already runs finishes first. Without a stop waiting the hook reads nothing and prints nothing. Like approvals, it works only where the plugin's hooks run in that session.</td>
+</tr>
+<tr>
+<td>A prompt in its terminal</td>
+<td><code>claude agents --json</code> (Claude Code's supported way to read session state), read when a session's tool call has gone quiet: <code>status: waiting</code> with its <code>waitingFor</code> (<code>permission prompt</code>, <code>input needed</code>, <code>sandbox request</code>, <code>dialog open</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<p>A prompt the voice does not hold (no call was up, the hold ran out, approvals are left to the terminal, a question, a
+dialog) can only be answered in the terminal. The transcript cannot tell it from a tool that runs, so the session used
+to count as working. Now <code>/voice/status</code> gives it <code>working: false</code>, <code>needs</code> ("A permission prompt in its terminal.") and
+<code>blocked_on</code>; the voice is told it stopped there and that a yes does not reach it. The words are fixed ones, never the
+string Claude Code sent. At most one read per account every 15 seconds, and none while every session is idle or its
+record is moving. With no call up the hub follows no transcript, so the adapter reads the end of it when the file
+changes to tell whether a turn is open. A node reads it for its own sessions and ships it in its <code>sessions</code>
+snapshot (since a pre-release build), so a session on another machine shows the same way.</p>
+<p>A send can be held. Claude Code holds an inbox message to a session that bypasses permission prompts (plan mode can
+count) for approval in its terminal, unless that session sets <code>crossSessionInbound</code> to <code>accept</code>; <code>hold</code> holds every
+message and <code>refuse</code> drops it. Nothing comes back on the inbox connection. Claude Code reports a held, refused or
+dropped message in a <code>peer_message_status</code> line to the reply address in the message's <code>from</code>, within a fraction of a
+second, and the user's answer in the terminal later (<code>delivered</code>, <code>denied</code>, <code>expired</code>); an accepted message gets no
+answer. A session given a reply address also tries to answer through it, which costs tool calls and adds words to its
+reply, so <code>may_hold</code> offers one only where Claude Code could hold or refuse the message: a <code>crossSessionInbound</code> of
+<code>hold</code> or <code>refuse</code> in the settings Pointe can read (managed, the account's, the repository's), or none and a bypassing
+permission mode in the transcript. A <code>--settings</code> flag cannot be seen from outside. The address is a socket beside the
+session's own (Claude Code answers no other) that lives for one message, or until a held one is answered (at most 10
+minutes). A held or refused send is not delivered: the voice says so and names the setting, and <code>/voice/status</code> gives
+the session <code>needs</code> with the same words; a held one is also a wait in its terminal, so it alerts like one.</p>
+<h2 id="opencode-v2-pointeharnessesopencodepy">OpenCode v2 (<code>pointe/harnesses/opencode.py</code>)</h2>
+<p>OpenCode's TUI is a client of a local background service (unless started with <code>--standalone</code>), so the voice drives
+the same session the user is typing in.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Join</td>
+<td><code>pointe join opencode</code> in the session's folder picks its running (or latest) session; <code>--session ses_…</code> picks one; <code>pointe leave opencode</code> takes it off. <code>pointe join opencode --install-command</code> adds <code>/voice</code> to OpenCode (restart OpenCode after installing; not yet loaded in a real OpenCode).</td>
+</tr>
+<tr>
+<td>Watch</td>
+<td>one SSE connection to <code>/api/event</code>; an event naming the session triggers a re-read of <code>/api/session/{id}/message</code> (the stream has no replay), plus a 5-second poll. New, finished messages go to a mirror transcript under <code>~/.claude-voice/harness/opencode/</code>. With no call up, the daemon's liveness loop probes <code>/api/session/{id}</code>: a deleted session drops off, and its OpenCode title is followed.</td>
+</tr>
+<tr>
+<td>Send</td>
+<td><code>POST /api/session/{id}/prompt</code> with <code>delivery: "steer"</code></td>
+</tr>
+<tr>
+<td>Stop</td>
+<td><code>POST /api/session/{id}/interrupt</code> (the service's <code>session.interrupt</code>, v2.3): it cuts the running execution, a running command included, and says whether one ran</td>
+</tr>
+<tr>
+<td>Approvals</td>
+<td><code>permission.asked</code> (or a pending request listed by <code>/api/session/{id}/permission</code>) goes through <code>hold_permission</code>; the answer is <code>POST …/permission/{id}/reply</code> with <code>once</code> or <code>reject</code>. If the user answers in OpenCode first, the voice lets go.</td>
+</tr>
+<tr>
+<td>Side questions</td>
+<td><code>POST /api/session/{id}/fork</code>, a prompt to the fork, its answer, then the fork is deleted</td>
+</tr>
+<tr>
+<td>Start</td>
+<td><code>POST /api/session {location: {directory}, title}</code>; no agent, model or permission rules are sent</td>
+</tr>
+<tr>
+<td>Discover</td>
+<td><code>GET /api/session?limit=</code> and <code>GET /api/session/active</code>: active sessions and ones touched in the last 2 hours are open, older ones recent; both join the same way (the service keeps them all)</td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>the service URL from <code>opencode service status</code> (random localhost port) and HTTP Basic (<code>opencode</code> and the password in <code>~/.config/opencode/service.json</code>), read when needed and never logged</td>
+</tr>
+</tbody>
+</table></div>
+<p>Verified against OpenCode v2.0.27's OpenAPI spec and live, read-only (sessions, mirror, event stream). An end-to-end
+call with a real OpenCode model (a prompt, a spoken report, a voice approval) has not been run yet.</p>
+<h2 id="codex-cli-pointeharnessescodexpy">Codex CLI (<code>pointe/harnesses/codex.py</code>)</h2>
+<p>Codex 0.160+ runs a shared app-server daemon. A TUI started with <code>codex --remote unix:// -C "$PWD"</code> is a client of
+it, so the voice drives the thread the user is typing in. A plain <code>codex</code> runs its app-server inside its own process
+and holds the thread's writer lock: it cannot be joined, and Pointe says how to start it instead (alias <code>codex</code> to the
+command above; <code>pointe setup codex</code> starts the app-server and offers the alias, <a href="../install/#codex">install.md</a>). Protocol: JSON-RPC over a WebSocket on the Unix socket <code>~/.codex/app-server-control/app-server-control.sock</code>.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Join</td>
+<td><code>pointe join codex</code> in the folder picks the newest thread there that the daemon has loaded (<code>thread/list {cwd}</code> and <code>thread/loaded/list</code>); <code>--thread &lt;id&gt;</code> picks one; <code>pointe leave codex</code> takes it off. Then <code>thread/resume {excludeTurns}</code> subscribes. It fails with "no rollout found" before the thread's first turn (retried) and "active writer" for a plain TUI (told to the user).</td>
+</tr>
+<tr>
+<td>Watch</td>
+<td><code>turn/started</code>, <code>turn/completed</code>, <code>thread/closed</code>, <code>thread/name/updated</code> for the thread; on each turn end, <code>thread/turns/list {itemsView: full}</code> is read, and finished turns go to a mirror transcript under <code>~/.claude-voice/harness/codex/</code> (user message, commands as <code>Bash</code> tool uses, file changes as <code>Edit</code> with their paths, the final answer as the end of the turn).</td>
+</tr>
+<tr>
+<td>Send</td>
+<td><code>turn/start</code> when idle; <code>turn/steer {expectedTurnId}</code> during a turn (a steer to a turn that just ended falls back to <code>turn/start</code>)</td>
+</tr>
+<tr>
+<td>Stop</td>
+<td><code>turn/interrupt {threadId, turnId}</code> on the running turn (app-server protocol v2, checked against <code>codex app-server generate-json-schema</code> of 0.160)</td>
+</tr>
+<tr>
+<td>Approvals</td>
+<td>the server's <code>item/commandExecution/requestApproval</code> and <code>item/fileChange/requestApproval</code> go through <code>hold_permission</code>, with the command unwrapped from Codex's <code>/bin/zsh -lc '…'</code> so the read-out applies, and read from the folder Codex runs it in (<code>cwd</code>). A file change names no file, so it is never read out: a tap answers it. The answer is a decision Codex offered: <code>accept</code>; <code>decline</code> if offered, else <code>cancel</code>. <code>serverRequest/resolved</code> means the TUI answered first, and the voice lets go. Permission-grant requests (<code>item/permissions/requestApproval</code>) stay with the TUI.</td>
+</tr>
+<tr>
+<td>Side questions</td>
+<td><code>thread/fork {ephemeral, sandbox: read-only, approvalPolicy: never}</code>, a turn on the fork, its final answer; nothing is kept</td>
+</tr>
+<tr>
+<td>Start</td>
+<td><code>thread/start {cwd}</code> and <code>thread/name/set</code>; no approval policy or sandbox is sent, and an answer with approvals <code>never</code> and sandbox <code>dangerFullAccess</code> is archived and refused</td>
+</tr>
+<tr>
+<td>Discover</td>
+<td><code>thread/loaded/list</code> (open) and <code>thread/list {sortKey: updated_at}</code> (recent), sub-agent and ephemeral threads left out</td>
+</tr>
+<tr>
+<td>Reopen</td>
+<td><code>thread/resume</code> on the shared daemon, then joined as an open thread; one that comes back with approvals <code>never</code> and sandbox <code>dangerFullAccess</code> is refused</td>
+</tr>
+<tr>
+<td>Liveness</td>
+<td><code>thread/closed</code>, or status <code>notLoaded</code> (the TUI closed it); the daemon unreachable for a minute. With no call up, the liveness loop reads <code>thread/read</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The daemon updates itself and restarts when idle: the link reconnects and resumes every joined thread, and turns that
+finished meanwhile are read from <code>thread/turns/list</code>. Resuming a thread from Pointe marks it as touched by another
+client in Codex's own records (its <code>source</code> and <code>originator</code>). Each Codex turn costs Codex about 95k input tokens.</p>
+<h2 id="adding-a-harness">Adding a harness</h2>
+<ol>
+<li>Subclass <code>Harness</code> in <code>pointe/harnesses/&lt;name&gt;.py</code>; set <code>name</code>, <code>label</code>, <code>agent</code> and the capability flags truthfully.</li>
+<li>
+<p><code>join(argv)</code> returns the <code>/voice/register</code> body for <code>pointe join &lt;name&gt;</code> (id, name, cwd, and <code>transcript</code> if it
+   has one; per-session data goes in <code>harness_data</code>, and <code>pid</code> may be 0).</p>
+</li>
+<li>
+<p><code>watch</code> produces the feed: either follow a transcript in the shape <code>sessions.follow_transcript</code> reads (what
+   OpenCode does through its mirror), or call <code>feed(session, text, respond)</code> with the same bracketed lines, ending a
+   turn with <code>finished_tag(label)</code>. The follower reads: <code>type</code> user/assistant, <code>message.content</code> (text or blocks with
+   <code>tool_use</code>), <code>stop_reason == "end_turn"</code> for a final message, and skips <code>isSidechain</code>, <code>isMeta</code>. Override <code>noise</code>
+   if the harness injects text into user turns. For Show while it says, give each <code>tool_use</code> an <code>id</code> and write its
+   outcome as a <code>tool_result</code> block (<code>tool_use_id</code>, <code>content</code>, <code>is_error</code>) in a <code>user</code> entry, only once the tool ran:
+   a shell command as <code>Bash</code> with <code>command</code> (test runs show their output), a file change as <code>Edit</code> with <code>file_path</code>
+   (or <code>files: [...]</code>), a read as <code>Read</code>. A tool with no result is never shown.</p>
+</li>
+<li>
+<p><code>send</code>, <code>alive</code> (never blocking), and <code>probe</code> if liveness needs a network check.</p>
+</li>
+<li>
+<p>Approvals: call <code>HOST.hold_permission(session, tool_name, tool_input, gone, deadline)</code> and send its answer back. If
+   the harness has no approvals, leave <code>approvals = False</code>: do not make Pointe its permission policy.</p>
+</li>
+<li>
+<p><code>side_question</code> if it can fork; otherwise the transcript reader answers.</p>
+</li>
+<li>
+<p>To let Pointe start its sessions: set <code>starts = True</code>; <code>can_start()</code> says why not in fixed words (not installed)
+   or returns None; <code>start(cwd, name, start_id)</code> starts one in the harness's default permission mode and returns its
+   register body, or None when the session registers itself with <code>start_id</code>; pass every command line or request
+   through <code>refuse_bypass</code>; raise <code>StartError</code> with words for the user. <code>open_hint(session)</code> says how to open it in a
+   terminal. The daemon picks the folder and the name and does the read-back: an adapter never takes a path from
+   anywhere else.</p>
+</li>
+<li>
+<p>To be added from outside: <code>discover(since, cap)</code> with only the harness's supported interfaces and only this user's
+   sessions, <code>attach_body(found)</code> (the body step 2 returns), and <code>reopen(found, start_id)</code> if a closed session needs
+   more than joining (set <code>reopens_in_terminal</code> when it opens a window). Pass anything it starts through <code>refuse_bypass</code>.</p>
+</li>
+<li>
+<p>Register it in <code>pointe/harnesses/__init__._load</code>, and add a fake-service test like <code>tests/test_opencode.py</code> plus a case
+   in <code>tests/test_mixed_harnesses.py</code>.</p>
+</li>
+</ol>
+<h2 id="next-pi">Next: Pi</h2>
+<p><strong>Pi.</strong> Pi has no server: a small extension inside Pi opens a 0600 unix socket and streams its events; the Python
+adapter mirrors them. Pi has no built-in approvals, and the adapter declares <code>approvals = False</code> rather than gating
+every tool call through the voice.</p>
+<p><strong>Spawn-only agents (Gemini CLI, Cursor CLI)</strong> can use <code>start(cwd, name, start_id)</code>, and still do not fit
+"it keeps running in its terminal; join it again there". Deferred.</p>
+<h2 id="cloud-sessions-hosted-by-the-vendors">Cloud sessions hosted by the vendors</h2>
+<p>Claude Code on the web and Codex Cloud cannot be joined: neither vendor has a public read or approvals interface for them. What works, what doesn't, and why: <a href="../cloud-sessions/">cloud-sessions.md</a>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/harnesses.md">docs/harnesses.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../how-it-works/"><span class="pg-small">Previous</span>How it works</a><a class="dx-next" href="../multi-machine/"><span class="pg-small">Next</span>Machines: one voice over sessions on several machines</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#one-call-several-harnesses-and-accounts">One call, several harnesses and accounts</a></li>
+<li class="dx-l2"><a href="#sessions-on-other-machines">Sessions on other machines</a></li>
+<li class="dx-l2"><a href="#claude-code-pointeharnessesclaude_codepy">Claude Code (pointe/harnesses/claude_code.py)</a></li>
+<li class="dx-l2"><a href="#opencode-v2-pointeharnessesopencodepy">OpenCode v2 (pointe/harnesses/opencode.py)</a></li>
+<li class="dx-l2"><a href="#codex-cli-pointeharnessescodexpy">Codex CLI (pointe/harnesses/codex.py)</a></li>
+<li class="dx-l2"><a href="#adding-a-harness">Adding a harness</a></li>
+<li class="dx-l2"><a href="#next-pi">Next: Pi</a></li>
+<li class="dx-l2"><a href="#cloud-sessions-hosted-by-the-vendors">Cloud sessions hosted by the vendors</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

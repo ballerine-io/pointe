@@ -1,0 +1,103 @@
+name: test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
+        with:
+          version: "0.12.21"  # the version bin/install-uv installs and the e2e images carry
+      - run: uv run --locked pytest -q tests/ --ignore=tests/e2e
+  # The iPhone app: a simulator build, unsigned, the tests that need the app around them (PointeTests), and the shared
+  # module's unit tests. The UI tests need a test daemon or drive the simulator for minutes; they run locally (apps/ios/e2e/,
+  # tests/e2e/ios_app.py).
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: Build for the simulator and run PointeTests
+        working-directory: apps/ios
+        run: |
+          SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" -only-testing:PointeTests \
+            CODE_SIGNING_ALLOWED=NO -quiet
+      # The screens, the call, the models and the rules are the shared module's (apps/PointeKit, PointeUI): the same tests
+      # the macos job runs with `swift test`, here on the iPhone.
+      - name: The shared module's unit tests, in the simulator
+        working-directory: apps/PointeKit
+        run: |
+          SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          xcodebuild test -scheme PointeKit-Package -destination "id=$SIM" -only-testing:PointeUIUnitTests -quiet
+  # The Mac app (docs/design/macos-app.md): the package the two apps share, on its own (swift test, no simulator), then the
+  # Mac app built ad hoc with its unit tests. Its UI tests need a person to unlock macOS's Automation Mode and its live
+  # test needs a microphone and keys: both run locally (apps/macos/test.sh ui, apps/macos/e2e/live.py).
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      # bin/pointe apps (apps.py), on a Mac with no Apple Account and no iPhone: the doctor must still find the Mac app
+      # and the Simulator buildable, and each command must plan its build. Nothing is signed; the team is an invented one.
+      - name: pointe apps, the build-from-source command, without signing
+        run: |
+          bin/pointe apps doctor
+          bin/pointe apps mac --dry-run
+          bin/pointe apps ios --sim --dry-run
+          POINTE_TEAM_FILE="$RUNNER_TEMP/team" bin/pointe apps ios --dry-run --team ABCDE12345
+      - name: The package the iPhone and Mac apps share (every screen, the call, the models), on the Mac
+        working-directory: apps/PointeKit
+        run: swift test
+      - name: Build the Mac app and its UI tests, and run PointeMacTests
+        working-directory: apps/macos
+        run: |
+          xcodebuild test -project PointeMac.xcodeproj -scheme PointeMac -destination 'platform=macOS' \
+            -only-testing:PointeMacTests CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= -quiet
+  # docs/security/supply-chain.md. Fails on an unpinned action, a lockfile that drifted from pyproject.toml, a package
+  # missing from docs/security/dependencies-allowlist.txt, a URL to a host missing from docs/security/egress-allowlist.txt,
+  # an install path that resolves unpinned, a download without a hash, or a known vulnerability in any locked version.
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
+        with:
+          version: "0.12.21"
+      - name: The lockfile matches pyproject.toml
+        run: uv lock --check
+      - name: Pins, allowlists, egress, install paths
+        run: uv run --locked pytest -q tests/test_supply_chain.py
+      - name: Each action's pin is the commit its tag points to, as recorded
+        run: python3 tools/check_action_pins.py
+      - name: Known vulnerabilities, in every locked version (not only this platform's)
+        run: |
+          uv run --locked python tools/locked_requirements.py > "$RUNNER_TEMP/locked.txt"
+          uvx pip-audit@2.10.1 --no-deps --disable-pip --progress-spinner off -r "$RUNNER_TEMP/locked.txt"
+      - name: SBOM (CycloneDX) and the exported lock
+        run: |
+          mkdir -p sbom
+          uv export --locked --all-extras --all-groups --no-emit-project --format requirements-txt -o sbom/requirements.txt
+          uvx --from cyclonedx-bom@8.0.1 cyclonedx-py requirements sbom/requirements.txt --pyproject pyproject.toml --of JSON -o sbom/pointe.cdx.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: sbom
+          path: sbom/

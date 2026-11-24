@@ -1,0 +1,720 @@
+{
+ "benchmark": "bargein",
+ "item_version": "0.1",
+ "run_ids": [
+  "bargein-20261123-040244",
+  "bargein-20261123-161151"
+ ],
+ "dates": "2026-11-23 to 2026-11-23",
+ "agent_model": "claude-haiku-5-5",
+ "claude_code": "2.1.330",
+ "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
+ "pointe_setup": "(default)",
+ "logs": {
+  "pointe_roles": "brain=anthropic:claude-sonnet-5-5, reader=anthropic:claude-sonnet-5-5, checker=gemini:gemini-3.5-flash-lite, ears=soniox, mouth=elevenlabs:eleven_v4_turbo, notes=[]",
+  "pointe_a_runs": 23,
+  "pointe_a_forwarded_as_message": 9,
+  "pointe_a_forwarded_and_job_ran_on": 9,
+  "pointe_a_stop_taken": 20,
+  "keyboard_redirect_runs": 6,
+  "keyboard_redirect_agent_asked": 4,
+  "pointe_b_runs": 38,
+  "pointe_b_permission_request": 0
+ },
+ "ledger_usd": 6.022126,
+ "spend_usd": 2.8696,
+ "rows": 240,
+ "superseded_error_rows": 0,
+ "label_errors": {
+  "branch": {
+   "runs": 9,
+   "items": [
+    "b25",
+    "b26",
+    "b27"
+   ],
+   "why": "the runner made each fixture a fresh git repo on `master` while STATUS.md, the label, says `cedar`; most agents checked git and answered `master`. The keyboard arm was credited for printing `cedar` beside it; Whisper at times hears the spoken arms' \"cedar\" as \"CDER\". Fixed in the runner (the repo is now on `cedar`); these rows are not scored"
+  }
+ },
+ "part_a": {
+  "pointe": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 9,
+   "load_flagged": 18,
+   "halt": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "missed_stop": {
+    "k": 18,
+    "n": 18,
+    "rate": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 0,
+    "observed": 0,
+    "censored": 0,
+    "median": null,
+    "p90": null
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 0,
+    "censored": 8,
+    "median": null,
+    "p90": null
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 0,
+    "n": 4,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "stayed_stopped": {
+    "k": 0,
+    "n": 12,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.2425
+    ]
+   },
+   "restarted_in_root": 0,
+   "clarifications": 4,
+   "spend_usd": 0.6301
+  },
+  "llm-router": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 0,
+   "load_flagged": 5,
+   "halt": {
+    "k": 18,
+    "n": 18,
+    "rate": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "missed_stop": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 18,
+    "observed": 18,
+    "censored": 0,
+    "median": 1.5,
+    "p90": 2
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 8,
+    "censored": 0,
+    "median": 3.19,
+    "p90": 4.84
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 2,
+    "n": 4,
+    "rate": 0.5,
+    "ci95": [
+     0.15,
+     0.85
+    ]
+   },
+   "stayed_stopped": {
+    "k": 12,
+    "n": 12,
+    "rate": 1.0,
+    "ci95": [
+     0.7575,
+     1.0
+    ]
+   },
+   "restarted_in_root": 4,
+   "clarifications": 6,
+   "spend_usd": 0.105
+  },
+  "naive": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 0,
+   "load_flagged": 5,
+   "halt": {
+    "k": 11,
+    "n": 18,
+    "rate": 0.6111111111111112,
+    "ci95": [
+     0.3862,
+     0.797
+    ]
+   },
+   "missed_stop": {
+    "k": 7,
+    "n": 18,
+    "rate": 0.3888888888888889,
+    "ci95": [
+     0.203,
+     0.6138
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 11,
+    "observed": 11,
+    "censored": 0,
+    "median": 0,
+    "p90": 1
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 7,
+    "censored": 1,
+    "median": 1.269,
+    "p90": 2.624
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 0,
+    "n": 4,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "stayed_stopped": {
+    "k": 11,
+    "n": 12,
+    "rate": 0.9166666666666666,
+    "ci95": [
+     0.6461,
+     0.9851
+    ]
+   },
+   "restarted_in_root": 0,
+   "clarifications": 0,
+   "spend_usd": 0.0367
+  },
+  "keyboard": {
+   "runs": 24,
+   "scored": 24,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 1,
+   "load_flagged": 2,
+   "halt": {
+    "k": 18,
+    "n": 18,
+    "rate": 1.0,
+    "ci95": [
+     0.8241,
+     1.0
+    ]
+   },
+   "missed_stop": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.1759
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "overshoot_files": {
+    "n": 18,
+    "observed": 18,
+    "censored": 0,
+    "median": 0.0,
+    "p90": 0
+   },
+   "time_to_halt_stop_items": {
+    "n": 8,
+    "observed": 8,
+    "censored": 0,
+    "median": 0.0,
+    "p90": 0.0
+   },
+   "redirect": {
+    "k": 0,
+    "n": 6,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3903
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 4,
+    "n": 4,
+    "rate": 1.0,
+    "ci95": [
+     0.5101,
+     1.0
+    ]
+   },
+   "stayed_stopped": {
+    "k": 12,
+    "n": 12,
+    "rate": 1.0,
+    "ci95": [
+     0.7575,
+     1.0
+    ]
+   },
+   "restarted_in_root": 1,
+   "clarifications": 0,
+   "spend_usd": 0.0353
+  },
+  "null": {
+   "runs": 8,
+   "scored": 8,
+   "setup_failed": 0,
+   "errors": 0,
+   "capped": 0,
+   "load_flagged": 3,
+   "halt": {
+    "k": 0,
+    "n": 5,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4345
+    ]
+   },
+   "missed_stop": {
+    "k": 5,
+    "n": 5,
+    "rate": 1.0,
+    "ci95": [
+     0.5655,
+     1.0
+    ]
+   },
+   "false_stop_backchannel": {
+    "k": 0,
+    "n": 3,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.5615
+    ]
+   },
+   "overshoot_files": {
+    "n": 0,
+    "observed": 0,
+    "censored": 0,
+    "median": null,
+    "p90": null
+   },
+   "time_to_halt_stop_items": {
+    "n": 2,
+    "observed": 0,
+    "censored": 2,
+    "median": null,
+    "p90": null
+   },
+   "redirect": {
+    "k": 0,
+    "n": 1,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.7935
+    ]
+   },
+   "redirect_end_states": {
+    "left": 0,
+    "moved": 0
+   },
+   "undo": {
+    "k": 0,
+    "n": 2,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.6576
+    ]
+   },
+   "stayed_stopped": {
+    "k": 0,
+    "n": 4,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "restarted_in_root": 0,
+   "clarifications": 0,
+   "spend_usd": 0.0102
+  }
+ },
+ "part_b": {
+  "pointe": {
+   "runs": 27,
+   "scored": 27,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 1,
+   "measure": "audio",
+   "correct": {
+    "k": 23,
+    "n": 27,
+    "rate": 0.8518518518518519,
+    "ci95": [
+     0.6752,
+     0.9408
+    ]
+   },
+   "first_audio": {
+    "n": 27,
+    "observed": 27,
+    "censored": 0,
+    "median": 5.779,
+    "p90": 14.159
+   },
+   "ttca": {
+    "n": 27,
+    "observed": 23,
+    "censored": 4,
+    "median": 26.699,
+    "p90": 36.08
+   },
+   "within_10s": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.1246
+    ]
+   },
+   "within_30s": {
+    "k": 17,
+    "n": 27,
+    "rate": 0.6296296296296297,
+    "ci95": [
+     0.4423,
+     0.7847
+    ]
+   },
+   "clarifications": 0,
+   "spend_usd": 1.1699
+  },
+  "llm-router": {
+   "runs": 27,
+   "scored": 27,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 2,
+   "measure": "audio",
+   "correct": {
+    "k": 27,
+    "n": 27,
+    "rate": 1.0,
+    "ci95": [
+     0.8754,
+     1.0
+    ]
+   },
+   "first_audio": {
+    "n": 27,
+    "observed": 27,
+    "censored": 0,
+    "median": 5.555,
+    "p90": 8.263
+   },
+   "ttca": {
+    "n": 27,
+    "observed": 27,
+    "censored": 0,
+    "median": 10.133,
+    "p90": 14.573
+   },
+   "within_10s": {
+    "k": 13,
+    "n": 27,
+    "rate": 0.48148148148148145,
+    "ci95": [
+     0.3074,
+     0.6601
+    ]
+   },
+   "within_30s": {
+    "k": 26,
+    "n": 27,
+    "rate": 0.9629629629629629,
+    "ci95": [
+     0.8172,
+     0.9934
+    ]
+   },
+   "clarifications": 0,
+   "spend_usd": 0.0906
+  },
+  "naive": {
+   "runs": 27,
+   "scored": 27,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 2,
+   "measure": "audio",
+   "correct": {
+    "k": 27,
+    "n": 27,
+    "rate": 1.0,
+    "ci95": [
+     0.8754,
+     1.0
+    ]
+   },
+   "first_audio": {
+    "n": 27,
+    "observed": 27,
+    "censored": 0,
+    "median": 3.886,
+    "p90": 6.677
+   },
+   "ttca": {
+    "n": 27,
+    "observed": 27,
+    "censored": 0,
+    "median": 9.659,
+    "p90": 14.239
+   },
+   "within_10s": {
+    "k": 16,
+    "n": 27,
+    "rate": 0.5925925925925926,
+    "ci95": [
+     0.4073,
+     0.7549
+    ]
+   },
+   "within_30s": {
+    "k": 25,
+    "n": 27,
+    "rate": 0.9259259259259259,
+    "ci95": [
+     0.7663,
+     0.9794
+    ]
+   },
+   "clarifications": 0,
+   "spend_usd": 0.0493
+  },
+  "keyboard": {
+   "runs": 27,
+   "scored": 27,
+   "setup_failed": 0,
+   "errors": 0,
+   "load_flagged": 1,
+   "measure": "time to correct text on the terminal",
+   "correct": {
+    "k": 27,
+    "n": 27,
+    "rate": 1.0,
+    "ci95": [
+     0.8754,
+     1.0
+    ]
+   },
+   "first_audio": null,
+   "ttca": {
+    "n": 27,
+    "observed": 27,
+    "censored": 0,
+    "median": 1.112,
+    "p90": 1.716
+   },
+   "within_10s": {
+    "k": 26,
+    "n": 27,
+    "rate": 0.9629629629629629,
+    "ci95": [
+     0.8172,
+     0.9934
+    ]
+   },
+   "within_30s": {
+    "k": 27,
+    "n": 27,
+    "rate": 1.0,
+    "ci95": [
+     0.8754,
+     1.0
+    ]
+   },
+   "clarifications": 0,
+   "spend_usd": 0.0424
+  }
+ },
+ "part_b_items": 27,
+ "repeats": {
+  "a:pointe": {
+   "n": 6,
+   "flips": 0,
+   "flip_rate": 0.0,
+   "pass2": 0.16666666666666666
+  },
+  "a:llm-router": {
+   "n": 6,
+   "flips": 0,
+   "flip_rate": 0.0,
+   "pass2": 0.5
+  },
+  "b:pointe": {
+   "n": 8,
+   "flips": 3,
+   "flip_rate": 0.375,
+   "pass2": 0.625
+  },
+  "b:llm-router": {
+   "n": 8,
+   "flips": 0,
+   "flip_rate": 0.0,
+   "pass2": 1.0
+  }
+ },
+ "paired": {
+  "a": {
+   "items": 24,
+   "pointe": 6,
+   "llm_router": 16,
+   "delta": -0.4167,
+   "ci95": [
+    -0.625,
+    -0.2083
+   ]
+  },
+  "b": {
+   "items": 27,
+   "pointe": 23,
+   "llm_router": 27,
+   "delta": -0.1481,
+   "ci95": [
+    -0.2963,
+    -0.037
+   ]
+  }
+ },
+ "limits": [
+  "Synthetic speech only (four Kokoro voices, no noise): an upper bound for every arm. Kokoro is also Pointe's local voice.",
+  "The arms do not share a mouth: the reference arms speak the agent's reply through local Kokoro (no network), Pointe through its default ElevenLabs voice over the network. First audio and time to a correct answer include that difference, and the one Whisper transcribes two different voices.",
+  "The reference arms (`naive`, `llm-router`, `keyboard`) were written by the team that builds Pointe. No outside product is tested.",
+  "The llm-router prompt was written with the items: the acknowledgements it gives as examples (\"mm-hm\", \"okay\", \"right\") are words of the backchannel items. Backchannels do not separate the arms: no arm made a false stop, the keyword arm included.",
+  "The fact matcher is regular expressions, checked on canonical answers in every voice. On the run's own answers it gave one false positive (a \"no\" that began \"No build has run\"); the matcher was fixed and every row re-scored from its raw log. No person or model judges the answers.",
+  "Spend is computed from token usage and list prices (Claude Code session usage; Pointe's daemon log with an assumed 300 output tokens a brain step and a flat allowance for its reader and checker), not metered by the vendors. Claude Code's own background calls (session titles) are not in its transcript.",
+  "The machine ran other workloads, including other benchmark agents, during the runs; the runner waited up to 45 s (Part A) or 2 minutes (Part B, the latency result) for the 1-minute load average to fall under 12 before each run and flags rows that started above it. Latency rows with a flag are less reliable.",
+  "Small samples: 18 stop-type items and 6 backchannels per arm in Part A, 27 scored questions in Part B. Intervals are wide; the tables do not rank arms whose intervals overlap.",
+  "Part B's facts were read into the agent's context by a typed setup turn before the question (the same in every arm), so the time measures the voice path, not the agent's search.",
+  "The agent's settings file allows the job's shell commands and a hook allows commands that stay inside the item repo, the same in every arm, so the job's own commands never wait at a prompt; a command outside the item repo still does, and the scripted user answers no prompt. The hook refuses any command with `..`, even one that stays inside the repo: such a run waits at a prompt and ends as capped.",
+  "The scripted user answers a spoken question back (question detector, slot answers); it does not answer a question the agent asks in text on the keyboard arm.",
+  "The run was resumed twice: once to shorten the load wait for Part A (from 2 minutes to 45 s, after 49 runs), once to run again the 6 Pointe runs that had failed to start because a Pointe daemon started from /tmp still held the port (once visibly another benchmark's, run on the same machine and ports). The failed rows stay in rows.jsonl; the later row for the same run is the one counted. Each row carries the bench commit it ran at; Pointe's commit is the same in every row.",
+  "The Pointe arm was run again after Pointe fixed what this suite found (bargein-20261123-161151, Pointe: a pre-release build (2026-11-23) with the benchmark fixes, the same items, voices, seeds and settings); each arm's rows come from the last run given that ran it, so the reference arms keep their rows from bargein-20261123-040244. The statements above about resumes and Pointe's commit describe that earlier run. The branch questions are left out for every arm, so both runs score the same items."
+ ]
+}

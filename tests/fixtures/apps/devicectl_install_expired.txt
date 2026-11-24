@@ -1,0 +1,2 @@
+ERROR: Failed to install the app on the device. (com.apple.dt.CoreDeviceError error 3002 (0xBBA))
+       ApplicationVerificationFailed: Failed to verify code signature of /var/installd/Library/Caches/com.apple.mobile.installd.staging/temp.x/extracted/Pointe.app : 0xe8008015 (A valid provisioning profile for this executable was not found.)

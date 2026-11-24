@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · Pointe docs</title>
+<meta name="description" content="How it works">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="How it works">
+<meta property="og:description" content="How it works">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/how-it-works/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/how-it-works/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="./" aria-current="page">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="how-it-works">How it works</h1>
+<div class="dx-code"><pre><code>browser tab or phone app (one WebSocket, echo cancel, shows the active session)
+  -&gt; ears: speech to text -&gt; echo guard (drops the bot&#x27;s own voice)
+  -&gt; brain: a text model decides, through tools (speak, send_to_claude_code, list_sessions, switch_session,
+     ask_about_session). Speech is a tool call, so code checks each reply before you hear it.
+  -&gt; mouth: text to speech
+  -&gt; one worker per registered Claude Code session
+       in:  its voice channel (launch mode) or its inbox socket (attach mode)
+       out: its transcript, followed live; a reader model turns each final message into what you must hear</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Built on <a href="https://github.com/pipecat-ai/pipecat">Pipecat</a>.</p>
+<h2 id="rules-enforced-in-code">Rules enforced in code</h2>
+<ul>
+<li>
+<p><strong>Permissions:</strong> the daemon builds the read-out from what will run, and only your own yes and nothing else, right after that
+  line, approves a prompt, and only the active session's. No model wording can open this window, and any other speech closes it.
+  "Okay, tell me more" does not count. Neither does a yes to any other question, or one older than two minutes. The page shows
+  the exact request.</p>
+</li>
+<li>
+<p><strong>Targeting:</strong> a request or a switch goes to another session only if you said its name, or said yes to a question that named
+  it. Fuzzy, so "nights lantern" finds <code>river-lantern/main</code>; a full tie means it asks. Generic words like "dev" never select a session.</p>
+</li>
+<li>
+<p><strong>One yes, one delivery:</strong> nothing is sent unless you spoke since that session's last request, so reconnects never replay
+  history and the model cannot chain tasks on its own.</p>
+</li>
+<li>
+<p><strong>Echo:</strong> the bot's own voice through the speakers is never taken as your words, and never answers a permission. See
+  <a href="#echo">Echo</a>. It needs Soniox as ears. Other ears have no such guard: use headphones.</p>
+</li>
+<li>
+<p><strong>Who may connect:</strong> localhost only, with a secret on every route, and <code>Origin</code> checked against <code>Host</code>.</p>
+</li>
+</ul>
+<p>Background sessions stay quiet except for a one-line "finished" or "needs approval". A report you talk over comes back once
+your question is answered.</p>
+<h2 id="session-mode-speaks-about-one-session">Session mode speaks about one session</h2>
+<p>Orchestrator mode speaks for every session. Session mode ("let's focus on billing", "switch to billing", or a tap on a
+session) speaks only about the one in focus, in code (<code>pointe/scope.py</code>, <code>daemon._out_of_focus</code>), on every path that could
+bring up another session:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Path</th>
+<th>In session mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A finished turn, an urgent one too, or a "joined" or "closed"</td>
+<td>held, and not told to the brain either</td>
+</tr>
+<tr>
+<td>A report queued before you focused, or held by a meeting, a hold or a brain dump</td>
+<td>held when it would be said</td>
+</tr>
+<tr>
+<td>An approval request from another session</td>
+<td>not said; its card stays on every screen and stays tappable (Face ID or Touch ID in the apps), phone and desktop alerts still raise it, and one short chime with no words marks its arrival</td>
+</tr>
+<tr>
+<td>A conflict alarm, a machine dropping with another session's approval</td>
+<td>held; the conflict's card stays</td>
+</tr>
+<tr>
+<td>A scheduled briefing that is ready</td>
+<td>held; a briefing playing when you focus stops, and stays in Briefing</td>
+</tr>
+<tr>
+<td>What the brain is told before each reply, and when a call starts</td>
+<td>the session in focus and the count of what is held, never the others' state or needs</td>
+</tr>
+</tbody>
+</table></div>
+<p>Held news shows on the page, in the iPhone app and in the Mac app as one quiet line, "2 updates from other sessions";
+a tap lists them, and Tell me has them said. They are said, waits first, when you go back to orchestrator mode by any
+path (the mode switch, "orchestrator mode", or the session in focus leaving), or when you ask: "anything from the
+others?", "what about the other sessions?", "what did I miss", "<span lang="he" dir="rtl">מה עם האחרים</span>". Focusing on a session drops its own held
+news: the switch says where it stands. An approval answered meanwhile is no longer listed.</p>
+<p><strong>Why a chime for an approval.</strong> A request blocks its agent, and goes back to its terminal when its harness's time runs
+out. Nothing spoken would break the focus; nothing at all could leave an agent blocked while you look at another
+session's work. One wordless cue, once per request (the brain dump's cue for the same case), tells you something needs a
+tap without naming another session. It does not repeat; the card and the alerts carry it from there. A meeting's room
+hears no chime.</p>
+<h2 id="echo">Echo</h2>
+<p>On laptop speakers the bot's voice reaches the microphone. The ears hear its words, and sound alone cannot tell them from
+yours. Words and their timing can. The rules are in <code>pointe/echo.py</code>. <code>SonioxEars</code> in <code>pointe/daemon.py</code> applies them.</p>
+<p><strong>What counts as the bot's words.</strong> Three accounts of what it said:</p>
+<ul>
+<li>its written text, from the start of the reply that was playing. Its voice can stop and start inside one reply.</li>
+<li>the same text as the voice reads it (<code>spoken_form</code>): <code>README.md</code> is "readme dot md", <code>python3</code> is "python three".</li>
+<li>the mirror: a second Soniox stream on the bot's own audio. It spells words as the ears do, but it trails the audio
+  by seconds.</li>
+</ul>
+<p>Your transcript and the bot's text both pass through <code>echo.words</code>. Numbers are spelled out, including Hebrew number
+words. "1,000" is 1000, and "%" is "percent". The same speech then compares equal, however each side wrote it.</p>
+<p><strong>When words are judged.</strong> By when they were said, not by when their transcript came. Soniox sends the final for an echoed
+sentence about 3 s after the bot stops. <code>AudioClock</code> counts the audio Soniox really receives, so the word offsets in a
+transcript map to wall time.</p>
+<ul>
+<li>Words said over the bot, or up to 1 s after it: the echo rules apply, however late the transcript is.</li>
+<li>
+<p>One or two words said over the bot: compared only with what it was saying then. Against two whole replies, near
+  spellings match any short phrase ("this" for "is").</p>
+</li>
+<li>
+<p>A yes or no the bot said at all stays its own: an echoed answer never counts.</p>
+</li>
+</ul>
+<p><strong>Cutting the bot off.</strong> Two of your words in a row cut the bot off, or one stop word ("stop", "wait", "no", "<span lang="he" dir="rtl">רגע</span>").</p>
+<ul>
+<li>Half of one of the bot's words proves nothing, first or last: "hold" of "holding", "on" of "python".</li>
+<li>
+<p>A final that is only a stop word cuts in at once. Whether it is yours, and so whether it answers a permission, still
+  waits for the mirror.</p>
+</li>
+<li>
+<p>Your voice well above the echo level cuts in, judged on fresh audio only.</p>
+</li>
+</ul>
+<p><strong>Permissions.</strong> An echoed yes or no never answers (<code>EchoGuard.repeats_bot</code>, and words said over the bot). A read-out
+that sounds like a switch command is still echo. A yes begun over the bot never approves. The bot asks for it again in
+one line. After two of these on one request, it waits for a fresh yes or a tap.</p>
+<p><strong>Measured.</strong> The rig leaks the bot's audio into the mic at <code>POINTE_ECHO_GAIN</code>. <code>tests/e2e/page_challenge.py</code>,
+<code>scenarios.py</code> and <code>page_call.py</code> take it. At 0.3, one <code>scenarios.py brain</code> run on the code before these rules (a pre-release
+build, 2026-11) had 10 echoes taken as your words and 10 cut-offs by the bot's own echo. At 0.5 it had 1 and 7. With
+all the rules, two runs at 0.3 had 0 echoes taken as your words and 1 cut-off (case below). <code>page_challenge</code> at 0.3 and
+0.5 took no echo as your words. <code>page_call</code> passed at 0, 0.3 and 0.5.</p>
+<p><strong>Not solved.</strong></p>
+<ul>
+<li>
+<p>A stop word inside the echo can cut the bot off: "<span lang="he" dir="rtl">לא</span>" is "no" and also "not", and "against" was once heard as
+  "enough". Words cannot tell this from your own stop.</p>
+</li>
+<li>
+<p>When Soniox gives "stop" late, the bot stops about 1.7 to 2 s after you start talking.</p>
+</li>
+<li>
+<p>The rig's echo is instant, clean and linear. Real speakers add playback lag and echo-cancel distortion. The tolerances
+  are 0.3 s for words over the bot and 1 s of tail.</p>
+</li>
+<li>
+<p>The loudness rule can still cut the bot off when a meeting opens the room over a reply.</p>
+</li>
+<li>Hebrew teens ("<span lang="he" dir="rtl">אחת עשרה</span>") are not mapped to numbers.</li>
+<li>Saying the exact words the bot is saying, while it says them, is dropped as echo. Wait for it to finish.</li>
+</ul>
+<h2 id="channel-mode">Channel mode</h2>
+<p><code>bin/pointe start</code> starts a session with a Claude Code channel instead of <code>/pointe:voice</code>. It needs Node.js and a restart, and uses
+<code>--dangerously-load-development-channels</code>, which Claude Code requires for a channel outside its allowlist. Pick "I am using this for
+local development" at its warning. <a href="../security/">SECURITY.md</a> says what it loads.</p>
+<p>On a Claude Team or Enterprise plan, channels are off unless an administrator sets <code>channelsEnabled: true</code> in managed
+settings. Without it, Claude Code starts but silently drops every message to the session. Use <code>/pointe:voice</code> there.</p>
+<h2 id="approvals-exactly">Approvals, exactly</h2>
+<p>When a session in the voice needs permission, the daemon reads the command out, and your yes or no goes to Claude Code through its
+<code>PermissionRequest</code> hook. A yes to a question the session asks in conversation is different: Claude Code sees those words as a message
+from another session, not as you typing, and can ask you to type before it sends a message, merges or deletes. Any process on the
+machine could write such a message, so do not add a rule that trusts it.</p>
+<p>Mute: tap your AirPods, or click the mic button. A falling tone means muted, a rising one live.</p>
+<h2 id="what-the-voice-knows-and-says">What the voice knows and says</h2>
+<p>A reading model (<code>pointe/brief.py</code>, <code>CLAUDE_VOICE_READER</code>) does what the voice model cannot do fast:</p>
+<ul>
+<li>
+<p><strong>Notes on each session:</strong> goal, state, decisions, what was ruled out, what is open. Read from the whole record when a
+  session registers, updated as it works, and kept in <code>~/.claude-voice/briefs</code> (0600), so they survive a restart.</p>
+</li>
+<li>
+<p><strong>Reports:</strong> when a session ends its turn, the whole final message is read and turned into what you must hear: the
+  outcome, what limits it, and the one decision or next move. Its open questions and clocks are tracked in code until
+  something settles them, and "what do I need to do" is answered from that record.</p>
+</li>
+</ul>
+<p>Harness text (system reminders, task notifications) is not treated as you typing; a background agent's finding is kept.</p>
+<h2 id="investigating-a-call">Investigating a call</h2>
+<p><code>bin/voice-log</code> reads <code>~/.claude-voice/journal.jsonl</code> (0600): what the user said, what the bot said, every tool
+call with its result, routing, gate refusals, echo drops, barge-ins, permissions. Any Claude Code session can run
+it: <code>bin/voice-log --call</code> (the latest call, with everything the model was given), <code>bin/voice-log --session NAME</code>,
+<code>bin/voice-log --since 14:20</code>, <code>bin/voice-log --grep 'refused|blocked'</code>. <code>bin/voice-context notes</code> shows the notes, and
+<code>/voice-review</code> in a session investigates a call from there.
+<code>daemon.log</code> keeps the full library-level detail.</p>
+<h2 id="tests">Tests</h2>
+<p>The offline suite, the end-to-end suites that drive real Claude Code sessions through a fake browser speaking
+synthesized utterances (<code>tests/e2e/rig.py</code>), and the voice evals: <a href="../contributing/#running-the-tests">Running the tests</a>.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/how-it-works.md">docs/how-it-works.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../architecture/"><span class="pg-small">Previous</span>Architecture</a><a class="dx-next" href="../harnesses/"><span class="pg-small">Next</span>Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#rules-enforced-in-code">Rules enforced in code</a></li>
+<li class="dx-l2"><a href="#session-mode-speaks-about-one-session">Session mode speaks about one session</a></li>
+<li class="dx-l2"><a href="#echo">Echo</a></li>
+<li class="dx-l2"><a href="#channel-mode">Channel mode</a></li>
+<li class="dx-l2"><a href="#approvals-exactly">Approvals, exactly</a></li>
+<li class="dx-l2"><a href="#what-the-voice-knows-and-says">What the voice knows and says</a></li>
+<li class="dx-l2"><a href="#investigating-a-call">Investigating a call</a></li>
+<li class="dx-l2"><a href="#tests">Tests</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

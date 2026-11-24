@@ -1,0 +1,21 @@
+[
+  {
+    "pid": 41001,
+    "cwd": "/Users/mira/work/pentest-notes",
+    "kind": "interactive",
+    "startedAt": 1795432235415,
+    "sessionId": "2353eaf4-fee8-4ea6-b4bc-d919b487479e",
+    "name": "pentest-recon",
+    "status": "idle"
+  },
+  {
+    "pid": 41002,
+    "cwd": "/Users/mira/work/billing",
+    "kind": "background",
+    "startedAt": 1795432100000,
+    "sessionId": "7c5dcf5d-1111-4a2b-9c3d-000000000002",
+    "id": "7c5dcf5d",
+    "state": "working",
+    "status": "busy"
+  }
+]

@@ -1,0 +1,5 @@
+{"adapter": "naive", "how": "computed", "item": "dictated-literals-0", "role": "agent", "run_id": "hlk-debug-20261123-025602", "run_index": 0, "session": "willow", "usd": 0, "vendor": "anthropic"}
+{"adapter": "naive", "how": "computed", "item": "dictated-literals-0", "role": "naive", "run_id": "hlk-debug-20261123-025602", "run_index": 0, "usd": 0.0, "vendor": "soniox", "what": "0 s streamed"}
+{"adapter": "llm-router", "how": "computed", "item": "dictated-literals-0", "role": "agent", "run_id": "hlk-debug-20261123-025602", "run_index": 0, "session": "willow", "usd": 0, "vendor": "anthropic"}
+{"adapter": "llm-router", "how": "computed", "item": "dictated-literals-0", "role": "llm-router", "run_id": "hlk-debug-20261123-025602", "run_index": 0, "usd": 0.0, "vendor": "soniox", "what": "0 s streamed"}
+{"adapter": "llm-router", "how": "computed", "item": "dictated-literals-0", "role": "llm-router", "run_id": "hlk-debug-20261123-025602", "run_index": 0, "usd": 0, "vendor": "anthropic", "what": "0 router calls, usage from the API"}

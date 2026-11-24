@@ -1,0 +1,310 @@
+{
+ "info": {
+  "jsonVersion": 5,
+  "outcome": "success"
+ },
+ "result": {
+  "devices": [
+   {
+    "connectionProperties": {
+     "authenticationType": "manualPairing",
+     "isMobileDeviceOnly": false,
+     "lastConnectionDate": "2026-11-21T17:18:00.000Z",
+     "localHostnames": [
+      "danas-iphone.coredevice.local"
+     ],
+     "pairingState": "paired",
+     "potentialHostnames": [
+      "danas-iphone.coredevice.local"
+     ],
+     "transportType": "localNetwork",
+     "tunnelIPAddress": "fd00:1111:2222::1",
+     "tunnelState": "connected",
+     "tunnelTransportProtocol": "tcp"
+    },
+    "deviceProperties": {
+     "bootState": "booted",
+     "bootedFromSnapshot": true,
+     "bootedSnapshotName": "com.apple.os.update-0000",
+     "ddiServicesAvailable": true,
+     "developerModeStatus": "enabled",
+     "hasInternalOSBuild": false,
+     "name": "Dana's iPhone",
+     "osBuildUpdate": "24A446",
+     "osVersionNumber": "27.0.1",
+     "rootFileSystemIsWritable": false,
+     "screenViewingURL": "devices://device/open?id=11111111-2222-3333-4444-555555555555",
+     "supportsCheckedAllocations": false
+    },
+    "hardwareProperties": {
+     "cpuType": {
+      "name": "arm64e",
+      "subType": -2147483646,
+      "type": 16777228
+     },
+     "deviceType": "iPhone",
+     "ecid": 1234567890,
+     "hardwareModel": "D93AP",
+     "internalStorageCapacity": 256000000000,
+     "isProductionFused": true,
+     "marketingName": "iPhone 16 Pro",
+     "platform": "iOS",
+     "productType": "iPhone17,1",
+     "reality": "physical",
+     "serialNumber": "F00DSERIAL01",
+     "supportedCPUTypes": [
+      {
+       "name": "arm64e",
+       "subType": -2147483646,
+       "type": 16777228
+      },
+      {
+       "name": "arm64",
+       "subType": 0,
+       "type": 16777228
+      }
+     ],
+     "supportedDeviceFamilies": [
+      1
+     ],
+     "thinningProductType": "iPhone17,1",
+     "udid": "00008140-000A11112222001C"
+    },
+    "identifier": "11111111-2222-3333-4444-555555555555",
+    "properties": {
+     "connection": {
+      "authenticationType": "manualPairing",
+      "lastConnectionDate": 816974280,
+      "pairingState": "paired",
+      "screenViewingURL": {
+       "relative": "devices://device/open?id=11111111-2222-3333-4444-555555555555"
+      },
+      "state": "connected",
+      "transportType": "localNetwork",
+      "tunnelIPAddressString": "fd00:1111:2222::1",
+      "tunnelTransportProtocol": "tcp"
+     },
+     "hardware": {
+      "cpuCount": {
+       "logicalCores": 6,
+       "packages": 1,
+       "physicalCores": 6
+      },
+      "cpuType": {
+       "subtype": 18446744071562067970,
+       "type": 16777228
+      },
+      "deviceType": "iPhone",
+      "ecid": 1234567890,
+      "hasActionButton": true,
+      "internalStorageCapacity": 256000000000,
+      "marketingName": "iPhone 16 Pro",
+      "platform": "iOS",
+      "productType": "iPhone17,1",
+      "reality": "physical",
+      "serialNumber": "F00DSERIAL01",
+      "supportedBiometrics": [
+       "faceID"
+      ],
+      "supportedCPUTypes": [
+       {
+        "subtype": 18446744071562067970,
+        "type": 16777228
+       },
+       {
+        "subtype": 0,
+        "type": 16777228
+       }
+      ],
+      "supportedDeviceFamilies": [
+       1
+      ],
+      "supportsSiri": true,
+      "thinningProductType": "iPhone17,1",
+      "udid": "00008140-000A11112222001C"
+     },
+     "software": {
+      "osBuildVersions": {
+       "buildVersion": {
+        "majorLetterComponent": "A",
+        "majorNumberComponent": 24,
+        "name": "24A446",
+        "revisionVersion": {
+         "components": [
+          24,
+          1,
+          446,
+          0,
+          0
+         ],
+         "originalComponentsCount": 5,
+         "stringValue": "24.1.446.0.0"
+        },
+        "trainProgram": "iOS",
+        "updateNumberComponent": 446
+       },
+       "supplementalBuildVersion": {
+        "majorLetterComponent": "A",
+        "majorNumberComponent": 24,
+        "name": "24A446",
+        "revisionVersion": {
+         "components": [
+          24,
+          1,
+          446,
+          0,
+          0
+         ],
+         "originalComponentsCount": 5,
+         "stringValue": "24.1.446.0.0"
+        },
+        "trainProgram": "iOS",
+        "updateNumberComponent": 446
+       }
+      },
+      "osVersionNumber": {
+       "components": [
+        27,
+        0,
+        1,
+        0,
+        0
+       ],
+       "originalComponentsCount": 3,
+       "stringValue": "27.0.1"
+      },
+      "supportsCheckedAllocations": false
+     },
+     "state": {
+      "bootState": "booted",
+      "developerModeStatus": {
+       "enabled": {
+        "mode": 1
+       }
+      },
+      "name": "Dana's iPhone",
+      "preparednessState": 3
+     }
+    },
+    "propertyDisplayNames": null,
+    "visibilityClass": "default"
+   },
+   {
+    "connectionProperties": {
+     "authenticationType": "implicit",
+     "isMobileDeviceOnly": false,
+     "lastConnectionDate": "2026-11-12T01:20:14.000Z",
+     "pairingState": "paired",
+     "potentialHostnames": [
+      "danas-iphone.coredevice.local"
+     ],
+     "transportType": "sameMachine",
+     "tunnelState": "disconnected"
+    },
+    "deviceProperties": {
+     "bootState": "shutdown",
+     "ddiServicesAvailable": false,
+     "hasInternalOSBuild": false,
+     "name": "sim",
+     "osBuildUpdate": "24B8117",
+     "osVersionNumber": "27.2",
+     "provider": "com.apple.CoreSimulator.SimulatorCoreDevicePlugin"
+    },
+    "hardwareProperties": {
+     "cpuType": {
+      "name": "arm64",
+      "subType": 0,
+      "type": 16777228
+     },
+     "deviceType": "iPhone",
+     "hardwareModel": "V53",
+     "marketingName": "iPhone 17 Pro",
+     "platform": "iOS",
+     "productType": "iPhone18,1",
+     "reality": "simulated",
+     "supportedCPUTypes": [
+      {
+       "name": "arm64",
+       "subType": 0,
+       "type": 16777228
+      }
+     ],
+     "udid": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+    },
+    "identifier": "11111111-2222-3333-4444-555555555555",
+    "properties": {
+     "connection": {
+      "authenticationType": "implicit",
+      "lastConnectionDate": 816139214,
+      "pairingState": "paired",
+      "state": "disconnected",
+      "transportType": "sameMachine"
+     },
+     "hardware": {
+      "cpuType": {
+       "subtype": 0,
+       "type": 16777228
+      },
+      "deviceType": "iPhone",
+      "hasActionButton": true,
+      "marketingName": "iPhone 17 Pro",
+      "platform": "iOS",
+      "productType": "iPhone18,1",
+      "reality": "simulated",
+      "supportedBiometrics": [
+       "faceID"
+      ],
+      "supportedCPUTypes": [
+       {
+        "subtype": 0,
+        "type": 16777228
+       }
+      ],
+      "supportsSiri": true,
+      "udid": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+     },
+     "software": {
+      "osBuildVersions": {
+       "buildVersion": {
+        "majorLetterComponent": "B",
+        "majorNumberComponent": 24,
+        "name": "24B8117",
+        "revisionVersion": {
+         "components": [
+          24,
+          2,
+          117,
+          8,
+          0
+         ],
+         "originalComponentsCount": 5,
+         "stringValue": "24.2.117.8.0"
+        },
+        "updateNumberComponent": 8117
+       }
+      },
+      "osVersionNumber": {
+       "components": [
+        27,
+        2,
+        0,
+        0,
+        0
+       ],
+       "originalComponentsCount": 2,
+       "stringValue": "27.2"
+      }
+     },
+     "state": {
+      "bootState": "shutdown",
+      "name": "sim",
+      "preparednessState": 0,
+      "visibilityClass": "simulators"
+     }
+    },
+    "propertyDisplayNames": null,
+    "visibilityClass": "simulators"
+   }
+  ]
+ }
+}

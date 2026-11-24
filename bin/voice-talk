@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Push to talk from any app: open or close the microphone on the call that is up. Bind it to a system-wide shortcut
+# (Settings → Microphone on the page shows the recipe); a hold-to-talk tool runs `on` on key down and `off` on key up.
+#   voice-talk            toggle: press once to talk, again to stop
+#   voice-talk on|off
+# Prints one line and exits 0, or 1 with the reason (no call, microphone set to Always on, Pointe not running).
+set -euo pipefail
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+ACTION="${1:-toggle}"
+case "$ACTION" in on|off|toggle) ;; *) echo "voice-talk: on, off or toggle" >&2; exit 2 ;; esac
+[ -r "$STATE/token" ] || { echo "Pointe is not running on this Mac."; exit 1; }
+# Only to the daemon itself: with it down, another program on the port would get the token.
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || { echo "Pointe is not running on this Mac."; exit 1; }
+# The token goes through a curl config on a pipe, never an argument, so it shows in no process list.
+RESPONSE="$(curl -sS -m 5 -w '\n%{http_code}' -X POST -H 'content-type: application/json' --data "{\"action\": \"$ACTION\"}" \
+  --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/talk" 2>/dev/null)" \
+  || { echo "Pointe is not running on this Mac."; exit 1; }
+CODE="${RESPONSE##*$'\n'}"
+BODY="${RESPONSE%$'\n'*}"
+if [ "$CODE" = "200" ]; then
+  case "$BODY" in *'"open": true'*|*'"open":true'*) echo "Talking." ;; *) echo "Not talking." ;; esac
+  exit 0
+fi
+DETAIL="$(printf '%s' "$BODY" | sed -n 's/.*"detail": *"\([^"]*\)".*/\1/p')"
+echo "${DETAIL:-Pointe said no ($CODE).}"
+exit 1

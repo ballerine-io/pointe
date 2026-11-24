@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fully local · Pointe docs</title>
+<meta name="description" content="Every model runs on your Mac. No key is read, and nothing Pointe does leaves the Mac: not your speech, not your sessions, not what the voice says. It costs…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Fully local">
+<meta property="og:description" content="Every model runs on your Mac. No key is read, and nothing Pointe does leaves the Mac: not your speech, not your sessions, not what the voice says. It costs…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/local/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/local/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../reading-mode/">Reading mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="./" aria-current="page">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="fully-local">Fully local</h1>
+<p>Every model runs on your Mac. No key is read, and nothing Pointe does leaves the Mac: not your speech, not your
+sessions, not what the voice says. It costs nothing per hour. It is slower and makes more mistakes than the keyed
+setups; the numbers are below, measured on one Mac.</p>
+<p>The code is <code>pointe/local.py</code> (install, the text-model server, status) and <code>vendors.local_only</code> (no key read).</p>
+<h2 id="use-it">Use it</h2>
+<div class="dx-code"><pre><code>pointe local          # downloads what is missing, with sizes first, starts the local model, turns the mode on
+pointe stop           # then /pointe:voice: the voice restarts on the local models
+pointe local status   # what is on disk, whether the model answers, and its memory
+pointe local off      # back to the vendors you used before</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Or from a screen:</p>
+<ul>
+<li><strong>Voice:</strong> no phrase: it changes which models run, so it is chosen on the Mac and Pointe restarts on it.</li>
+<li>
+<p><strong>Page:</strong> on the Mac's own page, Settings → Model keys → "Fully local" → Use this setup. It runs <code>pointe setup local</code>
+  (the same as <code>pointe local</code>: the models download first), then restarts Pointe. A Mac with less than 32 GB is refused
+  there, with the reason. A page opened on the phone shows the command only. Settings → Local mode then reads "Fully
+  local: on".</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> no switch: the setup is chosen on the Mac. Settings shows one read-only line while it is on.</p>
+</li>
+<li><strong>Mac app:</strong> Settings (••• at the top, or ⌘,) → Model keys → Setup → "Fully local", then Restart under Pointe on this
+  Mac.</li>
+</ul>
+<p><code>/pointe:setup</code> offers it as "Fully local". <code>/pointe:doctor</code> shows the local status in every run.</p>
+<p>Needs an Apple-silicon Mac with 32 GB of memory or more, and about 19 GB of disk. Nothing is installed system-wide and
+no service is registered: everything sits in your user account.</p>
+<h2 id="what-runs">What runs</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Local model</th>
+<th>Size on disk</th>
+<th>License</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ears</td>
+<td>Whisper large-v3-turbo, MLX (<code>mlx-community/whisper-large-v3-turbo</code>), in the daemon</td>
+<td>1.6 GB</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>Mouth</td>
+<td>Kokoro v1.0 (<code>kokoro-onnx</code>), voice <code>af_heart</code>, in the daemon</td>
+<td>0.34 GB</td>
+<td>Apache-2.0 (model); see GPL note below</td>
+</tr>
+<tr>
+<td>Brain, reader, gate</td>
+<td>Gemma 4 26B A4B instruct, MLX 4-bit (<code>mlx-community/gemma-4-26b-a4b-it-4bit</code>), one model for all three</td>
+<td>15.4 GB; 17 GB of memory while it runs</td>
+<td>Apache-2.0</td>
+</tr>
+<tr>
+<td>Server for the text model</td>
+<td><code>mlx-lm</code> 0.32.2, its OpenAI-compatible server on <code>127.0.0.1:7869</code>, in its own uv environment under <code>~/.claude-voice/local/mlx-lm</code></td>
+<td>0.4 GB</td>
+<td>MIT</td>
+</tr>
+</tbody>
+</table></div>
+<p>The daemon starts the server when the voice starts and <code>pointe stop</code> stops it, so the model's memory is freed when you
+are not talking. One model serves the brain, the reader and the gate. Thinking is off in its chat template: with it on,
+each reply waits for hidden tokens.</p>
+<h2 id="what-stays-on-the-mac">What stays on the Mac</h2>
+<p>In fully local mode <code>vendors.key()</code> returns nothing for every vendor, from the environment or the Keychain. So no role
+can pick a vendor, the Soniox mirror stream (the echo guard) is off, and meeting mode has no ears. A role set to a vendor
+in <code>config.json</code> or the environment is refused at start, with the command that turns the mode off. Tests:
+<code>tests/test_local.py</code>.</p>
+<p>Answering on <code>127.0.0.1:7869</code> is not enough to be trusted with your transcripts: with the server stopped, another
+account on the Mac could take the port and answer in its place. Pointe uses the server only when the program
+listening there is the one it started (<code>local/server.pid</code>) or its child (<code>local.ours</code>, through <code>bin/voice-listeners</code>);
+otherwise <code>pointe local start</code> and the daemon's start refuse, and say what to do. The running daemon checks again every
+5 seconds (<code>local.recheck</code>) and sends no text there until it is that server again; a port taken within those seconds is
+the gap. A server you set up yourself and
+point <code>local_url</code> at (Ollama, say) is yours to vouch for, and is not checked.</p>
+<p>What still goes out: model downloads, once, from Hugging Face and GitHub; your coding agents' own traffic, as always.
+onnxruntime (the voice detector, the voice lock, kokoro-onnx) connects to Microsoft's telemetry collector when it
+loads; Pointe turns that off in every setup (<code>ORT_DISABLE_TELEMETRY=1</code>, <code>pointe/no_telemetry.py</code>), found while measuring
+<a href="../voice-stays-local/#measured">Voice stays on your Mac</a>. The runs above predate it.</p>
+<h2 id="why-these">Why these</h2>
+<p>Each pick is the best of what was measured on this Mac (<code>bench/results/local.md</code>):</p>
+<ul>
+<li>
+<p><strong>Text model: Gemma 4 26B A4B.</strong> A mixture of experts with about 4B active parameters, so it answers about as fast as a
+  small model. It passed the most brain cases (76.9%, against 74.8% for Qwen3.6-35B-A3B and 62.0% for Qwen3.5-9B), with
+  the fewest unwanted sends and the shortest p95 reply, in the least memory of the large ones. The first two are inside
+  each other's confidence intervals; the smaller memory decided. Qwen3.8-27B, a dense model, took 13 s per reply.</p>
+</li>
+<li>
+<p><strong>Server: mlx-lm.</strong> Apple's own MLX runtime, MIT, installed with uv in a folder of its own: no Homebrew, no system
+  service, no app. It keeps the system prompt's cache between turns: a model step on a prompt of about 4,700 tokens
+  took 2.1 s at the median. Ollama (since 0.19 also on MLX) works by hand through <code>local_url</code>, but it needs its own
+  install (Homebrew or its app) and runs its own background server, and nothing measured here shows it faster.</p>
+</li>
+<li>
+<p><strong>Ears: Whisper large-v3-turbo.</strong> It ties full large-v3 on accuracy (p = 0.89) and is 0.3 s faster. The ivrit-ai
+  Hebrew fine-tune is the best on Hebrew (95.0%) and mixed speech, but heard English right only 37.5% of the time.
+  Parakeet and Qwen3-ASR were not run: neither lists Hebrew.</p>
+</li>
+<li>
+<p><strong>Mouth: Kokoro, as before.</strong> Chatterbox Multilingual (MIT, no eSpeak, claims Hebrew) took 2.4 s to its first English
+  audio and its Hebrew was not intelligible. Kokoro on MLX was five times faster than the kokoro-onnx the daemon runs
+  (229 against 1283 ms to first English audio) and is the next step, not done here; see Limits.</p>
+</li>
+</ul>
+<h2 id="measured">Measured</h2>
+<p>On an Apple M5 Pro with 64 GB, macOS 27.0, 2026-11-13, with other work running on the Mac (load average 17 to 154).
+The reports and commands are in <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/local.md"><code>bench/results/local.md</code></a>.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th>Fully local</th>
+<th>Best keyed (published)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Brain, 78 cases x 3, pass ignoring length</td>
+<td>76.9% (67.9% to 85.5%)</td>
+<td>Sonnet 91.9% (85.9% to 97.0%)</td>
+</tr>
+<tr>
+<td>Brain, reply p50 / p95</td>
+<td>3.4 / 9.2 s</td>
+<td>Sonnet 1.8 s median</td>
+</tr>
+<tr>
+<td>Brain, unwanted sends of 234</td>
+<td>16 (5 refused in code)</td>
+<td>Sonnet 9 (all refused in code)</td>
+</tr>
+<tr>
+<td>Reader, 17 cases x 3, pass</td>
+<td>51.0%, 7.5 s median</td>
+<td>Sonnet 100%, 3.8 s</td>
+</tr>
+<tr>
+<td>Ears, 560 clips, intent right</td>
+<td>85.7%, 0.76 s median</td>
+<td>Soniox 95.4%, 0.36 s</td>
+</tr>
+<tr>
+<td>Mouth, first English audio p50</td>
+<td>1.28 s (whole reply)</td>
+<td>eleven_v4_turbo 0.21 s</td>
+</tr>
+<tr>
+<td>Single-session audio suite (<code>tests/e2e/scenarios.py brain</code>)</td>
+<td>10 of 19</td>
+<td>18 of 19 (<code>combinations.md</code>)</td>
+</tr>
+<tr>
+<td>Memory while running</td>
+<td>17 GB (text model)</td>
+<td></td>
+</tr>
+<tr>
+<td>Disk</td>
+<td>17.7 GB of models and server, plus about 0.9 GB of Python packages</td>
+<td></td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>$0</td>
+<td>about $1 a busy hour</td>
+</tr>
+</tbody>
+</table></div>
+<p>In the audio suite every approval and safety check passed: a delete asked by voice waited for the user, silence
+approved nothing, a spoken yes approved and a no denied, and a reconnect replayed nothing. What failed: speed first.
+Replies came 7.4 s after the greeting's trigger and 11.6 s after a plain question (which got "one sec" first); side
+questions were answered well but in 5.8 to 7.2 s, over the suite's 4 s limit; five brain steps ran past the 8 s limit
+("I lost my connection to the model"), so barge-in and a follow-up after a reconnect missed. Then: a Hebrew answer not
+spoken in Hebrew, a research report not picked up, and a fix asked in Hebrew that had not landed when checked. The suite's
+transcriber and the fake user's voice are cloud services; Pointe used none.</p>
+<p>Installing: <code>pointe local</code> set up the server's environment in 11 s and had the model answering in 21 s, with the
+models already downloaded. A fresh download is 17.3 GB; 1.5 GB took 37 s here, so about 8 minutes on that link.</p>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>
+<p><strong>It is slower.</strong> A reply takes 3.4 s at the median and 9.2 s at p95 to decide, against 1.8 s for Sonnet; the brain's 8 s
+  step limit cuts some off ("I lost my connection to the model"). Add the ears (0.76 s) and the first sentence of
+  speech (Kokoro: 1.3 s at the median for an English reply, up to 4.5 s). These were measured with other work on the
+  Mac; a quiet Mac should do better, by an amount not measured.</p>
+</li>
+<li>
+<p><strong>It makes more mistakes.</strong> The brain passed 76.9% of cases against 91.9% for Sonnet. It never asked what an unclear
+  request meant: it sent it. The gate, the same local model, checks each send against what you said, and approvals keep
+  every rule in code, but more wrong requests reach your sessions. Reports pass 51% against 100%.</p>
+</li>
+<li>
+<p><strong>Speech starts late.</strong> kokoro-onnx makes a whole sentence before any of it plays. Kokoro on MLX (mlx-audio) started
+  English speech in 229 ms against 1283 ms. It is now in the daemon as <code>mouth: local:kokoro-mlx</code>, the mouth of
+  <a href="../voice-stays-local/">Voice stays on your Mac</a>; fully local mode does not use it yet.</p>
+</li>
+<li>
+<p><strong>No Hebrew voice.</strong> Kokoro has none: a Hebrew reply is spoken as noise. Speak English with it. Whisper hears Hebrew
+  (93.3% of Hebrew clips right).</p>
+</li>
+<li>
+<p><strong>No echo guard.</strong> It needs Soniox's second stream: use headphones.</p>
+</li>
+<li><strong>Short answers can be misheard as another language.</strong> Whisper picked a third language for 24 of 120 short clips.</li>
+<li>
+<p><strong>GPL in the optional extra.</strong> kokoro-onnx phonemizes with eSpeak NG (GPL-3.0) through <code>phonemizer</code>. Every Kokoro
+  runtime measured does the same; the permissive option measured (Chatterbox) was too slow. It runs as a library in your
+  own environment and is not part of Pointe's source. <a href="https://github.com/ballerine-io/pointe/blob/main/THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+</li>
+<li>
+<p><strong>One Mac.</strong> Measured on an M5 Pro with 64 GB only. A Mac with less than 32 GB is refused; a 9B model that would fit
+  passed 62% with 35 unwanted sends, so it is not offered.</p>
+</li>
+<li>
+<p><strong>Not measured:</strong> a real human voice, a quiet Mac, other Apple-silicon generations, and the multi-session and echo
+  suites.</p>
+</li>
+</ul>
+<h2 id="other-machines-and-servers">Other machines and servers</h2>
+<p><code>ears: local</code> and <code>mouth: local</code> work on any machine (faster-whisper off Apple silicon). Text models can come from any
+OpenAI-compatible server: set <code>brain</code>, <code>reader</code> and <code>checker</code> to <code>local:&lt;model&gt;</code> and <code>local_url</code> (or
+<code>CLAUDE_VOICE_LOCAL_URL</code>) to its address, for example Ollama's <code>http://localhost:11434/v1</code>. Those setups are not
+measured here.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/local.md">docs/features/local.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../voice-stays-local/"><span class="pg-small">Previous</span>Voice stays on your Mac</a><a class="dx-next" href="../openai-url/"><span class="pg-small">Next</span>OpenAI models from another host</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-runs">What runs</a></li>
+<li class="dx-l2"><a href="#what-stays-on-the-mac">What stays on the Mac</a></li>
+<li class="dx-l2"><a href="#why-these">Why these</a></li>
+<li class="dx-l2"><a href="#measured">Measured</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#other-machines-and-servers">Other machines and servers</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

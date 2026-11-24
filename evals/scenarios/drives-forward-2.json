@@ -1,0 +1,11 @@
+{"mode": "orchestrator", "sessions": [
+{"name": "tidepool-search/reindex-v2", "cwd": "/tmp/repo/tidepool-search", "active": true, "history": [
+{"role": "user", "text": "This session continues from an earlier conversation.\n\nSummary: Tidepool Docs is moving its search from the old Lumen index to the new Vanta engine. Goal: cut p95 query latency below 200 ms because Orbis Legal, the biggest account (31% of revenue), has threatened to leave over slow search, renewal call is on the 18th. Approach decided: dual-write to both indexes, backfill Vanta, shadow-read compare, then flip traffic per tenant with the `search.engine` setting. The user ruled out a big-bang cutover. The user said Hebrew and Arabic tenants must not regress because Orbis's Tel Aviv office uses Hebrew search daily. Dual-write is merged. Backfill script written, not run in prod.", "compact": true},
+{"role": "assistant", "text": "Picked up from the summary. Dual-write is live on staging and merged. Backfill script `backfill_vanta.py` is ready with throttling at 2k docs/s. Next is the shadow-read comparison harness, then I'll run the backfill on staging and report relevance and latency."},
+{"role": "user", "text": "Good. Build the harness and run it on staging with Orbis's anonymized query log. Report recall against Lumen and p95. Bar to ship: p95 under 200, recall at 10 at least 97 percent of Lumen, in every language."}
+]},
+{"name": "tidepool-web/billing-page", "cwd": "/tmp/repo/tidepool-web", "history": [
+{"role": "user", "text": "Fix the invoice PDF download link on the billing page, it 404s for annual plans."},
+{"role": "assistant", "text": "Fixed the path for annual plans, added a test, opened the PR. Waiting on CI."}
+]}
+]}

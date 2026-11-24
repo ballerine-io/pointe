@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice stays on your Mac · Pointe docs</title>
+<meta name="description" content="Your speech is heard and spoken on your Mac: no audio goes to any vendor. The brain, the reader and the gate stay in the cloud and get text only. This keeps…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Voice stays on your Mac">
+<meta property="og:description" content="Your speech is heard and spoken on your Mac: no audio goes to any vendor. The brain, the reader and the gate stay in the cloud and get text only. This keeps…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/voice-stays-local/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/voice-stays-local/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../reading-mode/">Reading mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="./" aria-current="page">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="voice-stays-on-your-mac">Voice stays on your Mac</h1>
+<p>Your speech is heard and spoken on your Mac: no audio goes to any vendor. The brain, the reader and the gate stay in the
+cloud and get text only. This keeps the measured accuracy of the cloud brain (fully local mode's weak point, by
+<a href="../local/#measured">measure</a>) and keeps your voice off every vendor's servers.</p>
+<p>The code is <code>pointe/local.py</code> (<code>pointe local voice</code>), <code>vendors.voice_local</code> and <code>vendors.refuse_cloud_audio</code> (the guarantee),
+and <code>pointe/kokoro_mlx.py</code> (the mouth).</p>
+<h2 id="use-it">Use it</h2>
+<div class="dx-code"><pre><code>pointe key anthropic    # the one key it needs (a Gemini key also works; with both, Gemini runs the gate)
+pointe local voice      # downloads Whisper and Kokoro once, turns the setup on
+pointe stop             # then /pointe:voice: the voice restarts with local ears and mouth
+pointe local off        # back to the vendors you used before</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Or from a screen:</p>
+<ul>
+<li><strong>Voice:</strong> no phrase: it changes which vendors run, so it is chosen on the Mac and Pointe restarts on it.</li>
+<li>
+<p><strong>Page:</strong> on the Mac's own page, Settings → Model keys → "Voice stays on your Mac" → Use this setup. It runs
+  <code>pointe setup voice-local</code> (the same as <code>pointe local voice</code>: the models download first), then restarts Pointe. A page
+  opened on the phone shows the command only. Settings → Local mode then reads "Voice stays on your Mac: on".</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> no switch: the setup is chosen on the Mac. Settings shows one read-only line while it is on.</p>
+</li>
+<li><strong>Mac app:</strong> Settings (••• at the top, or ⌘,) → Model keys → Setup → "Voice stays on your Mac", then Restart under
+  Pointe on this Mac.</li>
+</ul>
+<p><code>/pointe:setup</code> offers it as "Voice stays on your Mac". <code>pointe doctor</code> names it, lists which vendors get text, and shows
+Soniox and ElevenLabs as "not read". Needs an Apple-silicon Mac (Whisper and the voice run on MLX) and about 3 GB of
+disk (2.0 GB of models, 1.1 GB of local libraries); memory is not a limit, as no text model runs here.</p>
+<h2 id="what-runs-where">What runs where</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Where</th>
+<th>Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ears</td>
+<td>this Mac</td>
+<td>Whisper large-v3-turbo on MLX (<code>mlx-community/whisper-large-v3-turbo</code>), MIT</td>
+</tr>
+<tr>
+<td>Mouth</td>
+<td>this Mac</td>
+<td>Kokoro-82M on MLX (<code>mlx-community/Kokoro-82M-bf16</code>, mlx-audio 0.6.5), voice <code>af_heart</code>, Apache-2.0</td>
+</tr>
+<tr>
+<td>Brain, reader</td>
+<td>Anthropic (or Gemini, OpenAI)</td>
+<td><code>claude-sonnet-5-5</code>, as in the default setup</td>
+</tr>
+<tr>
+<td>Gate</td>
+<td>Gemini if its key exists, else the brain's vendor</td>
+<td><code>gemini-3.5-flash-lite</code>, else <code>claude-haiku-5-5</code></td>
+</tr>
+<tr>
+<td>Echo guard</td>
+<td>this Mac</td>
+<td>the bot's own text against what Whisper heard; no mirror stream</td>
+</tr>
+<tr>
+<td>Meeting mode</td>
+<td>off</td>
+<td>telling speakers apart needs Soniox's cloud stream, and no local model does it yet</td>
+</tr>
+<tr>
+<td>Voice lock</td>
+<td>this Mac</td>
+<td>as in every setup</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="what-leaves-the-mac-exactly">What leaves the Mac, exactly</h2>
+<ul>
+<li>
+<p><strong>To the brain and reader vendor (Anthropic):</strong> what you said, as text (Whisper's transcript); session content
+  (transcripts, notes, reports, briefings); what the bot says, as text.</p>
+</li>
+<li>
+<p><strong>To the gate vendor (Gemini, if its key exists):</strong> what you said, as text, each session's latest lines, goal, folder
+  path and up to 40 file names. The same as in every keyed setup.</p>
+</li>
+<li>
+<p><strong>Never:</strong> audio of any kind: your microphone, the bot's voice, the room. Not the voiceprint. Not onnxruntime's
+  telemetry, which Pointe turns off in every setup (see Measured).</p>
+</li>
+<li>
+<p><strong>Once:</strong> model downloads from Hugging Face (and the spaCy English model from GitHub, when uv installs it).</p>
+</li>
+<li><strong>Phone:</strong> with the iPhone app, its audio crosses your own paired link (Tailscale, Twingate or Wi-Fi, TLS with a
+  pinned certificate) to the Mac. That carries audio between your devices; no vendor transcribes or stores it.</li>
+</ul>
+<h2 id="the-guarantee-in-code">The guarantee, in code</h2>
+<p>With the setup on (<code>"voice_local": true</code> in <code>config.json</code>, or <code>CLAUDE_VOICE_VOICE_LOCAL=1</code>):</p>
+<ul>
+<li>The Soniox and ElevenLabs keys are never read, from the environment or the Keychain: their only use here is audio.</li>
+<li>
+<p>Ears and mouth resolve to local. A cloud ear or mouth set in <code>config.json</code> or the environment stops the daemon at
+  start, with the command that turns the setup off. It never falls back to a cloud audio vendor.</p>
+</li>
+<li>
+<p><code>build_ears</code> and <code>build_mouth</code> refuse every vendor but local; a realtime front (<code>CLAUDE_VOICE_FRONT=gemini|openai</code>)
+  and <code>CLAUDE_VOICE_EARS=native</code>, where a model hears the audio, are refused.</p>
+</li>
+<li>
+<p>The echo guard's mirror stream and meeting ears, the two other paths that stream audio to Soniox, call
+  <code>vendors.refuse_cloud_audio</code> before connecting, and are not built in the first place.</p>
+</li>
+<li>
+<p>Fully local mode (<code>pointe local</code>) implies all of this.</p>
+</li>
+</ul>
+<p><code>tests/test_voice_local.py</code> checks it offline: with every vendor's key present, constructing any cloud speech client
+(Soniox, Gemini, OpenAI, ElevenLabs; STT, TTS and realtime) or opening any WebSocket fails the test, and the whole call's
+ears, mirror and mouth must still build. Removing either guard turns it red (checked).</p>
+<h2 id="echo">Echo</h2>
+<p>The default setup's echo guard compares what the ears heard with a second Soniox stream of the bot's own voice. Here
+there is no second stream: the guard compares Whisper's transcript with the text the bot was given to say, normalized the
+same way (numbers, file names, symbols). Whisper writes the bot's words close to how they were written, and that holds
+for keeping the bot's own voice out; it does not make interrupting it fast.</p>
+<p>The echo suite (<code>tests/e2e/echo.py</code>: the bot's voice fed back into the microphone at half volume, no echo cancellation),
+five runs: the story played to the end over its own echo every time, and its echo never reached the brain (about 20 echo
+transcripts dropped per run). The check "the echo never reaches the model as the user" still failed every run, on the
+user's own request: Whisper split "Tell me a story ... / about eight sentences long" into two segments, and the check
+expects one. A spoken "Stop. What is two plus two?" over the story stopped it and was answered "Four" in four runs, but
+Whisper transcribes a segment only once it closes, so the cut came 3 to 4 s after the user began: inside the suite's
+window once (3 of 4), outside it three times (1 of 4). In the other run Anthropic answered 503 ("credential validation
+failed") for the second story, so there was nothing to interrupt (1 of 4). With headphones there is no echo floor and a voice cuts in at once
+(0.39 s in the single-session suite).</p>
+<p>So: <strong>use headphones</strong>, or expect a spoken interruption to take a few seconds on speakers. A faster local cut-in would
+need Whisper passes over the open segment while the bot talks; it is not built.</p>
+<h2 id="measured">Measured</h2>
+<p>On an Apple M5 Pro with 64 GB, macOS 27.0, 2026-11-13, with other work running on the Mac (load average about 10 to 14).
+Keys visible to the daemon: Anthropic and Gemini only (a test-only <code>security</code> shim refused every other Keychain item),
+on isolated ports and state. The default cloud setup's numbers are from the same suites on the same day
+(<a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/combinations.md">combinations.md</a>).</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th>Voice stays on your Mac</th>
+<th>Default cloud setup (Soniox, Anthropic, Gemini, ElevenLabs)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audio suites, <code>tests/e2e/run_all.sh</code> (single / multi / echo)</td>
+<td><strong>30 of 35</strong> (16 / 11 / 3)</td>
+<td>34 of 35 (18 / 12 / 4)</td>
+</tr>
+<tr>
+<td>Single-session suite again, its daemon alone on the Mac</td>
+<td>15 of 19</td>
+<td></td>
+</tr>
+<tr>
+<td>Reply latency in the single-session suite, end of speech to first audio, median of 6 replies</td>
+<td>4.1 s alone (2.5 to 5.0); 4.2 s with three daemons (3.1 to 11.1)</td>
+<td>2.4 s (2.0 to 2.6)</td>
+</tr>
+<tr>
+<td>Mouth, first English audio, <code>bench/local_tts_bench.py</code> (24 clips x 3)</td>
+<td><strong>185 ms</strong> p50, 233 ms p95 (kokoro-onnx: 750 / 915 ms in the same run)</td>
+<td>213 ms (<code>eleven_v4_turbo</code>, <code>tts.md</code>)</td>
+</tr>
+<tr>
+<td>Mouth, time to first audio inside the live calls (37 sentences)</td>
+<td>0.36 s p50, 1.5 s p90</td>
+<td></td>
+</tr>
+<tr>
+<td>Ears, 560 clips, intent right, same run and judge (<code>bench/stt_extra.py</code>)</td>
+<td>82.7% (79.5 to 85.5)</td>
+<td>Soniox 94.6% (92.7 to 96.4); p = 6e-14</td>
+</tr>
+<tr>
+<td>Ears by kind: English / Hebrew / mixed / short yes-no</td>
+<td>85.0% / 91.7% / 70.0% / 87.5%</td>
+<td></td>
+</tr>
+<tr>
+<td>Ears latency p50 / p90 (voice detector wait plus transcription)</td>
+<td>0.61 / 0.69 s</td>
+<td>Soniox 0.33 / 0.58 s</td>
+</tr>
+<tr>
+<td>A busy hour (arithmetic, <code>docs/benchmarks.md</code>)</td>
+<td>about $0.40</td>
+<td>about $1</td>
+</tr>
+</tbody>
+</table></div>
+<p>Where the reply time goes, for the plain question run alone: the voice detector closed the segment, Whisper wrote it
+in 0.34 s, the brain took 2.6 s, and Kokoro took 1.6 s to start a long first sentence. Speech from Kokoro starts on a
+whole sentence, so a long one waits longer; the median sentence started in 0.36 s.</p>
+<p>Failures (both runs): the plain question was over the suite's 3.5 s limit (5.0 s alone; 11.1 s with three daemons
+sharing the GPU); the Hebrew answer was spoken as Hebrew letter names (the parallel run's check counted it as passed:
+29 of 35 in substance); the fix asked in Hebrew had not landed when checked; after a reconnect it did not say what the
+session had done. Multi-session: the second session's answer was not reported. Echo: see above. Every approval and
+safety check passed in both runs.</p>
+<p>The ears row from fully local mode's day (<a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/local.md">local.md</a>) read 85.7% for the same model; this
+run's 82.7% used the same clips and judge model, with the judge's verdicts made again. The two runs' intervals overlap.
+Whisper turbo's Hebrew is good on Hebrew alone and weak when Hebrew and English mix in one sentence (70.0%, against 90.6% for Soniox in
+the same run).</p>
+<p>What the daemons connected to during the suites, by sampling their sockets every second: Anthropic
+(<code>160.79.104.10</code>), Google (<code>172.217.x</code>, the Gemini gate), and Microsoft's telemetry collector
+(<code>*.events.data.microsoft.com</code>). The last is <code>onnxruntime</code> 1.31, which runs the voice detector (Silero) in every setup:
+it connects on import, from native code, so Python's own socket hooks never saw it. Its content was not inspected. Pointe
+now sets <code>ORT_DISABLE_TELEMETRY=1</code> before onnxruntime can load, in every setup (<code>pointe/no_telemetry.py</code>, imported first by every
+module that can reach it, and exported by the launchers), which stopped the connection in isolation and in a rerun of the
+echo suite (only Anthropic connected; the Gemini gate had nothing to check). <code>tests/test_no_telemetry.py</code> fails if any
+module reaches onnxruntime without it.</p>
+<h2 id="why-these">Why these</h2>
+<ul>
+<li>
+<p><strong>Mouth: Kokoro on MLX, voice <code>af_heart</code>.</strong> The same Kokoro weights as fully local mode's kokoro-onnx, run on the
+  GPU: English speech starts in 185 ms at the median, against 750 ms for kokoro-onnx in the same run. <code>af_heart</code> is the only voice Kokoro's own card grades A. Seven candidate voices were rendered with
+  the same passage; all were heard back by Whisper word for word, so intelligibility does not separate them. How they
+  sound is for a person to judge: <code>uv run --locked --extra local python -I bench/local_tts_bench.py voices</code> writes them to
+  <code>bench/.audio/voice-samples/</code>.</p>
+</li>
+<li>
+<p><strong>Ears: Whisper large-v3-turbo</strong>, as in fully local mode (<a href="../local/#why-these">why</a>).</p>
+</li>
+<li><strong>Brain in the cloud.</strong> The local brain was fully local mode's bottleneck: 76.9% of cases against 91.9% for Sonnet,
+  with replies of 3.4 s against 1.8 s at the median.</li>
+</ul>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>
+<p><strong>No Hebrew voice.</strong> Kokoro has none, and the brain answers in the language you spoke: a Hebrew reply is spoken as
+  Hebrew letter names. Speak English with it. Whisper hears Hebrew (91.7% of Hebrew clips right).</p>
+</li>
+<li>
+<p><strong>On speakers, interrupting takes 3 to 4 s</strong> (see Echo). Use headphones.</p>
+</li>
+<li>
+<p><strong>The ears are weaker than Soniox:</strong> 82.7% of intents against 94.6% (p = 6e-14), and 70.0% on mixed Hebrew and
+  English. Short answers can be heard as another language.</p>
+</li>
+<li>
+<p><strong>Slow starts when the GPU is shared.</strong> With three voice daemons on one Mac (the parallel suites), the mouth took 4 to 8 s
+  to start for each daemon's first minute; alone it started in 0.36 s at the median and 1.5 s at p90. Kokoro's first sentence after the daemon starts
+  builds its pipeline (about 5 s, logged as "local mouth ready"); the daemon does this at start.</p>
+</li>
+<li>
+<p><strong>No meeting mode:</strong> it needs Soniox's speaker labels.</p>
+</li>
+<li><strong>eSpeak NG (GPL-3.0)</strong> comes with the optional <code>local</code> extra, as for fully local mode (<a href="https://github.com/ballerine-io/pointe/blob/main/THIRD_PARTY.md">THIRD_PARTY.md</a>).</li>
+<li><strong>Apple silicon only</strong>, measured on one M5 Pro with 64 GB, with other work running (load average about 10 to 14).</li>
+<li><strong>Not measured:</strong> a real human voice; a quiet Mac; other Macs.</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/voice-stays-local.md">docs/features/voice-stays-local.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../clean-up-my-words/"><span class="pg-small">Previous</span>Clean up my words</a><a class="dx-next" href="../local/"><span class="pg-small">Next</span>Fully local</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-runs-where">What runs where</a></li>
+<li class="dx-l2"><a href="#what-leaves-the-mac-exactly">What leaves the Mac, exactly</a></li>
+<li class="dx-l2"><a href="#the-guarantee-in-code">The guarantee, in code</a></li>
+<li class="dx-l2"><a href="#echo">Echo</a></li>
+<li class="dx-l2"><a href="#measured">Measured</a></li>
+<li class="dx-l2"><a href="#why-these">Why these</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

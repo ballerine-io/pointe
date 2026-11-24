@@ -1,0 +1,34 @@
+{
+ "model": "claude-haiku-5-5",
+ "mode": "acceptEdits",
+ "run_id": "identifiers-20261123-025735-smoke",
+ "repo_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "pointe_commit": "6544cdc403af9a9c87ffb2a5612b1919910c37db",
+ "claude_code": "2.1.330",
+ "smoke": true,
+ "audio_matches_lock": true,
+ "arms": [
+  "naive",
+  "llm-router"
+ ],
+ "runs": 4,
+ "estimate_usd": 0.16,
+ "cap_usd": 12.0,
+ "workers": 3,
+ "port_base": 9400,
+ "started": "2026-11-23T02:57:45+0200",
+ "preflight": {
+  "ok": true,
+  "api_key_source": "ANTHROPIC_API_KEY",
+  "model": "claude-haiku-5-5",
+  "user_plugins": [],
+  "builtin_plugins": 4,
+  "oauth": false,
+  "claude_code": "2.1.330",
+  "usd": 0.0009012450000000001
+ },
+ "finished": "2026-11-23T02:58:34+0200",
+ "stopped_for_budget": false,
+ "listening_after": [],
+ "spent_usd": 0.151
+}

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brain dump · Pointe docs</title>
+<meta name="description" content="Dump your thoughts; Pointe stays quiet and keeps every word. Say done, and it structures them into a prompt in your own words (goal, context, constraints,…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Brain dump">
+<meta property="og:description" content="Dump your thoughts; Pointe stays quiet and keeps every word. Say done, and it structures them into a prompt in your own words (goal, context, constraints,…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/brain-dump/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/brain-dump/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="./" aria-current="page">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../reading-mode/">Reading mode</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="brain-dump">Brain dump</h1>
+<p>Dump your thoughts; Pointe stays quiet and keeps every word. Say done, and it structures them into a prompt in your own
+words (goal, context, constraints, open questions) for you to review. Only when you say send does it go anywhere: to
+the session you were pinned to, or to the orchestrator, as you were talking when you started.
+This replaces "brainstorm"; every old phrase still works.</p>
+<p>The rules live in <code>pointe/braindump.py</code> (what starts and ends it, the review commands, the record, structuring and its guard,
+the file); <code>pointe/daemon.py</code> runs it. Design and the bugs it fixed: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/brain-dump.md">docs/design/brain-dump.md</a>.</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li><strong>Voice:</strong> every step below has its phrase, so a whole dump works by voice alone.</li>
+<li><strong>Page:</strong> Brain dump in the dock. While you dump it reads Done; in review it reads Review.</li>
+<li><strong>iPhone app:</strong> the same button in the bottom bar, with the same three words.</li>
+<li><strong>Mac app:</strong> the same button in the bottom bar; Call → Brain Dump (⌘B) in the menu bar; or Brain Dump in the menu bar
+  item's menu during a call.</li>
+</ul>
+<p>The steps:</p>
+<ul>
+<li>
+<p><strong>Start:</strong> "brain dump", "let me dump my thoughts", "just listen", "let me think out loud", "<span lang="he" dir="rtl">רק תקשיב</span>"; or the
+  <strong>Brain dump</strong> button (the page's dock, the app's bottom bar). A falling chime; the panel opens. "Brain dump." run
+  straight into the first thought starts it too, with that thought kept.</p>
+</li>
+<li>
+<p><strong>Dump:</strong> talk. Every thought lands on the panel as it is heard, with the live line under it. Pauses of any length are
+  fine. Pointe says nothing, session news waits, a permission request is not read out (a soft tone; its card shows).</p>
+</li>
+<li>
+<p><strong>Done:</strong> "done", "over to you", "what do you think", "structure it", "<span lang="he" dir="rtl">סיימתי</span>"; or <strong>Done</strong>. Nothing said: back to
+  the conversation, silently. Otherwise a rising chime, and in a few seconds the review. "Discard", "forget it",
+  "never mind" (the whole utterance), or <strong>Discard</strong>, ends it with nothing kept.</p>
+</li>
+<li>
+<p><strong>Review:</strong> the structured prompt, editable, as plain sections (Goal, Context, Constraints, Open questions; empty ones
+  left out) with bullets; a <strong>To:</strong> field (<strong>Orchestrator</strong> first, then the sessions; preselected where you were when the
+  dump started: the pinned session in session mode, the orchestrator in orchestrator mode); <strong>Send</strong> (two clicks: the first reads "Tap
+  again to send"), <strong>Add more</strong> (keep dumping; the next Done folds the new thoughts in), <strong>Read it back</strong>,
+  <strong>Challenge it</strong> (<a href="../challenge/">devil's advocate</a> on the prompt), <strong>Discard</strong> (two clicks). By voice: "send it" (the
+  preselected target), "send it to X", "send it to the orchestrator" ("<span lang="he" dir="rtl">תשלח את זה לאורקסטרטור</span>"), "add more", "read it
+  back", "discard". Anything else you say is ordinary conversation; the card waits.</p>
+</li>
+<li>
+<p><strong>Send to a session:</strong> the text as shown goes to the session word for word, headed <code>[from the user, by voice: their
+  brain dump for X, in their own words, structured; nothing added]</code>. Pointe says it went. It shows in Recent requests
+  like a spoken send.</p>
+</li>
+<li>
+<p><strong>Send to the orchestrator:</strong> the text as shown becomes your turn to the voice model ("My brain dump, structured:"
+  above it), the same path as words typed in the app. It answers, or sends it on to a session the way it handles any
+  request, with every check <code>send_to_claude_code</code> makes. In session mode that one turn gets orchestrator routing: it may
+  go to any session. The mode does not change; the next thing you say is pinned to the session again.</p>
+</li>
+<li>
+<p><strong>The pinned session is gone</strong> by the review (it left the voice): the To: field falls back to the orchestrator and says
+  "X is gone, so this goes to the orchestrator." A session that was renamed, or came back under the same name, is still
+  the one.</p>
+</li>
+</ul>
+<h2 id="what-holds-in-code">What holds, in code</h2>
+<ul>
+<li>
+<p>Nothing said while dumping reaches the voice model or a session. Done tells the model one line ("ready to review");
+  the thoughts themselves never go to it unless you say "read it back".</p>
+</li>
+<li>
+<p>The prompt is your words: an item whose words are not mostly yours is dropped (<code>braindump.invented</code>, tested); when the
+  model fails or has no key, the prompt is your thoughts under Context, still editable and sendable (the review says so).
+  Credentials in a thought are masked as everywhere else.</p>
+</li>
+<li>
+<p>A spoken "send it to X" while still dumping structures and preselects X; the send waits for "send" or the button, so
+  what goes is what was shown.</p>
+</li>
+<li>
+<p>The send still refuses what a spoken send refuses by rule: during a meeting (409), a relay of an approval the session
+  takes only typed (409), and a prompt touching production credentials once, with the risk stated (a second Send goes).</p>
+</li>
+<li>
+<p>A yes said while dumping approves nothing (the pending request is asked again at the review). Session news held
+  during the dump is told after the review line.</p>
+</li>
+<li>
+<p>The dump is written to <code>~/.claude-voice/brain_dump.json</code> on every change. A dropped call, a locked phone, a closed tab
+  or a daemon restart loses nothing: on the next call the panel shows it and Pointe says it is still here (keep going,
+  say done, or discard).</p>
+</li>
+<li>
+<p>A meeting that starts takes the thoughts as its brief; "challenge this" takes them as the plan. Both end the dump.</p>
+</li>
+<li>Not in a meeting (409). Works in drive mode by voice alone.</li>
+<li>Where it started is kept in the dump (<code>route</code>: the mode, and the pinned session by id and name) and on disk, so a
+  restart does not change the default. A dump saved by an older version has none and follows the routing now.</li>
+</ul>
+<h2 id="api">API</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /voice/dump</code></td>
+<td><code>{action: start \| done \| more \| edit \| discard \| send \| read, text?, session?, to?}</code> → <code>{brain_dump, sent_to?}</code>. Send: <code>session</code> names one, <code>to: "orchestrator"</code> the orchestrator, neither goes to <code>send_to</code>. 400 on a bad action or an edit without text; 409 with the reason: no call, a meeting on, a dump already in review, nothing to send, no such session, offline, credentials (once). Page cookie, bearer token, phone key</td>
+</tr>
+<tr>
+<td><code>POST /voice/listen</code></td>
+<td><code>{on}</code>: the old switch; on = start, off = done</td>
+</tr>
+<tr>
+<td>status <code>brain_dump</code></td>
+<td><code>null</code>, or <code>{id, state: dumping \| structuring \| review, since, thoughts: [{text, at}], dropped, prompt: {goal, context, constraints, open_questions, text} \| null, target, problem, resumed, fallback, route, send_to: {orchestrator, session, gone}}</code></td>
+</tr>
+<tr>
+<td>status <code>monologue</code></td>
+<td>while dumping, <code>{since, said}</code>: the old field, for an older app</td>
+</tr>
+<tr>
+<td>status <code>mode_state.mode</code></td>
+<td><code>brain-dump</code> while dumping</td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/brain-dump.md">docs/features/brain-dump.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../briefings/"><span class="pg-small">Previous</span>Audio briefings</a><a class="dx-next" href="../challenge/"><span class="pg-small">Next</span>Challenge me (devil&#x27;s advocate)</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-holds-in-code">What holds, in code</a></li>
+<li class="dx-l2"><a href="#api">API</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

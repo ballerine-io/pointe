@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Where Pointe is installed on this Mac: the one place that knows the three layouts. A copy is one of
+#   plugin      Claude Code's plugin cache, <config dir>/plugins/cache/pointe/pointe/<version>: the one Claude Code
+#               recorded in plugins/installed_plugins.json, else the newest it did not mark .orphaned_at
+#   standalone  install.sh's folder, ${POINTE_HOME:-~/.pointe}/<version>, with the .pointe-install file it writes
+#   clone       anything else: a git checkout, a worktree, a test's copy. Never chosen over the copy that runs it.
+# When the plugin and the standalone install are both here, the newer version wins (the standalone one on a tie):
+# ~/.local/bin/pointe runs it (bin/link-pointe) and a start from the other one hands over to it (bin/voice-daemon).
+# Usage: pointe-installs list | newest | kind [ROOT] | version [ROOT]
+#   list      one line per installed copy, newest first: kind, version, root (tab-separated)
+#   newest    the root of the copy that wins; exit 1 when nothing is installed
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+POINTE_HOME="${POINTE_HOME:-$HOME/.pointe}"
+MARKER=".pointe-install"  # install.sh writes it after the release's SHA-256 matched; tests/test_install.py
+
+version_of() {  # the manifest's version, or nothing when the folder is not Pointe
+  local manifest="$1/.claude-plugin/plugin.json"
+  grep -qs '"name": *"pointe"' "$manifest" || return 1
+  sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$manifest" | head -1
+}
+
+kind_of() {
+  local root; root="$(cd "$1" 2>/dev/null && pwd -P)" || { echo clone; return; }
+  case "$root" in
+    */plugins/cache/pointe/pointe/*) [ -e "$root/.orphaned_at" ] && echo clone || echo plugin ;;
+    *) local home; home="$(cd "$POINTE_HOME" 2>/dev/null && pwd -P || true)"
+       if [ -n "$home" ] && [ "$(dirname "$root")" = "$home" ] && [ -f "$root/$MARKER" ]; then echo standalone; else echo clone; fi ;;
+  esac
+}
+
+recorded() {  # the folder Claude Code recorded for pointe@pointe in $1/plugins/installed_plugins.json, if any
+  grep -A12 -s '"pointe@pointe"' "$1/plugins/installed_plugins.json" \
+    | sed -n 's/.*"installPath": *"\([^"]*\)".*/\1/p' | head -1 || true
+}
+
+candidates() {  # every folder that may hold an installed copy; a folder named twice is listed once
+  local dir root
+  for dir in ${CLAUDE_CONFIG_DIR:+"$CLAUDE_CONFIG_DIR"} "$HOME/.claude"; do
+    # The plugin: the copy Claude Code recorded, else the newest in its cache (as the Mac app's DaemonLocator does).
+    root="$(recorded "$dir")"
+    if [ -n "$root" ] && [ -d "$root" ]; then (cd "$root" && pwd -P); continue; fi
+    root="$(for r in "$dir"/plugins/cache/pointe/pointe/*/; do
+              if [ -d "$r" ] && [ ! -e "$r.orphaned_at" ]; then basename "$r"; fi; done | sort -V | tail -1)"
+    [ -z "$root" ] || (cd "$dir/plugins/cache/pointe/pointe/$root" && pwd -P)
+  done
+  for root in "$POINTE_HOME"/*/; do [ -d "$root" ] && (cd "$root" && pwd -P); done
+  return 0
+}
+
+list() {
+  local root kind version
+  candidates | awk '!seen[$0]++' | while IFS= read -r root; do
+    kind="$(kind_of "$root")"
+    [ "$kind" = clone ] && continue
+    [ -x "$root/bin/voice-daemon" ] || continue
+    version="$(version_of "$root")" || continue
+    # sort key: version, then standalone (1) before plugin (0) on a tie
+    printf '%s\t%s\t%s\t%s\t%s\n' "$version" "$([ "$kind" = standalone ] && echo 1 || echo 0)" "$kind" "$version" "$root"
+  done | sort -t "$(printf '\t')" -k1,1Vr -k2,2r | cut -f3-
+}
+
+case "${1:-list}" in
+  list)    list ;;
+  newest)  root="$(list | awk -F '\t' 'NR == 1 { print $3 }')"; [ -n "$root" ] && echo "$root" ;;
+  kind)    kind_of "${2:-$HERE}" ;;
+  version) version_of "${2:-$HERE}" ;;
+  *)       echo "usage: pointe-installs list | newest | kind [ROOT] | version [ROOT]" >&2; exit 2 ;;
+esac

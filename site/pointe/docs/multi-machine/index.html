@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Machines: one voice over sessions on several machines · Pointe docs</title>
+<meta name="description" content="Your sessions do not all run on the Mac with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the Mac that holds the call,…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Machines: one voice over sessions on several machines">
+<meta property="og:description" content="Your sessions do not all run on the Mac with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the Mac that holds the call,…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/multi-machine/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/multi-machine/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="./" aria-current="page">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="machines-one-voice-over-sessions-on-several-machines">Machines: one voice over sessions on several machines</h1>
+<p>Your sessions do not all run on the Mac with the call. Some run on another Mac, a Linux host or a VM. Pair those
+machines with the Mac that holds the call, and their sessions join the same voice: you hear their reports, send to them,
+approve their prompts, and always see which machine each one is on.</p>
+<p>The Mac with the call is the <strong>hub</strong>. Each other machine runs a small Pointe called a <strong>node</strong>. A node has no
+microphone, no speaker, no models and no keys. It watches its own sessions, types your requests into them and holds
+their permission prompts. The design and the reasons: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/multi-machine.md">design/multi-machine.md</a>.</p>
+<h2 id="set-it-up">Set it up</h2>
+<ol>
+<li>
+<p><strong>On the hub</strong>, make the Mac reachable, as for the phone: <code>pointe pair tailscale</code>, <code>pointe pair wifi</code> or
+   <code>pointe pair host &lt;name&gt;</code>. A node reaches the same listener the phone does.</p>
+</li>
+<li>
+<p><strong>Make a one-time code</strong> on the hub, in any of three places:</p>
+<ul>
+<li><code>pointe hub invite</code> in a terminal. It prints the whole line to paste.</li>
+<li>The page: Settings → Machines → <strong>Invite a machine</strong>.</li>
+<li>The iPhone app: menu → Machines → <strong>Invite a machine</strong>. The app asks for Face ID before it shows the code, and
+   shows the whole line to copy.</li>
+</ul>
+<p>The code works once and lasts 10 minutes. Cancel it from the same place.</p>
+</li>
+<li>
+<p><strong>On the other machine</strong>, paste the line:</p>
+<div class="dx-code"><pre><code>pointe node join &#x27;pointe://hub?v=1&amp;host=…&amp;port=7443&amp;fp=…&amp;code=K7PQ-2MXD&#x27;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The node checks the hub's certificate against the fingerprint in the line before it sends anything. It then says
+ which vendors the hub uses, because your sessions' transcripts go there.</p>
+</li>
+<li>
+<p><strong>Check the pairing.</strong> The hub shows the node's name, address and key fingerprint, for example
+   "devbox paired from 100.101.5.7 (Tailscale), key 3f2a…". <code>pointe node status</code> on the node shows the same
+   fingerprint. If they differ, revoke it.</p>
+</li>
+<li>
+<p><strong>Join sessions on the node</strong> as you do on the hub: <code>/pointe:voice</code> in Claude Code, <code>pointe join opencode</code> or
+   <code>pointe join codex</code> in a folder.</p>
+</li>
+</ol>
+<p>A Linux node needs <code>uv</code> and either <code>lsof</code> or <code>ss</code> (from iproute2): <code>pointe node join</code> checks and says what to install.
+A node does not install the voice models.</p>
+<h2 id="use-it">Use it</h2>
+<p><strong>On the screens.</strong> With one machine, nothing changes. With more than one, on the page and in the app:</p>
+<ul>
+<li>
+<p>The sessions are <strong>grouped by machine</strong>, this Mac first. Each group shows the machine's OS, its round trip ("23 ms")
+  or "offline since 14:02", and how many sessions need you. On the page a click folds a group; in the app the Sessions
+  sheet has a section per machine.</p>
+</li>
+<li>
+<p><strong>Filter chips</strong> at the top: <code>All · studio · devbox · laptop</code>. One tap shows only that machine's sessions and narrows
+  the "Orchestrating N sessions" line. A chip is a view only: it sends nothing and changes no mode.</p>
+</li>
+<li>
+<p>Each session carries a <strong>machine tag</strong> while more than one machine has sessions.</p>
+</li>
+<li>An approval card, and its notification, say <strong>"shop · devbox needs approval"</strong>.</li>
+<li>In the app, hold a session chip and choose "Sessions on devbox" to open the Sessions sheet on that machine.</li>
+</ul>
+<p><strong>By voice.</strong> Session names are unique across machines. If a second machine has a session with a name already in use,
+it gets the machine's name added: "shop devbox". Then:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Say</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"go to devbox"</td>
+<td>switches to devbox's session; with several there, asks which one</td>
+</tr>
+<tr>
+<td>"tell devbox to pull"</td>
+<td>sends to devbox's session, or asks which one</td>
+</tr>
+<tr>
+<td>"tell everyone on devbox to pull", "everyone except the laptop"</td>
+<td>sends to that machine's sessions only</td>
+</tr>
+<tr>
+<td>"what's going on everywhere", "what's on devbox"</td>
+<td>answers grouped by machine</td>
+</tr>
+<tr>
+<td>"where is shop running"</td>
+<td>names the machine</td>
+</tr>
+</tbody>
+</table></div>
+<p>A machine's name counts only where it says who something is for ("tell devbox", "on devbox"). "Fix the devbox config"
+names no session. The voice says the machine when the name alone is not enough, when you switch to another machine, and
+in "everywhere" answers. It does not repeat it in every report.</p>
+<h2 id="when-a-machine-goes-offline">When a machine goes offline</h2>
+<p>A node that sleeps, or whose network drops, is marked offline within about 12 seconds:</p>
+<ul>
+<li>Its sessions stay listed, dimmed, with "offline since 14:02". A send to one is refused ("devbox is offline").</li>
+<li>
+<p>A prompt it held goes back to its own terminal. Its card says "offline: answer it in its terminal", with no Approve or
+  Deny, and its notification has no actions.</p>
+</li>
+<li>
+<p>You can still focus an offline session and ask what its notes say.</p>
+</li>
+<li>When the node comes back it reconnects by itself and sends the lines you missed. After 10 minutes offline its
+  sessions are closed, as an exited session is.</li>
+</ul>
+<h2 id="approvals">Approvals</h2>
+<p>The hub keeps every rule it has for its own sessions (<a href="../security/">SECURITY.md</a>). The node checks again before it
+answers a prompt:</p>
+<ul>
+<li>
+<p>A <strong>spoken yes</strong> counts only if the hub read out exactly the text the node computed from the real request. A request
+  the node cannot read out cannot be approved by voice.</p>
+</li>
+<li>
+<p>A <strong>notification's Approve</strong> counts only for a request the node can read out.</p>
+</li>
+<li>
+<p>A <strong>tap</strong> on the page or in the app is trusted from the hub, as a tap on the hub's own sessions is. What the card
+  shows is the request with credentials masked; the exact request is in the session's own terminal.</p>
+</li>
+<li>
+<p>A <strong>no</strong> from anywhere denies.</p>
+</li>
+</ul>
+<p>To answer unreadable prompts only in the node's terminal, set <code>"remote_taps": "readable_only"</code> in that node's
+<code>~/.claude-voice/config.json</code>. Then a tap can approve only what could have been read out. <code>/pointe:doctor</code> on the node
+says which setting is on.</p>
+<h2 id="what-goes-where">What goes where</h2>
+<ul>
+<li>
+<p><strong>To the hub:</strong> each session's transcript, with credentials masked on the node; its name, folder path, process id and
+  agent; up to 40 file names; permission requests in masked form and in read-out form. When you look for sessions to
+  add (<a href="../features/add-sessions/">features/add-sessions.md</a>): each listed session's name, folder, agent, age, title,
+  keywords and first and last request, cut to 160 characters, and nothing of a session you do not add after that.</p>
+</li>
+<li>
+<p><strong>From the hub:</strong> your requests to its sessions, and your answers to its prompts.</p>
+</li>
+<li><strong>Never:</strong> vendor keys (a node has none), your voiceprint, the journal, session notes, the dictionary, the page or
+  phone keys, or the node's own key (the node proves it with a fresh challenge each time).</li>
+</ul>
+<p>The hub treats a node's transcripts like its own: they go to the hub's reader and brain vendors. <code>pointe node join</code> and
+<code>pointe node status</code> name those vendors. A hub in fully local mode (<code>pointe local</code>) sends them to none.</p>
+<h2 id="everyday-commands">Everyday commands</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Where</th>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hub</td>
+<td><code>pointe hub nodes</code></td>
+<td>each node: name, OS, online or offline since, sessions, round trip, key fingerprint</td>
+</tr>
+<tr>
+<td>hub</td>
+<td><code>pointe hub invite [--name devbox]</code></td>
+<td>a one-time code, as above</td>
+</tr>
+<tr>
+<td>hub</td>
+<td><code>pointe hub revoke &lt;name&gt;</code></td>
+<td>unpairs it: its sessions leave the voice, and it needs a new code to come back. Also on the page (Settings → Machines, two clicks) and in the app (Face ID, then a confirm)</td>
+</tr>
+<tr>
+<td>hub</td>
+<td><code>pointe pair rotate</code></td>
+<td>a new certificate, and every machine, phone and browser paired with this Mac signed out: each needs a new code. <code>pointe pair off</code> signs out the same and stops listening</td>
+</tr>
+<tr>
+<td>node</td>
+<td><code>pointe node status</code></td>
+<td>the hub, the link, round trip, the hub's vendors, sessions here, key fingerprint</td>
+</tr>
+<tr>
+<td>node</td>
+<td><code>pointe node leave</code></td>
+<td>unpairs this machine from its side</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Names.</strong> The hub's name is <code>"machine"</code> in its <code>~/.claude-voice/config.json</code> (else its short host name). Rename the hub
+there and restart it: each node takes the new name at its next link. A node's name is set when it pairs
+(<code>pointe hub invite --name devbox</code>); to change it, pair again.</p>
+<h2 id="limits">Limits</h2>
+<ul>
+<li><strong>One hub per node.</strong> To move a node to another hub, <code>pointe node leave</code>, then join the new one.</li>
+<li><strong>No call on a node.</strong> The call, its page and the app are on the hub. <code>/pointe:open</code> on a node says where the call is.</li>
+<li>
+<p><strong>No launch mode on a node.</strong> <code>pointe start</code> (a Claude Code channel) works only on the hub. On a node, use
+  <code>/pointe:voice</code> or <code>pointe join</code>.</p>
+</li>
+<li>
+<p><strong>Adding sessions on a node</strong> works by voice and on screen: "connect to the pentest session on devbox". A closed
+  Claude Code session there is not reopened from the hub (it needs a terminal on that machine); Codex and OpenCode ones
+  are. The read-back says when a node session's approvals stay in its terminal; after it joins, its approvals capability
+  shows as the node's adapter reports it.</p>
+</li>
+<li>
+<p><strong>No new session on a node from the hub.</strong> Pointe starts sessions only on the hub's own Mac
+  (<a href="../features/new-session/">features/new-session.md</a>). On a node, start the agent there and join it.</p>
+</li>
+<li>
+<p><strong>"By the way" questions</strong> about a session on a node are answered from its transcript, not from a forked copy.</p>
+</li>
+<li>
+<p><strong>Show while it says</strong> does not show files from a node yet, and <strong>Challenge me</strong> leaves a node's diffs out of its
+  evidence and says so.</p>
+</li>
+<li>
+<p><strong>Wi-Fi only (<code>pointe pair wifi</code>):</strong> when the hub's address changes, pair again and make a new code, as for the phone.</p>
+</li>
+<li><strong>Windows</strong> cannot be a node.</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/multi-machine.md">docs/multi-machine.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../harnesses/"><span class="pg-small">Previous</span>Harnesses: Claude Code, OpenCode, Codex, and how to add another</a><a class="dx-next" href="../cloud-sessions/"><span class="pg-small">Next</span>Cloud sessions: what Pointe can and cannot control</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#set-it-up">Set it up</a></li>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#when-a-machine-goes-offline">When a machine goes offline</a></li>
+<li class="dx-l2"><a href="#approvals">Approvals</a></li>
+<li class="dx-l2"><a href="#what-goes-where">What goes where</a></li>
+<li class="dx-l2"><a href="#everyday-commands">Everyday commands</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

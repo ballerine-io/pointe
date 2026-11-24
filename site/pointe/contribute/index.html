@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contribute to Pointe</title>
+<meta name="description" content="Your first pull request to Pointe in 15 minutes: clone, run the offline tests with no keys, pick an issue, sign off.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Contribute to Pointe">
+<meta property="og:description" content="Your first pull request to Pointe in 15 minutes.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/contribute/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/contribute/' + location.hash);
+</script>
+<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../pages.css">
+</head>
+<body class="pg">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap pg-header">
+  <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../features/">Features</a>
+    <a href="../docs/">Docs</a>
+    <a href="../benchmarks/">Benchmarks</a>
+    <a href="../roadmap/">Roadmap</a>
+    <a href="./" aria-current="page">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<main id="main" class="pg-wrap">
+  <section class="pg-hero">
+    <p class="pg-kicker">Contribute</p>
+    <h1 class="pg-h1">Your first pull request in 15 minutes.</h1>
+    <p class="pg-lead">The offline tests need no keys and cost nothing. Some of the most useful help needs no code at all:
+      a real call on a machine we do not have, reported in an issue.</p>
+  </section>
+
+  <ol class="pg-steps">
+    <li><div><b>Clone, and install uv</b> (pinned, checked against its SHA-256; it does nothing if uv is there).
+      <pre class="pg-term"><code>git clone https://github.com/ballerine-io/pointe.git &amp;&amp; cd pointe
+bin/install-uv</code></pre></div></li>
+    <li><div><b>Run the offline suite.</b> About four minutes. Tests that need a key or Apple silicon skip themselves.
+      <pre class="pg-term"><code>uv run --locked pytest -q tests/ --ignore=tests/e2e</code></pre></div></li>
+    <li><div><b>Run a daemon of your own</b>, on its own port and state folder, so it never touches a Pointe you use.
+      It needs one model key, from the Keychain or its environment variable.
+      <pre class="pg-term"><code>export CLAUDE_VOICE_STATE="$(mktemp -d)" CLAUDE_VOICE_DAEMON_PORT=7870
+bin/voice-daemon ensure</code></pre></div></li>
+    <li><div><b>Change one thing, test it, sign the commit</b> (<code>git commit -s</code>, the
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CONTRIBUTING.md#sign-your-commits-dco">DCO</a>), and open a pull request. A maintainer reviews every one.</div></li>
+  </ol>
+
+  <section class="pg-section">
+    <div class="pg-section-head"><h2 class="pg-h2">Pick something</h2></div>
+    <div class="pg-cols">
+      <div><b><a href="https://github.com/ballerine-io/pointe/issues?q=is%3Aopen+label%3A%22good+first+issue%22">Good first issues</a></b>
+        <p class="pg-body">Small, with the files named and a "done when". Some are reports that need no code.</p></div>
+      <div><b><a href="https://github.com/ballerine-io/pointe/issues?q=is%3Aopen+label%3A%22help+wanted%22">Help wanted</a></b>
+        <p class="pg-body">Larger, or needs a machine or a skill the maintainers do not have: Linux, Windows, Android.</p></div>
+      <div><b><a href="../roadmap/">The roadmap</a></b>
+        <p class="pg-body">The bigger items, sorted by votes. Comment on the issue before you start one.</p></div>
+    </div>
+  </section>
+
+  <section class="pg-section">
+    <div class="pg-section-head"><h2 class="pg-h2">Where things live</h2></div>
+    <div style="overflow-x:auto">
+    <table class="pg-map">
+      <tr><th scope="row"><code>daemon.py</code></th><td>The hub: routes, the call pipeline, approvals, the status.</td></tr>
+      <tr><th scope="row"><code>brain.py</code></th><td>Decides what to say. Speech is a tool call, so code checks a reply before anyone hears it.</td></tr>
+      <tr><th scope="row"><code>guards.py</code></th><td>Rules in code: what can be read out, what counts as a plain yes.</td></tr>
+      <tr><th scope="row"><code>harnesses/</code></th><td>One adapter per agent: Claude Code, OpenCode, Codex. The contract is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/harnesses.md">docs/harnesses.md</a>.</td></tr>
+      <tr><th scope="row"><code>ui.html</code></th><td>The call page: one file, no build step.</td></tr>
+      <tr><th scope="row"><code>apps/ios/</code></th><td>The iPhone app, in SwiftUI, with its tests.</td></tr>
+      <tr><th scope="row"><code>tests/</code>, <code>bench/</code></th><td>The offline suite, and the benchmarks behind every default. Synthetic data only.</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section class="pg-section">
+    <div class="pg-section-head"><h2 class="pg-h2">The rules that matter</h2></div>
+    <div class="pg-cols">
+      <div><b>Rules live in code</b><p class="pg-body">If the bot must never do something, a test enforces it. A bug
+        fix starts with the failing test. A feature may only narrow what a spoken word can approve, never widen it.</p></div>
+      <div><b>No new dependency without a yes</b><p class="pg-body">Ask in the issue first. Every download is pinned by
+        hash, every host the code reaches is listed, and the page and this site load nothing from another host.</p></div>
+      <div><b>Ideas start in Discussions</b><p class="pg-body">Propose in
+        <a href="https://github.com/ballerine-io/pointe/discussions/categories/ideas">Ideas</a>, ask in
+        <a href="https://github.com/ballerine-io/pointe/discussions/categories/q-a">Q&amp;A</a>. A vulnerability goes
+        to private reporting, never an issue.</p></div>
+    </div>
+    <p class="pg-small" style="margin-top:28px">The whole guide: <a href="https://github.com/ballerine-io/pointe/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.
+      Security: <a href="https://github.com/ballerine-io/pointe/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+  </section>
+</main>
+<footer class="pg-footer">
+  <div class="pg-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../">Pointe</a>
+      <a href="../docs/">Docs</a>
+      <a href="../roadmap/">Roadmap</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

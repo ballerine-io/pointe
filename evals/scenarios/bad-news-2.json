@@ -1,0 +1,42 @@
+{
+ "mode": "orchestrator",
+ "sessions": [
+  {
+   "name": "marlin-billing/ledger-rollup",
+   "cwd": "/tmp/repo/marlin-billing",
+   "active": true,
+   "history": [
+    {
+     "role": "user",
+     "text": "Marlin needs the monthly ledger rollup rebuilt. The old cron job double counts refunds. New job goes in `jobs/ledger-rollup`, backfill January through June, and reconcile the totals against Fennick, the payments vendor, before we tell finance anything. The rule from finance: reconcile to the cent or they won't sign off the quarter. Close is Friday."
+    },
+    {
+     "role": "assistant",
+     "text": "Understood. Plan: rewrite aggregation with refunds netted once by `refund_id`, backfill Jan to Jun into `ledger_rollup_v2` (side table, old one untouched), reconcile against Fennick's settlement API, then report. The Fennick sandbox token in Vault is what I'd use for reconciliation. Starting with aggregation."
+    },
+    {
+     "role": "user",
+     "text": "Good. Stay on the side table. Nothing touches ledger_rollup until finance signs."
+    },
+    {
+     "role": "assistant",
+     "text": "Aggregation rewritten and unit tested: 86 tests pass, refunds net once by `refund_id`. Local fixture for March matches the hand-calculated figure. Next is the reconciliation client against Fennick."
+    }
+   ]
+  },
+  {
+   "name": "marlin-web/cutover-banner",
+   "cwd": "/tmp/repo/marlin-web",
+   "history": [
+    {
+     "role": "user",
+     "text": "Ship the maintenance banner for the ledger cutover to the Marlin web app: staging first, then production, then confirm it's visible."
+    },
+    {
+     "role": "assistant",
+     "text": "Banner component added behind `banner.ledgerCutover`. Staging deploy started."
+    }
+   ]
+  }
+ ]
+}

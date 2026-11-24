@@ -1,0 +1,548 @@
+# Spoken Identifiers: items. Text CC BY 4.0, code MIT, every name invented.
+# canary 01bb309a-90d0-46f8-9fbe-101a30a04b1f
+#
+# A symbol is one line of the fixture (its anchor): the definition, the assignment or the add_argument line.
+# `qual` is what a person says to tell two same-named symbols apart (the file or the class); it is part of the
+# spoken form that the decoy distance is measured on.
+# A target's instruction is always the same tiny action: a comment line that says "marked" directly above the symbol.
+
+version = "identifiers-v1"
+canary = "01bb309a-90d0-46f8-9fbe-101a30a04b1f"
+action_typed = "Add a comment line that says marked directly above {ref}. Change nothing else."
+action_spoken = "Add a comment that says marked right above {ref}. Change nothing else."
+capabilities = ["text_in"]  # an audio arm also needs audio_in
+
+[[symbol]]
+id = "py.parse_moon_phase"
+name = "parse_moon_phase"
+file = "almanac/lunar.py"
+anchor = "def parse_moon_phase(text):"
+
+[[symbol]]
+id = "py.parse_moon_phases"
+name = "parse_moon_phases"
+file = "almanac/lunar.py"
+anchor = "def parse_moon_phases(lines):"
+
+[[symbol]]
+id = "py.MoonCalendar.__init__"
+name = "__init__"
+qual = "moon calendar"
+file = "almanac/lunar.py"
+anchor = "def __init__(self, year):"
+
+[[symbol]]
+id = "py.MoonCalendar.init"
+name = "init"
+qual = "moon calendar"
+file = "almanac/lunar.py"
+anchor = "def init(self):"
+
+[[symbol]]
+id = "ts.parseMoonPhase"
+name = "parseMoonPhase"
+file = "web/src/lunar.ts"
+anchor = "export function parseMoonPhase(text: string): string | null {"
+
+[[symbol]]
+id = "py.sunrise_offset"
+name = "sunrise_offset"
+file = "almanac/solar.py"
+anchor = "def sunrise_offset(lat):"
+
+[[symbol]]
+id = "py.sunrise_offsets"
+name = "sunrise_offsets"
+file = "almanac/solar.py"
+anchor = "def sunrise_offsets(lats):"
+
+[[symbol]]
+id = "ts.sunriseOffset"
+name = "sunriseOffset"
+file = "web/src/solar.ts"
+anchor = "export function sunriseOffset(lat: number): number {"
+
+[[symbol]]
+id = "ts.getTideTable"
+name = "getTideTable"
+file = "web/src/tides.ts"
+anchor = "export function getTideTable(port: string): { port: string; rows: number[] } {"
+
+[[symbol]]
+id = "ts.getTideTables"
+name = "getTideTables"
+file = "web/src/tides.ts"
+anchor = "export function getTideTables(ports: string[]) {"
+
+[[symbol]]
+id = "py.get_tide_table"
+name = "get_tide_table"
+file = "almanac/tides.py"
+anchor = "def get_tide_table(port):"
+
+[[symbol]]
+id = "ts.loadHolidayRules"
+name = "loadHolidayRules"
+file = "web/src/holidays.ts"
+anchor = "export function loadHolidayRules(text: string): string[] {"
+
+[[symbol]]
+id = "py.load_holiday_rules"
+name = "load_holiday_rules"
+file = "almanac/holidays.py"
+anchor = "def load_holiday_rules(path):"
+
+[[symbol]]
+id = "py.load_holiday_rule"
+name = "load_holiday_rule"
+file = "almanac/holidays.py"
+anchor = "def load_holiday_rule(path, name):"
+
+[[symbol]]
+id = "py.format_equinox_date"
+name = "format_equinox_date"
+file = "almanac/format.py"
+anchor = "def format_equinox_date(d):"
+
+[[symbol]]
+id = "ts.formatEquinoxDate"
+name = "formatEquinoxDate"
+file = "web/src/format.ts"
+anchor = "export function formatEquinoxDate(d: Date): string {"
+
+[[symbol]]
+id = "py.cache.flush"
+name = "flush"
+qual = "cache"
+file = "almanac/cache.py"
+anchor = "def flush(store):"
+
+[[symbol]]
+id = "py.cash.flush"
+name = "flush"
+qual = "cash"
+file = "almanac/cash.py"
+anchor = "def flush(till):"
+
+[[symbol]]
+id = "py.write_column"
+name = "write_column"
+file = "almanac/printing.py"
+anchor = "def write_column(page, text):"
+
+[[symbol]]
+id = "py.write_columns"
+name = "write_columns"
+file = "almanac/printing.py"
+anchor = "def write_columns(page, rows):"
+
+[[symbol]]
+id = "py.right_column"
+name = "right_column"
+file = "almanac/printing.py"
+anchor = "def right_column(page):"
+
+[[symbol]]
+id = "py.peak_season"
+name = "peak_season"
+file = "almanac/solar.py"
+anchor = "def peak_season(year):"
+
+[[symbol]]
+id = "py.peek_season"
+name = "peek_season"
+file = "almanac/solar.py"
+anchor = "def peek_season(year):"
+
+[[symbol]]
+id = "py.sunday_index"
+name = "sunday_index"
+file = "almanac/solar.py"
+anchor = "def sunday_index(day):"
+
+[[symbol]]
+id = "py.sun_day_index"
+name = "sun_day_index"
+file = "almanac/solar.py"
+anchor = "def sun_day_index(day):"
+
+[[symbol]]
+id = "py.handler2"
+name = "handler2"
+file = "almanac/hooks.py"
+anchor = "def handler2(event):"
+
+[[symbol]]
+id = "py.handler_2"
+name = "handler_2"
+file = "almanac/hooks.py"
+anchor = "def handler_2(event):"
+
+[[symbol]]
+id = "py.handler_3"
+name = "handler_3"
+file = "almanac/hooks.py"
+anchor = "def handler_3(event):"
+
+[[symbol]]
+id = "py.checksum_sha224"
+name = "checksum_sha224"
+file = "almanac/digest.py"
+anchor = "def checksum_sha224(data):"
+
+[[symbol]]
+id = "py.checksum_sha256"
+name = "checksum_sha256"
+file = "almanac/digest.py"
+anchor = "def checksum_sha256(data):"
+
+[[symbol]]
+id = "py.checksum_sha512"
+name = "checksum_sha512"
+file = "almanac/digest.py"
+anchor = "def checksum_sha512(data):"
+
+[[symbol]]
+id = "py.render_v1"
+name = "render_v1"
+file = "almanac/render.py"
+anchor = "def render_v1(entry):"
+
+[[symbol]]
+id = "py.render_v2"
+name = "render_v2"
+file = "almanac/render.py"
+anchor = "def render_v2(entry):"
+
+[[symbol]]
+id = "py.round_to_15"
+name = "round_to_15"
+file = "almanac/solar.py"
+anchor = "def round_to_15(minutes):"
+
+[[symbol]]
+id = "py.round_to_5"
+name = "round_to_5"
+file = "almanac/solar.py"
+anchor = "def round_to_5(minutes):"
+
+[[symbol]]
+id = "py.__version__"
+name = "__version__"
+file = "almanac/__init__.py"
+anchor = "__version__ = \"0.4.1\""
+
+[[symbol]]
+id = "py.VERSION"
+name = "VERSION"
+file = "almanac/__init__.py"
+anchor = "VERSION = (0, 4, 1)"
+
+[[symbol]]
+id = "py.version"
+name = "version"
+file = "almanac/__init__.py"
+anchor = "def version():"
+
+[[symbol]]
+id = "py.MAX_TIDE_HEIGHT"
+name = "MAX_TIDE_HEIGHT"
+file = "almanac/tides.py"
+anchor = "MAX_TIDE_HEIGHT = 12.5"
+
+[[symbol]]
+id = "py.MAX_TIDE_HEIGHTS"
+name = "MAX_TIDE_HEIGHTS"
+file = "almanac/tides.py"
+anchor = "MAX_TIDE_HEIGHTS = {\"north\": 9.0, \"south\": 12.5}"
+
+[[symbol]]
+id = "py.max_tide_height"
+name = "max_tide_height"
+file = "almanac/tides.py"
+anchor = "def max_tide_height(table):"
+
+[[symbol]]
+id = "py.DEFAULT_ZONE"
+name = "DEFAULT_ZONE"
+file = "almanac/solar.py"
+anchor = "DEFAULT_ZONE = \"UTC\""
+
+[[symbol]]
+id = "py.default_zone"
+name = "default_zone"
+file = "almanac/solar.py"
+anchor = "def default_zone():"
+
+[[symbol]]
+id = "flag.--dry-run"
+name = "--dry-run"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--dry-run\", action=\"store_true\", help=\"print what would change\")"
+
+[[symbol]]
+id = "flag.--dryrun"
+name = "--dryrun"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--dryrun\", action=\"store_true\", help=\"old spelling of --dry-run\")"
+
+[[symbol]]
+id = "flag.--no-verify"
+name = "--no-verify"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--no-verify\", action=\"store_true\", help=\"skip the checksum check\")"
+
+[[symbol]]
+id = "flag.--noverify"
+name = "--noverify"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--noverify\", action=\"store_true\", help=\"old spelling of --no-verify\")"
+
+[[symbol]]
+id = "flag.--tz"
+name = "--tz"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--tz\", default=\"UTC\", help=\"time zone for printed times\")"
+
+[[symbol]]
+id = "flag.--ts"
+name = "--ts"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--ts\", default=\"iso\", help=\"timestamp format\")"
+
+[[symbol]]
+id = "flag.--json"
+name = "--json"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--json\", action=\"store_true\", help=\"one JSON document\")"
+
+[[symbol]]
+id = "flag.--jsonl"
+name = "--jsonl"
+file = "almanac/cli.py"
+anchor = "parser.add_argument(\"--jsonl\", action=\"store_true\", help=\"one JSON object per line\")"
+
+[[symbol]]
+id = "py.v1.list_events"
+name = "list_events"
+qual = "api v1 routes"
+file = "almanac/api/v1/routes.py"
+anchor = "def list_events(request):"
+
+[[symbol]]
+id = "py.v2.list_events"
+name = "list_events"
+qual = "api v2 routes"
+file = "almanac/api/v2/routes.py"
+anchor = "def list_events(request):"
+
+[[symbol]]
+id = "ts.tide.formatHeight"
+name = "formatHeight"
+qual = "tide widget"
+file = "web/src/widgets/tide/format.ts"
+anchor = "export function formatHeight(m: number): string {"
+
+[[symbol]]
+id = "ts.tides.formatHeight"
+name = "formatHeight"
+qual = "tides widget"
+file = "web/src/widgets/tides/format.ts"
+anchor = "export function formatHeight(m: number): string {"
+
+# ---------- the 24 targets ----------
+# typed: the reference as a person types it. spoken: the words the clip is rendered from, as a person says it.
+# decoys: the symbols a wrong hearing or a wrong guess would land on; each target needs one within edit distance 2
+# of its spoken form (tests/test_conversational_identifiers.py).
+
+[[target]]
+id = "t01"
+class = "camel_snake"
+symbol = "py.parse_moon_phase"
+decoys = ["ts.parseMoonPhase", "py.parse_moon_phases"]
+typed = "`parse_moon_phase`"
+spoken = "parse moon phase, in snake case"
+
+[[target]]
+id = "t02"
+class = "camel_snake"
+symbol = "ts.parseMoonPhase"
+decoys = ["py.parse_moon_phase"]
+typed = "`parseMoonPhase`"
+spoken = "parse moon phase, the camel case one"
+
+[[target]]
+id = "t03"
+class = "camel_snake"
+symbol = "py.sunrise_offset"
+decoys = ["ts.sunriseOffset", "py.sunrise_offsets"]
+typed = "`sunrise_offset`"
+spoken = "sunrise offset, snake case, singular"
+
+[[target]]
+id = "t04"
+class = "camel_snake"
+symbol = "ts.getTideTable"
+decoys = ["py.get_tide_table", "ts.getTideTables"]
+typed = "`getTideTable`"
+spoken = "get tide table, camel case, singular"
+
+[[target]]
+id = "t05"
+class = "camel_snake"
+symbol = "ts.loadHolidayRules"
+decoys = ["py.load_holiday_rules", "py.load_holiday_rule"]
+typed = "`loadHolidayRules`"
+spoken = "load holiday rules, the camel case one"
+
+[[target]]
+id = "t06"
+class = "camel_snake"
+symbol = "py.format_equinox_date"
+decoys = ["ts.formatEquinoxDate"]
+typed = "`format_equinox_date`"
+spoken = "format equinox date, in snake case"
+
+[[target]]
+id = "t07"
+class = "homophone"
+symbol = "py.cache.flush"
+decoys = ["py.cash.flush"]
+typed = "`flush` in `almanac/cache.py`"
+spoken = "the flush function in cache dot py, cache as in a memory cache"
+
+[[target]]
+id = "t08"
+class = "homophone"
+symbol = "py.write_column"
+decoys = ["py.right_column", "py.write_columns"]
+typed = "`write_column`"
+spoken = "write column, write as in writing, singular"
+
+[[target]]
+id = "t09"
+class = "homophone"
+symbol = "py.peak_season"
+decoys = ["py.peek_season"]
+typed = "`peak_season`"
+spoken = "peak season, peak as in a mountain peak"
+
+[[target]]
+id = "t10"
+class = "homophone"
+symbol = "py.sun_day_index"
+decoys = ["py.sunday_index"]
+typed = "`sun_day_index`"
+spoken = "sun underscore day underscore index, with sun and day as two words"
+
+[[target]]
+id = "t11"
+class = "digits"
+symbol = "py.handler_2"
+decoys = ["py.handler2", "py.handler_3"]
+typed = "`handler_2`"
+spoken = "handler underscore two"
+
+[[target]]
+id = "t12"
+class = "digits"
+symbol = "py.checksum_sha256"
+decoys = ["py.checksum_sha224", "py.checksum_sha512"]
+typed = "`checksum_sha256`"
+spoken = "checksum sha two fifty six"
+
+[[target]]
+id = "t13"
+class = "digits"
+symbol = "py.render_v2"
+decoys = ["py.render_v1"]
+typed = "`render_v2`"
+spoken = "render v two"
+
+[[target]]
+id = "t14"
+class = "digits"
+symbol = "py.round_to_15"
+decoys = ["py.round_to_5"]
+typed = "`round_to_15`"
+spoken = "round to fifteen"
+
+[[target]]
+id = "t15"
+class = "dunder_caps"
+symbol = "py.__version__"
+decoys = ["py.VERSION", "py.version"]
+typed = "`__version__` in `almanac/__init__.py`"
+spoken = "dunder version in the package's init file"
+
+[[target]]
+id = "t16"
+class = "dunder_caps"
+symbol = "py.MAX_TIDE_HEIGHT"
+decoys = ["py.max_tide_height", "py.MAX_TIDE_HEIGHTS"]
+typed = "the constant `MAX_TIDE_HEIGHT`"
+spoken = "the all caps constant max tide height, singular"
+
+[[target]]
+id = "t17"
+class = "dunder_caps"
+symbol = "py.DEFAULT_ZONE"
+decoys = ["py.default_zone"]
+typed = "the constant `DEFAULT_ZONE`"
+spoken = "the all caps constant default zone"
+
+[[target]]
+id = "t18"
+class = "dunder_caps"
+symbol = "py.MoonCalendar.__init__"
+decoys = ["py.MoonCalendar.init"]
+typed = "`MoonCalendar.__init__`"
+spoken = "the dunder init method of moon calendar"
+
+[[target]]
+id = "t19"
+class = "flag"
+symbol = "flag.--dry-run"
+decoys = ["flag.--dryrun"]
+typed = "the line that adds the `--dry-run` argument in `almanac/cli.py`"
+spoken = "the line that adds the dash dash dry dash run argument in the CLI"
+
+[[target]]
+id = "t20"
+class = "flag"
+symbol = "flag.--no-verify"
+decoys = ["flag.--noverify"]
+typed = "the line that adds the `--no-verify` argument in `almanac/cli.py`"
+spoken = "the line that adds the no dash verify argument in the CLI, the one with the dash"
+
+[[target]]
+id = "t21"
+class = "flag"
+symbol = "flag.--tz"
+decoys = ["flag.--ts"]
+typed = "the line that adds the `--tz` argument in `almanac/cli.py`"
+spoken = "the line that adds the dash dash t z argument in the CLI, t z for time zone"
+
+[[target]]
+id = "t22"
+class = "flag"
+symbol = "flag.--jsonl"
+decoys = ["flag.--json"]
+typed = "the line that adds the `--jsonl` argument in `almanac/cli.py`"
+spoken = "the line that adds the dash dash json l argument in the CLI, json lines"
+
+[[target]]
+id = "t23"
+class = "nested_path"
+symbol = "py.v2.list_events"
+decoys = ["py.v1.list_events"]
+typed = "`list_events` in `almanac/api/v2/routes.py`"
+spoken = "list events in the API v two routes file"
+
+[[target]]
+id = "t24"
+class = "nested_path"
+symbol = "ts.tides.formatHeight"
+decoys = ["ts.tide.formatHeight"]
+typed = "`formatHeight` in `web/src/widgets/tides/format.ts`"
+spoken = "format height in the tides widget, tides with an s"

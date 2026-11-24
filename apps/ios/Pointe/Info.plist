@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.ballerine.pointe.pair</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>pointe</string></array>
+		</dict>
+	</array>
+	<!-- Pointe talks only to the Mac it paired with, and pins that Mac's exact certificate (Pairing.swift), which is
+	     stricter than ATS's CA check. ATS cannot be scoped to a name the user picks (a Twingate or VPN name), and it
+	     refuses the self-signed certificate before the pin is checked (-9802). -->
+	<key>NSAppTransportSecurity</key>
+	<dict><key>NSAllowsArbitraryLoads</key><true/></dict>
+	<!-- Drive.swift: only to suggest Drive mode after a minute of driving, and only once turned on with a tap. -->
+	<key>NSMotionUsageDescription</key>
+	<string>Pointe uses motion activity to suggest Drive mode while you drive, and it never turns Drive mode on by itself.</string>
+	<!-- Export compliance: only Apple's standard TLS (URLSession) and a SHA-256 of the Mac's certificate for the pin. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>UIBackgroundModes</key>
+	<array><string>audio</string><string>fetch</string></array>
+	<!-- Alerts.swift: Background App Refresh checks for a waiting request while the app is suspended, when iOS allows. -->
+	<!-- PhoneTalk.swift: a press from the Lock Screen, Control Center or the Action button shows its call in a Live
+	     Activity, which iOS requires for a recording an intent started. -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<!-- TalkStore: the app group shared with the widget extension, group. plus the app's bundle ID (the build setting). -->
+	<key>PointeAppGroup</key>
+	<string>$(POINTE_APP_GROUP)</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array><string>io.ballerine.pointe.alerts</string></array>
+</dict>
+</plist>
