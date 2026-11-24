@@ -38,6 +38,8 @@
     <a href="#how">How it works</a>
     <a href="#features">Features</a>
     <a href="#install">Install</a>
+    <!-- nav-download:begin (tools/apps_status.py writes this from site/pointe/apps.json; edit it there) -->
+    <!-- nav-download:end -->
     <a href="docs/">Docs</a>
     <a href="benchmarks/">Benchmarks</a>
     <a href="roadmap/">Roadmap</a>
@@ -58,7 +60,9 @@
           tabs to switch, at your desk or away from the keyboard.</p>
         <p class="small proof"><strong>Teams using Pointe report up to 1.6× more output across their agents.</strong>
           Self-reported by teams using Pointe at Ballerine, 2026; not a benchmark.</p>
+        <!-- hero-cta:begin (tools/apps_status.py writes this from site/pointe/apps.json; edit it there) -->
         <p class="hero-cta"><a class="btn btn--primary" href="#install">Install</a><a class="btn" href="#with">Watch it work<span class="btn-meta">&nbsp;· 1&nbsp;min</span></a></p>
+        <!-- hero-cta:end -->
         <p class="small">Runs on your Mac. No server, no account. Your own model keys, or local models. MIT.</p>
       </div>
       <figure class="hv" aria-labelledby="hv-cap">
@@ -814,6 +818,12 @@
       b.setAttribute('aria-pressed', String(paused));
       b.closest('.wg-logos').classList.toggle('is-paused', paused);
     });
+  }
+  // The Mac download, on a Mac only (an iPad says MacIntel, with touch): elsewhere "Get it on your Mac" points at Install.
+  const mac = /mac/i.test(navigator.userAgentData?.platform || navigator.platform || '') && navigator.maxTouchPoints < 2;
+  if (!mac) {
+    for (const e of document.querySelectorAll('[data-mac-only]')) e.hidden = true;
+    for (const e of document.querySelectorAll('[data-not-mac]')) e.hidden = false;
   }
   // Install tabs: with no script every panel shows, each under its own commands; with it, one at a time.
   for (const tabs of document.querySelectorAll('[data-tabs]')) {

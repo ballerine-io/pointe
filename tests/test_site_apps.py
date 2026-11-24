@@ -18,7 +18,7 @@ DATA = json.loads(apps_status.DATA.read_text())
 WAITING = {"notify_url": "https://github.com/example/notify", "mac": {"status": "coming-soon", "download_url": ""},
            "iphone": {"status": "opening-soon", "testflight_url": ""}}
 OPEN = {"notify_url": "https://github.com/example/notify",
-        "mac": {"status": "open", "download_url": "https://example.com/Pointe-0.8.0.dmg"},
+        "mac": {"status": "open", "download_url": "https://example.com/Pointe-0.8.0.dmg", "version": "0.8.0", "size": "4.3 MB"},
         "iphone": {"status": "open", "testflight_url": "https://testflight.apple.com/join/EXAMPLE1"}}
 
 
@@ -96,6 +96,40 @@ def test_the_slack_invite_shows_in_the_working_group_and_the_footer_and_goes_whe
         assert text.count(f'href="{url}"') == count and ("Join the community on Slack" in text) == bool(count)
     working_group = text[text.index('id="working-group"'):text.index("</section>", text.index('id="working-group"'))]
     assert apps_status.marks("slack-wg")[0] in working_group and apps_status.marks("slack-footer")[0] in text[text.index("<footer"):]
+
+
+def test_while_the_mac_waits_the_hero_leads_with_install_and_the_nav_has_no_download():
+    out = apps_status.hero(WAITING)
+    assert out.startswith('<p class="hero-cta"><a class="btn btn--primary" href="#install">Install</a>') and ".dmg" not in out
+    assert apps_status.nav(WAITING) == ""
+
+
+def test_once_the_mac_is_open_the_hero_and_the_nav_download_it_with_its_version_and_size():
+    out = apps_status.hero(OPEN)
+    assert out.index('data-mac-only href="https://example.com/Pointe-0.8.0.dmg">Download for Mac</a>') < out.index(">Install</a>")
+    assert '<a class="btn" href="#install">Install</a>' in out, "Install steps back: one primary button per device"
+    assert 'data-not-mac hidden href="#install">Get it on your Mac</a>' in out
+    assert "Pointe 0.8.0 · macOS 15+ · 4.3 MB" in out
+    assert '<p class="small app-meta">Pointe 0.8.0 · macOS 15+ · 4.3 MB</p>' in apps_status.render(OPEN)
+    assert "app-meta" not in apps_status.render(WAITING)
+    assert 'href="https://example.com/Pointe-0.8.0.dmg" data-mac-only>Download</a>' in apps_status.nav(OPEN)
+    assert 'MACOSX_DEPLOYMENT_TARGET": "15.0"' in (ROOT / "apps" / "macos" / "tools" / "make_project.py").read_text()
+
+
+def test_an_open_mac_needs_its_version_and_size():
+    data = copy.deepcopy(OPEN)
+    del data["mac"]["size"]
+    with pytest.raises(ValueError, match="version and size"):
+        apps_status.hero(data)
+
+
+def test_the_page_swaps_the_mac_download_for_get_it_on_your_mac_on_other_devices():
+    text = apps_status.PAGE.read_text()
+    script = text[text.index("The Mac download, on a Mac only"):]
+    assert "[data-mac-only]" in script and "[data-not-mac]" in script and "maxTouchPoints" in script
+    assert "/mac/i.test(" in script, "Chromium says macOS, Safari MacIntel: the test must not care about case"
+    for name in ("hero-cta", "nav-download"):
+        assert text.count(apps_status.marks(name)[0]) == 1
 
 
 def test_a_slack_link_must_be_https():

@@ -73,9 +73,12 @@ once; the script names whichever is missing and attaches nothing until both are 
 notarized, without a new archive. In CI the `mac-release`
 workflow does the same on a published release when its environment holds the signing secrets
 (`.github/workflows/mac-release.yml` lists them); its token is read-only, so attach its artifact with
-`gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256`. Once the disk image is attached, set `mac` in
-`site/pointe/apps.json` to `"status": "open"` with the `download_url` of the release's `Pointe-X.Y.Z.dmg`, and deploy the
-site. Until then a new
+`gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256`. `--upload` also attaches the same image as `Pointe.dmg`, which every release must carry: the site
+links `https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg`. Once the disk image is attached
+and `spctl` accepts it, set `mac` in `site/pointe/apps.json` to `"status": "open"` with that `download_url`, this
+`version` and the image's `size` (as `du -h` says it, "4.3 MB"): the hero, the top nav and the install card then offer
+the download (`tools/apps_status.py`). Deploy the site, and check the link anonymously (`curl -sIL <url>` ends in 200)
+and the downloaded file's SHA-256 against the release's `.sha256`. Until then a new
 standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out
 `bench/`, `evals/` and `site/` (`.gitattributes`). Never replace an asset of a published release: a mistake gets a new
 patch version, as for a tag.

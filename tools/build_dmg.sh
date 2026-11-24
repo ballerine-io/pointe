@@ -4,7 +4,8 @@
 # (xcodebuild, hdiutil, codesign, notarytool, stapler, Finder for the window's layout). docs/releasing.md, step 4.
 #
 #   tools/build_dmg.sh            dist/Pointe-<version>.dmg and its .sha256, for the version in .claude-plugin/plugin.json
-#   tools/build_dmg.sh --upload   then attach both to the GitHub Release v<version> (gh)
+#   tools/build_dmg.sh --upload   then attach both to the GitHub Release v<version> (gh), and the same image as
+#                                 Pointe.dmg, the name the site's stable link releases/latest/download/Pointe.dmg needs
 #   tools/build_dmg.sh --app P    skip the archive and use P, a Pointe.app already notarized (this script's own, in
 #                                 apps/macos/build/dmg/app): for the disk image step again, once its credentials exist
 #   tools/build_dmg.sh --ci       the mac-release workflow: see "Signing" below
@@ -195,6 +196,10 @@ spctl -a -vvv -t open --context context:primary-signature "$DMG"
 
 if [ -n "$UPLOAD" ]; then
   step "5. Attach to the GitHub Release v$VERSION"
-  gh release upload "v$VERSION" "$DMG" "$DMG.sha256" --repo ballerine-io/pointe
+  # Pointe.dmg too, the same bytes: the site links releases/latest/download/Pointe.dmg, which every release must carry
+  STABLE="$ROOT/dist/Pointe.dmg"
+  cp "$DMG" "$STABLE"
+  (cd "$ROOT/dist" && shasum -a 256 Pointe.dmg >Pointe.dmg.sha256)
+  gh release upload "v$VERSION" "$DMG" "$DMG.sha256" "$STABLE" "$STABLE.sha256" --repo ballerine-io/pointe
   say "ok       https://github.com/ballerine-io/pointe/releases/tag/v$VERSION"
 fi

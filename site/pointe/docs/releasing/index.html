@@ -165,9 +165,12 @@ once; the script names whichever is missing and attaches nothing until both are 
 notarized, without a new archive. In CI the <code>mac-release</code>
 workflow does the same on a published release when its environment holds the signing secrets
 (<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
-<code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>. Once the disk image is attached, set <code>mac</code> in
-<code>site/pointe/apps.json</code> to <code>"status": "open"</code> with the <code>download_url</code> of the release's <code>Pointe-X.Y.Z.dmg</code>, and deploy the
-site. Until then a new
+<code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>. <code>--upload</code> also attaches the same image as <code>Pointe.dmg</code>, which every release must carry: the site
+links <code>https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg</code>. Once the disk image is attached
+and <code>spctl</code> accepts it, set <code>mac</code> in <code>site/pointe/apps.json</code> to <code>"status": "open"</code> with that <code>download_url</code>, this
+<code>version</code> and the image's <code>size</code> (as <code>du -h</code> says it, "4.3 MB"): the hero, the top nav and the install card then offer
+the download (<code>tools/apps_status.py</code>). Deploy the site, and check the link anonymously (<code>curl -sIL &lt;url&gt;</code> ends in 200)
+and the downloaded file's SHA-256 against the release's <code>.sha256</code>. Until then a new
 standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out
 <code>bench/</code>, <code>evals/</code> and <code>site/</code> (<code>.gitattributes</code>). Never replace an asset of a published release: a mistake gets a new
 patch version, as for a tag.</p>
