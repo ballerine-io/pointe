@@ -7,6 +7,14 @@
 
 # Pointe
 
+<p align="center">
+  <a href="https://eng.ballerine.com/pointe/"><b>Website</b></a> ·
+  <a href="https://eng.ballerine.com/pointe/#install"><b>Download for Mac</b></a> ·
+  <a href="https://testflight.apple.com/join/gkRJccpc"><b>iPhone beta (TestFlight)</b></a> ·
+  <a href="https://eng.ballerine.com/pointe/docs/"><b>Docs</b></a> ·
+  <a href="https://join.slack.com/t/ballerine-oss/shared_invite/zt-4i21px44h-8NJ_ILwisOX~WoRY5xHhVg"><b>Slack</b></a>
+</p>
+
 **Beta (0.8.2): work in progress.** It works and is used every day; expect rough edges, and please
 [report them](https://github.com/ballerine-io/pointe/issues).
 
