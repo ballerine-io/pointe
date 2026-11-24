@@ -62,6 +62,7 @@ import meeting as meetings
 import modes
 import mute
 import scope
+import skip
 import speaker
 import turns
 from ptt import Ptt
@@ -465,6 +466,7 @@ PERMISSION_VOICE_CHARS = 500
 REQUEST_NOTE_CHARS = 200  # the agent's note on an approval card: one line, this long at most
 CHECK_TIMEOUT_SECS = 5.0  # a stuck Flash-Lite call must not freeze the voice
 REPLY_WAIT_SECS = 4.0  # how long a reply the bot was asked for may take to start before held speech goes anyway
+SKIP_NEXT_SECS = 10.0  # after a skip, what waits may follow without the quiet gap for this long
 NUDGE_CONNECT_GRACE_SECS = 30.0
 THREAD_SECS = 10 * 60  # how long the session last talked with stays the topic of an unnamed follow-up
 
@@ -853,6 +855,8 @@ class FeedInjector(FrameProcessor):
     conversation (_floor_blocked) and are then said as one turn, however many there are.
     """
 
+    _skipped_at = 0.0  # the owner skipped a line: what waits follows at once (skip_ahead)
+
     def __init__(self):
         super().__init__()
         self.bot_started_at = 0.0
@@ -943,6 +947,11 @@ class FeedInjector(FrameProcessor):
         """Updates waiting for a gap in the conversation."""
         return len(self._updates)
 
+    @property
+    def waiting(self) -> int:
+        """Everything that waits to be said: the updates, and what is held behind the line being said."""
+        return len(self._updates) + len(self._held)
+
     def queued_reports(self) -> dict[str, str]:
         """The finished-turn reports that wait in the queue, by session."""
         return {key: text for key, text in self._updates.items if key}
@@ -951,15 +960,6 @@ class FeedInjector(FrameProcessor):
         """The owner moved to another session by a click: a report being read, or one they cut off, is not offered again."""
         self._report, self._report_speaking, self._cut = None, False, None
 
-    def _parked(self, text: str) -> bool:
-        """True when the mode keeps this for its end: it is added to what waits there. In session mode, news about
-        another session is held for the screens (scope.py), wherever it waited."""
-        if _held_out(text):
-            return True
-        if state.challenge is not None and (FINISHED_MARK in text or text.startswith("[idle session]")):
-            state.monologue_held.append((text, True))  # a session's report waits for the end of the challenge
-            return True
-        if current_mode().holds_news:
     def drop_queued(self) -> list[str]:
         """The owner moved to another session or mode (_drop_old_topic): nothing that waited to be said for the place
         they left is said. Returns what waited, most important first, so its words can be kept as text."""
@@ -978,6 +978,15 @@ class FeedInjector(FrameProcessor):
         if self._updates and (self._deliverer is None or self._deliverer.done()):
             self._deliverer = asyncio.create_task(self._deliver_updates())
 
+    def _parked(self, text: str) -> bool:
+        """True when the mode keeps this for its end: it is added to what waits there. In session mode, news about
+        another session is held for the screens (scope.py), wherever it waited."""
+        if _held_out(text):
+            return True
+        if state.challenge is not None and (FINISHED_MARK in text or text.startswith("[idle session]")):
+            state.monologue_held.append((text, True))  # a session's report waits for the end of the challenge
+            return True
+        if current_mode().holds_news:
             state.monologue_held.append((text, True))  # news waits for the end of the mode (brainstorm, meeting)
             if state.meeting is not None:
                 NOTES.add("session_news", text.split("]", 1)[-1].strip()[:300] or text[:300], dedup=False)
@@ -1016,10 +1025,12 @@ class FeedInjector(FrameProcessor):
         if state.news_held and not awaited:
             return False  # "hold the reports": the user's next words release them (_release_news)
         # One answer at a time: the next waits until the last one offered has had time to start being said.
-        if self._bot_speaking or self._held or (not awaited and time.time() - self._asked_at < REPLY_WAIT_SECS) \
+        skipped = time.time() - self._skipped_at < SKIP_NEXT_SECS  # the owner asked for the next one: no quiet gap
+        if self._bot_speaking or self._held or (not awaited and not skipped and time.time() - self._asked_at < REPLY_WAIT_SECS) \
                 or (awaited and time.time() - self._offered_at < REPLY_WAIT_SECS) \
-                or _floor_blocked(awaited=awaited) is not None:
+                or _floor_blocked(urgent=skipped, awaited=awaited) is not None:
             return False
+        self._skipped_at = 0.0
         taken = self._updates.take_awaited() if awaited else self._updates.take()
         items = [text for text in taken if not self._parked(text) and not _gone_since(text)]
         if not items:
@@ -2202,6 +2213,8 @@ class SonioxEars(FrameProcessor):
             _remember("user", heard)  # "skip", "stop", "go on": the briefing's, not a turn for the brain
             await _no_also_denies(heard)
             await briefing_control(steer)
+            return
+        if not _dumping() and state.meeting is None and skip.intent(heard) and await _skip_by_voice(heard):
             return
         if not _dumping() and state.meeting is None and state.challenge is None and await _night_words(heard):
             return
@@ -6600,6 +6613,8 @@ async def switch_session(params: FunctionCallParams):
 async def _focus_by_voice(session: Session) -> dict:
     """A spoken switch ends where a tap on the session ends, on the page and in the apps: session mode on it. Every
     screen shows it, and "orchestrator mode" goes back."""
+    if session is not REGISTRY.active or REGISTRY.mode != "session":
+        await _drop_old_topic(by_voice=True)
     note = await activate(session)
     if REGISTRY.mode != "session":
         _apply_mode("session")
@@ -6613,8 +6628,6 @@ def _close_pending() -> tuple[float, list[str], str] | None:
     return pending if pending and time.time() - pending[0] < CLOSE_CONFIRM_SECS else None
 
 
-    if session is not REGISTRY.active or REGISTRY.mode != "session":
-        await _drop_old_topic(by_voice=True)
 def _said_list(sessions: list[Session]) -> str:
     names = [_spoken_names(s.name) for s in sessions]
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
@@ -7362,6 +7375,8 @@ async def set_mode(params: FunctionCallParams):
             await _drop_old_topic(by_voice=True)
         if moved:
             await activate(groups[0][0])
+    elif REGISTRY.mode != wanted:
+        await _drop_old_topic(by_voice=True)
     state.last_switch_at = time.time()
     await params.result_callback(_apply_mode(wanted))
 
@@ -7375,8 +7390,6 @@ def _apply_mode(mode: str) -> dict:
     elif mode == "session":
         _stop_briefing()  # a briefing covers every session: what is left of it is about the others
     REGISTRY.save()
-    elif REGISTRY.mode != wanted:
-        await _drop_old_topic(by_voice=True)
     logger.info(f"mode -> {mode}" + (f" on {REGISTRY.active.name}" if mode == "session" and REGISTRY.active else ""))
     if mode == "session":
         return {"mode": "session", "pinned_to": REGISTRY.active.name if REGISTRY.active else None}
@@ -8467,6 +8480,52 @@ async def hung_up():
     return {}
 
 
+# ---------- skip: the line being said, then the next one (skip.py) ----------
+
+async def skip_speech(how: str) -> dict:
+    """The button beside the status line, the Mac's key, or the word: what Pointe is saying stops, is not offered again,
+    and the next line that waits follows after a breath. `skipped`: there was a line to skip; `waiting`: how many lines
+    waited behind it. A briefing skips its own part. A skip answers nothing: a request whose read-out was skipped is
+    read out again before a yes can count."""
+    if await briefing_control("skip"):
+        return {"skipped": True, "waiting": 0}
+    conn = state.conn
+    if conn is None:
+        return {"skipped": False, "waiting": 0}
+    injector = conn.injector
+    waiting = injector.waiting
+    speaking = ECHO.speaking or state.floor.bot_speaking
+    if not speaking and how != "voice":  # by voice the owner's own word already cut the line (_skip_by_voice)
+        return {"skipped": False, "waiting": waiting}
+    logger.info(f"skip ({how}): {waiting} line(s) wait behind it")
+    if state.front is not None:
+        state.front.brain.interrupt()  # the rest of the reply is not said
+    _read_out_cut_off()
+    injector.skip_ahead()
+    cut = getattr(injector, "broadcast_interruption", None)
+    if speaking and cut is not None:
+        await cut()
+    return {"skipped": True, "waiting": waiting}
+
+
+async def _skip_by_voice(heard: str) -> bool:
+    """"Skip" or "next" over a line Pointe is saying, or one their voice cut a moment ago. With nothing being said the
+    word is the brain's, like any other. False when it was not taken."""
+    said = ECHO.speaking or state.floor.bot_speaking or time.time() - state.floor.bot_stopped_at < skip.JUST_STOPPED_SECS
+    if state.conn is None or not said:
+        return False
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; not fresh speech for a send, and no answer to a prompt
+    await skip_speech("voice")
+    return True
+
+
+@app.post("/voice/skip")
+async def skip_route(request: Request):
+    """The skip button on the page and in both apps, and the Mac app's skip key. Same-origin only (remote.Remote.guard)."""
+    return await skip_speech("button")
+
+
 FOCUS_SETTLE_SECS = 0.35  # a burst of clicks is announced once, for the last; and the cut reaches the mouth before the line
 FOCUS_LINE = "I'm now in session {name}."  # the owner's fixed words for a click
 
@@ -8555,7 +8614,6 @@ async def focus_by_click(session: Session) -> None:
     state.focus_clicks += 1
     click = state.focus_clicks
     await _drop_old_topic()
-    _stop_briefing()  # what is left of a briefing is about the sessions the owner just moved away from
     REGISTRY.set_active(session.id)
     if REGISTRY.mode != "session":  # a click focuses one session, on the page as in the phone app
         _apply_mode("session")
@@ -9009,6 +9067,7 @@ async def mode_by_click(request: Request):
     if mode not in ("orchestrator", "session"):
         raise HTTPException(status_code=400, detail="mode must be orchestrator or session")
     if mode != REGISTRY.mode:
+        await _drop_old_topic()  # before the mode moves: the news held for the way back is said after the cut
         result = _apply_mode(mode)
         target = f" pinned to {result['pinned_to']}" if result.get("pinned_to") else ""
         if state.conn is not None:
@@ -9067,7 +9126,6 @@ async def add_key(request: Request):
     key page and the Mac's own key window, checks the key, asks again when it is refused, and restarts Pointe on it.
     The key never passes through the page or this process. Not from the phone: the window opens on the Mac."""
     if _off_the_mac(request):
-        await _drop_old_topic()  # before the mode moves: the news held for the way back is said after the cut
         raise HTTPException(status_code=403, detail="Add a key on the Mac itself.")
     body = await request.json()
     vendor = body.get("vendor") if isinstance(body, dict) else None
@@ -9662,7 +9720,8 @@ async def page():
     html = ((here / "ui.html").read_text().replace("{{LOGO}}", (REPO / "assets" / "logo.svg").read_text())
             .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
             .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text())
-            .replace("{{MUTE}}", (here / "ui_mute.html").read_text()))
+            .replace("{{MUTE}}", (here / "ui_mute.html").read_text())
+            .replace("{{SKIP}}", (here / "ui_skip.html").read_text()))
     return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 

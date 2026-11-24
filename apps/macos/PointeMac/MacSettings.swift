@@ -12,9 +12,9 @@ struct MacSettingsSections: View {
     var body: some View {
         @Bindable var model = model
         Section {
-            LabeledContent("Talk shortcut") {
+            LabeledContent(Shortcut.Role.talk.label) {
                 VStack(alignment: .trailing, spacing: 4) {
-                    ShortcutRecorder()
+                    ShortcutRecorder(role: .talk, shortcut: $model.shortcut)
                     if let note = model.shortcutNote {
                         Text(note).font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.accent).accessibilityIdentifier("settings.shortcutNote")
                     } else if model.shortcut != nil {
@@ -181,21 +181,25 @@ enum KeyRow {
     }
 }
 
-/// Records the system-wide shortcut: click, then press the combination. Esc cancels, Delete removes the shortcut. While
-/// recording, the keys go to this window only (a local monitor): nothing is read from other apps.
+/// Records a system-wide shortcut, the talk one or the skip one: click, then press the combination. Esc cancels, Delete
+/// removes the shortcut. While recording, the keys go to this window only (a local monitor): nothing is read from
+/// other apps.
 struct ShortcutRecorder: View {
-    @Environment(AppModel.self) private var model
+    let role: Shortcut.Role
+    @Binding var shortcut: Shortcut?
     @State private var recording = false
     @State private var monitor: Any?
 
+    static func identifier(_ role: Shortcut.Role) -> String { role == .talk ? "settings.shortcut" : "settings.skipShortcut" }
+
     var body: some View {
-        Button(recording ? "Press the keys…" : (model.shortcut?.display ?? "None")) {
+        Button(recording ? "Press the keys…" : (shortcut?.display ?? "None")) {
             recording ? stop() : start()
         }
         .buttonStyle(.bordered)
-        .accessibilityLabel(recording ? "Recording the shortcut: press the keys" : "Talk shortcut: \(model.shortcut?.spoken ?? "none")")
+        .accessibilityLabel(recording ? "Recording the shortcut: press the keys" : "\(role.label): \(shortcut?.spoken ?? "none")")
         .accessibilityHint("Activate, then press a key combination. Escape cancels, Delete removes it.")
-        .accessibilityIdentifier("settings.shortcut")
+        .accessibilityIdentifier(Self.identifier(role))
         .onDisappear(perform: stop)
     }
 
@@ -220,7 +224,7 @@ struct ShortcutRecorder: View {
             return
         }
         if key == UInt16(kVK_Delete) || key == UInt16(kVK_ForwardDelete), flags.intersection([.command, .option, .control]).isEmpty {
-            model.shortcut = nil
+            shortcut = nil
             stop()
             return
         }
@@ -229,7 +233,7 @@ struct ShortcutRecorder: View {
         if flags.contains(.option) { modifiers |= Shortcut.option }
         if flags.contains(.control) { modifiers |= Shortcut.control }
         if flags.contains(.shift) { modifiers |= Shortcut.shift }
-        model.shortcut = Shortcut(keyCode: UInt32(key), modifiers: modifiers)
+        shortcut = Shortcut(keyCode: UInt32(key), modifiers: modifiers)
         stop()
     }
 }

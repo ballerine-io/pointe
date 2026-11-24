@@ -18,6 +18,40 @@ public struct Shortcut: Codable, Equatable, Sendable {
     public static let standard = Shortcut(keyCode: 49, modifiers: control | option)
     public static let key = "pointe.shortcut"
 
+    /// What a shortcut is for. Each has its own default and its own place in the defaults; no two may be the same keys.
+    public enum Role: String, CaseIterable, Sendable {
+        case talk, skip
+
+        /// Skip is ⌃⌥S: the talk shortcut's modifiers, so the two sit under one hand; free on a stock Mac, and not one of
+        /// the ⌃⌥ keys the common window managers take (the arrows, Return, C, D, E, F, G, T, U, I, J, K).
+        public var standard: Shortcut {
+            switch self {
+            case .talk: Shortcut.standard
+            case .skip: Shortcut(keyCode: 1, modifiers: Shortcut.control | Shortcut.option)
+            }
+        }
+
+        public var key: String {
+            switch self {
+            case .talk: Shortcut.key
+            case .skip: "pointe.shortcut.skip"
+            }
+        }
+
+        /// As Settings names it.
+        public var label: String {
+            switch self {
+            case .talk: "Talk shortcut"
+            case .skip: "Skip shortcut"
+            }
+        }
+    }
+
+    /// The other role's keys: one combination can do one thing. Nil when `self` is free of `other`.
+    public func clash(with other: Shortcut?, _ role: Role) -> String? {
+        other == self ? "\(display) is the \(role.label.lowercased()). Choose another." : nil
+    }
+
     public enum Problem: Equatable, Sendable {
         /// A key alone, or with Shift only, would be taken from every app while typing.
         case needsModifier
@@ -76,13 +110,13 @@ public struct Shortcut: Codable, Equatable, Sendable {
         return (words + [Self.names[keyCode] ?? "key \(keyCode)"]).joined(separator: " ")
     }
 
-    public static func stored(in defaults: UserDefaults = .standard) -> Shortcut? {
-        guard let data = defaults.data(forKey: key) else { return standard }
+    public static func stored(_ role: Role = .talk, in defaults: UserDefaults = .standard) -> Shortcut? {
+        guard let data = defaults.data(forKey: role.key) else { return role.standard }
         return try? JSONDecoder().decode(Shortcut?.self, from: data)  // an explicit "none" is stored as null
     }
 
-    public static func store(_ shortcut: Shortcut?, in defaults: UserDefaults = .standard) {
-        defaults.set(try? JSONEncoder().encode(shortcut), forKey: key)
+    public static func store(_ shortcut: Shortcut?, _ role: Role = .talk, in defaults: UserDefaults = .standard) {
+        defaults.set(try? JSONEncoder().encode(shortcut), forKey: role.key)
     }
 }
 

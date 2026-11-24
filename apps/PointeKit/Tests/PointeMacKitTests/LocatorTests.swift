@@ -268,6 +268,26 @@ struct Sandbox {
         Shortcut.store(nil, in: defaults)
         #expect(Shortcut.stored(in: defaults) == nil)
     }
+
+    @Test func skipHasItsOwnKeysItsOwnPlaceAndNeverTheTalkKeys() throws {
+        let skip = Shortcut.Role.skip.standard
+        #expect(skip.display == "⌃⌥S" && skip.spoken == "Control Option S")
+        #expect(skip.problem == nil && skip != Shortcut.standard, "free on a stock Mac, and not the talk shortcut")
+        #expect(Shortcut.Role.talk.standard == .standard && Shortcut.Role.talk.key == Shortcut.key)
+        #expect(Set(Shortcut.Role.allCases.map(\.key)).count == Shortcut.Role.allCases.count, "each role keeps its own place")
+        let name = "shortcut-roles-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        #expect(Shortcut.stored(.skip, in: defaults) == skip)
+        let chosen = Shortcut(keyCode: 45, modifiers: Shortcut.control | Shortcut.option)
+        Shortcut.store(chosen, .skip, in: defaults)
+        #expect(Shortcut.stored(.skip, in: defaults) == chosen && Shortcut.stored(.talk, in: defaults) == .standard,
+                "changing one leaves the other")
+        Shortcut.store(nil, .skip, in: defaults)
+        #expect(Shortcut.stored(.skip, in: defaults) == nil && Shortcut.stored(in: defaults) == .standard)
+        #expect(Shortcut.standard.clash(with: .standard, .talk) == "⌃⌥Space is the talk shortcut. Choose another.")
+        #expect(skip.clash(with: .standard, .talk) == nil && skip.clash(with: nil, .talk) == nil)
+    }
 }
 @Suite struct ReleaseWatchTests {
     /// Feeds the samples in order and says after which one (from 1) the watch called the press released; nil: never.

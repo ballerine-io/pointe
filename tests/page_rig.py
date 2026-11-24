@@ -34,6 +34,7 @@ def page_html() -> str:
         .replace("{{DICTIONARY}}", (ROOT / "pointe" / "ui_dictionary.html").read_text())
         .replace("{{WHISPER}}", (ROOT / "pointe" / "ui_whisper.html").read_text())
         .replace("{{MUTE}}", (ROOT / "pointe" / "ui_mute.html").read_text())
+        .replace("{{SKIP}}", (ROOT / "pointe" / "ui_skip.html").read_text())
     )
 
 
@@ -272,6 +273,10 @@ class StubMac:
         elif path == "/voice/reading":  # as daemon.reading_route: the call's choice, only while a call is up
             if s.get("connected"):
                 s["reading"]["on"] = bool(body.get("on"))
+        elif path == "/voice/skip":  # as daemon.skip_route: the line being said stops
+            skipped, s["speaking"] = s.get("speaking") == "bot", None
+            self.posts.append((path, body, time.time()))
+            return web.json_response({"skipped": skipped, "waiting": 0})
         elif path == "/voice/held" and body.get("action") == "tell":  # as daemon.held_news: told, so no longer held
             s["held"] = {"count": 0, "line": "", "approvals": 0, "items": []}
         elif path == "/voice/listen":

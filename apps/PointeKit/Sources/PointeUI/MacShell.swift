@@ -58,7 +58,8 @@ public final class MacSession: CallShell {
     public var pushToTalk: Bool { call.talk.ptt }
     public var talking: Bool { call.talk.ptt && call.talk.shows(macOpen: status?.ptt?.open == true) }
     public var muted: Bool { demo == nil ? call.muted : demo?.screen == .muted }
-    public var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking }
+    public var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking && !demoSkipped }
+    var demoSkipped = false
     public var hearing: String { status?.hearing ?? "" }
     public var activeSession: String? { status?.active }
     public var sessionCount: Int { status?.sessions.count ?? 0 }
@@ -181,6 +182,18 @@ public final class MacSession: CallShell {
 
     public func talkUp() {
         if call.state == .live, call.talk.ptt, call.talkStyle == .hold { call.talkRelease(.shortcut) }
+    }
+
+    /// The skip shortcut, or the bubble's skip button: what Pointe is saying stops, here at once and on the Mac's side,
+    /// and it goes on to the next line that waits. False with nothing being said: the key does nothing then.
+    @discardableResult
+    public func skip() -> Bool {
+        guard speaking else { return false }
+        if demo != nil { demoSkipped = true; return true }
+        call.hush()
+        let api = call.api
+        Task { try? await api.skip() }
+        return true
     }
 
     /// Asks the call screen for a sheet or an action; the caller brings the window forward first.

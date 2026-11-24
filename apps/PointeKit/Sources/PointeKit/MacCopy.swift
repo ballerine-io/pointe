@@ -67,6 +67,8 @@ public enum MacCopy {
     public static let typeHere = "Type to Pointe"
     public static let openPage = "Open the page"
     public static let thisMac = "This Mac"
+    /// The bubble's skip button, with the key that does the same from any app: "Skip this message (⌃⌥S)".
+    public static func skip(shortcut: String?) -> String { "Skip this message" + (shortcut.map { " (\($0))" } ?? "") }
     public static func needYou(_ n: Int) -> String { n == 1 ? "1 session needs you" : "\(n) sessions need you" }
     public static func unreachable(_ place: String) -> String { "Pointe on this Mac is not answering at \(place)." }
     public static func versions(daemon: String, app: String) -> String { "Pointe on this Mac is \(daemon); this app is \(app)." }

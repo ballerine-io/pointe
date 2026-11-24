@@ -567,7 +567,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
     typed words (`/voice/say`, `/voice/correct`, `/voice/polish`), a new session in a folder the Mac allows
     (`/voice/new-session`), adding sessions listed on the Mac (`/voice/add-sessions`), the night shift
     (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the challenge (`/voice/challenge`), drive mode (`/voice/drive`), mute (`/voice/reading`, and `/voice/read` to mark Pointe's lines
-    read), the held news of session mode (`/voice/held`: told aloud, never approves), alerts (`/voice/attention`) and the conflict alarm
+    read), skip (`/voice/skip`: it stops the line being said and answers nothing; a request whose read-out was
+    skipped is read out again before a yes counts), the held news of session mode (`/voice/held`: told aloud, never approves), alerts (`/voice/attention`) and the conflict alarm
     (`/voice/conflicts`: dismiss, or ask one side: the card's question, sent to that session as a conflict check,
     never as the user's words, and it approves nothing);
   - meetings and notes: `/voice/meeting`, `/voice/meeting/transcript`, `/voice/notes`;

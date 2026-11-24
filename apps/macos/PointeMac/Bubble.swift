@@ -185,13 +185,19 @@ struct BubbleView: View {
                 .help(detail.text)
                 .accessibilityLabel(detail.text)
                 .accessibilityIdentifier("bubble.detail")
-                Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: session.pushToTalk))
+                let mode = BubbleRule.modeLine(talkMode: model.talkMode, speaking: session.speaking, skipHint: model.skipHint)
+                Label(mode.text, systemImage: mode.skip ? BubbleRule.skipGlyph : BubbleRule.talkModeGlyph(pushToTalk: session.pushToTalk))
                     .font(PointeLook.font(.caption2)).foregroundStyle(PointeLook.dim).lineLimit(1)
                     .accessibilityIdentifier("bubble.mode")
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 6) {
                 HStack(spacing: 2) {
+                    if session.speaking {
+                        control(BubbleRule.skipGlyph, help: MacCopy.skip(shortcut: model.skipHint == nil ? nil : model.skipShortcut?.display), id: "bubble.skip") {
+                            session.skip()
+                        }
+                    }
                     control(model.bubbleSmall ? "arrow.up.left.and.arrow.down.right" : "minus",
                             help: model.bubbleSmall ? "Keep the bubble full size" : "Make the bubble small", id: "bubble.small.toggle") {
                         model.bubbleSmall.toggle()
@@ -229,6 +235,15 @@ struct BubbleView: View {
                 .background(session.talking ? PointeLook.orange : PointeLook.raised, in: Circle())
             Image(systemName: BubbleRule.talkModeGlyph(pushToTalk: session.pushToTalk))
                 .font(.system(size: 12)).foregroundStyle(PointeLook.muted)
+                .frame(width: layout.glyph, height: layout.glyph)
+                .overlay(alignment: .topTrailing) {  // a session waits: on the glyph, clear of the state's circle (BubbleRule.Pill)
+                    if session.needCount > 0 {
+                        Circle().fill(PointeLook.orange).frame(width: layout.dot, height: layout.dot)
+                            .overlay(Circle().stroke(PointeLook.card, lineWidth: 1.5))
+                            .offset(x: layout.dotOut.width, y: -layout.dotOut.height)
+                            .accessibilityIdentifier("bubble.small.need")
+                    }
+                }
         }
         .frame(width: BubbleRule.small.width - 4, height: BubbleRule.small.height - 4)
         .background(PointeLook.card, in: Capsule())

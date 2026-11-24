@@ -33,8 +33,10 @@ class App:
     def __init__(self, binary: Path, driver: Path, *args: str, look: str = "dark", env: dict | None = None):
         self.driver = driver
         bubble = [] if "-pointe.bubble" in args else ["-pointe.bubble", "NO"]
+        # No talk shortcut (a stored "none": the bytes of JSON null): the person's own Pointe may be running with the
+        # same keys, and a test app must not take them from it.
         self.proc = subprocess.Popen([str(binary), "-PointeOpenWindow", "YES", "-ApplePersistenceIgnoreState", "YES", "-pointe.theme", look,
-                                      *bubble, *args],
+                                      "-pointe.shortcut", "<6e756c6c>", *bubble, *args],
                                      env={**os.environ, **(env or {})}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.wait("pointe.main", 15)
 
@@ -127,6 +129,9 @@ def main() -> int:
     def start(*args: str, look: str = "dark", env: dict | None = None) -> App:
         return App(binary, driver, *args, look=look, env=env)
 
+    def line(app: App) -> str:
+        return app.ax("label", "statusLine").stdout
+
     # the call screen, wide and narrow
     for look in ("dark", "light"):
         app = start("-demo", "call", look=look)
@@ -190,7 +195,7 @@ def main() -> int:
             app.quit()
 
     # the call bubble: on a call it floats with the state and the talk mode, as the window says it; × hides it
-    app = start("-demo", "call", "-pointe.bubble", "YES")
+    app = start("-demo", "call", "-pointe.bubble", "YES", "-pointe.bubble.small", "NO")  # whatever this Mac's own app keeps
     try:
         app.wait("statusLine")
         mode = app.ax("label", "bubble.mode").stdout.strip()
@@ -208,8 +213,6 @@ def main() -> int:
 
     # mute: one button beside the status line. "Speaking…" while Pointe speaks; muted, "Writing…" where it would speak.
     # No Reading card, no Unread or Read marks, no Read switch in Settings.
-    def line(app: App) -> str:
-        return app.ax("label", "statusLine").stdout
     for look in ("dark", "light"):
         app = start("-demo", "speaking", "-demoEnglish", look=look)
         try:
@@ -240,6 +243,69 @@ def main() -> int:
     app = start("-demo", "writing", "-sheet", "settings")
     try:
         check("Settings has no Read switch", app.wait("microphoneSetting") and not app.has("readingToggle"))
+    finally:
+        app.quit()
+
+    # Settings: every switch takes a press and flips, with the bubble hidden (its × does that) as with it shown. The two
+    # under "Show the call bubble" were switched off while it was hidden, and looked the same as switches that were on.
+    def switch(app: App, ident: str) -> dict:
+        return dict(part.split("=") for part in app.ax("state", ident).stdout.split())
+    for bubble in ("NO", "YES"):
+        app = start("-demo", "call", "-sheet", "settings", "-pointe.bubble", bubble, "-pointe.bubble.pinned", "NO")
+        try:
+            app.wait("microphoneSetting")
+            names = app.ax("switches").stdout.split("\n")
+            names = [n for n in names if n]
+            check(f"Settings lists its switches, each with an identifier (bubble {bubble})",
+                  {"settings.bubble", "settings.bubblePinned", "settings.bubbleSmall", "settings.login", "polishSetting"} <= set(names)
+                  and not [n for n in names if n.startswith("?")], ", ".join(names))
+            for name in names:
+                before = switch(app, name)
+                pressed = app.press(name)
+                flipped = wait_for(lambda: switch(app, name).get("value") not in (before.get("value"), "-1"), 3)
+                check(f"the switch {name} takes a press and flips (bubble {bubble})",
+                      before.get("enabled") == "1" and before.get("hit") == "1" and pressed and flipped, f"{before} -> {switch(app, name)}")
+                app.press(name)  # back, so the next switch starts from the same Settings
+                wait_for(lambda: switch(app, name).get("value") == before.get("value"), 3)
+            if bubble == "NO":
+                app.press("settings.bubblePinned")
+                check("keeping the bubble on screen switches a hidden bubble on", wait_for(lambda: switch(app, "settings.bubble").get("value") == "1", 3)
+                      and wait_for(lambda: app.has("bubble.state") or app.has("bubble.small"), 4))
+                app.shot("settings-bubble-switches", "dark")
+        finally:
+            app.quit()
+
+    # skip: one button beside the status line, after the mute button, only while Pointe speaks; the window and the
+    # bubble name the key that does the same from any app, the way they name the talk shortcut
+    app = start("-demo", "speaking", "-demoEnglish", "-pointe.bubble", "YES", "-pointe.bubble.small", "NO")
+    try:
+        shown = app.wait("skipButton")
+        check("while Pointe speaks the skip button sits beside the mute button", shown and app.has("muteButton")
+              and app.ax("label", "skipButton").stdout.strip() == "Skip this message")
+        hint = app.ax("label", "skipShortcut").stdout.strip()
+        check("the window names the skip shortcut beside the talk mode", hint.startswith("Skip ") and app.has("talkMode"), hint)
+        check("the bubble names it too while Pointe speaks, and has a skip button", app.wait("bubble.skip")
+              and app.ax("label", "bubble.mode").stdout.strip() == hint, app.ax("label", "bubble.mode").stdout.strip())
+        app.shot("skip", "dark")
+        check("Skip ends the line: Listening, and no skip button", app.press("skipButton") and app.wait("skipButton", 4, gone=True)
+              and wait_for(lambda: "Listening" in line(app)), line(app))
+        check("the bubble's skip button goes with it", app.wait("bubble.skip", 4, gone=True))
+    finally:
+        app.quit()
+    app = start("-demo", "call")
+    try:
+        app.wait("statusLine")
+        check("with nothing being said there is no skip button; the mute button stays", not app.has("skipButton") and app.has("muteButton"))
+        check("Settings has the skip shortcut under the talk shortcut", app.ax("menu", "Settings…").returncode == 0
+              and app.wait("settings.skipShortcut") and app.has("settings.shortcut"))
+    finally:
+        app.quit()
+
+    # the conversation's text: a right-click on a line offers Copy
+    app = start("-demo", "call")
+    try:
+        app.wait("conversation")
+        check("a line of the conversation offers Copy", "Copy" in app.ax("actions", "conversation").stdout, app.ax("actions", "conversation").stdout[:200])
     finally:
         app.quit()
 

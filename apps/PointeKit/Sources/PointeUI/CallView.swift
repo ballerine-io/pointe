@@ -55,6 +55,7 @@ struct CallView: View {
     @State private var demoDictionary = DemoDictionary()
     @State private var whisperFollow = WhisperFollow()
     @AppStorage(MuteChoice.key) private var muteStored = false  // this device's own choice (Mute.swift)
+    @State private var demoSkipped = false  // a demo's "Speaking…" line, skipped (Skip.swift)
     @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
@@ -123,7 +124,9 @@ struct CallView: View {
     private var phase: Call.State { demo == nil ? call.state : .live }
     private var live: Bool { phase == .live || phase == .reconnecting }
     private var muted: Bool { demo == nil ? call.muted : demo?.screen == .muted }
-    private var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking && !MuteChoice.inEffect(status: status, stored: false) }
+    private var speaking: Bool {
+        demo == nil ? call.botSpeaking : demo?.screen == .speaking && !(demoSkipped || shell?.demoSkipped == true) && !MuteChoice.inEffect(status: status, stored: false)
+    }
 
     private var dumping: Bool { dumpWanted ?? (status?.dumping ?? false) }
     private var dump: API.BrainDump? { status?.brain_dump }
@@ -536,7 +539,7 @@ struct CallView: View {
                     // The empty stage says the same title and why in the middle of the screen: once is enough.
                     if !panelShown {
                         StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking || title == MuteCopy.writing,
-                                   broken: status?.key_refused != nil || status?.vendor_fault != nil, mute: muteControl)
+                                   broken: status?.key_refused != nil || status?.vendor_fault != nil, mute: muteControl, skip: skipControl)
                     }
                     #if os(iOS)  // the Mac keeps itself awake only for a call from another device: on the Mac there is nothing to say
                     if let awake = API.KeepAwake.shown(status, live: phase == .live) {
@@ -1552,6 +1555,20 @@ struct CallView: View {
         if !(await act { try await call.api.reading(on) }) { problem = MuteCopy.failed }
     }
 
+    /// The skip button beside the status line, only while Pointe's voice is heard.
+    private var skipControl: (() -> Void)? {
+        guard SkipRule.shows(speaking: speaking, muted: MuteChoice.inEffect(status: status, stored: muteStored)) else { return nil }
+        return { Task { await skipNow() } }
+    }
+
+    /// Skip: what this device still holds to play stops now, and the Mac drops the line and goes on to the next one.
+    /// The demo's line just ends.
+    private func skipNow() async {
+        if demo != nil { demoSkipped = true; shell?.demoSkipped = true; return }
+        call.hush()
+        if !(await act { try await call.api.skip() }) { problem = SkipCopy.failed }
+    }
+
     /// The held news badge's Tell me: Pointe says what the other sessions said (the demo just empties it).
     private func tellHeld() async {
         if demo != nil { status?.held = nil; return }
@@ -1789,6 +1806,7 @@ struct StatusLine: View {
     let speaking: Bool
     var broken = false  // a refused key: red, never the green of a call that hears
     var mute: Mute? = nil
+    var skip: (() -> Void)? = nil  // only while Pointe speaks (SkipRule): the line being said, skipped
 
     private var tint: Color {
         switch phase {
@@ -1813,6 +1831,9 @@ struct StatusLine: View {
                 .accessibilityIdentifier("statusLine")
                 if let mute {  // right beside the state, and its own element
                     MuteButton(on: mute.on, held: mute.held, toggle: mute.toggle).padding(.vertical, -6)
+                }
+                if let skip {  // after it, so the mute button never moves when this one comes and goes
+                    SkipButton(skip: skip).padding(.vertical, -6).transition(.opacity)
                 }
             }
             Text(subtitle.unbrokenCommands).font(.brand(.subheadline)).foregroundStyle(Brand.muted).lineLimit(2)

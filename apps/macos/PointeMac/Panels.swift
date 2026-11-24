@@ -46,13 +46,20 @@ struct MainWindow: View {
         }
         .overlay(alignment: .topTrailing) {  // in the title bar's row, beside nothing: a row of its own floated over the header
             if model.ready {
-                Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
-                    .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
-                    .frame(height: 28)
-                    .padding(.horizontal, 14)
-                    .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
-                    .accessibilityIdentifier("talkMode")
-                    .ignoresSafeArea(edges: .top)
+                HStack(spacing: 14) {
+                    if let skip = model.skipHint {  // beside the talk mode, said the same way
+                        Label(skip, systemImage: BubbleRule.skipGlyph)
+                            .help("The skip shortcut skips what Pointe is saying, from any app. Set it in Settings, This Mac.")
+                            .accessibilityIdentifier("skipShortcut")
+                    }
+                    Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
+                        .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
+                        .accessibilityIdentifier("talkMode")
+                }
+                .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
+                .frame(height: 28)
+                .padding(.horizontal, 14)
+                .ignoresSafeArea(edges: .top)
             }
         }
         .background(PointeLook.bg)

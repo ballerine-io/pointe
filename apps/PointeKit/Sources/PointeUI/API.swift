@@ -565,6 +565,9 @@ struct API {
     /// Mute for the call (this device keeps its own choice either way).
     func reading(_ on: Bool) async throws { try await post("voice/reading", ["on": on]) }
 
+    /// Skip what Pointe is saying; it goes on to the next line that waits (Skip.swift).
+    func skip() async throws { try await post("voice/skip") }
+
     /// Session mode's held news, said now (the badge's Tell me).
     func tellHeld() async throws { try await post("voice/held", ["action": "tell"]) }
 

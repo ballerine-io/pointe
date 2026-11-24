@@ -22,6 +22,7 @@ public final class PhoneTalk: TalkLauncher, CallShell {
     private var shown: TalkActivityState?
     private var watching: Task<Void, Never>?
     private var lastStatus: API.Status?
+    var demoSkipped = false  // the Mac shell's: a phone has no key that skips from outside the call screen
 
     var request: ShellRequest? { nil }
 

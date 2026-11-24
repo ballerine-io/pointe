@@ -1,0 +1,33 @@
+<!-- Skip (skip.py, docs/features/skip.md): one button beside the call's status line, after the mute button, shown only
+     while Pointe speaks. A tap skips the line being said and Pointe goes on to the next one that waits. Served inside
+     ui.html at {{SKIP}}; the apps have the same button and words (SkipCopy in Skip.swift), and the Mac app has a key for
+     it that works from any app. The line's words stay in the conversation. -->
+<style>
+  #skipbtn { flex: none; display: none; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+             background: var(--raised); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; }
+  #skipbtn.on { display: grid; }
+  #skipbtn:hover { color: var(--accent); }
+  #skipbtn svg { width: 18px; height: 18px; }
+  body.firstrun #skipbtn { display: none; }
+  @media (max-width: 760px) { #skipbtn { width: 44px; height: 44px; } }  /* a finger's target */
+</style>
+<script>
+  // The words, word for word skip.COPY and SkipCopy (tests/test_skip.py).
+  const SKIP_COPY = {
+    skip: 'Skip this message',
+    failed: 'Skip did not reach the voice.',
+  };
+  let skipGone = 0;  // a tap hides the button at once; the next status says whether another line is being said
+  // Pointe is speaking on the call, wherever the call is: the daemon stops it, so the page of another device may ask.
+  const skipShows = s => !!(s && s.connected && s.speaking === 'bot') && Date.now() > skipGone;
+  function skipFollow(s) { $('skipbtn').classList.toggle('on', skipShows(s)); }
+  async function skipNow() {
+    skipGone = Date.now() + 700; skipFollow(status);
+    if (call.player) call.player.port.postMessage('flush');  // what this browser still holds to play stops now
+    try {
+      const r = await fetch('/voice/skip', {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'});
+      if (!r.ok) throw new Error(String(r.status));
+    } catch (e) { sayProblem(SKIP_COPY.failed); }
+    refresh();
+  }
+</script>

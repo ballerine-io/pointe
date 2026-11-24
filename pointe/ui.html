@@ -1614,7 +1614,8 @@
     <span class="dot"></span>
     <div class="grow">
       <div class="stateline"><div class="state" id="state">Not connected</div><button type="button" id="mutebtn" onclick="muteToggle()" aria-pressed="false" aria-label="Mute Pointe" title="Mute Pointe">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3l4.5-4v13l-4.5-4H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6"/><path class="slash" d="M3.5 3.5l17 17"/></svg></button></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3l4.5-4v13l-4.5-4H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6"/><path class="slash" d="M3.5 3.5l17 17"/></svg></button><button type="button" id="skipbtn" onclick="skipNow()" aria-label="Skip this message" title="Skip this message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5l9 6.5-9 6.5z"/><path d="M18.5 5.5v13"/></svg></button></div>
       <div class="sr" id="statesay" role="status"></div>
       <div class="sub" id="sub">Press the mic to start talking</div>
       <div id="heldnews" role="status"></div>
@@ -1882,6 +1883,7 @@
     if (window.dictionaryFollow) dictionaryFollow(status);
     if (window.whisperFollow) whisperFollow(status);
     if (window.muteFollow) muteFollow(status);
+    if (window.skipFollow) skipFollow(status);
     showHeld(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
@@ -3233,13 +3235,13 @@
     li.onclick = () => { if (!selecting(li)) startFix(li); };  // a drag that selected words is a selection, not a click
     return li;
   }
-  function startFix(li) {  // inline: Enter sends the correction, Esc puts it back
-    if (editing) return;
   // The conversation's text is for selecting and copying, as on any page: words selected inside this line.
   function selecting(li) {
     const sel = getSelection();
     return !!sel && !sel.isCollapsed && String(sel).trim() !== '' && (li.contains(sel.anchorNode) || li.contains(sel.focusNode));
   }
+  function startFix(li) {  // inline: Enter sends the correction, Esc puts it back
+    if (editing) return;
     editing = li;
     const box = el('textarea', 'fix'); box.value = li.dataset.text; box.rows = Math.max(1, Math.ceil(box.value.length / 60));
     li.classList.add('editing'); li.onclick = null;
@@ -5007,5 +5009,6 @@
 {{DICTIONARY}}
 {{WHISPER}}
 {{MUTE}}
+{{SKIP}}
 </body>
 </html>

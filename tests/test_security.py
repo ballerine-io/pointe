@@ -503,8 +503,9 @@ def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
     # and, since 1.19.0, the night shift (docs/design/night-shift.md): its sheet, Start, Stop and the ledger; never an approval
     # and the Add sessions sheet (SECURITY.md "Adding sessions"): the app called it, the key was refused, and joining failed
     # and, since 1.24.0, mute (once reading mode: the button, a line marked read) and the held news badge's Tell me: none approves anything
+    # and skip (docs/features/skip.md): it stops the line being said, and approves nothing
     assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/new-session",
-                                     "/voice/night-shift", "/voice/add-sessions", "/voice/reading", "/voice/read",
+                                     "/voice/night-shift", "/voice/add-sessions", "/voice/reading", "/voice/read", "/voice/skip",
                                      "/voice/held"}
     assert before <= _PHONE_PATHS
 

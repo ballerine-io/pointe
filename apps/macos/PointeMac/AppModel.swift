@@ -49,7 +49,10 @@ final class AppModel {
     private(set) var folders: [String]?
     private(set) var foldersNote: String?
 
-    var shortcut: Shortcut? { didSet { Shortcut.store(shortcut, in: defaults); registerShortcut() } }
+    var shortcut: Shortcut? { didSet { Shortcut.store(shortcut, in: defaults); registerShortcut(); registerSkipShortcut() } }
+    /// The key that skips what Pointe is saying, from any app (docs/features/skip.md).
+    var skipShortcut: Shortcut? { didSet { Shortcut.store(skipShortcut, .skip, in: defaults); registerSkipShortcut() } }
+    private(set) var skipNote: String?
     /// "Show the call bubble during calls": on a call, and with none when pinned (`BubbleRule.shows`). A demo keeps
     /// none of these.
     var bubbleOn: Bool { didSet { remember(bubbleOn, Keys.bubble); syncBubble() } }
@@ -74,7 +77,8 @@ final class AppModel {
     private let defaults = UserDefaults.standard
     private let locator = DaemonLocator()
     private let box = EndpointBox()
-    private let hotKey = HotKey()
+    private let hotKey = HotKey(id: 1)
+    private let skipKey = HotKey(id: 2)
     private var watcher: Task<Void, Never>?
     private var themeObserver: NSObjectProtocol?
     /// A call the person placed and that has not started yet: if it ends with a reason, the window opens on it.
@@ -86,6 +90,7 @@ final class AppModel {
         let box = box
         session = MacSession(daemon: LocalDaemon(endpoint: { box.endpoint }, lost: { box.set(nil) }))
         shortcut = Shortcut.stored(in: defaults)
+        skipShortcut = Shortcut.stored(.skip, in: defaults)
         bubbleOn = defaults.bool(forKey: Keys.bubble)
         bubblePinned = defaults.bool(forKey: Keys.bubblePinned)
         bubbleSmall = defaults.bool(forKey: Keys.bubbleSmall)
@@ -118,7 +123,9 @@ final class AppModel {
         session.alerts(isFront: { [windows] in windows.mainIsFront }, opened: { [windows] in windows.showMain() })
         hotKey.onDown = { [weak self] in self?.shortcutDown() }
         hotKey.onUp = { [weak self] in self?.session.talkUp() }
+        skipKey.onDown = { [weak self] in self?.session.skip() }
         registerShortcut()
+        registerSkipShortcut()
         if Self.preview != nil {
             showPreview()
         } else if !launchedForDemo {
@@ -462,6 +469,26 @@ final class AppModel {
         }
     }
 
+    private func registerSkipShortcut() {
+        skipNote = Self.skipProblem(skipShortcut, talk: shortcut)
+        guard let skipShortcut, skipNote == nil else { skipKey.register(nil); return }
+        if !skipKey.register(skipShortcut) { skipNote = "macOS refused \(skipShortcut.display). Choose another." }
+    }
+
+    /// Why a skip shortcut cannot be used, in Settings' words; nil when it can.
+    static func skipProblem(_ skip: Shortcut?, talk: Shortcut?) -> String? {
+        guard let skip else { return nil }
+        if let clash = skip.clash(with: talk, .talk) { return clash }
+        switch skip.problem {
+        case .needsModifier: return "Add ⌃, ⌥ or ⌘: a key alone would be taken from every app."
+        case .system(let owner): return "macOS uses \(skip.display) for \(owner). Choose another."
+        case nil: return nil
+        }
+    }
+
+    /// "Skip ⌃⌥S", as the bubble and the window say it beside the talk mode; nil with no working skip shortcut.
+    var skipHint: String? { BubbleRule.skipHint(shortcut: skipNote == nil ? skipShortcut?.display : nil) }
+
     /// From any app. On a call in push to talk it is the talk button; in Always on it mutes; with no call it brings
     /// Pointe forward, so the key always does something you can see.
     private func shortcutDown() {
@@ -472,6 +499,7 @@ final class AppModel {
     // MARK: this Mac's settings
 
     func setLoginItem(_ on: Bool) {
+        if session.isDemo { loginItem = on; return }  // a demo keeps nothing: the switch moves, this Mac's login items do not
         loginNote = LoginItem.set(on)
         loginItem = LoginItem.isOn
     }
@@ -486,4 +514,3 @@ final class AppModel {
         if NSApp.appearance?.name != wanted?.name { NSApp.appearance = wanted }
     }
 }
-        if session.isDemo { loginItem = on; return }  // a demo keeps nothing: the switch moves, this Mac's login items do not
