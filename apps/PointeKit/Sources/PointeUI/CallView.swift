@@ -1884,7 +1884,7 @@ struct RequestCard: View {
                     .font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                     .accessibilityIdentifier("requestOffline")
             } else {
-                Text(session.voice_can_approve == true ? "Say yes or no, or \(Surface.tap)." : "Too complex to read out: check it, then \(Surface.tap).")
+                Text(session.voice_can_approve == true ? "Say yes or no, or \(Surface.tap)." : "Has a secret, never said aloud: check it, then \(Surface.tap).")
                     .font(.brand(.caption)).foregroundStyle(Brand.muted)
                 ViewThatFits(in: .horizontal) {  // side by side while both words fit whole, else one over the other
                     HStack(spacing: 10) { deny; approve }

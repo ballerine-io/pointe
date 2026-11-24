@@ -22,6 +22,8 @@ from test_orchestrator import d  # noqa: E402,F401  (d is the daemon fixture)
     ("edit refunds.py", "לערוך את refunds.py"),
     ("write notes.txt", "לכתוב את notes.txt"),
     ("read README.md", "לקרוא את README.md"),
+    ("run, word for word: for f in *; do wc $f; done", "להריץ, מילה במילה: for f in *; do wc $f; done"),
+    ("use WebFetch, word for word: url: https://example.org", "להשתמש ב-WebFetch, מילה במילה: url: https://example.org"),
 ])
 def test_the_verb_is_hebrew_and_the_command_is_exact(d, spoken, said):  # noqa: F811
     assert d._hebrew_request(spoken) == said

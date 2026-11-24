@@ -2540,7 +2540,7 @@
     }
     b.append(el('div', 'need', meetOn ? 'In a meeting, nothing is approved by voice: click to answer.'
                                : x.request_truncated ? 'A tap can only deny this one.'
-                               : !x.voice_can_approve ? 'Too complex to read out: check it, then tap.'
+                               : !x.voice_can_approve ? 'Has a secret, never said aloud: check it, then tap.'
                                : x.name === s.active ? 'Say yes or no, or tap.' : 'Say its name and yes or no, or tap.'));
     const err = el('div', 'need err', answerProblems.get(x.request_id) || '');
     err.setAttribute('role', 'alert'); err.hidden = !answerProblems.has(x.request_id);
@@ -4922,7 +4922,7 @@
     voice: 'Say yes or no.',
     voiceStrong: 'Say yes or no, in a full sentence.',
     road: 'Not for the road: it waits until you stop. Say no to deny it.',
-    unreadable: 'Can’t be read out: it waits until you stop. Say no to deny it.',
+    unreadable: 'Not one for the road: it waits until you stop. Say no to deny it.',
   };
   async function setDrive(on) {
     const r = await postSafe('/voice/drive', {on});

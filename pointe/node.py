@@ -219,13 +219,14 @@ class Tail:
 class Held:
     request_id: str
     frame: dict  # the permission.request sent, for the snapshot's `pending`
-    readable: str | None
+    readable: str | None  # the allowlist's short form: what a notification or a readable-only tap may approve
     future: asyncio.Future
     deadline: float  # loop time
     holding_by: float  # loop time by which the hub must say `holding`
     holding: asyncio.Event = field(default_factory=asyncio.Event)
     offline_since: float | None = None  # loop time the link dropped while this was held
     why: str | None = None  # why it went back to the terminal, if not a verdict
+    spoken: str | None = None  # what a spoken yes approves: the short form, or the request word for word
 
 
 async def _noop_feed(session, text, respond) -> None:
@@ -941,13 +942,14 @@ class Node:
             return None
         loop = asyncio.get_running_loop()
         readable = guards.readable_request(tool_name, tool_input, session.cwd, run_in)  # from the unmasked input
+        spoken = readable or guards.verbatim_request(tool_name, tool_input)
         request_id = nodelink.new_id()
         frame = {"t": "permission.request", "id": session.id, "request_id": request_id, "tool": tool_name,
                  "description": precise_mask(str(tool_input.get("description") or "use this tool")),
-                 "preview": precise_mask(json.dumps(tool_input, ensure_ascii=False)), "readable": readable,
+                 "preview": precise_mask(json.dumps(tool_input, ensure_ascii=False)), "readable": spoken,
                  "deadline_ms": max(0, int((deadline - loop.time()) * 1000))}
         held = Held(request_id=request_id, frame=frame, readable=readable, future=loop.create_future(),
-                    deadline=deadline, holding_by=loop.time() + self.holding_wait)
+                    deadline=deadline, holding_by=loop.time() + self.holding_wait, spoken=spoken)
         self.held[session.id] = held
         session.permission_id, session.permission_answer = request_id, held.future  # a turn end releases it
         try:
@@ -1009,9 +1011,9 @@ class Node:
             return "terminal"
         how = frame["how"]
         if how == "voice":
-            if not held.readable:
+            if not held.spoken:
                 return "unreadable"
-            return None if frame.get("spoken") == held.readable else "mismatch"
+            return None if frame.get("spoken") == held.spoken else "mismatch"
         if how == "notification":
             return None if held.readable else "unreadable"
         if how == "tap":

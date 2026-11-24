@@ -28,7 +28,7 @@ def test_the_brain_is_told_a_request_that_cannot_be_read_out_waits_for_a_tap(d, 
     client.post("/voice/register", headers=auth, json={"id": "e", "name": "billing", "channel_url": "http://127.0.0.1:1/ch", **base})
     client.post("/voice/permission", headers=auth, json={"channel_url": "http://127.0.0.1:1/ch", "request_id": "abcde",
                                                          "tool_name": "Bash", "description": "reset",
-                                                         "input_preview": '{"command": "git reset --hard HEAD~3"}'})
+                                                         "input_preview": '{"command": "echo password=hunter2222 >> notes.txt"}'})  # a secret: never said, so never voice
     text = d.REGISTRY.active.permission_text
     assert "a yes will not count" in text and "a tap on the page or phone, or the terminal" in text
     assert "the terminal must answer it" not in text

@@ -117,6 +117,9 @@ from guards import (relays_approval, remote_readable,
     strip_tasks,
     unfinished,
     readable_request,
+    spoken_request,
+    verbatim_request,
+    VERBATIM,
     ack_only,
     backchannel,
     repeat_intent,
@@ -8079,30 +8082,42 @@ async def permission_hook(request: Request, authorization: str | None = Header(N
 
 
 REPHRASE_LIMIT, REPHRASE_WINDOW_SECS = 2, 600.0
-REPHRASE_MESSAGE = ("The user is on a voice call and approves by ear: this command could not be read out to them word "
-                    "for word, so it was not run. Do the same step again as plain commands, one at a time: no loops, pipes "
+REPHRASE_MESSAGE = ("The user is on a voice call and approves by ear: this command is too long to follow when read out "
+                    "word for word, so it was not run. Do the same step again as plain commands, one at a time: no loops, pipes "
                     "into other programs, subshells, variables, or code passed in quotes. Each will be read out and can be "
                     "approved by voice.")
 
 
+REPHRASE_WORDS = 40  # a word-for-word read-out longer than this is sent back once for plain commands first
+SECRET_MESSAGE = ("The user is on a voice call and approves by ear: this command has a secret written in it, which is "
+                  "never said aloud, so it was not run. Do the same step again with the secret passed by reference (an "
+                  "environment variable or a file that holds it), never written in the command; it will be read out and "
+                  "can be approved by voice.")
+
+
 def _rephrase_first(session: Session, tool_name: str, tool_input: dict, run_in: str | None) -> dict | None:
-    """A shell command a spoken yes could not approve (it cannot be read out word for word), on a call: sent back to
-    Claude once with REPHRASE_MESSAGE instead of stranding a user who is not at the screen. Never approves anything: the
-    plain commands that follow are read out and answered as ever. At most REPHRASE_LIMIT times per session in
-    REPHRASE_WINDOW_SECS; then the tap, as before. None: put it to the user as ever."""
+    """A shell command, on a call, that has no short read-out: one with a secret written in it is sent back to pass the
+    secret by reference (it is never said aloud, and nothing is approved unheard); one whose word-for-word read-out is
+    long is sent back once for plain commands, which are easier to follow by ear. Never approves anything. At most
+    REPHRASE_LIMIT times per session in REPHRASE_WINDOW_SECS; after that a long one is read word for word. None: put it
+    to the user as ever (a short unusual command is read word for word)."""
     if (tool_name != "Bash" or state.conn is None or session.machine or _night_parks(session)
             or vendors.config().get("approvals") == "terminal" or not current_mode().reads_out
             or readable_request(tool_name, tool_input, session.cwd, run_in)):
+        return None
+    verbatim = verbatim_request(tool_name, tool_input)
+    if verbatim and len(verbatim.split()) <= REPHRASE_WORDS:
         return None
     now = time.time()
     recent = [t for t in session.harness_data.get("rephrased", []) if now - t < REPHRASE_WINDOW_SECS]
     if len(recent) >= REPHRASE_LIMIT:
         return None
     session.harness_data["rephrased"] = recent + [now]
-    logger.info(f"permission {session.name}: not readable aloud, sent back for plain commands "
-                f"({len(recent) + 1} of {REPHRASE_LIMIT})")
+    why = "a secret in it" if verbatim is None else "long to read word for word"
+    logger.info(f"permission {session.name}: {why}, sent back ({len(recent) + 1} of {REPHRASE_LIMIT})")
     return {"hookSpecificOutput": {"hookEventName": "PermissionRequest",
-                                   "decision": {"behavior": "deny", "message": REPHRASE_MESSAGE}}}
+                                   "decision": {"behavior": "deny",
+                                                "message": SECRET_MESSAGE if verbatim is None else REPHRASE_MESSAGE}}}
 
 
 async def _harness_permission(session: Session, tool_name: str, tool_input: dict, gone=None,
@@ -8193,7 +8208,7 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     if session.machine:  # the node's read-out, from the unmasked input: the preview here is masked
         readable = node_readable
     else:
-        readable = readable_request(tool_name, tool_input, session.cwd, run_in) if isinstance(tool_input, dict) else None
+        readable = spoken_request(tool_name, tool_input, session.cwd, run_in) if isinstance(tool_input, dict) else None
     session.permission_spoken = (readable or "") if FRONT == "brain" else ""  # a realtime model words it itself: no line to bind
     session.permission_id = request_id
     session.permission_read_at = 0.0
@@ -8213,7 +8228,8 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     session.permission_full = f"{readout.visible(tool_name)}{f' in {readout.visible(run_in)}' if elsewhere else ''}\n{runs}"
     note = " ".join(str(description or "").split())
     session.permission_note = readout.visible(note if len(note) <= REQUEST_NOTE_CHARS else note[:REQUEST_NOTE_CHARS] + "…")
-    alerts.note_request(session.id, request_id, tool_name, readable)
+    # A notification shows, and approves, only the short form: a word-for-word read-out is for the ear, in full.
+    alerts.note_request(session.id, request_id, tool_name, None if readable and VERBATIM in readable[:40] else readable)
     state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine), run_in=run_in)
     REGISTRY.save()
     _night_blocked_now(session)
@@ -8274,8 +8290,9 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False,
     name = _spoken_names(session.name)
     hebrew = re.search(r"[\u0590-\u05ff]", state.last_utterance)
     if state.drive.on() and (session.permission_cut or not state.drive.is_road_safe(session.permission_id)):
-        text = (drives.waits_unreadable(name, hebrew) if session.permission_cut else
-                drives.waits_not_for_the_road(name, session.permission_spoken, hebrew))
+        # A word-for-word read-out is not for the road: it is not said, and the request waits as an unreadable one did.
+        text = (drives.waits_unreadable(name, hebrew) if session.permission_cut or VERBATIM in session.permission_spoken[:40]
+                else drives.waits_not_for_the_road(name, session.permission_spoken, hebrew))
         session.permission_delivered_at = float("inf")
         await state.conn.injector.inject(f"[read out to the user, by the daemon] {text}", False)
         await front._speak(text, None)  # no yes window: only a no or a tap answers it
@@ -8307,6 +8324,9 @@ _HE_REQUEST = {"run:": "להריץ:", "edit": "לערוך את", "write": "לכ�
 
 def _hebrew_request(spoken: str) -> str:
     """The read-out's own verb in Hebrew ("run: ls" is "להריץ: ls"); what follows it stays exactly as it runs."""
+    if m := re.match(r"(run|use (\S+)), word for word: (.*)", spoken, re.S):
+        verb = f"להשתמש ב-{m[2]}" if m[2] else "להריץ"
+        return f"{verb}, מילה במילה: {m[3]}"
     verb, _, rest = spoken.partition(" ")
     return f"{_HE_REQUEST[verb]} {rest}" if verb in _HE_REQUEST and rest else spoken
 

@@ -3605,14 +3605,25 @@ def test_a_tap_needs_a_real_session_and_decision(d, monkeypatch, body):
     assert _tap(d, body).status_code == 400 and verdicts(posts) == []
 
 
-def test_a_request_too_complex_to_read_out_waits_for_a_tap_not_the_terminal(d, monkeypatch):
+def test_a_request_that_cannot_be_said_waits_for_a_tap_not_the_terminal(d, monkeypatch):
+    """Everything else is read word for word (test_everything_by_voice.py); a secret is never said aloud."""
     active, posts = _consent_setup(d, monkeypatch)
     active.channel_url, active.permission_id = None, None
-    asyncio.run(d._put_permission(active, "p2", "Bash", "List", json.dumps({"command": "for f in *; do echo $f; done"})))
+    asyncio.run(d._put_permission(active, "p2", "Bash", "Note", json.dumps({"command": "echo password=hunter2222 >> notes.txt"})))
     assert active.permission_cut and active.permission_id == "p2"
     s = client_for(d).get("/voice/status", headers={"authorization": "Bearer secret"}).json()
     mine = next(x for x in s["sessions"] if x["name"] == active.name)
-    assert mine["request_id"] == "p2" and mine["voice_can_approve"] is False and "for f in" in mine["request"]
+    assert mine["request_id"] == "p2" and mine["voice_can_approve"] is False and "notes.txt" in mine["request"]
+
+
+def test_a_request_too_complex_for_a_short_read_out_can_be_approved_by_voice(d, monkeypatch):
+    active, posts = _consent_setup(d, monkeypatch)
+    active.channel_url, active.permission_id = None, None
+    asyncio.run(d._put_permission(active, "p2", "Bash", "List", json.dumps({"command": "for f in *; do echo $f; done"})))
+    assert not active.permission_cut and "word for word" in active.permission_spoken
+    s = client_for(d).get("/voice/status", headers={"authorization": "Bearer secret"}).json()
+    mine = next(x for x in s["sessions"] if x["name"] == active.name)
+    assert mine["voice_can_approve"] is True
 
 
 def test_the_phone_listener_starts_with_the_daemon(d, monkeypatch):

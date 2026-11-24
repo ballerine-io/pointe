@@ -591,13 +591,17 @@ def test_recheck_a_voice_yes_needs_the_exact_readable_text(tmp_path):
     run(scenario, tmp_path)
 
 
-def test_recheck_a_voice_yes_cannot_approve_what_the_node_found_unreadable(tmp_path):
+def test_recheck_a_voice_yes_approves_only_the_words_the_node_read_out(tmp_path):
+    """Everything can be approved by voice (test_everything_by_voice.py): a request with no short form is read word
+    for word, and a voice yes counts only when the hub said exactly those words."""
     async def scenario(hub, n):
         task, frame = await _prompt(hub, n, tmp_path, UNREADABLE)
         answered = await _answer(hub, frame, how="voice", spoken="fetch example.com")
-        assert (answered["ok"], answered["why"]) == (False, "unreadable")
-        await _answer(hub, frame, "deny")
-        assert await task == "deny"
+        assert (answered["ok"], answered["why"]) == (False, "mismatch")
+        assert frame["readable"] and "word for word" in frame["readable"]
+        answered = await _answer(hub, frame, how="voice", spoken=frame["readable"])
+        assert answered["ok"] is True
+        assert await task == "allow"
 
     run(scenario, tmp_path)
 

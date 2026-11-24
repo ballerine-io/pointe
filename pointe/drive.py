@@ -250,8 +250,8 @@ def left(hebrew) -> str:
 
 
 def waits_unreadable(name: str, hebrew) -> str:
-    return (f"{name} צריך אישור שאני לא יכול להקריא. הוא ממתין עד שתעצור, או אמור לא." if hebrew else
-            f"{name} needs an approval I can't read out. It waits until you stop, or say no.")
+    return (f"{name} צריך אישור שאני לא מקריא בזמן נהיגה. הוא ממתין עד שתעצור, או אמור לא." if hebrew else
+            f"{name} needs an approval I won't read out on the road. It waits until you stop, or say no.")
 
 
 def waits_not_for_the_road(name: str, spoken: str, hebrew) -> str:

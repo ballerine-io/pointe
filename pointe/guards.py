@@ -145,11 +145,57 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None, run_in
     return None if _words(lowered) & (_YES | _WEAK_YES) or any(p in lowered for p in _YES_PHRASES) else what
 
 
+VERBATIM = "word for word:"  # marks a read-out that is the exact request, not the allowlist's short form
+VERBATIM_CHUNK_WORDS = 18  # a long verbatim read-out is said in parts this long, with a pause between
+
+
+def _say_hidden(text: str) -> str:
+    """Format and control characters written so they can be said: "hidden character 202E"."""
+    return re.sub(r"\\u([0-9a-f]{4})", lambda m: f" hidden character {m.group(1).upper()} ",
+                  readout.visible(text)).replace("\n", " newline ").replace("\t", " tab ")
+
+
+def _chunked(text: str) -> str:
+    words = text.split()
+    if len(words) <= VERBATIM_CHUNK_WORDS:
+        return " ".join(words)
+    return " … ".join(" ".join(words[i:i + VERBATIM_CHUNK_WORDS]) for i in range(0, len(words), VERBATIM_CHUNK_WORDS))
+
+
+def verbatim_request(tool: str, tool_input: dict) -> str | None:
+    """The request read word for word, for one the allowlist cannot say in short: the exact command (or each argument
+    of another tool), hidden characters named, in parts when long. A yes after it approves exactly what was said. None
+    for a question to the user (it takes an answer, not a yes) and for one that carries a secret: a secret is never
+    said aloud (the voice's words go to the speech vendors), and a masked one would be approved unheard; the session is
+    asked to pass it by reference instead (daemon._rephrase_first)."""
+    if tool in _ASKS_THE_USER:
+        return None
+    if tool == "Bash":
+        body = str(tool_input.get("command") or "")
+    else:
+        body = "; ".join(f"{k}: {v}" for k, v in tool_input.items() if isinstance(v, (str, int, float, bool)))
+    if not body.strip() or readout.redact(body) is None:
+        return None
+    lead = "run" if tool == "Bash" else f"use {tool}"
+    return f"{lead}, {VERBATIM} {_chunked(_say_hidden(body))}"
+
+
+def spoken_request(tool: str, tool_input: dict, cwd: str | None = None, run_in: str | None = None) -> str | None:
+    """What is read out for a permission request and what a spoken yes approves: the allowlist's faithful short form
+    (readable_request) when there is one, else the request word for word (verbatim_request). Everything can be approved
+    by voice, and nothing that was not said in full."""
+    return readable_request(tool, tool_input, cwd, run_in) or verbatim_request(tool, tool_input)
+
+
 def remote_readable(readable) -> str | None:
     """A node's read-out of its own request, after the cheap checks readable_request ends with: the node built it from
     the unmasked input the hub never sees, so the hub does not rebuild it from the masked preview. Anything that fails is
-    unreadable: tap only."""
-    if not isinstance(readable, str) or not readable.strip() or len(readable.split()) >= 25:
+    unreadable: tap only. A word-for-word read-out (VERBATIM) may be any length and names its hidden characters."""
+    if not isinstance(readable, str) or not readable.strip():
+        return None
+    if VERBATIM in readable.split(" ", 3)[:3] or f", {VERBATIM}" in readable[:60]:
+        return readable if readout.redact(readable) is not None and not readout._hidden(readable) else None
+    if len(readable.split()) >= 25:
         return None
     if readout.redact(readable) is None or readout._hidden(readable):
         return None

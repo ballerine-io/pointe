@@ -49,7 +49,7 @@ enum DriveCopy {
     static let voice = "Say yes or no."
     static let voiceStrong = "Say yes or no, in a full sentence."
     static let road = "Not for the road: it waits until you stop. Say no to deny it."
-    static let unreadable = "Can\u{2019}t be read out: it waits until you stop. Say no to deny it."
+    static let unreadable = "Not one for the road: it waits until you stop. Say no to deny it."
     static let suggest = "Switch to Drive mode?"
     static let suggestYes = "Drive mode"
     static let suggestNo = "Not now"

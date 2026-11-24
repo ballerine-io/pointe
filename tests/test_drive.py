@@ -155,7 +155,9 @@ def test_in_drive_mode_a_no_still_denies_a_destructive_request(d, monkeypatch):
 
 def test_in_drive_mode_an_unreadable_request_waits_and_never_mentions_the_screen(d, monkeypatch):
     active, posts, said = _drive_setup(d, monkeypatch, tool_input={"command": "for f in *; do echo $f; done"})
-    assert active.permission_cut and "waits until you stop" in _last(said) and "screen" not in _last(said)
+    # Read word for word off the road (test_everything_by_voice.py); in drive mode it is not read and waits.
+    assert not active.permission_cut and "waits until you stop" in _last(said) and "screen" not in _last(said)
+    assert "for f in" not in _last(said)
     asyncio.run(d.on_user_utterance("yes"))
     assert verdicts(posts) == [] and "screen" not in _last(said)
     asyncio.run(d.on_user_utterance("no"))
