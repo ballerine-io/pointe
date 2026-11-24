@@ -60,11 +60,21 @@ With the default brain, a permission prompt is approved only when all of these h
   project is said in full. Anything else
   (unknown programs or flags, `$`, backticks, globs, braces, subshells, heredocs, several lines, wrappers such as `sudo`
   or `env`, `VAR=` other than a few harmless ones, more than 25 words, or a credential-like value such as a key, a
-  token or `password=`: `readout.redact`) is not read out. Two adversarial reviews found 24
+  token or `password=`: `readout.redact`) has no short form. Two adversarial reviews found 24
   ways around earlier versions; each is now a test. File tools are read as their path. The line ends in "Should it?",
   with no consent word, so it cannot come back through the speakers as a yes.
-- A request that is not read out is approved by a tap, never by voice: the page, and the phone app, show the exact
-  request with Approve and Deny. The card leads with what runs (the tool and its input); the description the session's
+- Everything can be approved by voice, and nothing that was not said in full (the owner's rule since 1.30.0). A request
+  with no short form is read word for word (`guards.verbatim_request`): "run, word for word:" and the exact command, or
+  each argument of another tool, with format and control characters named ("hidden character 202E"), in parts of 18
+  words with a pause between. A yes after it approves exactly those words, under every rule below. A long one (over 40
+  words read) is first sent back to the session once for plain commands, which are easier to follow by ear, at most
+  twice in ten minutes; after that it is read word for word. Drive mode does not read one out: it waits until you stop.
+- One kind is never said: a request with a secret written in it (a key, a token, `password=`: `readout.redact`). Said
+  aloud, the secret would reach the speech vendors; masked, it would be approved unheard. On a call it is sent back to
+  the session to pass the secret by reference (an environment variable or a file), which can then be read out; if the
+  session does not, the request waits for a tap. A question to the user (Claude Code's AskUserQuestion, ExitPlanMode)
+  takes an answer, not a yes.
+- The page, and the phone app, show the exact request with Approve and Deny. The card leads with what runs (the tool and its input); the description the session's
   model wrote is a separate line, at most 200 characters, marked as the agent's note on the page. Format and control
   characters (bidi overrides, zero-width spaces) are shown as `\uXXXX`. A request that reached Pointe cut short (a
   preview that does not parse) is marked so, and a tap can only deny it: approve it in its terminal. A tap counts only
@@ -77,7 +87,7 @@ With the default brain, a permission prompt is approved only when all of these h
 - The yes came within 120 seconds of the read-out, on the active session.
 
 The short form drops output-only flags and shortens paths plainly inside the project to their name. In our own Claude
-Code history, about 13% of shell commands can be read out; the rest need a tap or the terminal.
+Code history, about 13% of shell commands have a short form; the rest are read word for word.
 
 Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
 the exact request. If you want no voice approvals, set `approvals: terminal`.

@@ -587,7 +587,8 @@ TOPICS = (
           iphone=(("bar", "Type"),), page=(("dock", "Type"),)),
     Topic("approve", "Approve or deny a request", ("approve", "deny", "permission", "approve a request", "say yes",
                                                    "allow it", "לאשר", "לסרב", "בקשת הרשאה", "אישור"),
-          "When a session asks permission, Pointe reads it out: say yes or no, or tap on its card.",
+          "When a session asks permission, Pointe reads it out, word for word when there is no short form: after it "
+          "ends, say yes or no, or tap on its card. Only a request with a secret written in it needs the tap.",
           iphone=(("card", "Approve|Deny"),), page=(("card", "Approve|Deny"),)),
     Topic("keys", "Which model keys you need, and the setups",
           ("which keys", "what keys", "keys do i need", "model key", "model keys", "api key", "api keys", "add a key",

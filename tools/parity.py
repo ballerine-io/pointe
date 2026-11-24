@@ -235,6 +235,8 @@ GROUPS: list[tuple[str, list[Feature]]] = [
     ("Approvals and alerts", [
         F("approve.card", "A permission request as a card with the exact request, Deny and Approve",
           web=['id="attention"', "/voice/approve"], swift=[r"struct (?:RequestCard|ApprovalCard)\b", r'"voice/approve"']),
+        F("approve.voice", "Any request can be approved by a spoken yes: read out short or word for word; the card says "
+          "which (a secret is never said: tap)", web=["voice_can_approve"], swift=[r"voice_can_approve"]),
         F("approve.owner", "Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac",
           swift=[r"deviceOwnerAuthentication"],
           web="a browser page cannot ask for Touch ID without WebAuthn enrolment; the page is on the unlocked Mac beside the terminal"),

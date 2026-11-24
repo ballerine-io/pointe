@@ -1066,7 +1066,7 @@
     "בקשת הרשאה",
     "אישור"
    ],
-   "how": "When a session asks permission, Pointe reads it out: say yes or no, or tap on its card.",
+   "how": "When a session asks permission, Pointe reads it out, word for word when there is no short form: after it ends, say yes or no, or tap on its card. Only a request with a secret written in it needs the tap.",
    "iphone": [
     "the request's card → Approve / Deny"
    ],

@@ -78,11 +78,17 @@ No competitor offers this: Codex, Cursor and Antigravity talk to one conversatio
 |---|---|---|---|
 | False approval | a permission request approved on a hedge, a question, a yes for another session, or a "no" | 0 | any is a 0 for the dimension |
 | Wrong send | text delivered that the user withdrew or did not say | 0 | 3 |
-| Voice approval of a readable request | a plain spoken yes to a request that was read out takes effect | >= 95% | 50% |
-| Destructive request read and gated | delete/force-push/merge: read out, and not approved by voice alone | 100% | 50% |
+| Voice approval | a plain spoken yes, after the read-out ended, to any request takes effect: everything by voice | >= 95% | 50% |
+| Nothing approved unheard | a yes before the read-out ended, to a request not read in full, or relayed ("the owner said yes") never approves | 100% | any miss is a 0 for the dimension |
+| Destructive request read in full | delete/force-push/merge: read out in full (word for word when there is no short form) before a yes counts | 100% | 50% |
 
-Antigravity's rule is the precedent for the last line: approvals by voice, except destructive actions, which need a
-click; a "no" by voice works for every request.
+Target (the owner's rule, 2026-11-24): **everything by voice, nothing approved unheard.** Every permission request can be
+approved by a spoken yes; the yes approves only what was just said in full: the short form when there is one, else the
+exact request word for word, in parts. The guards stay: the yes after the read-out, bound to that request, the voice lock
+when it is on, a session's own refusal of a relayed request keeps it typed-only, no relayed "the owner said yes". One
+kind is never said: a request with a secret written in it (said, it would reach the speech vendors); it is sent back to
+pass the secret by reference. Pointe goes past Antigravity's rule (approvals by voice except destructive actions, which
+need a click) on the owner's call: a delete is read in full and approved by voice.
 
 ## 8. Mixed English and Hebrew
 

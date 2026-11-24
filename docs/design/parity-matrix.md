@@ -8,9 +8,9 @@ without a reason. What the rows mean, how the scan works and the component spec:
 
 | Surface | yes | partial | no | n/a (bound to another surface) |
 |---|---|---|---|---|
-| Page | 91 | 0 | 0 | 21 |
-| iPhone | 101 | 0 | 0 | 11 |
-| Mac | 102 | 0 | 0 | 10 |
+| Page | 92 | 0 | 0 | 21 |
+| iPhone | 102 | 0 | 0 | 11 |
+| Mac | 103 | 0 | 0 | 10 |
 
 Before this work (a pre-release build (2026-11-21)), by the same scan:
 
@@ -82,6 +82,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | A permission request as a card with the exact request, Deny and Approve <br>`approve.card` | yes `ui.html:1709` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1847` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1847` |
+| Any request can be approved by a spoken yes: read out short or word for word; the card says which (a secret is never said: tap) <br>`approve.voice` | yes `ui.html:2543` | yes `apps/PointeKit/Sources/PointeUI/API.swift:463` | yes `apps/PointeKit/Sources/PointeUI/API.swift:463` |
 | Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac <br>`approve.owner` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1182` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1182` |
 | How many more requests wait <br>`approve.more` | yes `ui.html:2538` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:715` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:715` |
 | A request whose machine went offline says it is back in its terminal <br>`approve.offline` | yes `ui.html:1919` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1885` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1885` |
