@@ -20,6 +20,36 @@ enum BubbleRule {
 
     static func talkModeGlyph(pushToTalk: Bool) -> String { pushToTalk ? "hand.tap" : "waveform" }
 
+    /// "Skip ⌃⌥S": the key that skips what Pointe is saying, said the way the talk shortcut is. Nil with no working one.
+    static func skipHint(shortcut: String?) -> String? { shortcut.map { "Skip \($0)" } }
+    static let skipGlyph = "forward.end"
+
+    /// The bubble's third line: the talk mode, and while Pointe speaks the key that skips it (what the keys do now).
+    static func modeLine(talkMode: String, speaking: Bool, skipHint: String?) -> (text: String, skip: Bool) {
+        if speaking, let skipHint { return (skipHint, true) }
+        return (talkMode, false)
+    }
+
+    /// The small bubble, laid out: the state's circle, the talk mode's glyph, and the dot that says a session waits,
+    /// inside the pill (its two-point margin taken off). The dot belongs to the glyph, never to the circle: the circle
+    /// turns orange while you talk in push to talk, and an orange dot on it could not be told from it.
+    struct Pill: Equatable {
+        static let circle: CGFloat = 28, glyph: CGFloat = 16, dot: CGFloat = 9, gap: CGFloat = 6
+        /// How far the dot stands out past the glyph's top trailing corner.
+        static let dotOut = CGSize(width: 4, height: 4)
+
+        let circle: CGRect, glyph: CGRect, dot: CGRect, bounds: CGRect
+
+        init(size: NSSize = BubbleRule.small) {
+            bounds = CGRect(x: 0, y: 0, width: size.width - 4, height: size.height - 4)
+            let width = Self.circle + Self.gap + Self.glyph
+            let left = (bounds.width - width) / 2
+            circle = CGRect(x: left, y: (bounds.height - Self.circle) / 2, width: Self.circle, height: Self.circle)
+            glyph = CGRect(x: circle.maxX + Self.gap, y: (bounds.height - Self.glyph) / 2, width: Self.glyph, height: Self.glyph)
+            dot = CGRect(x: glyph.maxX + Self.dotOut.width - Self.dot, y: glyph.minY - Self.dotOut.height, width: Self.dot, height: Self.dot)
+        }
+    }
+
     /// The second line: why the last call did not start, else what is being heard, else the session the voice talks to.
     /// Heard words keep their end (the newest words); a reason or a session's name keeps its start, so it reads.
     static func detail(problem: String?, phase: MacSession.Phase, hearing: String, session: String?) -> (text: String, keepsEnd: Bool, bad: Bool) {
@@ -190,15 +220,13 @@ struct BubbleView: View {
     /// Small: the state in its circle and the talk mode's glyph. Hover or click shows the whole bubble.
     private var pill: some View {
         let session = model.session
-        return HStack(spacing: 6) {
+        let layout = BubbleRule.Pill.self
+        return HStack(spacing: layout.gap) {
             Image(systemName: glyph)
                 .font(.system(size: 12, weight: .semibold))
-                .frame(width: 28, height: 28)
+                .frame(width: layout.circle, height: layout.circle)
                 .foregroundStyle(session.talking ? PointeLook.onOrange : PointeLook.text)
                 .background(session.talking ? PointeLook.orange : PointeLook.raised, in: Circle())
-                .overlay(alignment: .topTrailing) {
-                    if session.needCount > 0 { Circle().fill(PointeLook.orange).frame(width: 9, height: 9) }
-                }
             Image(systemName: BubbleRule.talkModeGlyph(pushToTalk: session.pushToTalk))
                 .font(.system(size: 12)).foregroundStyle(PointeLook.muted)
         }
@@ -237,6 +265,15 @@ struct BubbleView: View {
             .accessibilityElement()
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel(!live ? MacCopy.connect : ptt ? (open ? "Talking" : session.talkLabel) : (session.muted ? "Unmute" : "Mute"))
+                .frame(width: layout.glyph, height: layout.glyph)
+                .overlay(alignment: .topTrailing) {  // a session waits: on the glyph, clear of the state's circle (BubbleRule.Pill)
+                    if session.needCount > 0 {
+                        Circle().fill(PointeLook.orange).frame(width: layout.dot, height: layout.dot)
+                            .overlay(Circle().stroke(PointeLook.card, lineWidth: 1.5))
+                            .offset(x: layout.dotOut.width, y: -layout.dotOut.height)
+                            .accessibilityIdentifier("bubble.small.need")
+                    }
+                }
             .accessibilityAction {
                 if !live { Task { await model.toggleCall() } } else { session.talkDown(); if session.holdToTalk { session.talkUp() } }
             }

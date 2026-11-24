@@ -205,6 +205,56 @@ final class PointeMacTests: XCTestCase {
         XCTAssertFalse(BubbleRule.reachable(NSRect(x: 2400, y: 300, width: 264, height: 80), screens: [screen]))
     }
 
+    /// Push to talk with a session waiting: the state's circle turns orange while you talk, and the orange dot that says
+    /// a session waits sat on that circle's corner, where the two ran together. The dot is the talk mode glyph's now.
+    func testTheSmallBubblesWaitingDotNeverTouchesTheStatesCircle() {
+        let pill = BubbleRule.Pill()
+        XCTAssertFalse(pill.dot.intersects(pill.circle), "the dot overlaps the state's circle")
+        XCTAssertGreaterThanOrEqual(pill.dot.minX - pill.circle.maxX, 8, "the dot stands clear of the circle, with air between")
+        XCTAssertTrue(pill.bounds.contains(pill.circle) && pill.bounds.contains(pill.glyph))
+        // The pill is a capsule: at the dot's height its straight edge has given way to the round end.
+        let radius = pill.bounds.height / 2
+        for corner in [CGPoint(x: pill.dot.maxX, y: pill.dot.minY), CGPoint(x: pill.dot.maxX, y: pill.dot.maxY)] {
+            let centre = CGPoint(x: pill.bounds.maxX - radius, y: radius)
+            XCTAssertLessThanOrEqual(hypot(max(0, corner.x - centre.x), corner.y - centre.y), radius - 2, "the dot stays inside the pill")
+        }
+        XCTAssertEqual(pill.dot.width, 9)
+        XCTAssertEqual(pill.circle.midY, pill.glyph.midY, accuracy: 0.01, "the circle and the glyph share a line")
+    }
+
+    /// The skip key is shown the way the talk key is: "Skip ⌃⌥S" beside "Hold ⌃⌥Space" in the window, and on the bubble's
+    /// own line while Pointe speaks (what the keys do now).
+    func testTheSkipShortcutIsShownAsTheTalkShortcutIs() {
+        let key = Shortcut.Role.skip.standard.display
+        XCTAssertEqual(BubbleRule.skipHint(shortcut: key), "Skip ⌃⌥S")
+        XCTAssertNil(BubbleRule.skipHint(shortcut: nil), "no working shortcut: nothing to name")
+        let quiet = BubbleRule.modeLine(talkMode: "Hold ⌃⌥Space", speaking: false, skipHint: "Skip ⌃⌥S")
+        XCTAssertEqual(quiet.text, "Hold ⌃⌥Space")
+        XCTAssertFalse(quiet.skip)
+        let speaking = BubbleRule.modeLine(talkMode: "Hold ⌃⌥Space", speaking: true, skipHint: "Skip ⌃⌥S")
+        XCTAssertEqual(speaking.text, "Skip ⌃⌥S")
+        XCTAssertTrue(speaking.skip)
+        XCTAssertEqual(BubbleRule.modeLine(talkMode: "Always on", speaking: true, skipHint: nil).text, "Always on")
+        XCTAssertEqual(MacCopy.skip(shortcut: key), "Skip this message (⌃⌥S)")
+        XCTAssertEqual(MacCopy.skip(shortcut: nil), "Skip this message")
+    }
+
+    /// One combination does one thing: the skip shortcut may not be the talk shortcut, nor a key macOS answers itself.
+    func testTheSkipShortcutMayNotBeTheTalkShortcut() {
+        XCTAssertNil(AppModel.skipProblem(Shortcut.Role.skip.standard, talk: .standard))
+        XCTAssertEqual(AppModel.skipProblem(.standard, talk: .standard), "⌃⌥Space is the talk shortcut. Choose another.")
+        XCTAssertNil(AppModel.skipProblem(nil, talk: .standard), "no skip shortcut is a choice, not a problem")
+        XCTAssertNotNil(AppModel.skipProblem(Shortcut(keyCode: 1, modifiers: 0), talk: .standard), "S alone would be taken from every app")
+        XCTAssertNotNil(AppModel.skipProblem(Shortcut(keyCode: 49, modifiers: Shortcut.command), talk: .standard), "Spotlight's")
+    }
+
+    /// The app has two hot keys, and Carbon hands every hot key's event to every handler: each hears only its own.
+    func testAHotKeyHearsOnlyItsOwnEvent() {
+        XCTAssertTrue(HotKey.hears(1, as: 1) && HotKey.hears(2, as: 2))
+        XCTAssertFalse(HotKey.hears(2, as: 1), "the skip key pressed the talk button")
+        XCTAssertFalse(HotKey.hears(1, as: 2), "the talk key skipped a message")
+    }
+
     /// The bug behind "nothing happens when I click it": the panel never becomes key and the app is not active, so a
     /// view that does not take the first mouse never sees the click. The bubble's host takes it, and the panel is not
     /// dragged by its background (which would take the mouse down before the view could tell a click from a drag).
