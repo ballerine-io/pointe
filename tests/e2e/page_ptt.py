@@ -248,7 +248,7 @@ async def main() -> None:
             await key(page, "Space", "keyDown")
             await key(page, "Space", "keyUp")
             muted = await page.until("muted && document.getElementById('state').textContent", 3)
-            check("back to always on, Space mutes as before", muted == "Muted" and call("/voice/prefs")["microphone"] == "always",
+            check("back to always on, Space mutes as before", muted == "Mic off" and call("/voice/prefs")["microphone"] == "always",
                   state=muted)
             errors = await page.js("window.__errors")
             check("no page errors", not errors, errors=errors)

@@ -1,3 +1,4 @@
+import PointeKit
 import SwiftUI
 
 // Meeting mode: Pointe sits in a meeting for one person, the owner. Listening: it never speaks and writes notes.
@@ -661,7 +662,7 @@ struct MeetingBar: View {
             .buttonStyle(.plain)
             .disabled(phase != .live)
             .accessibilityIdentifier("micRing")
-            .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Microphone" : "Connecting")
+            .accessibilityLabel(phase == .live ? (muted ? MicCopy.turnOn : MicCopy.turnOff) : phase == .off ? "Microphone" : "Connecting")
             .accessibilityHint(phase == .off ? "\(ConnectCopy.connectFirst): the meeting runs on the Mac's call; Connect joins it from the phone" : "")
             .ringTalk(phase == .live ? talk : nil)
             Spacer()

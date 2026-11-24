@@ -39,7 +39,7 @@ final class BrainDumpUITests: XCTestCase {
         XCTAssertEqual(any("dump.done").label, "Done")
         XCTAssertEqual(app.buttons["Done"].exists, true, "the bar's button reads Done while dumping")
         XCTAssertFalse(app.buttons["Approve"].exists)
-        XCTAssertTrue(app.buttons["Mute"].isHittable, "the mic stays reachable")
+        XCTAssertTrue(app.buttons["Turn mic off"].isHittable, "the mic stays reachable")
         shot("dump-1-dumping")
     }
 

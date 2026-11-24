@@ -204,7 +204,7 @@ final class LayoutUITests: XCTestCase {
         let app = launch("call")
         XCTAssertEqual(app.buttons["hangUp"].label, "Hang up")
         XCTAssertFalse(app.buttons["topConnect"].exists, "no second Hang up in the header while the bar has one")
-        XCTAssertEqual(app.buttons["micRing"].label, "Mute")
+        XCTAssertEqual(app.buttons["micRing"].label, "Turn mic off")
         for name in ["Settings", "Start a meeting", "Brain dump", "Type", "Sessions"] {
             XCTAssertTrue(app.buttons[name].exists, "\(name) is a named button")
         }

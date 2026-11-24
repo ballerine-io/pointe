@@ -16,7 +16,7 @@ final class PointeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["hangUp"].waitForExistence(timeout: 20), "the call is up")
 
         // The simulator hears the Mac's microphone: room talk must not answer the request before the tap does.
-        let mute = app.buttons["Mute"]
+        let mute = app.buttons["Turn mic off"]
         if mute.waitForExistence(timeout: 5) { mute.tap() }
         let deny = app.buttons["Deny"]
         XCTAssertTrue(deny.waitForExistence(timeout: 90), "the pending request shows, with Deny")

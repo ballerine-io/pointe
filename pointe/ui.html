@@ -2626,7 +2626,7 @@
     elsewhereWhy: 'The call is on the phone or another page. Hang up there to talk here.',
     idleHangup: 'The Mac hung up after 30 minutes of quiet. Press Connect to talk again.',
     failed: why => `The call did not connect${why ? ': ' + why : ''}.`,
-    typeToo: 'Or type below · Press Space to mute', typeLater: 'Or type below once connected',
+    typeToo: 'Or type below · Press Space to turn the mic off', typeLater: 'Or type below once connected',
     // the box folded away (a phone): it opens from the keyboard button. typeLaterTap is the app's line too (ConnectCopy).
     typeTooTap: 'Or tap the keyboard to type', typeLaterTap: 'Once connected, tap the keyboard to type',
   };
@@ -2967,7 +2967,7 @@
     else if (dumping(s)) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', DUMP_COPY.state];
     else if (s.hold) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', TURNS_COPY.holding];
     else if (s.challenge && s.challenge.on && !(muted && !pttMode()) && !s.speaking) [st, title] = [pttMode() ? 'ptt' : 'live', 'Challenging'];
-    else if (muted && !pttMode()) [st, title] = ['muted', 'Muted'];
+    else if (muted && !pttMode()) [st, title] = ['muted', 'Mic off'];  // "mute" is Pointe's voice (ui_mute.html); the microphone is on or off
     else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking…'];
     // muted: shown where it would have spoken (ui_mute.html, a later script: not there on the first paint)
     else if (typeof muteWriting === 'function' && muteWriting(s)) [st, title] = ['writing', 'Writing…'];
@@ -3001,19 +3001,19 @@
     showDump(s);
     // The mic is a mic: it reads as off until the call is live, and its tooltip points at Connect.
     const micOff = !mine;
-    const micTitle = micOff ? CONNECT_COPY.connectFirst : pttMode() ? (pttOpen() ? 'Talking' : pttStyleLabel()) : muted ? 'Unmute' : 'Mute';
+    const micTitle = micOff ? CONNECT_COPY.connectFirst : pttMode() ? (pttOpen() ? 'Talking' : pttStyleLabel()) : muted ? 'Turn mic on' : 'Turn mic off';
     const micLabel = micOff ? 'Microphone' : micTitle;
     if ($('mic').title !== micTitle) $('mic').title = micTitle;
     if ($('mic').ariaLabel !== micLabel) $('mic').ariaLabel = micLabel;
     if ($('mic').getAttribute('aria-disabled') !== String(micOff)) $('mic').setAttribute('aria-disabled', micOff);
-    // Mute is a toggle: a screen reader hears "Mute, pressed" while muted. Hold to talk and Connect first are not toggles.
+    // The mic is a toggle: a screen reader hears "Mic off, pressed" while it is off. Hold to talk and Connect first are not toggles.
     const pressed = micOff || pttMode() ? null : String(!!muted);
     if ($('mic').getAttribute('aria-pressed') !== pressed) pressed === null ? $('mic').removeAttribute('aria-pressed') : $('mic').setAttribute('aria-pressed', pressed);
-    if (pressed !== null && $('mic').ariaLabel !== 'Mute') $('mic').ariaLabel = 'Mute';
+    if (pressed !== null && $('mic').ariaLabel !== 'Mic off') $('mic').ariaLabel = 'Mic off';
     text('miclabel', micLabel);
     text('keyhint', micOff ? (st === 'connecting' || st === 'reconnecting' ? title : CONNECT_COPY.connectFirst)
       : pttMode() ? (pttTap() ? `Tap ${keyName(ptt.key)} to talk, again to send · Caps Lock toggles` : `Hold ${keyName(ptt.key)} to talk · Caps Lock toggles`)
-      : 'Space or AirPods to mute');
+      : 'Space or AirPods turn the mic off');
     // The top bar's pill: Hang up on a call, Cancel while dialling, Connect (or Try again) with none; hidden while the
     // empty stage shows the same control, so there is one Connect on screen.
     const dialling = call.state === 'connecting' || (wantCall && !mine);

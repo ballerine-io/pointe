@@ -1,3 +1,4 @@
+import PointeKit
 import SwiftUI
 
 /// The call's controls, at your thumb: the mic in the exact middle in every state, two controls either side (brain dump
@@ -82,7 +83,7 @@ struct BottomBar: View {
         .disabled(phase != .live)
         .accessibilityIdentifier("micRing")
         .accessibilityValue(trace)
-        .accessibilityLabel(phase == .live ? (muted ? "Unmute" : "Mute") : phase == .off ? "Microphone" : "Connecting")
+        .accessibilityLabel(phase == .live ? (muted ? MicCopy.turnOn : MicCopy.turnOff) : phase == .off ? "Microphone" : "Connecting")
         .accessibilityHint(phase == .off ? ConnectCopy.connectFirst : "")
         .ringTalk(phase == .live ? talk : nil)
     }

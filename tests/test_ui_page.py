@@ -316,7 +316,7 @@ def test_connect_is_its_own_control_and_says_why_it_failed():
     assert got["failed"]["why"] == "The call did not connect." and got["failed"]["button"] == "Try again"
     live = got["live"]
     assert live["state"] == "live" and live["button"] is None and live["pill"] is None  # one Hang up: the dock's, as in the apps
-    assert live["mic"] == ["Mute", "Mute", "false", "Space or AirPods to mute"] and live["hint"] == "Or type below · Press Space to mute"
+    assert live["mic"] == ["Mic off", "Turn mic off", "false", "Space or AirPods turn the mic off"] and live["hint"] == "Or type below · Press Space to turn the mic off"
     dropped = got["dropped"]
     assert not dropped["panelShown"] and dropped["pill"] == "Try again" and dropped["problem"] == "The call did not connect."
     assert "hang" not in dropped["pillClass"]

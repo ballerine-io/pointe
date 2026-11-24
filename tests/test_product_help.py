@@ -155,7 +155,7 @@ def test_voice_and_tool_are_offered_where_they_exist():
     assert close["where"].startswith("long-press a session at the top → Disconnect from the voice")
     mute = howto.answer("How do I mute myself?", "iphone")["answers"][0]
     assert "say_instead" not in mute and "your_tool" not in mute, "there is no voice command for mute: none is offered"
-    assert mute["where"] == "the mic button in the middle at the bottom (Mute / Unmute)"
+    assert mute["where"] == "the mic button in the middle at the bottom (Turn mic off / Turn mic on)"
 
 
 def test_nothing_found_points_to_the_settings_and_is_short():

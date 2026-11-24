@@ -105,7 +105,7 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertEqual(title(.connecting), "Connecting to studio…")
         XCTAssertEqual(title(.reconnecting), "Reconnecting…")
         XCTAssertEqual(title(.live), "Listening")
-        XCTAssertEqual(title(.live, muted: true), "Muted")
+        XCTAssertEqual(title(.live, muted: true), "Mic off")
         XCTAssertEqual(title(.live, speaking: true), "Speaking…")
         XCTAssertEqual(title(.live, dumping: true, muted: true), BrainDumpCopy.state, "the brain dump comes before the mic's own state")
         let refused = try! JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": [], "key_refused": {"vendor": "gemini", "ears": true}}"#.utf8))

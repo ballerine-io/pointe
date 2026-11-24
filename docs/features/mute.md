@@ -55,8 +55,8 @@ button changes only that device's choice.
   button says "Drive mode holds mute: Pointe talks while you drive."
 - **Whisper mode:** both apply. Nothing is spoken, so the halved volume does not matter; the raised microphone and the
   short replies still do.
-- **Push to talk and the microphone's own Mute:** unchanged; they are about what Pointe hears. With the microphone
-  muted the status line says "Muted", as before.
+- **Push to talk and the microphone's own switch:** unchanged; they are about what Pointe hears. With the microphone
+  off the status line says "Mic off".
 - **Meeting mode:** what Pointe would say into the room (participating) is shown instead.
 - "Back to normal" ends one mode per utterance: drive mode, then a challenge, then whisper mode, then mute.
 

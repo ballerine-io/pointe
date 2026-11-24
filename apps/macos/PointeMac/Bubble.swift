@@ -264,16 +264,7 @@ struct BubbleView: View {
                 })
             .accessibilityElement()
             .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(!live ? MacCopy.connect : ptt ? (open ? "Talking" : session.talkLabel) : (session.muted ? "Unmute" : "Mute"))
-                .frame(width: layout.glyph, height: layout.glyph)
-                .overlay(alignment: .topTrailing) {  // a session waits: on the glyph, clear of the state's circle (BubbleRule.Pill)
-                    if session.needCount > 0 {
-                        Circle().fill(PointeLook.orange).frame(width: layout.dot, height: layout.dot)
-                            .overlay(Circle().stroke(PointeLook.card, lineWidth: 1.5))
-                            .offset(x: layout.dotOut.width, y: -layout.dotOut.height)
-                            .accessibilityIdentifier("bubble.small.need")
-                    }
-                }
+            .accessibilityLabel(!live ? MacCopy.connect : ptt ? (open ? "Talking" : session.talkLabel) : (session.muted ? MicCopy.turnOn : MicCopy.turnOff))
             .accessibilityAction {
                 if !live { Task { await model.toggleCall() } } else { session.talkDown(); if session.holdToTalk { session.talkUp() } }
             }

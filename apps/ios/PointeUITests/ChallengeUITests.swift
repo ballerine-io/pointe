@@ -55,7 +55,7 @@ final class ChallengeUITests: XCTestCase {
         XCTAssertTrue(text("Objection: The gateway ignores that key").exists)
         XCTAssertTrue(text("Or say “you've made your point”, “verdict” or “back to normal”.").exists)
         XCTAssertFalse(app.buttons["challenge.close"].exists, "no Close while it is on")
-        XCTAssertTrue(app.buttons["Mute"].isHittable, "the mic stays reachable")
+        XCTAssertTrue(app.buttons["Turn mic off"].isHittable, "the mic stays reachable")
         shot("challenge-on")
     }
 

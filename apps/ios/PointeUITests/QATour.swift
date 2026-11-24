@@ -34,7 +34,7 @@ final class QATour: XCTestCase {
         connect.tap()
         XCTAssertTrue(app.buttons["hangUp"].waitForExistence(timeout: 30), "the call is up")
         sleep(2)
-        app.buttons["Mute"].tap()  // the simulator hears the Mac's room: typing drives this tour
+        app.buttons["Turn mic off"].tap()  // the simulator hears the Mac's room: typing drives this tour
         sleep(5)  // the greeting
         shot("01-live")
 

@@ -91,8 +91,8 @@ enum MacMenu {
     /// The first waiting request's card, from the keyboard: Approve asks for Touch ID or the password, as its button does.
     static let approve = "Approve Request"
     static let deny = "Deny Request"
-    static let mute = "Mute"
-    static let unmute = "Unmute"
+    static let mute = "Turn Mic Off"
+    static let unmute = "Turn Mic On"
     static let help = "Pointe Help"
     /// `pointe uninstall`, from the app menu: its list first, one question, keys only on their own box.
     static let uninstall = "Uninstall Pointe…"

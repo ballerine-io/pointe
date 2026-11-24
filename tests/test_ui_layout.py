@@ -431,7 +431,7 @@ def test_a_screen_reader_hears_an_approval_and_the_call_changing_but_not_each_tu
     talking = status | {"speaking": "bot"}
     _, first, turn = _run([(1440, "", say), (1440, LIVE, say), (1440, "", say)], talking)
     assert off == ["polite", ""], off
-    assert live == ["polite", "Listening"] and muted[1] == "Muted", (live, muted)
+    assert live == ["polite", "Listening"] and muted[1] == "Mic off", (live, muted)
     assert first[1] == turn[1] == "Speaking…", (first, turn)  # said once, as the call came up
 
 

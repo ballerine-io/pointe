@@ -42,7 +42,7 @@ struct MacSettingsSections: View {
         } header: {
             Text("This Mac")
         } footer: {
-            Text("The shortcut talks from any app: in push to talk it is the talk button, in Always on it mutes, and with no call it brings Pointe forward. The bubble floats over other apps while a call is up: the state, the talk mode and a talk button. Click it to open Pointe, drag it anywhere; − makes it small, × hides it.")
+            Text("The talk shortcut works from any app: in push to talk it is the talk button, in Always on it turns the mic off and on, and with no call it brings Pointe forward. The skip shortcut, from any app too, skips what Pointe is saying and goes on to the next message. The bubble floats over other apps while a call is up: the state, the talk mode and a talk button. Click it to open Pointe, drag it anywhere; − makes it small, × hides it. Keeping it on screen with no call also switches it on.")
         }
 
         Section {

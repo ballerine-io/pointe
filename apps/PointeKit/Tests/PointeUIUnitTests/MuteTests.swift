@@ -73,7 +73,7 @@ final class MuteTests: XCTestCase {
         XCTAssertEqual(title(writing), "Writing…")
         XCTAssertEqual(title(quiet), "Listening")
         XCTAssertEqual(title(writing, speaking: true), "Speaking…", "sound that still plays is said first")
-        XCTAssertEqual(title(writing, muted: true), "Muted", "the microphone's own state comes first, as before")
+        XCTAssertEqual(title(writing, muted: true), "Mic off", "the microphone's own state comes first, as before")
     }
 
     func testTheButtonSaysWhatATapDoes() {

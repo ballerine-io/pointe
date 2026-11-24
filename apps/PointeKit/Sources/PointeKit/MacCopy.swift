@@ -17,7 +17,7 @@ public enum MacCopy {
     public static let idleHangup = "The Mac hung up after 30 minutes of quiet. Press Connect to talk again."
     public static let typeLater = "Or type below once connected"
     public static let pressConnect = "Press Connect to start talking"
-    public static let typeToo = "Or type below · Press Space to mute"
+    public static let typeToo = "Or type below · Press Space to turn the mic off"
     public static func connecting(_ place: String) -> String { "Connecting to \(place)…" }
     public static func micFailed(_ why: String) -> String { "The microphone could not start: \(why)" }
     public static func failed(_ why: String) -> String { "The call did not connect\(why.isEmpty ? "" : ": " + why)." }
@@ -26,7 +26,7 @@ public enum MacCopy {
     public static let notAnswering = "Pointe is not answering"
     public static let reconnecting = "Reconnecting…"
     public static let cannotHear = "Cannot hear you"
-    public static let muted = "Muted"
+    public static let muted = "Mic off"
     public static let speaking = "Speaking"
     public static let hearingYou = "Hearing you"
     public static let listening = "Listening"

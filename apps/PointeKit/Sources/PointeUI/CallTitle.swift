@@ -1,3 +1,4 @@
+import PointeKit
 import Foundation
 
 /// The state line, in one place: the call screen's title, and on the Mac the menu bar item's and the bubble's. The first
@@ -24,7 +25,7 @@ enum CallTitle {
                 if let why = call.talkClosedWhy { return TalkGate.closedLine(why, style: call.talkStyle) }
                 return call.talk.roomHeard ? "Meeting: room is heard · \(call.talkStyle.label.lowercased())" : call.talkStyle.label
             }
-            return muted ? "Muted" : speaking ? MuteCopy.speaking : writing ? MuteCopy.writing : "Listening"
+            return muted ? MicCopy.off : speaking ? MuteCopy.speaking : writing ? MuteCopy.writing : "Listening"
         }
     }
 
@@ -45,6 +46,8 @@ enum CallTitle {
 protocol CallShell: AnyObject {
     func polled(_ status: API.Status?, reach: Reach)
     var request: ShellRequest? { get }
+    /// A demo's "Speaking…" line was skipped, in the window or by the shell's key: both stop showing it.
+    var demoSkipped: Bool { get set }
 }
 
 /// One thing a menu or a shortcut asked the call screen for. `id` makes the same command twice two requests.

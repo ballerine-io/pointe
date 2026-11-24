@@ -83,7 +83,7 @@ def test_the_page_shows_them_where_they_apply():
         return out
     got = asyncio.run(run())
     assert got[(1440, False)]["hint"] == "Or type below once connected"
-    assert got[(1440, True)]["hint"] == "Or type below · Press Space to mute"
+    assert got[(1440, True)]["hint"] == "Or type below · Press Space to turn the mic off"
     assert got[(390, False)]["hint"] == "Once connected, tap the keyboard to type"
     assert got[(390, True)]["hint"] == "Or tap the keyboard to type"
     assert got[(1440, False)]["lede"] == "Pointe sits in and takes notes for you. It stays quiet unless you let it speak."
