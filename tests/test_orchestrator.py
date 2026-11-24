@@ -3499,7 +3499,7 @@ def test_a_yes_whose_own_words_came_after_the_read_out_counts_though_the_voice_d
     d.state.user_started_at = d.ECHO.stopped_at - 0.4  # the echo of the read-out's last words
     d.state.words_began_at = time.time() - 1.5  # the yes, by the ears' clock
     asyncio.run(d.on_user_utterance("yes"))
-    assert [v["behavior"] for v in verdicts(posts)] == ["allow"] and said == []
+    assert [v["behavior"] for v in verdicts(posts)] == ["allow"] and said == ["Approved."]  # the result, said by the daemon
 
 
 def test_a_yes_whose_own_words_began_over_the_read_out_does_not_count_whatever_the_voice_detector_saw(d, monkeypatch):

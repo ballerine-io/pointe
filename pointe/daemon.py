@@ -2632,6 +2632,7 @@ class State:
     turn_signals: dict = field(default_factory=dict)  # what set the settle time of the turn being taken, for its timing line
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
+    answers_question: bool = False  # the latest words came while a question of Pointe's own was open: they answer it
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
     tap_told: str | None = None  # the request a yes could not approve that the user was told needs a tap (said once)
     carried: list = field(default_factory=list)  # (when, text): answers the user awaited when the call dropped
@@ -5454,6 +5455,7 @@ async def on_user_utterance(text: str, typed: bool = False) -> None:
         state.timing.mark("stt_final", state.final_at)
     state.timing.mark("settled", time.time())
     state.timing.info.update(state.turn_signals)
+    state.answers_question = state.floor.question
     state.floor.user_turn(time.time())  # an answer, or a new topic: a question of Pointe's is no longer open
     _briefing_heard(text)
     state.last_utterance, state.last_user_speech_at = text, time.time()
@@ -5590,8 +5592,13 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     verdict = None if state.heard_own_words or ECHO.repeats_bot(text) else permission_answer(text)
     if deny_only and verdict != "deny":
         return
-    if verdict == "deny" and time.time() - session.permission_read_at < PERMISSION_ANSWER_SECS:
-        window_open = True  # a no is safe even if the bot has said something since: the worst case is that Claude asks again
+    unread = not session.permission_read_at  # pending, and not said yet: the card shows it, the voice has not got to it
+    if verdict == "deny" and (time.time() - session.permission_read_at < PERMISSION_ANSWER_SECS
+                              or (unread and not state.answers_question)):
+        # A no is safe even if the bot has said something since, and before the request was read out (they saw the
+        # card, or heard the session say what it was about to do): the worst case is that Claude asks again. Not while
+        # a question of Pointe's own is open: the no answers that.
+        window_open = True
     if verdict is None and session.permission_cut and _read_it_intent(text):
         state.utterance_spent = True
         await _say_fixed(_tap_only_text(session))
@@ -5631,6 +5638,12 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         await _read_out(session)  # too long ago to be sure what this answers
         return
     if not window_open:  # an answer only counts after the request was put to the user
+        if verdict == "allow" and unread and current_mode().reads_out:
+            # A yes to a request not read out yet approves nothing, and must not meet silence: the request is read
+            # now, once (_read_out_when_quiet sees it was read), and the yes after it counts.
+            state.utterance_spent = True
+            await _read_out(session)
+            return
         if state.sidetracked == session.permission_id:
             state.sidetracked, state.utterance_spent = None, True
             await _read_out(session)
@@ -5691,9 +5704,25 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
     session.permission_since = None
     REGISTRY.save()
     _night_answered(session, request_id, verdict)
-    word = "approved" if verdict == "allow" else "denied"
-    await say(f"[permission answered] The user {word} it. Acknowledge in two or three words.")
+    await _say_answered(verdict)
     return True
+
+
+ANSWERED_LINES = {("allow", False): "Approved.", ("deny", False): "Denied.", ("allow", True): "אושר.", ("deny", True): "נדחה."}
+
+
+async def _say_answered(verdict: str) -> None:
+    """Every answer to a request gets its result said, at once and in the daemon's own words: a model step here took two
+    to three seconds, and one that failed left a yes or a no with no reply at all."""
+    if state.conn is None:
+        return
+    line = ANSWERED_LINES[(verdict, bool(re.search(r"[\u0590-\u05ff]", state.last_utterance or "")))]
+    if FRONT != "brain" or state.front is None:
+        await say(f"[permission answered] The user {'approved' if verdict == 'allow' else 'denied'} it. Acknowledge in "
+                  f"two or three words.")
+        return
+    await state.conn.injector.inject(f"[permission answered: said to the user, by the daemon] {line}", False)
+    await state.front._speak(line, KEEP_WINDOW)
 
 
 def _working(s: Session) -> bool:
@@ -8265,7 +8294,9 @@ async def _early_yes(session: Session, heard_it: bool) -> None:
         logger.info(f"a yes over the bot again ({refused}): waiting for a fresh yes or a tap")
         return
     if not heard_it or FRONT != "brain" or state.front is None or not current_mode().reads_out:
-        await _read_out(session, early=True)  # cut off before its end: the request is heard again, the line first
+        # Cut off before its end: the request is heard again, the line first. Never read out at all (the yes came over
+        # another line, "Sent to atlas."): it is read plainly, there was no read-out to wait for the end of.
+        await _read_out(session, early=bool(session.permission_read_at))
         return
     hebrew = re.search(r"[\u0590-\u05ff]", state.last_utterance)
     line = "אני צריך את הכן אחרי שאני מסיים. אמור שוב." if hebrew else "I need the yes after I finish. Say it again."
@@ -8361,7 +8392,9 @@ async def _read_out_when_quiet(session: Session, request_id: str) -> None:
     _READ_OUT_WAITING.add(request_id)
     try:
         while session.permission_id == request_id and session is REGISTRY.active and state.conn is not None \
-                and online(session) and current_mode().reads_out:  # a mode that does not read out asks again at its end
+                and online(session) and current_mode().reads_out \
+                and not session.permission_read_at:  # read already, for a yes that came first: once is enough
+            # (a mode that does not read out asks again at its end)
             urgent = _permission_urgent(session)
             if _floor_blocked(urgent=urgent) is None:
                 await _read_out(session, urgent=urgent and _floor_blocked() is not None)
