@@ -6221,12 +6221,33 @@ async def _send(message: str) -> dict:
     return await _send_now(message)
 
 
+ABANDONED = {"error": "Not sent: the user talked over you before this went, and then said something new. Their new "
+                      "words are next: act on those. Send this again only if they still ask for it; if they do not, "
+                      "it is dropped, and you say so only if they ask."}
+
+
+async def _abandoned(message: str) -> bool:
+    """The user talked over the turn this send was made for and said something new: the request they left is not
+    delivered behind their back (a barge-in "wait, just tell me about quarry" once left the rundown it replaced with
+    three sessions). An acknowledgement over the voice ("okay", "mm-hm") abandons nothing."""
+    brain = getattr(state.front, "brain", None)
+    if brain is None or not hasattr(brain, "abandoned") or not await brain.abandoned():
+        return False
+    if backchannel(state.last_utterance) or ack_only(state.last_utterance):
+        return False
+    logger.info(f"send dropped, the user talked over its turn and said something new: {message!r}")
+    _record(message, [], "dropped: the user talked over it and said something new")
+    return True
+
+
 async def _send_now(message: str) -> dict:
     # Gemini keeps re-wording a refused call, about one a second, and stays silent while it does.
     if state.refusals[0] == state.last_user_speech_at and state.refusals[1] >= MAX_REFUSALS_PER_UTTERANCE:
         _record(message, [], "blocked: refused too many times for one utterance")
         return {"error": "Not sent, and do not try again. Stop calling tools. Tell the user you did not send it and "
                          "ask what to send."}
+    if await _abandoned(message):
+        return dict(ABANDONED)
     # One request per thing the user said, across all sessions: no replays after a reconnect,
     # no tasks the model chains on its own.
     # Compared with where the brain aimed the last send, not where it landed: a misrouted send made the same message
@@ -6344,6 +6365,8 @@ async def _send_now(message: str) -> dict:
     message = relay.repo_names(message, code)
     known = _vocabulary_for(targets[0]) | {n for names in code.values() for n in names}
     message = relay.as_heard(relay.keep_lines(message, said), said, known)
+    if await _abandoned(message):  # again, at the last moment: the checks above take a second or two, time to cut in
+        return dict(ABANDONED)
     sent_to, failed, set_aside = [], [], []
     for target in targets:
         logger.info(f"-> {target.name}: {message!r} (routing: {how})")

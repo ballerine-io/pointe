@@ -2,6 +2,7 @@
 code can check a reply before anyone hears it. No audio here: the daemon hands it words and speaks what comes back."""
 
 import asyncio
+import contextvars
 import json
 import re
 import time
@@ -50,6 +51,11 @@ STEP_TIMEOUT_SECS = 8.0  # a step with no answer from either model by then has f
 # Past this the fast model starts beside the main one and the first good answer is used. On live calls a step took 2.3 s
 # at the median and 4 s at p90; while the vendor was slow, 26 of 72 HLK runs hit the timeout with the fallback unused.
 HEDGE_AFTER_SECS = 3.5
+ABANDON_WAIT_SECS = 4.0  # after the user talks over a turn, how long its sends wait to learn whether they said something new
+# The turn a tool is running for: (generation, the count of the user's turns when it began). Set around each tool call
+# and copied into the tool's task, so a send made for the turn the user talked over can tell (Brain.abandoned), and one
+# made outside any turn (a request sent as said) is never taken for it.
+TOOL_TURN: contextvars.ContextVar[tuple[int, int] | None] = contextvars.ContextVar("pointe_tool_turn", default=None)
 SLOW_LINE = "The model took too long to answer. Say that again?"
 LOST_LINE = "I lost my connection to the model for a moment. Say that again?"
 # After a step that already acted: "say that again" would invite the user to send it twice (sends have no dedupe).
@@ -293,6 +299,8 @@ class Brain:
         self._waiting: list[str] = []
         self._generation = 0  # moves on when the user talks: a turn from an older one must not speak
         self._user_turns = 0  # turns on the user's own words, started and not finished
+        self._user_seq = 0  # how many turns the user's own words have started, ever
+        self._run_turn: tuple[int, int] = (0, 0)  # (generation, _user_seq) of the turn now running
         self._after_user: list[tuple[str, bool]] = []  # session news that arrived meanwhile: (text, needs a reply)
         self._trigger = ""  # what started the turn now running: the user's words, or a bracketed line from the daemon
         self._view: dict | None = None  # the newest message in the history the step now with the model read: what it answers
@@ -367,6 +375,18 @@ class Brain:
         self._generation += 1
         if self._current:
             self._current.cancel()
+
+    async def abandoned(self, wait: float | None = None) -> bool:
+        """Asked by a tool before it does something that cannot be taken back (a send): did the user talk over the turn
+        this tool runs for, and then say something new? A cut with no words after it (a cough, a noise the detector
+        took for a voice) abandons nothing: after `wait` seconds of that the tool goes on. False outside a turn's tool."""
+        turn = TOOL_TURN.get()
+        if turn is None or turn[0] == self._generation:
+            return False
+        deadline = time.time() + (ABANDON_WAIT_SECS if wait is None else wait)
+        while self._user_seq == turn[1] and time.time() < deadline:
+            await asyncio.sleep(0.05)
+        return self._user_seq != turn[1]
 
     def _names_a_session(self, words: str) -> bool:
         """The user's words name one of the sessions (a word of its name)."""
@@ -595,6 +615,7 @@ class Brain:
             self._resuming = text.startswith("[resume]")  # the daemon asks for the rest of a report talked over
         if user:
             self._user_turns += 1
+            self._user_seq += 1
         try:
             before = len(self.messages)
             if text is not None:
@@ -656,6 +677,7 @@ class Brain:
         sent_to, refused_for = [], []  # the sessions this turn's sends reached, and those a refused send named
         acted = False  # a tool that changes something ran without an error this turn
         self._trigger = trigger or ""
+        self._run_turn = (generation, self._user_seq)
         own_words = trigger is not None and not trigger.lstrip().startswith("[")  # not a report, a click or a mode's line
         ahead_checked = not own_words
         early = ""  # the first sentence of the reply, once it was said while the model still wrote the rest (_say_first)
@@ -1028,7 +1050,11 @@ class Brain:
 
         params = SimpleNamespace(arguments=call["args"], result_callback=done)
         # Never cancelled: a request half delivered must still be recorded as sent.
-        running = asyncio.ensure_future(tool.handler(params))
+        token = TOOL_TURN.set(self._run_turn)  # the task copies it: the tool can ask whether its turn was abandoned
+        try:
+            running = asyncio.ensure_future(tool.handler(params))
+        finally:
+            TOOL_TURN.reset(token)
         if not filled and self.filler:
             finished, _ = await asyncio.wait({running}, timeout=FILLER_AFTER_SECS)
             if not finished:
