@@ -43,7 +43,7 @@ FEATURES = _features()
 
 # (section, [source paths: under docs/, or a root file given as "/NAME.md"])
 NAV = [
-    ("Overview", ["README.md"]),
+    ("Overview", ["README.md", "comparison.md", "limits.md"]),
     ("Getting started", ["getting-started.md", "install.md", "mac-app.md"]),
     ("Connect your phone", ["phone.md", "phone/wifi.md", "phone/tailscale.md", "phone/twingate.md", "phone/cloudflare.md",
                             "iphone-app.md"]),

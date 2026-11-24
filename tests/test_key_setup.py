@@ -324,7 +324,7 @@ def _page(name: str) -> str:
     return dict(re.findall(r"(\w+): '((?:[^'\\]|\\.)*)'", block))[name].replace("\\'", "'")
 
 
-@pytest.mark.parametrize("where", ["README.md", "docs/install.md"])
+@pytest.mark.parametrize("where", ["docs/install.md"])
 def test_the_docs_say_what_is_enough_word_for_word(where):
     text = _flat((ROOT / where).read_text())
     assert f"What do I need? {vendors.WHAT_YOU_NEED}" in text

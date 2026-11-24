@@ -1,6 +1,6 @@
 # Contributing
 
-Pointe is a conversational layer for your coding agents: convo coding, or conversational engineering. It is MIT
+Pointe is a conversational layer for your coding agents. It is MIT
 licensed and community-supported. Pull requests, bug reports, test reports from machines we do not have, and ideas are
 all welcome. What may come next, sorted by votes: [ROADMAP.md](ROADMAP.md). Teams that use Pointe in real work can join
 the [Conversational Engineering Working Group](#the-conversational-engineering-working-group).

@@ -45,6 +45,8 @@
 <p class="dx-nav-h">Overview</p>
 <ul>
 <li><a href="../">Pointe documentation</a></li>
+<li><a href="../comparison/">Compared to other tools</a></li>
+<li><a href="../limits/">Limits</a></li>
 </ul>
 <p class="dx-nav-h">Getting started</p>
 <ul>
@@ -112,7 +114,7 @@
 <h1 id="getting-started">Getting started</h1>
 <p>Pointe is a conversational layer for your coding agents. You talk; it listens, reports what each session did, sends
 your requests to the right one, and reads permission prompts out so you can answer them by voice. The sessions do the
-work and keep their context. We call this conversational engineering ("convo coding", for short).</p>
+work and keep their context.</p>
 <p>This page takes you from nothing to your first call, in about 5 minutes. You need macOS, a coding agent (Claude Code
 2.1.224 or newer, Codex 0.160 or newer, or OpenCode v2), Google Chrome, headphones, and one model key (a free Google key
 is enough to start). Everything Pointe installs, and how to remove it: <a href="../install/">Install</a>.</p>
@@ -224,6 +226,57 @@ yourself with <code>/pointe:voice --name billing</code>, or rename it on the pag
 </tr>
 </tbody>
 </table></div>
+<h2 id="commands">Commands</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/pointe:setup</code></td>
+<td>guided setup: keys, first call, phone</td>
+</tr>
+<tr>
+<td><code>/pointe:voice</code></td>
+<td>join this session to the voice (starts the daemon if needed)</td>
+</tr>
+<tr>
+<td><code>/pointe:open</code></td>
+<td>open the page again</td>
+</tr>
+<tr>
+<td><code>/pointe:leave</code></td>
+<td>take this session off the voice (or say "close billing" or "close all except billing", or use × on the page)</td>
+</tr>
+<tr>
+<td><code>/pointe:stop</code></td>
+<td>stop all voice</td>
+</tr>
+<tr>
+<td><code>/pointe:doctor</code></td>
+<td>what runs here, what is missing, and the one key that would help most</td>
+</tr>
+<tr>
+<td><code>pointe local</code></td>
+<td>fully local: download and start the local models, no keys (<a href="../features/local/">details</a>)</td>
+</tr>
+<tr>
+<td><code>pointe local voice</code></td>
+<td>voice stays on your Mac: local ears and mouth, the brain in the cloud gets text only (<a href="../features/voice-stays-local/">details</a>)</td>
+</tr>
+<tr>
+<td><code>/pointe:voice-review</code></td>
+<td>ask a session what happened in the last call</td>
+</tr>
+<tr>
+<td><code>pointe update</code></td>
+<td>the standalone install: the newest release, checked against its SHA-256 (<a href="../install/#the-standalone-install">details</a>)</td>
+</tr>
+</tbody>
+</table></div>
 <h2 id="next">Next</h2>
 <ul>
 <li><a href="../phone/">Connect your phone</a>: the same call on your iPhone, in the app or the browser.</li>
@@ -234,7 +287,7 @@ yourself with <code>/pointe:voice --name billing</code>, or rename it on the pag
 </ul>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/getting-started.md">docs/getting-started.md</a> in the repository.</p>
-<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../"><span class="pg-small">Previous</span>Pointe documentation</a><a class="dx-next" href="../install/"><span class="pg-small">Next</span>Install Pointe</a></nav>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../limits/"><span class="pg-small">Previous</span>Limits</a><a class="dx-next" href="../install/"><span class="pg-small">Next</span>Install Pointe</a></nav>
 </main>
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
@@ -243,6 +296,7 @@ yourself with <code>/pointe:voice --name billing</code>, or rename it on the pag
 <li class="dx-l2"><a href="#2-the-first-setup">2. The first setup</a></li>
 <li class="dx-l2"><a href="#3-the-first-call">3. The first call</a></li>
 <li class="dx-l2"><a href="#4-joining-a-session">4. Joining a session</a></li>
+<li class="dx-l2"><a href="#commands">Commands</a></li>
 <li class="dx-l2"><a href="#next">Next</a></li>
 </ul>
 </details>

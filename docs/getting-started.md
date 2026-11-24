@@ -2,7 +2,7 @@
 
 Pointe is a conversational layer for your coding agents. You talk; it listens, reports what each session did, sends
 your requests to the right one, and reads permission prompts out so you can answer them by voice. The sessions do the
-work and keep their context. We call this conversational engineering ("convo coding", for short).
+work and keep their context.
 
 This page takes you from nothing to your first call, in about 5 minutes. You need macOS, a coding agent (Claude Code
 2.1.224 or newer, Codex 0.160 or newer, or OpenCode v2), Google Chrome, headphones, and one model key (a free Google key
@@ -103,6 +103,21 @@ yourself with `/pointe:voice --name billing`, or rename it on the page.
 | Join a session on another machine | Make that machine a node ([Machines](multi-machine.md)) |
 | Take a session off the voice | `/pointe:leave` in it, say "close billing", or use × on the page |
 | Stop all voice | `/pointe:stop`, or `pointe stop` |
+
+## Commands
+
+| Command | Does |
+|---|---|
+| `/pointe:setup` | guided setup: keys, first call, phone |
+| `/pointe:voice` | join this session to the voice (starts the daemon if needed) |
+| `/pointe:open` | open the page again |
+| `/pointe:leave` | take this session off the voice (or say "close billing" or "close all except billing", or use × on the page) |
+| `/pointe:stop` | stop all voice |
+| `/pointe:doctor` | what runs here, what is missing, and the one key that would help most |
+| `pointe local` | fully local: download and start the local models, no keys ([details](features/local.md)) |
+| `pointe local voice` | voice stays on your Mac: local ears and mouth, the brain in the cloud gets text only ([details](features/voice-stays-local.md)) |
+| `/pointe:voice-review` | ask a session what happened in the last call |
+| `pointe update` | the standalone install: the newest release, checked against its SHA-256 ([details](install.md#the-standalone-install)) |
 
 ## Next
 

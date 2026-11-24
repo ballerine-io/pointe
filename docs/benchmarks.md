@@ -64,6 +64,43 @@ occasional extra patience at Normal (60 of 60 such pauses taken, against 52 with
 
 Limits: voices are synthetic, latency is from one laptop and one network, the round trip uses one recognizer, and the benchmark author is a model from a vendor under test. Each report lists its own limits.
 
+## Summary
+
+The defaults come from benchmarks in `bench/`, all on synthetic data; re-run them with your own keys. The headline numbers:
+
+- **Ears:** 560 clips (English, Hebrew, mixed, short yes/no; 4 voices; clean and noisy). Soniox stt-rt-v6, what runs
+  since Soniox removes v5 on 2026-12-15, got intent right 95.9% of the time, word error 0.063, latency p50 0.38 s; v5 had
+  95.4% and 0.36 s. v6 held some turns about 3 s; Pointe asks it for the words after a silence, which brings the p90
+  to 0.76 s (Hebrew 0.80 s).
+  [`bench/results/report.txt`](../bench/results/report.txt), [`bench/results/soniox-v6.md`](../bench/results/soniox-v6.md)
+- **Brain:** 78 cases on the real tool and speech path. `claude-sonnet-5-5` passes 91.9% with a 1.8 s median reply;
+  `gemini-3.8-flash` 94.9% at 2.7 s; the confidence intervals overlap. [`bench/results/brain.md`](../bench/results/brain.md)
+- **Gate:** 24 cases, two runs per model; `gemini-3.5-flash-lite` failed none. [`bench/results/gate.md`](../bench/results/gate.md)
+- **Mouth:** `eleven_v4_turbo` first audio 213 ms p50, word error 0.00 English, 0.02 Hebrew.
+  [`bench/results/tts.md`](../bench/results/tts.md)
+- **Voice lock:** equal error rate 1.9% on sentences, 2.7% on short answers, on 19 synthetic voices.
+  [`bench/results/speaker.md`](../bench/results/speaker.md)
+- **Vocabulary:** a misheard name spelled right 25 of 64 times without hints, 60 of 64 with them.
+  [`bench/results/vocab.md`](../bench/results/vocab.md)
+- **Challenge me:** 15/30 to 30/30 on Sonnet, 21/30 to 30/30 on Gemini Flash. [`bench/results/challenge.md`](../bench/results/challenge.md)
+- **Whisper:** Soniox word error 1.4% on a synthetic whisper at -18 dB, 18.4% at -30 dB. [`bench/results/whisper.md`](../bench/results/whisper.md)
+- **Fully local**, on an M5 Pro: brain 76.9% with a 3.4 s median reply, reader 51.0%, ears 85.7% intent at 0.76 s,
+  Kokoro's first English audio 1.3 s, 10 of 19 single-session audio checks. [`bench/results/local.md`](../bench/results/local.md)
+- **Voice stays on your Mac**, on an M5 Pro: Kokoro on MLX starts English speech in 185 ms at the median (kokoro-onnx 750 ms,
+  ElevenLabs 213 ms); Whisper large-v3-turbo got 82.7% of intents in the same run as Soniox's 94.6%; 30 of 35 audio checks.
+  [docs/features/voice-stays-local.md](features/voice-stays-local.md)
+- **Which setups were tested end to end:** [`bench/results/combinations.md`](../bench/results/combinations.md)
+
+Not measured for any setup: a real human voice on a real call.
+
+**Conversational engineering benchmarks.** Five benchmarks of what talking costs a coding agent, led by Humanity's Last
+Keystroke (small coding tasks finished by voice only), with one fixed agent and synthetic speech:
+[docs/benchmarks/](benchmarks/README.md), and on the [site](https://eng.ballerine.com/pointe/benchmarks/). In the
+first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most. Pointe
+fixed the defects it found and its arm was run again: it gained on routing (41 to 49 of 60 turns), identifiers (40 to
+42 of 48) and spoken answers (18 to 23 of 27), stayed below the baseline on most, and lost on HLK (34 to 27 of 72), a
+rerun during which the brain model was often slow. The pages show both runs, by how much and why.
+
 ## Cost arithmetic
 
 A busy hour on the best setup: brain 60 replies at $0.0045, about $0.27. Mouth 60 replies of 30 words, about 11,000 characters at $0.04 per

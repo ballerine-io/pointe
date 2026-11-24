@@ -145,8 +145,8 @@ def test_the_lists_follow_their_sources():
     assert uninstall.LINK_MARK in LINK.read_text()
 
 
-def test_the_install_docs_and_the_readme_say_what_it_does_to_your_mac():
-    for doc in ("README.md", "docs/install.md"):
+def test_the_install_docs_say_what_it_does_to_your_mac():
+    for doc in ("docs/install.md",):
         text = (ROOT / doc).read_text()
         box = text[text.index("What this does to your Mac"):][:2500]
         for fact in ("~/.local/bin/pointe", "PermissionRequest", "SessionStart", "127.0.0.1:7860", "/pointe:stop",

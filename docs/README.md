@@ -1,15 +1,16 @@
 # Pointe documentation
 
 Pointe is a conversational layer for your coding agents. You talk to all your coding-agent sessions by voice: ask what
-each one did, switch by saying its name, and answer permission prompts out loud, under rules enforced in code. The
-practice is conversational engineering; "convo coding", for short. Pointe works with Claude Code, OpenCode and Codex,
-and runs on your Mac with your own model keys, or with models on the Mac.
+each one did, switch by saying its name, and answer permission prompts out loud, under rules enforced in code. Pointe works with
+Claude Code, OpenCode and Codex, and runs on your Mac with your own model keys, or with models on the Mac.
 
 ## Getting started
 
 - [Getting started](getting-started.md): install, the first setup, the first call, and what joining a session means.
 - [Install](install.md): what Pointe installs, the free and cheap ways in, and how to remove it.
 - [The Mac app](mac-app.md): the call in the menu bar and a native window.
+- [Compared to other tools](comparison.md): Happy, Paseo, the built-in voices and the phone remotes, and where Pointe differs.
+- [Limits](limits.md): what does not work yet, and what was not measured.
 
 ## Connect your phone
 
@@ -42,3 +43,17 @@ and runs on your Mac with your own model keys, or with models on the Mac.
 - [Contributing](../CONTRIBUTING.md): development setup, the tests, the repository layout, and how to propose a change.
 - [Releasing](releasing.md): how a version is cut.
 - [Security](../SECURITY.md): the threat model, and how to report a vulnerability.
+
+## Why Ballerine built this
+
+Ballerine's engineers run several coding-agent sessions at once, and built Pointe for their own work. Ballerine is not
+a developer-tools company and does not sell Pointe. It is shared because it is useful.
+
+## Support
+
+Pointe is community-supported, on a best-effort basis, with no SLA. Ask questions in
+[Discussions → Q&A](https://github.com/ballerine-io/pointe/discussions/categories/q-a), propose features in
+[Discussions → Ideas](https://github.com/ballerine-io/pointe/discussions/categories/ideas), and report bugs in
+[GitHub issues](https://github.com/ballerine-io/pointe/issues). Report a vulnerability privately, never in an issue:
+[GitHub private vulnerability reporting](https://github.com/ballerine-io/pointe/security/advisories/new) or
+security@ballerine.com ([SECURITY.md](../SECURITY.md)).

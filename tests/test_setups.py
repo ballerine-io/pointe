@@ -159,7 +159,7 @@ def test_the_written_tables_are_current():
     tool = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(tool)
     assert tool.main(["--check"]) == 0, "run python3 tools/setups.py"
-    for path in ("README.md", "plugin/commands/setup.md"):
+    for path in ("plugin/commands/setup.md",):
         assert setups.table(full=False) in (ROOT / path).read_text()
 
 

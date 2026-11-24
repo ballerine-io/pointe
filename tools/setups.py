@@ -1,4 +1,4 @@
-"""Write the setups table from setups.py: docs/setups.md whole, and the short table in README.md and /pointe:setup.
+"""Write the setups table from setups.py: docs/setups.md whole, and the short table in /pointe:setup.
 
     python3 tools/setups.py           write them
     python3 tools/setups.py --check   exit 1 if any is not what this would write (tests/test_setups.py runs it)
@@ -16,7 +16,7 @@ import setups  # noqa: E402
 
 OUT = "docs/setups.md"
 START, END = "<!-- setups: written by tools/setups.py from setups.py -->", "<!-- end setups -->"
-BLOCKS = ("README.md", "plugin/commands/setup.md")
+BLOCKS = ("plugin/commands/setup.md",)
 
 
 def page() -> str:

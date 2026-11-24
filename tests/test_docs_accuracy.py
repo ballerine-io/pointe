@@ -45,8 +45,8 @@ def test_the_parity_matrix_names_the_talk_shortcut_the_mac_app_sets():
         assert f"Hold {standard}" in text and "Hold ⌥Space" not in text, path
 
 
-def test_the_readme_lists_clean_up_my_words():
-    readme = (ROOT / "README.md").read_text()
-    row = next((l for l in readme.splitlines() if "(docs/features/clean-up-my-words.md)" in l), "")
-    assert row.startswith("| [Clean up my words](docs/features/clean-up-my-words.md) | "), row
+def test_the_features_index_lists_clean_up_my_words():
+    index = (ROOT / "docs" / "features" / "README.md").read_text()
+    row = next((l for l in index.splitlines() if "(clean-up-my-words.md)" in l), "")
+    assert row.startswith("| [Clean up my words](clean-up-my-words.md) | "), row
     assert (ROOT / "docs" / "features" / "clean-up-my-words.md").exists()

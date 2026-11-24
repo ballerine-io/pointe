@@ -66,6 +66,7 @@ link pointe.ballerine.com  the site's old address: a visitor there is sent to en
 link arxiv.org             a cited study, speech against typing (site)
 link doi.org               cited studies: typing speed, interrupted work (site)
 link learn.chatgpt.com     a compared tool's voice docs (site)
+link getmoshi.app          a compared tool's site (docs/comparison.md, site)
 link scripts.sil.org       the font licences' own address (site/fonts)
 link www.w3.org            XML namespace of inline SVG icons (ui.html, site)
 link www.apple.com         the property-list DTD named in a plist's header, never fetched (apps/ios/release.sh, Info.plist)
