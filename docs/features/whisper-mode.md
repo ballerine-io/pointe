@@ -42,7 +42,7 @@ open office.
   applies again when drive mode ends.
 - **Challenge:** both apply.
 - **Meeting:** the room's audio is not raised; the bot's output is still halved.
-- **Reading mode:** both apply; nothing is spoken, so only the raised microphone and the short replies matter.
+- **Mute:** both apply; nothing is spoken, so only the raised microphone and the short replies matter.
 
 ## Measured
 

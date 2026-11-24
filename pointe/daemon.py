@@ -60,7 +60,7 @@ from harnesses import FINISHED_MARK
 import local
 import meeting as meetings
 import modes
-import reading
+import mute
 import scope
 import speaker
 import turns
@@ -1200,8 +1200,8 @@ def _brain_context() -> str:
         parts.append(names)
     if _whispering():
         parts.append(whisper.REPLY_RULE)
-    if _reading():
-        parts.append(reading.RULE)
+    if _muted():
+        parts.append(mute.RULE)
     if machines := _machines_line():
         parts.append(machines)
     parts.append(_needs_now())
@@ -1796,7 +1796,7 @@ class BrainFront(FrameProcessor):
             await self.push_frame(TTSSpeakFrame(rest))
 
     async def _filler(self) -> None:
-        if current_mode().speech == "never" or state.meeting is not None or _reading():  # never a "one sec" into the room
+        if current_mode().speech == "never" or state.meeting is not None or _muted():  # never a "one sec" into the room
             return
         hebrew = re.search(r"[\u0590-\u05ff]", state.last_utterance)
         text = "רגע." if hebrew else "One sec."
@@ -2229,10 +2229,10 @@ class SonioxEars(FrameProcessor):
                 and not (state.challenge is not None and challenge.end_intent(heard)):
             await _whisper_by_voice(heard, quiet)
             return
-        # Then reading mode: "talk again" (or "back to normal" with whisper mode off) only while it is on.
-        if not _dumping() and state.meeting is None and (text_only := reading.intent(heard)) is not None \
-                and (text_only or state.reading) and not (state.challenge is not None and challenge.end_intent(heard)):
-            await _reading_by_voice(heard, text_only)
+        # Then mute: "talk again" (or "back to normal" with whisper mode off) only while Pointe is muted.
+        if not _dumping() and state.meeting is None and (text_only := mute.intent(heard)) is not None \
+                and (text_only or state.mute) and not (state.challenge is not None and challenge.end_intent(heard)):
+            await _mute_by_voice(heard, text_only)
             return
         wanted = meeting_intent(heard)
         if wanted and not _dumping():
@@ -2622,8 +2622,10 @@ class State:
     briefing_task: object = None
     briefing_building: bool = False
     drive: drives.Drive = field(default_factory=drives.Drive)  # drive & walk mode: on only while asked, during a call
-    reading: bool = False  # reading mode (reading.py): this call's device asked for text only; nothing is synthesised
+    mute: bool = False  # mute (mute.py): this call's device asked for text only; nothing is synthesised
     read_through: int = -1  # the newest of Pointe's turns the owner has read: talk ids up to it are read
+    wrote_at: float = 0.0  # when a line was last shown instead of spoken (mute): the status says "Writing…" for a moment
+    mouth_gate: object = None  # the call's MuteOut: muting mid-speech flushes the mouth through it
 
 
 state = State()
@@ -8758,8 +8760,8 @@ async def _user_text(text: str) -> None:
         return
     if await _asked_for_held(text):
         return
-    if (wanted := reading.intent(text)) is not None and (wanted or state.reading):  # "talk again" typed works too
-        await _reading_by_voice(text, wanted)
+    if (wanted := mute.intent(text)) is not None and (wanted or state.mute):  # "talk again" typed works too
+        await _mute_by_voice(text, wanted)
         return
     state.heard_own_words, state.last_speaker = True, None
     await on_user_utterance(text, typed=True)  # state.heard keeps it typed after the flag is cleared: no yes to a read-back
@@ -9087,7 +9089,7 @@ async def _status(request: Request) -> dict:
             "talk_command": None if _off_the_mac(request) else TALK_COMMAND,  # Settings: the recipe shows a path of this Mac's
             "whisper": whisper.status(PREFS.get("whisper"), lock_level(), PREFS.get("microphone"),
                                       held="drive" if state.drive.on() else None),
-            "reading": reading.status(state.reading, "drive" if state.drive.on() else None, state.read_through),
+            "reading": _mute_status(),
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "drive": _drive_status(),
             "local": _local_status(),
@@ -9593,7 +9595,7 @@ async def page():
     html = ((here / "ui.html").read_text().replace("{{LOGO}}", (REPO / "assets" / "logo.svg").read_text())
             .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
             .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text())
-            .replace("{{READING}}", (here / "ui_reading.html").read_text()))
+            .replace("{{MUTE}}", (here / "ui_mute.html").read_text()))
     return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 
@@ -9924,8 +9926,8 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
 
     pinger = asyncio.create_task(keep_alive())
     state.call_socket = link
-    # Reading mode is each device's own choice: the device says it as it calls, before the greeting could be spoken.
-    state.reading = websocket.query_params.get("reading") == "1"
+    # Mute is each device's own choice: the device says it as it calls, before the greeting could be spoken.
+    state.mute = websocket.query_params.get("reading") == "1"
     state.call_from_elsewhere = who == "phone" or remote.Remote.on_tls_listener(link.scope)
     if who == "phone":
         state.phone_socket = link
@@ -10054,7 +10056,7 @@ async def run_call(transport) -> None:
         async def on_tts_request(_mouth, _context_id, _text):
             _stage("tts_request")
 
-        pipeline = Pipeline([transport.input(), *gate, *ears, injector, front, ReadingOut(), mouth,
+        pipeline = Pipeline([transport.input(), *gate, *ears, injector, front, MuteOut(), mouth,
                              BotSpeechTap(), *mirror, WhisperOut(), transport.output()])
     else:
         context = LLMContext(opening, tools=TOOLS)
@@ -10084,7 +10086,7 @@ async def run_call(transport) -> None:
 
     @transport.event_handler("on_client_disconnected")
     async def on_disconnected(transport, client):
-        state.conn = None
+        state.conn = state.mouth_gate = None
         injector.call_over()
         state.floor, state.settling = flow.Floor(), False  # the next call starts with nobody mid-sentence
         _call_ended()
@@ -10258,27 +10260,42 @@ async def _whisper_by_voice(heard: str, on: bool) -> None:
               "[whisper mode off] The user turned whisper mode off. Say in at most four words that you are back to normal.")
 
 
-# ---------- reading mode (reading.py holds the rules) ----------
+# ---------- mute (mute.py holds the rules) ----------
 
-def _reading() -> bool:
-    """Reading mode in effect. Drive mode holds it: no screen to read on the road. The choice stays, and applies again
-    when drive mode ends."""
-    return state.reading and not state.drive.on()
+def _muted() -> bool:
+    """Mute in effect. Drive mode holds it: no screen to read on the road. The choice stays, and applies again when
+    drive mode ends."""
+    return state.mute and not state.drive.on()
 
 
-class ReadingOut(FrameProcessor):
-    """Between the brain and the mouth. In reading mode a line for the mouth never reaches it: nothing is synthesised, and
-    the words are already in the conversation (_bot_says). The bot's turn starts and stops at once, upstream, so the yes
+def _mute_status() -> dict:
+    return mute.status(state.mute, "drive" if state.drive.on() else None, state.read_through,
+                       writing=_muted() and time.time() - state.wrote_at < mute.WRITING_SECS)
+
+
+class MuteOut(FrameProcessor):
+    """Between the brain and the mouth. Muted, a line for the mouth never reaches it: nothing is synthesised, and the
+    words are already in the conversation (_bot_says). The bot's turn starts and stops at once, upstream, so the yes
     window, the floor and the echo guard see a turn of no length, as if it had been said in no time. Chimes pass."""
+
+    def __init__(self):
+        super().__init__()
+        state.mouth_gate = self
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
-        if isinstance(frame, TTSSpeakFrame) and direction == FrameDirection.DOWNSTREAM and _reading():
-            logger.info(f"reading mode: shown, not spoken ({len(frame.text)} chars)")
+        if isinstance(frame, TTSSpeakFrame) and direction == FrameDirection.DOWNSTREAM and _muted():
+            logger.info(f"muted: shown, not spoken ({len(frame.text)} chars)")
+            state.wrote_at = time.time()
             await self.push_frame(BotStartedSpeakingFrame(), FrameDirection.UPSTREAM)
             await self.push_frame(BotStoppedSpeakingFrame(), FrameDirection.UPSTREAM)
             return
         await self.push_frame(frame, direction)
+
+    async def hush(self) -> None:
+        """Muted in the middle of a reply: what the mouth holds and what the speakers still play is dropped, here and
+        on the calling device. Downstream only: the brain is upstream and keeps writing the rest of the reply."""
+        await self.push_frame(InterruptionFrame(), FrameDirection.DOWNSTREAM)
 
 
 def _last_reply_id() -> int:
@@ -10294,49 +10311,54 @@ def _mark_read(through: int | None = None) -> None:
     state.read_through = max(state.read_through, newest if through is None else min(through, newest))
 
 
-async def _set_reading(on: bool, how: str) -> None:
+async def _set_mute(on: bool, how: str) -> None:
     """The call's choice; the device on the call is told, so it keeps it for its next call (each device its own)."""
-    state.reading = on
-    logger.info(f"reading mode {'on' if on else 'off'} ({how})")
+    state.mute = on
+    logger.info(f"mute {'on' if on else 'off'} ({how})")
+    if _muted() and state.mouth_gate is not None:
+        if ECHO.speaking:
+            state.wrote_at = time.time()  # cut mid-sentence: the rest of what it was saying is on the screen
+        await state.mouth_gate.hush()
     sock = state.call_socket
     if sock is not None:
         with contextlib.suppress(Exception):
             await sock.send_text(json.dumps({"type": "reading", "on": on}))
 
 
-async def _reading_by_voice(heard: str, on: bool) -> None:
+async def _mute_by_voice(heard: str, on: bool) -> None:
     """"Stop talking, I'll read" / "talk again", spoken or typed, caught in code like whisper mode's phrases. It changes
     how Pointe answers, never what a yes can do."""
     _remember("user", heard)
     state.last_utterance = heard  # its language; not fresh speech for a send
-    await _set_reading(on, "voice")
-    line = (reading.HELD_LINE if state.drive.on() else reading.ON_LINE) if on else reading.OFF_LINE
-    await _say_exactly(line, f"reading mode {'on' if on else 'off'}")
+    await _set_mute(on, "voice")
+    line = (mute.HELD_LINE if state.drive.on() else mute.ON_LINE) if on else mute.OFF_LINE
+    await _say_exactly(line, f"mute {'on' if on else 'off'}")
 
 
 @app.post("/voice/reading")
 async def reading_route(request: Request):
-    """The Read button on the page and in both apps. Each device keeps its own choice; this sets the call's. With no call
+    """The mute button on the page and in both apps. Each device keeps its own choice; this sets the call's. With no call
     up nothing changes here (`applied: false`): the device keeps the choice and says it when it calls."""
     body = await _body(request)
     if not isinstance(body.get("on"), bool):
         raise HTTPException(status_code=400, detail="on must be true or false")
     applied = state.conn is not None
     if applied:
-        await _set_reading(body["on"], "button")
-    return {"reading": reading.status(state.reading, "drive" if state.drive.on() else None, state.read_through),
+        await _set_mute(body["on"], "button")
+    return {"reading": _mute_status(),
             "applied": applied}
 
 
 @app.post("/voice/read")
 async def read_route(request: Request):
-    """A tap on one of Pointe's lines (it and every line before it are read), or Mark all read (no `through`)."""
+    """An app from before the mute button: a tap on one of Pointe's lines (it and every line before it are read), or
+    Mark all read (no `through`). Nothing shows it now."""
     body = await _body(request)
     through = body.get("through")
     if through is not None and (isinstance(through, bool) or not isinstance(through, int)):
         raise HTTPException(status_code=400, detail="through must be a talk id")
     _mark_read(through)
-    return {"reading": reading.status(state.reading, "drive" if state.drive.on() else None, state.read_through)}
+    return {"reading": _mute_status()}
 
 
 if __name__ == "__main__":

@@ -1,15 +1,16 @@
-"""Reading mode, the held-news badge and the multi-line composer on the page (ui.html, ui_reading.html), in a headless
+"""The mute button, the held-news badge and the multi-line composer on the page (ui.html, ui_mute.html), in a headless
 Chrome against the stub Mac (tests/page_rig.py). Skipped where that Chrome is not installed (CI on Linux).
 
-- Read in the dock: the browser keeps the choice, the call is dialled with it, the daemon is told, and the card shows;
-  a change said by voice comes back on the call's socket and is kept.
-- In reading mode each of Pointe's lines is marked Unread or Read; a click marks it read.
+- One mute toggle beside the call's status line: "Speaking…" while Pointe speaks, "Writing…" while it is muted and
+  would have spoken. The browser keeps the choice, the call is dialled with it, the daemon is told; a change said by
+  voice comes back on the call's socket and is kept. Muting flushes what the speakers still hold.
+- No Read button, no Reading card, no Unread or Read marks.
 - Session mode: other sessions' news is a quiet count; it lists the items and Tell me asks for them. Another session's
   request stays on its card and can be approved.
 - The box: Enter sends, Shift+Enter and Option+Enter start a new line, IME composition never sends, and the line breaks
   reach /voice/say.
 
-uv run --locked pytest -q tests/test_reading_page.py
+uv run --locked pytest -q tests/test_mute_page.py
 """
 
 import asyncio
@@ -24,7 +25,7 @@ import pytest
 
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import reading  # noqa: E402
+import mute  # noqa: E402
 import scope  # noqa: E402
 from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
 
@@ -81,46 +82,105 @@ def _talk_status():
     return s
 
 
-# ---------- reading mode ----------
+# ---------- the mute button ----------
 
-CARD = "document.getElementById('readingcard').innerText"
+BTN = """(() => { const b = document.getElementById('mutebtn'), st = document.getElementById('state'); return {
+  state: st.textContent, beside: b.previousElementSibling === st && b.parentElement === st.parentElement,
+  gap: Math.round(b.getBoundingClientRect().left - st.getBoundingClientRect().right),
+  sameRow: Math.abs((b.getBoundingClientRect().top + b.getBoundingClientRect().bottom) / 2
+                    - (st.getBoundingClientRect().top + st.getBoundingClientRect().bottom) / 2) < 6,
+  shown: b.getClientRects().length > 0, pressed: b.getAttribute('aria-pressed'), label: b.getAttribute('aria-label'),
+  title: b.title, slash: !!b.querySelector('svg .slash'), stored: localStorage.getItem('pointe.reading')}; })()"""
 
 
-def test_the_read_button_keeps_the_choice_tells_the_daemon_and_shows_the_card():
+def _speaking_status():
+    s = _talk_status()
+    s["reading"] = {"on": False, "held": None, "read_through": -1, "writing": False}
+    s["speaking"] = "bot"
+    return s
+
+
+def _writing_status():
+    s = _talk_status()
+    s["reading"] = {"on": True, "held": None, "read_through": -1, "writing": True}
+    return s
+
+
+async def _on_a_call(page):
+    """This page's own call is up: the status line is the call's."""
+    state = await page.eval(DIAL)
+    assert state == "live", state
+
+
+def test_while_pointe_speaks_the_status_says_speaking_and_the_mute_button_sits_beside_it():
     async def run():
-        stub, browser, page = await _page(fixture(sessions=2, connected=True))
+        stub, browser, page = await _page(_speaking_status())
         try:
-            label0 = await page.eval("document.getElementById('reading-label').textContent")
-            await page.eval("document.getElementById('readingbtn').click()")
-            card = await _until(page, CARD)
-            got = {"label0": label0, "card": card, "stored": await page.eval("localStorage.getItem('pointe.reading')"),
-                   "label": await page.eval("document.getElementById('reading-label').textContent"),
-                   "pressed": await page.eval("document.getElementById('readingbtn').getAttribute('aria-pressed')")}
-            await page.eval("document.getElementById('reading-off').click()")
-            await asyncio.sleep(0.6)
-            got["after"] = await page.eval(CARD)
-            got["storedAfter"] = await page.eval("localStorage.getItem('pointe.reading')")
-            return got, _posts(stub, "/voice/reading")
+            await _on_a_call(page)
+            got = await _until(page, f"(() => {{ const g = {BTN}; return g.state === 'Speaking…' && g; }})()")
+            await _shot(page, "page-speaking")
+            await page.eval("document.getElementById('mutebtn').click()")
+            after = await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'true' && g; }})()")
+            await page.eval("document.getElementById('mutebtn').click()")
+            back = await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'false' && g; }})()")
+            return got, after, back, _posts(stub, "/voice/reading")
         finally:
             await _close(stub, browser)
-    got, posts = asyncio.run(run())
-    assert got["label0"] == reading.COPY["button"] and got["label"] == reading.COPY["buttonOn"] and got["pressed"] == "true"
-    assert reading.COPY["title"] in got["card"] and reading.COPY["body"] in got["card"]
-    assert reading.COPY["back"] in got["card"] and reading.COPY["markRead"] in got["card"]
-    assert got["stored"] == "1" and got["storedAfter"] == "0" and not got["after"].strip()
+    got, after, back, posts = asyncio.run(run())
+    assert got and got["beside"] and got["sameRow"] and 0 <= got["gap"] <= 16, got
+    assert got["shown"] and got["slash"] and got["pressed"] == "false" and got["label"] == mute.COPY["mute"], got
+    assert after and after["label"] == mute.COPY["unmute"] and after["stored"] == "1", after
+    assert back and back["label"] == mute.COPY["mute"] and back["stored"] == "0", back
     assert posts == [{"on": True}, {"on": False}]
+
+
+def test_muted_the_status_says_writing_where_pointe_would_have_spoken():
+    async def run():
+        stub, browser, page = await _page(_writing_status())
+        try:
+            await page.eval("localStorage.setItem('pointe.reading', '1'); true")
+            await _on_a_call(page)
+            got = await _until(page, f"(() => {{ const g = {BTN}; return g.state === 'Writing…' && g; }})()")
+            await _shot(page, "page-writing")
+            last = await page.eval("[...document.querySelectorAll('#talk li.bot')].pop().textContent")
+            stub.status["reading"]["writing"] = False
+            quiet = await _until(page, "document.getElementById('state').textContent === 'Listening' && 'Listening'")
+            return got, last, quiet, list(stub.calls)
+        finally:
+            await _close(stub, browser)
+    got, last, quiet, calls = asyncio.run(run())
+    assert got and got["pressed"] == "true" and got["label"] == mute.COPY["unmute"] and got["beside"], got
+    assert "production waits for your go" in last  # the reply is on the page as text
+    assert quiet == "Listening" and calls == ["reading=1"]
+
+
+def test_there_is_no_read_button_no_reading_card_and_no_unread_marks():
+    async def run():
+        stub, browser, page = await _page(_writing_status())
+        try:
+            await _on_a_call(page)
+            await _until(page, "document.querySelectorAll('#talk li.bot').length")
+            return await page.eval("""({ids: ['readingbtn', 'readingcard', 'reading-label', 'reading-off', 'reading-markread']
+              .filter(id => document.getElementById(id)), marks: document.querySelectorAll('.readmark, li.unread, li.read').length,
+              text: document.body.innerText})""")
+        finally:
+            await _close(stub, browser)
+    got = asyncio.run(run())
+    assert got["ids"] == [] and got["marks"] == 0
+    for gone in ("Reading mode", "Mark all read", "Talk again", "Unread"):
+        assert gone not in got["text"], gone
 
 
 def test_with_no_call_the_browser_keeps_its_choice_and_shows_it():
     async def run():
         stub, browser, page = await _page(fixture(sessions=1))
         try:
-            await page.eval("document.getElementById('readingbtn').click()")
-            return await _until(page, CARD), await page.eval("document.getElementById('reading-label').textContent")
+            await page.eval("document.getElementById('mutebtn').click()")
+            return await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'true' && g; }})()")
         finally:
             await _close(stub, browser)
-    card, label = asyncio.run(run())
-    assert reading.COPY["title"] in card and label == reading.COPY["buttonOn"]
+    got = asyncio.run(run())
+    assert got and got["stored"] == "1" and got["label"] == mute.COPY["unmute"] and got["shown"]
 
 
 def test_a_toggle_that_does_not_reach_the_mac_says_so():
@@ -129,23 +189,24 @@ def test_a_toggle_that_does_not_reach_the_mac_says_so():
         try:
             await page.eval("const real = window.fetch; window.fetch = (u, o) => String(u).includes('/voice/reading') ? "
                             "Promise.reject(new TypeError('Failed to fetch')) : real(u, o); true")
-            await page.eval("document.getElementById('readingbtn').click()")
+            await page.eval("document.getElementById('mutebtn').click()")
             return await _until(page, "document.getElementById('problem').textContent")
         finally:
             await _close(stub, browser)
-    assert asyncio.run(run()) == reading.COPY["failed"]
+    assert asyncio.run(run()) == mute.COPY["failed"]
 
 
-def test_drive_mode_holding_it_is_said_on_the_card():
+def test_drive_mode_holding_it_is_said_on_the_button():
     async def run():
         s = fixture(sessions=1, connected=True)
-        s["reading"] = {"on": True, "held": "drive", "read_through": -1}
+        s["reading"] = {"on": True, "held": "drive", "read_through": -1, "writing": False}
         stub, browser, page = await _page(s)
         try:
-            return await _until(page, CARD)
+            return await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'true' && g; }})()")
         finally:
             await _close(stub, browser)
-    assert reading.COPY["held"] in asyncio.run(run())
+    got = asyncio.run(run())
+    assert got and got["title"] == mute.COPY["held"], got
 
 
 DIAL = """(async () => {
@@ -172,39 +233,22 @@ def test_the_call_is_dialled_with_the_choice_and_a_change_by_voice_is_kept():
     assert state == "live" and calls == ["reading=1"] and stored == "0"
 
 
-MARKS = """[...document.querySelectorAll('#talk li.bot')].map(li => ({
-  mark: li.querySelector('.readmark')?.textContent || null, unread: li.classList.contains('unread')}))"""
-
-
-def test_each_reply_is_marked_unread_or_read_and_a_click_reads_it():
+def test_muting_mid_speech_stops_what_the_speakers_still_hold():
     async def run():
-        stub, browser, page = await _page(_talk_status())
+        stub, browser, page = await _page(_speaking_status())
         try:
-            marks = await _until(page, MARKS)
-            await _shot(page, "page-reading")
-            await page.eval("document.querySelector('#talk li.bot.unread').click()")
-            after = await _until(page, f"(() => {{ const m = {MARKS}; return m.every(x => !x.unread) && m; }})()")
-            stub.status["reading"]["on"] = False
-            off = await _until(page, f"(() => {{ const m = {MARKS}; return m.every(x => !x.mark) && m; }})()")
-            return marks, after, off, _posts(stub, "/voice/read")
+            await _on_a_call(page)
+            await page.eval("window.flushed = []; const port = call.player.port, real = port.postMessage.bind(port); "
+                            "port.postMessage = m => { window.flushed.push(m); real(m); }; true")
+            await page.eval("document.getElementById('mutebtn').click()")
+            flushed = await _until(page, "window.flushed.length && window.flushed")
+            await page.eval("document.getElementById('mutebtn').click()")  # unmuting flushes nothing
+            await asyncio.sleep(0.4)
+            return flushed, await page.eval("window.flushed")
         finally:
             await _close(stub, browser)
-    marks, after, off, posts = asyncio.run(run())
-    assert marks == [{"mark": reading.COPY["read"], "unread": False}, {"mark": reading.COPY["unread"], "unread": True}]
-    assert posts == [{"through": 4}] and after and off
-
-
-def test_mark_all_read_on_the_card():
-    async def run():
-        stub, browser, page = await _page(_talk_status())
-        try:
-            await _until(page, CARD)
-            await page.eval("document.getElementById('reading-markread').click()")
-            await asyncio.sleep(0.5)
-            return _posts(stub, "/voice/read")
-        finally:
-            await _close(stub, browser)
-    assert asyncio.run(run()) == [{}]
+    flushed, after = asyncio.run(run())
+    assert flushed == ["flush"] and after == ["flush"]
 
 
 # ---------- session mode: the held news ----------
@@ -335,16 +379,16 @@ def test_a_multi_line_message_shows_its_line_breaks():
     assert got["text"] == "first line\nsecond line" and got["ws"] in ("pre-wrap", "pre-line", "break-spaces")
 
 
-WHERE = """(() => ({parent: document.getElementById('readingbtn').parentElement.id || document.getElementById('readingbtn').parentElement.className,
-  before: document.getElementById('readingbtn').previousElementSibling?.id, more: !document.getElementById('morebtn').hidden}))()"""
+DOCK = """(() => ({read: !!document.getElementById('readingbtn'), more: !document.getElementById('morebtn').hidden,
+  right: [...document.querySelector('.dock-side.right').children].map(b => b.id)}))()"""
 
 
-def test_read_sits_beside_whisper_and_goes_to_more_only_when_the_dock_has_no_room():
+def test_the_dock_has_no_read_button_and_more_shows_only_on_a_narrow_screen():
     from test_ui_layout import LIVE, _run
     status = fixture(sessions=3, talk=2, connected=True)
     status["whisper"]["on"] = True
     status["challenge"] = {"id": "c1", "on": True, "plan": "Ship it.", "items": [], "verdict": None}
-    wide, squeezed, back = _run([(1440, LIVE, WHERE), (1024, LIVE, WHERE), (1440, "", WHERE)], status)
-    assert wide == {"parent": "dock-side right", "before": "whisperbtn", "more": False}
-    assert squeezed["parent"] == "more-list" and squeezed["more"]  # "End challenge" and "Whispering" take its room
-    assert back == wide
+    wide, squeezed, narrow = _run([(1440, LIVE, DOCK), (1024, LIVE, DOCK), (600, LIVE, DOCK)], status)
+    assert wide == {"read": False, "more": False, "right": ["chlbtn", "whisperbtn", "typebtn", "sessbtn"]}
+    assert squeezed == wide  # nothing leaves the dock for want of room now
+    assert narrow["more"] and not narrow["read"]

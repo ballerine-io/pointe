@@ -426,7 +426,7 @@
   #fixkey[hidden] { display: none; }
   /* Before Pointe has answered anyone on this Mac (status.first_call): Connect, the mic, Type, Settings and Sessions only. */
   body.firstrun #listen, body.firstrun #meetbtn, body.firstrun #briefbtn, body.firstrun .micmode, body.firstrun #chlbtn,
-  body.firstrun #whisperbtn, body.firstrun #readingbtn, body.firstrun #polishrow, body.firstrun #ctx, body.firstrun #modesec,
+  body.firstrun #whisperbtn, body.firstrun #polishrow, body.firstrun #ctx, body.firstrun #modesec,
   body.firstrun #m-night, body.firstrun #m-add, body.firstrun #morebtn, body.firstrun #connect-phone { display: none !important; }  /* More would hold only what is hidden */
   [data-state=connecting] .top .dot, [data-state=reconnecting] .top .dot { background: var(--orange); animation: breathe 1s infinite; }
   .state { font: 400 20px/1.2 var(--display); letter-spacing: -.015em; }
@@ -1609,7 +1609,8 @@
   <div class="top">
     <span class="dot"></span>
     <div class="grow">
-      <div class="state" id="state">Not connected</div>
+      <div class="stateline"><div class="state" id="state">Not connected</div><button type="button" id="mutebtn" onclick="muteToggle()" aria-pressed="false" aria-label="Mute Pointe" title="Mute Pointe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3l4.5-4v13l-4.5-4H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6"/><path class="slash" d="M3.5 3.5l17 17"/></svg></button></div>
       <div class="sr" id="statesay" role="status"></div>
       <div class="sub" id="sub">Press the mic to start talking</div>
       <div id="heldnews" role="status"></div>
@@ -1707,7 +1708,6 @@
   <div id="nightstrip"></div>
   <div id="briefalert"></div>
   <div id="whispercard"></div>
-  <div id="readingcard"></div>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
   <form id="compose" onsubmit="sendTyped(event)"><textarea id="typed" rows="1" dir="auto" placeholder="Type to the voice…" aria-label="Type to the voice" autocomplete="off" title="Enter sends · Shift+Enter or Option+Enter starts a new line" disabled></textarea>
     <button id="typed-send" disabled>Send</button></form>
@@ -1748,9 +1748,6 @@
       <button class="btn" id="whisperbtn" onclick="whisperToggle()" aria-pressed="false" title="Short, quiet replies for an open office">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h2M8 9v6M12 6v12M16 9v6M20 12h0"/></svg></span>
         <span class="lb" id="whisper-label">Whisper</span></button>
-      <button class="btn" id="readingbtn" onclick="readingToggle()" aria-pressed="false" title="Pointe writes instead of talking">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4.5 8.5 4.5 12 6.5v13c-3.5-2-6.5-2-9-1zM21 5.5c-2.5-1-5.5-1-9 1v13c3.5-2 6.5-2 9-1z"/></svg></span>
-        <span class="lb" id="reading-label">Read</span></button>
       <button class="btn" id="typebtn" onclick="typeNow()" title="Type instead of talking">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
         <span class="lb">Type</span></button>
@@ -1880,7 +1877,7 @@
     followKeys(status);
     if (window.dictionaryFollow) dictionaryFollow(status);
     if (window.whisperFollow) whisperFollow(status);
-    if (window.readingFollow) readingFollow(status);
+    if (window.muteFollow) muteFollow(status);
     showHeld(status);
     if (!status || renaming) return;  // never redraw the list under an open rename box
     const s = status;
@@ -2662,7 +2659,7 @@
       }
       await call.ctx.resume();
     } catch (e) { call.state = 'off'; micError = CONNECT_COPY.micFailed(e.message || e.name); showState(); return; }
-    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/voice/call${readingQuery()}`);
+    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/voice/call${muteQuery()}`);
     ws.binaryType = 'arraybuffer'; call.ws = ws;
     ws.onopen = () => { call.state = 'live'; wantCall = true; call.heard = Date.now(); mediaQuiet(); claimMediaKeys(); pttReset(); showState();
       // Protocol 5 (phone.py): the token of the call this page is on brings it back over this new link, as it was.
@@ -2679,7 +2676,7 @@
         if (m.type === 'interrupt') call.player.port.postMessage('flush');
         if (m.type === 'ping') { call.rtt = m.rtt_ms; call.answered = m.id; ws.send(JSON.stringify({type: 'pong', id: m.id})); }  // protocol 2 heartbeat
         if (m.type === 'ptt' && typeof m.open === 'boolean') pttRemote(m.open);  // a system-wide shortcut pressed on the Mac
-        if (m.type === 'reading' && typeof m.on === 'boolean') readingRemote(m.on);  // said by voice: this browser keeps it
+        if (m.type === 'reading' && typeof m.on === 'boolean') muteRemote(m.on);  // said by voice: this browser keeps it
         if (m.type === 'call' && typeof m.resume === 'string') { call.token = m.resume; retries = 0; if (m.resumed) pageEvent('back on the same call'); }
         return;
       }
@@ -2967,7 +2964,9 @@
     else if (s.hold) [st, title] = [pttMode() ? 'ptt' : muted ? 'muted' : 'live', TURNS_COPY.holding];
     else if (s.challenge && s.challenge.on && !(muted && !pttMode()) && !s.speaking) [st, title] = [pttMode() ? 'ptt' : 'live', 'Challenging'];
     else if (muted && !pttMode()) [st, title] = ['muted', 'Muted'];
-    else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking'];
+    else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking…'];
+    // muted: shown where it would have spoken (ui_mute.html, a later script: not there on the first paint)
+    else if (typeof muteWriting === 'function' && muteWriting(s)) [st, title] = ['writing', 'Writing…'];
     else if (s.speaking === 'user') [st, title] = ['user', 'Hearing you'];
     else if (pttMode()) [st, title] = ['ptt', Date.now() < ptt.whyUntil ? ptt.why
                                        : roomHeard() ? `Meeting: room is heard · ${pttStyleLabel().toLowerCase()}` : pttStyleLabel()];
@@ -2975,7 +2974,7 @@
     document.body.dataset.state = st; text('state', title);
     // Read out when the call itself changes (connected, dropped, muted, refused), not each turn's Speaking and Listening:
     // those would talk over the voice.
-    const callIs = ['live', 'bot', 'user', 'ptt', 'talking'].includes(st) ? 'on' : st;
+    const callIs = ['live', 'bot', 'writing', 'user', 'ptt', 'talking'].includes(st) ? 'on' : st;
     if (callIs !== saidState) { saidState = callIs; if (callIs !== 'off' || $('statesay').textContent) text('statesay', title); }
     document.body.classList.toggle('firstrun', !!(s && s.first_call));
     $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor) || denied || fails >= 3 || (s.connected && !mine);  // its own problem only
@@ -3180,8 +3179,7 @@
   function showTalk(s) {
     if (editing) return;  // never re-render under the user's cursor
     const turns = (s && s.talk) || [], polish = !!(s && s.polish);
-    const marks = typeof readingApplies === 'function' && readingApplies(s);  // reading mode: each of Pointe's lines says Unread or Read
-    const key = JSON.stringify([turns, polish, marks]);
+    const key = JSON.stringify([turns, polish]);
     if (key === talkShown) return;
     const firstPaint = talkShown === '';
     talkShown = key;
@@ -3192,14 +3190,14 @@
     for (const [id, li] of shown) if (!ids.has(id)) { li.remove(); shown.delete(id); }
     let added = false, prev = null, prevLi = null;
     for (const t of turns) {
-      const sig = JSON.stringify([t, polish, marks]);
+      const sig = JSON.stringify([t, polish]);
       let li = shown.get(t.id);
       if (!li) {
-        li = turnItem(t, polish, marks); li.dataset.sig = sig;
+        li = turnItem(t, polish); li.dataset.sig = sig;
         if (!firstPaint) li.classList.add('enter');
         shown.set(t.id, li); added = true;
       } else if (li.dataset.sig !== sig) {  // changed in place (a fix, a clean version): no animation, same spot
-        const fresh = turnItem(t, polish, marks); fresh.dataset.sig = sig; li.replaceWith(fresh); shown.set(t.id, fresh); li = fresh;
+        const fresh = turnItem(t, polish); fresh.dataset.sig = sig; li.replaceWith(fresh); shown.set(t.id, fresh); li = fresh;
       }
       if (li.previousElementSibling !== prevLi || !li.isConnected) prevLi ? prevLi.after(li) : list.prepend(li);  // turn order
       li.classList.toggle('gap', !!prev && prev.who !== t.who);  // consecutive turns of one speaker sit together
@@ -3211,10 +3209,9 @@
     if (pinned || firstPaint) toBottom(false);
     else if (added) $('newpill').hidden = false;
   }
-  function turnItem(t, polish, marks) {
+  function turnItem(t, polish) {
     if (t.who !== 'user') {
       const b = el('li', 'bot'); b.append(el('span', 'sr', 'Pointe: '), t.text);
-      if (marks) readingMarkTurn(b, t);
       return b;
     }
     const li = el('li', 'you fixable'); li.dir = 'auto';
@@ -4814,7 +4811,7 @@
   // Narrow screens (a phone, the page on an iPad): the bar is the app's (BottomBar.swift), Brain dump and Type left of
   // the mic, Sessions and Hang up right of it; four controls move into the More sheet, which opens from the top bar as
   // the app's ••• does. A button keeps its id wherever it sits, so nothing that finds one by id changes.
-  const DOCK_MORE = ['meetbtn', 'briefbtn', 'chlbtn', 'whisperbtn', 'readingbtn'];
+  const DOCK_MORE = ['meetbtn', 'briefbtn', 'chlbtn', 'whisperbtn'];
   const DOCK_PHONE = [['typebtn', '.dock-side.left'], ['hangup', '.dock-side.right']];  // appended after Brain dump, after Sessions
   const DOCK_MOVES = [...DOCK_MORE, ...DOCK_PHONE.map(([id]) => id)];
   const dockHome = new Map();  // id -> [its home, the sibling that stays put it sits before]
@@ -4830,27 +4827,13 @@
       const [home, next] = dockHome.get(id);
       if (into ? b.parentElement !== into : b.parentElement !== home) (into || home).insertBefore(b, into ? null : next);
     };
-    for (const id of DOCK_MORE) if (narrow || id !== 'readingbtn') place(id, narrow ? $('more-list') : null);
+    for (const id of DOCK_MORE) place(id, narrow ? $('more-list') : null);
     for (const [id, side] of DOCK_PHONE) place(id, narrow ? document.querySelector(side) : null);
-    const readIn = !narrow && fitReading();  // wider: Read stays beside Whisper while that side holds it on one row
     const polish = $('polishrow');  // a bare switch in the top bar says nothing: in More it keeps its words
     if (narrow ? polish.parentElement !== $('more-list') : polish.parentElement === $('more-list'))
       narrow ? $('more-list').append(polish) : document.querySelector('.top').insertBefore(polish, $('topconnect'));
-    $('morebtn').hidden = !narrow && readIn;
-    if (!narrow && readIn && $('moresheet').classList.contains('open')) closeSheet('moresheet');
-  }
-  // A fifth control on the right does not fit one row everywhere (1000 to 1100 px beside the sessions column, the
-  // showing pane, the longer labels "End challenge" and "Whispering"): then Read goes to the More sheet, alone.
-  let readW = 52;
-  function fitReading() {
-    const side = document.querySelector('.dock-side.right'), b = $('readingbtn');
-    if (b.parentElement === side) readW = b.getBoundingClientRect().width || readW;
-    const others = [...side.children].filter(x => x !== b && !x.hidden && getComputedStyle(x).display !== 'none');
-    const gap = parseFloat(getComputedStyle(side).columnGap) || 0;
-    const fits = others.reduce((w, x) => w + x.getBoundingClientRect().width + gap, 0) + readW <= side.clientWidth + 0.5;
-    if (fits && b.parentElement !== side) side.insertBefore(b, $('whisperbtn').parentElement === side ? $('whisperbtn').nextSibling : side.firstChild);
-    else if (!fits && b.parentElement !== $('more-list')) $('more-list').append(b);
-    return fits;
+    $('morebtn').hidden = !narrow;
+    if (!narrow && $('moresheet').classList.contains('open')) closeSheet('moresheet');
   }
   new ResizeObserver(() => layoutDock()).observe(document.querySelector('.dock'));
   for (const id of ['chlbtn', 'whisperbtn', 'typebtn', 'sessbtn']) new ResizeObserver(() => layoutDock()).observe($(id));
@@ -5014,6 +4997,6 @@
 </script>
 {{DICTIONARY}}
 {{WHISPER}}
-{{READING}}
+{{MUTE}}
 </body>
 </html>

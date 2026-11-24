@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects (https://developers.cloudflare.com/pages/configuration/redirects/).
+# Reading mode became the mute button in 0.8.3: its docs page moved.
+/pointe/docs/features/reading-mode /pointe/docs/features/mute/ 301
+/pointe/docs/features/reading-mode/ /pointe/docs/features/mute/ 301

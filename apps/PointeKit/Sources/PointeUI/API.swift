@@ -63,7 +63,7 @@ struct API {
         var challenge: ChallengeStatus?  // devil's advocate (Challenge.swift): on, or the last one ended; nil from a Mac without it
         var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
         var whisper: WhisperStatus?  // whisper mode (Whisper.swift); nil from a Mac without it
-        var reading: ReadingStatus?  // reading mode, the call's (Reading.swift); nil from a Mac without it
+        var reading: ReadingStatus?  // mute, the call's (Mute.swift; the wire's name is reading mode's); nil from a Mac without it
         var held: HeldStatus?        // session mode: the other sessions' news, held and not spoken; nil from an older Mac
         var idle_hangup: Bool?      // the Mac's idle timer ended the last call: not redialled
         var recent: [Dispatch]?     // the last requests and where each went, oldest first; the page's Recent requests
@@ -442,7 +442,6 @@ struct API {
         let understood: String? // the cleaned-up wording, when "clean up my words" is on
         let typed: Bool?
         let corrected: Bool?
-        var unread: Bool? = nil // one of Pointe's lines not read yet (reading mode); nil from an older Mac
         var mine: Bool { who == "user" }
     }
 
@@ -563,11 +562,8 @@ struct API {
     /// A typed line not answered in this long is sent again (Outbox): a request lost on a weak link fails fast.
     static let sayTimeout: TimeInterval = 8
 
-    /// Reading mode for the call (this device keeps its own choice either way).
+    /// Mute for the call (this device keeps its own choice either way).
     func reading(_ on: Bool) async throws { try await post("voice/reading", ["on": on]) }
-
-    /// One of Pointe's lines read (and every line before it), or all of them.
-    func markRead(through id: Int? = nil) async throws { try await post("voice/read", id.map { ["through": $0] } ?? [:]) }
 
     /// Session mode's held news, said now (the badge's Tell me).
     func tellHeld() async throws { try await post("voice/held", ["action": "tell"]) }

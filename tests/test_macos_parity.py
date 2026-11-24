@@ -84,7 +84,7 @@ def test_the_state_line_is_one_function_for_the_window_the_menu_bar_and_the_bubb
     title = (UI / "CallTitle.swift").read_text()
     body = title[title.index("static func line("):title.index("/// What holds the call")]
     order = [body.index(word) for word in ("ChallengeCopy.state", "BrainDumpCopy.state", "TurnsCopy.holding", "talkingLine(call)",
-                                           '"Speaking"', "call.talkNote", "closedLine", '"Muted"', '"Listening"')]
+                                           "MuteCopy.speaking", "MuteCopy.writing", "call.talkNote", "closedLine", '"Muted"', '"Listening"')]
     assert order == sorted(order), "the first that holds is the line"
     assert "CallTitle.line(" in (UI / "CallView.swift").read_text() and "CallTitle.line(" in (UI / "MacShell.swift").read_text()
     tags = "away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'"

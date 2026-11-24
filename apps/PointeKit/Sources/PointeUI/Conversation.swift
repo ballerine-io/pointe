@@ -8,8 +8,6 @@ struct ConversationView: View {
     var draft: String? = nil  // push to talk: the hearing is a press's words, not sent yet (TalkDraft)
     var large = false  // whisper mode: the words heard so far, big enough to check before they are acted on
     var placeholder = true  // false while the Connect stage stands where the words will be (no call up yet)
-    var reading = false  // reading mode: Pointe's lines say Unread or Read, and a tap on one reads it and those before it
-    var markRead: (API.Turn) -> Void = { _ in }
     var outgoing: [Outbox.Line] = []  // typed lines on their way: shown at once, under the conversation
     var retry: (String) -> Void = { _ in }
     let edit: (API.Turn) -> Void
@@ -30,10 +28,10 @@ struct ConversationView: View {
                     let groupEnd = next?.who != turn.who
                     let newestMine = turn.mine && turn.id == turns.last?.id && hearing.isEmpty
                     Bubble(turn: turn, polish: polish, pending: polish && turn.id == turns.last(where: \.mine)?.id,
-                           tail: groupEnd, readMark: reading && !turn.mine ? turn.unread == true : nil)
+                           tail: groupEnd)
                         // the live bubble becomes this one: same place, same shape, so it flows instead of jumping
                         .matchedGeometryEffect(id: newestMine ? "speech" : "turn-\(turn.id)", in: speech)
-                        .onTapGesture { if turn.mine { edit(turn) } else if reading { markRead(turn) } }
+                        .onTapGesture { if turn.mine { edit(turn) } }
                         .padding(.bottom, groupEnd ? 14 : 4)
                         .transition(.opacity)
                 }
@@ -60,7 +58,6 @@ struct Bubble: View {
     let polish: Bool
     var pending = false
     var tail = true
-    var readMark: Bool? = nil  // reading mode, one of Pointe's lines: true unread, false read; nil shows nothing
     @Environment(\.layoutDirection) private var direction
 
     var body: some View {
@@ -76,7 +73,6 @@ struct Bubble: View {
                 if turn.mine && (turn.typed == true || turn.corrected == true || (pending && turn.understood == nil)) {
                     badges
                 }
-                if let readMark { ReadMark(unread: readMark) }
             }
             .font(.brand(.body))
             .lineSpacing(2)
@@ -92,7 +88,7 @@ struct Bubble: View {
         .netProbe(turn.text)
         .accessibilityElement(children: .combine)
         .accessibilityLabel((turn.mine ? "You: " : "Pointe: ") + (turn.understood ?? turn.text))
-        .accessibilityHint(turn.mine ? "Double-tap to fix what was heard" : readMark == true ? "Double-tap to mark it read" : "")
+        .accessibilityHint(turn.mine ? "Double-tap to fix what was heard" : "")
     }
 
     /// Where a text's lines start inside a bubble, on a screen laid out in `direction`: English on the left, Hebrew on the

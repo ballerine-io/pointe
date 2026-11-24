@@ -556,31 +556,35 @@
    ]
   },
   {
-   "id": "reading",
-   "title": "Reading mode",
+   "id": "mute",
+   "title": "Mute Pointe",
    "ask": [
-    "reading mode",
-    "read instead",
+    "mute pointe",
+    "mute the voice",
+    "mute you",
+    "unmute",
     "stop talking",
     "text only",
-    "mute the voice",
+    "read instead",
+    "reading mode",
     "don't speak",
     "i'll read",
     "talk again",
     "מצב קריאה",
     "בלי קול",
-    "תפסיק לדבר"
+    "תפסיק לדבר",
+    "השתק"
    ],
-   "how": "Reading mode stops Pointe's voice: every reply shows as text, marked unread until you read it, and you still talk or type. \"Talk again\" ends it. Each device keeps its own choice.",
-   "about": "\"Stop talking, I'll read\": Pointe never speaks, you read every reply, approvals unchanged",
+   "how": "The speaker button beside the status line mutes Pointe: it writes every reply as text instead of speaking, and the status says \"Writing…\". Tap it again, or say \"talk again\", to hear Pointe. You still talk or type. Each device keeps its own choice.",
+   "about": "One button beside the status line: Pointe writes every reply instead of speaking, approvals unchanged",
    "iphone": [
-    "Settings (••• at the top) → Read"
+    "the speaker button beside the status line (Mute Pointe / Unmute Pointe)"
    ],
    "page": [
-    "Read button at the bottom"
+    "the speaker button beside the status line (Mute Pointe / Unmute Pointe)"
    ],
    "mac": [
-    "Settings (••• at the top, or ⌘,) → Read"
+    "the speaker button beside the status line (Mute Pointe / Unmute Pointe)"
    ],
    "voice": [
     "stop talking, I'll read",
@@ -1251,7 +1255,6 @@
     ],
     "Clean up my words": [],
     "Whisper": [],
-    "Read": [],
     "Dictionary": [],
     "Sessions and mode": [],
     "Machines": [],
@@ -1291,6 +1294,10 @@
    "header": [
     "Start a meeting",
     "Connect"
+   ],
+   "status": [
+    "Mute Pointe",
+    "Unmute Pointe"
    ],
    "session": [
     "Sessions and mode",
@@ -1334,7 +1341,6 @@
     "Talk from outside the app": [],
     "Clean up my words": [],
     "Whisper": [],
-    "Read": [],
     "Dictionary": [],
     "Sessions and mode": [],
     "Machines": [],
@@ -1376,6 +1382,10 @@
     "Drive",
     "Start a meeting",
     "Connect"
+   ],
+   "status": [
+    "Mute Pointe",
+    "Unmute Pointe"
    ],
    "session": [
     "Sessions and mode",
@@ -1499,7 +1509,6 @@
     "Hang up",
     "Challenge",
     "Whisper",
-    "Read",
     "Type",
     "Sessions"
    ],
@@ -1525,6 +1534,10 @@
     "Clean up my words",
     "Connect",
     "More"
+   ],
+   "status": [
+    "Mute Pointe",
+    "Unmute Pointe"
    ],
    "row": [
     "Rename",

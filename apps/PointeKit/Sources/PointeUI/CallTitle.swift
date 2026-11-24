@@ -11,18 +11,20 @@ enum CallTitle {
         case .connecting: return ConnectCopy.connecting(macName)
         case .reconnecting: return "Reconnecting…"
         case .live:
+            let writing = MuteChoice.writing(status: status, stored: false)  // muted: shown where it would have spoken
             if let refused = status?.key_refused ?? status?.vendor_fault { return refused.ears ? ConnectCopy.cannotHear : ConnectCopy.cannotAnswer }
             if status?.challenge?.on == true { return ChallengeCopy.state }
             if dumping { return BrainDumpCopy.state }
             if status?.hold != nil { return TurnsCopy.holding }
             if call.talk.ptt {
                 if talking { return talkingLine(call) }
-                if speaking { return "Speaking" }
+                if speaking { return MuteCopy.speaking }
+                if writing { return MuteCopy.writing }
                 if let note = call.talkNote { return note }
                 if let why = call.talkClosedWhy { return TalkGate.closedLine(why, style: call.talkStyle) }
                 return call.talk.roomHeard ? "Meeting: room is heard · \(call.talkStyle.label.lowercased())" : call.talkStyle.label
             }
-            return muted ? "Muted" : speaking ? "Speaking" : "Listening"
+            return muted ? "Muted" : speaking ? MuteCopy.speaking : writing ? MuteCopy.writing : "Listening"
         }
     }
 

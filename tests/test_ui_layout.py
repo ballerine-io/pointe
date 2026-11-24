@@ -287,7 +287,7 @@ def test_the_dock_keeps_its_labels_where_they_fit():
     longs = _run([(1024, LIVE, DOCK), (1000, "", DOCK), (761, "", DOCK)], long)
     for sides in got[:3] + longs:
         assert all(s["rows"] == 1 and s["inside"] and None not in s["labels"] for s in sides), sides
-    assert [s["labels"] for s in got[0]] == [["Brain dump", "Meeting", "Briefing"], ["Challenge", "Whisper", "Read", "Type"]]
+    assert [s["labels"] for s in got[0]] == [["Brain dump", "Meeting", "Briefing"], ["Challenge", "Whisper", "Type"]]
     assert [s["labels"] for s in longs[0]][1] == ["End challenge", "Whispering", "Type"]  # Read went to More: no room for it
     assert all(s["rows"] == 1 and set(s["labels"]) == {None} for s in got[3]), got[3]
     assert [s["labels"] for s in got[4]] == [["Brain dump", "Type"], ["Sessions", "Hang up"]]  # a phone: the app's four, labelled
@@ -432,7 +432,7 @@ def test_a_screen_reader_hears_an_approval_and_the_call_changing_but_not_each_tu
     _, first, turn = _run([(1440, "", say), (1440, LIVE, say), (1440, "", say)], talking)
     assert off == ["polite", ""], off
     assert live == ["polite", "Listening"] and muted[1] == "Muted", (live, muted)
-    assert first[1] == turn[1] == "Speaking", (first, turn)  # said once, as the call came up
+    assert first[1] == turn[1] == "Speaking…", (first, turn)  # said once, as the call came up
 
 
 KEYS = {"line": "Setup: Free start. Every role is filled.", "setup": "free",

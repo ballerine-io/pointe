@@ -10,7 +10,6 @@ struct CallSettingsModel: Equatable, Sendable {
     var patience = TurnsCopy.defaultLevel
     var polish = false
     var whisper: Bool?  // nil: this Mac has no whisper mode
-    var reading: Bool?  // reading mode as shown here (ReadingChoice.on); nil: this Mac has no reading mode
     var machines = false
     var meetingOn = false
     var meetingEnded = false
@@ -29,13 +28,12 @@ struct CallSettingsModel: Equatable, Sendable {
     init() {}
 
     init(status: API.Status?, prefs: API.Prefs?, microphone: String, talkStyle: TalkStyle, live: Bool, dumping: Bool,
-         driving: Bool, driveSuggest: Bool, demo: Bool, outside: Bool? = nil, readingStored: Bool = false) {
+         driving: Bool, driveSuggest: Bool, demo: Bool, outside: Bool? = nil) {
         self.microphone = microphone
         self.talkStyle = talkStyle
         patience = prefs?.patience ?? TurnsCopy.defaultLevel
         polish = status?.polish ?? false
         whisper = status?.whisper.map { $0.on }
-        reading = status?.reading == nil ? nil : ReadingChoice.on(status: status, stored: readingStored)
         machines = status?.machines != nil
         meetingOn = status?.meeting?.isOn == true
         meetingEnded = status?.meeting?.isEnded == true
@@ -66,7 +64,6 @@ struct CallSettingsActions {
     var setPatience: (String) -> Void = { _ in }
     var setPolish: (Bool) -> Void = { _ in }
     var setWhisper: (Bool) -> Void = { _ in }
-    var setReading: (Bool) -> Void = { _ in }
     var setDriveSuggest: (Bool) -> Void = { _ in }
     var setOutside: (Bool) -> Void = { _ in }
     var open: (CallSettingsLink) -> Void = { _ in }
@@ -83,7 +80,6 @@ struct CallSettingsSheet: View, Equatable {
     @State private var polishWanted: Bool?  // a switch moves at the tap; the Mac's word replaces it on the next status
     @State private var whisperWanted: Bool?
     @State private var outsideWanted: Bool?
-    @State private var readingWanted: Bool?
     @State private var unpairAsked = false
     #if os(macOS)
     @Environment(\.macSettings) private var macSections
@@ -135,12 +131,6 @@ struct CallSettingsSheet: View, Equatable {
                             Label(WhisperCopy.button, systemImage: "waveform.badge.minus")
                         }
                         .accessibilityIdentifier("whisperItem")
-                    }
-                    if let reading = model.reading {
-                        Toggle(isOn: Binding(get: { readingWanted ?? reading }, set: { readingWanted = $0; act.setReading($0) })) {
-                            Label(ReadingCopy.button, systemImage: "text.bubble")
-                        }
-                        .accessibilityIdentifier("readingToggle")
                     }
                     if model.dictionary {
                         row(VocabularyCopy.menuItem, "text.book.closed", .dictionary).accessibilityIdentifier("dictionaryItem")
@@ -212,7 +202,6 @@ struct CallSettingsSheet: View, Equatable {
             .onChange(of: model.polish) { polishWanted = nil }
             .onChange(of: model.whisper) { whisperWanted = nil }
             .onChange(of: model.outside) { outsideWanted = nil }
-            .onChange(of: model.reading) { readingWanted = nil }
             .sheetTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.automatic) } }
         }

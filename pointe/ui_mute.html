@@ -1,0 +1,59 @@
+<!-- Mute (mute.py, docs/features/mute.md): one toggle beside the call's status line. Muted, Pointe never speaks: every
+     line it would say arrives as text, and the status says "Writing…" where it would say "Speaking…". Served inside
+     ui.html at {{MUTE}}; the apps have the same button and words (MuteCopy in Mute.swift). Each browser keeps its own
+     choice (localStorage `pointe.reading`, the name from when this was reading mode) and dials the call with it
+     (?reading=1); while a call is up the daemon's status is the truth, and a change said by voice comes back on the
+     call's socket ({"type": "reading"}) to be kept here. Drive mode holds it (status `held`). -->
+<style>
+  .stateline { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .stateline .state { min-width: 0; }
+  #mutebtn { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+             background: var(--raised); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; }
+  #mutebtn:hover { color: var(--accent); }
+  #mutebtn svg { width: 18px; height: 18px; }
+  #mutebtn[aria-pressed=true] { color: var(--accent); box-shadow: inset 0 0 0 2px var(--orange); }
+  [data-state=writing] .top .dot { background: var(--orange); animation: breathe 1s ease-in-out infinite; }
+  body.firstrun #mutebtn { display: none; }
+  @media (max-width: 760px) { #mutebtn { width: 44px; height: 44px; } }  /* a finger's target */
+</style>
+<script>
+  // The words, word for word mute.COPY and MuteCopy (tests/test_mute.py). ui.html's showState says the first two.
+  const MUTE_COPY = {
+    speaking: 'Speaking…',
+    writing: 'Writing…',
+    mute: 'Mute Pointe',
+    unmute: 'Unmute Pointe',
+    held: 'Drive mode holds mute: Pointe talks while you drive.',
+    failed: 'Mute did not change: the voice is not reachable.',
+  };
+  const MUTE_KEY = 'pointe.reading';
+  function muteStored() { try { return localStorage.getItem(MUTE_KEY) === '1'; } catch (e) { return false; } }
+  function muteStore(on) { try { localStorage.setItem(MUTE_KEY, on ? '1' : '0'); } catch (e) {} }
+  const muteQuery = () => muteStored() ? '?reading=1' : '';  // the call's address: the daemon reads it before greeting
+  // While a call is up, the call's choice (status); with none, this browser's own.
+  function muteNow(s) {
+    if (s && s.connected && s.reading) return {on: !!s.reading.on, held: s.reading.held || null, writing: !!s.reading.writing};
+    return {on: muteStored(), held: null, writing: false};
+  }
+  const muteWriting = s => { const m = muteNow(s); return m.on && !m.held && m.writing; };
+  function muteRemote(on) { muteStore(on); refresh(); }  // said by voice on this call: kept for the next one
+  async function muteSet(on) {
+    muteStore(on);
+    // Muted mid-sentence: what this browser still holds to play stops now, before the Mac's own cut arrives.
+    if (on && call.player && !(status && status.reading && status.reading.held)) call.player.port.postMessage('flush');
+    if (status && status.connected && status.reading) status.reading.on = on;  // shown at once; the next poll confirms
+    muteFollow(status); showState();
+    try {
+      const r = await fetch('/voice/reading', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
+      if (!r.ok) throw new Error(String(r.status));
+    } catch (e) { sayProblem(MUTE_COPY.failed); }
+    refresh();
+  }
+  function muteToggle() { muteSet(!muteNow(status).on); }
+  function muteFollow(s) {
+    const m = muteNow(s), btn = $('mutebtn'), label = m.on ? MUTE_COPY.unmute : MUTE_COPY.mute;
+    btn.setAttribute('aria-pressed', m.on);
+    btn.setAttribute('aria-label', label);
+    btn.title = m.on && m.held ? MUTE_COPY.held : label;
+  }
+</script>

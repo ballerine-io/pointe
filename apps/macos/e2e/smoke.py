@@ -82,6 +82,15 @@ SCREENS = {  # -demo <screen>: an identifier that screen shows
 }
 
 
+def wait_for(holds, timeout: float = 4) -> bool:
+    end = time.time() + timeout
+    while time.time() < end:
+        if holds():
+            return True
+        time.sleep(0.25)
+    return False
+
+
 def shared_bundle_ids(app: Path) -> list[str]:
     """The resource bundles inside `app` that carry the app's own identifier. PRODUCT_BUNDLE_IDENTIFIER on the
     xcodebuild command line sets it on every target, PointeUI's resource bundle too, and then the Chorus mark does not
@@ -197,21 +206,40 @@ def main() -> int:
     finally:
         app.quit()
 
-    # reading mode: the card, Unread and Read on Pointe's lines, Mark all read, Talk again; the toggle in Settings
+    # mute: one button beside the status line. "Speaking…" while Pointe speaks; muted, "Writing…" where it would speak.
+    # No Reading card, no Unread or Read marks, no Read switch in Settings.
+    def line(app: App) -> str:
+        return app.ax("label", "statusLine").stdout
     for look in ("dark", "light"):
-        app = start("-demo", "reading", "-demoEnglish", look=look)
+        app = start("-demo", "speaking", "-demoEnglish", look=look)
         try:
-            shown = app.wait("readingCard")
-            app.shot("reading", look)
+            shown = app.wait("muteButton")
+            app.shot("speaking", look)
             if look == "dark":
-                check("reading mode shows its card and an unread line", shown and app.has("readingUnread") and app.has("readingRead"))
-                check("Mark all read reads every line", app.press("readingMarkRead") and app.wait("readingUnread", 4, gone=True))
-                check("Talk again ends it: the card goes", app.press("readingOff") and app.wait("readingCard", 4, gone=True))
+                check("while Pointe speaks the line says Speaking… with the mute button beside it",
+                      shown and "Speaking…" in line(app) and app.ax("label", "muteButton").stdout.strip() == "Mute Pointe", line(app))
+                check("muting mid-speech: the line says Writing… and the button unmutes",
+                      app.press("muteButton") and wait_for(lambda: "Writing…" in line(app))
+                      and app.ax("label", "muteButton").stdout.strip() == "Unmute Pointe", line(app))
         finally:
             app.quit()
-    app = start("-demo", "reading", "-sheet", "settings")
+        app = start("-demo", "writing", "-demoEnglish", look=look)
+        try:
+            shown = app.wait("muteButton")
+            app.shot("writing", look)
+            if look == "dark":
+                check("muted, the line says Writing… and the reply is text",
+                      shown and "Writing…" in line(app) and "PR 212" in app.ax("texts", "conversation").stdout, line(app))
+                check("no Reading card and no Unread or Read marks",
+                      not any(app.has(i) for i in ("readingCard", "readingUnread", "readingRead", "readingMarkRead", "readingOff")))
+                check("unmuting restores the voice: Listening, and the button mutes",
+                      app.press("muteButton") and wait_for(lambda: "Listening" in line(app))
+                      and app.ax("label", "muteButton").stdout.strip() == "Mute Pointe", line(app))
+        finally:
+            app.quit()
+    app = start("-demo", "writing", "-sheet", "settings")
     try:
-        check("Settings has the Read toggle beside Whisper", app.wait("microphoneSetting") and app.has("readingToggle"))
+        check("Settings has no Read switch", app.wait("microphoneSetting") and not app.has("readingToggle"))
     finally:
         app.quit()
 

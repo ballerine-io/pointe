@@ -11,7 +11,7 @@ struct Demo {
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
                        empty, noSessions, many, longNames, longRequest, hold, speaking, muted,
                        newSession, startPending, longTalk,
-                       nightShiftStart, nightShift, nightShiftLedger, nightShiftPending, reading, held }
+                       nightShiftStart, nightShift, nightShiftLedger, nightShiftPending, writing, held }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -53,7 +53,8 @@ struct Demo {
 
     static func make(_ screen: Screen, english: Bool = false) -> Demo? {
         let json = english ? inEnglish(source(screen)) : source(screen)
-        guard let status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
+        guard var status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
+        if status.reading == nil { status.reading = API.ReadingStatus(on: false) }  // every screen: a Mac with the mute button
         let notes = (try? JSONDecoder().decode([API.Note].self, from: Data(notesJSON.utf8))) ?? []
         return Demo(screen: screen, status: status, notes: [.meeting, .meetingHand, .meetingEnd].contains(screen) ? notes : [])
     }
@@ -85,7 +86,7 @@ struct Demo {
         case .challengeEnded: challengeJSON(on: false)
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         case .whisper, .whisperOff: whisperJSON(on: screen == .whisper)
-        case .reading: readingJSON
+        case .writing: writingJSON
         case .held: heldJSON
         case .rtl: rtlJSON
         case .empty, .noSessions, .many, .longNames, .longRequest, .hold: stressJSON(screen)
@@ -128,16 +129,16 @@ struct Demo {
         """
     }
 
-    /// Reading mode on: Pointe's earlier lines read, its newest one not yet (Reading.swift).
-    private static let readingJSON = """
+    /// Pointe muted, its newest reply just written: the status line says "Writing…" (Mute.swift).
+    private static let writingJSON = """
     {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
      "sessions": \(sessions),
      "talk": [{"id": 40, "who": "user", "text": "what's billing doing", "typed": false, "corrected": false},
-              {"id": 41, "who": "assistant", "text": "It finished the retry fix. Tests pass. It wants to know if it should open the PR.", "unread": false},
+              {"id": 41, "who": "assistant", "text": "It finished the retry fix. Tests pass. It wants to know if it should open the PR."},
               {"id": 42, "who": "user", "text": "Open the PR.\\nThen ask docs to update the changelog.", "typed": true, "corrected": false},
-              {"id": 43, "who": "assistant", "text": "Billing is opening the PR. Docs is on the changelog.", "unread": false},
-              {"id": 45, "who": "assistant", "text": "Billing opened PR 212. All 48 tests pass.", "unread": true}],
-     "reading": {"on": true, "held": null, "read_through": 43}}
+              {"id": 43, "who": "assistant", "text": "Billing is opening the PR. Docs is on the changelog."},
+              {"id": 45, "who": "assistant", "text": "Billing opened PR 212. All 48 tests pass."}],
+     "reading": {"on": true, "held": null, "read_through": -1, "writing": true}}
     """
 
     /// Session mode on billing: two updates from other sessions held (one an approval, whose card stays and is tapped).

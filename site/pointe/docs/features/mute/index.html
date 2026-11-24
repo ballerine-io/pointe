@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reading mode · Pointe docs</title>
-<meta name="description" content="Pointe stops speaking. Everything it would say arrives as text in the conversation, and you read it. You still talk or type to it, and approvals work as…">
+<title>Mute · Pointe docs</title>
+<meta name="description" content="One button mutes Pointe&#x27;s voice. Everything it would say arrives as text in the conversation, and you read it. You still talk or type to it, and approvals…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="Reading mode">
-<meta property="og:description" content="Pointe stops speaking. Everything it would say arrives as text in the conversation, and you read it. You still talk or type to it, and approvals work as…">
+<meta property="og:title" content="Mute">
+<meta property="og:description" content="One button mutes Pointe&#x27;s voice. Everything it would say arrives as text in the conversation, and you read it. You still talk or type to it, and approvals…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
-<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/reading-mode/">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/mute/">
 <meta name="twitter:card" content="summary_large_image">
 <script>
   // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
-  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/reading-mode/' + location.hash);
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/mute/' + location.hash);
 </script>
 <link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
@@ -90,7 +90,7 @@
 <li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
 <li><a href="../show-while-it-says/">Show while it says</a></li>
 <li><a href="../whisper-mode/">Whisper mode</a></li>
-<li><a href="./" aria-current="page">Reading mode</a></li>
+<li><a href="./" aria-current="page">Mute</a></li>
 <li><a href="../conflict-alarm/">Conflict alarm</a></li>
 <li><a href="../meeting-mode/">Meeting mode</a></li>
 <li><a href="../new-session/">Start a new session</a></li>
@@ -111,34 +111,37 @@
 </nav>
 <main id="main" class="dx-main">
 <article class="dx-doc">
-<h1 id="reading-mode">Reading mode</h1>
-<p>Pointe stops speaking. Everything it would say arrives as text in the conversation, and you read it. You still talk or
-type to it, and approvals work as they always do. For a quiet room, a call you are on, or anyone who reads faster than
-they listen.</p>
-<p>The rules live in <code>pointe/reading.py</code> (the phrases, the words, the status); the daemon applies them in one place,
-<code>daemon.ReadingOut</code>, between the brain and the mouth.</p>
+<h1 id="mute">Mute</h1>
+<p>One button mutes Pointe's voice. Everything it would say arrives as text in the conversation, and you read it. You still
+talk or type to it, and approvals work as they always do. For a quiet room, a call you are on, or anyone who reads faster
+than they listen. It replaces reading mode, and keeps its two phrases.</p>
+<p>The rules live in <code>pointe/mute.py</code> (the phrases, the words, the status); the daemon applies them in one place,
+<code>daemon.MuteOut</code>, between the brain and the mouth.</p>
 <h2 id="use-it">Use it</h2>
 <ul>
 <li>
-<p><strong>Voice:</strong> "stop talking, I'll read", "I'll read", "reading mode", "text only", "<span lang="he" dir="rtl">מצב קריאה</span>" turn it on. "Talk again",
-  "you can talk again", "reading mode off", "back to normal", "<span lang="he" dir="rtl">תדבר שוב</span>", "<span lang="he" dir="rtl">חזרה לרגיל</span>" turn it off, only while it is on.
+<p><strong>The button:</strong> a speaker with a slash, beside the call's status line, on the page, in the iPhone app and in the Mac
+  app. It says "Mute Pointe"; muted, it is filled and says "Unmute Pointe".</p>
+</li>
+<li>
+<p><strong>The status line:</strong> while Pointe speaks it says "Speaking…". Muted, it says "Writing…" whenever Pointe would have
+  spoken, and the reply is in the conversation.</p>
+</li>
+<li>
+<p><strong>Voice:</strong> "stop talking, I'll read", "I'll read", "reading mode", "text only", "<span lang="he" dir="rtl">מצב קריאה</span>" mute it. "Talk again",
+  "you can talk again", "reading mode off", "back to normal", "<span lang="he" dir="rtl">תדבר שוב</span>", "<span lang="he" dir="rtl">חזרה לרגיל</span>" unmute it, only while it is muted.
   Typed, the same words do the same. Each must be a whole short utterance; the voice model never gets them. Pointe
-  answers in text: "Reading mode: I'll write instead of talking. Say "talk again" to hear me.", and "Talking again." aloud
-  when it ends.</p>
+  answers in text: "Muted: I'll write instead of talking. Say "talk again" to hear me.", and "Talking again." aloud when
+  it ends.</p>
 </li>
-<li>
-<p><strong>Page:</strong> Read in the dock (it reads Reading while on). A card says "Reading mode: Pointe writes, you read.", with
-  Talk again and Mark all read.</p>
-</li>
-<li>
-<p><strong>iPhone app:</strong> Settings (⋯) → Read, and the same card.</p>
-</li>
-<li><strong>Mac app:</strong> the iPhone app's screens: Settings (••• at the top, or ⌘,) → Read, and the same card.</li>
 </ul>
+<p><strong>Muting in the middle of a reply</strong> stops the audio at once, on the Mac and on the device you hear it from. The reply
+goes on as text: the sentences Pointe had not said yet are written.</p>
 <p><strong>Each device keeps its own choice.</strong> The page keeps it in the browser, each app on its device. A device says its choice
-when it calls (<code>?reading=1</code> on the call's address), so the first greeting is already text. Turned on or off by voice
-during a call, the choice is sent to the device on the call, which keeps it. With no call up, Read changes only that
-device's choice.</p>
+when it calls (<code>?reading=1</code> on the call's address), so the first greeting is already text, and a call that reconnects
+is still muted. Muted or unmuted by voice during a call, the choice is sent to the device on the call, which keeps it.
+While a call is up every screen shows the call's choice, and the button on any of them changes it. With no call up, the
+button changes only that device's choice.</p>
 <h2 id="what-it-does">What it does</h2>
 <ul>
 <li>
@@ -148,63 +151,67 @@ device's choice.</p>
 <li>
 <p><strong>The text arrives as it always did:</strong> each line in the conversation, as on any call.</p>
 </li>
-<li>
-<p><strong>Unread and read.</strong> Each of Pointe's replies shows <strong>Unread</strong> until you read it, then <strong>Read</strong>. A reply counts as read
-  when you tap or click it (it and every reply before it), tap Mark all read, or talk or type after it. A reply that grows
-  after you read it is unread again. The daemon keeps this for the call, so every screen shows the same.</p>
-</li>
-<li>
-<p><strong>Chimes stay.</strong> A chime is not speech: a held approval in <a href="../../how-it-works/#session-mode-speaks-about-one-session">session mode</a>
-  still gets its one short cue.</p>
-</li>
+<li><strong>"Writing…"</strong> shows for two seconds after a line was written instead of spoken (<code>mute.WRITING_SECS</code>).</li>
+<li><strong>Chimes stay.</strong> A chime is not speech: a held approval in <a href="../../how-it-works/#session-mode-speaks-about-one-session">session mode</a>
+  still gets its one short cue.</li>
 </ul>
 <h2 id="approvals-and-read-backs-unchanged">Approvals and read-backs: unchanged</h2>
 <ul>
 <li>
 <p>A permission request is shown word for word, as its read-out. A tap answers it (Face ID or Touch ID in the apps), or a
-  spoken yes or no under the usual rules. In reading mode the bot's turn starts and ends the moment the line is shown, so
-  a yes counts only when begun after the line appeared and with nothing said between: the same rule as after the voice
-  stops.</p>
+  spoken yes or no under the usual rules. Muted, the bot's turn starts and ends the moment the line is shown, so a yes
+  counts only when begun after the line appeared and with nothing said between: the same rule as after the voice stops.</p>
 </li>
 <li>
-<p>A read-back (a new session, sessions to add, a night's plan, the meeting's action items, a close) is shown as text and
-  stays unread until you act. Its card's button confirms it, or a spoken yes under the read-back's rules.</p>
+<p>A read-back (a new session, sessions to add, a night's plan, the meeting's action items, a close) is shown as text.
+  Its card's button confirms it, or a spoken yes under the read-back's rules.</p>
 </li>
 <li>
-<p><strong>A typed yes confirms nothing</strong>, as without reading mode. In the apps a tap asks for Face ID or Touch ID; a typed
-  "yes" must not get around that. <code>tests/test_reading_mode.py</code> runs the same approval answers with the mode off and on
-  and asserts the same outcomes, and checks that a typed yes approves nothing.</p>
+<p><strong>A typed yes confirms nothing</strong>, as without mute. In the apps a tap asks for Face ID or Touch ID; a typed "yes" must
+  not get around that. <code>tests/test_mute.py</code> runs the same approval answers unmuted and muted and asserts the same
+  outcomes, and checks that a typed yes approves nothing.</p>
 </li>
 </ul>
 <h2 id="with-other-modes">With other modes</h2>
 <ul>
 <li>
-<p><strong>Drive mode holds it.</strong> On the road you cannot read, so Pointe talks while you drive; reading mode applies again when
-  you stop. Asked for while driving, it waits: "Reading mode starts when drive mode ends. I keep talking while you
-  drive." The card says "Drive mode holds reading mode: Pointe talks while you drive."</p>
+<p><strong>Drive mode holds it.</strong> On the road you cannot read, so Pointe talks while you drive; mute applies again when you
+  stop. Asked for while driving, it waits: "Mute starts when drive mode ends. I keep talking while you drive." The
+  button says "Drive mode holds mute: Pointe talks while you drive."</p>
 </li>
 <li>
 <p><strong>Whisper mode:</strong> both apply. Nothing is spoken, so the halved volume does not matter; the raised microphone and the
   short replies still do.</p>
 </li>
 <li>
-<p><strong>Push to talk:</strong> unchanged; it is about the microphone.</p>
+<p><strong>Push to talk and the microphone's own Mute:</strong> unchanged; they are about what Pointe hears. With the microphone
+  muted the status line says "Muted", as before.</p>
 </li>
-<li><strong>Meeting mode:</strong> what Pointe would say into the room (participating) is shown instead.</li>
-<li>"Back to normal" ends one mode per utterance: drive mode, then a challenge, then whisper mode, then reading mode.</li>
+<li>
+<p><strong>Meeting mode:</strong> what Pointe would say into the room (participating) is shown instead.</p>
+</li>
+<li>"Back to normal" ends one mode per utterance: drive mode, then a challenge, then whisper mode, then mute.</li>
 </ul>
+<h2 id="what-went-with-reading-mode">What went with reading mode</h2>
+<p>The Read button in the page's dock, the Read switch in the apps' Settings, the card ("Reading mode: Pointe writes, you
+read", Talk again, Mark all read) and the Unread and Read marks under each reply are gone. Nothing marks a reply read.
+A device that had reading mode on is muted.</p>
 <h2 id="limits">Limits</h2>
 <ul>
 <li>
 <p>Only on the default voice pipeline (the brain). With a realtime front (<code>CLAUDE_VOICE_FRONT=gemini|openai</code>) the model
-  makes its own audio, and reading mode does not stop it.</p>
+  makes its own audio, and mute does not stop it.</p>
 </li>
 <li>
 <p>A close by voice ("close billing and pricing") has no card: confirm it with a spoken yes, or close each session from
   its row.</p>
 </li>
+<li>
+<p>An iPhone or Mac app from before 0.8.3 on a call with a 0.8.3 Mac still shows its Read switch and card; they work.</p>
+</li>
 </ul>
 <h2 id="api">API</h2>
+<p>The names are reading mode's, so an app built before the mute button still works on a call.</p>
 <div class="dx-table"><table>
 <thead>
 <tr>
@@ -218,10 +225,6 @@ device's choice.</p>
 <td><code>{reading, applied}</code>. Sets the call's choice; <code>applied: false</code> with no call up. 400 unless <code>on</code> is a boolean</td>
 </tr>
 <tr>
-<td><code>POST /voice/read {through?: &lt;talk id&gt;}</code></td>
-<td><code>{reading}</code>. Marks Pointe's lines read up to that id, or all of them</td>
-</tr>
-<tr>
 <td>call address</td>
 <td><code>/voice/call?reading=1</code>, <code>/voice/phone?reading=1</code>: the calling device's choice</td>
 </tr>
@@ -231,16 +234,16 @@ device's choice.</p>
 </tr>
 <tr>
 <td>status <code>reading</code></td>
-<td><code>{on, held, read_through}</code>. <code>held</code> is <code>"drive"</code> while drive mode suspends it</td>
+<td><code>{on, held, writing, read_through}</code>. <code>held</code> is <code>"drive"</code> while drive mode suspends it; <code>writing</code> is true for a moment after a line was shown instead of spoken</td>
 </tr>
 <tr>
-<td>status <code>talk[].unread</code></td>
-<td>true for Pointe's lines after <code>read_through</code></td>
+<td><code>POST /voice/read</code>, status <code>talk[].unread</code>, <code>read_through</code></td>
+<td>what an older app's Unread and Read marks use; nothing in 0.8.3 shows them</td>
 </tr>
 </tbody>
 </table></div>
 </article>
-<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/reading-mode.md">docs/features/reading-mode.md</a> in the repository.</p>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/mute.md">docs/features/mute.md</a> in the repository.</p>
 <nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../whisper-mode/"><span class="pg-small">Previous</span>Whisper mode</a><a class="dx-next" href="../conflict-alarm/"><span class="pg-small">Next</span>Conflict alarm</a></nav>
 </main>
 <aside class="dx-toc" aria-label="On this page">
@@ -250,6 +253,7 @@ device's choice.</p>
 <li class="dx-l2"><a href="#what-it-does">What it does</a></li>
 <li class="dx-l2"><a href="#approvals-and-read-backs-unchanged">Approvals and read-backs: unchanged</a></li>
 <li class="dx-l2"><a href="#with-other-modes">With other modes</a></li>
+<li class="dx-l2"><a href="#what-went-with-reading-mode">What went with reading mode</a></li>
 <li class="dx-l2"><a href="#limits">Limits</a></li>
 <li class="dx-l2"><a href="#api">API</a></li>
 </ul>

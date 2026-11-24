@@ -8,9 +8,9 @@ without a reason. What the rows mean, how the scan works and the component spec:
 
 | Surface | yes | partial | no | n/a (bound to another surface) |
 |---|---|---|---|---|
-| Page | 86 | 0 | 0 | 20 |
-| iPhone | 96 | 0 | 0 | 10 |
-| Mac | 96 | 0 | 0 | 10 |
+| Page | 88 | 0 | 0 | 20 |
+| iPhone | 98 | 0 | 0 | 10 |
+| Mac | 98 | 0 | 0 | 10 |
 
 Before this work (a pre-release build (2026-11-21)), by the same scan:
 
@@ -24,54 +24,54 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
-| Connect, Try again, Cancel and Hang up, with the reason a call did not start <br>`call.connect` | yes `ui.html:1645` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` |
-| A dropped call is redialled; a refused or idle-ended one is not, and says why <br>`call.redial` | yes `ui.html:2697` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:636` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:636` |
-| A dropped link comes back on the same call: its token in the hello, the copy while it does <br>`call.resume` | yes `ui.html:2670` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:140` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:140` |
-| The state line: listening, speaking, muted, holding, reconnecting <br>`call.state` | yes `ui.html:1612` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1815` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1815` |
-| Mute and unmute <br>`call.mute` | yes `ui.html:1733` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:160` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:160` |
-| The conversation, newest line followed <br>`call.transcript` | yes `ui.html:1167` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:441` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:441` |
-| A New pill when lines arrive while you read further up <br>`call.new-pill` | yes `ui.html:1652` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:464` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:464` |
-| Your words as you speak them <br>`call.hearing` | yes `ui.html:1711` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:123` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:123` |
+| Connect, Try again, Cancel and Hang up, with the reason a call did not start <br>`call.connect` | yes `ui.html:1646` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` |
+| A dropped call is redialled; a refused or idle-ended one is not, and says why <br>`call.redial` | yes `ui.html:2694` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:642` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:642` |
+| A dropped link comes back on the same call: its token in the hello, the copy while it does <br>`call.resume` | yes `ui.html:2667` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:140` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:140` |
+| The state line: listening, speaking, muted, holding, reconnecting <br>`call.state` | yes `ui.html:1612` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1813` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1813` |
+| Mute and unmute the microphone <br>`call.mute` | yes `ui.html:1733` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:160` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:160` |
+| The conversation, newest line followed <br>`call.transcript` | yes `ui.html:1167` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:439` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:439` |
+| A New pill when lines arrive while you read further up <br>`call.new-pill` | yes `ui.html:1653` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:462` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:462` |
+| Your words as you speak them <br>`call.hearing` | yes `ui.html:1711` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:119` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:119` |
 | Type instead of talking <br>`call.type` | yes `ui.html:1712` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:244` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:244` |
-| A new line in a typed message: Enter sends; Shift+Enter, Option+Enter, or New line on the iPhone <br>`call.newline` | yes `ui.html:3299` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:273` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:249` |
-| A typed line shows at once, Sending then Sent; one the Mac did not take can be sent again <br>`call.type-sending` | yes `ui.html:3258` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` |
-| Fix what was heard in a line of yours <br>`call.correct` | yes `ui.html:3249` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:187` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:187` |
-| Clean up my words <br>`call.polish` | yes `ui.html:1621` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:131` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:131` |
-| The daemon's last problem (a refused key, a vendor down) on screen <br>`call.problem` | yes `ui.html:1616` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:431` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:431` |
+| A new line in a typed message: Enter sends; Shift+Enter, Option+Enter, or New line on the iPhone <br>`call.newline` | yes `ui.html:3296` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:273` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:249` |
+| A typed line shows at once, Sending then Sent; one the Mac did not take can be sent again <br>`call.type-sending` | yes `ui.html:3255` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` |
+| Fix what was heard in a line of yours <br>`call.correct` | yes `ui.html:3246` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:183` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:183` |
+| Clean up my words <br>`call.polish` | yes `ui.html:1622` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` |
+| The daemon's last problem (a refused key, a vendor down) on screen <br>`call.problem` | yes `ui.html:1617` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:429` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:429` |
 | Hebrew lines read right to left <br>`call.rtl` | yes `ui.html:1210` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` |
 | How full the voice model's context is <br>`call.context` | yes `ui.html:1182` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:409` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:409` |
 | Recent requests and where each went <br>`call.recent` | yes `ui.html:1177` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:330` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:330` |
-| A line while the Mac keeps itself awake for a call from another device <br>`call.keep-awake` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:544` | n/a |
+| A line while the Mac keeps itself awake for a call from another device <br>`call.keep-awake` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:545` | n/a |
 
 ## Push to talk and turn taking
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
-| Microphone: Always on or Push to talk <br>`talk.mode` | yes `ui.html:1437` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:103` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:103` |
+| Microphone: Always on or Push to talk <br>`talk.mode` | yes `ui.html:1437` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:99` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:99` |
 | The Always on / Push to talk switch over the mic <br>`talk.switch` | yes `ui.html:1730` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:126` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:126` |
-| Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1438` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:109` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:109` |
-| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1639` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:183` | yes `apps/macos/PointeMac/AppModel.swift:463` |
+| Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1438` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:105` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:105` |
+| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1640` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:189` | yes `apps/macos/PointeMac/AppModel.swift:463` |
 | A draft of what a press has heard so far <br>`talk.draft` | yes `ui.html:1711` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:425` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:425` |
-| Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:4664` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` |
+| Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:4661` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:24` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:24` |
 | Talk without touching the screen: a key, a system-wide shortcut, or the Action button <br>`talk.key` | yes `ui.html:1439` | yes `apps/ios/PointeShared/TalkIntents.swift:13` | yes `apps/macos/PointeMac/HotKey.swift:5` |
-| Wait before answering: Quick, Normal or Patient <br>`talk.patience` | yes `ui.html:1459` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:115` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:115` |
-| Hold mode ("don't interrupt me"): quiet until you release it <br>`talk.hold` | yes `ui.html:2633` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:17` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:17` |
+| Wait before answering: Quick, Normal or Patient <br>`talk.patience` | yes `ui.html:1459` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:111` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:111` |
+| Hold mode ("don't interrupt me"): quiet until you release it <br>`talk.hold` | yes `ui.html:2630` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:18` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:18` |
 
 ## Sessions and machines
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | Sessions, grouped by machine, with each one's agent and state <br>`sessions.list` | yes `ui.html:1151` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:161` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:161` |
-| Focus on a session <br>`sessions.switch` | yes `ui.html:3099` | yes `apps/PointeKit/Sources/PointeUI/API.swift:544` | yes `apps/PointeKit/Sources/PointeUI/API.swift:544` |
-| Orchestrator or Session mode <br>`sessions.mode` | yes `ui.html:1158` | yes `apps/PointeKit/Sources/PointeUI/API.swift:582` | yes `apps/PointeKit/Sources/PointeUI/API.swift:582` |
-| Session mode holds the other sessions' news: a quiet count, the list, Tell me <br>`sessions.held` | yes `ui.html:1615` | yes `apps/PointeKit/Sources/PointeUI/Reading.swift:162` | yes `apps/PointeKit/Sources/PointeUI/Reading.swift:162` |
-| Rename a session <br>`sessions.rename` | yes `ui.html:3083` | yes `apps/PointeKit/Sources/PointeUI/API.swift:550` | yes `apps/PointeKit/Sources/PointeUI/API.swift:550` |
-| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3364` | yes `apps/PointeKit/Sources/PointeUI/API.swift:547` | yes `apps/PointeKit/Sources/PointeUI/API.swift:547` |
+| Focus on a session <br>`sessions.switch` | yes `ui.html:3098` | yes `apps/PointeKit/Sources/PointeUI/API.swift:543` | yes `apps/PointeKit/Sources/PointeUI/API.swift:543` |
+| Orchestrator or Session mode <br>`sessions.mode` | yes `ui.html:1158` | yes `apps/PointeKit/Sources/PointeUI/API.swift:578` | yes `apps/PointeKit/Sources/PointeUI/API.swift:578` |
+| Session mode holds the other sessions' news: a quiet count, the list, Tell me <br>`sessions.held` | yes `ui.html:1616` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` |
+| Rename a session <br>`sessions.rename` | yes `ui.html:3082` | yes `apps/PointeKit/Sources/PointeUI/API.swift:549` | yes `apps/PointeKit/Sources/PointeUI/API.swift:549` |
+| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3361` | yes `apps/PointeKit/Sources/PointeUI/API.swift:546` | yes `apps/PointeKit/Sources/PointeUI/API.swift:546` |
 | Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1166` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:588` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:588` |
 | Start a new session: agent, folder, machine, name, first prompt <br>`sessions.new` | yes `ui.html:1543` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:12` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:12` |
-| The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1704` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` |
+| The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1705` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` |
 | Add sessions already open, or reopen one from this week: search, by machine and agent <br>`sessions.add` | yes `ui.html:1557` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` |
-| The read-back card of sessions asked for by voice: Join, Reopen or Cancel <br>`sessions.add.readback` | yes `ui.html:1705` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` |
+| The read-back card of sessions asked for by voice: Join, Reopen or Cancel <br>`sessions.add.readback` | yes `ui.html:1706` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` |
 | Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1468` | n/a | yes `apps/macos/PointeMac/MacSettings.swift:82` |
 | Machines on this voice: online, sessions, round trip, key fingerprint <br>`machines.list` | yes `ui.html:1325` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:9` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:9` |
 | Invite a machine with a one-time code, cancel it, revoke a machine <br>`machines.invite` | yes `ui.html:1337` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:131` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:131` |
@@ -80,11 +80,11 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
-| A permission request as a card with the exact request, Deny and Approve <br>`approve.card` | yes `ui.html:1703` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1819` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1819` |
-| Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac <br>`approve.owner` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1184` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1184` |
-| How many more requests wait <br>`approve.more` | yes `ui.html:2535` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:712` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:712` |
-| A request whose machine went offline says it is back in its terminal <br>`approve.offline` | yes `ui.html:1916` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1857` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1857` |
-| A notification when a session needs you and you are not looking <br>`alerts.notify` | yes `ui.html:4887` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` |
+| A permission request as a card with the exact request, Deny and Approve <br>`approve.card` | yes `ui.html:1704` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1826` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1826` |
+| Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac <br>`approve.owner` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1179` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1179` |
+| How many more requests wait <br>`approve.more` | yes `ui.html:2532` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:712` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:712` |
+| A request whose machine went offline says it is back in its terminal <br>`approve.offline` | yes `ui.html:1913` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1864` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1864` |
+| A notification when a session needs you and you are not looking <br>`alerts.notify` | yes `ui.html:4870` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` |
 | Approve from notifications, as a setting <br>`alerts.approve` | yes `ui.html:1486` | yes `apps/PointeKit/Sources/PointeUI/API.swift:410` | yes `apps/PointeKit/Sources/PointeUI/API.swift:410` |
 | Deny and Approve on the notification itself <br>`alerts.actions` | n/a | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:209` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:209` |
 | Alerts keep arriving while the app is in the background <br>`alerts.background` | n/a | yes `apps/ios/Pointe/PointeApp.swift:13` | yes `apps/macos/PointeMac/PointeMacApp.swift:16` |
@@ -93,22 +93,22 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
-| Brain dump: think aloud, the thoughts listed, Done or Discard <br>`dump.panel` | yes `ui.html:1683` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` |
+| Brain dump: think aloud, the thoughts listed, Done or Discard <br>`dump.panel` | yes `ui.html:1684` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` |
 | Review the structured prompt: edit, pick who gets it, send <br>`dump.review` | yes `ui.html:1241` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:300` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:300` |
 | Add more, or have it read back, before sending <br>`dump.more` | yes `ui.html:1252` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:302` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:302` |
 | Challenge the plan from the review <br>`dump.challenge` | yes `ui.html:1254` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:304` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:304` |
-| Challenge (devil's advocate): the items, the plan, End <br>`challenge.panel` | yes `ui.html:1672` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` |
+| Challenge (devil's advocate): the items, the plan, End <br>`challenge.panel` | yes `ui.html:1673` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` |
 
 ## Meetings
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | Start a meeting: mode, context, sessions that may be asked, consent <br>`meeting.start` | yes `ui.html:1201` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:129` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:129` |
-| Listening or Participating, switched during the meeting <br>`meeting.mode` | yes `ui.html:1632` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:228` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:228` |
-| The notes feed, filtered by kind, and the transcript <br>`meeting.notes` | yes `ui.html:1669` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:416` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:416` |
-| A raised hand: let it speak, later, or type it <br>`meeting.hand` | yes `ui.html:1656` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:370` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:370` |
-| Name the speakers; "that was me" <br>`meeting.speakers` | yes `ui.html:1630` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:700` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:700` |
-| Ask or add context during the meeting, and look a note up <br>`meeting.ask` | yes `ui.html:1670` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:630` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:630` |
+| Listening or Participating, switched during the meeting <br>`meeting.mode` | yes `ui.html:1633` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:228` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:228` |
+| The notes feed, filtered by kind, and the transcript <br>`meeting.notes` | yes `ui.html:1670` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:416` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:416` |
+| A raised hand: let it speak, later, or type it <br>`meeting.hand` | yes `ui.html:1657` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:370` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:370` |
+| Name the speakers; "that was me" <br>`meeting.speakers` | yes `ui.html:1631` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:700` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:700` |
+| Ask or add context during the meeting, and look a note up <br>`meeting.ask` | yes `ui.html:1671` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:630` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:630` |
 | End: the summary, export notes (with the transcript), send the action items, discard <br>`meeting.end` | yes `ui.html:1226` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:748` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:748` |
 | Meeting settings: default mode, lookups, consent, notes language <br>`meeting.settings` | yes `ui.html:1405` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:871` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:871` |
 
@@ -117,17 +117,19 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | Briefing: what happened since, play, stop, length <br>`briefing.sheet` | yes `ui.html:1516` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:187` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:187` |
-| A ready briefing offers itself; playing, it has its own bar <br>`briefing.ready` | yes `ui.html:1708` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` |
+| A ready briefing offers itself; playing, it has its own bar <br>`briefing.ready` | yes `ui.html:1709` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` |
 | A scheduled briefing: days, time, length, skip when empty <br>`briefing.schedule` | yes `ui.html:1396` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:312` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:312` |
 | Night shift: tasks for the sessions, the hours and the message budget, Start <br>`night.start` | yes `ui.html:1568` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:16` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:16` |
-| The read-back card of a night shift asked for by voice: Start or Cancel <br>`night.readback` | yes `ui.html:1706` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` |
-| A running night shift: tasks done, the blocked count, Stop <br>`night.status` | yes `ui.html:1707` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` |
+| The read-back card of a night shift asked for by voice: Start or Cancel <br>`night.readback` | yes `ui.html:1707` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` |
+| A running night shift: tasks done, the blocked count, Stop <br>`night.status` | yes `ui.html:1708` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` |
 | The night's ledger: decisions, questions, done, blocked with the exact request, in flight <br>`night.ledger` | yes `ui.html:1584` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:253` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:253` |
 | Alerts about a night shift's blockers: off unless asked for <br>`night.notify` | yes `ui.html:1579` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:116` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:116` |
 | Whisper: short quiet replies, with the notes it held back <br>`whisper` | yes `ui.html:1748` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` |
-| Reading mode: no voice, every reply as text marked Unread or Read, each device's own choice <br>`reading` | yes `ui.html:1751` | yes `apps/PointeKit/Sources/PointeUI/Reading.swift:97` | yes `apps/PointeKit/Sources/PointeUI/Reading.swift:97` |
-| Drive mode on screen: the one line, the request, Stop <br>`drive.screen` | yes `ui.html:1697` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` |
-| Turn drive mode on from the screen <br>`drive.start` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:509` | n/a |
+| Mute Pointe: one button beside the status line, every reply as text, each device's own choice <br>`mute` | yes `ui.html:1612` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:70` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:70` |
+| Muted, the state line says Writing… where it would say Speaking… <br>`mute.writing` | yes `ui.html:2967` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:21` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:21` |
+| Muting mid-reply stops what the device still holds to play <br>`mute.cut` | yes `ui_mute.html:40` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:163` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:163` |
+| Drive mode on screen: the one line, the request, Stop <br>`drive.screen` | yes `ui.html:1698` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` |
+| Turn drive mode on from the screen <br>`drive.start` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:507` | n/a |
 | Offer drive mode when the phone is in a car <br>`drive.suggest` | n/a | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:227` | n/a |
 
 ## Voice lock, dictionary, conflicts, show
@@ -139,9 +141,9 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | What the lock ignored, and the note after three unsure yeses <br>`lock.ignored` | yes `ui.html:1536` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:219` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:219` |
 | Dictionary: the terms, add, edit, delete, suggestions, learn from fixes <br>`dictionary.sheet` | yes `ui.html:1390` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:139` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:139` |
 | A term learned during the call shows, with Undo <br>`dictionary.toast` | yes `ui_dictionary.html:29` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:120` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:120` |
-| Two sessions disagree: the card, ask either, dismiss <br>`conflicts.card` | yes `ui.html:1696` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` |
+| Two sessions disagree: the card, ask either, dismiss <br>`conflicts.card` | yes `ui.html:1697` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` |
 | Conflict alarm settings: on, spoken <br>`conflicts.settings` | yes `ui.html:1475` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:169` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:169` |
-| Show while it says: the file, the diff or the test the voice is talking about <br>`show.card` | yes `ui.html:1763` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` |
+| Show while it says: the file, the diff or the test the voice is talking about <br>`show.card` | yes `ui.html:1760` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` |
 | Also show on the phone, as a setting <br>`show.setting` | yes `ui.html:1430` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:325` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:325` |
 
 ## Pairing, appearance, about, help
@@ -150,13 +152,13 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 |---|---|---|---|
 | Show the code that pairs a phone, list the paired phones, unpair <br>`pair.show` | yes `ui.html:1347` | n/a | yes `apps/PointeKit/Sources/PointeUI/PhoneSheet.swift:235` |
 | Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone <br>`pair.read` | n/a | yes `apps/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a |
-| Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1496` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:184` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:184` |
+| Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1496` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:174` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:174` |
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1503` | yes `apps/PointeKit/Sources/PointeUI/About.swift:51` | yes `apps/PointeKit/Sources/PointeUI/About.swift:51` |
 | The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1152` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:563` | yes `apps/macos/PointeMac/AppModel.swift:236` |
-| Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1415` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:50` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:50` |
+| Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1415` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:48` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:48` |
 | The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (38 topics)` | yes `product_help.json (38 topics)` | yes `product_help.json (37 topics)` |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` |
-| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3296` | n/a | yes `apps/macos/PointeMac/Panels.swift:162` |
+| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3293` | n/a | yes `apps/macos/PointeMac/Panels.swift:162` |
 
 ## The Mac shell
 
@@ -174,12 +176,12 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
-| An AirPods press talks or mutes <br>`ios.airpods` | n/a | yes `apps/PointeKit/Sources/PointeUI/Call.swift:282` | n/a |
+| An AirPods press talks or mutes <br>`ios.airpods` | n/a | yes `apps/PointeKit/Sources/PointeUI/Call.swift:288` | n/a |
 | Drive mode on the lock screen <br>`ios.nowplaying` | n/a | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:277` | n/a |
 | Talk to Pointe from Control Center, the Lock Screen or the Action button: one press opens Pointe talking to the orchestrator, the next sends <br>`ios.control` | n/a | yes `apps/ios/PointeWidget/TalkControl.swift:8` | n/a |
 | The call on the Lock Screen and in the Dynamic Island, with Send, Cancel, Talk and Hang up <br>`ios.live-activity` | n/a | yes `apps/ios/PointeWidget/TalkLiveActivity.swift:12` | n/a |
 | A Home Screen tile: Talk to Pointe, with the Mac's status where the app group allows <br>`ios.widget` | n/a | yes `apps/ios/PointeWidget/TalkWidget.swift:8` | n/a |
-| Turn Talk from outside the app on or off <br>`ios.outside-setting` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:123` | n/a |
+| Turn Talk from outside the app on or off <br>`ios.outside-setting` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:119` | n/a |
 
 ## Bound to a platform
 

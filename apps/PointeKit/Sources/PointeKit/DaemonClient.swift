@@ -78,7 +78,7 @@ public struct DaemonEndpoint: Sendable, Equatable {
 
     public var callRequest: URLRequest { callRequest(reading: false) }
 
-    /// `reading`: the device's reading mode, on the address (the proof covers the query, so it is made after it).
+    /// `reading`: the device muted Pointe (the wire's name is reading mode's), on the address (the proof covers the query, so it is made after it).
     public func callRequest(reading: Bool) -> URLRequest {
         var url = callURL
         if reading, var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) {

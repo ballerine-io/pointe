@@ -54,7 +54,7 @@ struct CallView: View {
     @State private var toast: [String]?
     @State private var demoDictionary = DemoDictionary()
     @State private var whisperFollow = WhisperFollow()
-    @AppStorage(ReadingChoice.key) private var readingStored = false  // this device's own choice (Reading.swift)
+    @AppStorage(MuteChoice.key) private var muteStored = false  // this device's own choice (Mute.swift)
     @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
@@ -123,7 +123,7 @@ struct CallView: View {
     private var phase: Call.State { demo == nil ? call.state : .live }
     private var live: Bool { phase == .live || phase == .reconnecting }
     private var muted: Bool { demo == nil ? call.muted : demo?.screen == .muted }
-    private var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking }
+    private var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking && !MuteChoice.inEffect(status: status, stored: false) }
 
     private var dumping: Bool { dumpWanted ?? (status?.dumping ?? false) }
     private var dump: API.BrainDump? { status?.brain_dump }
@@ -425,8 +425,6 @@ struct CallView: View {
                                      draft: TalkDraft.line(draft: status?.ptt?.draft, open: call.talk.isOpen || status?.ptt?.open == true),
                                      large: status?.whisper?.on == true && status?.whisper?.held == nil,
                                      placeholder: !panelShown,
-                                     reading: ReadingChoice.inEffect(status: status, stored: readingStored),
-                                     markRead: { turn in Task { await markRead(turn.id) } },
                                      outgoing: outbox.lines, retry: resend) { editing = $0 }
                     if !panelShown, let problem = Self.shownProblem(screen: problem, call: call.problem ?? echoNote, mac: status?.problem) {
                         Label(problem, systemImage: "exclamationmark.triangle.fill")
@@ -536,7 +534,10 @@ struct CallView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     // The empty stage says the same title and why in the middle of the screen: once is enough.
-                    if !panelShown { StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking, broken: status?.key_refused != nil || status?.vendor_fault != nil) }
+                    if !panelShown {
+                        StatusLine(title: title, subtitle: subtitle, phase: phase, muted: muted, speaking: speaking || title == MuteCopy.writing,
+                                   broken: status?.key_refused != nil || status?.vendor_fault != nil, mute: muteControl)
+                    }
                     #if os(iOS)  // the Mac keeps itself awake only for a call from another device: on the Mac there is nothing to say
                     if let awake = API.KeepAwake.shown(status, live: phase == .live) {
                         Text(awake).font(.brand(.caption)).foregroundStyle(Brand.dim).lineLimit(1)
@@ -592,7 +593,7 @@ struct CallView: View {
     private var settingsModel: CallSettingsModel {
         CallSettingsModel(status: status, prefs: prefs, microphone: call.talk.mode, talkStyle: call.talkStyle, live: phase == .live,
                           dumping: dumping, driving: driving, driveSuggest: sensors.enabled, demo: demo?.tried == true,
-                          outside: Self.outside(demo: demo != nil), readingStored: readingStored)
+                          outside: Self.outside(demo: demo != nil))
     }
 
     /// The iPhone's "Talk from outside the app"; a demo shows it on, and changes nothing.
@@ -607,7 +608,6 @@ struct CallView: View {
     private var settingsActions: CallSettingsActions {
         CallSettingsActions(setMicrophone: setMicrophone, setTalkStyle: { call.talkStyle = $0 }, setPatience: setPatience,
                             setPolish: { on in Task { await setPolish(on) } }, setWhisper: { on in Task { await setWhisper(on) } },
-                            setReading: { on in Task { await setReading(on) } },
                             setDriveSuggest: { sensors.setEnabled($0) },
                             setOutside: { on in
                                 #if os(iOS)
@@ -716,11 +716,6 @@ struct CallView: View {
                 WhisperCard(status: w, suggestPushToTalk: whisperFollow.suggestsPushToTalk(w) && !call.talk.ptt,
                             pushToTalk: { setMicrophone("ptt") }, notNow: { whisperFollow.notNow() },
                             back: { Task { await setWhisper(false) } })
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-            if ReadingChoice.on(status: status, stored: readingStored), !driving {
-                ReadingCard(held: status?.reading?.held != nil, back: { Task { await setReading(false) } },
-                            markRead: { Task { await markRead(nil) } })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         } bar: {
@@ -1537,27 +1532,24 @@ struct CallView: View {
         if !(await savePrefs(["whisper": on])) { problem = WhisperCopy.failed }
     }
 
-    /// Reading mode: this device keeps its choice, and the call (if one is up) takes it. The demo flips its own copy.
-    private func setReading(_ on: Bool) async {
-        readingStored = on
-        if demo != nil {
-            if status?.reading != nil { status?.reading = API.ReadingStatus(on: on, read_through: status?.reading?.read_through) }
-            return
+    /// The mute button beside the status line; nil on a Mac from before reading mode, which cannot stop its voice.
+    private var muteControl: StatusLine.Mute? {
+        guard status?.reading != nil || muteStored else { return nil }
+        return StatusLine.Mute(on: MuteChoice.on(status: status, stored: muteStored), held: status?.reading?.held != nil) {
+            Task { await setMute(!MuteChoice.on(status: status, stored: muteStored)) }
         }
-        if !(await act { try await call.api.reading(on) }) { problem = ReadingCopy.failed }
     }
 
-    /// A tap on one of Pointe's lines (it and those before it are read), or Mark all read (nil).
-    private func markRead(_ id: Int?) async {
+    /// Mute: this device keeps its choice, and the call (if one is up) takes it. Muted mid-sentence, what this device
+    /// still holds to play stops now. The demo flips its own copy and keeps nothing.
+    private func setMute(_ on: Bool) async {
         if demo != nil {
-            status?.talk = status?.talk?.map { turn in
-                var t = turn
-                if !t.mine, id.map({ t.id <= $0 }) ?? true { t.unread = false }
-                return t
-            }
+            if status?.reading != nil { status?.reading = API.ReadingStatus(on: on, writing: on && demo?.screen == .speaking) }
             return
         }
-        await act { try await call.api.markRead(through: id) }
+        muteStored = on
+        if on, status?.reading?.held == nil { call.hush() }
+        if !(await act { try await call.api.reading(on) }) { problem = MuteCopy.failed }
     }
 
     /// The held news badge's Tell me: Pointe says what the other sessions said (the demo just empties it).
@@ -1782,14 +1774,21 @@ struct ScrollFollow: Equatable {
     var pillShown: Bool { unseen && !atBottom }
 }
 
-/// What the call is doing, in one glance.
+/// What the call is doing, in one glance, with the mute button beside it.
 struct StatusLine: View {
+    struct Mute {
+        let on: Bool
+        let held: Bool
+        let toggle: () -> Void
+    }
+
     let title: String
     let subtitle: String
     let phase: Call.State
     let muted: Bool
     let speaking: Bool
     var broken = false  // a refused key: red, never the green of a call that hears
+    var mute: Mute? = nil
 
     private var tint: Color {
         switch phase {
@@ -1801,18 +1800,26 @@ struct StatusLine: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {  // the dot belongs to the state: on its first line, however long
-                Circle().fill(tint).frame(width: 8, height: 8)
-                    .symbolEffect(.pulse, isActive: speaking)
-                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
-                Text(title).font(.brand(.title3)).contentTransition(.opacity)
+            HStack(spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {  // the dot belongs to the state: on its first line, however long
+                    Circle().fill(tint).frame(width: 8, height: 8)
+                        .symbolEffect(.pulse, isActive: speaking)
+                        .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
+                    Text(title).font(.brand(.title3)).contentTransition(.opacity)
+                }
+                // One element with the line under it, as before the button sat between them.
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(title), \(subtitle)")
+                .accessibilityIdentifier("statusLine")
+                if let mute {  // right beside the state, and its own element
+                    MuteButton(on: mute.on, held: mute.held, toggle: mute.toggle).padding(.vertical, -6)
+                }
             }
             Text(subtitle.unbrokenCommands).font(.brand(.subheadline)).foregroundStyle(Brand.muted).lineLimit(2)
                 .padding(.leading, 18)
+                .accessibilityHidden(true)
         }
         .animation(.easeInOut(duration: 0.2), value: title)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("statusLine")
     }
 }
 

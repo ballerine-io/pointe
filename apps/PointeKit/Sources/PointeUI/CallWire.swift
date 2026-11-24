@@ -92,7 +92,7 @@ struct LinkMachine: Equatable {
 final class CallWire: @unchecked Sendable {
     enum Event: Sendable {
         case control(Wire.Control)
-        /// Text the wire format does not know (reading mode's message): the screen's own to read.
+        /// Text the wire format does not know (mute's message): the screen's own to read.
         case text(String)
         case rtt(Int?)
         case ended(code: Int, http: Int?, reason: String)

@@ -219,13 +219,14 @@ with the lock on a whispered yes usually does not count and the request waits fo
 driving the bot plays at full volume and whisper mode applies again when drive mode ends. With a challenge on, both
 apply; whisper mode adds nothing a challenge takes away.
 
-### Reading mode
+### Mute
 
-Reading mode (`pointe/reading.py`; "stop talking, I'll read", or Read) stops the voice: no line reaches the mouth, so nothing
-is synthesised, and every line is shown as text. It never widens what a word can do. Approvals and read-backs keep their
-rules: a tap, or a spoken yes begun after the line appeared with nothing said between; a typed yes confirms nothing,
-since a tap in the apps asks for Face ID or Touch ID (tested with the mode off and on, outcomes compared). Drive mode
-holds it. `POST /voice/read` only marks lines read.
+Mute (`pointe/mute.py`; the speaker button beside the status line, or "stop talking, I'll read") stops the voice: no line
+reaches the mouth, so nothing is synthesised, and every line is shown as text. It never widens what a word can do.
+Approvals and read-backs keep their rules: a tap, or a spoken yes begun after the line appeared with nothing said
+between; a typed yes confirms nothing, since a tap in the apps asks for Face ID or Touch ID (tested unmuted and muted,
+outcomes compared). Drive mode holds it. `POST /voice/read`, which an app from before the mute button still calls, only
+marks lines read.
 
 ### Session mode
 
@@ -565,7 +566,7 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   - driving the sessions: `/voice/switch`, `/voice/disconnect`, `/voice/hung-up`, `/voice/rename`, `/voice/mode`,
     typed words (`/voice/say`, `/voice/correct`, `/voice/polish`), a new session in a folder the Mac allows
     (`/voice/new-session`), adding sessions listed on the Mac (`/voice/add-sessions`), the night shift
-    (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the challenge (`/voice/challenge`), drive mode (`/voice/drive`), reading mode (`/voice/reading`, and `/voice/read` to mark Pointe's lines
+    (`/voice/night-shift`), the brain dump (`/voice/dump`, `/voice/listen`), the challenge (`/voice/challenge`), drive mode (`/voice/drive`), mute (`/voice/reading`, and `/voice/read` to mark Pointe's lines
     read), the held news of session mode (`/voice/held`: told aloud, never approves), alerts (`/voice/attention`) and the conflict alarm
     (`/voice/conflicts`: dismiss, or ask one side: the card's question, sent to that session as a conflict check,
     never as the user's words, and it approves nothing);

@@ -90,7 +90,7 @@
 <li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
 <li><a href="../features/show-while-it-says/">Show while it says</a></li>
 <li><a href="../features/whisper-mode/">Whisper mode</a></li>
-<li><a href="../features/reading-mode/">Reading mode</a></li>
+<li><a href="../features/mute/">Mute</a></li>
 <li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
 <li><a href="../features/meeting-mode/">Meeting mode</a></li>
 <li><a href="../features/new-session/">Start a new session</a></li>
@@ -393,12 +393,13 @@ low against it (no synthetic whispered sentence reached the strong-match thresho
 with the lock on a whispered yes usually does not count and the request waits for a tap. Drive mode holds it: while
 driving the bot plays at full volume and whisper mode applies again when drive mode ends. With a challenge on, both
 apply; whisper mode adds nothing a challenge takes away.</p>
-<h3 id="reading-mode">Reading mode</h3>
-<p>Reading mode (<code>pointe/reading.py</code>; "stop talking, I'll read", or Read) stops the voice: no line reaches the mouth, so nothing
-is synthesised, and every line is shown as text. It never widens what a word can do. Approvals and read-backs keep their
-rules: a tap, or a spoken yes begun after the line appeared with nothing said between; a typed yes confirms nothing,
-since a tap in the apps asks for Face ID or Touch ID (tested with the mode off and on, outcomes compared). Drive mode
-holds it. <code>POST /voice/read</code> only marks lines read.</p>
+<h3 id="mute">Mute</h3>
+<p>Mute (<code>pointe/mute.py</code>; the speaker button beside the status line, or "stop talking, I'll read") stops the voice: no line
+reaches the mouth, so nothing is synthesised, and every line is shown as text. It never widens what a word can do.
+Approvals and read-backs keep their rules: a tap, or a spoken yes begun after the line appeared with nothing said
+between; a typed yes confirms nothing, since a tap in the apps asks for Face ID or Touch ID (tested unmuted and muted,
+outcomes compared). Drive mode holds it. <code>POST /voice/read</code>, which an app from before the mute button still calls, only
+marks lines read.</p>
 <h3 id="session-mode">Session mode</h3>
 <p>Session mode speaks about the session in focus only (<code>pointe/scope.py</code>): the other sessions' reports, joins, conflict alarms,
 machine drops and approval requests are held for the screens and never spoken, and the brain is not told their state.
@@ -832,7 +833,7 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 <p>driving the sessions: <code>/voice/switch</code>, <code>/voice/disconnect</code>, <code>/voice/hung-up</code>, <code>/voice/rename</code>, <code>/voice/mode</code>,
   typed words (<code>/voice/say</code>, <code>/voice/correct</code>, <code>/voice/polish</code>), a new session in a folder the Mac allows
   (<code>/voice/new-session</code>), adding sessions listed on the Mac (<code>/voice/add-sessions</code>), the night shift
-  (<code>/voice/night-shift</code>), the brain dump (<code>/voice/dump</code>, <code>/voice/listen</code>), the challenge (<code>/voice/challenge</code>), drive mode (<code>/voice/drive</code>), reading mode (<code>/voice/reading</code>, and <code>/voice/read</code> to mark Pointe's lines
+  (<code>/voice/night-shift</code>), the brain dump (<code>/voice/dump</code>, <code>/voice/listen</code>), the challenge (<code>/voice/challenge</code>), drive mode (<code>/voice/drive</code>), mute (<code>/voice/reading</code>, and <code>/voice/read</code> to mark Pointe's lines
   read), the held news of session mode (<code>/voice/held</code>: told aloud, never approves), alerts (<code>/voice/attention</code>) and the conflict alarm
   (<code>/voice/conflicts</code>: dismiss, or ask one side: the card's question, sent to that session as a conflict check,
   never as the user's words, and it approves nothing);</p>
@@ -941,7 +942,7 @@ uses.</p>
 <li class="dx-l3"><a href="#drive-mode-optional">Drive mode (optional)</a></li>
 <li class="dx-l3"><a href="#owner-voice-lock-optional">Owner-voice lock (optional)</a></li>
 <li class="dx-l3"><a href="#whisper-mode">Whisper mode</a></li>
-<li class="dx-l3"><a href="#reading-mode">Reading mode</a></li>
+<li class="dx-l3"><a href="#mute">Mute</a></li>
 <li class="dx-l3"><a href="#session-mode">Session mode</a></li>
 <li class="dx-l3"><a href="#audio-briefings">Audio briefings</a></li>
 <li class="dx-l2"><a href="#keys">Keys</a></li>

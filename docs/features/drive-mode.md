@@ -59,10 +59,10 @@ driving"), an active session's report is one line, and the model's "Sorry, I los
 - **Challenge:** never both, and driving wins. Entering drive mode ends a challenge with no verdict; a challenge is
   refused while driving.
 - **Whisper:** drive mode holds it: full volume while driving, and whisper mode applies again when you stop.
-- **Reading mode:** drive mode holds it too: Pointe talks while you drive, and reading mode applies again when you stop.
+- **Mute:** drive mode holds it too: Pointe talks while you drive, and mute applies again when you stop.
 - **Meeting** and brain dump rank above it for the mode shown, but the road rules for approvals are keyed on drive mode
   itself, so they hold whatever else is on.
-- "Back to normal" ends one mode per utterance: drive mode, then a challenge, then whisper mode, then reading mode.
+- "Back to normal" ends one mode per utterance: drive mode, then a challenge, then whisper mode, then mute.
 
 ## Ends with the call
 

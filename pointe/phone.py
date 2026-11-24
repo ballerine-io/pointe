@@ -24,7 +24,7 @@ not fill; shaped as a pong for a ping already answered, a version 2 or 3 daemon 
 A client that heard nothing for 6 s treats the call as dead and reconnects. The daemon closes a call (code 4408) that
 has answered pings before and then sends nothing (no pong of either kind, no audio) for 12 s, so the line is free for
 the reconnect.
-Reading mode (reading.py) needs no new version: the client adds `?reading=1` to the call's address when its own choice is
+Mute (mute.py; once reading mode, whose names the wire keeps) needs no new version: the client adds `?reading=1` to the call's address when its own choice is
 on, and the daemon sends {"type": "reading", "on": true|false} when the owner changed it by voice during the call, for
 the client to keep. An older client ignores the message and calls without the parameter: Pointe speaks to it.
 

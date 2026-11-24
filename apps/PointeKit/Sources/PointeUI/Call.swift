@@ -127,7 +127,7 @@ final class Call {
         redialTask?.cancel()
         redialTask = nil
         guard wanted else { return }
-        guard let request = link.callRequest(reading: ReadingChoice.stored()) else {  // the Mac app, and no daemon is verified on this Mac
+        guard let request = link.callRequest(reading: MuteChoice.stored()) else {  // the Mac app, and no daemon is verified on this Mac
             linkEnded(code: URLSessionWebSocketTask.CloseCode.invalid.rawValue, http: nil, reason: "")
             return
         }
@@ -158,6 +158,12 @@ final class Call {
     }
 
     func toggleMute() { setMuted(!muted) }
+
+    /// Pointe was muted mid-sentence: what this device still holds to play stops now, before the Mac's own cut arrives.
+    func hush() {
+        guard state != .off else { return }
+        playout.flush()
+    }
 
     private func setMuted(_ value: Bool) {
         muted = value
@@ -506,8 +512,8 @@ final class Call {
             break
         case .text(let text):  // the owner said "stop talking, I'll read" or "talk again": this device keeps it for its next call
             if let data = text.data(using: .utf8), let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               message["type"] as? String == "reading", let on = ReadingChoice.message(message) {
-                ReadingChoice.store(on)
+               message["type"] as? String == "reading", let on = MuteChoice.message(message) {
+                MuteChoice.store(on)
             }
         case .ended(let code, let http, let reason):
             linkEnded(code: code, http: http, reason: reason)

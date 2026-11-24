@@ -144,6 +144,12 @@ class Swift:
         return list(dict.fromkeys([x for expr in re.findall(r"\.accessibilityLabel\((.+?)\)\n", top) for x in self.resolve(expr)]
                                   + connect))
 
+    def status(self) -> list[str]:
+        """The mute button beside the status line: what it says a tap does."""
+        if "MuteButton(" not in self.file("CallView.swift"):
+            return []
+        return [self.consts["MuteCopy.mute"], self.consts["MuteCopy.unmute"]]
+
     def session_menu(self) -> list[str]:
         """What a long press on a session chip offers (Sessions.swift's context menus)."""
         text = self.file("Sessions.swift")
@@ -190,6 +196,7 @@ def _short(label: str) -> str:
 class Page:
     def __init__(self, root: Path):
         self.html = (root / "pointe" / "ui.html").read_text()
+        self.mute = (root / "pointe" / "ui_mute.html").read_text()
 
     def settings(self) -> dict[str, list[str]]:
         """Each Settings section, by the name in its nav, with the labels it shows: fields, ticks, options, buttons."""
@@ -227,6 +234,12 @@ class Page:
                                   + re.findall(r'id="topconnect"[^>]*>([^<]+)<', top)
                                   + re.findall(r'id="morebtn"[^>]*aria-label="([^"]+)"', top)))
 
+    def status(self) -> list[str]:
+        """The mute button beside the status line: what it says a tap does (ui_mute.html holds its words)."""
+        if not re.search(r'<div class="stateline">.*id="mutebtn"', self.html):
+            return []
+        return re.findall(r"\b(?:mute|unmute): '([^']+)'", self.mute)
+
     def row(self) -> list[str]:
         """A session row's actions: the marks shown on hover (their titles), the ⋯ sheet on touch."""
         marks = [_short(t) for t in re.findall(r"(?:pen|cut)\.title = '([^']+)'", self.html)]
@@ -245,12 +258,12 @@ def inventory(root: Path = ROOT) -> dict:
     return {
         # the Mac app draws the iPhone app's screens: its labels are read from the same sources, as the Mac compiles them
         "mac": {"menu": m.menu(), "switch": m.mic_switch(), "bar": m.bar(), "mic": m.mic(), "header": m.header(),
-                "session": m.session_menu(), "sessions": m.sessions_sheet(), "card": m.card()},
+                "status": m.status(), "session": m.session_menu(), "sessions": m.sessions_sheet(), "card": m.card()},
         "iphone": {"menu": s.menu(), "switch": s.mic_switch(), "bar": s.bar(), "mic": s.mic(), "header": s.header(),
-                   "session": s.session_menu(),
+                   "status": s.status(), "session": s.session_menu(),
                    "sessions": s.sessions_sheet(), "card": s.card(), "pair": s.pairing()},
         "page": {"settings": p.settings(), "dock": p.dock(), "mic": p.mic(), "switch": p.mic_switch(), "side": p.side(),
-                 "top": p.top(), "row": p.row(),
+                 "top": p.top(), "status": p.status(), "row": p.row(),
                  "dump": p.dump_review(), "card": p.card()},
     }
 
@@ -261,17 +274,17 @@ def inventory(root: Path = ROOT) -> dict:
 PLACES = {
     "iphone": {"menu": "Settings (••• at the top)", "switch": "the {} switch above the mic", "bar": "{} button at the bottom",
                "mic": "the mic button in the middle at the bottom ({})",
-               "header": "{} button at the top",
+               "header": "{} button at the top", "status": "the speaker button beside the status line ({})",
                "session": "long-press a session at the top", "sessions": "Sessions button at the bottom",
                "card": "the request's card", "pair": "the pairing screen"},
     "page": {"settings": "Settings", "dock": "{} button at the bottom", "mic": "the mic button in the middle at the bottom ({})",
              "switch": "the {} switch above the mic", "side": "{} in the Sessions panel on the left",
-             "top": "{} at the top", "row": "hover a session in the Sessions panel (on touch, its ⋯)",
+             "top": "{} at the top", "status": "the speaker button beside the status line ({})", "row": "hover a session in the Sessions panel (on touch, its ⋯)",
              "dump": "the brain dump's review", "card": "the request's card"},
 }
 PLACES["mac"] = {"menu": "Settings (••• at the top, or ⌘,)", "switch": "the {} switch above the mic", "bar": "{} button at the bottom",
                  "mic": "the mic button in the middle at the bottom ({})", "header": "{} button at the top",
-                 "session": "right-click a session", "sessions": "the sessions column on the left (in a narrow window, the Sessions button at the bottom)",
+                 "status": "the speaker button beside the status line ({})", "session": "right-click a session", "sessions": "the sessions column on the left (in a narrow window, the Sessions button at the bottom)",
                  "card": "the request's card"}
 SURFACES = {"iphone": "the iPhone app", "page": "the page", "mac": "the Mac app"}
 
@@ -463,12 +476,14 @@ TOPICS = (
           "Whisper mode gives short, quiet replies for an open office; \"back to normal\" ends it.",
           iphone=(("menu", "Whisper"),), page=(("dock", "Whisper"),),
           voice=("whisper mode", "back to normal"), doc="whisper-mode.md"),
-    Topic("reading", "Reading mode", ("reading mode", "read instead", "stop talking", "text only", "mute the voice",
-                                      "don't speak", "i'll read", "talk again", "מצב קריאה", "בלי קול", "תפסיק לדבר"),
-          "Reading mode stops Pointe's voice: every reply shows as text, marked unread until you read it, and you still "
-          "talk or type. \"Talk again\" ends it. Each device keeps its own choice.",
-          iphone=(("menu", "Read"),), page=(("dock", "Read"),),
-          voice=("stop talking, I'll read", "talk again"), doc="reading-mode.md"),
+    Topic("mute", "Mute Pointe", ("mute pointe", "mute the voice", "mute you", "unmute", "stop talking", "text only",
+                                  "read instead", "reading mode", "don't speak", "i'll read", "talk again",
+                                  "מצב קריאה", "בלי קול", "תפסיק לדבר", "השתק"),
+          "The speaker button beside the status line mutes Pointe: it writes every reply as text instead of speaking, "
+          "and the status says \"Writing…\". Tap it again, or say \"talk again\", to hear Pointe. You still talk or "
+          "type. Each device keeps its own choice.",
+          iphone=(("status", "Mute Pointe|Unmute Pointe"),), page=(("status", "Mute Pointe|Unmute Pointe"),),
+          voice=("stop talking, I'll read", "talk again"), doc="mute.md"),
     Topic("briefing", "Briefing", ("briefing", "brief me", "what happened overnight", "catch me up", "summary of the night",
                                    "תדריך", "תדרך אותי", "מה קרה בלילה"),
           "A briefing says what each session did, failed and waits on, most urgent first.",

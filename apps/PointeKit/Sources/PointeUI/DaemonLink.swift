@@ -91,11 +91,11 @@ struct DaemonLink: Hashable, Sendable {
     }
 
     /// The call's socket: `/voice/phone` for a phone, `/voice/call` on the Mac. Nil with no verified listener.
-    /// `reading`: this device's reading mode, said as it calls (`?reading=1`), so the greeting is already text.
+    /// `reading`: this device muted Pointe, said as it calls (`?reading=1`), so the greeting is already text.
     func callRequest(reading: Bool = false) -> URLRequest? {
         switch kind {
         case .phone(let pairing):
-            var r = URLRequest(url: ReadingChoice.callURL(pairing.callURL, on: reading))
+            var r = URLRequest(url: MuteChoice.callURL(pairing.callURL, on: reading))
             r.setValue("Bearer \(pairing.key)", forHTTPHeaderField: "Authorization")
             return r
         case .local(let daemon):

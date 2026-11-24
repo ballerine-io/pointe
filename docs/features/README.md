@@ -19,7 +19,7 @@ from any voice denies a pending request, in every mode.
 | [Wrist approvals and desktop alerts](alerts.md) | A session needs you: the watch taps, the desktop notifies |
 | [Show while it says](show-while-it-says.md) | The file, diff or failing test appears on screen as the voice mentions it |
 | [Whisper mode](whisper-mode.md) | Quiet replies, a raised microphone, the same approval rules |
-| [Reading mode](reading-mode.md) | "Stop talking, I'll read": Pointe never speaks, you read every reply, approvals unchanged |
+| [Mute](mute.md) | One button beside the status line: Pointe writes every reply instead of speaking, approvals unchanged |
 | [Conflict alarm](conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once |
 | [Meeting mode](meeting-mode.md) | Notes, lookups and a raised hand in a meeting, with consent and no sends |
 | [Start a new session](new-session.md) | "Start a Codex session in shop": read back, started on your yes, only in folders you already work in |
@@ -44,7 +44,7 @@ Where each one works, and how to reach it:
 | [Wrist approvals and desktop alerts](alerts.md#use-it) | no: a setting | Settings → Alerts | Settings → Alerts | Settings → Alerts |
 | [Show while it says](show-while-it-says.md#use-it) | nothing to say: it follows the voice | the Showing pane, always on | the Showing card, after Settings → Show while it says | the Showing card, always on |
 | [Whisper mode](whisper-mode.md#use-it) | "whisper mode", "back to normal" | Whisper in the dock | Settings → Whisper | Settings → Whisper |
-| [Reading mode](reading-mode.md#use-it) | "stop talking, I'll read", "talk again" | Read in the dock | Settings → Read | Settings → Read |
+| [Mute](mute.md#use-it) | "stop talking, I'll read", "talk again" | the speaker button beside the status line | the speaker button beside the status line | the speaker button beside the status line |
 | [Conflict alarm](conflict-alarm.md#use-it) | the alarm is spoken; "I know" dismisses it | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm |
 | [Meeting mode](meeting-mode.md#start) | "meeting mode, listening", once consent was given | Meeting in the dock | Start a meeting at the top | Start a meeting at the top; Call → Start a Meeting |
 | [Start a new session](new-session.md#use-it) | "start a new Codex session in shop" | New session under the sessions | Sessions → New session | New session under the sessions; File → New Session |

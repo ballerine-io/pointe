@@ -33,7 +33,7 @@ def page_html() -> str:
         (ROOT / "pointe" / "ui.html").read_text().replace("{{LOGO}}", (ROOT / "assets" / "logo.svg").read_text())
         .replace("{{DICTIONARY}}", (ROOT / "pointe" / "ui_dictionary.html").read_text())
         .replace("{{WHISPER}}", (ROOT / "pointe" / "ui_whisper.html").read_text())
-        .replace("{{READING}}", (ROOT / "pointe" / "ui_reading.html").read_text())
+        .replace("{{MUTE}}", (ROOT / "pointe" / "ui_mute.html").read_text())
     )
 
 
@@ -79,7 +79,7 @@ def fixture(sessions: int = 1, machines: int = 1, talk: int = 0, approval: bool 
         "speaking": None, "mode": "orchestrator",
         "ptt": {"mode": "always", "open": False, "sent_bytes": 0, "room_heard": False},
         "whisper": {"on": False, "held": None, "suggest_ptt": False, "lock_note": None},
-        "reading": {"on": False, "held": None, "read_through": -1},
+        "reading": {"on": False, "held": None, "read_through": -1, "writing": False},
         "held": {"count": 0, "line": "", "approvals": 0, "items": []},
         "mode_state": {"mode": "normal", "speech": "full", "approvals": "voice"},
         "drive": {"on": False, "pending": []}, "local": {"line": "Cloud voice: Soniox + ElevenLabs"},
@@ -272,13 +272,6 @@ class StubMac:
         elif path == "/voice/reading":  # as daemon.reading_route: the call's choice, only while a call is up
             if s.get("connected"):
                 s["reading"]["on"] = bool(body.get("on"))
-        elif path == "/voice/read":  # as daemon.read_route: that line and every one before it are read
-            newest = max([t["id"] for t in s["talk"] if t["who"] != "user"], default=-1)
-            through = body.get("through", newest)
-            s["reading"]["read_through"] = max(s["reading"]["read_through"], min(through, newest))
-            for t in s["talk"]:
-                if t["who"] != "user":
-                    t["unread"] = t["id"] > s["reading"]["read_through"]
         elif path == "/voice/held" and body.get("action") == "tell":  # as daemon.held_news: told, so no longer held
             s["held"] = {"count": 0, "line": "", "approvals": 0, "items": []}
         elif path == "/voice/listen":

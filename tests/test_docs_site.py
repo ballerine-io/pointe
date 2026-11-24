@@ -109,3 +109,14 @@ def test_markdown_constructs_render_as_on_github():
     assert [h[1] for h in page.headings] == ["drive--walk-mode", "whats-new", "whats-new-1"]
     assert '<span lang="he" dir="rtl">מצב נהיגה</span>' in body
     assert page.title == "Title" and page.description == "Intro. Steps:"
+
+
+def test_a_page_that_moved_redirects_to_where_it_went():
+    """Reading mode became the mute button (0.8.3): its docs address still lands, on a page that exists."""
+    rules = [line.split() for line in (SITE / "_redirects").read_text().splitlines() if line.strip() and not line.startswith("#")]
+    moved = {old: (new, code) for old, new, code in rules}
+    for old in ("/pointe/docs/features/reading-mode", "/pointe/docs/features/reading-mode/"):
+        assert moved.get(old) == ("/pointe/docs/features/mute/", "301"), moved
+    for new, _code in moved.values():
+        assert (SITE / new.strip("/") / "index.html").is_file(), new
+    assert not (SITE / "pointe" / "docs" / "features" / "reading-mode").exists()  # a file there would win over the redirect

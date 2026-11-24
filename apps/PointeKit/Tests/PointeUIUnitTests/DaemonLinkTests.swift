@@ -19,7 +19,7 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertEqual(try JSONSerialization.jsonObject(with: try XCTUnwrap(r.httpBody)) as? [String: String], ["session": "docs"])
         XCTAssertEqual(link.callRequest()?.url?.absoluteString, "wss://studio.example.ts.net:7443/voice/phone")
         XCTAssertEqual(link.callRequest(reading: true)?.url?.absoluteString,
-                       "wss://studio.example.ts.net:7443/voice/phone?reading=1", "reading mode is said as it calls")
+                       "wss://studio.example.ts.net:7443/voice/phone?reading=1", "mute is said as it calls")
         XCTAssertTrue(link.ready)
         XCTAssertEqual(link.device, "iPhone")
         XCTAssertEqual(link.place, "studio.example.ts.net:7443")
@@ -106,7 +106,7 @@ final class DaemonLinkTests: XCTestCase {
         XCTAssertEqual(title(.reconnecting), "Reconnecting…")
         XCTAssertEqual(title(.live), "Listening")
         XCTAssertEqual(title(.live, muted: true), "Muted")
-        XCTAssertEqual(title(.live, speaking: true), "Speaking")
+        XCTAssertEqual(title(.live, speaking: true), "Speaking…")
         XCTAssertEqual(title(.live, dumping: true, muted: true), BrainDumpCopy.state, "the brain dump comes before the mic's own state")
         let refused = try! JSONDecoder().decode(API.Status.self, from: Data(#"{"connected": true, "sessions": [], "key_refused": {"vendor": "gemini", "ears": true}}"#.utf8))
         XCTAssertEqual(title(.live, refused), "Cannot hear you", "a refused key is never Listening")

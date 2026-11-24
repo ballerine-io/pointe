@@ -175,7 +175,7 @@ def _voice_checks(daemon):
     import whisper
     import briefing
     import nightshift
-    import reading
+    import mute
     return {
         "hold": lambda p: turns.hold_intent(p) or turns.release_intent(p),
         "brain-dump": lambda p: braindump.start_intent(p) or braindump.done_intent(p),
@@ -186,7 +186,7 @@ def _voice_checks(daemon):
         "challenge": lambda p: challenge.start_intent(p) or challenge.end_intent(p),
         "drive": lambda p: drive.intent(p) is not None,
         "whisper": lambda p: whisper.intent(p) is not None,
-        "reading": lambda p: reading.intent(p) is not None,
+        "mute": lambda p: mute.intent(p) is not None,
         "briefing": lambda p: briefing.briefing_intent(p) is not None,
         "routing-mode": lambda p: guards.mode_intent(p) is not None,
         "switch-session": guards.switch_intent,
@@ -226,6 +226,7 @@ def _copy(tmp_path: Path) -> Path:
     shutil.copy(ROOT / "docs" / "features" / "README.md", tmp_path / "docs" / "features" / "README.md")
     (tmp_path / "pointe").mkdir()
     shutil.copy(ROOT / "pointe" / "ui.html", tmp_path / "pointe" / "ui.html")
+    shutil.copy(ROOT / "pointe" / "ui_mute.html", tmp_path / "pointe" / "ui_mute.html")
     return tmp_path
 
 
