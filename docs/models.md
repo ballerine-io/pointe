@@ -71,11 +71,15 @@ Pointe reads each key from its environment variable first, then from the macOS K
 | ElevenLabs | `ELEVENLABS_API_KEY` | `pointe.elevenlabs-api-key` |
 
 A key saved by a pre-release build of Pointe under its plain name (`gemini-api-key`) is still read. To save a key without the
-window, let `security` prompt for it, so it never reaches a command line or your shell history:
+window, type it into `security -i`, so it never reaches a command line or your shell history. At its `security>` prompt,
+type this line with your macOS user name and your key (a `"` or `\` in the key needs a `\` before it), then `quit`:
 
 ```
-security add-generic-password -U -s pointe.gemini-api-key -a "$USER" -w
+add-generic-password -U -s pointe.gemini-api-key -a "<user name>" -w "<the key>"
 ```
+
+Not `security add-generic-password ... -w` with `-w` last: its password prompt keeps only the first 128 characters, and
+some keys are longer. `pointe key check gemini` tells whether the saved key works.
 
 Keys reach only the daemon, and only when a role in use needs them. Never put a key in a file, in a command's
 arguments, or in a chat with an agent. What leaves your Mac, by role: [SECURITY.md](../SECURITY.md#what-leaves-your-machine).

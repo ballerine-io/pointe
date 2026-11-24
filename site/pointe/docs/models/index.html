@@ -253,8 +253,11 @@ pointe key check gemini    # one tiny live call with the saved key: works, refus
 </tbody>
 </table></div>
 <p>A key saved by a pre-release build of Pointe under its plain name (<code>gemini-api-key</code>) is still read. To save a key without the
-window, let <code>security</code> prompt for it, so it never reaches a command line or your shell history:</p>
-<div class="dx-code"><pre><code>security add-generic-password -U -s pointe.gemini-api-key -a &quot;$USER&quot; -w</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+window, type it into <code>security -i</code>, so it never reaches a command line or your shell history. At its <code>security&gt;</code> prompt,
+type this line with your macOS user name and your key (a <code>"</code> or <code>\</code> in the key needs a <code>\</code> before it), then <code>quit</code>:</p>
+<div class="dx-code"><pre><code>add-generic-password -U -s pointe.gemini-api-key -a &quot;&lt;user name&gt;&quot; -w &quot;&lt;the key&gt;&quot;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Not <code>security add-generic-password ... -w</code> with <code>-w</code> last: its password prompt keeps only the first 128 characters, and
+some keys are longer. <code>pointe key check gemini</code> tells whether the saved key works.</p>
 <p>Keys reach only the daemon, and only when a role in use needs them. Never put a key in a file, in a command's
 arguments, or in a chat with an agent. What leaves your Mac, by role: <a href="../security/#what-leaves-your-machine">SECURITY.md</a>.</p>
 <h2 id="choosing-models-by-hand">Choosing models by hand</h2>

@@ -118,16 +118,23 @@ def _stored(vendor: str, keep: bool = True) -> str | None:
         return _found[vendor][1]
     for name in names:
         try:
-            got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", name, "-w"], capture_output=True,
-                                 text=True, timeout=5, env=childenv.child_env())
+            value = from_keychain(name)
         except (OSError, subprocess.TimeoutExpired):
             return None
-        if not got.returncode and got.stdout.strip():
+        if value:
             if not keep:
-                return got.stdout.strip()
-            _found[vendor] = (name, got.stdout.strip())
-            return _found[vendor][1]
+                return value
+            _found[vendor] = (name, value)
+            return value
     return None
+
+
+def from_keychain(name: str, keychain: str | None = None, timeout: float = 5) -> str | None:
+    """The Keychain item `name` as Pointe reads a key, or None. `pointe key` reads a key back through this after saving
+    it. `keychain`: a keychain file instead of the default search list (tests)."""
+    got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", name, "-w", *([keychain] if keychain else [])],
+                         capture_output=True, text=True, timeout=timeout, env=childenv.child_env())
+    return (got.stdout.strip() or None) if got.returncode == 0 else None
 
 
 def known_keys() -> list[str]:

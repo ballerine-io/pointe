@@ -220,7 +220,7 @@ public struct DaemonLocator: Sendable {
         _ = try await runner.run(plugin.daemon, ["stop"], environment: scriptEnvironment(), timeout: 60)
     }
 
-    /// `pointe key <vendor>`: the plugin's hidden-input dialog, which stores the key through `security`'s own prompt.
+    /// `pointe key <vendor>`: the plugin's hidden-input dialog, which saves the key through `security -i` and reads it back.
     /// The key never passes through this app. Returns the script's one line ("Saved…", "Cancelled…").
     public func addKey(_ vendor: Vendor, plugin: PluginInstall) async throws -> String {
         let result = try await runner.run(plugin.cli, ["key", vendor.rawValue], environment: scriptEnvironment(), timeout: 300)

@@ -8,16 +8,14 @@
     pointe key check <vendor>     one tiny live call with the saved key: works, refused, or unreachable
 
 
-A native dialog with hidden input asks for the key; `security` receives it through its own password prompt (a pty), so it
-is never an argument. Made for people who do not use a terminal: Claude Code can run this for them.
+A native dialog with hidden input asks for the key; `security -i` reads the command that saves it from its standard input,
+so it is never an argument, and the saved item is read back and compared before Pointe says it is saved. Made for people
+who do not use a terminal: Claude Code can run this for them.
 """
 
 import os
-import pty
-import select
 import subprocess
 import sys
-import time
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
@@ -73,32 +71,41 @@ def open_page(vendor: str) -> None:
         pass
 
 
-def save(item: str, secret: str) -> bool:
-    """`security` asks for the password on its terminal: answer it there, twice, so the key never is an argument."""
-    pid, fd = pty.fork()
-    if pid == 0:
-        os.execve("/usr/bin/security", ["security", "add-generic-password", "-U", "-s", item, "-a", os.environ.get("USER", "pointe"),
-                             "-w"], childenv.child_env())
-    answered, deadline = 0, time.time() + 15
+# `security -i` reads one command per line into a 4096-byte buffer, the newline included: a longer line is cut, and
+# the cut command fails with its words, the key among them, on stderr.
+LINE_MAX = 4096
+
+
+def _word(text: str) -> str:
+    """One word of a `security -i` line: in double quotes, its backslashes and double quotes escaped with a backslash."""
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def save(item: str, secret: str, keychain: str | None = None) -> str | None:
+    """Save `secret` as the Keychain item `item`, then read it back. None when the Keychain gives back exactly `secret`,
+    else why not, in words that hold no part of it. `keychain`: a keychain file instead of the default one (tests).
+
+    Never through `security`'s own password prompt (`-w` last): it keeps the first 128 characters only."""
+    if not (secret.isascii() and secret.isprintable()):
+        # `security find-generic-password -w`, the daemon's reader, prints such a value in hex: it would never read back.
+        return "it has a character no key has (a line break, a tab, or one outside plain ASCII)"
+    words = ["add-generic-password", "-U", "-s", _word(item), "-a", _word(os.environ.get("USER", "pointe")),
+             "-w", _word(secret), *([_word(keychain)] if keychain else [])]
+    line = " ".join(words) + "\n"
+    if len(line.encode()) > LINE_MAX:
+        return "it is too long for the Keychain tool"
     try:
-        while time.time() < deadline:
-            ready, _, _ = select.select([fd], [], [], 0.5)
-            if ready:
-                try:
-                    chunk = os.read(fd, 256)
-                except OSError:
-                    chunk = b""
-                if chunk.rstrip().endswith(b":") and answered < 2:  # "password data for new item:", then "retype ...:"
-                    os.write(fd, secret.encode() + b"\n")
-                    answered += 1
-            done, status = os.waitpid(pid, os.WNOHANG)
-            if done:
-                return os.waitstatus_to_exitcode(status) == 0
-        os.kill(pid, 9)
-        os.waitpid(pid, 0)
-        return False
-    finally:
-        os.close(fd)
+        # Its output is never shown: a command it could not parse comes back with the key in it.
+        subprocess.run(["/usr/bin/security", "-i"], input=line.encode(), capture_output=True, timeout=60,
+                       env=childenv.child_env())
+        saved = vendors.from_keychain(item, keychain, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return "the Keychain did not answer"
+    if saved is None:
+        return "the Keychain has no such item after saving"
+    if saved != secret:  # `security -i`'s exit status says nothing about a command that failed: only this does
+        return "the Keychain gave back a different key from the one pasted"
+    return None
 
 
 # The audio-only vendors have no text model: a list of their models is the smallest call their key must authorise.
@@ -202,8 +209,9 @@ def main(argv: list[str]) -> int:
             break
         refused = True  # the same window again, saying why
     item = KEYS[vendor][1]
-    if not save(item, secret):
-        print(f"Could not save it in the Keychain (item {item}).")
+    if failed := save(item, secret):
+        print(f"Could not save the {LABEL[vendor]} key in the Keychain (item {item}): {failed}. Copy the key again "
+              f"and run pointe key {vendor}.")
         return 1
     works = f"The {LABEL[vendor]} key works" if ok else f"Saved the {LABEL[vendor]} key, but it could not be checked ({said})"
     if "--no-restart" in flags or not running():

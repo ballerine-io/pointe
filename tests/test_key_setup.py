@@ -430,7 +430,7 @@ def key_cli(keys, monkeypatch):
         seen["checked"].append((vendor, secret))
         return verdicts.pop(0)
     monkeypatch.setattr(keys_cli, "check", check)
-    monkeypatch.setattr(keys_cli, "save", lambda item, secret: seen["saved"].append((item, secret)) or True)
+    monkeypatch.setattr(keys_cli, "save", lambda item, secret: seen["saved"].append((item, secret)))  # None: saved
     monkeypatch.setattr(keys_cli, "running", lambda: True)
 
     def restart():

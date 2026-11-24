@@ -255,7 +255,7 @@ was rejected: it needs Input Monitoring and sees every key.
 - **Keys.** The app never reads, shows, stores or logs a key. Whether a key is there is `SecItemCopyMatching` for the
   service names in `vendors.KEYS` (`gemini-api-key`, `anthropic-api-key`, …) asking for attributes only, which loads
   no secret and raises no prompt. "Add…" runs the plugin's `bin/pointe key <vendor>`: the existing hidden-input dialog,
-  with `security` storing the key through its own prompt.
+  which saves the key through `security -i` on its standard input and reads it back.
 
 ## Distribution
 
