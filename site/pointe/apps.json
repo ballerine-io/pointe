@@ -1,0 +1,13 @@
+{
+ "_": "The one switch for the apps' links on the site. tools/apps_status.py writes the app cards and the community Slack links (working group, footer) in site/pointe/index.html from this file, and site/deploy.sh runs it before every deploy. Statuses: mac \"coming-soon\" | \"open\", iphone \"opening-soon\" | \"open\". While an app waits, its card offers the notify link, and a link already set here is labelled as opening soon. An empty slack_url hides both Slack links (an invite link can expire).",
+ "notify_url": "https://github.com/ballerine-io/pointe/releases",
+ "mac": {
+  "status": "coming-soon",
+  "download_url": ""
+ },
+ "iphone": {
+  "status": "opening-soon",
+  "testflight_url": "https://testflight.apple.com/join/gkRJccpc"
+ },
+ "slack_url": "https://join.slack.com/t/ballerine-oss/shared_invite/zt-4i21px44h-8NJ_ILwisOX~WoRY5xHhVg"
+}
