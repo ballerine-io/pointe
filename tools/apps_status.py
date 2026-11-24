@@ -12,6 +12,8 @@ mac.size), the nav gets Download, and a visitor on another device sees "Get it o
 swaps them; without it everyone sees the download). Standard library only.
 """
 
+from __future__ import annotations  # macOS's own python3 (3.9) runs this from site/deploy.sh: `str | None` needs it
+
 import html
 import json
 import sys

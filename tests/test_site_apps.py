@@ -144,3 +144,14 @@ def test_the_page_no_longer_says_in_review_with_apple():
 def test_the_deploy_script_writes_the_cards_before_it_deploys():
     script = (ROOT / "site" / "deploy.sh").read_text()
     assert script.index("python3 tools/apps_status.py") < script.index("exec npx")
+
+
+SYSTEM_PYTHON = Path("/usr/bin/python3")
+
+
+@pytest.mark.skipif(not SYSTEM_PYTHON.exists() or sys.platform != "darwin", reason="macOS's own python3 is not here")
+def test_the_generator_runs_on_the_python_macos_ships():
+    """site/deploy.sh runs `python3 tools/apps_status.py`: on a Mac with no newer Python that is macOS's 3.9."""
+    got = subprocess.run([str(SYSTEM_PYTHON), "-I", str(ROOT / "tools" / "apps_status.py"), "--check"], cwd=ROOT,
+                         capture_output=True, text=True, timeout=60)
+    assert got.returncode == 0, got.stderr[-400:]
