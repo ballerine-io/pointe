@@ -10,6 +10,7 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.8 (beta)
 
+- **0.8.2** (2026-11-24, beta): pointe key saves a key longer than 128 characters whole, and says so only after reading it back
 - **0.8.1** (2026-11-24, beta): Pointe for Mac is one signed, notarized download: drag Pointe from Pointe.dmg to Applications and open it, and the app installs Pointe (checked, no Terminal), asks one question, takes your key and starts your first call; Uninstall Pointe… is in its menu
 - **0.8.0** (2026-11-24, beta): The first public release. Beta: work in progress.
 

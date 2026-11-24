@@ -7,7 +7,7 @@
 
 # Pointe
 
-**Beta (0.8.1): work in progress.** It works and is used every day; expect rough edges, and please
+**Beta (0.8.2): work in progress.** It works and is used every day; expect rough edges, and please
 [report them](https://github.com/ballerine-io/pointe/issues).
 
 A conversational layer for your coding agents. Built and open-sourced by Ballerine Engineering.
