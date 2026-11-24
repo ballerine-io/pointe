@@ -162,13 +162,20 @@ writes too, and needs no version), then deploy the site, which serves it at <cod
 image needs a "Developer ID Application" identity in the keychain and the notarytool profile <code>pointe-notary</code>, each made
 once; the script names whichever is missing and attaches nothing until both are there. Once they exist,
 <code>tools/build_dmg.sh --app apps/macos/build/dmg/app/Pointe.app --upload</code> makes the image again from the app already
-notarized, without a new archive. In CI the <code>mac-release</code>
+notarized, without a new archive.</p>
+<p><strong>0.8.1 shipped with an unsigned disk image.</strong> The app inside it is signed with Developer ID, notarized and stapled,
+which is what Gatekeeper judges: a quarantined download of the image (as Safari marks it) mounts on a double-click, and
+the copied app is "accepted, source=Notarized Developer ID" (<code>spctl -a -vvv -t exec</code>), with <code>stapler validate</code> and
+<code>syspolicy_check distribution</code> passing. The image itself (<code>spctl -t install</code>: "no usable signature") gets signed and
+notarized from the next patch version on, once the owner has made the Developer ID Application certificate and the
+<code>pointe-notary</code> profile: a published asset is never replaced, so 0.8.1's stays as it is. In CI the <code>mac-release</code>
 workflow does the same on a published release when its environment holds the signing secrets
 (<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
 <code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>. <code>--upload</code> also attaches the same image as <code>Pointe.dmg</code>, which every release must carry: the site
 links <code>https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg</code>. Once the disk image is attached
 and <code>spctl</code> accepts it, set <code>mac</code> in <code>site/pointe/apps.json</code> to <code>"status": "open"</code> with that <code>download_url</code>, this
-<code>version</code> and the image's <code>size</code> (as <code>du -h</code> says it, "4.3 MB"): the hero, the top nav and the install card then offer
+<code>version</code> and the image's <code>size</code> in decimal megabytes, as Finder and browsers show it (<code>stat -f %z</code>, divided by
+1,000,000: "4.5 MB"): the hero, the top nav and the install card then offer
 the download (<code>tools/apps_status.py</code>). Deploy the site, and check the link anonymously (<code>curl -sIL &lt;url&gt;</code> ends in 200)
 and the downloaded file's SHA-256 against the release's <code>.sha256</code>. Until then a new
 standalone install still works: it checks the release against the SHA-256 published with it. The tarball leaves out

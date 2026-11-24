@@ -423,7 +423,8 @@ harness: [docs/harnesses.md](docs/harnesses.md). Machines: [docs/multi-machine.m
 ## Limits
 
 - **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
-- **The Mac app** is `Pointe.dmg`, signed with Developer ID and notarized ([how](docs/mac-app.md#getting-it)). Its
+- **The Mac app** is `Pointe.dmg`: the app in it is signed with Developer ID and notarized ([how](docs/mac-app.md#getting-it)); the
+  0.8.1 disk image itself is not signed yet. Its
   first-launch install ran for real into an empty home folder, through the same installer code, but has not yet been
   followed on a fresh Mac account; its screens were checked in a preview. Its
   call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon

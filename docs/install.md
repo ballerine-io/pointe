@@ -23,7 +23,7 @@ The app sets up the rest, in one window with a progress bar, in about five minut
 4. **Your first call.** Start Pointe, put on headphones, press Connect (macOS asks for the microphone the first time),
    and say hello: Pointe answers that it hears you.
 
-The app and Pointe are signed by Ballerine with Developer ID and notarized by Apple: macOS opens them without a warning.
+The app is signed by Ballerine with Developer ID and notarized by Apple: macOS opens it without a warning.
 `Pointe.dmg` has its SHA-256 beside it on the release page.
 
 **Updates.** When Pointe in your home folder is older than the app, the app shows Update Pointe to <version> at the top

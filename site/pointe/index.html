@@ -39,6 +39,7 @@
     <a href="#features">Features</a>
     <a href="#install">Install</a>
     <!-- nav-download:begin (tools/apps_status.py writes this from site/pointe/apps.json; edit it there) -->
+    <a href="https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg" data-mac-only>Download</a><a href="#install" data-not-mac hidden>Download</a>
     <!-- nav-download:end -->
     <a href="docs/">Docs</a>
     <a href="benchmarks/">Benchmarks</a>
@@ -61,7 +62,8 @@
         <p class="small proof"><strong>Teams using Pointe report up to 1.6× more output across their agents.</strong>
           Self-reported by teams using Pointe at Ballerine, 2026; not a benchmark.</p>
         <!-- hero-cta:begin (tools/apps_status.py writes this from site/pointe/apps.json; edit it there) -->
-        <p class="hero-cta"><a class="btn btn--primary" href="#install">Install</a><a class="btn" href="#with">Watch it work<span class="btn-meta">&nbsp;· 1&nbsp;min</span></a></p>
+        <p class="hero-cta"><a class="btn btn--primary" data-mac-only href="https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg">Download for Mac</a><a class="btn btn--primary" data-not-mac hidden href="#install">Get it on your Mac</a><a class="btn" href="#install">Install</a><a class="btn" href="#with">Watch it work<span class="btn-meta">&nbsp;· 1&nbsp;min</span></a></p>
+        <p class="small hero-dl" data-mac-only>Pointe 0.8.1 · macOS 15+ · 4.5 MB</p>
         <!-- hero-cta:end -->
         <p class="small">Runs on your Mac. No server, no account. Your own model keys, or local models. MIT.</p>
       </div>
@@ -636,7 +638,7 @@
       </div>
       <div id="apps" class="apps block">
         <!-- apps:begin (tools/apps_status.py writes this from site/pointe/apps.json; edit it there) -->
-        <div class="app-card" data-app="mac" data-status="coming-soon"><p class="kicker">Mac</p><h3 class="h3">Download for Mac (.dmg)</h3><p class="body">Drag to Applications, open, and Pointe sets itself up.</p><p class="app-cta"><span class="app-soon">Coming soon</span><a class="link" href="https://github.com/ballerine-io/pointe/releases">Get notified on GitHub →</a></p></div>
+        <div class="app-card" data-app="mac" data-status="open"><p class="kicker">Mac</p><h3 class="h3">Download for Mac (.dmg)</h3><p class="body">Drag to Applications, open, and Pointe sets itself up.</p><p class="app-cta"><a class="btn btn--primary" href="https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg">Download for Mac (.dmg)</a></p><p class="small app-meta">Pointe 0.8.1 · macOS 15+ · 4.5 MB</p></div>
         <div class="app-card" data-app="iphone" data-status="opening-soon"><p class="kicker">iPhone</p><h3 class="h3">iPhone beta on TestFlight</h3><p class="body">The same call in your pocket. Pair it with one QR code on the Mac.</p><p class="app-cta"><a class="btn" href="https://testflight.apple.com/join/gkRJccpc">Join the iPhone beta (opens soon)</a><a class="link" href="https://github.com/ballerine-io/pointe/releases">Get notified on GitHub →</a></p></div>
         <!-- apps:end -->
       </div>
