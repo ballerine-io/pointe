@@ -10,6 +10,20 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.8 (beta)
 
+- **0.8.3** (2026-11-24, beta): Mute and skip sit beside the status line: one mute button replaces reading mode, skip moves on to the next message, a switch stops speech at once, and the conversation's text can be copied
+
+  What is in it:
+  - One mute button beside the status line replaces reading mode. Muted, Pointe writes its replies and the status
+    says "Writing…"; muting in the middle of a reply stops the audio at once. "Stop talking, I'll read" and "talk
+    again" still work.
+  - Skip what Pointe is saying and go on to the next message: a button beside the mute button, ⌃⌥S from any app on
+    the Mac, or "skip" or "next" by voice.
+  - A switch stops speech at once: moving to the orchestrator or to a session, by a click or by voice, cuts what
+    Pointe is saying and clears what waited to be said.
+  - The conversation's text can be selected and copied.
+  - "Mute" now means only Pointe's voice. The microphone is on or off: the state reads "Mic off".
+  - Mac app: the two bubble switches in Settings always take a click, the bubble's dot for a waiting session no
+    longer sits over the mic's state, and the setup guide no longer says the first start downloads 180 MB.
 - **0.8.2** (2026-11-24, beta): pointe key saves a key longer than 128 characters whole, and says so only after reading it back
 - **0.8.1** (2026-11-24, beta): Pointe for Mac is one signed, notarized download: drag Pointe from Pointe.dmg to Applications and open it, and the app installs Pointe (checked, no Terminal), asks one question, takes your key and starts your first call; Uninstall Pointe… is in its menu
 - **0.8.0** (2026-11-24, beta): The first public release. Beta: work in progress.
