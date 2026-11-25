@@ -20,12 +20,15 @@ import asyncio
 import json
 import os
 import re
+import runpy
 import shutil
 import subprocess
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+runpy.run_path(str(Path(__file__).resolve().parents[3] / "tools" / "ui_guard.py"))["require"]("apps/ios/e2e/bad_network.py")
 
 ROOT = Path(__file__).resolve().parents[3]
 STATE = Path(os.environ["CLAUDE_VOICE_STATE"])

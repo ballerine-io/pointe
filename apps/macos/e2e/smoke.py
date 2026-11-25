@@ -2,7 +2,9 @@
 network, nothing of the room. It is what `apps/macos/test.sh ui` checks with XCUITest, for a Mac where nobody is there to
 unlock Automation Mode: the terminal needs only the Accessibility permission. Run by hand, or by `apps/macos/test.sh smoke`:
 
-    python3 -I apps/macos/e2e/smoke.py [--shots /tmp/parity-shots/mac]
+    POINTE_UI_LOCAL=1 python3 -I apps/macos/e2e/smoke.py [--shots /tmp/parity-shots/mac]
+
+It opens the app's windows, so it refuses to start outside CI without POINTE_UI_LOCAL=1 (tools/ui_guard.py).
 
 It builds the app (apps/macos/build.sh), and for each flow starts the build-folder app fresh with `-demo <screen>` (the
 iPhone UI suite's fixtures: invented sessions), presses its controls by their identifiers, and checks what is on
@@ -11,6 +13,7 @@ screen. The app's own settings are untouched: a demo keeps nothing. Never the in
 
 import os
 import plistlib
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -106,6 +109,7 @@ def shared_bundle_ids(app: Path) -> list[str]:
 
 
 def main() -> int:
+    runpy.run_path(str(ROOT / "tools" / "ui_guard.py"))["require"]("apps/macos/e2e/smoke.py")
     # POINTE_SMOKE_APP: an app already built (apps/macos/build.sh's, or another plain build). A demo keeps nothing, so it needs
     # no bundle ID of its own; never pass PRODUCT_BUNDLE_IDENTIFIER to xcodebuild for it (shared_bundle_ids).
     given = os.environ.get("POINTE_SMOKE_APP")

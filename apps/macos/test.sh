@@ -5,6 +5,7 @@
 #   apps/macos/test.sh ui [name]  the UI tests (or one, by name); screenshots land in /tmp/macos-app-shots
 #   apps/macos/test.sh smoke      the same flows through the Accessibility API (apps/macos/e2e/smoke.py): needs no Automation Mode
 # The UI tests and the smoke drive the real app on the demo fixtures (-demo): no daemon, no microphone, no network.
+# They open its windows and take the keyboard, so they run in CI; on your own Mac only with POINTE_UI_LOCAL=1.
 # Signing: the team in apps/ios/.team when it is there (gitignored), else ad hoc.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -13,6 +14,10 @@ ONLY="${2:-}"
 SIGN=(CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=)
 TEAM_FILE="${POINTE_TEAM_FILE:-../ios/.team}"
 if [ -s "$TEAM_FILE" ]; then SIGN=(DEVELOPMENT_TEAM="$(tr -d '[:space:]' < "$TEAM_FILE")" "CODE_SIGN_IDENTITY=Apple Development" -allowProvisioningUpdates); fi
+if [ "$WHAT" != unit ]; then
+  python3 -I ../../tools/ui_guard.py "apps/macos/test.sh $WHAT (apps/macos/test.sh unit opens nothing)" || exit 2
+  export TEST_RUNNER_POINTE_UI_LOCAL=1
+fi
 RUN=(xcodebuild test -project PointeMac.xcodeproj -scheme PointeMac -derivedDataPath build/dd -destination 'platform=macOS,arch=arm64')
 
 if [ "$WHAT" = all ] || [ "$WHAT" = unit ]; then

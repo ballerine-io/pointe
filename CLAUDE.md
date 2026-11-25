@@ -12,6 +12,9 @@ file adds what an agent editing the repository must do.
   `git worktree add ../claude-voice-wt/<name> -b <name> main`. Work and write only inside it.
 - Tests: `uv run --locked pytest -q tests/ --ignore=tests/e2e` (no keys, about four minutes; CI runs the same on Ubuntu).
   `tests/e2e/` calls paid vendors and starts real sessions: only when asked.
+- Never run a test that opens windows on this Mac: the Mac smoke, the XCUITests, the iPhone UI tests in the Simulator,
+  or `xcodebuild test` on a UI test target. A person is working at it. They refuse without `POINTE_UI_LOCAL=1`
+  (`tools/ui_guard.py`), which only the owner sets. Push and read the `ui` workflow's run and artifacts instead.
 - Never start, stop or talk to the live daemon (port 7860) and never read or write `~/.claude-voice`. Tests get a
   throwaway state dir from `tests/conftest.py` and use other ports; keep it so.
 - Commits: `git commit -s` (DCO; `dco.yml` fails a pull request without it). Subjects in plain prose, like the log.

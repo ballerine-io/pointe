@@ -14,6 +14,7 @@ Builds in parallel each need POINTE_DERIVED_DATA (default /tmp/pointe-dd); DEVEL
 import asyncio
 import json
 import os
+import runpy
 import shutil
 import subprocess
 import sys
@@ -21,6 +22,8 @@ import tempfile
 import time
 import urllib.request
 from pathlib import Path
+
+runpy.run_path(str(Path(__file__).resolve().parents[3] / "tools" / "ui_guard.py"))["require"]("apps/ios/e2e/meeting_ui.py")
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT_DIR / "tests" / "e2e"))

@@ -20,6 +20,7 @@ import asyncio  # noqa: E402
 import base64  # noqa: E402
 import fcntl  # noqa: E402
 import json  # noqa: E402
+import runpy  # noqa: E402
 import select  # noqa: E402
 import shutil  # noqa: E402
 import signal  # noqa: E402
@@ -455,6 +456,7 @@ def main() -> None:
     out.mkdir(parents=True)
     phone = not args.no_phone
     if phone:
+        runpy.run_path(str(ROOT / "tools" / "ui_guard.py"))["require"]("tools/demo-video/capture.py with the iPhone (not --no-phone)")
         global SIMULATOR
         if not SIMULATOR:
             booted = subprocess.run(["xcrun", "simctl", "list", "devices", "booted", "-j"], capture_output=True, text=True).stdout

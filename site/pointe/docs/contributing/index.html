@@ -330,9 +330,16 @@ show are checked by <code>tests/test_copy_parity.py</code>, colours by <code>tes
 <code>tests/test_parity_matrix.py</code>.</p>
 <h3 id="the-apps">The apps</h3>
 <div class="dx-code"><pre><code>(cd apps/PointeKit &amp;&amp; swift test)    # PointeKit: every screen, the call, the models; on the Mac
-apps/macos/test.sh unit                    # PointeKit and the Mac app&#x27;s unit tests: what CI runs
-apps/macos/test.sh smoke                   # every main flow on invented sessions, through the Accessibility API
-apps/macos/test.sh ui                      # the same flows with XCUITest; macOS asks you to allow UI automation first</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+apps/macos/test.sh unit                    # PointeKit and the Mac app&#x27;s unit tests: what CI runs</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><strong>Tests that open windows run in CI, not on your Mac.</strong> The Mac smoke (<code>apps/macos/test.sh smoke</code>,
+<code>apps/macos/e2e/smoke.py</code>), the Mac app's XCUITests (<code>apps/macos/test.sh ui</code>), the live test (<code>apps/macos/e2e/live.py</code>),
+and every driver of the iPhone UI tests (<code>apps/ios/e2e/*.py</code>, <code>tests/e2e/ios_app.py</code>, <code>tests/e2e/ios_phone_pair.py</code>,
+<code>tools/demo-video/capture.py</code> with the iPhone) put windows on the screen and take the keyboard, so nobody can work at
+that Mac while they run. Each one refuses to start unless <code>CI=true</code> (GitHub Actions sets it) or you set
+<code>POINTE_UI_LOCAL=1</code> yourself, and says so in one line (<code>tools/ui_guard.py</code>, tested by <code>tests/test_ui_guard.py</code>). An
+agent never sets <code>POINTE_UI_LOCAL</code>: it pushes and reads the run.</p>
+<div class="dx-code"><pre><code>POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented sessions, through the Accessibility API
+POINTE_UI_LOCAL=1 apps/macos/test.sh ui    # the same flows with XCUITest; macOS asks you to allow UI automation first</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>The iPhone app's tests run in the iPhone Simulator, as in CI (<code>.github/workflows/test.yml</code>, job <code>ios</code>): pick an
 available simulator's id from <code>xcrun simctl list devices available</code>, then</p>
 <div class="dx-code"><pre><code>(cd ios &amp;&amp; xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination &quot;id=&lt;simulator id&gt;&quot; \
@@ -340,8 +347,8 @@ available simulator's id from <code>xcrun simctl list devices available</code>, 
 (cd apps/PointeKit &amp;&amp; xcodebuild test -scheme PointeKit-Package -destination &quot;id=&lt;simulator id&gt;&quot; \
   -only-testing:PointeUIUnitTests -quiet)</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>The UI tests (<code>apps/ios/PointeUITests</code>) and the drivers in <code>apps/ios/e2e/</code> run the app against a test daemon; each driver's first
-lines give its command, with its own state folder and ports. <code>uv run --locked python -I apps/macos/e2e/live.py</code> runs the
-real Mac app against its own daemon, with keys and the microphone.</p>
+lines give its command, with its own state folder and ports. <code>POINTE_UI_LOCAL=1 uv run --locked python -I
+apps/macos/e2e/live.py</code> runs the real Mac app against its own daemon, with keys and the microphone.</p>
 <h3 id="end-to-end-with-paid-vendors">End to end, with paid vendors</h3>
 <p><code>tests/e2e/</code> starts real Claude Code sessions and calls the vendors on your keys, so each run costs money; the cost of
 a run is not recorded. Run them when you change the audio path, or ask a maintainer to.</p>

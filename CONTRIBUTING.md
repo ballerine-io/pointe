@@ -129,8 +129,19 @@ show are checked by `tests/test_copy_parity.py`, colours by `tests/test_theme.py
 ```
 (cd apps/PointeKit && swift test)    # PointeKit: every screen, the call, the models; on the Mac
 apps/macos/test.sh unit                    # PointeKit and the Mac app's unit tests: what CI runs
-apps/macos/test.sh smoke                   # every main flow on invented sessions, through the Accessibility API
-apps/macos/test.sh ui                      # the same flows with XCUITest; macOS asks you to allow UI automation first
+```
+
+**Tests that open windows run in CI, not on your Mac.** The Mac smoke (`apps/macos/test.sh smoke`,
+`apps/macos/e2e/smoke.py`), the Mac app's XCUITests (`apps/macos/test.sh ui`), the live test (`apps/macos/e2e/live.py`),
+and every driver of the iPhone UI tests (`apps/ios/e2e/*.py`, `tests/e2e/ios_app.py`, `tests/e2e/ios_phone_pair.py`,
+`tools/demo-video/capture.py` with the iPhone) put windows on the screen and take the keyboard, so nobody can work at
+that Mac while they run. Each one refuses to start unless `CI=true` (GitHub Actions sets it) or you set
+`POINTE_UI_LOCAL=1` yourself, and says so in one line (`tools/ui_guard.py`, tested by `tests/test_ui_guard.py`). An
+agent never sets `POINTE_UI_LOCAL`: it pushes and reads the run.
+
+```
+POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented sessions, through the Accessibility API
+POINTE_UI_LOCAL=1 apps/macos/test.sh ui    # the same flows with XCUITest; macOS asks you to allow UI automation first
 ```
 
 The iPhone app's tests run in the iPhone Simulator, as in CI (`.github/workflows/test.yml`, job `ios`): pick an
@@ -144,8 +155,8 @@ available simulator's id from `xcrun simctl list devices available`, then
 ```
 
 The UI tests (`apps/ios/PointeUITests`) and the drivers in `apps/ios/e2e/` run the app against a test daemon; each driver's first
-lines give its command, with its own state folder and ports. `uv run --locked python -I apps/macos/e2e/live.py` runs the
-real Mac app against its own daemon, with keys and the microphone.
+lines give its command, with its own state folder and ports. `POINTE_UI_LOCAL=1 uv run --locked python -I
+apps/macos/e2e/live.py` runs the real Mac app against its own daemon, with keys and the microphone.
 
 ### End to end, with paid vendors
 

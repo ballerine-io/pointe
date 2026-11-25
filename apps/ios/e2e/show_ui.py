@@ -13,6 +13,7 @@ Run: CLAUDE_VOICE_STATE=/tmp/cv-state-sws CLAUDE_VOICE_DAEMON_PORT=7951 CLAUDE_V
 import asyncio
 import json
 import os
+import runpy
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,8 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+runpy.run_path(str(Path(__file__).resolve().parents[3] / "tools" / "ui_guard.py"))["require"]("apps/ios/e2e/show_ui.py")
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT_DIR / "tests" / "e2e"))

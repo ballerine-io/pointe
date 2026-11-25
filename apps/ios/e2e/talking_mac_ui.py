@@ -14,9 +14,12 @@ POINTE_BACKGROUND=1 sends the app to the background (Home) for the whole speech:
 
 import os
 import re
+import runpy
 import subprocess
 import sys
 from pathlib import Path
+
+runpy.run_path(str(Path(__file__).resolve().parents[3] / "tools" / "ui_guard.py"))["require"]("apps/ios/e2e/talking_mac_ui.py")
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))

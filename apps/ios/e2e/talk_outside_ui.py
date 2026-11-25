@@ -14,9 +14,12 @@ prints the time from the tap to the press open on the Mac. `widget`: the same fr
 """
 
 import os
+import runpy
 import subprocess
 import sys
 from pathlib import Path
+
+runpy.run_path(str(Path(__file__).resolve().parents[3] / "tools" / "ui_guard.py"))["require"]("apps/ios/e2e/talk_outside_ui.py")
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))

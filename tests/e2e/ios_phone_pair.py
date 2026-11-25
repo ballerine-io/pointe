@@ -10,6 +10,7 @@ Run: CLAUDE_VOICE_STATE=/tmp/cv-state-pc2 CLAUDE_VOICE_DAEMON_PORT=7971 CLAUDE_V
 
 import json
 import os
+import runpy
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+
+runpy.run_path(str(Path(__file__).resolve().parents[2] / "tools" / "ui_guard.py"))["require"]("tests/e2e/ios_phone_pair.py")
 
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path[0:0] = [str(Path(__file__).resolve().parents[2] / "pointe"), str(Path(__file__).resolve().parents[2])]

@@ -13,11 +13,14 @@ import asyncio
 import json
 import os
 import re
+import runpy
 import ssl
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+runpy.run_path(str(Path(__file__).resolve().parents[3] / "tools" / "ui_guard.py"))["require"]("apps/ios/e2e/ptt_latency.py")
 
 from aiohttp import WSMsgType, web
 

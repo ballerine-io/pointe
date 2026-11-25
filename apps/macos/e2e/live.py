@@ -27,6 +27,7 @@ byte count, never words, and the state is deleted with the rest.
 
 import json
 import os
+import runpy
 import shutil
 import subprocess
 import sys
@@ -90,6 +91,7 @@ def hold_request(out: dict) -> None:
 
 
 def main() -> int:
+    runpy.run_path(str(ROOT / "tools" / "ui_guard.py"))["require"]("apps/macos/e2e/live.py")
     shutil.rmtree(WORK, ignore_errors=True)
     STATE.mkdir(parents=True)
     project = WORK / "docs"
