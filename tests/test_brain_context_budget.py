@@ -52,7 +52,9 @@ def _valid(messages: list[dict]) -> bool:
 
 def _long_call(monkeypatch, turns: int, usage=None):
     """A call of `turns` turns: a changing [right now] block, a full final message every third turn, a tool call on most
-    turns, big results. Returns the brain and the history every step was sent."""
+    turns, big results. Returns the brain and the history every step was sent. Seeded here, not at import: the text, and
+    so the counts the tests check, must not depend on which tests ran first (pytest-testmon and xdist reorder them)."""
+    random.seed(11)
     blocks = [f"[right now] The user's latest words are in English.\nActive session: lantern.\n{prose(1800)}" for _ in range(6)]
     now = {"i": 0}
     seen, plan, spoken = [], [], []

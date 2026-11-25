@@ -10,7 +10,7 @@ tests read) runs the test files that name it, or that import a helper naming it.
 Swift: `swift test --filter` for the PointeKit targets the change touched, or whose tests read a changed file; on a Mac
 with Swift only. It never runs a UI test.
 
-The first run in a clone records every test (about two minutes on all cores). Each run leaves its data in the clone's
+The first run in a clone records every test (two to three minutes on all cores). Each run leaves its data in the clone's
 git folder, and a new worktree starts from that copy: only what differs from the last run is selected.
 """
 
@@ -92,10 +92,11 @@ def main(extra: list[str]) -> int:
     print(f"changed: {len(paths)} file(s)" + "".join(f"\n  {p}" for p in paths[:20]) + ("\n  …" if len(paths) > 20 else ""))
     if not DATA.exists() and SHARED.exists():
         shutil.copyfile(SHARED, DATA)
-    first = not DATA.exists()
-    if first:
-        print("no .testmondata here or in the clone yet: this run records every test, on all cores, once")
-    ok = run("python, by testmon", PYTEST + ["--testmon", "-q"] + (["-n", "auto"] if first else []) + extra)
+    if not DATA.exists():
+        print("no .testmondata here or in the clone yet: this run records every test, once")
+    # Every core even for a few tests: a large selection (after a rebase, or a change to conftest.py) takes 2 minutes
+    # instead of 10, and a small one loses nothing (the tests' imports dominate either way).
+    ok = run("python, by testmon", PYTEST + ["--testmon", "-q", "-n", "auto"] + extra)
     if DATA.exists():
         partial = SHARED.with_name(f"{SHARED.name}.{os.getpid()}")
         shutil.copyfile(DATA, partial)
