@@ -1,5 +1,15 @@
 <!-- Written by bench/conversational/publish.py from the committed results. Do not edit by hand. -->
 
+> **Withdrawn on 2026-11-25.** This page reports a run of 2026-11-23 on a Pointe build that is not public
+> (`84eafbc`, and `6544cdc` before the fixes). An integrity audit found faults that change its numbers: the measured
+> builds cannot be checked out, the "after" reruns heard different audio from the reference arms, the arms ran hours
+> apart, runs were stopped without a rule written first, and each benchmark has scorer faults of its own (HLK passed
+> tasks that never reached the agent and named its trap items in the agent's folder; Spoken Actions scored a false
+> "approved" as correct; Barge-in left unanswered items out of its median; Routing's baseline prompt restated the
+> dataset's rules; Identifiers was tuned on its own test items). It is kept as it was published, for the record. Do not
+> cite its numbers. The current results: [docs/benchmarks/README.md](../../README.md).
+
+
 # Pointe Conversational Engineering Benchmarks
 
 Five benchmarks of conversational engineering, measuring what a voice layer costs a coding agent. The agent is held fixed (claude-haiku-5-5 in Claude Code), and the same tasks reach it typed or spoken, so a score is the loss the voice interface adds, not the strength of the agent. Pointe is the system under test.

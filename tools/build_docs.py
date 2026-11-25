@@ -53,8 +53,7 @@ NAV = [
     ("Contributing", ["/CONTRIBUTING.md", "releasing.md", "/SECURITY.md"]),
 ]
 # Docs with a page of their own elsewhere on the site.
-ELSEWHERE = {"docs/benchmarks/README.md": "benchmarks/", "docs/benchmarks/hlk.md": "benchmarks/hlk/",
-             "docs/benchmarks/actions.md": "benchmarks/actions/"}
+ELSEWHERE = {"docs/benchmarks/README.md": "benchmarks/", "docs/benchmarks/hlk.md": "benchmarks/hlk/"}
 COPIED = {".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp"}  # files a page shows, copied next to it
 
 HEBREW = "֐-׿יִ-ﭏ"

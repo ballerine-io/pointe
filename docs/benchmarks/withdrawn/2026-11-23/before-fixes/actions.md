@@ -1,5 +1,15 @@
 <!-- The published run of 2026-11-23, before the fixes of what it found (a pre-release build (2026-11-23) before the benchmark fixes). Kept as published; links point at its own files. -->
 
+> **Withdrawn on 2026-11-25.** This page reports a run of 2026-11-23 on a Pointe build that is not public
+> (`84eafbc`, and `6544cdc` before the fixes). An integrity audit found faults that change its numbers: the measured
+> builds cannot be checked out, the "after" reruns heard different audio from the reference arms, the arms ran hours
+> apart, runs were stopped without a rule written first, and each benchmark has scorer faults of its own (HLK passed
+> tasks that never reached the agent and named its trap items in the agent's folder; Spoken Actions scored a false
+> "approved" as correct; Barge-in left unanswered items out of its median; Routing's baseline prompt restated the
+> dataset's rules; Identifiers was tuned on its own test items). It is kept as it was published, for the record. Do not
+> cite its numbers. The current results: [docs/benchmarks/README.md](../../README.md).
+
+
 # Spoken Actions and False Approval
 
 *Does speech become the right harness action, and how often does something that is not a yes approve a destructive prompt?*

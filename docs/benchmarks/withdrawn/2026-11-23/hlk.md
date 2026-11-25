@@ -1,10 +1,20 @@
-<!-- The published run of 2026-11-23, before the fixes of what it found (a pre-release build (2026-11-23) before the benchmark fixes). Kept as published; links point at its own files. -->
+<!-- Written by bench/conversational/hlk/run.py report from the committed rows. Do not edit by hand. -->
+
+> **Withdrawn on 2026-11-25.** This page reports a run of 2026-11-23 on a Pointe build that is not public
+> (`84eafbc`, and `6544cdc` before the fixes). An integrity audit found faults that change its numbers: the measured
+> builds cannot be checked out, the "after" reruns heard different audio from the reference arms, the arms ran hours
+> apart, runs were stopped without a rule written first, and each benchmark has scorer faults of its own (HLK passed
+> tasks that never reached the agent and named its trap items in the agent's folder; Spoken Actions scored a false
+> "approved" as correct; Barge-in left unanswered items out of its median; Routing's baseline prompt restated the
+> dataset's rules; Identifiers was tuned on its own test items). It is kept as it was published, for the record. Do not
+> cite its numbers. The current results: [docs/benchmarks/README.md](../../README.md).
+
 
 # Humanity's Last Keystroke (HLK)
 
 *a pilot voice-only coding benchmark, v0.1, synthetic speech, n = 36 in 12 families*
 
-Part of the Pointe Conversational Coding Benchmarks: a reproducible self-evaluation harness with an adapter interface. One system under test (Pointe) and reference arms written by the same team, on synthetic speech. The authors know Pointe's internals. This is not a ranking of products.
+Part of the Pointe Conversational Engineering Benchmarks: a reproducible self-evaluation harness with an adapter interface. One system under test (Pointe) and reference arms written by the same team, on synthetic speech. The authors know Pointe's internals. This is not a ranking of products.
 
 HLK asks whether a small scripted multi-step coding task is finished by voice only, graded by hidden tests on the final state of the repository, compared with the keyboard on the same terminal. The coding agent is held fixed (claude-haiku-5-5 in Claude Code, permission mode acceptEdits), so the score is the loss the voice interface adds, not the strength of the agent. The tasks are small Python standard-library edits sized for that agent.
 
@@ -22,9 +32,10 @@ The name follows Humanity's Last Exam (CAIS and Scale AI, arXiv 2501.14249); HLK
 - Other benchmark processes shared the machine during the runs; the load average is in every row. Times are wall-clock times of one laptop and one network.
 - The scripted user asks its next line after about four seconds of quiet. Pointe says an agent's question aloud a few seconds after the agent asks it, so in some of Pointe's failed runs the user asked its last question before Pointe had said the agent's question, and that question went unanswered (seen in the runs' trace logs, which are not committed). This counts against Pointe; the typed arms read the terminal and cannot hit it.
 - One item does not say all that it scores: spelled-out seed 2 spells a dunder name letter by letter and does not say its case, and the hidden test wants lower case. It stays as frozen. Passes on it: keyboard, canonical 2 of 2, keyboard, transcript 0 of 2, Pointe 0 of 2, LLM router 2 of 2, keyword rules, ours 0 of 2, null (does nothing) 0 of 1.
-- The first-run rows ran on a pre-release runner (2026-11-23 04:09). A fault of that runner (an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by the rule below, on a pre-release runner (2026-11-23 08:50).
+- The first-run rows ran on a pre-release runner (2026-11-23 04:09). A fault of that runner (an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by the rule below, on a pre-release runner (2026-11-23 08:50) with the approval-credit fix.
+- The Pointe arm was run again after Pointe fixed what this suite found: Pointe: a pre-release build (2026-11-23) with the benchmark fixes, the same agent, instances, voices, seeds and settings. The reference arms run no Pointe code; their rows come from the earlier runs (hlk-20261123-040919, hlk-20261123-085104, Pointe: a pre-release build (2026-11-23) before the benchmark fixes). The earlier page is kept as published in docs/benchmarks/earlier/.
 
-Runs: hlk-20261123-040919, hlk-20261123-085104. Dates: 2026-11-23. Agent: claude-haiku-5-5 in Claude Code 2.1.330. Pointe: a pre-release build (2026-11-23) before the benchmark fixes, frozen before the first paid row, 2026-11-23). Router brain: anthropic:claude-sonnet-5-5. Spoken output of every arm is read by one pinned local Whisper (large-v3-turbo).
+Runs: hlk-20261123-040919, hlk-20261123-085104, hlk-20261123-161156. Dates: 2026-11-23. Agent: claude-haiku-5-5 in Claude Code 2.1.330. Pointe: a pre-release build (2026-11-23) with the benchmark fixes, frozen before its first paid row (2026-11-23). Router brain: anthropic:claude-sonnet-5-5. Spoken output of every arm is read by one pinned local Whisper (large-v3-turbo).
 
 Every planned run finished inside the cap; nothing was trimmed.
 
@@ -39,14 +50,14 @@ Cells are passes over runs: each paid arm ran each of the 3 instances of a famil
 | dictated-literals | naming | 6/6 | 6/6 | 5/6 | 6/6 | 6/6 | 0/3 |
 | spelled-out | naming | 6/6 | 4/6 | 4/6 | 6/6 | 3/6 | 0/3 |
 | noisy-paths | naming | 6/6 | 6/6 | 0/6 | 5/6 | 4/6 | 0/3 |
-| self-correction | language | 6/6 | 6/6 | 4/6 | 6/6 | 3/6 | 0/3 |
+| self-correction | language | 6/6 | 6/6 | 3/6 | 6/6 | 3/6 | 0/3 |
 | long-dictation | language | 6/6 | 6/6 | 3/6 | 6/6 | 2/6 | 0/3 |
-| read-then-decide | language | 6/6 | 6/6 | 0/6 | 6/6 | 6/6 | 0/3 |
+| read-then-decide | language | 6/6 | 6/6 | 1/6 | 6/6 | 6/6 | 0/3 |
 | deny-the-decoy | control | 6/6 | 6/6 | 5/6 | 6/6 | 6/6 | 0/3 |
-| mid-task-redirect | control | 6/6 | 5/6 | 3/6 | 0/6 | 0/6 | 0/3 |
-| two-repo-handoff | control | 6/6 | 6/6 | 3/6 | 4/6 | 5/6 | 0/3 |
-| impossible-as-stated | control | 5/6 | 4/6 | 6/6 | 6/6 | 5/6 | 0/3 |
-| all 12 families |  | 70/72 | 65/72 | 34/72 | 62/72 | 47/72 | 0/36 |
+| mid-task-redirect | control | 6/6 | 5/6 | 1/6 | 0/6 | 0/6 | 0/3 |
+| two-repo-handoff | control | 6/6 | 6/6 | 1/6 | 4/6 | 5/6 | 0/3 |
+| impossible-as-stated | control | 5/6 | 4/6 | 3/6 | 6/6 | 5/6 | 0/3 |
+| all 12 families |  | 70/72 | 65/72 | 27/72 | 62/72 | 47/72 | 0/36 |
 
 ## The voice gap (synthetic speech)
 
@@ -54,12 +65,12 @@ Keyboard minus the spoken arm, in percentage points, paired by family, with a 95
 
 | spoken arm | keyboard, canonical minus it | keyboard, transcript minus it |
 |---|---|---|
-| Pointe | +50 points (95% CI +31 to +69) | +43 points (95% CI +21 to +64) |
+| Pointe | +60 points (95% CI +43 to +75) | +53 points (95% CI +35 to +69) |
 | LLM router | +11 points (95% CI -1 to +31) | +4 points (95% CI -11 to +22) |
 
-Pointe minus the LLM router, paired by family: -39 points (95% CI -62 to -15).
+Pointe minus the LLM router, paired by family: -49 points (95% CI -65 to -31).
 
-Overall pass rates (runs, not independent; for orientation only): keyboard, canonical 70 of 72, 97% (95% CI 90 to 99%); keyboard, transcript 65 of 72, 90% (95% CI 81 to 95%); Pointe 34 of 72, 47% (95% CI 36 to 59%); LLM router 62 of 72, 86% (95% CI 76 to 92%); keyword rules, ours 47 of 72, 65% (95% CI 54 to 75%); null (does nothing) 0 of 36 (95% upper bound 10%).
+Overall pass rates (runs, not independent; for orientation only): keyboard, canonical 70 of 72, 97% (95% CI 90 to 99%); keyboard, transcript 65 of 72, 90% (95% CI 81 to 95%); Pointe 27 of 72, 38% (95% CI 27 to 49%); LLM router 62 of 72, 86% (95% CI 76 to 92%); keyword rules, ours 47 of 72, 65% (95% CI 54 to 75%); null (does nothing) 0 of 36 (95% upper bound 10%).
 
 ## Claims at the end of the task, paired (synthetic speech)
 
@@ -69,7 +80,7 @@ Every task ends with "Is it done, and do the tests pass? Yes or no." False done 
 |---|---|---|---|
 | keyboard, canonical | 2 of 2, 100% (95% CI 34 to 100%) | 9 of 70, 13% (95% CI 7 to 23%) | 0 |
 | keyboard, transcript | 6 of 7, 86% (95% CI 49 to 97%) | 10 of 65, 15% (95% CI 9 to 26%) | 0 |
-| Pointe | 10 of 38, 26% (95% CI 15 to 42%) | 14 of 34, 41% (95% CI 26 to 58%) | 5 |
+| Pointe | 3 of 45, 7% (95% CI 2 to 18%) | 11 of 27, 41% (95% CI 25 to 59%) | 29 |
 | LLM router | 8 of 10, 80% (95% CI 49 to 94%) | 14 of 62, 23% (95% CI 14 to 34%) | 2 |
 | keyword rules, ours | 20 of 25, 80% (95% CI 61 to 91%) | 13 of 47, 28% (95% CI 17 to 42%) | 1 |
 | null (does nothing) | 0 of 36 (95% upper bound 10%) | n = 0 | 36 |
@@ -80,14 +91,18 @@ Every task ends with "Is it done, and do the tests pass? Yes or no." False done 
 |---|---|---|---|---|---|---|---|---|---|---|
 | keyboard, canonical | 34/36 | 2/36 | 0.03 | 0.00 | 32 s / 54 s | $0.003 | 0 | 0 | 0 | 0 |
 | keyboard, transcript | 31/36 | 3/36 | 0.06 | 0.00 | 33 s / 54 s | $0.003 | 0 | 0 | 0 | 0 |
-| Pointe | 13/36 | 8/36 | 0.10 | 0.04 | 149 s / 220 s | $0.236 | 0 | 0 | 0 | 66 |
+| Pointe | 7/36 | 13/36 | 0.08 | 0.47 | 178 s / 256 s | $0.199 | 0 | 0 | 0 | 48 |
 | LLM router | 30/36 | 2/36 | 0.03 | 0.03 | 171 s / 314 s | $0.013 | 1 | 0 | 0 | 0 |
 | keyword rules, ours | 21/36 | 5/36 | 0.08 | 0.08 | 171 s / 264 s | $0.004 | 0 | 0 | 0 | 0 |
 | null (does nothing) | n/a | n/a | 0.00 | 0.92 | 27 s / 32 s | $0.000 | 0 | 0 | 0 | 0 |
 
 pass^2: instances whose two runs both passed. Flips: instances whose two runs disagree. A clarification is a question the item foresaw, answered (no penalty); a corrective turn is a repeated instruction. Capped runs (12 user turns, 10 minutes, or $0.60) count as failures. Invalid runs named a path outside the item's folder in a tool call and are excluded from the passes. Errors are runs the harness could not finish; they count as failures.
 
-Where Pointe lost runs: in 33 of its 38 failed runs at least one spoken yes did not take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. In 24 of those 33 the agent changed no file, so the work stopped at the refusal or after it. In the other 9 the agent had already changed files and the hidden tests still failed: there the instruction as Pointe passed it on was often wrong (in twin-symbols, "a value that ends in s" reached the agent as ending in "S", and its code checks for a capital S). 20 runs passed despite such a refusal. The other arms act on a spoken yes for any command: they have no such guard.
+Where Pointe lost runs: in 31 of its 45 failed runs at least one spoken yes did not take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. In 22 of those 31 the agent changed no file, so the work stopped at the refusal or after it. In the other 9 the agent had already changed files and the hidden tests still failed. 13 runs passed despite such a refusal. The other arms act on a spoken yes for any command: they have no such guard.
+
+The brain model was slow during the Pointe runs: in 26 of 72 its step passed Pointe's 8 s limit (its fallback's too) and Pointe said "The model took too long to answer"; in the earlier Pointe runs, 3 of 72. Those runs measure the vendor's latency at the time as much as Pointe.
+
+Permission requests Pointe put to the user: 28 read out, which a spoken yes can approve, and 44 tap-only; in the earlier Pointe runs, 9 and 61.
 
 Harness faults: a run in which Claude Code showed a permission prompt without firing its hook, the runner credited an answer to the wrong request, or the agent made no step for 8 minutes was rerun once with the same voice and run index, by that rule and in every arm. Reruns: keyboard, transcript 1, LLM router 1. The first rows stay in the raw data.
 
@@ -97,7 +112,7 @@ Harness faults: a run in which Claude Code showed a permission prompt without fi
 |---|---|---|---|---|---|---|
 | naming | 29/30 | 26/30 | 10/30 | 28/30 | 20/30 | 0/15 |
 | language | 18/18 | 18/18 | 7/18 | 18/18 | 11/18 | 0/9 |
-| control | 23/24 | 21/24 | 17/24 | 16/24 | 16/24 | 0/12 |
+| control | 23/24 | 21/24 | 10/24 | 16/24 | 16/24 | 0/12 |
 
 ## Unpublished seeds, an overfit check (synthetic speech)
 
@@ -106,7 +121,7 @@ One extra seed per family, kept out of the repository (its manifest SHA-256 is i
 | arm | passes |
 |---|---|
 | keyboard, canonical | 12 of 12, 100% (95% CI 76 to 100%) |
-| Pointe | 4 of 12, 33% (95% CI 14 to 61%) |
+| Pointe | 6 of 12, 50% (95% CI 25 to 75%) |
 
 ## How it was measured
 
@@ -120,11 +135,11 @@ One extra seed per family, kept out of the repository (its manifest SHA-256 is i
 ## Run it, add to it
 
 ```
-uv run --locked python bench/conversational/hlk/run.py corpus
-uv run --locked python bench/conversational/hlk/run.py verify
-uv run --locked python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3
+uv run --locked --extra local python bench/conversational/hlk/run.py corpus
+uv run --locked --extra local python bench/conversational/hlk/run.py verify
+uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3
 ```
 
 An adapter implements start, say, type, key, events, speech, versions, spend and stop (bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better router prompt is welcome as a pull request. Family authors so far: the Pointe team.
 
-Spend: $24.35 for HLK in all (smoke and debugging included; cap $55), computed from usage and list prices in bench/conversational/hlk/prices.json. Raw rows and the final files of every published run (run.py verify re-scores them): bench/conversational/hlk/results/. Text and tasks CC BY 4.0, code MIT.
+Spend: $43.11 for HLK in all (smoke and debugging included; cap $55), computed from usage and list prices in bench/conversational/hlk/prices.json. Raw rows and the final files of every published run (run.py verify re-scores them): bench/conversational/hlk/results/. Text and tasks CC BY 4.0, code MIT.
