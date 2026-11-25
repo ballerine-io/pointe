@@ -94,7 +94,12 @@ With the default brain, a permission prompt is approved only when all of these h
   again.
 - You said a yes and nothing else, begun after the read-out ended. "Okay, tell me more", "yes, and run the linter", "okay
   so", and "no worries" do not count.
-- The yes came within 120 seconds of the read-out, on the active session.
+- The yes came within 120 seconds of the read-out, on the active session. A yes with more words after it ("okay, yes,
+  run the tests") once the request went cold brings the read-out back; it approves nothing.
+
+The voice never passes a yes on in words: a message to a session that vouches for the user's yes to a delete, a push, a
+merge or a post ("the owner confirms by voice: yes, delete…") is refused in code, whether or not that session has asked
+for one (`owner_yes_relay`). And the model may not say a waiting request was approved or is running.
 
 The short form drops output-only flags and shortens paths plainly inside the project to their name. In our own Claude
 Code history, about 13% of shell commands have a short form; the rest are read word for word.

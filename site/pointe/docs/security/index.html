@@ -242,9 +242,13 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
   so", and "no worries" do not count.</p>
 </li>
 <li>
-<p>The yes came within 120 seconds of the read-out, on the active session.</p>
+<p>The yes came within 120 seconds of the read-out, on the active session. A yes with more words after it ("okay, yes,
+  run the tests") once the request went cold brings the read-out back; it approves nothing.</p>
 </li>
 </ul>
+<p>The voice never passes a yes on in words: a message to a session that vouches for the user's yes to a delete, a push, a
+merge or a post ("the owner confirms by voice: yes, delete…") is refused in code, whether or not that session has asked
+for one (<code>owner_yes_relay</code>). And the model may not say a waiting request was approved or is running.</p>
 <p>The short form drops output-only flags and shortens paths plainly inside the project to their name. In our own Claude
 Code history, about 13% of shell commands have a short form; the rest are read word for word.</p>
 <p>Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
