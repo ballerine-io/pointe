@@ -58,7 +58,7 @@ import nightshift
 import hub_nodes
 import phone_pairing
 import nodelink
-from harnesses import FINISHED_MARK
+from harnesses import FINISHED_MARK, claude_code
 import local
 import meeting as meetings
 import modes
@@ -7586,7 +7586,10 @@ def _start_harnesses() -> list[dict]:
         adapter = harnesses.get(name)
         if adapter.starts:
             why = adapter.can_start()
-            out.append({"name": name, "title": _harness_title(name), "available": why is None, "why": why})
+            entry = {"name": name, "title": _harness_title(name), "available": why is None, "why": why}
+            if name == "claude-code" and sys.platform != "darwin":
+                entry["note"] = f"Claude Code opens {claude_code.opens_where()}."  # the page's own words are the Mac's
+            out.append(entry)
     return out
 
 
@@ -7695,8 +7698,8 @@ async def _run_start(start: newsession.Start) -> None:
         while start.state == "waiting" and time.time() < deadline:
             await asyncio.sleep(0.25)
         if start.state == "waiting":
-            await _start_failed(start, f"{_harness_title(start.harness)} opened in a new terminal window and has not "
-                                       "joined yet. Look at that window: it may be asking something."
+            await _start_failed(start, f"{_harness_title(start.harness)} opened {claude_code.opens_where()} and has "
+                                       "not joined yet. Look at it: it may be asking something."
                                        + (" The first prompt was not sent." if start.prompt else ""))
         return
     try:
@@ -7907,7 +7910,7 @@ def _start_the_bot_offered(places) -> str | None:
 
 
 def _started_note(start: newsession.Start, mode: str = "") -> str:
-    opens = "Claude Code opens in a new terminal window on the Mac. " if start.harness == "claude-code" else ""
+    opens = f"Claude Code opens {claude_code.opens_where()}. " if start.harness == "claude-code" else ""
     off = f"Add this, as it is: {newsession.SKIP_OFF_HERE} " if mode == "off" else ""
     return (f"{opens}It joins the voice by itself in a moment and is announced when it does; then requests can be sent "
             f"to it by its name. Say in one line that it is starting. {off}").strip()
@@ -8046,7 +8049,7 @@ async def _add(items: list[discovery.Found], how: str) -> dict:
     if joined:
         notes.append("Say in one line which sessions are on the voice now.")
     if reopening:
-        notes.append(("Claude Code opens in a new terminal window on the Mac. " if any(f.harness == "claude-code" for f in items
+        notes.append((f"Claude Code opens {claude_code.opens_where()}. " if any(f.harness == "claude-code" for f in items
                       if f.state == "recent") else "") + "A reopened session joins by itself in a moment and is announced then.")
     if stay:
         notes.append(f"Tell the user that approvals of {', '.join(stay)} stay in its terminal: Pointe's plugin is not "
@@ -8088,7 +8091,7 @@ def _added_line(result: dict, items: list[discovery.Found]) -> str:
         parts.append(f"{matching.said_list([_spoken_names(n) for n in joined])} {'is' if len(joined) == 1 else 'are'} on "
                      f"the voice now.")
     if reopening:
-        window = " in a new terminal window" if any(f.harness == "claude-code" and f.state != "open" for f in items) else ""
+        window = f" {claude_code.opens_where()}" if any(f.harness == "claude-code" and f.state != "open" for f in items) else ""
         parts.append(f"Reopening {matching.said_list([_spoken_names(n) for n in reopening])}{window}; it joins in a moment.")
     stay = [f.name for f in items if not f.approvals and (f.name in joined or f.name in reopening)]
     if stay:

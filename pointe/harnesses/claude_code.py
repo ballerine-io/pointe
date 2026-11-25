@@ -142,7 +142,10 @@ class ClaudeCode(Harness):
 
     def can_start(self) -> str | None:
         if sys.platform != "darwin":
-            return "Starting Claude Code needs a terminal window, which Pointe opens only on a Mac for now."
+            if not shutil.which("tmux") and not os.environ.get(OPEN_WITH_ENV):
+                return ("Starting Claude Code here needs tmux (sudo apt install tmux). Or start claude yourself in the "
+                        "folder and run /pointe:voice in it.")
+            return None if shutil.which("claude") else "Claude Code is not installed on this machine."
         return None if shutil.which("claude") else "Claude Code is not installed on this Mac."
 
     async def start(self, cwd: str, name: str, start_id: str, skip: bool = False) -> dict | None:
@@ -154,10 +157,10 @@ class ClaudeCode(Harness):
             raise StartError(why)
         script = start_script(cwd, name, start_id, skip=skip)
         try:
-            await asyncio.to_thread(open_terminal, script)
+            await asyncio.to_thread(open_window, script, name)
         except (OSError, subprocess.SubprocessError) as e:
             logger.warning(f"no terminal window for a new Claude Code session: {type(e).__name__}")
-            raise StartError("Pointe could not open a terminal window for Claude Code.")
+            raise StartError(could_not_open())
         return None
 
     def skip_check(self, cwd: str) -> str:
@@ -212,10 +215,10 @@ class ClaudeCode(Harness):
             raise StartError(f"Not reopened: the folder of {found.name} is no longer there.")
         script = start_script(found.cwd, found.name, start_id, resume=found.id, home=found.home)
         try:
-            await asyncio.to_thread(open_terminal, script)
+            await asyncio.to_thread(open_window, script, found.name)
         except (OSError, subprocess.SubprocessError) as e:
             logger.warning(f"no terminal window to reopen a Claude Code session: {type(e).__name__}")
-            raise StartError("Pointe could not open a terminal window for Claude Code.")
+            raise StartError(could_not_open())
         return None
 
     async def send(self, session, text: str) -> bool:
@@ -440,6 +443,45 @@ def open_terminal(script: Path) -> None:
     subprocess.run(argv, check=True, capture_output=True, timeout=15, env=childenv.child_env())
 
 
+TMUX_SESSION = "pointe"  # the person's own tmux session that holds, one window each, the sessions Pointe starts on Linux
+
+
+def opens_where() -> str:
+    """Where a Claude Code session Pointe starts or reopens shows up, in the words the voice and the page say."""
+    if sys.platform == "darwin":
+        return "in a new terminal window on the Mac"
+    return f"in a tmux window on this machine (to see it: tmux attach -t {TMUX_SESSION})"
+
+
+def could_not_open() -> str:
+    if sys.platform == "darwin" or os.environ.get(OPEN_WITH_ENV):
+        return "Pointe could not open a terminal window for Claude Code."
+    return "Pointe could not open a tmux window for Claude Code: is tmux working (tmux ls)?"
+
+
+def open_in_tmux(script: Path, name: str) -> None:
+    """Linux: the script in a new window of tmux session `pointe`, made by the first start. tmux, not a desktop terminal:
+    the daemon runs detached, often with no display (SSH, a server), and which terminal a desktop has differs; a tmux
+    window outlives any terminal and is reached from anywhere with `tmux attach -t pointe`."""
+    run = f"/bin/sh {shlex.quote(str(script))}"
+    env = childenv.child_env()
+    if subprocess.run(["tmux", "has-session", "-t", TMUX_SESSION], capture_output=True, timeout=10, env=env).returncode != 0:
+        made = subprocess.run(["tmux", "new-session", "-d", "-s", TMUX_SESSION, "-n", name, "-x", "200", "-y", "50", run],
+                              capture_output=True, timeout=15, env=env)
+        if made.returncode == 0:
+            return  # else another start made it first: add a window to it
+    subprocess.run(["tmux", "new-window", "-d", "-t", f"{TMUX_SESSION}:", "-n", name, run], check=True,
+                   capture_output=True, timeout=15, env=env)
+
+
+def open_window(script: Path, name: str) -> None:
+    """Where a started or reopened session runs: a terminal window on a Mac (or the tests' own opener), tmux elsewhere."""
+    if sys.platform == "darwin" or os.environ.get(OPEN_WITH_ENV):
+        open_terminal(script)
+    else:
+        open_in_tmux(script, name)
+
+
 def _own_anthropic_key() -> str | None:
     import vendors
 
@@ -460,7 +502,8 @@ def _env(home: str) -> dict:
 
 # Where Claude Code reads `crossSessionInbound` (its settings reference). The --settings flag sits between managed and
 # user settings and cannot be seen from here.
-MANAGED_SETTINGS = Path("/Library/Application Support/ClaudeCode/managed-settings.json")
+MANAGED_SETTINGS = Path("/Library/Application Support/ClaudeCode/managed-settings.json" if sys.platform == "darwin"
+                        else "/etc/claude-code/managed-settings.json")
 INBOUND_ORDER = {"accept": 0, "hold": 1, "refuse": 2}
 BYPASS_MODES = ("bypassPermissions", "plan")  # plan counts as bypassing when bypass is available: assume it can be
 MODE_TAIL_BYTES = 256 << 10

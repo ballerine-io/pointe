@@ -2235,7 +2235,7 @@
     text('new-path', folder ? folder.path : '');
     const notes = [...o.harnesses.filter(h => !h.available && h.why).map(h => h.why), ...(o.machines.some(m => !m.available) ? [o.machines.find(m => !m.available).why] : [])];
     if (!o.folders.length && newOptions) notes.unshift(c.noFolders);
-    if (agent && agent.name === 'claude-code') notes.unshift(c.claudeNote);
+    if (agent && agent.name === 'claude-code') notes.unshift(agent.note || c.claudeNote);  // Linux: tmux, said by the Mac side
     text('new-note', notes.join(' '));
     $('new-start').disabled = !(folder && agent && agent.available);
   }

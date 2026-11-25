@@ -201,9 +201,7 @@ def test_claude_code_opens_a_terminal_on_a_script_that_joins_by_its_hook(tmp_pat
 
 def test_claude_code_is_not_started_where_no_terminal_can_open_or_it_is_missing(monkeypatch):
     adapter = harnesses.get("claude-code")
-    monkeypatch.setattr(claude_code.sys, "platform", "linux")
-    assert "only on a Mac" in adapter.can_start()
-    monkeypatch.setattr(claude_code.sys, "platform", "darwin")
+    monkeypatch.setattr(claude_code.sys, "platform", "darwin")  # Linux starts in tmux: tests/test_linux_session_start.py
     monkeypatch.setattr(claude_code.shutil, "which", lambda name: None)
     assert adapter.can_start() == "Claude Code is not installed on this Mac."
     with pytest.raises(StartError, match="not installed"):

@@ -259,7 +259,9 @@ def test_reopen_refuses_a_folder_that_is_gone_and_a_machine_with_no_terminal(tmp
     with pytest.raises(StartError, match="no longer there"):
         asyncio.run(claude_code.ClaudeCode().reopen(f, "s"))
     monkeypatch.setattr(claude_code.sys, "platform", "linux")
-    with pytest.raises(StartError, match="Reopening Claude Code needs a terminal"):
+    monkeypatch.delenv(claude_code.OPEN_WITH_ENV, raising=False)
+    monkeypatch.setattr(claude_code.shutil, "which", lambda name: None if name == "tmux" else f"/usr/local/bin/{name}")
+    with pytest.raises(StartError, match="Reopening Claude Code here needs tmux"):
         asyncio.run(claude_code.ClaudeCode().reopen(f, "s"))
 
 
