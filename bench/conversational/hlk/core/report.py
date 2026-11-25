@@ -307,6 +307,9 @@ def sections(rows, unpub, frozen) -> list:
         "another voice coding tool without a virtual microphone, and the rules forbid microphones.",
         "Pointe's own model sits between the user and the agent and may rewrite an instruction, so a spoken arm can beat "
         "the keyboard arm. The keyboard-transcript arm (the exact spoken words, typed) helps read that.",
+        "The keyboard (canonical) text is written as a person would type it, and in some families it carries a "
+        "detail the spoken line leaves to the listener (a file name in brackets, a quoted value), so the gap against it "
+        "mixes information with voice; the router is the like-for-like comparison.",
         "The scripted user is deterministic, not a person: it answers the questions an item foresees, says one generic "
         "line to any other question, and repeats an instruction at most once.",
         "Costs are computed from usage and list prices, not metered bills.",
