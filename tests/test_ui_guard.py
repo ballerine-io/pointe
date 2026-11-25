@@ -92,10 +92,12 @@ def test_test_sh_refuses_its_ui_parts(what, tmp_path):
     """PATH holds dirname and python3 only: past the guard there is no xcodebuild, no swift and no caffeinate to find."""
     tools = tmp_path / "bin"
     tools.mkdir()
+    team = tmp_path / "team"  # a Mac with a signing team (apps/ios/.team): the guard comes before the script reads it
+    team.write_text("ABCDE12345\n")
     for name in ("dirname", "python3"):
         os.symlink(shutil.which(name), tools / name)
     done = subprocess.run([shutil.which("bash"), "apps/macos/test.sh", what], capture_output=True, text=True, timeout=60, cwd=ROOT,
-                          stdin=subprocess.DEVNULL, env={"PATH": str(tools), "HOME": str(tmp_path)})
+                          stdin=subprocess.DEVNULL, env={"PATH": str(tools), "HOME": str(tmp_path), "POINTE_TEAM_FILE": str(team)})
     assert done.returncode == 2, done.stderr[-400:]
     assert done.stderr.startswith(f"refused: apps/macos/test.sh {what} ") and done.stderr.count("\n") == 1
 

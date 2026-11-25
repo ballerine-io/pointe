@@ -11,13 +11,13 @@ set -euo pipefail
 cd "$(dirname "$0")"
 WHAT="${1:-all}"
 ONLY="${2:-}"
-SIGN=(CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=)
-TEAM_FILE="${POINTE_TEAM_FILE:-../ios/.team}"
-if [ -s "$TEAM_FILE" ]; then SIGN=(DEVELOPMENT_TEAM="$(tr -d '[:space:]' < "$TEAM_FILE")" "CODE_SIGN_IDENTITY=Apple Development" -allowProvisioningUpdates); fi
 if [ "$WHAT" != unit ]; then
   python3 -I ../../tools/ui_guard.py "apps/macos/test.sh $WHAT (apps/macos/test.sh unit opens nothing)" || exit 2
   export TEST_RUNNER_POINTE_UI_LOCAL=1
 fi
+SIGN=(CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=)
+TEAM_FILE="${POINTE_TEAM_FILE:-../ios/.team}"
+if [ -s "$TEAM_FILE" ]; then SIGN=(DEVELOPMENT_TEAM="$(tr -d '[:space:]' < "$TEAM_FILE")" "CODE_SIGN_IDENTITY=Apple Development" -allowProvisioningUpdates); fi
 RUN=(xcodebuild test -project PointeMac.xcodeproj -scheme PointeMac -derivedDataPath build/dd -destination 'platform=macOS,arch=arm64')
 
 if [ "$WHAT" = all ] || [ "$WHAT" = unit ]; then
