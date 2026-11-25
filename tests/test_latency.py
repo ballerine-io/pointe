@@ -282,7 +282,7 @@ def test_when_what_was_said_ahead_fills_the_limit_a_long_reply_is_cut_and_not_se
     assert cv.retry_problem(reply, cv.REPLY) and cv.length_problem(said_ahead, cv.REPLY) is None
     b, events, steps = _streaming_brain(monkeypatch, [reply])
     asyncio.run(b.turn("Postgres or MySQL for a small team?"))
-    assert steps == [True] and events == [("first", said_ahead), "model done", ("rest", cv.MORE_EN, f"{said_ahead} {cv.MORE_EN}")]
+    assert steps == [True] and events == [("first", said_ahead), "model done", ("rest", "", said_ahead)]
 
 
 def test_a_first_sentence_that_takes_most_of_the_limit_waits_and_the_whole_reply_is_sent_back_as_ever(monkeypatch):

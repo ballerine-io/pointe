@@ -438,15 +438,11 @@ class Brain:
             return None
         return trigger
 
-    MORE_ONCE_SECS = 3600.0  # "there's more if you want it" is said once in this long: one hearing teaches it, a second is padding
-
     def offer_more(self, text: str, now: float) -> str:
-        """The cut reply, with its "there's more" line only if none was said in the last MORE_ONCE_SECS."""
+        """The cut reply without a "there's more" line: testers heard it as padding, and "tell me more" works without it."""
         for more in (conversation.MORE_EN, conversation.MORE_HE):
             if text.endswith(more):
-                if now - getattr(self, "_more_at", -1e9) < self.MORE_ONCE_SECS:
-                    return text[:-len(more)].rstrip()
-                self._more_at = now
+                return text[:-len(more)].rstrip()
         return text
 
     def speech_problem(self, said: str, sent: bool, refused: bool = False) -> str | None:

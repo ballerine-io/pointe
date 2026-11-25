@@ -1,7 +1,8 @@
-""""There's more if you want it" is said once in a while, not after every cut reply.
+""""There's more if you want it" is not said: a cut reply ends where it was cut.
 
-From the first tester round: the line ended five replies in one call, and the judge called it padding: the user learns
-in one hearing that a short answer has more behind it. After it is said, cut replies end without it for MORE_ONCE_SECS.
+From the first tester round: the line ended five replies in one call, and the judge called it padding; it was then said
+once an hour. The third tester still named it padding, and round 4's first sample heard it in 8 of 45 dialogues (each
+call is a new daemon), once followed by the rest said unasked (orc-03). "Tell me more" works without the offer.
 
 uv run pytest -q tests/test_more_once.py
 """
@@ -21,15 +22,12 @@ def _brain():
     return Brain("gemini:x", "system", [], lambda: "[right now]", speak)
 
 
-def test_the_offer_is_said_once_then_left_out():
+def test_the_offer_is_never_said():
     b = _brain()
-    first = b.offer_more(f"The fix is in. {cv.MORE_EN}", now=100.0)
-    second = b.offer_more(f"Checks pass. {cv.MORE_EN}", now=160.0)
-    third = b.offer_more(f"Lint is red. {cv.MORE_EN}", now=100.0 + b.MORE_ONCE_SECS + 1)
-    assert first.endswith(cv.MORE_EN) and second == "Checks pass." and third.endswith(cv.MORE_EN)
+    assert b.offer_more(f"The fix is in. {cv.MORE_EN}", now=100.0) == "The fix is in."
+    assert b.offer_more(f"Checks pass. {cv.MORE_EN}", now=100.0 + 7200) == "Checks pass."
 
 
 def test_hebrew_too():
     b = _brain()
-    b.offer_more(f"התיקון נכנס. {cv.MORE_HE}", now=100.0)
-    assert b.offer_more(f"הבדיקות עוברות. {cv.MORE_HE}", now=110.0) == "הבדיקות עוברות."
+    assert b.offer_more(f"התיקון נכנס. {cv.MORE_HE}", now=100.0) == "התיקון נכנס."
