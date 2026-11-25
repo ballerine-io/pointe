@@ -78,3 +78,23 @@ def test_a_slow_check_is_hedged_with_the_second_checker(d, monkeypatch):  # noqa
     t0 = time.time()
     assert asyncio.run(d._is_current_request("Run the whole suite.", "run the tests", [])) is True
     assert time.time() - t0 < 1.0 and len(calls) == 2
+
+
+def test_the_users_words_with_one_word_from_the_conversation_put_back_go_without_the_model(d, checker):  # noqa: F811
+    """t3-02 in tester round 4 (2 of 2): "Going back to the import, who reviews that change?" was sent as "Going back to
+    the nightly import: who reviews that change?" and the check said no, twice; the user heard "I didn't send your import
+    question". One word put back from a phrase already said ("the nightly import took 47 minutes") is still their words."""
+    talk = [("user", "How long did the nightly import take in lantern?"),
+            ("assistant", "The nightly import took 47 minutes.")]
+    message, said = "Going back to the nightly import: who reviews that change?", "Going back to the import, who reviews that change?"
+    assert asyncio.run(d._is_current_request(message, said, [], talk)) is True
+    assert checker == []
+
+
+@pytest.mark.parametrize("message", ["Going back to the import: who deletes that change?",
+                                     "Going back to the import: who reviews that big change?",
+                                     "Going back to the import: who never reviews that change?"])
+def test_a_word_put_in_that_nobody_said_there_still_asks_the_model(d, checker, message):  # noqa: F811
+    talk = [("assistant", "The nightly import took 47 minutes. The old change is merged. Nobody deletes reviews.")]
+    asyncio.run(d._is_current_request(message, "Going back to the import, who reviews that change?", [], talk))
+    assert len(checker) == 1

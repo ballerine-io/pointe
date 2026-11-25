@@ -7104,7 +7104,26 @@ def _own_words(message: str, utterance: str, earlier: list[str], conversation) -
         tail = set(after[2:]) if where else set(after)
         if u[i:i + len(m)] == m and set(u[:i]) <= _ADDRESS_WORDS | names and tail <= _POLITE_WORDS | (names if where else set()):
             return True
-    return False
+    return _one_word_put_back(m, u, conversation)
+
+
+_NEVER_PUT_BACK = {"not", "no", "never", "don't", "dont", "and", "or", "also", "then", "delete", "remove", "rm", "drop",
+                   "force", "all", "every", "לא", "אל", "ו", "גם", "תמחק"}
+
+
+def _one_word_put_back(m: list[str], u: list[str], conversation) -> bool:
+    """The user's words with one word put in, where that word and its neighbour are a phrase already said in this
+    conversation: "going back to the import" sent as "going back to the nightly import" after "the nightly import took
+    47 minutes". The relevance model refused it twice (t3-02); a negation, a conjunction or a destructive verb never
+    counts as put back."""
+    if len(m) != len(u) + 1 or len(u) < 3:
+        return False
+    k = next((i for i in range(len(u)) if m[i] != u[i]), len(u))
+    if m[:k] + m[k + 1:] != u or m[k] in _NEVER_PUT_BACK:
+        return False
+    said = " ".join(w for _, text in list(conversation)[-20:] for w in re.findall(r"[\w']+", text.lower()))
+    pairs = ([f"{m[k]} {m[k + 1]}"] if k + 1 < len(m) else []) + ([f"{m[k - 1]} {m[k]}"] if k else [])
+    return any(re.search(rf"\b{re.escape(p)}\b", said) for p in pairs)
 
 
 async def _is_current_request(message: str, utterance: str, earlier: list[str],
