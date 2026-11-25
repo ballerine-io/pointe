@@ -17,12 +17,18 @@ and each one is in code with a test (`newsession.py`, `guards.start_request`, `t
    refused whatever surface sent it, and a folder that no longer exists is not offered.
 2. **The list is changed only at the Mac.** `sessions.folders` is refused from the phone's key and from a page opened
    over the network: a lost phone cannot add a folder and then start an agent in it.
-3. **Never bypass.** Nothing Pointe starts skips permission prompts. Claude Code is started with
-   `--permission-mode default` (the flag wins over a `defaultMode` in the user's settings) and never with
-   `--dangerously-skip-permissions`. Codex and OpenCode get no permission override: they start in their own default.
-   A Codex thread that comes back with approvals `never` and sandbox `dangerFullAccess` (the user's own config says
-   so) is archived at once and the start is refused with the reason. `harnesses.base.refuse_bypass` checks every command
-   line and request a starter builds.
+3. **Skip prompts only by the setting, and only for a new Claude Code session.** Changed 2026-11-25 by the owner's
+   decision (SECURITY.md): the setting "Permissions for new sessions" (`sessions.permissions`) defaults to Skip
+   permission prompts, and a new Claude Code session then starts with `--permission-mode bypassPermissions`
+   (`claude_code.SKIP_ARGS`); with Ask before actions, or "asks first" in the request, it starts with
+   `--permission-mode default` as before. The flag is said outright either way: it wins over a `defaultMode` in the
+   user's settings. Claude Code's one-time check before skipping is never left in a terminal: Pointe reads whether it
+   was accepted (`claude_code.skip_check`), asks the user in the read-back when it was not, and passes the yes in the
+   session's own `--settings` file, never in the user's settings. A reopen, a night shift's session, Codex and
+   OpenCode never skip. A Codex thread that comes back with approvals `never` and sandbox `dangerFullAccess` (the
+   user's own config says so) is archived at once and the start is refused with the reason.
+   `harnesses.base.refuse_bypass` checks every command line and request a starter builds, all but the one mode the
+   setting chose.
 4. **Pointe's approval rules apply as for a joined session.** A started session is an ordinary session of its
    harness: the same adapter, the same read-out, the same bound yes, the same taps.
 5. **A read-back, bound to the user's own words.** By voice nothing starts on the first sentence. The daemon reads
@@ -43,7 +49,7 @@ descriptions of their interfaces (`claude --help`, OpenCode's `/openapi.json`, `
 
 | Harness | Mechanism | The user can type into it | Joins by |
 |---|---|---|---|
-| Claude Code | A new terminal window runs `claude --permission-mode default --name <name> --settings <file>` in the folder. Pointe writes a small `.command` script under its state dir and opens it with `open -a Terminal` (iTerm when it is the terminal running). | Yes: it is a real terminal session. | A `SessionStart` hook in that settings file runs `bin/register-session --start <id>`. The hook's environment carries the session's inbox socket (verified live), so it joins in attach mode: no channel, no development flag, no Node. |
+| Claude Code | A new terminal window runs `claude --permission-mode bypassPermissions --name <name> --settings <file>` in the folder (`default` with Ask before actions; then, should Claude Code end before its session starts, the script runs it again with `default`). Pointe writes a small `.command` script under its state dir and opens it with `open -a Terminal` (iTerm when it is the terminal running). | Yes: it is a real terminal session. | A `SessionStart` hook in that settings file runs `bin/register-session --start <id>`. The hook's environment carries the session's inbox socket (verified live), so it joins in attach mode: no channel, no development flag, no Node. |
 | OpenCode | `POST /api/session {location: {directory}, title}` on its local service | Yes, after `opencode --session <id>` in the folder: the TUI is a client of the same service. | The daemon registers it from the answer. |
 | Codex | `thread/start {cwd}` on the shared app-server daemon, then `thread/name/set` | Yes, after `codex resume <id> --remote unix://`. | The daemon registers it from the answer. |
 

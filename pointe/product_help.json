@@ -1144,6 +1144,42 @@
    "tool": "start_session"
   },
   {
+   "id": "new-session-permissions",
+   "title": "Permissions for new sessions: skip permission prompts or ask before actions",
+   "ask": [
+    "permissions for new sessions",
+    "skip permission prompts",
+    "skip prompts",
+    "ask before actions",
+    "ask first",
+    "asks first",
+    "safe mode",
+    "bypass permissions",
+    "dangerously skip permissions",
+    "why didn't it ask me",
+    "stop asking for permission",
+    "הרשאות לסשנים חדשים",
+    "בלי לבקש רשות",
+    "לשאול קודם"
+   ],
+   "how": "A new Claude Code session Pointe starts skips permission prompts by default: it can edit files and run commands without asking, so there are no requests to approve. Pick Ask before actions to have it ask first, or say \"start a session that asks first\" for one session. The first time, Claude Code needs your consent once, and Pointe asks for it out loud. Sessions you join and reopen are not changed.",
+   "about": "\"Start a Codex session in shop\": read back, started on your yes, only in folders you already work in",
+   "iphone": [
+    "Settings (••• at the top) → Permissions for new sessions → Skip permission prompts / Ask before actions"
+   ],
+   "page": [
+    "Settings → New sessions → Permissions for new sessions → Skip permission prompts / Ask before actions"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Permissions for new sessions → Skip permission prompts / Ask before actions"
+   ],
+   "voice": [
+    "new sessions ask first",
+    "new sessions skip permission prompts",
+    "start a session in shop that asks first"
+   ]
+  },
+  {
    "id": "night-shift",
    "title": "Night shift",
    "ask": [
@@ -1424,6 +1460,10 @@
      "Normal",
      "Patient"
     ],
+    "Permissions for new sessions": [
+     "Skip permission prompts",
+     "Ask before actions"
+    ],
     "Appearance": [
      "System",
      "Light",
@@ -1514,6 +1554,10 @@
      "Quick",
      "Normal",
      "Patient"
+    ],
+    "Permissions for new sessions": [
+     "Skip permission prompts",
+     "Ask before actions"
     ],
     "Appearance": [
      "System",
@@ -1674,7 +1718,10 @@
      "Patient"
     ],
     "New sessions": [
-     "Folders"
+     "Permissions for new sessions",
+     "Folders",
+     "Skip permission prompts",
+     "Ask before actions"
     ],
     "Conflict alarm": [
      "Alarm",

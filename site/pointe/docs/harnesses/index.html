@@ -418,9 +418,10 @@ client in Codex's own records (its <code>source</code> and <code>originator</cod
 </li>
 <li>
 <p>To let Pointe start its sessions: set <code>starts = True</code>; <code>can_start()</code> says why not in fixed words (not installed)
-   or returns None; <code>start(cwd, name, start_id)</code> starts one in the harness's default permission mode and returns its
-   register body, or None when the session registers itself with <code>start_id</code>; pass every command line or request
-   through <code>refuse_bypass</code>; raise <code>StartError</code> with words for the user. <code>open_hint(session)</code> says how to open it in a
+   or returns None; <code>start(cwd, name, start_id, skip=False)</code> starts one in the harness's default permission mode and
+   returns its register body, or None when the session registers itself with <code>start_id</code>; pass every command line or
+   request through <code>refuse_bypass</code>; raise <code>StartError</code> with words for the user. Leave <code>skips</code> False and refuse
+   <code>skip=True</code>: only Claude Code starts a session that skips its prompts, by the user's setting. <code>open_hint(session)</code> says how to open it in a
    terminal. The daemon picks the folder and the name and does the read-back: an adapter never takes a path from
    anywhere else.</p>
 </li>

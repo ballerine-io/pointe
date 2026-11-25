@@ -11,6 +11,7 @@ struct CallSettingsModel: Equatable, Sendable {
     var waitCue: Bool?  // nil: this Mac has no waiting sound
     var progressSpoken: Bool?  // nil: this Mac has no progress updates
     var sessionTones: Bool?  // nil: this Mac has no session tones
+    var newSessionPermissions: String?  // "skip" or "ask"; nil: this Mac has no such setting
     var polish = false
     var whisper: Bool?  // nil: this Mac has no whisper mode
     var machines = false
@@ -38,6 +39,7 @@ struct CallSettingsModel: Equatable, Sendable {
         waitCue = prefs?.waitCue
         progressSpoken = prefs?.progressSpoken
         sessionTones = prefs?.sessionTones
+        newSessionPermissions = prefs?.newSessionPermissions
         polish = status?.polish ?? false
         whisper = status?.whisper.map { $0.on }
         machines = status?.machines != nil
@@ -71,6 +73,7 @@ struct CallSettingsActions {
     var setWaitCue: (Bool) -> Void = { _ in }
     var setProgress: (Bool) -> Void = { _ in }
     var setSessionTones: (Bool) -> Void = { _ in }
+    var setNewSessionPermissions: (String) -> Void = { _ in }
     var setPolish: (Bool) -> Void = { _ in }
     var setWhisper: (Bool) -> Void = { _ in }
     var setDriveSuggest: (Bool) -> Void = { _ in }
@@ -91,6 +94,7 @@ struct CallSettingsSheet: View, Equatable {
     @State private var cueWanted: Bool?
     @State private var progressWanted: Bool?
     @State private var tonesWanted: Bool?
+    @State private var permissionsWanted: String?
     @State private var outsideWanted: Bool?
     @State private var unpairAsked = false
     #if os(macOS)
@@ -184,6 +188,21 @@ struct CallSettingsSheet: View, Equatable {
                         row(VocabularyCopy.menuItem, "text.book.closed", .dictionary).accessibilityIdentifier("dictionaryItem")
                     }
                 }
+                if let permissions = model.newSessionPermissions {
+                    Section {
+                        Picker(selection: Binding(get: { permissionsWanted ?? permissions },
+                                                  set: { permissionsWanted = $0; act.setNewSessionPermissions($0) })) {
+                            Text(NewSessionCopy.permissionsSkip).tag("skip")
+                            Text(NewSessionCopy.permissionsAsk).tag("ask")
+                        } label: { Label(NewSessionCopy.permissionsSetting, systemImage: "lock.open") }
+                            .pickerStyle(.menu)
+                            .accessibilityHint(NewSessionCopy.permissionsHint)
+                            .accessibilityIdentifier("newSessionPermissionsSetting")
+                    } header: { Text(NewSessionCopy.foldersTitle).brandKicker() } footer: {
+                        Text(NewSessionCopy.permissionsHint).font(.brand(.footnote)).foregroundStyle(Brand.muted)
+                            .accessibilityIdentifier("newSessionPermissionsFooter")
+                    }
+                }
                 KickerSection("Call") {
                     row("Sessions and mode", "rectangle.stack", .sessions)
                     if model.machines { row(MachinesCopy.title, "desktopcomputer", .machines).accessibilityIdentifier("machinesItem") }
@@ -251,6 +270,7 @@ struct CallSettingsSheet: View, Equatable {
             .onChange(of: model.polish) { polishWanted = nil }
             .onChange(of: model.whisper) { whisperWanted = nil }
             .onChange(of: model.outside) { outsideWanted = nil }
+            .onChange(of: model.newSessionPermissions) { permissionsWanted = nil }
             .sheetTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.automatic) } }
         }

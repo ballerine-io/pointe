@@ -1486,6 +1486,10 @@
         </section>
         <section class="group" id="g-newsessions">
           <h3>New sessions</h3>
+          <div class="card" id="pref-permissions-card">
+            <div class="field">Permissions for new sessions<select id="pref-permissions"><option value="skip">Skip permission prompts</option><option value="ask">Ask before actions</option></select></div>
+            <div class="note" id="pref-permissions-hint"></div>
+          </div>
           <div class="card">
             <div class="field wide">Folders<textarea id="pref-folders" spellcheck="false" placeholder="/Users/you/work/shop" aria-label="Folders a new session may start in"></textarea></div>
           </div>
@@ -2148,7 +2152,7 @@
   // Starting a new session (docs/design/new-session.md). Shared with the apps' NewSessionCopy (tests/test_new_session_ui.py).
   const NEW_SESSION_COPY = {
     title: 'New session',
-    lede: 'Starts a coding agent in a folder you already work in. It joins the voice by itself, and asks before it acts, as every session does.',
+    lede: 'Starts a coding agent in a folder you already work in. It joins the voice by itself. Whether Claude Code asks before it acts is a setting: Permissions for new sessions.',
     agent: 'Agent',
     machine: 'Machine',
     folder: 'Folder',
@@ -2165,12 +2169,18 @@
     confirmTitle: 'Start this session?',
     foldersTitle: 'New sessions',
     foldersHelp: 'Folders a new session may start in, beside the folders of your current and recent sessions. Changed on the Mac only.',
+    permissionsSetting: 'Permissions for new sessions',
+    permissionsSkip: 'Skip permission prompts',
+    permissionsAsk: 'Ask before actions',
+    permissionsHint: 'Skip permission prompts: a new Claude Code session Pointe starts can edit files and run commands without asking, so there are no requests to approve. Ask before actions: it asks first, and you answer by voice or a tap. Say “start a session that asks first” for one session.',
+    skipNotice: 'New sessions skip permission prompts: they can edit files and run commands without asking. Say “ask first”, or change it in Settings.',
   };
   function startingRow(x) {
     const failed = x.state === 'failed', c = NEW_SESSION_COPY;
     const b = el('div', 's starting' + (failed ? ' failed' : ''));
     b.append(el('span', 'st' + (failed ? ' wait' : ' working')), el('span', 'nm', x.name), harnessMark(x), el('span', 'tag', failed ? c.failed : c.starting));
     if (failed && x.detail) b.append(el('span', 'why', x.detail));
+    else if (!failed && x.notice) b.append(el('span', 'why', x.notice));  // the risk, the first time a start skips prompts
     b.title = `${x.label} in ${x.folder}` + (failed ? `: ${x.detail}` : '');
     return b;
   }
@@ -4303,6 +4313,9 @@
     foldersLoaded = (prefs['sessions.folders'] || []).join('\n');
     $('pref-folders').value = foldersLoaded; $('pref-folders').readOnly = !(status && status.talk_command);
     text('pref-folders-help', NEW_SESSION_COPY.foldersHelp + ' One path per line.');
+    // Permissions for new sessions (prefs "sessions.permissions"): its words in the markup are NEW_SESSION_COPY's (tested)
+    text('pref-permissions-hint', NEW_SESSION_COPY.permissionsHint);
+    $('pref-permissions').value = prefs['sessions.permissions'] === 'ask' ? 'ask' : 'skip';
     await loadSchedule();
   }
   // Settings' section list: a click scrolls the panel to the group; scrolling marks the group in view. A group the
@@ -4618,7 +4631,8 @@
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
       microphone: $('pref-mic').value, 'turns.patience': $('pref-patience').value, 'alerts.watch_approve': $('pref-watch').checked,
       'show.on_phone': $('pref-showphone').checked, 'conflicts.on': $('pref-conflicts').checked,
-      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken', ...thinkingPrefs(), ...tonesPrefs()})});
+      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken', 'sessions.permissions': $('pref-permissions').value,
+      ...thinkingPrefs(), ...tonesPrefs()})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); pttSetStyle($('pref-style').value); refresh(); }
     if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }

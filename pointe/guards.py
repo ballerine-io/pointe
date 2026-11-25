@@ -464,6 +464,17 @@ _HERE_MACHINE = re.compile(r"\bon\s+this\s+(?:mac|machine|computer|laptop)\b|\bl
 _HERE_FOLDER = re.compile(r"\b(?:here|same\s+(?:folder|place|repo|project)|this\s+(?:folder|repo|project|one))\b|(?<!\w)(?:כאן|פה|באותה\s+תיקייה)(?!\w)")
 
 
+_ASK_FIRST = re.compile(
+    r"(?:\b(?:that|which|who)\s+)?\b(?:asks?|asking)\s+(?:me\s+)?(?:first|before\s+(?:it\s+)?(?:actions?|acts|acting|anything)"
+    r"|for\s+permission)\b|\b(?:in|with)\s+safe\s+mode\b|\bsafe\s+mode\b")
+
+
+def asks_first(text: str) -> bool:
+    """"Start a session that asks first", "... in safe mode", or "ask first" as the answer to a start's read-back: that
+    one session starts asking before actions, whatever the setting says."""
+    return bool(_ASK_FIRST.search(_lower(strip_tasks(text))))
+
+
 def start_intent(text: str) -> bool:
     """The user asked for a new coding-agent session, not for a session to start something ("tell shop to start the
     server") and not for a mode ("start session mode")."""
@@ -473,15 +484,16 @@ def start_intent(text: str) -> bool:
 class StartAsk:
     """What the user's words ask to start. `harness`: the one they said, or None; `harnesses`: more than one was said
     (ask which). `folder`: the one path their words pick, or None; `ties`: the paths of several their words fit (ask
-    which). `machine`: None when not said, "" for this Mac, else the machine's name. `name`: what they called it, raw."""
+    which). `machine`: None when not said, "" for this Mac, else the machine's name. `name`: what they called it, raw.
+    `ask_first`: the words asked for a session that asks before actions (asks_first)."""
 
-    def __init__(self, harness=None, harnesses=(), folder=None, ties=(), machine=None, name=None):
+    def __init__(self, harness=None, harnesses=(), folder=None, ties=(), machine=None, name=None, ask_first=False):
         self.harness, self.harnesses, self.folder, self.ties = harness, list(harnesses), folder, list(ties)
-        self.machine, self.name = machine, name
+        self.machine, self.name, self.ask_first = machine, name, ask_first
 
     def __repr__(self):
         return (f"StartAsk(harness={self.harness}, folder={self.folder}, ties={self.ties}, machine={self.machine!r}, "
-                f"name={self.name!r})")
+                f"name={self.name!r}, ask_first={self.ask_first})")
 
 
 def start_request(text: str, places: list[tuple[str, str]], machines: list[str] = (), here: str = "",
@@ -501,6 +513,9 @@ def start_request(text: str, places: list[tuple[str, str]], machines: list[str] 
     ask = attach_request(text)
     if ask is not None and ask.verb == "reopen":
         return None  # "open yesterday's session about billing" brings back an old one: attach_request
+    # Out before the name and the folder: "named shop that asks first" is named shop, and "safe" is never a folder here
+    ask_first = bool(_ASK_FIRST.search(lowered))
+    lowered = _ASK_FIRST.sub(" ; ", lowered)
     name = None
     said = _NAME_SAID.search(lowered)
     if said:
@@ -540,7 +555,8 @@ def start_request(text: str, places: list[tuple[str, str]], machines: list[str] 
         paths = [here_folder]
     ties = paths if len(paths) > 1 else []
     return StartAsk(harness=found[0] if len(found) == 1 else None, harnesses=found if len(found) > 1 else (),
-                    folder=paths[0] if len(paths) == 1 else None, ties=ties, machine=machine, name=name)
+                    folder=paths[0] if len(paths) == 1 else None, ties=ties, machine=machine, name=name,
+                    ask_first=ask_first)
 
 
 # ---------- adding sessions the user already runs or ran (docs/design/attach-by-voice.md) ----------

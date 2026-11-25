@@ -327,17 +327,19 @@ def home(d, tmp_path, monkeypatch):
     monkeypatch.setattr(d, "RECENT_FOLDERS", newsession.Recent(tmp_path / "folders.json"))
     monkeypatch.setattr(d, "STARTS", {})
     monkeypatch.setattr(d, "PREFS", d.Prefs(tmp_path / "prefs.json"))
+    d.PREFS.update({"sessions.permissions": "ask"})  # what these tests check predates the setting; test_skip_permissions.py
     monkeypatch.setattr(d, "_here", lambda: "studio")
     monkeypatch.setattr(d, "paired_machines", lambda: [])  # another test's machines stay in sessions.MACHINES
     shop, billing = _folder(tmp_path, "shop"), _folder(tmp_path, "billing")
     add(d, "s1", "shop", cwd=shop)
     add(d, "s2", "billing", cwd=billing)
     d.REGISTRY.set_active("s1")
-    started = []
+    started, skips = [], []
 
     def starter(harness, body=True):
-        async def start(cwd, name, start_id):
+        async def start(cwd, name, start_id, skip=False):
             started.append((harness, cwd, name, start_id))
+            skips.append(skip)
             return {"id": f"new-{len(started)}", "name": name, "name_given": True, "cwd": cwd, "pid": os.getpid(),
                     "transcript": "/tmp/none.jsonl"} if body else None
         return start
@@ -353,7 +355,7 @@ def home(d, tmp_path, monkeypatch):
         return True
 
     monkeypatch.setattr(d, "deliver", deliver)
-    return SimpleNamespace(d=d, shop=shop, billing=billing, started=started, sent=sent, tmp=tmp_path)
+    return SimpleNamespace(d=d, shop=shop, billing=billing, started=started, skips=skips, sent=sent, tmp=tmp_path)
 
 
 async def _ask(d, said: str | None, heard_own_words: bool = False, spoken: bool = True) -> dict:
@@ -587,7 +589,7 @@ def test_the_yes_to_a_read_back_never_approves_a_waiting_prompt(d, monkeypatch, 
     add(d, "s9", "shop", cwd=shop)
     started = []
 
-    async def start(cwd, name, start_id):
+    async def start(cwd, name, start_id, skip=False):
         started.append(name)
         return {"id": "new-1", "name": name, "name_given": True, "cwd": cwd, "pid": os.getpid(), "transcript": "/tmp/none.jsonl"}
 
@@ -713,7 +715,7 @@ def test_bad_requests_from_the_sheet_have_reasons(home, monkeypatch):
 def test_a_start_that_fails_shows_its_reason_and_is_said_on_a_call(home, monkeypatch):
     d = home.d
 
-    async def start(cwd, name, start_id):
+    async def start(cwd, name, start_id, skip=False):
         raise StartError("OpenCode's service is not running. Open OpenCode, or run `opencode service start`, and try again.")
 
     monkeypatch.setattr(harnesses.get("opencode"), "start", start)

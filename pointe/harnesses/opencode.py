@@ -219,9 +219,11 @@ class OpenCode(Harness):
     def can_start(self) -> str | None:
         return None if shutil.which("opencode") else "OpenCode is not installed on this Mac."
 
-    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
+    async def start(self, cwd: str, name: str, start_id: str, skip: bool = False) -> dict | None:
         """A new session at `cwd` on the local service, with the title the voice calls it. No agent, model or
         permission rules are sent: it starts as OpenCode's own configuration says."""
+        if skip:  # `skips` is False here: the daemon never asks, and a caller that does is refused
+            raise StartError("Not started: Pointe never starts a session that skips its permission prompts.")
         body = {"location": {"directory": cwd}, "title": name}
         refuse_bypass(*body)  # its keys: a `permissions` ruleset is never sent
         if set(body) - {"location", "title"}:

@@ -145,6 +145,91 @@ session joins the voice by itself. Design and reasons: <a href="https://github.c
 <p>The new session shows under your sessions as "starting" until it joins, then it is a session like any other. If it
 cannot start, the row says why for two minutes (the agent is not installed, its service is not running, the folder is
 gone).</p>
+<h2 id="permissions-for-new-sessions">Permissions for new sessions</h2>
+<p><strong>A new Claude Code session that Pointe starts skips permission prompts by default.</strong> It can edit files and run
+commands without asking you first, so there are no requests to approve, by voice or otherwise. This is the owner's
+choice for Pointe (<a href="../../security/#starting-a-session">SECURITY.md</a>). If you want to approve each action, choose Ask
+before actions.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>What Claude Code starts with</th>
+<th>Requests to approve</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Skip permission prompts</strong> (default)</td>
+<td><code>--permission-mode bypassPermissions</code></td>
+<td>None. Claude Code still prompts for the few actions no mode approves by itself (an explicit <code>ask</code> rule, removing a critical path such as your home folder).</td>
+</tr>
+<tr>
+<td><strong>Ask before actions</strong></td>
+<td><code>--permission-mode default</code>, as before</td>
+<td>Each one, read out and answered by voice or a tap.</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p><strong>Change it:</strong> Settings → Permissions for new sessions, on the page, the iPhone app and the Mac app. By voice: "new
+  sessions ask first" or "new sessions skip permission prompts". With the voice lock on, only your voice can turn
+  skipping on; any voice can turn it off.</p>
+</li>
+<li>
+<p><strong>One session that asks first:</strong> "start a session in shop that asks first", or "… in safe mode". The read-back says
+  "asking before actions". When Pointe reads back a session that would skip prompts, you can also answer "ask first".
+  ("Safe mode" here means Pointe's Ask before actions, not Claude Code's own <code>--safe-mode</code>.)</p>
+</li>
+<li>
+<p><strong>The risk is said once.</strong> The first time a session starts skipping prompts, Pointe says: "New sessions skip
+  permission prompts: they can edit files and run commands without asking. Say “ask first”, or change it in Settings."
+  The line shows in the read-back and under the starting session, then never again.</p>
+</li>
+</ul>
+<h3 id="the-first-time-on-a-mac">The first time on a Mac</h3>
+<p>Before a session can skip prompts the first time, Claude Code asks you once, in its own terminal, to accept the risk.
+A session started by voice may have nobody at that terminal. Pointe never leaves the session waiting there:</p>
+<ol>
+<li>
+<p>Pointe reads Claude Code's settings (<code>skipDangerousModePermissionPrompt</code> in <code>~/.claude/settings.json</code> or in managed
+   settings). If you already accepted it in Claude Code, nothing more is asked.</p>
+</li>
+<li>
+<p>If not, the read-back asks for it plainly: "Start a Claude Code session in shop, named shop-2, skipping permission
+   prompts? Claude Code needs your consent once for that: new sessions can then edit files and run commands without
+   asking. To keep its prompts, say “ask first”. Start it skipping them?" A yes (or Start on the card) starts it
+   skipping prompts and is kept, so Pointe does not ask again. "Ask first" starts that session asking. No, or no
+   answer in 60 seconds, starts nothing.</p>
+</li>
+<li>
+<p>Pointe passes your yes to Claude Code in that session's own settings file (<code>--settings</code>). It never writes your
+   Claude Code settings.</p>
+</li>
+<li>
+<p>From the New session sheet, which cannot show the question, a session that still needs your consent starts asking
+   before actions. Start one by voice, or tap Start on the read-back card, to give it.</p>
+</li>
+<li>
+<p>If Claude Code ends before its session starts (a policy Pointe cannot read turns the mode off), the same terminal
+   starts it again asking before actions, at once.</p>
+</li>
+</ol>
+<p>When Claude Code's settings turn the mode off (<code>permissions.disableBypassPermissionsMode</code>), the session asks before
+actions and Pointe says so.</p>
+<h3 id="what-this-does-not-change">What this does not change</h3>
+<ul>
+<li>
+<p><strong>Sessions you already run.</strong> Joining or reopening a session never changes its permission mode. A reopened Claude
+  Code session resumes with <code>--permission-mode default</code>.</p>
+</li>
+<li>
+<p><strong>OpenCode and Codex.</strong> They start in their own default; Pointe never skips their prompts.</p>
+</li>
+<li><strong>A night shift.</strong> Its new sessions always ask: a shift holds every request for the morning.</li>
+<li><strong>Voice approvals.</strong> In a session that asks, Pointe reads out each request and takes your yes, as before.</li>
+</ul>
 <h2 id="what-starts">What starts</h2>
 <div class="dx-table"><table>
 <thead>
@@ -157,7 +242,7 @@ gone).</p>
 <tbody>
 <tr>
 <td>Claude Code</td>
-<td>opens a new terminal window (Terminal, or iTerm when that is the one running) with <code>claude</code> in the folder</td>
+<td>opens a new terminal window (Terminal, or iTerm when that is the one running) with <code>claude</code> in the folder, in the mode your setting says</td>
 <td>that window</td>
 </tr>
 <tr>
@@ -181,9 +266,9 @@ gone).</p>
   Mac, never from the phone.</p>
 </li>
 <li>
-<p><strong>Skip permission prompts.</strong> Claude Code starts with <code>--permission-mode default</code>; OpenCode and Codex start in their
-  own default. A Codex configuration that runs with no approvals and no sandbox is refused. A started session's
-  prompts are read out and answered as any session's.</p>
+<p><strong>Skip prompts outside the setting.</strong> Only a new Claude Code session skips them, and only with the setting on Skip
+  permission prompts. OpenCode and Codex start in their own default; a Codex configuration that runs with no approvals
+  and no sandbox is refused. In a session that asks, prompts are read out and answered as any session's.</p>
 </li>
 <li>
 <p><strong>Start on a guess.</strong> Two folders with the same name, or a name it did not catch: it asks which. The yes must be
@@ -209,6 +294,9 @@ not the active one; after a switch, "it" is the session you switched to again.</
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
 <li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#permissions-for-new-sessions">Permissions for new sessions</a></li>
+<li class="dx-l3"><a href="#the-first-time-on-a-mac">The first time on a Mac</a></li>
+<li class="dx-l3"><a href="#what-this-does-not-change">What this does not change</a></li>
 <li class="dx-l2"><a href="#what-starts">What starts</a></li>
 <li class="dx-l2"><a href="#what-it-will-not-do">What it will not do</a></li>
 </ul>

@@ -616,6 +616,7 @@ struct CallView: View {
 
     private var settingsActions: CallSettingsActions {
         CallSettingsActions(setMicrophone: setMicrophone, setTalkStyle: { call.talkStyle = $0 }, setPatience: setPatience, setWaitCue: setWaitCue, setProgress: setProgress, setSessionTones: setSessionTones,
+                            setNewSessionPermissions: setNewSessionPermissions,
                             setPolish: { on in Task { await setPolish(on) } }, setWhisper: { on in Task { await setWhisper(on) } },
                             setDriveSuggest: { sensors.setEnabled($0) },
                             setOutside: { on in
@@ -1053,7 +1054,7 @@ struct CallView: View {
 
     private func loadPrefs() async -> API.Prefs? {
         // A demo's Mac has every setting: the waiting sound on and the progress updates off, as a new Mac has them.
-        demo != nil ? try? JSONDecoder().decode(API.Prefs.self, from: Data(#"{"thinking.cue": true, "progress.spoken": false, "reports.tones": false}"#.utf8)) : try? await call.api.prefs()
+        demo != nil ? try? JSONDecoder().decode(API.Prefs.self, from: Data(#"{"thinking.cue": true, "progress.spoken": false, "reports.tones": false, "sessions.permissions": "skip"}"#.utf8)) : try? await call.api.prefs()
     }
 
     private func savePrefs(_ change: [String: any Sendable]) async -> Bool {
@@ -1293,6 +1294,13 @@ struct CallView: View {
         Task {
             if demo != nil { prefs?.sessionTones = on; return }
             if !(await savePrefs(["reports.tones": on])) { problem = ThinkingCopy.failed }
+        }
+    }
+
+    private func setNewSessionPermissions(_ value: String) {
+        Task {
+            if demo != nil { prefs?.newSessionPermissions = value; return }
+            if !(await savePrefs(["sessions.permissions": value])) { problem = ThinkingCopy.failed }
         }
     }
 

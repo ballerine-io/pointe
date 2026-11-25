@@ -153,9 +153,10 @@ client in Codex's own records (its `source` and `originator`). Each Codex turn c
    the harness has no approvals, leave `approvals = False`: do not make Pointe its permission policy.
 6. `side_question` if it can fork; otherwise the transcript reader answers.
 7. To let Pointe start its sessions: set `starts = True`; `can_start()` says why not in fixed words (not installed)
-   or returns None; `start(cwd, name, start_id)` starts one in the harness's default permission mode and returns its
-   register body, or None when the session registers itself with `start_id`; pass every command line or request
-   through `refuse_bypass`; raise `StartError` with words for the user. `open_hint(session)` says how to open it in a
+   or returns None; `start(cwd, name, start_id, skip=False)` starts one in the harness's default permission mode and
+   returns its register body, or None when the session registers itself with `start_id`; pass every command line or
+   request through `refuse_bypass`; raise `StartError` with words for the user. Leave `skips` False and refuse
+   `skip=True`: only Claude Code starts a session that skips its prompts, by the user's setting. `open_hint(session)` says how to open it in a
    terminal. The daemon picks the folder and the name and does the read-back: an adapter never takes a path from
    anywhere else.
 8. To be added from outside: `discover(since, cap)` with only the harness's supported interfaces and only this user's

@@ -195,6 +195,8 @@ def _voice_checks(daemon):
         "rename-session": guards.rename_intent,
         "close-session": guards.disconnect_intent,
         "new-session": guards.start_intent,
+        "new-session-permissions": lambda p: daemon.newsession.permissions_intent(p) is not None
+        or (guards.start_intent(p) and guards.asks_first(p)),
         "join-session": guards.attach_intent,
         "night-shift": lambda p: nightshift.shift_intent(p) is not None or nightshift.stop_intent(p),
     }

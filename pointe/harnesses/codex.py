@@ -255,9 +255,11 @@ class Codex(Harness):
     def can_start(self) -> str | None:
         return None if shutil.which("codex") else "Codex is not installed on this Mac."
 
-    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
+    async def start(self, cwd: str, name: str, start_id: str, skip: bool = False) -> dict | None:
         """A new thread at `cwd` on the shared daemon. No approval policy or sandbox is sent: it starts as the user's
         Codex configuration says, and one that would run with no approvals and no sandbox is archived, never joined."""
+        if skip:  # `skips` is False here: the daemon never asks, and a caller that does is refused
+            raise StartError("Not started: Pointe never starts a session that skips its permission prompts.")
         params = {"cwd": cwd}
         refuse_bypass(json.dumps(params))
         try:

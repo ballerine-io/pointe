@@ -10,6 +10,14 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.8 (beta)
 
+- **Unreleased** (beta): New Claude Code sessions Pointe starts skip permission prompts by default, with a setting to ask
+  before actions and "start a session that asks first" for one session
+
+  The owner's decision, 2026-11-25, for everyone and for the public release (SECURITY.md, "Starting a session"). The
+  risk, once: such a session can edit files and run commands without asking, so there are no requests to approve.
+  Settings → Permissions for new sessions on the page, the iPhone and the Mac; "new sessions ask first" by voice. Pointe
+  says the risk the first time, and asks for Claude Code's one-time consent out loud instead of leaving it in a
+  terminal. Joined and reopened sessions, night shifts, Codex and OpenCode are not changed.
 - **0.8.7** (2026-11-25, beta): The iPhone app is ready for App Store review (a privacy policy link, privacy manifests, no "beta" on the iPhone, the Sessions title whole), AirPods turn the mic off and on during a call on the Mac, an overview reaches a session signed in by a key, and a request's reminder and read-out are said as a person says them
 - **0.8.6** (2026-11-25, beta): "Only when I say Pointe" acts only on words that name Pointe or a session, an optional short tone before a background session's report, "What's going on everywhere?" is answered by the sessions themselves, and replies sound spoken: no greeting that ends in a question, a session by its plain name, a caveat in a few words
 - **0.8.5** (2026-11-25, beta): The wait says "Thinking…", Pointe waits 1.3 s before it answers, a command that is long to hear goes back for plain ones and a request is read once, "stop" and "never mind" keep a request from being sent, a question is not an answer to a request, and "yes" while Pointe talks does not cut it off

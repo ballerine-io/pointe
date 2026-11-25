@@ -88,8 +88,10 @@ class Swift:
         return list(dict.fromkeys(out))
 
     def options(self, picker: str) -> list[str]:
-        """A picker's choices: `Text("x").tag`, `ForEach(Copy.levels …)` or `ForEach(Type.allCases …) { $0.label }`."""
+        """A picker's choices: `Text("x").tag`, `Text(Copy.member).tag`, `ForEach(Copy.levels …)` or
+        `ForEach(Type.allCases …) { $0.label }`."""
         out = [_unescape(s) for s in re.findall(r'Text\("((?:[^"\\]|\\.)*)"\)\.tag', picker)]
+        out += [self.consts[f"{o}.{m}"] for o, m in re.findall(r"Text\((\w+)\.(\w+)\)\.tag", picker) if f"{o}.{m}" in self.consts]
         for owner, member in re.findall(r"ForEach\((\w+)\.(\w+)", picker):
             body = self.bodies.get(owner, "")
             if member == "allCases":
@@ -620,6 +622,18 @@ TOPICS = (
           "you already work in, or added in Settings on the Mac.",
           iphone=(("sessions", "New session"),), page=(("side", "New session"), ("settings", "New sessions", "Folders")),
           voice=("start a new codex session in shop",), tool="start_session", doc="new-session.md"),
+    Topic("new-session-permissions", "Permissions for new sessions: skip permission prompts or ask before actions",
+          ("permissions for new sessions", "skip permission prompts", "skip prompts", "ask before actions", "ask first",
+           "asks first", "safe mode", "bypass permissions", "dangerously skip permissions", "why didn't it ask me",
+           "stop asking for permission", "הרשאות לסשנים חדשים", "בלי לבקש רשות", "לשאול קודם"),
+          "A new Claude Code session Pointe starts skips permission prompts by default: it can edit files and run "
+          "commands without asking, so there are no requests to approve. Pick Ask before actions to have it ask first, "
+          "or say \"start a session that asks first\" for one session. The first time, Claude Code needs your consent "
+          "once, and Pointe asks for it out loud. Sessions you join and reopen are not changed.",
+          iphone=(("menu", "Permissions for new sessions", "Skip permission prompts|Ask before actions"),),
+          page=(("settings", "New sessions", "Permissions for new sessions", "Skip permission prompts|Ask before actions"),),
+          voice=("new sessions ask first", "new sessions skip permission prompts", "start a session in shop that asks first"),
+          doc="new-session.md"),
     Topic("night-shift", "Night shift", ("night shift", "tonight", "overnight", "work while i sleep", "while i sleep",
                                          "tasks for the night", "stop the night shift", "night ledger", "work at night",
                                          "keep working when i am away", "משמרת לילה", "לעבוד בלילה", "בזמן שאני ישן"),

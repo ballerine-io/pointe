@@ -45,6 +45,7 @@ class ClaudeCode(Harness):
     approvals = True
     attach = True
     starts = True
+    skips = True  # --permission-mode bypassPermissions, by the setting "sessions.permissions" (start_argv)
     joins_mid_turn = True  # /pointe:voice runs inside one of its turns
     permission_deadline = 280.0  # under the hook's own timeout, in hooks/hooks.json
     # Claude Code has no supported way for another process to interrupt a running turn (docs/harnesses.md): its inbox
@@ -144,19 +145,23 @@ class ClaudeCode(Harness):
             return "Starting Claude Code needs a terminal window, which Pointe opens only on a Mac for now."
         return None if shutil.which("claude") else "Claude Code is not installed on this Mac."
 
-    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
-        """A new terminal window running `claude` in `cwd`: a real session the user can type into. Its SessionStart hook
-        registers it with the voice (attach mode: its inbox socket), carrying `start_id`, so this returns None."""
+    async def start(self, cwd: str, name: str, start_id: str, skip: bool = False) -> dict | None:
+        """A new terminal window running `claude` in `cwd`: a real session the user can type into, skipping its
+        permission prompts with `skip`. Its SessionStart hook registers it with the voice (attach mode: its inbox
+        socket), carrying `start_id`, so this returns None."""
         why = self.can_start()
         if why:
             raise StartError(why)
-        script = start_script(cwd, name, start_id)
+        script = start_script(cwd, name, start_id, skip=skip)
         try:
             await asyncio.to_thread(open_terminal, script)
         except (OSError, subprocess.SubprocessError) as e:
             logger.warning(f"no terminal window for a new Claude Code session: {type(e).__name__}")
             raise StartError("Pointe could not open a terminal window for Claude Code.")
         return None
+
+    def skip_check(self, cwd: str) -> str:
+        return skip_check(DEFAULT_HOME, cwd)
 
     reopens_in_terminal = True
 
@@ -317,24 +322,63 @@ def stop_flag(session, transcript: str) -> Path | None:
     return Path(HOST.state_dir) / STOP_DIR / sid
 
 
-def start_argv(name: str, settings: Path, resume: str = "") -> list[str]:
-    """How Pointe starts Claude Code: its default permission mode, said outright (the flag wins over a `defaultMode` in
-    the user's settings), and never a flag that skips prompts. A reopen resumes the session by its id and keeps its
-    own name (the hook still joins it under the name read back)."""
+# The one way Pointe starts a session that skips its permission prompts: a new session, with the setting on "skip"
+# (code.claude.com/docs/en/permission-modes: `--dangerously-skip-permissions` is the same mode).
+SKIP_ARGS = ("--permission-mode", "bypassPermissions")
+ASK_ARGS = ("--permission-mode", "default")
+
+
+def start_argv(name: str, settings: Path, resume: str = "", skip: bool = False) -> list[str]:
+    """How Pointe starts Claude Code: a permission mode always said outright (the flag wins over a `defaultMode` in the
+    user's settings). Its default mode, or with `skip` (a new session only) bypassPermissions; nothing else that skips
+    prompts gets through. A reopen resumes the session by its id in the default mode and keeps its own name (the hook
+    still joins it under the name read back)."""
+    if skip and resume:
+        raise StartError("Not reopened: Pointe reopens a session only in its default permission mode.")
     claude = shutil.which("claude") or "claude"
     if resume:
-        argv = [claude, "--resume", resume, "--permission-mode", "default", "--settings", str(settings)]
+        argv = [claude, "--resume", resume, *ASK_ARGS, "--settings", str(settings)]
     else:
-        argv = [claude, "--permission-mode", "default", "--name", name, "--settings", str(settings)]
-    refuse_bypass(*argv)
+        argv = [claude, *(SKIP_ARGS if skip else ASK_ARGS), "--name", name, "--settings", str(settings)]
+    refuse_bypass(*(argv[:1] + argv[3:] if skip else argv))  # all but the one mode the setting chose
     return argv
 
 
+def _settings(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def skip_check(home: Path, cwd: str) -> str:
+    """Whether a new session in `cwd` can skip its permission prompts without stopping at Claude Code's one-time check
+    in its terminal, which a session started by voice may have nobody to answer (code.claude.com/docs/en/permission-modes).
+    "ok": Claude Code recorded the user's yes (`skipDangerousModePermissionPrompt` in the account's user settings, or
+    managed settings). "confirm": no yes recorded; Pointe asks the user once. "off": a settings file sets
+    `permissions.disableBypassPermissionsMode`, so Claude Code would refuse the mode."""
+    user, managed = _settings(home / "settings.json"), _settings(MANAGED_SETTINGS)
+    repo = [_settings(Path(cwd or ".") / ".claude" / n) for n in ("settings.json", "settings.local.json")]
+    for found in (managed, user, *repo):
+        rules = found.get("permissions")
+        if isinstance(rules, dict) and rules.get("disableBypassPermissionsMode") == "disable":
+            return "off"
+    return "ok" if True in (user.get("skipDangerousModePermissionPrompt"), managed.get("skipDangerousModePermissionPrompt")) \
+        else "confirm"
+
+
 def start_script(cwd: str, name: str, start_id: str, root: Path = Path(__file__).resolve().parents[2], resume: str = "",
-                 home: str = "") -> Path:
+                 home: str = "", skip: bool = False) -> Path:
     """The `.command` file a terminal runs for a new session (or a reopened one: `resume`, in account `home`), and the
     settings file with the hook that joins it. No secret is in either: the hook reads the daemon's token from the state
-    dir, as /pointe:voice does."""
+    dir, as /pointe:voice does.
+
+    With `skip`, the daemon has the user's yes (skip_check, or theirs to Pointe's question), so the settings say it for
+    this session alone: no check in the terminal, and nothing written to the user's own settings. They also accept the
+    voice's messages, which Claude Code would otherwise hold for approval in a session that skips prompts. Should
+    Claude Code still end before its session starts (a policy Pointe cannot see refuses the mode), the script starts
+    it again asking first, so a start never waits on a terminal nobody answers."""
     state = Path(HOST.state_dir or os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
     port = str(getattr(HOST, "port", None) or os.environ.get(PORT_ENV, "7860"))
     folder = state / "starts"
@@ -346,17 +390,29 @@ def start_script(cwd: str, name: str, start_id: str, root: Path = Path(__file__)
         except OSError:
             pass
     settings, script = folder / f"{start_id}.json", folder / f"{start_id}.command"
+    started = folder / f"{start_id}.started"  # its session started: written by its own SessionStart hook
     hook = " ".join(shlex.quote(a) for a in [str(root / "bin" / "register-session"), "--quiet", "--name", name, "--start", start_id])
+    hooks = [{"type": "command", "timeout": 10, "command": hook}]
+    extra = {}
+    if skip:
+        hooks.append({"type": "command", "timeout": 5, "command": f"touch {shlex.quote(str(started))}"})
+        extra = {"skipDangerousModePermissionPrompt": True, "crossSessionInbound": "accept"}
     # "startup" only (or "resume" for a reopen): a /clear or /resume later must not register it again under a new id
-    settings.write_text(json.dumps({"hooks": {"SessionStart": [{"matcher": "resume" if resume else "startup", "hooks": [
-        {"type": "command", "timeout": 10, "command": hook}]}]}}))
-    command = " ".join(shlex.quote(a) for a in start_argv(name, settings, resume))
+    settings.write_text(json.dumps({**extra, "hooks": {"SessionStart": [{"matcher": "resume" if resume else "startup",
+                                                                          "hooks": hooks}]}}))
+    command = " ".join(shlex.quote(a) for a in start_argv(name, settings, resume, skip=skip))
     account = f" CLAUDE_CONFIG_DIR={shlex.quote(home)}" if home else ""
+    run = f"exec {command}\n"
+    if skip:
+        asking = " ".join(shlex.quote(a) for a in start_argv(name, settings))
+        run = (f"{command}\nstatus=$?\n[ -e {shlex.quote(str(started))} ] && exit $status\n"
+               f"echo 'Pointe: Claude Code did not start skipping permission prompts. Starting it to ask before actions.'\n"
+               f"exec {asking}\n")
     script.write_text(f"#!/bin/sh\n# Written by Pointe: {'reopens' if resume else 'starts'} Claude Code here and joins it to "
                       f"the voice. Safe to delete.\n"
                       f"cd {shlex.quote(cwd)} || exit 1\n"
                       f"export CLAUDE_VOICE_STATE={shlex.quote(str(state))} {PORT_ENV}={shlex.quote(port)}{account}\n"
-                      f"exec {command}\n")
+                      + run)
     settings.chmod(0o600)
     script.chmod(0o700)
     return script

@@ -34,6 +34,13 @@ SCHEMA: dict[str, tuple] = {
     # Folders a new session may start in, beside those of current and recent sessions (docs/design/new-session.md).
     # Changed only at the Mac: daemon.prefs_set refuses it from the phone and from a page over the network.
     "sessions.folders": ([], valid_folders),
+    # How a new Claude Code session Pointe starts handles permission prompts (newsession.PERMISSIONS): "skip" starts it
+    # with --permission-mode bypassPermissions, "ask" in its default mode. The owner's default (SECURITY.md).
+    "sessions.permissions": ("skip", ("skip", "ask")),
+    "sessions.skip_told": (False, bool),  # the risk line was said once (newsession.SKIP_NOTICE); set only by the daemon
+    # The user said yes to Claude Code's one-time check before a session skips its prompts, asked by Pointe
+    # (newsession.SKIP_CONFIRM). Set only by that yes: daemon.prefs_set refuses it.
+    "sessions.skip_ok": (False, bool),
     # A night shift's caps and whether its blockers may alert overnight (docs/design/night-shift.md).
     "nightshift.hours": (HOURS, valid_hours),  # a shift ends after this many hours, at most 12
     "nightshift.messages": (MESSAGES, valid_messages),  # messages a shift may send to sessions, at most 200

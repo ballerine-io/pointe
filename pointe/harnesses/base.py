@@ -35,7 +35,8 @@ _BYPASS = ("dangerously", "skip-permissions", "bypasspermissions", "danger-full-
 
 def refuse_bypass(*parts) -> None:
     """Every command line and request a starter builds passes through here: nothing Pointe starts may skip its
-    harness's permission prompts, whoever wrote the starter."""
+    harness's permission prompts, whoever wrote the starter. The one exception is not built from parts: a new Claude
+    Code session the user's setting starts skipping them (claude_code.SKIP_ARGS, checked apart from the rest)."""
     for part in parts:
         text = str(part).lower()
         if any(word in text for word in _BYPASS):
@@ -55,6 +56,7 @@ class Harness:
     attach = True  # it joins a session the user already runs in their own terminal or app
     spawn = False  # it can only drive sessions Pointe starts itself
     starts = False  # Pointe can start a new session of it in a folder (docs/design/new-session.md)
+    skips = False  # a new session of it can start skipping its permission prompts (the setting "sessions.permissions")
     joins_mid_turn = False  # joining runs inside one of its own turns (Claude Code's /pointe:voice): that turn is not news
     permission_deadline = 280.0  # how long the voice may hold one of its prompts before the harness's own prompt answers
     # How a spoken "stop" ends a running turn: "now" (the harness cuts it, a running command included), "next_step"
@@ -120,11 +122,17 @@ class Harness:
         runs for every look at the New session sheet."""
         return f"Pointe cannot start {self.agent} sessions"
 
-    async def start(self, cwd: str, name: str, start_id: str) -> dict | None:
-        """Start a new session in `cwd`, in the harness's default permission mode, never one that skips its prompts.
-        Returns its /voice/register body, or None when the session registers itself (carrying `start_id`). Raises
-        StartError with words for the user."""
+    async def start(self, cwd: str, name: str, start_id: str, skip: bool = False) -> dict | None:
+        """Start a new session in `cwd`, in the harness's default permission mode; with `skip` (only where `skips`),
+        one that skips its prompts, which the daemon asks for only after skip_check said "ok". Returns its
+        /voice/register body, or None when the session registers itself (carrying `start_id`). Raises StartError with
+        words for the user."""
         raise StartError(self.can_start() or "not supported")
+
+    def skip_check(self, cwd: str) -> str:
+        """Whether a new session in `cwd` can start skipping its prompts now: "ok", "confirm" (the harness needs the
+        user's yes once first, asked by Pointe), or "off" (it cannot: not this harness, or its settings forbid it)."""
+        return "off"
 
     def open_hint(self, session: Session) -> str:
         """How the user opens a session Pointe started in their own terminal, or "" when it already is one."""

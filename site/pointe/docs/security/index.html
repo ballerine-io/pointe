@@ -174,6 +174,10 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
 </li>
 </ul>
 <h2 id="what-a-spoken-word-can-do">What a spoken word can do</h2>
+<p>A new Claude Code session that Pointe starts skips permission prompts by default (see <a href="#starting-a-session">Starting a
+session</a>). In such a session there is no prompt to approve: what a spoken request asks for, the
+session can do without asking. The rules below apply to every session that asks: sessions you join, sessions you
+reopen, and new sessions under Ask before actions.</p>
 <p>With the default brain, a permission prompt is approved only when all of these hold:</p>
 <ul>
 <li>
@@ -264,10 +268,41 @@ that creates a process, so it is fenced on every side, in code with tests (<code
   opened over the network, so the list grows only at the Mac.</p>
 </li>
 <li>
-<p><strong>How.</strong> Never with permission prompts skipped: Claude Code gets <code>--permission-mode default</code>, Codex and OpenCode no
-  override, and a Codex thread that would run with no approvals and no sandbox is archived and refused
-  (<code>harnesses.base.refuse_bypass</code>, <code>harnesses.codex.bypasses</code>). <code>pointe start</code> (<code>bin/claude-voice</code>) refuses the same
-  flags and settings before it starts anything.</p>
+<p><strong>How: new Claude Code sessions skip permission prompts by default.</strong> Decided 2026-11-25 by the owner of Pointe,
+  for everyone and for the public release, after hearing the risk and the alternative. <strong>The risk: such a session can
+  edit, delete and overwrite files, run any command and reach the network without asking, and a prompt injection in
+  what it reads acts with the same freedom.</strong> Claude Code's own warning applies: bypass mode offers no protection
+  against prompt injection or unintended actions. The setting "Permissions for new sessions" (<code>sessions.permissions</code>)
+  turns it off for every new session (Ask before actions), and "start a session that asks first" turns it off for one.
+  Its pieces, each in code with a test (<code>tests/test_skip_permissions.py</code>):</p>
+<ul>
+<li>
+<p>The flag is <code>--permission-mode bypassPermissions</code> (<code>claude_code.SKIP_ARGS</code>), the mode
+  <code>--dangerously-skip-permissions</code> also selects. Only for a new Claude Code session: a reopen, a night shift's new
+  session, Codex and OpenCode never skip, and <code>harnesses.base.refuse_bypass</code> still checks every other part of every
+  command line and request a starter builds. A Codex thread that would run with no approvals and no sandbox is
+  archived and refused (<code>harnesses.codex.bypasses</code>). <code>pointe start</code> (<code>bin/claude-voice</code>) refuses every skip flag and
+  setting before it starts anything.</p>
+</li>
+<li>
+<p>Claude Code asks once, in its terminal, before a session first skips prompts. Pointe never answers that for the
+  user without their yes and never writes their Claude Code settings: it reads whether the check was accepted
+  (<code>claude_code.skip_check</code>), and when it was not, the read-back asks for consent plainly and a yes is kept in Pointe's
+  own settings (<code>sessions.skip_ok</code>, which no request can set). The yes reaches Claude Code only in that session's
+  <code>--settings</code> file. The New session sheet cannot show the question, so a start from it that still needs the yes
+  asks before actions. Should Claude Code end before its session starts, the start script runs it again asking.</p>
+</li>
+<li>
+<p>The same per-session settings set <code>crossSessionInbound</code> to <code>accept</code>: Claude Code holds every message to a session
+  that skips prompts unless it does, and the voice's requests arrive as such messages. That session therefore also
+  takes, without a prompt, a message from another of your Claude Code sessions.</p>
+</li>
+<li>
+<p>Turning skipping on by voice ("new sessions skip permission prompts") needs the owner's voice when the voice lock
+  is on; turning it off counts from any voice. The read-back, the yes and Face ID or Touch ID for a start are as
+  below.</p>
+</li>
+</ul>
 </li>
 <li>
 <p><strong>Plugin commands.</strong> A command file's <code>allowed-tools</code> lets the model run those commands without a prompt for that
@@ -287,8 +322,8 @@ that creates a process, so it is fenced on every side, in code with tests (<code
 </li>
 <li>
 <p><strong>Left open.</strong> Code running as you can register a session from any folder (it could before), which makes that folder
-  "recent". A paired phone can start a session with a first prompt in an allowed folder; it could already send requests
-  to the sessions there.</p>
+  "recent". A paired phone can start a session with a first prompt in an allowed folder, and with the default setting
+  that session acts on the prompt without asking; the phone could already send requests to the sessions there.</p>
 </li>
 </ul>
 <h3 id="adding-sessions">Adding sessions</h3>

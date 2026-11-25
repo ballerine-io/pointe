@@ -19,7 +19,8 @@ from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "pointe" / "ui.html").read_text()
 KEYS = ("title", "lede", "agent", "machine", "folder", "name", "namePlaceholder", "prompt", "promptPlaceholder", "start",
-        "cancel", "noFolders", "claudeNote", "starting", "failed", "confirmTitle", "foldersTitle", "foldersHelp")
+        "cancel", "noFolders", "claudeNote", "starting", "failed", "confirmTitle", "foldersTitle", "foldersHelp",
+        "permissionsSetting", "permissionsSkip", "permissionsAsk", "permissionsHint", "skipNotice")
 
 
 def page_dict(name: str) -> dict:
@@ -48,16 +49,34 @@ def test_the_page_the_iphone_and_the_mac_say_the_same_words():
         assert "enum NewSessionCopy" not in source.read_text(), source.name
 
 
-def test_no_surface_offers_a_free_path_or_a_way_to_skip_prompts():
-    """The folder is a pick from the daemon's list on every surface, and no screen has a bypass switch."""
+def test_no_surface_offers_a_free_path_or_a_way_to_skip_prompts_from_the_sheet():
+    """The folder is a pick from the daemon's list on every surface. Whether a session skips its prompts is the setting
+    in Settings (SECURITY.md, the owner's default), never a switch on the sheet, and no screen names Claude Code's flag."""
     sheet = PAGE[PAGE.index('id="newsheet"'):PAGE.index('id="rowsheet"')]
     assert '<select id="new-folder"' in sheet and 'id="new-path"' in sheet
     assert not re.search(r'<input[^>]*id="new-(?:folder|path)"', sheet)
-    sources = [sheet] + [p.read_text() for p in [*(ROOT / "apps" / "PointeKit" / "Sources" / "PointeUI").glob("NewSession*.swift"),
-                                                 *(ROOT / "apps" / "macos" / "PointeMac").glob("NewSession*.swift"),
-                                                 ROOT / "apps" / "PointeKit" / "Sources" / "PointeKit" / "NewSessionCopy.swift"]]
-    for text in sources:
-        assert not re.search(r"bypass|skip[- ]?permissions|dangerously", text, re.I)
+    views = [sheet] + [p.read_text() for p in [*(ROOT / "apps" / "PointeKit" / "Sources" / "PointeUI").glob("NewSession*.swift"),
+                                               *(ROOT / "apps" / "macos" / "PointeMac").glob("NewSession*.swift")]]
+    for text in views:
+        assert not re.search(r"bypass|skip|dangerously|permissions", text, re.I)
+    copy = (ROOT / "apps" / "PointeKit" / "Sources" / "PointeKit" / "NewSessionCopy.swift").read_text()
+    assert not re.search(r"bypass|dangerously", copy + " ".join(page_dict("NEW_SESSION_COPY").values()), re.I)
+
+
+def test_the_setting_and_the_risk_are_the_daemons_words():
+    import sys
+    sys.path.insert(0, str(ROOT / "pointe"))
+    import newsession
+
+    page = page_dict("NEW_SESSION_COPY")
+    assert dict(newsession.PERMISSIONS) == {"skip": page["permissionsSkip"], "ask": page["permissionsAsk"]}
+    assert newsession.PERMISSIONS_SETTING == page["permissionsSetting"]
+    assert newsession.PERMISSIONS_HINT == page["permissionsHint"] and "without asking" in page["permissionsHint"]
+    assert newsession.SKIP_NOTICE == page["skipNotice"]
+    markup = PAGE[PAGE.index('id="pref-permissions-card"'):]
+    markup = markup[:markup.index("</div>\n          </div>")]
+    assert f'class="field">{page["permissionsSetting"]}<select id="pref-permissions">' in markup
+    assert f'<option value="skip">{page["permissionsSkip"]}</option><option value="ask">{page["permissionsAsk"]}</option>' in markup
 
 
 SHEET = """(() => ({open: document.getElementById('newsheet').classList.contains('open'),

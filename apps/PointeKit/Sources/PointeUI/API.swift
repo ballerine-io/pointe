@@ -415,6 +415,7 @@ struct API {
         var waitCue: Bool?      // "thinking.cue": the waiting sound (Thinking.swift); nil from a Mac without it
         var progressSpoken: Bool?  // "progress.spoken": say how a session is doing while it works; nil from a Mac without it
         var sessionTones: Bool?    // "reports.tones": one sound per session (Tones.swift); nil from a Mac without it
+        var newSessionPermissions: String?  // "sessions.permissions": "skip" or "ask"; nil from a Mac without it
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
@@ -424,6 +425,7 @@ struct API {
             case showOnPhone = "show.on_phone"
             case patience = "turns.patience"
             case waitCue = "thinking.cue", progressSpoken = "progress.spoken", sessionTones = "reports.tones"
+            case newSessionPermissions = "sessions.permissions"
         }
 
         init(from decoder: Decoder) throws {
@@ -441,6 +443,7 @@ struct API {
             waitCue = try? c.decode(Bool.self, forKey: .waitCue)
             progressSpoken = try? c.decode(Bool.self, forKey: .progressSpoken)
             sessionTones = try? c.decode(Bool.self, forKey: .sessionTones)
+            newSessionPermissions = (try? c.decode(String.self, forKey: .newSessionPermissions)).flatMap { ["skip", "ask"].contains($0) ? $0 : nil }
         }
     }
 

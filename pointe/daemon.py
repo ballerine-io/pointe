@@ -118,6 +118,7 @@ from guards import (relays_approval, remote_readable,
     close_request,
     disconnect_intent,
     start_request,
+    asks_first,
     attach_request,
     strip_tasks,
     unfinished,
@@ -593,7 +594,8 @@ wait. When the user answers (yes, or which one), call add_sessions again.
 - "Start / open a new session (or a Claude Code, OpenCode or Codex session) in <folder>" starts a new coding agent: \
 call start_session once; the daemon takes the agent, the folder and the name from the user's words, and only folders \
 the user already works in. Nothing starts yet: the result has confirm_first; say that line once, exactly, and wait. \
-When the user answers, call start_session again. "Tell <session> to start X" is a send, never a new session.
+When the user answers (yes, no, or "ask first"), call start_session again. "Tell <session> to start X" is a send, \
+never a new session.
 - "Tonight: <session> does X; <session> does Y" or "night shift: ..." gives the sessions work for while the user is \
 away: call night_shift once, with no send_to_claude_code; the daemon takes the sessions and the tasks from the user's \
 words. Nothing starts yet: the result has confirm_first; say that line once, exactly, and wait. When the user answers, \
@@ -2629,6 +2631,10 @@ class SonioxEars(FrameProcessor):
         if not _dumping() and state.meeting is None and state.challenge is None and (posted := _progress_words(heard)) is not None:
             await _progress_by_voice(heard, posted)
             return
+        if not _dumping() and state.meeting is None and state.challenge is None \
+                and (wanted := newsession.permissions_intent(heard)) is not None:
+            await _permissions_by_voice(heard, wanted)
+            return
         wanted = meeting_intent(heard)
         if wanted and not _dumping():
             await _start_meeting_by_voice(heard, wanted)
@@ -4115,6 +4121,7 @@ async def begin_shift(checked: list[dict], caps: dict, how: str):
         if key not in fronts:
             if c["new"]:
                 entry = newsession.find(c["folder"], _start_folders())
+                # Never skipping prompts, whatever the setting: a shift holds every request for the morning (its rules)
                 start = begin_start({"harness": c["harness"], "folder": entry, "name": c["session"], "prompt": ""},
                                     f"night shift, {how}")
                 fronts[key] = nightshift.Front(session=c["session"], harness=c["harness"], start_id=start.id, state="starting")
@@ -7585,12 +7592,31 @@ def _check_start(harness: str, folder: str, name: str | None, prompt: str = "", 
             "said_folder": newsession.said_folder(entry, folders)}
 
 
-def begin_start(what: dict, how: str) -> newsession.Start:
+def _start_mode(harness: str, folder: str, ask_first: bool = False) -> str:
+    """How a new session would start (docs/features/new-session.md): "skip" (its permission prompts skipped),
+    "confirm" (skip, once the user says yes to Claude Code's one-time check, which Pointe asks in its place), "ask" (the
+    harness's default mode), or "off" (asks: Claude Code's settings here forbid skipping). Only a harness that `skips`,
+    with the setting on "skip" and no "asks first" in the request."""
+    adapter = harnesses.get(harness)
+    if ask_first or not adapter.skips or PREFS.get("sessions.permissions") != "skip":
+        return "ask"
+    check = adapter.skip_check(folder)
+    if check == "confirm" and PREFS.get("sessions.skip_ok"):
+        return "skip"  # the yes was given to Pointe before; its settings carry it into the session
+    return "skip" if check == "ok" else check
+
+
+def begin_start(what: dict, how: str, skip: bool = False, notice_said: bool = False) -> newsession.Start:
+    """`skip`: it starts skipping its permission prompts. The first such start carries the risk line (SKIP_NOTICE) for
+    the screens, unless it was already said in the read-back (`notice_said`); after that, never again."""
     start = newsession.Start(id=secrets.token_hex(8), harness=what["harness"], folder=what["folder"]["path"],
-                             name=what["name"], prompt=what.get("prompt") or "", how=how)
+                             name=what["name"], prompt=what.get("prompt") or "", how=how, skip=skip)
+    if skip and not PREFS.get("sessions.skip_told"):
+        start.notice = "" if notice_said else newsession.SKIP_NOTICE
+        PREFS.update({"sessions.skip_told": True})
     STARTS[start.id] = start
     logger.info(f"starting a {start.harness} session {start.name!r} in {start.folder} ({how}"
-                f"{', with a first prompt' if start.prompt else ''})")
+                f"{', with a first prompt' if start.prompt else ''}{', skipping permission prompts' if skip else ''})")
     asyncio.create_task(_run_start(start))
     return start
 
@@ -7602,7 +7628,7 @@ async def _run_start(start: newsession.Start) -> None:
         if not os.path.isdir(start.folder):
             raise harnesses.StartError("Not started: that folder is no longer there.")
         body = await asyncio.wait_for(adapter.reopen(start.found, start.id) if start.resume
-                                      else adapter.start(start.folder, start.name, start.id), 45)
+                                      else adapter.start(start.folder, start.name, start.id, skip=start.skip), 45)
     except harnesses.StartError as e:
         return await _start_failed(start, str(e))
     except asyncio.TimeoutError:
@@ -7667,12 +7693,32 @@ def _start_pending() -> tuple[float, dict] | None:
     return pending if pending and time.time() - pending[0] < newsession.CONFIRM_SECS else None
 
 
-def _start_line(what: dict) -> str:
+def _start_line(what: dict, mode: str = "ask", ask_first: bool = False) -> str:
     """The read-back: exactly what a yes will start. Which machine only when there is more than one: a default host
-    name holds the owner's first name, said aloud and printed on the card for nothing (QA round 2)."""
+    name holds the owner's first name, said aloud and printed on the card for nothing (QA round 2). A start that skips
+    permission prompts says so the first time (SKIP_NOTICE), and asks for the yes Claude Code needs once (SKIP_CONFIRM)."""
     where = "" if _one_machine() else f" on {_here()}"
-    return (f"Start {'an' if _harness_title(what['harness'])[0] in 'AEIOU' else 'a'} {_harness_title(what['harness'])} "
-            f"session in {_spoken_names(what['said_folder'])}{where}, named {_spoken_names(what['name'])}?")
+    line = (f"Start {'an' if _harness_title(what['harness'])[0] in 'AEIOU' else 'a'} {_harness_title(what['harness'])} "
+            f"session in {_spoken_names(what['said_folder'])}{where}, named {_spoken_names(what['name'])}")
+    if mode == "confirm":
+        return f"{line}, skipping permission prompts? {newsession.SKIP_CONFIRM}"
+    if mode == "skip" and not PREFS.get("sessions.skip_told"):
+        return f"{line}? {newsession.SKIP_NOTICE}"
+    if ask_first and PREFS.get("sessions.permissions") == "skip":
+        return f"{line}, asking before actions?"
+    return f"{line}?"
+
+
+def _begin_read_back(checked: dict, what: dict, how: str, ask_instead: bool = False) -> newsession.Start:
+    """The start a yes (or a tap on the card) gives to a read-back: in the mode it said. A yes to Pointe's question for
+    Claude Code (SKIP_CONFIRM) is that yes, kept, so the next starts skip without asking."""
+    mode = "ask" if ask_instead else what.get("mode", "ask")
+    if mode == "confirm":
+        PREFS.update({"sessions.skip_ok": True})
+        logger.info("skipping permission prompts: the user said yes to Claude Code's one-time check")
+    skip = mode in ("skip", "confirm")
+    return begin_start(checked, how, skip=skip, notice_said=skip and newsession.SKIP_NOTICE in what["line"]
+                       or mode == "confirm")
 
 
 def _one_machine() -> bool:
@@ -7704,7 +7750,10 @@ async def start_session(params: FunctionCallParams):
         state.pending_start = None
         verdict = _readback_answer(said, pending[1]["line"])
         asks_again = start_request(said, []) is not None
-        if verdict == "allow" and not asks_again:
+        # "Ask first" to a read-back that would skip prompts: that one session starts asking, under a yes's rules
+        ask_instead = pending[1].get("mode") in ("skip", "confirm") and asks_first(said) \
+            and _readback_pick(said, pending[1]["line"]) and verdict != "allow"
+        if (verdict == "allow" or ask_instead) and not asks_again:
             state.last_start_at = time.time()
             refusal = _start_owner_refusal()
             if refusal:
@@ -7719,8 +7768,8 @@ async def start_session(params: FunctionCallParams):
             if checked["name"] != what["name"]:
                 await params.result_callback({"error": f"Not started: the name {what['name']} was taken meanwhile. Ask again."})
                 return
-            start = begin_start(checked, "voice")
-            await params.result_callback({"starting": start.name, "note": _started_note(start)})
+            start = _begin_read_back(checked, what, "voice", ask_instead)
+            await params.result_callback({"starting": start.name, "note": _started_note(start, what.get("mode", ""))})
             return
         if verdict == "deny" or not asks_again:
             await params.result_callback({"error": "Not started: the user did not say yes. Nothing was started; ask "
@@ -7783,10 +7832,11 @@ async def start_session(params: FunctionCallParams):
     except StartRefused as e:
         await params.result_callback({"error": str(e)})
         return
-    line = _start_line(what)
+    mode = _start_mode(harness, what["folder"]["path"], ask.ask_first)
+    line = _start_line(what, mode, ask.ask_first)
     state.pending_start = (time.time(), {"id": secrets.token_hex(8), "harness": harness, "folder": what["folder"]["path"],
                                          "name": what["name"], "name_given": bool(ask.name), "line": line,
-                                         "said_folder": what["said_folder"]})
+                                         "said_folder": what["said_folder"], "mode": mode})
     logger.info(f"start read back: {line}")
     state.readback = line
     await params.result_callback({"confirm_first": line, "note": "Nothing is started yet. Say this line once, as it is, "
@@ -7803,10 +7853,11 @@ def _start_the_bot_offered(places) -> str | None:
     return last_bot if start_request(last_bot, places) is not None else None
 
 
-def _started_note(start: newsession.Start) -> str:
+def _started_note(start: newsession.Start, mode: str = "") -> str:
     opens = "Claude Code opens in a new terminal window on the Mac. " if start.harness == "claude-code" else ""
+    off = f"Add this, as it is: {newsession.SKIP_OFF_HERE} " if mode == "off" else ""
     return (f"{opens}It joins the voice by itself in a moment and is announced when it does; then requests can be sent "
-            f"to it by its name. Say in one line that it is starting.")
+            f"to it by its name. Say in one line that it is starting. {off}").strip()
 
 
 # ---------- adding sessions the user already runs or ran (docs/design/attach-by-voice.md) ----------
@@ -9544,6 +9595,8 @@ async def new_session(request: Request):
             body = {"harness": pending[1]["harness"], "folder": pending[1]["folder"],
                     "name": pending[1]["name"] if pending[1]["name_given"] else None}
             break
+    if body.get("permissions") not in (None, "skip", "ask"):
+        raise HTTPException(status_code=400, detail="permissions is skip or ask.")
     try:
         what = _check_start(str(body.get("harness") or ""), body.get("folder") or "", body.get("name") or None,
                             body.get("prompt") or "", body.get("machine") or None)
@@ -9551,12 +9604,20 @@ async def new_session(request: Request):
         raise HTTPException(status_code=e.status, detail=str(e))
     if pending and state.pending_start is None and what["name"] != pending[1]["name"]:  # a tap starts what was read back
         raise HTTPException(status_code=409, detail=f"The name {pending[1]['name']} was taken meanwhile. Ask again.")
-    start = begin_start(what, _start_how(request))
+    if pending:  # the card showed the read-back word for word, Pointe's question for Claude Code included
+        start = _begin_read_back(what, pending[1], _start_how(request))
+    else:
+        # The sheet: the setting, or "ask" for this one. A yes Claude Code still needs is never taken from a tap on a
+        # sheet that did not show the question: that start asks first, and the voice asks the next time.
+        mode = _start_mode(what["harness"], what["folder"]["path"], body.get("permissions") == "ask")
+        start = begin_start(what, _start_how(request), skip=mode == "skip")
     if state.conn is not None:
         await state.conn.injector.inject(f"[session starting] The user started a new {_harness_title(start.harness)} "
                                          f"session, {start.name}, from the screen. It is announced when it joins. Do "
                                          f"not announce it now.", False)
-    return {"id": start.id, "name": start.name}
+        if start.notice:
+            await _say_exactly(start.notice, "new sessions skip permission prompts")
+    return {"id": start.id, "name": start.name, "permissions": "skip" if start.skip else "ask", "notice": start.notice}
 
 
 @app.get("/voice/add-sessions")
@@ -9742,6 +9803,9 @@ async def _user_text(text: str) -> None:
         return
     if state.challenge is None and (posted := _progress_words(text)) is not None:
         await _progress_by_voice(text, posted)
+        return
+    if state.challenge is None and (wanted := newsession.permissions_intent(text)) is not None:
+        await _permissions_by_voice(text, wanted, typed=True)
         return
     state.heard_own_words, state.last_speaker = True, None
     await on_user_utterance(text, typed=True)  # state.heard keeps it typed after the flag is cleared: no yes to a read-back
@@ -10363,6 +10427,8 @@ async def prefs_set(request: Request):
         raise HTTPException(status_code=400, detail="set the voice lock with POST /voice/voiceprint {action: level}")
     if "sessions.folders" in body and _off_the_mac(request):  # where an agent may start is decided at the Mac only
         raise HTTPException(status_code=403, detail="Change the folders new sessions may start in on the Mac itself.")
+    if {"sessions.skip_ok", "sessions.skip_told"} & set(body):  # the daemon's record of a yes and of a line said
+        raise HTTPException(status_code=400, detail="Set by Pointe when a session starts, never by a request.")
     try:
         return PREFS.update(body)
     except ValueError as e:
@@ -11354,6 +11420,22 @@ async def _progress_by_voice(heard: str, on: bool) -> None:
     PREFS.update({"progress.spoken": on})
     logger.info(f"progress updates {'on' if on else 'off'} (by voice)")
     await _say_exactly(progress.ON_LINE if on else progress.OFF_LINE, f"progress updates {'on' if on else 'off'}")
+
+
+async def _permissions_by_voice(heard: str, value: str, typed: bool = False) -> None:
+    """"New sessions skip permission prompts" / "new sessions ask first": the setting by voice, caught in code. Skipping
+    needs the owner's voice when the voice lock is on, as a start's yes does; asking first counts from any voice, as a
+    no does. Typed words come from a paired screen, which can change the setting anyway."""
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; not fresh speech for a send
+    if value == "skip" and not typed and _start_owner_refusal() is not None:
+        logger.info("permissions for new sessions: not changed, not clearly the owner's voice")
+        await _say_exactly("Not changed: that was not clearly your voice. Change it in Settings.", "setting not changed")
+        return
+    PREFS.update({"sessions.permissions": value})
+    logger.info(f"permissions for new sessions: {value} ({'typed' if typed else 'by voice'})")
+    await _say_exactly(newsession.SKIP_ON_LINE if value == "skip" else newsession.ASK_ON_LINE,
+                       "permissions for new sessions")
 
 
 def _progress_may_speak() -> bool:

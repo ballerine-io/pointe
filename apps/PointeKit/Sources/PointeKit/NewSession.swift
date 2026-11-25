@@ -107,8 +107,9 @@ public enum NewSession {
         public let folder: String?
         public let state: String?      // starting, waiting, failed
         public let detail: String?     // why it failed
+        public let notice: String?     // the risk line, the first time a start skips permission prompts (SKIP_NOTICE)
 
-        public init(id: String, name: String, harness: String? = nil, label: String? = nil, folder: String? = nil, state: String? = nil, detail: String? = nil) {
+        public init(id: String, name: String, harness: String? = nil, label: String? = nil, folder: String? = nil, state: String? = nil, detail: String? = nil, notice: String? = nil) {
             self.id = id
             self.name = name
             self.harness = harness
@@ -116,12 +117,13 @@ public enum NewSession {
             self.folder = folder
             self.state = state
             self.detail = detail
+            self.notice = notice
         }
 
         public var failed: Bool { state == "failed" }
         public var tag: String { failed ? NewSessionCopy.failed : NewSessionCopy.starting }
-        /// The reason under a failed row; nothing under one that is still starting.
-        public var why: String? { failed ? detail.flatMap { $0.isEmpty ? nil : $0 } : nil }
+        /// The reason under a failed row; under one still starting, the risk line its start carries, if any.
+        public var why: String? { (failed ? detail : notice).flatMap { $0.isEmpty ? nil : $0 } }
         public var agent: String { label.flatMap { $0.isEmpty ? nil : $0 } ?? Harness.name(harness) }
     }
 
