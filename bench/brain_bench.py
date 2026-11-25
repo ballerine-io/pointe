@@ -49,7 +49,7 @@ JUDGED = OUT / "brain_judged.jsonl"
 SPEND = OUT / "brain_spend.jsonl"
 PROMPTS = OUT / "brain_prompts.json"
 REPORT = OUT / "brain.md"
-FILES = ["brain.py", "vendors.py", "brief.py", "daemon.py", "bench/brain_cases.py"]
+FILES = ["pointe/brain.py", "pointe/vendors.py", "pointe/brief.py", "pointe/daemon.py", "bench/brain_cases.py"]
 
 CANDIDATES = ["gemini:gemini-3.5-flash", "gemini:gemini-3.6-flash", "gemini:gemini-3.7-flash", "gemini:gemini-3.8-flash",
               "gemini:gemini-3.5-flash-lite", "anthropic:claude-haiku-5-5", "anthropic:claude-sonnet-5-5",

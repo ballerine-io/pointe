@@ -39,7 +39,6 @@ import conversation  # noqa: E402
 import vendors  # noqa: E402
 
 OUT = bb.OUT / "first_word.jsonl"
-bb.FILES = [f if f.startswith("bench/") else f"pointe/{f}" for f in bb.FILES]  # the modules moved under pointe/
 bb.PROMPTS = bb.OUT / "first_word_prompts.json"  # frozen here, apart from the brain bench's own
 BRAINS = ["anthropic:claude-sonnet-5-5", "anthropic:claude-haiku-5-5", "gemini:gemini-3.8-flash",
           "gemini:gemini-3.5-flash-lite", "openai:gpt-6-sol", "openai:gpt-6-luna"]
