@@ -1,4 +1,4 @@
-"""Pointe Conversational Engineering Benchmarks: the one command.
+"""Pointe Voice Coding Benchmarks: the one command.
 
     uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55   # Humanity's Last Keystroke, every arm
     uv run --locked --extra local python bench/conversational/hlk/run.py hlk --adapter pointe --smoke

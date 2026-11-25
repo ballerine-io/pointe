@@ -1,9 +1,9 @@
 # Contributing
 
-Pointe is a conversational layer for your coding agents. It is MIT
+Pointe is a voice layer for your coding agents. It is MIT
 licensed and community-supported. Pull requests, bug reports, test reports from machines we do not have, and ideas are
 all welcome. What may come next, sorted by votes: [ROADMAP.md](ROADMAP.md). Teams that use Pointe in real work can join
-the [Conversational Engineering Working Group](#the-conversational-engineering-working-group).
+the [Voice Coding Working Group](#the-voice-coding-working-group).
 
 ## Your first pull request in 15 minutes
 
@@ -206,7 +206,7 @@ uv run --locked python -I bench/brain_bench.py report         # writes bench/res
 
 The others measure the ears (`stt_bench.py`), the voice (`tts_bench.py`, `local_tts_bench.py`), the voice lock
 (`speaker_bench.py`), the vocabulary (`vocab_bench.py`) and whisper mode (`whisper_bench.py`); their results are in
-`bench/results/`. The five conversational engineering benchmarks are in `bench/conversational/`, each with a spend cap
+`bench/results/`. The five voice coding benchmarks are in `bench/conversational/`, each with a spend cap
 (`--budget-usd`) checked before every launch, and their spend per run is in
 [docs/benchmarks/README.md](docs/benchmarks/README.md#spend).
 
@@ -306,7 +306,7 @@ found, and what was done about each finding; the cadence and the method are in t
 checks each finding against the code before it is marked fixed, by design or accepted. The threat model is
 [SECURITY.md](SECURITY.md). Report a vulnerability privately, never in an issue.
 
-## The Conversational Engineering Working Group
+## The Voice Coding Working Group
 
 Teams that use Pointe in real work. Members share what works and what breaks, help shape the practice, the roadmap and
 the benchmarks (Humanity's Last Keystroke among them), and contribute code or adapters when they can. They get a voice

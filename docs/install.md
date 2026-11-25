@@ -1,6 +1,6 @@
 # Install Pointe
 
-Pointe is a conversational layer for your coding agents. On a Mac, install it the way any Mac app installs: download
+Pointe is a voice layer for your coding agents. On a Mac, install it the way any Mac app installs: download
 `Pointe.dmg`, drag Pointe to Applications, open it. The other ways in, for a person who works in Claude Code, Codex or
 OpenCode, follow under [Other ways](#other-ways). To work on Pointe itself, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 

@@ -1,6 +1,6 @@
 # Getting started
 
-Pointe is a conversational layer for your coding agents. You talk; it listens, reports what each session did, sends
+Pointe is a voice layer for your coding agents. You talk; it listens, reports what each session did, sends
 your requests to the right one, and reads permission prompts out so you can answer them by voice. The sessions do the
 work and keep their context.
 

@@ -362,7 +362,7 @@ def site(markdown: str) -> str:
 </header>
 <main id="main" class="pg-wrap">
   <section class="pg-hero">
-    <p class="pg-kicker">Pointe Conversational Engineering Benchmarks</p>
+    <p class="pg-kicker">Pointe Voice Coding Benchmarks</p>
     <h1 class="pg-h1">Spoken Actions and False Approval</h1>
   </section>
   {chr(10).join("  " + b for b in body)}

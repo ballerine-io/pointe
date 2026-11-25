@@ -1,12 +1,12 @@
 name: Join the working group
-description: Your team uses Pointe in real work and wants to join the Conversational Engineering Working Group.
+description: Your team uses Pointe in real work and wants to join the Voice Coding Working Group.
 title: "Working group: "
 labels: [working-group]
 body:
   - type: markdown
     attributes:
       value: |
-        The Conversational Engineering Working Group is teams that use Pointe in real work. Members share what works
+        The Voice Coding Working Group is teams that use Pointe in real work. Members share what works
         and what breaks, help shape the practice, the roadmap and the benchmarks (Humanity's Last Keystroke), and
         contribute code or adapters when they can. Members get a voice in the roadmap, early builds, a shared channel
         with the maintainers, and their team's name on the page if they want it. There is no fee and no contract. This

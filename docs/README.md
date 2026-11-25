@@ -1,6 +1,6 @@
 # Pointe documentation
 
-Pointe is a conversational layer for your coding agents. You talk to all your coding-agent sessions by voice: ask what
+Pointe is a voice layer for your coding agents. You talk to all your coding-agent sessions by voice: ask what
 each one did, switch by saying its name, and answer permission prompts out loud, under rules enforced in code. Pointe works with
 Claude Code, OpenCode and Codex, and runs on your Mac with your own model keys, or with models on the Mac.
 
