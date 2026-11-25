@@ -1753,6 +1753,15 @@ async def _overview(front, said: str, sessions: list[Session]) -> None:
             if a:
                 front.brain.add_news(f"[{x.name}, asked where it stands, answered] {mask(a)[:600]}")
         return
+    if not any(answers):
+        state.overview_at = 0.0  # nothing was learned: asked again, the sessions are asked again
+        line = ("אף אחד מהם לא ענה עכשיו. אפשר לשאול אחד בשמו, או לשאול שוב בעוד דקה." if hebrew else
+                "None of them answered just now. Ask one by name, or ask again in a minute.")
+        logger.info(f"overview: no session answered; said {line!r}")
+        front.brain.messages.append({"role": "assistant", "calls": [], "said": line})
+        front.brain._spoke(line)
+        await front._speak(line)
+        return
     lines = [f"- {x.name}: {mask(a).strip()[:600]}" if a else
              f"- {x.name}: gave no answer in time; say that you could not reach it" for x, a in zip(sessions, answers)]
     logger.info(f"overview: {sum(1 for a in answers if a)} of {len(sessions)} sessions answered")

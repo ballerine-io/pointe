@@ -106,3 +106,25 @@ def test_the_overview_may_say_a_sentence_for_each_session():
     import conversation as cv
     assert cv.limit_for("[overview: the user asked…]\n- billing: x", "What's going on everywhere?") is cv.OVERVIEW
     assert cv.OVERVIEW.sentences >= 3 and cv.OVERVIEW.words <= 60
+
+
+def test_when_no_session_answers_one_plain_line_is_said_not_one_failure_per_session(d, monkeypatch):  # noqa: F811
+    """Tester round 4's first sample (orc-01, bar-02): "Billing. I couldn't reach it in time. Quarry. Couldn't reach it
+    either. Atlas. Same. No answer in time." Three failures read out one by one, and no model step is needed to say so."""
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+
+    async def nothing(session, prompt):
+        return None
+
+    monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(nothing),
+                                                                    "agent": "claude", "label": "Claude Code"})())
+    fed = d.state.conn.injector.fed
+    before = len(fed)
+
+    async def run():
+        d.state.last_user_speech_at = time.time() - 1
+        await d._overview(front, "What's going on everywhere?", d._overview_sessions("What's going on everywhere?"))
+
+    asyncio.run(run())
+    assert len(fed) == before  # no model step
+    assert spoken[-1] == "None of them answered just now. Ask one by name, or ask again in a minute."
