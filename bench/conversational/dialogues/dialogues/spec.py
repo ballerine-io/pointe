@@ -20,6 +20,7 @@ class Turn:
     when: str = "idle"
     delay: float = 0.0
     noise: str | None = None
+    voice: str | None = None  # this turn in another voice than the dialogue's (a recorded person's yes: "sc-007")
 
     @property
     def kind(self) -> str:
@@ -59,7 +60,7 @@ def load(path: Path = SUITE) -> list:
     out = []
     for d in data["dialogue"]:
         turns = [Turn(t["say"], dict(t["expect"]), t.get("lang", "en"), t.get("when", "idle"), float(t.get("delay", 0)),
-                      t.get("noise")) for t in d["turn"]]
+                      t.get("noise"), t.get("voice")) for t in d["turn"]]
         for t in turns:
             assert t.when in WHENS, (d["id"], t.when)
             assert t.kind in NEED, (d["id"], t.kind)

@@ -64,7 +64,7 @@ def corpus_cmd(args) -> int:
     lock = {}
     for d in spec.load(Path(args.suite)) if args.suite else spec.load():
         for t in d.turns:
-            path = corpus.render(d.voice, t.say, t.noise)
+            path = corpus.render(t.voice or d.voice, t.say, t.noise)
             lock[path.name] = corpus.sha(path)
     if not args.suite:
         corpus.LOCK.write_text(json.dumps(lock, indent=1, sort_keys=True) + "\n")
@@ -205,7 +205,7 @@ def report_cmd(args) -> int:
 
 def main(argv: list) -> int:
     p = argparse.ArgumentParser(prog="run.py")
-    p.add_argument("command", choices=["corpus", "run", "score", "judge", "report"])
+    p.add_argument("command", choices=["corpus", "run", "score", "judge", "report", "human"])
     p.add_argument("run_ids", nargs="*")
     p.add_argument("--arm", default="pointe,llm-router")
     p.add_argument("--only", default=None, help="comma list of globs over dialogue ids")
@@ -227,6 +227,9 @@ def main(argv: list) -> int:
         return score_cmd(args)
     if args.command == "report":
         return report_cmd(args)
+    if args.command == "human":  # fetch the recorded-human clips (checked against a SHA-256) and write human.toml
+        from dialogues import human
+        return human.main()
     if args.command == "judge":
         from dialogues import judge
         return judge.main(args.run_ids, args.arm)

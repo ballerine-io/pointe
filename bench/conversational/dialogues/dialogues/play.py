@@ -250,7 +250,7 @@ async def run(d, arm: str, ctx: dict, port: int) -> dict:
                 row["capped"] = "wall"
                 break
             fired = await wait_for(turn, w, last_end, last_busy)
-            path = corpus.render(d.voice, turn.say, turn.noise)
+            path = corpus.render(turn.voice or d.voice, turn.say, turn.noise)
             pcm = corpus.load(path)
             lead, tail = voiced(pcm, corpus.RATE)
             if env.net.get("loss") and arm == "llm-router":  # the same loss on the plain router's input audio
@@ -259,7 +259,7 @@ async def run(d, arm: str, ctx: dict, port: int) -> dict:
             s, e = await adapter.say(pcm, corpus.RATE)
             voiced_start, voiced_end = s + lead, s + tail
             rec = {"i": i, "say": turn.say, "lang": turn.lang, "when": turn.when, "fired": fired, "expect": turn.expect,
-                   "need": turn.need, "start": voiced_start, "end": voiced_end, "said_at": started_at,
+                   "voice": turn.voice or d.voice, "need": turn.need, "start": voiced_start, "end": voiced_end, "said_at": started_at,
                    "speaking_at_start": any(a <= voiced_start <= b + 0.05 for a, b in w.spans())}
             turns.append(rec)
             last_end = voiced_end

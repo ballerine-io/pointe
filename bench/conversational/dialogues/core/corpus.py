@@ -122,6 +122,9 @@ def _key(env_name: str, item: str) -> str:
 
 
 def speak(text: str, voice: str) -> np.ndarray:
+    if voice.startswith("sc-"):  # a recorded person, from the Speech Commands test set (dialogues/human.py)
+        from dialogues import human
+        return human.clip(voice, text)
     parts = []
     for i, part in enumerate(p.strip() for p in text.split("|")):
         if i:
