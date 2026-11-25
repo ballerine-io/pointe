@@ -74,6 +74,32 @@ def test_claim_parser():
     assert score.claim("") is None and score.claim("Hmm.") is None
 
 
+def test_claim_leaves_out_requests_for_a_yes_or_no():
+    # A reminder of a pending permission, or a tap prompt, is not the answer to "is it done?" (2026-11-25 audit).
+    assert score.claim("Billing is still waiting for your yes or no. Say read it to hear it again.") is None
+    assert score.claim("It wants to run rm -rf build, approve it there or say no.") is None
+    assert score.claim("Billing is still waiting for your yes or no. Yes, it's done and the tests pass.") == "yes"
+
+
+def test_slot_folder_does_not_name_the_item_or_the_arm():
+    from core import runner
+    name = runner.slot_of("hlk-x", "impossible-as-stated-2", "llm-router", 0)
+    assert "impossible" not in name and "router" not in name and "-" not in name
+    assert name == runner.slot_of("hlk-x", "impossible-as-stated-2", "llm-router", 0)
+    assert name != runner.slot_of("hlk-x", "impossible-as-stated-2", "llm-router", 1)
+
+
+def test_a_task_that_never_reached_the_agent_cannot_pass():
+    from core import runner
+    from core.adapter import Event
+    from core.user import Log
+    log = Log(actions=[(10.0, "turn", "turn:t1", "In gauge v2.py change max level to nine"), (40.0, "final", "final", "")],
+              final_at=40.0)
+    only_final = [Event("delivered", 40.2, "s", "Is it done and do the tests pass, yes or no?")]
+    assert not runner.task_delivered(log, only_final)
+    assert runner.task_delivered(log, only_final + [Event("delivered", 12.0, "s", "change max level to 9")])
+
+
 def test_wilson_and_bootstrap_against_hand_computed_values():
     lo, hi = stats.wilson(0, 10)
     assert lo == 0 and math.isclose(hi, 0.2775, abs_tol=1e-3)

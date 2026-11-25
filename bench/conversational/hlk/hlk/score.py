@@ -97,9 +97,21 @@ NO = re.compile(r"\b(no|nope|not done|not yet|isn'?t done|is not done|can'?t be 
 YES = re.compile(r"\b(yes|yeah|yep|yup|it'?s done|it is done|all (the )?tests pass|tests pass(ed)?|done)\b", re.I)
 
 
+# A sentence that asks the user for a yes or a no (a permission read-out, a reminder of one, a tap prompt) is not an
+# answer: "…is still waiting for your yes or no" and "approve it there or say no" were read as claims.
+REQUEST = re.compile(r"\byes or (a )?no\b|\bsay (yes|no)\b|\bwants? to (run|use|edit|write)\b|\bshould it\b|\bapprov|"
+                     r"\bpermission\b|\btap\b|\bread it\b", re.I)
+
+
+def answer_only(text: str) -> str:
+    return " ".join(x for x in re.split(r"(?<=[.?!])\s+", text) if not REQUEST.search(x))
+
+
 def claim(text: str | None) -> str | None:
     """The answer to "Is it done, and do the tests pass? Yes or no.": "yes", "no", or None when it cannot be read.
-    The first yes-like or no-like phrase wins; "not done" is a no even though it holds "done"."""
+    The first yes-like or no-like phrase wins; "not done" is a no even though it holds "done". Sentences asking the user
+    for an approval are left out first."""
+    text = answer_only(text or "")
     if not text:
         return None
     yes, no = YES.search(text), NO.search(text)

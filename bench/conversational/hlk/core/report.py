@@ -196,7 +196,8 @@ def analyse(rows: list) -> dict:
         per_arm[a] = {
             "n": len(ok), "pass2": stats.pass_k(runs[a]), "flips": stats.flips(runs[a]),
             "false_done": (sum(r.get("claim") == "yes" for r in failed), len(failed)),
-            "false_not_done": (sum(r.get("claim") == "no" for r in passed), len(passed)),
+            # A "no" is false only where the task can be done: on an impossible item it is the right answer.
+            "false_not_done": (sum(r.get("claim") == "no" and r.get("expect_done", True) for r in passed), len(passed)),
             "no_claim": sum(r.get("claim") is None for r in ok),
             "clar": sum(r.get("clarifications", 0) for r in ok), "corr": sum(r.get("correctives", 0) for r in ok),
             "time_median": statistics.median(times) if times else None,

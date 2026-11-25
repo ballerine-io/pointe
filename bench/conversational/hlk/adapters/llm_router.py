@@ -19,7 +19,7 @@ PROMPT = (HERE / "llm_router_prompt.txt").read_text()
 
 def default_brain(pointe: Path, present: set) -> str:
     """vendor:model of the brain role when no setup is chosen: the first vendor in Pointe's BRAIN_ORDER whose key exists."""
-    sys.path.insert(0, str(pointe))
+    sys.path[:0] = [str(pointe / "pointe"), str(pointe)]  # 0.8: the daemon's modules live in pointe/
     import vendors
     for choice in vendors.BRAIN_ORDER:
         if choice.split(":")[0] in present:

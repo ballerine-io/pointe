@@ -366,10 +366,26 @@ def kill_tree(pid_root: Path) -> None:
             pass
 
 
+def slot_of(run_id: str, item: str, arm: str, run_index: int) -> str:
+    """The item's folder name. Opaque: the agent works inside it and reads its path aloud, so a name like
+    "impossible-as-stated-2-pointe-0" told every arm which items were traps (fixed 2026-11-25; earlier runs leaked it)."""
+    return "s" + hashlib.sha256(f"{run_id}/{item}/{arm}/{run_index}".encode()).hexdigest()[:12]
+
+
+def task_delivered(log, events: list) -> bool:
+    """The agent received a user prompt between the first scripted turn and the final question: an item whose task never
+    reached the agent cannot pass, however its repository and answer look."""
+    turns = [t for t, kind, *_ in log.actions if kind == "turn"]
+    if not turns:
+        return False
+    end = log.final_at or float("inf")
+    return any(e.kind == "delivered" and turns[0] - 1 <= e.t < end - 0.5 for e in events)
+
+
 async def run_job(job: Job, ctx: dict, port: int) -> dict:
     inst = job.inst
     run_id = ctx["run_id"]
-    slot_name = f"{inst.id}-{job.arm}-{job.run_index}"
+    slot_name = slot_of(run_id, inst.id, job.arm, job.run_index)
     slot = Path(f"/tmp/pccb/{run_id}/{slot_name}")
     stage = Path(f"/tmp/pccb-keys/{run_id}/{slot_name}")
     shutil.rmtree(slot, ignore_errors=True)
@@ -386,7 +402,7 @@ async def run_job(job: Job, ctx: dict, port: int) -> dict:
     env = RunEnv(run_id, slot, stage, ctx["api_key"], port, ctx["pointe"], ctx["keys"])
     adapter = make_adapter(job.arm, port, ctx["brain"], ctx["soniox_model"], inst)
     row = {"run_id": run_id, "time": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "benchmark": "hlk", "item_version": VERSION,
-           "kind": job.kind, "item": inst.id if job.kind != "unpublished" else f"{inst.family}-unpublished", "family": inst.family, "seed": inst.seed if job.kind != "unpublished" else None,
+           "kind": job.kind, "item": inst.id if job.kind != "unpublished" else f"{inst.family}-unpublished", "family": inst.family, "expect_done": inst.expect_done, "seed": inst.seed if job.kind != "unpublished" else None,
            "group": inst.group, "adapter": job.arm, "run_index": job.run_index, "voice": job.voice if adapter.kind == "spoken" else None,
            "noise": (inst.noise or next((t.noise for t in inst.turns if t.noise), None)) if adapter.kind == "spoken" else None,
            "agent_model": AGENT_MODEL, "permission_mode": PERMISSION_MODE, "claude_code_version": ctx["claude_version"],
@@ -415,6 +431,9 @@ async def run_job(job: Job, ctx: dict, port: int) -> dict:
         events = arm.events
         said = log.answer_text
         result = score.check(inst, repos, said, stage)
+        result["task_delivered"] = task_delivered(log, events)
+        if result["success"] and not result["task_delivered"]:
+            result.update(success=False, reason="the task never reached the agent")
         tool_inputs = [t for a in adapter.agents.values() for t in a.tool_inputs()]
         allowed = (str(ctx["pointe"]),) if job.arm == "pointe" else ()
         out_of_tree = audit.outside(tool_inputs, str(slot), allowed)

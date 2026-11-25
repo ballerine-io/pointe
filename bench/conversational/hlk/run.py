@@ -91,7 +91,7 @@ def ctx_for(args, run_id: str, out: Path) -> dict:
                                  ("openai", "openai-api-key"), ("soniox", "soniox-api-key"),
                                  ("elevenlabs", "elevenlabs-api-key")) if runner.keychain(item)}
     from adapters.llm_router import default_brain
-    sys.path.insert(0, str(pointe))
+    sys.path[:0] = [str(pointe / "pointe"), str(pointe)]  # 0.8: the daemon's modules live in pointe/
     import vendors
     return {"run_id": run_id, "out": out, "api_key": api_key, "keys": keys, "pointe": pointe,
             "brain": default_brain(pointe, present), "soniox_model": vendors.SONIOX_RT_MODEL,
@@ -208,6 +208,10 @@ def cmd_freeze(args) -> int:
               "claude_code_version": runner.claude_version(), "agent_model": runner.AGENT_MODEL,
               "instances_sha256": hashlib.sha256("".join(i.digest() for i in hlk.public()).encode()).hexdigest(),
               "frozen_at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
+    if FROZEN.exists():  # the earlier freezes stay listed: report still reads their runs, and a reader sees each one
+        old = json.loads(FROZEN.read_text())
+        frozen["earlier"] = old.pop("earlier", []) + [{k: old[k] for k in ("frozen_at", "pointe_commit") if k in old}
+                                                     | {"why": old.get("rerun", "the freeze before this one")}]
     FROZEN.write_text(json.dumps(frozen, indent=1, sort_keys=True) + "\n")
     print(json.dumps(frozen, indent=1))
     return 0
@@ -222,10 +226,9 @@ def cmd_faults(args) -> int:
     slots, reasons = [], {}
     for line in (out / "rows.jsonl").read_text().splitlines():
         r = json.loads(line)
-        slot_name = f"{r['item']}-{r['adapter']}-{r['run_index']}"
+        slot_name = runner.slot_of(run_id, r["item"], r["adapter"], r["run_index"])
         disk = Path(f"/tmp/pccb/{run_id}")
-        found = [p for p in disk.glob(f"*-{r['adapter']}-{r['run_index']}") if p.name == slot_name or
-                 (r["kind"] == "unpublished" and p.name.startswith(r["family"] + "-") and not p.name[len(r["family"]) + 1:].split("-")[0] in ("0", "1", "2"))]
+        found = [p for p in [disk / slot_name] if p.exists()]
         if not found:
             continue
         ended = datetime.strptime(r["time"], "%Y-%m-%dT%H:%M:%S%z").timestamp() + (r.get("wall_secs") or 0)
