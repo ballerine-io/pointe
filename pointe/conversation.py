@@ -214,6 +214,10 @@ def _cut_sentence(sentence: str, words: int) -> str:
     return kept.rstrip(" ,;:—–-") + "."
 
 
+DEPENDENT_QUESTION_WORDS = 4  # "Should it?", "Want me to?": a question this short says nothing without its sentence
+_LEANS_BACK = re.compile(r"\b(?:it|that|this|them|they|to|so|I)\W*$", re.I)  # "Want an example?" stands alone
+
+
 def trim(said: str, limit: Limit | None) -> str:
     """The reply cut to its limit, in code: the first sentences that fit, the closing question kept (it is the decision
     asked of the user), and a short line that there is more. What fits is returned as it is."""
@@ -237,6 +241,9 @@ def trim(said: str, limit: Limit | None) -> str:
     if not kept and sentences:
         kept = [_cut_sentence(sentences[0], room_words)]
     dropped = offered or len(kept) < len(sentences) or (kept and kept[0] != sentences[0])
+    if closing and len(kept) < len(sentences) and count_words(closing) <= DEPENDENT_QUESTION_WORDS \
+            and _LEANS_BACK.search(closing):
+        closing = None  # "Should it?" leans on the sentence before it, and that sentence was cut
     out = " ".join(kept + ([closing] if closing else []))
     return f"{out} {more}" if dropped and not closing else out
 
