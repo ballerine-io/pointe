@@ -296,6 +296,27 @@ def test_the_button_sets_the_calls_choice_and_tells_the_device(d):
     assert client.post("/voice/reading", json={"on": "yes"}).status_code == 400
 
 
+def test_an_unmute_while_the_mute_before_it_still_cuts_the_audio_leaves_the_call_and_the_device_unmuted(d):
+    """The mute waits for the mouth to stop before it tells the device; an unmute that lands meanwhile tells it first.
+    The device must hear the last choice, not the mute that finished telling last."""
+    sock = _call(d)
+
+    async def run():
+        cutting = asyncio.Event()
+
+        class SlowGate:
+            async def hush(self):
+                await cutting.wait()
+        d.state.mouth_gate = SlowGate()
+        muting = asyncio.create_task(d._set_mute(True, "button"))
+        await asyncio.sleep(0)  # the mute is cutting the audio
+        await d._set_mute(False, "button")
+        cutting.set()
+        await muting
+    asyncio.run(run())
+    assert d.state.mute is False and sock.sent[-1] == {"type": "reading", "on": False}, sock.sent
+
+
 def test_with_no_call_the_device_keeps_its_choice_alone(d):
     d.state.conn = None
     reply = client_for(d).post("/voice/reading", json={"on": True}).json()

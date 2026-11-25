@@ -11658,9 +11658,9 @@ async def _set_mute(on: bool, how: str) -> None:
             state.wrote_at = time.time()  # cut mid-sentence: the rest of what it was saying is on the screen
         await state.mouth_gate.hush()
     sock = state.call_socket
-    if sock is not None:
+    if sock is not None:  # the choice now, not this one: another may have landed while the mouth was being cut
         with contextlib.suppress(Exception):
-            await sock.send_text(json.dumps({"type": "reading", "on": on}))
+            await sock.send_text(json.dumps({"type": "reading", "on": state.mute}))
 
 
 async def _mute_by_voice(heard: str, on: bool) -> None:

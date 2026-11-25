@@ -40,17 +40,24 @@
   }
   const muteWriting = s => { const m = muteNow(s); return m.on && !m.held && m.writing; };
   function muteRemote(on) { muteStore(on); refresh(); }  // said by voice on this call: kept for the next one
+  // One request at a time, in the order of the taps: sent at once, a mute and a quick unmute could reach the Mac in
+  // either order and leave the call muted. The last tap is the last the Mac hears.
+  let muteSending = Promise.resolve();
   async function muteSet(on) {
     muteStore(on);
     // Muted mid-sentence: what this browser still holds to play stops now, before the Mac's own cut arrives.
     if (on && call.player && !(status && status.reading && status.reading.held)) call.player.port.postMessage('flush');
     if (status && status.connected && status.reading) status.reading.on = on;  // shown at once; the next poll confirms
     muteFollow(status); showState();
-    try {
-      const r = await fetch('/voice/reading', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
-      if (!r.ok) throw new Error(String(r.status));
-    } catch (e) { sayProblem(MUTE_COPY.failed); }
-    refresh();
+    const send = muteSending.then(async () => {
+      try {
+        const r = await fetch('/voice/reading', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
+        if (!r.ok) throw new Error(String(r.status));
+      } catch (e) { sayProblem(MUTE_COPY.failed); }
+    });
+    muteSending = send;
+    await send;
+    if (muteSending === send) refresh();  // a tap still queued after this one would only be shown undone, then redone
   }
   function muteToggle() { muteSet(!muteNow(status).on); }
   function muteFollow(s) {

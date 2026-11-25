@@ -139,6 +139,33 @@ def test_while_pointe_speaks_the_status_says_speaking_and_the_mute_button_sits_b
     assert posts == [{"on": True}, {"on": False}]
 
 
+# The page's first POST to /voice/reading leaves 0.8 s late: sent at once, the unmute after it reaches the Mac first.
+SLOW_FIRST = """(() => { const real = window.fetch; let n = 0;
+  window.fetch = (u, o) => String(u).includes('/voice/reading') && n++ === 0
+    ? new Promise(r => setTimeout(r, 800)).then(() => real(u, o)) : real(u, o); return true; })()"""
+
+
+def test_a_mute_and_an_unmute_tapped_quickly_end_unmuted_whatever_order_the_mac_hears_them_in():
+    """Mute, then unmute before the first request is answered: the last tap wins, on the page and on the Mac. Sent at
+    once, the two requests could reach the Mac in either order, and the call ended muted after the person unmuted it."""
+    async def run():
+        stub, browser, page = await _page(_speaking_status())
+        try:
+            await _on_a_call(page)
+            await _until(page, f"(() => {{ const g = {BTN}; return g.state === 'Speaking…' && g; }})()")
+            await page.eval(SLOW_FIRST)
+            await page.eval("document.getElementById('mutebtn').click()")
+            await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'true' && g; }})()")
+            await page.eval("document.getElementById('mutebtn').click()")
+            await asyncio.sleep(2.0)  # both answered, and the page has polled the Mac since
+            return await page.eval(BTN), stub.status["reading"]["on"], _posts(stub, "/voice/reading")
+        finally:
+            await _close(stub, browser)
+    shown, on_the_mac, posts = asyncio.run(run())
+    assert posts == [{"on": True}, {"on": False}], posts
+    assert on_the_mac is False and shown["pressed"] == "false" and shown["stored"] == "0", (on_the_mac, shown)
+
+
 def test_muted_the_status_says_writing_where_pointe_would_have_spoken():
     async def run():
         stub, browser, page = await _page(_writing_status())
