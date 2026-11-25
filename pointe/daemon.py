@@ -1924,7 +1924,9 @@ class BrainFront(FrameProcessor):
 
     def _watch(self, text: str) -> None:
         """The user's own words were taken as a turn: it must not end in silence (_no_silent_turn)."""
-        if SILENT_TURN_SECS and not (ack_only(text) or backchannel(text)):
+        # Not after an acknowledgement, and not after "stop" or "enough": silence is the answer they asked for.
+        if SILENT_TURN_SECS and not (ack_only(text) or backchannel(text) or dismiss_intent(text)
+                                     or stop_intent(text) == "stop"):
             self.create_task(self._no_silent_turn(state.last_user_speech_at), f"reply-watch-{time.time()}")
 
     async def _no_silent_turn(self, asked_at: float) -> None:
@@ -1990,6 +1992,7 @@ class BrainFront(FrameProcessor):
         elif isinstance(frame, InputTextRawFrame) and direction == FrameDirection.DOWNSTREAM:
             if not frame.text.startswith("["):  # the user's words, not the feed: what was about to be said is stale
                 self.brain.interrupt()
+                self.brain.user_spoke()
                 if state.utterance_spent:  # it answered a permission; [permission answered] gets the one reply
                     self.brain.append(frame.text)
                     return

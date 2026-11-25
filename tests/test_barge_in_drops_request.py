@@ -116,3 +116,27 @@ def test_a_send_made_outside_a_turn_is_never_taken_for_the_turn_talked_over(monk
     b._run_turn = (0, 0)
     b.interrupt()
     assert asyncio.run(b.abandoned()) is False
+
+
+def test_words_the_daemon_answers_itself_still_drop_the_send(monkeypatch):
+    """Measured on a recorded "Stop." over a rundown: the stop was answered by the daemon, no turn of the model's began,
+    and the send of the turn it cut went out four seconds later as if nobody had spoken."""
+    delivered = []
+
+    async def tool(params):
+        await asyncio.sleep(0.2)
+        if not await b.abandoned(wait=2.0):
+            delivered.append(params.arguments["message"])
+        await params.result_callback({"sent_to": "billing"})
+
+    b, said = _brain(monkeypatch, [_send("Give a full rundown.")], tool)
+
+    async def call():
+        first = asyncio.ensure_future(b.turn("Give me a full rundown of everything."))
+        await asyncio.sleep(0.05)
+        b.interrupt()  # the barge-in
+        b.user_spoke()  # "Stop.": heard, answered by the daemon, no model turn
+        await first
+
+    asyncio.run(call())
+    assert delivered == []

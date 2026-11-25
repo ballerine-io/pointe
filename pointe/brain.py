@@ -376,6 +376,11 @@ class Brain:
         if self._current:
             self._current.cancel()
 
+    def user_spoke(self) -> None:
+        """The user's own words arrived, whether or not a turn of the model's will answer them ("Stop." is answered by
+        the daemon): a tool of the turn they talked over can tell they said something (abandoned)."""
+        self._user_seq += 1
+
     async def abandoned(self, wait: float | None = None) -> bool:
         """Asked by a tool before it does something that cannot be taken back (a send): did the user talk over the turn
         this tool runs for, and then say something new? A cut with no words after it (a cough, a noise the detector

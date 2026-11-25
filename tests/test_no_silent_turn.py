@@ -120,3 +120,11 @@ def test_a_long_awaited_answer_is_cut_and_said_not_sent_back(d, monkeypatch):  #
     assert len(asked) == 1  # one model step: not sent back to be shortened
     assert len(spoken) == 1 and spoken[0].startswith("Three tests failed")
     assert len(spoken[0].split()) < len(long.split())
+
+
+def test_stop_and_enough_may_end_in_silence(d, monkeypatch):  # noqa: F811
+    for words in ("Stop.", "Enough.", "Okay, stop."):
+        front, spoken, asked, say = _call(d, monkeypatch, [""])
+        asyncio.run(say(words))
+        assert not any(a.startswith("[silent turn]") for a in asked), words
+        assert d.SILENT_TURN_LINE not in spoken
