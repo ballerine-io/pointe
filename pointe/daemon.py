@@ -3152,6 +3152,7 @@ QUICK_ANSWER_CHARS = 700  # a final message this short, answering the user's que
 VERBATIM_WORDS, VERBATIM_SENTENCES = 40, 3  # an answer this short is said in Claude's own words, without the model
 _VERBATIM: dict[str, str] = {}  # a queued short answer -> the line said for it, word for word
 _CODE_NAME = re.compile(r"`([^`\n]{1,80})`")
+_FILE_LINE = re.compile(r"(\b[\w./-]+\.[A-Za-z]{1,5}):\d+(?:[-–:]\d+)?\b")
 _PATH = re.compile(r"(?<![\w/.])(?:[\w.-]+/)+[\w-]+(?:\.[A-Za-z]{1,5})?(?![\w/])|"
                    r"\b[A-Za-z_][\w-]*\.(?:py|ts|tsx|js|jsx|go|rb|rs|json|ya?ml|sql|sh|md|html|css|txt|toml|ipynb)\b")
 
@@ -3170,6 +3171,7 @@ def _verbatim_answer(final: str, asked: str) -> str | None:
             or readout.redact(text) is None):
         return None
     text = _plain_speech(text)
+    text = _FILE_LINE.sub(r"\1", text)  # "load.py:13" is said "load": a line number heard is not a place found
     text = _CODE_NAME.sub(lambda m: _code_said(m.group(1)), text)
     text = _PATH.sub(lambda m: _code_said(m.group(0)), text)
     text = re.sub(r"\s+", " ", spoken_code(text)).strip()

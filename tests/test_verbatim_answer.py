@@ -75,3 +75,13 @@ def test_on_the_call_the_short_answer_is_said_by_the_daemon_without_a_model_step
         assert brain.messages[-1] == {"role": "assistant", "calls": [], "said": "Three tests failed, all in the refund tests."}
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("final,said", [
+    # Tester round 4's first sample (acc-02, net-01): "I added a doc string to dedupe rows in load colon 13."
+    ("I added a docstring to `dedupe_rows` in `load.py:13`.", "I added a docstring to dedupe rows in load."),
+    ("Fixed the rounding in refunds.py:8-12.", "Fixed the rounding in refunds."),
+    ("The import starts at 10:30 every night.", "The import starts at 10:30 every night."),
+])
+def test_a_line_number_after_a_file_name_is_not_said(d, final, said):  # noqa: F811
+    assert d._verbatim_answer(final, "Add a docstring.") == said
