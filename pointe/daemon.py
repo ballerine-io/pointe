@@ -1745,8 +1745,28 @@ async def _overview(front, said: str, sessions: list[Session]) -> None:
             logger.warning(f"overview: the copy of {x.name} gave no answer ({type(e).__name__})")
             return None
 
-    answers = await asyncio.gather(*(ask(x) for x in sessions))
+    state.overview_asking, state.overview_focus = [x.id for x in sessions], None
+    try:
+        answers = await asyncio.gather(*(ask(x) for x in sessions))
+    finally:
+        state.overview_asking = []
     asked_at = state.overview_at
+    focus = next((i for i, x in enumerate(sessions) if x.id == state.overview_focus), None)
+    if focus is not None and state.conn is not None:
+        state.overview_focus = None
+        x, a = sessions[focus], answers[focus]
+        for y, b in zip(sessions, answers):
+            if b and y is not x:
+                front.brain.add_news(f"[{y.name}, asked where it stands, answered] {mask(b)[:600]}")
+        if not a:
+            await _say_fixed(f"{_spoken_names(x.name)} didn't answer just now.")
+            return
+        await state.conn.injector.inject(
+            f"[overview narrowed: the user asked about {x.name} alone, and it has just answered for itself, below. Tell "
+            f"the user in {'Hebrew' if hebrew else 'English'}, in at most 30 words, with the number or name that matters "
+            f"most. Say nothing about joining the voice or reading files, add nothing that is not below, and ask "
+            f"nothing]\n- {x.name}: {mask(a).strip()[:600]}", True)
+        return
     if state.conn is None or (state.last_user_speech_at > asked_at + 0.5 and not backchannel(state.last_utterance)):
         logger.info("overview: the user spoke again before the answers came; they are kept as news, not said")
         for x, a in zip(sessions, answers):
@@ -2881,6 +2901,8 @@ class State:
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
     overview_at: float = 0.0  # when every session was last asked where it stands (_overview)
+    overview_asking: list = field(default_factory=list)  # the sessions an overview waits on, while it waits
+    overview_focus: str | None = None  # "just tell me about quarry" while they answer: only that session is said
     unclear_asked: str | None = None  # the request for which "Is that a yes?" was said (once a request)
     voice_allowed_at: float = 0.0  # when a spoken yes last approved a request: "run it" just after is that yes's tail
     unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
@@ -5810,6 +5832,9 @@ async def _on_user_utterance(text: str, typed: bool = False) -> None:
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
     await _answer_permission(text)
+    if not state.utterance_spent and (one := _narrows_overview(text)) is not None:
+        state.overview_focus, state.utterance_spent = one.id, True  # its own answer is on the way: not from notes now
+        logger.info(f"overview narrowed to {one.name}: {text!r}")
     if not state.utterance_spent and _tail_of_a_yes(text):
         state.utterance_spent = True  # "כן, תריץ" heard as two turns: the second is the first's, and needs no reply
         logger.info(f"the rest of a yes, said as its own turn: {text!r}")
@@ -5822,6 +5847,16 @@ async def _on_user_utterance(text: str, typed: bool = False) -> None:
 YES_TAIL_SECS = 4.0
 _GO_ON = re.compile(r"^\W*(?:(?:ok(?:ay)?|yes|yeah|sure|please)\W+)*(?:go(?: ahead| for it| on)?|run(?: it| them)?|do it|proceed|"
                     r"please|go go|תריץ|תריצי|תעשה|תעשי|סע|קדימה|בבקשה|יאללה)\W*$", re.I)
+
+
+_NARROW = re.compile(r"\b(?:just|only|what about|how about|tell me about|focus on)\b|^\W*\w+\W*$|(?<![֐-׿])(?:רק|מה עם)(?![֐-׿])", re.I)
+
+
+def _narrows_overview(text: str) -> Session | None:
+    """While an overview waits on its sessions: words that ask about one of them alone ("just tell me about quarry")."""
+    asking = [x for x in REGISTRY.sessions.values() if x.id in state.overview_asking]
+    named = named_sessions(text, asking) if asking and _NARROW.search(text or "") else []
+    return named[0] if len(named) == 1 and len(text.split()) <= 10 else None
 
 
 def _tail_of_a_yes(text: str) -> bool:

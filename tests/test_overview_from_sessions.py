@@ -150,3 +150,33 @@ def test_a_backchannel_while_the_sessions_answer_does_not_drop_the_overview(d, m
 
     asyncio.run(run())
     assert bool(fed and fed[-1][0].startswith("[overview:")) is said
+
+
+@pytest.mark.parametrize("words", ["Wait, wait. Just tell me about lantern.", "Only lantern.", "What about lantern?"])
+def test_narrowed_to_one_session_while_they_answer_that_session_is_said(d, monkeypatch, words):  # noqa: F811
+    """bar-01: "Wait, wait. Just tell me about quarry." over "Asking billing, quarry and atlas." kept every answer as
+    news, and the model answered from notes that held only how quarry joined: "It joined Pointe, read its notes file,
+    and replied ready." The words are taken by the overview, which then says that session's own answer alone."""
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    fed = d.state.conn.injector.fed
+    spent = []
+
+    async def answers_after_a_redirect(session, prompt):
+        if session.name == "billing":
+            d.state.utterance_spent = False
+            d.state.last_utterance, d.state.last_user_speech_at = words, d.state.overview_at + 2
+            await d._on_user_utterance(words)
+            spent.append(d.state.utterance_spent)
+        return ANSWERS[session.name]
+
+    monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(answers_after_a_redirect),
+                                                                    "agent": "claude", "label": "Claude Code"})())
+
+    async def run():
+        d.state.last_user_speech_at = time.time() - 1
+        await d._overview(front, "What's going on everywhere?", d._overview_sessions("What's going on everywhere?"))
+
+    asyncio.run(run())
+    assert spent == [True]  # the model does not answer it from notes meanwhile
+    text, respond = fed[-1]
+    assert respond and ANSWERS["lantern"] in text and ANSWERS["billing"] not in text and ANSWERS["harbor"] not in text
