@@ -95,3 +95,41 @@ def test_the_result_is_said_in_hebrew_after_a_hebrew_answer(d, monkeypatch):  # 
     asyncio.run(d.on_user_utterance("לא."))
     assert verdicts(posts) == [{"request_id": "p1", "behavior": "deny"}]
     assert said == ["נדחה."]
+
+
+def test_a_request_right_after_the_users_send_is_read_after_a_breath_not_the_quiet_gap(d, monkeypatch):  # noqa: F811
+    """Measured: "Sent to billing." ended, the request was already there, and its read-out came five seconds later: the
+    quiet gap that news waits for. The user is waiting for this one."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _unread(d, active)
+    now = time.time()
+    d.state.floor.bot_stopped_at = d.state.floor.said_at = now - 1.0  # "Sent to billing." ended a second ago
+    d.state.floor.user_turn_at = now - 3.0
+    d.state.user_started_at, d.state.user_stopped_at, d.state.user_heard_at = now - 4.0, now - 3.0, now - 3.0
+    monkeypatch.setattr(d, "online", lambda s: True)
+    monkeypatch.setattr(d.flow, "QUIET_GAP_SECS", 5.0)  # the fixture's floor has no waits: this test is about one
+
+    active.last_delegation_at = now - 2.0  # the user's own send, two seconds ago
+    asyncio.run(asyncio.wait_for(d._read_out_when_quiet(active, "p1"), 1.0))
+    assert len(said) == 1 and said[0].endswith("Should it?")
+
+
+def test_a_request_nobody_just_asked_for_still_waits_for_a_gap(d, monkeypatch):  # noqa: F811
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _unread(d, active)
+    now = time.time()
+    d.state.floor.bot_stopped_at = d.state.floor.said_at = now - 1.0
+    d.state.floor.user_turn_at = now - 3.0
+    d.state.user_started_at, d.state.user_stopped_at, d.state.user_heard_at = now - 4.0, now - 3.0, now - 3.0
+    monkeypatch.setattr(d, "online", lambda s: True)
+    monkeypatch.setattr(d.flow, "QUIET_GAP_SECS", 5.0)  # the fixture's floor has no waits: this test is about one
+    active.last_delegation_at = now - 600
+
+    async def run():
+        try:
+            await asyncio.wait_for(d._read_out_when_quiet(active, "p1"), 0.6)
+        except asyncio.TimeoutError:
+            pass
+
+    asyncio.run(run())
+    assert said == []

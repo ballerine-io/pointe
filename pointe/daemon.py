@@ -434,6 +434,7 @@ SWITCH_WORDS_SECS = 10.0  # a switch asked this recently still counts when anoth
 # How long a final transcript waits for silence before it is the turn: turns.LEVELS, by the "turns.patience" setting.
 HEARING_SECS = 3.0  # live words older than this are stale: the user stopped
 VAD_STOP_SECS = 0.2  # the voice detector says "stopped" this long after the sound ended (pipecat's default, set in _call_ears)
+READ_OUT_AWAITED_SECS = 60.0  # a request this soon after the user's own send to that session is one they wait for
 REPLY_RESUME_SECS = 2.5  # a cut with no words this long after it was a noise: the reply goes on. 0: never resumed
 REPLY_RESUME_MIN_WORDS = 4  # fewer words than this left unsaid: not worth coming back for
 SILENT_TURN_SECS = 2.0  # Pointe idle this long with nothing said to the user's last words: the turn was silent. 0: off
@@ -8533,8 +8534,12 @@ async def _read_out_when_quiet(session: Session, request_id: str) -> None:
                 and not session.permission_read_at:  # read already, for a yes that came first: once is enough
             # (a mode that does not read out asks again at its end)
             urgent = _permission_urgent(session)
-            if _floor_blocked(urgent=urgent) is None:
-                await _read_out(session, urgent=urgent and _floor_blocked() is not None)
+            # The request a session raises right after the user sent it something is what they are waiting for: it
+            # follows Pointe's "Sent to billing." after a breath, not after the quiet gap news waits for (5 s of
+            # silence before every approval, measured).
+            awaited = time.time() - (session.last_delegation_at or 0.0) < READ_OUT_AWAITED_SECS
+            if _floor_blocked(urgent=urgent, awaited=awaited) is None:
+                await _read_out(session, urgent=urgent and _floor_blocked(awaited=awaited) is not None)
                 return
             await asyncio.sleep(UPDATE_POLL_SECS)
     finally:
