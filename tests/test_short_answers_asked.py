@@ -33,3 +33,10 @@ def test_the_short_answer_asked_for_is_said_as_a_person_says_it():
     answer."""
     out = voice_message("How many tests failed?")
     assert "the answer first" in out and "not where you read it" in out and "a caveat only if it changes the answer" in out
+
+
+def test_a_question_the_model_relayed_with_a_note_after_it_still_asks_for_a_short_answer():
+    """orc-03 and net-01 in tester round 4: "The owner asks: what's the plan for speeding up quarry? Please answer with
+    the current plan." ends in a period, so it went without the hint, and the plan came last and was cut."""
+    out = voice_message("The owner asks: what's the plan for the slow import? Please answer from NOTES.md, briefly.")
+    assert "the answer first" in out

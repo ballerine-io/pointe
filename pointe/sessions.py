@@ -624,7 +624,8 @@ _DETAIL_ASKED = re.compile(r"\b(?:explain|in detail|details?|walk me through|ste
 def voice_message(text: str) -> str:
     """Identical lines in quick succession are dropped by Claude Code; a tag keeps repeats distinct. A short question
     asks for a short answer: it is read aloud, and a long one is cut or reworded before the user hears it."""
-    short = text.rstrip().endswith("?") and len(text) <= 200 and not _DETAIL_ASKED.search(text)
+    # A question, also one the model relayed with a note after it ("…? Please answer from NOTES.md.")
+    short = "?" in text and len(text) <= 300 and not _DETAIL_ASKED.search(text)
     hint = ("; the answer is read aloud: one or two short sentences, the answer first, not where you read it, and a "
             "caveat only if it changes the answer") if short else ""
     return f"{VOICE_PREFIX} #{secrets.token_hex(2)}{hint}] {text}"
