@@ -163,6 +163,23 @@ _NAME_CUES = (re.compile(r"\b(?:function|method|class|constant|variable|helper)\
                          r"(?!(?:function|method|class|file)\b)((?:[a-z][a-z0-9]*\s+){0,2}[a-z][a-z0-9]*)\b"))
 
 
+# The recognizer's spellings of words of the trade (tester round 5: "dark string", "unitist", "Uniris", "UNIREST").
+_TRADE_SPELLINGS = {"docstring": r"\b(?:dark|doc|dock) ?strings?\b", "unittest": r"\b(?:uni(?:tist|ris|rest|t ?test)|unit ?tist)\b"}
+
+
+def trade_words(message: str, known: set[str]) -> str:
+    """The message with a recognizer's spelling of a word of the trade written as the trade writes it ("dark string" is
+    docstring), unless the session's own code uses the heard word (`known`, lower case)."""
+    for word, pattern in _TRADE_SPELLINGS.items():
+        def fix(m: re.Match, word: str = word) -> str:
+            heard = m.group(0)
+            if heard.lower().replace(" ", "") in known or heard.lower() in known:
+                return heard
+            return word + ("s" if heard.lower().endswith("strings") else "")
+        message = re.sub(pattern, fix, message, flags=re.I)
+    return message
+
+
 def repo_names(message: str, names: dict[str, set[str]]) -> str:
     """The message with each code name it spells otherwise ("loadBatches", "the function dedupe rows") written as the
     code has it, when exactly one name in the code matches it. Names the code does not have are left alone."""

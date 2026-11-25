@@ -7035,6 +7035,7 @@ async def _send_now(message: str) -> dict:
     code = relay.code_names(targets[0].cwd) if not targets[0].machine else {}
     message = relay.repo_names(message, code)
     known = _vocabulary_for(targets[0]) | {n for names in code.values() for n in names}
+    message = relay.trade_words(message, {k.lower() for k in known})  # "dark string" is a docstring (tester round 5)
     message = relay.as_heard(relay.keep_lines(message, said), said, known)
     if await _abandoned(message):  # again, at the last moment: the checks above take a second or two, time to cut in
         return dict(ABANDONED)
