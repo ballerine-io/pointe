@@ -73,7 +73,7 @@ def rerun_jobs(run_id: str, insts: list) -> list:
     jobs = []
     for line in (out / "rows.jsonl").read_text().splitlines():
         r = json.loads(line)
-        slot = f"{r['item']}-{r['adapter']}-{r['run_index']}"
+        slot = runner.slot_of(run_id, r["item"], r["adapter"], r["run_index"])
         if r.get("harness_fault") or slot in faults:
             inst = by_id[r["item"]]
             jobs.append(runner.Job(inst, r["adapter"], r["run_index"], r["kind"],
@@ -255,7 +255,7 @@ def cmd_finals(args) -> int:
         if r["kind"] != "paid":
             continue
         inst = insts[r["item"]]
-        slot = Path(f"/tmp/pccb/{run_id}/{r['item']}-{r['adapter']}-{r['run_index']}")
+        slot = Path(f"/tmp/pccb/{run_id}") / runner.slot_of(run_id, r["item"], r["adapter"], r["run_index"])
         files = {}
         for name, tree in inst.repos.items():
             repo, changed = slot / name, {}
