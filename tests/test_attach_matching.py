@@ -117,8 +117,9 @@ def test_yesterdays_session_about_the_billing_migration_is_the_closed_one():
     assert p.kind == "one" and p.items[0].name == "billing-migration" and p.items[0].state == "recent"
 
 
-def test_a_connect_offers_a_closed_one_only_when_no_open_one_fits():
-    p = _pick("connect to the session about invoices")
+def test_a_connect_offers_open_sessions_only_and_a_closed_one_when_asked_back():
+    assert _pick("connect to the session about invoices").kind == "none"
+    p = _pick("reopen the session about invoices")
     assert p.kind == "one" and p.items[0].name == "billing-migration"
     p = _pick("connect to the billing session")
     assert p.items[0].name == "billing" and p.items[0].state == "open"

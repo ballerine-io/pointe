@@ -597,6 +597,25 @@ class AttachAsk:
                 f"when={self.when}, about={self.about})")
 
 
+# "Tell Claude to ...", "ask Codex ...": the agent is spoken to, not asked for ("add speed to the top bar, and tell Claude").
+_ADDRESSEE = re.compile(rf"\b(?:tell|ask|have|get|let)\s+(?:the\s+)?(?:{_ANY_HARNESS})(?![\w-])")
+# A verb right after these is quoted, not said: "a button saying add session".
+_QUOTING = r"(?:saying|says|said|reads|labell?ed|called|titled|named|button|option|shows|showing)"
+
+
+def _asks_for_a_session(lowered: str) -> bool:
+    """A join or reopen verb, said and not quoted, with a session word or an agent's name after it in the same clause:
+    "add speed to the top bar of Pointe, and tell Claude ..." asks for no session."""
+    for clause in re.split(r"[,;.!?]", lowered):
+        for verb in (_REOPEN, _OPEN_PAST, _JOIN):
+            for m in verb.finditer(clause):
+                after = clause[m.start():]
+                if not re.search(rf"\b{_QUOTING}\W*$", clause[:m.start()]) and (
+                        re.search(rf"\b{_SESSION_WORD}\b", after) or re.search(rf"(?<![\w-])(?:{_ANY_HARNESS})(?![\w-])", after)):
+                    return True
+    return False
+
+
 def attach_request(text: str, machines: list[str] = (), here: str = "") -> AttachAsk | None:
     """Sessions the user asked to join or reopen, from their own words; None if they did not ask.
 
@@ -607,11 +626,9 @@ def attach_request(text: str, machines: list[str] = (), here: str = "") -> Attac
     """
     from sessions import _hears, _name_words
 
-    lowered = _WAKE.sub("", _lower(strip_tasks(text))).strip()
+    lowered = _ADDRESSEE.sub(" ", _WAKE.sub("", _lower(strip_tasks(text)))).strip()
     reopen = bool(_REOPEN.search(lowered) or _OPEN_PAST.search(lowered))
-    if not reopen and not _JOIN.search(lowered):
-        return None
-    if not re.search(rf"\b{_SESSION_WORD}\b", lowered) and not re.search(rf"(?<![\w-])(?:{_ANY_HARNESS})(?![\w-])", lowered):
+    if not _asks_for_a_session(lowered):
         return None
     if re.search(r"\bnew\s+(?:\S+\s+){0,2}?(?:session|agent|thread)\b", lowered) and not reopen:
         return None  # "add a new session in shop" is a start (start_request)

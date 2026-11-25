@@ -98,12 +98,15 @@ snapshot. Reopen on a node is refused, as Start is: "Pointe reopens sessions onl
 sessions; `reopen`, `resume`, `bring back`, `pick up` for closed ones), "all", a harness ("Claude Code", "Codex",
 "OpenCode"), a machine ("on devbox"), a time ("yesterday", "today", "this morning", "last night", "last week",
 "recent", "latest") and the rest as the description ("about the billing migration"). A wake phrase ("hey Pointe") is
-dropped.
+dropped. The verb must be said, not quoted ("a button saying add session"), with the session word or the agent's name
+after it in the same clause: "add speed to the top bar, and tell Claude ..." asks for no session, since an agent told
+or asked something is spoken to, not asked for.
 
 `matching.pick(found, ask, now)` then works locally:
 
-1. Hard filters: harness, machine, time, state (a "reopen" looks at recent ones; a "connect" at open ones first, and
-   offers a recent one, as a reopen, only when no open one fits).
+1. Hard filters: harness, machine, time, state (a "reopen" looks at recent ones first; a "connect" at open ones only.
+   A closed session is offered only when the words ask for one back: "reopen", "bring back", or a past day such as
+   "the one from yesterday").
 2. Score: each description word against the name and title (3), folder (3), branch (2), first and last request and
    keywords (1), with spoken-name matching as elsewhere (`sessions._hears`).
 3. One clear winner (top score at least twice the next): read back that one. "All": read back the count and the names.

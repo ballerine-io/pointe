@@ -94,6 +94,14 @@ class Pick:
     items: list[Found] = field(default_factory=list)
 
 
+PAST_DAYS = ("yesterday", "last night", "last week")  # "the one from yesterday" asks for a closed session too
+
+
+def asks_back(ask) -> bool:
+    """The words ask for a closed session: "reopen", "bring back", or a day that has passed."""
+    return ask.verb == "reopen" or ask.when in PAST_DAYS
+
+
 def pick(found: list[Found], ask, now: float | None = None) -> Pick:
     """The sessions the user's words (guards.AttachAsk) mean. Sessions that cannot join are never picked."""
     now = time.time() if now is None else now
@@ -103,7 +111,10 @@ def pick(found: list[Found], ask, now: float | None = None) -> Pick:
         opened = [f for f in usable if f.state == "open" and (not ask.about or score(f, ask.about) > 0)]
         return Pick("all", sorted(opened, key=lambda f: -f.when)) if opened else Pick("none")
     preferred = "recent" if ask.verb == "reopen" else "open"
-    for pool in ([f for f in usable if f.state == preferred], [f for f in usable if f.state != preferred]):
+    pools = [[f for f in usable if f.state == preferred], [f for f in usable if f.state != preferred]]
+    if not asks_back(ask):
+        pools = pools[:1]  # "connect to ..." offers open sessions only: a closed one comes back when asked back by name
+    for pool in pools:
         chosen = _pick_in(pool, ask, now)
         if chosen.kind != "none":
             return chosen

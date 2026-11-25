@@ -2649,6 +2649,8 @@ class SonioxEars(FrameProcessor):
             return
         if await _meeting_actions_words(heard):
             return
+        if not _dumping() and state.meeting is None and await _summoned(heard):
+            return
         if await _attach_words(heard):
             return
         if await _asked_for_held(heard):
@@ -6547,7 +6549,8 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
     Session mode: the active session, always. Orchestrator mode: every session for "tell everyone"; the
     sessions the user named (the classifier breaks a tie among them, else it is "ambiguous"); nothing if
     they named only a closed session ("closed"); else the session the user is talking with (the thread), unless
-    a classifier says it is about another one, which is asked rather than guessed ("off-thread"); else the one
+    a classifier says it is about another one, which is asked rather than guessed ("off-thread") unless the user's
+    words point at that one by what it works on (_points_to); else the one
     the classifier picks, else the active one.
     """
     if _routing_mode() == "session":
@@ -6585,7 +6588,8 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
         return [], "ambiguous"  # ask which session rather than guess
     thread = _thread()
     if thread is not None and picked is not None and picked is not thread and not (picked.open_questions or picked.needs) \
-            and not _just_mentioned(picked) and not (_RETURNS_TO.search(said) and picked.last_delegation_at > state.connected_at):
+            and not _just_mentioned(picked) and not (_RETURNS_TO.search(said) and picked.last_delegation_at > state.connected_at) \
+            and not _points_to(said, picked, [s for s in sessions if s is not picked]):
         state.off_thread = (thread.name, picked.name)
         return [], "off-thread"
     if picked is not None:
@@ -6599,6 +6603,40 @@ def _just_mentioned(session: Session) -> bool:
     """The assistant just talked about this session, so a follow-up about it is not off the topic."""
     asked = next((text for who, text in reversed(state.conversation[:-1]) if who == "assistant"), "")
     return bool(named_sessions(asked[-400:], [session]))
+
+
+def _notes_names(session: Session) -> set[str]:
+    """The names its notes give what it works on: capitalised words inside the goal's sentences ("Launch Pointe, ...",
+    "the Northwind package"). A session's name often says none of them: two sessions in one folder, titled by their
+    first request."""
+    goal = str((_brief_of(session) or {}).get("goal") or "")
+    return {w.lower() for sentence in re.split(r"(?<=[.!?])\s+", goal)
+            for w in re.findall(r"[^\W_]+", sentence)[1:] if w[0].isupper() and len(w) >= 3}
+
+
+def _points_to(said: str, session: Session, others: list[Session]) -> bool:
+    """The user's words point at this session by a name its notes give what it works on, one no other session's notes
+    or name carry: "In Pointe." for the session launching Pointe. The wake word said as a call ("Pointe, add ...")
+    points at nothing; said alone, it is the word itself."""
+    to = addressed.address(said)
+    if to is not None and to.who == "pointe":
+        said = to.rest if to.rest.strip(" .,!?") else "pointe"
+    taken = set().union(*(_notes_names(o) | set(re.findall(r"[^\W_]+", o.name.lower())) for o in others))
+    return bool(set(re.findall(r"[^\W_]+", said.lower())) & (_notes_names(session) - taken))
+
+
+def _which_answer(said: str) -> Session | None:
+    """The session these words pick in answer to an off-thread "which session is it for?": of the two it asked about
+    (the thread, and the session the request sounded like), the one the words name or point at, when just one."""
+    pending = state.pending_route
+    if not pending or time.time() - pending[0] >= PENDING_ROUTE_SECS or not pending[1] or not state.off_thread:
+        return None
+    everyone = list(REGISTRY.sessions.values())
+    picked = REGISTRY.sessions.get(pending[1])
+    thread = next((s for s in everyone if s.name == state.off_thread[0]), None)
+    hits = [s for s in (picked, thread) if s is not None
+            and (named_sessions(said, [s]) or _points_to(said, s, [o for o in everyone if o is not s]))]
+    return hits[0] if len(hits) == 1 else None
 
 
 def _thread() -> Session | None:
@@ -6943,9 +6981,12 @@ async def _send_now(message: str) -> dict:
     confirmed = (REGISTRY.sessions.get(state.pending_route[1]) if live_pending and consent(state.last_utterance) == "allow"
                  and len(state.last_utterance.split()) <= 2 and content_words(message) & content_words(state.pending_route[2]) else None)
     # Naming a session answers "which one?" for the request that was waiting, and only for that request.
-    answering = confirmed or (live_pending and name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
-                              and _mostly_same(message, state.pending_route[2])
-                              and not _brings_new_words(message, state.pending_route[2]))
+    same_request = bool(live_pending and _mostly_same(message, state.pending_route[2])
+                        and not _brings_new_words(message, state.pending_route[2]))
+    # "Pointe." to "which is it for, the Pointe one or the vendor review?": the words alone never carry the request, so
+    # the relevance check would refuse the answer; they pick one of the two it asked about.
+    answered = None if confirmed or not same_request else _which_answer(state.last_utterance)
+    answering = confirmed or answered or (same_request and name_groups(state.last_utterance, list(REGISTRY.sessions.values())))
     if _routing_mode() == "session" and (pinned := _pinned_refusal(state.last_utterance)):
         _record(message, [], "blocked: session mode, another session named")
         return {"error": pinned}  # before the relevance check: the true reason, not a wrong one
@@ -7017,7 +7058,8 @@ async def _send_now(message: str) -> dict:
     if named and named.on_hold and not named_sessions(state.last_utterance, [named]):
         _record(message, [], "blocked: that session is on hold")
         return {"error": f"Not sent: the user said to hold {named.name}. Say so, and ask if they want to lift that."}
-    targets, how = ([confirmed], "confirmed") if confirmed else ([named], "brain") if named else await _route(message, said)
+    targets, how = ([confirmed], "confirmed") if confirmed else ([answered], "answered") if answered \
+        else ([named], "brain") if named else await _route(message, said)
     if unnamed and how != "brain" and any(named_sessions(state.last_utterance, [t]) for t in targets):
         targets, how = [], "unnamed"  # the session another sentence names is the one place this part surely is not for
     if not targets:
@@ -8043,6 +8085,23 @@ def _added_line(result: dict, items: list[discovery.Found]) -> str:
                      f"{'its' if len(stay) == 1 else 'their'} terminal.")
     parts += result["problems"]
     return " ".join(parts) or "Nothing was added."
+
+
+async def _summoned(text: str) -> bool:
+    """The wake word alone ("Pointe.", "Point?", "hey Pointe"): the user wants Pointe's ear, and asks nothing yet. The
+    daemon says "Yes?" and listens. The brain does not get the turn, and it is no new request: a send refused earlier
+    is not tried again on it (the brain once re-sent one, refused, on a bare "Point."), and no list is read. Except an
+    answer, heard after the question ended, to a "which session?" one of whose two sessions works on Pointe."""
+    to = addressed.address(text)
+    if to is None or to.who != "pointe" or to.rest.strip(" .,!?"):
+        return False
+    if not _heard_now(text, typed=False).early and _which_answer(text) is not None:
+        return False
+    _remember("user", text)
+    state.last_utterance = text  # its language; never fresh speech for a send
+    logger.info(f"user said: {text!r} (the wake word alone: Yes?)")
+    await _say_exactly("Yes?", "the wake word alone")
+    return True
 
 
 async def _attach_words(text: str) -> bool:
