@@ -24,10 +24,6 @@ from readout import mask
 
 CAP = 400            # entries in the dictionary, and terms sent to the ears (Soniox caps its context near 8k tokens)
 TERMS_CAP = 400
-# Coding words a recognizer writes as plainer ones ("webp" as "web", "docstring" as "dark string", "dedupe" as "the 2"):
-# from the conversation suite's misheard sends, tester round 4.
-TRADE_WORDS = ("docstring", "WebP", "dedupe", "pytest", "unittest", "README", "regex", "async", "enum", "kwargs", "JSON",
-               "YAML", "TypeScript", "SVG", "PNG", "lint", "stdout", "stderr", "refactor", "env var", "linter")
 MAX_LEN = 40
 PER_CORRECTION = 3
 SOFT_PER_SESSION = 12  # names from a session's notes: recognition hints only, never stored
@@ -325,15 +321,13 @@ def soft_name(name) -> str:
     return re.sub(r"\s*[(\[][^)\]]*[)\]]", "", str(name)).strip()
 
 
-def terms_for(book: Dictionary, session_names: list[str], brief_names: dict[str, list[str]], folders: list[str],
-              trade: tuple[str, ...] = ()) -> list[str]:
+def terms_for(book: Dictionary, session_names: list[str], brief_names: dict[str, list[str]], folders: list[str]) -> list[str]:
     """What the ears are told, most important first: the dictionary (most heard first), session names, names from the
-    sessions' notes (soft, a few each), words of the trade, folder names. Consent words and credentials are dropped from
-    every source."""
+    sessions' notes (soft, a few each), folder names. Consent words and credentials are dropped from every source."""
     ordered = [*book.ranked(), *session_names]
     for names in brief_names.values():
         ordered += [soft_name(n) for n in names[:SOFT_PER_SESSION]]
-    ordered += [*trade, *folders]
+    ordered += folders
     out, seen = [], set()
     for term in ordered:
         term = term.strip()

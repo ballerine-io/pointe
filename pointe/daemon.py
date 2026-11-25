@@ -10684,7 +10684,7 @@ def _recognition_terms(listed: dict[str, list[str]] | None = None) -> list[str]:
     names += ["Codex", "OpenCode", "Claude Code"]  # the agents a session can be started with, said by name
     if PREFS.get("microphone") == addressed.MODE:
         names.insert(0, "Pointe")  # the name that opens a turn: the ears should write it as it is spelled
-    return vocabulary.terms_for(DICTIONARY, names, _brief_names(), sorted(folders), trade=vocabulary.TRADE_WORDS)
+    return vocabulary.terms_for(DICTIONARY, names, _brief_names(), sorted(folders))
 
 
 def _opening_context() -> list[dict]:
