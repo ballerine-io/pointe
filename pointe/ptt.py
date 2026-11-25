@@ -84,7 +84,7 @@ class Ptt:
         """True when a setting change ended a press: a press belongs to the setting it was made in, and the clients
         forget theirs on a change, so it would otherwise stay open with no thumb on it."""
         released = self._mode is not None and mode != self._mode and self.release(now, "the microphone setting changed")
-        if self._mode == "always" and mode == "ptt" and not self.open:  # the sentence under way is finished, not cut
+        if self._mode in ("always", "addressed") and mode == "ptt" and not self.open:  # the sentence under way is finished, not cut
             self.closed_at, self.closed_why = now, "switched to push to talk"
             self.until, self.finalize_due = now + TAIL_SECS + LINK_SLACK_SECS, True
         self._mode = mode

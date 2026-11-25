@@ -64,6 +64,7 @@ struct API {
         var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
         var whisper: WhisperStatus?  // whisper mode (Whisper.swift); nil from a Mac without it
         var reading: ReadingStatus?  // mute, the call's (Mute.swift; the wire's name is reading mode's); nil from a Mac without it
+        var addressed: Addressed?    // "Only when I say Pointe" is on (Addressed.swift); nil otherwise, or from an older Mac
         var phase: Phase?            // thinking, or a session working on a request (Thinking.swift); nil when neither, or from an older Mac
         var held: HeldStatus?        // session mode: the other sessions' news, held and not spoken; nil from an older Mac
         var idle_hangup: Bool?      // the Mac's idle timer ended the last call: not redialled
@@ -259,7 +260,7 @@ struct API {
 
     /// The Mac's microphone gate. `open` is the truth the ring shows.
     struct PTTStatus: Decodable, Equatable {
-        let mode: String?        // "always" or "ptt"
+        let mode: String?        // "always", "addressed" or "ptt"
         let open: Bool?
         let closed_why: String?  // "released", "held too long", "no audio", "switched to push to talk"
         let room_heard: Bool?    // a meeting is on: the room reaches the meeting without a press; talking to Pointe still needs one

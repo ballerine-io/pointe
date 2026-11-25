@@ -37,6 +37,7 @@ def page_html() -> str:
         .replace("{{SKIP}}", (ROOT / "pointe" / "ui_skip.html").read_text())
         .replace("{{THINKING}}", (ROOT / "pointe" / "ui_thinking.html").read_text())
         .replace("{{APPROVALS}}", (ROOT / "pointe" / "ui_approvals.html").read_text())
+        .replace("{{ADDRESSED}}", (ROOT / "pointe" / "ui_addressed.html").read_text())
     )
 
 
@@ -254,6 +255,7 @@ class StubMac:
             s["mode"] = body["mode"]
         elif path == "/voice/prefs" and "microphone" in body:
             s["ptt"]["mode"] = body["microphone"]
+            s["addressed"] = {"on": True, "open": False, "dropped": 0} if body["microphone"] == "addressed" else None  # as addressed.status
         elif path == "/voice/polish":
             s["polish"] = bool(body.get("on"))
         elif path == "/voice/new-session":  # as daemon.new_session: a start shows as a row; a tap answers the read-back

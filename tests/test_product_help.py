@@ -83,9 +83,9 @@ def test_the_answer_gives_the_path_on_the_users_own_screen():
     phone = howto.answer("How do I turn off push to talk?", "iphone")
     page = howto.answer("How do I turn off push to talk?", "page")
     assert phone["screen"] == "the iPhone app" and page["screen"] == "the page"
-    assert phone["answers"][0]["where"] == ("the Always on / Hold to talk switch above the mic; "
-                                            "or Settings (••• at the top) → Microphone → Always on / Push to talk")
-    assert page["answers"][0]["where"].startswith("Settings → Microphone → Always on / Push to talk")
+    assert phone["answers"][0]["where"] == ("the Always on / Say “Pointe” / Hold to talk switch above the mic; "
+                                            "or Settings (••• at the top) → Microphone → Always on / Only when I say Pointe / Push to talk")
+    assert page["answers"][0]["where"].startswith("Settings → Microphone → Always on / Only when I say Pointe / Push to talk")
     assert "Sessions panel" in page["settings_are"] and "settings_are" not in phone
     assert "Settings" in gen.inventory()["page"]["side"], "settings_are names a button the page shows"
 
@@ -109,8 +109,8 @@ def test_the_mac_app_gets_its_own_paths_from_the_screens_it_shares_with_the_ipho
     the same Settings, a right-click where the phone has a long press, and no path for what a Mac does not have."""
     mac = howto.answer("How do I turn off push to talk?", "mac")
     assert mac["screen"] == "the Mac app"
-    assert mac["answers"][0]["where"] == ("the Always on / Hold to talk switch above the mic; "
-                                          "or Settings (••• at the top, or ⌘,) → Microphone → Always on / Push to talk")
+    assert mac["answers"][0]["where"] == ("the Always on / Say “Pointe” / Hold to talk switch above the mic; "
+                                          "or Settings (••• at the top, or ⌘,) → Microphone → Always on / Only when I say Pointe / Push to talk")
     rename = howto.answer("How do I rename a session?", "mac")["answers"][0]
     assert rename["where"] == "right-click a session → Rename"
     drive = howto.answer("How do I turn on drive mode?", "mac")["answers"][0]
@@ -309,7 +309,7 @@ def test_a_how_to_question_is_answered_from_the_tool_with_the_iphone_path(d, mon
     asyncio.run(b.turn(asked))
     result = _result(b.messages)
     assert result["screen"] == "the iPhone app"
-    assert result["answers"][0]["where"].startswith("the Always on / Hold to talk switch above the mic")
+    assert result["answers"][0]["where"].startswith("the Always on / Say “Pointe” / Hold to talk switch above the mic")
     assert spoken == ["Use the switch above the mic: Always on."]
     assert sent == []
 

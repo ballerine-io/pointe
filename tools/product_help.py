@@ -352,15 +352,27 @@ class Topic:
 
 
 TOPICS = (
-    Topic("mic-mode", "Microphone: Always on or Push to talk",
+    Topic("mic-mode", "Microphone: Always on, Only when I say Pointe, or Push to talk",
           ("push to talk", "always on", "open mic", "microphone mode", "mic mode", "ptt", "hold to talk mode",
            "turn off push to talk", "turn on push to talk", "לחץ ודבר", "לחיצה לדיבור", "פוש טו טוק", "תמיד פתוח",
            "מיקרופון פתוח", "מצב מיקרופון"),
-          "Always on hears you whenever you are not muted; Push to talk hears you only while you press the mic. It is "
-          "one setting, so the page and the app agree.",
-          iphone=(("switch", "Always on|Hold to talk"), ("menu", "Microphone", "Always on|Push to talk")),
-          page=(("settings", "Microphone", "Microphone", "Always on|Push to talk"), ("switch", "Always on|Hold to talk")),
+          "Always on hears you whenever you are not muted; Only when I say Pointe hears everything and acts only on "
+          "words that say Pointe's name or a session's; Push to talk hears you only while you press the mic. It is one "
+          "setting, so the page and the app agree.",
+          iphone=(("switch", "Always on|Say “Pointe”|Hold to talk"), ("menu", "Microphone", "Always on|Only when I say Pointe|Push to talk")),
+          page=(("settings", "Microphone", "Microphone", "Always on|Only when I say Pointe|Push to talk"), ("switch", "Always on|Say “Pointe”|Hold to talk")),
           doc="push-to-talk.md"),
+    Topic("addressed", "Only when I say Pointe: ignore side talk",
+          ("only when i say pointe", "say pointe", "ignore side talk", "side talk", "stop listening to my phone call",
+           "it hears my phone calls", "it answers when i talk to someone else", "wake word", "say your name", "addressed",
+           "רק כשאני אומר פוינט", "מילת השכמה", "הוא עונה כשאני מדבר עם מישהו אחר", "שיחת טלפון"),
+          "With the microphone set to Only when I say Pointe, a spoken turn is acted on only when it starts with "
+          "Pointe's name or a session's, or ends with \", Pointe\": \"Pointe, what's billing doing\", \"billing, run the "
+          "tests\". Anything else is treated as side talk and dropped: not kept, not sent, never a yes to a request. Say "
+          "\"Pointe\" alone and the next words need no name.",
+          iphone=(("switch", "Say “Pointe”"), ("menu", "Microphone", "Only when I say Pointe")),
+          page=(("settings", "Microphone", "Microphone", "Only when I say Pointe"), ("switch", "Say “Pointe”")),
+          doc="addressed-speech.md"),
     Topic("talk-button", "Talk button: hold or tap",
           ("hold to talk", "tap to talk", "hold or tap", "hold vs tap", "hold and tap", "tap or hold", "tap and hold", "talk button", "tap once", "instead of holding", "tap instead of hold",
            "hold instead of tap", "keep holding", "לחיצה ארוכה", "להחזיק", "הקשה", "ללחוץ פעם אחת"),

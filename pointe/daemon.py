@@ -33,6 +33,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
+import addressed
 import aiohttp
 import alerts
 import approvals
@@ -2122,7 +2123,7 @@ class SonioxEars(FrameProcessor):
                 state.hearing = (state.user_heard_at, part)
                 if state.ptt.collecting:
                     state.ptt.live = part
-            if ECHO.speaking and ECHO.is_barge_in(frame.text, _spoken(frame)):
+            if ECHO.speaking and ECHO.is_barge_in(frame.text, _spoken(frame)) and not _side_talk(frame.text):
                 logger.info(f"barge-in: {frame.text!r}")
                 await self.broadcast_interruption()
             return
@@ -2163,7 +2164,7 @@ class SonioxEars(FrameProcessor):
                     self._judging -= 1
                 if not theirs:
                     return
-                if ECHO.speaking and not backchannel(heard):  # the user's words surfaced only when Soniox finalized them
+                if ECHO.speaking and not backchannel(heard) and not _side_talk(heard):  # the user's words surfaced only when Soniox finalized them
                     logger.info(f"barge-in: {heard!r}")
                     await self.broadcast_interruption()
                 if state.ptt.collecting:  # push to talk: the press is one message, sent when it closes (_send_press)
@@ -2214,6 +2215,8 @@ class SonioxEars(FrameProcessor):
             return
         if not self._voiced and not heard:
             return  # a short sound that ended, and no words: a cough, a knock
+        if _side_talk(heard):
+            return  # "Only when I say Pointe": a voice in the room that is not talking to Pointe does not stop it
         logger.info("barge-in: voice well above the echo")
         await self.broadcast_interruption()
 
@@ -2334,6 +2337,10 @@ class SonioxEars(FrameProcessor):
 
     async def _take_timed(self, heard: str) -> None:
         """A turn from the voice, with the time its words began for the consent rules; a press and typed words have none."""
+        if _addressed_only():  # "Only when I say Pointe": side talk is not a turn
+            heard = await _addressed_words(heard)
+            if heard is None:
+                return
         state.words_began_at, state.words_ended_at, state.final_at = self._began, self._ended, self._final_at
         try:
             await self._take(heard)
@@ -2851,6 +2858,8 @@ class State:
     read_through: int = -1  # the newest of Pointe's turns the owner has read: talk ids up to it are read
     wrote_at: float = 0.0  # when a line was last shown instead of spoken (mute): the status says "Writing…" for a moment
     mouth_gate: object = None  # the call's MuteOut: muting mid-speech flushes the mouth through it
+    addressed_until: float = 0.0  # "Only when I say Pointe": the name was said alone, and words until then need no name
+    unaddressed: int = 0  # side talk dropped since Pointe started (addressed.py): a count, never the words
 
 
 state = State()
@@ -5608,6 +5617,44 @@ async def _tone(up: bool) -> None:
     fade = np.minimum(1, np.minimum(t, t[::-1]) * 60)
     pcm = np.concatenate([np.sin(2 * np.pi * f * t) * fade for f in notes]) * 0.25 * 32767
     await front.push_frame(OutputAudioRawFrame(audio=pcm.astype(np.int16).tobytes(), sample_rate=rate, num_channels=1))
+
+
+def _addressed_only() -> bool:
+    """The microphone is set to "Only when I say Pointe" (addressed.py), and nothing that hears everything is on: a
+    brain dump, a hold and a challenge take every word once they were started by name; a meeting has its own rules."""
+    return (PREFS.get("microphone") == addressed.MODE and not _dumping() and state.hold is None and state.challenge is None
+            and state.meeting is None)
+
+
+def _session_names() -> list[str]:
+    return [s.name for s in REGISTRY.sessions.values()]
+
+
+def _side_talk(words: str) -> bool:
+    """In "Only when I say Pointe": these words, as heard so far, are for nobody here. A lone stop word still counts:
+    anyone may silence the voice."""
+    if not _addressed_only() or time.time() < state.addressed_until or lone_stop(words):
+        return False
+    return addressed.address(words, _session_names()) is None
+
+
+async def _addressed_words(heard: str) -> str | None:
+    """A spoken turn in "Only when I say Pointe": the words to act on, or None for side talk. The journal gets the
+    length of what was dropped, never its words: it was not said to Pointe."""
+    now = time.time()
+    to = addressed.address(heard, _session_names())
+    if to is not None and to.who == "pointe" and not to.rest.strip():
+        state.addressed_until = now + addressed.WINDOW_SECS
+        logger.info("addressed: the name alone; the next words are taken")
+        return None
+    if to is not None or now < state.addressed_until:
+        state.addressed_until = 0.0
+        return to.rest if to is not None else heard
+    state.unaddressed += 1
+    logger.info(f"not addressed: {len(heard.split())} word(s) dropped")
+    if state.conn is not None:  # words that cut Pointe's voice before they were known to be side talk: it goes on
+        await state.conn.injector.resume_cut(since=state.user_started_at)
+    return None
 
 
 async def on_user_utterance(text: str, typed: bool = False) -> None:
@@ -9642,6 +9689,7 @@ async def _status(request: Request) -> dict:
             "phone_protocol": phone.PROTOCOL, "oldest_phone_protocol": phone.OLDEST_APP_PROTOCOL,
             "beta": BETA,
             "ptt": state.ptt.status(PREFS.get("microphone"), _room_heard()),
+            "addressed": addressed.status(PREFS.get("microphone"), state.addressed_until, time.time(), state.unaddressed),
             "talk_command": None if _off_the_mac(request) else TALK_COMMAND,  # Settings: the recipe shows a path of this Mac's
             "whisper": whisper.status(PREFS.get("whisper"), lock_level(), PREFS.get("microphone"),
                                       held="drive" if state.drive.on() else None),
@@ -10155,7 +10203,8 @@ async def page():
             .replace("{{MUTE}}", (here / "ui_mute.html").read_text())
             .replace("{{SKIP}}", (here / "ui_skip.html").read_text())
             .replace("{{THINKING}}", (here / "ui_thinking.html").read_text())
-            .replace("{{APPROVALS}}", (here / "ui_approvals.html").read_text()))
+            .replace("{{APPROVALS}}", (here / "ui_approvals.html").read_text())
+            .replace("{{ADDRESSED}}", (here / "ui_addressed.html").read_text()))
     return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 
@@ -10390,6 +10439,8 @@ def _recognition_terms(listed: dict[str, list[str]] | None = None) -> list[str]:
         for f in files:
             folders.update(p for p in f.split("/")[:2][:-1] if 2 < len(p) < 40 and not p.startswith("."))
     names += ["Codex", "OpenCode", "Claude Code"]  # the agents a session can be started with, said by name
+    if PREFS.get("microphone") == addressed.MODE:
+        names.insert(0, "Pointe")  # the name that opens a turn: the ears should write it as it is spelled
     return vocabulary.terms_for(DICTIONARY, names, _brief_names(), sorted(folders))
 
 

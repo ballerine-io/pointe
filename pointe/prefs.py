@@ -16,7 +16,9 @@ SCHEMA: dict[str, tuple] = {
     "meeting.notes_language": ("auto", ("auto", "en", "he")),
     "meeting.consented": (False, bool),  # the consent step was shown and accepted once on this Mac
     "voice_lock": ("off", ("off", "approvals", "commands", "everything")),  # set only through /voice/voiceprint
-    "microphone": ("always", ("always", "ptt")),  # push to talk: audio is heard only while a press holds it open
+    # ptt: audio is heard only while a press holds it open. addressed (addressed.py): heard always, acted on only when
+    # the words say the name of Pointe or of a session.
+    "microphone": ("always", ("always", "addressed", "ptt")),
     "conflicts.on": (True, bool),  # check two sessions' reports against each other
     "conflicts.spoken": (True, bool),  # say an alarm, or show it as a card only
     "briefings.time": ("", valid_time),  # "HH:MM" local, or "" for no scheduled briefing

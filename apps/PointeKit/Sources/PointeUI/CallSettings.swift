@@ -101,10 +101,14 @@ struct CallSettingsSheet: View, Equatable {
                 KickerSection("Microphone") {
                     Picker(selection: Binding(get: { model.microphone }, set: { act.setMicrophone($0) })) {
                         Text("Always on").tag("always")
+                        Text("Only when I say Pointe").tag(AddressedCopy.mode)  // AddressedCopy.setting, written out for tools/product_help.py
                         Text("Push to talk").tag("ptt")
                     } label: { Label("Microphone", systemImage: "mic") }
                         .pickerStyle(.menu)
                         .accessibilityIdentifier("microphoneSetting")
+                    if model.microphone == AddressedCopy.mode {
+                        Text(AddressedCopy.hint).font(.brand(.footnote)).foregroundStyle(Brand.muted).accessibilityIdentifier("addressedHint")
+                    }
                     if model.microphone == "ptt" {
                         Picker(selection: Binding(get: { model.talkStyle }, set: { act.setTalkStyle($0) })) {
                             ForEach(TalkStyle.allCases, id: \.self) { Text($0.label).tag($0) }

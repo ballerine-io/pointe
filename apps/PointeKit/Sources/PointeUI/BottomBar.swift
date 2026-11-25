@@ -115,9 +115,10 @@ struct MicModeSwitch: View {
     let set: (String) -> Void
 
     var body: some View {
-        Segments(selection: Binding(get: { mode }, set: set), options: [("always", "Always on"), ("ptt", style.label)]) {
+        Segments(selection: Binding(get: { mode }, set: set), options: [("always", "Always on"), (AddressedCopy.mode, AddressedCopy.short), ("ptt", style.label)]) {
         Picker("Microphone", selection: Binding(get: { mode }, set: set)) {
             Text("Always on").tag("always")
+            Text("Say “Pointe”").tag(AddressedCopy.mode)  // AddressedCopy.short: written out so tools/product_help.py reads it
             Text(style.label).tag("ptt")
         }
         .pickerStyle(.segmented)

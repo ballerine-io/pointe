@@ -468,6 +468,26 @@ def main() -> int:
         finally:
             app.quit()
 
+    # addressed speech (docs/features/addressed-speech.md): "Only when I say Pointe" is the switch's middle choice, and
+    # with it on the state line says how to talk where it said "Listening".
+    for look in ("dark", "light"):
+        app = start("-demo", "addressed", "-demoEnglish", look=look)
+        try:
+            shown = app.wait("micModeSwitch") and app.wait("statusLine")
+            app.shot("addressed", look)
+            if look == "dark":
+                check("addressed: the line says how to talk", shown and line(app).startswith("Say “Pointe” to talk"), line(app))
+                check("addressed: the switch has the mode between Always on and Hold to talk",
+                      "Say “Pointe”" in app.ax("texts", "micModeSwitch").stdout or app.ax("button", "Say “Pointe”").returncode == 0,
+                      app.ax("texts", "micModeSwitch").stdout[:120])
+        finally:
+            app.quit()
+    app = start("-demo", "call", "-demoEnglish")
+    try:
+        check("always on still says Listening", app.wait("statusLine") and line(app).startswith("Listening"), line(app))
+    finally:
+        app.quit()
+
     # accessibility (docs/features/accessibility.md): VoiceOver has a name for every control of the call window, and
     # with Reduce Motion (-pointe.reduceMotion YES stands in for the system setting) the window is one still picture.
     for screen in ("call", "request", "speaking", "thinking", "held"):

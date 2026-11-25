@@ -1,0 +1,19 @@
+<!-- Addressed speech (addressed.py, docs/features/addressed-speech.md): the microphone setting between Always on and
+     push to talk, "Only when I say Pointe". The switch above the mic and Settings, Microphone set it; while it is on
+     and nothing else holds, the state line says how to talk where it said "Listening". Served inside ui.html at
+     {{ADDRESSED}}; the apps have the same switch and words (AddressedCopy in Addressed.swift). -->
+<script>
+  // The words, word for word addressed.COPY and AddressedCopy in the apps (tests/test_addressed.py).
+  const ADDRESSED_COPY = {
+    setting: 'Only when I say Pointe',
+    short: 'Say “Pointe”',
+    hint: "Pointe hears everything and acts only on words that start with its name, or a session's: “Pointe, what's billing doing”, “billing, run the tests”. Anything else is dropped, and its words are not kept.",
+    idle: 'Say “Pointe” to talk',
+    open: 'Listening',
+  };
+  // The Mac's word: the mode is on, and whether the name was just said alone (the next words need none).
+  const addressedOn = s => !!(s && s.addressed && s.addressed.on);
+  const addressedLine = s => addressedOn(s) ? (s.addressed.open ? ADDRESSED_COPY.open : ADDRESSED_COPY.idle) : '';
+  $('micmode-addressed').textContent = ADDRESSED_COPY.short; $('micmode-addressed').title = ADDRESSED_COPY.hint;
+  $('pref-mic-hint').textContent = ADDRESSED_COPY.hint;
+</script>

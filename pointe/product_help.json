@@ -8,7 +8,7 @@
  "entries": [
   {
    "id": "mic-mode",
-   "title": "Microphone: Always on or Push to talk",
+   "title": "Microphone: Always on, Only when I say Pointe, or Push to talk",
    "ask": [
     "push to talk",
     "always on",
@@ -26,19 +26,53 @@
     "מיקרופון פתוח",
     "מצב מיקרופון"
    ],
-   "how": "Always on hears you whenever you are not muted; Push to talk hears you only while you press the mic. It is one setting, so the page and the app agree.",
+   "how": "Always on hears you whenever you are not muted; Only when I say Pointe hears everything and acts only on words that say Pointe's name or a session's; Push to talk hears you only while you press the mic. It is one setting, so the page and the app agree.",
    "about": "Nothing leaves the Mac unless you hold the key or the button",
    "iphone": [
-    "the Always on / Hold to talk switch above the mic",
-    "Settings (••• at the top) → Microphone → Always on / Push to talk"
+    "the Always on / Say “Pointe” / Hold to talk switch above the mic",
+    "Settings (••• at the top) → Microphone → Always on / Only when I say Pointe / Push to talk"
    ],
    "page": [
-    "Settings → Microphone → Always on / Push to talk",
-    "the Always on / Hold to talk switch above the mic"
+    "Settings → Microphone → Always on / Only when I say Pointe / Push to talk",
+    "the Always on / Say “Pointe” / Hold to talk switch above the mic"
    ],
    "mac": [
-    "the Always on / Hold to talk switch above the mic",
-    "Settings (••• at the top, or ⌘,) → Microphone → Always on / Push to talk"
+    "the Always on / Say “Pointe” / Hold to talk switch above the mic",
+    "Settings (••• at the top, or ⌘,) → Microphone → Always on / Only when I say Pointe / Push to talk"
+   ]
+  },
+  {
+   "id": "addressed",
+   "title": "Only when I say Pointe: ignore side talk",
+   "ask": [
+    "only when i say pointe",
+    "say pointe",
+    "ignore side talk",
+    "side talk",
+    "stop listening to my phone call",
+    "it hears my phone calls",
+    "it answers when i talk to someone else",
+    "wake word",
+    "say your name",
+    "addressed",
+    "רק כשאני אומר פוינט",
+    "מילת השכמה",
+    "הוא עונה כשאני מדבר עם מישהו אחר",
+    "שיחת טלפון"
+   ],
+   "how": "With the microphone set to Only when I say Pointe, a spoken turn is acted on only when it starts with Pointe's name or a session's, or ends with \", Pointe\": \"Pointe, what's billing doing\", \"billing, run the tests\". Anything else is treated as side talk and dropped: not kept, not sent, never a yes to a request. Say \"Pointe\" alone and the next words need no name.",
+   "about": "A microphone setting between Always on and Push to talk: side talk is dropped, words that say Pointe's name or a session's are acted on",
+   "iphone": [
+    "the Say “Pointe” switch above the mic",
+    "Settings (••• at the top) → Microphone → Only when I say Pointe"
+   ],
+   "page": [
+    "Settings → Microphone → Only when I say Pointe",
+    "the Say “Pointe” switch above the mic"
+   ],
+   "mac": [
+    "the Say “Pointe” switch above the mic",
+    "Settings (••• at the top, or ⌘,) → Microphone → Only when I say Pointe"
    ]
   },
   {
@@ -1349,6 +1383,7 @@
    "menu": {
     "Microphone": [
      "Always on",
+     "Only when I say Pointe",
      "Push to talk"
     ],
     "Talk button": [
@@ -1391,6 +1426,7 @@
    },
    "switch": [
     "Always on",
+    "Say “Pointe”",
     "Tap to talk",
     "Hold to talk"
    ],
@@ -1437,6 +1473,7 @@
    "menu": {
     "Microphone": [
      "Always on",
+     "Only when I say Pointe",
      "Push to talk"
     ],
     "Talk button": [
@@ -1481,6 +1518,7 @@
    },
    "switch": [
     "Always on",
+    "Say “Pointe”",
     "Tap to talk",
     "Hold to talk"
    ],
@@ -1589,6 +1627,7 @@
      "Talk key",
      "System-wide shortcut",
      "Always on",
+     "Only when I say Pointe",
      "Push to talk",
      "Hold to talk",
      "Tap to talk",
@@ -1638,6 +1677,7 @@
    ],
    "switch": [
     "Always on",
+    "Say “Pointe”",
     "Hold to talk"
    ],
    "side": [

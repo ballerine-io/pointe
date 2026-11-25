@@ -34,7 +34,7 @@ enum CallTitle {
             if writing { return MuteCopy.writing }
             if thinking { return ThinkingCopy.thinking }
             if waiting?.name == "working", let session = waiting?.session { return ThinkingCopy.working(session) }
-            return "Listening"
+            return AddressedCopy.line(status) ?? "Listening"
         }
     }
 

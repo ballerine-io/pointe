@@ -6,6 +6,9 @@ noisy rooms, meetings, and anyone who does not want an open microphone.
 The state lives in `pointe/ptt.py`; the gate (`PttGate`) is in `pointe/daemon.py`. The two ways to press are designed in
 [docs/design/push-to-talk-modes.md](../design/push-to-talk-modes.md).
 
+Between the two there is a third setting, [Only when I say Pointe](addressed-speech.md): the microphone stays open and
+only words that say Pointe's name or a session's are acted on.
+
 ## Use it
 
 The switch above the mic ("Always on" or "Hold to talk", which reads "Tap to talk" when that is the talk button), on

@@ -606,6 +606,9 @@
   .dock .btn .lb { white-space: nowrap; }
   .dock-center { display: flex; flex-direction: column; align-items: center; gap: 7px; }
   .micmode button { padding: 4px 12px; font-size: 12px; min-width: 92px; }
+  /* Three choices are wider than the mic's own row: the switch reaches over the gaps beside it, above the side buttons,
+     so the middle column stays as wide as it was and the side buttons keep their one row. */
+  .micmode { margin: 0 -46px; }
   .microw { position: relative; display: flex; justify-content: center; padding: 0 60px; }  /* Hang up's room, both sides: 12 + 48 */
   #mic { width: 68px; height: 68px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
          background: var(--orange); color: var(--on-orange); transition: transform .15s, background .2s, box-shadow .2s;
@@ -1117,7 +1120,7 @@
     main { --gutter: 12px; }
     .dock { grid-template-rows: auto auto auto; gap: 6px 4px; padding: 8px 4px calc(10px + env(safe-area-inset-bottom)); }
     .dock-center { display: contents; }
-    .micmode { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
+    .micmode { grid-column: 1 / -1; grid-row: 1; justify-self: center; margin: 0; }
     .microw { grid-column: 2; grid-row: 2; }
     #miclabel { grid-column: 1 / -1; grid-row: 3; justify-self: center; margin-top: 2px; }
     #keyhint { display: none; }
@@ -1437,7 +1440,8 @@
         <section class="group" id="g-mic">
           <h3>Microphone</h3>
           <div class="card">
-            <div class="field">Microphone<select id="pref-mic"><option value="always">Always on</option><option value="ptt">Push to talk</option></select></div>
+            <div class="field">Microphone<select id="pref-mic" onchange="$('pref-mic-hint').hidden = this.value !== 'addressed'"><option value="always">Always on</option><option value="addressed">Only when I say Pointe</option><option value="ptt">Push to talk</option></select></div>
+            <div class="note" id="pref-mic-hint" hidden></div>
             <div class="field">Talk button<select id="pref-style"><option value="hold">Hold to talk</option><option value="tap">Tap to talk</option></select></div>
             <div class="field">Talk key<button type="button" id="pref-key" onclick="captureKey()"></button></div>
           </div>
@@ -1750,6 +1754,7 @@
     <div class="dock-center">
       <div class="seg micmode" role="radiogroup" aria-label="Microphone">
         <button type="button" role="radio" id="micmode-always" class="on" aria-checked="true" onclick="setMicMode('always')" title="The voice hears you whenever you are not muted">Always on</button>
+        <button type="button" role="radio" id="micmode-addressed" aria-checked="false" onclick="setMicMode('addressed')">Say “Pointe”</button>
         <button type="button" role="radio" id="micmode-ptt" aria-checked="false" onclick="setMicMode('ptt')" title="Nothing is heard unless you hold the key or the mic">Hold to talk</button>
       </div>
       <div class="microw">
@@ -2996,7 +3001,9 @@
     else if (pttMode()) [st, title] = ['ptt', Date.now() < ptt.whyUntil ? ptt.why
                                        : roomHeard() ? `Meeting: room is heard · ${pttStyleLabel().toLowerCase()}` : pttStyleLabel()];
     else if (typeof phaseIs === 'function' && phaseIs(s, 'working')) [st, title] = ['working', phaseLine(s)];
+    // "Only when I say Pointe" (ui_addressed.html): the line says how to talk
     else [st, title] = ['live', 'Listening'];
+    if (st === 'live' && title === 'Listening' && typeof addressedLine === 'function' && addressedLine(s)) title = addressedLine(s);
     document.body.dataset.state = st; text('state', title);
     // Read out when the call itself changes (connected, dropped, muted, refused), not each turn's Speaking and Listening:
     // those would talk over the voice.
@@ -3044,8 +3051,8 @@
     pill.classList.toggle('hang', mine); pill.classList.toggle('quiet', !mine && dialling);
     pill.hidden = ((panel || denied) && !mine) || live;  // on a live call Hang up is the dock's, beside the mic, as in the apps
     showConnect();
-    const micMode = pttMode() ? 'ptt' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
-    for (const m of ['always', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }
+    const micMode = pttMode() ? 'ptt' : (status && status.ptt && status.ptt.mode === 'addressed') ? 'addressed' : 'always';  // the dock's switch follows the daemon, as Settings → Microphone does
+    for (const m of ['always', 'addressed', 'ptt']) { $('micmode-' + m).classList.toggle('on', micMode === m); $('micmode-' + m).setAttribute('aria-checked', micMode === m); }
     text('micmode-ptt', pttStyleLabel());
     if (live && silence.paused) claimMediaKeys();
   }
@@ -4274,7 +4281,7 @@
     $('pref-lookups').checked = !!prefs['meeting.auto_lookups'];
     $('pref-lang').value = prefs['meeting.notes_language'] || 'auto';
     $('pref-consent').hidden = !prefs['meeting.consented'];
-    $('pref-mic').value = prefs.microphone || 'always';
+    $('pref-mic').value = prefs.microphone || 'always'; $('pref-mic-hint').hidden = $('pref-mic').value !== 'addressed';
     $('pref-patience').value = prefs['turns.patience'] || 'normal';
     thinkingPrefsShow(prefs);
     approvalsShow();
@@ -5037,5 +5044,6 @@
 {{SKIP}}
 {{THINKING}}
 {{APPROVALS}}
+{{ADDRESSED}}
 </body>
 </html>

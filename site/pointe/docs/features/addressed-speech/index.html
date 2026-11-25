@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Only when I say Pointe · Pointe docs</title>
+<meta name="description" content="A microphone setting between Always on and Push to talk. Pointe hears everything, and acts on a spoken turn only when its words say Pointe&#x27;s name or a…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Only when I say Pointe">
+<meta property="og:description" content="A microphone setting between Always on and Push to talk. Pointe hears everything, and acts on a spoken turn only when its words say Pointe&#x27;s name or a…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/addressed-speech/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/addressed-speech/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+<li><a href="../../comparison/">Compared to other tools</a></li>
+<li><a href="../../limits/">Limits</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../mute/">Mute</a></li>
+<li><a href="../skip/">Skip</a></li>
+<li><a href="../thinking/">Thinking and the waiting sound</a></li>
+<li><a href="../progress/">Progress updates</a></li>
+<li><a href="./" aria-current="page">Only when I say Pointe</a></li>
+<li><a href="../approvals-record/">Approvals record</a></li>
+<li><a href="../accessibility/">Accessibility</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="only-when-i-say-pointe">Only when I say Pointe</h1>
+<p>A microphone setting between Always on and Push to talk. Pointe hears everything, and acts on a spoken turn only
+when its words say Pointe's name or a session's. Everything else is side talk: a phone call at your desk, a colleague
+at the door, you thinking aloud. It is dropped before it is remembered, sent to a model or a session, or taken for an
+answer to a request.</p>
+<p>The rule is <code>pointe/addressed.py</code>; the daemon applies it where a spoken turn is taken (<code>daemon._addressed_words</code>). It
+reads the recognizer's text only: no second model, no extra wait.</p>
+<h2 id="use-it">Use it</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The page</td>
+<td>the switch above the mic: Always on · Say “Pointe” · Hold to talk; or Settings → Microphone → Only when I say Pointe</td>
+</tr>
+<tr>
+<td>iPhone</td>
+<td>the same switch above the mic; or Settings (•••) → Microphone</td>
+</tr>
+<tr>
+<td>Mac</td>
+<td>the same switch; or Settings → Microphone</td>
+</tr>
+</tbody>
+</table></div>
+<p>It is one setting on the Mac, so every screen agrees. While it is on and nothing else holds, the state line says
+"Say “Pointe” to talk" where it said "Listening". No phrase switches it.</p>
+<h2 id="what-counts-as-said-to-pointe">What counts as said to Pointe</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>You say</th>
+<th>Taken as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Pointe, what's billing doing?" · "Hey Pointe, is the build green?" · "So, Pointe, what changed?"</td>
+<td>the words after the name</td>
+</tr>
+<tr>
+<td>"Approve it, Pointe." · "Yes, Pointe."</td>
+<td>the words before the name</td>
+</tr>
+<tr>
+<td>"Pointe." or "Pointe?" alone</td>
+<td>nothing yet: the next words, within 6 seconds, need no name</td>
+</tr>
+<tr>
+<td>"Billing, run the tests again." · "Docs: update the changelog."</td>
+<td>the whole turn, for that session</td>
+</tr>
+<tr>
+<td>"Tell docs to update the changelog." · "Ask billing whether…" · "Switch to harbor."</td>
+<td>the whole turn</td>
+</tr>
+</tbody>
+</table></div>
+<p>And what does not: the name inside a sentence ("the point is…", "that's a good point", "at this point"), a session's
+name as an everyday word ("docs are in the shared drive", "I sent the docs to the client"), and anything with no name
+at all, a bare "yes" included.</p>
+<p><strong>A yes needs the name.</strong> In this mode "yes" alone approves nothing, whoever says it: say "Pointe, yes" or "yes,
+Pointe". The read-out and every other rule of an approval are unchanged; the tap is unchanged.</p>
+<p>A recognizer often writes the name as "point". That is taken as the name where a name is called: first in the turn
+("Point, what's billing doing", "Point yes"), or last ("Yes point"), unless the words around it make it a noun ("point
+of order", "point taken", "a fair point", "data point"). In this mode the Mac gives the recognizer the name "Pointe",
+so Soniox usually writes it as spelled (the setting is read when a call starts: hang up and call again after
+switching).</p>
+<h2 id="what-still-hears-everything">What still hears everything</h2>
+<ul>
+<li>Typed words, and push to talk (its own setting).</li>
+<li>
+<p>A brain dump, "don't interrupt me", a challenge: once started with the name ("Pointe, brain dump"), every word is
+  theirs until they end.</p>
+</li>
+<li>
+<p>A meeting: it has its own rules for when the room is talking to Pointe.</p>
+</li>
+<li>A lone "stop" still silences Pointe's voice. Other side talk does not cut it off; if side talk did cut a line before
+  its words were known, the line goes on.</li>
+</ul>
+<h2 id="what-is-kept-of-side-talk">What is kept of side talk</h2>
+<p>Nothing of its words. It is not in the conversation, not in the context of any model, not sent to a session. The
+journal gets one line with its length ("not addressed: 9 word(s) dropped"). The live caption shows words as they are
+heard, as in every mode, and they go when the turn is dropped. The audio goes to the recognizer as in Always on: this
+mode decides what Pointe acts on, not what the ears hear. For nothing heard at all, use Push to talk.</p>
+<h2 id="measured">Measured</h2>
+<p><code>bench/addressed_bench.py</code>, on 100 clips, each heard by a recognizer Pointe ships and judged by the same function the
+daemon calls. The transcripts are committed (<code>bench/addressed_heard.*.jsonl</code>) and <code>tests/test_addressed.py</code> judges
+them again on every run.</p>
+<ul>
+<li>
+<p><strong>Side talk</strong>: 50 whole utterances of people talking to each other in a meeting, from the AMI Meeting Corpus
+  (Carletta et al., 2005, https://groups.inf.ed.ac.uk/ami/corpus/), Creative Commons Attribution 4.0 (CC BY 4.0):
+  the "end" clips of <code>bench/human_turns.jsonl</code>, two a speaker. Only the
+  recognizer's text of each clip is in this repository, with the meeting and the speaker; no audio.</p>
+</li>
+<li>
+<p><strong>Addressed</strong>: 50 lines said to Pointe or to a session by name, in the dialogue suite's eight Kokoro voices
+  (synthetic, Apache-2.0).</p>
+</li>
+</ul>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Ears</th>
+<th>Side talk acted on</th>
+<th>Addressed lines taken</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Soniox, the default setup's, given the name as a context term</td>
+<td>0 of 50</td>
+<td>50 of 50</td>
+</tr>
+<tr>
+<td>Whisper large-v3-turbo on this Mac, the local setup's</td>
+<td>0 of 50</td>
+<td>48 of 50</td>
+</tr>
+</tbody>
+</table></div>
+<p>The target was 0 of 50 and 50 of 50. The default ears meet both. The local ears meet the first and miss the second by
+two clips, each time because the recognizer wrote a name as another word: "docs" as "darks", and "No, Pointe." as "No
+point.", which is also a phrase. The rule accepts one changed, added or dropped letter in a name that is called
+("Dogs, what did you change?", "Tell Harbour to rebase"), and no more: a looser match would start to answer side talk.
+With the local ears, "Hey Pointe" or a pause after the name is the surer way to be taken.</p>
+<p>One run on each ears, on one day; the rule was changed while these clips were being measured (a recognizer writes
+"Point yes." with no comma), so the clips are not a held-out set. A second set the rule has never seen is owed.</p>
+<h2 id="limits">Limits</h2>
+<ul>
+<li>
+<p>The side talk is real people, in English, in a meeting about a remote control, on headsets. It is not a phone call
+  at a developer's desk, not Hebrew, not a far voice on a laptop's microphone.</p>
+</li>
+<li>
+<p>The addressed lines are synthetic voices reading clean sentences. No recorded person said "Pointe" for this.</p>
+</li>
+<li>
+<p>A session named for a common word and followed by an order reads as a call: "billing run finished late" would be
+  taken for billing. Side talk that happens to begin "Tell billing to…" would too.</p>
+</li>
+<li>
+<p>Hebrew: the name is taken as "<span lang="he" dir="rtl">פוינט</span>" at the start of a turn. It was tested on written examples only, on no audio.</p>
+</li>
+<li>
+<p>It needs ears that give words: with a speech-to-speech model hearing the audio itself (<code>CLAUDE_VOICE_EARS=native</code>) there
+  is no text to read, and the setting changes nothing.</p>
+</li>
+<li>
+<p>There is no sound or spoken sign that side talk was dropped: the state line and the missing reply are the sign.</p>
+</li>
+<li>Another person in the room who says "Pointe, …" is taken as you are, unless the <a href="../voice-lock/">voice lock</a> is on.</li>
+</ul>
+<h2 id="the-tests">The tests</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The rule: what addresses Pointe, a session, nobody; the daemon drops side talk, takes addressed words with the name off, never answers a request from side talk, and journals no word of it; the committed transcripts judged again</td>
+<td><code>tests/test_addressed.py</code></td>
+</tr>
+<tr>
+<td>The page: the switch's three choices, the state line, Settings</td>
+<td><code>tests/test_addressed_page.py</code></td>
+</tr>
+<tr>
+<td>The apps: the state line, the mode is not push to talk, the demo</td>
+<td><code>apps/PointeKit/Tests/PointeUIUnitTests/AddressedTests.swift</code></td>
+</tr>
+<tr>
+<td>iPhone and Mac screens</td>
+<td><code>apps/ios/PointeUITests/AddressedUITests.swift</code>, <code>apps/macos/e2e/smoke.py</code></td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/addressed-speech.md">docs/features/addressed-speech.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../progress/"><span class="pg-small">Previous</span>Progress updates</a><a class="dx-next" href="../approvals-record/"><span class="pg-small">Next</span>Approvals record</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-counts-as-said-to-pointe">What counts as said to Pointe</a></li>
+<li class="dx-l2"><a href="#what-still-hears-everything">What still hears everything</a></li>
+<li class="dx-l2"><a href="#what-is-kept-of-side-talk">What is kept of side talk</a></li>
+<li class="dx-l2"><a href="#measured">Measured</a></li>
+<li class="dx-l2"><a href="#limits">Limits</a></li>
+<li class="dx-l2"><a href="#the-tests">The tests</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

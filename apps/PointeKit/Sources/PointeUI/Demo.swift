@@ -11,7 +11,7 @@ struct Demo {
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
                        empty, noSessions, many, longNames, longRequest, hold, speaking, muted,
                        newSession, startPending, longTalk,
-                       nightShiftStart, nightShift, nightShiftLedger, nightShiftPending, writing, held, thinking, working }
+                       nightShiftStart, nightShift, nightShiftLedger, nightShiftPending, writing, held, thinking, working, addressed }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -89,6 +89,7 @@ struct Demo {
         case .writing: writingJSON
         case .thinking: waitingJSON(working: false)
         case .working: waitingJSON(working: true)
+        case .addressed: addressedJSON
         case .held: heldJSON
         case .rtl: rtlJSON
         case .empty, .noSessions, .many, .longNames, .longRequest, .hold: stressJSON(screen)
@@ -144,6 +145,16 @@ struct Demo {
          "phase": \(working ? #"{"name": "working", "session": "billing/main", "since": 1700000000}"# : #"{"name": "thinking", "session": null, "since": 1700000000}"#)}
         """
     }
+
+    /// "Only when I say Pointe" is on, and nothing is being said: the line says how to talk (Addressed.swift).
+    private static let addressedJSON = """
+    {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+     "sessions": \(sessions),
+     "talk": [{"id": 40, "who": "user", "text": "what's billing doing", "typed": false, "corrected": false},
+              {"id": 41, "who": "assistant", "text": "It finished the retry fix. Tests pass. It wants to know if it should open the PR."}],
+     "ptt": {"mode": "addressed", "open": false},
+     "addressed": {"on": true, "open": false, "dropped": 3}}
+    """
 
     /// Pointe muted, its newest reply just written: the status line says "Writing…" (Mute.swift).
     private static let writingJSON = """
