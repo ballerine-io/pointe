@@ -1,0 +1,185 @@
+name: ui
+# The tests that put windows on a screen: the iPhone app's UI tests in the Simulator, the Mac smoke (the Accessibility
+# API) and the Mac app's XCUITests. They take the keyboard and the pointer, so on a person's Mac they refuse to start
+# (tools/ui_guard.py); here nobody is at the screen. Each job uploads its screenshots: a release takes them from the run
+# on its version commit (docs/releasing.md), never from a Mac somebody works at.
+on:
+  push:
+    branches: [main]
+    paths: ["apps/**", "tools/ui_guard.py", ".github/workflows/ui.yml"]
+  pull_request:
+    paths: ["apps/**", "tools/ui_guard.py", ".github/workflows/ui.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  # Every test in PointeUITests on the app's demo fixtures (-demo): invented sessions, no Mac, no network. The tests
+  # that need a test daemon or a stand-in Mac skip themselves here (each says which driver in apps/ios/e2e/ runs it).
+  ios-ui:
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      DD: ${{ runner.temp }}/dd
+      OUT: ${{ runner.temp }}/ios-ui
+      # xcodebuild hands the test runner the variables named TEST_RUNNER_*, without the prefix. CI=true is what the
+      # bundle's own guard asks for (apps/ios/PointeUITests/UIGuard.swift).
+      TEST_RUNNER_CI: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The newest Xcode on the runner, and an iPhone simulator
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+          SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          echo "SIM=$SIM" >> "$GITHUB_ENV"
+          xcrun simctl list devices available | grep "$SIM"
+          mkdir -p "$OUT/shots"
+      - name: Build the app and its UI tests for the simulator
+        working-directory: apps/ios
+        run: |
+          xcodebuild build-for-testing -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" \
+            -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO -quiet
+      # The guard inside the bundle (UIGuard.swift), for an `xcodebuild test` typed by hand: without CI=true or
+      # POINTE_UI_LOCAL=1 in the runner's environment the bundle exits before a test starts the app.
+      - name: Without the word, the bundle refuses to run
+        working-directory: apps/ios
+        env:
+          TEST_RUNNER_CI: ""
+        run: |
+          if xcodebuild test-without-building -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" \
+            -derivedDataPath "$DD" -only-testing:PointeUITests/DemoUITests CODE_SIGNING_ALLOWED=NO > "$OUT/xcodebuild-refused.log" 2>&1; then
+            echo "the UI tests ran without CI=true or POINTE_UI_LOCAL=1"; exit 1
+          fi
+          if grep -E "Test Case .* (started|passed|failed)" "$OUT/xcodebuild-refused.log"; then echo "a test started"; exit 1; fi
+          grep -h "refused:" "$OUT/xcodebuild-refused.log" | head -1 || tail -15 "$OUT/xcodebuild-refused.log"
+      - name: PointeUITests, in the simulator
+        working-directory: apps/ios
+        run: |
+          # Each suite writes its screenshots to the folder its own variable names; the simulator shares the runner's disk.
+          for suite in DUMP BRIEFING CHALLENGE CONFLICT DRIVE NIGHT_SHIFT PARITY SHOW SKIP VOICE_LOCK WHISPER THINKING VOCAB; do
+            dir="$OUT/shots/$(echo "$suite" | tr 'A-Z_' 'a-z-')"
+            mkdir -p "$dir"
+            export "TEST_RUNNER_${suite}_SHOTS=$dir"
+          done
+          xcrun simctl boot "$SIM" || true
+          xcrun simctl privacy "$SIM" grant microphone io.ballerine.pointe || true
+          set +e
+          xcodebuild test-without-building -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" \
+            -derivedDataPath "$DD" -only-testing:PointeUITests -resultBundlePath "$OUT/PointeUITests.xcresult" \
+            CODE_SIGNING_ALLOWED=NO > "$OUT/xcodebuild.log" 2>&1
+          status=$?
+          set -e
+          grep -E "error:|Test Case .*(passed|failed|skipped)|Executed [0-9]+ tests|\*\* TEST" "$OUT/xcodebuild.log" || tail -40 "$OUT/xcodebuild.log"
+          {
+            echo "### PointeUITests"
+            grep -E "Executed [0-9]+ tests" "$OUT/xcodebuild.log" | tail -1
+            echo; echo "Failed:"; grep -E "Test Case .* failed" "$OUT/xcodebuild.log" | sed 's/^/- /' || echo "- none"
+            echo; echo "Skipped (each needs a test daemon or a stand-in Mac):"; grep -E "Test Case .* skipped" "$OUT/xcodebuild.log" | sed 's/^/- /' || echo "- none"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      # The meeting screens' screenshot test is on the demo fixtures too, but it shares its switch (MEETING_SHOTS) with
+      # the tests that need a Mac, so it runs by name.
+      - name: The meeting screens, on the demo fixtures
+        if: ${{ !cancelled() }}
+        working-directory: apps/ios
+        env:
+          TEST_RUNNER_MEETING_CASE: demo
+          TEST_RUNNER_MEETING_SHOTS: ${{ runner.temp }}/ios-ui/shots/meeting
+        run: |
+          mkdir -p "$TEST_RUNNER_MEETING_SHOTS"
+          set +e
+          xcodebuild test-without-building -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" \
+            -derivedDataPath "$DD" -only-testing:PointeUITests/MeetingUITests/testDemoScreens \
+            -resultBundlePath "$OUT/MeetingDemo.xcresult" CODE_SIGNING_ALLOWED=NO > "$OUT/xcodebuild-meeting.log" 2>&1
+          status=$?
+          set -e
+          grep -E "error:|Test Case .*(passed|failed|skipped)|Executed [0-9]+ tests|\*\* TEST" "$OUT/xcodebuild-meeting.log" || tail -40 "$OUT/xcodebuild-meeting.log"
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: ios-ui-screenshots
+          path: ${{ runner.temp }}/ios-ui/shots/
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: ios-ui-xcresult
+          path: |
+            ${{ runner.temp }}/ios-ui/*.xcresult
+            ${{ runner.temp }}/ios-ui/*.log
+  # apps/macos/e2e/smoke.py: the Mac app's main flows on the demo fixtures, pressed through the Accessibility API
+  # (axdrive.swift). The hosted image grants Accessibility and screen capture to the runner's agent and to /bin/bash
+  # (actions/runner-images, images/macos/scripts/build/configure-tccdb-macos.sh), and a tool the job starts is judged
+  # by that responsible process; the first step prints what macOS answers.
+  mac-smoke:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: What this runner may do, as macOS answers it
+        run: |
+          cat > "$RUNNER_TEMP/may.swift" <<'EOF'
+          import ApplicationServices
+          import CoreGraphics
+          print("Accessibility (AXIsProcessTrusted):", AXIsProcessTrusted())
+          print("Screen capture (CGPreflightScreenCaptureAccess):", CGPreflightScreenCaptureAccess())
+          EOF
+          swiftc "$RUNNER_TEMP/may.swift" -o "$RUNNER_TEMP/may"
+          "$RUNNER_TEMP/may" | tee -a "$GITHUB_STEP_SUMMARY"
+          sw_vers
+      - name: The smoke
+        run: python3 -I apps/macos/e2e/smoke.py --shots "$RUNNER_TEMP/mac-smoke-shots" 2>&1 | tee "$RUNNER_TEMP/mac-smoke.log"; exit "${PIPESTATUS[0]}"
+      - name: Its result, in the summary
+        if: ${{ !cancelled() }}
+        run: |
+          { echo '### Mac smoke'; echo '```'; grep -E "^FAIL|checks passed" "$RUNNER_TEMP/mac-smoke.log" || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p "$RUNNER_TEMP/mac-smoke-shots" && cp "$RUNNER_TEMP/mac-smoke.log" "$RUNNER_TEMP/mac-smoke-shots/"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: mac-smoke-screenshots
+          path: ${{ runner.temp }}/mac-smoke-shots/
+  # The same flows with XCUITest (apps/macos/PointeMacUITests). On a person's Mac it waits for them to unlock Automation
+  # Mode; the hosted image has it unlocked (automationmodetool, in the image's configure-machine.sh).
+  mac-xcuitest:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      TEST_RUNNER_CI: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+          automationmodetool || true
+      - name: PointeMacUITests
+        run: apps/macos/test.sh ui
+      - name: Without the word, the bundle refuses to run
+        if: ${{ !cancelled() }}
+        working-directory: apps/macos
+        env:
+          TEST_RUNNER_CI: ""
+        run: |
+          if xcodebuild test-without-building -project PointeMac.xcodeproj -scheme PointeMac -derivedDataPath build/dd \
+            -destination 'platform=macOS,arch=arm64' -only-testing:PointeMacUITests CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= > "$RUNNER_TEMP/refused.log" 2>&1; then
+            echo "the UI tests ran without CI=true or POINTE_UI_LOCAL=1"; exit 1
+          fi
+          if grep -E "Test Case .* (started|passed|failed)" "$RUNNER_TEMP/refused.log"; then echo "a test started"; exit 1; fi
+          grep -h "refused:" "$RUNNER_TEMP/refused.log" | head -1 || tail -15 "$RUNNER_TEMP/refused.log"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: mac-xcuitest-screenshots
+          path: /tmp/macos-app-shots/
+          if-no-files-found: warn

@@ -336,8 +336,11 @@ apps/macos/test.sh unit                    # PointeKit and the Mac app&#x27;s un
 and every driver of the iPhone UI tests (<code>apps/ios/e2e/*.py</code>, <code>tests/e2e/ios_app.py</code>, <code>tests/e2e/ios_phone_pair.py</code>,
 <code>tools/demo-video/capture.py</code> with the iPhone) put windows on the screen and take the keyboard, so nobody can work at
 that Mac while they run. Each one refuses to start unless <code>CI=true</code> (GitHub Actions sets it) or you set
-<code>POINTE_UI_LOCAL=1</code> yourself, and says so in one line (<code>tools/ui_guard.py</code>, tested by <code>tests/test_ui_guard.py</code>). An
-agent never sets <code>POINTE_UI_LOCAL</code>: it pushes and reads the run.</p>
+<code>POINTE_UI_LOCAL=1</code> yourself, and says so in one line (<code>tools/ui_guard.py</code>, tested by <code>tests/test_ui_guard.py</code>). The
+two UI test bundles refuse by the same rule when <code>xcodebuild test</code> is typed by hand (<code>UIGuard.swift</code> in each): pass
+<code>TEST_RUNNER_POINTE_UI_LOCAL=1</code> to xcodebuild, or add <code>POINTE_UI_LOCAL=1</code> to the scheme's Test environment in Xcode,
+uncommitted. An agent never sets either: it pushes, and reads the <code>ui</code> workflow's run (<code>.github/workflows/ui.yml</code>), which
+runs the iPhone UI tests in the Simulator, the Mac smoke and the Mac XCUITests, and uploads their screenshots.</p>
 <div class="dx-code"><pre><code>POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented sessions, through the Accessibility API
 POINTE_UI_LOCAL=1 apps/macos/test.sh ui    # the same flows with XCUITest; macOS asks you to allow UI automation first</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>The iPhone app's tests run in the iPhone Simulator, as in CI (<code>.github/workflows/test.yml</code>, job <code>ios</code>): pick an

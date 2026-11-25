@@ -136,8 +136,11 @@ apps/macos/test.sh unit                    # PointeKit and the Mac app's unit te
 and every driver of the iPhone UI tests (`apps/ios/e2e/*.py`, `tests/e2e/ios_app.py`, `tests/e2e/ios_phone_pair.py`,
 `tools/demo-video/capture.py` with the iPhone) put windows on the screen and take the keyboard, so nobody can work at
 that Mac while they run. Each one refuses to start unless `CI=true` (GitHub Actions sets it) or you set
-`POINTE_UI_LOCAL=1` yourself, and says so in one line (`tools/ui_guard.py`, tested by `tests/test_ui_guard.py`). An
-agent never sets `POINTE_UI_LOCAL`: it pushes and reads the run.
+`POINTE_UI_LOCAL=1` yourself, and says so in one line (`tools/ui_guard.py`, tested by `tests/test_ui_guard.py`). The
+two UI test bundles refuse by the same rule when `xcodebuild test` is typed by hand (`UIGuard.swift` in each): pass
+`TEST_RUNNER_POINTE_UI_LOCAL=1` to xcodebuild, or add `POINTE_UI_LOCAL=1` to the scheme's Test environment in Xcode,
+uncommitted. An agent never sets either: it pushes, and reads the `ui` workflow's run (`.github/workflows/ui.yml`), which
+runs the iPhone UI tests in the Simulator, the Mac smoke and the Mac XCUITests, and uploads their screenshots.
 
 ```
 POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented sessions, through the Accessibility API

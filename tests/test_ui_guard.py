@@ -47,6 +47,7 @@ def test_the_refusal_is_one_line_that_says_why_and_how_to_run_it_in_ci():
     assert "\n" not in line
     assert "apps/macos/e2e/smoke.py" in line and "keyboard" in line
     assert f"gh workflow run {ui_guard.WORKFLOW}" in line and "POINTE_UI_LOCAL=1" in line
+    assert (ROOT / ".github" / "workflows" / ui_guard.WORKFLOW).is_file(), "the workflow the line names exists"
 
 
 def test_every_script_that_starts_a_ui_test_calls_the_guard():
@@ -103,3 +104,25 @@ def test_test_sh_unit_is_not_a_ui_test():
     text = (ROOT / "apps" / "macos" / "test.sh").read_text()
     assert 'if [ "$WHAT" != unit ]; then\n  python3 -I ../../tools/ui_guard.py' in text
     assert text.index("ui_guard.py") < text.index("&& swift test")
+
+
+def test_each_ui_test_bundle_carries_the_same_guard_as_its_principal_class():
+    """`xcodebuild test` typed by hand passes no script: the bundle refuses by itself, before a test starts the app.
+    XCTest makes the principal class when it loads the bundle. Whether it does refuse is the ui workflow's step
+    "Without the word, the bundle refuses to run"."""
+    ios = (ROOT / "apps" / "ios" / "PointeUITests" / "UIGuard.swift").read_text()
+    assert ios == (ROOT / "apps" / "macos" / "PointeMacUITests" / "UIGuard.swift").read_text()
+    assert 'if env["CI"] == "true" || env["POINTE_UI_LOCAL"] == "1" { return }' in ios and "exit(2)" in ios
+    assert f"gh workflow run {ui_guard.WORKFLOW}" in ios
+    for project in ("apps/ios/Pointe.xcodeproj", "apps/macos/PointeMac.xcodeproj"):
+        assert (ROOT / project / "project.pbxproj").read_text().count("INFOPLIST_KEY_NSPrincipalClass = UIGuard;") == 2, project
+    workflow = (ROOT / ".github" / "workflows" / ui_guard.WORKFLOW).read_text()
+    assert workflow.count("Without the word, the bundle refuses to run") == 2 and workflow.count('TEST_RUNNER_CI: "true"') == 2
+
+
+def test_an_allowed_script_passes_its_word_on_to_the_bundle(monkeypatch):
+    monkeypatch.setenv("POINTE_UI_LOCAL", "1")
+    monkeypatch.delenv("TEST_RUNNER_POINTE_UI_LOCAL", raising=False)
+    ui_guard.require("a UI test")
+    assert os.environ["TEST_RUNNER_POINTE_UI_LOCAL"] == "1"
+    assert "export TEST_RUNNER_POINTE_UI_LOCAL=1" in (ROOT / "apps" / "macos" / "test.sh").read_text()
