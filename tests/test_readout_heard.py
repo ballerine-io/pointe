@@ -87,3 +87,9 @@ def test_a_place_inside_the_project_is_still_not_said(tmp_path):
     (tmp_path / "toll-web" / "src").mkdir(parents=True)
     cwd = str(tmp_path / "toll-web")
     assert readout.looking(f"ls {tmp_path}/toll-web/src; cat src/app.py", cwd) == "look around, read only: ls and cat"
+
+
+def test_a_lone_dot_in_a_hebrew_read_out_is_said_in_hebrew(d):  # noqa: F811
+    """r9, heb-03: "…מקף T, here. לבצע?": the English word inside the Hebrew line."""
+    assert d._heard_request("run: python3 unittest discover -s tests -t .", hebrew=True) == \
+        "run: python3 unittest discover -s tests -t כאן"
