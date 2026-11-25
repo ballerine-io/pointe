@@ -421,7 +421,7 @@ struct NightShiftEntryRow: View {
                     Text(entry.request).font(.system(.caption, design: .monospaced))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(8)
-                        .background(Brand.raised, in: RoundedRectangle(cornerRadius: 8))
+                        .background(Brand.raised2, in: RoundedRectangle(cornerRadius: 8))  // on a Brand.cell row: raised is the cell's own colour in dark
                         .accessibilityIdentifier("nightShiftRequest")
                 }
             default:
