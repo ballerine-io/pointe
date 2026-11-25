@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Linux hub · Pointe docs</title>
+<meta name="description" content="Pointe can run on a Linux machine as a hub: the machine that holds the voice. Its page, your phone and your other machines connect to it. Or a Linux machine…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="A Linux hub">
+<meta property="og:description" content="Pointe can run on a Linux machine as a hub: the machine that holds the voice. Its page, your phone and your other machines connect to it. Or a Linux machine…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/linux/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/linux/' + location.hash);
+</script>
+<link rel="icon" href="../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../pages.css">
+<link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../"><picture><source srcset="../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../features/">Features</a>
+    <a href="../" aria-current="true">Docs</a>
+    <a href="../../benchmarks/">Benchmarks</a>
+    <a href="../../roadmap/">Roadmap</a>
+    <a href="../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../">Pointe documentation</a></li>
+<li><a href="../comparison/">Compared to other tools</a></li>
+<li><a href="../limits/">Limits</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../getting-started/">Getting started</a></li>
+<li><a href="../install/">Install Pointe</a></li>
+<li><a href="../mac-app/">The Mac app</a></li>
+<li><a href="./" aria-current="page">A Linux hub</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../phone/">Connect your phone</a></li>
+<li><a href="../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../models/">Models and setups</a></li>
+<li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../architecture/">Architecture</a></li>
+<li><a href="../how-it-works/">How it works</a></li>
+<li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../features/">Features</a></li>
+<li><a href="../features/voice-lock/">Voice lock</a></li>
+<li><a href="../features/vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../features/drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../features/push-to-talk/">Push to talk</a></li>
+<li><a href="../features/briefings/">Audio briefings</a></li>
+<li><a href="../features/brain-dump/">Brain dump</a></li>
+<li><a href="../features/challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../features/alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../features/show-while-it-says/">Show while it says</a></li>
+<li><a href="../features/whisper-mode/">Whisper mode</a></li>
+<li><a href="../features/mute/">Mute</a></li>
+<li><a href="../features/skip/">Skip</a></li>
+<li><a href="../features/thinking/">Thinking and the waiting sound</a></li>
+<li><a href="../features/progress/">Progress updates</a></li>
+<li><a href="../features/addressed-speech/">Only when I say Pointe</a></li>
+<li><a href="../features/session-tones/">Session tones</a></li>
+<li><a href="../features/approvals-record/">Approvals record</a></li>
+<li><a href="../features/accessibility/">Accessibility</a></li>
+<li><a href="../features/conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../features/meeting-mode/">Meeting mode</a></li>
+<li><a href="../features/new-session/">Start a new session</a></li>
+<li><a href="../features/add-sessions/">Add sessions</a></li>
+<li><a href="../features/night-shift/">Night shift</a></li>
+<li><a href="../features/clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../features/voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../features/local/">Fully local</a></li>
+<li><a href="../features/openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../contributing/">Contributing</a></li>
+<li><a href="../releasing/">Releasing</a></li>
+<li><a href="../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="a-linux-hub">A Linux hub</h1>
+<p>Pointe can run on a Linux machine as a <strong>hub</strong>: the machine that holds the voice. Its page, your phone and your other
+machines connect to it. Or a Linux machine can be a <strong>node</strong> of another hub, Mac or Linux, and only its sessions join
+that hub's voice (<a href="../multi-machine/">Machines</a>).</p>
+<p><strong>What was tested on Linux.</strong> In Ubuntu 24.04 containers: the install as a hub and as a node, a key saved in a real
+login keyring and read back by the hub with no key in its environment, the hub's page and status in headless
+Chromium, a session that joins, a call from the browser whose microphone audio (Chromium's fake device) reaches the hub,
+a Claude Code start in tmux, pairing over the local network with its QR, and a Linux node paired with the Linux hub.
+<strong>Not tested on Linux:</strong> a whole spoken call with a vendor answering, a real Claude Code session started by Pointe, a
+real phone, and Twingate end to end. The vendors' code is the same as on a Mac.</p>
+<h2 id="install">Install</h2>
+<p>You need <code>curl</code>, and for the parts below <code>tmux</code> and <code>secret-tool</code>:</p>
+<div class="dx-code"><pre><code>sudo apt install curl tmux libsecret-tools
+curl -fsSLO https://eng.ballerine.com/pointe/install.sh &amp;&amp; bash install.sh</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The installer asks <strong>1. hub</strong> or <strong>2. node</strong>. Choose hub. (<code>bash install.sh --hub</code> or <code>--node</code> answers it.) Nothing
+needs <code>sudo</code> past the packages above, and nothing starts at login. Then:</p>
+<div class="dx-code"><pre><code>pointe setup</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It asks one question, asks for your key, and starts Pointe.</p>
+<h2 id="keys">Keys</h2>
+<p>The hub needs a model key, the same as on a Mac (<a href="../install/#which-keys">Which keys</a>). On Linux the key lives in your
+<strong>login keyring</strong>, through the freedesktop Secret Service (libsecret's <code>secret-tool</code>), the Linux equivalent of the
+Keychain:</p>
+<div class="dx-code"><pre><code>pointe key gemini</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It asks in the terminal with hidden typing, checks the key with one tiny call, and saves it in your login keyring. The
+key goes to <code>secret-tool</code> on its standard input, never on a command line, and never into a file. Pointe reads it from
+the keyring each time it starts. <code>pointe uninstall</code> removes it.</p>
+<p>The login keyring is open while you are logged in to the desktop (GNOME, KDE and others run a Secret Service). Over SSH
+it works while you are also logged in at the desktop. A locked keyring cannot be read, and Pointe does not wait for it.</p>
+<p><strong>With no keyring</strong> (a server with no desktop, CI), give the key in the environment of the one command that starts
+Pointe, from your own secret store:</p>
+<div class="dx-code"><pre><code>GOOGLE_API_KEY=&quot;$(&lt;command that prints it&gt;)&quot; pointe restart</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The environment wins over the keyring. Do not put a key in a file, in <code>~/.bashrc</code>, or in an <code>export</code> that every program
+inherits. The variables are <code>GOOGLE_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>, <code>SONIOX_API_KEY</code> and
+<code>ELEVENLABS_API_KEY</code>. Pointe passes none of them to the programs it starts.</p>
+<h2 id="where-you-talk">Where you talk</h2>
+<p>The hub needs no microphone of its own. You talk from one of these:</p>
+<ul>
+<li><strong>The hub's own desktop:</strong> <code>pointe open</code> opens the page in the browser. Use Chrome or Chromium.</li>
+<li><strong>Your phone:</strong> the Pointe iPhone app, or the phone's browser. First make the hub reachable (below).</li>
+<li><strong>Another computer's browser:</strong> after the hub is reachable, <code>pointe pair link</code> on the hub prints an address and a
+  QR. Open it once in that browser. It holds a secret: send it only to yourself.</li>
+</ul>
+<h2 id="reach-it-from-other-devices">Reach it from other devices</h2>
+<p>Pick one route (<a href="../phone/">Connect your phone</a> has the details, the same on Linux):</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Route</th>
+<th>On the hub</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tailscale</td>
+<td><code>pointe pair tailscale</code></td>
+<td>Tailscale on the hub and the phone, same account</td>
+</tr>
+<tr>
+<td>Same network</td>
+<td><code>pointe pair wifi</code></td>
+<td>Listens on the hub's private address on its default route (wired or Wi-Fi). Pair again if it changes</td>
+</tr>
+<tr>
+<td>Twingate</td>
+<td><code>pointe pair host &lt;alias&gt;</code></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table></div>
+<p>Or on the hub's page: <strong>Settings → Phone → Connect your phone</strong>. It lists the routes it finds and shows the QR.</p>
+<p><strong>Twingate.</strong> A Twingate connector must reach the hub's listener (port 7443). Two ways:</p>
+<ul>
+<li>
+<p><strong>Connector on the hub, sharing its network</strong> (simplest). Copy the connector's <code>docker run</code> command from the Twingate
+  console, then run Pointe's <code>bin/voice-connector</code>. It reads the command from the clipboard (<code>wl-paste</code>, <code>xclip</code> or
+  <code>xsel</code>), or lets you paste it when there is no clipboard, and starts the container with <code>--network host</code>. Give the
+  resource the address <code>127.0.0.1</code>, port TCP 7443, and an alias such as <code>pointe.example.internal</code>. Then
+  <code>pointe pair host pointe.example.internal</code>.</p>
+</li>
+<li>
+<p><strong>Connector in Docker's default bridge network</strong> (the console's own command). It reaches the hub at the bridge's
+  address, usually <code>172.17.0.1</code>, not <code>127.0.0.1</code>. Run <code>pointe pair host pointe.example.internal --listen docker</code>, and
+  give the resource the address <code>172.17.0.1</code>, port TCP 7443. <code>pointe pair host</code> says so when it finds such a
+  connector. The listener then also answers other containers on that bridge; pairing still guards it.</p>
+</li>
+</ul>
+<h2 id="your-sessions">Your sessions</h2>
+<p><strong>Claude Code.</strong> Install the current plugin, then run <code>/pointe:voice</code> in each session:</p>
+<div class="dx-code"><pre><code>claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The plugin also reads permission prompts out loud and takes a spoken yes. Without the plugin, use <strong>Add sessions</strong> on
+the page, or say "connect to all open Claude Code sessions": Pointe joins the Claude Code sessions that are open, and their permission prompts
+stay in their terminals.</p>
+<p><strong>An older plugin.</strong> A Pointe plugin from an older marketplace (for example <code>pointe@ballerine</code>, a 0.1 release) next to a
+newer Pointe breaks <code>/pointe:voice</code>. <code>pointe doctor</code> and <code>install.sh</code> name it and print the commands to remove it. In
+short:</p>
+<div class="dx-code"><pre><code>claude plugin uninstall pointe@ballerine
+claude plugin marketplace add https://github.com/ballerine-io/pointe.git &amp;&amp; claude plugin install pointe@pointe</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Then restart your Claude Code sessions.</p>
+<p><strong>OpenCode and Codex:</strong> <code>pointe join opencode</code> or <code>pointe join codex</code> in the session's folder.</p>
+<p><strong>New sessions from the voice.</strong> "Start a session in shop" opens Claude Code in a <strong>tmux</strong> window on the hub, in the
+tmux session <code>pointe</code>. See it with <code>tmux attach -t pointe</code>; each started session has its own window. tmux, not a
+desktop terminal, because Pointe runs in the background, often with no screen (over SSH), and a tmux window stays when
+a terminal closes. Without tmux, Pointe says so: start <code>claude</code> yourself and run <code>/pointe:voice</code> in it. A new Claude
+Code session skips permission prompts by default (<a href="../features/new-session/">New session</a>).</p>
+<p><strong>Session names.</strong> A session that joins with <code>/pointe:voice</code> is named after its folder, with the git branch when it
+has one: a session in <code>~/alon-pointe</code> with no branch is <code>alon-pointe</code>. Rename it by voice ("rename it to shop").</p>
+<h2 id="other-machines-and-other-people">Other machines, and other people</h2>
+<p>Pointe is made for <strong>one person's voice</strong>. These shapes are supported:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Shape</th>
+<th>How</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Your other machines' sessions in your call</td>
+<td>Each runs as a node: <code>pointe hub invite</code> on the hub, <code>pointe node join '&lt;line&gt;'</code> on the machine</td>
+<td>A node has one hub. The hub's owner approves the node's prompts</td>
+</tr>
+<tr>
+<td>Several phones</td>
+<td>Each pairs with its own key: Settings → Phone, again for each</td>
+<td>One call at a time</td>
+</tr>
+<tr>
+<td>Several browsers</td>
+<td><code>pointe pair link</code>, opened once in each</td>
+<td>They share one pairing secret; <code>pointe pair rotate</code> signs all out</td>
+</tr>
+<tr>
+<td>Taking turns</td>
+<td>A second phone or browser that calls while a call is up is refused ("a call is already up")</td>
+<td>Not at the same time</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Not supported: two people talking to the same hub at once.</strong> Everyone paired with a hub acts as its owner: they hear
+every session's reports and can send to any session and approve its prompts. Pair only your own devices, and give each
+person their own hub. A colleague's machine can be a node of your hub only if you are the one who voices it.</p>
+<p><strong>What multi-person use would take.</strong> The hub keeps one call: one conversation, one active session, one voice lock and
+one set of vendor keys. Several people at once would need a call per person, each with its own conversation and state;
+a person behind each phone, browser and node, with who may send to and approve which session; approvals recorded by
+person; a voice lock per person; and reports sent only to the person who owns the session. That is a redesign of the
+daemon's state, not a setting. One hub per person is the supported way.</p>
+<h2 id="limits-on-linux">Limits on Linux</h2>
+<ul>
+<li>
+<p><strong>Local models.</strong> <code>pointe local</code> and "Voice stays local" need an Apple-silicon Mac. On Linux, local roles can be set
+  by hand (<a href="../features/local/">Local</a>); not measured.</p>
+</li>
+<li>
+<p><strong>The page and the CLI say "Mac"</strong> in many places. On a Linux hub they mean this machine.</p>
+</li>
+<li><strong>No Mac app, and the iPhone app is built on a Mac.</strong> The phone's browser needs nothing built.</li>
+<li><strong>Idle and power checks</strong> (sleep, battery) are macOS only; on Linux they are off.</li>
+<li><strong>Nothing starts at login.</strong> <code>pointe open</code> or <code>/pointe:voice</code> starts the hub when needed.</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/linux.md">docs/linux.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../mac-app/"><span class="pg-small">Previous</span>The Mac app</a><a class="dx-next" href="../phone/"><span class="pg-small">Next</span>Connect your phone</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#install">Install</a></li>
+<li class="dx-l2"><a href="#keys">Keys</a></li>
+<li class="dx-l2"><a href="#where-you-talk">Where you talk</a></li>
+<li class="dx-l2"><a href="#reach-it-from-other-devices">Reach it from other devices</a></li>
+<li class="dx-l2"><a href="#your-sessions">Your sessions</a></li>
+<li class="dx-l2"><a href="#other-machines-and-other-people">Other machines, and other people</a></li>
+<li class="dx-l2"><a href="#limits-on-linux">Limits on Linux</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../">Pointe</a>
+      <a href="../">Docs</a>
+      <a href="../../roadmap/">Roadmap</a>
+      <a href="../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

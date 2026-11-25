@@ -38,7 +38,7 @@ You:     Yes.
 
 ## Install
 
-Beta, macOS only. Setup takes about five minutes and is free with one Google AI Studio key.
+Beta, for macOS, and for Linux as a hub ([Linux](docs/linux.md)). Setup takes about five minutes and is free with one Google AI Studio key.
 
 1. **Mac.** Download [Pointe.dmg](https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg) from
    [Releases](https://github.com/ballerine-io/pointe/releases/latest) or the
@@ -95,7 +95,10 @@ More: [docs/architecture.md](docs/architecture.md) and [docs/how-it-works.md](do
 ## Limits
 
 - **Beta.** A small team uses it every day. Expect rough edges.
-- **macOS only.** On Linux the daemon starts, but no real call has been made there. No Windows.
+- **macOS, or Linux as a hub.** A Linux hub was tested in containers (install, keys, page, a session, pairing, a
+  node), but no whole spoken call has been measured there ([Linux](docs/linux.md)). No Windows.
+- **One person's voice.** Everyone paired with a hub acts as its owner, and one call runs at a time. Give each person
+  their own hub.
 - **You bring the model keys.** A Claude subscription cannot run Pointe's own models. A paid key costs about $1 for a
   busy hour of talk. Fully local mode needs a 32 GB Mac and is slower and less accurate.
 - **Claude Code cannot be interrupted from outside.** "Stop" ends its turn at the next tool step, and a command that is

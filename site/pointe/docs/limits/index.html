@@ -53,6 +53,7 @@
 <li><a href="../getting-started/">Getting started</a></li>
 <li><a href="../install/">Install Pointe</a></li>
 <li><a href="../mac-app/">The Mac app</a></li>
+<li><a href="../linux/">A Linux hub</a></li>
 </ul>
 <p class="dx-nav-h">Connect your phone</p>
 <ul>
@@ -134,7 +135,13 @@
   command that is already running finishes first. Codex and OpenCode stop at once: <a href="../harnesses/">Harnesses</a>.</p>
 </li>
 <li>
-<p><strong>macOS only.</strong> On Linux the daemon starts, but no real call has been made there. Windows is not supported.</p>
+<p><strong>macOS, or Linux as a hub.</strong> A Linux hub was tested in Ubuntu containers: the install, keys in the login keyring,
+  the page, a session, a call's microphone audio reaching the hub, pairing and a node. A whole spoken call with a vendor,
+  a real phone and Twingate were not tested on Linux: <a href="../linux/">Linux</a>. Windows is not supported.</p>
+</li>
+<li>
+<p><strong>One person's voice.</strong> Everyone paired with a hub (phones, browsers, nodes) acts as its owner, and one call runs at a
+  time: a second caller is refused while one talks. Give each person their own hub (<a href="../linux/#other-machines-and-other-people">why</a>).</p>
 </li>
 <li>
 <p><strong>The Mac app</strong> is <code>Pointe.dmg</code>, signed with Developer ID and notarized, the image and the app in it

@@ -53,6 +53,7 @@
 <li><a href="../../getting-started/">Getting started</a></li>
 <li><a href="../../install/">Install Pointe</a></li>
 <li><a href="../../mac-app/">The Mac app</a></li>
+<li><a href="../../linux/">A Linux hub</a></li>
 </ul>
 <p class="dx-nav-h">Connect your phone</p>
 <ul>
@@ -124,6 +125,8 @@ Twingate connector runs on the Mac, in Docker, and forwards that name to Pointe'
 open on the Wi-Fi or the internet. The iPhone app was tested on a real iPhone over this route.</p>
 <p>You need a Twingate network you can administer, Docker on the Mac (this guide uses Colima), and
 the Twingate client on the iPhone, signed in.</p>
+<p>On a Linux hub the connector shares the machine's network, or sits on Docker's bridge with
+<code>pointe pair host &lt;alias&gt; --listen docker</code>: <a href="../../linux/#reach-it-from-other-devices">Linux</a>.</p>
 <h2 id="set-it-up">Set it up</h2>
 <h3 id="1-docker-on-the-mac">1. Docker on the Mac</h3>
 <p>With Homebrew:</p>

@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Machines: one voice over sessions on several machines · Pointe docs</title>
-<meta name="description" content="Your sessions do not all run on the Mac with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the Mac that holds the call,…">
+<meta name="description" content="Your sessions do not all run on the machine with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the machine that holds…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Machines: one voice over sessions on several machines">
-<meta property="og:description" content="Your sessions do not all run on the Mac with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the Mac that holds the call,…">
+<meta property="og:description" content="Your sessions do not all run on the machine with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the machine that holds…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/multi-machine/">
 <meta name="twitter:card" content="summary_large_image">
@@ -53,6 +53,7 @@
 <li><a href="../getting-started/">Getting started</a></li>
 <li><a href="../install/">Install Pointe</a></li>
 <li><a href="../mac-app/">The Mac app</a></li>
+<li><a href="../linux/">A Linux hub</a></li>
 </ul>
 <p class="dx-nav-h">Connect your phone</p>
 <ul>
@@ -119,16 +120,17 @@
 <main id="main" class="dx-main">
 <article class="dx-doc">
 <h1 id="machines-one-voice-over-sessions-on-several-machines">Machines: one voice over sessions on several machines</h1>
-<p>Your sessions do not all run on the Mac with the call. Some run on another Mac, a Linux host or a VM. Pair those
-machines with the Mac that holds the call, and their sessions join the same voice: you hear their reports, send to them,
-approve their prompts, and always see which machine each one is on.</p>
-<p>The Mac with the call is the <strong>hub</strong>. Each other machine runs a small Pointe called a <strong>node</strong>. A node has no
+<p>Your sessions do not all run on the machine with the call. Some run on another Mac, a Linux host or a VM. Pair those
+machines with the machine that holds the call, and their sessions join the same voice: you hear their reports, send to
+them, approve their prompts, and always see which machine each one is on.</p>
+<p>The machine with the call is the <strong>hub</strong>: a Mac, or a Linux machine (<a href="../linux/">Linux</a>). Each other machine runs a small
+Pointe called a <strong>node</strong>. A node has no
 microphone, no speaker, no models and no keys. It watches its own sessions, types your requests into them and holds
 their permission prompts. The design and the reasons: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/multi-machine.md">design/multi-machine.md</a>.</p>
 <h2 id="set-it-up">Set it up</h2>
 <ol>
 <li>
-<p><strong>On the hub</strong>, make the Mac reachable, as for the phone: <code>pointe pair tailscale</code>, <code>pointe pair wifi</code> or
+<p><strong>On the hub</strong>, make it reachable, as for the phone: <code>pointe pair tailscale</code>, <code>pointe pair wifi</code> or
    <code>pointe pair host &lt;name&gt;</code>. A node reaches the same listener the phone does.</p>
 </li>
 <li>
@@ -158,7 +160,7 @@ their permission prompts. The design and the reasons: <a href="https://github.co
 </li>
 </ol>
 <p>A Linux node needs <code>uv</code> and either <code>lsof</code> or <code>ss</code> (from iproute2): <code>pointe node join</code> checks and says what to install.
-A node does not install the voice models.</p>
+A node does not install the voice models: on Linux, <code>bash install.sh --node</code> installs it without them.</p>
 <h2 id="use-it">Use it</h2>
 <p><strong>On the screens.</strong> With one machine, nothing changes. With more than one, on the page and in the app:</p>
 <ul>
@@ -324,8 +326,13 @@ there and restart it: each node takes the new name at its next link. A node's na
   shows as the node's adapter reports it.</p>
 </li>
 <li>
-<p><strong>No new session on a node from the hub.</strong> Pointe starts sessions only on the hub's own Mac
-  (<a href="../features/new-session/">features/new-session.md</a>). On a node, start the agent there and join it.</p>
+<p><strong>No new session on a node from the hub.</strong> Pointe starts sessions only on the hub itself: in a terminal window on a
+  Mac, in tmux on Linux (<a href="../features/new-session/">features/new-session.md</a>). On a node, start the agent there and join
+  it.</p>
+</li>
+<li>
+<p><strong>One owner.</strong> A node's sessions are voiced, and its prompts approved, by the hub's owner. Pair machines you own, not
+  a colleague's: each person runs their own hub (<a href="../linux/#other-machines-and-other-people">Linux</a>).</p>
 </li>
 <li>
 <p><strong>"By the way" questions</strong> about a session on a node are answered from its transcript, not from a forked copy.</p>

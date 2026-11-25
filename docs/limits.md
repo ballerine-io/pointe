@@ -8,7 +8,11 @@ What does not work yet, and what was not measured. Each feature page lists its o
   use, or a 32 GB Mac for fully local mode: [Which keys](install.md#which-keys).
 - **Claude Code cannot be interrupted from outside.** "Stop" ends a Claude Code turn at its next tool step, and a
   command that is already running finishes first. Codex and OpenCode stop at once: [Harnesses](harnesses.md).
-- **macOS only.** On Linux the daemon starts, but no real call has been made there. Windows is not supported.
+- **macOS, or Linux as a hub.** A Linux hub was tested in Ubuntu containers: the install, keys in the login keyring,
+  the page, a session, a call's microphone audio reaching the hub, pairing and a node. A whole spoken call with a vendor,
+  a real phone and Twingate were not tested on Linux: [Linux](linux.md). Windows is not supported.
+- **One person's voice.** Everyone paired with a hub (phones, browsers, nodes) acts as its owner, and one call runs at a
+  time: a second caller is refused while one talks. Give each person their own hub ([why](linux.md#other-machines-and-other-people)).
 - **The Mac app** is `Pointe.dmg`, signed with Developer ID and notarized, the image and the app in it
   ([how](mac-app.md#getting-it)). Its
   first-launch install ran for real into an empty home folder, through the same installer code, but has not yet been

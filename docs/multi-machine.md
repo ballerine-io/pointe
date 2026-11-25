@@ -1,16 +1,17 @@
 # Machines: one voice over sessions on several machines
 
-Your sessions do not all run on the Mac with the call. Some run on another Mac, a Linux host or a VM. Pair those
-machines with the Mac that holds the call, and their sessions join the same voice: you hear their reports, send to them,
-approve their prompts, and always see which machine each one is on.
+Your sessions do not all run on the machine with the call. Some run on another Mac, a Linux host or a VM. Pair those
+machines with the machine that holds the call, and their sessions join the same voice: you hear their reports, send to
+them, approve their prompts, and always see which machine each one is on.
 
-The Mac with the call is the **hub**. Each other machine runs a small Pointe called a **node**. A node has no
+The machine with the call is the **hub**: a Mac, or a Linux machine ([Linux](linux.md)). Each other machine runs a small
+Pointe called a **node**. A node has no
 microphone, no speaker, no models and no keys. It watches its own sessions, types your requests into them and holds
 their permission prompts. The design and the reasons: [design/multi-machine.md](design/multi-machine.md).
 
 ## Set it up
 
-1. **On the hub**, make the Mac reachable, as for the phone: `pointe pair tailscale`, `pointe pair wifi` or
+1. **On the hub**, make it reachable, as for the phone: `pointe pair tailscale`, `pointe pair wifi` or
    `pointe pair host <name>`. A node reaches the same listener the phone does.
 2. **Make a one-time code** on the hub, in any of three places:
    - `pointe hub invite` in a terminal. It prints the whole line to paste.
@@ -34,7 +35,7 @@ their permission prompts. The design and the reasons: [design/multi-machine.md](
    `pointe join codex` in a folder.
 
 A Linux node needs `uv` and either `lsof` or `ss` (from iproute2): `pointe node join` checks and says what to install.
-A node does not install the voice models.
+A node does not install the voice models: on Linux, `bash install.sh --node` installs it without them.
 
 ## Use it
 
@@ -129,8 +130,11 @@ there and restart it: each node takes the new name at its next link. A node's na
   Claude Code session there is not reopened from the hub (it needs a terminal on that machine); Codex and OpenCode ones
   are. The read-back says when a node session's approvals stay in its terminal; after it joins, its approvals capability
   shows as the node's adapter reports it.
-- **No new session on a node from the hub.** Pointe starts sessions only on the hub's own Mac
-  ([features/new-session.md](features/new-session.md)). On a node, start the agent there and join it.
+- **No new session on a node from the hub.** Pointe starts sessions only on the hub itself: in a terminal window on a
+  Mac, in tmux on Linux ([features/new-session.md](features/new-session.md)). On a node, start the agent there and join
+  it.
+- **One owner.** A node's sessions are voiced, and its prompts approved, by the hub's owner. Pair machines you own, not
+  a colleague's: each person runs their own hub ([Linux](linux.md#other-machines-and-other-people)).
 - **"By the way" questions** about a session on a node are answered from its transcript, not from a forked copy.
 - **Show while it says** does not show files from a node yet, and **Challenge me** leaves a node's diffs out of its
   evidence and says so.

@@ -9,6 +9,7 @@ Claude Code, OpenCode and Codex, and runs on your Mac with your own model keys, 
 - [Getting started](getting-started.md): install, the first setup, the first call, and what joining a session means.
 - [Install](install.md): what Pointe installs, the free and cheap ways in, and how to remove it.
 - [The Mac app](mac-app.md): the call in the menu bar and a native window.
+- [Linux](linux.md): a Linux machine as the hub, keys in the login keyring, reaching it, and who can connect.
 - [Compared to other tools](comparison.md): Happy, Paseo, the built-in voices and the phone remotes, and where Pointe differs.
 - [Limits](limits.md): what does not work yet, and what was not measured.
 

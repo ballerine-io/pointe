@@ -7,6 +7,9 @@ open on the Wi-Fi or the internet. The iPhone app was tested on a real iPhone ov
 You need a Twingate network you can administer, Docker on the Mac (this guide uses Colima), and
 the Twingate client on the iPhone, signed in.
 
+On a Linux hub the connector shares the machine's network, or sits on Docker's bridge with
+`pointe pair host <alias> --listen docker`: [Linux](../linux.md#reach-it-from-other-devices).
+
 ## Set it up
 
 ### 1. Docker on the Mac
