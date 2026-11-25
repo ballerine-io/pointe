@@ -85,9 +85,9 @@ def test_a_cut_with_no_words_after_it_resumes_the_reply(d, monkeypatch):  # noqa
     assert spoken == ["The staging deploy stays blocked until they pass."]
 
 
-@pytest.mark.parametrize("words", ["Wait, just tell me about quarry.", "Okay, stop.", "Enough."])
+@pytest.mark.parametrize("words", ["Wait, just tell me about lantern.", "Okay, stop.", "Enough."])
 def test_real_words_take_the_turn_and_nothing_is_resumed(d, monkeypatch, words):  # noqa: F811
-    front, spoken, asked, tasks_done = _rig(d, monkeypatch, ["Quarry is idle."])
+    front, spoken, asked, tasks_done = _rig(d, monkeypatch, ["Lantern is idle."])
 
     async def run():
         await _cut_mid_reply(d, front, spoken, heard_secs=3.0)
@@ -119,7 +119,7 @@ def test_a_yes_over_a_question_of_pointes_answers_it(d, monkeypatch):  # noqa: F
 
     async def run():
         d.state.last_utterance, d.state.last_user_speech_at = "Check the tests.", time.time() - 10
-        await front._speak("Billing or quarry has tests like that. Do you want me to ask billing to run them now?")
+        await front._speak("Billing or lantern has tests like that. Do you want me to ask billing to run them now?")
         front._speaking = True
         front._spoke_since = time.time() - 3.5
         front._interrupted()  # what an InterruptionFrame does here

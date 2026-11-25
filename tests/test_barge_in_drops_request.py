@@ -1,8 +1,8 @@
 """A barge-in drops the request it replaced.
 
 From the independent tester's second round (bar-01): the user asked for a rundown of every session, then cut in with
-"Wait, wait. Just tell me about quarry." The turn they talked over went on: its sends, still passing their checks, were
-delivered to billing once and to quarry twice, after the barge-in. A send made for a turn the user talked over now
+"Wait, wait. Just tell me about lantern." The turn they talked over went on: its sends, still passing their checks, were
+delivered to billing once and to lantern twice, after the barge-in. A send made for a turn the user talked over now
 waits to learn what they said: new words drop it, an acknowledgement or a noise does not.
 
 uv run pytest -q tests/test_barge_in_drops_request.py
@@ -56,19 +56,19 @@ def test_a_send_is_dropped_when_the_user_cut_in_and_said_something_new(monkeypat
             delivered.append(params.arguments["message"])
         await params.result_callback({"error": "Not sent"} if gone else {"sent_to": "billing"})
 
-    b, said = _brain(monkeypatch, [_send("Give a full rundown."), _speak("Quarry is idle.")], tool)
+    b, said = _brain(monkeypatch, [_send("Give a full rundown."), _speak("Lantern is idle.")], tool)
 
     async def call():
         first = asyncio.ensure_future(b.turn("Give me a full rundown of everything."))
         await asyncio.sleep(0.05)
         b.interrupt()  # the barge-in
         await asyncio.sleep(0.3)
-        await b.turn("Wait, wait. Just tell me about quarry.")  # their new words
+        await b.turn("Wait, wait. Just tell me about lantern.")  # their new words
         await first
 
     asyncio.run(call())
     assert verdicts == [True] and delivered == []
-    assert said == ["Quarry is idle."]  # the new words are the only turn answered
+    assert said == ["Lantern is idle."]  # the new words are the only turn answered
 
 
 def test_a_cut_with_no_words_after_it_does_not_drop_the_send(monkeypatch):

@@ -94,12 +94,12 @@ def test_an_acknowledgement_may_end_in_silence(d, monkeypatch):  # noqa: F811
 
 
 def test_new_words_from_the_user_end_the_watch_on_the_old_ones(d, monkeypatch):  # noqa: F811
-    front, spoken, asked, say = _call(d, monkeypatch, [0.05, "Quarry is idle."])
+    front, spoken, asked, say = _call(d, monkeypatch, [0.05, "Lantern is idle."])
 
     async def run():
         first = asyncio.ensure_future(say("What is billing doing?"))
         await asyncio.sleep(0.1)
-        d.state.last_utterance, d.state.last_user_speech_at = "And quarry?", time.time()  # they went on
+        d.state.last_utterance, d.state.last_user_speech_at = "And lantern?", time.time()  # they went on
         await first
 
     asyncio.run(run())

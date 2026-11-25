@@ -56,6 +56,7 @@ allowlist.
 | `api.soniox.com` | One GET of the models list, to tell whether a saved key works; a redirect is not followed | `pointe key check soniox` only |
 | `huggingface.co`, `us.aws.cdn.hf.co`, `cas-server.xethub.hf.co` | model downloads at the pinned revisions (`huggingface_hub`, `hf-xet`); the second and third are where Hugging Face redirects a file | `pointe local`, `pointe local voice`, first use of `ears: local` |
 | `github.com`, `release-assets.githubusercontent.com` | Kokoro v1.0 and ERes2Net release assets; the `en-core-web-sm` wheel; uv's binaries; Pointe's release tarball and its `.sha256`, and the `/releases/latest` redirect | first use of `mouth: local`, the voice lock; `uv sync --extra local`; `bin/install-uv`; the standalone installer (install.sh) and `pointe update` |
+| `download.tensorflow.org`, `groups.inf.ed.ac.uk` | recorded human speech for the benchmarks: the Speech Commands test set and the AMI corpus annotations, each checked against a pinned SHA-256 | `bench/conversational/dialogues/run.py human`, `bench/human_turns.py fetch`, run by a maintainer; never by the plugin |
 | `api.github.com` | the roadmap issues and their 👍 counts, through `gh api` | `tools/roadmap.py` (`site/deploy.sh --roadmap`), run by a maintainer; never by the plugin |
 | `astral.sh`, `releases.astral.sh` | the pinned uv installer | `bin/install-uv`, when uv is missing |
 | `pypi.org`, `files.pythonhosted.org` | Python packages, by hash | `uv sync --locked` |

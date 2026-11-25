@@ -27,6 +27,8 @@ api.soniox.com             pointe key check soniox: one GET of the models list, 
 # models, at the commits and hashes pinned in assets.py. Hugging Face and GitHub pick the hosts a download is redirected
 # to; tests/e2e/egress_redirects.py fetches through a recording proxy and fails on a host that is not here.
 huggingface.co             model repositories (huggingface_hub, mlx-whisper, mlx-audio, faster-whisper; bench)
+download.tensorflow.org    the Speech Commands test set, for the recorded-human approval dialogues (bench only: dialogues/human.py)
+groups.inf.ed.ac.uk        the AMI Meeting Corpus annotations, for the recorded-human turn clips (bench only: bench/human_turns.py)
 us.aws.cdn.hf.co           model files: where huggingface.co redirects a file download (huggingface_hub, hf-xet)
 cas-server.xethub.hf.co    model files: the Xet storage that hf-xet reads a file's chunks from (hf-xet)
 github.com                 release assets: Kokoro v1.0, the speaker model (assets.py); the en-core-web-sm wheel (uv); uv's binaries (bin/install-uv); Pointe's own release tarball, its .sha256 and the /releases/latest redirect (install.sh, pointe update); links in the page and the site
