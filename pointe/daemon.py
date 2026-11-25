@@ -1729,10 +1729,11 @@ OVERVIEW_QUESTION = ("Where does your work stand right now, and what is the next
 OVERVIEW_MAX_SESSIONS = 5  # more sessions than this and the answer is from the notes, as before
 OVERVIEW_WAIT_SECS = 25.0  # a session's copy slower than this is left out of the answer, by name
 OVERVIEW_AGAIN_SECS = 90.0  # asked again this soon, the answer is the one just given: the model has it
-_EVERY_SESSION = re.compile(r"\b(?:each|every|all (?:of )?(?:the |my )?) ?sessions?\b|\ball (?:of )?(?:them|the sessions)\b|"
-                            r"\beverywhere\b|\bacross (?:all|the) |(?<![֐-׿])(?:ב?כל הסשנים|בכל מקום|כולם)(?![֐-׿])", re.I)
+_EVERY_SESSION = re.compile(r"\b(?:each|every|all (?:of )?(?:the |my )?|both(?: (?:of )?the)?) ?sessions?\b|"
+                            r"\ball (?:of )?(?:them|the sessions)\b|\bboth of them\b|"
+                            r"\beverywhere\b|\bacross (?:all|the) |(?<![֐-׿])(?:ב?כל ה-?(?:סשנים|sessions)|בכל מקום|כולם|שני ה-?(?:סשנים|sessions)|שניהם)(?![֐-׿])", re.I)
 _OVERVIEW_ASK = re.compile(r"\b(?:status|rundown|overview|update|what'?s (?:going on|happening|up)|how (?:are|is) (?:things|"
-                           r"it|they) going|where (?:do|does) (?:things|it|they) stand)\b|(?<![֐-׿])(?:מה קורה|מה המצב|סטטוס)(?![֐-׿])", re.I)
+                           r"it|they) going|where (?:do|does) (?:things|it|they) stand)\b|(?<![֐-׿])(?:מה קורה|מה המצב|סטטוס|סקירה|עדכון)(?![֐-׿])", re.I)
 
 
 def _overview_sessions(said: str) -> list[Session]:

@@ -51,7 +51,10 @@ def _three(d, monkeypatch, slow: str | None = None):  # noqa: F811
 
 
 @pytest.mark.parametrize("words", ["What's going on everywhere?", "Give me a full rundown of everything that's happening "
-                                   "across all the sessions.", "What's the status of each session?", "מה קורה בכל הסשנים?"])
+                                   "across all the sessions.", "What's the status of each session?", "מה קורה בכל הסשנים?",
+                                   # t3-03 in tester round 4: "a detailed overview of both sessions" went to the notes
+                                   "תן לי סקירה מפורטת של כל ה-sessions, כל מה שאתה יודע על כל אחד.",
+                                   "Give me an overview of all of them."])
 def test_a_question_about_every_session_asks_every_session(d, monkeypatch, words):  # noqa: F811
     front, spoken, asked, say, questions = _three(d, monkeypatch)
     assert [s.name for s in d._overview_sessions(words)] == ["billing", "lantern", "harbor"]
@@ -199,3 +202,10 @@ def test_when_the_user_moved_on_no_failure_line_is_said_either(d, monkeypatch): 
 
     asyncio.run(run())
     assert not any("answered just now" in s for s in spoken)
+
+
+@pytest.mark.parametrize("words", ["Give me a rundown of both sessions.", "תן לי סקירה של שני ה-sessions."])
+def test_both_of_two_sessions_is_every_session(d, monkeypatch, words):  # noqa: F811
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    d.REGISTRY.sessions.pop("s3")
+    assert [s.name for s in d._overview_sessions(words)] == ["billing", "lantern"]
