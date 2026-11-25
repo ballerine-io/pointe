@@ -166,7 +166,7 @@ git push origin vX.Y.Z</code></pre><button class="dx-copy" type="button" hidden>
 mistake gets a new patch version.</p>
 <h2 id="4-the-github-release">4. The GitHub Release</h2>
 <div class="dx-code"><pre><code>python3 tools/release_tarball.py build vX.Y.Z          # dist/pointe-X.Y.Z.tar.gz and .sha256, a git archive of the tag
-gh release create vX.Y.Z --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
+gh release create vX.Y.Z --prerelease --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
 python3 tools/release_tarball.py pin vX.Y.Z            # install.sh installs it: the version and the SHA-256 the release publishes</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Commit the pinned <code>install.sh</code> on its own ("The installer pins X.Y.Z"; it changes only <code>POINTE_VERSION</code> and
 <code>POINTE_SHA256</code> in it and the same file's SHA-256 in <code>apps/PointeKit/Sources/PointeMacKit/Installer.swift</code>, which <code>pin</code>
@@ -188,11 +188,18 @@ image again from an app already notarized, without a new archive.</p>
 <p><code>--upload</code> also attaches the same image as <code>Pointe.dmg</code>, which every release must carry: the site links
 <code>https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg</code>. If a release went out with the wrong
 <code>Pointe.dmg</code> (0.8.2's first held the 0.8.1 app), replace that copy alone with <code>gh release upload vX.Y.Z Pointe.dmg
-Pointe.dmg.sha256 --clobber</code>; the versioned <code>Pointe-X.Y.Z.dmg</code> is never replaced. Then set <code>mac</code> in
+Pointe.dmg.sha256 --clobber</code>; the versioned <code>Pointe-X.Y.Z.dmg</code> is never replaced.</p>
+<p><strong>Never Latest before the disk image.</strong> The release is created as a prerelease (<code>--prerelease</code> above) and stays one
+until <code>Pointe-X.Y.Z.dmg</code>, <code>Pointe.dmg</code> and their <code>.sha256</code> are attached and checked. <code>releases/latest/download/Pointe.dmg</code>
+follows whichever release is Latest, so a Latest release without its image makes the site's download a 404 (0.8.7 was
+published that way and was set back). Then promote it:</p>
+<div class="dx-code"><pre><code>gh release edit vX.Y.Z --prerelease=false --latest</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>and check the link anonymously (<code>curl -sIL &lt;url&gt;</code> ends in 200) and the downloaded file's SHA-256 against the
+release's <code>.sha256</code>. Then set <code>mac</code> in
 <code>site/pointe/apps.json</code> to <code>"status": "open"</code> with that <code>download_url</code>, this <code>version</code> and the image's <code>size</code> in
-decimal megabytes, as Finder and browsers show it (<code>stat -f %z</code> divided by 1,000,000: "4.5 MB"); the hero, the top
-nav and the install card follow it (<code>tools/apps_status.py</code>). Deploy the site, and check the link anonymously
-(<code>curl -sIL &lt;url&gt;</code> ends in 200) and the downloaded file's SHA-256 against the release's <code>.sha256</code>.</p>
+decimal megabytes, as Finder and browsers show it (<code>stat -f %z</code> divided by 1,000,000, rounded to one decimal:
+4,572,523 bytes is "4.6 MB"); the hero, the top
+nav and the install card follow it (<code>tools/apps_status.py</code>). Deploy the site, and check its hero line.</p>
 <p>In CI the <code>mac-release</code> workflow does the same on a published release when its environment holds the signing secrets
 (<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
 <code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>.</p>

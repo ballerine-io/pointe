@@ -59,7 +59,7 @@ mistake gets a new patch version.
 
 ```
 python3 tools/release_tarball.py build vX.Y.Z          # dist/pointe-X.Y.Z.tar.gz and .sha256, a git archive of the tag
-gh release create vX.Y.Z --title "Pointe X.Y.Z" --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
+gh release create vX.Y.Z --prerelease --title "Pointe X.Y.Z" --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
 python3 tools/release_tarball.py pin vX.Y.Z            # install.sh installs it: the version and the SHA-256 the release publishes
 ```
 
@@ -90,11 +90,23 @@ Check before attaching: `spctl -a -vvv -t install` on the image and `spctl -a -v
 `--upload` also attaches the same image as `Pointe.dmg`, which every release must carry: the site links
 `https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg`. If a release went out with the wrong
 `Pointe.dmg` (0.8.2's first held the 0.8.1 app), replace that copy alone with `gh release upload vX.Y.Z Pointe.dmg
-Pointe.dmg.sha256 --clobber`; the versioned `Pointe-X.Y.Z.dmg` is never replaced. Then set `mac` in
+Pointe.dmg.sha256 --clobber`; the versioned `Pointe-X.Y.Z.dmg` is never replaced.
+
+**Never Latest before the disk image.** The release is created as a prerelease (`--prerelease` above) and stays one
+until `Pointe-X.Y.Z.dmg`, `Pointe.dmg` and their `.sha256` are attached and checked. `releases/latest/download/Pointe.dmg`
+follows whichever release is Latest, so a Latest release without its image makes the site's download a 404 (0.8.7 was
+published that way and was set back). Then promote it:
+
+```
+gh release edit vX.Y.Z --prerelease=false --latest
+```
+
+and check the link anonymously (`curl -sIL <url>` ends in 200) and the downloaded file's SHA-256 against the
+release's `.sha256`. Then set `mac` in
 `site/pointe/apps.json` to `"status": "open"` with that `download_url`, this `version` and the image's `size` in
-decimal megabytes, as Finder and browsers show it (`stat -f %z` divided by 1,000,000: "4.5 MB"); the hero, the top
-nav and the install card follow it (`tools/apps_status.py`). Deploy the site, and check the link anonymously
-(`curl -sIL <url>` ends in 200) and the downloaded file's SHA-256 against the release's `.sha256`.
+decimal megabytes, as Finder and browsers show it (`stat -f %z` divided by 1,000,000, rounded to one decimal:
+4,572,523 bytes is "4.6 MB"); the hero, the top
+nav and the install card follow it (`tools/apps_status.py`). Deploy the site, and check its hero line.
 
 In CI the `mac-release` workflow does the same on a published release when its environment holds the signing secrets
 (`.github/workflows/mac-release.yml` lists them); its token is read-only, so attach its artifact with
