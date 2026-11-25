@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session tones · Pointe docs</title>
+<meta name="description" content="With five sessions on the voice you wait for the name to know who is reporting. With session tones on, a short tone plays first, and it is the same tone for…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Session tones">
+<meta property="og:description" content="With five sessions on the voice you wait for the name to know who is reporting. With session tones on, a short tone plays first, and it is the same tone for…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/session-tones/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/session-tones/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+<li><a href="../../comparison/">Compared to other tools</a></li>
+<li><a href="../../limits/">Limits</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../mute/">Mute</a></li>
+<li><a href="../skip/">Skip</a></li>
+<li><a href="../thinking/">Thinking and the waiting sound</a></li>
+<li><a href="../progress/">Progress updates</a></li>
+<li><a href="../addressed-speech/">Only when I say Pointe</a></li>
+<li><a href="./" aria-current="page">Session tones</a></li>
+<li><a href="../approvals-record/">Approvals record</a></li>
+<li><a href="../accessibility/">Accessibility</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="session-tones">Session tones</h1>
+<p>With five sessions on the voice you wait for the name to know who is reporting. With session tones on, a short tone
+plays first, and it is the same tone for that session every time: the sound says who before the first word.</p>
+<p>Off unless you turn it on. The tones and their measure are <code>pointe/tones.py</code>; the daemon plays one ahead of a
+background session's report (<code>daemon._session_tone</code>).</p>
+<h2 id="use-it">Use it</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The page</td>
+<td>Settings → Turn taking → Session tones</td>
+</tr>
+<tr>
+<td>iPhone</td>
+<td>Settings (•••) → Session tones</td>
+</tr>
+<tr>
+<td>Mac</td>
+<td>Settings → Session tones</td>
+</tr>
+</tbody>
+</table></div>
+<p>It is one setting on the Mac. No phrase switches it.</p>
+<h2 id="what-you-hear-and-when">What you hear, and when</h2>
+<ul>
+<li>
+<p>Before the report of a session that is not the one you are talking to: in orchestrator mode, any session that
+  finishes a turn and has something for you. The session you are focused on, or whose answer you are waiting for,
+  gets no tone: its words are the reply.</p>
+</li>
+<li>
+<p>One tone, under a third of a second, at about an eighth of full scale (the waiting sound is a tenth, the chimes a
+  quarter). It is a plain sound in the call's own output, in order with the voice, so nothing that times Pointe's
+  speech takes it for speech.</p>
+</li>
+<li>
+<p>Never while Pointe is muted (drive mode holds mute, so it plays on the road), in whisper mode, in a meeting, or over
+  anyone who is talking.</p>
+</li>
+<li>
+<p>A session gets its tone at its first report and keeps it, across restarts of Pointe. It starts from a hash of the
+  session's name and moves to the next free tone when another session on the voice has that one, so sessions do not
+  share a tone until there are more than eight.</p>
+</li>
+<li>
+<p>On the screen: a session's row names its tone beside its agent ("Codex · tone: rise"), on the page and in both
+  apps, while the setting is on.</p>
+</li>
+</ul>
+<h2 id="the-eight-tones">The eight tones</h2>
+<p>Each is one to three notes of the same soft sine with its octave: rise (392 Hz 523 Hz), fall (1319 Hz 880 Hz), double (659 Hz rest 659 Hz), long (262 Hz), leap (440 Hz 880 Hz rest 1319 Hz), triple (1568 Hz rest 1568 Hz rest 1568 Hz), dip (1175 Hz 392 Hz 1175 Hz), late (rest 587 Hz rest 1046 Hz). They differ in pitch, in contour and in
+rhythm, never in loudness.</p>
+<h2 id="distinct-by-measure">Distinct, by measure</h2>
+<p>The distance between two tones is one minus the cosine likeness of their third-octave spectra, taken every 30 ms over
+the same third of a second: 0 for the same sound at any loudness, 1 for two sounds with no energy in the same band at
+the same moment. A third of an octave is about what the ear resolves as one band, so a tone moved by a semitone
+measures as nearly the same tone (the test checks that it does). No two tones may be closer than
+0.50, and no tone may be that close to another sound Pointe makes (the waiting sound, the two-note
+chime). <code>python3 -I pointe/tones.py</code> prints this table; <code>tests/test_tones.py</code> fails when it and the code differ.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th></th>
+<th>rise</th>
+<th>fall</th>
+<th>double</th>
+<th>long</th>
+<th>leap</th>
+<th>triple</th>
+<th>dip</th>
+<th>late</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>rise</td>
+<td></td>
+<td>0.97</td>
+<td>0.81</td>
+<td>0.77</td>
+<td>0.70</td>
+<td>1.00</td>
+<td>0.72</td>
+<td>0.64</td>
+</tr>
+<tr>
+<td>fall</td>
+<td>0.97</td>
+<td></td>
+<td>0.91</td>
+<td>1.00</td>
+<td>0.88</td>
+<td>0.63</td>
+<td>0.90</td>
+<td>0.93</td>
+</tr>
+<tr>
+<td>double</td>
+<td>0.81</td>
+<td>0.91</td>
+<td></td>
+<td>0.92</td>
+<td>0.99</td>
+<td>0.83</td>
+<td>0.93</td>
+<td>0.84</td>
+</tr>
+<tr>
+<td>long</td>
+<td>0.77</td>
+<td>1.00</td>
+<td>0.92</td>
+<td></td>
+<td>0.95</td>
+<td>1.00</td>
+<td>0.94</td>
+<td>0.93</td>
+</tr>
+<tr>
+<td>leap</td>
+<td>0.70</td>
+<td>0.88</td>
+<td>0.99</td>
+<td>0.95</td>
+<td></td>
+<td>0.72</td>
+<td>0.92</td>
+<td>0.97</td>
+</tr>
+<tr>
+<td>triple</td>
+<td>1.00</td>
+<td>0.63</td>
+<td>0.83</td>
+<td>1.00</td>
+<td>0.72</td>
+<td></td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>dip</td>
+<td>0.72</td>
+<td>0.90</td>
+<td>0.93</td>
+<td>0.94</td>
+<td>0.92</td>
+<td>1.00</td>
+<td></td>
+<td>0.66</td>
+</tr>
+<tr>
+<td>late</td>
+<td>0.64</td>
+<td>0.93</td>
+<td>0.84</td>
+<td>0.93</td>
+<td>0.97</td>
+<td>1.00</td>
+<td>0.66</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>The closest two are fall and triple, 0.63 apart; the threshold is 0.50.</p>
+<p><strong>What this does not show.</strong> The measure is a necessary check: it rules out two tones that are the same sound. It does
+not show that a person can name the session from the tone. The acceptance for that is a listening test (ten people,
+five minutes of use, the session named from the tone alone above 80% of the time), and that test is still owed. Until
+it is run the feature stays off by default, and nothing here says the tones are told apart by ear.</p>
+<h2 id="not-built">Not built</h2>
+<ul>
+<li>No way to hear a session's tone on demand, or to choose it.</li>
+<li>No second voice for reports.</li>
+<li>The tone is not played on a notification when no call is up.</li>
+</ul>
+<h2 id="the-tests">The tests</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Eight tones, short and quiet; no two closer than the threshold, and none close to another sound of Pointe's; the measure tells same from different; a session keeps its tone; off by default; a background report starts with the tone and the focused session's does not; nothing while muted</td>
+<td><code>tests/test_tones.py</code></td>
+</tr>
+<tr>
+<td>The page: the setting, and a row names its tone</td>
+<td><code>tests/test_tones_page.py</code></td>
+</tr>
+<tr>
+<td>The apps: the setting and the row's words</td>
+<td><code>apps/PointeKit/Tests/PointeUIUnitTests/TonesTests.swift</code></td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/session-tones.md">docs/features/session-tones.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../addressed-speech/"><span class="pg-small">Previous</span>Only when I say Pointe</a><a class="dx-next" href="../approvals-record/"><span class="pg-small">Next</span>Approvals record</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-you-hear-and-when">What you hear, and when</a></li>
+<li class="dx-l2"><a href="#the-eight-tones">The eight tones</a></li>
+<li class="dx-l2"><a href="#distinct-by-measure">Distinct, by measure</a></li>
+<li class="dx-l2"><a href="#not-built">Not built</a></li>
+<li class="dx-l2"><a href="#the-tests">The tests</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

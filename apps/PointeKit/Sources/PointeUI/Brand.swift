@@ -168,16 +168,18 @@ enum Theme: String, CaseIterable, Identifiable {
 /// hairline box read as a button, and Codex's "X" as "close this session".
 struct HarnessMark: View {
     let harness: String?
+    var tone: String? = nil  // "tone: rise": the session's sound before a report, when session tones are on (Tones.swift)
 
     var body: some View {
         let name = Harness.name(harness)
-        Text(name).font(.brand(.caption2, .medium))
+        Text(tone.map { "\(name) · \($0)" } ?? name).font(.brand(.caption2, .medium))
             .foregroundStyle(Brand.muted)
             .lineLimit(1).fixedSize()
             .help(name)
             .environment(\.layoutDirection, .leftToRight)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("runs on \(name)")
+            .accessibilityValue(tone ?? "")
             .accessibilityIdentifier("harnessMark.\((harness ?? "").isEmpty ? "claude-code" : harness!)")
     }
 }

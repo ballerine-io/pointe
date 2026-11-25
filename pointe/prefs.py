@@ -19,6 +19,7 @@ SCHEMA: dict[str, tuple] = {
     # ptt: audio is heard only while a press holds it open. addressed (addressed.py): heard always, acted on only when
     # the words say the name of Pointe or of a session.
     "microphone": ("always", ("always", "addressed", "ptt")),
+    "reports.tones": (False, bool),  # one sound per session (tones.py): a short tone before a background session's report
     "conflicts.on": (True, bool),  # check two sessions' reports against each other
     "conflicts.spoken": (True, bool),  # say an alarm, or show it as a card only
     "briefings.time": ("", valid_time),  # "HH:MM" local, or "" for no scheduled briefing

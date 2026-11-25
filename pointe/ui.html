@@ -1476,6 +1476,10 @@
             <label class="tick"><input type="checkbox" id="pref-progress"> Progress updates</label>
             <div class="hint" id="pref-progress-hint"></div>
           </div>
+          <div class="card">
+            <label class="tick"><input type="checkbox" id="pref-tones"> Session tones</label>
+            <div class="hint" id="pref-tones-hint"></div>
+          </div>
           <div class="note foot">The state line says “Thinking…” from the end of your turn until the reply. The sound plays only
             when that takes long, never with the reply, and never while Pointe is muted, in whisper mode or in a meeting.
             Say “keep me posted” or “stop updates” to turn the progress updates on or off by voice.</div>
@@ -2071,6 +2075,8 @@
     const mark = el('span', 'hmark', h.name);
     mark.setAttribute('role', 'img'); mark.setAttribute('aria-label', 'runs on ' + h.name); mark.title = h.name;
     mark.dataset.harness = id;
+    const sound = typeof toneLabel === 'function' ? toneLabel(x) : '';  // its tone, named, once it has one (ui_tones.html)
+    if (sound) mark.append(el('span', 'tone', ' · ' + sound));
     return mark;
   }
   const listShown = new Map();  // key -> {el, sig}: a row per session (its name), a header per machine ("@name")
@@ -4284,6 +4290,7 @@
     $('pref-mic').value = prefs.microphone || 'always'; $('pref-mic-hint').hidden = $('pref-mic').value !== 'addressed';
     $('pref-patience').value = prefs['turns.patience'] || 'normal';
     thinkingPrefsShow(prefs);
+    tonesPrefsShow(prefs);
     approvalsShow();
     $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
     $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
@@ -4608,7 +4615,7 @@
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
       microphone: $('pref-mic').value, 'turns.patience': $('pref-patience').value, 'alerts.watch_approve': $('pref-watch').checked,
       'show.on_phone': $('pref-showphone').checked, 'conflicts.on': $('pref-conflicts').checked,
-      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken', ...thinkingPrefs()})});
+      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken', ...thinkingPrefs(), ...tonesPrefs()})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); pttSetStyle($('pref-style').value); refresh(); }
     if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
@@ -5045,5 +5052,6 @@
 {{THINKING}}
 {{APPROVALS}}
 {{ADDRESSED}}
+{{TONES}}
 </body>
 </html>

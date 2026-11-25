@@ -125,6 +125,7 @@ def test_every_swift_animation_goes_through_motion_swift():
 # haptic is always beside a change on screen (it is `sensoryFeedback` on that change).
 SOUNDS = {
     "the waiting sound": ("pointe/daemon.py", "OutputAudioRawFrame(audio=thinking.cue_pcm(rate)", "pointe/thinking.py", '"thinking": "Thinking…"'),
+    "a session's tone": ("pointe/daemon.py", "OutputAudioRawFrame(audio=tones.pcm(session.tone, rate)", "pointe/ui_tones.html", "row: name => `tone: ${name}`"),
     "the two-note chime": ("pointe/daemon.py", "OutputAudioRawFrame(audio=pcm.astype(np.int16).tobytes()",
                            "apps/PointeKit/Sources/PointeUI/CallTitle.swift", "if dumping { return BrainDumpCopy.state }"),
     "the page's mute tone": ("pointe/ui.html", "tones.createOscillator()", "pointe/ui.html", "function showMute()"),

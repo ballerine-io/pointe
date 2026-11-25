@@ -36,6 +36,7 @@ Nothing is lost: the state is always in the line's words. In Swift every animati
 |---|---|---|
 | Pointe's voice | every line | the line in the conversation, as it is said |
 | the waiting sound | a reply takes long ([Thinking](thinking.md)) | the state line says "Thinking…" |
+| a session's tone | [session tones](session-tones.md) are on, and a background session reports | the session's row names its tone ("Codex · tone: rise"), and the report is a line in the conversation |
 | the two-note chime | a brain dump or a challenge starts or ends, a request is held for later | the state line ("Brain dump", "Challenge") and the card or panel that opened or closed |
 | the page's mute tone | the microphone is turned off or on from the page or an AirPods tap | the mic button and the state line ("Mic off") |
 | the iPhone's chime when the Mac closes a press | push to talk: the Mac ended a press by itself | the state line says why ("Sent: held too long") |

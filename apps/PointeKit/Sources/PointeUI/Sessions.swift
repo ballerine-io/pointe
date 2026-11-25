@@ -107,7 +107,7 @@ struct SessionChips: View {
                         HStack(spacing: 7) {
                             Circle().fill(dot(s)).frame(width: 7, height: 7)
                             Text(s.name).lineLimit(1).truncationMode(.middle).frame(maxWidth: 220)  // a branch-long name keeps both ends, and the next chip stays in reach
-                            HarnessMark(harness: s.harness)
+                            HarnessMark(harness: s.harness, tone: TonesCopy.label(s))
                             if s.isOffline {
                                 Text("offline").font(.brand(.caption2)).foregroundStyle(Brand.muted)
                             } else if s.waiting || s.needs != nil {
@@ -375,7 +375,7 @@ struct SessionsSheet: View {
         HStack {
             Circle().fill(dot(s)).frame(width: 9, height: 9)
             Text(s.name).foregroundStyle(.primary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1).truncationMode(.middle).help(s.name)
-            HarnessMark(harness: s.harness)
+            HarnessMark(harness: s.harness, tone: TonesCopy.label(s))
         }
     }
 

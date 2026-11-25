@@ -38,6 +38,7 @@ def page_html() -> str:
         .replace("{{THINKING}}", (ROOT / "pointe" / "ui_thinking.html").read_text())
         .replace("{{APPROVALS}}", (ROOT / "pointe" / "ui_approvals.html").read_text())
         .replace("{{ADDRESSED}}", (ROOT / "pointe" / "ui_addressed.html").read_text())
+        .replace("{{TONES}}", (ROOT / "pointe" / "ui_tones.html").read_text())
     )
 
 
@@ -174,6 +175,7 @@ class StubMac:
                  "alerts.watch_approve": False, "show.on_phone": False, "whisper": False, "dictionary.learn": True}
         if not getattr(self, "old_prefs", False):  # a Mac from before the waiting sound and the progress updates has neither
             prefs.update({"thinking.cue": True, "progress.spoken": False})
+        prefs["reports.tones"] = getattr(self, "tones", False)  # one sound per session: off unless a test turns it on
         return web.json_response(prefs)
 
     async def _briefings(self, request):

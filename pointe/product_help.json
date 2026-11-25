@@ -393,6 +393,33 @@
    ]
   },
   {
+   "id": "session-tones",
+   "title": "Session tones: one sound per session",
+   "ask": [
+    "session tones",
+    "a sound per session",
+    "tone before a report",
+    "what is that tone",
+    "which session is that sound",
+    "different sound for each session",
+    "turn on session tones",
+    "turn off session tones",
+    "צליל לכל סשן",
+    "צלילי סשן"
+   ],
+   "how": "With session tones on, a short tone plays before a background session's report, the same tone for that session every time, so you know who is reporting before the first word. Off unless you turn it on. A session's row names its tone. Never while Pointe is muted, in whisper mode or in a meeting.",
+   "about": "Off by default: a short tone before a background session's report, the same one for that session every time",
+   "iphone": [
+    "Settings (••• at the top) → Session tones"
+   ],
+   "page": [
+    "Settings → Turn taking → Session tones"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Session tones"
+   ]
+  },
+  {
    "id": "approvals-record",
    "title": "Approvals record: what was approved, when and how",
    "ask": [
@@ -1402,6 +1429,7 @@
     ],
     "Waiting sound": [],
     "Progress updates": [],
+    "Session tones": [],
     "Clean up my words": [],
     "Whisper": [],
     "Dictionary": [],
@@ -1492,6 +1520,7 @@
     ],
     "Waiting sound": [],
     "Progress updates": [],
+    "Session tones": [],
     "Talk from outside the app": [],
     "Clean up my words": [],
     "Whisper": [],
@@ -1637,6 +1666,7 @@
      "Wait before answering",
      "Waiting sound",
      "Progress updates",
+     "Session tones",
      "Quick",
      "Normal",
      "Patient"

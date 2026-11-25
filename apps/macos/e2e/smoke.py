@@ -488,6 +488,15 @@ def main() -> int:
     finally:
         app.quit()
 
+    # session tones (docs/features/session-tones.md): Settings has the switch, off unless turned on.
+    app = start("-demo", "call", "-sheet", "settings")
+    try:
+        app.wait("microphoneSetting")
+        tones = dict(part.split("=") for part in app.ax("state", "sessionTonesSetting").stdout.split())
+        check("Settings has session tones, off", tones.get("value") == "0", str(tones))
+    finally:
+        app.quit()
+
     # accessibility (docs/features/accessibility.md): VoiceOver has a name for every control of the call window, and
     # with Reduce Motion (-pointe.reduceMotion YES stands in for the system setting) the window is one still picture.
     for screen in ("call", "request", "speaking", "thinking", "held"):

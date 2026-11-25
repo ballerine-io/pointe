@@ -1,0 +1,20 @@
+<!-- One sound per session (tones.py, docs/features/session-tones.md): an optional short tone before a background
+     session's report, the same one for a session every time. Off unless turned on here: Settings, Turn taking. With it
+     on, a session's row names its tone once it has one, so the sound has something to see. Served inside ui.html at
+     {{TONES}}; the apps have the same setting and words (TonesCopy in Tones.swift). -->
+<style>
+  .hmark .tone { color: var(--dim); }
+</style>
+<script>
+  // The words, word for word tones.COPY and TonesCopy in the apps (tests/test_tones.py).
+  const TONES_COPY = {
+    setting: 'Session tones',
+    hint: "A short tone before a background session's report, the same one for that session every time, so you know who is reporting before the first word.",
+    row: name => `tone: ${name}`,
+  };
+  $('pref-tones-hint').textContent = TONES_COPY.hint;
+  function tonesPrefsShow(prefs) { $('pref-tones').checked = prefs['reports.tones'] === true; }
+  const tonesPrefs = () => ({'reports.tones': $('pref-tones').checked});
+  // What a session's row says of its tone: '' until it has one. The Mac sends it only while the setting is on.
+  const toneLabel = x => x.tone && x.tone.name ? TONES_COPY.row(x.tone.name) : '';
+</script>

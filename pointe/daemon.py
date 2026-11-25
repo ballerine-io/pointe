@@ -67,6 +67,7 @@ import progress
 import scope
 import skip
 import thinking
+import tones
 import speaker
 import turns
 import turnsound
@@ -2986,10 +2987,27 @@ async def feed(session: Session, text: str, respond: bool) -> None:
     if respond and (active or _thread() is None or (report or {}).get("waiting")):
         # What the user replies to next. A one-liner from a background session does not pull a live conversation away.
         state.thread = (session.id, time.time())
+    if report is not None and respond and not active:
+        await _session_tone(session)  # one sound per session (tones.py): who is reporting, before the words
     logger.info(f"feed{' +respond' if respond else ''}: {text[:MAX_REPORT_CHARS]!r}")
     line = (report or {}).get("line") or (report or {}).get("excerpt", "")[-300:] if report else text.split("]", 1)[-1]
     await state.conn.injector.inject(_about(text[:MAX_FEED_CHARS], session.name, "report" if report else "news",
                                             line.strip().split("\n")[0]), respond)
+
+
+async def _session_tone(session: Session) -> None:
+    """The session's own tone, into the call's output ahead of its report: only with the setting on, and only where the
+    waiting sound may play (a voice the owner hears, nobody making a sound). A plain audio frame, as that sound is: the
+    echo guard and the floor do not take it for Pointe speaking."""
+    if not PREFS.get("reports.tones") or state.conn is None or state.front is None or _muted() or _whispering() \
+            or state.meeting is not None or current_mode().speech == "never" or ECHO.speaking or _user_talking():
+        return
+    if session.tone is None:
+        session.tone = tones.assign(session.name, [s.tone for s in REGISTRY.sessions.values() if s is not session and s.tone is not None])
+        REGISTRY.save()
+    rate = 24000
+    logger.info(f"session tone: {tones.PALETTE[session.tone].name} for {session.name}")
+    await state.front.push_frame(OutputAudioRawFrame(audio=tones.pcm(session.tone, rate), sample_rate=rate, num_channels=1))
 
 
 CARRY_SECS = 120.0  # an answer the user awaited when the call dropped is said in a call back within this long
@@ -9747,6 +9765,8 @@ async def _status(request: Request) -> dict:
                           "request_note": s.permission_note if s.permission_id else None,  # the agent's own words: never what runs
                           "request_truncated": bool(s.permission_id and s.permission_truncated),
                           "request_id": s.permission_id,
+                          # its sound before a report, once it has one and while the setting is on (tones.py)
+                          "tone": tones.status(s.tone) if PREFS.get("reports.tones") else None,
                           "voice_can_approve": bool(s.permission_id and not s.permission_cut and online(s)),
                           # A prompt in its terminal is a need too: both screens show "needs you" and these words.
                           # Claude Code kept the voice's message from Claude: that first, with the setting that fixes it.
@@ -10204,7 +10224,8 @@ async def page():
             .replace("{{SKIP}}", (here / "ui_skip.html").read_text())
             .replace("{{THINKING}}", (here / "ui_thinking.html").read_text())
             .replace("{{APPROVALS}}", (here / "ui_approvals.html").read_text())
-            .replace("{{ADDRESSED}}", (here / "ui_addressed.html").read_text()))
+            .replace("{{ADDRESSED}}", (here / "ui_addressed.html").read_text())
+            .replace("{{TONES}}", (here / "ui_tones.html").read_text()))
     return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 

@@ -414,6 +414,7 @@ struct API {
         var patience: String    // "turns.patience": quick, normal or patient (Turns.swift)
         var waitCue: Bool?      // "thinking.cue": the waiting sound (Thinking.swift); nil from a Mac without it
         var progressSpoken: Bool?  // "progress.spoken": say how a session is doing while it works; nil from a Mac without it
+        var sessionTones: Bool?    // "reports.tones": one sound per session (Tones.swift); nil from a Mac without it
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
@@ -422,7 +423,7 @@ struct API {
             case watchApprove = "alerts.watch_approve"
             case showOnPhone = "show.on_phone"
             case patience = "turns.patience"
-            case waitCue = "thinking.cue", progressSpoken = "progress.spoken"
+            case waitCue = "thinking.cue", progressSpoken = "progress.spoken", sessionTones = "reports.tones"
         }
 
         init(from decoder: Decoder) throws {
@@ -439,6 +440,7 @@ struct API {
             patience = (try? c.decode(String.self, forKey: .patience)) ?? TurnsCopy.defaultLevel  // an older Mac: Normal
             waitCue = try? c.decode(Bool.self, forKey: .waitCue)
             progressSpoken = try? c.decode(Bool.self, forKey: .progressSpoken)
+            sessionTones = try? c.decode(Bool.self, forKey: .sessionTones)
         }
     }
 
@@ -466,6 +468,7 @@ struct API {
         let working: Bool
         let waiting: Bool
         let request: String?       // the exact request: what a tap approves
+        var tone: SessionTone? = nil  // its sound before a report, once it has one (Tones.swift)
         let request_id: String?
         let voice_can_approve: Bool?
         let needs: String?

@@ -60,6 +60,7 @@ class Session:
     permission_truncated: bool = False  # the preview came cut short: a tap may deny it, never approve it
     permission_since: float | None = None  # when it arrived: a background session can wait on it for long
     permission_until: float = 0.0  # when the voice lets go of it: far off for a session on a night shift (nightshift.PARK_SECS)
+    tone: int | None = None  # its sound before a report (tones.py): given at its first report, then kept
     last_delegation_at: float = 0.0
     busy: bool = False
     # The prompt it waits at in its own terminal, in its harness's word ("permission prompt"), read from the harness
@@ -103,7 +104,7 @@ class Session:
 PERSISTED = ("id", "name", "named_by", "cwd", "pid", "transcript", "inbox_socket", "inbox_token", "channel_url",
              "permission_id", "permission_text", "permission_since", "permission_cut", "permission_full", "permission_spoken",
              "permission_note", "permission_truncated",
-             "harness", "home", "harness_data", "machine")  # Claude Code still waits after a restart
+             "harness", "home", "harness_data", "machine", "tone")  # Claude Code still waits after a restart
 MAX_DEPARTED = 20
 
 

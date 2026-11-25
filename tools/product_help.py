@@ -450,6 +450,13 @@ TOPICS = (
           "request it says the session is working. When a reply takes long, one soft sound says your words were heard; "
           "it never plays with the reply, while Pointe is muted, in whisper mode or in a meeting.",
           iphone=(("menu", "Waiting sound"),), page=(("settings", "Turn taking", "Waiting sound"),), doc="thinking.md"),
+    Topic("session-tones", "Session tones: one sound per session",
+          ("session tones", "a sound per session", "tone before a report", "what is that tone", "which session is that sound",
+           "different sound for each session", "turn on session tones", "turn off session tones", "צליל לכל סשן", "צלילי סשן"),
+          "With session tones on, a short tone plays before a background session's report, the same tone for that session "
+          "every time, so you know who is reporting before the first word. Off unless you turn it on. A session's row "
+          "names its tone. Never while Pointe is muted, in whisper mode or in a meeting.",
+          iphone=(("menu", "Session tones"),), page=(("settings", "Turn taking", "Session tones"),), doc="session-tones.md"),
     Topic("approvals-record", "Approvals record: what was approved, when and how",
           ("approvals record", "approval history", "what did i approve", "what have i approved", "list of approvals", "audit",
            "who approved", "voice lock score", "היסטוריית אישורים", "מה אישרתי", "רשימת האישורים"),

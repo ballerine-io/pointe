@@ -10,6 +10,7 @@ struct CallSettingsModel: Equatable, Sendable {
     var patience = TurnsCopy.defaultLevel
     var waitCue: Bool?  // nil: this Mac has no waiting sound
     var progressSpoken: Bool?  // nil: this Mac has no progress updates
+    var sessionTones: Bool?  // nil: this Mac has no session tones
     var polish = false
     var whisper: Bool?  // nil: this Mac has no whisper mode
     var machines = false
@@ -36,6 +37,7 @@ struct CallSettingsModel: Equatable, Sendable {
         patience = prefs?.patience ?? TurnsCopy.defaultLevel
         waitCue = prefs?.waitCue
         progressSpoken = prefs?.progressSpoken
+        sessionTones = prefs?.sessionTones
         polish = status?.polish ?? false
         whisper = status?.whisper.map { $0.on }
         machines = status?.machines != nil
@@ -68,6 +70,7 @@ struct CallSettingsActions {
     var setPatience: (String) -> Void = { _ in }
     var setWaitCue: (Bool) -> Void = { _ in }
     var setProgress: (Bool) -> Void = { _ in }
+    var setSessionTones: (Bool) -> Void = { _ in }
     var setPolish: (Bool) -> Void = { _ in }
     var setWhisper: (Bool) -> Void = { _ in }
     var setDriveSuggest: (Bool) -> Void = { _ in }
@@ -87,6 +90,7 @@ struct CallSettingsSheet: View, Equatable {
     @State private var whisperWanted: Bool?
     @State private var cueWanted: Bool?
     @State private var progressWanted: Bool?
+    @State private var tonesWanted: Bool?
     @State private var outsideWanted: Bool?
     @State private var unpairAsked = false
     #if os(macOS)
@@ -139,6 +143,14 @@ struct CallSettingsSheet: View, Equatable {
                             .help(ThinkingCopy.progressHint)
                             .accessibilityHint(ThinkingCopy.progressHint)
                             .accessibilityIdentifier("progressSetting")
+                        }
+                        if let tones = model.sessionTones {
+                            Toggle(isOn: Binding(get: { tonesWanted ?? tones }, set: { tonesWanted = $0; act.setSessionTones($0) })) {
+                                Label(TonesCopy.setting, systemImage: "music.note")
+                            }
+                            .help(TonesCopy.hint)
+                            .accessibilityHint(TonesCopy.hint)
+                            .accessibilityIdentifier("sessionTonesSetting")
                         }
                     } header: { Text(ThinkingCopy.section).brandKicker() } footer: {
                         Text("\(ThinkingCopy.cueHint) \(ThinkingCopy.progressHint)").font(.brand(.footnote)).foregroundStyle(Brand.muted)

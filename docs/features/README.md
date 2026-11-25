@@ -24,6 +24,7 @@ from any voice denies a pending request, in every mode.
 | [Thinking and the waiting sound](thinking.md) | From the end of your turn to the reply the status says "Thinking…", and one soft sound marks a long wait |
 | [Progress updates](progress.md) | Off by default: one short true line while a session works, 20 seconds in and then every 45 |
 | [Only when I say Pointe](addressed-speech.md) | A microphone setting between Always on and Push to talk: side talk is dropped, words that say Pointe's name or a session's are acted on |
+| [Session tones](session-tones.md) | Off by default: a short tone before a background session's report, the same one for that session every time |
 | [Approvals record](approvals-record.md) | Each answer that went through Pointe: when, by voice or by a tap, the exact request, the voice lock's score |
 | [Accessibility](accessibility.md) | A name for every control, nothing told by sound, motion or colour alone, Reduce Motion, large text |
 | [Conflict alarm](conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once |
@@ -55,6 +56,7 @@ Where each one works, and how to reach it:
 | [Thinking and the waiting sound](thinking.md#turn-it-off) | nothing to say: it follows the call | the status line; Settings → Turn taking → Waiting sound | the status line; Settings → Waiting sound | the status line, the bubble and the menu bar; Settings → Waiting sound |
 | [Progress updates](progress.md#use-it) | "keep me posted", "stop updates" | Settings → Turn taking → Progress updates | Settings → Progress updates | Settings → Progress updates |
 | [Only when I say Pointe](addressed-speech.md#use-it) | no: a setting; then every turn starts with "Pointe" or a session's name | the switch above the mic; Settings → Microphone | the switch above the mic; Settings → Microphone | the switch above the mic; Settings → Microphone |
+| [Session tones](session-tones.md#use-it) | no: a setting | Settings → Turn taking → Session tones | Settings → Session tones | Settings → Session tones |
 | [Approvals record](approvals-record.md#use-it) | no: a list to read | Settings → Approvals record | Settings → Approvals record | Settings → Approvals record |
 | [Conflict alarm](conflict-alarm.md#use-it) | the alarm is spoken; "I know" dismisses it | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm |
 | [Meeting mode](meeting-mode.md#start) | "meeting mode, listening", once consent was given | Meeting in the dock | Start a meeting at the top | Start a meeting at the top; Call → Start a Meeting |
