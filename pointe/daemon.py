@@ -3425,9 +3425,9 @@ async def _nudger() -> None:
                 # waits; "read it" or a yes brings the request again before anything is approved.
                 logger.info(f"nudging about {session.name}: a short reminder of its request")
                 name = _spoken_names(session.name)
-                await _say_fixed(f"{name} עדיין מחכה לכן או לא. אמור תקריא כדי לשמוע שוב."
+                await _say_fixed(f"{name} עדיין מחכה לכן או לא."  # a yes brings the request again first
                                  if re.search(r"[\u0590-\u05ff]", state.last_utterance or "") else
-                                 f"{name} is still waiting for your yes or no. Say read it to hear it again.")
+                                 f"{name}'s still waiting on your yes or no.")
                 session.permission_delivered_at, state.sidetracked = float("inf"), session.permission_id  # a yes re-reads it
                 continue
             logger.info(f"nudging about {session.name}: reading its permission out again")

@@ -39,3 +39,30 @@ def test_the_read_out_speaks_the_heard_form_and_binds_the_same_request(d, monkey
     asyncio.run(d._read_out(active))
     assert said[-1].endswith("wants to run: grep calc total here then python3 pytest test refunds.py. Should it?")
     assert active.permission_spoken == "run: grep calc_total . then python3 pytest test_refunds.py"
+
+
+def test_the_reminder_of_a_request_already_read_is_one_short_line(d, monkeypatch):  # noqa: F811
+    """"Billing is still waiting for your yes or no. Say, read it to hear it again." ended about ten dialogues of tester
+    round 4's first sample. A yes already brings the request again before anything is approved, so the hint is not
+    needed: the line says only that it waits."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    active.permission_read_at = d.time.time() - 60
+    fixed = []
+
+    async def say_fixed(text, *a, **k):
+        fixed.append(text)
+
+    monkeypatch.setattr(d, "_say_fixed", say_fixed)
+    monkeypatch.setattr(d, "pick_nudge", lambda *a: active)
+    monkeypatch.setattr(d.state, "connected_at", 0.0)
+    real_sleep = asyncio.sleep
+
+    async def one_round(seconds):
+        if fixed:
+            raise asyncio.CancelledError
+        await real_sleep(0)
+
+    monkeypatch.setattr(d.asyncio, "sleep", one_round)
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(d._nudger())
+    assert fixed == [f"{d._spoken_names(active.name)}'s still waiting on your yes or no."]
