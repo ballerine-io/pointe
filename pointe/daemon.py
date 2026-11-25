@@ -762,6 +762,21 @@ def _floor_blocked(urgent: bool = False, awaited: bool = False) -> str | None:
     return state.floor.blocked(time.time(), busy=busy, pending=pending, urgent=urgent, awaited=awaited)
 
 
+QUESTION_FIRST_SECS = 15.0  # news waits at most this long for the answer to a question the user just had a session asked
+
+
+def _question_out() -> Session | None:
+    """The session a question was put to in the last QUESTION_FIRST_SECS, still unanswered: its answer goes before
+    other news."""
+    now = time.time()
+    for sid, sent in state.unconfirmed.items():
+        session = REGISTRY.sessions.get(sid)
+        if (session is not None and sent and "?" in sent[-1] and sent[-1] not in state.dropped.get(sid, [])
+                and now - (session.last_delegation_at or 0.0) < QUESTION_FIRST_SECS):
+            return session
+    return None
+
+
 def _report_of(text: str) -> str | None:
     """The session a finished-turn report is about, or None for anything else (permissions, nudges, resumes)."""
     labels = "|".join(re.escape(label) for label in harnesses.labels())
@@ -1055,6 +1070,9 @@ class FeedInjector(FrameProcessor):
             return False  # "hold the reports": the user's next words release them (_release_news)
         # One answer at a time: the next waits until the last one offered has had time to start being said.
         skipped = time.time() - self._skipped_at < SKIP_NEXT_SECS  # the owner asked for the next one: no quiet gap
+        asked = None if awaited or skipped else _question_out()
+        if asked is not None and not any(_report_of(t) == asked.name for _, t in self._updates.items):
+            return False  # the answer to the user's newest question comes first (orc-03)
         if self._bot_speaking or self._held or (not awaited and not skipped and time.time() - self._asked_at < REPLY_WAIT_SECS) \
                 or (awaited and time.time() - self._offered_at < REPLY_WAIT_SECS) \
                 or _floor_blocked(urgent=skipped, awaited=awaited) is not None:
