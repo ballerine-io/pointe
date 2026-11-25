@@ -13,6 +13,37 @@ jobs:
         with:
           version: "0.12.21"  # the version bin/install-uv installs and the e2e images carry
       - run: uv run --locked pytest -q tests/ --ignore=tests/e2e
+  # A standalone Linux hub (docs/linux.md): install.sh installs this checkout as a test release, checked against its
+  # SHA-256, the hub starts on a synthetic key it never sends (no vendor is called), and its health, status and page
+  # answer. Keys in the login keyring, tmux starts and pairing are in the offline tests above.
+  linux-hub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: This checkout as a release, installed as a hub
+        run: |
+          python3 -I -c 'import sys; sys.path.insert(0, "tools"); import release_tarball as r; from pathlib import Path; print(r.worktree(Path(sys.argv[1]), "9.9.9"))' "$RUNNER_TEMP/rel"
+          SHA="$(cut -d' ' -f1 "$RUNNER_TEMP/rel/pointe-9.9.9.tar.gz.sha256")"
+          bash install.sh --hub --yes --version 9.9.9 --url "file://$RUNNER_TEMP/rel/pointe-9.9.9.tar.gz" --sha256 "$SHA"
+      - name: The hub starts, and its health, status and page answer
+        env:
+          CLAUDE_VOICE_SKIP_KEY_CHECK: "1"
+          CLAUDE_VOICE_DAEMON_PORT: "7871"
+        run: |
+          GOOGLE_API_KEY=synthetic-ci-not-a-key ~/.pointe/9.9.9/bin/voice-daemon ensure
+          ~/.local/bin/pointe status | grep -q '^running'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7871/voice/health)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat ~/.claude-voice/token)") http://127.0.0.1:7871/voice/status)" = 200
+          # the page redirects to its own name under localhost and keeps its key as a cookie: follow it, with cookies
+          test "$(curl -sL -b '' -o /dev/null -w '%{http_code}' "http://localhost:7871/voice?key=$(cat ~/.claude-voice/page_key)")" = 200
+      - name: Stop it
+        if: always()
+        env:
+          CLAUDE_VOICE_DAEMON_PORT: "7871"
+        run: ~/.pointe/9.9.9/bin/voice-daemon stop || true
   # The iPhone app: a simulator build, unsigned, the tests that need the app around them (PointeTests), and the shared
   # module's unit tests. The UI tests need a test daemon or drive the simulator for minutes; they run locally (apps/ios/e2e/,
   # tests/e2e/ios_app.py).
