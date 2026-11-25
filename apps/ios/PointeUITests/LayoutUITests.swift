@@ -27,6 +27,24 @@ final class LayoutUITests: XCTestCase {
         XCTAssertLessThanOrEqual(element.frame.maxY, window.maxY + 0.5, "\(name) is not below the screen", file: file, line: line)
     }
 
+    /// The Sessions sheet's bar holds New session, Add sessions and Done, and its title truncated there to "Ses…" (the
+    /// App Store screenshot showed it). The title is the list's first row: whole, under the bar, in line with the switch.
+    func testTheSessionsSheetTitleIsWholeOnItsOwnRow() {
+        let app = launch("sessions")
+        let title = app.descendants(matching: .any)["sessionsTitle"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 15), "the sheet's title row")
+        XCTAssertEqual(title.label, "Sessions")
+        onScreen(app, title, "the title")
+        let bar = app.navigationBars["Sessions"]
+        XCTAssertTrue(bar.exists, "the bar keeps the sheet's name")
+        XCTAssertGreaterThanOrEqual(title.frame.minY, bar.frame.maxY - 0.5, "the title is under the bar, not squeezed in it")
+        XCTAssertEqual(bar.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Ses")).count, 0, "no title in the bar")
+        let modes = app.descendants(matching: .any)["modePicker"].firstMatch
+        XCTAssertTrue(modes.exists)
+        XCTAssertEqual(title.frame.minX, modes.frame.minX, accuracy: 1, "in line with the Orchestrator/Session switch")
+        XCTAssertLessThanOrEqual(title.frame.maxY, modes.frame.minY + 0.5, "over the switch")
+    }
+
     /// The bug this file started with: with the keyboard up, the type bar sat on the newest bubble.
     func testTheTypeBarAndTheKeyboardNeverCoverTheNewestLine() {
         let app = launch("typing")

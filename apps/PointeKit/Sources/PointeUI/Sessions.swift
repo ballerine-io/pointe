@@ -244,8 +244,13 @@ struct SessionsSheet: View {
             list
             .scrollContentBackground(.hidden)
             .confirmDisconnect($leaving, disconnect)
-            .sheetTitle("Sessions")
+            .sheetTitle(SessionsCopy.title)
             .toolbar {
+                #if os(iOS)
+                // New session, Add sessions and Done leave the bar no room: the title truncated to "Ses…". It is the
+                // list's first row instead (`list`); the bar keeps the name for VoiceOver, with nothing drawn in its slot.
+                ToolbarItem(placement: .principal) { Color.clear.frame(width: 1, height: 1).accessibilityHidden(true) }
+                #endif
                 if starter != nil {
                     ToolbarItem(placement: .sheetLeading) {
                         Button(NewSessionCopy.title) { showNewSession = true }.accessibilityIdentifier("newSession")
@@ -278,6 +283,14 @@ struct SessionsSheet: View {
     private var list: some View {
             BrandList {
                 Section {
+                    #if os(iOS)
+                    if docked == nil {  // the sheet's title (`sheet`); the Mac's docked column has none
+                        Text(SessionsCopy.title).font(.brand(.title2))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityAddTraits(.isHeader).accessibilityIdentifier("sessionsTitle")
+                            .listRowBackground(Color.clear).listRowInsets(EdgeInsets()).listRowSeparator(.hidden)
+                    }
+                    #endif
                     Segments(selection: Binding(get: { status?.mode ?? "orchestrator" }, set: setMode),
                              options: [("orchestrator", "Orchestrator"), ("session", "Session")]) {
                     Picker("Mode", selection: Binding(get: { status?.mode ?? "orchestrator" }, set: setMode)) {
@@ -424,6 +437,7 @@ struct SessionsSheet: View {
 
 
 enum SessionsCopy {
+    static let title = "Sessions"
     static let renameHelp = "A name you can say: letters, digits, spaces, dots, slashes or dashes."
 
     /// The Mac's refusal of a rename (taken, not a name voice can pick), as a sentence.

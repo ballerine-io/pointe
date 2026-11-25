@@ -39,8 +39,8 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Clean up my words <br>`call.polish` | yes `ui.html:1654` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:174` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:174` |
 | The daemon's last problem (a refused key, a vendor down) on screen <br>`call.problem` | yes `ui.html:1649` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:438` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:438` |
 | Hebrew lines read right to left <br>`call.rtl` | yes `ui.html:1215` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` |
-| How full the voice model's context is <br>`call.context` | yes `ui.html:1187` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:409` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:409` |
-| Recent requests and where each went <br>`call.recent` | yes `ui.html:1182` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:330` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:330` |
+| How full the voice model's context is <br>`call.context` | yes `ui.html:1187` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:422` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:422` |
+| Recent requests and where each went <br>`call.recent` | yes `ui.html:1182` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:343` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:343` |
 | A line while the Mac keeps itself awake for a call from another device <br>`call.keep-awake` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:554` | n/a |
 
 ## Push to talk and turn taking
@@ -68,7 +68,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Session mode holds the other sessions' news: a quiet count, the list, Tell me <br>`sessions.held` | yes `ui.html:1648` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` |
 | Rename a session <br>`sessions.rename` | yes `ui.html:3122` | yes `apps/PointeKit/Sources/PointeUI/API.swift:559` | yes `apps/PointeKit/Sources/PointeUI/API.swift:559` |
 | Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3408` | yes `apps/PointeKit/Sources/PointeUI/API.swift:556` | yes `apps/PointeKit/Sources/PointeUI/API.swift:556` |
-| Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1171` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:588` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:588` |
+| Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1171` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:602` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:602` |
 | Start a new session: agent, folder, machine, name, first prompt <br>`sessions.new` | yes `ui.html:1574` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:12` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:12` |
 | The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1737` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` |
 | Add sessions already open, or reopen one from this week: search, by machine and agent <br>`sessions.add` | yes `ui.html:1588` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` |
