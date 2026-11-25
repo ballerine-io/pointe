@@ -15,6 +15,11 @@
   {
    "frozen_at": "2026-11-23T12:45:20+0200",
    "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
+   "runs": [
+    "hlk-20261123-133712",
+    "hlk-20261123-150412",
+    "hlk-20261123-161156"
+   ],
    "why": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run."
   }
  ],
@@ -25,5 +30,6 @@
  "llm_router_prompt_sha256": "9b5a2fe8548b10df8f9fbe66c6015750ce275c4671b3197541663c2c8a6416d5",
  "pointe_commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
  "rules": "Set before the first paid row: every arm in one interleaved launch, 3 runs of each of the 36 public items. No row starts while the 1-minute load is over 20. No launch is stopped for slowness. A row the harness marks as a fault (run.py finals --rerun-faults) or that errors is run once more and both rows are kept and listed; the rerun row is scored. Every launch and its spend are in results/ledger.jsonl.",
+ "standalone": true,
  "unpublished_manifest_sha256": null
 }

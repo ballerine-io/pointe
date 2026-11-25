@@ -47,7 +47,13 @@ def load(results: Path = HERE / "results") -> tuple[list, list, dict]:
             row = json.loads(line)
             if row.get("kind") not in ("paid", "unpublished"):
                 continue
-            earlier = next((e for e in frozen.get("earlier", []) if row["run_id"] in e["runs"]), None)
+            if frozen.get("standalone"):
+                # Every arm was run again at this freeze: rows of an earlier freeze are not mixed in.
+                if row["pointe_commit"] != frozen["pointe_commit"] or row["time"] < frozen["frozen_at"]:
+                    continue
+                earlier = None
+            else:
+                earlier = next((e for e in frozen.get("earlier", []) if row["run_id"] in e.get("runs", [])), None)
             if earlier is not None:
                 # A run at an earlier freeze: its reference arms run no Pointe code and stand; its Pointe rows are the
                 # earlier result, replaced by the rerun at the frozen commit.
