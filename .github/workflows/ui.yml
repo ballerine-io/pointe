@@ -57,7 +57,7 @@ jobs:
         working-directory: apps/ios
         run: |
           # Each suite writes its screenshots to the folder its own variable names; the simulator shares the runner's disk.
-          for suite in DUMP BRIEFING CHALLENGE CONFLICT DRIVE NIGHT_SHIFT PARITY SHOW SKIP VOICE_LOCK WHISPER THINKING VOCAB; do
+          for suite in DUMP BRIEFING CHALLENGE CONFLICT DRIVE NIGHT_SHIFT PARITY SHOW SKIP VOICE_LOCK WHISPER THINKING VOCAB A11Y APPROVALS ADDRESSED TONES; do
             dir="$OUT/shots/$(echo "$suite" | tr 'A-Z_' 'a-z-')"
             mkdir -p "$dir"
             export "TEST_RUNNER_${suite}_SHOTS=$dir"

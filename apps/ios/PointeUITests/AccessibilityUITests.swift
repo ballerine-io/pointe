@@ -86,10 +86,13 @@ final class AccessibilityUITests: XCTestCase {
         let talk = app.descendants(matching: .any)["conversation"].firstMatch
         XCTAssertTrue(talk.exists)
         XCTAssertEqual(pictures(of: talk), 1, "with Reduce Motion nothing in the conversation moves by itself")
-        for (id, screen) in [("challengeCard", "challenge"), ("dumpState", "brainDump")] {
+        // The panel, not the window: the status bar's clock is in a picture of the window.
+        for (id, screen) in [("challenge.panel", "challenge"), ("dump.panel", "brainDump")] {
             app.terminate()
             launch(screen, ["-pointe.reduceMotion", "YES"])
-            XCTAssertEqual(pictures(of: app.windows.firstMatch), 1, "\(screen) (\(id)): with Reduce Motion no symbol pulses")
+            let panel = app.descendants(matching: .any)[id].firstMatch
+            XCTAssertTrue(panel.waitForExistence(timeout: 10), "\(screen): its panel")
+            XCTAssertEqual(pictures(of: panel), 1, "\(screen): with Reduce Motion no symbol pulses")
         }
     }
 
