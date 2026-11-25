@@ -2077,6 +2077,8 @@ class SonioxEars(FrameProcessor):
             state.user_stopped_at = time.time()
             state.floor.user_stopped(state.user_stopped_at)
             self._voiced = False
+            if _unheard_answer_possible():
+                self.create_task(_ask_unheard_answer(state.user_started_at, state.user_stopped_at), f"unheard-{time.time()}")
             if _patience() != "patient" and not state.ptt.collecting and (pcm := self._audio.audio()):
                 self._judging_sound = asyncio.ensure_future(self._judge_sound(pcm, state.user_stopped_at))
             # No model step starts here from the live words: at this stop they lack the last one to three words, which
@@ -2775,6 +2777,7 @@ class State:
     turn_signals: dict = field(default_factory=dict)  # what set the settle time of the turn being taken, for its timing line
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
+    unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
     voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)
     answers_question: bool = False  # the latest words came while a question of Pointe's own was open: they answer it
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
@@ -5871,6 +5874,47 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
 
 
 ANSWERED_LINES = {("allow", False): "Approved.", ("deny", False): "Denied.", ("allow", True): "אושר.", ("deny", True): "נדחה."}
+
+
+UNHEARD_ANSWER_SECS = 2.5  # a sound with no words this long after it, while a request waits for its yes: ask once
+UNHEARD_ANSWER_LINE = "I didn't catch that. Yes or no?"
+UNHEARD_ANSWER_HE = "לא שמעתי. כן או לא?"
+
+
+def _answer_window() -> Session | None:
+    """The active session, when its request was read out and a yes may answer it now."""
+    s = REGISTRY.active
+    if s is None or not s.permission_id or state.conn is None or s.permission_delivered_at == float("inf"):
+        return None
+    return s if state.conn.injector.bot_started_at >= s.permission_delivered_at else None
+
+
+def _unheard_answer_possible() -> bool:
+    """The user made a short sound right after a request was read out to them, and Pointe is not talking: it may be a
+    yes or a no the recognizer gives no words for (one recorded "yes" in twelve got none, and then nothing happened)."""
+    s = _answer_window()
+    voiced = state.user_stopped_at - state.user_started_at
+    return (s is not None and state.unheard_asked != s.permission_id and not ECHO.speaking and 0.15 <= voiced <= 1.5
+            and UNHEARD_ANSWER_SECS > 0 and current_mode().reads_out and state.meeting is None)
+
+
+async def _ask_unheard_answer(started: float, stopped: float) -> None:
+    """If no words came for that sound and nothing else happened, say so once for this request, and keep its window
+    open: silence after an answer the user did give is the worst reply to it. Never an approval and never a denial."""
+    s = _answer_window()
+    if s is None:
+        return
+    request = s.permission_id
+    await asyncio.sleep(UNHEARD_ANSWER_SECS)
+    heard = state.hearing[1] and state.hearing[0] >= started - 0.5
+    if (_answer_window() is not s or s.permission_id != request or state.unheard_asked == request or heard
+            or state.settling or state.last_user_speech_at >= started - 0.5 or state.user_started_at > stopped
+            or ECHO.speaking or any(at >= started for at, _ in state.bot_spoke)):
+        return  # words came, they spoke again, it was answered, or Pointe said something since
+    state.unheard_asked = request
+    logger.info("a sound after the read-out got no words from the ears: asking once")
+    line = UNHEARD_ANSWER_HE if re.search(r"[\u0590-\u05ff]", state.last_utterance or "") else UNHEARD_ANSWER_LINE
+    await _say_fixed(line)
 
 
 async def _say_answered(verdict: str) -> None:

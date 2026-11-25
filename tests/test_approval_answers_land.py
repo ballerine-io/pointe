@@ -160,3 +160,60 @@ def test_a_line_said_in_the_instant_of_a_cut_waits_for_the_cut_to_pass(d, monkey
 
     waited = asyncio.run(run())
     assert spoken == ["I need the yes after I finish. Say it again."] and waited >= 0.18
+
+
+def _heard_out(d, active):  # noqa: F811
+    """The read-out was said and ended three seconds ago; nobody has spoken since."""
+    asyncio.run(d._read_out(active))
+    d.ECHO.bot_started()
+    d.ECHO.bot_stopped()
+    d.ECHO.stopped_at = time.time() - 3
+    d.state.conn.injector.bot_started_at = time.time() - 6
+    active.permission_delivered_at = time.time() - 7
+
+
+def test_a_sound_with_no_words_after_the_read_out_is_asked_about_once(d, monkeypatch):  # noqa: F811
+    """Measured with recorded people: one "yes" in twelve got no words from the recognizer, and nothing happened."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    monkeypatch.setattr(d, "UNHEARD_ANSWER_SECS", 0.1)
+    _heard_out(d, active)
+    said.clear()
+    now = time.time()
+    d.state.user_started_at, d.state.user_stopped_at = now - 0.5, now  # half a second of voice, and no transcript
+    assert d._unheard_answer_possible()
+    asyncio.run(d._ask_unheard_answer(d.state.user_started_at, d.state.user_stopped_at))
+    assert said == ["I didn't catch that. Yes or no?"] and verdicts(posts) == []
+
+    d.state.user_started_at, d.state.user_stopped_at = time.time() - 0.5, time.time()  # a second sound: not asked again
+    assert not d._unheard_answer_possible()
+
+    d.ECHO.stopped_at = time.time() - 5  # the line kept the window: the yes after it still answers the request
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance("Yes."))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "allow"}]
+
+
+def test_a_sound_that_did_get_words_is_not_asked_about(d, monkeypatch):  # noqa: F811
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    monkeypatch.setattr(d, "UNHEARD_ANSWER_SECS", 0.1)
+    _heard_out(d, active)
+    said.clear()
+    now = time.time()
+    d.state.user_started_at, d.state.user_stopped_at = now - 0.5, now
+
+    async def run():
+        task = asyncio.ensure_future(d._ask_unheard_answer(d.state.user_started_at, d.state.user_stopped_at))
+        await asyncio.sleep(0.02)
+        d.state.last_utterance, d.state.last_user_speech_at = "What does it run?", time.time()  # words came
+        await task
+
+    asyncio.run(run())
+    assert said == []
+
+
+def test_no_request_waiting_means_a_sound_is_just_a_sound(d, monkeypatch):  # noqa: F811
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    active.permission_id = None
+    now = time.time()
+    d.state.user_started_at, d.state.user_stopped_at = now - 0.5, now
+    assert not d._unheard_answer_possible()
