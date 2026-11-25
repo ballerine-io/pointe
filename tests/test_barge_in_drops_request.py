@@ -140,3 +140,39 @@ def test_words_the_daemon_answers_itself_still_drop_the_send(monkeypatch):
 
     asyncio.run(call())
     assert delivered == []
+
+
+def test_a_voice_whose_words_are_not_in_yet_holds_the_send_until_they_are(monkeypatch):
+    """Measured on recorded people: "Stop." ended 0.2 s before the send it was meant to stop went out, because no word
+    of it had reached the daemon yet and nothing had cut the turn. A voice being heard is enough to wait for its words."""
+    delivered = []
+
+    async def tool(params):
+        if not await b.abandoned(wait=2.0, voicing=lambda: True):  # the voice detector hears the user
+            delivered.append(params.arguments["message"])
+        await params.result_callback({"sent_to": "billing"})
+
+    b, said = _brain(monkeypatch, [_send("Give a full rundown.")], tool)
+
+    async def call():
+        first = asyncio.ensure_future(b.turn("Give me a full rundown of everything."))
+        await asyncio.sleep(0.3)
+        b.interrupt()
+        b.user_spoke()  # the words arrive: "Stop."
+        await first
+
+    asyncio.run(call())
+    assert delivered == []
+
+
+def test_a_voice_that_turns_out_to_be_nothing_lets_the_send_go(monkeypatch):
+    delivered = []
+
+    async def tool(params):
+        if not await b.abandoned(wait=0.3, voicing=lambda: True):  # a cough: no words ever come
+            delivered.append(params.arguments["message"])
+        await params.result_callback({"sent_to": "billing"})
+
+    b, said = _brain(monkeypatch, [_send("Run the tests.")], tool)
+    asyncio.run(b.turn("Tell billing to run the tests."))
+    assert delivered == ["Run the tests."]

@@ -6432,12 +6432,25 @@ ABANDONED = {"error": "Not sent: the user talked over you before this went, and 
                       "it is dropped, and you say so only if they ask."}
 
 
+VOICE_PENDING_SECS = 1.5  # a voice that stopped this lately may still have words on their way from the ears
+
+
+def _voice_since_the_turn() -> bool:
+    """The user's voice has been heard since the words that started the turn now running, and its words are not in
+    yet: they are still talking, or stopped a moment ago. Not the bot's own voice coming back through the speakers
+    (the same test a barge-in passes: well above the echo)."""
+    began, stopped = state.user_started_at, state.user_stopped_at
+    if began <= state.last_user_speech_at or (ECHO.speaking and not LEVEL.loud()):
+        return False
+    return began > stopped or time.time() - stopped < VOICE_PENDING_SECS
+
+
 async def _abandoned(message: str) -> bool:
     """The user talked over the turn this send was made for and said something new: the request they left is not
     delivered behind their back (a barge-in "wait, just tell me about quarry" once left the rundown it replaced with
     three sessions). An acknowledgement over the voice ("okay", "mm-hm") abandons nothing."""
     brain = getattr(state.front, "brain", None)
-    if brain is None or not hasattr(brain, "abandoned") or not await brain.abandoned():
+    if brain is None or not hasattr(brain, "abandoned") or not await brain.abandoned(voicing=_voice_since_the_turn):
         return False
     if backchannel(state.last_utterance) or ack_only(state.last_utterance):
         return False

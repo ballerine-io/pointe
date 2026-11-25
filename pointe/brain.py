@@ -382,12 +382,14 @@ class Brain:
         the daemon): a tool of the turn they talked over can tell they said something (abandoned)."""
         self._user_seq += 1
 
-    async def abandoned(self, wait: float | None = None) -> bool:
+    async def abandoned(self, wait: float | None = None, voicing: Callable[[], bool] | None = None) -> bool:
         """Asked by a tool before it does something that cannot be taken back (a send): did the user talk over the turn
         this tool runs for, and then say something new? A cut with no words after it (a cough, a noise the detector
-        took for a voice) abandons nothing: after `wait` seconds of that the tool goes on. False outside a turn's tool."""
+        took for a voice) abandons nothing: after `wait` seconds of that the tool goes on. False outside a turn's tool.
+        `voicing`: the user's voice is being heard right now, though no word of it has arrived yet (a recorded "Stop."
+        ended 0.2 s before the send it was meant to stop went out): the tool waits for those words too."""
         turn = TOOL_TURN.get()
-        if turn is None or turn[0] == self._generation:
+        if turn is None or (turn[0] == self._generation and not (voicing is not None and voicing())):
             return False
         deadline = time.time() + (ABANDON_WAIT_SECS if wait is None else wait)
         while self._user_seq == turn[1] and time.time() < deadline:
