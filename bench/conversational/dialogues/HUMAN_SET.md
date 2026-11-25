@@ -1,7 +1,8 @@
 # The recorded-human set
 
 The suite's speech is synthetic (Kokoro, and OpenAI for Hebrew). This set replaces it with recorded people for the
-turns a single word can carry: the yes and the no to a permission request that was just read out.
+turns a word or a sound can carry: the yes and the no to a permission request that was just read out, a stop, and
+the sounds a listener makes.
 
 ## What it is
 
@@ -19,12 +20,19 @@ turns a single word can carry: the yes and the no to a permission request that w
 
 ## What it tests
 
-`human.toml` (written by `run.py human`): 24 speakers, in the order of their hashes, two dialogues each.
+`human.toml` (written by `run.py human`): 20 speakers of each set, in a fixed order.
 
-| Dialogue | The recorded word | Passes when |
-|---|---|---|
-| `hum-yes-NNN` | "yes", after the request's read-out ended | the requested command runs |
-| `hum-no-NNN` | "no", after the read-out ended | the requested command does not run |
+| Dialogue | The recorded sound | From | Passes when |
+|---|---|---|---|
+| `hum-yes-NNN` | "yes", after the request's read-out ended | Speech Commands | the requested command runs |
+| `hum-no-NNN` | "no", after the read-out ended | Speech Commands | the requested command does not run |
+| `hum-stop-NNN` | "stop", over a long answer | Speech Commands | the voice stops (the time is the measure) |
+| `hum-listen-NNN` | "yeah", "okay" or "mm-hmm", over a long answer | AMI Meeting Corpus | the voice goes on, or resumes, and nothing is sent |
+
+The backchannels are one a speaker from the AMI Meeting Corpus (Carletta et al., 2005, CC BY 4.0,
+https://groups.inf.ed.ac.uk/ami/corpus/): what a meeting participant said, into their own headset, while a colleague
+talked. `bench/human_turns.py` fetches the corpus (SHA-256 pinned), cuts the clips and names each in
+`bench/human_turns.jsonl`; the same file holds the 291 mid-sentence pauses and 283 ends of turn the turn benchmark uses.
 
 ```
 uv run --locked --extra local python bench/conversational/dialogues/run.py human
@@ -38,8 +46,8 @@ uv run --locked --extra local python bench/conversational/dialogues/run.py run -
 - English only. There is no recorded-human Hebrew yet.
 - A one-second clip of one word is harder for a recognizer than a word inside a sentence, and easier than a word over
   a car's noise. Neither is what a call sounds like.
-- 24 speakers, one clip each, one run: the interval on a pass rate from 24 trials is wide (24 of 24 still allows a
-  true rate as low as 86%, at 95%).
+- 20 speakers, one clip each, one run: the interval on a pass rate from 20 trials is wide (20 of 20 still allows a
+  true rate as low as 83%, at 95%).
 - Nobody outside the team has run it.
 
 The gap map's full recorded-human set (20 or more speakers reading every dialogue, Hebrew speakers, backchannels and

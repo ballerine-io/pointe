@@ -23,8 +23,8 @@ HERE = Path(__file__).resolve().parents[1]
 HUMAN = HERE / ".human" / "speech_commands_test_v0.02"
 URL = "http://download.tensorflow.org/data/speech_commands_test_set_v0.02.tar.gz"
 SHA256 = "cc2a00c1147c2254e9be3fa0f779d8c17421dc349b86366567a8edfa9acd51df"
-WORDS = ("yes", "no")
-SPEAKERS = 24
+WORDS = ("yes", "no", "stop")
+SPEAKERS = 20
 RATE = 24000  # the corpus's rate; the clips are 16 kHz
 PEAK = 0.5  # each clip is scaled to this peak: the volunteers' microphones differ by 30 dB, a call's gain control does not
 
@@ -50,8 +50,32 @@ def speakers() -> list[str]:
     return sorted(set.intersection(*sets))
 
 
+AMI_MANIFEST = HERE.parents[1] / "human_turns.jsonl"  # bench/human_turns.py writes it, and the clips beside the corpus
+AMI_CLIPS = HERE.parents[1] / ".human" / "ami" / "clips"
+
+
+def backchannels() -> list[dict]:
+    """One recorded "yeah", "okay" or "mm-hmm" a speaker, said while a colleague talked (AMI Meeting Corpus, CC BY 4.0),
+    in the order of the speakers' names."""
+    import json
+    rows = [json.loads(line) for line in AMI_MANIFEST.read_text().splitlines() if line.strip()]
+    return sorted((r for r in rows if r["kind"] == "backchannel"), key=lambda r: r["speaker"])
+
+
+def _scaled(pcm: np.ndarray, rate: int) -> np.ndarray:
+    pcm = pcm.astype(np.float32)
+    pcm = pcm / (float(np.abs(pcm).max()) or 1.0) * PEAK * 32767
+    up = np.interp(np.linspace(0, len(pcm), int(len(pcm) * RATE / rate), endpoint=False), np.arange(len(pcm)), pcm)
+    return up.astype(np.int16)
+
+
 def clip(voice: str, text: str) -> np.ndarray:
-    """The recording of `text` (one of WORDS, punctuation aside) by the speaker `voice` names, at the corpus's rate."""
+    """The recording of `text` (one of WORDS, punctuation aside) by the speaker `voice` names, at the corpus's rate.
+    "ami-NNN": the NNNth speaker's backchannel, whatever word it is (the turn's `say` is written from it)."""
+    if voice.startswith("ami-"):
+        row = backchannels()[int(voice.split("-")[1])]
+        with wave.open(str(AMI_CLIPS / f"{row['clip']}.wav"), "rb") as w:
+            return _scaled(np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16), w.getframerate())
     word = "".join(c for c in text.lower() if c.isalpha())
     if word not in WORDS:
         raise ValueError(f"no recorded clip of {text!r}: only {WORDS}")
@@ -60,15 +84,13 @@ def clip(voice: str, text: str) -> np.ndarray:
     with wave.open(str(path), "rb") as w:
         assert w.getframerate() == 16000 and w.getnchannels() == 1 and w.getsampwidth() == 2
         pcm = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32)
-    peak = float(np.abs(pcm).max()) or 1.0
-    pcm = pcm / peak * PEAK * 32767
-    up = np.interp(np.linspace(0, len(pcm), int(len(pcm) * RATE / 16000), endpoint=False), np.arange(len(pcm)), pcm)
-    return up.astype(np.int16)
+    return _scaled(pcm, 16000)
 
 
-HEAD = """# Recorded people answer the permission request: written by `run.py human` (dialogues/human.py), do not edit.
-# Each "yes" and "no" is a volunteer's own recording from the Speech Commands v0.02 test set (CC BY 4.0, HUMAN_SET.md).
-# The request before it is said by a synthetic voice: the set holds single words only.
+HEAD = """# Recorded people say the short turns: written by `run.py human` (dialogues/human.py), do not edit.
+# Each "yes", "no" and "stop" is a volunteer's own recording from the Speech Commands v0.02 test set, and each
+# backchannel ("yeah", "okay", "mm-hmm") a meeting participant's from the AMI Meeting Corpus (both CC BY 4.0,
+# HUMAN_SET.md). The sentence before each is said by a synthetic voice: neither set holds these sentences.
 """
 YES = """
 [[dialogue]]
@@ -100,6 +122,39 @@ voice = "{lead}"
   when = "approval"
   expect = {{ kind = "deny", session = "atlas" }}
 """
+STOP = """
+[[dialogue]]
+id = "hum-stop-{n:03d}"
+dim = "turn-taking"
+sessions = ["billing", "quarry", "atlas"]
+voice = "{lead}"
+  [[dialogue.turn]]
+  say = "Give me a full rundown of everything that's happening across all the sessions."
+  expect = {{ kind = "answer", need = 60 }}
+  [[dialogue.turn]]
+  say = "Stop."
+  voice = "sc-{n:03d}"
+  when = "speaking"
+  delay = 1.5
+  expect = {{ kind = "any" }}
+"""
+LISTEN = """
+[[dialogue]]
+id = "hum-listen-{n:03d}"
+dim = "turn-taking"
+sessions = ["billing", "quarry", "atlas"]
+voice = "{lead}"
+  [[dialogue.turn]]
+  say = "What's the status of each session?"
+  expect = {{ kind = "answer", need = 60 }}
+  [[dialogue.turn]]
+  say = "{word}"
+  voice = "ami-{n:03d}"
+  when = "speaking"
+  delay = 1.5
+  expect = {{ kind = "none", need = 60 }}
+"""
+SAY = {"yeah": "Yeah.", "okay": "Okay.", "mm-hmm": "Mm-hmm.", "mm": "Mm.", "uh-huh": "Uh-huh.", "right": "Right.", "mhm": "Mhm."}
 
 
 def main() -> int:
@@ -109,7 +164,11 @@ def main() -> int:
     leads = ["am_michael", "bf_emma", "af_heart", "bm_george"]
     out = HEAD
     for n in range(SPEAKERS):
-        out += YES.format(n=n, lead=leads[n % 4]) + NO.format(n=n, lead=leads[n % 4])
+        out += YES.format(n=n, lead=leads[n % 4]) + NO.format(n=n, lead=leads[n % 4]) + STOP.format(n=n, lead=leads[n % 4])
+    listeners = backchannels() if AMI_MANIFEST.exists() and AMI_CLIPS.exists() else []
+    for n, row in enumerate(listeners[:SPEAKERS]):
+        out += LISTEN.format(n=n, lead=leads[n % 4], word=SAY[row["first"]])
     (HERE / "human.toml").write_text(out)
-    print(f"{len(people)} speakers recorded both words; human.toml written: {SPEAKERS} speakers, {2 * SPEAKERS} dialogues")
+    print(f"{len(people)} speakers recorded every word; human.toml written: {3 * SPEAKERS} dialogues with a recorded "
+          f"yes, no or stop, {min(len(listeners), SPEAKERS)} with a recorded backchannel")
     return 0

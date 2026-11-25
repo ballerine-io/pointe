@@ -11,6 +11,8 @@ Two kinds of clip, in turn_bench's own shape, so its Soniox run and its judge ar
           after it have no sentence end between them in the corpus's transcript, the silence is measured on the sound
           itself (the transcript's word times only say where to look), and nobody else's microphone has words in it.
           A turn taken inside that silence is a cut-in.
+  backchannel  not for this benchmark: one "mm-hmm", "yeah" or "okay" a speaker, said while a colleague talked, for
+          the dialogue suite's backchannel turns (bench/conversational/dialogues/dialogues/human.py).
   end     a whole utterance that ends a sentence, after which its speaker says nothing for at least 2 s, with no
           silence of 0.45 s or more inside it. What counts is how long after its last sound the turn is taken.
 
@@ -64,6 +66,7 @@ SOURCES = {  # file under bench/.human/ami -> (url, SHA-256)
 }
 SHARDS = [f"test/{n:04d}" for n in range(4)] + [f"validation/{n:04d}" for n in range(5)]
 TERMINAL = set(".?!")
+BACKCHANNELS = {"MM-HMM", "UH-HUH", "MM", "MHM", "YEAH", "OKAY", "RIGHT"}  # a listener's sounds: one clip a speaker, for the dialogues
 
 
 def fetch() -> None:
@@ -259,6 +262,14 @@ def build(pin: bool) -> None:
                 agent = letter.get((row["meeting_id"], row["speaker_id"]))
                 if agent is None:
                     continue
+                if row["text"].strip().upper() in BACKCHANNELS and 0.3 <= row["end_time"] - row["begin_time"] <= 1.3:
+                    pcm = pcm_of(row["audio"]["bytes"])
+                    if pcm is not None and float(np.abs(pcm.astype(np.int32)).max()) >= 2000:  # said into the headset, not a murmur
+                        found[("backchannel", row["speaker_id"])].append((
+                            {"meeting": row["meeting_id"], "speaker": row["speaker_id"], "agent": agent, "kind": "backchannel",
+                             "segment": [round(row["begin_time"], 2), round(row["end_time"], 2)], "pause_secs": None,
+                             "cut": None, "first_end": None, "resume": None, "first": row["text"].strip().lower(), "rest": ""}, pcm))
+                    continue
                 for item, pcm in candidates(row, agent):
                     found[(item["kind"], item["speaker"])].append((item, pcm))
     rows = []
@@ -275,9 +286,10 @@ def build(pin: bool) -> None:
                     if by_bin[b] and len(picked) < PER_SPEAKER:
                         picked.append(by_bin[b].pop(0))
             items = picked
-        for n, (item, pcm) in enumerate(items[:PER_SPEAKER]):
+        for n, (item, pcm) in enumerate(items[:1 if kind == "backchannel" else PER_SPEAKER]):
             item["clip"] = f"{kind}.{speaker}.{n:02d}"
-            audio = np.concatenate([np.zeros(int(LEAD * RATE), np.int16), pcm, np.zeros(int(TAIL * RATE), np.int16)])
+            audio = pcm if kind == "backchannel" else np.concatenate(
+                [np.zeros(int(LEAD * RATE), np.int16), pcm, np.zeros(int(TAIL * RATE), np.int16)])
             item["secs"] = round(len(audio) / RATE, 2)
             with wave.open(str(CLIPS / f"{item['clip']}.wav"), "wb") as w:
                 w.setnchannels(1), w.setsampwidth(2), w.setframerate(RATE)
@@ -299,6 +311,8 @@ def load_clips() -> dict:
     """The clips as turn_bench.clips() gives its own."""
     out = {}
     for r in manifest():
+        if r["kind"] == "backchannel":
+            continue  # for the dialogue suite (dialogues/human.py), not for the end of a turn
         with wave.open(str(CLIPS / f"{r['clip']}.wav"), "rb") as w:
             audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
         last_end = len(audio) / RATE - TAIL
