@@ -1662,11 +1662,28 @@ def _possessive_ask(said: str) -> dict | None:
     return {"q": f"{m['pre']}the {m['rest']}".strip(), "who": m["who"]}
 
 
+_LEAD_IN = re.compile(r"^\W*(?:meanwhile|in the meantime|also|so|okay|ok|now|separately)\b[,\s]+", re.I)
+_ENDS_ON_NAME = re.compile(r"^\W*(?P<q>(?:how|what|what's|which|when|where|who|who's|why)\b.+?\s"
+                           r"(?:up|down|with|about|of|into|to|behind)\s+(?P<who>[\w-]+))\s*[?？]\s*$", re.I)
+
+
+def _ends_on_name(said: str) -> dict | None:
+    """"What's the plan for speeding up lantern?": the question as said, the session's name kept where it is the object
+    of the question (orc-03: relayed by the model as "... Please answer with the goal, current state and next step", the
+    session led with the goal and the two-sentence cut dropped the plan)."""
+    m = _ENDS_ON_NAME.match(said)
+    if not m or re.search(r"\b(?:status|state|progress|update|news)\b", m["q"], re.I):
+        return None  # "what's the status of lantern?" is a status question: the model answers it from all it knows
+    return {"q": m["q"], "who": m["who"], "kept": True}
+
+
 def _fast_ask(said: str) -> tuple[Session, str] | None:
     """"How many tests failed in billing?": a question about one named session's work, put to it as said (without the
     session's name), with no model step. Not a status question ("what's going on in billing?", which the model answers
-    from what it knows of every session), an opinion, or a question that points back ("how is it going")."""
-    m = _FAST_ASK.match(said.strip()) or _FAST_ASK_HE.match(said.strip()) or _possessive_ask(said.strip())
+    from what it knows of every session), an opinion, or a question that points back ("how is it going"). A lead-in
+    ("Meanwhile, ...") is not part of the question."""
+    said = _LEAD_IN.sub("", said.strip())
+    m = _FAST_ASK.match(said) or _FAST_ASK_HE.match(said) or _possessive_ask(said) or _ends_on_name(said)
     if not m or status_intent(said) or _OPINION.search(said) or re.search(r"(?<![֐-׿])מה קורה|מה המצב", said):
         return None
     sessions = list(REGISTRY.sessions.values())
@@ -1674,8 +1691,9 @@ def _fast_ask(said: str) -> tuple[Session, str] | None:
     if len(named) != 1 or len(named[0]) != 1 or not _only_addresses(m["who"], sessions):
         return None
     question = m["q"].strip()
-    if len(re.findall(r"[\w']+", question)) < 3 or _POINTS_AT_TALK.search(question) or \
-            re.search(r"\b(?:it|its|it's|that|this|them|they)\b", question, re.I) or name_groups(question, sessions):
+    asked = question[:-len(m["who"])] if isinstance(m, dict) and m.get("kept") else question
+    if len(re.findall(r"[\w']+", asked)) < 3 or _POINTS_AT_TALK.search(asked) or \
+            re.search(r"\b(?:it|its|it's|that|this|them|they)\b", asked, re.I) or name_groups(asked, sessions):
         return None
     tail = (m if isinstance(m, dict) else m.groupdict()).get("tail") or ""
     return named[0][0], f"{question[0].upper()}{question[1:]}{tail}?"

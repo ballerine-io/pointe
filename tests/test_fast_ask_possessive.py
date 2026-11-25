@@ -36,3 +36,26 @@ def test_a_status_question_an_opinion_or_no_session_named_is_the_models(d, said)
     add(d, "l", "lantern")
     add(d, "b", "billing")
     assert d._fast_send(said) is None
+
+
+@pytest.mark.parametrize("said,message", [
+    # orc-03, 3 of 11 runs: relayed as "... Please answer with the goal, current state and next step", the session led
+    # with the goal and the two-sentence cut dropped the plan.
+    ("Meanwhile, what's the plan for speeding up lantern?", "What's the plan for speeding up lantern?"),
+    ("What's the plan for speeding up lantern?", "What's the plan for speeding up lantern?"),
+    ("So, what's wrong with lantern?", "What's wrong with lantern?"),
+    ("Meanwhile, how many tests failed in lantern?", "How many tests failed?"),
+])
+def test_a_question_that_ends_on_a_sessions_name_goes_to_it_as_said(d, said, message):  # noqa: F811
+    s = add(d, "l", "lantern")
+    add(d, "b", "billing")
+    assert d._fast_send(said) == (s, message)
+
+
+@pytest.mark.parametrize("said", ["Meanwhile, what's going on with lantern?", "What do you know about lantern?",
+                                  "What's the plan for moving billing into lantern?", "Meanwhile, how is it going?",
+                                  "What's the plan for speeding up granary?", "What's the latest update on the state of lantern?"])
+def test_a_status_question_an_opinion_or_two_sessions_at_the_end_are_the_models(d, said):  # noqa: F811
+    add(d, "l", "lantern")
+    add(d, "b", "billing")
+    assert d._fast_send(said) is None
