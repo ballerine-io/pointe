@@ -1630,11 +1630,23 @@ _HE_Q = r"(?:כמה|מה|מי|מתי|איפה|למה|איך|האם|איזה|אי
 _FAST_ASK_HE = re.compile(rf"^\W*(?P<q>{_HE_Q}(?![֐-׿]).+?)\s+(?:ב|של|אצל|מ)-?\s*(?P<who>[\w-]+)\s*[?？]\s*$")
 
 
+_POSSESSIVE_ASK = re.compile(r"^\W*(?P<pre>(?:how|what|what's|which|when|where|who|who's|why|did|does|is|are|has|have)\b"
+                             r"(?:.*?\s)?)(?P<who>[\w-]+)'s\s+(?P<rest>.+?)\s*[?？]\s*$", re.I)
+
+
+def _possessive_ask(said: str) -> dict | None:
+    """"What's the plan for lantern's slow import?": the question as said, with "the" for the session's name."""
+    m = _POSSESSIVE_ASK.match(said)
+    if not m or "'s" in m["rest"] or re.match(r"(?:status|state|progress|update)\b", m["rest"], re.I):
+        return None  # "what's lantern's status?" is a status question: the model answers it from all it knows
+    return {"q": f"{m['pre']}the {m['rest']}".strip(), "who": m["who"]}
+
+
 def _fast_ask(said: str) -> tuple[Session, str] | None:
     """"How many tests failed in billing?": a question about one named session's work, put to it as said (without the
     session's name), with no model step. Not a status question ("what's going on in billing?", which the model answers
     from what it knows of every session), an opinion, or a question that points back ("how is it going")."""
-    m = _FAST_ASK.match(said.strip()) or _FAST_ASK_HE.match(said.strip())
+    m = _FAST_ASK.match(said.strip()) or _FAST_ASK_HE.match(said.strip()) or _possessive_ask(said.strip())
     if not m or status_intent(said) or _OPINION.search(said) or re.search(r"(?<![֐-׿])מה קורה|מה המצב", said):
         return None
     sessions = list(REGISTRY.sessions.values())
@@ -1645,7 +1657,8 @@ def _fast_ask(said: str) -> tuple[Session, str] | None:
     if len(re.findall(r"[\w']+", question)) < 3 or _POINTS_AT_TALK.search(question) or \
             re.search(r"\b(?:it|its|it's|that|this|them|they)\b", question, re.I) or name_groups(question, sessions):
         return None
-    return named[0][0], f"{question[0].upper()}{question[1:]}{m.groupdict().get('tail') or ''}?"
+    tail = (m if isinstance(m, dict) else m.groupdict()).get("tail") or ""
+    return named[0][0], f"{question[0].upper()}{question[1:]}{tail}?"
 
 
 FOLLOW_UP_SECS = 45.0  # how long after a session's answer "and what about ...?" is a question for that session
