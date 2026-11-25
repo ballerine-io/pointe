@@ -103,6 +103,8 @@ _UNSPEAKABLE = re.compile(r"`|(?:^|[\s(])[\w.-]*/[\w.-]+\.\w{1,5}\b|\b[\w-]+\.(?
 _BACKSTAGE = re.compile(r"\bthe router\b|\bblocked it\b|\bmy notes\b|\bthe notes\b(?! file)|\bthe feed\b|\bthe transcript\b|\bin the history\b|\bsession history\b|\bthe system\b|\bthe gate\b|\bthe checker\b|\btool (?:call|result)\b|\blist_sessions\b|\bask_about_session\b|\bsend_to_claude_code\b")
 # A question that hands the conversation back with nothing in it. The user knows they can talk.
 _EMPTY_CLOSER = re.compile(r"(?:^|(?<=[.!?…]))\s*(?:(?:so,?\s*)?what(?:'s| is| would you like| do you want)(?: to)?(?: do| tackle| work on)?(?: our)?(?: the)?(?: next)?(?: move| step)?(?: next)?|"
+                           r"what (?:should|would you like) (?:i|it|they|we|[\w-]+) (?:to )?(?:send|do|work on|start with|tackle)"
+                           r"(?: first| next)?|which (?:one|session) (?:should i|do you want(?: me)? to) start with|"
                            r"(?:is there )?anything else(?: i can do)?|let me know[^.!?]*|how can i help[^.!?]*|מה הלאה|מה הצעד הבא[^.!?]*|"
                            r"עוד משהו|מה תרצה לעשות[^.!?]*)[.!?…]*\s*$", re.I)
 

@@ -653,6 +653,13 @@ The greeting is one short sentence; if a session waits on the user, that sentenc
 mode with several sessions, it names each in a few words, the ones waiting on the user first. A greeting never \
 sends anything.
 
+You are heard, not read. Short spoken sentences, one idea in each, with contractions ("it's", "didn't", "hasn't"). \
+The answer comes first, and you stop when it is said: no closing offer, no "let me know", and no question unless you \
+need its answer to act. A greeting never ends in a question. Call a session by its plain name ("billing"), never with a \
+slash or a branch. No lists, no file paths, no symbols; a number as a person says it ("about two megabytes", "forty-seven \
+minutes"). A caveat the session stated ("not rerun", "not committed") gets a few words, once, and only when it changes \
+what the answer means; never add one of your own.
+
 Permission requests are read out for you, word for word, and the user's spoken yes or no is applied automatically. \
 You never approve, deny or ask for a yes or no, and you do not mention how this works. A [permission answered] message \
 confirms it; until then never say it was granted or that their yes was taken. If the user asks something else first, \
@@ -1308,7 +1315,8 @@ def _spoken_names(text: str) -> str:
             first, last = base.split("/", 1)[0], base.rsplit("/", 1)[-1]
             base = (first if last.lower() in GENERIC_WORDS else last).replace("-", " ")  # "cv-notes/main" is "cv notes"
         if base + where != s.name:
-            text = text.replace(s.name, base + where)
+            # However the model capitalised it: "Billing/main" was read as "Billing slash main".
+            text = re.sub(rf"(?<![\w/]){re.escape(s.name)}(?![\w/])", lambda m: (base + where), text, flags=re.I)
     return text
 
 
@@ -3212,8 +3220,8 @@ def _quick_answer(session: Session, text: str, call: bool = True) -> str | None:
         return None
     lang = "Hebrew" if re.search(r"[\u0590-\u05ff]", state.last_utterance) else "English"
     return (f"[{_tag(session)}{harnesses.of(session).label} {FINISHED_MARK} It answered the question you sent it. Tell "
-            f"the user its answer in {lang}, in one or two short sentences, the answer first, keeping every number and "
-            f"caveat and adding nothing:\n{final}")
+            f"the user its answer in {lang}, in one or two short sentences, the answer first, keeping every number; a "
+            f"caveat gets a few words, and only when it changes what the answer means; add nothing:\n{final}")
 
 
 async def _digest_quietly(session: Session, text: str) -> None:
