@@ -47,7 +47,7 @@ final class PairProblemUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["problemDetail"].label, "This phone can't look up \(host).")
         XCTAssertEqual(app.staticTexts["problemTried"].label,
                        "Tried \(host):7443 · a name you route yourself (Twingate, a VPN or a tunnel)")
-        XCTAssertTrue(app.staticTexts["problemFix"].label.contains("run `colima start`"), app.staticTexts["problemFix"].label)
+        XCTAssertTrue(app.staticTexts["problemFix"].label.contains("run colima start"), app.staticTexts["problemFix"].label)
         for id in ["problemTryAgain", "problemPairAgain", "problemHowToFix"] { XCTAssertTrue(app.buttons[id].isHittable, id) }
         shot(app, "1-cant-find-your-mac")
 

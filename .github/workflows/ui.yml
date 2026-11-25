@@ -10,6 +10,11 @@ on:
   pull_request:
     paths: ["apps/**", "tools/ui_guard.py", ".github/workflows/ui.yml"]
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Some iPhone suites or tests only, by name (DemoUITests ParityUITests/testDisconnectingASessionAsksFirst); empty runs them all"
+        required: false
+        default: ""
 permissions:
   contents: read
 jobs:
@@ -55,6 +60,8 @@ jobs:
           grep -h "refused:" "$OUT/xcodebuild-refused.log" | head -1 || tail -15 "$OUT/xcodebuild-refused.log"
       - name: PointeUITests, in the simulator
         working-directory: apps/ios
+        env:
+          ONLY: ${{ inputs.only }}
         run: |
           # Each suite writes its screenshots to the folder its own variable names; the simulator shares the runner's disk.
           for suite in DUMP BRIEFING CHALLENGE CONFLICT DRIVE NIGHT_SHIFT PARITY SHOW SKIP VOICE_LOCK WHISPER THINKING VOCAB A11Y APPROVALS ADDRESSED TONES; do
@@ -64,11 +71,22 @@ jobs:
           done
           xcrun simctl boot "$SIM" || true
           xcrun simctl privacy "$SIM" grant microphone io.ballerine.pointe || true
+          # A dispatch with `only` runs those suites or tests; each name is checked before it reaches xcodebuild.
+          TESTS=(-only-testing:PointeUITests)
+          if [ -n "${ONLY:-}" ]; then
+            TESTS=()
+            for name in $ONLY; do
+              [[ "$name" =~ ^[A-Za-z0-9_]+(/[A-Za-z0-9_]+)?$ ]] || { echo "not a suite or test name: $name"; exit 1; }
+              TESTS+=("-only-testing:PointeUITests/$name")
+            done
+          fi
           set +e
           xcodebuild test-without-building -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" \
-            -derivedDataPath "$DD" -only-testing:PointeUITests -resultBundlePath "$OUT/PointeUITests.xcresult" \
+            -derivedDataPath "$DD" "${TESTS[@]}" -resultBundlePath "$OUT/PointeUITests.xcresult" \
             CODE_SIGNING_ALLOWED=NO > "$OUT/xcodebuild.log" 2>&1
           status=$?
+          # What the screen showed when a test failed: a few megabytes, where the whole result bundle is half a gigabyte.
+          xcrun xcresulttool export attachments --path "$OUT/PointeUITests.xcresult" --output-path "$OUT/failures" --only-failures > /dev/null 2>&1 || true
           set -e
           grep -E "error:|Test Case .*(passed|failed|skipped)|Executed [0-9]+ tests|\*\* TEST" "$OUT/xcodebuild.log" || tail -40 "$OUT/xcodebuild.log"
           {
@@ -81,7 +99,7 @@ jobs:
       # The meeting screens' screenshot test is on the demo fixtures too, but it shares its switch (MEETING_SHOTS) with
       # the tests that need a Mac, so it runs by name.
       - name: The meeting screens, on the demo fixtures
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.only == '' }}
         working-directory: apps/ios
         env:
           TEST_RUNNER_MEETING_CASE: demo
@@ -104,6 +122,12 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: ${{ !cancelled() }}
         with:
+          name: ios-ui-failures
+          path: ${{ runner.temp }}/ios-ui/failures/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
           name: ios-ui-xcresult
           path: |
             ${{ runner.temp }}/ios-ui/*.xcresult
@@ -113,6 +137,7 @@ jobs:
   # (actions/runner-images, images/macos/scripts/build/configure-tccdb-macos.sh), and a tool the job starts is judged
   # by that responsible process; the first step prints what macOS answers.
   mac-smoke:
+    if: ${{ inputs.only == '' }}  # a dispatch for some iPhone tests only
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -149,6 +174,7 @@ jobs:
   # The same flows with XCUITest (apps/macos/PointeMacUITests). On a person's Mac it waits for them to unlock Automation
   # Mode; the hosted image has it unlocked (automationmodetool, in the image's configure-machine.sh).
   mac-xcuitest:
+    if: ${{ inputs.only == '' }}  # a dispatch for some iPhone tests only
     runs-on: macos-26
     timeout-minutes: 45
     env:

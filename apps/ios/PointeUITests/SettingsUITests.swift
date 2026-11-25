@@ -71,7 +71,8 @@ final class SettingsUITests: XCTestCase {
         let app = launch("call")
         let header = app.descendants(matching: .any)["versionLine"].firstMatch  // the header reads as one element
         XCTAssertTrue(header.waitForExistence(timeout: 5))
-        XCTAssertNotNil(header.label.range(of: #"Pointe, .*\b\d+\.\d+\.\d+( \(\d+\))?$"#, options: .regularExpression),
+        // A 0.x version is the beta and says so after it (AppVersion.line).
+        XCTAssertNotNil(header.label.range(of: #"Pointe, .*\b\d+\.\d+\.\d+( \(\d+\))?( · beta)?$"#, options: .regularExpression),
                         "the version ends the header: \(header.label)")
     }
 
