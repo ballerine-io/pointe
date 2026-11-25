@@ -247,3 +247,30 @@ def test_a_redirect_still_being_said_when_the_answers_come_narrows_it_too(d, mon
     asyncio.run(run())
     text, respond = fed[-1]
     assert respond and ANSWERS["lantern"] in text and ANSWERS["billing"] not in text
+
+
+@pytest.mark.parametrize("words", ["כן.", "Mm-hm.", "Okay."])
+def test_a_backchannel_while_the_sessions_answer_gets_no_reply_of_its_own(d, monkeypatch, words):  # noqa: F811
+    """r10's t3-03: "כן." over "שואל את tariff api ו-tariff web." went to the model, which said "Correction: I said I asked
+    both, and I sent nothing", and sent one of them the question again. The overview is on its way: nothing to add."""
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    spent = []
+
+    async def answers_after_a_backchannel(session, prompt):
+        if session.name == "billing":
+            d.state.utterance_spent = False
+            await d._on_user_utterance(words)
+            spent.append(d.state.utterance_spent)
+        return ANSWERS[session.name]
+
+    monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(answers_after_a_backchannel),
+                                                                    "agent": "claude", "label": "Claude Code"})())
+
+    async def run():
+        d.state.last_user_speech_at = time.time() - 1
+        await d._overview(front, "What's going on everywhere?", d._overview_sessions("What's going on everywhere?"))
+
+    asyncio.run(run())
+    assert spent == [True]
+    assert any("read-only cop" in m.get("content", "") for m in front.brain.messages if m.get("role") == "user") or \
+        any("read-only cop" in str(n) for n in getattr(front.brain, "news", []))

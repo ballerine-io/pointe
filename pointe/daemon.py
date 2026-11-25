@@ -1783,6 +1783,9 @@ async def _overview(front, said: str, sessions: list[Session]) -> None:
     front.brain.forget()
     front.brain.append(said)
     front.brain.messages.append({"role": "assistant", "calls": [], "said": ack})
+    front.brain.add_news(f"[the daemon is asking {', '.join(x.name for x in sessions)} through read-only copies of each "
+                         "session; their answers come next. Nothing was sent to the sessions and nothing needs to be: do "
+                         "not send or ask again]")  # r10's t3-03: "I said I asked them, and I sent nothing"
     front.brain._spoke(ack)
     _stage("reply")
     _stage("checked")
@@ -5894,6 +5897,9 @@ async def _on_user_utterance(text: str, typed: bool = False) -> None:
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
     await _answer_permission(text)
+    if not state.utterance_spent and state.overview_asking and backchannel(text):
+        state.utterance_spent = True  # "כן" while the sessions answer: the overview is on its way, nothing to add
+        logger.info(f"a backchannel while the overview waits: {text!r}")
     if not state.utterance_spent and (one := _narrows_overview(text)) is not None:
         state.overview_focus, state.utterance_spent = one.id, True  # its own answer is on the way: not from notes now
         logger.info(f"overview narrowed to {one.name}: {text!r}")
