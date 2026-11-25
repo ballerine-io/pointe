@@ -13,7 +13,9 @@ import no_telemetry  # noqa: F401  (first: before anything loads onnxruntime)
 import json
 import os
 import re
+import shutil
 import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -56,7 +58,7 @@ FOR_CLAUDE_CODE = {name: os.environ.pop(name) for name in SDK_ROUTING_ENVS if na
 ANTHROPIC_URL = "https://api.anthropic.com"
 OPENAI_URL = "https://api.openai.com/v1"
 GEMINI_URL = "https://generativelanguage.googleapis.com/"
-# Keys read from the Keychain, in this process's memory only: never in os.environ, so nothing it starts inherits one.
+# Keys read from the Keychain (the Secret Service on Linux), in this process's memory only: never in os.environ, so nothing it starts inherits one.
 # vendor -> (the item it came from, the key)
 _found: dict[str, tuple[str, str]] = {}
 # First available wins. The order is the result of bench/results; see README, "Benchmarks".
@@ -113,12 +115,14 @@ def _stored(vendor: str, keep: bool = True) -> str | None:
     value = os.environ.get(env) or os.environ.get(ENV_ALIASES.get(vendor, ""))
     if value:
         return value
-    names = (item,) if vendor == "openai" and openai_url() else (item, LEGACY_ITEMS[vendor])
+    # The pre-release names are a Mac Keychain history: on Linux another tool may own an item called `gemini-api-key`.
+    own_only = (vendor == "openai" and openai_url()) or sys.platform != "darwin"
+    names = (item,) if own_only else (item, LEGACY_ITEMS[vendor])
     if _found.get(vendor, ("",))[0] in names:
         return _found[vendor][1]
     for name in names:
         try:
-            value = from_keychain(name)
+            value = from_store(name)
         except (OSError, subprocess.TimeoutExpired):
             return None
         if value:
@@ -135,6 +139,26 @@ def from_keychain(name: str, keychain: str | None = None, timeout: float = 5) ->
     got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", name, "-w", *([keychain] if keychain else [])],
                          capture_output=True, text=True, timeout=timeout, env=childenv.child_env())
     return (got.stdout.strip() or None) if got.returncode == 0 else None
+
+
+def from_secret_service(name: str, timeout: float = 5) -> str | None:
+    """Linux's Keychain: the freedesktop Secret Service item whose attribute `service` is `name`, read with libsecret's
+    `secret-tool`, or None. None too when secret-tool is missing or no Secret Service answers (a server with no desktop
+    login): the key then comes from the environment. A locked keyring may ask its owner to unlock it; past `timeout`
+    this gives up rather than hold the daemon."""
+    tool = shutil.which("secret-tool")
+    if tool is None:
+        return None
+    got = subprocess.run([tool, "lookup", "service", name], capture_output=True, text=True, timeout=timeout,
+                         env=childenv.child_env())
+    return (got.stdout.strip() or None) if got.returncode == 0 else None
+
+
+def from_store(name: str, timeout: float = 5) -> str | None:
+    """The key saved as `name` in this system's own secret store: the Keychain on a Mac, the Secret Service elsewhere."""
+    if sys.platform == "darwin":
+        return from_keychain(name, timeout=timeout)
+    return from_secret_service(name, timeout=timeout)
 
 
 def known_keys() -> list[str]:

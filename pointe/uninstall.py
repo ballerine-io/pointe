@@ -58,9 +58,12 @@ def _size(path: Path) -> str:
 
 
 def _in_keychain(name: str) -> bool:
-    """Asked by name only: no secret is read or printed."""
+    """Asked by name only: no secret is printed. On Linux, the login keyring through the Secret Service (secret-tool
+    has no lookup by name that leaves the value out: it is read into this process and dropped)."""
+    command = (["security", "find-generic-password", "-s", name] if sys.platform == "darwin"
+               else ["secret-tool", "lookup", "service", name])
     try:
-        return subprocess.run(["security", "find-generic-password", "-s", name], capture_output=True, timeout=10).returncode == 0
+        return subprocess.run(command, capture_output=True, timeout=10).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
 
@@ -179,10 +182,12 @@ def plan() -> dict[str, list[Item]]:
                         command=(claude, "plugin", "uninstall", "pointe@pointe")))
         own.append(Item("The plugin's marketplace, pointe (claude plugin marketplace remove)",
                         command=(claude, "plugin", "marketplace", "remove", "pointe")))
-    keys = [Item(f"Keychain item pointe.{v}-api-key", keychain=f"pointe.{v}-api-key") for v in KEY_VENDORS
+    store = "Keychain item" if sys.platform == "darwin" else "Keyring item"
+    keys = [Item(f"{store} pointe.{v}-api-key", keychain=f"pointe.{v}-api-key") for v in KEY_VENDORS
             if _in_keychain(f"pointe.{v}-api-key")]
     shared = [Item(f"Keychain item {v}-api-key (the name pre-release builds of Pointe used; another tool may use the same name)",
-                   keychain=f"{v}-api-key") for v in KEY_VENDORS if _in_keychain(f"{v}-api-key")]
+                   keychain=f"{v}-api-key") for v in KEY_VENDORS
+              if sys.platform == "darwin" and _in_keychain(f"{v}-api-key")]  # no pre-release build ran on Linux
     hub = Path(os.environ.get("HF_HUB_CACHE") or Path(os.environ.get("HF_HOME") or home() / ".cache" / "huggingface") / "hub")
     for repo in _hf_models():
         folder = hub / f"models--{repo.replace('/', '--')}"
@@ -207,7 +212,9 @@ def remove(item: Item) -> str:
             item.rc.write_text(_without_alias(item.rc.read_text()))
             return "done"
         if item.keychain:
-            got = subprocess.run(["security", "delete-generic-password", "-s", item.keychain], capture_output=True, timeout=10)
+            command = (["security", "delete-generic-password", "-s", item.keychain] if sys.platform == "darwin"
+                       else ["secret-tool", "clear", "service", item.keychain])
+            got = subprocess.run(command, capture_output=True, timeout=10)
             return "done" if got.returncode == 0 else "not found"
         if item.path.is_dir() and not item.path.is_symlink():
             shutil.rmtree(item.path)

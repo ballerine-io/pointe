@@ -11,8 +11,13 @@
 A native dialog with hidden input asks for the key; `security -i` reads the command that saves it from its standard input,
 so it is never an argument, and the saved item is read back and compared before Pointe says it is saved. Made for people
 who do not use a terminal: Claude Code can run this for them.
+
+On Linux the terminal asks, with hidden typing, and the key goes to the login keyring through the freedesktop Secret
+Service (libsecret's `secret-tool`, on its standard input). Where no Secret Service runs, nothing is saved: the words say
+which variable to set for the one command that starts Pointe instead (docs/linux.md).
 """
 
+import getpass
 import os
 import subprocess
 import sys
@@ -45,6 +50,15 @@ def _site(vendor: str) -> str:
     return WHERE[vendor].removeprefix("https://")
 
 
+def on_a_mac() -> bool:
+    return sys.platform == "darwin"
+
+
+def store_name() -> str:
+    """Where a saved key lives, in the words said to the person."""
+    return "your Keychain" if on_a_mac() else "your login keyring"
+
+
 def prompt(vendor: str, refused: bool = False) -> str:
     """The dialog's text: three numbered lines, after the reason it is back when the last key was refused."""
     head = f"{LABEL[vendor]} refused that key: it may be mistyped, revoked or out of credit. Try again.\\n\\n" if refused else ""
@@ -55,7 +69,18 @@ def prompt(vendor: str, refused: bool = False) -> str:
 
 
 def ask(vendor: str, refused: bool = False) -> str | None:
-    """A macOS dialog with hidden typing. None if the user cancelled."""
+    """A macOS dialog with hidden typing; on Linux the terminal's own hidden prompt. None if the user cancelled, or on
+    Linux with no terminal to type in."""
+    if not on_a_mac():
+        if not sys.stdin.isatty():
+            return None
+        head = f"{LABEL[vendor]} refused that key: it may be mistyped, revoked or out of credit. Try again.\n" if refused else ""
+        try:
+            got = getpass.getpass(f"{head}Open {WHERE[vendor]}. {CREATE[vendor]}\nPaste the {LABEL[vendor]} key here "
+                                  "(the typing is hidden), then press Enter: ")
+        except (EOFError, KeyboardInterrupt):
+            return None
+        return got.strip() or None
     script = (f'display dialog "{prompt(vendor, refused)}" default answer "" with hidden answer '
               f'with title "Pointe: {LABEL[vendor]} key" buttons {{"Cancel", "Save"}} default button "Save"\n'
               f'text returned of result')
@@ -65,8 +90,11 @@ def ask(vendor: str, refused: bool = False) -> str | None:
 
 def open_page(vendor: str) -> None:
     """The vendor's key page in the browser, so the person does not have to find it."""
+    opener = "open" if on_a_mac() else "xdg-open"
+    if not on_a_mac() and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        return  # no desktop to open it on (SSH): the prompt names the page
     try:
-        subprocess.run(["open", WHERE[vendor]], capture_output=True, timeout=10, env=childenv.child_env())
+        subprocess.run([opener, WHERE[vendor]], capture_output=True, timeout=10, env=childenv.child_env())
     except (OSError, subprocess.TimeoutExpired):
         pass
 
@@ -85,10 +113,13 @@ def save(item: str, secret: str, keychain: str | None = None) -> str | None:
     """Save `secret` as the Keychain item `item`, then read it back. None when the Keychain gives back exactly `secret`,
     else why not, in words that hold no part of it. `keychain`: a keychain file instead of the default one (tests).
 
-    Never through `security`'s own password prompt (`-w` last): it keeps the first 128 characters only."""
+    Never through `security`'s own password prompt (`-w` last): it keeps the first 128 characters only. On Linux,
+    `secret-tool store` reads the key from its standard input (save_linux)."""
     if not (secret.isascii() and secret.isprintable()):
         # `security find-generic-password -w`, the daemon's reader, prints such a value in hex: it would never read back.
         return "it has a character no key has (a line break, a tab, or one outside plain ASCII)"
+    if not on_a_mac():
+        return save_linux(item, secret)
     words = ["add-generic-password", "-U", "-s", _word(item), "-a", _word(os.environ.get("USER", "pointe")),
              "-w", _word(secret), *([_word(keychain)] if keychain else [])]
     line = " ".join(words) + "\n"
@@ -105,6 +136,33 @@ def save(item: str, secret: str, keychain: str | None = None) -> str | None:
         return "the Keychain has no such item after saving"
     if saved != secret:  # `security -i`'s exit status says nothing about a command that failed: only this does
         return "the Keychain gave back a different key from the one pasted"
+    return None
+
+
+NO_SECRET_TOOL = "secret-tool is not installed: sudo apt install libsecret-tools (Fedora: libsecret), then try again"
+NO_SECRET_SERVICE = ("no keyring answered (the Secret Service runs with a desktop login; over SSH or on a server there is "
+                     "usually none)")
+
+
+def save_linux(item: str, secret: str) -> str | None:
+    """`secret` into the login keyring as the item whose attribute `service` is `item`, then read back. The key goes on
+    secret-tool's standard input, never its command line; its output is never shown."""
+    tool = vendors.shutil.which("secret-tool")
+    if tool is None:
+        return NO_SECRET_TOOL
+    try:
+        got = subprocess.run([tool, "store", f"--label=Pointe: {item}", "service", item,
+                              "account", os.environ.get("USER", "pointe")],
+                             input=secret.encode(), capture_output=True, timeout=60, env=childenv.child_env())
+        if got.returncode != 0:
+            return NO_SECRET_SERVICE
+        saved = vendors.from_secret_service(item, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return NO_SECRET_SERVICE
+    if saved is None:
+        return "the keyring has no such item after saving"
+    if saved != secret:
+        return "the keyring gave back a different key from the one pasted"
     return None
 
 
@@ -198,6 +256,10 @@ def main(argv: list[str]) -> int:
     vendor = names[0]
     if "--no-open" not in flags:
         open_page(vendor)
+    if not on_a_mac() and not sys.stdin.isatty():
+        print(f"No terminal to type the key in: run pointe key {vendor} in a terminal on this machine. The key goes to "
+              f"{store_name()} (docs/linux.md).")
+        return 1
     refused, said = False, ""
     while True:
         secret = ask(vendor, refused)
@@ -210,17 +272,24 @@ def main(argv: list[str]) -> int:
         refused = True  # the same window again, saying why
     item = KEYS[vendor][1]
     if failed := save(item, secret):
-        print(f"Could not save the {LABEL[vendor]} key in the Keychain (item {item}): {failed}. Copy the key again "
-              f"and run pointe key {vendor}.")
+        if on_a_mac():
+            print(f"Could not save the {LABEL[vendor]} key in the Keychain (item {item}): {failed}. Copy the key again "
+                  f"and run pointe key {vendor}.")
+        else:
+            env = KEYS[vendor][0]
+            print(f"Could not save the {LABEL[vendor]} key in your login keyring: {failed}. Without a keyring, give it to "
+                  f"Pointe for one start only, from your own secret store: {env}=\"$(<your command that prints it>)\" "
+                  f"pointe restart. Never put it in a file or your shell's startup file (docs/linux.md).")
         return 1
     works = f"The {LABEL[vendor]} key works" if ok else f"Saved the {LABEL[vendor]} key, but it could not be checked ({said})"
+    where = store_name()
     if "--no-restart" in flags or not running():
-        print(f"{works}. It is saved in your Keychain.")
+        print(f"{works}. It is saved in {where}.")
         return 0
     if restart():
-        print(f"{works}. It is saved in your Keychain, and Pointe restarted to use it.")
+        print(f"{works}. It is saved in {where}, and Pointe restarted to use it.")
         return 0
-    print(f"{works}. It is saved in your Keychain, but Pointe did not start again: run /pointe:doctor.")
+    print(f"{works}. It is saved in {where}, but Pointe did not start again: run /pointe:doctor.")
     return 1
 
 

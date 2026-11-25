@@ -163,8 +163,9 @@ def client(d, monkeypatch):
     return TestClient(d.app, base_url="http://127.0.0.1:7860", cookies={"pointe_local": d.PAGE_KEY}), ran
 
 
-def test_add_a_key_from_the_page_runs_pointe_key_on_the_mac(d, client):
+def test_add_a_key_from_the_page_runs_pointe_key_on_the_mac(d, client, monkeypatch):
     c, ran = client
+    monkeypatch.setattr(d.sys, "platform", "darwin")  # on Linux the page names the command instead: test_linux_keys.py
     assert c.post("/voice/key", json={"vendor": "gemini"}).json() == {"ok": True}
     assert ran == [([str(d.POINTE_CLI), "key", "gemini"],)]
     assert c.post("/voice/key", json={"vendor": "nope"}).status_code == 400

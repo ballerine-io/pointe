@@ -10126,6 +10126,9 @@ async def add_key(request: Request):
     vendor = body.get("vendor") if isinstance(body, dict) else None
     if vendor not in vendors.KEYS:
         raise HTTPException(status_code=400, detail=f"vendor must be one of {', '.join(vendors.KEYS)}")
+    if sys.platform != "darwin":  # no key window off a Mac: the terminal asks, with hidden typing (keys.py)
+        raise HTTPException(status_code=409, detail=f"In a terminal on this machine: pointe key {vendor}. It asks for "
+                                                    "the key with hidden typing and saves it in your login keyring.")
     _run_on_the_mac([str(POINTE_CLI), "key", vendor])
     logger.info(f"key window opened for {vendor}")
     return {"ok": True}
