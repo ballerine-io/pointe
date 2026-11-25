@@ -43,7 +43,7 @@ final class DriveTests: XCTestCase {
         XCTAssertEqual(DriveCopy.hint(for: s.sessions[0], status: s), "Not for the road: it waits until you stop. Say no to deny it.")
         s = try driving(voice: false, canApprove: false)
         XCTAssertEqual(DriveCopy.hint(for: s.sessions[0], status: s),
-                       "Can\u{2019}t be read out: it waits until you stop. Say no to deny it.")
+                       "Not one for the road: it waits until you stop. Say no to deny it.")
     }
 
     func testAnUnknownRequestIsNeverSaidToBeAnswerableByVoice() throws {
