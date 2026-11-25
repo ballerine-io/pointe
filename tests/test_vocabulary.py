@@ -542,3 +542,17 @@ def test_words_from_a_meeting_are_never_learned(voc, monkeypatch):
     assert r.json().get("learned", []) == []
     assert d.DICTIONARY.entries == []
     assert client.get("/voice/dictionary").json()["suggestions"] == []
+
+
+def test_the_ears_know_the_coding_words_testers_heard_misheard(tmp_path):
+    """Tester round 4: "convert hero.png to webp" was sent as "to web" (3 of 3), "add a docstring" as "add a dark
+    string", and under babble "dedupe rows" as "the 2 rows". Words of the trade go to the ears after the user's own
+    names and the sessions', before folder names."""
+    out = vocabulary.terms_for(Dictionary(tmp_path / "d.json"), ["billing"], {}, ["src"], trade=vocabulary.TRADE_WORDS)
+    for word in ("WebP", "docstring", "dedupe", "pytest", "unittest"):
+        assert word in out
+    assert out.index("billing") < out.index("docstring") < out.index("src")
+
+
+def test_the_daemon_gives_the_ears_the_words_of_the_trade(d):  # noqa: F811
+    assert "docstring" in d._recognition_terms({})
