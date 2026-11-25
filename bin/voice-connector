@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
 # Start the Twingate Connector for phone access from the docker command Twingate gives you, read from the
-# clipboard. The tokens go clipboard -> a 0600 env file -> the container; never into argv, history or output.
+# clipboard (pbpaste on a Mac; wl-paste, xclip or xsel on Linux), or pasted here when there is no clipboard (SSH).
+# The tokens go clipboard -> a 0600 env file -> the container; never into argv, history or output.
+# On Linux the container shares the host's network (--network host), so it reaches Pointe's listener on 127.0.0.1:
+# give the Twingate resource the address 127.0.0.1. On a Mac it is host.docker.internal (docs/phone/twingate.md).
 set -euo pipefail
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 ENVF="$STATE/twingate-connector.env"
 umask 077
-pbpaste | python3 -I -c '
+clipboard() {
+  if [ "$(uname -s)" = Darwin ]; then pbpaste
+  elif [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wl-paste >/dev/null 2>&1; then wl-paste --no-newline
+  elif [ -n "${DISPLAY:-}" ] && command -v xclip >/dev/null 2>&1; then xclip -selection clipboard -o
+  elif [ -n "${DISPLAY:-}" ] && command -v xsel >/dev/null 2>&1; then xsel --clipboard --output
+  elif [ -t 0 ]; then  # no clipboard to read (SSH, a server): pasted here, not shown
+    echo "Paste the docker command from the Twingate console, then press Enter and Ctrl-D (the typing is hidden):" >&2
+    stty -echo; trap 'stty echo' EXIT; cat; stty echo; trap - EXIT
+  else cat; fi  # piped in: voice-connector < file
+}
+NETWORK=(); [ "$(uname -s)" = Darwin ] || NETWORK=(--network host)
+clipboard | python3 -I -c '
 import re, sys
 cmd = sys.stdin.read()
 pairs = re.findall(r"(?:--env|-e)\s+\"?(TWINGATE_[A-Z_]+)=\"?([^\"\s]+)\"?", cmd)
@@ -21,7 +35,8 @@ print(name.group(1))
 ' "$ENVF" > "$STATE/twingate-connector.name"
 NAME="$(cat "$STATE/twingate-connector.name")"
 docker rm -f "$NAME" >/dev/null 2>&1 || true
-docker run -d --sysctl net.ipv4.ping_group_range="0 2147483647" --env-file "$ENVF" \
+docker run -d ${NETWORK[@]+"${NETWORK[@]}"} --sysctl net.ipv4.ping_group_range="0 2147483647" --env-file "$ENVF" \
   --env TWINGATE_LABEL_HOSTNAME="$(hostname)" --name "$NAME" --restart=unless-stopped --pull=always \
   twingate/connector:1 >/dev/null
 echo "connector $NAME started; tokens kept in $ENVF (0600)"
+[ "$(uname -s)" = Darwin ] || echo "In the Twingate console, give Pointe's resource the address 127.0.0.1, port 7443 (this connector shares this machine's network)."

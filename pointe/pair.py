@@ -4,6 +4,8 @@
   pointe pair wifi           this Mac's address on the current Wi-Fi (pair again if it changes)
   pointe pair host <name>    a name you route yourself (Twingate, a VPN); listens on 127.0.0.1
                              (Cloudflare Tunnel with Access: the phone's browser only; the app pins this Mac's certificate)
+      --listen <address>     also on this private address: `docker` is Docker's bridge, for a Twingate connector in a
+                             container on the default bridge network (docs/linux.md)
   pointe pair show           the QR code again
   pointe pair link           the address that pairs a phone's browser page
   pointe pair rotate         a new certificate and pairing link; signs out every phone, browser and machine (pair again)
@@ -58,11 +60,70 @@ def _tailscale() -> tuple[str, str]:
 
 
 def _wifi() -> tuple[str, str]:
+    if sys.platform != "darwin":
+        ip = _lan_address()
+        if ip:
+            return ip, ip
+        raise SystemExit("No local network address found: this machine has no private address on its default route.")
     for interface in ("en0", "en1"):
         ip = _run("ipconfig", "getifaddr", interface)
         if ip:
             return ip, ip
     raise SystemExit("No Wi-Fi address found.")
+
+
+def _lan_address() -> str | None:
+    """Linux has no `ipconfig getifaddr`: the private IPv4 address of the default route, the one a phone on the same
+    network reaches. Connecting a UDP socket only picks the route; no packet is sent (192.0.2.1 is documentation space).
+    Not 100.64/10 (Tailscale's and Twingate's own) and never a public address."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("192.0.2.1", 9))
+            ip = probe.getsockname()[0]
+    except OSError:
+        return None
+    address = ipaddress.ip_address(ip)
+    return ip if address.is_private and not address.is_loopback and not address.is_link_local else None
+
+
+def _docker_bridge() -> str | None:
+    """Docker's default bridge address on this machine (docker0), which a container on that network reaches it at."""
+    for line in _run("ip", "-4", "-o", "addr", "show", "docker0").splitlines():
+        found = re.search(r"\binet (\d+\.\d+\.\d+\.\d+)/", line)
+        if found:
+            return found.group(1)
+    return None
+
+
+def _bridged_connector() -> str | None:
+    """The name of a running Twingate connector container on a Docker network other than the host's, or None. Such a
+    connector reaches this machine at the bridge address, so 127.0.0.1 alone is out of its reach."""
+    if not shutil.which("docker"):
+        return None
+    for line in _run("docker", "ps", "--filter", "ancestor=twingate/connector:1", "--format",
+                     "{{.Names}} {{.Networks}}").splitlines():
+        name, _, networks = line.partition(" ")
+        if name and networks and "host" not in networks.split(","):
+            return name
+    return None
+
+
+def _listen_address(typed: str) -> str:
+    """An address `--listen` may add: `docker` (the bridge), or a private IPv4 or IPv6 address of this machine. Never
+    0.0.0.0 or a public address: the listener would answer every network."""
+    if typed == "docker":
+        bridge = _docker_bridge()
+        if bridge is None:
+            raise SystemExit("No Docker bridge (docker0) on this machine. Nothing was changed.")
+        return bridge
+    try:
+        address = ipaddress.ip_address(typed)
+    except ValueError:
+        address = None
+    if address is None or address.is_unspecified or not address.is_private:
+        raise SystemExit(f"--listen {typed}: give a private address of this machine, such as Docker's bridge "
+                         "(--listen docker, usually 172.17.0.1). Nothing was changed.")
+    return str(address)
 
 
 def _certificate(host: str) -> None:
@@ -126,7 +187,7 @@ def _covers(host: str) -> bool:
         and left > datetime.timedelta(days=30) and (STATE / "tls" / "key.pem").exists()
 
 
-def setup(host: str, listen: str) -> None:
+def setup(host: str, listen: str, also: tuple[str, ...] = ()) -> None:
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not _covers(host):
         _certificate(host)
@@ -135,7 +196,8 @@ def setup(host: str, listen: str) -> None:
     try:
         if not (STATE / "remote_token").exists():
             (STATE / "remote_token").write_text(os.urandom(32).hex())
-        (STATE / "remote.json").write_text(json.dumps({"host": host, "listen": [listen]}) + "\n")
+        addresses = [listen, *(a for a in also if a != listen)]
+        (STATE / "remote.json").write_text(json.dumps({"host": host, "listen": addresses}) + "\n")
     finally:
         os.umask(old)
 
@@ -283,8 +345,12 @@ def link() -> None:
     token = (STATE / "remote_token").read_text().strip()
     address = f"https://{host}:{TLS_PORT}/voice?pair={token}"
     if _to_terminal():
+        import segno
+
+        segno.make(address, error="m").terminal(compact=True)  # the phone's Camera opens it in the browser
         print(address)
-        print("Open it once on the phone's browser. It holds a secret: send it only to your own phone.")
+        print("Open it once on the phone's browser (scan the code with the Camera, or send yourself the address). It "
+              "holds a secret: only your own phone.")
     elif _open_picture(address, "pair-link-qr.png"):
         print(f"Opened a QR code on this Mac: scan it with the phone's Camera, which opens it in the phone's browser, once. "
               f"It holds a secret, so it is not printed here. The phone checks certificate {fingerprint()[:16]}...")
@@ -394,10 +460,22 @@ def main(argv: list[str]) -> None:
         if not _HOST_NAME.fullmatch(host):  # checked before anything changes: a new certificate unpairs every phone and node
             raise SystemExit(f"{argv[1]!r} is not a host name: letters, digits, hyphens and dots only, such as "
                              "mac.example.internal. Nothing was changed.")
+        rest = argv[2:]
+        if rest and (len(rest) != 2 or rest[0] != "--listen"):
+            raise SystemExit(__doc__.strip())
+        also = (_listen_address(rest[1]),) if rest else ()
     else:
         raise SystemExit(__doc__.strip())
-    setup(host, listen)
-    print(f"Listening for the phone on {listen}:{TLS_PORT} within a few seconds if the daemon runs, else at its next start.")
+    also = also if argv[0] == "host" else ()
+    setup(host, listen, also)
+    print(f"Listening for the phone on {', '.join([listen, *also])} port {TLS_PORT} within a few seconds if the daemon "
+          "runs, else at its next start.")
+    if argv[0] == "host" and not also and sys.platform != "darwin" and _to_terminal():
+        connector, bridge = _bridged_connector(), _docker_bridge()
+        if connector and bridge:
+            print(f"The Twingate connector {connector} runs on Docker's bridge network: it reaches this machine at "
+                  f"{bridge}, not 127.0.0.1. Run: pointe pair host {host} --listen docker (and give its resource the "
+                  f"address {bridge}), or start the connector with --network host.")
     show()
 
 
