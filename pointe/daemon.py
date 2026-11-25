@@ -6071,8 +6071,11 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     await _apply_answer(session, session.permission_id, verdict, f"user said: {text!r}")
 
 
-_READ_IT = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|please|yes|yeah)\W+)*(?:read (?:it|it out|it to me|me (?:it|the command))|"
-                      r"what (?:is it|does it (?:run|do|want))|which command)\W*(?:please\W*)?$|^\W*תקריא(?: את זה)?\W*$", re.I)
+_READ_IT = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|please|yes|yeah|sorry|can you|could you|would you)\W+)*"
+                      r"(?:read (?:it|that|it out|it to me|me (?:it|the command))(?: again| once more)?|"
+                      r"repeat (?:it|that|the (?:command|request))|"
+                      r"what (?:is it|does it (?:run|do|want))|which command)\W*(?:please\W*)?$|"
+                      r"^\W*(?:תקריא|תקריאי|תחזור על)(?: את)?(?: זה)?(?: שוב)?\W*$", re.I)
 
 
 def _read_it_intent(text: str) -> bool:

@@ -290,3 +290,18 @@ def test_a_new_request_after_a_yes_is_not_taken_for_its_tail(d, monkeypatch):  #
     d.state.utterance_spent = False
     asyncio.run(d.on_user_utterance("Run the lint too."))
     assert not d.state.utterance_spent
+
+
+@pytest.mark.parametrize("words", ["Sorry, read it again.", "Can you read it again?", "Read that again, please.",
+                                   "Repeat the command.", "Could you repeat it?", "תקריא שוב", "Read it."])
+def test_read_it_again_in_its_common_forms_brings_the_read_out(words):
+    """Tester round 4's o4-03 (2 of 2): "Sorry, read it again." went to the model, which said the request in its own
+    words; a yes after that could not approve, and the request was read once more. These are the daemon's to answer."""
+    import daemon
+    assert daemon._read_it_intent(words)
+
+
+@pytest.mark.parametrize("words", ["Read the readme to billing.", "Tell billing to read it again from disk.", "Yes."])
+def test_other_words_are_not_read_it(words):
+    import daemon
+    assert not daemon._read_it_intent(words)
