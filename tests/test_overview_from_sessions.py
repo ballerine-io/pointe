@@ -213,8 +213,8 @@ def test_both_of_two_sessions_is_every_session(d, monkeypatch, words):  # noqa: 
 
 @pytest.mark.parametrize("live_words", [True, False])
 def test_a_redirect_still_being_said_when_the_answers_come_narrows_it_too(d, monkeypatch, live_words):  # noqa: F811
-    """Tester round 5's bar-01: the three answers came 0.2 s before "Wait, wait, just tell me about quarry." was taken;
-    the whole overview was said, and the model also answered the redirect from notes ("Quarry has joined Pointe")."""
+    """Tester round 5's bar-01: the three answers came 0.2 s before "Wait, wait, just tell me about lantern." was taken;
+    the whole overview was said, and the model also answered the redirect from notes ("Lantern has joined Pointe")."""
     front, spoken, asked, say, questions = _three(d, monkeypatch)
     fed = d.state.conn.injector.fed
 
@@ -251,7 +251,7 @@ def test_a_redirect_still_being_said_when_the_answers_come_narrows_it_too(d, mon
 
 @pytest.mark.parametrize("words", ["כן.", "Mm-hm.", "Okay."])
 def test_a_backchannel_while_the_sessions_answer_gets_no_reply_of_its_own(d, monkeypatch, words):  # noqa: F811
-    """r10's t3-03: "כן." over "שואל את tariff api ו-tariff web." went to the model, which said "Correction: I said I asked
+    """r10's t3-03: "כן." over "שואל את toll api ו-toll web." went to the model, which said "Correction: I said I asked
     both, and I sent nothing", and sent one of them the question again. The overview is on its way: nothing to add."""
     front, spoken, asked, say, questions = _three(d, monkeypatch)
     spent = []
