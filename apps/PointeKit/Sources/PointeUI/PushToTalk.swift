@@ -208,13 +208,31 @@ extension View {
     @ViewBuilder func holdToTalk(_ enabled: Bool, style: TalkStyle, press: @escaping () -> Void, release: @escaping () -> Void,
                                  toggle: @escaping () -> Void) -> some View {
         if enabled {
-            // A long press ends when it is recognised, not at the lift: the drag after it sees the finger come up.
-            simultaneousGesture(LongPressGesture(minimumDuration: 0.35, maximumDistance: 12)
-                .sequenced(before: DragGesture(minimumDistance: 0))
-                .onChanged { value in if case .second(true, _) = value { style == .tap ? toggle() : press() } }
-                .onEnded { value in if case .second(true, _) = value, style == .hold { release() } })
+            modifier(HoldToTalkModifier(style: style, press: press, release: release, toggle: toggle))
         } else {
             self
         }
+    }
+}
+
+/// The conversation's press. The scroll view under it can end the gesture without its onEnded (iOS 26, a press that does
+/// not move): a release tied to onEnded never came and the gate stayed open. A GestureState goes back to false however
+/// the gesture ends, so the press and its release, or one toggle, follow that state.
+private struct HoldToTalkModifier: ViewModifier {
+    let style: TalkStyle
+    let press: () -> Void
+    let release: () -> Void
+    let toggle: () -> Void
+    @GestureState private var held = false
+
+    func body(content: Content) -> some View {
+        content
+            // A long press ends when it is recognised, not at the lift: the drag after it sees the finger come up.
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0.35, maximumDistance: 12)
+                .sequenced(before: DragGesture(minimumDistance: 0))
+                .updating($held) { value, state, _ in if case .second(true, _) = value { state = true } })
+            .onChange(of: held) { _, now in
+                if now { style == .tap ? toggle() : press() } else if style == .hold { release() }
+            }
     }
 }
