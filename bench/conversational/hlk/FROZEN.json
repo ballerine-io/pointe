@@ -1,7 +1,7 @@
 {
  "agent_model": "claude-haiku-5-5",
  "benchmark": "hlk",
- "claude_code_version": "2.1.330",
+ "claude_code_version": "2.1.332",
  "earlier": [
   {
    "frozen_at": "2026-11-23T04:09:05+0200",
@@ -11,14 +11,19 @@
     "hlk-20261123-085104"
    ],
    "why": "the published run before the fixes of the benchmark findings; its reference arms still stand"
+  },
+  {
+   "frozen_at": "2026-11-23T12:45:20+0200",
+   "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
+   "why": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run."
   }
  ],
- "frozen_at": "2026-11-23T12:45:20+0200",
+ "frozen_at": "2026-11-25T17:01:09+0200",
  "instances_sha256": "71c2e609b1ec003bbe433f505bc91da2003c4948f09a648dc1bc3d52f780bfd0",
  "item_order_seed": 20261123,
- "llm_router_prompt_commit": "651b8805867e20b17fbcbdf97a646ee1e1123844",
+ "llm_router_prompt_commit": "859d1afcb71a269ffe9e1ae345c44e04e3946654",
  "llm_router_prompt_sha256": "9b5a2fe8548b10df8f9fbe66c6015750ce275c4671b3197541663c2c8a6416d5",
- "pointe_commit": "84eafbccc24a547bcc3be0b1720cf920f9ceb856",
- "rerun": "Pointe arm only, after Pointe fixed what this suite found; same agent model, items, seeds and settings. Reference arms run no Pointe code: their rows come from the earlier run.",
- "unpublished_manifest_sha256": "4bb4f4ed535a965a485703ee67ae28df087d663be1f3b62e2725d66665ae7ca7"
+ "pointe_commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "rules": "Set before the first paid row: every arm in one interleaved launch, 3 runs of each of the 36 public items. No row starts while the 1-minute load is over 20. No launch is stopped for slowness. A row the harness marks as a fault (run.py finals --rerun-faults) or that errors is run once more and both rows are kept and listed; the rerun row is scored. Every launch and its spend are in results/ledger.jsonl.",
+ "unpublished_manifest_sha256": null
 }

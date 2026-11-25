@@ -518,6 +518,7 @@ class PreflightFailed(RuntimeError):
 
 
 def finish(row: dict, actions: list, events: list, ctx: dict) -> dict:
+    row["load_avg_end"] = round(os.getloadavg()[0], 2)
     out = ctx["out"]
     if row.get("kind") == "unpublished":  # scores only: nothing that names the instance or lets its seed be found
         row = {k: v for k, v in row.items() if k not in ("answer_text", "out_of_tree", "changed_protected", "reason")}
@@ -542,6 +543,9 @@ def finish(row: dict, actions: list, events: list, ctx: dict) -> dict:
     return row
 
 
+MAX_LOAD = 20.0  # no row starts while the 1-minute load is above this (added 2026-11-25; earlier runs had no gate)
+
+
 async def run_all(jobs: list, ctx: dict, workers: int, port_base: int, cap: float) -> list:
     queue: asyncio.Queue = asyncio.Queue()
     for j in jobs:
@@ -560,6 +564,9 @@ async def run_all(jobs: list, ctx: dict, workers: int, port_base: int, cap: floa
                 except ledger.BudgetRefused as e:
                     stop["why"] = str(e)
                     return
+            while os.getloadavg()[0] > MAX_LOAD:  # a loaded machine measures itself, not the arm: wait it out
+                print(f"[{k}] load {os.getloadavg()[0]:.1f} > {MAX_LOAD:.0f}: waiting", flush=True)
+                await asyncio.sleep(30)
             try:
                 row = await run_job(job, ctx, port)
             except PreflightFailed as e:
