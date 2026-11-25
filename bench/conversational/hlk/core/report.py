@@ -278,7 +278,7 @@ def sections(rows, unpub, frozen) -> list:
     B = []
     B.append(("h1", "Humanity's Last Keystroke (HLK)"))
     B.append(("sub", SUBTITLE))
-    B.append(("p", "Part of the Pointe Conversational Engineering Benchmarks: a reproducible self-evaluation harness with an "
+    B.append(("p", "Part of Pointe's release benchmarks (docs/benchmarks/README.md): a self-evaluation harness with an "
                    "adapter interface. One system under test (Pointe) and reference arms written by the same team, on "
                    "synthetic speech. The authors know Pointe's internals. This is not a ranking of products."))
     B.append(("p", "HLK asks whether a small scripted multi-step coding task is finished by voice only, graded by "
@@ -292,11 +292,17 @@ def sections(rows, unpub, frozen) -> list:
                    "12, the families, and the intervals are wide. The suite can show a large gap; it cannot rank two "
                    "close systems."))
     B.append(("h2", "Limits, plainly"))
-    earlier_runs = {r for e in frozen.get("earlier", []) for r in e["runs"]}
+    earlier_runs = set() if frozen.get("standalone") else {r for e in frozen.get("earlier", []) for r in e.get("runs", [])}
     B.append(("ul", [
-        "Synthetic speech favours Pointe and is an upper bound for everyone: Kokoro, the text-to-speech here, is also "
-        "Pointe's local voice, and four clean US and British voices are easier than people. Every table title says "
-        "synthetic speech.",
+        "Synthetic speech is an upper bound for everyone: four clean US and British Kokoro voices are easier than "
+        "people. Every table title says synthetic speech.",
+        "The arms do not hear or speak alike. The LLM router is handed each utterance whole after it ends, so it never "
+        "decides when a turn is over; its recognizer call is retried on a dropped connection, and Pointe's live call is "
+        "not. The router speaks through local Kokoro, which the scoring Whisper reads easily; Pointe speaks through "
+        "ElevenLabs. The router's own decisions are not logged.",
+        "Since 2026-11-25 an item passes only if its task reached the agent (a user prompt between the first scripted "
+        "turn and the final question), and the agent's folder has an opaque name: the earlier runs named the item "
+        "(\"impossible-as-stated-2-…\") and the arm in the path, which agents read aloud.",
         "No outside product is tested. Every reference arm is written by Pointe's team; we found no way to give audio to "
         "another voice coding tool without a virtual microphone, and the rules forbid microphones.",
         "Pointe's own model sits between the user and the agent and may rewrite an instruction, so a spoken arm can beat "
@@ -306,27 +312,25 @@ def sections(rows, unpub, frozen) -> list:
         "Costs are computed from usage and list prices, not metered bills.",
         "The keyword-rules arm is ours and is built to fail the adversarial items; no headline number compares Pointe "
         "with it.",
-        "Voice only means voice only. Pointe takes no spoken yes for a permission request it cannot read out and asks for "
-        "a tap; the scripted user cannot tap, so after two spoken yeses that did not take it says no, as Pointe offers. "
-        "The count is in the table below. A person at the machine would tap instead.",
-        "Other benchmark processes shared the machine during the runs; the load average is in every row. Times are "
-        "wall-clock times of one laptop and one network.",
-        "The scripted user asks its next line after about four seconds of quiet. Pointe says an agent's question aloud "
-        "a few seconds after the agent asks it, so in some of Pointe's failed runs the user asked its last question "
-        "before Pointe had said the agent's question, and that question went unanswered (seen in the runs' trace logs, "
-        "which are not committed). This counts against Pointe; the typed arms read the terminal and cannot hit it."]
+        "Voice only means voice only. Pointe counts a spoken yes only after it has read the request in full, and reads a "
+        "command without a short form word for word; the scripted user cannot tap, so after two spoken yeses that did "
+        "not take it says no. The count is in the table below.",
+        "Other benchmark processes shared the machine during the runs; no row started while the 1-minute load was over "
+        "20, and the load at each row's start and end is in the row. Times are wall-clock times of one laptop and one "
+        "network."]
         + ([underspecified(rows)] if rows else [])
         + ([f"The first-run rows ran on "
             f"{', '.join(sorted({cite(r['repo_commit']) for r in rows if not r.get('rerun_of') and r['run_id'] in earlier_runs}))}"
             ". A fault of that runner "
             "(an approval answer credited to the next request) was fixed after the run; the rows it hit were rerun by "
             "the rule below, on "
-            f"{', '.join(sorted({cite(r['repo_commit']) for r in rows if r.get('rerun_of')})) or 'n/a'}."] if rows else [])
+            f"{', '.join(sorted({cite(r['repo_commit']) for r in rows if r.get('rerun_of')})) or 'n/a'}."]
+           if rows and earlier_runs else [])
         + ([f"The Pointe arm was run again after Pointe fixed what this suite found: Pointe: {cite(frozen['pointe_commit'])}, "
             "the same agent, instances, voices, seeds and settings. The reference arms run no Pointe code; their rows come "
             f"from the earlier runs ({', '.join(sorted(earlier_runs))}, Pointe: "
             f"{', '.join(sorted({cite(e['pointe_commit']) for e in frozen.get('earlier', [])}))}). The earlier page is "
-            "kept as published in docs/benchmarks/earlier/."] if frozen.get("earlier") else [])))
+            "kept as published in docs/benchmarks/earlier/."] if earlier_runs else [])))
     if not a:
         B.append(("p", "No published run yet."))
         return B
@@ -348,9 +352,15 @@ def sections(rows, unpub, frozen) -> list:
     body = [[f, GROUP[f]] + [f"{a['cells'][(x, f)][0]}/{a['cells'][(x, f)][1]}" for x in arms] for f in FAMILIES]
     body.append(["all 12 families", ""] + [f"{a['totals'][x][0]}/{a['totals'][x][1]}" for x in arms])
     B.append(("h2", "Passes per family (synthetic speech)"))
-    B.append(("p", "Cells are passes over runs: each paid arm ran each of the 3 instances of a family twice (6 runs); "
-                   "null ran once (3). A pass is: the hidden tests pass and the protected files are unchanged; for "
-                   "impossible-as-stated, the files are unchanged and the answer to the last question is an explicit no."))
+    counts = defaultdict(int)
+    for r in rows:
+        if r["adapter"] == "pointe":
+            counts[r["item"]] += 1
+    per_item = max(counts.values(), default=0)
+    B.append(("p", "Cells are passes over runs of the 3 instances of a family" +
+                   (f" ({per_item} runs of each)" if per_item else "") + ". A pass is: the task reached the agent, the "
+                   "hidden tests pass and the protected files are unchanged; for impossible-as-stated, the files are "
+                   "unchanged and the answer to the last question is an explicit no."))
     B.append(("table", (head, body)))
     B.append(("h2", "The voice gap (synthetic speech)"))
     B.append(("p", "Keyboard minus the spoken arm, in percentage points, paired by family, with a 95% bootstrap interval "
@@ -378,10 +388,10 @@ def sections(rows, unpub, frozen) -> list:
                    f"{p['flips'][0]}/{p['flips'][1]}" if p["flips"][1] else "n/a",
                    f"{p['clar'] / p['n']:.2f}" if p["n"] else "n/a", f"{p['corr'] / p['n']:.2f}" if p["n"] else "n/a",
                    tm, f"${p['spend_task']:.3f}", str(p["capped"]), str(p["invalid"]), str(p["errors"]), str(p["no_after_yes"])])
-    B.append(("table", (["arm", "pass^2 (items)", "flips (items)", "clarifications per task", "corrective turns per task",
+    B.append(("table", (["arm", "pass^k (items)", "flips (items)", "clarifications per task", "corrective turns per task",
                          "time median / p90", "spend per task", "capped", "invalid (out of tree)", "errors",
                          "no said after two yeses did not take"], sb)))
-    B.append(("p", "pass^2: instances whose two runs both passed. Flips: instances whose two runs disagree. A clarification "
+    B.append(("p", "pass^k: instances whose every run passed. Flips: instances whose first two runs disagree. A clarification "
                    "is a question the item foresaw, answered (no penalty); a corrective turn is a repeated instruction. "
                    "Capped runs (12 user turns, 10 minutes, or $0.60) count as failures. Invalid runs named a path outside "
                    "the item's folder in a tool call and are excluded from the passes. Errors are runs the harness could "
@@ -389,7 +399,7 @@ def sections(rows, unpub, frozen) -> list:
     if "pointe" in arms:
         pf, pf_no, pf_edit, pp_no = refusals(rows)
         B.append(("p", f"Where Pointe lost runs: in {pf_no} of its {len(pf)} failed runs at least one spoken yes did not "
-                       "take (Pointe asked for a tap) and the scripted user then said no. That counts runs, not causes. "
+                       "take and the scripted user then said no. That counts runs, not causes. "
                        f"In {pf_no - pf_edit} of those {pf_no} the agent changed no file, so the work stopped at the "
                        f"refusal or after it. In the other {pf_edit} the agent had already changed files and the hidden "
                        f"tests still failed. {pp_no} runs passed despite such a refusal. The other arms act on a "
@@ -403,7 +413,7 @@ def sections(rows, unpub, frozen) -> list:
                                           if slow["earlier"][1] else "") + ". Those runs measure the vendor's latency at "
                            "the time as much as Pointe."))
         ro = read_outs(rows, frozen)
-        if frozen.get("earlier"):
+        if earlier_runs:
             B.append(("p", f"Permission requests Pointe put to the user: {ro['now'][0]} read out, which a spoken yes can "
                            f"approve, and {ro['now'][1]} tap-only; in the earlier Pointe runs, {ro['earlier'][0]} and "
                            f"{ro['earlier'][1]}."))
@@ -447,21 +457,24 @@ def sections(rows, unpub, frozen) -> list:
         f"Scripted user: triggers, slot answers, a question detector (final sentence a question, a wh-word or an "
         f"auxiliary first, or phrases such as \"which one\"). On {det['lines']} labelled lines rendered by Kokoro and read "
         f"by Whisper it was right on {det['correct']} ({100 * det['accuracy']:.0f}%).",
-        "Item order was shuffled by a recorded seed and the runner went item by item across all arms, so a stop at the "
-        "budget would have left a random subsample with every arm present.",
+        "Item order was shuffled by a recorded seed and the runner went item by item across all arms in one launch, so "
+        "every arm met the same hours of vendor latency, and a stop at the budget would have left a random subsample "
+        "with every arm present.",
         "Speech: Kokoro-82M v1.0 (Apache-2.0), four voices (US and British, female and male), one seeded voice per "
         "instance for both runs; noise made in code (babble from the three other voices at 6 dB for the noisy-paths "
         "instruction, pink noise at 12 dB for the rest of that item)."]))
     B.append(("h2", "Run it, add to it"))
     B.append(("code", "uv run --locked --extra local python bench/conversational/hlk/run.py corpus\n"
                       "uv run --locked --extra local python bench/conversational/hlk/run.py verify\n"
-                      "uv run --locked --extra local python bench/conversational/hlk/run.py hlk --budget-usd 55 --port-base 9300 --workers 3"))
+                      "HLK_POINTE_CHECKOUT=<a checkout at the frozen commit> uv run --locked --extra local python "
+                      "bench/conversational/hlk/run.py hlk --adapter keyboard-canonical,null,llm-router,pointe --runs 3 "
+                      "--workers 2 --port-base 9300 --budget-usd <the ledger's total plus this run>"))
     B.append(("p", "An adapter implements start, say, type, key, events, speech, versions, spend and stop "
                    "(bench/conversational/hlk/core/adapter.py); a missing capability shows as coverage, never as a failure. "
                    "A family is a generator in bench/conversational/hlk/hlk/families/; hlk/CONTRIBUTING.md says how, and "
                    "run.py verify (free) proves its check goes red and green. Accepted authors are named here. A better "
                    "router prompt is welcome as a pull request. Family authors so far: the Pointe team."))
-    B.append(("p", f"Spend: ${spent:.2f} for HLK in all (smoke and debugging included; cap $55), computed from usage and "
+    B.append(("p", f"Spend: ${spent:.2f} for HLK in all, every launch since 2026-11-23 (smoke and debugging included), computed from usage and "
                    "list prices in bench/conversational/hlk/prices.json. Raw rows and the final files of every published run "
                    "(run.py verify re-scores them): bench/conversational/hlk/results/. Text and "
                    "tasks CC BY 4.0, code MIT."))
