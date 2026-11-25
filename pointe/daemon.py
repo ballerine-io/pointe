@@ -2963,6 +2963,7 @@ class State:
     overview_focus: str | None = None  # "just tell me about quarry" while they answer: only that session is said
     unclear_asked: str | None = None  # the request for which "Is that a yes?" was said (once a request)
     voice_allowed_at: float = 0.0  # when a spoken yes last approved a request: "run it" just after is that yes's tail
+    voice_allowed_session: str | None = None  # whose request that yes approved
     asked_before_connect: list = field(default_factory=list)  # sessions a question was out to when this call connected
     unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
     voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)
@@ -6175,7 +6176,7 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
         return False
     session.permission_since = None
     if verdict == "allow" and approvals.by(how) == "voice":
-        state.voice_allowed_at = time.time()
+        state.voice_allowed_at, state.voice_allowed_session = time.time(), session.id
     spoke = state.last_speaker if approvals.by(how) == "voice" else None
     logger.info(approvals.event(session=session.name, machine=session.machine or None, request_id=request_id, decision=verdict,
                                 how=how, request=session.permission_full, lock=lock_level(),
@@ -8962,7 +8963,9 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False,
                 f"{name} needs an approval I can't read out. It's on your screen: approve it there, or say no.")
     else:
         heard = _heard_request(session.permission_spoken, bool(hebrew))
-        text = f"{name} מבקש {_hebrew_request(heard)}. לבצע?" if hebrew else f"{name} wants to {heard}. Should it?"
+        again = state.voice_allowed_session == session.id and time.time() - state.voice_allowed_at < ANOTHER_REQUEST_SECS
+        text = (f"{name} מבקש {'גם ' if again else ''}{_hebrew_request(heard)}. לבצע?" if hebrew else
+                f"{name} {'also ' if again else ''}wants to {heard}. Should it?")
     if unsure and state.drive.on():
         text = drives.unsure(hebrew) + text
     elif unsure:
@@ -8979,6 +8982,7 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False,
         session.permission_read_at = time.time()  # a no still counts
 
 
+ANOTHER_REQUEST_SECS = 30.0  # a session's next request this soon after a yes is read as another one ("also wants to")
 _HE_REQUEST = {"run:": "להריץ:", "edit": "לערוך את", "write": "לכתוב את", "read": "לקרוא את"}
 _HE_JOINS = ((" then ", " ואז "), (" or else ", " ואם לא, "), (" into ", " אל "), (" writing to ", " וכותב ל-"),
              (" appending to ", " ומוסיף ל-"), (" reading ", " וקורא את "))

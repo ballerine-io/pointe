@@ -93,3 +93,15 @@ def test_a_lone_dot_in_a_hebrew_read_out_is_said_in_hebrew(d):  # noqa: F811
     """r9, heb-03: "…מקף T, here. לבצע?": the English word inside the Hebrew line."""
     assert d._heard_request("run: python3 unittest discover -s tests -t .", hebrew=True) == \
         "run: python3 unittest discover -s tests -t כאן"
+
+
+def test_a_second_request_just_after_a_yes_is_said_as_another_one(d, monkeypatch):  # noqa: F811
+    """apr-06 in tester round 4: a second look-around came right after the first was approved, and "billing wants to
+    look around… Should it?" sounded like the same question again. Said "also wants to", it is plainly a new one."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    d.state.voice_allowed_at, d.state.voice_allowed_session = d.time.time() - 5, active.id
+    asyncio.run(d._read_out(active))
+    assert " also wants to run: rm -rf build. Should it?" in said[-1]
+    d.state.voice_allowed_at = d.time.time() - 120
+    asyncio.run(d._read_out(active))
+    assert " also wants" not in said[-1]
