@@ -38,7 +38,8 @@ def test_items_parse_carry_the_canary_and_have_the_designed_counts():
 def test_fixture_names_do_not_collide_with_pointes_own_test_fixtures():
     names = [ITEMS["part_a"]["session"], ITEMS["part_b"]["session"], "garden", "cedar", "voucher"]
     for name in names:
-        hits = subprocess.run(["grep", "-rliw", "--exclude-dir=conversational", "--exclude-dir=__pycache__", name,
+        hits = subprocess.run(["grep", "-rliw", "--exclude-dir=conversational", "--exclude-dir=__pycache__",
+                               "--exclude-dir=results", name,
                                str(ROOT / "tests"), str(ROOT / "bench")], capture_output=True, text=True).stdout.split()
         hits = [h for h in hits if not h.endswith("test_conversational_bargein.py")]
         assert not hits, (name, hits)

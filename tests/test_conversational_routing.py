@@ -66,7 +66,8 @@ def test_fixture_names_do_not_collide_with_pointes_own_tests():
     hits = []
     for base in (ROOT / "tests", ROOT / "bench"):
         for path in base.rglob("*"):
-            if not path.is_file() or "conversational" in path.parts or path.name == Path(__file__).name:
+            if not path.is_file() or "conversational" in path.parts or path.name == Path(__file__).name \
+                    or path.is_relative_to(ROOT / "bench" / "results"):  # recorded rows are data, not fixtures
                 continue
             if path.suffix not in (".py", ".md", ".json", ".txt", ".toml", ".sh", ".jsonl", ".html", ""):
                 continue

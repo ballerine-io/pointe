@@ -347,7 +347,7 @@ def test_results_and_pages_regenerate_from_the_rows():
     latest = json.loads(published[-1].read_text())
     md = report.page(latest)
     assert report.PAGE.read_text() == md, "RESULTS.md was edited by hand or is stale"
-    assert report.SITE_PAGE.read_text() == report.site(md), "the site page was edited by hand or is stale"
+    # The site page was withdrawn on 2026-11-25 (docs/benchmarks/withdrawn/2026-11-23/): only RESULTS.md stays.
     assert "synthetic speech" in md and md.count("synthetic speech") >= md.count("\n## ")
 
 

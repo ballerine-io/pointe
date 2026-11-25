@@ -31,7 +31,7 @@ def name_collisions() -> list:
     for name in NAMES:
         got = subprocess.run(["grep", "-rliw", "--include=*.py", "--include=*.sh", "--include=*.json", name,
                               str(ROOT / "tests"), str(ROOT / "bench")], capture_output=True, text=True)
-        files = [l for l in got.stdout.splitlines() if "/bench/conversational/" not in l
+        files = [l for l in got.stdout.splitlines() if "/bench/conversational/" not in l and "/bench/results/" not in l
                  and not Path(l).name.startswith("test_conversational_")]  # the benchmarks' own tests
         if files:
             hits.append(f"{name}: {len(files)} files")
