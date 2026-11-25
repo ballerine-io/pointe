@@ -1,6 +1,6 @@
 [project]
 name = "pointe"
-version = "0.8.3"
+version = "0.8.4"
 description = "Talk to your Claude Code sessions by voice"
 authors = [
     { name = "Ballerine Engineering" }

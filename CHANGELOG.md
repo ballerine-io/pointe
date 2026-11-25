@@ -10,6 +10,7 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.8 (beta)
 
+- **0.8.4** (2026-11-25, beta): Approvals and interruptions hold up by voice: every request can be approved after it is read in full, a command that only looks is read in a few words, a yes and a no always land with "Approved." or "Denied.", no turn ends in silence, a request you talked over is not sent, and "mm-hm" no longer ends an answer
 - **0.8.3** (2026-11-24, beta): Mute and skip sit beside the status line: one mute button replaces reading mode, skip moves on to the next message, a switch stops speech at once, and the conversation's text can be copied
 
   What is in it:
