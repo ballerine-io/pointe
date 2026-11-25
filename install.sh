@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install Pointe without Claude Code: a conversational layer for your coding agents (Claude Code, Codex, OpenCode).
+# Install Pointe without Claude Code: a voice layer for your coding agents (Claude Code, Codex, OpenCode).
 # It fetches one pinned release from GitHub, checks it against the SHA-256 below before anything runs, unpacks it into
 # ~/.pointe/<version>, installs uv the checked way bin/install-uv does, sets up Pointe's Python, and makes `pointe` a
 # command (~/.local/bin/pointe). No sudo. It shows what it will do and asks first.
@@ -143,7 +143,7 @@ if [ -f "$STATE/daemon.pid" ] && kill -0 "$(cat "$STATE/daemon.pid")" 2>/dev/nul
   done <<<"$OLD"
 fi
 
-say "Pointe $VERSION, a conversational layer for your coding agents."
+say "Pointe $VERSION, a voice layer for your coding agents."
 if [ "$MODE" = update ]; then say "This updates Pointe $HAVE to $VERSION:"; else say "This will:"; fi
 say "  - download  $URL"
 say "  - check     it against $WHY, and stop on any difference"

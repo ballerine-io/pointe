@@ -8,7 +8,7 @@ import Foundation
 /// pinned in it, uv installed the checked way, `~/.local/bin/pointe` linked. No Terminal, no sudo.
 public struct Installer: Sendable {
     /// install.sh's SHA-256. `tools/release_tarball.py pin` and `app` write it; tests/test_install.py holds it to the file.
-    public static let scriptSHA256 = "2410bb162fc62b9baf2cd12be165aa04441de122c87f42d89cbd9cd9f2c118e6"
+    public static let scriptSHA256 = "15312bb0bb15d87dc396841475c8dd993599c7188c3a4a911aef5f255d00a14f"
 
     public enum Problem: Error, Equatable, Sendable {
         /// The app was built without install.sh.

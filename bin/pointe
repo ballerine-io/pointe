@@ -92,7 +92,7 @@ case "$cmd" in
            exit 0 ;;
   version|--version|-V) echo "Pointe $(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$BIN/../.claude-plugin/plugin.json")" ;;
   help|-h|--help) cat <<'HELP'
-Pointe: a conversational layer for your coding agents.
+Pointe: a voice layer for your coding agents.
 
 Start here   pointe doctor          what is ready, and the one thing to fix
              pointe setup           the guided first setup; later, choose which models Pointe uses
