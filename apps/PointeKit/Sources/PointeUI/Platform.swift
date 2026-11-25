@@ -112,16 +112,15 @@ extension View {
     @ViewBuilder func sheetTitle(_ title: String) -> some View {
         #if os(macOS)
         // Over the content, in line with the section headings: in the sheet's bar macOS keeps an empty slot for window
-        // buttons a sheet does not have, and the title sat about 48 points in from everything under it.
-        navigationTitle(title)
-            .toolbar(removing: .title)
-            .safeAreaInset(edge: .top, spacing: 0) {
-                Text(title).font(.brand(.headline, .semibold))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 4)
-                    .background(Brand.group)
-                    .accessibilityAddTraits(.isHeader)
-            }
+        // buttons a sheet does not have, and the title sat about 48 points in from everything under it. No
+        // navigationTitle: on macOS 26 `.toolbar(removing: .title)` left it in the bar, and each sheet said its title twice.
+        safeAreaInset(edge: .top, spacing: 0) {
+            Text(title).font(.brand(.headline, .semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 4)
+                .background(Brand.group)
+                .accessibilityAddTraits(.isHeader)
+        }
         #else
         navigationTitle(title).navigationBarTitleDisplayMode(.inline)
         #endif
