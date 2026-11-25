@@ -59,7 +59,7 @@
         <p class="lead">One call over your Claude Code, Codex and OpenCode sessions. Say a session's name to send it
           work, ask what each one did, and answer permission prompts with a yes or a tap.</p>
         <p class="small proof"><strong>Teams using Pointe at Ballerine report up to 1.6× more output across their agents.</strong>
-          Self-reported, 2026. Not a benchmark.</p>
+          Self-reported by those teams in 2026; not measured by us, and not a benchmark.</p>
         <!-- hero-cta:begin (tools/apps_status.py writes this from site/pointe/apps.json; edit it there) -->
         <p class="hero-cta"><a class="btn btn--primary" data-mac-only href="https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg">Download for Mac</a><a class="btn btn--primary" data-not-mac hidden href="#install">Get it on your Mac</a><a class="btn" href="#install">Install</a><a class="btn" href="#with">Watch it work<span class="btn-meta">&nbsp;· 1&nbsp;min</span></a></p>
         <p class="small hero-dl" data-mac-only>Pointe 0.8.7 · macOS 15+ · 4.6 MB</p>
@@ -462,47 +462,8 @@
         <p class="body">Measured in Pointe, and one engineer's use, kept apart. Where we have no number, we say so.</p>
       </div>
 
-      <h3 class="h3 block">Measured in Pointe</h3>
-      <div class="cells" style="margin-top:16px">
-        <div><p class="figure figure--key">2.11 s</p><p class="title">last word to first sound, median</p>
-          <p class="small">p90 2.50 s. 24 turns, synthesized speaker, 2026-11-20.</p></div>
-        <div><p class="figure">13%</p><p class="title">of our shell commands can be approved by voice</p>
-          <p class="small">From our own Claude Code history.</p></div>
-        <div><p class="figure">$1</p><p class="title">about, for a busy hour</p>
-          <p class="small">60 replies, by arithmetic from list prices. Not counting your agents' own spend.</p></div>
-        <div><p class="figure">3.4 s</p><p class="title">median reply, fully local</p>
-          <p class="small">Against 1.8 s for Sonnet, on an M5 Pro.</p></div>
-      </div>
-      <details class="more-detail">
-        <summary>How the latency was measured, stage by stage</summary>
-        <div class="split">
-          <div class="stack">
-            <p class="body"><code>tests/e2e/latency.py</code> asks twelve plain questions on a live call, with a synthesized
-              voice as the user, and stamps each turn stage by stage. Vendors: Claude Sonnet 5.5 as the brain, Soniox ears,
-              ElevenLabs mouth. One 18-core Mac that other work kept busy. Run it with your own keys. It calls paid APIs.</p>
-            <p class="body">The headline is the run on Soniox stt-rt-v6, which Pointe uses since 2026-11-20 (the same day, v5
-              gave 2.02 s and 2.66 s). The stage table is the last full run, on v5 in a pre-release build of 2026-11-16: 1.86 s median, 2.21 s p90,
-              slowest turn 4.19 s. On v6 the ears stage is 0.47 s median, 0.60 s p90. No end-to-end run after 2026-11-20 is
-              recorded yet. The 1.08 s wait before the turn is taken is deliberate: a shorter one cuts people off
-              mid-sentence.</p>
-            <p class="small">Source: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/conversation-flow.md#7-a-faster-first-word-1140">conversation-flow.md §7</a>, <a href="https://github.com/ballerine-io/pointe/blob/main/docs/benchmarks.md">benchmarks.md</a>.</p>
-          </div>
-          <div class="scroll" tabindex="0" role="region" aria-label="Latency by stage">
-            <table class="table">
-              <caption class="small">Stages on Soniox v5 (2026-11-16), 24 turns, seconds. They overlap: the model is asked before the turn is taken.</caption>
-              <thead><tr><th scope="col">Stage</th><th scope="col" class="num">Median</th><th scope="col" class="num">p90</th></tr></thead>
-              <tbody>
-                <tr><td>Ears: last word to final transcript</td><td class="num">0.46</td><td class="num">0.52</td></tr>
-                <tr><td>The turn is taken, after the last word</td><td class="num">1.08</td><td class="num">1.10</td></tr>
-                <tr><td>Model: request to first token</td><td class="num">0.74</td><td class="num">0.82</td></tr>
-                <tr><td>Mouth: request to first audio</td><td class="num">0.22</td><td class="num">0.33</td></tr>
-                <tr><td>Client: playing to audible</td><td class="num">0.07</td><td class="num">0.11</td></tr>
-                <tr class="total"><td>Last word to first sound</td><td class="num">1.86</td><td class="num">2.21</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </details>
+      <!-- bench:begin (bench/publish.py writes this from the release's summary.json; edit it there) -->
+      <!-- bench:end -->
 
       <details class="more-detail">
         <summary>One engineer's 14 days of use</summary>
@@ -522,8 +483,8 @@
           </table>
           <p class="small note">3 to 16 November 2026, counted from the call journal on the Mac of the engineer who
             builds Pointe, so some calls were tests of it. Counts and durations only; no transcript text was read for
-            this. One person is not a study. The zero is real: the journal records no prompt answered through Pointe
-            in these two weeks.</p>
+            this. One person is not a study, and the journal is private, so these counts cannot be checked from the
+            repository. The zero is real: the journal records no prompt answered through Pointe in these two weeks.</p>
         </div>
       </div>
       </details>
