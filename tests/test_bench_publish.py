@@ -8,6 +8,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# The report scores with the dialogue suite's harness; its module names (core, dialogues) are shared with the other
+# harnesses, so the conftest hook enters this one before each test (tests/conv_suite.py).
+CONV_SUITE = "dialogues"
 RELEASES = sorted(p for p in (ROOT / "bench" / "results").glob("20??-??-??-v*") if (p / "manifest.json").exists())
 
 

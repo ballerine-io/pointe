@@ -8,6 +8,7 @@ Four benchmarks of Pointe 0.8.5 (commit 756088c7), run on 2026-11-25 against a p
 - **Synthetic or recorded, per row.** Most speech is synthetic (Kokoro and OpenAI voices). Two benchmarks use recorded people: one-word yes and no answers (Speech Commands) and pauses in meetings (AMI).
 - **n and spread on every number.** Each benchmark ran more than once; the tables give every run. Intervals are 95%. Where an interval crosses zero, no difference is claimed.
 - **Model judges are named.** The only subjective score (naturalness) is two models' reading of transcripts, not people's ratings.
+- **Measured on 0.8.5, not on 0.8.7.** The current version was released after these runs; it was not measured, and its changes may move these numbers either way.
 
 ## Headline
 
