@@ -58,7 +58,7 @@ final class PointeMacUITests: XCTestCase {
         XCTAssertTrue(any("requestCommand").waitForExistence(timeout: 5))
         XCTAssertTrue(any("requestDeny").exists && any("requestApprove").exists)
         shot("02-request")
-        any("requestDeny").click()  // Deny needs no one; the demo's card goes, as a Mac's would
+        app.buttons["requestDeny"].firstMatch.click()  // Deny needs no one; the demo's card goes, as a Mac's would. The button: the first element with its identifier is a scroll view
         XCTAssertTrue(NSPredicate(format: "exists == false").evaluate(with: any("requestCommand")) || !any("requestCommand").waitForExistence(timeout: 2))
     }
 

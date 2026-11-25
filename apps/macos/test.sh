@@ -28,9 +28,9 @@ if [ "$WHAT" = all ] || [ "$WHAT" = ui ]; then
   SHOTS="$HOME/Library/Containers/io.ballerine.pointe.mac.uitests.xctrunner/Data/tmp/macos-app-shots"
   rm -rf "$SHOTS"
   caffeinate -u -t 2 || true  # a sleeping display has no screenshots and drops synthesized keys
-  caffeinate -d "${RUN[@]}" "-only-testing:PointeMacUITests${ONLY:+/PointeMacUITests/$ONLY}" "${SIGN[@]}" 2>&1 \
-    | grep -E "error:|Test Case .*(passed|failed)|Executed [0-9]+ tests|\*\* TEST" || true
-  [ "${PIPESTATUS[0]}" = 0 ] || FAILED=1
+  # Under pipefail the pipeline fails when xcodebuild does; `|| true` after it reset PIPESTATUS, so no failure counted.
+  if ! caffeinate -d "${RUN[@]}" "-only-testing:PointeMacUITests${ONLY:+/PointeMacUITests/$ONLY}" "${SIGN[@]}" 2>&1 \
+    | { grep -E "error:|Test Case .*(passed|failed)|Executed [0-9]+ tests|\*\* TEST" || true; }; then FAILED=1; fi
   if [ -d "$SHOTS" ]; then mkdir -p /tmp/macos-app-shots && cp "$SHOTS"/*.png /tmp/macos-app-shots/ && echo "screenshots: /tmp/macos-app-shots"; fi
   [ -z "${FAILED:-}" ]
 fi
