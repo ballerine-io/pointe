@@ -160,7 +160,8 @@ class Swift:
 
     def sessions_sheet(self) -> list[str]:
         text = self.file("Sessions.swift")
-        sheet = re.search(r"\.sheetTitle\(\"([^\"]+)\"\)", text).group(1)
+        title = re.search(r'\.sheetTitle\((?:"([^"]+)"|([A-Z]\w+\.\w+))\)', text)
+        sheet = title.group(1) or self.resolve(title.group(2))[0]
         picks = re.findall(r'Text\("(\w+)"\)\.tag\("(?:orchestrator|session)"\)', text)
         swipe = _braced(text, text.index(".swipeActions"))
         bar = _braced(text, text.index(".toolbar", text.index(".sheetTitle")))  # its own buttons, named by a copy constant

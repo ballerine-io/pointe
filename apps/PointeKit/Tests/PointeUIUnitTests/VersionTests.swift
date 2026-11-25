@@ -14,10 +14,10 @@ final class VersionTests: XCTestCase {
 
     /// Major version 0 is the beta: the version line says so, and a 1.x line does not.
     func testABetaVersionSaysBeta() {
-        XCTAssertEqual(AppVersion.line(app: "0.8.0 (46)", mac: nil), "0.8.0 (46) · beta")
-        XCTAssertEqual(AppVersion.line(app: "0.8.0 (46)", mac: "0.7.0"), "0.8.0 (46) · beta · Mac 0.7.0")
-        XCTAssertEqual(AppVersion.line(app: "1.0.0 (50)", mac: nil), "1.0.0 (50)")
-        XCTAssertEqual(AppVersion.line(app: "10.0.0", mac: nil), "10.0.0")
+        XCTAssertEqual(AppVersion.line(app: "0.8.0 (46)", mac: nil, store: false), "0.8.0 (46) · beta")
+        XCTAssertEqual(AppVersion.line(app: "0.8.0 (46)", mac: "0.7.0", store: false), "0.8.0 (46) · beta · Mac 0.7.0")
+        XCTAssertEqual(AppVersion.line(app: "1.0.0 (50)", mac: nil, store: false), "1.0.0 (50)")
+        XCTAssertEqual(AppVersion.line(app: "10.0.0", mac: nil, store: false), "10.0.0")
     }
 
     /// The iPhone app ships through the App Store, where a beta is refused (App Review 2.2; TestFlight marks its own
