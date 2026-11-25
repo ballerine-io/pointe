@@ -1802,8 +1802,10 @@ async def _overview(front, said: str, sessions: list[Session]) -> None:
         # The user is mid-sentence as the answers come ("wait, just tell me about quarry"): their words decide what is
         # said, so they are waited for (bar-01, tester round 5: the whole overview and a reply from notes, both said).
         deadline = time.time() + OVERVIEW_HEARD_SECS
-        while ((state.hearing[1] or state.final_at > state.overview_at) and state.last_user_speech_at <= state.overview_at + 0.5
-               and time.time() < deadline):  # words being said, or said and not yet taken as the turn
+        while ((state.hearing[1] or state.final_at > state.overview_at or state.user_started_at > state.overview_at + 0.3)
+               and state.last_user_speech_at <= state.overview_at + 0.5 and time.time() < deadline):
+            # words being said, said and not yet taken as the turn, or a voice begun since the ask (over the bot's own
+            # voice no live words are kept: r10's bar-01)
             await asyncio.sleep(0.1)
         await asyncio.sleep(0)
     finally:

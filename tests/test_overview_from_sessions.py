@@ -211,14 +211,19 @@ def test_both_of_two_sessions_is_every_session(d, monkeypatch, words):  # noqa: 
     assert [s.name for s in d._overview_sessions(words)] == ["billing", "lantern"]
 
 
-def test_a_redirect_still_being_said_when_the_answers_come_narrows_it_too(d, monkeypatch):  # noqa: F811
+@pytest.mark.parametrize("live_words", [True, False])
+def test_a_redirect_still_being_said_when_the_answers_come_narrows_it_too(d, monkeypatch, live_words):  # noqa: F811
     """Tester round 5's bar-01: the three answers came 0.2 s before "Wait, wait, just tell me about quarry." was taken;
     the whole overview was said, and the model also answered the redirect from notes ("Quarry has joined Pointe")."""
     front, spoken, asked, say, questions = _three(d, monkeypatch)
     fed = d.state.conn.injector.fed
 
     async def answers_while_the_user_talks(session, prompt):
-        d.state.hearing = (time.time(), "wait wait just tell me")
+        # r10's bar-01: the words were said over the bot's voice, so no live words were kept; only the voice detector
+        # had heard the user start
+        d.state.user_started_at = d.state.overview_at + 1.0  # r10: about 2 s after "Asking…"
+        if live_words:
+            d.state.hearing = (time.time(), "wait wait just tell me")
         return ANSWERS[session.name]
 
     monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(answers_while_the_user_talks),
