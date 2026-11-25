@@ -434,6 +434,8 @@ SWITCH_WORDS_SECS = 10.0  # a switch asked this recently still counts when anoth
 # How long a final transcript waits for silence before it is the turn: turns.LEVELS, by the "turns.patience" setting.
 HEARING_SECS = 3.0  # live words older than this are stale: the user stopped
 VAD_STOP_SECS = 0.2  # the voice detector says "stopped" this long after the sound ended (pipecat's default, set in _call_ears)
+REPLY_RESUME_SECS = 2.5  # a cut with no words this long after it was a noise: the reply goes on. 0: never resumed
+REPLY_RESUME_MIN_WORDS = 4  # fewer words than this left unsaid: not worth coming back for
 SILENT_TURN_SECS = 2.0  # Pointe idle this long with nothing said to the user's last words: the turn was silent. 0: off
 SILENT_TURN_POLL_SECS = 0.25
 SILENT_TURN_WATCH_SECS = 45.0  # a turn still working after this is slow, not silent: the model's own lines cover that
@@ -1852,6 +1854,66 @@ class BrainFront(FrameProcessor):
     def _start(self, text: str | None, speech_only: bool = False) -> None:
         self.create_task(self.brain.turn(text, speech_only=speech_only), f"brain-{time.time()}")
 
+    def _interrupted(self) -> None:
+        """Something cut the voice: a barge-in, or a noise taken for one."""
+        self.brain.interrupt()
+        line_id = state.last_line_id  # before the cut is noted: what the line being said was for
+        _read_out_cut_off()
+        if self._speaking:
+            self.brain.append("[the user cut you off: they did not hear the rest of what you were saying]")
+            self._note_cut(line_id)
+
+    _cut_reply: tuple[float, str] | None = None  # (when, what was left to say) of a reply of its own the voice was cut in
+    _spoke_since = 0.0
+
+    def _note_cut(self, line_id: str | None) -> None:
+        """The voice was cut while saying a reply of its own. If what cut it turns out to be only listening ("mm-hm",
+        "okay") or no words at all (a cough, a door), it goes on from the sentence it was in (_resume_reply); real words
+        take the turn as ever. Not a session's report (the injector brings that back itself), not a read-out or a fixed
+        line (a request is read again by its own rules), and not when one or two words were left."""
+        self._cut_reply = None
+        injector = state.conn.injector if state.conn is not None else None
+        if not REPLY_RESUME_SECS or not state.bot_spoke or line_id is not None \
+                or getattr(injector, "_report_speaking", False) or getattr(injector, "_cut", None):
+            return
+        said = state.bot_spoke[-1][1]
+        heard = int(max(0.0, time.time() - self._spoke_since) * SPOKEN_CHARS_PER_SEC)
+        rest, at = [], 0
+        for sentence in flow.split_sentences(said):
+            at += len(sentence) + 1
+            if at > heard:  # the sentence the cut fell in, and those after it
+                rest.append(sentence)
+        left = " ".join(rest).strip()
+        if len(left.split()) < REPLY_RESUME_MIN_WORDS:
+            return
+        self._cut_reply = (time.time(), left)
+        self.create_task(self._resume_after_quiet(self._cut_reply), f"resume-{time.time()}")
+
+    async def _resume_after_quiet(self, cut: tuple[float, str]) -> None:
+        """Nobody said anything after the cut: it was a noise, and the reply goes on."""
+        while self._cut_reply is cut and time.time() - cut[0] < REPLY_RESUME_SECS:
+            await asyncio.sleep(0.1)
+            if state.last_user_speech_at > cut[0]:
+                return  # words came: the turn that takes them decides (process_frame)
+        if self._cut_reply is cut and not _user_talking() and not state.settling and not self.brain.busy:
+            await self._resume_reply("no words followed the cut")
+
+    async def _resume_reply(self, why: str) -> None:
+        cut, self._cut_reply = self._cut_reply, None
+        if cut is None or state.conn is None or self._speaking:
+            return
+        logger.info(f"reply resumed from the sentence that was cut ({why})")
+        self.brain.append("[you went on with the rest of what you were saying: the user had only been listening]")
+        await self._speak(cut[1])
+
+    def _only_listening(self, text: str) -> bool:
+        """Words that came over the voice and take no turn: a backchannel, or a one- or two-word acknowledgement that
+        waves nothing off ("okay", "yes"; not "okay, stop", not "enough")."""
+        if backchannel(text):
+            return True
+        short_yes = len(text.split()) <= 2 and (ack_only(text) or permission_answer(text) == "allow")
+        return short_yes and not dismiss_intent(text) and stop_intent(text) is None
+
     def _watch(self, text: str) -> None:
         """The user's own words were taken as a turn: it must not end in silence (_no_silent_turn)."""
         if SILENT_TURN_SECS and not (ack_only(text) or backchannel(text)):
@@ -1892,14 +1954,11 @@ class BrainFront(FrameProcessor):
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
         if isinstance(frame, BotStartedSpeakingFrame):
-            self._speaking = True
+            self._speaking, self._spoke_since = True, time.time()
         elif isinstance(frame, BotStoppedSpeakingFrame):
             self._speaking = False
         elif isinstance(frame, InterruptionFrame):
-            self.brain.interrupt()
-            _read_out_cut_off()
-            if self._speaking:
-                self.brain.append("[the user cut you off: they did not hear the rest of what you were saying]")
+            self._interrupted()
         elif isinstance(frame, LLMRunFrame):
             if state.meeting is not None:  # a call that reconnects mid-meeting: no greeting into the room
                 self.brain.append(self._opening)
@@ -1938,6 +1997,13 @@ class BrainFront(FrameProcessor):
                     self._start(f"{frame.text}\n[you already told the user: {reply!r}. Do not say it again, and do not "
                                 "greet: do what these words ask.]")
                     return
+                cut = self._cut_reply
+                if cut is not None and time.time() - cut[0] < REPLY_RESUME_SECS * 2 and "?" not in cut[1] \
+                        and self._only_listening(frame.text):  # a "yes" over a question of Pointe's answers it
+                    self.brain.append(frame.text)  # heard, and no turn of its own: the reply it came over goes on
+                    await self._resume_reply(f"only listening: {frame.text!r}")
+                    return
+                self._cut_reply = None  # real words: the reply they cut is theirs to bring back by asking
                 self._watch(frame.text)
                 fast = _fast_send(frame.text) if _may_fast_send() else None
                 if fast is not None:

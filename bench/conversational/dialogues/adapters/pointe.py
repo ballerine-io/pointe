@@ -46,6 +46,7 @@ class Call:
         self.tasks: list = []
         self.socket = None
         self.interrupts = 0
+        self.closed: str | None = None  # why the call's audio stopped flowing, when it did
 
     async def connect(self):
         from websockets.asyncio.client import connect
@@ -83,7 +84,8 @@ class Call:
                 await asyncio.sleep(self.rng.random() * self.net["jitter"])  # a late burst
             try:
                 await self.socket.send(pcm.tobytes())
-            except Exception:
+            except Exception as e:
+                self.closed = f"send: {type(e).__name__}: {str(e)[:120]}"
                 return
 
     async def _receive(self):
@@ -98,7 +100,9 @@ class Call:
                 up = np.interp(np.linspace(0, len(pcm), len(pcm) * RATE // self.OUT_RATE, endpoint=False),
                                np.arange(len(pcm)), pcm).astype(np.int16)
                 self.playback = np.concatenate([self.playback, up])
-        except Exception:
+            self.closed = self.closed or "receive: the daemon closed the call"
+        except Exception as e:
+            self.closed = self.closed or f"receive: {type(e).__name__}: {str(e)[:120]}"
             return
 
     async def _play(self):
@@ -268,6 +272,13 @@ class Pointe(Base):
     def speech(self):
         return self.call.spans() if self.call else []
 
+    def health(self) -> dict:
+        """For a silent turn: was the daemon up, and was the call's audio still flowing, when the dialogue ended."""
+        tasks = self.call.tasks if self.call else []
+        return {"daemon_up": bool(self.status()), "call_tasks_done": [t.done() for t in tasks],
+                "call_errors": [type(t.exception()).__name__ for t in tasks if t.done() and not t.cancelled() and t.exception()],
+                "socket_closed": getattr(self.call, "closed", None)}
+
     def _said_events(self) -> list:
         out = []
         for line in self.lines():
@@ -334,7 +345,7 @@ class Pointe(Base):
         chars = sum(len(m.group(1)) for line in lines if (m := re.search(r"speak: '(.*)'", line)))
         reports = sum(1 for line in lines if re.search(r"notes on .* updated|brain:read:", line))
         checks = sum(1 for line in lines if re.search(r" - -> \S+: |permission \S+ -> ", line))
-        secs = max(0.0, time.time() - self.started_at)
+        secs = max(0.0, time.time() - self.started_at) if self.started_at else 0.0  # a daemon that never started heard nothing
         return [SpendRow("anthropic", brain, "computed", f"{steps} brain steps from daemon.log"),
                 SpendRow("anthropic", reports * PRICES["pointe_reader_report"], "computed", f"{reports} reader reports"),
                 SpendRow("gemini", checks * PRICES["pointe_checker_call"], "computed", f"{checks} checker lines"),

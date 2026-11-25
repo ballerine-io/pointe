@@ -285,6 +285,10 @@ async def run(d, arm: str, ctx: dict, port: int) -> dict:
                 sessions[name] = {"prompts": [], "hooks": []}
         log = [scrub.clean(l)[:600] for l in getattr(adapter, "log_lines", []) if " - " in l][-600:]
         interrupts = getattr(getattr(adapter, "call", None), "interrupts", None)
+        try:
+            row["health"] = adapter.health() if hasattr(adapter, "health") else None
+        except Exception as e:
+            row["health"] = {"error": type(e).__name__}
         router_ms = [c.get("ms") for c in getattr(adapter, "calls", [])]
         try:
             await asyncio.to_thread(adapter.stop)
