@@ -169,6 +169,19 @@ PROJECT = "the project folder"
 ROOT = "the whole disk"  # "/" read as "slash" says nothing of how far a search or a delete reaches
 
 
+def beside(full: str, cwd: str) -> str | None:
+    """A place in a project next to this one ("tariff-api, next to the project"), when nothing on the way is hidden or
+    looks like a secret: its name says where it is as well as its full path, in a breath instead of twenty seconds. For a
+    read-only look (looking); what a command acts on outside the project is said whole (place)."""
+    parent = os.path.dirname(os.path.realpath(cwd))
+    rel = os.path.relpath(os.path.realpath(full), parent)
+    if rel.startswith("..") or os.path.isabs(rel) or rel == "." or os.path.realpath(full) == os.path.realpath(cwd):
+        return None
+    if any(p.startswith(".") or p == "node_modules" for p in rel.split(os.sep)) or _SENSITIVE.search(rel):
+        return None
+    return f"{rel}, next to the project"
+
+
 def place(path: str, cwd: str | None) -> str:
     """Plainly inside the project: its name. Anywhere else, through a hidden folder, or through a symlink that leaves the
     project: the whole path."""
@@ -603,6 +616,8 @@ def looking(command: str, cwd: str | None, run_in: str | None = None) -> str | N
             note_place(ABOVE)  # ".." from the project: said as that, not as the long path the project sits in
         elif said == ROOT:
             note_place(ROOT)
+        elif next_door := beside(full, cwd):  # only looking: a place an action reaches is still said whole (place)
+            note_place(next_door)
         elif said.startswith(("/", "~")) or said == full:
             note_place(base if token.startswith("~") else full)  # outside the project: where, in full
         else:

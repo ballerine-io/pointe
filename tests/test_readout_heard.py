@@ -66,3 +66,18 @@ def test_the_reminder_of_a_request_already_read_is_one_short_line(d, monkeypatch
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(d._nudger())
     assert fixed == [f"{d._spoken_names(active.name)}'s still waiting on your yes or no."]
+
+
+def test_a_sibling_project_is_said_by_its_name_next_to_the_project(tmp_path):
+    """amb-01: "also in the folder above the project, /tmp/pccb/dlg-…/amb-01-shared-word-pointe/tariff-api", 25 seconds
+    of path for the project next door. Its name and where it sits say the same place."""
+    (tmp_path / "tariff-web").mkdir()
+    (tmp_path / "tariff-api").mkdir()
+    cwd = str(tmp_path / "tariff-web")
+    out = readout.looking(f"cd {tmp_path}/tariff-api && ls && git status && cat NOTES.md", cwd)
+    assert out == "look around, read only: ls, git status and cat, also in tariff-api, next to the project"
+    assert readout.looking(f"cat {tmp_path}/tariff-api/NOTES.md", cwd) == \
+        "look around, read only: cat, also in tariff-api/NOTES.md, next to the project"
+    hidden = readout.looking(f"cat {tmp_path}/tariff-api/.env.example", cwd)
+    assert hidden is None or "next to the project" not in hidden  # hidden or secret-looking: never shortened
+    assert readout.place(f"{tmp_path}/tariff-api/build", cwd).endswith("/tariff-api/build")  # what an action reaches: whole
