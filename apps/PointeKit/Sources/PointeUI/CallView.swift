@@ -1597,7 +1597,7 @@ struct CallView: View {
         }
         muteStored = on
         if on, status?.reading?.held == nil { call.hush() }
-        if !(await act { try await call.api.reading(on) }) { problem = MuteCopy.failed }
+        if !(await act { try await call.muteRequests.send(on, with: call.api) }) { problem = MuteCopy.failed }
     }
 
     /// The skip button beside the status line, only while Pointe's voice is heard.

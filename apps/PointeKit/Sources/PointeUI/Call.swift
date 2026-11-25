@@ -110,6 +110,8 @@ final class Call {
     }
 
     var api: API { API(link: link, session: session) }
+    /// The mute requests of this call's device, one at a time (MuteRequests.swift).
+    let muteRequests = MuteRequests()
     /// Where the Mac is dialled, for a reason that names it.
     var place: String { link.place }
 

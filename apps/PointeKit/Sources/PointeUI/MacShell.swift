@@ -208,8 +208,8 @@ public final class MacSession: CallShell {
         let on = !MuteChoice.on(status: status, stored: MuteChoice.stored())
         MuteChoice.store(on)
         if on, status?.reading?.held == nil { call.hush() }
-        let api = call.api
-        Task { try? await api.reading(on) }
+        let call = call
+        Task { try? await call.muteRequests.send(on, with: call.api) }
     }
 
     /// Play/pause is Pointe's on a real call only, never a demo's, and given back at hang-up (AirPods.swift). A link
