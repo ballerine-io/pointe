@@ -1520,10 +1520,21 @@ def _first_hello_done(why: str = "first hello answered") -> None:
     logger.info(why)
 
 
+WAITING_GREETING_SECS = 300.0  # a question sent this recently and not answered is what a call coming back greets with
+
+
 def fixed_greeting() -> str | None:
     """Before anything is read there is nothing to say, so no model call and nothing to get wrong."""
     if first_call():
         return FIRST_GREETING
+    if state.carried:  # back from a drop with the answer the user waited for: that answer is the greeting's news
+        return "Back."
+    asked = [x for x in REGISTRY.sessions.values()
+             if any("?" in m and m not in state.dropped.get(x.id, []) for m in state.unconfirmed.get(x.id, []))]
+    if asked and time.time() - state.last_delegation_at < WAITING_GREETING_SECS:
+        names = [_spoken_names(x.name).split("/")[0] for x in asked]
+        return (f"Back. Still waiting on {names[0]}'s answer." if len(names) == 1 else
+                f"Back. Still waiting on answers from {', '.join(names[:-1])} and {names[-1]}.")
     session = REGISTRY.active
     if session is None:
         return "Connected. Run slash pointe voice in Claude Code, or pointe join in another agent, and I'll pick it up."
