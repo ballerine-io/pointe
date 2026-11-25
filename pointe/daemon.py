@@ -5888,7 +5888,33 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
     REGISTRY.save()
     _night_answered(session, request_id, verdict)
     await _say_answered(verdict)
+    _read_next_waiting(session)
     return True
+
+
+def _read_next_waiting(answered: Session) -> None:
+    """One request was answered and another session still waits with one (two sessions were sent work in one breath):
+    it takes the focus and is read out next, name first, as it would have been had it come alone. Without this the
+    second request sat on its card until the user thought to switch (the tester's adv-12: "Say, switch to quarry")."""
+    if state.conn is None or REGISTRY.mode != "orchestrator" or not current_mode().reads_out:
+        return
+    waiting = [s for s in REGISTRY.sessions.values() if s is not answered and s.permission_id and online(s)]
+    if not waiting or answered.permission_id:
+        return
+    nxt = min(waiting, key=lambda s: s.permission_since or 0.0)
+
+    async def read() -> None:
+        await asyncio.sleep(NEXT_REQUEST_AFTER_SECS)  # "Approved." first
+        if nxt.permission_id and state.conn is not None and REGISTRY.mode == "orchestrator" \
+                and not any(s.permission_id for s in REGISTRY.sessions.values() if s is REGISTRY.active):
+            REGISTRY.active_id = nxt.id
+            logger.info(f"active session -> {nxt.name} (its permission request, after the one before it was answered)")
+            await _ask_permission(nxt)
+
+    asyncio.ensure_future(read())
+
+
+NEXT_REQUEST_AFTER_SECS = 0.8
 
 
 ANSWERED_LINES = {("allow", False): "Approved.", ("deny", False): "Denied.", ("allow", True): "אושר.", ("deny", True): "נדחה."}

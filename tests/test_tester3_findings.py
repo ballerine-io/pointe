@@ -86,3 +86,27 @@ def test_the_voice_never_says_the_router_blocked_it():
     import brain as brain_mod
     assert brain_mod._BACKSTAGE.search("i haven't sent that yet. the router blocked it twice.")
     assert not brain_mod._BACKSTAGE.search("billing is blocked until the tests pass.")
+
+
+def test_the_second_waiting_request_is_read_after_the_first_is_answered(d, monkeypatch):  # noqa: F811
+    """adv-12: billing and another session were sent work in one breath and both asked; only billing's request was read,
+    and the other sat on its card until the user was told to switch."""
+    active, posts, said = _read_out_setup(d, monkeypatch)  # bluebell is active with request p1
+    monkeypatch.setattr(d, "NEXT_REQUEST_AFTER_SECS", 0.01)
+    monkeypatch.setattr(d, "online", lambda s: True)
+    other = next(s for s in d.REGISTRY.sessions.values() if s is not active)
+    other.permission_id, other.permission_spoken, other.permission_since = "p9", "run: pytest", time.time()
+    other.permission_text, other.permission_cut = "[permission request] Bash: run the tests\npytest", False
+    asked = []
+
+    async def ask(session):
+        asked.append(session.name)
+
+    monkeypatch.setattr(d, "_ask_permission", ask)
+
+    async def run():
+        assert await d._apply_answer(active, "p1", "allow", "user said: 'yes'")
+        await asyncio.sleep(0.1)
+
+    asyncio.run(run())
+    assert asked == [other.name] and d.REGISTRY.active is other
