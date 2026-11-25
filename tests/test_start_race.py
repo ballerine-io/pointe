@@ -63,6 +63,7 @@ def _listeners(port: int) -> list[str]:
     return subprocess.run(["lsof", "-nP", f"-tiTCP:{port}", "-sTCP:LISTEN"], capture_output=True, text=True).stdout.split()
 
 
+@pytest.mark.slow
 def test_two_starts_at_once_leave_one_daemon_that_status_and_stop_see(plugin):
     script, env, port, state = plugin
     starts = [subprocess.Popen([str(script), "ensure"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

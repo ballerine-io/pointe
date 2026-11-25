@@ -143,6 +143,7 @@ def test_fixture_names_do_not_collide_with_pointes_own_tests():
     assert verify.name_collisions() == []
 
 
+@pytest.mark.slow
 def test_echo_adapter_runs_items_through_the_runner_and_the_scorer(tmp_path, monkeypatch):
     from core import runner
     monkeypatch.setattr(ledger, "LEDGER", tmp_path / "ledger.jsonl")

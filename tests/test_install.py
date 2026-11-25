@@ -151,6 +151,7 @@ def test_on_linux_with_no_terminal_to_ask_on_nothing_changes(linux, releases):
 
 # ---------- update and uninstall ----------
 
+@pytest.mark.slow
 def test_pointe_update_installs_the_newer_release_checked_and_removes_the_older(mac, releases, tmp_path):
     assert install(mac, releases["9.9.1"], "9.9.1", "--sha256", sha_of(releases["9.9.1"])).returncode == 0
     bad = tmp_path / "pointe-9.9.2.tar.gz"
@@ -182,6 +183,7 @@ def test_pointe_update_finds_the_newest_release_by_githubs_redirect(mac, release
     assert got.returncode == 0 and "Pointe 9.9.1 is up to date: 9.9.1 is not newer." in got.stdout
 
 
+@pytest.mark.slow
 def test_pointe_uninstall_removes_the_standalone_install_and_the_command(mac, releases):
     assert install(mac, releases["9.9.1"], "9.9.1", "--sha256", sha_of(releases["9.9.1"])).returncode == 0
     listed = mac.sh(mac.link, "uninstall", "--dry-run").stdout

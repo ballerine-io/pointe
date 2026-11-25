@@ -277,6 +277,7 @@ def test_an_approval_answered_in_the_tui_first_is_let_go(fake, tmp_path, monkeyp
     assert fake.replies == []  # nothing sent after the TUI answered
 
 
+@pytest.mark.slow
 def test_the_link_comes_back_after_the_daemon_restarts_and_reads_what_it_missed(fake, tmp_path):
     fed = []
 

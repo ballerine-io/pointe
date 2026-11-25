@@ -152,6 +152,7 @@ def _ctx():
             "audio_matches_lock": True}
 
 
+@pytest.mark.slow
 def test_echo_through_the_runner_and_the_scorer(tmp_path):
     run = next(r for r in bench.run_plan() if r["arm"] == "keyboard-canonical")
     row, spend, log = bench.one(run, 9401, tmp_path / "a", _ctx(),
@@ -163,6 +164,7 @@ def test_echo_through_the_runner_and_the_scorer(tmp_path):
     scrub.check(json.dumps(row))
 
 
+@pytest.mark.slow
 def test_the_null_policy_scores_zero_right_and_all_no_action(tmp_path, monkeypatch):
     monkeypatch.setattr(bench.time, "sleep", lambda s: None)
     from adapters.null import Null

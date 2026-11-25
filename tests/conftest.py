@@ -15,6 +15,8 @@ os.environ["CLAUDE_VOICE_SKIP_KEY_CHECK"] = "1"  # no test reaches a vendor with
 
 import sys  # noqa: E402
 
+import pytest  # noqa: E402
+
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 import harnesses.claude_code  # noqa: E402
 
@@ -44,3 +46,22 @@ def pytest_runtest_teardown(item):
     vendors = sys.modules.get("vendors")
     if vendors is not None:
         vendors._found.clear()
+
+
+def pytest_addoption(parser):
+    parser.addoption("--runslow", action="store_true", help="run the tests marked slow too (CI and the release gate do)")
+
+
+def pytest_collection_modifyitems(config, items):
+    """A test marked slow (a real daemon, a long wait) runs in CI and at a release, not in the inner loop
+    (tools/test-changed): without --runslow it is skipped and says why. Every test that skips without headless Chrome
+    is slow too (each starts a browser): the page's tests are the bulk of the suite's time."""
+    for item in items:
+        if any("headless Chrome" in str(m.kwargs.get("reason", "")) for m in item.iter_markers("skipif")):
+            item.add_marker(pytest.mark.slow)
+    if config.getoption("--runslow"):
+        return
+    skip = pytest.mark.skip(reason="slow: runs in CI and at a release (--runslow)")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip)

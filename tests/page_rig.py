@@ -10,6 +10,7 @@ Used by tests/test_ui_perf.py (regressions) and tests/e2e/page_perf.py (the numb
 
 import asyncio
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -24,7 +25,9 @@ from aiohttp import web
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 from guards import page_csp  # noqa: E402
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+# Where a Mac and GitHub's Ubuntu runner keep Chrome: the page's tests run in CI too (CONTRIBUTING.md, "How to test").
+CHROME = next((c for c in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome")
+               if os.path.exists(c)), "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 
 
 def page_html() -> str:

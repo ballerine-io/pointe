@@ -917,6 +917,7 @@ def test_o27_a_worker_job_is_not_proof_of_delivery(d, monkeypatch):
     assert "error" in result or "beta/main" in result.get("failed", []), result
 
 
+@pytest.mark.slow
 def test_o27_a_slow_worker_never_delivers_twice(d, monkeypatch):
     add(d, "a", "alpha/main")
     beta = add(d, "b", "beta/main")
@@ -3695,6 +3696,7 @@ def test_a_yes_while_thinking_out_loud_approves_nothing(d, monkeypatch):
     assert verdicts(posts) == []
 
 
+@pytest.mark.slow
 def test_a_very_long_dump_keeps_its_latest_words_and_counts_the_dropped(d, monkeypatch):
     monkeypatch.setattr(d, "_tone", lambda up: asyncio.sleep(0))
     d._start_dump()

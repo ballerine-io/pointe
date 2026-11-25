@@ -1,0 +1,115 @@
+#!/usr/bin/env -S python3 -I
+"""The inner loop: the tests a change can break, in seconds (CONTRIBUTING.md, "How to test"). CI runs everything.
+
+    tools/test-changed            # the change: the working tree, the index and the commits not yet on origin/main
+    tools/test-changed -x -q      # anything after it goes to pytest
+
+Python: pytest-testmon runs the tests whose recorded code (lines, in the test process and the Python processes it
+starts) the change touched, from .testmondata. A file that is not Python (ui.html, a fixture, a Swift source the copy
+tests read) runs the test files that name it, or that import a helper naming it. Tests marked slow never run here.
+Swift: `swift test --filter` for the PointeKit targets the change touched, or whose tests read a changed file; on a Mac
+with Swift only. It never runs a UI test.
+
+The first run in a clone records every test (about two minutes on all cores). Each run leaves its data in the clone's
+git folder, and a new worktree starts from that copy: only what differs from the last run is selected.
+"""
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip())
+DATA = ROOT / ".testmondata"
+SHARED = Path(subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=ROOT,
+                             capture_output=True, text=True, check=True).stdout.strip()) / "pointe-testmondata"
+PYTEST = ["uv", "run", "--locked", "--group", "test-tools", "pytest", "tests/", "--ignore=tests/e2e"]
+KIT = ROOT / "apps" / "PointeKit"
+# A source target's change runs the test targets of everything built on it (Package.swift).
+SWIFT_SOURCES = {"PointeKit": {"PointeKitTests", "PointeUIUnitTests", "PointeMacKitTests"},
+                 "PointeUI": {"PointeUIUnitTests"}, "PointeMacKit": {"PointeMacKitTests"}}
+
+
+def git(*args: str) -> list[str]:
+    out = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
+    return out.stdout.split("\n") if out.returncode == 0 else []
+
+
+def changed() -> list[str]:
+    base = (git("merge-base", "HEAD", "origin/main") or ["HEAD"])[0] or "HEAD"
+    names = set(git("diff", "--name-only", base)) | set(git("ls-files", "--others", "--exclude-standard"))
+    return sorted(n for n in names if n)
+
+
+def named_by(paths: list[str], files: list[Path]) -> set[Path]:
+    """The files whose text names one of the paths: by its path, or by its file name when no other tracked file has
+    it (ui.html counts, index.html does not)."""
+    names = [Path(n).name for n in git("ls-files")]
+    words = {p for p in paths} | {Path(p).name for p in paths if names.count(Path(p).name) == 1}
+    return {f for f in files if any(w in f.read_text(errors="replace") for w in words)}
+
+
+def python_files_for(paths: list[str]) -> list[str]:
+    """Test files that name a changed file that is not Python, or import a helper of tests/ that does."""
+    others = [p for p in paths if not p.endswith(".py")]
+    if not others:
+        return []
+    every = sorted((ROOT / "tests").glob("*.py"))
+    hits = named_by(others, every)
+    helpers = {h.stem for h in hits if not h.name.startswith("test_") and h.name != "conftest.py"}
+    hits |= {f for f in every if any(re.search(rf"^\s*(from|import) {h}\b", f.read_text(), re.M) for h in helpers)}
+    return sorted(str(f.relative_to(ROOT)) for f in hits if f.name.startswith("test_"))
+
+
+def swift_targets_for(paths: list[str]) -> list[str]:
+    targets = set()
+    for p in paths:
+        parts = Path(p).parts
+        if parts[:3] == ("apps", "PointeKit", "Sources") and len(parts) > 3:
+            targets |= SWIFT_SOURCES.get(parts[3], set())
+        elif parts[:3] == ("apps", "PointeKit", "Tests") and len(parts) > 3:
+            targets.add(parts[3])
+    for folder in (KIT / "Tests").iterdir() if KIT.is_dir() else []:
+        if folder.name not in targets and named_by([p for p in paths if not p.startswith("apps/PointeKit/")],
+                                                   list(folder.rglob("*.swift"))):
+            targets.add(folder.name)
+    return sorted(targets)
+
+
+def run(label: str, command: list[str], cwd: Path = ROOT) -> bool:
+    start = time.monotonic()
+    print(f"\n== {label}: {' '.join(command)}", flush=True)
+    ok = subprocess.run(command, cwd=cwd).returncode in (0, 5)  # 5: pytest collected nothing, which is a pass here
+    print(f"== {label}: {'passed' if ok else 'FAILED'} in {time.monotonic() - start:.1f} s", flush=True)
+    return ok
+
+
+def main(extra: list[str]) -> int:
+    paths = changed()
+    print(f"changed: {len(paths)} file(s)" + "".join(f"\n  {p}" for p in paths[:20]) + ("\n  …" if len(paths) > 20 else ""))
+    if not DATA.exists() and SHARED.exists():
+        shutil.copyfile(SHARED, DATA)
+    first = not DATA.exists()
+    if first:
+        print("no .testmondata here or in the clone yet: this run records every test, on all cores, once")
+    ok = run("python, by testmon", PYTEST + ["--testmon", "-q"] + (["-n", "auto"] if first else []) + extra)
+    if DATA.exists():
+        partial = SHARED.with_name(f"{SHARED.name}.{os.getpid()}")
+        shutil.copyfile(DATA, partial)
+        partial.replace(SHARED)  # atomic: another worktree reads a whole copy or the last one
+    files = python_files_for(paths)
+    if files:
+        ok &= run("python, naming a changed file", PYTEST[:6] + files + ["-q", "-p", "no:testmon"] + extra)
+    targets = swift_targets_for(paths)
+    if targets and sys.platform == "darwin" and shutil.which("swift"):
+        ok &= run("swift", ["swift", "test", "--filter", rf"^({'|'.join(targets)})\."], cwd=KIT)
+    elif targets:
+        print(f"\nswift: {', '.join(targets)} changed; Swift is not here, so CI's apps workflow runs them")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

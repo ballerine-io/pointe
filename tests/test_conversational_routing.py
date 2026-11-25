@@ -182,6 +182,7 @@ def perfect_policy(conv: dict):
     return policy
 
 
+@pytest.mark.slow
 def test_echo_arm_through_the_runner_and_the_null_floor():
     env = RunEnv(run_id="t", root=tmp_root(), checkout=ROOT)
     conv = DS["conversation"][0]
@@ -306,6 +307,7 @@ class _SlowAgentArm(EchoArm):
         self.counts[name] += 1
 
 
+@pytest.mark.slow
 def test_a_turn_waits_for_the_agent_that_got_the_request():
     env = RunEnv(run_id="t", root=tmp_root(), checkout=ROOT)
     conv = DS["conversation"][1]
@@ -317,6 +319,7 @@ def test_a_turn_waits_for_the_agent_that_got_the_request():
     assert [r["correct"] for r in res["rows"]] == [True, True]
 
 
+@pytest.mark.slow
 def test_a_turn_is_read_only_after_the_agent_ends_its_turn():
     env = RunEnv(run_id="t", root=tmp_root(), checkout=ROOT)
     conv = DS["conversation"][1]

@@ -676,6 +676,7 @@ def test_a_send_the_nodes_claude_code_held_or_refused_is_marked_on_the_hub(world
     run(go())
 
 
+@pytest.mark.slow
 def test_a_send_with_no_result_in_time_or_to_an_offline_node_is_false(world, monkeypatch):
     hub, host, registry, *_ = world
     monkeypatch.setattr(nodelink, "SEND_TIMEOUT_SECS", 0.05)

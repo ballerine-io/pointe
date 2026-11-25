@@ -53,3 +53,15 @@ dev = [
     "pytest>=9.2.0",
     "sounddevice>=0.5.6",
 ]
+# The test runner's speed-ups, kept out of `dev` because a plain `uv sync --locked` (bin/uv-sync, every install)
+# installs `dev`, and coverage adds a start-up hook (a .pth file) to the environment. tools/test-changed and CI ask for
+# it: `uv run --locked --group test-tools`. Pinned: they run every file in the checkout.
+test-tools = [
+    "pytest-testmon==2.3.1",  # tools/test-changed: only the tests whose code a change touched
+    "pytest-xdist==3.8.0",  # CI: the offline suite on every core (-n auto)
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: skipped unless --runslow; CI and the release gate pass it, tools/test-changed does not",
+]

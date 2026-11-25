@@ -92,7 +92,7 @@ def test_only_a_moving_row_has_the_pause_button():
     assert "wg-pause" not in wg.render(five, FIXTURE)
 
 
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+from page_rig import CHROME  # noqa: E402
 
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="headless Chrome is not installed here")

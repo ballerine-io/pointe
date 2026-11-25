@@ -18,6 +18,7 @@ import pytest
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 
 import phone  # noqa: E402
+from page_rig import CHROME  # noqa: E402
 import ptt  # noqa: E402
 from test_orchestrator import client_for, d  # noqa: E402,F401  (d is a fixture)
 
@@ -462,8 +463,7 @@ CAPTION = ("(() => { const c = document.getElementById('caption'), l = document.
            "text: document.getElementById('caption-text').textContent}; })()")
 
 
-@pytest.mark.skipif(not Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome").exists(),
-                    reason="headless Chrome is not installed here")
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="headless Chrome is not installed here")
 def test_the_page_shows_a_press_s_words_as_a_draft_until_they_are_sent():
     from page_rig import Browser, StubMac, fixture, free_port
 

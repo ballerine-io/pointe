@@ -315,6 +315,7 @@ def _run(arm_cls, items, tag):
     return rows
 
 
+@pytest.mark.slow
 def test_echo_arm_gets_every_item_right(quick):
     from adapters.echo import EchoAdapter
     rows = _run(EchoAdapter, _sample(), "echo")
@@ -322,6 +323,7 @@ def test_echo_arm_gets_every_item_right(quick):
     assert wrong == []
 
 
+@pytest.mark.slow
 def test_null_arm_gets_the_floor(quick):
     from adapters.null import NullAdapter
     rows = _run(NullAdapter, _sample(), "null")

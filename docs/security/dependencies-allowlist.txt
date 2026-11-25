@@ -25,6 +25,7 @@ cloudpathlib                     needed by weasel
 cloudpickle                      needed by joblib
 colorama                         needed by loguru, pytest, tqdm
 confection                       needed by spacy, thinc, weasel
+coverage                         needed by pytest-testmon (records which code each test runs)
 cryptography                     node group: the node's TLS link and pairing (nodelink.py); also google-auth
 csvw                             needed by segments
 ctranslate2                      needed by faster-whisper
@@ -37,6 +38,7 @@ docopt                           needed by num2words
 docstring-parser                 needed by anthropic, pipecat-ai
 en-core-web-sm                   local extra: spaCy's English pipeline for misaki, pinned by URL so misaki does not pip-install it at run time
 espeakng-loader                  needed by kokoro-onnx, misaki[en]
+execnet                          needed by pytest-xdist
 fastapi                          node group: the node's HTTP app; also pipecat-ai[websocket]
 faster-whisper                   needed by pipecat-ai[whisper]
 filelock                         needed by huggingface-hub, torch
@@ -115,6 +117,8 @@ pydantic-core                    needed by pydantic
 pygments                         needed by pytest, rich
 pyparsing                        needed by rdflib
 pytest                           dev group: the test runner
+pytest-testmon                   test-tools group: tools/test-changed runs only the tests a change touched
+pytest-xdist                     test-tools group: CI runs the offline suite on every core (-n auto)
 python-dateutil                  needed by csvw
 python-dotenv                    needed by pipecat-ai
 pyyaml                           needed by ctranslate2, huggingface-hub, mlx-lm, pipecat-ai, transformers

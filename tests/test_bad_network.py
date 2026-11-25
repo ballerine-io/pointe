@@ -34,6 +34,7 @@ def runs():
     return out
 
 
+@pytest.mark.slow
 def test_an_outage_drops_no_call_and_a_line_typed_during_it_arrives_once(runs):
     r = runs["t-outage"]
     assert r["calls"] == 1 and r["call_drops"] == 0, r

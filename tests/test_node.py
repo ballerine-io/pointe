@@ -450,6 +450,7 @@ def test_a_session_that_moves_to_a_new_file_is_repointed_with_the_next_gen(tmp_p
     run(scenario, tmp_path)
 
 
+@pytest.mark.slow
 def test_a_session_whose_process_exits_is_reported_left(tmp_path):
     async def scenario(hub, n):
         sleeper = subprocess.Popen(["sleep", "30"])
@@ -958,6 +959,7 @@ def test_the_real_hook_gets_the_hubs_tap_with_lsof(served):
     assert json.loads(out)["hookSpecificOutput"]["decision"] == {"behavior": "allow"}
 
 
+@pytest.mark.slow
 def test_the_real_hook_without_lsof_falls_back_to_ss_then_proc(served):
     with_ss = shutil.which("ss")
     out = _approve_through_the_real_hook(served, _trimmed_path(served["tmp"], ("lsof",)))

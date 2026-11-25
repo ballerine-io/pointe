@@ -136,6 +136,9 @@ None is GPL.
 For the tests and the bench, never installed by setup: pytest, iniconfig and pluggy (MIT; the test runner), httpx (BSD),
 sounddevice (MIT; bench recording and playback).
 
+In the `test-tools` group, which no install syncs: pytest-testmon (MIT) with coverage (Apache-2.0; `tools/test-changed`
+runs only the tests a change touched), pytest-xdist (MIT) with execnet (MIT; CI runs the suite on every core).
+
 ## Claude Code channel (`channel/`, Node.js)
 
 Used only by channel mode (`bin/pointe start`): [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)

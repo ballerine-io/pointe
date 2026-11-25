@@ -19,7 +19,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "pointe" / "ui.html").read_text()
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+from page_rig import CHROME  # noqa: E402
 
 # Every id the page tests (tests/e2e/page_*.py) and the iPhone parity tests look up. Renaming one breaks them silently
 # until the e2e runs; here it fails at once.
